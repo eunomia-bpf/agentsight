@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0985",
+  "prediction": {
+    "traj_id": "0985",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "乾隆审美网络梗的出现，暗示了后续讨论的偏离，导致后续信息的错误导向"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0985\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"“玉带林中挂，金簪雪里埋”出自我国某一部文学作品，该作品的原作者所处朝代中，有一位被多位导演应用原型至影视作品的皇帝，该皇帝的审美近年来在网络上被网友多次调侃，他的第二位皇后生育了几个孩子？\",\n  \"traj_id\": \"0985\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"“玉带林中挂，金簪雪里埋”出自我国某一部文学作品，该作品的原作者所处朝代中，有一位被多位导演应用原型至影视作品的皇帝，该皇帝的审美近年来在网络上被网友多次调侃，他的第二位皇后生育了几个孩子\\n---\\n\\\"玉带林中挂，金簪雪里埋\\\" 出自 哪部 作品\\n---\\n\\\"玉带林中挂，金簪雪里埋\\\" 出自 哪部 文学 作品\\n---\\n\\\"玉带林中挂，金簪雪里埋\\\" 红楼梦 第五回 金陵十二钗 正册 判词 出处\\n---\\n跳转到内容 主菜单 搜索 资助 创建账号 登录 [关闭] 目录 隐藏 （首段） 注释 紅樓夢/第005回 添加语言 作品 讨论 不转换 阅读 编辑 查看历史 工具 外观 隐藏 文本 小 标准 大 宽度 标准 宽 颜色 （测试版） 自动 浅色 深色 下载 < 紅樓夢 本作品由于校订不足而错误百出\\n---\\n“玉带林中挂，金簪雪里埋”出自清代长篇小说《红楼梦》（作者曹雪芹，后四十回通行本多由高鹗续成）第五回中“金陵十二钗正册”之判词，系对林黛玉与薛宝钗（钗、黛）合写的四句判词的后两句\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我们先查找“玉带林中挂，金簪雪里埋”出自哪里，以确认文学作品及作者\\n---\\n\\\"玉带林中挂，金簪雪里埋\\\" 出处 作品 章节 作者 朝代\\n---\\n\\\"玉带林中挂，金簪雪里埋\\\" 红楼梦 第几回 判词 太虚幻境 金陵十二钗 出处 章节\\n---\\nsite:zh.wikisource.org 玉带林中挂\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳转到内容 主菜单 搜索 资助 创建账号 登录 [关闭] 目录 隐藏 （首段） 注释 脂砚斋重评石头记/第五回 添加语言 作品 讨论 简体 阅读 编辑 查看历史 工具 外观 隐藏 文本 小 标准 大 宽度 标准 宽 颜色 （测试版） 自动 浅色 深色 下载 < 脂硯齋重評石頭記 ← 第四回 脂砚斋重评石头记 第五回 作者：曹雪芹 第六回 → 姊妹计划: 数据项 【蒙：万种豪华原是幻，何尝造孽，何是风流\\n---\\n跳转到内容 主菜单 搜索 资助 创建账号 登录 [关闭] 目录 隐藏 （首段） 注释 紅樓夢/第005回 添加语言 作品 讨论 不转换 阅读 编辑 查看历史 工具 外观 隐藏 文本 小 标准 大 宽度 标准 宽 颜色 （测试版） 自动 浅色 深色 下载 < 紅樓夢 本作品由于校订不足而错误百出\\n---\\n“玉带林中挂，金簪雪里埋”出自《红楼梦》（又名《石头记》）\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"乾隆审美\\\" 网络梗 起源 解释\\n---\\n乾隆审美 网络梗\\n---\\n乾隆 审美 网络梗 农家乐\\n---\\n乾隆巴洛克\\n---\\n乾隆 审美 网络梗 延禧攻略 如懿传 还珠格格\\n---\\n被网友调侃为“网络梗”的清朝皇帝审美是乾隆帝（爱新觉罗·弘历）\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"继后 那拉氏 维基百科\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\n永璋 维基百科\\n---\\n和嘉公主 维基百科\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"皇十二子 永璂 维基百科 乾隆\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科Discord、IRC、LINE、QQ及Telegram等各平台交流群欢迎大家加入\\n---\\nhttps://zh.wikipedia.org/zh-hans/%E5%92%8C%E7%A1%95%E5%92%8C%E5%98%89%E5%85%AC%E4%B8%BB\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我们需要串联信息：先确认“玉带林中挂，金簪雪里埋”的出处，从而确定作者与所处朝代\\n---\\nThought: 这道题的关键信息链为：引文“玉带林中挂，金簪雪里埋”出自《红楼梦》，作者曹雪芹，所处朝代为清朝\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0985",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "乾隆审美网络梗的出现，暗示了后续讨论的偏离，导致后续信息的错误导向"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0985",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "乾隆审美网络梗的出现，暗示了后续讨论的偏离，导致后续信息的错误导向"
+          }
+        ]
+      }
+    },
+    "full_span_count": 7
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1853,
+    "output_tokens": 92,
+    "total_tokens": 1945
+  }
+}

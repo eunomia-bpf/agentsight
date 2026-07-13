@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0888",
+  "prediction": {
+    "traj_id": "0888",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "new search query"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0888\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"截至2025年2月，从上海任意一个地铁站出发，有一个站点最多只需要换乘一次就能到达，请问这个站点是什么？\",\n  \"traj_id\": \"0888\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"截至2025年2月，从上海任意一个地铁站出发，有一个站点最多只需要换乘一次就能到达，请问这个站点是什么\\n---\\nShanghai metro network transfer stations major hubs 2025\\n---\\nShanghai metro transfer stations list February 2025\\n---\\nAnswers Home Asia Tours China Tours Small Groups City Packages Day Trips Tailor My Trip Trains City Guide Reviews Shanghai Metro Line 1 Line 2 Line 3 Line 4 Line 5 Line 6 Line 7 Line 8 Line 9 Line 10 Line 11 Line 12 Line\\n---\\nShanghai metro major transfer stations hubs 3 lines 4 lines interchange 2025\\n---\\nShanghai metro 2025 total lines stations network expansion new lines\\n---\\nMetroMan Planner Cities Maps Rankings Metro Guides App EN New Metro Lines Open in Beijing, Shanghai, and Jinan Dec 27, 2025 opening On Saturday, December 27, three cities—Beijing, Shanghai, and Jinan—simultaneously launc\\n---\\nShanghai metro February 2025 18 lines network map stations\\n---\\nAnswers Home Asia Tours China Tours Small Groups City Packages Day Trips Tailor My Trip Trains City Guide Reviews Shanghai Metro Line 1 Line 2 Line 3 Line 4 Line 5 Line 6 Line 7 Line 8 Line 9 Line 10 Line 11 Line 12 Line\\n---\\n\\\\n\\\\nAs of February 2025, Shanghai Metro operates 18 lines plus the Pujiang Line, Jinshan Line, and Airport Link Line, covering approximately 831 kilometers with over 500 stations\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Shanghai metro 2025 network map all lines stations\\n---\\nAnswers Home Asia Tours China Tours Small Groups City Packages Day Trips Tailor My Trip Trains City Guide Reviews Shanghai Metro Line 1 Line 2 Line 3 Line 4 Line 5 Line 6 Line 7 Line 8 Line 9 Line 10 Line 11 Line 12 Line\\n---\\nShanghai metro 中转站 one transfer reachable all stations 2025\\n---\\nAnswers Home Asia Tours China Tours Small Groups City Packages Day Trips Tailor My Trip Trains City Guide Reviews Shanghai Metro Line 1 Line 2 Line 3 Line 4 Line 5 Line 6 Line 7 Line 8 Line 9 Line 10 Line 11 Line 12 Line\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Shanghai metro People's Square Century Avenue transfer hub connectivity 2025\\n---\\n上海地铁 中转站 一次换乘 所有站点 可达 2025\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"新的搜索 接入API，立即获得深度搜索能力\\n---\\nShanghai metro People Square station one transfer all stations reachable 2025\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll solve this step by step by researching the Shanghai metro network as of February 2025\\n---\\nI need to analyze the information I've already gathered and provide a final answer based on the comprehensive data about Shanghai metro transfer stations\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0888",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "new search query"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0888",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "new search query"
+          }
+        ]
+      }
+    },
+    "full_span_count": 5
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1213,
+    "output_tokens": 67,
+    "total_tokens": 1280
+  }
+}

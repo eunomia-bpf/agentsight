@@ -1,0 +1,205 @@
+{
+  "setting": "drift",
+  "case_id": "0777",
+  "prediction": {
+    "traj_id": "0777",
+    "error_span_ids": [
+      "s013"
+    ],
+    "earliest_harmful_span_id": "s013",
+    "reasons": [
+      {
+        "span_id": "s013",
+        "reason": "The claim that the oldest flavor is Dastardly Mash is finalized as it is the first harmful commitment candidate and is used in the final answer."
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0777\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"What's the last line of the rhyme under the flavor name on the headstone visible in the background of the photo of the oldest flavor's headstone in the Ben & Jerry's online flavor graveyard as of the end of 2022?\",\n  \"traj_id\": \"0777\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"What's the last line of the rhyme under the flavor name on the headstone visible in the background of the photo of the oldest flavor's headstone in the Ben & Jerry's online flavor\\n---\\nBen & Jerry's Flavor Graveyard URL\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need to find the Ben & Jerry's Flavor Graveyard and an archived version from the end of 2022\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Ben & Jerry's official website\\n---\\nBen & Jerry's flavor graveyard\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\\n---\\nBen & Jerry's UK flavour graveyard\\n---\\nSkip to main content Skip to footer Ice Cream Flavours Where To Buy Shops & Catering Activism About Us What's New Contact Us Close Menu Ice Cream Flavours Flavour Graveyard Even the best Ben & Jerry’s flavours eventually\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I need to find a specific line of text from an archived version of a website\\n---\\nBen & Jerry's Flavor Graveyard\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I will solve this by first finding the Ben & Jerry's Flavor Graveyard website\\n---\\nBen & Jerry's Flavor Graveyard website\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\\n---\\nThe website for the Ben & Jerry's Flavor Graveyard can be found at the following URL: [https://www\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I will try to find the last line of the rhyme on a headstone in the Ben & Jerry's flavor graveyard by breaking the problem down into smaller, more manageable steps\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have the URL for the Ben & Jerry's Flavor Graveyard\\n---\\nWayback Machine ben & jerry's flavor graveyard\\n---\\nhttps://www.benjerry.com/flavors/flavor-graveyard\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I need to find a specific piece of text from an old version of a website\\n---\\n820 captures 17 Apr 2014 - 08 Sep 2025 Nov JAN Mar 29 2022 2023 2024 success fail About this capture COLLECTED BY Collection: mega002 TIMESTAMPS The Wayback Machine - http://web\\n---\\nBen & Jerry's Wavy Gravy flavor production years\\n---\\nBen & Jerry's Schweddy Balls flavor production years\\n---\\nBen & Jerry's Fossil Fuel flavor production years\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have an archived URL from January 2023, which is close enough to the end of 2022 for my purposes\\n---\\n820 captures 17 Apr 2014 - 08 Sep 2025 Nov JAN Mar 29 2022 2023 2024 success fail About this capture COLLECTED BY Collection: mega002 TIMESTAMPS The Wayback Machine - http://web\\n---\\nBen & Jerry's Schweddy Balls production years\\n---\\nBen & Jerry's Wavy Gravy production years\\n---\\nBen & Jerry's Fossil Fuel production years\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have the archived URL for the Ben & Jerry's Flavor Graveyard\\n---\\n820 captures 17 Apr 2014 - 08 Sep 2025 Nov JAN Mar 29 2022 2023 2024 success fail About this capture COLLECTED BY Collection: mega002 TIMESTAMPS The Wayback Machine - http://web\\n---\\nBen & Jerry's Flavor Graveyard flavor years\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have an archived URL for the Ben & Jerry's Flavor Graveyard\\n---\\n820 captures 17 Apr 2014 - 08 Sep 2025 Nov JAN Mar 29 2022 2023 2024 success fail About this capture COLLECTED BY Collection: mega002 TIMESTAMPS The Wayback Machine - http://web\\n---\\nBen & Jerry's flavor graveyard list with years\\n---\\nSIGN IN REGISTER EXPLORE WIKI CONTENT COMMUNITY SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT WikiLists 9,883 PAGES EXPLORE WIKI CONTENT COMMUNITY in: Ben & Jerry's List of discontinued Ben & Jerry's flavors SIGN IN\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have the archived URL for the Ben & Jerry's Flavor Graveyard\\n---\\nBen & Jerry's discontinued ice cream flavors list with years\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\\n---\\nSIGN IN REGISTER EXPLORE WIKI CONTENT COMMUNITY SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT WikiLists 9,883 PAGES EXPLORE WIKI CONTENT COMMUNITY in: Ben & Jerry's List of discontinued Ben & Jerry's flavors SIGN IN\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'm going to try a different approach\\n---\\nBen & Jerry's discontinued flavors list with dates\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\\n---\\nSIGN IN REGISTER EXPLORE WIKI CONTENT COMMUNITY SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT WikiLists 9,883 PAGES EXPLORE WIKI CONTENT COMMUNITY in: Ben & Jerry's List of discontinued Ben & Jerry's flavors SIGN IN\\n---\\nBen & Jerry's Dastardly Mash flavor\\n---\\nThe oldest discontinued Ben & Jerry's flavor is **Dastardly Mash**, which was first produced in **1979**\\n---\\nI will try a more direct approach to find the oldest flavor\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0777",
+        "task_goal": "Identify the last line of the rhyme under the flavor name on the headstone of the oldest flavor in the Ben & Jerry's online flavor graveyard as of the end of 2022.",
+        "hard_constraints": [
+          "The oldest flavor is Dastardly Mash, produced in 1979"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "The oldest flavor in the Ben & Jerry's flavor graveyard is Dastardly Mash.",
+            "introduced_at": "s013",
+            "becomes_consequential_at": "s013",
+            "used_by": [
+              "s013"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ],
+        "notes": "The claim that the oldest flavor is Dastardly Mash is finalized as it is the first harmful commitment candidate and is used in the final answer."
+      },
+      "validated": {
+        "traj_id": "0777",
+        "task_goal": "Identify the last line of the rhyme under the flavor name on the headstone of the oldest flavor in the Ben & Jerry's online flavor graveyard as of the end of 2022.",
+        "hard_constraints": [
+          "The oldest flavor is Dastardly Mash, produced in 1979"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "The oldest flavor in the Ben & Jerry's flavor graveyard is Dastardly Mash.",
+            "introduced_at": "s013",
+            "becomes_consequential_at": "s013",
+            "used_by": [
+              "s013"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ],
+        "notes": "The claim that the oldest flavor is Dastardly Mash is finalized as it is the first harmful commitment candidate and is used in the final answer."
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s013"
+          ],
+          "grep_queries": [
+            "The oldest flavor in the Ben & Jerry's flavor graveyard is Dastardly Mash."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s013"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s005",
+        "s012",
+        "s013"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "The oldest flavor in the Ben & Jerry's flavor graveyard is Dastardly Mash.",
+          "matched_chunk_ids": [
+            "s013:c001",
+            "s001:c001",
+            "s005:c001",
+            "s012:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s005",
+            "s012",
+            "s013"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0777\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"What's the last line of the rhyme under the flavor name on the headstone visible in the background of the photo of the oldest flavor's headstone in the Ben & Jerry's online flavor graveyard as of the end of 2022?\",\n  \"traj_id\": \"0777\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0777\",\n    \"task_goal\": \"Identify the last line of the rhyme under the flavor name on the headstone of the oldest flavor in the Ben & Jerry's online flavor graveyard as of the end of 2022.\",\n    \"hard_constraints\": [\n      \"The oldest flavor is Dastardly Mash, produced in 1979\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"The oldest flavor in the Ben & Jerry's flavor graveyard is Dastardly Mash.\",\n        \"introduced_at\": \"s013\",\n        \"becomes_consequential_at\": \"s013\",\n        \"used_by\": [\n          \"s013\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"The claim that the oldest flavor is Dastardly Mash is finalized as it is the first harmful commitment candidate and is used in the final answer.\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s013\"\n    ],\n    \"requested_span_ids\": [\n      \"s013\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"The oldest flavor in the Ben & Jerry's flavor graveyard is Dastardly Mash.\",\n        \"matched_chunk_ids\": [\n          \"s013:c001\",\n          \"s001:c001\",\n          \"s005:c001\",\n          \"s012:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s005\",\n          \"s012\",\n          \"s013\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s005\",\n      \"s012\",\n      \"s013\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s013\",\n        \"chunk_id\": \"s013:c001\",\n        \"char_start\": 0,\n        \"char_end\": 719,\n        \"text\": \"I'm going to try a different approach\\n---\\nBen & Jerry's discontinued flavors list with dates\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\\n---\\nSIGN IN REGISTER EXPLORE WIKI CONTENT COMMUNITY SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT WikiLists 9,883 PAGES EXPLORE WIKI CONTENT COMMUNITY in: Ben & Jerry's List of discontinued Ben & Jerry's flavors SIGN IN\\n---\\nBen & Jerry's Dastardly Mash flavor\\n---\\nThe oldest discontinued Ben & Jerry's flavor is **Dastardly Mash**, which was first produced in **1979**\\n---\\nI will try a more direct approach to find the oldest flavor\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 407,\n        \"text\": \"What's the last line of the rhyme under the flavor name on the headstone visible in the background of the photo of the oldest flavor's headstone in the Ben & Jerry's online flavor\\n---\\nBen & Jerry's Flavor Graveyard URL\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 412,\n        \"text\": \"I will solve this by first finding the Ben & Jerry's Flavor Graveyard website\\n---\\nBen & Jerry's Flavor Graveyard website\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\\n---\\nThe website for the Ben & Jerry's Flavor Graveyard can be found at the following URL: [https://www\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 541,\n        \"text\": \"I have the archived URL for the Ben & Jerry's Flavor Graveyard\\n---\\nBen & Jerry's discontinued ice cream flavors list with years\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\\n---\\nSIGN IN REGISTER EXPLORE WIKI CONTENT COMMUNITY SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT WikiLists 9,883 PAGES EXPLORE WIKI CONTENT COMMUNITY in: Ben & Jerry's List of discontinued Ben & Jerry's flavors SIGN IN\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0777",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s013"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s013",
+                "chunk_id": "s013:c001",
+                "role": "partial_support",
+                "text": "The oldest discontinued Ben & Jerry's flavor is **Dastardly Mash**, which was first produced in **1979**"
+              }
+            ]
+          }
+        ],
+        "notes": "The claim that the oldest flavor is Dastardly Mash is finalized as it is the first harmful commitment candidate and is used in the final answer. The support spans for this claim are weakly related to the final answer, as the exact last line of the rhyme is not explicitly stated in the span. The missing support is due to the lack of a direct span that explicitly states the last line of the rhyme."
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s013"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s013",
+              "chunk_id": "s013:c001",
+              "role": "partial_support",
+              "text": "The oldest discontinued Ben & Jerry's flavor is **Dastardly Mash**, which was first produced in **1979**"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0777\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"What's the last line of the rhyme under the flavor name on the headstone visible in the background of the photo of the oldest flavor's headstone in the Ben & Jerry's online flavor graveyard as of the end of 2022?\",\n  \"traj_id\": \"0777\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0777\",\n    \"task_goal\": \"Identify the last line of the rhyme under the flavor name on the headstone of the oldest flavor in the Ben & Jerry's online flavor graveyard as of the end of 2022.\",\n    \"hard_constraints\": [\n      \"The oldest flavor is Dastardly Mash, produced in 1979\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"The oldest flavor in the Ben & Jerry's flavor graveyard is Dastardly Mash.\",\n        \"introduced_at\": \"s013\",\n        \"becomes_consequential_at\": \"s013\",\n        \"used_by\": [\n          \"s013\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"The claim that the oldest flavor is Dastardly Mash is finalized as it is the first harmful commitment candidate and is used in the final answer.\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s013\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s013\",\n          \"chunk_id\": \"s013:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"The oldest discontinued Ben & Jerry's flavor is **Dastardly Mash**, which was first produced in **1979**\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s013\"\n    ],\n    \"requested_span_ids\": [\n      \"s013\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"The oldest flavor in the Ben & Jerry's flavor graveyard is Dastardly Mash.\",\n        \"matched_chunk_ids\": [\n          \"s013:c001\",\n          \"s001:c001\",\n          \"s005:c001\",\n          \"s012:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s005\",\n          \"s012\",\n          \"s013\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s005\",\n      \"s012\",\n      \"s013\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s013\",\n        \"chunk_id\": \"s013:c001\",\n        \"char_start\": 0,\n        \"char_end\": 719,\n        \"text\": \"I'm going to try a different approach\\n---\\nBen & Jerry's discontinued flavors list with dates\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\\n---\\nSIGN IN REGISTER EXPLORE WIKI CONTENT COMMUNITY SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT WikiLists 9,883 PAGES EXPLORE WIKI CONTENT COMMUNITY in: Ben & Jerry's List of discontinued Ben & Jerry's flavors SIGN IN\\n---\\nBen & Jerry's Dastardly Mash flavor\\n---\\nThe oldest discontinued Ben & Jerry's flavor is **Dastardly Mash**, which was first produced in **1979**\\n---\\nI will try a more direct approach to find the oldest flavor\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 407,\n        \"text\": \"What's the last line of the rhyme under the flavor name on the headstone visible in the background of the photo of the oldest flavor's headstone in the Ben & Jerry's online flavor\\n---\\nBen & Jerry's Flavor Graveyard URL\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 412,\n        \"text\": \"I will solve this by first finding the Ben & Jerry's Flavor Graveyard website\\n---\\nBen & Jerry's Flavor Graveyard website\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\\n---\\nThe website for the Ben & Jerry's Flavor Graveyard can be found at the following URL: [https://www\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 541,\n        \"text\": \"I have the archived URL for the Ben & Jerry's Flavor Graveyard\\n---\\nBen & Jerry's discontinued ice cream flavors list with years\\n---\\nSkip to main content Skip to footer Ice Cream Flavors Where to Buy Shops & Catering Activism Ice Cream Flavors Flavor Graveyard Even the best Ben & Jerry’s flavors eventually melt away\\n---\\nSIGN IN REGISTER EXPLORE WIKI CONTENT COMMUNITY SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT WikiLists 9,883 PAGES EXPLORE WIKI CONTENT COMMUNITY in: Ben & Jerry's List of discontinued Ben & Jerry's flavors SIGN IN\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0777",
+        "first_error_span": "s013",
+        "linked_error_span_ids": [
+          "s013"
+        ],
+        "non_errors": [],
+        "reason": "The claim that the oldest flavor is Dastardly Mash is finalized as it is the first harmful commitment candidate and is used in the final answer.",
+        "error_span_ids": [
+          "s013"
+        ],
+        "earliest_harmful_span_id": "s013"
+      },
+      "validated": {
+        "traj_id": "0777",
+        "first_error_span": "s013",
+        "linked_error_span_ids": [
+          "s013"
+        ],
+        "non_errors": [],
+        "reason": "The claim that the oldest flavor is Dastardly Mash is finalized as it is the first harmful commitment candidate and is used in the final answer.",
+        "error_span_ids": [
+          "s013"
+        ],
+        "earliest_harmful_span_id": "s013"
+      }
+    },
+    "full_span_count": 13,
+    "evidence_span_count": 4
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 6341,
+    "output_tokens": 563,
+    "total_tokens": 6904
+  }
+}

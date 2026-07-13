@@ -1,0 +1,57 @@
+{
+  "setting": "bare",
+  "case_id": "0894",
+  "prediction": {
+    "traj_id": "0894",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0894\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"在美国南方文学中，一种食物常作为 “乡愁” 和 “家庭温暖” 的象征 。小说《油炸绿番茄》中，主角通过制作这种食物传递情感。这种食物在一个国家的变体内馅更轻盈，常加入酸奶或奶油奶酪，饼底用消化饼干混合玉米片，增加脆感。这个国家最高的山海拔是多少？单位：米。\",\n  \"traj_id\": \"0894\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"在美国南方文学中，一种食物常作为 “乡愁” 和 “家庭温暖” 的象征\\n---\\nFried Green Tomatoes at the Whistle Stop Cafe Fannie Flagg novel\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nFried Green Tomatoes novel food symbolism nostalgia family warmth literary analysis\\n---\\nLitReaderNotes A literary review site of today’s great reads & yesterday’s classics Nov 11 Fried Green Tomatoes at the Whistle Stop Cafe Reading Fun Last month I craved feel-good, transportive reads\\n---\\nwww\\n---\\nSouthern American literature food symbolism community family tradition\\n---\\nFried Green Tomatoes Whistle Stop Cafe symbolism themes community belonging\\n---\\nhttps://www.enotes.com/topics/fried-green/themes\\n---\\nFried Green Tomatoes cafe food represents memory comfort Southern hospitality\\n---\\n\\\"Fried Green Tomatoes\\\" novel food symbolism analysis academic literary criticism\\n---\\nIn Fannie Flagg's 1987 novel \\\"Fried Green Tomatoes at the Whistle Stop Cafe,\\\" food is a major literary theme that powerfully symbolizes nostalgia, family connection, and warmth throughout the narrative\\n---\\npie yogurt cream cheese filling digestive biscuit cornflakes crust\\n---\\ndigestive biscuit cornflakes crust cheesecake country origin\\n---\\nSouth African cheesecake digestive biscuit cornflakes yogurt\\n---\\nSouth Africa cheesecake cornflakes crust traditional dessert\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) History Culinary classification National varieties Toggle National varieties subsection Africa Asia Europe North America See also Referenc\\n---\\nSouth African cheesecake recipe cornflakes digestive biscuits traditional\\n---\\nhttps://melissamayo.com/recipe/south-african-cheesecake/\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll solve this step-by-step\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"New Zealand cheesecake recipe digestive biscuits cornflakes base cream cheese yogurt\\n---\\nSkip to content Our Story Regen Farming Products Stockists Recipes Community Shop JOIN Yoghurt Cheesecake A Delightful Decadent Desert Prep Time: 20 mins Cook Time: 50-55mins Share on: Facebook Twitter Copy Link Email Sh\\n---\\nNew Zealand cheesecake cornflakes base recipe\\n---\\nHome Activities Kiwi Kids' Contributions Get Wise Winners Contact Us Get Scientific Get Cooking Get Creative Sunshine Cheesecake Recipe With a velvety smooth filling, lemony zest and the sweetness of honey this healthy n\\n---\\nRECIPES POPULAR MEAT & SEAFOOD HEALTHY & DIET HOLIDAYS CUISINE SEASONAL PREVIOUS RECIPE NEXT RECIPE Recipes Cheesecake CARAMEL CHEESECAKE 1 Submitted by Kiwipom \\\"This is not a recipe for the health conscious\\n---\\nNew Zealand cheesecake digestive biscuits cornflakes base traditional recipe\\n---\\nLOG IN | SIGN UP RECIPES PRODUCTS HOW TO'S OUR STORY COMMUNITY COOKERY BOOKS SHOP Recipes Cakes & Loaves Classic Cheesecake CLASSIC CHEESECAKE Fold some fresh berries or pitted cherries through the filling to vary the fl\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"cheesecake recipe digestive biscuits AND cornflakes base cream cheese yogurt\\n---\\nhybrid cheesecake base digestive biscuits cornflakes recipe\\n---\\nNew Zealand Edmonds cookbook cheesecake recipe traditional\\n---\\n\\\\n\\\\nI found multiple New Zealand cheesecake recipes that use the ingredients you specified\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Aoraki Mount Cook exact elevation meters official height\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Location Local climate Naming and European discovery Geology Surrounding forests and glaciers Climbing history Māori history, legends and\\n---\\nSkip to main content Enable accessibility for low vision Open the accessibility menu Skip to main content Current students Staff Alumni Library Contact Home Ngā tauira o āpōpō Future Students Ako Ōtākou Learning and Teac\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Aoraki Mount Cook 3724 meters official height 2014\\n---\\nLand Information New Zealand LINZ Aoraki Mount Cook official height\\n---\\nSkip to main content Live Science Plus JOIN NOW 10 MEMBER FEATURES 24/7 ACCESS AVAILABLE 25K ACTIVE MEMBERS Exclusive Newsletters Science news direct to your inbox Member Competitions Win exclusive prizes Exclusive Conte\\n---\\n\\\\n\\\\nAoraki / Mount Cook, New Zealand's highest mountain, has an official elevation of **3,724 meters (12,218 feet)** as of 2014\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I see there was an error in the execution, but I can see from the previous search results that the food mentioned is likely a cheesecake variant, and the country appears to be New Zealand based on the search res\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0894",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 8
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1728,
+    "output_tokens": 68,
+    "total_tokens": 1796
+  }
+}

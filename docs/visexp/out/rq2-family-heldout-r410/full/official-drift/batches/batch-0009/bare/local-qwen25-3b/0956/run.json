@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0956",
+  "prediction": {
+    "traj_id": "0956",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0956\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"《乐队的夏天》各季 top5 乐队中一共有多少名女性成员？\",\n  \"traj_id\": \"0956\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"《乐队的夏天》各季 top5 乐队中一共有多少名女性成员\\n---\\n《乐队的夏天》有几季\\n---\\n《乐队的夏天》第一季top5\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"《乐队的夏天》第一季最终排名\\n---\\n《乐队的夏天》第二季top5\\n---\\n《乐队的夏天》第三季top5\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"《乐队的夏天》第三季最终排名\\n---\\n《乐队的夏天》共播出三季，各季的 top 5 乐队（HOT 5）名单如下： * **第一季 (2019):** * 新裤子 (New Pants) * 刺猬 (Hedgehog) * 痛仰 (Miserable Faith) * Click#15 * 盘尼西林 (Penicillin) * **第二季 (2020):** * 重塑雕像的权利 (Re\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"《乐队的夏天》第一季top5排名\\n---\\n《乐队的夏天》第一季 最终排名\\n---\\n新裤子乐队成员\\n---\\n痛仰乐队成员\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Code: ```py print(search_agent(task=\\\"《乐队的夏天》各季 top5 乐队名单\\\")) ```<end_code> Code: ```py print(search_agent(task=\\\"《乐队的夏天》第一季top5乐队成员\\\")) print(search_agent(task=\\\"《乐队的夏天》第二季top5乐队成员\\\")) print(search_agent(task=\\\"《乐队的夏天》第三季top5乐\\n---\\nThought I have already identified the top 5 bands for each of the three seasons of \\\"《乐队的夏天》\\\"\\n---\\nThought I have already broken down the problem, identified the bands, and calculated the number of female members for each season\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0956",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0956",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 5
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 899,
+    "output_tokens": 74,
+    "total_tokens": 973
+  }
+}

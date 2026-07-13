@@ -1,0 +1,205 @@
+{
+  "setting": "drift",
+  "case_id": "0952",
+  "prediction": {
+    "traj_id": "0952",
+    "error_span_ids": [
+      "s003",
+      "s011"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "短字符串"
+      },
+      {
+        "span_id": "s011",
+        "reason": "短字符串"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0952\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"截至2024年12月31日，在北京地铁系统中，哪两个独立的地铁站之间的轨道距离是第二近的。\",\n  \"traj_id\": \"0952\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"截至2024年12月31日，在北京地铁系统中，哪两个独立的地铁站之间的轨道距离是第二近的\\n---\\n北京地铁线路列表 2024\\n---\\n北京地铁线路 站间距 百度百科\\n---\\n北京地铁1号线 站间距 百度百科\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 首页 秒懂百科 特色百科 知识专题 加入百科 百科团队 权威合作 个人中心 北京地铁1号线 播报 讨论 上传视频 中国北京市境内地铁线路 收藏 0 0 北京地铁1号线（Beijing Subway Line 1），是中国北京市第一条地铁线路，也是中国首条地铁线路，前身为北京地铁一期工程、北京地铁一线 [1-2] [15]，其标志色为红色 [\\n---\\n北京地铁1号线站间距\\n---\\n{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Domain 'https\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Code: ```py print(search_agent(task=\\\"北京地铁所有线路站点列表和站间距数据 2024\\\")) ```<end_code>\\n---\\n2024年北京地铁新开通线路\\n---\\n北京地铁3号线一期车站列表\\n---\\n北京地铁12号线车站列表\\n---\\n北京地铁昌平线南延一期剩余段车站列表\\n---\\n2024年，北京地铁计划开通3条新线路（段），分别是地铁3号线一期、12号线以及昌平线南延一期剩余段\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我需要分步解决这个问题，因为一次性搜索所有信息的尝试失败了\\n---\\n北京地铁官方网站\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"首页 出行服务 最新动态 出行空间 地铁商务 关于我们 EN | 搜索 Jan 17,2026 01:56:53 Beijing \\\\ -2 \\\\ -8 列车时刻表 失物招领 京港商城 招标信息 招贤纳士 地铁保护 点我留言 延误告知 出行查询 Travel Inquiry 搜索 安河桥北 北宫门 16 号线 西苑 圆明园 北京大学东门 中关村 10 号线 海淀黄庄 12 号线 人民大学 魏公村 9/16 号线 国家图书馆 动物园 2/13\\n---\\nsite:mtr.bj.cn \\\"站间距信息\\\"\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"首页 出行服务 最新动态 出行空间 地铁商务 关于我们 EN | 搜索 出行服务 SERVICE 首页 出行服务 路网车站站间距信息 17号线 19号线 11号线 亦庄T1线 3号线 12号线 18号线 1号线 2号线 4号线 5号线 6号线 7号线 8号线 9号线 10号线 13号线 14号线 15号线 16号线 大兴机场线 西郊线 S1线 燕房线 大兴线 昌平线 房山线 亦庄线 八通线 首都机场线 4号线路网车站站间距信息 起始站名\\n---\\n首页 出行服务 最新动态 出行空间 地铁商务 关于我们 EN | 搜索 出行服务 SERVICE 首页 出行服务 路网车站站间距信息 17号线 19号线 11号线 亦庄T1线 3号线 12号线 18号线 1号线 2号线 4号线 5号线 6号线 7号线 8号线 9号线 10号线 13号线 14号线 15号线 16号线 大兴机场线 西郊线 S1线 燕房线 大兴线 昌平线 房山线 亦庄线 八通线 首都机场线 1号线路网车站站间距信息 起始站名\\n---\\n首页 出行服务 最新动态 出行空间 地铁商务 关于我们 EN | 搜索 出行服务 SERVICE 首页 出行服务 路网车站站间距信息 17号线 19号线 11号线 亦庄T1线 3号线 12号线 18号线 1号线 2号线 4号线 5号线 6号线 7号线 8号线 9号线 10号线 13号线 14号线 15号线 16号线 大兴机场线 西郊线 S1线 燕房线 大兴线 昌平线 房山线 亦庄线 八通线 首都机场线 2号线路网车站站间距信息 起始站名\\n---\\n首页 出行服务 最新动态 出行空间 地铁商务 关于我们 EN | 搜索 出行服务 SERVICE 首页 出行服务 路网车站站间距信息 17号线 19号线 11号线 亦庄T1线 3号线 12号线 18号线 1号线 2号线 4号线 5号线 6号线 7号线 8号线 9号线 10号线 13号线 14号线 15号线 16号线 大兴机场线 西郊线 S1线 燕房线 大兴线 昌平线 房山线 亦庄线 八通线 首都机场线 5号线路网车站站间距信息 起始站名\\n---\\n首页 出行服务 最新动态 出行空间 地铁商务 关于我们 EN | 搜索 出行服务 SERVICE 首页 出行服务 路网车站站间距信息 17号线 19号线 11号线 亦庄T1线 3号线 12号线 18号线 1号线 2号线 4号线 5号线 6号线 7号线 8号线 9号线 10号线 13号线 14号线 15号线 16号线 大兴机场线 西郊线 S1线 燕房线 大兴线 昌平线 房山线 亦庄线 八通线 首都机场线 6号线路网车站站间距信息 起始站名\\n---\\n首页 出行服务 最新动态 出行空间 地铁商务 关于我们 EN | 搜索 出行服务 SERVICE 首页 出行服务 路网车站站间距信息 17号线 19号线 11号线 亦庄T1线 3号线 12号线 18号线 1号线 2号线 4号线 5号线 6号线 7号线 8号线 9号线 10号线 13号线 14号线 15号线 16号线 大兴机场线 西郊线 S1线 燕房线 大兴线 昌平线 房山线 亦庄线 八通线 首都机场线 7号线路网车站站间距信息 起始站名\\n---\\n首页 出行服务 最新动态 出行空间 地铁商务 关于我们 EN | 搜索 出行服务 SERVICE 首页 出行服务 路网车站站间距信息 17号线 19号线 11号线 亦庄T1线 3号线 12号线 18号线 1号线 2号线 4号线 5号线 6号线 7号线 8号线 9号线 10号线 13号线 14号线 15号线 16号线 大兴机场线 西郊线 S1线 燕房线 大兴线 昌平线 房山线 亦庄线 八通线 首都机场线 8号线路网车站站间距信息 起始站名\\n---\\n首页 出行服务 最新动态 出行空间 地铁商务 关于我们 EN | 搜索 出行服务 SERVICE 首页 出行服务 路网车站站间距信息 17号线 19号线 11号线 亦庄T1线 3号线 12号线 18号线 1号线 2号线 4号线 5号线 6号线 7号线 8号线 9号线 10号线 13号线 14号线 15号线 16号线 大兴机场线 西郊线 S1线 燕房线 大兴线 昌平线 房山线 亦庄线 八通线 首都机场线 9号线路网车站站间距信息 起始站名\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我已成功确认了截至2024年底北京地铁开通的新线路和车站\\n---\\n北京地铁1号线 维基百科\\n---\\n北京地铁八通线 维基百科\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 路线 历史 设施 车站列表 车辆 运营时间及间隔 票价 注释 参考资料 北京地铁八通线 11种语言 条目 讨论 不转换 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 北京地铁八通线 八通线与1号线贯通首日，接近管庄站的DKZ4型（2021年8月29日） 八通线BDK06型增购车行驶在传媒大学-双桥区间（2021年5月） 概覽 运营範圍 中华人民\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我之前的综合搜索没有成功，说明一次性获取所有站间距数据的难度很大\\n---\\n北京地铁2号线站间距 百度百科\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 13 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我之前的搜索策略过于宽泛，导致没有返回有效结果\\n---\\n北京地铁3号线一期工程环境影响评价报告书 公示版\\n---\\n中文 English 资讯 企业 资讯 行业 企业 铁路局 招投标 项目 城铁 专题 事件 产业 会 议 企 业 活动 调查 技术 标准 投资 宏观 政策 数据 人物 访谈 智库 推荐 市场 展厅 企业 合作 平台 研究会 论坛 联盟 协会 媒体 杂志 电子周刊 首页 -> 项目资讯 > 拟在建 > 内容 北京地铁3号线一期工程环境影响报告书全文公示 2017-08-08 来源：中国铁道科学研究院 本文摘要：根据环保部办公厅文件《建设项\\n---\\nhttps://m.bj.bendibao.com/traffic/205450.html\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"之前的搜索再次失败，说明即便是针对单条线路，直接搜索“站间距”数据也可能因为关键词过于技术化而难以找到公开的、结构化的数据\\n---\\n北京地铁线路列表\\n---\\n{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Invalid protocol httpss:\\\",\\\"readableMessage\\\":\\\"ParamValidationError(url): Invalid protocol httpss:\\\"}\\n---\\n首页 出行服务 最新动态 出行空间 地铁商务 关于我们 EN | 搜索 出行服务 SERVICE 首页 出行服务 线路图 正文 线路图 2025-12-26 大中小 点击图片查看高清大图 手机用户长按保存图片 电脑用户点击右键保存图片 上一篇： 无 下一篇： 无 网站地图 |友情链接 |法律声明 |联系我们 版权所有：北京京港地铁有限公司 京ICP备06071032号-1\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 中文維基百科Facebook粉絲專頁正式上線，邀請大家一同關注\\n---\\n北京地铁1号线站间距\\n---\\n网站首页 信息公开 人才招聘 联系我们 English 出行服务 政策规定 企业动态 地铁文化 走进地铁 近期活动 延误告知 采购项目 首页 > 出行服务 > 站间距信息 1号线八通线 2号线 3号线 5号线 6号线 7号线 8号线 9号线 10号线 11号线 12号线 13号线 15号线 18号线 房山线 昌平线 亦庄线 S1线 首都机场线 | 1号线/八通线路网车站站间距信息 起始站名 目的站名 距离（米） 古城 八角游乐园 192\\n---\\nBased on the available official data for the Beijing Subway Line 1 and Batong Line, the station spacing ranges from a minimum of 424 meters to a maximum of 2,238 meters\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"之前的搜索尝试因为网络连接问题而失败了\\n---\\n北京地铁官方网站\\n---\\n需求导向 持续改进 首善服务 “轨道+航空”一站式联运 首都机场线东直门站行李托运服务投用 2025年12月29日，北京地铁首都机场线东直门站行李托运工程正式投入运营\\n---\\n首页 出行服务 最新动态 出行空间 地铁商务 关于我们 EN | 搜索 Jan 17,2026 01:56:53 Beijing \\\\ -2 \\\\ -8 列车时刻表 失物招领 京港商城 招标信息 招贤纳士 地铁保护 点我留言 延误告知 出行查询 Travel Inquiry 搜索 安河桥北 北宫门 16 号线 西苑 圆明园 北京大学东门 中关村 10 号线 海淀黄庄 12 号线 人民大学 魏公村 9/16 号线 国家图书馆 动物园 2/13\\n---\\nsite:mtr.bj.cn \\\"站间距\\\"\\n---\\n北京地铁2号线站间距\\n---\\n首页 出行服务 最新动态 出行空间 地铁商务 关于我们 EN | 搜索 出行服务 SERVICE 首页 出行服务 路网车站站间距信息 17号线 19号线 11号线 亦庄T1线 3号线 12号线 18号线 1号线 2号线 4号线 5号线 6号线 7号线 8号线 9号线 10号线 13号线 14号线 15号线 16号线 大兴机场线 西郊线 S1线 燕房线 大兴线 昌平线 房山线 亦庄线 八通线 首都机场线 2号线路网车站站间距信息 起始站名\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我终于找到了一个可靠的数据来源——北京地铁的官方网站，并且已经成功获取了1号线和八通线的站间距数据\\n---\\n网站首页 信息公开 人才招聘 联系我们 English 出行服务 政策规定 企业动态 地铁文化 走进地铁 近期活动 延误告知 采购项目 首页 > 出行服务 > 站间距信息 1号线八通线 2号线 3号线 5号线 6号线 7号线 8号线 9号线 10号线 11号线 12号线 13号线 15号线 18号线 房山线 昌平线 亦庄线 S1线 首都机场线 | 1号线/八通线路网车站站间距信息 起始站名 目的站名 距离（米） 古城 八角游乐园 192\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"之前的搜索表明，直接在搜索引擎中组合“线路名+站间距+官方网站”可能不会直接命中目标页面\\n---\\n我通过手动整理部分数据的方式，初步找到了一个第二短的距离\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0952",
+        "task_goal": "短字符串",
+        "hard_constraints": [
+          "短字符串"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "截至2024年12月31日，在北京地铁系统中，哪两个独立的地铁站之间的轨道距离是第二近的。",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "tentative"
+          }
+        ],
+        "notes": "短字符串"
+      },
+      "validated": {
+        "traj_id": "0952",
+        "task_goal": "短字符串",
+        "hard_constraints": [
+          "短字符串"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "截至2024年12月31日，在北京地铁系统中，哪两个独立的地铁站之间的轨道距离是第二近的。",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "entity",
+            "status": "tentative"
+          }
+        ],
+        "notes": "短字符串"
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": []
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s003",
+        "s011",
+        "s012"
+      ],
+      "available_span_ids": [
+        "s003",
+        "s011",
+        "s012"
+      ],
+      "grep_results": []
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0952\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"截至2024年12月31日，在北京地铁系统中，哪两个独立的地铁站之间的轨道距离是第二近的。\",\n  \"traj_id\": \"0952\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0952\",\n    \"task_goal\": \"短字符串\",\n    \"hard_constraints\": [\n      \"短字符串\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"截至2024年12月31日，在北京地铁系统中，哪两个独立的地铁站之间的轨道距离是第二近的。\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"tentative\"\n      }\n    ],\n    \"notes\": \"短字符串\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"requested_span_ids\": [],\n    \"grep_results\": [],\n    \"available_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 42,\n        \"text\": \"我需要分步解决这个问题，因为一次性搜索所有信息的尝试失败了\\n---\\n北京地铁官方网站\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 274,\n        \"text\": \"我终于找到了一个可靠的数据来源——北京地铁的官方网站，并且已经成功获取了1号线和八通线的站间距数据\\n---\\n网站首页 信息公开 人才招聘 联系我们 English 出行服务 政策规定 企业动态 地铁文化 走进地铁 近期活动 延误告知 采购项目 首页 > 出行服务 > 站间距信息 1号线八通线 2号线 3号线 5号线 6号线 7号线 8号线 9号线 10号线 11号线 12号线 13号线 15号线 18号线 房山线 昌平线 亦庄线 S1线 首都机场线 | 1号线/八通线路网车站站间距信息 起始站名 目的站名 距离（米） 古城 八角游乐园 192\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 77,\n        \"text\": \"之前的搜索表明，直接在搜索引擎中组合“线路名+站间距+官方网站”可能不会直接命中目标页面\\n---\\n我通过手动整理部分数据的方式，初步找到了一个第二短的距离\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0952",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s003",
+              "s011"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "北京地铁官方网站"
+              },
+              {
+                "span_id": "s011",
+                "chunk_id": "s011:c001",
+                "role": "partial_support",
+                "text": "1号线/八通线路网车站站间距信息"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s003",
+            "s011"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "北京地铁官方网站"
+            },
+            {
+              "span_id": "s011",
+              "chunk_id": "s011:c001",
+              "role": "partial_support",
+              "text": "1号线/八通线路网车站站间距信息"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0952\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"截至2024年12月31日，在北京地铁系统中，哪两个独立的地铁站之间的轨道距离是第二近的。\",\n  \"traj_id\": \"0952\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0952\",\n    \"task_goal\": \"短字符串\",\n    \"hard_constraints\": [\n      \"短字符串\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"截至2024年12月31日，在北京地铁系统中，哪两个独立的地铁站之间的轨道距离是第二近的。\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"tentative\"\n      }\n    ],\n    \"notes\": \"短字符串\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s003\",\n        \"s011\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"北京地铁官方网站\"\n        },\n        {\n          \"span_id\": \"s011\",\n          \"chunk_id\": \"s011:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"1号线/八通线路网车站站间距信息\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"requested_span_ids\": [],\n    \"grep_results\": [],\n    \"available_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 42,\n        \"text\": \"我需要分步解决这个问题，因为一次性搜索所有信息的尝试失败了\\n---\\n北京地铁官方网站\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 274,\n        \"text\": \"我终于找到了一个可靠的数据来源——北京地铁的官方网站，并且已经成功获取了1号线和八通线的站间距数据\\n---\\n网站首页 信息公开 人才招聘 联系我们 English 出行服务 政策规定 企业动态 地铁文化 走进地铁 近期活动 延误告知 采购项目 首页 > 出行服务 > 站间距信息 1号线八通线 2号线 3号线 5号线 6号线 7号线 8号线 9号线 10号线 11号线 12号线 13号线 15号线 18号线 房山线 昌平线 亦庄线 S1线 首都机场线 | 1号线/八通线路网车站站间距信息 起始站名 目的站名 距离（米） 古城 八角游乐园 192\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 77,\n        \"text\": \"之前的搜索表明，直接在搜索引擎中组合“线路名+站间距+官方网站”可能不会直接命中目标页面\\n---\\n我通过手动整理部分数据的方式，初步找到了一个第二短的距离\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0952",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0952",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011"
+        ],
+        "non_errors": [],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003",
+          "s011"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 12,
+    "evidence_span_count": 3
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 7890,
+    "output_tokens": 472,
+    "total_tokens": 8362
+  }
+}

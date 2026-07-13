@@ -1,0 +1,200 @@
+{
+  "setting": "drift",
+  "case_id": "0387",
+  "prediction": {
+    "traj_id": "0387",
+    "error_span_ids": [
+      "s003",
+      "s009"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "短原文句未直接支持，但后续支持链明确指出纵火案发生地为金阁寺（京都）"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0387\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"日本上世纪中旬发生了一起轰动日本的纵火案，有一个日本知名作家还根据这个案件创作了一篇小说，请问这个纵火案发生在哪里\",\n  \"traj_id\": \"0387\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{'subtask': \\\"搜索日本上世纪中旬（1940-1960年代）发生的轰动纵火案，特别是有日本知名作家根据该案件创作小说的案件。请重点查找：1）案件发生的时间和地点；2）涉及的作家和作品名称；3）案件的基本情况。使用中文关键词如'日本 纵火案 1950年代 作家 小说'、'金阁寺 纵火'、'三岛由纪夫 纵火案'等进行搜索。\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\n金阁寺 纵火 三岛由纪夫 1950年代\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 金閣寺放火事件 URL Source: https://zh https://zh.wikipedia.org/zh-cn/%E9%87%91%E9%96%A3%E5%AF%BA%E6%94%BE%E7%81%AB%E4%BA%8B%E4%BB%B6\\n---\\n三岛由纪夫 金阁寺 小说 1956 林养贤\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"水上勉 金阁炎上 1979 金阁寺纵火\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{'subtask': \\\"搜索金阁寺（鹿苑寺）的详细地理位置信息，包括：1）金阁寺在京都市的具体位置（区、街道等）；2）金阁寺的正式名称和俗称；3）确认是否还有其他日本作家也根据1950年金阁寺纵火案创作过作品。使用关键词如'金阁寺 地址 京都'、'鹿苑寺 位置'、'金阁寺纵火 其他作家'等。\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\n金阁寺 地址 京都 鹿苑寺 位置\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"1950年 金阁寺纵火 作家 作品 文学 三岛由纪夫\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"金阁寺纵火 林养贤 水上勉 其他作家 小说\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"水上勉 金阁炎上 小说 1950\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"金阁寺放火事件 文学作品 作家 三岛由纪夫 水上勉 以外\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"# 日本上世纪中旬轰动纵火案完整调查报告 ## 一、任务执行历程总结 ### 工作步骤回顾 **第一步：初步信息收集** - 使用中文关键词\\\"日本 上世纪中旬 纵火案 作家 小说\\\"进行搜索 - 重点查找1940-1960年代的重大纵火案件 - 成功识别出**1950年金阁寺放火事件**作为符合所有条件的案件 - 确认了三岛由纪夫《金阁寺》和水上勉《金阁炎上》两部相关文学作品 **第二步：详细信息核实** - 搜索金阁寺的详细地理位置信息 - 确认正式名称（鹿苑寺）和俗称（金阁寺） - 核实完整地址：京都府京都市北区金阁寺町1 - 确认是否有其他作家也创作过相关作品 **第三步：信息整合与分析** - 对收集到的所有信息进行交叉验证 - 分析不同答案表达方式的适用性 - 确认信息来源的可靠性 ### 信息来源 所有信息均通过以下可靠来源交叉验证： - 维基百科\\\"金阁寺放火事件\\\"中文词条 - 日本官方旅游网站 - 百度百科 - 知乎专栏、豆瓣读书 - 新华网、凤凰网等主流媒体 - 学术网站和文学评论网站 --- ## 二、最终答案 ### 直接答案 **这起纵火案发生在：金阁寺（京都）** ### 完整答案 **1950年7月2日凌晨，这起震惊日本的纵火案发生在京都的金阁寺（正式名称：鹿苑寺），被焚毁的是其标志性建筑——舍利殿（俗称\\\"金阁\\\"）。** --- ## 三、所有可能的答案表达方式 根据调查，对于\\\"纵火案发生在哪里\\\"这个问题，以下都是合理且准确的答案： ### 推荐答案（按常用程度排序） 1. **金阁寺** ⭐⭐⭐（最简洁、认知度最高） 2. **京都金阁寺** ⭐⭐⭐（明确城市+建筑） 3. **鹿苑寺（金阁寺）** ⭐⭐（正式名称+俗称） 4. **京都的鹿苑寺** ⭐⭐（使用正式名称） 5. **京都市北区金阁寺町** ⭐（详细地址，通常不必要） ### 名称说明 - **正式名称**：鹿苑寺（ろくおんじ Rokuonji） - **俗称/通称**：金阁寺（因舍利殿内外贴满金箔而得名） - **重要说明**：虽然\\\"鹿苑寺\\\"是正式名称，但\\\"金阁寺\\\"是约定俗成的称呼，公众认知度远超正式名称。三岛由纪夫的小说也使用\\\"金阁寺\\\"作为书名，因此\\\"金阁寺\\\"完全可以作为标准答案。 --- ## 四、案件详细信息 ### 基本事实 | 项目 | 详细内容 | |------|---------| | **案件名称** | 金阁寺放火事件（金閣寺放火事件） | | **发生时间** | 1950年（昭和25年）7月2日凌晨2点50分 | | **发生地点** | 京都府京都市北区金阁寺町1 | | **地理坐标** | 北纬35°2′22.34″N，东经135°43′42.43″E | | **被毁建筑** | 舍利殿（俗称金阁）及内部国宝文物 | | **纵火者** | 林养贤（林承贤），21岁，金阁寺见习僧人、大谷大学学生 | ### 损失情况 被全部焚毁的国宝级文物包括： - 舍利殿（金阁）建筑本体 - 室町幕府第三代将军足利义满的木像 - 观音菩萨像 - 阿弥陀如来像（如来佛祖像） - 众多古本佛经 - **共计六项日本国宝级文化财** ### 纵火动机 **林养贤自述：** - \\\"世界太乱\\\" - \\\"为了向社会报复\\\" - **\\\"我妒忌金阁寺的美丽\\\"**（这句话成为三岛由纪夫创作的核心灵感） **深层心理原因：** - 身体虚弱和口吃带来的自卑感 - 母亲过高期望造成的心理压力 - 对寺院商业化管理的不满 - 对金阁寺之美的复杂情感：既崇拜又嫉妒 ### 案件后续 - **法律审判**：1950年12月28日，京都地方裁判所判处林养贤7年惩役（坐牢加罚役） - **犯人结局**：1956年3月7日，林养贤在狱中病逝，年仅27岁 - **家庭悲剧**：其母在了解案情后，从行驶中的山阴本线列车跳下保津峡自杀身亡 - **金阁寺重建**：1955年开始重建，现在看到的金阁寺是重建后的建筑 ### 社会影响 - 在当时的日本引起巨大轰动，成为震惊全日本的重大事件 - 金阁寺是日本国宝级建筑，具有极高的历史和文化价值 - 纵火者是僧人，身份特殊，形成强烈反差 - 纵火动机\\\"嫉妒美\\\"引发了关于美学、哲学的深刻社会讨论 - 催生了多部重要文学作品，成为日本文学史上的重要题材 --- ## 五、相关文学作品详细信息 ### 主要作品 #### 1. 三岛由纪夫《金阁寺》★★★ **作家简介**：三岛由纪夫（みしま ゆきお），日本战后文学大师 **作品信息**： - **发表时间**：1956年 - **发表形式**：原连载于《新潮》杂志一至十期，同年由新潮社发行单行本 - **作品性质**：长篇小说 **创作背景**： - 根据林养贤\\\"我妒忌金阁寺的美丽\\\"这句独白展开想象创作 - 描写主人公沟口（影射林养贤）从贫穷乡下来到金阁寺的经历 - 主人公生来口吃，性情孤僻，对金阁寺的美产生复杂情感 **文学成就**： - 获得日本第八届读卖文学奖 - 被公认为三岛由纪夫的代表作和集大成之作 - 享誉世界的经典文学作品 - 将\\\"美与幻灭\\\"、\\\"毁灭美学\\\"写到极致 **重要性**：这是题目中提到的\\\"日本知名作家根据案件创作的小说\\\"的**最主要答案** #### 2. 水上勉《金阁炎上》★★ **作家简介**：水上勉（みずかみ つとむ，1919-2004），昭和时代代表性作家，本人曾做过小和尚 **作品信息**： - **发表时间**：1979年 - **作品性质**：长篇纪实作品 **创作特点**： - 被称为\\\"二十年的执念\\\"，历时约20年调查创作 - 通过实地调查还原了僧人林养贤的真实生活 - 从林养贤的童年开始追溯，详细描述纵火的前因后果 - 堪称长达20年的史料性作品 - 与三岛由纪夫的文学化创作不同，更注重纪实性 **作者特殊背景**：水上勉本人曾做过小和尚，与犯人有相似经历，且当年曾路遇犯人，这使他对这一事件有特殊的理解和感触 #### 3. 水上勉《五番町夕雾楼》★ **作品信息**： - **发表时间**：1962年9月 - **作品性质**：小说 - **创作背景**：同样受到金阁寺事件启发 ### 其他作品确认 根据维基百科权威信息，与此次事件有关的主要文学作品为上述三部。搜索结果未发现其他日本知名作家创作过以此事件为主要题材的重要文学作品。 --- ## 六、不确定性与补充说明 ### 确定的信息（可靠性：高） ✓ 案件发生时间：1950年7月2日凌晨 ✓ 案件发生地点：京都金阁寺（鹿苑寺） ✓ 纵火者：林养贤，21岁见习僧人 ✓ 相关作家：三岛由纪夫、水上勉 ✓ 相关作品：《金阁寺》（1956）、《金阁炎上》（1979） ✓ 社会影响：震惊全日本的重大事件 ### 无冲突信息 所有关键信息在多个独立来源中保持一致，未发现重大矛盾或冲突。 ### 答案表达的灵活性 对于\\\"发生在哪里\\\"这个问题： - **最简答案**：\\\"金阁寺\\\"或\\\"京都金阁寺\\\" - **正式答案**：\\\"鹿苑寺（金阁寺）\\\" - **详细答案**：\\\"京都府京都市北区的金阁寺\\\" 所有表达方式都是正确的，选择哪种取决于具体语境和精确度要求。 --- ## 七、结论 ### 最终答案 **这起日本上世纪中旬轰动的纵火案发生在：金阁寺（京都）** ### 完整描述 1950年7月2日凌晨，21岁的金阁寺见习僧人林养贤在京都的金阁寺（正式名称：鹿苑寺）纵火，将国宝级建筑舍利殿（俗称金阁）及内部文物全部焚毁。这起案件震惊全日本，日本知名作家三岛由纪夫根据此案创作了长篇小说《金阁寺》（1956年），成为享誉世界的文学经典。另一位作家水上勉也创作了纪实作品《金阁炎上》（1979年）。 ### 符合题目的所有条件 ✓ **上世纪中旬**：1950年，符合20世纪40-60年代 ✓ **轰动日本的纵火案**：震惊全日本，国宝被毁 ✓ **日本知名作家创作小说**：三岛由纪夫《金阁寺》、水上勉《金阁炎上》 ✓ **发生地点明确**：京都金阁寺（鹿苑寺） **信息可靠性：所有关键事实均经过多个权威来源交叉验证，可靠性极高。**\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目询问“这个纵火案发生在哪里”，结合代理总结提供的信息。 2. 代理总结明确指出： • “1950年7月2日凌晨，这起震惊日本的纵火案发生在京都的金阁寺（正式名称：鹿苑寺）” • 多次重复“发生地点：金阁寺（京都）”。 3. 因此，最直接、最简洁的地点名称就是“金阁寺”。 4. 按格式要求，应给出“单个简短短语”，不加多余修饰。 **最终答案：** \\\\boxed{金阁寺} **置信度：** 93 **支持证据：** - 代理总结中“案件发生地点：京都金阁寺（鹿苑寺）”等句子多次确认了纵火案发生地为金阁寺。 **潜在不足：** - 若题目需同时指出城市层级，“京都金阁寺”可能更完整；但依照“最简短短语”及总结中的常用答案，“金阁寺”已足以准确回答问题。\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0387",
+        "task_goal": "日本上世纪中旬发生了一起轰动日本的纵火案，有一个日本知名作家还根据这个案件创作了一篇小说，请问这个纵火案发生在哪里",
+        "hard_constraints": [
+          "上世纪中旬"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "这起纵火案发生在金阁寺（京都）",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s009",
+            "used_by": [
+              "s009",
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0387",
+        "task_goal": "日本上世纪中旬发生了一起轰动日本的纵火案，有一个日本知名作家还根据这个案件创作了一篇小说，请问这个纵火案发生在哪里",
+        "hard_constraints": [
+          "上世纪中旬"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "这起纵火案发生在金阁寺（京都）",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s009",
+            "used_by": [
+              "s009"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s003",
+            "s009"
+          ],
+          "grep_queries": [
+            "这起纵火案发生在金阁寺（京都）"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s003",
+        "s009"
+      ],
+      "available_span_ids": [
+        "s003",
+        "s009"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "这起纵火案发生在金阁寺（京都）",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0387\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"日本上世纪中旬发生了一起轰动日本的纵火案，有一个日本知名作家还根据这个案件创作了一篇小说，请问这个纵火案发生在哪里\",\n  \"traj_id\": \"0387\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0387\",\n    \"task_goal\": \"日本上世纪中旬发生了一起轰动日本的纵火案，有一个日本知名作家还根据这个案件创作了一篇小说，请问这个纵火案发生在哪里\",\n    \"hard_constraints\": [\n      \"上世纪中旬\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"这起纵火案发生在金阁寺（京都）\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s003\",\n      \"s009\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"这起纵火案发生在金阁寺（京都）\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s003\",\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 19,\n        \"text\": \"水上勉 金阁炎上 1979 金阁寺纵火\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 3766,\n        \"text\": \"：震惊全日本，国宝被毁 ✓ **日本知名作家创作小说**：三岛由纪夫《金阁寺》、水上勉《金阁炎上》 ✓ **发生地点明确**：京都金阁寺（鹿苑寺） **信息可靠性：所有关键事实均经过多个权威来源交叉验证，可靠性极高。**\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目询问“这个纵火案发生在哪里”，结合代理总结提供的信息。 2. 代理总结明确指出： • “1950年7月2日凌晨，这起震惊日本的纵火案发生在京都的金阁寺（正式名称：鹿苑寺）” • 多次重复“发生地点：金阁寺（京都）”。 3. 因此，最直接、最简洁的地点名称就是“金阁寺”。 4. 按格式要求，应给出“单个简短短语”，不加多余修饰。 **最终答案：** \\\\boxed{金阁寺} **置信度：** 93 **支持证据：** - 代理总结中“案件发生地点：京都金阁寺（鹿苑寺）”等句子多次确认了纵火案发生地为金阁寺。 **潜在不足：** - 若题目需同时指出城市层级，“京都金阁寺”可能更完整；但依照“最简短短语”及总结中的常用答案，“金阁寺”已足以准确回答问题。\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s003"
+            ],
+            "support_status": "weak",
+            "missing_support": "短原文句未直接支持",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "水上勉 金阁炎上 1979 金阁寺纵火"
+              }
+            ]
+          }
+        ],
+        "notes": "短原文句未直接支持"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s003"
+          ],
+          "support_status": "weak",
+          "missing_support": "短原文句未直接支持",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "水上勉 金阁炎上 1979 金阁寺纵火"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0387\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"日本上世纪中旬发生了一起轰动日本的纵火案，有一个日本知名作家还根据这个案件创作了一篇小说，请问这个纵火案发生在哪里\",\n  \"traj_id\": \"0387\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0387\",\n    \"task_goal\": \"日本上世纪中旬发生了一起轰动日本的纵火案，有一个日本知名作家还根据这个案件创作了一篇小说，请问这个纵火案发生在哪里\",\n    \"hard_constraints\": [\n      \"上世纪中旬\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"这起纵火案发生在金阁寺（京都）\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s003\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短原文句未直接支持\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"水上勉 金阁炎上 1979 金阁寺纵火\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s003\",\n      \"s009\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"这起纵火案发生在金阁寺（京都）\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s003\",\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 19,\n        \"text\": \"水上勉 金阁炎上 1979 金阁寺纵火\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 3766,\n        \"text\": \"：震惊全日本，国宝被毁 ✓ **日本知名作家创作小说**：三岛由纪夫《金阁寺》、水上勉《金阁炎上》 ✓ **发生地点明确**：京都金阁寺（鹿苑寺） **信息可靠性：所有关键事实均经过多个权威来源交叉验证，可靠性极高。**\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目询问“这个纵火案发生在哪里”，结合代理总结提供的信息。 2. 代理总结明确指出： • “1950年7月2日凌晨，这起震惊日本的纵火案发生在京都的金阁寺（正式名称：鹿苑寺）” • 多次重复“发生地点：金阁寺（京都）”。 3. 因此，最直接、最简洁的地点名称就是“金阁寺”。 4. 按格式要求，应给出“单个简短短语”，不加多余修饰。 **最终答案：** \\\\boxed{金阁寺} **置信度：** 93 **支持证据：** - 代理总结中“案件发生地点：京都金阁寺（鹿苑寺）”等句子多次确认了纵火案发生地为金阁寺。 **潜在不足：** - 若题目需同时指出城市层级，“京都金阁寺”可能更完整；但依照“最简短短语”及总结中的常用答案，“金阁寺”已足以准确回答问题。\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0387",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短原文句未直接支持，但后续支持链明确指出纵火案发生地为金阁寺（京都）",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0387",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [],
+        "non_errors": [],
+        "reason": "短原文句未直接支持，但后续支持链明确指出纵火案发生地为金阁寺（京都）",
+        "error_span_ids": [
+          "s003"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 9,
+    "evidence_span_count": 2
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 7035,
+    "output_tokens": 458,
+    "total_tokens": 7493
+  }
+}

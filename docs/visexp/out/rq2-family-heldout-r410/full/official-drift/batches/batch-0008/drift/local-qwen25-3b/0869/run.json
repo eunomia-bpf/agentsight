@@ -1,0 +1,222 @@
+{
+  "setting": "drift",
+  "case_id": "0869",
+  "prediction": {
+    "traj_id": "0869",
+    "error_span_ids": [
+      "s011"
+    ],
+    "earliest_harmful_span_id": "s011",
+    "reasons": [
+      {
+        "span_id": "s011",
+        "reason": "短字符串"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0869\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等，请问这个点与三个祠堂的距离是多少？\",\n  \"traj_id\": \"0869\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等，请问这个点与三个祠堂的距离是多少\\n---\\n文天祥祠堂 北京 地址 坐标\\n---\\n地图搜索： 热门城市推荐： 北京 上海 深圳 广州 杭州 南京 武汉 成都 重庆 天津 西安 旧金山 香港 台北 巴黎 东京 城市列表 深入探索 指南针 文丞相祠 北京 北京市 Google卫星地图 >>分享地图 >>手机访问 北京文天祥祠 × + − Leaflet | Map Data © Google 北京文天祥祠简介：位于东城区府学胡同63号，又名文丞相祠，明清两代为祭祀南宋抗元英雄文天祥，将当年文天祥被囚禁的土牢旧址扩大改建而\\n---\\n文天祥祠 北京 历史 背景 文天祥\\n---\\n文天祥祠 交通 地铁 公交 如何到达\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\n1000 公里 × 路况 地铁 工具箱 享受最佳体验，请将浏览器设置为默认缩放级别\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"于谦祠 坐标 经纬度 coordinates\\n---\\n建国门内大街 于谦祠 GPS coordinates latitude longitude\\n---\\n于谦祠 39.9 116.4 坐标\\n---\\nYu Qian Temple Beijing address coordinates 39.9 116.4\\n---\\nhttps://www.tripadvisor.com/Attraction_Review-g294212-d1979348-Reviews-Beijing_Yu_Qian_Temple-Beijing.html\\n---\\n\\\"于谦祠\\\" \\\"39.9\\\" \\\"116.4\\\" 经纬度\\n---\\nJianguomen Nei Dajie Beijing coordinates latitude longitude\\n---\\n于谦祠位于北京市东城区西裱褙胡同23号（甲23号），靠近建国门内大街南侧\\n---\\n袁崇焕祠堂 北京 地址 坐标 具体位置\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"袁崇焕祠 东花市斜街52号 经纬度 坐标\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"龙潭公园 龙潭路8号 袁督师庙 经纬度\\n---\\n龙潭公园 北京 经纬度 坐标 latitude longitude\\n---\\n袁崇焕 历史 明朝 简介\\n---\\n东花市斜街52号 交通 地铁 公交\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"袁崇焕纪念馆 开放时间 参观信息\\n---\\n\\\\n\\\\n**\\\\u8881\\\\u5d07\\\\u7115\\\\u7960\\\\u5802\\\\u4f4d\\\\u7f6e\\\\u4fe1\\\\u606f\\\\uff1a**\\\\n\\\\n**\\\\u8881\\\\u5d07\\\\u7115\\\\u5893\\\\u548c\\\\u7960\\\\uff08\\\\u8881\\\\u5d07\\\\u7115\\\\u7eaa\\\\u5ff5\\\\u9986\\\\uff09\\\\uff1a**\\\\n\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"文天祥祠 府学胡同63号 coordinates latitude longitude\\n---\\n文天祥祠 museum · near Hutong Crossroad Inn Xinghaiqi World Beijing Beijing Hutong Crossroad Inn Xinghaiqi 文天祥祠 Nearby Places OSM Tags FAQ Loading Map Map paused to improve performance\\n---\\n文天祥祠 府学胡同63号 北京\\n---\\n39.93454 116.40396 文天祥祠\\n---\\n39°56'3.49\\\"N 116°24'14.37\\\"E 文天祥祠\\n---\\n文天祥 Wen Tianxiang history 南宋\\n---\\n39.93454 116.40396 decimal degrees convert\\n---\\n39°56'03.49\\\"N 116°24'14.37\\\"E to decimal degrees\\n---\\n文天祥祠 coordinates GPS 经纬度\\n---\\nconvert 39 degrees 56 minutes 3.49 seconds N 116 degrees 24 minutes 14.37 seconds E to decimal\\n---\\n**文天祥祠 (Wen Tianxiang Temple) at 府学胡同63号 (No\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"于谦祠 裕民中路 北京 coordinates latitude longitude\\n---\\n于谦祠 北京 地址 坐标\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科Discord、IRC、LINE、QQ及Telegram等各平臺交流群歡迎大家加入\\n---\\n于谦祠 39.910 116.419 GPS\\n---\\n于谦祠 latitude longitude 坐标\\n---\\nJump to content Main menu Search English Donate Create account Log in Yu Qian Temple (Q10880677) Item Discussion Read View history Tools Appearance hide Text Small Standard Large Width Standard Wide Color (beta) Automati\\n---\\n裕民中路 北京 东城区\\n---\\n裕民中路 于谦祠 关系\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Yu Qian 于谦 Ming dynasty official biography\\n---\\n\\\"西裱褙胡同\\\" \\\"裕民中路\\\" 关系\\n---\\n**于谦祠 (Yu Qian Temple) Coordinates:**\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"袁崇焕祠 东花市斜街 coordinates latitude longitude Beijing\\n---\\nHome Travel guides Hotels Log in Sign up Places to visit Beijing Yuan Chonghuan's Tomb and Ancestral Temple Share Save 4\\n---\\nYuan Chonghuan Temple 52 Donghuashi Xiejie Beijing GPS coordinates\\n---\\n袁崇焕祠 latitude longitude 39.89 116.42\\n---\\n袁崇焕墓 GPS 坐标 北京\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\n39°53′36.96″N 116°25′54.23″E decimal degrees\\n---\\nThis website is AudioEye enabled and is being optimized for accessibility\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Yuan Chonghuan Ming Dynasty general history\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n\\\\n\\\\u8881\\\\u5d07\\\\u7115\\\\u7960 (Yuan Chonghuan Temple/Shrine) is located at 52 Donghuashi Xiejie (\\\\u4e1c\\\\u82b1\\\\u5e02\\\\u659c\\\\u885752\\\\u53f7), Dongcheng District, Beijing, China, 100062\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll solve this step by step by finding the locations of the three temples in Beijing and calculating the equidistant point\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0869",
+        "task_goal": "short string",
+        "hard_constraints": [
+          "short string"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ],
+        "notes": "short string"
+      },
+      "validated": {
+        "traj_id": "0869",
+        "task_goal": "short string",
+        "hard_constraints": [
+          "short string"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ],
+        "notes": "short string"
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001",
+            "s011"
+          ],
+          "grep_queries": [
+            "在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s011"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s002",
+        "s011"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等",
+          "matched_chunk_ids": [
+            "s001:c001",
+            "s002:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s002"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0869\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等，请问这个点与三个祠堂的距离是多少？\",\n  \"traj_id\": \"0869\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0869\",\n    \"task_goal\": \"short string\",\n    \"hard_constraints\": [\n      \"short string\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"short string\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s011\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s011\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s002:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s011\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 497,\n        \"text\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等，请问这个点与三个祠堂的距离是多少\\n---\\n文天祥祠堂 北京 地址 坐标\\n---\\n地图搜索： 热门城市推荐： 北京 上海 深圳 广州 杭州 南京 武汉 成都 重庆 天津 西安 旧金山 香港 台北 巴黎 东京 城市列表 深入探索 指南针 文丞相祠 北京 北京市 Google卫星地图 >>分享地图 >>手机访问 北京文天祥祠 × + − Leaflet | Map Data © Google 北京文天祥祠简介：位于东城区府学胡同63号，又名文丞相祠，明清两代为祭祀南宋抗元英雄文天祥，将当年文天祥被囚禁的土牢旧址扩大改建而\\n---\\n文天祥祠 北京 历史 背景 文天祥\\n---\\n文天祥祠 交通 地铁 公交 如何到达\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\n1000 公里 × 路况 地铁 工具箱 享受最佳体验，请将浏览器设置为默认缩放级别\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 123,\n        \"text\": \"I'll solve this step by step by finding the locations of the three temples in Beijing and calculating the equidistant point\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 421,\n        \"text\": \"于谦祠 坐标 经纬度 coordinates\\n---\\n建国门内大街 于谦祠 GPS coordinates latitude longitude\\n---\\n于谦祠 39.9 116.4 坐标\\n---\\nYu Qian Temple Beijing address coordinates 39.9 116.4\\n---\\nhttps://www.tripadvisor.com/Attraction_Review-g294212-d1979348-Reviews-Beijing_Yu_Qian_Temple-Beijing.html\\n---\\n\\\"于谦祠\\\" \\\"39.9\\\" \\\"116.4\\\" 经纬度\\n---\\nJianguomen Nei Dajie Beijing coordinates latitude longitude\\n---\\n于谦祠位于北京市东城区西裱褙胡同23号（甲23号），靠近建国门内大街南侧\\n---\\n袁崇焕祠堂 北京 地址 坐标 具体位置\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s001",
+              "s011"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s001",
+                "chunk_id": "s001:c001",
+                "role": "partial_support",
+                "text": "在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等"
+              },
+              {
+                "span_id": "s011",
+                "chunk_id": "s011:c001",
+                "role": "partial_support",
+                "text": "I'll solve this step by step by finding the locations of the three temples in Beijing and calculating the equidistant point"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s001",
+            "s011"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s001",
+              "chunk_id": "s001:c001",
+              "role": "partial_support",
+              "text": "在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等"
+            },
+            {
+              "span_id": "s011",
+              "chunk_id": "s011:c001",
+              "role": "partial_support",
+              "text": "I'll solve this step by step by finding the locations of the three temples in Beijing and calculating the equidistant point"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0869\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等，请问这个点与三个祠堂的距离是多少？\",\n  \"traj_id\": \"0869\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0869\",\n    \"task_goal\": \"short string\",\n    \"hard_constraints\": [\n      \"short string\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"short string\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s001\",\n        \"s011\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s001\",\n          \"chunk_id\": \"s001:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等\"\n        },\n        {\n          \"span_id\": \"s011\",\n          \"chunk_id\": \"s011:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"I'll solve this step by step by finding the locations of the three temples in Beijing and calculating the equidistant point\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s011\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s011\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s002:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s011\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 497,\n        \"text\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等，请问这个点与三个祠堂的距离是多少\\n---\\n文天祥祠堂 北京 地址 坐标\\n---\\n地图搜索： 热门城市推荐： 北京 上海 深圳 广州 杭州 南京 武汉 成都 重庆 天津 西安 旧金山 香港 台北 巴黎 东京 城市列表 深入探索 指南针 文丞相祠 北京 北京市 Google卫星地图 >>分享地图 >>手机访问 北京文天祥祠 × + − Leaflet | Map Data © Google 北京文天祥祠简介：位于东城区府学胡同63号，又名文丞相祠，明清两代为祭祀南宋抗元英雄文天祥，将当年文天祥被囚禁的土牢旧址扩大改建而\\n---\\n文天祥祠 北京 历史 背景 文天祥\\n---\\n文天祥祠 交通 地铁 公交 如何到达\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\n1000 公里 × 路况 地铁 工具箱 享受最佳体验，请将浏览器设置为默认缩放级别\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 123,\n        \"text\": \"I'll solve this step by step by finding the locations of the three temples in Beijing and calculating the equidistant point\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 421,\n        \"text\": \"于谦祠 坐标 经纬度 coordinates\\n---\\n建国门内大街 于谦祠 GPS coordinates latitude longitude\\n---\\n于谦祠 39.9 116.4 坐标\\n---\\nYu Qian Temple Beijing address coordinates 39.9 116.4\\n---\\nhttps://www.tripadvisor.com/Attraction_Review-g294212-d1979348-Reviews-Beijing_Yu_Qian_Temple-Beijing.html\\n---\\n\\\"于谦祠\\\" \\\"39.9\\\" \\\"116.4\\\" 经纬度\\n---\\nJianguomen Nei Dajie Beijing coordinates latitude longitude\\n---\\n于谦祠位于北京市东城区西裱褙胡同23号（甲23号），靠近建国门内大街南侧\\n---\\n袁崇焕祠堂 北京 地址 坐标 具体位置\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0869",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0869",
+        "first_error_span": null,
+        "linked_error_span_ids": [
+          "s011"
+        ],
+        "non_errors": [],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s011"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 11,
+    "evidence_span_count": 3
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 6641,
+    "output_tokens": 495,
+    "total_tokens": 7136
+  }
+}

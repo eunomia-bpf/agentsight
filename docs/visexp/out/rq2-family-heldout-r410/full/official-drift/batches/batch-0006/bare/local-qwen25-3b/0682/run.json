@@ -1,0 +1,58 @@
+{
+  "setting": "bare",
+  "case_id": "0682",
+  "prediction": {
+    "traj_id": "0682",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0682\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"Which contributor to the version of OpenCV where support was added for the Mask-RCNN model has the same name as a former Chinese head of government when the names are transliterated to the Latin alphabet?\",\n  \"traj_id\": \"0682\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Which contributor to the version of OpenCV where support was added for the Mask-RCNN model has the same name as a former Chinese head of government when the names are transliterate\\n---\\nOpenCV Mask-RCNN support added version release notes\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nupstream connect error or disconnect/reset before headers\\n---\\nOpenCV 3.4.1 Mask-RCNN release notes changelog\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / News / OpenCV 3\\n---\\nOpenCV 3.4.1 changelog DNN Mask-RCNN February 2018\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:github.com/opencv/opencv Mask-RCNN support added 3.4.1\\n---\\nOpenCV 3.4.1 release date February 2018 Mask-RCNN\\n---\\n\\\"OpenCV 3.4.1\\\" \\\"Mask-RCNN\\\" changelog release notes DNN module\\n---\\nOpenCV Mask-RCNN tutorial guide sample python 3.4.1\\n---\\nRCNN support was added to OpenCV version **3\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Notifications Fork 56\\n---\\nOpenCV 3.4.2 Mask-RCNN DNN module contributors GitHub July 2018\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:github.com/opencv/opencv Mask-RCNN commit 3.4.2 author\\n---\\nsite:github.com/opencv/opencv pull request Mask-RCNN DNN 2018\\n---\\nsite:github.com/opencv/opencv/commit Mask RCNN 2018\\n---\\nopencv dnn mask-rcnn support added pull request author 2018\\n---\\nopencv 3.4.2 release commits dnn module mask rcnn github compare\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\n\\\"Dmitry Kurtaev\\\" OR \\\"dkurt\\\" opencv mask-rcnn dnn 2018\\n---\\nRCNN support for TensorFlow was merged into OpenCV on August 24, 2018 via Pull Request #12243, which was **after** the July 2018 release of OpenCV 3\\n---\\nopencv 3.4.2 Mask-RCNN support pull request github\\n---\\nopencv opencv repository Mask-RCNN pull request 2018 github.com\\n---\\nsite:github.com/opencv/opencv pull request Mask RCNN 2018\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nsite:github.com/opencv/opencv pull/12243 Mask-RCNN\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nopencv 3.4.2 release date github\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nsite:github.com/opencv/opencv commit 472b71e Mask-RCNN\\n---\\n\\\\n\\\\nPull Request #12243 titled \\\\\\\"Support Mask\\n---\\nPremier of the People's Republic of China complete list all premiers history\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) List of prime ministers of the Qing Imperial Government (1911–12) List of premiers of the ROC (since 1912) List of premiers of the PRC (si\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) History Toggle History subsection People's Republic of China Selection Powers and duties List of premiers Toggle List of premiers subsecti\\n---\\nList of premiers Republic of China ROC 1912-1949 complete history\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) List Toggle List subsection Premiers of the Cabinet (1912–1914) Secretaries of State (1914–1916) Premiers of the State Council (1916–1928)\\n---\\nLi Peng Chinese Premier biography complete information\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n\\\\n\\\\nChina has had premiers/prime ministers under different governmental systems throughout its modern history\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Notifications Fork 56\\n---\\nOpenCV Mask-RCNN support Li Peng pull request\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nLi Peng Premier China 1987 1998\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"OpenCV pull request 11573 author mshabunin\\n---\\nGitHub user mshabunin Maksim Shabunin OpenCV\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up mshabunin Follow Overview Repositories 47 Projects Packages Stars 45 mshabunin Follow 🧐 Maksim Shabunin mshabuni\\n---\\nOpenCV Mask-RCNN pull request 12243 dkurt Li Peng\\n---\\nGitHub dkurt Dmitry Kurtaev OpenCV\\n---\\n\\\\n\\\\nThe initial premise of the task is **INCORRECT**\\n---\\nOpenCV 3.4.2 Mask-RCNN support pull request Li Peng\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:github.com opencv pull request Mask-RCNN 3.4.2 Li Peng\\n---\\nopencv github pull request 10305 Mask-RCNN\\n---\\n\\\"pull request\\\" \\\"10305\\\" opencv mask-rcnn\\n---\\nopencv github.com/opencv/opencv/pull Mask-RCNN author:Li Peng\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up dkurt Follow Overview Repositories 92 Projects Packages Stars 104 dkurt Follow Dmitry Kurtaev dkurt Follow Neura\\n---\\n\\\\n\\\\n**NO, Li Peng was NOT the author of the OpenCV pull request that added Mask\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll solve this step by step, following my plan to find the contributor to OpenCV's Mask-RCNN support who shares a name with a former Chinese head of government\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0682",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0682",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 11
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 2577,
+    "output_tokens": 80,
+    "total_tokens": 2657
+  }
+}

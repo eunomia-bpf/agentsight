@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0863",
+  "prediction": {
+    "traj_id": "0863",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0863\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"“人生若只如初见，何事秋风悲画扇。”是一位中国古代的著名词人的经典之作，该词人的姓氏源自某一民族的一个旧姓氏，据说该旧姓氏在历史上的第二位皇后创造了一种头型，是什么？\",\n  \"traj_id\": \"0863\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"“人生若只如初见，何事秋风悲画扇\\n---\\n人生若只如初见，何事秋风悲画扇 作者\\n---\\n古文岛 - 原古诗文网 推荐 诗文 名句 作者 古籍 我的 APP 人生若只如初见，何事秋风悲画扇\\n---\\n纳兰性德 纳兰容若 biography 生平\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 99+ 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加\\n---\\n班婕妤 秋扇 典故 painted fan allusion\\n---\\n\\\\n\\\\n\\\\u8fd9\\\\u53e5\\\\u8bd7\\\\u7684\\\\u4f5c\\\\u8005\\\\u662f**\\\\u7eb3\\\\u5170\\\\u6027\\\\u5fb7**\\\\uff081655\\n---\\n纳兰姓氏来源 民族 满族\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 2026年1月15日是维基百科成立25周年，一起来写下对维基百科的美好祝愿\\n---\\n健康 祖源 用户故事 博客 社区 购买 导入数据 登录注册 姓氏库 姓氏详情 纳兰nà lán 姓氏起源 纳兰是是金代女真“白号之姓”中皆封广平郡的第二大支系三十个姓氏之一（又称\\\"纳喇\\\"、\\\"那拉\\\"）\\n---\\n纳兰性德 叶赫那拉氏 纳兰明珠\\n---\\n叶赫那拉氏 土默特氏 改姓 纳兰氏 旧姓\\n---\\n查询姓氏 创建纪念馆 | 创建族谱 首页 | 百家姓 | 网上纪念 | 搜索查找 [ 登录 注册 ] 姓氏：纳兰 拼音: 2008-03-07 28258次 1人 1个 0个 1人 0部 站长： [申请站长] 管理员: [申请管理员] 纳兰姓起源 纳兰姓社区 纳兰姓族员 纳兰姓名人 纳兰姓族谱 纳兰姓纪念馆 添加本页到收藏夹 将本页设为首页 [ 字号:大 中 小 ] 纳兰是金代女真“白号之姓”中皆封广平郡的第二大支系三十个姓氏之一（又称\\n---\\n纳兰氏 那拉氏 区别 满族八大姓\\n---\\n纳兰氏 汉姓 改姓 那 叶 白 南\\n---\\n纳懒氏 唐末女真 纳兰氏 金代 辽代拿懒氏\\n---\\n星根达尔汉 土默特氏 叶赫那拉氏 始祖\\n---\\n\\\\n\\\\n**\\\\u7eb3\\\\u5170\\\\u59d3\\\\u6c0f\\\\u6765\\\\u6e90\\\\u3001\\\\u6c11\\\\u65cf\\\\u4e0e\\\\u65e7\\\\u59d3\\\\u6982\\\\u8ff0\\\\uff1a**\\\\n\\\\n\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Empress Nara Qianlong second empress Ulanara\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n× Topics Society Life Business Language History Arts Literature Photo Stories News & Events Events Announcements About Us About Us Our Team Join Us Contact Us Pitch to Us Shop China International Follow Us Latest Magazin\\n---\\nQing Dynasty empress hairstyle 清朝皇后发型 imperial court\\n---\\nSkip to content #Hanfugirl Chinese History made Fashionable Qing dynasty show styling–The good, the bad and the ugly (Hair episode) IMPORTANT: WE HAVE MOVED\\n---\\nQing Dynasty Manchu women hairstyle liangbatou 两把头 imperial court etiquette\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nEmpress Nara hair cutting incident significance Manchu custom mourning\\n---\\n清朝皇后发型 满族女性发型 宫廷礼仪\\n---\\nStep Empress Nara hairstyle before hair cutting incident Qing Dynasty\\n---\\nNara clan empresses Qing dynasty chronological order\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nQing dynasty Nara clan empresses complete list chronological\\n---\\nEmpress Xiaojingcheng Nara clan Qing dynasty first Nara empress\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"all Nara clan empresses Qing dynasty complete list chronological order\\n---\\nEmpress Xiaojingcheng Daoguang Nara clan Qing dynasty\\n---\\n\\\\n\\\\n\\\\u5386\\\\u53f2\\\\u4e0a\\\\u6e05\\\\u671d\\\\u7b2c\\\\u4e8c\\\\u4f4d\\\\u90a3\\\\u62c9\\\\u6c0f\\\\u7687\\\\u540e\\\\u662f**\\\\u4e7e\\\\u9686\\\\u5e1d\\\\u7684\\\\u7ee7\\\\u7687\\\\u540e\\\\u90a3\\\\u62c9\\\\u6c0f**\\\\uff081718\\\\u5e743\\\\u670811\\\\u65e5\\n---\\n孝昭仁皇后\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 2026年1月15日是维基百科成立25周年，一起来写下对维基百科的美好祝愿\\n---\\n清朝皇后发型 康熙时期\\n---\\n台灣時間 IP地址 您好： 您的IP已被封鎖，造成服務無法正常運作， 在此敬上萬分歉意，敬請見諒\\n---\\n孝昭仁皇后 画像 发型 包头\\n---\\n十九八 8 故 出 版 社 Vol\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"清朝皇后发型制作 包头 钿子 how to create\\n---\\n清代满族女性发型 包头 制作方法 步骤\\n---\\nEmpress Xiaozhaoren hairstyle baotou Qing dynasty Kangxi\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"清代钿子制作 材料 工艺 步骤\\n---\\nEmpress Xiaozhaoren (孝昭仁皇后, 1659\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"中国历史第一位皇后 吕雉 Empress Lü Zhi first empress consort\\n---\\n中国历史第二位皇后 second empress Chinese history after 吕雉\\n---\\n汉朝第二位皇后 薄姬 Empress Bo Han dynasty second empress\\n---\\n中国历史皇后顺序 first second empress chronological order 吕雉之后\\n---\\n汉惠帝皇后张嫣 Empress Zhang Yan Han dynasty\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nZhang Yan empress Han dynasty hairstyle 张嫣发型 汉朝皇后发型\\n---\\nHan dynasty empress hairstyle Western Han women hair style 西汉皇后发型\\n---\\nSkip navigation Sign in Sign in to confirm you’re not a bot This helps protect our community\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"汉朝发型 堕马髻 垂云髻 Han dynasty hairstyle types\\n---\\nZhang Yan (张嫣, died 163 BC) was the second empress in Chinese history, following Empress Lü Zhi\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"那拉氏 纳喇氏 ancient origin Manchu clan history\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n两把头 liangbatou Manchu hairstyle empress Qing dynasty\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"旗头 qitou Manchu banner hairstyle difference liangbatou\\n---\\nEmpress Nara Qianlong liangbatou hairstyle portrait\\n---\\n那拉氏 Nara clan Mongol origin sun tamga Genghis Khan\\n---\\n旗头 qitou 满族 Manchu headdress meaning definition\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Empress Xiaocigao Monggo Jerjer Yehe Nara Hong Taiji mother\\n---\\nEmpress Xiaoliewu Abahai Ula Nara Nurhaci consort\\n---\\nEmpress Xiaojingxian Duoqimuli Ula Nara Yongzheng Emperor\\n---\\nStep Empress Nara Qianlong Emperor Hoifa Nara Ula Nara cutting hair incident\\n---\\nThe Nara clan (那拉氏/纳喇氏) is a prominent Manchu royal clan with ancient origins dating back to the Jin Dynasty's noble Wanyan clan\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"两把头 发型 起源 那拉氏 皇后\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科志願者互聯交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）歡迎大家加入\\n---\\n两把头 二把头 清朝 发型 起源 创造者\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科志願者互聯交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）歡迎大家加入\\n---\\n孝全成皇后 钮祜禄氏 二把头 发型 创造\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科Discord、IRC、LINE、QQ及Telegram等各平臺交流群歡迎大家加入\\n---\\n孝全成皇后 钮祜禄氏 道光帝 生平\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"那拉氏 皇后 清朝 两把头 大拉翅\\n---\\n慈禧太后 叶赫那拉氏 大拉翅 发型 发明\"\n    },\n    {\n      \"span_id\": \"s014\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"新的搜索 登录后保存搜索记录 登录账户可以保存和查看历史搜索记录 去登录 接入API，立即获得深度搜索能力\\n---\\nThe \\\"两把头\\\" (èr bǎ tóu/liangbatou) hairstyle is traditionally attributed to Empress Xiaoquancheng (孝全成皇后), who was from the Niuhuru clan (钮祜禄氏), not the Nara clan (那拉氏)\\n---\\nI'll solve this step by step following the plan\"\n    },\n    {\n      \"span_id\": \"s015\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll analyze the information gathered so far and provide the final answer\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0863",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0863",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 15
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 3647,
+    "output_tokens": 74,
+    "total_tokens": 3721
+  }
+}

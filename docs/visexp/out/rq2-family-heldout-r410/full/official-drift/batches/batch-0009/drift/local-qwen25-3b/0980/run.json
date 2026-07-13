@@ -1,0 +1,397 @@
+{
+  "setting": "drift",
+  "case_id": "0980",
+  "prediction": {
+    "traj_id": "0980",
+    "error_span_ids": [
+      "s003",
+      "s009"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0980\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"搭乘苏州轨道交通从长亭站能直达花桥地下站台吗？\",\n  \"traj_id\": \"0980\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"搭乘苏州轨道交通从长亭站能直达花桥地下站台吗\\n---\\n苏州轨道交通 长亭站 所属线路\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 1 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\nsite:sz-mtr.com 长亭站\\n---\\n403 抱歉，你的访问为非法访问 您的访问已被识别为攻击并记录\\n---\\n长亭站属于苏州轨道交通3号线\\n---\\nThought: 我需要查询苏州轨道交通的各线路与站点，确定长亭站在哪条线，以及花桥地下站台是否为苏州轨道交通运营、在哪条线，以判断是否无需换乘可直达\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"苏州轨道交通 花桥站 11号线 站台 结构 地下 昆山 花桥 方位 运营\\n---\\n苏州 轨道交通 11号线 花桥站\\n---\\n苏州轨道交通11号线 花桥站 站台 结构 地下\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 中文維基百科Facebook粉絲專頁正式上線，邀請大家一同關注\\n---\\n苏州地铁 11号线 花桥站 地上两层 地下一层 站厅 无缝换乘\\n---\\n苏州轨道交通11号线花桥站位于江苏省苏州市昆山市花桥镇（光明路与沿沪大道交叉口西侧），为苏州地铁11号线与上海地铁11号线的跨省终点/换乘枢纽\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"苏州轨道交通11号线 站点 列表 官方\\n---\\n苏州轨道交通 11号线 官方 站点\\n---\\n苏州轨道交通 官网 11号线 站点 信息\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 乘坐 车辆 开关车辆子章节 本线车辆 直通车辆 3号线 运营 开关运营子章节 首末班车 与3号线贯通运营 大站快车 广播 车站 开关车站子章节 换乘站 车站列表 历史 轶事 开关轶事子章节 交通卡与票务 参考文献 苏州地铁11号线 4种语言 条目 讨论 不转换 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 苏州地铁11号线 苏州地铁11号线使用\\n---\\n苏州轨道交通11号线（原S1线）为全地下线路，西起苏州工业园区唯亭站，东至昆山市花桥站，全长约41\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"苏州轨道交通 3号线 站点 唯亭站 是否换乘\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 背景 开关背景子章节 交通状况 市域一体化 改造前运行状况 开关改造前运行状况子章节 3号线 11号线 工程实施 开关工程实施子章节 3号线改造 唯亭站改造 车辆升级 调度指挥权移交 改造后运营方案 开关改造后运营方案子章节 第一阶段 第二阶段 第三阶段 注释 参见 参考资料 苏州市轨道交通11号线与3号线工程贯通运营改造项目 1种语言 条目 讨论 简体 阅读 编\\n---\\n手机看中经 经济日报微信 中经网微信 人物库 网站首页金融证券产业市场国际经济时政社会评论理论地方经济城市频道食品安全网乡村振兴生态文明 股市银行基金期货理财保险IT业食品汽车商车能源房产医药文化会展旅游生活科技健康VR 当前位置 首页 > 产业市场 > 即时新闻 > 正文 中经搜索 国内首条跨省轨交系统无感换乘线路开通 2023年06月25日 07:22 来源：光明日报 [推荐朋友][打印本稿][字号 大 中 小] 本报苏州6月24日\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"苏州轨道交通 3号线 11号线 全线 贯通 2024年6月29日\\n---\\n唯亭站 苏州轨道交通 换乘 3号线 11号线\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"返回管委会首页 登录 繁體 |English |日语 |无障碍 |关怀版 新闻中心 首页 要闻导读 专题报道 图说园区 视频园区 动态回顾 当前位置： 首页 > 新闻中心 > 媒体聚焦 无需换乘 轨道交通3/11号线6月29日起全线双向贯通运行 时间： 2024-07-01 11:01|来源： 苏州电视台|浏览量：|字号：大中小 记者 张笑宇 摄像 丁达祥 《苏州电视台新闻综合频道》2024年6月29日 部门直通车 功能区 网站纠错 网\\n---\\n唯亭站是否可换乘：可以\\n---\\nThought: 我需要确认“花桥地下站台”是苏州轨道交通11号线的花桥站（地下车站），并确认“长亭站”位于苏州轨道交通3号线，两者是否在同一线路或存在贯通直达运营\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"最终答案:可以直达，自2024年6月29日起苏州轨道交通3号线与11号线已实现全线双向贯通运行，从长亭站乘车可不换乘直达苏州地铁11号线花桥地下站台\\n---\\nThought: 我已确认长亭站属于苏州轨道交通3号线，花桥站（地下站台）属于苏州轨道交通11号线\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0980",
+        "task_goal": "判断苏州轨道交通从长亭站能否直达花桥地下站台",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "长亭站属于苏州轨道交通3号线",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s003",
+            "used_by": [
+              "s003",
+              "s005",
+              "s007",
+              "s009"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "花桥站属于苏州轨道交通11号线，且为地下站台",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s003",
+            "used_by": [
+              "s003",
+              "s005",
+              "s007",
+              "s009"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "苏州轨道交通3号线与11号线于2024年6月29日实现全线双向贯通运行",
+            "introduced_at": "s008",
+            "becomes_consequential_at": "s009",
+            "used_by": [
+              "s009"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          }
+        ],
+        "notes": "最终答案为可以直达，自2024年6月29日起苏州轨道交通3号线与11号线已实现全线双向贯通运行，从长亭站乘车可不换乘直达苏州地铁11号线花桥地下站台"
+      },
+      "validated": {
+        "traj_id": "0980",
+        "task_goal": "判断苏州轨道交通从长亭站能否直达花桥地下站台",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "长亭站属于苏州轨道交通3号线",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s003",
+            "used_by": [
+              "s003",
+              "s005",
+              "s007",
+              "s009"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "花桥站属于苏州轨道交通11号线，且为地下站台",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s003",
+            "used_by": [
+              "s003",
+              "s005",
+              "s007",
+              "s009"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "苏州轨道交通3号线与11号线于2024年6月29日实现全线双向贯通运行",
+            "introduced_at": "s008",
+            "becomes_consequential_at": "s009",
+            "used_by": [
+              "s009"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          }
+        ],
+        "notes": "最终答案为可以直达，自2024年6月29日起苏州轨道交通3号线与11号线已实现全线双向贯通运行，从长亭站乘车可不换乘直达苏州地铁11号线花桥地下站台"
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001",
+            "s003",
+            "s009"
+          ],
+          "grep_queries": [
+            "长亭站属于苏州轨道交通3号线"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s002",
+            "s003",
+            "s009"
+          ],
+          "grep_queries": [
+            "花桥站属于苏州轨道交通11号线，且为地下站台"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s008",
+            "s009"
+          ],
+          "grep_queries": [
+            "苏州轨道交通3号线与11号线于2024年6月29日实现全线双向贯通运行"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s002",
+        "s003",
+        "s005",
+        "s007",
+        "s008",
+        "s009"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s002",
+        "s003",
+        "s005",
+        "s007",
+        "s008",
+        "s009"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "长亭站属于苏州轨道交通3号线",
+          "matched_chunk_ids": [
+            "s001:c001",
+            "s009:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s009"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "花桥站属于苏州轨道交通11号线，且为地下站台",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        },
+        {
+          "claim_id": "c3",
+          "query": "苏州轨道交通3号线与11号线于2024年6月29日实现全线双向贯通运行",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0980\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"搭乘苏州轨道交通从长亭站能直达花桥地下站台吗？\",\n  \"traj_id\": \"0980\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0980\",\n    \"task_goal\": \"判断苏州轨道交通从长亭站能否直达花桥地下站台\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"长亭站属于苏州轨道交通3号线\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [\n          \"s003\",\n          \"s005\",\n          \"s007\",\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"花桥站属于苏州轨道交通11号线，且为地下站台\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [\n          \"s003\",\n          \"s005\",\n          \"s007\",\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"苏州轨道交通3号线与11号线于2024年6月29日实现全线双向贯通运行\",\n        \"introduced_at\": \"s008\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [\n          \"s009\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"最终答案为可以直达，自2024年6月29日起苏州轨道交通3号线与11号线已实现全线双向贯通运行，从长亭站乘车可不换乘直达苏州地铁11号线花桥地下站台\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s005\",\n      \"s007\",\n      \"s008\",\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s008\",\n      \"s009\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"长亭站属于苏州轨道交通3号线\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s009:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"花桥站属于苏州轨道交通11号线，且为地下站台\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"苏州轨道交通3号线与11号线于2024年6月29日实现全线双向贯通运行\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s005\",\n      \"s007\",\n      \"s008\",\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 538,\n        \"text\": \"搭乘苏州轨道交通从长亭站能直达花桥地下站台吗\\n---\\n苏州轨道交通 长亭站 所属线路\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 1 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\nsite:sz-mtr.com 长亭站\\n---\\n403 抱歉，你的访问为非法访问 您的访问已被识别为攻击并记录\\n---\\n长亭站属于苏州轨道交通3号线\\n---\\nThought: 我需要查询苏州轨道交通的各线路与站点，确定长亭站在哪条线，以及花桥地下站台是否为苏州轨道交通运营、在哪条线，以判断是否无需换乘可直达\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 85,\n        \"text\": \"苏州轨道交通 花桥站 11号线 站台 结构 地下 昆山 花桥 方位 运营\\n---\\n苏州 轨道交通 11号线 花桥站\\n---\\n苏州轨道交通11号线 花桥站 站台 结构 地下\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 171,\n        \"text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 中文維基百科Facebook粉絲專頁正式上線，邀請大家一同關注\\n---\\n苏州地铁 11号线 花桥站 地上两层 地下一层 站厅 无缝换乘\\n---\\n苏州轨道交通11号线花桥站位于江苏省苏州市昆山市花桥镇（光明路与沿沪大道交叉口西侧），为苏州地铁11号线与上海地铁11号线的跨省终点/换乘枢纽\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 274,\n        \"text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 乘坐 车辆 开关车辆子章节 本线车辆 直通车辆 3号线 运营 开关运营子章节 首末班车 与3号线贯通运营 大站快车 广播 车站 开关车站子章节 换乘站 车站列表 历史 轶事 开关轶事子章节 交通卡与票务 参考文献 苏州地铁11号线 4种语言 条目 讨论 不转换 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 苏州地铁11号线 苏州地铁11号线使用\\n---\\n苏州轨道交通11号线（原S1线）为全地下线路，西起苏州工业园区唯亭站，东至昆山市花桥站，全长约41\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 59,\n        \"text\": \"苏州轨道交通 3号线 11号线 全线 贯通 2024年6月29日\\n---\\n唯亭站 苏州轨道交通 换乘 3号线 11号线\"\n      },\n      {\n        \"span_id\": \"s008\",\n        \"chunk_id\": \"s008:c001\",\n        \"char_start\": 0,\n        \"char_end\": 323,\n        \"text\": \"返回管委会首页 登录 繁體 |English |日语 |无障碍 |关怀版 新闻中心 首页 要闻导读 专题报道 图说园区 视频园区 动态回顾 当前位置： 首页 > 新闻中心 > 媒体聚焦 无需换乘 轨道交通3/11号线6月29日起全线双向贯通运行 时间： 2024-07-01 11:01|来源： 苏州电视台|浏览量：|字号：大中小 记者 张笑宇 摄像 丁达祥 《苏州电视台新闻综合频道》2024年6月29日 部门直通车 功能区 网站纠错 网\\n---\\n唯亭站是否可换乘：可以\\n---\\nThought: 我需要确认“花桥地下站台”是苏州轨道交通11号线的花桥站（地下车站），并确认“长亭站”位于苏州轨道交通3号线，两者是否在同一线路或存在贯通直达运营\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 128,\n        \"text\": \"最终答案:可以直达，自2024年6月29日起苏州轨道交通3号线与11号线已实现全线双向贯通运行，从长亭站乘车可不换乘直达苏州地铁11号线花桥地下站台\\n---\\nThought: 我已确认长亭站属于苏州轨道交通3号线，花桥站（地下站台）属于苏州轨道交通11号线\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s001",
+              "s009"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s001",
+                "chunk_id": "s001:c001",
+                "role": "partial_support",
+                "text": "长亭站属于苏州轨道交通3号线"
+              }
+            ]
+          },
+          {
+            "claim_id": "c2",
+            "support_spans": [
+              "s002"
+            ],
+            "support_status": "missing",
+            "missing_support": "花桥站属于苏州轨道交通11号线，且为地下站台",
+            "needs_auditors": [
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s002",
+                "chunk_id": "s002:c001",
+                "role": "partial_support",
+                "text": "苏州轨道交通11号线花桥站站台结构地下"
+              }
+            ]
+          },
+          {
+            "claim_id": "c3",
+            "support_spans": [
+              "s008",
+              "s009"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串",
+            "needs_auditors": [
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s008",
+                "chunk_id": "s008:c001",
+                "role": "partial_support",
+                "text": "苏州轨道交通3号线与11号线于2024年6月29日实现全线双向贯通运行"
+              },
+              {
+                "span_id": "s009",
+                "chunk_id": "s009:c001",
+                "role": "partial_support",
+                "text": "最终答案:可以直达，自2024年6月29日起苏州轨道交通3号线与11号线已实现全线双向贯通运行，从长亭站乘车可不换乘直达苏州地铁11号线花桥地下站台"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s001",
+            "s009"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s001",
+              "chunk_id": "s001:c001",
+              "role": "partial_support",
+              "text": "长亭站属于苏州轨道交通3号线"
+            }
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "support_spans": [
+            "s002"
+          ],
+          "support_status": "missing",
+          "missing_support": "花桥站属于苏州轨道交通11号线，且为地下站台",
+          "needs_auditors": [
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s002",
+              "chunk_id": "s002:c001",
+              "role": "partial_support",
+              "text": "苏州轨道交通11号线花桥站站台结构地下"
+            }
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "support_spans": [
+            "s008",
+            "s009"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串",
+          "needs_auditors": [
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s008",
+              "chunk_id": "s008:c001",
+              "role": "partial_support",
+              "text": "苏州轨道交通3号线与11号线于2024年6月29日实现全线双向贯通运行"
+            },
+            {
+              "span_id": "s009",
+              "chunk_id": "s009:c001",
+              "role": "partial_support",
+              "text": "最终答案:可以直达，自2024年6月29日起苏州轨道交通3号线与11号线已实现全线双向贯通运行，从长亭站乘车可不换乘直达苏州地铁11号线花桥地下站台"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0980\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"搭乘苏州轨道交通从长亭站能直达花桥地下站台吗？\",\n  \"traj_id\": \"0980\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0980\",\n    \"task_goal\": \"判断苏州轨道交通从长亭站能否直达花桥地下站台\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"长亭站属于苏州轨道交通3号线\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [\n          \"s003\",\n          \"s005\",\n          \"s007\",\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"花桥站属于苏州轨道交通11号线，且为地下站台\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [\n          \"s003\",\n          \"s005\",\n          \"s007\",\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"苏州轨道交通3号线与11号线于2024年6月29日实现全线双向贯通运行\",\n        \"introduced_at\": \"s008\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [\n          \"s009\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"最终答案为可以直达，自2024年6月29日起苏州轨道交通3号线与11号线已实现全线双向贯通运行，从长亭站乘车可不换乘直达苏州地铁11号线花桥地下站台\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s001\",\n        \"s009\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s001\",\n          \"chunk_id\": \"s001:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"长亭站属于苏州轨道交通3号线\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c2\",\n      \"support_spans\": [\n        \"s002\"\n      ],\n      \"support_status\": \"missing\",\n      \"missing_support\": \"花桥站属于苏州轨道交通11号线，且为地下站台\",\n      \"needs_auditors\": [\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s002\",\n          \"chunk_id\": \"s002:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"苏州轨道交通11号线花桥站站台结构地下\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c3\",\n      \"support_spans\": [\n        \"s008\",\n        \"s009\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串\",\n      \"needs_auditors\": [\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s008\",\n          \"chunk_id\": \"s008:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"苏州轨道交通3号线与11号线于2024年6月29日实现全线双向贯通运行\"\n        },\n        {\n          \"span_id\": \"s009\",\n          \"chunk_id\": \"s009:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"最终答案:可以直达，自2024年6月29日起苏州轨道交通3号线与11号线已实现全线双向贯通运行，从长亭站乘车可不换乘直达苏州地铁11号线花桥地下站台\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s005\",\n      \"s007\",\n      \"s008\",\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s008\",\n      \"s009\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"长亭站属于苏州轨道交通3号线\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s009:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"花桥站属于苏州轨道交通11号线，且为地下站台\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"苏州轨道交通3号线与11号线于2024年6月29日实现全线双向贯通运行\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s005\",\n      \"s007\",\n      \"s008\",\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 538,\n        \"text\": \"搭乘苏州轨道交通从长亭站能直达花桥地下站台吗\\n---\\n苏州轨道交通 长亭站 所属线路\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 1 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\nsite:sz-mtr.com 长亭站\\n---\\n403 抱歉，你的访问为非法访问 您的访问已被识别为攻击并记录\\n---\\n长亭站属于苏州轨道交通3号线\\n---\\nThought: 我需要查询苏州轨道交通的各线路与站点，确定长亭站在哪条线，以及花桥地下站台是否为苏州轨道交通运营、在哪条线，以判断是否无需换乘可直达\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 85,\n        \"text\": \"苏州轨道交通 花桥站 11号线 站台 结构 地下 昆山 花桥 方位 运营\\n---\\n苏州 轨道交通 11号线 花桥站\\n---\\n苏州轨道交通11号线 花桥站 站台 结构 地下\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 171,\n        \"text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 中文維基百科Facebook粉絲專頁正式上線，邀請大家一同關注\\n---\\n苏州地铁 11号线 花桥站 地上两层 地下一层 站厅 无缝换乘\\n---\\n苏州轨道交通11号线花桥站位于江苏省苏州市昆山市花桥镇（光明路与沿沪大道交叉口西侧），为苏州地铁11号线与上海地铁11号线的跨省终点/换乘枢纽\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 274,\n        \"text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 乘坐 车辆 开关车辆子章节 本线车辆 直通车辆 3号线 运营 开关运营子章节 首末班车 与3号线贯通运营 大站快车 广播 车站 开关车站子章节 换乘站 车站列表 历史 轶事 开关轶事子章节 交通卡与票务 参考文献 苏州地铁11号线 4种语言 条目 讨论 不转换 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 苏州地铁11号线 苏州地铁11号线使用\\n---\\n苏州轨道交通11号线（原S1线）为全地下线路，西起苏州工业园区唯亭站，东至昆山市花桥站，全长约41\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 59,\n        \"text\": \"苏州轨道交通 3号线 11号线 全线 贯通 2024年6月29日\\n---\\n唯亭站 苏州轨道交通 换乘 3号线 11号线\"\n      },\n      {\n        \"span_id\": \"s008\",\n        \"chunk_id\": \"s008:c001\",\n        \"char_start\": 0,\n        \"char_end\": 323,\n        \"text\": \"返回管委会首页 登录 繁體 |English |日语 |无障碍 |关怀版 新闻中心 首页 要闻导读 专题报道 图说园区 视频园区 动态回顾 当前位置： 首页 > 新闻中心 > 媒体聚焦 无需换乘 轨道交通3/11号线6月29日起全线双向贯通运行 时间： 2024-07-01 11:01|来源： 苏州电视台|浏览量：|字号：大中小 记者 张笑宇 摄像 丁达祥 《苏州电视台新闻综合频道》2024年6月29日 部门直通车 功能区 网站纠错 网\\n---\\n唯亭站是否可换乘：可以\\n---\\nThought: 我需要确认“花桥地下站台”是苏州轨道交通11号线的花桥站（地下车站），并确认“长亭站”位于苏州轨道交通3号线，两者是否在同一线路或存在贯通直达运营\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 128,\n        \"text\": \"最终答案:可以直达，自2024年6月29日起苏州轨道交通3号线与11号线已实现全线双向贯通运行，从长亭站乘车可不换乘直达苏州地铁11号线花桥地下站台\\n---\\nThought: 我已确认长亭站属于苏州轨道交通3号线，花桥站（地下站台）属于苏州轨道交通11号线\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0980",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0980",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [],
+        "non_errors": [
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 9,
+    "evidence_span_count": 7
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 8989,
+    "output_tokens": 1023,
+    "total_tokens": 10012
+  }
+}

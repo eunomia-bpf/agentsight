@@ -1,0 +1,251 @@
+{
+  "setting": "drift",
+  "case_id": "0378",
+  "prediction": {
+    "traj_id": "0378",
+    "error_span_ids": [
+      "s011",
+      "s015"
+    ],
+    "earliest_harmful_span_id": "s011",
+    "reasons": [
+      {
+        "span_id": "s011",
+        "reason": "short string"
+      },
+      {
+        "span_id": "s015",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0378\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"2024年滴滴自动驾驶主力运营车辆的最小转弯半径是多少（单位：米）\",\n  \"traj_id\": \"0378\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"搜索并确定2024年滴滴自动驾驶的主力运营车辆是什么车型。重点查找：1) 滴滴自动驾驶2024年官方新闻、公告；2) 2024年滴滴Robotaxi运营车队的车型信息；3) 滴滴自动驾驶最新投放或大规模运营的车型；4) 媒体报道中提到的2024年滴滴自动驾驶主要使用的车型。请提供车型名称、制造商、以及该车型作为主力运营车辆的证据来源。\\n---\\n滴滴自动驾驶 2024 运营车型 Robotaxi\\n---\\n滴滴 广汽埃安 L4 Robotaxi 车型名称 2024\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"滴滴自动驾驶 2024 运营车型 北京 广州 现有车队\\n---\\n滴滴自动驾驶 沃尔沃XC90 主力运营车型 2024\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 滴滴自动驾驶亮相世界智能网联汽车大会-新华网 URL Source: https://www https://www.news.cn/tech/20241018/9dd9055a5f514645860b65da24040a80/c.html\\n---\\n滴滴 沃尔沃 战略合作 XC90 自动驾驶\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"滴滴自动驾驶 2024 车队规模 200辆 运营数据\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"查找沃尔沃XC90的最小转弯半径或转弯直径参数。重点查找：1) 沃尔沃XC90官方技术参数表中的转弯半径/转弯直径数据；2) 工信部公告或车辆合格证中的转弯参数；3) 汽车媒体评测中提到的转弯半径数据；4) 注意区分不同年款（特别是2021年后与滴滴合作的版本）和不同配置（两驱/四驱）的差异；5) 明确标注数据是转弯半径还是转弯直径，以及测量标准（路沿到路沿curb-to-curb或墙到墙wall-to-wall）；6) 如果只有转弯直径，需要换算成半径（除以2）。请提供具体数值、单位和数据来源。\\n---\\n沃尔沃XC90 转弯半径 技术参数\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 【XC90参数配置】沃尔沃XC90参配_搜狐汽车 URL Source: https://db https://db.auto.sohu.com/model_1511/config\\n---\\nTitle: 沃尔沃XC90价格、配置、参数-Volvo Cars | 沃尔沃汽车官方网站 URL Source: https://www https://www.volvocars.com.cn/zh-cn/l/specifications/xc90/\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Volvo XC90 turning radius curb to curb specifications\\n---\\nTitle: Volvo XC90 Technical Specifications Model Year 2025 URL Source: https://www https://www.volvoclub.org.uk/pdf/xc90/xc90-2025-specs.pdf\\n---\\nTitle: 滴滴自动驾驶车辆转弯半径数据揭秘 URL Source: https://s https://s.unifuncs.com/?sid=42500c48-5063-433b-a746-43f563e108e4\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"沃尔沃XC90 2012款 2015款 2020款 转弯半径 对比\\n---\\nTitle: 沃尔沃XC90参配信息_2012款 2 https://price.pcauto.com.cn/m17284/config.html\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"查找滴滴自动驾驶使用的沃尔沃XC90具体配置信息。重点查找：1) 滴滴与沃尔沃合作协议中提到的XC90具体型号或配置（Plus/Ultra/Recharge等）；2) 滴滴自动驾驶XC90的轮毂尺寸（18/19/20英寸）；3) 滴滴运营车辆的详细技术规格；4) 2021年滴滴与沃尔沃签署合作协议时提到的车型配置细节；5) 媒体报道或官方新闻中提到的滴滴XC90配置信息。如果无法找到具体配置，请说明并提供相关背景信息。\\n---\\n滴滴 沃尔沃 XC90 2021 合作协议 配置\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 3547055 https://mb.cision.com/Main/23607/4182970/3547055.pdf\\n---\\n滴滴双子星 沃尔沃XC90 传感器 轮毂 具体配置 技术规格\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 国内自动驾驶顶配 https://www.thecover.cn/news/7281927\\n---\\nTitle: 安全验证 - 知乎 URL Source: https://www https://www.zhihu.com/account/unhuman?type=U4E3Z1&need_login=true&session=1159c0bb994788bdfd9708439725bca9&next=%2Fsignin\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"滴滴 沃尔沃XC90 Plus Ultra Recharge 型号 版本\\n---\\nTitle: XC90 https://www.volvocartw.com/pdf/carsp/XC90.pdf\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"滴滴 沃尔沃XC90 轮毂 18英寸 19英寸 20英寸 轮胎规格\\n---\\n滴滴自动驾驶 XC90 实车 照片 上海 测试 车辆细节\"\n    },\n    {\n      \"span_id\": \"s014\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: “滴滴双子星”亮相上海车展 把硬件做到极致，探索L4级自动驾驶终极场景 - 车东西 URL Source: https://chedongxi https://chedongxi.com/p/247003.html\\n---\\n滴滴 沃尔沃XC90 B5 T8 冗余车型 具体型号\\n---\\n\\\"滴滴\\\" \\\"沃尔沃XC90\\\" \\\"冗余车型\\\" 制动 转向 配置详情\"\n    },\n    {\n      \"span_id\": \"s015\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"滴滴自动驾驶 XC90 实拍 轮毂 车轮 尺寸 照片\"\n    },\n    {\n      \"span_id\": \"s016\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"# 滴滴自动驾驶沃尔沃XC90配置信息调查报告 ## 一、调查过程总结 本次调查通过以下步骤系统性地搜索了滴滴自动驾驶使用的沃尔沃XC90配置信息： 1. **搜索滴滴与沃尔沃2021年合作协议**：找到了官方新闻稿和多篇媒体报道 2. **查阅官方PDF文档**：获取了沃尔沃官方发布的合作声明详细内容 3. **搜索滴滴双子星技术规格**：找到了详细的传感器配置和硬件平台信息 4. **查找车型具体配置**：搜索Plus/Ultra/Recharge等型号信息 5. **搜索轮毂尺寸信息**：尝试查找具体的轮毂规格 6. **搜索冗余车型详情**：查找制动、转向等冗余系统的配置细节 ## 二、最终答案 ### ✅ **已确认的配置信息** #### **1. 合作协议基本信息（2021年4月19日）** - **签署时间**：2021年4月19日，上海车展期间 - **合作方**：沃尔沃汽车与滴滴出行旗下自动驾驶公司 - **车型描述**：沃尔沃XC90前装量产冗余车型 - **用途**：自动驾驶道路测试和载人服务 #### **2. 车辆冗余系统配置** 沃尔沃为滴滴提供的XC90配备了以下冗余系统： - **转向冗余系统** - **制动冗余系统** - **供电冗余系统** - **通信冗余系统** 这是与民用版XC90的最大区别，使车辆能够在没有安全员的情况下进行自动驾驶载人服务。 #### **3. 滴滴双子星自动驾驶硬件平台详细配置** **传感器配置（共50个传感器）**： - **激光雷达**：7个 - 128线高清激光雷达 - 冗余激光雷达 - 近距盲区激光雷达 - **摄像头**：23个 - 车规级相机像素总和超1亿 - 主要摄像头达800万像素（3840×2160分辨率） - 中距摄像头、长距摄像头、冗余中距摄像头 - **红外相机**：1个 - **毫米波雷达**：6个 - 长距毫米波雷达 - 冗余毫米波雷达 - **超声波雷达**：12个（近距盲区探测） - **高精度组合导航系统**：1套 - **鱼眼摄像头**：4个（车辆四周，用于360度环视和远程监控） **性能参数**： - **计算平台算力**：超过700 TOPS（采用英伟达自动驾驶芯片） - **探测距离范围**：最近10厘米，最远超过300米 - **点云成像能力**：每秒超千万级点云成像 - **前向视角冗余**：12层传感器冗余覆盖叠加 **量产化与国产化**： - **传感器量产率**：90%的传感器已具备量产条件 - **国产化率**：自动驾驶元器件国产化率达80% - **整体造价**：相比上一代平台保持不变 #### **4. 五大冗余安全系统** 1. **核心高性能传感器冗余**：50个传感器多重覆盖 2. **车载自动驾驶系统冗余**：Fallback G备用系统，满足ASIL-D最高等级安全认证 3. **远程协助系统冗余**：远程护航中心提供第三层安全保障 4. **前装量产车型冗余**：沃尔沃XC90的制动、转向、供电、通信冗余 5. **车路协同路端冗余** #### **5. 测试与运营情况** - **测试里程**：超过百万公里 - **测试城市**：上海（超530公里开放道路，部署超40辆测试车）、北京、苏州、合肥、广州、美国加州 - **测试时间**：每天7:30-20:00，覆盖早晚高峰及夜晚 - **重要里程碑**：2021年4月发布5小时无安全员接管自动驾驶测试视频 --- ### ❌ **无法确认的配置信息** #### **1. XC90具体型号/配置版本** **查找结果**：所有官方资料（包括沃尔沃官方新闻稿、滴滴官方声明、媒体报道）均只提及： - \\\"沃尔沃XC90前装量产冗余车型\\\" - \\\"支持转向和制动冗余系统的XC90车型\\\" - \\\"XC90冗余车型\\\" **未公开信息**： - ❌ 是否为Plus、Ultra或其他配置版本 - ❌ 是否为B5（燃油）还是T8（插电混动）动力系统 - ❌ 是否为Recharge电动版本 **原因分析**：滴滴使用的是专门定制的\\\"冗余车型\\\"，与民用版本在底层架构上有本质差异，具体配置版本属于商业合作保密信息。 #### **2. 轮毂尺寸** **查找结果**： - ❌ 所有公开资料、媒体报道、技术文档中**均未提及**滴滴自动驾驶XC90的轮毂尺寸 - ❌ 官方照片和视频中无法清晰辨识轮毂规格 **民用版XC90参考**（仅供参考，不代表滴滴版本）： - Plus版（B5 AWD）：20英寸轮毂，轮胎规格275/45 R20 - Ultra版（B5 AWD）：21英寸轮毂，轮胎规格275/40 R21 - Ultra版（T8 AWD）：21英寸轮毂，轮胎规格275/40 R21 #### **3. 其他未公开的详细规格** - ❌ 底盘配置（是否配备Four-C气压悬挂） - ❌ 内饰配置等级 - ❌ 座椅配置（5座/6座/7座） - ❌ 车辆尺寸是否与民用版一致 - ❌ 具体的动力系统参数 --- ## 三、关键引用与证据 ### **官方声明原文摘录**： **沃尔沃官方新闻稿（2021年4月19日）**： > \\\"沃尔沃汽车将向滴滴自动驾驶提供支持转向和制动冗余系统的XC90车型。通过整合自动驾驶所需的软件和硬件系统，车辆将完全具备自动驾驶能力。\\\" > \\\"沃尔沃XC90是首款集成滴滴双子星自动驾驶全新硬件平台的车型，未来将被用于滴滴的自动驾驶道路测试中。\\\" > \\\"沃尔沃XC90内置了冗余系统和安全功能，结合滴滴自动驾驶研发的先进硬件平台和软件系统，车辆可在没有安全员的情况下进行自动驾驶载人服务。\\\" **滴滴自动驾驶技术报道**： > \\\"新一代滴滴自动驾驶车搭载传感器数量多达50个，最远探测距离超过300米，最小可探测距离为10cm，车规级相机像素总和超1亿。\\\" > \\\"滴滴双子星率先搭载于沃尔沃XC90前装量产冗余车型上，车辆能实现制动、转向、供电、通信冗余，进一步确保行驶安全。\\\" --- ## 四、结论与说明 ### **核心结论**： 1. **滴滴使用的是定制版\\\"冗余车型\\\"**，而非标准民用版XC90 2. **具体型号配置（Plus/Ultra/Recharge）和轮毂尺寸未公开**，可能属于商业合作保密信息 3. **已公开的信息集中在自动驾驶硬件平台**（滴滴双子星）的配置，而非车辆本身的基础配置 4. **车辆最大特点是四大冗余系统**（转向、制动、供电、通信），这是与民用版的本质区别 ### **为什么找不到具体配置**： 1. **定制化程度高**：滴滴版XC90是专门为自动驾驶定制的冗余车型，与民用版本在底层架构上有显著差异 2. **商业保密**：具体配置细节可能涉及双方商业合作的保密条款 3. **宣传重点不同**：官方宣传重点在自动驾驶技术（滴滴双子星平台），而非车辆基础配置 4. **非量产销售车型**：该车型仅用于测试和运营，不对外销售，因此无需公开详细配置表 ### **可靠性评估**： - ✅ **高可靠性信息**：冗余系统配置、传感器数量、算力参数（来自官方新闻稿和多方媒体确认） - ⚠️ **无法确认信息**：具体型号版本、轮毂尺寸（所有公开渠道均未提及） --- ## 五、补充背景信息 ### **滴滴自动驾驶发展历程**： - **2020年**：在上海使用沃尔沃XC60进行首个智能网联汽车规模化载人示范应用 - **2021年4月**：与沃尔沃签署战略合作，发布搭载双子星平台的XC90 - **2021年4月**：发布5小时无接管自动驾驶测试视频 - **2021年3月**：与广州花都区达成汽车智能网联产业项目合作 ### **技术优势**： - 每年可从滴滴网约车摄像头收集上千亿公里的真实数据 - 通过3D视觉重构用于L4级自动驾驶系统的仿真测试验证 - 国内L4级自动驾驶车辆中硬件配置最强的车型之一 --- **最终说明**：经过全面搜索，滴滴自动驾驶使用的沃尔沃XC90的**具体型号配置（Plus/Ultra/Recharge）和轮毂尺寸（18/19/20/21英寸）在所有公开渠道中均未披露**。这很可能是因为该车型是专门定制的\\\"前装量产冗余车型\\\"，其配置细节属于商业合作的保密信息，与民用版本有本质区别，因此无法通过常规渠道获取。\\n---\\n# 2024年滴滴自动驾驶主力运营车辆最小转弯半径完整调查报告 ## 一、调查过程总结 ### 第一步：确定主力运营车辆 通过搜索2024年滴滴自动驾驶的官方新闻和媒体报道，明确确认： - **主力运营车辆**：沃尔沃XC90（Volvo XC90） - **权威证据**： - 新华网2024年10月18日报道：明确指出\\\"主力运营车型XC90\\\" - 人民网2024年10月18日报道：确认展示XC90车型 - 中国经营报2024年8月3日报道：\\\"主力车队为沃尔沃XC90前装冗余车型\\\" - 新华网2024年9月22日报道：再次确认\\\"主力运营车型XC90\\\" ### 第二步：查找转弯半径参数 系统性搜索沃尔沃XC90的官方技术参数，获得多个地区的官方数据： - 沃尔沃台湾官方规格表 - 沃尔沃美国官方网站 - 沃尔沃澳大利亚官方网站 - Volvo Club UK官方技术文档 - 权威汽车媒体数据 ### 第三步：查找滴滴XC90具体配置 尝试确定滴滴使用的XC90具体配置版本，但发现： - 官方资料仅称\\\"前装量产冗余车型\\\" - 具体配置（Plus/Ultra）和轮毂尺寸未公开 - 属于商业合作保密信息 ### 第四步：技术推理分析 基于自动驾驶车辆特点、行业惯例和技术逻辑进行推理分析。 --- ## 二、所有候选答案及完整证据 ### **候选答案1：6.05米** ⭐⭐⭐⭐⭐（最可能） **官方数据来源**： 1. **沃尔沃台湾官方规格表**（2025年8月发布） - 文档：XC90.pdf - Ultra配置明确标注：**最小迴轉半徑 6.05米** 2. **沃尔沃美国官方网站** - 转弯直径：39.7英尺 - 换算：39.7 ft ÷ 2 = 19.85 ft ≈ **6.05米** 3. **Volvo Club UK官方技术规格PDF** - 转弯直径（Curb to curb）：12.1米 - 换算：12.1m ÷ 2 = **6.05米** - 备注：depending on rim size（取决于轮毂尺寸，20英寸） 4. **Car and Driver权威汽车媒体** - 转弯直径：39.7英尺（约**6.05米**半径） **适用配置**： - Ultra配置（高配） - 20英寸轮毂 - 轮胎规格：275/45 R20或275/40 R21 **技术推理支持**： - ✅ 滴滴XC90搭载50个传感器（7个激光雷达、23个摄像头等），重量显著增加 - ✅ 算力平台超700 TOPS，需要更大轮毂承载额外设备 - ✅ 商业运营需要高配车型的更好操控性、制动性能和安全性 - ✅ 自动驾驶行业惯例：通常基于高配或顶配车型改装（如Waymo用Jaguar I-PACE顶配） - ✅ 成本考量：整体改装成本数百万元，车型配置差价相对可忽略 **可信度**：⭐⭐⭐⭐⭐（非常高） --- ### **候选答案2：6.0米** ⭐⭐⭐⭐（较可能） **官方数据来源**： 1. **沃尔沃澳大利亚官方网站** - 转弯直径：12米 - 换算：12m ÷ 2 = **6.0米** **说明**： - 可能是官方四舍五入后的约数 - 介于5.95米和6.05米之间的中间值 - 适合作为保守估计值 **可信度**：⭐⭐⭐⭐（高） --- ### **候选答案3：5.95米** ⭐⭐（可能性较低） **官方数据来源**： 1. **沃尔沃台湾官方规格表**（2025年8月发布） - 文档：XC90.pdf - Plus配置明确标注：**最小迴轉半徑 5.95米** 2. **Volvo Club UK官方技术规格PDF** - 转弯直径（Curb to curb）：11.9米 - 换算：11.9m ÷ 2 = **5.95米** - 备注：depending on rim size（取决于轮毂尺寸，18英寸） **适用配置**： - Plus配置（基础配置） - 18英寸轮毂 **可能性较低的原因**： - ❌ 基础配置通常不用于高端自动驾驶改装 - ❌ 18英寸轮毂可能不足以承载额外传感器设备重量 - ❌ 不符合滴滴对高性能和高安全性的要求 **可信度**：⭐⭐（中低） --- ### **候选答案4：5.9米** ⭐（可能性低） **数据来源**： 1. **Hindustan Times汽车频道** - 报道：Minimum Turning Radius: 5.9 metres 2. **91wheels专业汽车网站** - 报道：Turning radius of XC90 is 5.9 meters **说明**： - 可能是5.95米的简化表达或四舍五入 - 媒体报道可能存在测量误差 - 非官方数据来源 **可信度**：⭐（低） --- ## 三、关键技术参数对比表 ### **沃尔沃XC90（第二代，2015-2026款）转弯参数** | 配置 | 转弯半径 | 转弯直径（Curb to curb） | 转弯直径（Wall to wall） | 轮毂尺寸 | |------|---------|------------------------|------------------------|---------| | Plus | 5.95米 | 11.9米 | 12.3米 | 18英寸 | | **Ultra** | **6.05米** | **12.1米** | **12.5米** | **20英寸** | ### **滴滴自动驾驶XC90技术配置** | 项目 | 参数 | |------|------| | 传感器总数 | 50个 | | 激光雷达 | 7个（128线高清） | | 摄像头 | 23个（总像素超1亿） | | 毫米波雷达 | 6个 | | 超声波雷达 | 12个 | | 算力平台 | 超过700 TOPS | | 探测距离 | 最近10cm，最远超过300米 | | 冗余系统 | 制动、转向、供电、通信四大冗余 | --- ## 四、不确定性说明 ### **无法精确确定的原因**： 1. **滴滴未公开具体配置** - 官方资料仅称\\\"前装量产冗余车型\\\" - 未披露是Plus还是Ultra配置 - 未公开轮毂尺寸（18/19/20英寸） 2. **定制化程度高** - 滴滴版本是专门定制的冗余车型 - 与民用版在底层架构上有差异 - 可能存在特殊配置影响转弯半径 3. **商业保密** - 具体配置细节属于商业合作保密信息 - 公开资料重点在自动驾驶技术而非车辆基础配置 ### **影响转弯半径的因素**： - 轮毂尺寸：18英寸→5.95米，20英寸→6.05米 - 配置等级：Plus→5.95米，Ultra→6.05米 - 轮胎规格：不同规格略有差异 - 测量标准：Curb to curb（路沿到路沿）vs Wall to wall（墙到墙） --- ## 五、数据可信度评估 ### **官方数据来源汇总** | 来源 | 数据类型 | 数值 | 换算后半径 | 可信度 | |------|---------|------|-----------|--------| | 沃尔沃台湾官网 | 转弯半径（Ultra） | 6.05米 | 6.05米 | ⭐⭐⭐⭐⭐ | | 沃尔沃美国官网 | 转弯直径 | 39.7英尺 | 6.05米 | ⭐⭐⭐⭐⭐ | | Volvo Club UK | 转弯直径 | 12.1米 | 6.05米 | ⭐⭐⭐⭐⭐ | | 沃尔沃澳大利亚官网 | 转弯直径 | 12米 | 6.0米 | ⭐⭐⭐⭐⭐ | | 沃尔沃台湾官网 | 转弯半径（Plus） | 5.95米 | 5.95米 | ⭐⭐⭐⭐⭐ | | Car and Driver | 转弯直径 | 39.7英尺 | 6.05米 | ⭐⭐⭐⭐ | | Hindustan Times | 转弯半径 | 5.9米 | 5.9米 | ⭐⭐⭐ | --- ## 六、最终答案 ### **基于所有证据和技术推理，最可能的答案是：** # **6.05米** ### **推荐理由**： 1. **多个官方数据源一致支持** - 沃尔沃台湾官方规格表（Ultra配置）：6.05米 - 沃尔沃美国官网：39.7英尺 ≈ 6.05米 - Volvo Club UK官方文档：12.1米直径 = 6.05米半径 - 三个独立官方来源数据完全一致 2. **技术逻辑最合理** - 50个传感器+大算力平台显著增加车重，需要20英寸大轮毂承载 - 商业运营需要高配车型的更好操控性和安全性 - 符合四大冗余系统（制动、转向、供电、通信）的高标准要求 3. **符合行业实践** - 自动驾驶公司通常基于高配或顶配车型改装 - Waymo、Cruise等竞争对手均采用高配车型 - 相比整体改装成本，车型配置差价可忽略 4. **数据交叉验证** - 英尺与米的换算结果一致 - 不同地区官方网站数据吻合 - 官方文档与官网数据相符 ### **置信度**：75-80%（中高） ### **误差范围**：±0.1米（考虑到配置不确定性） --- ## 七、备选答案（按可能性排序） | 排名 | 答案 | 可能性 | 适用场景 | 证据强度 | |------|------|--------|----------|---------| | 1 | **6.05米** | ⭐⭐⭐⭐⭐ | Ultra配置，最可能 | 多个官方来源 | | 2 | **6.0米** | ⭐⭐⭐⭐ | 保守估计，官方约数 | 澳大利亚官网 | | 3 | 5.95米 | ⭐⭐ | Plus配置，可能性较低 | 台湾官网Plus配置 | | 4 | 5.9米 | ⭐ | 媒体简化数据 | 汽车媒体报道 | --- ## 八、透明度声明 ### **已充分调查的方面**： ✅ 2024年滴滴主力运营车型确认（沃尔沃XC90） ✅ 沃尔沃XC90官方技术参数收集（多地区官方数据） ✅ 不同配置（Plus/Ultra）的转弯半径差异 ✅ 技术逻辑推理和行业实践分析 ✅ 数据交叉验证和可信度评估 ### **存在不确定性的方面**： ⚠️ 滴滴XC90具体配置版本（Plus/Ultra）未公开 ⚠️ 轮毂尺寸未公开（18/19/20英寸） ⚠️ 是否有定制化改动影响转弯半径 ⚠️ 存在±0.1米的不确定性范围 ### **无法获取的信息**： ❌ 工信部公告中的转弯半径数据（该参数通常不在公告中） ❌ 滴滴与沃尔沃合作协议中的配置细节（商业保密） ❌ 滴滴自动驾驶车辆的实测转弯半径数据 --- ## 九、结论 **2024年滴滴自动驾驶主力运营车辆（沃尔沃XC90）的最小转弯半径最可能为 6.05米。** 此答案基于： - 多个官方数据源的一致支持 - 技术逻辑和行业实践的合理推断 - Ultra配置（高配+20英寸轮毂）最符合滴滴自动驾驶的需求 如需保守估计或用于工程计算，可使用 **6.0米** 作为备选答案。 **最终答案：6.05米**\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目问“2024 年滴滴自动驾驶主力运营车辆的最小转弯半径（米）”。 2. 代理调研显示：滴滴 2024 年主力运营车型为沃尔沃 XC90（多家权威媒体同日确认）。 3. 多个官方技术规格给出 XC90 的最小转弯半径数据： • 沃尔沃台湾官网（Ultra 版）：6.05 米 • 沃尔沃美国官网：转弯直径 39.7 ft ≈ 半径 6.05 米 • Volvo Club UK 技术文档：转弯直径 12.1 m → 半径 6.05 米 4. 行业惯例及技术需求（高配车型、20 英寸轮毂、冗余系统等）表明滴滴更可能采用 Ultra（或同级）配置，对应 6.05 米。 5. 其他候选值 6.0 m、5.95 m、5.9 m 亦有来源，但支持力度及适用性弱于 6.05 m。 6. 综合证据与技术推理，最可靠答案为 6.05 米。 **最终答案：** \\\\boxed{6.05} **置信度：** 78 **支持证据：** - 沃尔沃台湾官方规格表（Ultra）：最小迴轉半徑 6.05 米 - 沃尔沃美国官网：转弯直径 39.7 ft（≈12.1 m）→ 半径 6.05 米 - Volvo Club UK 技术文档：转弯直径 12.1 m → 半径 6.05 米 - 多家媒体确认滴滴主力车为沃尔沃 XC90；高配车型更符合自动驾驶系统加装需求 **潜在不足：** - 滴滴未公开具体配置，若采用 Plus（18 寸轮毂）转弯半径可能为 5.95 m。 - 定制化改装或测量标准差异可能引入约 ±0.1 m 误差。\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0378",
+        "task_goal": "短文本",
+        "hard_constraints": [
+          "2024年滴滴自动驾驶主力运营车辆的最小转弯半径"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "2024年滴滴自动驾驶主力运营车辆为沃尔沃XC90",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "沃尔沃XC90的最小转弯半径为6.05米",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s015",
+            "used_by": [
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0378",
+        "task_goal": "短文本",
+        "hard_constraints": [
+          "2024年滴滴自动驾驶主力运营车辆的最小转弯半径"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "2024年滴滴自动驾驶主力运营车辆为沃尔沃XC90",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "沃尔沃XC90的最小转弯半径为6.05米",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s015",
+            "used_by": [
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001",
+            "s011",
+            "s015"
+          ],
+          "grep_queries": [
+            "2024年滴滴自动驾驶主力运营车辆为沃尔沃XC90"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s011",
+            "s015"
+          ],
+          "grep_queries": [
+            "沃尔沃XC90的最小转弯半径为6.05米"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s011",
+        "s015",
+        "s016"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s011",
+        "s015",
+        "s016"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "2024年滴滴自动驾驶主力运营车辆为沃尔沃XC90",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        },
+        {
+          "claim_id": "c2",
+          "query": "沃尔沃XC90的最小转弯半径为6.05米",
+          "matched_chunk_ids": [
+            "s016:c005",
+            "s016:c004",
+            "s016:c003"
+          ],
+          "matched_span_ids": [
+            "s016"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0378\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"2024年滴滴自动驾驶主力运营车辆的最小转弯半径是多少（单位：米）\",\n  \"traj_id\": \"0378\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0378\",\n    \"task_goal\": \"短文本\",\n    \"hard_constraints\": [\n      \"2024年滴滴自动驾驶主力运营车辆的最小转弯半径\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"2024年滴滴自动驾驶主力运营车辆为沃尔沃XC90\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"沃尔沃XC90的最小转弯半径为6.05米\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s015\",\n        \"used_by\": [\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s015\",\n      \"s016\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s015\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"2024年滴滴自动驾驶主力运营车辆为沃尔沃XC90\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"沃尔沃XC90的最小转弯半径为6.05米\",\n        \"matched_chunk_ids\": [\n          \"s016:c005\",\n          \"s016:c004\",\n          \"s016:c003\"\n        ],\n        \"matched_span_ids\": [\n          \"s016\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s015\",\n      \"s016\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 232,\n        \"text\": \"搜索并确定2024年滴滴自动驾驶的主力运营车辆是什么车型。重点查找：1) 滴滴自动驾驶2024年官方新闻、公告；2) 2024年滴滴Robotaxi运营车队的车型信息；3) 滴滴自动驾驶最新投放或大规模运营的车型；4) 媒体报道中提到的2024年滴滴自动驾驶主要使用的车型。请提供车型名称、制造商、以及该车型作为主力运营车辆的证据来源。\\n---\\n滴滴自动驾驶 2024 运营车型 Robotaxi\\n---\\n滴滴 广汽埃安 L4 Robotaxi 车型名称 2024\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 219,\n        \"text\": \"Title: 国内自动驾驶顶配 https://www.thecover.cn/news/7281927\\n---\\nTitle: 安全验证 - 知乎 URL Source: https://www https://www.zhihu.com/account/unhuman?type=U4E3Z1&need_login=true&session=1159c0bb994788bdfd9708439725bca9&next=%2Fsignin\"\n      },\n      {\n        \"span_id\": \"s015\",\n        \"chunk_id\": \"s015:c001\",\n        \"char_start\": 0,\n        \"char_end\": 26,\n        \"text\": \"滴滴自动驾驶 XC90 实拍 轮毂 车轮 尺寸 照片\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c006\",\n        \"char_start\": 8200,\n        \"char_end\": 8837,\n        \"text\": \"辆的最小转弯半径（米）”。 2. 代理调研显示：滴滴 2024 年主力运营车型为沃尔沃 XC90（多家权威媒体同日确认）。 3. 多个官方技术规格给出 XC90 的最小转弯半径数据： • 沃尔沃台湾官网（Ultra 版）：6.05 米 • 沃尔沃美国官网：转弯直径 39.7 ft ≈ 半径 6.05 米 • Volvo Club UK 技术文档：转弯直径 12.1 m → 半径 6.05 米 4. 行业惯例及技术需求（高配车型、20 英寸轮毂、冗余系统等）表明滴滴更可能采用 Ultra（或同级）配置，对应 6.05 米。 5. 其他候选值 6.0 m、5.95 m、5.9 m 亦有来源，但支持力度及适用性弱于 6.05 m。 6. 综合证据与技术推理，最可靠答案为 6.05 米。 **最终答案：** \\\\boxed{6.05} **置信度：** 78 **支持证据：** - 沃尔沃台湾官方规格表（Ultra）：最小迴轉半徑 6.05 米 - 沃尔沃美国官网：转弯直径 39.7 ft（≈12.1 m）→ 半径 6.05 米 - Volvo Club UK 技术文档：转弯直径 12.1 m → 半径 6.05 米 - 多家媒体确认滴滴主力车为沃尔沃 XC90；高配车型更符合自动驾驶系统加装需求 **潜在不足：** - 滴滴未公开具体配置，若采用 Plus（18 寸轮毂）转弯半径可能为 5.95 m。 - 定制化改装或测量标准差异可能引入约 ±0.1 m 误差。\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c005\",\n        \"char_start\": 6560,\n        \"char_end\": 8360,\n        \"text\": \"| 沃尔沃美国官网 | 转弯直径 | 39.7英尺 | 6.05米 | ⭐⭐⭐⭐⭐ | | Volvo Club UK | 转弯直径 | 12.1米 | 6.05米 | ⭐⭐⭐⭐⭐ | | 沃尔沃澳大利亚官网 | 转弯直径 | 12米 | 6.0米 | ⭐⭐⭐⭐⭐ | | 沃尔沃台湾官网 | 转弯半径（Plus） | 5.95米 | 5.95米 | ⭐⭐⭐⭐⭐ | | Car and Driver | 转弯直径 | 39.7英尺 | 6.05米 | ⭐⭐⭐⭐ | | Hindustan Times | 转弯半径 | 5.9米 | 5.9米 | ⭐⭐⭐ | --- ## 六、最终答案 ### **基于所有证据和技术推理，最可能的答案是：** # **6.05米** ### **推荐理由**： 1. **多个官方数据源一致支持** - 沃尔沃台湾官方规格表（Ultra配置）：6.05米 - 沃尔沃美国官网：39.7英尺 ≈ 6.05米 - Volvo Club UK官方文档：12.1米直径 = 6.05米半径 - 三个独立官方来源数据完全一致 2. **技术逻辑最合理** - 50个传感器+大算力平台显著增加车重，需要20英寸大轮毂承载 - 商业运营需要高配车型的更好操控性和安全性 - 符合四大冗余系统（制动、转向、供电、通信）的高标准要求 3. **符合行业实践** - 自动驾驶公司通常基于高配或顶配车型改装 - Waymo、Cruise等竞争对手均采用高配车型 - 相比整体改装成本，车型配置差价可忽略 4. **数据交叉验证** - 英尺与米的换算结果一致 - 不同地区官方网站数据吻合 - 官方文档与官网数据相符 ### **置信度**：75-80%（中高） ### **误差范围**：±0.1米（考虑到配置不确定性） --- ## 七、备选答案（按可能性排序） | 排名 | 答案 | 可能性 | 适用场景 | 证据强度 | |------|------|--------|----------|---------| | 1 | **6.05米** | ⭐⭐⭐⭐⭐ | Ultra配置，最可能 | 多个官方来源 | | 2 | **6.0米** | ⭐⭐⭐⭐ | 保守估计，官方约数 | 澳大利亚官网 | | 3 | 5.95米 | ⭐⭐ | Plus配置，可能性较低 | 台湾官网Plus配置 | | 4 | 5.9米 | ⭐ | 媒体简化数据 | 汽车媒体报道 | --- ## 八、透明度声明 ### **已充分调查的方面**： ✅ 2024年滴滴主力运营车型确认（沃尔沃XC90） ✅ 沃尔沃XC90官方技术参数收集（多地区官方数据） ✅ 不同配置（Plus/Ultra）的转弯半径差异 ✅ 技术逻辑推理和行业实践分析 ✅ 数据交叉验证和可信度评估 ### **存在不确定性的方面**： ⚠️ 滴滴XC90具体配置版本（Plus/Ultra）未公开 ⚠️ 轮毂尺寸未公开（18/19/20英寸） ⚠️ 是否有定制化改动影响转弯半径 ⚠️ 存在±0.1米的不确定性范围 ### **无法获取的信息**： ❌ 工信部公告中的转弯半径数据（该参数通常不在公告中） ❌ 滴滴与沃尔沃合作协议中的配置细节（商业保密） ❌ 滴滴自动驾驶车辆的实测转弯半径数据 --- ## 九、结论 **2024年滴滴自动驾驶主力运营车辆（沃尔沃XC90）的最小转弯半径最可能为 6.05米。** 此答案基于： - 多个官方数据源的一致支持 - 技术逻辑和行业实践的合理推断 - Ultra配置（高配+20英寸轮毂）最符合滴滴自动驾驶的需求 如需保守估计或用于工程计算，可使用 **6.0米** 作为备选答案。 **最终答案：6.05米**\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目问“2024 年滴滴自动驾驶主力运营车辆的最小转弯半径（米）”。 2. 代理调研显示：滴滴 2024 年主力运营车型为沃尔沃 XC90（多家权威媒体同日确认）。 3. 多个官方技术规格给出 XC90 的最小转弯半径数据： • 沃尔沃台湾官网（Ultra 版）：6.05 米 • 沃尔沃美国官网：转弯直径 39.7 ft ≈ 半径 6.05 米 • Volvo\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 6720,\n        \"text\": \"较低） **官方数据来源**： 1. **沃尔沃台湾官方规格表**（2025年8月发布） - 文档：XC90.pdf - Plus配置明确标注：**最小迴轉半徑 5.95米** 2. **Volvo Club UK官方技术规格PDF** - 转弯直径（Curb to curb）：11.9米 - 换算：11.9m ÷ 2 = **5.95米** - 备注：depending on rim size（取决于轮毂尺寸，18英寸） **适用配置**： - Plus配置（基础配置） - 18英寸轮毂 **可能性较低的原因**： - ❌ 基础配置通常不用于高端自动驾驶改装 - ❌ 18英寸轮毂可能不足以承载额外传感器设备重量 - ❌ 不符合滴滴对高性能和高安全性的要求 **可信度**：⭐⭐（中低） --- ### **候选答案4：5.9米** ⭐（可能性低） **数据来源**： 1. **Hindustan Times汽车频道** - 报道：Minimum Turning Radius: 5.9 metres 2. **91wheels专业汽车网站** - 报道：Turning radius of XC90 is 5.9 meters **说明**： - 可能是5.95米的简化表达或四舍五入 - 媒体报道可能存在测量误差 - 非官方数据来源 **可信度**：⭐（低） --- ## 三、关键技术参数对比表 ### **沃尔沃XC90（第二代，2015-2026款）转弯参数** | 配置 | 转弯半径 | 转弯直径（Curb to curb） | 转弯直径（Wall to wall） | 轮毂尺寸 | |------|---------|------------------------|------------------------|---------| | Plus | 5.95米 | 11.9米 | 12.3米 | 18英寸 | | **Ultra** | **6.05米** | **12.1米** | **12.5米** | **20英寸** | ### **滴滴自动驾驶XC90技术配置** | 项目 | 参数 | |------|------| | 传感器总数 | 50个 | | 激光雷达 | 7个（128线高清） | | 摄像头 | 23个（总像素超1亿） | | 毫米波雷达 | 6个 | | 超声波雷达 | 12个 | | 算力平台 | 超过700 TOPS | | 探测距离 | 最近10cm，最远超过300米 | | 冗余系统 | 制动、转向、供电、通信四大冗余 | --- ## 四、不确定性说明 ### **无法精确确定的原因**： 1. **滴滴未公开具体配置** - 官方资料仅称\\\"前装量产冗余车型\\\" - 未披露是Plus还是Ultra配置 - 未公开轮毂尺寸（18/19/20英寸） 2. **定制化程度高** - 滴滴版本是专门定制的冗余车型 - 与民用版在底层架构上有差异 - 可能存在特殊配置影响转弯半径 3. **商业保密** - 具体配置细节属于商业合作保密信息 - 公开资料重点在自动驾驶技术而非车辆基础配置 ### **影响转弯半径的因素**： - 轮毂尺寸：18英寸→5.95米，20英寸→6.05米 - 配置等级：Plus→5.95米，Ultra→6.05米 - 轮胎规格：不同规格略有差异 - 测量标准：Curb to curb（路沿到路沿）vs Wall to wall（墙到墙） --- ## 五、数据可信度评估 ### **官方数据来源汇总** | 来源 | 数据类型 | 数值 | 换算后半径 | 可信度 | |------|---------|------|-----------|--------| | 沃尔沃台湾官网 | 转弯半径（Ultra） | 6.05米 | 6.05米 | ⭐⭐⭐⭐⭐ | | 沃尔沃美国官网 | 转弯直径 | 39.7英尺 | 6.05米 | ⭐⭐⭐⭐⭐ | | Volvo Club UK | 转弯直径 | 12.1米 | 6.05米 | ⭐⭐⭐⭐⭐ | | 沃尔沃澳大利亚官网 | 转弯直径 | 12米 | 6.0米 | ⭐⭐⭐⭐⭐ | | 沃尔沃台湾官网 | 转弯半径（Plus） | \"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 5080,\n        \"text\": \"用于L4级自动驾驶系统的仿真测试验证 - 国内L4级自动驾驶车辆中硬件配置最强的车型之一 --- **最终说明**：经过全面搜索，滴滴自动驾驶使用的沃尔沃XC90的**具体型号配置（Plus/Ultra/Recharge）和轮毂尺寸（18/19/20/21英寸）在所有公开渠道中均未披露**。这很可能是因为该车型是专门定制的\\\"前装量产冗余车型\\\"，其配置细节属于商业合作的保密信息，与民用版本有本质区别，因此无法通过常规渠道获取。\\n---\\n# 2024年滴滴自动驾驶主力运营车辆最小转弯半径完整调查报告 ## 一、调查过程总结 ### 第一步：确定主力运营车辆 通过搜索2024年滴滴自动驾驶的官方新闻和媒体报道，明确确认： - **主力运营车辆**：沃尔沃XC90（Volvo XC90） - **权威证据**： - 新华网2024年10月18日报道：明确指出\\\"主力运营车型XC90\\\" - 人民网2024年10月18日报道：确认展示XC90车型 - 中国经营报2024年8月3日报道：\\\"主力车队为沃尔沃XC90前装冗余车型\\\" - 新华网2024年9月22日报道：再次确认\\\"主力运营车型XC90\\\" ### 第二步：查找转弯半径参数 系统性搜索沃尔沃XC90的官方技术参数，获得多个地区的官方数据： - 沃尔沃台湾官方规格表 - 沃尔沃美国官方网站 - 沃尔沃澳大利亚官方网站 - Volvo Club UK官方技术文档 - 权威汽车媒体数据 ### 第三步：查找滴滴XC90具体配置 尝试确定滴滴使用的XC90具体配置版本，但发现： - 官方资料仅称\\\"前装量产冗余车型\\\" - 具体配置（Plus/Ultra）和轮毂尺寸未公开 - 属于商业合作保密信息 ### 第四步：技术推理分析 基于自动驾驶车辆特点、行业惯例和技术逻辑进行推理分析。 --- ## 二、所有候选答案及完整证据 ### **候选答案1：6.05米** ⭐⭐⭐⭐⭐（最可能） **官方数据来源**： 1. **沃尔沃台湾官方规格表**（2025年8月发布） - 文档：XC90.pdf - Ultra配置明确标注：**最小迴轉半徑 6.05米** 2. **沃尔沃美国官方网站** - 转弯直径：39.7英尺 - 换算：39.7 ft ÷ 2 = 19.85 ft ≈ **6.05米** 3. **Volvo Club UK官方技术规格PDF** - 转弯直径（Curb to curb）：12.1米 - 换算：12.1m ÷ 2 = **6.05米** - 备注：depending on rim size（取决于轮毂尺寸，20英寸） 4. **Car and Driver权威汽车媒体** - 转弯直径：39.7英尺（约**6.05米**半径） **适用配置**： - Ultra配置（高配） - 20英寸轮毂 - 轮胎规格：275/45 R20或275/40 R21 **技术推理支持**： - ✅ 滴滴XC90搭载50个传感器（7个激光雷达、23个摄像头等），重量显著增加 - ✅ 算力平台超700 TOPS，需要更大轮毂承载额外设备 - ✅ 商业运营需要高配车型的更好操控性、制动性能和安全性 - ✅ 自动驾驶行业惯例：通常基于高配或顶配车型改装（如Waymo用Jaguar I-PACE顶配） - ✅ 成本考量：整体改装成本数百万元，车型配置差价相对可忽略 **可信度**：⭐⭐⭐⭐⭐（非常高） --- ### **候选答案2：6.0米** ⭐⭐⭐⭐（较可能） **官方数据来源**： 1. **沃尔沃澳大利亚官方网站** - 转弯直径：12米 - 换算：12m ÷ 2 = **6.0米** **说明**： - 可能是官方四舍五入后的约数 - 介于5.95米和6.05米之间的中间值 - 适合作为保守估计值 **可信度**：⭐⭐⭐⭐（高） --- ### **候选答案3：5.95米** ⭐⭐（可能性较低） **官方数据来源**： 1. **沃尔沃台湾官方规格表**（2025年8月发布） - 文档：XC90.pdf - Plus配置明确标注：**最小迴轉半徑 5.95米** 2. **Volvo Club UK官方技术规格PDF** - 转弯直径（Curb to curb）：11.9米 - 换算：11.9m ÷ 2\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0378",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s003",
+              "s011"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串说明缺失支持",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "短原文本指针"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串说明可能的缺失支持"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s011"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串说明缺失支持",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": []
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0378\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"2024年滴滴自动驾驶主力运营车辆的最小转弯半径是多少（单位：米）\",\n  \"traj_id\": \"0378\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0378\",\n    \"task_goal\": \"短文本\",\n    \"hard_constraints\": [\n      \"2024年滴滴自动驾驶主力运营车辆的最小转弯半径\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"2024年滴滴自动驾驶主力运营车辆为沃尔沃XC90\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"沃尔沃XC90的最小转弯半径为6.05米\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s015\",\n        \"used_by\": [\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s011\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串说明缺失支持\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": []\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s015\",\n      \"s016\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s015\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"2024年滴滴自动驾驶主力运营车辆为沃尔沃XC90\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"沃尔沃XC90的最小转弯半径为6.05米\",\n        \"matched_chunk_ids\": [\n          \"s016:c005\",\n          \"s016:c004\",\n          \"s016:c003\"\n        ],\n        \"matched_span_ids\": [\n          \"s016\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s015\",\n      \"s016\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 232,\n        \"text\": \"搜索并确定2024年滴滴自动驾驶的主力运营车辆是什么车型。重点查找：1) 滴滴自动驾驶2024年官方新闻、公告；2) 2024年滴滴Robotaxi运营车队的车型信息；3) 滴滴自动驾驶最新投放或大规模运营的车型；4) 媒体报道中提到的2024年滴滴自动驾驶主要使用的车型。请提供车型名称、制造商、以及该车型作为主力运营车辆的证据来源。\\n---\\n滴滴自动驾驶 2024 运营车型 Robotaxi\\n---\\n滴滴 广汽埃安 L4 Robotaxi 车型名称 2024\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 219,\n        \"text\": \"Title: 国内自动驾驶顶配 https://www.thecover.cn/news/7281927\\n---\\nTitle: 安全验证 - 知乎 URL Source: https://www https://www.zhihu.com/account/unhuman?type=U4E3Z1&need_login=true&session=1159c0bb994788bdfd9708439725bca9&next=%2Fsignin\"\n      },\n      {\n        \"span_id\": \"s015\",\n        \"chunk_id\": \"s015:c001\",\n        \"char_start\": 0,\n        \"char_end\": 26,\n        \"text\": \"滴滴自动驾驶 XC90 实拍 轮毂 车轮 尺寸 照片\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c006\",\n        \"char_start\": 8200,\n        \"char_end\": 8837,\n        \"text\": \"辆的最小转弯半径（米）”。 2. 代理调研显示：滴滴 2024 年主力运营车型为沃尔沃 XC90（多家权威媒体同日确认）。 3. 多个官方技术规格给出 XC90 的最小转弯半径数据： • 沃尔沃台湾官网（Ultra 版）：6.05 米 • 沃尔沃美国官网：转弯直径 39.7 ft ≈ 半径 6.05 米 • Volvo Club UK 技术文档：转弯直径 12.1 m → 半径 6.05 米 4. 行业惯例及技术需求（高配车型、20 英寸轮毂、冗余系统等）表明滴滴更可能采用 Ultra（或同级）配置，对应 6.05 米。 5. 其他候选值 6.0 m、5.95 m、5.9 m 亦有来源，但支持力度及适用性弱于 6.05 m。 6. 综合证据与技术推理，最可靠答案为 6.05 米。 **最终答案：** \\\\boxed{6.05} **置信度：** 78 **支持证据：** - 沃尔沃台湾官方规格表（Ultra）：最小迴轉半徑 6.05 米 - 沃尔沃美国官网：转弯直径 39.7 ft（≈12.1 m）→ 半径 6.05 米 - Volvo Club UK 技术文档：转弯直径 12.1 m → 半径 6.05 米 - 多家媒体确认滴滴主力车为沃尔沃 XC90；高配车型更符合自动驾驶系统加装需求 **潜在不足：** - 滴滴未公开具体配置，若采用 Plus（18 寸轮毂）转弯半径可能为 5.95 m。 - 定制化改装或测量标准差异可能引入约 ±0.1 m 误差。\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c005\",\n        \"char_start\": 6560,\n        \"char_end\": 8360,\n        \"text\": \"| 沃尔沃美国官网 | 转弯直径 | 39.7英尺 | 6.05米 | ⭐⭐⭐⭐⭐ | | Volvo Club UK | 转弯直径 | 12.1米 | 6.05米 | ⭐⭐⭐⭐⭐ | | 沃尔沃澳大利亚官网 | 转弯直径 | 12米 | 6.0米 | ⭐⭐⭐⭐⭐ | | 沃尔沃台湾官网 | 转弯半径（Plus） | 5.95米 | 5.95米 | ⭐⭐⭐⭐⭐ | | Car and Driver | 转弯直径 | 39.7英尺 | 6.05米 | ⭐⭐⭐⭐ | | Hindustan Times | 转弯半径 | 5.9米 | 5.9米 | ⭐⭐⭐ | --- ## 六、最终答案 ### **基于所有证据和技术推理，最可能的答案是：** # **6.05米** ### **推荐理由**： 1. **多个官方数据源一致支持** - 沃尔沃台湾官方规格表（Ultra配置）：6.05米 - 沃尔沃美国官网：39.7英尺 ≈ 6.05米 - Volvo Club UK官方文档：12.1米直径 = 6.05米半径 - 三个独立官方来源数据完全一致 2. **技术逻辑最合理** - 50个传感器+大算力平台显著增加车重，需要20英寸大轮毂承载 - 商业运营需要高配车型的更好操控性和安全性 - 符合四大冗余系统（制动、转向、供电、通信）的高标准要求 3. **符合行业实践** - 自动驾驶公司通常基于高配或顶配车型改装 - Waymo、Cruise等竞争对手均采用高配车型 - 相比整体改装成本，车型配置差价可忽略 4. **数据交叉验证** - 英尺与米的换算结果一致 - 不同地区官方网站数据吻合 - 官方文档与官网数据相符 ### **置信度**：75-80%（中高） ### **误差范围**：±0.1米（考虑到配置不确定性） --- ## 七、备选答案（按可能性排序） | 排名 | 答案 | 可能性 | 适用场景 | 证据强度 | |------|------|--------|----------|---------| | 1 | **6.05米** | ⭐⭐⭐⭐⭐ | Ultra配置，最可能 | 多个官方来源 | | 2 | **6.0米** | ⭐⭐⭐⭐ | 保守估计，官方约数 | 澳大利亚官网 | | 3 | 5.95米 | ⭐⭐ | Plus配置，可能性较低 | 台湾官网Plus配置 | | 4 | 5.9米 | ⭐ | 媒体简化数据 | 汽车媒体报道 | --- ## 八、透明度声明 ### **已充分调查的方面**： ✅ 2024年滴滴主力运营车型确认（沃尔沃XC90） ✅ 沃尔沃XC90官方技术参数收集（多地区官方数据） ✅ 不同配置（Plus/Ultra）的转弯半径差异 ✅ 技术逻辑推理和行业实践分析 ✅ 数据交叉验证和可信度评估 ### **存在不确定性的方面**： ⚠️ 滴滴XC90具体配置版本（Plus/Ultra）未公开 ⚠️ 轮毂尺寸未公开（18/19/20英寸） ⚠️ 是否有定制化改动影响转弯半径 ⚠️ 存在±0.1米的不确定性范围 ### **无法获取的信息**： ❌ 工信部公告中的转弯半径数据（该参数通常不在公告中） ❌ 滴滴与沃尔沃合作协议中的配置细节（商业保密） ❌ 滴滴自动驾驶车辆的实测转弯半径数据 --- ## 九、结论 **2024年滴滴自动驾驶主力运营车辆（沃尔沃XC90）的最小转弯半径最可能为 6.05米。** 此答案基于： - 多个官方数据源的一致支持 - 技术逻辑和行业实践的合理推断 - Ultra配置（高配+20英寸轮毂）最符合滴滴自动驾驶的需求 如需保守估计或用于工程计算，可使用 **6.0米** 作为备选答案。 **最终答案：6.05米**\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目问“2024 年滴滴自动驾驶主力运营车辆的最小转弯半径（米）”。 2. 代理调研显示：滴滴 2024 年主力运营车型为沃尔沃 XC90（多家权威媒体同日确认）。 3. 多个官方技术规格给出 XC90 的最小转弯半径数据： • 沃尔沃台湾官网（Ultra 版）：6.05 米 • 沃尔沃美国官网：转弯直径 39.7 ft ≈ 半径 6.05 米 • Volvo\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 6720,\n        \"text\": \"较低） **官方数据来源**： 1. **沃尔沃台湾官方规格表**（2025年8月发布） - 文档：XC90.pdf - Plus配置明确标注：**最小迴轉半徑 5.95米** 2. **Volvo Club UK官方技术规格PDF** - 转弯直径（Curb to curb）：11.9米 - 换算：11.9m ÷ 2 = **5.95米** - 备注：depending on rim size（取决于轮毂尺寸，18英寸） **适用配置**： - Plus配置（基础配置） - 18英寸轮毂 **可能性较低的原因**： - ❌ 基础配置通常不用于高端自动驾驶改装 - ❌ 18英寸轮毂可能不足以承载额外传感器设备重量 - ❌ 不符合滴滴对高性能和高安全性的要求 **可信度**：⭐⭐（中低） --- ### **候选答案4：5.9米** ⭐（可能性低） **数据来源**： 1. **Hindustan Times汽车频道** - 报道：Minimum Turning Radius: 5.9 metres 2. **91wheels专业汽车网站** - 报道：Turning radius of XC90 is 5.9 meters **说明**： - 可能是5.95米的简化表达或四舍五入 - 媒体报道可能存在测量误差 - 非官方数据来源 **可信度**：⭐（低） --- ## 三、关键技术参数对比表 ### **沃尔沃XC90（第二代，2015-2026款）转弯参数** | 配置 | 转弯半径 | 转弯直径（Curb to curb） | 转弯直径（Wall to wall） | 轮毂尺寸 | |------|---------|------------------------|------------------------|---------| | Plus | 5.95米 | 11.9米 | 12.3米 | 18英寸 | | **Ultra** | **6.05米** | **12.1米** | **12.5米** | **20英寸** | ### **滴滴自动驾驶XC90技术配置** | 项目 | 参数 | |------|------| | 传感器总数 | 50个 | | 激光雷达 | 7个（128线高清） | | 摄像头 | 23个（总像素超1亿） | | 毫米波雷达 | 6个 | | 超声波雷达 | 12个 | | 算力平台 | 超过700 TOPS | | 探测距离 | 最近10cm，最远超过300米 | | 冗余系统 | 制动、转向、供电、通信四大冗余 | --- ## 四、不确定性说明 ### **无法精确确定的原因**： 1. **滴滴未公开具体配置** - 官方资料仅称\\\"前装量产冗余车型\\\" - 未披露是Plus还是Ultra配置 - 未公开轮毂尺寸（18/19/20英寸） 2. **定制化程度高** - 滴滴版本是专门定制的冗余车型 - 与民用版在底层架构上有差异 - 可能存在特殊配置影响转弯半径 3. **商业保密** - 具体配置细节属于商业合作保密信息 - 公开资料重点在自动驾驶技术而非车辆基础配置 ### **影响转弯半径的因素**： - 轮毂尺寸：18英寸→5.95米，20英寸→6.05米 - 配置等级：Plus→5.95米，Ultra→6.05米 - 轮胎规格：不同规格略有差异 - 测量标准：Curb to curb（路沿到路沿）vs Wall to wall（墙到墙） --- ## 五、数据可信度评估 ### **官方数据来源汇总** | 来源 | 数据类型 | 数值 | 换算后半径 | 可信度 | |------|---------|------|-----------|--------| | 沃尔沃台湾官网 | 转弯半径（Ultra） | 6.05米 | 6.05米 | ⭐⭐⭐⭐⭐ | | 沃尔沃美国官网 | 转弯直径 | 39.7英尺 | 6.05米 | ⭐⭐⭐⭐⭐ | | Volvo Club UK | 转弯直径 | 12.1米 | 6.05米 | ⭐⭐⭐⭐⭐ | | 沃尔沃澳大利亚官网 | 转弯直径 | 12米 | 6.0米 | ⭐⭐⭐⭐⭐ | | 沃尔沃台湾官网 | 转弯半径（Plus） | \"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 5080,\n        \"text\": \"用于L4级自动驾驶系统的仿真测试验证 - 国内L4级自动驾驶车辆中硬件配置最强的车型之一 --- **最终说明**：经过全面搜索，滴滴自动驾驶使用的沃尔沃XC90的**具体型号配置（Plus/Ultra/Recharge）和轮毂尺寸（18/19/20/21英寸）在所有公开渠道中均未披露**。这很可能是因为该车型是专门定制的\\\"前装量产冗余车型\\\"，其配置细节属于商业合作的保密信息，与民用版本有本质区别，因此无法通过常规渠道获取。\\n---\\n# 2024年滴滴自动驾驶主力运营车辆最小转弯半径完整调查报告 ## 一、调查过程总结 ### 第一步：确定主力运营车辆 通过搜索2024年滴滴自动驾驶的官方新闻和媒体报道，明确确认： - **主力运营车辆**：沃尔沃XC90（Volvo XC90） - **权威证据**： - 新华网2024年10月18日报道：明确指出\\\"主力运营车型XC90\\\" - 人民网2024年10月18日报道：确认展示XC90车型 - 中国经营报2024年8月3日报道：\\\"主力车队为沃尔沃XC90前装冗余车型\\\" - 新华网2024年9月22日报道：再次确认\\\"主力运营车型XC90\\\" ### 第二步：查找转弯半径参数 系统性搜索沃尔沃XC90的官方技术参数，获得多个地区的官方数据： - 沃尔沃台湾官方规格表 - 沃尔沃美国官方网站 - 沃尔沃澳大利亚官方网站 - Volvo Club UK官方技术文档 - 权威汽车媒体数据 ### 第三步：查找滴滴XC90具体配置 尝试确定滴滴使用的XC90具体配置版本，但发现： - 官方资料仅称\\\"前装量产冗余车型\\\" - 具体配置（Plus/Ultra）和轮毂尺寸未公开 - 属于商业合作保密信息 ### 第四步：技术推理分析 基于自动驾驶车辆特点、行业惯例和技术逻辑进行推理分析。 --- ## 二、所有候选答案及完整证据 ### **候选答案1：6.05米** ⭐⭐⭐⭐⭐（最可能） **官方数据来源**： 1. **沃尔沃台湾官方规格表**（2025年8月发布） - 文档：XC90.pdf - Ultra配置明确标注：**最小迴轉半徑 6.05米** 2. **沃尔沃美国官方网站** - 转弯直径：39.7英尺 - 换算：39.7 ft ÷ 2 = 19.85 ft ≈ **6.05米** 3. **Volvo Club UK官方技术规格PDF** - 转弯直径（Curb to curb）：12.1米 - 换算：12.1m ÷ 2 = **6.05米** - 备注：depending on rim size（取决于轮毂尺寸，20英寸） 4. **Car and Driver权威汽车媒体** - 转弯直径：39.7英尺（约**6.05米**半径） **适用配置**： - Ultra配置（高配） - 20英寸轮毂 - 轮胎规格：275/45 R20或275/40 R21 **技术推理支持**： - ✅ 滴滴XC90搭载50个传感器（7个激光雷达、23个摄像头等），重量显著增加 - ✅ 算力平台超700 TOPS，需要更大轮毂承载额外设备 - ✅ 商业运营需要高配车型的更好操控性、制动性能和安全性 - ✅ 自动驾驶行业惯例：通常基于高配或顶配车型改装（如Waymo用Jaguar I-PACE顶配） - ✅ 成本考量：整体改装成本数百万元，车型配置差价相对可忽略 **可信度**：⭐⭐⭐⭐⭐（非常高） --- ### **候选答案2：6.0米** ⭐⭐⭐⭐（较可能） **官方数据来源**： 1. **沃尔沃澳大利亚官方网站** - 转弯直径：12米 - 换算：12m ÷ 2 = **6.0米** **说明**： - 可能是官方四舍五入后的约数 - 介于5.95米和6.05米之间的中间值 - 适合作为保守估计值 **可信度**：⭐⭐⭐⭐（高） --- ### **候选答案3：5.95米** ⭐⭐（可能性较低） **官方数据来源**： 1. **沃尔沃台湾官方规格表**（2025年8月发布） - 文档：XC90.pdf - Plus配置明确标注：**最小迴轉半徑 5.95米** 2. **Volvo Club UK官方技术规格PDF** - 转弯直径（Curb to curb）：11.9米 - 换算：11.9m ÷ 2\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0378",
+        "first_error_span": "s011",
+        "linked_error_span_ids": [
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0378",
+        "first_error_span": "s011",
+        "linked_error_span_ids": [
+          "s015"
+        ],
+        "non_errors": [],
+        "reason": "short string",
+        "error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s011"
+      }
+    },
+    "full_span_count": 16,
+    "evidence_span_count": 4
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 19481,
+    "output_tokens": 497,
+    "total_tokens": 19978
+  }
+}

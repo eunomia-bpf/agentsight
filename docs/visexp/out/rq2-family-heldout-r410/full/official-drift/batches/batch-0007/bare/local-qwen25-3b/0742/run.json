@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0742",
+  "prediction": {
+    "traj_id": "0742",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0742\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"In terms of geographical distance between capital cities, which 2 countries are the furthest from each other within the ASEAN bloc according to wikipedia? Answer using a comma separated list, ordering the countries by alphabetical order.\",\n  \"traj_id\": \"0742\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"In terms of geographical distance between capital cities, which 2 countries are the furthest from each other within the ASEAN bloc according to wikipedia\\n---\\n\\\\n\\\\n**ASEAN Member Countries and Their Capital Cities:**\\\\n\\\\n1\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Contents hide (Top) Etymology History Toggle History subsection Early history Colonial era Independence era Government Geography Toggle Geography subsection C\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Etymology History Geography Toggle Geography subsection Administration Demographics Toggle Demographics subsection Politics Toggle Politic\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Etymology History Toggle History subsection Dvaravati city state kingdoms Khmer domination Lan Xang and French colonial rule Independence\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll solve this step by step, following the plan to find the two ASEAN countries with the furthest capital cities from each other\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"The geographical coordinates for Dili, the capital city of Timor\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n\\\\n\\\\n**Naypyidaw, Myanmar:** 19\\\\u00b044\\\\u203251\\\\u2033N 96\\\\u00b006\\\\u203254\\\\u2033E\\\\n\\\\n**Dili, Timor\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I see the issue - the search_agent returned information showing that ASEAN now has 11 members including Timor-Leste (which joined in 2025)\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0742",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0742",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 5
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 937,
+    "output_tokens": 74,
+    "total_tokens": 1011
+  }
+}

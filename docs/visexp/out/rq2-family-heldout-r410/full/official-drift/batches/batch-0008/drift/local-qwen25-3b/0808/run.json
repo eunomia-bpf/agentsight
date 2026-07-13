@@ -1,0 +1,242 @@
+{
+  "setting": "drift",
+  "case_id": "0808",
+  "prediction": {
+    "traj_id": "0808",
+    "error_span_ids": [
+      "s003",
+      "s009",
+      "s011"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "short string"
+      },
+      {
+        "span_id": "s009",
+        "reason": "short string"
+      },
+      {
+        "span_id": "s011",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0808\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"In Valentina Re’s contribution to the 2017 book “World Building: Transmedia, Fans, Industries”, what horror movie does the author cite as having popularized metalepsis between a dream world and reality? Use the complete name with article if any.\",\n  \"traj_id\": \"0808\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"In Valentina Re’s contribution to the 2017 book “World Building: Transmedia, Fans, Industries”, what horror movie does the author cite as having popularized metalepsis between a dr\\n---\\nAmsterdam University Press World Building: Transmedia, Fans, Industries 2017\\n---\\nsite:amsterdamuniversitypress.nl World Building Transmedia, Fans, Industries 2017\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" Amsterdam University Press site:aup.nl OR site:amsterdamuniversitypress.nl\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" Amsterdam University Press\\n---\\n9789089647566 Amsterdam University Press\\n---\\nsite:www.aup.nl \\\"World Building: Transmedia, Fans, Industries\\\"\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to main content PUBLISH WITH US CEU PRESS DISCIPLINES ACADEMIC EDUCATIONAL REFERENCE WORKS OPEN ACCESS Search Contact Basket Select language ENNL Knowledge Unlatched select 12 books from AUP for Open Access\\n---\\nsite:aup.nl World Building Transmedia, Fans, Industries Boni\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Please extract the Table of Contents and identify Valentina Re’s chapter title and page range. Then search the text for occurrences of the word “metalepsis” within Valentina Re’s chapter, specifically any sentence discussing the relation between a “dream world” and “reality”, and return the exact sentence(s) verbatim with page numbers. Also note the film title she explicitly says “popularized” this metaleptic relation.\\n---\\nJoin OAPEN Home View Item World Building Transmedia, Fans, Industries Download PDF Viewer Contributor(s) Boni, Marta (editor) Collection Knowledge Unlatched (KU)\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Extract the Table of Contents (with chapter titles, authors, and page ranges) and identify Valentina Re’s chapter title and page range. Then, within Valentina Re’s chapter, find occurrences of the word “metalepsis” and any sentence discussing a metaleptic relation specifically between a “dream world” and “reality.” Return the exact sentence(s) verbatim and include page number(s). Also note the film title she explicitly says “popularized” this metaleptic relation.\\n---\\n\\\"metalepsis\\\" Valentina Re World Building\\n---\\nAmsterdam University Press page: The AUP site currently does not surface a dedicated product page via search, but the AUP site’s official news article confirms this title and links to “Download book”: https://www\\n---\\n\\\"Valentina Re\\\" \\\"World Building: Transmedia, Fans, Industries\\\" metalepsis dream reality\\n---\\n\\\"Valentina Re\\\" metalepsis dream reality \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"metalepsis between a dream world and reality\\\" Valentina Re\\n---\\n\\\"A Nightmare on Elm Street\\\" metalepsis \\\"Valentina Re\\\"\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" review Valentina Re metalepsis \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"metalepsis made popular by A Nightmare on Elm Street\\\"\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"World Building: Transmedia, Fans, Industries\\\" review Valentina Re metalepsis dream reality\\n---\\n\\\"Valentina Re\\\" \\\"Monster at the End of This Book\\\" review\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" review Amsterdam University Press Valentina Re metalepsis\\n---\\n\\\"World Building\\\" Transmedia, Fans, Industries book review Valentina Re metalepsis \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" review\\n---\\nI identified the horror film Valentina Re credits as having popularized the metaleptic device between a dream world and reality: “A Nightmare on Elm Street” (Wes Craven, 1984)\\n---\\nValentina Re chapter horror film\\n---\\n\\\"Valentina Re\\\" chapter horror film\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to main content Accessibility help Home >Books >World Building Transmedia Fans Industries >The Monster at the End of This Book: Metalepsis, Fandom, and World Making in Contemporary TV Series World Building Transmedi\\n---\\n\\\"Valentina Re\\\" horror\\n---\\nSecurity check required We've detected unusual activity from your network\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Valentina Re \\\"The Monster at the End of This Book\\\" PDF\\n---\\nPlease extract all explicit mentions of film titles (especially horror films) in this chapter by Valentina Re and show the exact rendering (including articles, capitalization, punctuation). Also note the surrounding context (a few lines) and page number if present.\\n---\\nI cannot yet confirm the canonical film title because the specific horror film referenced in Valentina Re’s chapter has not been provided, and I was unable to access the chapter text to identify it\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need to locate Valentina Re’s chapter in the 2017 Amsterdam University Press volume “World Building: Transmedia, Fans, Industries,” and find the specific passage where she states which horror film “popularized\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Valentina Re \\\"The Monster at the End of This Book\\\" World Building: Transmedia, Fans, Industries PDF OAPEN\\n---\\nWithin Valentina Re’s chapter “The Monster at the End of This Book: Metalepsis, Fandom, and World Making in Contemporary TV Series,” locate the specific passage where she discusses metalepsis between a dream world and reality. Quote the relevant sentences verbatim and provide the book page number(s). Also, identify the horror film she explicitly says popularized this metaleptic relation, and quote the sentence that includes that identification if present.\\n---\\nPassage located and quoted: “Another widespread form is the metaleptic relation between a dream world and reality, popularized by A Nightmare on Elm Street\\n---\\n\\\"Valentina Re\\\" \\\"The Monster at the End of This Book\\\" metalepsis \\\"Nightmare on Elm Street\\\"\\n---\\n\\\"The Monster at the End of This Book\\\" \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"Valentina Re\\\" \\\"The Monster at the End of This Book\\\" review metalepsis\\n---\\n\\\"Valentina Re\\\" \\\"The Monster at the End of This Book\\\" review \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"Valentina Re\\\" metalepsis \\\"A Nightmare on Elm Street\\\" review\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"World Building: Transmedia, Fans, Industries\\\" review Valentina Re \\\"Monster at the End of This Book\\\" \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" review\\n---\\n\\\"The Monster at the End of This Book\\\" metalepsis fandom world making cited review\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" book review Valentina Re metalepsis \\\"A Nightmare on Elm Street\\\"\\n---\\nmetalepsis \\\"dream world and reality\\\" \\\"A Nightmare on Elm Street\\\" \\\"Valentina Re\\\"\\n---\\nIdentified a secondary scholarly chapter that references Valentina Re’s “The Monster at the End of This Book” and explicitly mentions the horror film tied to the metaleptic relation between a dream world and reality\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: The search_agent previously suggested \\\"Inception (2010)\\\" as the film, but that is not a horror movie, which makes the claim suspect\\n---\\nThought: From the previous tool-assisted verification, the OAPEN open-access PDF of the book confirms Valentina Re’s exact sentence: “Another widespread form is the metaleptic relation between a dream world and reality,\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0808",
+        "task_goal": "Identify the horror movie Valentina Re cites as popularizing the metaleptic relation between a dream world and reality in her chapter 'The Monster at the End of This Book'.",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "Valentina Re cites 'A Nightmare on Elm Street' as the horror film that popularized the metaleptic relation between a dream world and reality.",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s009",
+            "used_by": [
+              "s009"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ],
+        "notes": "The claim is finalized as it is supported by the exact sentence found in Valentina Re’s chapter 'The Monster at the End of This Book'."
+      },
+      "validated": {
+        "traj_id": "0808",
+        "task_goal": "Identify the horror movie Valentina Re cites as popularizing the metaleptic relation between a dream world and reality in her chapter 'The Monster at the End of This Book'.",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "Valentina Re cites 'A Nightmare on Elm Street' as the horror film that popularized the metaleptic relation between a dream world and reality.",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s009",
+            "used_by": [
+              "s009"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ],
+        "notes": "The claim is finalized as it is supported by the exact sentence found in Valentina Re’s chapter 'The Monster at the End of This Book'."
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s003",
+            "s009"
+          ],
+          "grep_queries": [
+            "Valentina Re cites 'A Nightmare on Elm Street' as the horror film that popularized the metaleptic relation between a dream world and reality."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s003",
+        "s009",
+        "s011"
+      ],
+      "available_span_ids": [
+        "s003",
+        "s004",
+        "s005",
+        "s009",
+        "s010",
+        "s011"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "Valentina Re cites 'A Nightmare on Elm Street' as the horror film that popularized the metaleptic relation between a dream world and reality.",
+          "matched_chunk_ids": [
+            "s009:c001",
+            "s004:c001",
+            "s010:c001",
+            "s005:c001"
+          ],
+          "matched_span_ids": [
+            "s004",
+            "s005",
+            "s009",
+            "s010"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0808\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"In Valentina Re’s contribution to the 2017 book “World Building: Transmedia, Fans, Industries”, what horror movie does the author cite as having popularized metalepsis between a dream world and reality? Use the complete name with article if any.\",\n  \"traj_id\": \"0808\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0808\",\n    \"task_goal\": \"Identify the horror movie Valentina Re cites as popularizing the metaleptic relation between a dream world and reality in her chapter 'The Monster at the End of This Book'.\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"Valentina Re cites 'A Nightmare on Elm Street' as the horror film that popularized the metaleptic relation between a dream world and reality.\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [\n          \"s009\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"The claim is finalized as it is supported by the exact sentence found in Valentina Re’s chapter 'The Monster at the End of This Book'.\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s009\",\n      \"s011\"\n    ],\n    \"requested_span_ids\": [\n      \"s003\",\n      \"s009\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"Valentina Re cites 'A Nightmare on Elm Street' as the horror film that popularized the metaleptic relation between a dream world and reality.\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s004:c001\",\n          \"s010:c001\",\n          \"s005:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s004\",\n          \"s005\",\n          \"s009\",\n          \"s010\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s009\",\n      \"s010\",\n      \"s011\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 588,\n        \"text\": \"Please extract the Table of Contents and identify Valentina Re’s chapter title and page range. Then search the text for occurrences of the word “metalepsis” within Valentina Re’s chapter, specifically any sentence discussing the relation between a “dream world” and “reality”, and return the exact sentence(s) verbatim with page numbers. Also note the film title she explicitly says “popularized” this metaleptic relation.\\n---\\nJoin OAPEN Home View Item World Building Transmedia, Fans, Industries Download PDF Viewer Contributor(s) Boni, Marta (editor) Collection Knowledge Unlatched (KU)\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1125,\n        \"text\": \"Valentina Re \\\"The Monster at the End of This Book\\\" World Building: Transmedia, Fans, Industries PDF OAPEN\\n---\\nWithin Valentina Re’s chapter “The Monster at the End of This Book: Metalepsis, Fandom, and World Making in Contemporary TV Series,” locate the specific passage where she discusses metalepsis between a dream world and reality. Quote the relevant sentences verbatim and provide the book page number(s). Also, identify the horror film she explicitly says popularized this metaleptic relation, and quote the sentence that includes that identification if present.\\n---\\nPassage located and quoted: “Another widespread form is the metaleptic relation between a dream world and reality, popularized by A Nightmare on Elm Street\\n---\\n\\\"Valentina Re\\\" \\\"The Monster at the End of This Book\\\" metalepsis \\\"Nightmare on Elm Street\\\"\\n---\\n\\\"The Monster at the End of This Book\\\" \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"Valentina Re\\\" \\\"The Monster at the End of This Book\\\" review metalepsis\\n---\\n\\\"Valentina Re\\\" \\\"The Monster at the End of This Book\\\" review \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"Valentina Re\\\" metalepsis \\\"A Nightmare on Elm Street\\\" review\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 364,\n        \"text\": \"Thought: The search_agent previously suggested \\\"Inception (2010)\\\" as the film, but that is not a horror movie, which makes the claim suspect\\n---\\nThought: From the previous tool-assisted verification, the OAPEN open-access PDF of the book confirms Valentina Re’s exact sentence: “Another widespread form is the metaleptic relation between a dream world and reality,\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1183,\n        \"text\": \"Extract the Table of Contents (with chapter titles, authors, and page ranges) and identify Valentina Re’s chapter title and page range. Then, within Valentina Re’s chapter, find occurrences of the word “metalepsis” and any sentence discussing a metaleptic relation specifically between a “dream world” and “reality.” Return the exact sentence(s) verbatim and include page number(s). Also note the film title she explicitly says “popularized” this metaleptic relation.\\n---\\n\\\"metalepsis\\\" Valentina Re World Building\\n---\\nAmsterdam University Press page: The AUP site currently does not surface a dedicated product page via search, but the AUP site’s official news article confirms this title and links to “Download book”: https://www\\n---\\n\\\"Valentina Re\\\" \\\"World Building: Transmedia, Fans, Industries\\\" metalepsis dream reality\\n---\\n\\\"Valentina Re\\\" metalepsis dream reality \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"metalepsis between a dream world and reality\\\" Valentina Re\\n---\\n\\\"A Nightmare on Elm Street\\\" metalepsis \\\"Valentina Re\\\"\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" review Valentina Re metalepsis \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"metalepsis made popular by A Nightmare on Elm Street\\\"\"\n      },\n      {\n        \"span_id\": \"s010\",\n        \"chunk_id\": \"s010:c001\",\n        \"char_start\": 0,\n        \"char_end\": 691,\n        \"text\": \"\\\"World Building: Transmedia, Fans, Industries\\\" review Valentina Re \\\"Monster at the End of This Book\\\" \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" review\\n---\\n\\\"The Monster at the End of This Book\\\" metalepsis fandom world making cited review\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" book review Valentina Re metalepsis \\\"A Nightmare on Elm Street\\\"\\n---\\nmetalepsis \\\"dream world and reality\\\" \\\"A Nightmare on Elm Street\\\" \\\"Valentina Re\\\"\\n---\\nIdentified a secondary scholarly chapter that references Valentina Re’s “The Monster at the End of This Book” and explicitly mentions the horror film tied to the metaleptic relation between a dream world and reality\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 688,\n        \"text\": \"\\\"World Building: Transmedia, Fans, Industries\\\" review Valentina Re metalepsis dream reality\\n---\\n\\\"Valentina Re\\\" \\\"Monster at the End of This Book\\\" review\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" review Amsterdam University Press Valentina Re metalepsis\\n---\\n\\\"World Building\\\" Transmedia, Fans, Industries book review Valentina Re metalepsis \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" review\\n---\\nI identified the horror film Valentina Re credits as having popularized the metaleptic device between a dream world and reality: “A Nightmare on Elm Street” (Wes Craven, 1984)\\n---\\nValentina Re chapter horror film\\n---\\n\\\"Valentina Re\\\" chapter horror film\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0808",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s003",
+              "s009"
+            ],
+            "support_status": "weak",
+            "missing_support": "The claim is supported by the exact sentence found in Valentina Re’s chapter 'The Monster at the End of This Book'. However, the evidence spans are partial and do not explicitly verify the decisive identity of the horror movie.",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "Please extract the Table of Contents and identify Valentina Re’s chapter title and page range. Then search the text for occurrences of the word “metalepsis” within Valentina Re’s chapter, specifically any sentence discussing the relation between a “dream world” and “reality”, and return the exact sentence(s) verbatim with page numbers. Also note the film title she explicitly says “popularized” this metaleptic relation."
+              },
+              {
+                "span_id": "s009",
+                "chunk_id": "s009:c001",
+                "role": "partial_support",
+                "text": "Valentina Re \"The Monster at the End of This Book\" World Building: Transmedia, Fans, Industries PDF OAPEN\n---\nWithin Valentina Re’s chapter “The Monster at the End of This Book: Metalepsis, Fandom, and World Making in Contemporary TV Series,” locate the specific passage where she discusses metalepsis between a dream world and reality. Quote the relevant sentences verbatim and provide the book page number(s). Also, identify the horror film she explicitly says popularized this metaleptic relation, and quote the sentence that includes that identification if present.\n---\nPassage located and quoted: “Another widespread form is the metaleptic relation between a dream world and reality, popularized by A Nightmare on Elm Street\n---\n\"Valentina Re\" \"The Monster at the End of This Book\" metalepsis \"Nightmare on Elm Street\"\n---\n\"The Monster at the End of This Book\" \"A Nightmare on Elm Street\"\n---\n\"Valentina Re\" \"The Monster at the End of This Book\" review metalepsis\n---\n\"Valentina Re\" \"The Monster at the End of This Book\" review \"A Nightmare on Elm Street\"\n---\n\"Valentina Re\" metalepsis \"A Nightmare on Elm Street\" review"
+              }
+            ]
+          }
+        ],
+        "notes": "The claim is supported by the exact sentence found in Valentina Re’s chapter 'The Monster at the End of This Book'. However, the evidence spans are partial and do not explicitly verify the decisive identity of the horror movie."
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s003",
+            "s009"
+          ],
+          "support_status": "weak",
+          "missing_support": "The claim is supported by the exact sentence found in Valentina Re’s chapter 'The Monster at the End of This Book'. However, the evidence spans are partial and do not explicitly verify the decisive identity of the horror movie.",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "Please extract the Table of Contents and identify Valentina Re’s chapter title and page range. Then search the text for occurrences of the word “metalepsis” within Valentina Re’s chapter, specifically any sentence discussing the relation between a “dream world” and “reality”, and return the exact sentence(s) verbatim with page numbers. Also note the film tit"
+            },
+            {
+              "span_id": "s009",
+              "chunk_id": "s009:c001",
+              "role": "partial_support",
+              "text": "Valentina Re \"The Monster at the End of This Book\" World Building: Transmedia, Fans, Industries PDF OAPEN\n---\nWithin Valentina Re’s chapter “The Monster at the End of This Book: Metalepsis, Fandom, and World Making in Contemporary TV Series,” locate the specific passage where she discusses metalepsis between a dream world and reality. Quote the relevant sent"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0808\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"In Valentina Re’s contribution to the 2017 book “World Building: Transmedia, Fans, Industries”, what horror movie does the author cite as having popularized metalepsis between a dream world and reality? Use the complete name with article if any.\",\n  \"traj_id\": \"0808\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0808\",\n    \"task_goal\": \"Identify the horror movie Valentina Re cites as popularizing the metaleptic relation between a dream world and reality in her chapter 'The Monster at the End of This Book'.\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"Valentina Re cites 'A Nightmare on Elm Street' as the horror film that popularized the metaleptic relation between a dream world and reality.\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [\n          \"s009\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"The claim is finalized as it is supported by the exact sentence found in Valentina Re’s chapter 'The Monster at the End of This Book'.\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s003\",\n        \"s009\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"The claim is supported by the exact sentence found in Valentina Re’s chapter 'The Monster at the End of This Book'. However, the evidence spans are partial and do not explicitly verify the decisive identity of the horror movie.\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Please extract the Table of Contents and identify Valentina Re’s chapter title and page range. Then search the text for occurrences of the word “metalepsis” within Valentina Re’s chapter, specifically any sentence discussing the relation between a “dream world” and “reality”, and return the exact sentence(s) verbatim with page numbers. Also note the film tit\"\n        },\n        {\n          \"span_id\": \"s009\",\n          \"chunk_id\": \"s009:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Valentina Re \\\"The Monster at the End of This Book\\\" World Building: Transmedia, Fans, Industries PDF OAPEN\\n---\\nWithin Valentina Re’s chapter “The Monster at the End of This Book: Metalepsis, Fandom, and World Making in Contemporary TV Series,” locate the specific passage where she discusses metalepsis between a dream world and reality. Quote the relevant sent\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s009\",\n      \"s011\"\n    ],\n    \"requested_span_ids\": [\n      \"s003\",\n      \"s009\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"Valentina Re cites 'A Nightmare on Elm Street' as the horror film that popularized the metaleptic relation between a dream world and reality.\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s004:c001\",\n          \"s010:c001\",\n          \"s005:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s004\",\n          \"s005\",\n          \"s009\",\n          \"s010\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s009\",\n      \"s010\",\n      \"s011\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 588,\n        \"text\": \"Please extract the Table of Contents and identify Valentina Re’s chapter title and page range. Then search the text for occurrences of the word “metalepsis” within Valentina Re’s chapter, specifically any sentence discussing the relation between a “dream world” and “reality”, and return the exact sentence(s) verbatim with page numbers. Also note the film title she explicitly says “popularized” this metaleptic relation.\\n---\\nJoin OAPEN Home View Item World Building Transmedia, Fans, Industries Download PDF Viewer Contributor(s) Boni, Marta (editor) Collection Knowledge Unlatched (KU)\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1125,\n        \"text\": \"Valentina Re \\\"The Monster at the End of This Book\\\" World Building: Transmedia, Fans, Industries PDF OAPEN\\n---\\nWithin Valentina Re’s chapter “The Monster at the End of This Book: Metalepsis, Fandom, and World Making in Contemporary TV Series,” locate the specific passage where she discusses metalepsis between a dream world and reality. Quote the relevant sentences verbatim and provide the book page number(s). Also, identify the horror film she explicitly says popularized this metaleptic relation, and quote the sentence that includes that identification if present.\\n---\\nPassage located and quoted: “Another widespread form is the metaleptic relation between a dream world and reality, popularized by A Nightmare on Elm Street\\n---\\n\\\"Valentina Re\\\" \\\"The Monster at the End of This Book\\\" metalepsis \\\"Nightmare on Elm Street\\\"\\n---\\n\\\"The Monster at the End of This Book\\\" \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"Valentina Re\\\" \\\"The Monster at the End of This Book\\\" review metalepsis\\n---\\n\\\"Valentina Re\\\" \\\"The Monster at the End of This Book\\\" review \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"Valentina Re\\\" metalepsis \\\"A Nightmare on Elm Street\\\" review\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 364,\n        \"text\": \"Thought: The search_agent previously suggested \\\"Inception (2010)\\\" as the film, but that is not a horror movie, which makes the claim suspect\\n---\\nThought: From the previous tool-assisted verification, the OAPEN open-access PDF of the book confirms Valentina Re’s exact sentence: “Another widespread form is the metaleptic relation between a dream world and reality,\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1183,\n        \"text\": \"Extract the Table of Contents (with chapter titles, authors, and page ranges) and identify Valentina Re’s chapter title and page range. Then, within Valentina Re’s chapter, find occurrences of the word “metalepsis” and any sentence discussing a metaleptic relation specifically between a “dream world” and “reality.” Return the exact sentence(s) verbatim and include page number(s). Also note the film title she explicitly says “popularized” this metaleptic relation.\\n---\\n\\\"metalepsis\\\" Valentina Re World Building\\n---\\nAmsterdam University Press page: The AUP site currently does not surface a dedicated product page via search, but the AUP site’s official news article confirms this title and links to “Download book”: https://www\\n---\\n\\\"Valentina Re\\\" \\\"World Building: Transmedia, Fans, Industries\\\" metalepsis dream reality\\n---\\n\\\"Valentina Re\\\" metalepsis dream reality \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"metalepsis between a dream world and reality\\\" Valentina Re\\n---\\n\\\"A Nightmare on Elm Street\\\" metalepsis \\\"Valentina Re\\\"\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" review Valentina Re metalepsis \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"metalepsis made popular by A Nightmare on Elm Street\\\"\"\n      },\n      {\n        \"span_id\": \"s010\",\n        \"chunk_id\": \"s010:c001\",\n        \"char_start\": 0,\n        \"char_end\": 691,\n        \"text\": \"\\\"World Building: Transmedia, Fans, Industries\\\" review Valentina Re \\\"Monster at the End of This Book\\\" \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" review\\n---\\n\\\"The Monster at the End of This Book\\\" metalepsis fandom world making cited review\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" book review Valentina Re metalepsis \\\"A Nightmare on Elm Street\\\"\\n---\\nmetalepsis \\\"dream world and reality\\\" \\\"A Nightmare on Elm Street\\\" \\\"Valentina Re\\\"\\n---\\nIdentified a secondary scholarly chapter that references Valentina Re’s “The Monster at the End of This Book” and explicitly mentions the horror film tied to the metaleptic relation between a dream world and reality\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 688,\n        \"text\": \"\\\"World Building: Transmedia, Fans, Industries\\\" review Valentina Re metalepsis dream reality\\n---\\n\\\"Valentina Re\\\" \\\"Monster at the End of This Book\\\" review\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" review Amsterdam University Press Valentina Re metalepsis\\n---\\n\\\"World Building\\\" Transmedia, Fans, Industries book review Valentina Re metalepsis \\\"A Nightmare on Elm Street\\\"\\n---\\n\\\"World Building: Transmedia, Fans, Industries\\\" review\\n---\\nI identified the horror film Valentina Re credits as having popularized the metaleptic device between a dream world and reality: “A Nightmare on Elm Street” (Wes Craven, 1984)\\n---\\nValentina Re chapter horror film\\n---\\n\\\"Valentina Re\\\" chapter horror film\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0808",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s009",
+          "s011"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s009",
+          "s011"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0808",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s009",
+          "s011"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s009",
+          "s011"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 11,
+    "evidence_span_count": 6
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 8301,
+    "output_tokens": 960,
+    "total_tokens": 9261
+  }
+}

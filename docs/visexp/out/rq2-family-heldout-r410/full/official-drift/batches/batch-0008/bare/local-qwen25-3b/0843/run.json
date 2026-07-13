@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0843",
+  "prediction": {
+    "traj_id": "0843",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0843\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"As of August 2023, who is the only winner of the US version of Survivor to be born in the month of May?\",\n  \"traj_id\": \"0843\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"As of August 2023, who is the only winner of the US version of Survivor to be born in the month of May\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nSurvivor US winners list Wikipedia\\n---\\nUp to and including August 2023, the latest completed U\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: To proceed, I’ll first identify the list of all US Survivor winners through August 2023 (which should include all seasons up to Survivor 44)\\n---\\nSurvivor (American TV series) winners list Wikipedia\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Early life and education Survivor Toggle Survivor subsection Borneo All-Stars Other appearances Acquittals and convictions Personal life F\\n---\\nTina Wesson Wikipedia\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Overview Contestants Toggle Contestants subsection Future appearances Season summary Episodes Voting history Reception Games Controversy R\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nYam Yam Arocho Wikipedia\\n---\\nSIGN IN REGISTER EXPLORE SEASONS CONTESTANTS ABOUT SURVIVOR SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT Celebrating 25 Years of SURVIVOR 11,613 PAGES EXPLORE SEASONS CONTESTANTS ABOUT SURVIVOR in: Contestants, Mal\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Michele Fitzgerald Wikipedia\\n---\\nSurvivor winners birth dates list site:survivor.fandom.com\\n---\\nI compiled a complete season\\n---\\nThought: The task is to identify, as of August 2023, the only winner of the US version of Survivor who was born in May\\n---\\nIt seems that the files you've uploaded contain relevant information for this task\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Michele Fitzgerald Wikipedia\\n---\\nsite:en.wikipedia.org \\\"Michele Fitzgerald\\\"\\n---\\nMichele Fitzgerald born site:wikipedia.org\\n---\\n\\\"Michele Fitzgerald\\\" site:en.wikipedia.org\\n---\\n\\\"Michele Fitzgerald\\\" Wikipedia biography\\n---\\nsite:en.wikipedia.org \\\"Michele Fitzgerald\\\" \\\"born\\\"\\n---\\n\\\"Michele Fitzgerald\\\" Wikipedia page\\n---\\nhttps://en.wikipedia.org/wiki/Michele_Fitzgerald\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"https://en.wikipedia.org/wiki/Michele_Fitzgerald\\n---\\n\\\"Michele Fitzgerald\\\" - Wikipedia\\n---\\nTommy Sheehan Wikipedia\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nTommy Sheehan site:wikipedia.org\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nTommy Sheehan Survivor Wikipedia\\n---\\n\\\"Tommy Sheehan (Survivor contestant)\\\" site:wikipedia.org\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Contents hide (Top) See also Thomas Sheehan Add languages Article Talk Read Edit View history Tools Appearance hide Text Small Standard Large Width Standard W\\n---\\nThe name \\\"Tommy Sheehan\\\" is ambiguous on Wikipedia\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: The question asks for “the only winner of the US version of Survivor to be born in the month of May” as of August 2023\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0843",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0843",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 8
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1415,
+    "output_tokens": 66,
+    "total_tokens": 1481
+  }
+}

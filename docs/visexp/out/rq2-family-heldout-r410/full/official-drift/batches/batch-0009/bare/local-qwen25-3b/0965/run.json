@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0965",
+  "prediction": {
+    "traj_id": "0965",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0965\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"2018年，王思聪收购的电子竞技俱乐部在一款游戏中赢得冠军，该游戏的S13主题曲MV中，画面开始出现在教室里的两个人是校友，请问是哪个学校的?\",\n  \"traj_id\": \"0965\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"2018年，王思聪收购的电子竞技俱乐部在一款游戏中赢得冠军，该游戏的S13主题曲MV中，画面开始出现在教室里的两个人是校友，请问是哪个学校的\\n---\\n2018 League of Legends World Championship Wikipedia\\n---\\nInvictus Gaming Wikipedia\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Contents hide (Top) History Toggle History subsection Dota & Dota 2 Defense of the Ancients Dota 2 League of Legends 2011 2012 2013 2014 2015 2016 2017 2018 2\\n---\\nWang Sicong Invictus Gaming 2018 Worlds Weibo iPhone giveaway bonus team\\n---\\nSIGN IN REGISTER EXPLORE NAVIGATION REGIONS COMPETITIVE EDITING HELP MORE SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT LCK CL 2026 Kickoff ⁠ ⁠ vs ⁠ ⁠ 39m • LCK CL 2026 Kickoff ⁠ ⁠ vs ⁠ ⁠ 39m • LCP 2026 Split 1 ⁠ ⁠\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Wang Sicong 10,000 RMB giveaway Weibo Invictus Gaming 2018 Worlds\\n---\\nliquipedia League of Legends MainWikis AlphaWikis SportWikis Pre AlphaWikis DormantWikis Favorites0 Marvel RivalsNEW Dota 2 Counter-Strike VALORANT Mobile Legends League of Legends Rocket League Apex Legends Overwatch PU\\n---\\nInvictus Gaming (iG), the Chinese esports club founded and owned by Wang Sicong (王思聪), won the 2018 League of Legends World Championship\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Riot Games GODS NewJeans Worlds 2023 anthem official announcement\\n---\\nGODS classroom scene Deft Faker Mapo High School analysis\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip navigation Sign in Sign in to confirm you’re not a bot This helps protect our community\\n---\\nThis website utilizes technologies such as cookies to enable essential site functionality, as well as for analytics, personalization, and targeted advertising\\n---\\nThis website utilizes technologies such as cookies to enable essential site functionality, as well as for analytics, personalization, and targeted advertising\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Mapo High School classroom scene GODS MV NewJeans Deft Faker\\n---\\nABOUT PRESS T&C CONTACT US PARTNERS ESPORTS CALL OF DUTY LEAGUE OF LEGENDS VALORANT ANIME GENSHIN IMPACT MOBILE LEGENDS MORE PRO GEAR EN ENGLISH BAHASA INDONESIA FILIPINO TIẾNG VIỆT ไทย LOGIN CALL OF DUTY LEAGUE OF LEGEN\\n---\\nSkip to content ESPORTS GAMING VALORANT LEAGUE OF LEGENDS COD Search Dark Mode Expand Menu CANCEL GAMING Fortnite ESPORTS Valorant League Of Legends CoD Dota 2 Overwatch Counter-Strike GAMBLING Betting Esports Betting Si\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Inven Global WHO WE ARE LATEST … search Login Darkmode League of Legends [Interview] Faker and Deft Are High School Friends\\n---\\nGODS is the official League of Legends Worlds 2023 anthem performed by NewJeans, not a generic “Season 13 theme song\\n---\\nFaker 麻浦高中\\n---\\n李相赫 麻浦高中\\n---\\nDeft 麻浦高中\\n---\\n李相赫 百度百科\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 54 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 首页 秒懂百科 特色百科 知识专题 加入百科 百科团队 权威合作 个人中心 李相赫 播报 讨论 上传视频 韩国电子竞技运动员展开3个同名词条 收藏 0 0 百科已开放本人编辑服务，若您为词条本人可免费认领词条，解锁低门槛编辑特权 立即前往 李相赫（Lee Sang-hyeok），ID：Faker,绰号“大魔王”，1996年5月7日出生于韩国\\n---\\n游戏资料 GAME INFO 商城/合作 STORE 社区互动 COMMUNITY 赛事官网 ESPORTS 自助系统 SYSTEM 亲爱的召唤师，欢迎登录 英雄联盟首页 社区个人中心 文章详情 qq wechat sina 顶峰再相遇的麻浦校友，Faker与Deft职业生涯一览，泪目 电竞大事件esports 2022-11-05 11:17:08 字体： 大 中 小 1358次阅读 0 9年沉浮今朝顶峰相遇，Faker与Deft两位\\n---\\n港聞 娛樂 酒店優惠 特朗普出兵 即時 熱榜 國際 中國 股市 生活 科技 體育 01深圳 經濟 觀點 健康 好食玩飛 女生 熱話 藝文格物 社區 教育 更多 登入 體育 即時體育 電競．LOL｜活在Faker陰影的高中同學 官方MV重塑Deft勵志故事 撰文： 陳旭暉 出版：2023-10-07 18:04 更新：2023-11-03 17:54 5 《英雄聯盟（League of Legends，簡稱LOL）》自第4賽季（簡稱S4）\\n---\\n全產品速覽 新聞評論 聯合新聞網 河好如初 陽光行動 聯合報數位版 聯合70 轉角國際 倡議家 世界日報 新聞話題 服務 會員中心 U利點數 我的新聞 歷史新聞 活動專區 udn粉絲團 udn line 好友 股市理財 經濟日報網 房地產 中經社 樂透 發票 生活娛樂 噓\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"麻浦高中 位于 江西区 地点\\n---\\n酒店预订 当地游 演出门票 Wi-Fi · 手机 优惠券 在当前地图中搜索 移动时不更新搜索结果 地图搜索 路线搜索 地铁线路图 收藏夹 您好\\n---\\n结论：Faker（李相赫）和Deft（金赫奎）都曾就读于韩国首尔的“麻浦高中”（韩文：마포고등학교\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: The question refers to Wang Sicong’s esports club winning a championship in 2018, which strongly points to Invictus Gaming (iG) winning the League of Legends World Championship in 2018\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0965",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0965",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 10
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 2471,
+    "output_tokens": 74,
+    "total_tokens": 2545
+  }
+}

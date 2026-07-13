@@ -1,0 +1,58 @@
+{
+  "setting": "bare",
+  "case_id": "0693",
+  "prediction": {
+    "traj_id": "0693",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0693\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"In the Scikit-Learn July 2017 changelog, what other predictor base command received a bug fix? Just give the name, not a path.\",\n  \"traj_id\": \"0693\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"In the Scikit-Learn July 2017 changelog, what other predictor base command received a bug fix\\n---\\nScikit-Learn release July 2017 version changelog\\n---\\nScikit-Learn 0.19 release July 2017\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up scikit-learn / scikit-learn Public Sponsor Notifications Fork 26\\n---\\nScikit-Learn 0.19.0 release date August 2017\\n---\\n\\\\n\\\\nScikit\\n---\\nScikit-Learn version 0.19 changelog July 2017\\n---\\nscikit-learn 0.19 predictor base command bug fix github\\n---\\nscikit-learn 0.19 BaseEstimator predictor command bug fix changelog\\n---\\nsite:github.com scikit-learn 0.19 BaseEstimator __getstate__ predictor\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:github.com scikit-learn issue 8316 BaseEstimator getstate\\n---\\nsite:github.com scikit-learn pull request 8324\\n---\\n\\\\n\\\\nThe Scikit\\n---\\nsite:scikit-learn.org version 0.19 changelog\\n---\\nsite:scikit-learn.org 0.19 changelog BaseEstimator predictor bug fix\\n---\\n\\\\n\\\\nAfter searching the scikit\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Scikit-Learn 0.19 what's new release notes\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll help you find the answer about the Scikit-Learn July 2017 changelog\\n---\\nI need to search for the Scikit-Learn July 2017 changelog directly using web search tools\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I need to search the Scikit-Learn July 2017 changelog directly using the web_search and web_fetch tools available to me\\n---\\nI need to use the web_search and web_fetch tools to find the Scikit-Learn July 2017 changelog\\n---\\nScikit-Learn 0.19 release date changelog July August 2017\\n---\\nScikit-Learn 0.19 release date July August 2017\\n---\\n\\\\n\\\\n**Scikit\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need to properly format my code with the correct pattern\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0693",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0693",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 7
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1131,
+    "output_tokens": 80,
+    "total_tokens": 1211
+  }
+}

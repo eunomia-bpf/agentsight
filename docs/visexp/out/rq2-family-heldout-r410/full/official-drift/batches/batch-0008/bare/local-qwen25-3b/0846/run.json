@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0846",
+  "prediction": {
+    "traj_id": "0846",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "final span commits to the wrong answer path"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0846\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"从1949年到2009年，中国城镇人口数量年均增长百分之多少\",\n  \"traj_id\": \"0846\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"从1949年到2009年，中国城镇人口数量年均增长百分之多少\\n---\\nChina urban population 1949 城镇人口\\n---\\nUrbaChina working paper series No 1 / November 2013 Urbanisation in China: The impact of the tax-sharing system and the definitions of new strategies Authors: ELOSUA, Miguel (CNRS) GIPOULOUX, François (CNRS) GOULARD Séba\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"中国1949年城镇人口 总人口 统计数据\\n---\\nChina 1949 urban population 57.65 million total population 541.67 million\\n---\\nHOME > China ABC > China Briefing > Population and Ethnic Groups 中文 Population 2004-05-30 11:35 China is the most populous country in the world, with 1\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"1949年中国城镇化率 urbanization rate 10.64%\\n---\\nChina 1949 urbanization 10.64% 5765万 urban population statistics source\\n---\\nhttp://courses.washington.edu/chinageo/Chan-Xu-Urban-1985.pdf\\n---\\nIn 1949, China's urban population was 57\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"China urban population 2009 statistics\\n---\\nwww\\n---\\nChina total population 2009 National Bureau Statistics\\n---\\nChina urbanization rate 2009 46.6%\\n---\\nChina urban population 621.86 million 2009\\n---\\nWorld Bank China urban population 2009 exact number\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\\n\\\\n\\\\u4e2d\\\\u56fd2009\\\\u5e74\\\\u57ce\\\\u9547\\\\u4eba\\\\u53e3\\\\u6570\\\\u91cf\\\\u4e3a62186\\\\u4e07\\\\u4eba\\\\uff08621\\n---\\nI'll solve this task step by step to find the average annual growth rate of China's urban population from 1949 to 2009\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0846",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "final span commits to the wrong answer path"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0846",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "final span commits to the wrong answer path"
+          }
+        ]
+      }
+    },
+    "full_span_count": 5
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1028,
+    "output_tokens": 80,
+    "total_tokens": 1108
+  }
+}

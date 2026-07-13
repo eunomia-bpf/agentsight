@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0798",
+  "prediction": {
+    "traj_id": "0798",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0798\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"What is the average number of pre-2020 works on the open researcher and contributor identification pages of the people whose identification is in this file?\",\n  \"traj_id\": \"0798\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"What is the average number of pre-2020 works on the open researcher and contributor identification pages of the people whose identification is in this file\\n---\\nI need to calculate the average number of pre-2020 works for a list of researchers\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have read the file and can see the ORCID identifiers\\n---\\nORCID API documentation\\n---\\nSkip to primary navigation Skip to main content Skip to primary sidebar Connecting research and researchers Sign in to ORCID Select Language العربية Čeština‎ Deutsch English Español Français Italiano 日本語 한국어 Polski Portu\\n---\\nsite:info.orcid.org ORCID API tutorial read works\\n---\\nSkip to primary navigation Skip to main content Skip to primary sidebar Connecting research and researchers Sign in to ORCID Select Language العربية Čeština‎ Deutsch English Español Français Italiano 日本語 한국어 Polski Portu\\n---\\nsite:info.orcid.org what sections can I read on an ORCID record\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have the list of ORCID identifiers\\n---\\nORCID API documentation\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to primary navigation Skip to main content Skip to primary sidebar Connecting research and researchers Sign in to ORCID Select Language العربية Čeština‎ Deutsch English Español Français Italiano 日本語 한국어 Polski Portu\\n---\\nORCID API tutorials\\n---\\nSkip to primary navigation Skip to main content Skip to primary sidebar Connecting research and researchers Sign in to ORCID Select Language العربية Čeština‎ Deutsch English Español Français Italiano 日本語 한국어 Polski Portu\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:info.orcid.org \\\"How do I read an ORCID record?\\\"\\n---\\nSkip to primary navigation Skip to main content Connecting research and researchers Sign in to ORCID Select Language العربية Čeština‎ Deutsch English Español Français Italiano 日本語 한국어 Polski Português Русский Türkçe 简体中文\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"ORCID API get works endpoint\\n---\\nORCID API base URL\\n---\\nexample ORCID iD\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I need to find out how to get a researcher's works using their ORCID iD\\n---\\nIt seems I am having trouble with the `search_agent`\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0798",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0798",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 7
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1073,
+    "output_tokens": 66,
+    "total_tokens": 1139
+  }
+}

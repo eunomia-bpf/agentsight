@@ -1,0 +1,188 @@
+{
+  "setting": "drift",
+  "case_id": "0953",
+  "prediction": {
+    "traj_id": "0953",
+    "error_span_ids": [
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s007",
+    "reasons": []
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0953\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"2024年全年共有多少位新晋学术人员加入了香港大学？\",\n  \"traj_id\": \"0953\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"2024年全年共有多少位新晋学术人员加入了香港大学\\n---\\n香港大学2024年新晋学术人员\\n---\\nHOME RESOURCES NEWS AWARDS & RECOGNITION Welcoming HKU’s Newest Academic Staff for 2024 Attracting Global Talent Each year the University of Hong Kong draws scholars from around the world\\n---\\n{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Invalid protocol httpshttps:\\\",\\\"readableMessage\\\":\\\"ParamValidationError(url): Invalid protocol httpshttps:\\\"}\\n---\\n新的搜索 接入API，立即获得深度搜索能力\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我需要找出2024年加入香港大学的新晋学术人员数量\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"香港大学 2024年 新晋学术人员\\n---\\nHOME RESOURCES NEWS AWARDS & RECOGNITION Welcoming HKU’s Newest Academic Staff for 2024 Attracting Global Talent Each year the University of Hong Kong draws scholars from around the world\\n---\\n新的搜索 登录后保存搜索记录 登录账户可以保存和查看历史搜索记录 去登录 接入API，立即获得深度搜索能力\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I need to find out the number of new academic staff who joined the University of Hong Kong in 2024\\n---\\nUniversity of Hong Kong academic staff recruitment 2024\\n---\\nSkip to content HKU Home Start main Content Career Opportunities Home Explore Careers at HKU Career Opportunities Applicant login Job alert Internal openings Job Search e\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"HKU Global Professoriate Recruitment Campaign\\n---\\nHKU Professoriate Recruitment Campaign Home About Eligibility Apply Now HKU Global Professoriate Recruitment Campaign Learn More About the HKU Global Professoriate Recruitment Campaign HKU is pleased to invite outstandin\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"University of Hong Kong academic staff conditions of service\\n---\\nThe University of Hong Kong (HKU) is actively recruiting academic staff in 2024, with a substantial number of open positions across a wide range of faculties and disciplines\\n---\\nI need to find the number of new academic staff who joined the University of Hong Kong in 2024\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have searched for the number of new academic staff who joined the University of Hong Kong in 2024\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "2024年全年共有多少位新晋学术人员加入了香港大学",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s007",
+            "used_by": [
+              "s007"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0953",
+        "task_goal": "",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "2024年全年共有多少位新晋学术人员加入了香港大学",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s007",
+            "used_by": [
+              "s007"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001",
+            "s007"
+          ],
+          "grep_queries": [
+            "2024年全年共有多少位新晋学术人员加入了香港大学"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s007"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s007"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "2024年全年共有多少位新晋学术人员加入了香港大学",
+          "matched_chunk_ids": [
+            "s001:c001"
+          ],
+          "matched_span_ids": [
+            "s001"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0953\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"2024年全年共有多少位新晋学术人员加入了香港大学？\",\n  \"traj_id\": \"0953\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0953\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"2024年全年共有多少位新晋学术人员加入了香港大学\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s007\",\n        \"used_by\": [\n          \"s007\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s007\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s007\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"2024年全年共有多少位新晋学术人员加入了香港大学\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s007\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 467,\n        \"text\": \"2024年全年共有多少位新晋学术人员加入了香港大学\\n---\\n香港大学2024年新晋学术人员\\n---\\nHOME RESOURCES NEWS AWARDS & RECOGNITION Welcoming HKU’s Newest Academic Staff for 2024 Attracting Global Talent Each year the University of Hong Kong draws scholars from around the world\\n---\\n{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Invalid protocol httpshttps:\\\",\\\"readableMessage\\\":\\\"ParamValidationError(url): Invalid protocol httpshttps:\\\"}\\n---\\n新的搜索 接入API，立即获得深度搜索能力\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 99,\n        \"text\": \"I have searched for the number of new academic staff who joined the University of Hong Kong in 2024\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0953",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s001"
+            ],
+            "support_status": "weak",
+            "missing_support": "无直接支持关于2024年新晋学术人员数量的实体信息",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s001",
+                "chunk_id": "s001:c001",
+                "role": "partial_support",
+                "text": "2024年全年共有多少位新晋学术人员加入了香港大学"
+              }
+            ]
+          }
+        ],
+        "notes": "原始文本提供了关于2024年新晋学术人员的提及，但没有明确的数字。"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s001"
+          ],
+          "support_status": "weak",
+          "missing_support": "无直接支持关于2024年新晋学术人员数量的实体信息",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s001",
+              "chunk_id": "s001:c001",
+              "role": "partial_support",
+              "text": "2024年全年共有多少位新晋学术人员加入了香港大学"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0953\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"2024年全年共有多少位新晋学术人员加入了香港大学？\",\n  \"traj_id\": \"0953\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0953\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"2024年全年共有多少位新晋学术人员加入了香港大学\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s007\",\n        \"used_by\": [\n          \"s007\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s001\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"无直接支持关于2024年新晋学术人员数量的实体信息\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s001\",\n          \"chunk_id\": \"s001:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"2024年全年共有多少位新晋学术人员加入了香港大学\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s007\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s007\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"2024年全年共有多少位新晋学术人员加入了香港大学\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s007\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 467,\n        \"text\": \"2024年全年共有多少位新晋学术人员加入了香港大学\\n---\\n香港大学2024年新晋学术人员\\n---\\nHOME RESOURCES NEWS AWARDS & RECOGNITION Welcoming HKU’s Newest Academic Staff for 2024 Attracting Global Talent Each year the University of Hong Kong draws scholars from around the world\\n---\\n{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Invalid protocol httpshttps:\\\",\\\"readableMessage\\\":\\\"ParamValidationError(url): Invalid protocol httpshttps:\\\"}\\n---\\n新的搜索 接入API，立即获得深度搜索能力\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 99,\n        \"text\": \"I have searched for the number of new academic staff who joined the University of Hong Kong in 2024\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0953",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0953",
+        "first_error_span": null,
+        "linked_error_span_ids": [],
+        "non_errors": [],
+        "reason": "短字符串",
+        "error_span_ids": [],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 7,
+    "evidence_span_count": 2
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 3939,
+    "output_tokens": 400,
+    "total_tokens": 4339
+  }
+}

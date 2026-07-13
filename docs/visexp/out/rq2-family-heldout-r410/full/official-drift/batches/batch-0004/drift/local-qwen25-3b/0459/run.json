@@ -1,0 +1,120 @@
+{
+  "setting": "drift",
+  "case_id": "0459",
+  "prediction": {
+    "traj_id": "0459",
+    "error_span_ids": [],
+    "earliest_harmful_span_id": null,
+    "reasons": []
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0459\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"根据中央音乐学院校外音乐水平考级细则，如果选用《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》，从一级到演奏级共有十个级别，其音阶速度最低的平均值为♩=多少？将结果四舍五入到个位数。\",\n  \"traj_id\": \"0459\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"目标：收集并整理《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》各级别（一级至九级与演奏级，共十个级别）对“音阶”的速度要求，提取每一级的最低速度值，并统一换算为四分音符每分钟 bpm（记为♩=X），以便后续计算平均值。\\\\n\\\\n检索与来源要求：\\\\n- 仅使用与该“新编”教程相对应的权威或官方来源：中央音乐学院校外音乐水平考级官方网站、出版社或教材样章、官方公告/通知、权威教育机构的考纲解读。若难以覆盖全部级别，可参考培训机构整理的考纲，但须提供原始出处或明确版本信息并进行交叉验证。\\\\n- 明确版本年份（如2018、2020、2022、2023等），优先最新可确认版本；若无法确认最新版本，请选择一版且注明版本年份与来源。检索截止日期以当前为准，并在结果中标注检索日期。\\\\n- 覆盖10个级别，并确保包含演奏级（可能称为“演奏级”或“第10级”）。\\\\n\\\\n数据采集与处理规则：\\\\n- 只针对“音阶”条目，不包含“琶音”用于最低值计算；但若来源不区分或速度统一给出，请标注该情况，并提供两种候选：\\\\n 1）仅按音阶条目取最低值；\\\\n 2）按合并速度（含琶音）取最低值。\\\\n- 列出各级涉及的音阶类型与速度：大调、自然小调、和声小调、旋律小调、半音阶等；逐条记录原文速度与单位。\\\\n- 单位与换算：\\\\n • 若为♪=N（八分音符），换算为♩=N/2。\\\\n • 若为♩.=M（附点四分音符），换算为♩=M/1.5。\\\\n • 若为“八分音符两音”等表述，明确一拍包含的音符时值，统一换算到♩=X。\\\\n • 若速度为区间（如♩=60–72），取区间下限作为该条目的最低值。\\\\n- 每一级的“最低音阶速度”定义为：该级所有音阶要求中的最小数值（统一为♩=X）。若存在版本差异或不同解释，请全部保留为候选并注明依据与来源。\\\\n\\\\n输出结构与内容：\\\\n- 逐级列出：\\\\n • 原始音阶条目与速度（保留原文单位与符号）；\\\\n • 换算后的数值（统一为♩=X），并给出换算说明；\\\\n • 本级别的最低值候选集合（清晰标注主推荐与其他可能）。\\\\n- 提供汇总清单：10个级别的最低值（主推荐与其他候选），并给出所有来源链接（URL），说明页面位置或引用段落。\\\\n- 标注检索日期与版本年份；指出任何不确定性（如演奏级是否有明确音阶速度、不同版本差异等）。\\\\n\\\\n优先搜索的中文关键词示例（可灵活调整）：\\\\n- 新编 中央音乐学院 校外 音乐 水平 考级 钢琴 业余 音阶 速度\\\\n- 中央音乐学院 钢琴 业余 考级 教程 音阶 速度 要求\\\\n- 中央音乐学院 考级 纲要 钢琴 音阶 速度 演奏级\\\\n\\\\n输出语言：中文。\\\\n\\\\n请返回结构化的文本总结（非表格也可），包含上述全部内容与链接。\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"新编 中央音乐学院 校外 音乐 水平 考级 钢琴 业余 音阶 速度 演奏级\\n---\\nsite:ccom.edu.cn 钢琴 考级 音阶 速度 OR site:press.ccom.edu.cn 钢琴 考级 音阶 速度 新编\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"新编 中央音乐学院 钢琴 业余 考级 教程 音阶 速度\\n---\\nsite:press.ccom.edu.cn 新编 校外 音乐 水平 考级 教程 钢琴 业余 试读 基本练习 音阶 速度\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"新编 央音 钢琴 考级 教程 音阶 速度\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"新编 央音 钢琴 音阶 速度 ♩\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 2024年中央音乐学院海外音乐水平考级 日本考点考级简章正式发布 http://ccom-japan.net/notice/shownews.php?lang=cn&id=68\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"任务总结与最终答案 一、任务目标与中文口径 - 目标：基于《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》（1–9级+演奏级，共10级），采集各级“音阶类”最低速度，统一为四分音符每分钟（♩=X），计算10个级别最低值的平均数并四舍五入到个位。 - 口径说明： - “音阶类”包含大/小调音阶与半音阶；不计入琶音。 - 同一级若同时有音阶与半音阶条款，取其最小值作为该级“最低值”。 - 单位统一换算为♩=X；若原文为附点四分音符“♩.”，需要明确换算口径。 - 遇到“速度不低于…”这类单值，直接以该值为该条目下限；若为区间则取区间下限。 二、工作历程与工具使用轨迹（中文回顾） - 需求分析与计划： 1) 明确教材版本与级别范围：新编教程（钢琴业余），1–9级+演奏级共十级。 2) 制定采集规则与换算口径：统一到♩=X；音阶类含半音阶；取最低值；区间取下限。 3) 设定信息源优先级：权威/官方页面与教材相关公告为首选；培训机构页仅用于交叉验证。 - 联网信息采集子任务（一次执行）： - 子任务目标：检索权威中文页面中“基本练习/音阶/半音阶”速度条款，确认教材指定为“新编”，提取1–9级与演奏级的最低速度并记录原文与链接。 - 采集结果要点： • 命中日本考点官方简章（2024年适用），明确指定教材为《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》（人民音乐出版社），并逐级给出“音阶/半音阶/琶音”的最低速度。 • 辅以中央音乐学院官网新闻作为教材并行背景说明。 • 培训机构整理页与官方简章关键速度一致，用于一致性交叉核对。 - 结果整理与计算： - 逐级提取“音阶类”最低速度（以官方简章为主来源），完成单位换算与候选汇总。 - 针对“♩.=72”的换算存在分歧，给出两种口径并据此计算候选平均值；推荐采用常规乐理换算。 三、信息来源与证据链 - 主来源（权威/官方，含速度条款与“新编”教材指定，2024年适用）： - 2024年中央音乐学院海外音乐水平考级 日本考点考级简章正式发布 - URL: http://ccom-japan.net/notice/shownews.php?lang=cn&id=68 - 页面位置：附：各专业具体要求（2024年适用）— 键盘类 — 钢琴 — 基本练习考级要求 - 关键原文示例： • “一级… 音阶速度不低于 ♩=54” • “二级… 音阶速度不低于 ♩=63” • “三级… 音阶速度不低于 ♩.=72；半音阶速度不低于 ♩=60” • “四级… 音阶速度不低于 ♩=66；半音阶速度不低于 ♩=69” • “五级… 音阶速度不低于 ♩=72” • “六级… 音阶速度不低于 ♩=84” • “七级… 音阶速度不低于 ♩=88” • “八级… 音阶速度不低于 ♩=100” • “九级… 音阶速度不低于 ♩=108” • “演奏级… 音阶速度不低于 ♩=112” • 教材指定：“《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》，人民音乐出版社。” - 官方背景说明： - 央音考级新教材全面上市！（2024-02-02） - URL: https://www.ccom.edu.cn/info/3171/232211.htm - 要点：确认“新编”教材与曲目教材并行、不可混用曲目。 - 交叉验证（非官方，仅作一致性参考）： - http://www.yileiyishuzhongxin.net/h-nd-195.html - 要点：与日本考点简章速度一致（如三级“♩.=72”、半音阶“♩=60”等）。 四、统一换算规则与关键分歧 - 统一换算规则： - 若为♪=N（八分音符）：♩=N/2。 - 若为♩.=M（附点四分音符）：常规乐理换算应为♩=M×1.5（因附点四分音符拍比四分音符拍大，换到较小拍速应增大）。 - 遇到“速度不低于…”的单值，直接取该值；区间则取下限。 - 换算分歧： - 常规换算：♩.=72 → ♩=108（推荐）。 - 少数整理误用：♩.=72 → ♩=48（用÷1.5），会导致3级速度异常偏低，不符合进阶逻辑。为透明呈现，保留为候选但不推荐。 五、逐级“音阶类”最低值提取（统一为♩=X） - 1级：音阶 ♩=54 → 最低 54 - 2级：音阶 ♩=63 → 最低 63 - 3级：音阶 ♩.=72，半音阶 ♩=60 → 常规换算口径下，本级最低 60（取半音阶）；仅看音阶（不含半音阶）则为108 - 4级：音阶 ♩=66，半音阶 ♩=69 → 最低 66 - 5级：音阶 ♩=72 → 最低 72 - 6级：音阶 ♩=84 → 最低 84 - 7级：音阶 ♩=88 → 最低 88 - 8级：音阶 ♩=100 → 最低 100 - 9级：音阶 ♩=108 → 最低 108 - 演奏级：音阶 ♩=112 → 最低 112 六、候选平均值的显式计算与不确定性 - 候选A（推荐）：含半音阶，且“♩.=72”按常规换算×1.5 - 十级最低值：54、63、60、66、72、84、88、100、108、112 - 和=807；平均=807/10=80.7；四舍五入到个位=81 - 候选B：仅统计“音阶（大/小调）”不含半音阶，常规换算×1.5 - 十级最低值：54、63、108、66、72、84、88、100、108、112 - 和=855；平均=85.5；四舍五入=86 - 候选C（不推荐，仅呈现误用换算的结果）：含半音阶，但“♩.=72”按÷1.5→48 - 十级最低值：54、63、48、66、72、84、88、100、108、112 - 和=795；平均=79.5；四舍五入=80 - 不确定性与风险： - 地区简章文本可能存在编排差异，但本次所用为官方日本考点简章，明确指定“新编”教材并给出速度条款。 - 4级“半音阶 ♩=69”数值较少见，但为官方原文；若有勘误，以最新权威文本为准。 - 自然/旋律小调速度未在该页出现；本次以出现的“音阶类”条款（含半音阶）为准。 七、检索日期与版本 - 检索日期：2026-01-11 - 采用版本：2024年适用（日本考点官方简章） 最终答案 - 按推荐且最常见、合理的口径（音阶类含半音阶，♩.=72按常规换算×1.5），从一级到演奏级十个级别的“音阶类最低速度”平均值为： - ♩=81\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目要求：统计《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》1～9 级及演奏级（共 10 级）在“音阶”项目中规定的最低速度，统一为“四分音符每分钟（♩=X）”，然后求 10 个数的平均值并四舍五入到个位。 2. 依据代理总结提供的权威出处（2024 年日本考点官方简章），各级“音阶/半音阶”最低速度如下（统一为♩=X）： ① 1 级：54 ② 2 级：63 ③ 3 级：半音阶 60（音阶为 ♩.=72，常规换算为 108，但该值高于 60，且半音阶亦属音阶类；故取 60） ④ 4 级：66 ⑤ 5 级：72 ⑥ 6 级：84 ⑦ 7 级：88 ⑧ 8 级：100 ⑨ 9 级：108 ⑩ 演奏级：112 3. 求平均值： 总和 = 54 + 63 + 60 + 66 + 72 + 84 + 88 + 100 + 108 + 112 = 807 平均值 = 807 ÷ 10 = 80.7 4. 四舍五入到个位：81 **最终答案：** \\\\boxed{81} **置信度：** 70 **支持证据：** - 代理总结列出各级官方最低音阶／半音阶速度：54, 63, 60, 66, 72, 84, 88, 100, 108, 112。 - 题目要求取“音阶速度最低值”，按这些数据求平均得 80.7，四舍五入为 81。 **潜在不足：** - “音阶速度”是否应仅限大/小调音阶（不含半音阶）存在歧义；如仅取音阶条款且将 ♩.=72 常规换算为 108，则平均值为 86。 - 三级“♩.=72”的换算及是否应与半音阶 60 取最小值，官方文件可能有排版/标注差异，若解释不同，结果将变动。\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0459",
+        "task_goal": "",
+        "hard_constraints": [],
+        "claims": [],
+        "notes": "",
+        "_fallback_error": "LLM call failed after retries: HTTP Error 500: Internal Server Error"
+      },
+      "validated": {
+        "traj_id": "0459",
+        "task_goal": "",
+        "hard_constraints": [],
+        "claims": [],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": []
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s007"
+      ],
+      "available_span_ids": [
+        "s007"
+      ],
+      "grep_results": []
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0459\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"根据中央音乐学院校外音乐水平考级细则，如果选用《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》，从一级到演奏级共有十个级别，其音阶速度最低的平均值为♩=多少？将结果四舍五入到个位数。\",\n  \"traj_id\": \"0459\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0459\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s007\"\n    ],\n    \"requested_span_ids\": [],\n    \"grep_results\": [],\n    \"available_span_ids\": [\n      \"s007\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3416,\n        \"text\": \"值，直接取该值；区间则取下限。 - 换算分歧： - 常规换算：♩.=72 → ♩=108（推荐）。 - 少数整理误用：♩.=72 → ♩=48（用÷1.5），会导致3级速度异常偏低，不符合进阶逻辑。为透明呈现，保留为候选但不推荐。 五、逐级“音阶类”最低值提取（统一为♩=X） - 1级：音阶 ♩=54 → 最低 54 - 2级：音阶 ♩=63 → 最低 63 - 3级：音阶 ♩.=72，半音阶 ♩=60 → 常规换算口径下，本级最低 60（取半音阶）；仅看音阶（不含半音阶）则为108 - 4级：音阶 ♩=66，半音阶 ♩=69 → 最低 66 - 5级：音阶 ♩=72 → 最低 72 - 6级：音阶 ♩=84 → 最低 84 - 7级：音阶 ♩=88 → 最低 88 - 8级：音阶 ♩=100 → 最低 100 - 9级：音阶 ♩=108 → 最低 108 - 演奏级：音阶 ♩=112 → 最低 112 六、候选平均值的显式计算与不确定性 - 候选A（推荐）：含半音阶，且“♩.=72”按常规换算×1.5 - 十级最低值：54、63、60、66、72、84、88、100、108、112 - 和=807；平均=807/10=80.7；四舍五入到个位=81 - 候选B：仅统计“音阶（大/小调）”不含半音阶，常规换算×1.5 - 十级最低值：54、63、108、66、72、84、88、100、108、112 - 和=855；平均=85.5；四舍五入=86 - 候选C（不推荐，仅呈现误用换算的结果）：含半音阶，但“♩.=72”按÷1.5→48 - 十级最低值：54、63、48、66、72、84、88、100、108、112 - 和=795；平均=79.5；四舍五入=80 - 不确定性与风险： - 地区简章文本可能存在编排差异，但本次所用为官方日本考点简章，明确指定“新编”教材并给出速度条款。 - 4级“半音阶 ♩=69”数值较少见，但为官方原文；若有勘误，以最新权威文本为准。 - 自然/旋律小调速度未在该页出现；本次以出现的“音阶类”条款（含半音阶）为准。 七、检索日期与版本 - 检索日期：2026-01-11 - 采用版本：2024年适用（日本考点官方简章） 最终答案 - 按推荐且最常见、合理的口径（音阶类含半音阶，♩.=72按常规换算×1.5），从一级到演奏级十个级别的“音阶类最低速度”平均值为： - ♩=81\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目要求：统计《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》1～9 级及演奏级（共 10 级）在“音阶”项目中规定的最低速度，统一为“四分音符每分钟（♩=X）”，然后求 10 个数的平均值并四舍五入到个位。 2. 依据代理总结提供的权威出处（2024 年日本考点官方简章），各级“音阶/半音阶”最低速度如下（统一为♩=X）： ① 1 级：54 ② 2 级：63 ③ 3 级：半音阶 60（音阶为 ♩.=72，常规换算为 108，但该值高于 60，且半音阶亦属音阶类；故取 60） ④ 4 级：66 ⑤ 5 级：72 ⑥ 6 级：84 ⑦ 7 级：88 ⑧ 8 级：100 ⑨ 9 级：108 ⑩ 演奏级：112 3. 求平均值： 总和 = 54 + 63 + 60 + 66 + 72 + 84 + 88 + 100 + 108 + 112 = 807 平均值 = 807 ÷ 10 = 80.7 4. 四舍五入到个位：81 **最终答案：** \\\\boxed{81} **置信度：** 70 **支持证据：** - 代理总结列出各级官方最低音阶／半音阶速度：54, 63, 60, 66, 72, 84, 88, 100, 108, 112。 - 题目要求取“音阶速度最低值”，按这些数据求平均得 80.7，四舍五入为 81。 **潜在不足：** - “音阶速度”是否应仅限大/小调音阶（不含半音阶）存在歧义；如仅取音阶条款且将 ♩.=72 常规换算为 108，则平均值为 86。 - 三级“♩.=72”的换算及是否应与半音阶 60 取最小值，官方文件可能有排版/标注差异，若解释不同，结果将变动。\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s007"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s007",
+                "chunk_id": "s007:c002",
+                "role": "partial_support",
+                "text": "新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程各级最低音阶/半音阶速度"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串"
+      },
+      "validated": []
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0459\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"根据中央音乐学院校外音乐水平考级细则，如果选用《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》，从一级到演奏级共有十个级别，其音阶速度最低的平均值为♩=多少？将结果四舍五入到个位数。\",\n  \"traj_id\": \"0459\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0459\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [],\n    \"notes\": \"\"\n  },\n  \"support_records\": [],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s007\"\n    ],\n    \"requested_span_ids\": [],\n    \"grep_results\": [],\n    \"available_span_ids\": [\n      \"s007\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3416,\n        \"text\": \"值，直接取该值；区间则取下限。 - 换算分歧： - 常规换算：♩.=72 → ♩=108（推荐）。 - 少数整理误用：♩.=72 → ♩=48（用÷1.5），会导致3级速度异常偏低，不符合进阶逻辑。为透明呈现，保留为候选但不推荐。 五、逐级“音阶类”最低值提取（统一为♩=X） - 1级：音阶 ♩=54 → 最低 54 - 2级：音阶 ♩=63 → 最低 63 - 3级：音阶 ♩.=72，半音阶 ♩=60 → 常规换算口径下，本级最低 60（取半音阶）；仅看音阶（不含半音阶）则为108 - 4级：音阶 ♩=66，半音阶 ♩=69 → 最低 66 - 5级：音阶 ♩=72 → 最低 72 - 6级：音阶 ♩=84 → 最低 84 - 7级：音阶 ♩=88 → 最低 88 - 8级：音阶 ♩=100 → 最低 100 - 9级：音阶 ♩=108 → 最低 108 - 演奏级：音阶 ♩=112 → 最低 112 六、候选平均值的显式计算与不确定性 - 候选A（推荐）：含半音阶，且“♩.=72”按常规换算×1.5 - 十级最低值：54、63、60、66、72、84、88、100、108、112 - 和=807；平均=807/10=80.7；四舍五入到个位=81 - 候选B：仅统计“音阶（大/小调）”不含半音阶，常规换算×1.5 - 十级最低值：54、63、108、66、72、84、88、100、108、112 - 和=855；平均=85.5；四舍五入=86 - 候选C（不推荐，仅呈现误用换算的结果）：含半音阶，但“♩.=72”按÷1.5→48 - 十级最低值：54、63、48、66、72、84、88、100、108、112 - 和=795；平均=79.5；四舍五入=80 - 不确定性与风险： - 地区简章文本可能存在编排差异，但本次所用为官方日本考点简章，明确指定“新编”教材并给出速度条款。 - 4级“半音阶 ♩=69”数值较少见，但为官方原文；若有勘误，以最新权威文本为准。 - 自然/旋律小调速度未在该页出现；本次以出现的“音阶类”条款（含半音阶）为准。 七、检索日期与版本 - 检索日期：2026-01-11 - 采用版本：2024年适用（日本考点官方简章） 最终答案 - 按推荐且最常见、合理的口径（音阶类含半音阶，♩.=72按常规换算×1.5），从一级到演奏级十个级别的“音阶类最低速度”平均值为： - ♩=81\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目要求：统计《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》1～9 级及演奏级（共 10 级）在“音阶”项目中规定的最低速度，统一为“四分音符每分钟（♩=X）”，然后求 10 个数的平均值并四舍五入到个位。 2. 依据代理总结提供的权威出处（2024 年日本考点官方简章），各级“音阶/半音阶”最低速度如下（统一为♩=X）： ① 1 级：54 ② 2 级：63 ③ 3 级：半音阶 60（音阶为 ♩.=72，常规换算为 108，但该值高于 60，且半音阶亦属音阶类；故取 60） ④ 4 级：66 ⑤ 5 级：72 ⑥ 6 级：84 ⑦ 7 级：88 ⑧ 8 级：100 ⑨ 9 级：108 ⑩ 演奏级：112 3. 求平均值： 总和 = 54 + 63 + 60 + 66 + 72 + 84 + 88 + 100 + 108 + 112 = 807 平均值 = 807 ÷ 10 = 80.7 4. 四舍五入到个位：81 **最终答案：** \\\\boxed{81} **置信度：** 70 **支持证据：** - 代理总结列出各级官方最低音阶／半音阶速度：54, 63, 60, 66, 72, 84, 88, 100, 108, 112。 - 题目要求取“音阶速度最低值”，按这些数据求平均得 80.7，四舍五入为 81。 **潜在不足：** - “音阶速度”是否应仅限大/小调音阶（不含半音阶）存在歧义；如仅取音阶条款且将 ♩.=72 常规换算为 108，则平均值为 86。 - 三级“♩.=72”的换算及是否应与半音阶 60 取最小值，官方文件可能有排版/标注差异，若解释不同，结果将变动。\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0459",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0459",
+        "first_error_span": null,
+        "linked_error_span_ids": [],
+        "non_errors": [],
+        "reason": "短字符串",
+        "error_span_ids": [],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 7,
+    "evidence_span_count": 1
+  },
+  "usage": {
+    "call_count": 2,
+    "input_tokens": 4598,
+    "output_tokens": 268,
+    "total_tokens": 4866
+  }
+}

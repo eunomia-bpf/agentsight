@@ -1,0 +1,701 @@
+{
+  "setting": "drift",
+  "case_id": "0196",
+  "prediction": {
+    "traj_id": "0196",
+    "error_span_ids": [
+      "s016",
+      "s018",
+      "s030"
+    ],
+    "earliest_harmful_span_id": "s016",
+    "reasons": []
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0196\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"How many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?\",\n  \"traj_id\": \"0196\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{'subtask': \\\"Access the arXiv listing page for High Energy Physics - Lattice (hep-lat) for January 2020. The URL should be https://arxiv.org/list/hep-lat/2001?show=all to ensure all entries for the month are displayed. Extract and provide: 1) The total number of articles listed (both new submissions and cross-lists), 2) For each article, note whether it has an explicit PostScript link (labeled as 'ps', 'ps.gz', or 'PostScript'), 3) The article identifiers (arXiv IDs) for all articles with PostScript versions available, 4) Any information about the page structure showing how PostScript links are displayed. Provide a comprehensive list documenting which articles have ps versions and which don't.\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\nTitle: Invalid show value https://arxiv.org/list/hep-lat/2001?show=all\\n---\\nTitle: Listing requires subject and valid time period parameters https://arxiv.org/list/hep-lat/20-01\\n---\\nTitle: High Energy Physics - Lattice 2001 URL Source: https://arxiv https://arxiv.org/list/hep-lat/2001?skip=0&show=2000\\n---\\nTitle: High Energy Physics - Lattice Jan 2020 URL Source: https://arxiv https://arxiv.org/list/hep-lat/2020-01?skip=0&show=2000\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"For the 97 arXiv hep-lat articles from January 2020 (both new submissions and cross-lists), check the actual PostScript format availability by accessing their individual format pages. The format pages are accessed via URLs like https://arxiv.org/format/ARXIV_ID. For each article, visit the format page and determine if a PostScript (.ps or .ps.gz) download option is explicitly available. Provide: 1) A count of how many articles have PostScript versions available, 2) The arXiv IDs of articles WITH PostScript, 3) The arXiv IDs of articles WITHOUT PostScript, 4) Any patterns observed (e.g., do all have it, none have it, or mixed results). Sample at least 10-15 articles from different parts of the list to establish a pattern, and if the pattern is consistent (all have it or none have it), verify with additional samples to confirm.\\n---\\narXiv hep-lat January 2020 articles list\\n---\\nTitle: High Energy Physics - Lattice Jan 2020 URL Source: https://arxiv https://arxiv.org/list/hep-lat/2020-01\\n---\\n{ \\\"text\\\": \\\"High Energy Physics\\\\n\\\\n[51] arXiv:2001.11678 [pdf, other] [52] arXiv:2001.11779 [pdf, other] [53] arXiv:2001.11898 [pdf, other] [54] arXiv:2001.11967 [pdf, other] [55] arXiv:2001.00024 (cross-list from cond-mat.quant-gas) [pdf, other] [56] arXiv:2001.00031 (cross-list from gr-qc) [pdf, other] [57] arXiv:2001.00698 (cross-list from hep-ph) [pdf, other] [58] arXiv:2001.00883 (cross-list from hep-ph) [pdf, other] [59] arXiv:2001.01132 (cross-list from cond-mat.stat-mech) [pdf, other] [60] arXiv:2001.01446 (cross-list from hep-ph) [pdf, other] [61] arXiv:2001.01461 (cross-list from hep-th) [pdf, other] [62] arXiv:2001.01573 (cross-list from hep-ph) [pdf, other] [63] arXiv:2001.01780 (cross-list from math-ph) [pdf, other] [64] arXiv:2001.01785 (cross-list from hep-th) [pdf, other] [65] arXiv:2001.02109 (cross-list from hep-th) [pdf, other] [66] arXiv:2001.02690 (cross-list from hep-ph) [pdf, other] [67] arXiv:2001.03068 (cross-list from hep-th) [pdf, other] [68] arXiv:2001.03318 (cross-list from hep-th) [pdf, other] [69] arXiv:2001.03383 (cross-list from hep-ph) [pdf, other] [70] arXiv:2001.03631 (cross-list from hep-th) [pdf, other] [71] arXiv:2001.03749 (cross-list from hep-th) [pdf, other] [72] arXiv:2001.04491 (cross-list from gr-qc) [pdf, other] [73] arXiv:2001.04902 (cross-list from hep-th) [pdf, other] [74] arXiv:2001.04953 (cross-list from hep-ph) [pdf, other] [75] arXiv:2001.05218 (cross-list from cs.DC) [pdf, other] [76] arXiv:2001.05265 (cross-list from cond-mat.supr-con) [pdf, other] [77] arXiv:2001.05287 (cross-list from hep-ph) [pdf, other] [78] arXiv:2001.05327 (cross-list from hep-ph) [pdf, other] [79] arXiv:2001.05346 (cross-list from quant-ph) [pdf, other] [80] arXiv:2001.06346 (cross-list from hep-ph) [pdf, other] [81] arXiv:2001.07113 (cross-list from hep-ph) [pdf, other] [82] arXiv:2001.07302 (cross-list from hep-th) [pdf, other] [83] arXiv:2001.07428 (cross-list from math.NA) [pdf, other] [84] arXiv:2001.07557 (cross-list from cs.DC) [pdf, other] [85] arXiv:2001.08153 (cross-list from hep-ph) [pdf, other] [86] arXiv:2001.09200 (cross-list from hep-th) [pdf, other] [87] arXiv:2001.09356 (cross-list from hep-ph) [pdf, other] [88] arXiv:2001.09563 (cross-list from hep-ph) [pdf, other] [89] arXiv:2001.10001 (cross-list from hep-ph) [pdf, other] [90] arXiv:2001.10176 (cross-list from cond-mat.stat-mech) [pdf, other] [91] arXiv:2001.10205 (cross-list from hep-ph) [pdf, other] [92] arXiv:2001.10459 (cross-list from hep-th) [pdf, other] [93] arXiv:2001.10486 (cross-list from hep-th) [pdf, other] [94] arXiv:2001.11041 (cross-list from hep-ph) [pdf, other] [95] arXiv:2001.11282 (cross-list from hep-ph) [pdf, other] [96] arXiv:2001.11670 (cross-list from hep-ph) [pdf, other] [97] arXiv:2001.11863 (cross-list from hep-ph) [pdf, other]\\\", \\\"metadata\\\": { \\\"title\\\": \\\"High Energy Physics - Lattice Jan 2020\\\" }, \\\"credits\\\": 2 }\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.00032\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.02392\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05090\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.06568\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.08783\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.00172\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01428\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.11678\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.03735\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05590\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07919\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10002\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.00485\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01665\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.02835\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11650\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.00024\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01524\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01767\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.04415\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.06199\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.09116\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10859\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.04203\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.02028\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11779\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.08323\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05642\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.11898\\n---\\n{'subtask': \\\"Check ALL 97 arXiv hep-lat articles from January 2020 for PostScript availability. Access the format page (https://arxiv.org/format/ARXIV_ID) for each of the 97 articles (both the 54 new submissions and 43 cross-lists from the January 2020 listing at https://arxiv.org/list/hep-lat/2020-01). For each article, determine if 'Author supplied PostScript' or any PostScript download option (.ps or .ps.gz) is explicitly available on the format page. Provide: 1) The EXACT total count of articles with PostScript available, 2) A complete list of all arXiv IDs that have PostScript versions, 3) A complete list of all arXiv IDs that do NOT have PostScript versions. This needs to be comprehensive - all 97 articles must be checked to provide the precise answer.\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\nTitle: High Energy Physics - Lattice Jan 2020 URL Source: https://arxiv https://arxiv.org/list/hep-lat/2020-01\\n---\\nTitle: High Energy Physics - Lattice Jan 2020 URL Source: https://arxiv https://arxiv.org/list/hep-lat/2020-01?skip=50&show=50\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.00032\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.00172\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.00485\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01076\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01428\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01524\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01665\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.01767\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.02028\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.02392\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.02747\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.02835\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.03319\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.03368\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.03735\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.04203\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.04398\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.04415\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.04960\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05090\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05217\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.05322\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05328\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05366\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05590\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05642\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05706\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.06199\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.06374\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.06568\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.06797\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.06872\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07386\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07639\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07919\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.07962\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.08323\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.08474\"\n    },\n    {\n      \"span_id\": \"s014\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.08530\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.08783\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.08880\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.09116\"\n    },\n    {\n      \"span_id\": \"s015\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.09682\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.09767\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10002\"\n    },\n    {\n      \"span_id\": \"s016\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.10859\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10911\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11490\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11592\"\n    },\n    {\n      \"span_id\": \"s017\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.11650\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11678\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11779\"\n    },\n    {\n      \"span_id\": \"s018\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.11898\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11967\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.00024\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.00031\"\n    },\n    {\n      \"span_id\": \"s019\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.00698\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.00883\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01132\"\n    },\n    {\n      \"span_id\": \"s020\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.01446\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01461\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01573\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01780\"\n    },\n    {\n      \"span_id\": \"s021\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.01785\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.02109\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.02690\"\n    },\n    {\n      \"span_id\": \"s022\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.03068\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.03318\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.03383\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.03631\"\n    },\n    {\n      \"span_id\": \"s023\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.03749\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.04491\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.04902\"\n    },\n    {\n      \"span_id\": \"s024\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.04953\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05218\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05265\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05287\"\n    },\n    {\n      \"span_id\": \"s025\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.05327\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05346\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.06346\"\n    },\n    {\n      \"span_id\": \"s026\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.07113\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07302\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07428\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07557\"\n    },\n    {\n      \"span_id\": \"s027\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.08153\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.09200\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.09356\"\n    },\n    {\n      \"span_id\": \"s028\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.09563\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10001\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10176\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10205\"\n    },\n    {\n      \"span_id\": \"s029\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.10459\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10486\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11041\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11282\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11670\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11863\"\n    },\n    {\n      \"span_id\": \"s030\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"# COMPREHENSIVE FINAL REPORT: PostScript Availability for arXiv hep-lat Articles in January 2020 ## Executive Summary This report documents a complete investigation into how many High Energy Physics - Lattice (hep-lat) articles listed in January 2020 on arXiv had PostScript (ps) versions available. Through systematic data collection and verification of all articles, a definitive answer was obtained. **FINAL ANSWER: 31 articles had PostScript versions available** --- ## Investigation Process and Methodology ### Step 1: Accessing the Correct arXiv Listing - **Initial challenge**: Determined the correct URL format for January 2020 listings - **URL attempted**: https://arxiv.org/list/hep-lat/2001?show=all (failed - \\\"show=all\\\" is invalid) - **Correction needed**: The \\\"2001\\\" notation refers to year 2001, not January 2020 - **Correct URL**: https://arxiv.org/list/hep-lat/2020-01?skip=0&show=2000 - **Result**: Successfully retrieved the complete January 2020 listing ### Step 2: Identifying Total Article Count **Total articles listed: 97** - New submissions to hep-lat: 54 articles (entries [1] through [54]) - Cross-listed from other categories: 43 articles (entries [55] through [97]) - Source: Page footer confirmation \\\"Total of 97 entries\\\" ### Step 3: Understanding PostScript Availability **Key finding**: The main listing page does NOT display explicit PostScript links - All 97 articles showed identical format: `[pdf, other]` - The \\\"other\\\" link points to individual format pages (e.g., https://arxiv.org/format/2001.00032) - **Critical insight**: PostScript availability must be checked on individual format pages, not the listing page ### Step 4: Sampling Phase - Sampled 25 articles (~26% of total) from various positions - Found 6 with PostScript, 19 without - Preliminary estimate: ~24% availability rate - **Limitation**: This was only an estimate, not the exact count needed ### Step 5: Complete Verification - Systematically checked ALL 97 articles by accessing each format page - Verified presence of \\\"Author supplied PostScript\\\" option - Achieved 100% coverage --- ## FINAL RESULTS ### Definitive Answer **31 out of 97 articles (31.96%) had PostScript versions available** ### Breakdown by Category **New Submissions with PostScript: 13 out of 54 (24.07%)** 1. arXiv:2001.00032 2. arXiv:2001.00485 3. arXiv:2001.01076 4. arXiv:2001.01665 5. arXiv:2001.02028 6. arXiv:2001.03319 7. arXiv:2001.05328 8. arXiv:2001.05366 9. arXiv:2001.06199 10. arXiv:2001.06872 11. arXiv:2001.07386 12. arXiv:2001.07919 13. arXiv:2001.10911 **Cross-Listed Articles with PostScript: 18 out of 43 (41.86%)** 1. arXiv:2001.01132 (from cond-mat.stat-mech) 2. arXiv:2001.01446 (from hep-ph) 3. arXiv:2001.01780 (from math-ph) 4. arXiv:2001.02109 (from hep-th) 5. arXiv:2001.03068 (from hep-th) 6. arXiv:2001.03318 (from hep-th) 7. arXiv:2001.03383 (from hep-ph) 8. arXiv:2001.04491 (from gr-qc) 9. arXiv:2001.04953 (from hep-ph) 10. arXiv:2001.05327 (from hep-ph) 11. arXiv:2001.07113 (from hep-ph) 12. arXiv:2001.07302 (from hep-th) 13. arXiv:2001.08153 (from hep-ph) 14. arXiv:2001.09200 (from hep-th) 15. arXiv:2001.09356 (from hep-ph) 16. arXiv:2001.10176 (from cond-mat.stat-mech) 17. arXiv:2001.10205 (from hep-ph) 18. arXiv:2001.11670 (from hep-ph) **Articles WITHOUT PostScript: 66 out of 97 (68.04%)** - 41 new submissions without PostScript - 25 cross-listed articles without PostScript --- ## Key Observations and Patterns 1. **PostScript availability is author-dependent**: Not all authors choose to supply PostScript files when submitting to arXiv 2. **Cross-lists have higher PostScript availability**: 41.86% of cross-listed articles had PostScript compared to 24.07% of direct hep-lat submissions 3. **Majority use PDF only**: 68% of articles provided only PDF and source formats without PostScript 4. **No temporal pattern**: PostScript availability appeared randomly distributed throughout the month with no clustering by submission date 5. **Consistent verification method**: All PostScript files were identified by the explicit \\\"Author supplied PostScript\\\" label on format pages --- ## Data Collection Challenges Addressed 1. **URL format confusion**: Resolved confusion between YYMM notation (old years) vs YYYY-MM notation (modern months) 2. **Listing page limitations**: Recognized that the main listing page doesn't show PostScript links directly 3. **Sample vs. complete count**: Moved from estimation (25-article sample) to exact count (all 97 articles verified) 4. **Cross-list inclusion**: Properly included all cross-listed articles as they appear on the January 2020 hep-lat listing page --- ## Verification and Quality Assurance - ✓ All 97 articles individually checked via format pages - ✓ Both new submissions and cross-lists included - ✓ Direct verification of \\\"Author supplied PostScript\\\" presence - ✓ Complete documentation of article IDs with and without PostScript - ✓ 100% coverage achieved (no sampling or estimation in final count) --- ## CONCLUSION The question \\\"How many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?\\\" has been definitively answered through comprehensive data collection: **ANSWER: 31 articles** This represents 31.96% of the 97 total articles listed in the hep-lat category for January 2020, with PostScript availability determined by individual author submission choices rather than any systematic policy.\\n---\\nLLM extracted final answer: **Step-by-step Analysis:** 1. The Agent Summary reports a full, article-by-article verification of every High Energy Physics – Lattice (hep-lat) submission listed in January 2020 on arXiv. 2. A total of 97 articles were examined via their individual “format” pages to see whether an “Author supplied PostScript” file was present. 3. The summary states that exactly 31 articles were confirmed to have a PostScript (ps) version available. 4. The summary also provides explicit arXiv IDs for all 31 qualifying papers, reinforcing the count. 5. No contradictory information is present; thus the evidence supports the number 31. **Final Answer:** \\\\boxed{31} **Confidence:** 90 **Supporting Evidence:** The Agent Summary explicitly states: “31 out of 97 articles (31.96%) had PostScript versions available,” and lists all 31 arXiv IDs confirmed to include PostScript files. **Potential Weaknesses:** - The count relies entirely on the Agent’s manual verification; any oversight in checking individual format pages would affect the total. - If arXiv listings or file availability changed after the investigation, the number could differ.\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0196",
+        "task_goal": "How many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "31 out of 97 articles (31.96%) had PostScript versions available",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "31 articles had PostScript versions available",
+            "introduced_at": "s018",
+            "becomes_consequential_at": "s018",
+            "used_by": [
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "PostScript availability is author-dependent",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "41.86% of cross-listed articles had PostScript",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "24.07% of new submissions had PostScript",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c6",
+            "claim": "68% of articles provided only PDF and source formats without PostScript",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c7",
+            "claim": "No temporal pattern observed in PostScript availability",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c8",
+            "claim": "Direct verification of 'Author supplied PostScript' presence",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "compute",
+            "status": "finalized"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0196",
+        "task_goal": "How many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "31 out of 97 articles (31.96%) had PostScript versions available",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "31 articles had PostScript versions available",
+            "introduced_at": "s018",
+            "becomes_consequential_at": "s018",
+            "used_by": [
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "PostScript availability is author-dependent",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "41.86% of cross-listed articles had PostScript",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "24.07% of new submissions had PostScript",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c6",
+            "claim": "68% of articles provided only PDF and source formats without PostScript",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c7",
+            "claim": "No temporal pattern observed in PostScript availability",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c8",
+            "claim": "Direct verification of 'Author supplied PostScript' presence",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s016",
+            "used_by": [
+              "s016",
+              "s018",
+              "s020",
+              "s023",
+              "s024",
+              "s025",
+              "s026",
+              "s027",
+              "s028",
+              "s029",
+              "s030"
+            ],
+            "claim_type": "compute",
+            "status": "finalized"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s016",
+            "s030"
+          ],
+          "grep_queries": [
+            "31 out of 97 articles (31.96%) had PostScript versions available"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s018",
+            "s030"
+          ],
+          "grep_queries": [
+            "31 articles had PostScript versions available"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s016",
+            "s030"
+          ],
+          "grep_queries": [
+            "PostScript availability is author-dependent"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c4",
+          "span_ids": [
+            "s016",
+            "s030"
+          ],
+          "grep_queries": [
+            "41.86% of cross-listed articles had PostScript"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c5",
+          "span_ids": [
+            "s016",
+            "s030"
+          ],
+          "grep_queries": [
+            "24.07% of new submissions had PostScript"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c6",
+          "span_ids": [
+            "s016",
+            "s030"
+          ],
+          "grep_queries": [
+            "68% of articles provided only PDF and source formats without PostScript"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c7",
+          "span_ids": [
+            "s016",
+            "s030"
+          ],
+          "grep_queries": [
+            "No temporal pattern observed in PostScript availability"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c8",
+          "span_ids": [
+            "s016",
+            "s030"
+          ],
+          "grep_queries": [
+            "Direct verification of 'Author supplied PostScript' presence"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s016",
+        "s018",
+        "s020",
+        "s023",
+        "s024",
+        "s025",
+        "s026",
+        "s027",
+        "s028",
+        "s029",
+        "s030"
+      ],
+      "available_span_ids": [
+        "s002",
+        "s007",
+        "s016",
+        "s018",
+        "s020",
+        "s023",
+        "s024",
+        "s025",
+        "s026",
+        "s027",
+        "s028",
+        "s029",
+        "s030"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "31 out of 97 articles (31.96%) had PostScript versions available",
+          "matched_chunk_ids": [
+            "s030:c002",
+            "s030:c003",
+            "s030:c001",
+            "s030:c004"
+          ],
+          "matched_span_ids": [
+            "s030"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "31 articles had PostScript versions available",
+          "matched_chunk_ids": [
+            "s030:c001",
+            "s030:c003",
+            "s030:c004",
+            "s030:c002"
+          ],
+          "matched_span_ids": [
+            "s030"
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "query": "PostScript availability is author-dependent",
+          "matched_chunk_ids": [
+            "s030:c003",
+            "s030:c001",
+            "s030:c002",
+            "s007:c001"
+          ],
+          "matched_span_ids": [
+            "s007",
+            "s030"
+          ]
+        },
+        {
+          "claim_id": "c4",
+          "query": "41.86% of cross-listed articles had PostScript",
+          "matched_chunk_ids": [
+            "s030:c003",
+            "s030:c001",
+            "s030:c002",
+            "s030:c004"
+          ],
+          "matched_span_ids": [
+            "s030"
+          ]
+        },
+        {
+          "claim_id": "c5",
+          "query": "24.07% of new submissions had PostScript",
+          "matched_chunk_ids": [
+            "s030:c003",
+            "s030:c002",
+            "s030:c001",
+            "s007:c001"
+          ],
+          "matched_span_ids": [
+            "s007",
+            "s030"
+          ]
+        },
+        {
+          "claim_id": "c6",
+          "query": "68% of articles provided only PDF and source formats without PostScript",
+          "matched_chunk_ids": [
+            "s030:c003",
+            "s002:c001",
+            "s002:c002",
+            "s030:c001"
+          ],
+          "matched_span_ids": [
+            "s002",
+            "s030"
+          ]
+        },
+        {
+          "claim_id": "c7",
+          "query": "No temporal pattern observed in PostScript availability",
+          "matched_chunk_ids": [
+            "s030:c003",
+            "s002:c001",
+            "s030:c001",
+            "s030:c002"
+          ],
+          "matched_span_ids": [
+            "s002",
+            "s030"
+          ]
+        },
+        {
+          "claim_id": "c8",
+          "query": "Direct verification of 'Author supplied PostScript' presence",
+          "matched_chunk_ids": [
+            "s030:c003",
+            "s007:c001",
+            "s030:c002",
+            "s030:c004"
+          ],
+          "matched_span_ids": [
+            "s007",
+            "s030"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0196\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"How many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?\",\n  \"traj_id\": \"0196\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0196\",\n    \"task_goal\": \"How many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"31 out of 97 articles (31.96%) had PostScript versions available\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"31 articles had PostScript versions available\",\n        \"introduced_at\": \"s018\",\n        \"becomes_consequential_at\": \"s018\",\n        \"used_by\": [\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"PostScript availability is author-dependent\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"41.86% of cross-listed articles had PostScript\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"24.07% of new submissions had PostScript\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"claim\": \"68% of articles provided only PDF and source formats without PostScript\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"claim\": \"No temporal pattern observed in PostScript availability\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c8\",\n        \"claim\": \"Direct verification of 'Author supplied PostScript' presence\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"compute\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s016\",\n      \"s018\",\n      \"s020\",\n      \"s023\",\n      \"s024\",\n      \"s025\",\n      \"s026\",\n      \"s027\",\n      \"s028\",\n      \"s029\",\n      \"s030\"\n    ],\n    \"requested_span_ids\": [\n      \"s016\",\n      \"s018\",\n      \"s030\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"31 out of 97 articles (31.96%) had PostScript versions available\",\n        \"matched_chunk_ids\": [\n          \"s030:c002\",\n          \"s030:c003\",\n          \"s030:c001\",\n          \"s030:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"31 articles had PostScript versions available\",\n        \"matched_chunk_ids\": [\n          \"s030:c001\",\n          \"s030:c003\",\n          \"s030:c004\",\n          \"s030:c002\"\n        ],\n        \"matched_span_ids\": [\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"PostScript availability is author-dependent\",\n        \"matched_chunk_ids\": [\n          \"s030:c003\",\n          \"s030:c001\",\n          \"s030:c002\",\n          \"s007:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s007\",\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"41.86% of cross-listed articles had PostScript\",\n        \"matched_chunk_ids\": [\n          \"s030:c003\",\n          \"s030:c001\",\n          \"s030:c002\",\n          \"s030:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"query\": \"24.07% of new submissions had PostScript\",\n        \"matched_chunk_ids\": [\n          \"s030:c003\",\n          \"s030:c002\",\n          \"s030:c001\",\n          \"s007:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s007\",\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"query\": \"68% of articles provided only PDF and source formats without PostScript\",\n        \"matched_chunk_ids\": [\n          \"s030:c003\",\n          \"s002:c001\",\n          \"s002:c002\",\n          \"s030:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s002\",\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"query\": \"No temporal pattern observed in PostScript availability\",\n        \"matched_chunk_ids\": [\n          \"s030:c003\",\n          \"s002:c001\",\n          \"s030:c001\",\n          \"s030:c002\"\n        ],\n        \"matched_span_ids\": [\n          \"s002\",\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c8\",\n        \"query\": \"Direct verification of 'Author supplied PostScript' presence\",\n        \"matched_chunk_ids\": [\n          \"s030:c003\",\n          \"s007:c001\",\n          \"s030:c002\",\n          \"s030:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s007\",\n          \"s030\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s002\",\n      \"s007\",\n      \"s016\",\n      \"s018\",\n      \"s020\",\n      \"s023\",\n      \"s024\",\n      \"s025\",\n      \"s026\",\n      \"s027\",\n      \"s028\",\n      \"s029\",\n      \"s030\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c001\",\n        \"char_start\": 0,\n        \"char_end\": 283,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.10859\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10911\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11490\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11592\"\n      },\n      {\n        \"span_id\": \"s018\",\n        \"chunk_id\": \"s018:c001\",\n        \"char_start\": 0,\n        \"char_end\": 283,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.11898\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11967\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.00024\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.00031\"\n      },\n      {\n        \"span_id\": \"s020\",\n        \"chunk_id\": \"s020:c001\",\n        \"char_start\": 0,\n        \"char_end\": 283,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.01446\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01461\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01573\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01780\"\n      },\n      {\n        \"span_id\": \"s023\",\n        \"chunk_id\": \"s023:c001\",\n        \"char_start\": 0,\n        \"char_end\": 211,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.03749\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.04491\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.04902\"\n      },\n      {\n        \"span_id\": \"s024\",\n        \"chunk_id\": \"s024:c001\",\n        \"char_start\": 0,\n        \"char_end\": 283,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.04953\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05218\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05265\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05287\"\n      },\n      {\n        \"span_id\": \"s025\",\n        \"chunk_id\": \"s025:c001\",\n        \"char_start\": 0,\n        \"char_end\": 211,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.05327\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05346\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.06346\"\n      },\n      {\n        \"span_id\": \"s026\",\n        \"chunk_id\": \"s026:c001\",\n        \"char_start\": 0,\n        \"char_end\": 283,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.07113\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07302\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07428\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07557\"\n      },\n      {\n        \"span_id\": \"s027\",\n        \"chunk_id\": \"s027:c001\",\n        \"char_start\": 0,\n        \"char_end\": 211,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.08153\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.09200\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.09356\"\n      },\n      {\n        \"span_id\": \"s028\",\n        \"chunk_id\": \"s028:c001\",\n        \"char_start\": 0,\n        \"char_end\": 283,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.09563\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10001\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10176\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10205\"\n      },\n      {\n        \"span_id\": \"s029\",\n        \"chunk_id\": \"s029:c001\",\n        \"char_start\": 0,\n        \"char_end\": 427,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.10459\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10486\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11041\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11282\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11670\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11863\"\n      },\n      {\n        \"span_id\": \"s030\",\n        \"chunk_id\": \"s030:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 5080,\n        \"text\": \"cript: 66 out of 97 (68.04%)** - 41 new submissions without PostScript - 25 cross-listed articles without PostScript --- ## Key Observations and Patterns 1. **PostScript availability is author-dependent**: Not all authors choose to supply PostScript files when submitting to arXiv 2. **Cross-lists have higher PostScript availability**: 41.86% of cross-listed articles had PostScript compared to 24.07% of direct hep-lat submissions 3. **Majority use PDF only**: 68% of articles provided only PDF and source formats without PostScript 4. **No temporal pattern**: PostScript availability appeared randomly distributed throughout the month with no clustering by submission date 5. **Consistent verification method**: All PostScript files were identified by the explicit \\\"Author supplied PostScript\\\" label on format pages --- ## Data Collection Challenges Addressed 1. **URL format confusion**: Resolved confusion between YYMM notation (old years) vs YYYY-MM notation (modern months) 2. **Listing page limitations**: Recognized that the main listing page doesn't show PostScript links directly 3. **Sample vs. complete count**: Moved from estimation (25-article sample) to exact count (all 97 articles verified) 4. **Cross-list inclusion**: Properly included all cross-listed articles as they appear on the January 2020 hep-lat listing page --- ## Verification and Quality Assurance - ✓ All 97 articles individually checked via format pages - ✓ Both new submissions and cross-lists included - ✓ Direct verification of \\\"Author supplied PostScript\\\" presence - ✓ Complete documentation of article IDs with and without PostScript - ✓ 100% coverage achieved (no sampling or estimation in final count) --- ## CONCLUSION The question \\\"How many High Energy Physics - Lattice articles listed in January 2020 on A\"\n      },\n      {\n        \"span_id\": \"s030\",\n        \"chunk_id\": \"s030:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3440,\n        \"text\": \"sting page ### Step 4: Sampling Phase - Sampled 25 articles (~26% of total) from various positions - Found 6 with PostScript, 19 without - Preliminary estimate: ~24% availability rate - **Limitation**: This was only an estimate, not the exact count needed ### Step 5: Complete Verification - Systematically checked ALL 97 articles by accessing each format page - Verified presence of \\\"Author supplied PostScript\\\" option - Achieved 100% coverage --- ## FINAL RESULTS ### Definitive Answer **31 out of 97 articles (31.96%) had PostScript versions available** ### Breakdown by Category **New Submissions with PostScript: 13 out of 54 (24.07%)** 1. arXiv:2001.00032 2. arXiv:2001.00485 3. arXiv:2001.01076 4. arXiv:2001.01665 5. arXiv:2001.02028 6. arXiv:2001.03319 7. arXiv:2001.05328 8. arXiv:2001.05366 9. arXiv:2001.06199 10. arXiv:2001.06872 11. arXiv:2001.07386 12. arXiv:2001.07919 13. arXiv:2001.10911 **Cross-Listed Articles with PostScript: 18 out of 43 (41.86%)** 1. arXiv:2001.01132 (from cond-mat.stat-mech) 2. arXiv:2001.01446 (from hep-ph) 3. arXiv:2001.01780 (from math-ph) 4. arXiv:2001.02109 (from hep-th) 5. arXiv:2001.03068 (from hep-th) 6. arXiv:2001.03318 (from hep-th) 7. arXiv:2001.03383 (from hep-ph) 8. arXiv:2001.04491 (from gr-qc) 9. arXiv:2001.04953 (from hep-ph) 10. arXiv:2001.05327 (from hep-ph) 11. arXiv:2001.07113 (from hep-ph) 12. arXiv:2001.07302 (from hep-th) 13. arXiv:2001.08153 (from hep-ph) 14. arXiv:2001.09200 (from hep-th) 15. arXiv:2001.09356 (from hep-ph) 16. arXiv:2001.10176 (from cond-mat.stat-mech) 17. arXiv:2001.10205 (from hep-ph) 18. arXiv:2001.11670 (from hep-ph) **Articles WITHOUT PostScript: 66 out of 97 (68.04%)** - 41 new submissions without PostScript - 25 cross-listed articles without PostScript --- ## Key Observations and Patterns 1. **P\"\n      },\n      {\n        \"span_id\": \"s030\",\n        \"chunk_id\": \"s030:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"# COMPREHENSIVE FINAL REPORT: PostScript Availability for arXiv hep-lat Articles in January 2020 ## Executive Summary This report documents a complete investigation into how many High Energy Physics - Lattice (hep-lat) articles listed in January 2020 on arXiv had PostScript (ps) versions available. Through systematic data collection and verification of all articles, a definitive answer was obtained. **FINAL ANSWER: 31 articles had PostScript versions available** --- ## Investigation Process and Methodology ### Step 1: Accessing the Correct arXiv Listing - **Initial challenge**: Determined the correct URL format for January 2020 listings - **URL attempted**: https://arxiv.org/list/hep-lat/2001?show=all (failed - \\\"show=all\\\" is invalid) - **Correction needed**: The \\\"2001\\\" notation refers to year 2001, not January 2020 - **Correct URL**: https://arxiv.org/list/hep-lat/2020-01?skip=0&show=2000 - **Result**: Successfully retrieved the complete January 2020 listing ### Step 2: Identifying Total Article Count **Total articles listed: 97** - New submissions to hep-lat: 54 articles (entries [1] through [54]) - Cross-listed from other categories: 43 articles (entries [55] through [97]) - Source: Page footer confirmation \\\"Total of 97 entries\\\" ### Step 3: Understanding PostScript Availability **Key finding**: The main listing page does NOT display explicit PostScript links - All 97 articles showed identical format: `[pdf, other]` - The \\\"other\\\" link points to individual format pages (e.g., https://arxiv.org/format/2001.00032) - **Critical insight**: PostScript availability must be checked on individual format pages, not the listing page ### Step 4: Sampling Phase - Sampled 25 articles (~26% of total) from various positions - Found 6 with PostScript, 19 without - Preliminary estimate:\"\n      },\n      {\n        \"span_id\": \"s030\",\n        \"chunk_id\": \"s030:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 6581,\n        \"text\": \" achieved (no sampling or estimation in final count) --- ## CONCLUSION The question \\\"How many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?\\\" has been definitively answered through comprehensive data collection: **ANSWER: 31 articles** This represents 31.96% of the 97 total articles listed in the hep-lat category for January 2020, with PostScript availability determined by individual author submission choices rather than any systematic policy.\\n---\\nLLM extracted final answer: **Step-by-step Analysis:** 1. The Agent Summary reports a full, article-by-article verification of every High Energy Physics – Lattice (hep-lat) submission listed in January 2020 on arXiv. 2. A total of 97 articles were examined via their individual “format” pages to see whether an “Author supplied PostScript” file was present. 3. The summary states that exactly 31 articles were confirmed to have a PostScript (ps) version available. 4. The summary also provides explicit arXiv IDs for all 31 qualifying papers, reinforcing the count. 5. No contradictory information is present; thus the evidence supports the number 31. **Final Answer:** \\\\boxed{31} **Confidence:** 90 **Supporting Evidence:** The Agent Summary explicitly states: “31 out of 97 articles (31.96%) had PostScript versions available,” and lists all 31 arXiv IDs confirmed to include PostScript files. **Potential Weaknesses:** - The count relies entirely on the Agent’s manual verification; any oversight in checking individual format pages would affect the total. - If arXiv listings or file availability changed after the investigation, the number could differ.\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1179,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.11898\\n---\\n{'subtask': \\\"Check ALL 97 arXiv hep-lat articles from January 2020 for PostScript availability. Access the format page (https://arxiv.org/format/ARXIV_ID) for each of the 97 articles (both the 54 new submissions and 43 cross-lists from the January 2020 listing at https://arxiv.org/list/hep-lat/2020-01). For each article, determine if 'Author supplied PostScript' or any PostScript download option (.ps or .ps.gz) is explicitly available on the format page. Provide: 1) The EXACT total count of articles with PostScript available, 2) A complete list of all arXiv IDs that have PostScript versions, 3) A complete list of all arXiv IDs that do NOT have PostScript versions. This needs to be comprehensive - all 97 articles must be checked to provide the precise answer.\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\nTitle: High Energy Physics - Lattice Jan 2020 URL Source: https://arxiv https://arxiv.org/list/hep-lat/2020-01\\n---\\nTitle: High Energy Physics - Lattice Jan 2020 URL Source: https://arxiv https://arxiv.org/list/hep-lat/2020-01?skip=50&show=50\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"For the 97 arXiv hep-lat articles from January 2020 (both new submissions and cross-lists), check the actual PostScript format availability by accessing their individual format pages. The format pages are accessed via URLs like https://arxiv.org/format/ARXIV_ID. For each article, visit the format page and determine if a PostScript (.ps or .ps.gz) download option is explicitly available. Provide: 1) A count of how many articles have PostScript versions available, 2) The arXiv IDs of articles WITH PostScript, 3) The arXiv IDs of articles WITHOUT PostScript, 4) Any patterns observed (e.g., do all have it, none have it, or mixed results). Sample at least 10-15 articles from different parts of the list to establish a pattern, and if the pattern is consistent (all have it or none have it), verify with additional samples to confirm.\\n---\\narXiv hep-lat January 2020 articles list\\n---\\nTitle: High Energy Physics - Lattice Jan 2020 URL Source: https://arxiv https://arxiv.org/list/hep-lat/2020-01\\n---\\n{ \\\"text\\\": \\\"High Energy Physics\\\\n\\\\n[51] arXiv:2001.11678 [pdf, other] [52] arXiv:2001.11779 [pdf, other] [53] arXiv:2001.11898 [pdf, other] [54] arXiv:2001.11967 [pdf, other] [55] arXiv:2001.00024 (cross-list from cond-mat.quant-gas) [pdf, other] [56] arXiv:2001.00031 (cross-list from gr-qc) [pdf, other] [57] arXiv:2001.00698 (cross-list from hep-ph) [pdf, other] [58] arXiv:2001.00883 (cross-list from hep-ph) [pdf, other] [59] arXiv:2001.01132 (cross-list from cond-mat.stat-mech) [pdf, other] [60] arXiv:2001.01446 (cross-list from hep-ph) [pdf, other] [61] arXiv:2001.01461 (cross-list from hep-th) [pdf, other] [62] arXiv:2001.01573 (cross-list from hep-ph) [pdf, other] [63] arXiv:2001.01780 (cross-list from math-ph) [pdf, other] [64] arXiv:2001.01785 (cross-list from hep-th) [pdf, other] \"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3440,\n        \"text\": \" (cross-list from hep-ph) [pdf, other] [63] arXiv:2001.01780 (cross-list from math-ph) [pdf, other] [64] arXiv:2001.01785 (cross-list from hep-th) [pdf, other] [65] arXiv:2001.02109 (cross-list from hep-th) [pdf, other] [66] arXiv:2001.02690 (cross-list from hep-ph) [pdf, other] [67] arXiv:2001.03068 (cross-list from hep-th) [pdf, other] [68] arXiv:2001.03318 (cross-list from hep-th) [pdf, other] [69] arXiv:2001.03383 (cross-list from hep-ph) [pdf, other] [70] arXiv:2001.03631 (cross-list from hep-th) [pdf, other] [71] arXiv:2001.03749 (cross-list from hep-th) [pdf, other] [72] arXiv:2001.04491 (cross-list from gr-qc) [pdf, other] [73] arXiv:2001.04902 (cross-list from hep-th) [pdf, other] [74] arXiv:2001.04953 (cross-list from hep-ph) [pdf, other] [75] arXiv:2001.05218 (cross-list from cs.DC) [pdf, other] [76] arXiv:2001.05265 (cross-list from cond-mat.supr-con) [pdf, other] [77] arXiv:2001.05287 (cross-list from hep-ph) [pdf, other] [78] arXiv:2001.05327 (cross-list from hep-ph) [pdf, other] [79] arXiv:2001.05346 (cross-list from quant-ph) [pdf, other] [80] arXiv:2001.06346 (cross-list from hep-ph) [pdf, other] [81] arXiv:2001.07113 (cross-list from hep-ph) [pdf, other] [82] arXiv:2001.07302 (cross-list from hep-th) [pdf, other] [83] arXiv:2001.07428 (cross-list from math.NA) [pdf, other] [84] arXiv:2001.07557 (cross-list from cs.DC) [pdf, other] [85] arXiv:2001.08153 (cross-list from hep-ph) [pdf, other] [86] arXiv:2001.09200 (cross-list from hep-th) [pdf, other] [87] arXiv:2001.09356 (cross-list from hep-ph) [pdf, other] [88] arXiv:2001.09563 (cross-list from hep-ph) [pdf, other] [89] arXiv:2001.10001 (cross-list from hep-ph) [pdf, other] [90] arXiv:2001.10176 (cross-list from cond-mat.stat-mech) [pdf, other] [91] arXiv:2001.10205 (cross-list from hep-ph) [pdf, othe\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0196",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s030"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s030",
+                "chunk_id": "s030:c003",
+                "role": "partial_support",
+                "text": "Title: Format selector for 2001 https://arxiv.org/format/2001.11898\n---\ncript: 66 out of 97 (68.04%)** - 41 new submissions without PostScript - 25 cross-listed articles without PostScript --- ## Key Observations and Patterns 1. **PostScript availability is author-dependent**: Not all authors choose to supply PostScript files when submitting to arXiv 2. **Cross-lists have higher PostScript availability**: 41.86% of cross-listed articles had PostScript compared to 24.07% of direct hep-lat submissions 3. **Majority use PDF only**: 68% of articles provided only PDF and source formats without PostScript 4. **No temporal pattern**: PostScript availability appeared randomly distributed throughout the month with no clustering by submission date 5. **Consistent verification method**: All PostScript files were identified by the explicit \"Author supplied PostScript\" label on format pages --- ## Data Collection Challenges Addressed 1. **URL format confusion**: Resolved confusion between YYMM notation (old years) vs YYYY-MM notation (modern months) 2. **Listing page limitations**: Recognized that the main listing page doesn't show PostScript links directly 3. **Sample vs. complete count**: Moved from estimation (25-article sample) to exact count (all 97 articles verified) 4. **Cross-list inclusion**: Properly included all cross-listed articles as they appear on the January 2020 hep-lat listing page --- ## Verification and Quality Assurance - ✓ All 97 articles individually checked via format pages - ✓ Both new submissions and cross-lists included - ✓ Direct verification of 'Author supplied PostScript' presence - ✓ Complete documentation of article IDs with and without PostScript - ✓ 100% coverage achieved (no sampling or estimation in final count) --- ## CONCLUSION The question \"How many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?\" has been definitively answered through comprehensive data collection: **ANSWER: 31 articles** This represents 31.96% of the 97 total articles listed in the hep-lat category for January 2020, with PostScript availability determined by individual author submission choices rather than any systematic policy."
+              }
+            ]
+          }
+        ],
+        "notes": "short string"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s030"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s030",
+              "chunk_id": "s030:c003",
+              "role": "partial_support",
+              "text": "Title: Format selector for 2001 https://arxiv.org/format/2001.11898\n---\ncript: 66 out of 97 (68.04%)** - 41 new submissions without PostScript - 25 cross-listed articles without PostScript --- ## Key Observations and Patterns 1. **PostScript availability is author-dependent**: Not all authors choose to supply PostScript files when submitting to arXiv 2. **Cr"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0196\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"How many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?\",\n  \"traj_id\": \"0196\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0196\",\n    \"task_goal\": \"How many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"31 out of 97 articles (31.96%) had PostScript versions available\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"31 articles had PostScript versions available\",\n        \"introduced_at\": \"s018\",\n        \"becomes_consequential_at\": \"s018\",\n        \"used_by\": [\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"PostScript availability is author-dependent\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"41.86% of cross-listed articles had PostScript\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"24.07% of new submissions had PostScript\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"claim\": \"68% of articles provided only PDF and source formats without PostScript\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"claim\": \"No temporal pattern observed in PostScript availability\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c8\",\n        \"claim\": \"Direct verification of 'Author supplied PostScript' presence\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s016\",\n        \"used_by\": [\n          \"s016\",\n          \"s018\",\n          \"s020\",\n          \"s023\",\n          \"s024\",\n          \"s025\",\n          \"s026\",\n          \"s027\",\n          \"s028\",\n          \"s029\",\n          \"s030\"\n        ],\n        \"claim_type\": \"compute\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s030\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s030\",\n          \"chunk_id\": \"s030:c003\",\n          \"role\": \"partial_support\",\n          \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.11898\\n---\\ncript: 66 out of 97 (68.04%)** - 41 new submissions without PostScript - 25 cross-listed articles without PostScript --- ## Key Observations and Patterns 1. **PostScript availability is author-dependent**: Not all authors choose to supply PostScript files when submitting to arXiv 2. **Cr\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s016\",\n      \"s018\",\n      \"s020\",\n      \"s023\",\n      \"s024\",\n      \"s025\",\n      \"s026\",\n      \"s027\",\n      \"s028\",\n      \"s029\",\n      \"s030\"\n    ],\n    \"requested_span_ids\": [\n      \"s016\",\n      \"s018\",\n      \"s030\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"31 out of 97 articles (31.96%) had PostScript versions available\",\n        \"matched_chunk_ids\": [\n          \"s030:c002\",\n          \"s030:c003\",\n          \"s030:c001\",\n          \"s030:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"31 articles had PostScript versions available\",\n        \"matched_chunk_ids\": [\n          \"s030:c001\",\n          \"s030:c003\",\n          \"s030:c004\",\n          \"s030:c002\"\n        ],\n        \"matched_span_ids\": [\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"PostScript availability is author-dependent\",\n        \"matched_chunk_ids\": [\n          \"s030:c003\",\n          \"s030:c001\",\n          \"s030:c002\",\n          \"s007:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s007\",\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"41.86% of cross-listed articles had PostScript\",\n        \"matched_chunk_ids\": [\n          \"s030:c003\",\n          \"s030:c001\",\n          \"s030:c002\",\n          \"s030:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"query\": \"24.07% of new submissions had PostScript\",\n        \"matched_chunk_ids\": [\n          \"s030:c003\",\n          \"s030:c002\",\n          \"s030:c001\",\n          \"s007:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s007\",\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"query\": \"68% of articles provided only PDF and source formats without PostScript\",\n        \"matched_chunk_ids\": [\n          \"s030:c003\",\n          \"s002:c001\",\n          \"s002:c002\",\n          \"s030:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s002\",\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"query\": \"No temporal pattern observed in PostScript availability\",\n        \"matched_chunk_ids\": [\n          \"s030:c003\",\n          \"s002:c001\",\n          \"s030:c001\",\n          \"s030:c002\"\n        ],\n        \"matched_span_ids\": [\n          \"s002\",\n          \"s030\"\n        ]\n      },\n      {\n        \"claim_id\": \"c8\",\n        \"query\": \"Direct verification of 'Author supplied PostScript' presence\",\n        \"matched_chunk_ids\": [\n          \"s030:c003\",\n          \"s007:c001\",\n          \"s030:c002\",\n          \"s030:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s007\",\n          \"s030\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s002\",\n      \"s007\",\n      \"s016\",\n      \"s018\",\n      \"s020\",\n      \"s023\",\n      \"s024\",\n      \"s025\",\n      \"s026\",\n      \"s027\",\n      \"s028\",\n      \"s029\",\n      \"s030\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c001\",\n        \"char_start\": 0,\n        \"char_end\": 283,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.10859\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10911\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11490\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11592\"\n      },\n      {\n        \"span_id\": \"s018\",\n        \"chunk_id\": \"s018:c001\",\n        \"char_start\": 0,\n        \"char_end\": 283,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.11898\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11967\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.00024\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.00031\"\n      },\n      {\n        \"span_id\": \"s020\",\n        \"chunk_id\": \"s020:c001\",\n        \"char_start\": 0,\n        \"char_end\": 283,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.01446\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01461\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01573\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.01780\"\n      },\n      {\n        \"span_id\": \"s023\",\n        \"chunk_id\": \"s023:c001\",\n        \"char_start\": 0,\n        \"char_end\": 211,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.03749\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.04491\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.04902\"\n      },\n      {\n        \"span_id\": \"s024\",\n        \"chunk_id\": \"s024:c001\",\n        \"char_start\": 0,\n        \"char_end\": 283,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.04953\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05218\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05265\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05287\"\n      },\n      {\n        \"span_id\": \"s025\",\n        \"chunk_id\": \"s025:c001\",\n        \"char_start\": 0,\n        \"char_end\": 211,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.05327\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.05346\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.06346\"\n      },\n      {\n        \"span_id\": \"s026\",\n        \"chunk_id\": \"s026:c001\",\n        \"char_start\": 0,\n        \"char_end\": 283,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.07113\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07302\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07428\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.07557\"\n      },\n      {\n        \"span_id\": \"s027\",\n        \"chunk_id\": \"s027:c001\",\n        \"char_start\": 0,\n        \"char_end\": 211,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.08153\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.09200\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.09356\"\n      },\n      {\n        \"span_id\": \"s028\",\n        \"chunk_id\": \"s028:c001\",\n        \"char_start\": 0,\n        \"char_end\": 283,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.09563\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10001\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10176\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10205\"\n      },\n      {\n        \"span_id\": \"s029\",\n        \"chunk_id\": \"s029:c001\",\n        \"char_start\": 0,\n        \"char_end\": 427,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.10459\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.10486\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11041\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11282\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11670\\n---\\nTitle: Format selector for 2001 https://arxiv.org/format/2001.11863\"\n      },\n      {\n        \"span_id\": \"s030\",\n        \"chunk_id\": \"s030:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 5080,\n        \"text\": \"cript: 66 out of 97 (68.04%)** - 41 new submissions without PostScript - 25 cross-listed articles without PostScript --- ## Key Observations and Patterns 1. **PostScript availability is author-dependent**: Not all authors choose to supply PostScript files when submitting to arXiv 2. **Cross-lists have higher PostScript availability**: 41.86% of cross-listed articles had PostScript compared to 24.07% of direct hep-lat submissions 3. **Majority use PDF only**: 68% of articles provided only PDF and source formats without PostScript 4. **No temporal pattern**: PostScript availability appeared randomly distributed throughout the month with no clustering by submission date 5. **Consistent verification method**: All PostScript files were identified by the explicit \\\"Author supplied PostScript\\\" label on format pages --- ## Data Collection Challenges Addressed 1. **URL format confusion**: Resolved confusion between YYMM notation (old years) vs YYYY-MM notation (modern months) 2. **Listing page limitations**: Recognized that the main listing page doesn't show PostScript links directly 3. **Sample vs. complete count**: Moved from estimation (25-article sample) to exact count (all 97 articles verified) 4. **Cross-list inclusion**: Properly included all cross-listed articles as they appear on the January 2020 hep-lat listing page --- ## Verification and Quality Assurance - ✓ All 97 articles individually checked via format pages - ✓ Both new submissions and cross-lists included - ✓ Direct verification of \\\"Author supplied PostScript\\\" presence - ✓ Complete documentation of article IDs with and without PostScript - ✓ 100% coverage achieved (no sampling or estimation in final count) --- ## CONCLUSION The question \\\"How many High Energy Physics - Lattice articles listed in January 2020 on A\"\n      },\n      {\n        \"span_id\": \"s030\",\n        \"chunk_id\": \"s030:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3440,\n        \"text\": \"sting page ### Step 4: Sampling Phase - Sampled 25 articles (~26% of total) from various positions - Found 6 with PostScript, 19 without - Preliminary estimate: ~24% availability rate - **Limitation**: This was only an estimate, not the exact count needed ### Step 5: Complete Verification - Systematically checked ALL 97 articles by accessing each format page - Verified presence of \\\"Author supplied PostScript\\\" option - Achieved 100% coverage --- ## FINAL RESULTS ### Definitive Answer **31 out of 97 articles (31.96%) had PostScript versions available** ### Breakdown by Category **New Submissions with PostScript: 13 out of 54 (24.07%)** 1. arXiv:2001.00032 2. arXiv:2001.00485 3. arXiv:2001.01076 4. arXiv:2001.01665 5. arXiv:2001.02028 6. arXiv:2001.03319 7. arXiv:2001.05328 8. arXiv:2001.05366 9. arXiv:2001.06199 10. arXiv:2001.06872 11. arXiv:2001.07386 12. arXiv:2001.07919 13. arXiv:2001.10911 **Cross-Listed Articles with PostScript: 18 out of 43 (41.86%)** 1. arXiv:2001.01132 (from cond-mat.stat-mech) 2. arXiv:2001.01446 (from hep-ph) 3. arXiv:2001.01780 (from math-ph) 4. arXiv:2001.02109 (from hep-th) 5. arXiv:2001.03068 (from hep-th) 6. arXiv:2001.03318 (from hep-th) 7. arXiv:2001.03383 (from hep-ph) 8. arXiv:2001.04491 (from gr-qc) 9. arXiv:2001.04953 (from hep-ph) 10. arXiv:2001.05327 (from hep-ph) 11. arXiv:2001.07113 (from hep-ph) 12. arXiv:2001.07302 (from hep-th) 13. arXiv:2001.08153 (from hep-ph) 14. arXiv:2001.09200 (from hep-th) 15. arXiv:2001.09356 (from hep-ph) 16. arXiv:2001.10176 (from cond-mat.stat-mech) 17. arXiv:2001.10205 (from hep-ph) 18. arXiv:2001.11670 (from hep-ph) **Articles WITHOUT PostScript: 66 out of 97 (68.04%)** - 41 new submissions without PostScript - 25 cross-listed articles without PostScript --- ## Key Observations and Patterns 1. **P\"\n      },\n      {\n        \"span_id\": \"s030\",\n        \"chunk_id\": \"s030:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"# COMPREHENSIVE FINAL REPORT: PostScript Availability for arXiv hep-lat Articles in January 2020 ## Executive Summary This report documents a complete investigation into how many High Energy Physics - Lattice (hep-lat) articles listed in January 2020 on arXiv had PostScript (ps) versions available. Through systematic data collection and verification of all articles, a definitive answer was obtained. **FINAL ANSWER: 31 articles had PostScript versions available** --- ## Investigation Process and Methodology ### Step 1: Accessing the Correct arXiv Listing - **Initial challenge**: Determined the correct URL format for January 2020 listings - **URL attempted**: https://arxiv.org/list/hep-lat/2001?show=all (failed - \\\"show=all\\\" is invalid) - **Correction needed**: The \\\"2001\\\" notation refers to year 2001, not January 2020 - **Correct URL**: https://arxiv.org/list/hep-lat/2020-01?skip=0&show=2000 - **Result**: Successfully retrieved the complete January 2020 listing ### Step 2: Identifying Total Article Count **Total articles listed: 97** - New submissions to hep-lat: 54 articles (entries [1] through [54]) - Cross-listed from other categories: 43 articles (entries [55] through [97]) - Source: Page footer confirmation \\\"Total of 97 entries\\\" ### Step 3: Understanding PostScript Availability **Key finding**: The main listing page does NOT display explicit PostScript links - All 97 articles showed identical format: `[pdf, other]` - The \\\"other\\\" link points to individual format pages (e.g., https://arxiv.org/format/2001.00032) - **Critical insight**: PostScript availability must be checked on individual format pages, not the listing page ### Step 4: Sampling Phase - Sampled 25 articles (~26% of total) from various positions - Found 6 with PostScript, 19 without - Preliminary estimate:\"\n      },\n      {\n        \"span_id\": \"s030\",\n        \"chunk_id\": \"s030:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 6581,\n        \"text\": \" achieved (no sampling or estimation in final count) --- ## CONCLUSION The question \\\"How many High Energy Physics - Lattice articles listed in January 2020 on Arxiv had ps versions available?\\\" has been definitively answered through comprehensive data collection: **ANSWER: 31 articles** This represents 31.96% of the 97 total articles listed in the hep-lat category for January 2020, with PostScript availability determined by individual author submission choices rather than any systematic policy.\\n---\\nLLM extracted final answer: **Step-by-step Analysis:** 1. The Agent Summary reports a full, article-by-article verification of every High Energy Physics – Lattice (hep-lat) submission listed in January 2020 on arXiv. 2. A total of 97 articles were examined via their individual “format” pages to see whether an “Author supplied PostScript” file was present. 3. The summary states that exactly 31 articles were confirmed to have a PostScript (ps) version available. 4. The summary also provides explicit arXiv IDs for all 31 qualifying papers, reinforcing the count. 5. No contradictory information is present; thus the evidence supports the number 31. **Final Answer:** \\\\boxed{31} **Confidence:** 90 **Supporting Evidence:** The Agent Summary explicitly states: “31 out of 97 articles (31.96%) had PostScript versions available,” and lists all 31 arXiv IDs confirmed to include PostScript files. **Potential Weaknesses:** - The count relies entirely on the Agent’s manual verification; any oversight in checking individual format pages would affect the total. - If arXiv listings or file availability changed after the investigation, the number could differ.\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1179,\n        \"text\": \"Title: Format selector for 2001 https://arxiv.org/format/2001.11898\\n---\\n{'subtask': \\\"Check ALL 97 arXiv hep-lat articles from January 2020 for PostScript availability. Access the format page (https://arxiv.org/format/ARXIV_ID) for each of the 97 articles (both the 54 new submissions and 43 cross-lists from the January 2020 listing at https://arxiv.org/list/hep-lat/2020-01). For each article, determine if 'Author supplied PostScript' or any PostScript download option (.ps or .ps.gz) is explicitly available on the format page. Provide: 1) The EXACT total count of articles with PostScript available, 2) A complete list of all arXiv IDs that have PostScript versions, 3) A complete list of all arXiv IDs that do NOT have PostScript versions. This needs to be comprehensive - all 97 articles must be checked to provide the precise answer.\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\nTitle: High Energy Physics - Lattice Jan 2020 URL Source: https://arxiv https://arxiv.org/list/hep-lat/2020-01\\n---\\nTitle: High Energy Physics - Lattice Jan 2020 URL Source: https://arxiv https://arxiv.org/list/hep-lat/2020-01?skip=50&show=50\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"For the 97 arXiv hep-lat articles from January 2020 (both new submissions and cross-lists), check the actual PostScript format availability by accessing their individual format pages. The format pages are accessed via URLs like https://arxiv.org/format/ARXIV_ID. For each article, visit the format page and determine if a PostScript (.ps or .ps.gz) download option is explicitly available. Provide: 1) A count of how many articles have PostScript versions available, 2) The arXiv IDs of articles WITH PostScript, 3) The arXiv IDs of articles WITHOUT PostScript, 4) Any patterns observed (e.g., do all have it, none have it, or mixed results). Sample at least 10-15 articles from different parts of the list to establish a pattern, and if the pattern is consistent (all have it or none have it), verify with additional samples to confirm.\\n---\\narXiv hep-lat January 2020 articles list\\n---\\nTitle: High Energy Physics - Lattice Jan 2020 URL Source: https://arxiv https://arxiv.org/list/hep-lat/2020-01\\n---\\n{ \\\"text\\\": \\\"High Energy Physics\\\\n\\\\n[51] arXiv:2001.11678 [pdf, other] [52] arXiv:2001.11779 [pdf, other] [53] arXiv:2001.11898 [pdf, other] [54] arXiv:2001.11967 [pdf, other] [55] arXiv:2001.00024 (cross-list from cond-mat.quant-gas) [pdf, other] [56] arXiv:2001.00031 (cross-list from gr-qc) [pdf, other] [57] arXiv:2001.00698 (cross-list from hep-ph) [pdf, other] [58] arXiv:2001.00883 (cross-list from hep-ph) [pdf, other] [59] arXiv:2001.01132 (cross-list from cond-mat.stat-mech) [pdf, other] [60] arXiv:2001.01446 (cross-list from hep-ph) [pdf, other] [61] arXiv:2001.01461 (cross-list from hep-th) [pdf, other] [62] arXiv:2001.01573 (cross-list from hep-ph) [pdf, other] [63] arXiv:2001.01780 (cross-list from math-ph) [pdf, other] [64] arXiv:2001.01785 (cross-list from hep-th) [pdf, other] \"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3440,\n        \"text\": \" (cross-list from hep-ph) [pdf, other] [63] arXiv:2001.01780 (cross-list from math-ph) [pdf, other] [64] arXiv:2001.01785 (cross-list from hep-th) [pdf, other] [65] arXiv:2001.02109 (cross-list from hep-th) [pdf, other] [66] arXiv:2001.02690 (cross-list from hep-ph) [pdf, other] [67] arXiv:2001.03068 (cross-list from hep-th) [pdf, other] [68] arXiv:2001.03318 (cross-list from hep-th) [pdf, other] [69] arXiv:2001.03383 (cross-list from hep-ph) [pdf, other] [70] arXiv:2001.03631 (cross-list from hep-th) [pdf, other] [71] arXiv:2001.03749 (cross-list from hep-th) [pdf, other] [72] arXiv:2001.04491 (cross-list from gr-qc) [pdf, other] [73] arXiv:2001.04902 (cross-list from hep-th) [pdf, other] [74] arXiv:2001.04953 (cross-list from hep-ph) [pdf, other] [75] arXiv:2001.05218 (cross-list from cs.DC) [pdf, other] [76] arXiv:2001.05265 (cross-list from cond-mat.supr-con) [pdf, other] [77] arXiv:2001.05287 (cross-list from hep-ph) [pdf, other] [78] arXiv:2001.05327 (cross-list from hep-ph) [pdf, other] [79] arXiv:2001.05346 (cross-list from quant-ph) [pdf, other] [80] arXiv:2001.06346 (cross-list from hep-ph) [pdf, other] [81] arXiv:2001.07113 (cross-list from hep-ph) [pdf, other] [82] arXiv:2001.07302 (cross-list from hep-th) [pdf, other] [83] arXiv:2001.07428 (cross-list from math.NA) [pdf, other] [84] arXiv:2001.07557 (cross-list from cs.DC) [pdf, other] [85] arXiv:2001.08153 (cross-list from hep-ph) [pdf, other] [86] arXiv:2001.09200 (cross-list from hep-th) [pdf, other] [87] arXiv:2001.09356 (cross-list from hep-ph) [pdf, other] [88] arXiv:2001.09563 (cross-list from hep-ph) [pdf, other] [89] arXiv:2001.10001 (cross-list from hep-ph) [pdf, other] [90] arXiv:2001.10176 (cross-list from cond-mat.stat-mech) [pdf, other] [91] arXiv:2001.10205 (cross-list from hep-ph) [pdf, othe\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0196",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0196",
+        "first_error_span": null,
+        "linked_error_span_ids": [],
+        "non_errors": [],
+        "reason": "short string",
+        "error_span_ids": [],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 30,
+    "evidence_span_count": 13
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 28529,
+    "output_tokens": 1961,
+    "total_tokens": 30490
+  }
+}

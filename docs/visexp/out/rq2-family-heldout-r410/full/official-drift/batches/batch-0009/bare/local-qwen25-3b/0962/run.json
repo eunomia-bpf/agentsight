@@ -1,0 +1,58 @@
+{
+  "setting": "bare",
+  "case_id": "0962",
+  "prediction": {
+    "traj_id": "0962",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0962\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"有一个来自巴黎创立于某个世纪60年代，字母样式logo的小众服装品牌与另外一个来自创立于18世纪40年代的瑞典的知名品牌的logo恰好对称 同样也是字母样式 这个瑞典品牌从2015年起被一家公司逐步收购 这家公司的总部叫什么名字？\",\n  \"traj_id\": \"0962\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"有一个来自巴黎创立于某个世纪60年代，字母样式logo的小众服装品牌与另外一个来自创立于18世纪40年代的瑞典的知名品牌的logo恰好对称 同样也是字母样式 这个瑞典品牌从2015年起被一家公司逐步收购 这家公司的总部叫什么名字\\n---\\nKosta Boda acquisition New Wave Group 2015 ownership Orrefors Kosta Boda AB\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"About us Our brands Sustainability Investor relations Press EN SV NWG / About us / History Business Concept Strategy Our Vision Synergies Our Values Growth Operating segments Corporate Sports & Leisure Gifts & Home Furni\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nBrand: Kosta Boda (Swedish glassmaker)\\n---\\nSwedish brand founded 1742 Kosta Boda acquisition 2015\\n---\\nKosta Boda acquisition 2015\\n---\\nOrrefors Kosta Boda acquisition 2015 New Wave Group press release\\n---\\nSwedish brand founded 174* acquisition 2015\\n---\\nsite:wikipedia.org Swedish brand founded 174* Sweden 1740s\\n---\\nNew Wave Group acquisition 2015 press release site:newwavegroup.com\\n---\\nSweden \\\"Founded 1742\\\" brand\\n---\\nNew Wave Group acquisition 2015 press release\\n---\\nsite:wikipedia.org \\\"Founded in 1748\\\" Sweden\\n---\\nKosta Boda acquired 2015 Orrefors Kosta Boda AB New Wave Group 2015 acquisition press release\\n---\\n\\\"Kosta Linnewäfveri\\\" founded 1742 acquisition 2015 New Wave Group\\n---\\nThe most likely match for “Swedish well\\n---\\nKosta Boda acquisition who acquired Kosta Boda Orrefors Kosta Boda AB New Wave Group ownership 2010 2015\\n---\\nHello there\\n---\\nNew Wave Group annual report 2015 Orrefors Kosta Boda\\n---\\nAcquirer: New Wave Group AB acquired Orrefors Kosta Boda (the company behind the Kosta Boda brand) in 2005\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Courrèges logo monogram ac\\n---\\nDiscover our Fall-Winter offers\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Courrèges logo ac monogram symmetry\\n---\\nCourrèges logo svg\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search English Donate Create account Log in Contents hide Beginning Summary Licensing File:Logo courrèges\\n---\\n{\\\"data\\\":null,\\\"code\\\":422,\\\"name\\\":\\\"AssertionFailureError\\\",\\\"status\\\":42206,\\\"message\\\":\\\"Could not extract any meaningful content from the page\\\",\\\"readableMessage\\\":\\\"AssertionFailureError: Could not extract any meaningful content\\n---\\nhttps://brandfetch.com/courreges.com\\n---\\nCourrèges logo\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) History Toggle History subsection André Courrèges and Coqueline Courrèges, 1961–1995 Coqueline Courrèges, 1995–2010 Sébastien Meyer and Ar\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Courrèges logo meaning ac monogram\\n---\\nALPHABETICALMOST DOWNLOADEDBLOGADD LOGO Download Courreges Paris vector (SVG) logo DOWNLOAD SVG By downloading Courreges Paris vector logo you agree with our terms of use\\n---\\nCourrèges’ emblem is a stylized “AC” monogram derived from the initials of founder André Courrèges, widely referred to by the brand itself on products as the “AC logo\\n---\\nSwedish brand founded 1740s logo CA or AC\\n---\\nsvenskt varumärke grundat 174* logotyp CA AC\\n---\\nSwedish brand CA logo monogram acquired 2015 founded 1740s\\n---\\nSwedish brand founded 1742 acquisition 2015 CA logo\\n---\\nSwedish brand founded 1740s logo CA AC acquired since 2015\\n---\\nSwedish company founded 1742 acquired 2015\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"This website uses cookies to ensure you get the best experience on our website\\n---\\nKosta Boda acquisition 2015 owner Orrefors Kosta Boda AB acquired\\n---\\nHello there\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"svenskt varumärke monogram CA logotyp Sverige 1740-talet\\n---\\nThe only strong Swedish brand match for “founded in the 1740s” is Kosta Boda (founded in 1742 in Småland, Sweden)\\n---\\nsite:wikipedia.org Category:1740s establishments in Sweden\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nSwedish brand founded 1740s site:wikipedia.org Kosta 1742 other well-known Swedish brand founded 1740s\\n---\\nsite:wikipedia.org 1748 establishments in Sweden company brand\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nsite:wikipedia.org Sweden company founded 1747 Jernkontoret brand logo\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nKosta (Kosta Boda) — founded 1742 — is a well\\n---\\nSwedish brand founded in the 1840s letter logo acquired 2015 Swedish company gradually\\n---\\nsite:wikipedia.org Swedish company founded 1847\\n---\\nSwedish brand founded in 1847 logo letter Sweden brand \\\"letter logo\\\"\\n---\\nsite:wikipedia.org Swedish brand founded 1840s\\n---\\nsite:wikipedia.org 1845 Sweden company founded Eskilstuna brand logo\\n---\\nSwedish brand founded in 1845 letter logo acquired 2015 Swedish company gradually\\n---\\nsite:wikipedia.org Swedish brand founded 1845\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nAntoinette W Nording 1847 perfume Sweden brand\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Mölnlycke Health Care founded 1849 logo Investor AB acquisition 2015 Patricia Industries gradual ownership increase\\n---\\nMölnlycke Health Care founded 1849 acquisition 2007 Investor AB Patricia Industries 2015 gradual ownership history logo\\n---\\nThe best\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:en.wikipedia.org \\\"1840 establishments in Sweden\\\"\\n---\\nsite:sv.wikipedia.org Kategori:Företag bildade 1840\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Category:Swedish companies established in 1840 1 language Category Talk Read Edit View history Tools Appearance hide Text Small Standard Large This page alway\\n---\\nsite:en.wikipedia.org \\\"Swedish companies established in 1841\\\"\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nsite:en.wikipedia.org \\\"Category:Swedish companies established in 1842\\\"\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:en.wikipedia.org \\\"Category:Swedish companies established in 1843\\\"\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nI compiled a list of Swedish companies founded in the 1840s using Wikipedia\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: The question is a puzzle requiring identification of two brands via clues, then finding the acquirer of the Swedish brand since 2015 and naming the acquirer’s headquarters\\n---\\n<think>**Determining headquarters name** I’m thinking about the logo and its connection to Hasselblad, which became part of DJI gradually starting in 2015\\n---\\nThought: 我已经根据搜索得到的结果确定：瑞典品牌是 Hasselblad（哈苏），成立于 1841 年，2015 年起被中国公司 DJI（大疆创新）逐步收购并控股\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0962",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0962",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 13
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 2885,
+    "output_tokens": 80,
+    "total_tokens": 2965
+  }
+}

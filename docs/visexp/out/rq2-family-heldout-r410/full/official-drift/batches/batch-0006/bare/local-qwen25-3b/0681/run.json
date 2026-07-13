@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0681",
+  "prediction": {
+    "traj_id": "0681",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "cites Nightmare on Elm Street as the horror movie, which is incorrect according to the book's content"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0681\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"In Valentina Re’s contribution to the 2017 book “World Building: Transmedia, Fans, Industries”, what horror movie does the author cite as having popularized metalepsis between a dream world and reality? Use the complete name with article if any.\",\n  \"traj_id\": \"0681\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"In Valentina Re’s contribution to the 2017 book “World Building: Transmedia, Fans, Industries”, what horror movie does the author cite as having popularized metalepsis between a dr\\n---\\nI'll help you find the specific horror movie that Valentina Re cites in her contribution to \\\"World Building: Transmedia, Fans, Industries\\\" (2017)\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I need to provide the answer in the correct format\\n---\\nBased on my thorough research of Valentina Re's contribution to the 2017 book \\\"World Building: Transmedia, Fans, Industries,\\\" I found the answer in her chapter titled \\\"The Monster at the End of This Book: Metalepsis, Fan\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"World Building Transmedia Fans Industries 2017 Valentina Re\\n---\\n{\\\"data\\\":null,\\\"code\\\":409,\\\"name\\\":\\\"BudgetExceededError\\\",\\\"status\\\":40904,\\\"message\\\":\\\"Token budget (80000) exceeded, intended charge amount 222685\\\",\\\"readableMessage\\\":\\\"BudgetExceededError: Token budget (80000) exceeded, intended\\n---\\nSkip to main content Accessibility help Home Books World Building Transmedia Fans Industries World Building Transmedia Fans Industries Search within full text Cited by 2 Cite Share The digital format of this book is no l\\n---\\nValentina Re \\\"The Monster at the End of This Book\\\" metalepsis horror movie dream world reality\\n---\\nLog In Sign Up Log In Sign Up more About Press Papers Terms Privacy Copyright We're Hiring\\n---\\nValentina Re Nightmare on Elm Street metalepsis dream world reality\\n---\\nSkip to main content For Authors For Librarians Our Subjects Services About Us Search Manage Access Not authenticated Home Cultural Studies 18\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"Valentina Re\\\" \\\"Nightmare on Elm Street\\\" \\\"World Building\\\" chapter text\\n---\\nWhich horror movie does Valentina Re cite as having popularized metalepsis between a dream world and reality?\\n---\\nValentina Re \\\"A Nightmare on Elm Street\\\" Wes Craven metalepsis popularized dream reality\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"This website utilizes technologies such as cookies to enable essential site functionality, as well as for analytics, personalization, and targeted advertising\\n---\\nA Nightmare on Elm Street 1984 Wes Craven Freddy Krueger dream reality metalepsis\\n---\\nValentina Re's contribution to the 2017 book \\\"World Building: Transmedia, Fans, Industries\\\" is Chapter 18, titled \\\"The Monster at the End of This Book: Metalepsis, Fandom, and World Making in Contemporary TV Series\\\" (pag\\n---\\nThought: I need to search for information about Valentina Re's contribution to the 2017 book \\\"World Building: Transmedia, Fans, Industries\\\" and find the specific horror movie she cites regarding metalepsis between dream\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: Based on the comprehensive search results from the search_agent, I have found the definitive answer\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0681",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "cites Nightmare on Elm Street as the horror movie, which is incorrect according to the book's content"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0681",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "cites Nightmare on Elm Street as the horror movie, which is incorrect according to the book's content"
+          }
+        ]
+      }
+    },
+    "full_span_count": 6
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1239,
+    "output_tokens": 84,
+    "total_tokens": 1323
+  }
+}

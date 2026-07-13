@@ -1,0 +1,54 @@
+{
+  "setting": "bare",
+  "case_id": "0981",
+  "prediction": {
+    "traj_id": "0981",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "GB/T 11881-2006 羽毛球 标准 材料 羽毛 16 左翼 右翼 描述了羽毛球的羽毛数量，但未涉及饲养动物的数量，这与问题中的需求不符。"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0981\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"经典电影《肖申克的救赎》中，有一句非常经典的台词，说的是鸟和牢笼的关系，这句话的后半句描述了一样东西，做成10个符合GB/T 11881-2006物品，至少需要多少只拥有这个东西的可饲养动物？\",\n  \"traj_id\": \"0981\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"经典电影《肖申克的救赎》中，有一句非常经典的台词，说的是鸟和牢笼的关系，这句话的后半句描述了一样东西，做成10个符合GB/T 11881-2006物品，至少需要多少只拥有这个东西的可饲养动物\\n---\\nShawshank Redemption quote birds not meant to be caged site:wikiquote.org OR site:springfieldspringfield.co.uk OR site:imsdb.com\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide Beginning Andy Dufresne Ellis Boyd Samuel Norton Brooks Hatlen Others Dialogue Cast External links The Shawshank Redemption 18 languages Page Di\\n---\\nThe Internet Movie Script Database (IMSDb) The web's largest movie script resource\\n---\\n有些鸟儿是注定不能被关在牢笼里的 后半句 肖申克的救赎\\n---\\n“有些鸟儿是注定不会被关在牢笼里的”这句的后半句（中文常见续句）是：\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 首先需要找到《肖申克的救赎》中那句经典台词，内容涉及鸟与牢笼，并确认后半句描述的是什么东西\\n---\\nGB/T 11881-2006 羽毛球 标准 羽毛 数量 左翼 右翼 材料\\n---\\nGB/T 11881-2006 羽毛球\\n---\\n仪器谱 导购 安特百货 新品 药典 统计与分析 国标采用 期刊文献 搜索 GB/T 11881-2006 羽毛球 Shuttlecocks GBT11881-2006, GB11881-2006 首页 标准 GB/T 11881-2006 标准全文 GB/T 11881-2006 预览[下载] 仪器设备 50 引用关系 谁引用了GB/T 11881-2006 发布历史GB/T 11881-2006 点击打开全屏PDF预览 点击查看大图\\n---\\nGB/T 11881-2006 羽毛球 标准 全文\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"首页 文档 任务 文辑 > 登录   下载  打印  / 11    视图 标记  批注        tv897  上传于：2015-08-09 粉丝量：483   下载此文档 相关 目录 笔记 书签 更多 相关文档  GB-T 11881-2006 羽毛球 星级：  11 页  GB_T 11881-2006 羽毛球 星级：  12 页  GBT 11881-20\\n---\\n注册 登录 首页 国家标准 行业标准 地方标准 团体标准 企业标准 国际标准 国外标准 技术委员会 标准化人才 羽毛球 Shuttlecocks 国家标准 推荐性 现行 国家标准《羽毛球》 由TC514（全国文具运动器材标准化技术委员会）归口 ，主管部门为中国轻工业联合会\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"GB/T 11881-2006 羽毛球 16 左翼 右翼 材料\\n---\\nGB/T 11881-2006 羽毛球 羽毛 16 右翼 左翼 允许 材料\\n---\\nGB/T 11881-2006 每个羽毛球 16 根 羽毛 左翼 右翼 材料 规定 条款\\n---\\nGB/T 11881-2006 羽毛球 羽毛 数量 左翼 右翼 允许 材料 标准 条款\\n---\\nGB/T 11881-2006 羽毛球 标准 材料 羽毛 16 左翼 右翼\\n---\\nStandard referenced: GB/T 11881\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: We need to identify the “thing” described in the latter half of the classic Shawshank Redemption quote about birds and cages, then determine what GB/T 11881-2006 covers, how many units of that “thing” are requir\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "GB/T 11881-2006 羽毛球 标准 材料 羽毛 16 左翼 右翼 描述了羽毛球的羽毛数量，但未涉及饲养动物的数量，这与问题中的需求不符。"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0981",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "GB/T 11881-2006 羽毛球 标准 材料 羽毛 16 左翼 右翼 描述了羽毛球的羽毛数量，但未涉及饲养动物的数量，这与问题中的需求不符。"
+          }
+        ]
+      }
+    },
+    "full_span_count": 5
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1758,
+    "output_tokens": 111,
+    "total_tokens": 1869
+  }
+}

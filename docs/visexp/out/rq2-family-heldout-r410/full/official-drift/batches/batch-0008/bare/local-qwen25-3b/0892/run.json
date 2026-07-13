@@ -1,0 +1,54 @@
+{
+  "setting": "bare",
+  "case_id": "0892",
+  "prediction": {
+    "traj_id": "0892",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0892\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"截止2020年12月，获得Dota2 TI国际邀请赛冠军的中国选手获奖年龄差距最大和最小值之间的差值是多少？\",\n  \"traj_id\": \"0892\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"截止2020年12月，获得Dota2 TI国际邀请赛冠军的中国选手获奖年龄差距最大和最小值之间的差值是多少\\n---\\nI'll help you find the answer to this question about Chinese Dota2 TI championship winners' age differences up to December 2020\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"The International Dota 2 winners by year Chinese teams\\n---\\nInvictus Gaming Newbee Wings Gaming Chinese Dota 2 teams nationality\\n---\\nCDEC Gaming Vici Gaming EHOME PSG.LGD Chinese Dota 2 teams\\n---\\nXtreme Gaming Chinese Dota 2 team nationality country\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"You're right, I need to provide proper code blocks\\n---\\nInvictus Gaming TI2 2012 roster YYF Ferrari_430 Zhou ChuaN Faith\\n---\\nYYF Dota 2 player real name birth date\\n---\\nFerrari_430 Dota 2 player real name birth date\\n---\\nZhou Dota 2 player real name birth date Invictus Gaming\\n---\\nChuaN Dota 2 player real name birth date\\n---\\nFaith Dota 2 player real name birth date Invictus Gaming\\n---\\n\\\\n\\\\nSuccessfully identified all 5 Invictus Gaming TI2 2012 roster players with their real names and birth dates:\\\\n\\\\n1\\n---\\nThought: Good\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Newbee TI4 2014 roster xiao8 Hao Mu Banana SanSheng birth dates\\n---\\nliquipedia Dota 2 MainWikis AlphaWikis SportWikis Pre AlphaWikis DormantWikis Favorites0 Marvel RivalsNEW Dota 2 Counter-Strike VALORANT Mobile Legends League of Legends Rocket League Apex Legends Overwatch PUBG Mobile R\\n---\\nHao Chen Zhihao Newbee Dota 2 birth date born\\n---\\nMu Zhang Pan Newbee Dota 2 birth date born\\n---\\nBanana Wang Jiao Newbee Dota 2 birth date born\\n---\\nSanSheng Wang Zhaohui Newbee Dota 2 birth date born\\n---\\nBanana Wang Jiao birth date July 5 1987 Dota 2\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Newbee TI4 2014 The International winner roster complete\\n---\\nGOSUGAMERS GOSUENTERTAINMENT GOSUBATTLES GAMES ARTICLES TOURNAMENTS MATCHES RANKINGS HOME / DOTA 2 / NEWBEE, THE INTERNATIONAL 2014 CHAMPIONS\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Newbee TI4 2014 roster xiao8 Hao Mu Banana SanSheng complete information\\n---\\n**Newbee TI4 2014 Championship Roster\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: Excellent\\n---\\nWings Gaming TI6 2016 roster Faith_bian shadow bLink y` iceice birth dates\\n---\\nFaith_bian Zhang Ruida birth date Dota 2 Wings Gaming\\n---\\nshadow Chu Zeyu birth date Dota 2 Wings Gaming\\n---\\nbLink Zhou Yang birth date Dota 2 Wings Gaming\\n---\\ny` Dota 2 Wings Gaming birth date real name\\n---\\niceice Li Peng birth date Dota 2 Wings Gaming\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"iceice Li Peng September 11 1995 Dota 2 Wings\\n---\\nbLink Zhou Yang July 31 1992 November 13 1988 Dota 2 correct birth date\\n---\\nWings Gaming TI6 2016 champion roster complete list all players\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Faith_bian March 21 1998 Zhang Ruida confirmed birth date\\n---\\nshadow Chu Zeyu March 21 1997 confirmed birth date Dota 2\\n---\\nSuccessfully identified all 5 Wings Gaming TI6 2016 roster players with their birth dates:\\n---\\nThought: Great\\n---\\nThought: Perfect\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I have calculated all the ages of Chinese TI winners when they won their championships\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0892",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 10
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1582,
+    "output_tokens": 54,
+    "total_tokens": 1636
+  }
+}

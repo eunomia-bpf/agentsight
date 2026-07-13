@@ -1,0 +1,387 @@
+{
+  "setting": "drift",
+  "case_id": "0448",
+  "prediction": {
+    "traj_id": "0448",
+    "error_span_ids": [
+      "s003"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0448\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"黑龙江、吉林、辽宁，共有多少个地市级行政单位与外国接壤？\",\n  \"traj_id\": \"0448\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"请系统检索并整理：黑龙江省、吉林省、辽宁省目前的地级行政单位（地级市、地区、自治州等）完整清单，并在此基础上逐一核实其中哪些与外国（俄罗斯或朝鲜）接壤。接壤判定口径：包含陆地与界河边界（如以黑龙江、乌苏里江、鸭绿江、图们江为界），不包含仅隔海相望的情形。对每一个被判定为“接壤”的地级单位，提供：1）与哪一国家接壤；2）边界类型（陆地或界河）；3）具体下辖的县/市/区名称与边境口岸（如有）；4）至少1—2条权威来源链接（优先：自然资源部标准地图服务、省政府/民政部/国家统计局官方行政区划或公告；也可辅以有权威参考的百科条目、政府官网、地图服务官方说明）；5）简要摘录或概述来源中的关键佐证语句。请特别关注并明确标注以下事项：A）黑龙江“大兴安岭地区”作为地级行政区是否计入统计（请提供其边界与接壤情况证据）；B）吉林“延边朝鲜族自治州”作为地级行政区计入统计，并核实其与朝鲜及俄罗斯的接壤情况；C）辽宁是否除丹东外还有地级单位与朝鲜接壤（如无请提供权威说明或边界归属地图）；D）黑龙江境内具体接壤的地级单位（如黑河、牡丹江、鸡西、佳木斯、双鸭山、鹤岗、大兴安岭地区等）的接壤证据与下辖边境县市的准确隶属关系（例如：抚远市隶属佳木斯、绥芬河/东宁隶属牡丹江、虎林/密山隶属鸡西、饶河隶属双鸭山、萝北隶属鹤岗等）。输出要求：1）先给出三省全部地级单位名称列表（含链接或来源）；2）分别给出各省“与外国接壤”的地级单位清单与证据；3）按不同统计口径给出候选总数（如：包含大兴安岭地区 vs 不包含；包含界河 vs 不包含），并明确说明差异原因；4）列出不确定性或可能的分歧点并给出进一步核实建议。请用中文输出，结构化呈现，提供来源链接。\\n---\\nsite:stats.gov.cn 统计用区划和城乡划分代码 2023 黑龙江省 23\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"tjyqhdmhcxhfdm 2023 23.html 黑龙江 统计用区划和城乡划分代码\\n---\\nTitle: 404 Not Found URL Source: https://www https://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/index.html\\n---\\nTitle: URL Source: https://www https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"自然资源部 标准地图服务 黑龙江省 行政区划图 标准地图\\n---\\n[ERROR]: [NOTE]: If the link is a file / image / video / audio, please use other applicable tools, or try to process it in the sandbox. Failed to get content from Jina.ai: Tool execution failed with Jina 422 error, which may indicate the URL is a file. This tool does not support files. If you believe the URL might point to a file, you should try using other applicable tools, or try to process it in the sandbox. Failed to get content from SERPER: Tool execution failed: unhandled errors in a TaskGroup (1 sub-exception) Failed to get content from requests: HTTPConnectionPool(host='bzdt.ch.mnr.gov.cn', port=80): Max retries exceeded with url: /index.html (Caused by NameResolutionError(\\\"<urllib3.connection.HTTPConnection object at 0x1264ce1e0>: Failed to resolve 'bzdt.ch.mnr.gov.cn' ([Errno 8] nodename nor servname provided, or not known)\\\"))\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"吉林省 标准地图 服务 系统 自然资源厅 行政区划图\\n---\\n辽宁省 标准地图 行政区划图 标准地图服务 辽宁 自然资源厅\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"黑河市人民政府 概况 与俄罗斯 隔黑龙江 口岸 爱辉区 逊克 孙吴\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 口岸建设 - 黑龙江省人民政府网 URL Source: https://www https://www.hlj.gov.cn/hlj/c108516/list_left_tt.shtml\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"吉林省 人民政府 口岸 延边 珲春 圈河 口岸 官方\\n---\\n延边朝鲜族自治州 人民政府 口岸 名单 官方 圈河 沙坨子 珲春 口岸\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"辽宁省 人民政府 口岸 丹东 朝鲜 接壤 官方 口岸名录\\n---\\n辽宁省 口岸名录 官方 丹东 朝鲜 接壤 辽宁省人民政府 口岸办\\n---\\n{ \\\"text\\\": \\\"丹东 \\\\n\\\\n丹东寓意“红色东方之城”，地处东北亚经济圈核心地带，沿海（北黄海）、沿边（朝鲜）、沿江（鸭绿江），是全国最大、全省唯一的边境城市，陆地面积1.52万平方公里。辖3县（市）3区、1个国家级边境经济合作区和1个省级高新区；20个街道、59个镇、5个乡，208个社区、671个行政村；户籍人口222.9万，常住人口206.9万。\\\\n\\\\n 丹东产业基础扎实，工业门类齐全、体系完备，在国民经济行业41个工业大类中拥有35个，先后创造了第一台轮式拖拉机、第一台标准电度表、第一台X射线探伤机、第一块IC卡燃气表、第一台涡轮增压器等诸多共和国工业史上的第一。食品工业、特种矿产品、汽车及零部件、纺织服装、仪器仪表五大主导产业占规上工业比重63%，在全国细分领域市场具有优势地位和较高市场占有率，有中国运动户外服装名城、全国消费品工业“三品”战略示范城市等9个国家级工业产业品牌。奥龙射线荣获全国X荧光光谱仪链主企业；东方测控、恒星泵业荣获国家知识产权示范企业；新东方晶体、华日理学、丰能股份等企业打破国外技术垄断，创造行业新纪录；首钢硼铁智能工厂项目获批国家级卓越智能工厂。\\\\n\\\\n 丹东基础设施完善，综合交通运输体系基本形成。截至2024年末，全境铁路里程519公里，其中高速铁路170公里；高速公路通车里程360.5公里；丹东港2024年货物吞吐量3563.5万吨，集装箱吞吐量24.4万标准箱；有8个口岸，其中对外开放一类口岸5个、二类口岸3个。境内浪头机场是一座4C级军民合用机场，通达北京、上海、深圳、广州、扬州、烟台、成都等城市，2024年旅客吞吐量23.5万人次。\\\\n\\\\n 丹东科教资源富集，全市共有各级各类学校730所，其中省属普通高校3所、中等职业学校15所；国家级、省级科技企业孵化器分别有1个、2个，国家级、省级、市级众创空间分别有2个、6个、4个，国家级、省级星创天地各4个，省级、市级专业技术创新中心分别有44个、91个；省级重点实验室5个，省级中试平台3个，认定高新技术企业349家，2024年技术合同成交额增长30.4%。\\\\n\\\\n 丹东自然风光秀美，海洋、河流、湿地、山川、森林、草原、冰雪等生态场景一应俱全，是辽东地区重要的生态屏障。有45条流域面积100平方公里及以上的河流，主要包括中朝两国共有界河鸭绿江，以及浑江、大洋河、爱河、草河、哨子河、半拉江、蒲石河等。境内山脉属长白山脉向西南延伸的支脉或余脉，构成“辽东屋脊”，是辽东山地丘陵的一部分，是鸭绿江与辽河水系的分水岭；高于1000米的山峰有28座，最高峰为宽甸花脖子山、海拔1336米。矿产资源种类齐全，已发现矿产80余种，其中国家战略性矿产有金、铜、铁、钼、钴、硼和晶质石墨等；已探明资源储量的矿产60种，硼矿为具有全国优势的矿产、可开采量居全国首位，金矿、银矿、铅锌矿、水镁石矿、饰面石材等为省内优势矿产。\\\\n\\\\n 丹东文化独具特色，边疆文化、红色文化、民族文化、生态文化叠加，是满族发祥地之一，国家级、省级重点文物保护单位分别有8处、97处，不可移动文物2179处、数量位居全省第二，鸭绿江口候鸟栖息地2024年列入世界自然遗产。有艺术表演团体1个、艺术表演场所1个、群众艺术馆2个。丹东是“抗美援朝出征地”，因在抗美援朝战争中作出巨大牺牲和贡献，赢得“英雄城市”的赞誉。\\\\n\\\\n 2024年，全省地区生产总值实现1007.8亿元，同比增长5.0%。规模以上工业增加值增长7.5%。固定资产投资增长2.2%。社会消费品零售总额313.1亿元，增长6.3%。进出口总额170.9亿元，增长0.3%。全体居民人均可支配收入33611元，扣除价格因素，实际增长5.2%。\\\\n\\\\n 》丹东市情链接\\\", \\\"metadata\\\": { \\\"title\\\": \\\"丹东\\\", \\\"ArticleTitle\\\": \\\"丹东\\\", \\\"Keywords\\\": \\\"丹东,工业,全国,企业,矿产\\\", \\\"Author\\\": \\\"董越\\\", \\\"Description\\\": \\\"丹东，寓意“红色东方之城”，地处东北亚经济圈核心地带，沿海（北黄海）、沿边（朝鲜）、沿江（鸭绿江），是全国最大、全省唯一的边境城市，陆地面积1.52万平方公里。辖3县（市）3区、1个国家级边境经济合作区和1个省级高新区；20个街道、59个镇、5个乡，208个社区、671个行政村；户籍人口222.9万，常住人口206.9万。\\\" }, \\\"credits\\\": 2 }\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"工作历程与检索轨迹（摘要） - 目标分解 1) 确认黑龙江、吉林、辽宁三省全部地级行政单位（地级市、地区、自治州）权威清单（优先民政部/国家统计局）；2) 在此基础上甄别与俄罗斯或朝鲜接壤之地级单位，按地级单位逐一核实边界类型（陆地/界河）、下辖边境县市区与边境口岸，并提供权威来源与摘录；3) 汇总不同统计口径下的候选总数并说明差异；4) 标注不确定点与进一步核实建议。特别关注A/B/C/D四项重点。 - 工具调用与结果（精要） 1) 站内搜国家统计局“统计用区划和城乡划分代码”（未命中省级目录页，后择民政部为主源）。 2) 抓取民政部“2023年中华人民共和国县以上行政区划代码”权威页面（成功，获取三省完整地级单位及县级隶属关系清单）。链接：https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html 3) 查询自然资源部标准地图服务（首页解析失败），转而使用省级政府与权威部门网站。 4) 黑龙江省人民政府网“口岸建设”页面抓取成功，获得黑龙江全省对俄各类口岸列表、类型与运行状态，并能对应县市（极关键证据）。链接：https://www.hlj.gov.cn/hlj/c108516/list_left_tt.shtml 5) 吉林省权威：检索到吉林省政府公开文件（PDF）“关于支持中国图们江区域（珲春）国际合作示范区建设的意见”（涉及珲春对俄公路/铁路口岸与圈河跨境桥）、吉林省人大官网“吉林省概况”（明确中朝、中俄口岸数量），并获延边州口岸城市政府网站（珲春、图们）相关口岸页面/通知。 - 吉林省政府PDF（2018）：http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf - 吉林省人大“吉林省概况”：http://www.jlrd.gov.cn/ztzl/ljhy/13rd3chy/sqsk_137011/202001/t20200104_6430986.html - 珲春市人民政府口岸通知示例（圈河/沙坨子闭关通知）：http://www.hunchun.gov.cn/zw_1910/tzgg/201912/t20191202_7138.html - 图们市人民政府“图们公路口岸”介绍：http://www.tumen.gov.cn/sq_2213/cytm/fgsy/202305/t20230515_418469.html 6) 辽宁省权威：辽宁省人民政府门户“丹东”市情抓取成功，获得“全省唯一的边境城市”权威表述（直接回答C项）。链接：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml 最终答案与证据（结构化呈现） 一、三省全部地级行政单位清单（权威来源） - 权威基础来源：民政部《2023年中华人民共和国县以上行政区划代码》（发布页时间：2024-07-23） 链接：https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html - 黑龙江省（13个地级市+1个地区） 哈尔滨市、齐齐哈尔市、鸡西市、鹤岗市、双鸭山市、大庆市、伊春市、佳木斯市、七台河市、牡丹江市、黑河市、绥化市、大兴安岭地区 佐证摘录（民政部页面黑龙江段节选）：230000 黑龙江省…231100 黑河市…231200 绥化市…232700 大兴安岭地区（232701 漠河市、232721 呼玛县、232722 塔河县）… - 吉林省（8市+1州） 长春市、吉林市、四平市、辽源市、通化市、白山市、松原市、白城市、延边朝鲜族自治州 佐证摘录（民政部页面吉林段节选）：220000 吉林省…222400 延边朝鲜族自治州（222401 延吉市、222402 图们市、222403 敦化市、222404 珲春市、222405 龙井市、222406 和龙市、222424 汪清县、222426 安图县）… - 辽宁省（14市） 沈阳市、大连市、鞍山市、抚顺市、本溪市、丹东市、锦州市、营口市、阜新市、辽阳市、盘锦市、铁岭市、朝阳市、葫芦岛市 佐证摘录（民政部页面辽宁段节选）：210000 辽宁省…210600 丹东市…211400 葫芦岛市… 二、各省与外国接壤的地级单位清单与核实证据（逐一列示） 判定口径：包含陆地与界河边界（黑龙江、乌苏里江、鸭绿江、图们江），不含仅隔海相望。 A. 黑龙江省（与俄罗斯接壤） 1) 黑河市 - 接壤国家与类型：俄罗斯；界河（黑龙江）+公路口岸 - 边境县/市/区与口岸（示例）： • 爱辉区、逊克县、孙吴县（隶属民政部代码231102/231123/231124） • 口岸：黑河水运口岸、黑河公路口岸、逊克水运口岸、孙吴水运口岸（未开通） - 证据与摘录： • 黑龙江省政府“口岸建设”页：“…水运口岸13个【黑河、逊克、同江、抚远、萝北、饶河、嘉荫、漠河、富锦、孙吴（因俄方始终未建设而未开通运行）、呼玛（因俄方始终未建设而未开通运行）…】，…公路口岸6个【绥芬河、黑河、东宁、密山、虎林…】…步行口岸1个【黑河（正在建设）】。”链接：https://www.hlj.gov.cn/hlj/c108516/list_left_tt.shtml • 同页“黑河水运口岸”“黑河公路口岸”“逊克水运口岸”等条目有设立时间与功能说明（页面内分节）。 • 隶属依据：民政部行政区划页面（见上）。 2) 伊春市 - 接壤国家与类型：俄罗斯；界河（黑龙江） - 边境县与口岸：嘉荫县（230723）；嘉荫水运口岸 - 证据与摘录：黑龙江省政府“口岸建设”：“嘉荫水运口岸…1989年4月8日经国务院批准成为国家一类口岸…1993年5月1日正式对外开放…设计能力20万人次/100万吨。”链接同上；隶属见民政部页面。 3) 鹤岗市 - 接壤国家与类型：俄罗斯；界河（黑龙江） - 边境县与口岸：萝北县（230421）有萝北水运口岸；绥滨县（230422）处于界河沿线 - 证据与摘录：黑龙江省政府“口岸建设”有“萝北水运口岸…1989年批准为国际客货水运口岸…设计能力10万人次/50万吨。”链接同上；隶属见民政部页面。 4) 双鸭山市 - 接壤国家与类型：俄罗斯；界河（乌苏里江） - 边境县与口岸：饶河县（230524）；饶河水运口岸 - 证据与摘录：黑龙江省政府“口岸建设”：“饶河水运口岸…1994年确认为双边客货运输口岸…设计能力50万人次/100万吨。”链接同上；隶属见民政部页面。 5) 佳木斯市 - 接壤国家与类型：俄罗斯；界河（黑龙江/乌苏里江）+铁路/公路口岸 - 边境县市与口岸：抚远市（230883；抚远水运口岸）、同江市（230881；同江水运口岸、同江铁路口岸）、富锦市（230882；富锦水运口岸）、汤原县（230828；沿江界河段）；黑瞎子岛公路口岸（在建） - 证据与摘录：黑龙江省政府“口岸建设”对“同江水运口岸”“同江铁路口岸”“抚远水运口岸”“富锦水运口岸”“黑瞎子岛（正在建设）”分别有说明。链接同上；隶属见民政部页面。 6) 牡丹江市 - 接壤国家与类型：俄罗斯；陆地边界（对俄） - 边境县市与口岸：绥芬河市（231081；绥芬河公路口岸、绥芬河铁路口岸）、东宁市（231086；东宁公路口岸） - 证据与摘录：黑龙江省政府“口岸建设”：“绥芬河公路口岸…1994年确认为国际公路客货运输口岸。”“绥芬河铁路口岸…确认为国际铁路客货运输口岸。”“东宁公路口岸…确认为双边客货公路运输口岸。”链接同上；隶属见民政部页面。 7) 鸡西市 - 接壤国家与类型：俄罗斯；陆地边界（对俄） - 边境县市与口岸：密山市（230382；密山公路口岸）、虎林市（230381；虎林公路口岸，省页注“因俄方维修而单方面关闭”） - 证据与摘录：黑龙江省政府“口岸建设”对密山/虎林公路口岸设立与运行状态有说明。链接同上；隶属见民政部页面。 8) 大兴安岭地区（地级行政区） - 接壤国家与类型：俄罗斯；界河（黑龙江） - 边境县市与口岸：漠河市（232701；漠河水运口岸——明水期水运/封冻期汽车运输）、呼玛县（232721；呼玛水运口岸，未开通运行）、塔河县（232722；界河段） - 证据与摘录： • 是否计入：民政部行政区划明确“232700 大兴安岭地区”为地级行政区（应纳入统计）。链接见民政部页面。 • 黑龙江省政府“口岸建设”：“漠河—加林达口岸为国际客货运输口岸…明水期船舶运输，封冻期进行汽车运输。”并记述“呼玛（因俄方始终未建设而未开通运行）”。链接同上。 B. 吉林省（与朝鲜、俄罗斯接壤） 1) 延边朝鲜族自治州（地级） - 接壤国家与类型：朝鲜（界河：图们江）；俄罗斯（对俄陆路/铁路跨境段） - 边境县市与口岸（示例）： • 珲春市：圈河口岸（对朝；图们江界河跨桥）、沙坨子口岸（对朝；图们江跨桥）、珲春公路/铁路口岸（对俄通道） • 图们市：图们公路口岸（对朝；图们江界河） • 州内其他县市（延吉、和龙、龙井、汪清、安图、敦化）隶属见民政部页面，具体是否设口岸以州/县市政府口岸栏目为准 - 证据与摘录： • 吉林省政府文件（PDF）：“…尽快开工建设圈河口岸跨境桥。协调国家有关部委将春化分水岭中俄公路、铁路客货口岸纳入国家口岸发展规划。”链接：http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf • 吉林省人大“吉林省概况”：“中朝边境线上共有口岸14个，中俄边境线上共有口岸2个。”链接：http://www.jlrd.gov.cn/ztzl/ljhy/13rd3chy/sqsk_137011/202001/t20200104_6430986.html • 珲春市人民政府（通知示例）：“根据中朝两国相关协议，中朝圈河口岸、沙坨子口岸于…闭关1天…。”链接：http://www.hunchun.gov.cn/zw_1910/tzgg/201912/t20191202_7138.html • 图们市人民政府（口岸介绍）：“图们口岸是吉林省立关最早、历史最长的‘百年口岸’，是国家第一批…”链接：http://www.tumen.gov.cn/sq_2213/cytm/fgsy/202305/t20230515_418469.html 2) 通化市 - 接壤国家与类型：朝鲜；界河（鸭绿江） - 边境县市与口岸：集安市（220582；对朝界河口岸方向） - 证据与摘录： • 吉林省人大“吉林省概况”提供省域边境口岸数量权威依据（中朝14个口岸），印证通化所处的中朝界河段属边境；具体“集安口岸”页面需在集安市或通化市政府门户进一步核实（建议见“进一步核实建议”）。 • 隶属见民政部页面。 3) 白山市 - 接壤国家与类型：朝鲜；界河（鸭绿江） - 边境县市与口岸：长白朝鲜族自治县（220623）、临江市（220681）（均在鸭绿江界河段） - 证据与摘录： • 吉林省人大“吉林省概况”同上（提供口岸总量与省域边界格局）；具体“长白口岸/临江口岸”页面建议在白山市及县市政府门户进一步核实（见“进一步核实建议”）。 • 隶属见民政部页面。 C. 辽宁省（与朝鲜接壤） 1) 丹东市 - 接壤国家与类型：朝鲜；界河（鸭绿江） - 边境县市与口岸：丹东市对朝有铁路/公路/港口等，市情称“有8个口岸，其中对外开放一类口岸5个、二类口岸3个” - 关键权威佐证（直接回答“除丹东外是否还有地级单位与朝鲜接壤”）： • 辽宁省人民政府门户“丹东”市情原文：“…沿边（朝鲜）、沿江（鸭绿江），是全国最大、全省唯一的边境城市…有8个口岸，其中对外开放一类口岸5个、二类口岸3个。”链接：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml - 结论：辽宁省除丹东外，无其他地级单位与朝鲜接壤（省政府权威表述“全省唯一的边境城市”）。 三、不同统计口径下的候选总数与差异说明 - 口径A（计入大兴安岭地区；计入界河与陆地边界） • 黑龙江：8个（黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区） • 吉林：3个（延边州、通化市、白山市） • 辽宁：1个（丹东市） • 合计：12 - 口径B（不计入大兴安岭地区；其余同口径A） • 黑龙江：7个（不含大兴安岭地区） • 吉林：3个 • 辽宁：1个 • 合计：11 • 差异原因：大兴安岭地区为地级行政区（民政部代码232700），是否纳入统计取决于统计口径；从行政区划角度应计入。 - 口径C（仅统计“陆地边界”，不含“仅界河边界”） • 黑龙江：2个（牡丹江市、鸡西市；均存在对俄陆地公路/铁路口岸，见“绥芬河”“东宁”“密山”“虎林”） • 吉林：1个（延边州对俄存在公路/铁路客货口岸，见吉林省政府PDF） • 辽宁：0个（丹东为界河鸭绿江） • 合计：3 • 差异原因：界河边界（黑龙江/乌苏里江/鸭绿江/图们江）在本口径被排除；仅保留确证存在陆路跨境口岸的地级单位。 四、重点问题专项说明（A/B/C/D） - A）大兴安岭地区是否计入统计及接壤证据 • 结论：计入。其为地级行政区（民政部代码232700）；与俄接壤（界河），有漠河水运口岸（明水期船运/封冻期汽车运输）与呼玛水运口岸（未开通）。来源： - 民政部行政区划代码页（见上） - 黑龙江省政府“口岸建设”页（“漠河—加林达口岸为国际客货运输口岸…明水期船舶运输，封冻期汽车运输…呼玛…未开通运行”）https://www.hlj.gov.cn/hlj/c108516/list_left_tt.shtml - B）延边朝鲜族自治州计入统计并核实与朝鲜及俄罗斯接壤情况 • 结论：计入（地级自治州，代码222400）；与朝鲜接壤（图们江界河），与俄罗斯接壤（省政府文件明确对俄公路/铁路客货口岸规划与推进）。 • 关键来源： - 民政部行政区划代码页（延边州及所辖县市，见上） - 吉林省政府PDF：“…圈河口岸跨境桥…春化分水岭中俄公路、铁路客货口岸纳入国家口岸发展规划。”http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf - 吉林省人大“吉林省概况”：“中朝边境线上共有口岸14个，中俄边境线上共有口岸2个。”http://www.jlrd.gov.cn/…/t20200104_6430986.html - 珲春/图们市政府口岸页面（见上）。 - C）辽宁除丹东外是否还有地级单位与朝鲜接壤 • 结论：无。辽宁省政府门户“丹东”市情明确“全省唯一的边境城市”。来源与原文链接：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml - D）黑龙江接壤地级单位之接壤证据与边境县市隶属关系（举例与核实） • 抚远市隶属佳木斯；抚远水运口岸（界河）。隶属依据：民政部（230883 抚远市）；口岸依据：黑龙江省政府“口岸建设”（抚远水运口岸…国际客货运输一类口岸）。 • 绥芬河/东宁隶属牡丹江；绥芬河铁路/公路口岸（陆地），东宁公路口岸（陆地）。隶属依据：民政部（231081/231086）；口岸依据：同“口岸建设”页。 • 虎林/密山隶属鸡西；虎林/密山公路口岸（陆地；虎林现俄方维修单方关闭）。隶属依据：民政部（230381/230382）；口岸依据：同“口岸建设”页。 • 饶河隶属双鸭山；饶河水运口岸（界河乌苏里江）。隶属依据：民政部（230524）；口岸依据：同“口岸建设”页。 • 萝北隶属鹤岗；萝北水运口岸（界河黑龙江）。隶属依据：民政部（230421）；口岸依据：同“口岸建设”页。 • 逊克/孙吴隶属黑河；逊克/孙吴水运口岸（孙吴未开通）。隶属依据：民政部（231123/231124）；口岸依据：同“口岸建设”页。 • 嘉荫隶属伊春；嘉荫水运口岸（界河）。隶属依据：民政部（230723）；口岸依据：同“口岸建设”页。 • 漠河/呼玛隶属大兴安岭地区；漠河/呼玛水运口岸（界河，漠河具明水/封冻期通行模式）。隶属依据：民政部（232701/232721）；口岸依据：同“口岸建设”页。 权威来源链接汇总（核心） - 民政部行政区划代码（2023）：https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html - 黑龙江省人民政府“口岸建设”：https://www.hlj.gov.cn/hlj/c108516/list_left_tt.shtml - 吉林省政府（PDF）关于珲春国际合作示范区与口岸：http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf - 吉林省人大“吉林省概况”（口岸数量）：http://www.jlrd.gov.cn/ztzl/ljhy/13rd3chy/sqsk_137011/202001/t20200104_6430986.html - 珲春市政府（圈河/沙坨子口岸闭关通知示例）：http://www.hunchun.gov.cn/zw_1910/tzgg/201912/t20191202_7138.html - 图们市政府“图们公路口岸”：http://www.tumen.gov.cn/sq_2213/cytm/fgsy/202305/t20230515_418469.html - 辽宁省政府门户“丹东”（全省唯一边境城市）：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml 关键佐证语句（原文摘录） - 辽宁省政府门户“丹东”：“…沿边（朝鲜）、沿江（鸭绿江），是全国最大、全省唯一的边境城市…有8个口岸，其中对外开放一类口岸5个、二类口岸3个。”（上述官方页面文本已抓取） - 黑龙江省政府“口岸建设”（摘要）： • “截至2024年，我省现有国家一类口岸27个，其中水运口岸13个【黑河、逊克、同江、抚远、萝北、饶河、嘉荫、漠河、富锦、孙吴（因俄方始终未建设而未开通运行）、呼玛（因俄方始终未建设而未开通运行）、哈尔滨（已丧失港口功能）、佳木斯（停航未运行）】，…公路口岸6个【绥芬河、黑河、东宁、密山、虎林（因俄方维修而单方面关闭）、黑瞎子岛（正在建设）】，铁路口岸3个【绥芬河、同江、哈尔滨内陆港】，步行口岸1个【黑河（正在建设）】。” • “漠河—加林达口岸为国际客货运输口岸…明水期进行船舶运输，封冻期进行汽车运输。” • 各口岸条目中载明设立批准时间、功能与运行状态（详见页面分节）。 - 吉林省政府PDF： • “尽快开工建设圈河口岸跨境桥。协调国家有关部委将春化分水岭中俄公路、铁路客货口岸纳入国家口岸发展规划。” - 吉林省人大“吉林省概况”： • “中朝边境线上共有口岸14个，中俄边境线上共有口岸2个。” - 图们市政府“图们公路口岸”： • “图们口岸是吉林省立关最早、历史最长的‘百年口岸’，是国家第一批…” 不确定性与进一步核实建议 - 关于界河与陆地边界的分类口径： • 跨界桥梁（如图们江、鸭绿江桥）本质属于“界河边界上的跨越设施”，在“仅陆地边界”统计口径下不应计入。建议以自然资源部标准地图服务或省级自然资源厅发布的行政区划边界标准画法作为最终判定依据（标准地图服务平台：http://bzdt.ch.mnr.gov.cn/ 若访问受限，可用全国地理信息资源目录 https://www.webmap.cn/ 或各省自然资源厅地图服务）。 - 吉林省延边对俄“陆地/铁路口岸”细项： • 本次已引用省政府PDF作为权威依据，但建议补充查询珲春对俄口岸的最新开通状态、口岸代码及海关/国家口岸办备案信息（如“珲春-克拉斯基诺/马哈林诺”线路最新运行公告）。 - 吉林省通化市、白山市具体口岸页面链接： • 建议检索“集安市人民政府 口岸”“长白县人民政府 口岸”“临江市人民政府 口岸”以获取各口岸的设立批复、功能与运行状态原文，完善县级口岸与界河段落的官方证据链。 - 黑龙江省个别口岸的运行状态随对方口岸建设或检修变动： • 例如“虎林公路口岸（因俄方维修而单方面关闭）”“孙吴/呼玛为未开通运行”等，建议关注黑龙江省政府“口岸建设”栏目与海关总署/国家口岸管理办公室的动态更新。 结论性总结 - 三省地级单位清单以民政部2023年行政区划代码为准，黑龙江含大兴安岭地区（地级）；吉林含延边朝鲜族自治州（地级）；辽宁含丹东等14市。 - 与境外（俄/朝）接壤的地级单位： • 黑龙江：黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区（对俄，界河/陆地并存；证据详见黑龙江省政府“口岸建设”页与民政部隶属）。 • 吉林：延边朝鲜族自治州（对朝界河、对俄陆路/铁路通道）、通化（对朝界河）、白山（对朝界河）（证据见吉林省政府PDF、吉林省人大“概况”、州县政府口岸页）。 • 辽宁：仅丹东（对朝界河）。辽宁省政府门户明确“全省唯一的边境城市”。 - 计数按口径不同为12（含大兴安岭+含界河）/11（不含大兴安岭）/3（仅陆地，不含界河），差异原因已阐明。 - 已提供关键权威链接与原文摘录，可支撑A/B/C/D四项重点核验；对个别县级口岸的细化页面，已提出进一步官方链接核实建议。\\n---\\n任务总结与最终答案 一、工作历程与检索轨迹（高度概述） - 任务拆解与口径设定 - 明确“地市级行政单位”按地级行政区统计（含地级市、地区、自治州），界定“接壤”默认包含陆地边界和以江河为界的边界（不含仅隔海相望）。 - 制定逐省核验路线：先用权威行政区划清单锁定三省全部地级单位，再逐一核对是否与俄罗斯或朝鲜接壤、边界类型（陆地/界河）、对应下辖边境县市区及口岸，并保存来源与原文摘录。 - 同时准备不同统计口径的候选答案：是否计入大兴安岭地区；是否将“界河”视为接壤。 - 信息收集与整合 - 通过一次集中委托外部检索与整合，收集民政部行政区划（2023版）权威清单、黑龙江省政府“口岸建设”权威汇总页、吉林省政府及人大相关权威页面、州县市政府口岸专栏页面，以及辽宁省政府门户对丹东的权威表述。 - 输出形成结构化证据集：三省所有地级单位列表；各接壤单位的接壤国家、边界类型、边境县市区与口岸、来源链接与关键摘录；并汇总不同口径下的候选总数和不确定性及核实建议。 二、权威基础清单：三省全部地级行政单位 - 基础来源：民政部《2023年中华人民共和国县以上行政区划代码》（发布页时间：2024-07-23） 链接：https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html - 黑龙江省（13个地级市+1个地区，共14个地级单位） 哈尔滨市、齐齐哈尔市、鸡西市、鹤岗市、双鸭山市、大庆市、伊春市、佳木斯市、七台河市、牡丹江市、黑河市、绥化市、大兴安岭地区 民政部页面节选：230000 黑龙江省…231100 黑河市…231200 绥化市…232700 大兴安岭地区（232701 漠河市、232721 呼玛县、232722 塔河县）… - 吉林省（8个地级市+1个自治州，共9个地级单位） 长春市、吉林市、四平市、辽源市、通化市、白山市、松原市、白城市、延边朝鲜族自治州 民政部页面节选：220000 吉林省…222400 延边朝鲜族自治州（延吉、图们、敦化、珲春、龙井、和龙、汪清、安图）… - 辽宁省（14个地级市） 沈阳市、大连市、鞍山市、抚顺市、本溪市、丹东市、锦州市、营口市、阜新市、辽阳市、盘锦市、铁岭市、朝阳市、葫芦岛市 三、各省“与外国接壤”的地级单位与证据（含边界类型、下辖边境县市区与口岸、关键来源） 判定口径：包含陆地与界河（黑龙江、乌苏里江、鸭绿江、图们江），不含仅隔海相望。 A. 黑龙江省（对俄罗斯） 总览权威来源：黑龙江省人民政府“口岸建设”栏目（汇总全省对俄口岸类型、状态与分布） - 链接：https://www.hlj.gov.cn/hlj/c108516/list_left_tt.shtml - 页面摘要（关键摘录）：截至2024年，黑龙江省现有国家一类口岸27个，其中水运口岸13个【黑河、逊克、同江、抚远、萝北、饶河、嘉荫、漠河、富锦、孙吴（未开通）、呼玛（未开通）、哈尔滨（已丧失港口功能）、佳木斯（停航未运行）】，公路口岸6个【绥芬河、黑河、东宁、密山、虎林（因俄方维修单方面关闭）、黑瞎子岛（在建）】，铁路口岸3个【绥芬河、同江、哈尔滨内陆港】，步行口岸1个【黑河（在建）】。 1) 黑河市（对俄；界河黑龙江） - 下辖边境县区与口岸：爱辉区、逊克县、孙吴县；黑河水运口岸、黑河公路口岸、逊克水运口岸、孙吴水运口岸（未开通） - 证据：黑龙江省政府“口岸建设”页面各口岸条目；隶属见民政部清单（231102/231123/231124） 2) 伊春市（对俄；界河黑龙江） - 嘉荫县；嘉荫水运口岸（1989年国务院批准，1993年对外开放） - 证据：同上“嘉荫水运口岸”条 3) 鹤岗市（对俄；界河黑龙江） - 萝北县；萝北水运口岸（1989年批准为国际客货水运口岸） - 证据：同上“萝卜北水运口岸”条（页面用“萝北水运口岸”） 4) 双鸭山市（对俄；界河乌苏里江） - 饶河县；饶河水运口岸（1994年确认为双边客货运输口岸） - 证据：同上“饶河水运口岸”条 5) 佳木斯市（对俄；界河黑龙江/乌苏里江，含铁路/公路） - 同江市（同江水运口岸、同江铁路口岸）、抚远市（抚远水运口岸）、富锦市（富锦水运口岸）、汤原县（沿江界河段）；黑瞎子岛公路口岸（在建） - 证据：同上“同江水运/铁路”“抚远水运”“富锦水运”“黑瞎子岛（在建）”等条 6) 牡丹江市（对俄；陆地边界） - 绥芬河市（绥芬河公路口岸、绥芬河铁路口岸）、东宁市（东宁公路口岸） - 证据：同上“绥芬河公路/铁路”“东宁公路口岸”条；民政部隶属（231081/231086） 7) 鸡西市（对俄；陆地边界） - 密山市（密山公路口岸）、虎林市（虎林公路口岸；注：俄方维修单方关闭） - 证据：同上“密山/虎林公路口岸”条；民政部隶属（230382/230381） 8) 大兴安岭地区（地级“地区”；对俄；界河黑龙江） - 漠河市（漠河水运口岸：明水期船舶运输、封冻期汽车运输）、呼玛县（呼玛水运口岸，未开通运行）、塔河县（界河段） - 是否计入：民政部明确“232700 大兴安岭地区”为地级行政区，应计入地市级统计 - 证据：黑龙江省政府“口岸建设”关于“漠河—加林达口岸”“呼玛未开通”等；民政部行政区划（232701/232721/232722） B. 吉林省（对朝鲜、对俄罗斯） - 省域权威概况：吉林省人大官网“吉林省概况”载明“中朝边境线上共有口岸14个，中俄边境线上共有口岸2个” 链接：http://www.jlrd.gov.cn/ztzl/ljhy/13rd3chy/sqsk_137011/202001/t20200104_6430986.html - 对俄跨境通道与口岸建设依据：吉林省政府公开文件（PDF）明确推进圈河跨境桥、将中俄公路/铁路客货口岸纳入国家规划 链接：http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf 1) 延边朝鲜族自治州（地级；对朝界河图们江；对俄陆路/铁路通道） - 珲春市：圈河口岸（对朝；图们江跨桥）、沙坨子口岸（对朝；图们江跨桥）、对俄公路/铁路口岸（通往克拉斯基诺/马哈林诺方向；见省政府PDF） - 图们市：图们公路口岸（对朝；“百年口岸”） - 图们市政府“图们公路口岸”介绍：http://www.tumen.gov.cn/sq_2213/cytm/fgsy/202305/t20230515_418469.html - 珲春市政府圈河/沙坨子口岸运行通知（示例）：http://www.hunchun.gov.cn/zw_1910/tzgg/201912/t20191202_7138.html - 隶属与州域范围：民政部（222400 延边州；延吉、图们、敦化、珲春、龙井、和龙、汪清、安图） 2) 通化市（对朝；界河鸭绿江） - 集安市（对朝界河段，设有口岸方向） - 证据：吉林省人大“概况”提供口岸总量与省域边界格局；民政部隶属（220582） - 建议：可补充“集安市人民政府 口岸”页面批复与运行说明做进一步佐证 3) 白山市（对朝；界河鸭绿江） - 长白朝鲜族自治县、临江市（均处鸭绿江界河段，有相应口岸） - 证据：吉林省人大“概况”；民政部隶属（220623/220681） - 建议：可补充白山市及县市政府“长白口岸/临江口岸”批复与运行链接 C. 辽宁省（对朝鲜） 1) 丹东市（对朝；界河鸭绿江） - 辽宁省人民政府门户“丹东”市情权威表述： - 原文摘录：“…沿边（朝鲜）、沿江（鸭绿江），是全国最大、全省唯一的边境城市…有8个口岸，其中对外开放一类口岸5个、二类口岸3个。” - 链接：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml - 结论：辽宁省除丹东外，无其他地级单位与朝鲜接壤（“全省唯一的边境城市”） 四、不同统计口径下的候选答案（含差异说明） - 口径A（推荐）：计入大兴安岭地区；计入界河与陆地边界 - 黑龙江：8（黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区） - 吉林：3（延边朝鲜族自治州、通化市、白山市） - 辽宁：1（丹东市） - 合计：12 - 说明：大兴安岭地区为地级行政区（民政部代码232700）；接壤含界河（黑龙江、乌苏里江、鸭绿江、图们江）与陆地均计入 - 口径B：不计入大兴安岭地区；其余同口径A - 黑龙江：7（不含大兴安岭地区） - 吉林：3 - 辽宁：1 - 合计：11 - 差异原因：是否将“地区”类地级单位（大兴安岭地区）纳入“地市级”统计 - 口径C：仅统计“陆地边界”，不含“仅界河边界” - 黑龙江：2（牡丹江市、鸡西市；对俄存在明确陆地边界及公路/铁路口岸：绥芬河、东宁、密山、虎林） - 吉林：1（延边朝鲜族自治州；对俄存在陆路/铁路通道） - 辽宁：0（丹东为鸭绿江界河） - 合计：3 - 差异原因：将界河边界完全排除，仅保留“陆地边界”情形 五、不确定性与进一步核实建议 - 界河与陆地边界分类：界河上的跨境桥梁属于“界河边界上的跨越设施”，在“仅陆地边界”口径下不计。建议以自然资源部标准地图服务平台的标准边界画法为最终判定参考（http://bzdt.ch.mnr.gov.cn/）。 - 延边对俄口岸的最新开通与运行状态：建议补充海关总署或国家口岸办的最新公告与代码，核实“珲春—克拉斯基诺/马哈林诺”等对俄口岸当前状态。 - 吉林通化、白山口岸的县市级官方批复与运行页面：建议分别检索“集安市人民政府 口岸”“长白口岸/临江口岸”官方页面补强证据链。 - 黑龙江个别口岸运行状态动态（如“虎林单方关闭”“孙吴/呼玛未开通”）：建议持续关注黑龙江省政府“口岸建设”栏目更新。 六、关键来源链接与重要摘录（精选） - 民政部行政区划代码（2023）：https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html - 黑龙江省政府“口岸建设”：https://www.hlj.gov.cn/hlj/c108516/list_left_tt.shtml - 摘录：截至2024年，黑龙江省现有国家一类口岸27个…水运口岸13个【黑河、逊克、同江、抚远、萝北、饶河、嘉荫、漠河、富锦、孙吴（未开通）、呼玛（未开通）、哈尔滨（已丧失港口功能）、佳木斯（停航未运行）】…公路口岸6个【绥芬河、黑河、东宁、密山、虎林（因俄方维修而单方面关闭）、黑瞎子岛（在建）】…铁路口岸3个【绥芬河、同江、哈尔滨内陆港】…步行口岸1个【黑河（在建）】。 - 吉林省政府（PDF）：关于支持中国图们江区域（珲春）国际合作示范区建设的意见 - 链接：http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf - 摘录：尽快开工建设圈河口岸跨境桥。协调国家有关部委将春化分水岭中俄公路、铁路客货口岸纳入国家口岸发展规划。 - 吉林省人大“吉林省概况”：http://www.jlrd.gov.cn/ztzl/ljhy/13rd3chy/sqsk_137011/202001/t20200104_6430986.html - 摘录：中朝边境线上共有口岸14个，中俄边境线上共有口岸2个。 - 珲春市政府口岸运行通知（示例）：http://www.hunchun.gov.cn/zw_1910/tzgg/201912/t20191202_7138.html - 图们市政府“图们公路口岸”介绍：http://www.tumen.gov.cn/sq_2213/cytm/fgsy/202305/t20230515_418469.html - 辽宁省政府门户“丹东”（“全省唯一的边境城市”）：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml - 摘录：…沿边（朝鲜）、沿江（鸭绿江），是全国最大、全省唯一的边境城市…有8个口岸，其中对外开放一类口岸5个、二类口岸3个。 七、最终答案 - 推荐统计口径（常见理解，含界河且将大兴安岭地区计入地市级）：12 - 组成：黑龙江8（黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区）＋吉林3（延边朝鲜族自治州、通化市、白山市）＋辽宁1（丹东市） - 其他可选口径 - 不含大兴安岭地区（其余同上）：11 - 仅统计陆地边界（排除界河）：3 说明：通常语境下，“接壤”包含以江河为界，且“地区/自治州”属于地级行政单位，因此更常用的答案为12。上述证据与候选口径已完整列示，便于按不同理解自行取用。\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目问“黑龙江、吉林、辽宁，共有多少个地市级行政单位与外国接壤？” 2. “地市级行政单位”包括地级市、地区和自治州。 3. 判定“接壤”时，一般既包括陆地接壤，也包括以江河为界的边界。 4. 据民政部2023年行政区划和各省政府权威资料，可归纳出三省与外国接壤的地市级单位： • 黑龙江（8个）：哈尔滨不靠边境；接壤的有黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区。 • 吉林（3个）：延边朝鲜族自治州、通化市、白山市。 • 辽宁（1个）：丹东市。 5. 总数：8＋3＋1＝12。 **最终答案：** \\\\boxed{12} **置信度：** 77 **支持证据：** - 民政部《2023年县以上行政区划代码》确认地级行政区名单，包含“大兴安岭地区”“延边朝鲜族自治州”。 - 黑龙江省政府“口岸建设”栏目列明与俄罗斯接壤的8个地级单位（含大兴安岭）。 - 吉林省人大“吉林省概况”等文件确认延边、通化、白山与朝鲜/俄罗斯接壤。 - 辽宁省政府门户明言丹东为“全省唯一的边境城市”。 **潜在不足：** - 若题目解读排除“地区”或仅算陆地而不含界河，则数字可能为11或3。但常见口径视“地区”为地级单位且界河属接壤，故取12。\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "question": "黑龙江、吉林、辽宁，共有多少个地市级行政单位与外国接壤？",
+        "traj_id": "0448",
+        "task_goal": "短字符串",
+        "hard_constraints": [
+          "短字符串"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "黑龙江、吉林、辽宁，共有多少个地市级行政单位与外国接壤？",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "tentative"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "三省全部地级行政单位（地级市、地区、自治州）权威清单（优先民政部/国家统计局）",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "retrieval",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "与俄罗斯接壤的地级单位清单与证据",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "与朝鲜接壤的地级单位清单与证据",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "不同统计口径下的候选总数与差异说明",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "compute",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c6",
+            "claim": "重点问题专项说明（A/B/C/D）",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c7",
+            "claim": "最终答案：12",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s015",
+            "used_by": [
+              "s015"
+            ],
+            "claim_type": "compute",
+            "status": "finalized"
+          }
+        ],
+        "notes": "短字符串"
+      },
+      "validated": {
+        "traj_id": "0448",
+        "task_goal": "短字符串",
+        "hard_constraints": [
+          "短字符串"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "黑龙江、吉林、辽宁，共有多少个地市级行政单位与外国接壤？",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s001",
+            "used_by": [],
+            "claim_type": "entity",
+            "status": "tentative"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "三省全部地级行政单位（地级市、地区、自治州）权威清单（优先民政部/国家统计局）",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s002",
+            "used_by": [],
+            "claim_type": "retrieval",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "与俄罗斯接壤的地级单位清单与证据",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s003",
+            "used_by": [],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "与朝鲜接壤的地级单位清单与证据",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s003",
+            "used_by": [],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "不同统计口径下的候选总数与差异说明",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s003",
+            "used_by": [],
+            "claim_type": "compute",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c6",
+            "claim": "重点问题专项说明（A/B/C/D）",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s003",
+            "used_by": [],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c7",
+            "claim": "最终答案：12",
+            "introduced_at": "",
+            "becomes_consequential_at": "",
+            "used_by": [],
+            "claim_type": "compute",
+            "status": "finalized"
+          }
+        ],
+        "notes": "短字符串"
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s002"
+          ],
+          "grep_queries": [
+            "三省全部地级行政单位（地级市、地区、自治州）权威清单（优先民政部/国家统计局）"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s003"
+          ],
+          "grep_queries": [
+            "与俄罗斯接壤的地级单位清单与证据"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c4",
+          "span_ids": [
+            "s003"
+          ],
+          "grep_queries": [
+            "与朝鲜接壤的地级单位清单与证据"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c5",
+          "span_ids": [
+            "s003"
+          ],
+          "grep_queries": [
+            "不同统计口径下的候选总数与差异说明"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c6",
+          "span_ids": [
+            "s003"
+          ],
+          "grep_queries": [
+            "重点问题专项说明（A/B/C/D）"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c7",
+          "span_ids": [],
+          "grep_queries": [
+            "最终答案：12"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s002",
+        "s003",
+        "s009"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s002",
+        "s003",
+        "s009"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c2",
+          "query": "三省全部地级行政单位（地级市、地区、自治州）权威清单（优先民政部/国家统计局）",
+          "matched_chunk_ids": [
+            "s009:c001",
+            "s009:c006",
+            "s009:c009",
+            "s001:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s009"
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "query": "与俄罗斯接壤的地级单位清单与证据",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        },
+        {
+          "claim_id": "c4",
+          "query": "与朝鲜接壤的地级单位清单与证据",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        },
+        {
+          "claim_id": "c5",
+          "query": "不同统计口径下的候选总数与差异说明",
+          "matched_chunk_ids": [
+            "s009:c003",
+            "s009:c004"
+          ],
+          "matched_span_ids": [
+            "s009"
+          ]
+        },
+        {
+          "claim_id": "c6",
+          "query": "重点问题专项说明（A/B/C/D）",
+          "matched_chunk_ids": [
+            "s009:c004"
+          ],
+          "matched_span_ids": [
+            "s009"
+          ]
+        },
+        {
+          "claim_id": "c7",
+          "query": "最终答案：12",
+          "matched_chunk_ids": [
+            "s009:c009",
+            "s009:c001",
+            "s009:c006"
+          ],
+          "matched_span_ids": [
+            "s009"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0448\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"黑龙江、吉林、辽宁，共有多少个地市级行政单位与外国接壤？\",\n  \"traj_id\": \"0448\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0448\",\n    \"task_goal\": \"短字符串\",\n    \"hard_constraints\": [\n      \"短字符串\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"黑龙江、吉林、辽宁，共有多少个地市级行政单位与外国接壤？\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s001\",\n        \"used_by\": [],\n        \"claim_type\": \"entity\",\n        \"status\": \"tentative\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"三省全部地级行政单位（地级市、地区、自治州）权威清单（优先民政部/国家统计局）\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s002\",\n        \"used_by\": [],\n        \"claim_type\": \"retrieval\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"与俄罗斯接壤的地级单位清单与证据\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"与朝鲜接壤的地级单位清单与证据\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"不同统计口径下的候选总数与差异说明\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [],\n        \"claim_type\": \"compute\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"claim\": \"重点问题专项说明（A/B/C/D）\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"claim\": \"最终答案：12\",\n        \"introduced_at\": \"\",\n        \"becomes_consequential_at\": \"\",\n        \"used_by\": [],\n        \"claim_type\": \"compute\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"短字符串\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s002\",\n      \"s003\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"三省全部地级行政单位（地级市、地区、自治州）权威清单（优先民政部/国家统计局）\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s009:c006\",\n          \"s009:c009\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"与俄罗斯接壤的地级单位清单与证据\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"与朝鲜接壤的地级单位清单与证据\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"query\": \"不同统计口径下的候选总数与差异说明\",\n        \"matched_chunk_ids\": [\n          \"s009:c003\",\n          \"s009:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"query\": \"重点问题专项说明（A/B/C/D）\",\n        \"matched_chunk_ids\": [\n          \"s009:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"query\": \"最终答案：12\",\n        \"matched_chunk_ids\": [\n          \"s009:c009\",\n          \"s009:c001\",\n          \"s009:c006\"\n        ],\n        \"matched_span_ids\": [\n          \"s009\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 765,\n        \"text\": \"请系统检索并整理：黑龙江省、吉林省、辽宁省目前的地级行政单位（地级市、地区、自治州等）完整清单，并在此基础上逐一核实其中哪些与外国（俄罗斯或朝鲜）接壤。接壤判定口径：包含陆地与界河边界（如以黑龙江、乌苏里江、鸭绿江、图们江为界），不包含仅隔海相望的情形。对每一个被判定为“接壤”的地级单位，提供：1）与哪一国家接壤；2）边界类型（陆地或界河）；3）具体下辖的县/市/区名称与边境口岸（如有）；4）至少1—2条权威来源链接（优先：自然资源部标准地图服务、省政府/民政部/国家统计局官方行政区划或公告；也可辅以有权威参考的百科条目、政府官网、地图服务官方说明）；5）简要摘录或概述来源中的关键佐证语句。请特别关注并明确标注以下事项：A）黑龙江“大兴安岭地区”作为地级行政区是否计入统计（请提供其边界与接壤情况证据）；B）吉林“延边朝鲜族自治州”作为地级行政区计入统计，并核实其与朝鲜及俄罗斯的接壤情况；C）辽宁是否除丹东外还有地级单位与朝鲜接壤（如无请提供权威说明或边界归属地图）；D）黑龙江境内具体接壤的地级单位（如黑河、牡丹江、鸡西、佳木斯、双鸭山、鹤岗、大兴安岭地区等）的接壤证据与下辖边境县市的准确隶属关系（例如：抚远市隶属佳木斯、绥芬河/东宁隶属牡丹江、虎林/密山隶属鸡西、饶河隶属双鸭山、萝北隶属鹤岗等）。输出要求：1）先给出三省全部地级单位名称列表（含链接或来源）；2）分别给出各省“与外国接壤”的地级单位清单与证据；3）按不同统计口径给出候选总数（如：包含大兴安岭地区 vs 不包含；包含界河 vs 不包含），并明确说明差异原因；4）列出不确定性或可能的分歧点并给出进一步核实建议。请用中文输出，结构化呈现，提供来源链接。\\n---\\nsite:stats.gov.cn 统计用区划和城乡划分代码 2023 黑龙江省 23\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 246,\n        \"text\": \"tjyqhdmhcxhfdm 2023 23.html 黑龙江 统计用区划和城乡划分代码\\n---\\nTitle: 404 Not Found URL Source: https://www https://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/index.html\\n---\\nTitle: URL Source: https://www https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 881,\n        \"text\": \"自然资源部 标准地图服务 黑龙江省 行政区划图 标准地图\\n---\\n[ERROR]: [NOTE]: If the link is a file / image / video / audio, please use other applicable tools, or try to process it in the sandbox. Failed to get content from Jina.ai: Tool execution failed with Jina 422 error, which may indicate the URL is a file. This tool does not support files. If you believe the URL might point to a file, you should try using other applicable tools, or try to process it in the sandbox. Failed to get content from SERPER: Tool execution failed: unhandled errors in a TaskGroup (1 sub-exception) Failed to get content from requests: HTTPConnectionPool(host='bzdt.ch.mnr.gov.cn', port=80): Max retries exceeded with url: /index.html (Caused by NameResolutionError(\\\"<urllib3.connection.HTTPConnection object at 0x1264ce1e0>: Failed to resolve 'bzdt.ch.mnr.gov.cn' ([Errno 8] nodename nor servname provided, or not known)\\\"))\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c009\",\n        \"char_start\": 13120,\n        \"char_end\": 14765,\n        \"text\": \"/hlj/c108516/list_left_tt.shtml - 摘录：截至2024年，黑龙江省现有国家一类口岸27个…水运口岸13个【黑河、逊克、同江、抚远、萝北、饶河、嘉荫、漠河、富锦、孙吴（未开通）、呼玛（未开通）、哈尔滨（已丧失港口功能）、佳木斯（停航未运行）】…公路口岸6个【绥芬河、黑河、东宁、密山、虎林（因俄方维修而单方面关闭）、黑瞎子岛（在建）】…铁路口岸3个【绥芬河、同江、哈尔滨内陆港】…步行口岸1个【黑河（在建）】。 - 吉林省政府（PDF）：关于支持中国图们江区域（珲春）国际合作示范区建设的意见 - 链接：http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf - 摘录：尽快开工建设圈河口岸跨境桥。协调国家有关部委将春化分水岭中俄公路、铁路客货口岸纳入国家口岸发展规划。 - 吉林省人大“吉林省概况”：http://www.jlrd.gov.cn/ztzl/ljhy/13rd3chy/sqsk_137011/202001/t20200104_6430986.html - 摘录：中朝边境线上共有口岸14个，中俄边境线上共有口岸2个。 - 珲春市政府口岸运行通知（示例）：http://www.hunchun.gov.cn/zw_1910/tzgg/201912/t20191202_7138.html - 图们市政府“图们公路口岸”介绍：http://www.tumen.gov.cn/sq_2213/cytm/fgsy/202305/t20230515_418469.html - 辽宁省政府门户“丹东”（“全省唯一的边境城市”）：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml - 摘录：…沿边（朝鲜）、沿江（鸭绿江），是全国最大、全省唯一的边境城市…有8个口岸，其中对外开放一类口岸5个、二类口岸3个。 七、最终答案 - 推荐统计口径（常见理解，含界河且将大兴安岭地区计入地市级）：12 - 组成：黑龙江8（黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区）＋吉林3（延边朝鲜族自治州、通化市、白山市）＋辽宁1（丹东市） - 其他可选口径 - 不含大兴安岭地区（其余同上）：11 - 仅统计陆地边界（排除界河）：3 说明：通常语境下，“接壤”包含以江河为界，且“地区/自治州”属于地级行政单位，因此更常用的答案为12。上述证据与候选口径已完整列示，便于按不同理解自行取用。\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目问“黑龙江、吉林、辽宁，共有多少个地市级行政单位与外国接壤？” 2. “地市级行政单位”包括地级市、地区和自治州。 3. 判定“接壤”时，一般既包括陆地接壤，也包括以江河为界的边界。 4. 据民政部2023年行政区划和各省政府权威资料，可归纳出三省与外国接壤的地市级单位： • 黑龙江（8个）：哈尔滨不靠边境；接壤的有黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区。 • 吉林（3个）：延边朝鲜族自治州、通化市、白山市。 • 辽宁（1个）：丹东市。 5. 总数：8＋3＋1＝12。 **最终答案：** \\\\boxed{12} **置信度：** 77 **支持证据：** - 民政部《2023年县以上行政区划代码》确认地级行政区名单，包含“大兴安岭地区”“延边朝鲜族自治州”。 - 黑龙江省政府“口岸建设”栏目列明与俄罗斯接壤的8个地级单位（含大兴安岭）。 - 吉林省人大“吉林省概况”等文件确认延边、通化、白山与朝鲜/俄罗斯接壤。 - 辽宁省政府门户明言丹东为“全省唯一的边境城市”。 **潜在不足：** - 若题目解读排除“地区”或仅算陆地而不含界河，则数字可能为11或3。但常见口径视“地区”为地级单位且界河属接壤，故取12。\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"工作历程与检索轨迹（摘要） - 目标分解 1) 确认黑龙江、吉林、辽宁三省全部地级行政单位（地级市、地区、自治州）权威清单（优先民政部/国家统计局）；2) 在此基础上甄别与俄罗斯或朝鲜接壤之地级单位，按地级单位逐一核实边界类型（陆地/界河）、下辖边境县市区与边境口岸，并提供权威来源与摘录；3) 汇总不同统计口径下的候选总数并说明差异；4) 标注不确定点与进一步核实建议。特别关注A/B/C/D四项重点。 - 工具调用与结果（精要） 1) 站内搜国家统计局“统计用区划和城乡划分代码”（未命中省级目录页，后择民政部为主源）。 2) 抓取民政部“2023年中华人民共和国县以上行政区划代码”权威页面（成功，获取三省完整地级单位及县级隶属关系清单）。链接：https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html 3) 查询自然资源部标准地图服务（首页解析失败），转而使用省级政府与权威部门网站。 4) 黑龙江省人民政府网“口岸建设”页面抓取成功，获得黑龙江全省对俄各类口岸列表、类型与运行状态，并能对应县市（极关键证据）。链接：https://www.hlj.gov.cn/hlj/c108516/list_left_tt.shtml 5) 吉林省权威：检索到吉林省政府公开文件（PDF）“关于支持中国图们江区域（珲春）国际合作示范区建设的意见”（涉及珲春对俄公路/铁路口岸与圈河跨境桥）、吉林省人大官网“吉林省概况”（明确中朝、中俄口岸数量），并获延边州口岸城市政府网站（珲春、图们）相关口岸页面/通知。 - 吉林省政府PDF（2018）：http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf - 吉林省人大“吉林省概况”：http://www.jlrd.gov.cn/ztzl/ljhy/13rd3chy/sqsk_137011/202001/t20200104_6430986.html - 珲春市人民政府口岸通知示例（圈河/沙坨子闭关通知）：http://www.hunchun.gov.cn/zw_1910/tzgg/201912/t20191202_7138.html - 图们市人民政府“图们公路口岸”介绍：http://www.tumen.gov.cn/sq_2213/cytm/fgsy/202305/t20230515_418469.html 6) 辽宁省权威：辽宁省人民政府门户“丹东”市情抓取成功，获得“全省唯一的边境城市”权威表述（直接回答C项）。链接：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml 最终答案与证据（结构化呈现） 一、三省全部地级行政单位清单（权威来源） - 权威基础来源：民政部《2023年中华人民共和国县以上行政区划代码》（发布页时间：2024-07-23） 链接：https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html - 黑龙江省（13个地级市+1个地区） 哈尔滨市、齐齐哈尔市、鸡西市、鹤岗市、双鸭山市、大庆市、伊春市、佳木斯市、七台河市、牡丹江市、黑河市、绥化市、大兴安岭地区 佐证摘录（民政部页面黑龙江段节选）：230000 黑龙江省…231100 黑河市…231200 绥化市…232700 大兴安岭地区（232701 漠河市、232721 呼玛县、232722 塔河县）… - 吉林省（8市+1州） 长春市、吉林市、四平市、辽源市、通化市、白山市、松原市、白城市、延边朝鲜族自治州 佐证摘录（民政部页面吉林段节选）：220000 吉林省…222400 延边朝鲜族自治州（222401 延吉市、222402 图们市、222403 敦化市、222404 珲春市、222405 龙井市、222406 和龙市、222424 汪清县、222426 安图县）… - 辽宁省（14市） 沈阳市、大连市、鞍山市、抚顺市、本溪市、丹东市、锦州市、营口市、阜新市、辽阳市、盘锦市、铁岭市、朝阳市、葫芦岛市 佐证摘录（民政部页面辽宁段节选）：210000 辽宁省…210600 丹东市…211400 葫芦岛市… 二、各省与外国接\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c006\",\n        \"char_start\": 8200,\n        \"char_end\": 10000,\n        \"text\": \"• 本次已引用省政府PDF作为权威依据，但建议补充查询珲春对俄口岸的最新开通状态、口岸代码及海关/国家口岸办备案信息（如“珲春-克拉斯基诺/马哈林诺”线路最新运行公告）。 - 吉林省通化市、白山市具体口岸页面链接： • 建议检索“集安市人民政府 口岸”“长白县人民政府 口岸”“临江市人民政府 口岸”以获取各口岸的设立批复、功能与运行状态原文，完善县级口岸与界河段落的官方证据链。 - 黑龙江省个别口岸的运行状态随对方口岸建设或检修变动： • 例如“虎林公路口岸（因俄方维修而单方面关闭）”“孙吴/呼玛为未开通运行”等，建议关注黑龙江省政府“口岸建设”栏目与海关总署/国家口岸管理办公室的动态更新。 结论性总结 - 三省地级单位清单以民政部2023年行政区划代码为准，黑龙江含大兴安岭地区（地级）；吉林含延边朝鲜族自治州（地级）；辽宁含丹东等14市。 - 与境外（俄/朝）接壤的地级单位： • 黑龙江：黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区（对俄，界河/陆地并存；证据详见黑龙江省政府“口岸建设”页与民政部隶属）。 • 吉林：延边朝鲜族自治州（对朝界河、对俄陆路/铁路通道）、通化（对朝界河）、白山（对朝界河）（证据见吉林省政府PDF、吉林省人大“概况”、州县政府口岸页）。 • 辽宁：仅丹东（对朝界河）。辽宁省政府门户明确“全省唯一的边境城市”。 - 计数按口径不同为12（含大兴安岭+含界河）/11（不含大兴安岭）/3（仅陆地，不含界河），差异原因已阐明。 - 已提供关键权威链接与原文摘录，可支撑A/B/C/D四项重点核验；对个别县级口岸的细化页面，已提出进一步官方链接核实建议。\\n---\\n任务总结与最终答案 一、工作历程与检索轨迹（高度概述） - 任务拆解与口径设定 - 明确“地市级行政单位”按地级行政区统计（含地级市、地区、自治州），界定“接壤”默认包含陆地边界和以江河为界的边界（不含仅隔海相望）。 - 制定逐省核验路线：先用权威行政区划清单锁定三省全部地级单位，再逐一核对是否与俄罗斯或朝鲜接壤、边界类型（陆地/界河）、对应下辖边境县市区及口岸，并保存来源与原文摘录。 - 同时准备不同统计口径的候选答案：是否计入大兴安岭地区；是否将“界河”视为接壤。 - 信息收集与整合 - 通过一次集中委托外部检索与整合，收集民政部行政区划（2023版）权威清单、黑龙江省政府“口岸建设”权威汇总页、吉林省政府及人大相关权威页面、州县市政府口岸专栏页面，以及辽宁省政府门户对丹东的权威表述。 - 输出形成结构化证据集：三省所有地级单位列表；各接壤单位的接壤国家、边界类型、边境县市区与口岸、来源链接与关键摘录；并汇总不同口径下的候选总数和不确定性及核实建议。 二、权威基础清单：三省全部地级行政单位 - 基础来源：民政部《2023年中华人民共和国县以上行政区划代码》（发布页时间：2024-07-23） 链接：https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html - 黑龙江省（13个地级市+1个地区，共14个地级单位） 哈尔滨市、齐齐哈尔市、鸡西市、鹤岗市、双鸭山市、大庆市、伊春市、佳木斯市、七台河市、牡丹江市、黑河市、绥化市、大兴安岭地区 民政部页面节选：230000 黑龙江省…231100 黑河市…231200 绥化市…232700 大兴安岭地区（232701 漠河市、232721 呼玛县、232722 塔河县）… - 吉林省（8个地级市+1个自治州，共9个地级单位） 长春市、吉林市、四平市、辽源市、通化市、白山市、松原市、白城市、延边朝鲜族自治州 民政部页面节选：220000 吉林省…222400 延边朝鲜族自治州（延吉、图们、敦化、珲春、龙井、和龙、汪清、安图）… - 辽宁省（14个地级市） 沈阳市、大连市、鞍山市、抚顺市、本溪市、丹东市、锦州市、营口市、阜新市、辽阳市、盘锦市、铁岭市、朝阳市、葫芦岛市 三、各省“与外国接壤”的地级单位与证据（含边界类型、下辖边境县市区与口岸、关键来源） 判定口径：包含陆地与界河（黑龙江、乌苏里江、鸭绿江、图们江），不含仅隔海相望。 A. 黑龙江省（对俄罗斯） 总览权威来源：黑龙江省人民政府“口岸建设”栏目（汇总全省对俄口岸类型、状态与分布） - 链接：ht\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 5080,\n        \"text\": \"建设”对密山/虎林公路口岸设立与运行状态有说明。链接同上；隶属见民政部页面。 8) 大兴安岭地区（地级行政区） - 接壤国家与类型：俄罗斯；界河（黑龙江） - 边境县市与口岸：漠河市（232701；漠河水运口岸——明水期水运/封冻期汽车运输）、呼玛县（232721；呼玛水运口岸，未开通运行）、塔河县（232722；界河段） - 证据与摘录： • 是否计入：民政部行政区划明确“232700 大兴安岭地区”为地级行政区（应纳入统计）。链接见民政部页面。 • 黑龙江省政府“口岸建设”：“漠河—加林达口岸为国际客货运输口岸…明水期船舶运输，封冻期进行汽车运输。”并记述“呼玛（因俄方始终未建设而未开通运行）”。链接同上。 B. 吉林省（与朝鲜、俄罗斯接壤） 1) 延边朝鲜族自治州（地级） - 接壤国家与类型：朝鲜（界河：图们江）；俄罗斯（对俄陆路/铁路跨境段） - 边境县市与口岸（示例）： • 珲春市：圈河口岸（对朝；图们江界河跨桥）、沙坨子口岸（对朝；图们江跨桥）、珲春公路/铁路口岸（对俄通道） • 图们市：图们公路口岸（对朝；图们江界河） • 州内其他县市（延吉、和龙、龙井、汪清、安图、敦化）隶属见民政部页面，具体是否设口岸以州/县市政府口岸栏目为准 - 证据与摘录： • 吉林省政府文件（PDF）：“…尽快开工建设圈河口岸跨境桥。协调国家有关部委将春化分水岭中俄公路、铁路客货口岸纳入国家口岸发展规划。”链接：http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf • 吉林省人大“吉林省概况”：“中朝边境线上共有口岸14个，中俄边境线上共有口岸2个。”链接：http://www.jlrd.gov.cn/ztzl/ljhy/13rd3chy/sqsk_137011/202001/t20200104_6430986.html • 珲春市人民政府（通知示例）：“根据中朝两国相关协议，中朝圈河口岸、沙坨子口岸于…闭关1天…。”链接：http://www.hunchun.gov.cn/zw_1910/tzgg/201912/t20191202_7138.html • 图们市人民政府（口岸介绍）：“图们口岸是吉林省立关最早、历史最长的‘百年口岸’，是国家第一批…”链接：http://www.tumen.gov.cn/sq_2213/cytm/fgsy/202305/t20230515_418469.html 2) 通化市 - 接壤国家与类型：朝鲜；界河（鸭绿江） - 边境县市与口岸：集安市（220582；对朝界河口岸方向） - 证据与摘录： • 吉林省人大“吉林省概况”提供省域边境口岸数量权威依据（中朝14个口岸），印证通化所处的中朝界河段属边境；具体“集安口岸”页面需在集安市或通化市政府门户进一步核实（建议见“进一步核实建议”）。 • 隶属见民政部页面。 3) 白山市 - 接壤国家与类型：朝鲜；界河（鸭绿江） - 边境县市与口岸：长白朝鲜族自治县（220623）、临江市（220681）（均在鸭绿江界河段） - 证据与摘录： • 吉林省人大“吉林省概况”同上（提供口岸总量与省域边界格局）；具体“长白口岸/临江口岸”页面建议在白山市及县市政府门户进一步核实（见“进一步核实建议”）。 • 隶属见民政部页面。 C. 辽宁省（与朝鲜接壤） 1) 丹东市 - 接壤国家与类型：朝鲜；界河（鸭绿江） - 边境县市与口岸：丹东市对朝有铁路/公路/港口等，市情称“有8个口岸，其中对外开放一类口岸5个、二类口岸3个” - 关键权威佐证（直接回答“除丹东外是否还有地级单位与朝鲜接壤”）： • 辽宁省人民政府门户“丹东”市情原文：“…沿边（朝鲜）、沿江（鸭绿江），是全国最大、全省唯一的边境城市…有8个口岸，其中对外开放一类口岸5个、二类口岸3个。”链接：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml - 结论：辽宁省除丹东外，无其他地级单位与朝鲜接壤（省政府权威表述“全省唯一的边境城市”）。 三、不同统计口径下的候选总数与差异说明 - 口径A（计入大兴安岭地区；计入界河与陆地边界） • 黑龙江：8个（黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 6720,\n        \"text\": \"/2025101310551566907/index.shtml - 结论：辽宁省除丹东外，无其他地级单位与朝鲜接壤（省政府权威表述“全省唯一的边境城市”）。 三、不同统计口径下的候选总数与差异说明 - 口径A（计入大兴安岭地区；计入界河与陆地边界） • 黑龙江：8个（黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区） • 吉林：3个（延边州、通化市、白山市） • 辽宁：1个（丹东市） • 合计：12 - 口径B（不计入大兴安岭地区；其余同口径A） • 黑龙江：7个（不含大兴安岭地区） • 吉林：3个 • 辽宁：1个 • 合计：11 • 差异原因：大兴安岭地区为地级行政区（民政部代码232700），是否纳入统计取决于统计口径；从行政区划角度应计入。 - 口径C（仅统计“陆地边界”，不含“仅界河边界”） • 黑龙江：2个（牡丹江市、鸡西市；均存在对俄陆地公路/铁路口岸，见“绥芬河”“东宁”“密山”“虎林”） • 吉林：1个（延边州对俄存在公路/铁路客货口岸，见吉林省政府PDF） • 辽宁：0个（丹东为界河鸭绿江） • 合计：3 • 差异原因：界河边界（黑龙江/乌苏里江/鸭绿江/图们江）在本口径被排除；仅保留确证存在陆路跨境口岸的地级单位。 四、重点问题专项说明（A/B/C/D） - A）大兴安岭地区是否计入统计及接壤证据 • 结论：计入。其为地级行政区（民政部代码232700）；与俄接壤（界河），有漠河水运口岸（明水期船运/封冻期汽车运输）与呼玛水运口岸（未开通）。来源： - 民政部行政区划代码页（见上） - 黑龙江省政府“口岸建设”页（“漠河—加林达口岸为国际客货运输口岸…明水期船舶运输，封冻期汽车运输…呼玛…未开通运行”）https://www.hlj.gov.cn/hlj/c108516/list_left_tt.shtml - B）延边朝鲜族自治州计入统计并核实与朝鲜及俄罗斯接壤情况 • 结论：计入（地级自治州，代码222400）；与朝鲜接壤（图们江界河），与俄罗斯接壤（省政府文件明确对俄公路/铁路客货口岸规划与推进）。 • 关键来源： - 民政部行政区划代码页（延边州及所辖县市，见上） - 吉林省政府PDF：“…圈河口岸跨境桥…春化分水岭中俄公路、铁路客货口岸纳入国家口岸发展规划。”http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf - 吉林省人大“吉林省概况”：“中朝边境线上共有口岸14个，中俄边境线上共有口岸2个。”http://www.jlrd.gov.cn/…/t20200104_6430986.html - 珲春/图们市政府口岸页面（见上）。 - C）辽宁除丹东外是否还有地级单位与朝鲜接壤 • 结论：无。辽宁省政府门户“丹东”市情明确“全省唯一的边境城市”。来源与原文链接：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml - D）黑龙江接壤地级单位之接壤证据与边境县市隶属关系（举例与核实） • 抚远市隶属佳木斯；抚远水运口岸（界河）。隶属依据：民政部（230883 抚远市）；口岸依据：黑龙江省政府“口岸建设”（抚远水运口岸…国际客货运输一类口岸）。 • 绥芬河/东宁隶属牡丹江；绥芬河铁路/公路口岸（陆地），东宁公路口岸（陆地）。隶属依据：民政部（231081/231086）；口岸依据：同“口岸建设”页。 • 虎林/密山隶属鸡西；虎林/密山公路口岸（陆地；虎林现俄方维修单方关闭）。隶属依据：民政部（230381/230382）；口岸依据：同“口岸建设”页。 • 饶河隶属双鸭山；饶河水运口岸（界河乌苏里江）。隶属依据：民政部（230524）；口岸依据：同“口岸建设”页。 • 萝北隶属鹤岗；萝北水运口岸（界河黑龙江）。隶属依据：民政部（230421）；口岸依据：同“口岸建设”页。 • 逊克/孙吴隶属黑河；逊克/孙吴水运口岸（孙吴未开通）。隶属依据：民政部（231123/231124）；口岸依据：同“口岸建设”页。 • 嘉荫隶属伊春；嘉荫水运口岸（界河）。隶属依据：民政部（230723）；口岸依据：同“口岸建设”页。 • 漠河/呼玛隶属大兴安岭地区；漠河/呼玛水运口岸（界河，漠河具明\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0448",
+        "support_records": [],
+        "notes": "",
+        "_fallback_error": "LLM call failed after retries: HTTP Error 500: Internal Server Error"
+      },
+      "validated": []
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0448\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"黑龙江、吉林、辽宁，共有多少个地市级行政单位与外国接壤？\",\n  \"traj_id\": \"0448\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0448\",\n    \"task_goal\": \"短字符串\",\n    \"hard_constraints\": [\n      \"短字符串\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"黑龙江、吉林、辽宁，共有多少个地市级行政单位与外国接壤？\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s001\",\n        \"used_by\": [],\n        \"claim_type\": \"entity\",\n        \"status\": \"tentative\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"三省全部地级行政单位（地级市、地区、自治州）权威清单（优先民政部/国家统计局）\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s002\",\n        \"used_by\": [],\n        \"claim_type\": \"retrieval\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"与俄罗斯接壤的地级单位清单与证据\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"与朝鲜接壤的地级单位清单与证据\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"不同统计口径下的候选总数与差异说明\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [],\n        \"claim_type\": \"compute\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"claim\": \"重点问题专项说明（A/B/C/D）\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"claim\": \"最终答案：12\",\n        \"introduced_at\": \"\",\n        \"becomes_consequential_at\": \"\",\n        \"used_by\": [],\n        \"claim_type\": \"compute\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"短字符串\"\n  },\n  \"support_records\": [],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s002\",\n      \"s003\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"三省全部地级行政单位（地级市、地区、自治州）权威清单（优先民政部/国家统计局）\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s009:c006\",\n          \"s009:c009\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"与俄罗斯接壤的地级单位清单与证据\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"与朝鲜接壤的地级单位清单与证据\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"query\": \"不同统计口径下的候选总数与差异说明\",\n        \"matched_chunk_ids\": [\n          \"s009:c003\",\n          \"s009:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"query\": \"重点问题专项说明（A/B/C/D）\",\n        \"matched_chunk_ids\": [\n          \"s009:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"query\": \"最终答案：12\",\n        \"matched_chunk_ids\": [\n          \"s009:c009\",\n          \"s009:c001\",\n          \"s009:c006\"\n        ],\n        \"matched_span_ids\": [\n          \"s009\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 765,\n        \"text\": \"请系统检索并整理：黑龙江省、吉林省、辽宁省目前的地级行政单位（地级市、地区、自治州等）完整清单，并在此基础上逐一核实其中哪些与外国（俄罗斯或朝鲜）接壤。接壤判定口径：包含陆地与界河边界（如以黑龙江、乌苏里江、鸭绿江、图们江为界），不包含仅隔海相望的情形。对每一个被判定为“接壤”的地级单位，提供：1）与哪一国家接壤；2）边界类型（陆地或界河）；3）具体下辖的县/市/区名称与边境口岸（如有）；4）至少1—2条权威来源链接（优先：自然资源部标准地图服务、省政府/民政部/国家统计局官方行政区划或公告；也可辅以有权威参考的百科条目、政府官网、地图服务官方说明）；5）简要摘录或概述来源中的关键佐证语句。请特别关注并明确标注以下事项：A）黑龙江“大兴安岭地区”作为地级行政区是否计入统计（请提供其边界与接壤情况证据）；B）吉林“延边朝鲜族自治州”作为地级行政区计入统计，并核实其与朝鲜及俄罗斯的接壤情况；C）辽宁是否除丹东外还有地级单位与朝鲜接壤（如无请提供权威说明或边界归属地图）；D）黑龙江境内具体接壤的地级单位（如黑河、牡丹江、鸡西、佳木斯、双鸭山、鹤岗、大兴安岭地区等）的接壤证据与下辖边境县市的准确隶属关系（例如：抚远市隶属佳木斯、绥芬河/东宁隶属牡丹江、虎林/密山隶属鸡西、饶河隶属双鸭山、萝北隶属鹤岗等）。输出要求：1）先给出三省全部地级单位名称列表（含链接或来源）；2）分别给出各省“与外国接壤”的地级单位清单与证据；3）按不同统计口径给出候选总数（如：包含大兴安岭地区 vs 不包含；包含界河 vs 不包含），并明确说明差异原因；4）列出不确定性或可能的分歧点并给出进一步核实建议。请用中文输出，结构化呈现，提供来源链接。\\n---\\nsite:stats.gov.cn 统计用区划和城乡划分代码 2023 黑龙江省 23\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 246,\n        \"text\": \"tjyqhdmhcxhfdm 2023 23.html 黑龙江 统计用区划和城乡划分代码\\n---\\nTitle: 404 Not Found URL Source: https://www https://www.stats.gov.cn/sj/tjbz/tjyqhdmhcxhfdm/2023/index.html\\n---\\nTitle: URL Source: https://www https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 881,\n        \"text\": \"自然资源部 标准地图服务 黑龙江省 行政区划图 标准地图\\n---\\n[ERROR]: [NOTE]: If the link is a file / image / video / audio, please use other applicable tools, or try to process it in the sandbox. Failed to get content from Jina.ai: Tool execution failed with Jina 422 error, which may indicate the URL is a file. This tool does not support files. If you believe the URL might point to a file, you should try using other applicable tools, or try to process it in the sandbox. Failed to get content from SERPER: Tool execution failed: unhandled errors in a TaskGroup (1 sub-exception) Failed to get content from requests: HTTPConnectionPool(host='bzdt.ch.mnr.gov.cn', port=80): Max retries exceeded with url: /index.html (Caused by NameResolutionError(\\\"<urllib3.connection.HTTPConnection object at 0x1264ce1e0>: Failed to resolve 'bzdt.ch.mnr.gov.cn' ([Errno 8] nodename nor servname provided, or not known)\\\"))\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c009\",\n        \"char_start\": 13120,\n        \"char_end\": 14765,\n        \"text\": \"/hlj/c108516/list_left_tt.shtml - 摘录：截至2024年，黑龙江省现有国家一类口岸27个…水运口岸13个【黑河、逊克、同江、抚远、萝北、饶河、嘉荫、漠河、富锦、孙吴（未开通）、呼玛（未开通）、哈尔滨（已丧失港口功能）、佳木斯（停航未运行）】…公路口岸6个【绥芬河、黑河、东宁、密山、虎林（因俄方维修而单方面关闭）、黑瞎子岛（在建）】…铁路口岸3个【绥芬河、同江、哈尔滨内陆港】…步行口岸1个【黑河（在建）】。 - 吉林省政府（PDF）：关于支持中国图们江区域（珲春）国际合作示范区建设的意见 - 链接：http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf - 摘录：尽快开工建设圈河口岸跨境桥。协调国家有关部委将春化分水岭中俄公路、铁路客货口岸纳入国家口岸发展规划。 - 吉林省人大“吉林省概况”：http://www.jlrd.gov.cn/ztzl/ljhy/13rd3chy/sqsk_137011/202001/t20200104_6430986.html - 摘录：中朝边境线上共有口岸14个，中俄边境线上共有口岸2个。 - 珲春市政府口岸运行通知（示例）：http://www.hunchun.gov.cn/zw_1910/tzgg/201912/t20191202_7138.html - 图们市政府“图们公路口岸”介绍：http://www.tumen.gov.cn/sq_2213/cytm/fgsy/202305/t20230515_418469.html - 辽宁省政府门户“丹东”（“全省唯一的边境城市”）：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml - 摘录：…沿边（朝鲜）、沿江（鸭绿江），是全国最大、全省唯一的边境城市…有8个口岸，其中对外开放一类口岸5个、二类口岸3个。 七、最终答案 - 推荐统计口径（常见理解，含界河且将大兴安岭地区计入地市级）：12 - 组成：黑龙江8（黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区）＋吉林3（延边朝鲜族自治州、通化市、白山市）＋辽宁1（丹东市） - 其他可选口径 - 不含大兴安岭地区（其余同上）：11 - 仅统计陆地边界（排除界河）：3 说明：通常语境下，“接壤”包含以江河为界，且“地区/自治州”属于地级行政单位，因此更常用的答案为12。上述证据与候选口径已完整列示，便于按不同理解自行取用。\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目问“黑龙江、吉林、辽宁，共有多少个地市级行政单位与外国接壤？” 2. “地市级行政单位”包括地级市、地区和自治州。 3. 判定“接壤”时，一般既包括陆地接壤，也包括以江河为界的边界。 4. 据民政部2023年行政区划和各省政府权威资料，可归纳出三省与外国接壤的地市级单位： • 黑龙江（8个）：哈尔滨不靠边境；接壤的有黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区。 • 吉林（3个）：延边朝鲜族自治州、通化市、白山市。 • 辽宁（1个）：丹东市。 5. 总数：8＋3＋1＝12。 **最终答案：** \\\\boxed{12} **置信度：** 77 **支持证据：** - 民政部《2023年县以上行政区划代码》确认地级行政区名单，包含“大兴安岭地区”“延边朝鲜族自治州”。 - 黑龙江省政府“口岸建设”栏目列明与俄罗斯接壤的8个地级单位（含大兴安岭）。 - 吉林省人大“吉林省概况”等文件确认延边、通化、白山与朝鲜/俄罗斯接壤。 - 辽宁省政府门户明言丹东为“全省唯一的边境城市”。 **潜在不足：** - 若题目解读排除“地区”或仅算陆地而不含界河，则数字可能为11或3。但常见口径视“地区”为地级单位且界河属接壤，故取12。\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"工作历程与检索轨迹（摘要） - 目标分解 1) 确认黑龙江、吉林、辽宁三省全部地级行政单位（地级市、地区、自治州）权威清单（优先民政部/国家统计局）；2) 在此基础上甄别与俄罗斯或朝鲜接壤之地级单位，按地级单位逐一核实边界类型（陆地/界河）、下辖边境县市区与边境口岸，并提供权威来源与摘录；3) 汇总不同统计口径下的候选总数并说明差异；4) 标注不确定点与进一步核实建议。特别关注A/B/C/D四项重点。 - 工具调用与结果（精要） 1) 站内搜国家统计局“统计用区划和城乡划分代码”（未命中省级目录页，后择民政部为主源）。 2) 抓取民政部“2023年中华人民共和国县以上行政区划代码”权威页面（成功，获取三省完整地级单位及县级隶属关系清单）。链接：https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html 3) 查询自然资源部标准地图服务（首页解析失败），转而使用省级政府与权威部门网站。 4) 黑龙江省人民政府网“口岸建设”页面抓取成功，获得黑龙江全省对俄各类口岸列表、类型与运行状态，并能对应县市（极关键证据）。链接：https://www.hlj.gov.cn/hlj/c108516/list_left_tt.shtml 5) 吉林省权威：检索到吉林省政府公开文件（PDF）“关于支持中国图们江区域（珲春）国际合作示范区建设的意见”（涉及珲春对俄公路/铁路口岸与圈河跨境桥）、吉林省人大官网“吉林省概况”（明确中朝、中俄口岸数量），并获延边州口岸城市政府网站（珲春、图们）相关口岸页面/通知。 - 吉林省政府PDF（2018）：http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf - 吉林省人大“吉林省概况”：http://www.jlrd.gov.cn/ztzl/ljhy/13rd3chy/sqsk_137011/202001/t20200104_6430986.html - 珲春市人民政府口岸通知示例（圈河/沙坨子闭关通知）：http://www.hunchun.gov.cn/zw_1910/tzgg/201912/t20191202_7138.html - 图们市人民政府“图们公路口岸”介绍：http://www.tumen.gov.cn/sq_2213/cytm/fgsy/202305/t20230515_418469.html 6) 辽宁省权威：辽宁省人民政府门户“丹东”市情抓取成功，获得“全省唯一的边境城市”权威表述（直接回答C项）。链接：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml 最终答案与证据（结构化呈现） 一、三省全部地级行政单位清单（权威来源） - 权威基础来源：民政部《2023年中华人民共和国县以上行政区划代码》（发布页时间：2024-07-23） 链接：https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html - 黑龙江省（13个地级市+1个地区） 哈尔滨市、齐齐哈尔市、鸡西市、鹤岗市、双鸭山市、大庆市、伊春市、佳木斯市、七台河市、牡丹江市、黑河市、绥化市、大兴安岭地区 佐证摘录（民政部页面黑龙江段节选）：230000 黑龙江省…231100 黑河市…231200 绥化市…232700 大兴安岭地区（232701 漠河市、232721 呼玛县、232722 塔河县）… - 吉林省（8市+1州） 长春市、吉林市、四平市、辽源市、通化市、白山市、松原市、白城市、延边朝鲜族自治州 佐证摘录（民政部页面吉林段节选）：220000 吉林省…222400 延边朝鲜族自治州（222401 延吉市、222402 图们市、222403 敦化市、222404 珲春市、222405 龙井市、222406 和龙市、222424 汪清县、222426 安图县）… - 辽宁省（14市） 沈阳市、大连市、鞍山市、抚顺市、本溪市、丹东市、锦州市、营口市、阜新市、辽阳市、盘锦市、铁岭市、朝阳市、葫芦岛市 佐证摘录（民政部页面辽宁段节选）：210000 辽宁省…210600 丹东市…211400 葫芦岛市… 二、各省与外国接\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c006\",\n        \"char_start\": 8200,\n        \"char_end\": 10000,\n        \"text\": \"• 本次已引用省政府PDF作为权威依据，但建议补充查询珲春对俄口岸的最新开通状态、口岸代码及海关/国家口岸办备案信息（如“珲春-克拉斯基诺/马哈林诺”线路最新运行公告）。 - 吉林省通化市、白山市具体口岸页面链接： • 建议检索“集安市人民政府 口岸”“长白县人民政府 口岸”“临江市人民政府 口岸”以获取各口岸的设立批复、功能与运行状态原文，完善县级口岸与界河段落的官方证据链。 - 黑龙江省个别口岸的运行状态随对方口岸建设或检修变动： • 例如“虎林公路口岸（因俄方维修而单方面关闭）”“孙吴/呼玛为未开通运行”等，建议关注黑龙江省政府“口岸建设”栏目与海关总署/国家口岸管理办公室的动态更新。 结论性总结 - 三省地级单位清单以民政部2023年行政区划代码为准，黑龙江含大兴安岭地区（地级）；吉林含延边朝鲜族自治州（地级）；辽宁含丹东等14市。 - 与境外（俄/朝）接壤的地级单位： • 黑龙江：黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区（对俄，界河/陆地并存；证据详见黑龙江省政府“口岸建设”页与民政部隶属）。 • 吉林：延边朝鲜族自治州（对朝界河、对俄陆路/铁路通道）、通化（对朝界河）、白山（对朝界河）（证据见吉林省政府PDF、吉林省人大“概况”、州县政府口岸页）。 • 辽宁：仅丹东（对朝界河）。辽宁省政府门户明确“全省唯一的边境城市”。 - 计数按口径不同为12（含大兴安岭+含界河）/11（不含大兴安岭）/3（仅陆地，不含界河），差异原因已阐明。 - 已提供关键权威链接与原文摘录，可支撑A/B/C/D四项重点核验；对个别县级口岸的细化页面，已提出进一步官方链接核实建议。\\n---\\n任务总结与最终答案 一、工作历程与检索轨迹（高度概述） - 任务拆解与口径设定 - 明确“地市级行政单位”按地级行政区统计（含地级市、地区、自治州），界定“接壤”默认包含陆地边界和以江河为界的边界（不含仅隔海相望）。 - 制定逐省核验路线：先用权威行政区划清单锁定三省全部地级单位，再逐一核对是否与俄罗斯或朝鲜接壤、边界类型（陆地/界河）、对应下辖边境县市区及口岸，并保存来源与原文摘录。 - 同时准备不同统计口径的候选答案：是否计入大兴安岭地区；是否将“界河”视为接壤。 - 信息收集与整合 - 通过一次集中委托外部检索与整合，收集民政部行政区划（2023版）权威清单、黑龙江省政府“口岸建设”权威汇总页、吉林省政府及人大相关权威页面、州县市政府口岸专栏页面，以及辽宁省政府门户对丹东的权威表述。 - 输出形成结构化证据集：三省所有地级单位列表；各接壤单位的接壤国家、边界类型、边境县市区与口岸、来源链接与关键摘录；并汇总不同口径下的候选总数和不确定性及核实建议。 二、权威基础清单：三省全部地级行政单位 - 基础来源：民政部《2023年中华人民共和国县以上行政区划代码》（发布页时间：2024-07-23） 链接：https://www.mca.gov.cn/mzsj/xzqh/2023/202301xzqh.html - 黑龙江省（13个地级市+1个地区，共14个地级单位） 哈尔滨市、齐齐哈尔市、鸡西市、鹤岗市、双鸭山市、大庆市、伊春市、佳木斯市、七台河市、牡丹江市、黑河市、绥化市、大兴安岭地区 民政部页面节选：230000 黑龙江省…231100 黑河市…231200 绥化市…232700 大兴安岭地区（232701 漠河市、232721 呼玛县、232722 塔河县）… - 吉林省（8个地级市+1个自治州，共9个地级单位） 长春市、吉林市、四平市、辽源市、通化市、白山市、松原市、白城市、延边朝鲜族自治州 民政部页面节选：220000 吉林省…222400 延边朝鲜族自治州（延吉、图们、敦化、珲春、龙井、和龙、汪清、安图）… - 辽宁省（14个地级市） 沈阳市、大连市、鞍山市、抚顺市、本溪市、丹东市、锦州市、营口市、阜新市、辽阳市、盘锦市、铁岭市、朝阳市、葫芦岛市 三、各省“与外国接壤”的地级单位与证据（含边界类型、下辖边境县市区与口岸、关键来源） 判定口径：包含陆地与界河（黑龙江、乌苏里江、鸭绿江、图们江），不含仅隔海相望。 A. 黑龙江省（对俄罗斯） 总览权威来源：黑龙江省人民政府“口岸建设”栏目（汇总全省对俄口岸类型、状态与分布） - 链接：ht\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 5080,\n        \"text\": \"建设”对密山/虎林公路口岸设立与运行状态有说明。链接同上；隶属见民政部页面。 8) 大兴安岭地区（地级行政区） - 接壤国家与类型：俄罗斯；界河（黑龙江） - 边境县市与口岸：漠河市（232701；漠河水运口岸——明水期水运/封冻期汽车运输）、呼玛县（232721；呼玛水运口岸，未开通运行）、塔河县（232722；界河段） - 证据与摘录： • 是否计入：民政部行政区划明确“232700 大兴安岭地区”为地级行政区（应纳入统计）。链接见民政部页面。 • 黑龙江省政府“口岸建设”：“漠河—加林达口岸为国际客货运输口岸…明水期船舶运输，封冻期进行汽车运输。”并记述“呼玛（因俄方始终未建设而未开通运行）”。链接同上。 B. 吉林省（与朝鲜、俄罗斯接壤） 1) 延边朝鲜族自治州（地级） - 接壤国家与类型：朝鲜（界河：图们江）；俄罗斯（对俄陆路/铁路跨境段） - 边境县市与口岸（示例）： • 珲春市：圈河口岸（对朝；图们江界河跨桥）、沙坨子口岸（对朝；图们江跨桥）、珲春公路/铁路口岸（对俄通道） • 图们市：图们公路口岸（对朝；图们江界河） • 州内其他县市（延吉、和龙、龙井、汪清、安图、敦化）隶属见民政部页面，具体是否设口岸以州/县市政府口岸栏目为准 - 证据与摘录： • 吉林省政府文件（PDF）：“…尽快开工建设圈河口岸跨境桥。协调国家有关部委将春化分水岭中俄公路、铁路客货口岸纳入国家口岸发展规划。”链接：http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf • 吉林省人大“吉林省概况”：“中朝边境线上共有口岸14个，中俄边境线上共有口岸2个。”链接：http://www.jlrd.gov.cn/ztzl/ljhy/13rd3chy/sqsk_137011/202001/t20200104_6430986.html • 珲春市人民政府（通知示例）：“根据中朝两国相关协议，中朝圈河口岸、沙坨子口岸于…闭关1天…。”链接：http://www.hunchun.gov.cn/zw_1910/tzgg/201912/t20191202_7138.html • 图们市人民政府（口岸介绍）：“图们口岸是吉林省立关最早、历史最长的‘百年口岸’，是国家第一批…”链接：http://www.tumen.gov.cn/sq_2213/cytm/fgsy/202305/t20230515_418469.html 2) 通化市 - 接壤国家与类型：朝鲜；界河（鸭绿江） - 边境县市与口岸：集安市（220582；对朝界河口岸方向） - 证据与摘录： • 吉林省人大“吉林省概况”提供省域边境口岸数量权威依据（中朝14个口岸），印证通化所处的中朝界河段属边境；具体“集安口岸”页面需在集安市或通化市政府门户进一步核实（建议见“进一步核实建议”）。 • 隶属见民政部页面。 3) 白山市 - 接壤国家与类型：朝鲜；界河（鸭绿江） - 边境县市与口岸：长白朝鲜族自治县（220623）、临江市（220681）（均在鸭绿江界河段） - 证据与摘录： • 吉林省人大“吉林省概况”同上（提供口岸总量与省域边界格局）；具体“长白口岸/临江口岸”页面建议在白山市及县市政府门户进一步核实（见“进一步核实建议”）。 • 隶属见民政部页面。 C. 辽宁省（与朝鲜接壤） 1) 丹东市 - 接壤国家与类型：朝鲜；界河（鸭绿江） - 边境县市与口岸：丹东市对朝有铁路/公路/港口等，市情称“有8个口岸，其中对外开放一类口岸5个、二类口岸3个” - 关键权威佐证（直接回答“除丹东外是否还有地级单位与朝鲜接壤”）： • 辽宁省人民政府门户“丹东”市情原文：“…沿边（朝鲜）、沿江（鸭绿江），是全国最大、全省唯一的边境城市…有8个口岸，其中对外开放一类口岸5个、二类口岸3个。”链接：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml - 结论：辽宁省除丹东外，无其他地级单位与朝鲜接壤（省政府权威表述“全省唯一的边境城市”）。 三、不同统计口径下的候选总数与差异说明 - 口径A（计入大兴安岭地区；计入界河与陆地边界） • 黑龙江：8个（黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 6720,\n        \"text\": \"/2025101310551566907/index.shtml - 结论：辽宁省除丹东外，无其他地级单位与朝鲜接壤（省政府权威表述“全省唯一的边境城市”）。 三、不同统计口径下的候选总数与差异说明 - 口径A（计入大兴安岭地区；计入界河与陆地边界） • 黑龙江：8个（黑河、伊春、鹤岗、双鸭山、佳木斯、牡丹江、鸡西、大兴安岭地区） • 吉林：3个（延边州、通化市、白山市） • 辽宁：1个（丹东市） • 合计：12 - 口径B（不计入大兴安岭地区；其余同口径A） • 黑龙江：7个（不含大兴安岭地区） • 吉林：3个 • 辽宁：1个 • 合计：11 • 差异原因：大兴安岭地区为地级行政区（民政部代码232700），是否纳入统计取决于统计口径；从行政区划角度应计入。 - 口径C（仅统计“陆地边界”，不含“仅界河边界”） • 黑龙江：2个（牡丹江市、鸡西市；均存在对俄陆地公路/铁路口岸，见“绥芬河”“东宁”“密山”“虎林”） • 吉林：1个（延边州对俄存在公路/铁路客货口岸，见吉林省政府PDF） • 辽宁：0个（丹东为界河鸭绿江） • 合计：3 • 差异原因：界河边界（黑龙江/乌苏里江/鸭绿江/图们江）在本口径被排除；仅保留确证存在陆路跨境口岸的地级单位。 四、重点问题专项说明（A/B/C/D） - A）大兴安岭地区是否计入统计及接壤证据 • 结论：计入。其为地级行政区（民政部代码232700）；与俄接壤（界河），有漠河水运口岸（明水期船运/封冻期汽车运输）与呼玛水运口岸（未开通）。来源： - 民政部行政区划代码页（见上） - 黑龙江省政府“口岸建设”页（“漠河—加林达口岸为国际客货运输口岸…明水期船舶运输，封冻期汽车运输…呼玛…未开通运行”）https://www.hlj.gov.cn/hlj/c108516/list_left_tt.shtml - B）延边朝鲜族自治州计入统计并核实与朝鲜及俄罗斯接壤情况 • 结论：计入（地级自治州，代码222400）；与朝鲜接壤（图们江界河），与俄罗斯接壤（省政府文件明确对俄公路/铁路客货口岸规划与推进）。 • 关键来源： - 民政部行政区划代码页（延边州及所辖县市，见上） - 吉林省政府PDF：“…圈河口岸跨境桥…春化分水岭中俄公路、铁路客货口岸纳入国家口岸发展规划。”http://xxgk.jl.gov.cn/PDFfile/201812/5349087.pdf - 吉林省人大“吉林省概况”：“中朝边境线上共有口岸14个，中俄边境线上共有口岸2个。”http://www.jlrd.gov.cn/…/t20200104_6430986.html - 珲春/图们市政府口岸页面（见上）。 - C）辽宁除丹东外是否还有地级单位与朝鲜接壤 • 结论：无。辽宁省政府门户“丹东”市情明确“全省唯一的边境城市”。来源与原文链接：https://www.ln.gov.cn/web/sqgk/csmp/2025101310551566907/index.shtml - D）黑龙江接壤地级单位之接壤证据与边境县市隶属关系（举例与核实） • 抚远市隶属佳木斯；抚远水运口岸（界河）。隶属依据：民政部（230883 抚远市）；口岸依据：黑龙江省政府“口岸建设”（抚远水运口岸…国际客货运输一类口岸）。 • 绥芬河/东宁隶属牡丹江；绥芬河铁路/公路口岸（陆地），东宁公路口岸（陆地）。隶属依据：民政部（231081/231086）；口岸依据：同“口岸建设”页。 • 虎林/密山隶属鸡西；虎林/密山公路口岸（陆地；虎林现俄方维修单方关闭）。隶属依据：民政部（230381/230382）；口岸依据：同“口岸建设”页。 • 饶河隶属双鸭山；饶河水运口岸（界河乌苏里江）。隶属依据：民政部（230524）；口岸依据：同“口岸建设”页。 • 萝北隶属鹤岗；萝北水运口岸（界河黑龙江）。隶属依据：民政部（230421）；口岸依据：同“口岸建设”页。 • 逊克/孙吴隶属黑河；逊克/孙吴水运口岸（孙吴未开通）。隶属依据：民政部（231123/231124）；口岸依据：同“口岸建设”页。 • 嘉荫隶属伊春；嘉荫水运口岸（界河）。隶属依据：民政部（230723）；口岸依据：同“口岸建设”页。 • 漠河/呼玛隶属大兴安岭地区；漠河/呼玛水运口岸（界河，漠河具明\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0448",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0448",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [],
+        "non_errors": [],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 9,
+    "evidence_span_count": 4
+  },
+  "usage": {
+    "call_count": 2,
+    "input_tokens": 23731,
+    "output_tokens": 817,
+    "total_tokens": 24548
+  }
+}

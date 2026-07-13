@@ -1,0 +1,54 @@
+{
+  "setting": "bare",
+  "case_id": "0973",
+  "prediction": {
+    "traj_id": "0973",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0973\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"考虑全球影史票房榜top20的影片，其中21世纪的第一部，当中国将它引进并在大陆上映时，负责发行的两家公司中，LOGO中未出现绿色的那一家，LOGO上共有几个英文字母？\",\n  \"traj_id\": \"0973\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"考虑全球影史票房榜top20的影片，其中21世纪的第一部，当中国将它引进并在大陆上映时，负责发行的两家公司中，LOGO中未出现绿色的那一家，LOGO上共有几个英文字母\\n---\\n最终答案:26\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"DomesticInternationalWorldwideCalendarAll TimeShowdownsIndices Overall Weekend RecordsDaily RecordsMiscellaneous Records Top Lifetime Grosses Domestic Worldwide Data as of Jan 15, 17:56 PST Previous page 1-200 of 1,000 N\\n---\\nCurrent Box Office Mojo “All\\n---\\nThought: I need to identify the earliest 21st-century film within the current global all-time box office top 20 (unadjusted)\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"豆瓣 阿凡达 2009 发行公司 阿凡达 豆瓣 发行公司\\n---\\n登录/注册 下载豆瓣客户端 豆瓣 读书 电影 音乐 播客 同城 小组 阅读 FM 时间 豆品 豆瓣电影 影讯&购票 选电影 选剧集 排行榜 影评 2025年度榜单 2025年度报告 No\\n---\\n时光网 阿凡达 2009 发行公司 阿凡达 时光网 发行公司\\n---\\nsite:mtime.com 阿凡达 发行公司 mtime 阿凡达 Avatar 2009 发行公司\\n---\\nsite:movie.mtime.com 阿凡达 2009 头像 阿凡达 资料 发行公司\\n---\\n登录/注册 下载豆瓣客户端 豆瓣 读书 电影 音乐 播客 同城 小组 阅读 FM 时间 豆品 豆瓣电影 影讯&购票 选电影 选剧集 排行榜 影评 2025年度榜单 2025年度报告 No\\n---\\n阿凡达 中国大陆 发行 中国电影集团 华夏 联合发行 2010 媒体报道\\n---\\n阿凡达 中国电影集团 华夏 发行 中国大陆 媒体报道 2010 年 1 月\\n---\\nsite:movie.douban.com 1652587 发行公司\\n---\\n豆瓣 打开App 这个页面不在了 返回豆瓣首页 或者使用豆瓣App\\n---\\nsite:xinhuanet.com 阿凡达 中国电影集团 2010 中国大陆 上映 发行 华夏\\n---\\nsite:movie.mtime.com 阿凡达 Avatar\\n---\\nConclusion: In Mainland China, Avatar (2009) was distributed jointly by China Film Group Corporation (中国电影集团公司, often abbreviated “中影集团”) and Huaxia Film Distribution Co\\n---\\nCLG Wiki China Film Group Corporation logo ident\\n---\\nhttps://www.avid.wiki/China_Film_Group_Corporation\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"SIGN IN REGISTER EXPLORE BROWSE WIKI EDIT MAINTENANCE COMMUNITY SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT The Closing Logo Group 8,156 PAGES EXPLORE BROWSE WIKI EDIT MAINTENANCE COMMUNITY in: China China Film Gr\\n---\\nHuaxia Film Distribution Co., Ltd. logo ident CLG Wiki\\n---\\nSIGN IN REGISTER EXPLORE BROWSE WIKI EDIT MAINTENANCE COMMUNITY SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT The Closing Logo Group 8,155 PAGES EXPLORE BROWSE WIKI EDIT MAINTENANCE COMMUNITY Huaxia Film Distributio\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"中国电影集团公司 片头 标志 2010 英文\\n---\\nsite:avid.wiki Huaxia Film Distribution\\n---\\n中国电影集团公司 片头 标志 蓝色 弧形 胶片 2010\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n华夏电影发行有限责任公司 片头 2010 标志 英文\\n---\\nLOGOPEDIA Welcome to Logopedia\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Huaxia Film Distribution official website\\n---\\n中国电影集团公司（CFGC）2010年前后的片头/Logo：使用的是“蓝色弧形＋蓝色胶片”静态徽记版本（黑底），徽记下配中英文双语字样\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: The task is to find, among the global all-time box office top 20 films, the first one from the 21st century\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0973",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 8
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1714,
+    "output_tokens": 62,
+    "total_tokens": 1776
+  }
+}

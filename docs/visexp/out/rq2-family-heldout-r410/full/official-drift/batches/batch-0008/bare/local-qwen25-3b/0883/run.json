@@ -1,0 +1,57 @@
+{
+  "setting": "bare",
+  "case_id": "0883",
+  "prediction": {
+    "traj_id": "0883",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0883\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"有一个乐队 它的录音室在中国北方一个电影制片厂内 这个乐队第一张专辑的封面字体是谁发明的？\",\n  \"traj_id\": \"0883\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"有一个乐队 它的录音室在中国北方一个电影制片厂内 这个乐队第一张专辑的封面字体是谁发明的\\n---\\n中国北方电影制片厂\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"长春电影制片厂 乐队 录音室\\n---\\n长春电影制片厂 乐队 交响乐团\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 2 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n长春电影制片厂 录音棚 音乐录音\\n---\\nChangchun Film Studio band recording studio history\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"长影乐团 录音棚 七棚音乐厅\\n---\\n长春电影制片厂 混录棚 音乐录制 我的祖国\\n---\\n长影 音乐创作室 作曲家 雷振邦 刘炽\\n---\\n长春电影制片厂 北方 北影 八一 上影 珠影\\n---\\n中国北方电影制片厂 天津 北方电影集团\\n---\\nThe search query \\\"中国北方电影制片厂 乐队 录音室\\\" (Northern China Film Studio band recording studio) most likely refers to **Changchun Film Studio (长春电影制片厂)** and its associated **Changchun Film Orchestra (长影乐团)**, along with the stud\\n---\\n二手玫瑰 长春电影制片厂 录音室\\n---\\nSecond Hand Rose band 二手玫瑰 Changchun Film Studio recording\\n---\\n二手玫瑰 专辑 录音地点 录音室\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 乐队成员 乐队历史 专辑 开关专辑子章节 录音室专辑 个人单曲 演唱会 外部链接 參考文獻 二手玫瑰 7种语言 条目 讨论 不转换 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 二手玫瑰 二手玫瑰2014年在WebsterHall演出，左二为主唱梁龙 组合 英文名 Second Hand Rose 国籍 中华人民共和国 音乐类型 摇滚 演奏乐器\\n---\\n二手玫瑰 2003 首张专辑 录音 长春电影制片厂\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百科\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"二手玫瑰 2003 专辑 录音师 录音地点 制作\\n---\\n二手玫瑰 首张专辑 录音 王迪 制作 2003\\n---\\n二手玫瑰 梁龙 长春 录音 专辑\\n---\\n长春电影制片厂 录音室 历史 设施\\n---\\n\\\"二手玫瑰\\\" \\\"长春电影制片厂\\\" OR \\\"长影\\\" 录音\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"二手玫瑰 长春 录音 专辑制作\\n---\\nAfter conducting comprehensive searches in both Chinese and English, I was **unable to find any documented evidence** of a direct connection between Second Hand Rose band (二手玫瑰) and Changchun Film Studio's (长春电影制片厂) reco\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need to search for information about a band in China that has a recording studio inside a film studio in northern China\\n---\\nI need to take a different approach\\n---\\nI need to take a completely different approach\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0883",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 7
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1733,
+    "output_tokens": 68,
+    "total_tokens": 1801
+  }
+}

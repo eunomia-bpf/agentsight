@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0716",
+  "prediction": {
+    "traj_id": "0716",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "Whyte notation counts wheels on ONE SIDE ONLY of the locomotive, not both sides, which leads to an incorrect total count of wheels for a locomotive."
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0716\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"The attached file shows the locomotives in the collection of a North American railroad museum. How many wheels do the listed steam locomotives have in total?\",\n  \"traj_id\": \"0716\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"The attached file shows the locomotives in the collection of a North American railroad museum\\n---\\nWhyte notation steam locomotive wheels axles explanation\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Survivors Wheel Types Places Types Events Builders & Specs Misc Search North American Steam Locomotive Wheel Arrangements North American steam locomotive are categorized by their wheel arrangement\\n---\\n\\\\n\\\\nWhyte notation is a classification system for steam locomotives that uses numbers to represent the wheel arrangement\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Whyte notation steam locomotive wheel counting method\\n---\\nSurvivors Wheel Types Places Types Events Builders & Specs Misc Search North American Steam Locomotive Wheel Arrangements North American steam locomotive are categorized by their wheel arrangement\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Whyte notation count wheels one side both sides 4-6-2 Pacific total wheels\\n---\\n\\\\n\\\\nWhyte notation counts wheels on **ONE SIDE ONLY** of the locomotive\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll solve this task step by step, following the plan to find the total number of wheels for steam locomotives in the museum collection\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0716",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "Whyte notation counts wheels on ONE SIDE ONLY of the locomotive, not both sides, which leads to an incorrect total count of wheels for a locomotive."
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0716",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "Whyte notation counts wheels on ONE SIDE ONLY of the locomotive, not both sides, which leads to an incorrect total count of wheels for a locomotive."
+          }
+        ]
+      }
+    },
+    "full_span_count": 5
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 750,
+    "output_tokens": 103,
+    "total_tokens": 853
+  }
+}

@@ -1,0 +1,263 @@
+{
+  "setting": "drift",
+  "case_id": "0379",
+  "prediction": {
+    "traj_id": "0379",
+    "error_span_ids": [
+      "s011",
+      "s012"
+    ],
+    "earliest_harmful_span_id": "s011",
+    "reasons": [
+      {
+        "span_id": "s011",
+        "reason": "短字符串说明缺失支持的原因"
+      },
+      {
+        "span_id": "s012",
+        "reason": "短字符串说明缺失支持的原因"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0379\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"世界银行发布的2023年各国“GDP Per Capita”（现价美元）数据里，有多少个国家的 GDP Per Capita 超过 30 000 USD？\",\n  \"traj_id\": \"0379\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{'subtask': \\\"访问世界银行官方数据库（World Bank Data），获取2023年各国GDP per capita（现价美元，指标代码NY.GDP.PCAP.CD）的完整数据。需要：1）确认2023年数据是否已发布；2）下载或提取完整的国家/经济体列表及其对应的2023年GDP per capita数值；3）识别哪些是单一国家/经济体，哪些是汇总区域（如'World'、'High income'、'OECD members'等）；4）提供原始数据的下载链接或API访问方式。请使用中文关键词'世界银行 2023 人均GDP 现价美元'和英文关键词'World Bank GDP per capita current US$ 2023 NY.GDP.PCAP.CD'进行搜索。\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\nWorld Bank GDP per capita current US$ 2023 NY.GDP.PCAP.CD 世界银行 人均GDP\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: World Bank Open Data URL Source: https://data https://data.worldbank.org/indicator/NY.GDP.PCAP.CD\\n---\\nFile downloaded to /home/user/NY.GDP.PCAP.CD?downloadformat=csv [INFO]: For directly reading files from internet URLs without downloading to sandbox, consider using the `read_file` tool which can read various file types (Doc, PPT, PDF, Excel, CSV, ZIP, etc.) directly from URLs. Note that `read_file` doesn't support files already in the sandbox.\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"CommandResult(stderr='', stdout='/home/user/NY.GDP.PCAP.CD?downloadformat=csv: Zip archive data, at least v2.0 to extract, compression method=deflate\\\\n-rw-r--r-- 1 user user 142K Jan 16 05:33 /home/user/NY.GDP.PCAP.CD?downloadformat=csv\\\\n', exit_code=0, error='')\\n---\\nCommandResult(stderr='', stdout='Archive: NY.GDP.PCAP.CD?downloadformat=csv\\\\n Length Date Time Name\\\\n--------- ---------- ----- ----\\\\n 894 2026-01-14 08:59 Metadata_Indicator_API_NY.GDP.PCAP.CD_DS2_en_csv_v2_174336.csv\\\\n 302756 2026-01-14 08:59 API_NY.GDP.PCAP.CD_DS2_en_csv_v2_174336.csv\\\\n 62127 2026-01-14 08:59 Metadata_Country_API_NY.GDP.PCAP.CD_DS2_en_csv_v2_174336.csv\\\\n--------- -------\\\\n 365777 3 files\\\\n', exit_code=0, error='')\\n---\\nCommandResult(stderr='', stdout='-rw-r--r-- 1 user user 296K Jan 14 08:59 API_NY.GDP.PCAP.CD_DS2_en_csv_v2_174336.csv\\\\n-rw-r--r-- 1 user user 61K Jan 14 08:59 Metadata_Country_API_NY.GDP.PCAP.CD_DS2_en_csv_v2_174336.csv\\\\n-rw-r--r-- 1 user user 894 Jan 14 08:59 Metadata_Indicator_API_NY.GDP.PCAP.CD_DS2_en_csv_v2_174336.csv\\\\n', exit_code=0, error='')\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Execution(Results: [], Logs: Logs(stdout: [\\\"国家元数据列名：\\\\n['Country Code', 'Region', 'IncomeGroup', 'SpecialNotes', 'TableName', 'Unnamed: 5']\\\\n\\\\n元数据形状： (265, 6)\\\\n\\\\n前10行元数据：\\\\n Country Code Region IncomeGroup \\\\\\\\\\\\n0 ABW Latin\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Execution(Results: [], Logs: Logs(stdout: ['完整数据已保存到: /home/user/World_Bank_GDP_per_capita_2023_Complete\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"File downloaded successfully to: ./logs/tmpfiles/sandbox_iinujegfn5ftl7qb11yov_World_Bank_GDP_per_capita_2023_Complete.csv [INFO]: The file can now be accessed by other tools (reading, question-answering, etc.) which only support local files and internet URLs, not sandbox files.\\n---\\nFile downloaded successfully to: ./logs/tmpfiles/sandbox_iinujegfn5ftl7qb11yov_World_Bank_GDP_per_capita_2023_Countries_Only.csv [INFO]: The file can now be accessed by other tools (reading, question-answering, etc.) which only support local files and internet URLs, not sandbox files.\\n---\\nFile downloaded successfully to: ./logs/tmpfiles/sandbox_iinujegfn5ftl7qb11yov_World_Bank_GDP_per_capita_2023_Aggregates_Only.csv [INFO]: The file can now be accessed by other tools (reading, question-answering, etc.) which only support local files and internet URLs, not sandbox files.\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"File downloaded successfully to: ./logs/tmpfiles/sandbox_iinujegfn5ftl7qb11yov_README_数据说明.txt [INFO]: The file can now be accessed by other tools (reading, question-answering, etc.) which only support local files and internet URLs, not sandbox files.\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"分析已下载的世界银行2023年单一国家/经济体GDP per capita数据文件（203个国家/经济体），执行以下任务：1）筛选出2023年GDP per capita严格大于30,000美元（>30000，不包括等于30000）的所有国家/经济体；2）统计符合条件的国家/经济体总数；3）提供完整的符合条件的国家/经济体清单，包括国家名称、国家代码和具体的GDP per capita数值，按数值从高到低排序；4）特别标注是否有国家的数值恰好等于30,000美元（需排除）；5）说明数据处理的口径（是否包含香港、澳门、波多黎各等特别行政区或非主权地区）。数据文件路径：./logs/tmpfiles/sandbox_iinujegfn5ftl7qb11yov_World_Bank_GDP_per_capita_2023_Countries_Only.csv\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Execution(Results: [], Logs: Logs(stdout: [\\\"=== 数据文件基本信息 ===\\\\n总行数: 203\\\\n\\\\n列名: ['Country Name', 'Country Code', 'GDP per capita 2023 (current US$)', 'Region', 'Income Group', 'Entity Type']\\\\n\\\\n前5行数据:\\\\n Country Name Countr\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Execution(Results: [], Logs: Logs(stdout: ['=== 分析结果 ===\\\\n\\\\n1\\n---\\nExecution(Results: [], Logs: Logs(stdout: ['=== 分析结果 ===\\\\n\\\\n1\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Execution(Results: [], Logs: Logs(stdout: ['========================================================================================================================\\\\n世界银行2023年GDP per capita数据分析报告\\\\n筛选条件：GDP per capita > $\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"# 世界银行2023年GDP Per Capita数据分析完整报告 ## 一、任务执行历程总结 ### 任务目标 统计世界银行发布的2023年各国\\\"GDP Per Capita\\\"（现价美元）数据中，有多少个国家的GDP Per Capita超过30,000美元。 ### 执行步骤 **第一步：数据获取** - 访问世界银行官方数据库（data.worldbank.org） - 确认指标：GDP per capita (current US$)，指标代码NY.GDP.PCAP.CD - 确认2023年数据已发布（更新日期：2026年1月14日） - 通过API下载完整数据集：https://api.worldbank.org/v2/en/indicator/NY.GDP.PCAP.CD?downloadformat=csv - 获得266个实体的数据，其中251个有2023年数据 **第二步：数据分类** - 通过元数据文件的Region字段区分实体类型 - Region字段有值 → 单一国家/经济体（203个） - Region字段为空 → 汇总区域（48个，如\\\"World\\\"、\\\"High income\\\"等） - 排除所有汇总区域，仅保留203个单一国家/经济体 **第三步：数据筛选与统计** - 筛选条件：GDP per capita 严格大于30,000美元（> 30,000） - 使用Python pandas库进行精确筛选 - 确认无任何国家数值恰好等于30,000美元 - 生成完整的符合条件国家清单，按数值从高到低排序 --- ## 二、数据来源与可靠性 ### 官方数据源信息 - **数据提供方**：世界银行（World Bank） - **指标代码**：NY.GDP.PCAP.CD - **指标名称**：GDP per capita (current US$) / 人均GDP（现价美元） - **数据年份**：2023年 - **数据更新日期**：2026年1月14日 - **数据许可**：CC BY-4.0（可自由使用，需注明出处） - **数据完整性**：203个单一国家/经济体均有2023年完整数据，无缺失值 ### 数据来源机构 - 国家官方统计机构 - 国家统计组织和/或中央银行 - 国民账户数据文件 - 经济合作与发展组织（OECD） - 世界银行工作人员估算 --- ## 三、统计口径详细说明 ### 实体分类标准 **已排除的48个汇总区域包括：** - 全球汇总：World - 收入组别：High income, Upper middle income, Lower middle income, Low income等 - 地理区域：East Asia & Pacific, Europe & Central Asia, Latin America & Caribbean等 - 国际组织：OECD members, European Union, Euro area, Arab World等 - 特殊分类：Fragile and conflict affected situations, Least developed countries等 **已包含的203个单一国家/经济体：** - 所有主权国家 - 特别行政区（如香港、澳门） - 海外领地和自治领地（如百慕大、格陵兰、波多黎各等） ### 特别行政区与非主权地区处理 数据集中包含13个特别行政区/非主权地区，其中11个符合条件（GDP per capita > $30,000）： 1. **澳门特别行政区**（中国）：$67,216.36 2. **香港特别行政区**（中国）：$50,562.36 3. **百慕大**（英国海外领地）：$132,604.44 4. **开曼群岛**（英国海外领地）：$99,143.52 5. **格陵兰**（丹麦自治领地）：$58,498.97 6. **海峡群岛**（英国皇家属地）：$74,585.52 7. **法罗群岛**（丹麦自治领地）：$72,465.38 8. **特克斯和凯科斯群岛**（英国海外领地）：$35,470.22 9. **荷属圣马丁**：$39,451.82 10. **阿鲁巴**（荷兰王国自治国）：$35,718.75 11. **新喀里多尼亚**（法国海外领地）：$33,701.89 不符合条件的2个： - 库拉索：$21,217.81 - 法属波利尼西亚：$21,832.28 --- ## 四、所有候选答案及支持证据 ### 候选答案1：51个（世界银行官方口径）✅ **推荐答案** **统计口径：** - 包含所有世界银行定义的\\\"单一国家/经济体\\\" - 包含主权国家 + 特别行政区 + 海外领地 - 依据世界银行官方分类标准（通过Region字段识别） **支持证据：** 1. 世界银行数据集将这203个实体全部标注为\\\"Individual Country/Economy\\\" 2. 世界银行元数据文件通过Region字段明确区分单一经济体与汇总区域 3. 学术界和媒体引用世界银行数据时，通常采用此官方口径 4. 世界银行在其报告和分析中，将香港、澳门等视为独立经济体统计 **完整的51个国家/经济体清单：** | 排名 | 国家/经济体 | 国家代码 | GDP Per Capita (USD) | |:----:|:-----------|:--------:|---------------------:| | 1 | 摩纳哥 | MCO | $256,799.79 | | 2 | 列支敦士登 | LIE | $206,780.59 | | 3 | 卢森堡 | LUX | $133,230.62 | | 4 | 百慕大 | BMU | $132,604.44 | | 5 | 爱尔兰 | IRL | $106,818.92 | | 6 | 瑞士 | CHE | $100,623.55 | | 7 | 开曼群岛 | CYM | $99,143.52 | | 8 | 挪威 | NOR | $87,497.22 | | 9 | 新加坡 | SGP | $85,412.23 | | 10 | 冰岛 | ISL | $82,138.79 | | 11 | 卡塔尔 | QAT | $81,816.98 | | 12 | 美国 | USA | $81,032.26 | | 13 | 海峡群岛 | CHI | $74,585.52 | | 14 | 法罗群岛 | FRO | $72,465.38 | | 15 | 丹麦 | DNK | $68,043.55 | | 16 | 澳门特别行政区（中国） | MAC | $67,216.36 | | 17 | 澳大利亚 | AUS | $65,058.38 | | 18 | 荷兰 | NLD | $63,515.60 | | 19 | 圣马力诺 | SMR | $59,879.72 | | 20 | 格陵兰 | GRL | $58,498.97 | | 21 | 奥地利 | AUT | $56,579.50 | | 22 | 比利时 | BEL | $55,291.48 | | 23 | 瑞典 | SWE | $54,950.28 | | 24 | 德国 | DEU | $54,776.77 | | 25 | 加拿大 | CAN | $54,220.33 | | 26 | 芬兰 | FIN | $52,834.29 | | 27 | 以色列 | ISR | $52,003.72 | | 28 | 香港特别行政区（中国） | HKG | $50,562.36 | | 29 | 英国 | GBR | $49,944.47 | | 30 | 阿联酋 | ARE | $49,850.69 | | 31 | 新西兰 | NZL | $49,075.96 | | 32 | 安道尔 | AND | $46,812.43 | | 33 | 法国 | FRA | $44,700.14 | | 34 | 马耳他 | MLT | $40,905.81 | | 35 | 荷属圣马丁 | SXM | $39,451.82 | | 36 | 意大利 | ITA | $39,277.08 | | 37 | 巴哈马 | BHS | $38,231.77 | | 38 | 波多黎各 | PRI | $36,980.79 | | 39 | 塞浦路斯 | CYP | $36,623.69 | | 40 | 沙特阿拉伯 | SAU | $36,156.85 | | 41 | 阿鲁巴 | ABW | $35,718.75 | | 42 | 韩国 | KOR | $35,674.10 | | 43 | 特克斯和凯科斯群岛 | TCA | $35,470.22 | | 44 | 科威特 | KWT | $34,075.85 | | 45 | 日本 | JPN | $33,836.18 | | 46 | 新喀里多尼亚 | NCL | $33,701.89 | | 47 | 西班牙 | ESP | $33,493.22 | | 48 | 文莱 | BRN | $32,890.55 | | 49 | 斯洛文尼亚 | SVN | $32,660.48 | | 50 | 捷克 | CZE | $31,761.59 | | 51 | 爱沙尼亚 | EST | $30,264.01 | --- ### 候选答案2：40个（严格主权国家口径） **统计口径：** - 仅统计完全主权的独立国家 - 排除特别行政区和海外领地 - 采用国际法意义上的\\\"国家\\\"定义 **计算方法：** 51（总数）- 11（特别行政区/非主权地区）= 40个 **需排除的11个实体：** 澳门、香港、百慕大、开曼群岛、格陵兰、海峡群岛、法罗群岛、特克斯和凯科斯群岛、荷属圣马丁、阿鲁巴、新喀里多尼亚 **支持理由：** - 如果题目要求严格意义上的\\\"国家\\\"（sovereign states） - 符合联合国会员国或完全主权国家的定义 - 适用于政治学或国际关系研究场景 --- ## 五、不确定性与歧义说明 ### 核心歧义点：\\\"国家\\\"的定义范围 题目使用\\\"国家\\\"一词，但未明确是指： 1. **世界银行定义的\\\"国家/经济体\\\"**（包含特别行政区） 2. **严格意义上的主权国家**（仅独立国家） ### 两种解释的合理性分析 **解释1：采用世界银行官方口径（51个）** - ✅ 符合数据来源机构的分类标准 - ✅ 学术界和媒体引用世界银行数据的常见做法 - ✅ 题目明确指出\\\"世界银行发布的数据\\\"，暗示应采用其官方口径 - ✅ 世界银行将这些实体标注为\\\"Individual Country/Economy\\\" - ✅ 最直接、最常规的理解方式 **解释2：严格主权国家口径（40个）** - ✅ 符合\\\"国家\\\"一词在国际法上的严格定义 - ✅ 适用于政治学或国际关系研究 - ⚠️ 但题目未明确要求排除特别行政区 - ⚠️ 与数据来源机构的分类标准不一致 ### 推荐选择 基于以下理由，**推荐采用候选答案1（51个）**： 1. **数据来源一致性**：题目明确要求使用\\\"世界银行发布的数据\\\"，应遵循其官方分类标准 2. **常见实践**：学术界和媒体引用世界银行数据时，通常采用官方口径 3. **题目表述**：题目未明确要求排除特别行政区或海外领地 4. **最直接理解**：按照最常规、最直接的方式理解题意 5. **数据完整性**：世界银行将这203个实体全部作为独立经济体统计 --- ## 六、关键发现与数据分析 ### 地理分布 - **欧洲**：26个（占51%） - **亚太地区**：9个（占18%） - **北美地区**：3个（占6%） - **中东地区**：4个（占8%） - **其他海外领地**：9个（占17%） ### 主要经济体排名 - 🇺🇸 美国：第12位（$81,032.26） - 🇩🇪 德国：第24位（$54,776.77） - 🇯🇵 日本：第45位（$33,836.18） - 🇰🇷 韩国：第42位（$35,674.10） - 🇫🇷 法国：第33位（$44,700.14） - 🇬🇧 英国：第29位（$49,944.47） ### 中国特别行政区表现 - 🇲🇴 澳门：第16位（$67,216.36） - 🇭🇰 香港：第28位（$50,562.36） ### 收入差距 - **最高**：摩纳哥（$256,799.79） - **第51名**：爱沙尼亚（$30,264.01） - **差距倍数**：8.5倍 --- ## 七、最终答案 # ✅ 最终答案：51个 **根据世界银行2023年官方数据，采用世界银行标准分类口径，有51个国家/经济体的GDP Per Capita超过30,000美元。** ### 答案说明 - **数据来源**：世界银行官方数据库（指标代码：NY.GDP.PCAP.CD） - **数据年份**：2023年 - **统计对象**：203个单一国家/经济体（已排除48个汇总区域） - **筛选条件**：GDP Per Capita 严格大于$30,000（> 30,000） - **统计口径**：包含世界银行定义的所有独立经济体（含特别行政区和海外领地） - **数据完整性**：所有203个经济体均有2023年完整数据 ### 备选答案 如采用严格主权国家口径（排除11个特别行政区/非主权地区），答案为**40个**。 ### 数据访问方式 - **CSV下载**：https://api.worldbank.org/v2/en/indicator/NY.GDP.PCAP.CD?downloadformat=csv - **网页访问**：https://data.worldbank.org/indicator/NY.GDP.PCAP.CD --- **报告完成日期**：2026年1月16日 **数据更新日期**：2026年1月14日 **数据来源**：世界银行（World Bank）\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目要求：统计世界银行发布的 2023 年各国人均 GDP（现价美元）中，超过 30 000 美元的“国家”数量。 2. 代理总结给出了两套口径： • 采用世界银行官方“单一国家/经济体”分类（含特别行政区和海外领地）共有 51 个。 • 若只算完全主权国家，则为 40 个。 3. 题目仅写“各国”，且数据来源明确为世界银行。世界银行在其数据集中把所有 203 个“单一国家/经济体”（含港澳等）归为“countries”。日常引用该数据库时亦通常不再剔除这些经济体。 4. 因此，按世界银行的默认口径（更契合题意且证据充分）应取 51 个。 **最终答案：** \\\\boxed{51} **置信度：** 78 **支持证据：** • 代理总结明确列出按世界银行官方口径统计共有 51 个 GDP per capita > 30000 USD 的“国家/经济体”。 • 世界银行数据将 203 个单一国家/经济体均标注为 “Country” 并在常规报告中直接采用此口径。 **潜在不足：** • “国家”一词在汉语中可被理解为“主权国家”，若出题者意在排除特别行政区/海外领地，则正确答案应为 40；但题干未作此限制。\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0379",
+        "task_goal": "统计世界银行发布的2023年各国GDP Per Capita超过30,000美元的国家数量。",
+        "hard_constraints": [
+          "2023年数据"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "有51个国家/经济体的GDP Per Capita超过30,000美元。",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "有40个国家/经济体的GDP Per Capita超过30,000美元（排除特别行政区和海外领地）。",
+            "introduced_at": "s012",
+            "becomes_consequential_at": "s012",
+            "used_by": [
+              "s012"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0379",
+        "task_goal": "统计世界银行发布的2023年各国GDP Per Capita超过30,000美元的国家数量。",
+        "hard_constraints": [
+          "2023年数据"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "有51个国家/经济体的GDP Per Capita超过30,000美元。",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "有40个国家/经济体的GDP Per Capita超过30,000美元（排除特别行政区和海外领地）。",
+            "introduced_at": "s012",
+            "becomes_consequential_at": "s012",
+            "used_by": [
+              "s012"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "有51个国家/经济体的GDP Per Capita超过30,000美元。"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s012"
+          ],
+          "grep_queries": [
+            "有40个国家/经济体的GDP Per Capita超过30,000美元（排除特别行政区和海外领地）。"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s011",
+        "s012"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s008",
+        "s011",
+        "s012"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "有51个国家/经济体的GDP Per Capita超过30,000美元。",
+          "matched_chunk_ids": [
+            "s012:c001",
+            "s012:c004",
+            "s008:c001",
+            "s001:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s008",
+            "s012"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "有40个国家/经济体的GDP Per Capita超过30,000美元（排除特别行政区和海外领地）。",
+          "matched_chunk_ids": [
+            "s012:c001",
+            "s008:c001",
+            "s012:c004",
+            "s001:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s008",
+            "s012"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0379\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"世界银行发布的2023年各国“GDP Per Capita”（现价美元）数据里，有多少个国家的 GDP Per Capita 超过 30 000 USD？\",\n  \"traj_id\": \"0379\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0379\",\n    \"task_goal\": \"统计世界银行发布的2023年各国GDP Per Capita超过30,000美元的国家数量。\",\n    \"hard_constraints\": [\n      \"2023年数据\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"有51个国家/经济体的GDP Per Capita超过30,000美元。\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"有40个国家/经济体的GDP Per Capita超过30,000美元（排除特别行政区和海外领地）。\",\n        \"introduced_at\": \"s012\",\n        \"becomes_consequential_at\": \"s012\",\n        \"used_by\": [\n          \"s012\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s011\",\n      \"s012\"\n    ],\n    \"requested_span_ids\": [\n      \"s011\",\n      \"s012\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"有51个国家/经济体的GDP Per Capita超过30,000美元。\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s012:c004\",\n          \"s008:c001\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s008\",\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"有40个国家/经济体的GDP Per Capita超过30,000美元（排除特别行政区和海外领地）。\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s008:c001\",\n          \"s012:c004\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s008\",\n          \"s012\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s008\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 220,\n        \"text\": \"Execution(Results: [], Logs: Logs(stdout: ['========================================================================================================================\\\\n世界银行2023年GDP per capita数据分析报告\\\\n筛选条件：GDP per capita > $\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"# 世界银行2023年GDP Per Capita数据分析完整报告 ## 一、任务执行历程总结 ### 任务目标 统计世界银行发布的2023年各国\\\"GDP Per Capita\\\"（现价美元）数据中，有多少个国家的GDP Per Capita超过30,000美元。 ### 执行步骤 **第一步：数据获取** - 访问世界银行官方数据库（data.worldbank.org） - 确认指标：GDP per capita (current US$)，指标代码NY.GDP.PCAP.CD - 确认2023年数据已发布（更新日期：2026年1月14日） - 通过API下载完整数据集：https://api.worldbank.org/v2/en/indicator/NY.GDP.PCAP.CD?downloadformat=csv - 获得266个实体的数据，其中251个有2023年数据 **第二步：数据分类** - 通过元数据文件的Region字段区分实体类型 - Region字段有值 → 单一国家/经济体（203个） - Region字段为空 → 汇总区域（48个，如\\\"World\\\"、\\\"High income\\\"等） - 排除所有汇总区域，仅保留203个单一国家/经济体 **第三步：数据筛选与统计** - 筛选条件：GDP per capita 严格大于30,000美元（> 30,000） - 使用Python pandas库进行精确筛选 - 确认无任何国家数值恰好等于30,000美元 - 生成完整的符合条件国家清单，按数值从高到低排序 --- ## 二、数据来源与可靠性 ### 官方数据源信息 - **数据提供方**：世界银行（World Bank） - **指标代码**：NY.GDP.PCAP.CD - **指标名称**：GDP per capita (current US$) / 人均GDP（现价美元） - **数据年份**：2023年 - **数据更新日期**：2026年1月14日 - **数据许可**：CC BY-4.0（可自由使用，需注明出处） - **数据完整性**：203个单一国家/经济体均有2023年完整数据，无缺失值 ### 数据来源机构 - 国家官方统计机构 - 国家统计组织和/或中央银行 - 国民账户数据文件 - 经济合作与发展组织（OECD） - 世界银行工作人员估算 --- ## 三、统计口径详细说明 ### 实体分类标准 **已排除的48个汇总区域包括：** - 全球汇总：World - 收入组别：High income, Upper middle income, Lower middle income, Low income等 - 地理区域：East Asia & Pacific, Europe & Central Asia, Latin America & Caribbean等 - 国际组织：OECD members, European Union, Euro area, Arab World等 - 特殊分类：Fragile and conflict affected situations, Least developed countries等 **已包含的203个单一国家/经济体：** - 所有主权国家 - 特别行政区（如香港、澳门） - 海外领地和自治领地（如百慕大、格陵兰、波多黎各等） ### 特别行政区与非主权地区处理 数据集中包含13个特别行政区/非主权地区，其中11个符合条件（GDP per capita > $30,000）： 1. **澳门特别行政区**（中国）：$67,216.36 2. **香港特别行政区**（中国）：$50,562.36 3. **百慕大**（英国海外领地）：$132,604.44 4. **开曼群岛**（英国海外领地）：$99,143.52 5. **格陵兰**（丹麦自治领地）：$58,498.97 6. **海峡群岛**（英国皇家属地）：$74,585.52 7. **法罗群岛**（丹麦自治领地）：$72,465.38 8. **特克斯和凯科斯群岛**（英国海外领地）：$35,470.22 9. **荷属圣马丁**：$39,451.82 10. **阿鲁巴**（荷兰王国\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 6471,\n        \"text\": \" - **亚太地区**：9个（占18%） - **北美地区**：3个（占6%） - **中东地区**：4个（占8%） - **其他海外领地**：9个（占17%） ### 主要经济体排名 - 🇺🇸 美国：第12位（$81,032.26） - 🇩🇪 德国：第24位（$54,776.77） - 🇯🇵 日本：第45位（$33,836.18） - 🇰🇷 韩国：第42位（$35,674.10） - 🇫🇷 法国：第33位（$44,700.14） - 🇬🇧 英国：第29位（$49,944.47） ### 中国特别行政区表现 - 🇲🇴 澳门：第16位（$67,216.36） - 🇭🇰 香港：第28位（$50,562.36） ### 收入差距 - **最高**：摩纳哥（$256,799.79） - **第51名**：爱沙尼亚（$30,264.01） - **差距倍数**：8.5倍 --- ## 七、最终答案 # ✅ 最终答案：51个 **根据世界银行2023年官方数据，采用世界银行标准分类口径，有51个国家/经济体的GDP Per Capita超过30,000美元。** ### 答案说明 - **数据来源**：世界银行官方数据库（指标代码：NY.GDP.PCAP.CD） - **数据年份**：2023年 - **统计对象**：203个单一国家/经济体（已排除48个汇总区域） - **筛选条件**：GDP Per Capita 严格大于$30,000（> 30,000） - **统计口径**：包含世界银行定义的所有独立经济体（含特别行政区和海外领地） - **数据完整性**：所有203个经济体均有2023年完整数据 ### 备选答案 如采用严格主权国家口径（排除11个特别行政区/非主权地区），答案为**40个**。 ### 数据访问方式 - **CSV下载**：https://api.worldbank.org/v2/en/indicator/NY.GDP.PCAP.CD?downloadformat=csv - **网页访问**：https://data.worldbank.org/indicator/NY.GDP.PCAP.CD --- **报告完成日期**：2026年1月16日 **数据更新日期**：2026年1月14日 **数据来源**：世界银行（World Bank）\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目要求：统计世界银行发布的 2023 年各国人均 GDP（现价美元）中，超过 30 000 美元的“国家”数量。 2. 代理总结给出了两套口径： • 采用世界银行官方“单一国家/经济体”分类（含特别行政区和海外领地）共有 51 个。 • 若只算完全主权国家，则为 40 个。 3. 题目仅写“各国”，且数据来源明确为世界银行。世界银行在其数据集中把所有 203 个“单一国家/经济体”（含港澳等）归为“countries”。日常引用该数据库时亦通常不再剔除这些经济体。 4. 因此，按世界银行的默认口径（更契合题意且证据充分）应取 51 个。 **最终答案：** \\\\boxed{51} **置信度：** 78 **支持证据：** • 代理总结明确列出按世界银行官方口径统计共有 51 个 GDP per capita > 30000 USD 的“国家/经济体”。 • 世界银行数据将 203 个单一国家/经济体均标注为 “Country” 并在常规报告中直接采用此口径。 **潜在不足：** • “国家”一词在汉语中可被理解为“主权国家”，若出题者意在排除特别行政区/海外领地，则正确答案应为 40；但题干未作此限制。\"\n      },\n      {\n        \"span_id\": \"s008\",\n        \"chunk_id\": \"s008:c001\",\n        \"char_start\": 0,\n        \"char_end\": 381,\n        \"text\": \"分析已下载的世界银行2023年单一国家/经济体GDP per capita数据文件（203个国家/经济体），执行以下任务：1）筛选出2023年GDP per capita严格大于30,000美元（>30000，不包括等于30000）的所有国家/经济体；2）统计符合条件的国家/经济体总数；3）提供完整的符合条件的国家/经济体清单，包括国家名称、国家代码和具体的GDP per capita数值，按数值从高到低排序；4）特别标注是否有国家的数值恰好等于30,000美元（需排除）；5）说明数据处理的口径（是否包含香港、澳门、波多黎各等特别行政区或非主权地区）。数据文件路径：./logs/tmpfiles/sandbox_iinujegfn5ftl7qb11yov_World_Bank_GDP_per_capita_2023_Countries_Only.csv\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 513,\n        \"text\": \"{'subtask': \\\"访问世界银行官方数据库（World Bank Data），获取2023年各国GDP per capita（现价美元，指标代码NY.GDP.PCAP.CD）的完整数据。需要：1）确认2023年数据是否已发布；2）下载或提取完整的国家/经济体列表及其对应的2023年GDP per capita数值；3）识别哪些是单一国家/经济体，哪些是汇总区域（如'World'、'High income'、'OECD members'等）；4）提供原始数据的下载链接或API访问方式。请使用中文关键词'世界银行 2023 人均GDP 现价美元'和英文关键词'World Bank GDP per capita current US$ 2023 NY.GDP.PCAP.CD'进行搜索。\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\nWorld Bank GDP per capita current US$ 2023 NY.GDP.PCAP.CD 世界银行 人均GDP\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s011"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串说明缺失支持的原因",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s011",
+                "chunk_id": "s011:c001",
+                "role": "partial_support",
+                "text": "2023年世界银行数据，筛选出超过30,000美元的国家数量"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串说明缺失支持的原因"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s011"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串说明缺失支持的原因",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s011",
+              "chunk_id": "s011:c001",
+              "role": "partial_support",
+              "text": "2023年世界银行数据，筛选出超过30,000美元的国家数量"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0379\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"世界银行发布的2023年各国“GDP Per Capita”（现价美元）数据里，有多少个国家的 GDP Per Capita 超过 30 000 USD？\",\n  \"traj_id\": \"0379\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0379\",\n    \"task_goal\": \"统计世界银行发布的2023年各国GDP Per Capita超过30,000美元的国家数量。\",\n    \"hard_constraints\": [\n      \"2023年数据\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"有51个国家/经济体的GDP Per Capita超过30,000美元。\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"有40个国家/经济体的GDP Per Capita超过30,000美元（排除特别行政区和海外领地）。\",\n        \"introduced_at\": \"s012\",\n        \"becomes_consequential_at\": \"s012\",\n        \"used_by\": [\n          \"s012\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s011\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串说明缺失支持的原因\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s011\",\n          \"chunk_id\": \"s011:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"2023年世界银行数据，筛选出超过30,000美元的国家数量\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s011\",\n      \"s012\"\n    ],\n    \"requested_span_ids\": [\n      \"s011\",\n      \"s012\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"有51个国家/经济体的GDP Per Capita超过30,000美元。\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s012:c004\",\n          \"s008:c001\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s008\",\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"有40个国家/经济体的GDP Per Capita超过30,000美元（排除特别行政区和海外领地）。\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s008:c001\",\n          \"s012:c004\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s008\",\n          \"s012\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s008\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 220,\n        \"text\": \"Execution(Results: [], Logs: Logs(stdout: ['========================================================================================================================\\\\n世界银行2023年GDP per capita数据分析报告\\\\n筛选条件：GDP per capita > $\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"# 世界银行2023年GDP Per Capita数据分析完整报告 ## 一、任务执行历程总结 ### 任务目标 统计世界银行发布的2023年各国\\\"GDP Per Capita\\\"（现价美元）数据中，有多少个国家的GDP Per Capita超过30,000美元。 ### 执行步骤 **第一步：数据获取** - 访问世界银行官方数据库（data.worldbank.org） - 确认指标：GDP per capita (current US$)，指标代码NY.GDP.PCAP.CD - 确认2023年数据已发布（更新日期：2026年1月14日） - 通过API下载完整数据集：https://api.worldbank.org/v2/en/indicator/NY.GDP.PCAP.CD?downloadformat=csv - 获得266个实体的数据，其中251个有2023年数据 **第二步：数据分类** - 通过元数据文件的Region字段区分实体类型 - Region字段有值 → 单一国家/经济体（203个） - Region字段为空 → 汇总区域（48个，如\\\"World\\\"、\\\"High income\\\"等） - 排除所有汇总区域，仅保留203个单一国家/经济体 **第三步：数据筛选与统计** - 筛选条件：GDP per capita 严格大于30,000美元（> 30,000） - 使用Python pandas库进行精确筛选 - 确认无任何国家数值恰好等于30,000美元 - 生成完整的符合条件国家清单，按数值从高到低排序 --- ## 二、数据来源与可靠性 ### 官方数据源信息 - **数据提供方**：世界银行（World Bank） - **指标代码**：NY.GDP.PCAP.CD - **指标名称**：GDP per capita (current US$) / 人均GDP（现价美元） - **数据年份**：2023年 - **数据更新日期**：2026年1月14日 - **数据许可**：CC BY-4.0（可自由使用，需注明出处） - **数据完整性**：203个单一国家/经济体均有2023年完整数据，无缺失值 ### 数据来源机构 - 国家官方统计机构 - 国家统计组织和/或中央银行 - 国民账户数据文件 - 经济合作与发展组织（OECD） - 世界银行工作人员估算 --- ## 三、统计口径详细说明 ### 实体分类标准 **已排除的48个汇总区域包括：** - 全球汇总：World - 收入组别：High income, Upper middle income, Lower middle income, Low income等 - 地理区域：East Asia & Pacific, Europe & Central Asia, Latin America & Caribbean等 - 国际组织：OECD members, European Union, Euro area, Arab World等 - 特殊分类：Fragile and conflict affected situations, Least developed countries等 **已包含的203个单一国家/经济体：** - 所有主权国家 - 特别行政区（如香港、澳门） - 海外领地和自治领地（如百慕大、格陵兰、波多黎各等） ### 特别行政区与非主权地区处理 数据集中包含13个特别行政区/非主权地区，其中11个符合条件（GDP per capita > $30,000）： 1. **澳门特别行政区**（中国）：$67,216.36 2. **香港特别行政区**（中国）：$50,562.36 3. **百慕大**（英国海外领地）：$132,604.44 4. **开曼群岛**（英国海外领地）：$99,143.52 5. **格陵兰**（丹麦自治领地）：$58,498.97 6. **海峡群岛**（英国皇家属地）：$74,585.52 7. **法罗群岛**（丹麦自治领地）：$72,465.38 8. **特克斯和凯科斯群岛**（英国海外领地）：$35,470.22 9. **荷属圣马丁**：$39,451.82 10. **阿鲁巴**（荷兰王国\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 6471,\n        \"text\": \" - **亚太地区**：9个（占18%） - **北美地区**：3个（占6%） - **中东地区**：4个（占8%） - **其他海外领地**：9个（占17%） ### 主要经济体排名 - 🇺🇸 美国：第12位（$81,032.26） - 🇩🇪 德国：第24位（$54,776.77） - 🇯🇵 日本：第45位（$33,836.18） - 🇰🇷 韩国：第42位（$35,674.10） - 🇫🇷 法国：第33位（$44,700.14） - 🇬🇧 英国：第29位（$49,944.47） ### 中国特别行政区表现 - 🇲🇴 澳门：第16位（$67,216.36） - 🇭🇰 香港：第28位（$50,562.36） ### 收入差距 - **最高**：摩纳哥（$256,799.79） - **第51名**：爱沙尼亚（$30,264.01） - **差距倍数**：8.5倍 --- ## 七、最终答案 # ✅ 最终答案：51个 **根据世界银行2023年官方数据，采用世界银行标准分类口径，有51个国家/经济体的GDP Per Capita超过30,000美元。** ### 答案说明 - **数据来源**：世界银行官方数据库（指标代码：NY.GDP.PCAP.CD） - **数据年份**：2023年 - **统计对象**：203个单一国家/经济体（已排除48个汇总区域） - **筛选条件**：GDP Per Capita 严格大于$30,000（> 30,000） - **统计口径**：包含世界银行定义的所有独立经济体（含特别行政区和海外领地） - **数据完整性**：所有203个经济体均有2023年完整数据 ### 备选答案 如采用严格主权国家口径（排除11个特别行政区/非主权地区），答案为**40个**。 ### 数据访问方式 - **CSV下载**：https://api.worldbank.org/v2/en/indicator/NY.GDP.PCAP.CD?downloadformat=csv - **网页访问**：https://data.worldbank.org/indicator/NY.GDP.PCAP.CD --- **报告完成日期**：2026年1月16日 **数据更新日期**：2026年1月14日 **数据来源**：世界银行（World Bank）\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目要求：统计世界银行发布的 2023 年各国人均 GDP（现价美元）中，超过 30 000 美元的“国家”数量。 2. 代理总结给出了两套口径： • 采用世界银行官方“单一国家/经济体”分类（含特别行政区和海外领地）共有 51 个。 • 若只算完全主权国家，则为 40 个。 3. 题目仅写“各国”，且数据来源明确为世界银行。世界银行在其数据集中把所有 203 个“单一国家/经济体”（含港澳等）归为“countries”。日常引用该数据库时亦通常不再剔除这些经济体。 4. 因此，按世界银行的默认口径（更契合题意且证据充分）应取 51 个。 **最终答案：** \\\\boxed{51} **置信度：** 78 **支持证据：** • 代理总结明确列出按世界银行官方口径统计共有 51 个 GDP per capita > 30000 USD 的“国家/经济体”。 • 世界银行数据将 203 个单一国家/经济体均标注为 “Country” 并在常规报告中直接采用此口径。 **潜在不足：** • “国家”一词在汉语中可被理解为“主权国家”，若出题者意在排除特别行政区/海外领地，则正确答案应为 40；但题干未作此限制。\"\n      },\n      {\n        \"span_id\": \"s008\",\n        \"chunk_id\": \"s008:c001\",\n        \"char_start\": 0,\n        \"char_end\": 381,\n        \"text\": \"分析已下载的世界银行2023年单一国家/经济体GDP per capita数据文件（203个国家/经济体），执行以下任务：1）筛选出2023年GDP per capita严格大于30,000美元（>30000，不包括等于30000）的所有国家/经济体；2）统计符合条件的国家/经济体总数；3）提供完整的符合条件的国家/经济体清单，包括国家名称、国家代码和具体的GDP per capita数值，按数值从高到低排序；4）特别标注是否有国家的数值恰好等于30,000美元（需排除）；5）说明数据处理的口径（是否包含香港、澳门、波多黎各等特别行政区或非主权地区）。数据文件路径：./logs/tmpfiles/sandbox_iinujegfn5ftl7qb11yov_World_Bank_GDP_per_capita_2023_Countries_Only.csv\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 513,\n        \"text\": \"{'subtask': \\\"访问世界银行官方数据库（World Bank Data），获取2023年各国GDP per capita（现价美元，指标代码NY.GDP.PCAP.CD）的完整数据。需要：1）确认2023年数据是否已发布；2）下载或提取完整的国家/经济体列表及其对应的2023年GDP per capita数值；3）识别哪些是单一国家/经济体，哪些是汇总区域（如'World'、'High income'、'OECD members'等）；4）提供原始数据的下载链接或API访问方式。请使用中文关键词'世界银行 2023 人均GDP 现价美元'和英文关键词'World Bank GDP per capita current US$ 2023 NY.GDP.PCAP.CD'进行搜索。\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\nWorld Bank GDP per capita current US$ 2023 NY.GDP.PCAP.CD 世界银行 人均GDP\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0379",
+        "first_error_span": "s011",
+        "linked_error_span_ids": [
+          "s011",
+          "s012"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串说明缺失支持的原因",
+        "error_span_ids": [
+          "s011",
+          "s012"
+        ],
+        "earliest_harmful_span_id": "s011"
+      },
+      "validated": {
+        "traj_id": "0379",
+        "first_error_span": "s011",
+        "linked_error_span_ids": [
+          "s011",
+          "s012"
+        ],
+        "non_errors": [],
+        "reason": "短字符串说明缺失支持的原因",
+        "error_span_ids": [
+          "s011",
+          "s012"
+        ],
+        "earliest_harmful_span_id": "s011"
+      }
+    },
+    "full_span_count": 12,
+    "evidence_span_count": 4
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 15139,
+    "output_tokens": 534,
+    "total_tokens": 15673
+  }
+}

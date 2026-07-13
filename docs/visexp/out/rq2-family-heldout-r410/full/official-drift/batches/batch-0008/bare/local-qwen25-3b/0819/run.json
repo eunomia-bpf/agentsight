@@ -1,0 +1,57 @@
+{
+  "setting": "bare",
+  "case_id": "0819",
+  "prediction": {
+    "traj_id": "0819",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0819\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"According to Google Finance, when was the first year the Apple stock went above $50 (without adjusting for stock split)?\",\n  \"traj_id\": \"0819\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"According to Google Finance, when was the first year the Apple stock went above $50 (without adjusting for stock split)\\n---\\nFinance Sign in MARKETS US Europe Asia Currencies Crypto Futures Stocks edge a bit below their latest records on Wall Street • KGET\\n---\\nGoogle Finance chart adjusted for stock splits help documentation\\n---\\nGoogle Finance chart data adjusted for stock splits or not\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:support.google.com/finance splits chart adjusted\\n---\\nsite:support.google.com \\\"Google Finance\\\" splits chart adjusted\\n---\\nApple first closed above $200 2018 date\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Google Finance chart adjusted for splits help site:support.google.com\\n---\\nFinance Sign in MARKETS US Europe Asia Currencies Crypto Futures Stocks edge a bit below their latest records on Wall Street • WJBF Dow Jones 49,359\\n---\\nSkip to main content Google Docs Editors Help Sign in Help Center Community Gemini in Docs Editors Google Docs Editors GOOGLEFINANCE Fetches current or historical securities information from Google Finance\\n---\\nApple stock split history investor relations site:investor.apple.com\\n---\\nFinance Sign in MARKETS US Europe Asia Currencies Crypto Futures Stocks edge a bit below their latest records on Wall Street • WJBF Dow Jones 49,359\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to main content Apple Store Mac iPad iPhone Watch AirPods TV & Home Entertainment Accessories Support 0 + Investor Relations Stock Price SEC Filings Leadership and Governance Our Values FAQ Contact FAQ Stock How can\\n---\\nYear of first crossing above $50 on the Google Finance AAPL chart: 2018\\n---\\nThought: To answer the question, I need to check the historical stock price data for Apple Inc\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"Apple shares\\\" top $50 first time AAPL 2005 2006 2007 site:bloomberg.com OR site:reuters.com OR site:apnews.com OR site:wsj.com OR site:nytimes.com\\n---\\n\\\"Apple shares\\\" topped $50 2004 OR 2005 AAPL first time\\n---\\nsite:reuters.com Apple shares topped $50 first time 1999 OR 2000 OR 2005\\n---\\n\\\"Apple\\\" shares above $50 for first time 1999 2000 AAPL\\n---\\n\\\"Apple shares\\\" top $50 for first time 2000 Apple Computer AAPL\\n---\\n\\\"Apple shares\\\" $50 first time site:marketwatch.com OR site:thestreet.com OR site:cnn.com OR site:money.cnn.com OR site:apnews.com\\n---\\nsite:money.cnn.com Apple shares above $50 2004 OR 2005\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to main content Apple Store Mac iPad iPhone Watch AirPods TV & Home Entertainment Accessories Support 0 + Investor Relations Stock Price SEC Filings Leadership and Governance Our Values FAQ Contact Page Not Found Si\\n---\\n\\\"Apple shares\\\" topped $50 for first time 1999 OR 2000 site:latimes.com OR site:cnet.com OR site:nytimes.com OR site:washingtonpost.com OR site:apnews.com\\n---\\nsite:nytimes.com Apple shares closed at $53.50 Sept. 29, 2000 Lawrence M. Fisher\\n---\\n\\\"Apple shares\\\" above $50 1999 \\\"Apple Computer\\\"\\n---\\nEarliest confirmed date (by contemporaneous, credible news) when Apple Inc\\n---\\nThought: The search_agent’s earlier result concluded “2018” based on Google Finance’s split-adjusted chart, but the question explicitly requires the first year the Apple stock went above $50 without adjusting for stock s\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: From the gathered results, the first confirmed date when Apple Inc\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0819",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 7
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1439,
+    "output_tokens": 68,
+    "total_tokens": 1507
+  }
+}

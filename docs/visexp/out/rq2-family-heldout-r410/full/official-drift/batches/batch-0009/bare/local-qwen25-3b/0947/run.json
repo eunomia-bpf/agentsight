@@ -1,0 +1,58 @@
+{
+  "setting": "bare",
+  "case_id": "0947",
+  "prediction": {
+    "traj_id": "0947",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0947\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"截止2024年12月，大疆发布的起飞重量最大的AIR系列无人机飞完半程马拉松，电池还剩多少毫安时的电能？ 注1：假设水平无风，最低耗能的情况为最大航速的60%飞行 注2：耗电可以按最长飞行时间换算\",\n  \"traj_id\": \"0947\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"截止2024年12月，大疆发布的起飞重量最大的AIR系列无人机飞完半程马拉松，电池还剩多少毫安时的电能\\n---\\nall DJI Air series drones by release date\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nDJI Mavic Air 2 takeoff weight\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought:我需要找出截至2024年12月大疆发布的起飞重量最大的AIR系列无人机\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"all DJI Air series drones list\\n---\\nDJI Mavic Air release date and takeoff weight\\n---\\nDJI Mavic Air 2 release date and takeoff weight\\n---\\nDJI Air 2S release date and takeoff weight\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我之前的尝试在一个代码块中执行了太多的操作，导致了错误\\n---\\nall DJI Air series drones by release date\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nDJI Mavic Air 2 takeoff weight\\n---\\nDJI Mavic Air takeoff weight\\n---\\nDJI Air 2S takeoff weight\\n---\\nDJI Air 3 takeoff weight\\n---\\nDJI Air 3S takeoff weight\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我再次遇到了一个错误，因为我试图在一个步骤中执行太多操作\\n---\\n我似乎无法使用 `search_agent` 工具\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我似乎无法使用 `search_agent` 工具，并且代码结构也出现了问题\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0947",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0947",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 7
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 974,
+    "output_tokens": 80,
+    "total_tokens": 1054
+  }
+}

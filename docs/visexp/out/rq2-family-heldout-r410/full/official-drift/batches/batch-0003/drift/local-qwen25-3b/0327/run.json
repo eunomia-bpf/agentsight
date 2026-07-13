@@ -1,0 +1,203 @@
+{
+  "setting": "drift",
+  "case_id": "0327",
+  "prediction": {
+    "traj_id": "0327",
+    "error_span_ids": [
+      "s006",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s006",
+    "reasons": [
+      {
+        "span_id": "s006",
+        "reason": "weak support for the final answer of 3, which is not confirmed by the evidence packet"
+      },
+      {
+        "span_id": "s007",
+        "reason": "weak support for the final answer of 3, which is not confirmed by the evidence packet"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0327\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies? Your answer should be a numerical integer value.\",\n  \"traj_id\": \"0327\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Plan: 1. Retrieve Box Office Mojo’s 2020 Worldwide Box Office page and extract the top 10 films (titles and worldwide grosses), confirming it’s the year list (not YTD or weekly). 2. Retrieve Box Office Mojo’s Domestic Box Office for 2020 page and extract the top 10 films (titles and domestic grosses), confirming it’s the year list under the “Domestic” scope. 3. Compute and document the overlap: list shared titles and provide the overlap count, with notes on any title-matching nuances or year-classification quirks. Current status: - We do not yet have the specific top-10 entries from either list. - We must ensure we are using the correct, year-based Box Office Mojo pages and not snapshots or partial pages. - We will first collect the current official lists from Box Office Mojo before considering archived snapshots or any additional cross-checks. Tool choice: - I will use the web-capable agent to visit Box Office Mojo, extract the necessary top-10 lists and compute the overlap. This is necessary because the information is time-specific and hosted on external web pages. Parameters check: - The subtask will clearly instruct the agent to gather both lists from the correct pages, include URLs, verify year list status, and compute the overlap. No additional parameters are required. <use_mcp_tool> <server_name>agent-worker</server_name> <tool_name>execute_subtask</tool_name> <arguments> {\\\"subtask\\\":\\\"Visit Box Office Mojo and collect the current year-based lists for 2020: (1) \\\\\\\"2020 Worldwide Box Office\\\\\\\" and (2) \\\\\\\"Domestic Box Office for 2020\\\\\\\". For each page: confirm it is the year list (not YTD or weekly), record the page URL, note any visible last-updated/as-of indicators, and extract exactly the top 10 entries with their ranks, exact film titles as displayed by Box Office Mojo, and their respective grosses (worldwide for the worldwide page, domestic for the domestic page). Then compute the overlap between the two top-10 sets: list the overlapping titles and state the overlap count. Document any nuances like alternate titles, year classification notes, or filter settings. Provide a concise structured report with citations (URLs) and the overlap count.\\\"} </arguments> </use_mcp_tool>\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Visit Box Office Mojo and collect the current year-based lists for 2020: (1) \\\"2020 Worldwide Box Office\\\" and (2) \\\"Domestic Box Office for 2020\\\". For each page: confirm it is the year list (not YTD or weekly), record the page URL, note any visible last-updated/as-of indicators, and extract exactly the top 10 entries with their ranks, exact film titles as displayed by Box Office Mojo, and their respective grosses (worldwide for the worldwide page, domestic for the domestic page). Then compute the overlap between the two top-10 sets: list the overlapping titles and state the overlap count. Document any nuances like alternate titles, year classification notes, or filter settings. Provide a concise structured report with citations (URLs) and the overlap count.\\n---\\nBox Office Mojo 2020 Worldwide Box Office\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 2020 Worldwide Box Office URL Source: https://www https://www.boxofficemojo.com/year/world/2020/\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Domestic Box Office For 2020 URL Source: https://www https://www.boxofficemojo.com/year/2020/\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"[msg_92c8e313] Overview - Objective: Collect year-based lists for 2020 from Box Office Mojo: (1) “2020 Worldwide Box Office” and (2) “Domestic Box Office for 2020”. For each, confirm it’s a year list (not YTD/weekly), record page URL, note visible last-updated/as-of indicators, and extract exactly the top 10 entries with ranks, exact film titles, and relevant grosses. Compute overlap between the two top-10 sets and document any nuances. - Outcome: Both year list pages were identified and scraped. Top 10 entries were extracted as displayed. Overlap computed. Notes and citations provided. Working history and results - Located the official year pages via web search: - Found “2020 Worldwide Box Office” page. Link: https://www.boxofficemojo.com/year/world/2020/ - Found “Domestic Box Office For 2020” page. Link: https://www.boxofficemojo.com/year/2020/ - Scraped page content to ensure they are year list pages and to extract top entries: - “2020 Worldwide Box Office” page returned a ranked list headed by “Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train” and “The Eight Hundred,” including worldwide totals and domestic/international splits. Top 10 entries and amounts were captured. - “Domestic Box Office For 2020” page returned a ranked list headed by “Bad Boys for Life” and “1917,” including domestic grosses, theater counts, and release dates. Top 10 entries and domestic amounts were captured. - No visible “last updated” or “as of” indicators were present in the scraped content for either page. Page confirmations - 2020 Worldwide Box Office: Confirmed year list page; the URL path “/year/world/2020/” indicates a calendar-year worldwide box office summary for 2020. Citation: https://www.boxofficemojo.com/year/world/2020/ - Domestic Box Office for 2020: Confirmed year list page; the URL path “/year/2020/” indicates a calendar-year domestic (U.S./Canada) box office summary for 2020. Citation: https://www.boxofficemojo.com/year/2020/ - Visible last-updated/as-of indicators: None visible in the captured content for either page. Top 10 lists with ranks, exact titles, and grosses 1) 2020 Worldwide Box Office (worldwide grosses) Source: https://www.boxofficemojo.com/year/world/2020/ - 1. Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train — $469,119,320 - 2. The Eight Hundred — $461,421,559 - 3. Bad Boys for Life — $426,505,244 - 4. My People, My Homeland — $422,390,820 - 5. Tenet — $365,304,105 - 6. Sonic the Hedgehog — $319,715,683 - 7. Dolittle — $251,410,631 - 8. Jiang Ziya — $240,646,355 - 9. A Little Red Flower — $216,000,000 - 10. The Croods: A New Age — $215,905,815 2) Domestic Box Office for 2020 (domestic grosses) Source: https://www.boxofficemojo.com/year/2020/ - 1. Bad Boys for Life — $204,417,855 - 2. 1917 — $157,901,466 - 3. Sonic the Hedgehog — $146,066,470 - 4. Jumanji: The Next Level — $124,736,710 - 5. Star Wars: Episode IX - The Rise of Skywalker — $124,496,308 - 6. Birds of Prey and the Fantabulous Emancipation of One Harley Quinn — $84,158,461 - 7. Dolittle — $77,047,065 - 8. Little Women — $70,508,087 - 9. The Invisible Man — $64,914,050 - 10. The Call of the Wild — $62,342,368 Overlap between top-10 sets - Overlapping titles: - Bad Boys for Life - Sonic the Hedgehog - Dolittle - Overlap count: 3 Nuances and notes - Year classification differences: - Domestic year list includes grosses earned during the 2020 calendar year, so several 2019 releases with substantial 2020 earnings appear in the domestic top 10 (e.g., 1917; Jumanji: The Next Level; Star Wars: Episode IX - The Rise of Skywalker; Little Women). - Worldwide year list groups titles by “Release Group” associated with 2020 and reflects worldwide totals; major 2019 releases are not present in the 2020 worldwide top 10. - Exact titles as displayed: - “Birds of Prey and the Fantabulous Emancipation of One Harley Quinn” appears in full on the domestic page. - “Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train” appears in full on the worldwide page. - Re-releases and annotations: - Both lists include many entries marked “2020 Re-release” elsewhere on the page; none of these re-releases affect the top 10 sets here. - Page columns: - Worldwide page shows domestic and international breakdowns and percentages for each title. - Domestic page shows theater counts, release dates, and distributors. - Filters: - No special filters, YTD, weekly views, or alternative settings were used; pages accessed are the standard year list views. Citations - 2020 Worldwide Box Office: https://www.boxofficemojo.com/year/world/2020/ - Domestic Box Office for 2020: https://www.boxofficemojo.com/year/2020/ Final answer - Confirmed year list pages: Yes for both (not YTD or weekly). URLs cited above. - Visible last-updated/as-of indicators: None visible on the scraped content for either page. - Extracted top 10 entries: Provided above for each page with exact titles and correct grosses. - Overlap: Titles overlapping are Bad Boys for Life, Sonic the Hedgehog, Dolittle; overlap count is 3.\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"3\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Task and Question - Question: According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies? - Required answer format: A numerical integer value. - Objective: Collect the two year-based 2020 lists from Box Office Mojo (worldwide and domestic), extract the top 10 entries from each, compute the overlap, and document all steps, evidence, and any uncertainties. Approach and Plan 1. Identify and confirm the correct year list pages on Box Office Mojo for: - 2020 Worldwide Box Office - Domestic Box Office for 2020 2. Extract exactly the top 10 entries from each page, preserving exact titles as displayed and the relevant grosses. 3. Compute the overlap between the two top-10 sets, list the overlapping titles, and provide the count. Note any nuances such as year classification differences, alternate titles, or filters. Working History and Tool Use Summary - A single web-agent subtask was executed to visit Box Office Mojo, confirm both pages are year-based lists (not YTD or weekly), extract the top 10 entries from each list, and compute the overlap. URLs were recorded, and visible indicators such as “last updated” were checked. - The subtask returned structured findings: - Confirmed pages: - 2020 Worldwide Box Office: https://www.boxofficemojo.com/year/world/2020/ - Domestic Box Office for 2020: https://www.boxofficemojo.com/year/2020/ - Both pages were recognized as year lists based on the URL path. - No visible “last updated” or “as of” indicators were present on either page in the captured content. - Top 10 entries were extracted from each page with exact titles and grosses. - Overlap was computed and documented. Data Extracted 1) 2020 Worldwide Box Office (worldwide grosses) Source: https://www.boxofficemojo.com/year/world/2020/ Top 10 as displayed: - 1. Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train — $469,119,320 - 2. The Eight Hundred — $461,421,559 - 3. Bad Boys for Life — $426,505,244 - 4. My People, My Homeland — $422,390,820 - 5. Tenet — $365,304,105 - 6. Sonic the Hedgehog — $319,715,683 - 7. Dolittle — $251,410,631 - 8. Jiang Ziya — $240,646,355 - 9. A Little Red Flower — $216,000,000 - 10. The Croods: A New Age — $215,905,815 2) Domestic Box Office for 2020 (domestic grosses, U.S./Canada) Source: https://www.boxofficemojo.com/year/2020/ Top 10 as displayed: - 1. Bad Boys for Life — $204,417,855 - 2. 1917 — $157,901,466 - 3. Sonic the Hedgehog — $146,066,470 - 4. Jumanji: The Next Level — $124,736,710 - 5. Star Wars: Episode IX - The Rise of Skywalker — $124,496,308 - 6. Birds of Prey and the Fantabulous Emancipation of One Harley Quinn — $84,158,461 - 7. Dolittle — $77,047,065 - 8. Little Women — $70,508,087 - 9. The Invisible Man — $64,914,050 - 10. The Call of the Wild — $62,342,368 Overlap Computation - Overlapping titles between the two top-10 sets: - Bad Boys for Life - Sonic the Hedgehog - Dolittle - Overlap count: 3 Nuances, Checks, and Uncertainties - Year list confirmation: - The worldwide page URL uses /year/world/2020/ and the domestic page uses /year/2020/, consistent with Box Office Mojo’s calendar-year summaries. - Domestic definition: - Domestic refers to the combined U.S. and Canada market on Box Office Mojo. - Year classification differences: - The domestic year list includes grosses earned during the 2020 calendar year regardless of the film’s original release year, so several 2019 titles appear (1917; Jumanji: The Next Level; Star Wars: Episode IX; Little Women). - The worldwide year list aggregates films associated with 2020 release groupings, thus dominated by 2020 titles. - Filters and views: - No YTD, weekly, or alternate filters were used; the standard year views were used. - Updates and snapshot stability: - Box Office Mojo can update totals over time, but no “last updated” indicator was visible. The extracted lists reflect the current page state at the time of retrieval. - Title matching: - Exact titles were preserved as displayed, including longer forms like “Birds of Prey and the Fantabulous Emancipation of One Harley Quinn” and “Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train.” - Pandemic context: - 2020 box office was atypical, with Chinese titles leading worldwide and limited U.S. domestic grosses; minimal overlap was expected and observed. Citations - 2020 Worldwide Box Office: https://www.boxofficemojo.com/year/world/2020/ - Domestic Box Office for 2020: https://www.boxofficemojo.com/year/2020/ Final Answer 3\\n---\\nLLM extracted final answer: **Step-by-step Analysis:** 1. From the Agent Summary, the 2020 Worldwide top-10 movies are: • Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train • The Eight Hundred • Bad Boys for Life • My People, My Homeland • Tenet • Sonic the Hedgehog • Dolittle • Jiang Ziya • A Little Red Flower • The Croods: A New Age 2. The 2020 Domestic (U.S./Canada) top-10 movies are: • Bad Boys for Life • 1917 • Sonic the Hedgehog • Jumanji: The Next Level • Star Wars: Episode IX - The Rise of Skywalker • Birds of Prey and the Fantabulous Emancipation of One Harley Quinn • Dolittle • Little Women • The Invisible Man • The Call of the Wild 3. Titles appearing in both lists: • Bad Boys for Life • Sonic the Hedgehog • Dolittle 4. Count of overlapping titles = 3. **Final Answer:** \\\\boxed{3} **Confidence:** 90 **Supporting Evidence:** The Agent Summary lists the top-10 titles for each list and explicitly identifies the three overlapping movies, leading to an overlap count of 3. **Potential Weaknesses:** Relies on the accuracy of the extracted lists from Box Office Mojo at the time of retrieval; future updates to the website could alter rankings, but the evidence provided supports the current count.\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0327",
+        "task_goal": "short string",
+        "hard_constraints": [
+          "short string"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "3",
+            "introduced_at": "s006",
+            "becomes_consequential_at": "s007",
+            "used_by": [
+              "s007"
+            ],
+            "claim_type": "compute",
+            "status": "finalized"
+          }
+        ],
+        "notes": "short string"
+      },
+      "validated": {
+        "traj_id": "0327",
+        "task_goal": "short string",
+        "hard_constraints": [
+          "short string"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "3",
+            "introduced_at": "s006",
+            "becomes_consequential_at": "s007",
+            "used_by": [
+              "s007"
+            ],
+            "claim_type": "compute",
+            "status": "finalized"
+          }
+        ],
+        "notes": "short string"
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s006",
+            "s007"
+          ],
+          "grep_queries": [
+            "3"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s006",
+        "s007"
+      ],
+      "available_span_ids": [
+        "s006",
+        "s007"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "3",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0327\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies? Your answer should be a numerical integer value.\",\n  \"traj_id\": \"0327\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0327\",\n    \"task_goal\": \"short string\",\n    \"hard_constraints\": [\n      \"short string\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"3\",\n        \"introduced_at\": \"s006\",\n        \"becomes_consequential_at\": \"s007\",\n        \"used_by\": [\n          \"s007\"\n        ],\n        \"claim_type\": \"compute\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"short string\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s006\",\n      \"s007\"\n    ],\n    \"requested_span_ids\": [\n      \"s006\",\n      \"s007\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"3\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s006\",\n      \"s007\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s006\",\n        \"chunk_id\": \"s006:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1,\n        \"text\": \"3\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 5784,\n        \"text\": \"estic (U.S./Canada) top-10 movies are: • Bad Boys for Life • 1917 • Sonic the Hedgehog • Jumanji: The Next Level • Star Wars: Episode IX - The Rise of Skywalker • Birds of Prey and the Fantabulous Emancipation of One Harley Quinn • Dolittle • Little Women • The Invisible Man • The Call of the Wild 3. Titles appearing in both lists: • Bad Boys for Life • Sonic the Hedgehog • Dolittle 4. Count of overlapping titles = 3. **Final Answer:** \\\\boxed{3} **Confidence:** 90 **Supporting Evidence:** The Agent Summary lists the top-10 titles for each list and explicitly identifies the three overlapping movies, leading to an overlap count of 3. **Potential Weaknesses:** Relies on the accuracy of the extracted lists from Box Office Mojo at the time of retrieval; future updates to the website could alter rankings, but the evidence provided supports the current count.\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s007"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s007",
+                "chunk_id": "s007:c004",
+                "role": "partial_support",
+                "text": "3 titles appearing in both lists: • Bad Boys for Life • Sonic the Hedgehog • Dolittle 4. Count of overlapping titles = 3."
+              }
+            ]
+          }
+        ],
+        "notes": "short string"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s007"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s007",
+              "chunk_id": "s007:c004",
+              "role": "partial_support",
+              "text": "3 titles appearing in both lists: • Bad Boys for Life • Sonic the Hedgehog • Dolittle 4. Count of overlapping titles = 3."
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0327\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies? Your answer should be a numerical integer value.\",\n  \"traj_id\": \"0327\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0327\",\n    \"task_goal\": \"short string\",\n    \"hard_constraints\": [\n      \"short string\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"3\",\n        \"introduced_at\": \"s006\",\n        \"becomes_consequential_at\": \"s007\",\n        \"used_by\": [\n          \"s007\"\n        ],\n        \"claim_type\": \"compute\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"short string\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s007\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s007\",\n          \"chunk_id\": \"s007:c004\",\n          \"role\": \"partial_support\",\n          \"text\": \"3 titles appearing in both lists: • Bad Boys for Life • Sonic the Hedgehog • Dolittle 4. Count of overlapping titles = 3.\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s006\",\n      \"s007\"\n    ],\n    \"requested_span_ids\": [\n      \"s006\",\n      \"s007\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"3\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s006\",\n      \"s007\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s006\",\n        \"chunk_id\": \"s006:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1,\n        \"text\": \"3\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 5784,\n        \"text\": \"estic (U.S./Canada) top-10 movies are: • Bad Boys for Life • 1917 • Sonic the Hedgehog • Jumanji: The Next Level • Star Wars: Episode IX - The Rise of Skywalker • Birds of Prey and the Fantabulous Emancipation of One Harley Quinn • Dolittle • Little Women • The Invisible Man • The Call of the Wild 3. Titles appearing in both lists: • Bad Boys for Life • Sonic the Hedgehog • Dolittle 4. Count of overlapping titles = 3. **Final Answer:** \\\\boxed{3} **Confidence:** 90 **Supporting Evidence:** The Agent Summary lists the top-10 titles for each list and explicitly identifies the three overlapping movies, leading to an overlap count of 3. **Potential Weaknesses:** Relies on the accuracy of the extracted lists from Box Office Mojo at the time of retrieval; future updates to the website could alter rankings, but the evidence provided supports the current count.\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0327",
+        "first_error_span": "s007",
+        "linked_error_span_ids": [
+          "s007"
+        ],
+        "non_errors": [
+          "s006"
+        ],
+        "reason": "weak support for the final answer of 3, which is not confirmed by the evidence packet",
+        "error_span_ids": [
+          "s006",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s006"
+      },
+      "validated": {
+        "traj_id": "0327",
+        "first_error_span": "s007",
+        "linked_error_span_ids": [
+          "s007"
+        ],
+        "non_errors": [
+          "s006"
+        ],
+        "reason": "weak support for the final answer of 3, which is not confirmed by the evidence packet",
+        "error_span_ids": [
+          "s006",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s007"
+      }
+    },
+    "full_span_count": 7,
+    "evidence_span_count": 2
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 7565,
+    "output_tokens": 385,
+    "total_tokens": 7950
+  }
+}

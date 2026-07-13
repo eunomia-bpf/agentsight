@@ -1,0 +1,395 @@
+{
+  "setting": "drift",
+  "case_id": "0828",
+  "prediction": {
+    "traj_id": "0828",
+    "error_span_ids": [
+      "s011",
+      "s012",
+      "s015"
+    ],
+    "earliest_harmful_span_id": "s011",
+    "reasons": [
+      {
+        "span_id": "s011",
+        "reason": "weak support for c2, linked to c1"
+      },
+      {
+        "span_id": "s012",
+        "reason": "weak support for c2, linked to c1"
+      },
+      {
+        "span_id": "s015",
+        "reason": "weak support for c2, linked to c1"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0828\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated section\\\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled. As of August 2023, what is the percentage (to the nearest percent) of those standards that have been superseded by a new version since the date given in the 1959 standards?\",\n  \"traj_id\": \"0828\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated\\n---\\n\\\"United States standards for grades of processed fruits, vegetables, and certain other products\\\" July 2, 1959 consolidated listing\\n---\\n\\\"United States standards for grades of processed fruits, vegetables, and certain other products\\\" 1959\\n---\\nPlease extract the sections titled “DRIED AND DEHYDRATED” and “FROZEN / CHILLED” (or similar variants such as “FROZEN OR CHILLED”, “Frozen and Chilled”) from this July 2, 1959 consolidated listing. Include the item names under each section along with their dates as presented in the document.\\n---\\nPlease extract the title page (exact title, issuing agency/division, series/number if present) and any preface/notes that explain the footnotes “1/” and “2/”. Also, identify the page numbers where the headings “DRIED or DEHYDRATED (Low-moisture)” and “FROZEN or CHILLED (if so stated)” appear in this July 2, 1959 consolidated listing.\\n---\\nSkip to main content TEXTS VIDEO AUDIO SOFTWARE IMAGES SIGN UP | LOG IN UPLOAD Search the Archive Sign up for free Log in Search metadata Search text contents Search TV news captions Search radio transcripts Search archi\\n---\\nFound the authoritative USDA/AMS consolidated listing: “UNITED STATES STANDARDS FOR GRADES OF PROCESSED FRUITS, VEGETABLES, AND CERTAIN OTHER PRODUCTS (as of July 2, 1959),” AMS\\n---\\nThought: I need to locate the July 2, 1959 “United States standards for grades of processed fruits, vegetables, and certain other products” listing and extract the “dried and dehydrated” and “Frozen/Chilled” sections\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:ams.usda.gov \\\"Apples, Dehydrated (Low-moisture)\\\" pdf\\n---\\n\\\"United States Standards for Grades of Apples, Dehydrated (Low-moisture)\\\" pdf\\n---\\nSkip to main content An official website of the United States government Here’s how you know Agricultural Marketing Service U\\n---\\n\\\"Apples, Dehydrated (Low-moisture)\\\" USDA PDF\\n---\\nSkip to main content An official website of the United States government Here’s how you know Agricultural Marketing Service U\\n---\\nPlease extract the document title from the cover page, the issuing agency, and any issuance/revision/effective dates noted. Confirm whether the title matches “United States Standards for Grades of Apples, Dehydrated (Low-moisture)” and whether this is an official USDA AMS publication.\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:ams.usda.gov Dehydrated Apples Standard pdf\\n---\\nExtract the document title from the cover page, the issuing agency, and any issuance/revision/effective dates noted. Confirm whether the title matches “United States Standards for Grades of Apples, Dehydrated (Low-moisture)” (or equivalent) and whether this is an official USDA AMS publication. Also copy any Federal Register citation mentioned.\\n---\\nhttps://www.ams.usda.gov/sites/default/files/media/Dehydrated_Apples_Standard%5B1%5D.pdf\\n---\\nhttps://www.ams.usda.gov/sites/default/files/media/Dehydrated_Apples_Standard%5B1%5D.pdf\\n---\\nsite:web.archive.org Dehydrated_Apples_Standard%5B1%5D.pdf ams.usda.gov\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Extract the document title, issuing agency, and any issuance/revision/effective dates noted on the cover page. Confirm whether the title matches “United States Standards for Grades of Apples, Dehydrated (Low-moisture)” (or equivalent wording) and whether this is an official USDA AMS publication. Also copy any Federal Register citation mentioned (e.g., FR volume/date).\\n---\\nThe official USDA AMS PDF exists and is hosted on ams\\n---\\n\\\"United States Standards for Grades of Grapefruit Juice (Dehydrated)\\\" site:ams.usda.gov\\n---\\n\\\"United States Standards for Grades of Grapefruit Juice (Dehydrated)\\\"\\n---\\n\\\"Dehydrated Grapefruit Juice\\\" USDA AMS PDF\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Extract the document title, issuing agency, publication/effective date(s), revision date(s), and any notes indicating supersession/withdrawal. Also list any document identifiers visible (e.g., AMS publication number).\\n---\\nSkip to main content An official website of the United States government Here’s how you know Agricultural Marketing Service U\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:ams.usda.gov \\\"Dehydrated Grapefruit Juice\\\" Standard pdf\\n---\\nsite:ecfr.gov 52.1221 grapefruit juice\\n---\\nSummarize the document’s title page and scope. Does it cover dehydrated grapefruit juice within the United States Standards for Grades of Grapefruit Juice? Extract any effective dates, revision/supersession notes, and CFR/FR citations.\\n---\\n\\\"7 CFR 52.1221\\\" Grapefruit Juice\\n---\\nLocate the section revising the United States Standards for Grades of Grapefruit Juice (7 CFR 52.1221–52.1230). Extract the effective date, issue designation (e.g., second issue), and any notes about prior versions or amendments.\\n---\\nsite:govinfo.gov \\\"77 FR 51750\\\" Grapefruit Juice AMS\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Extract exact title as printed, issuing agency, effective date, and any preface text stating prior effective dates or amendment history. Also list any CFR/FR citations present.\\n---\\nOfficial USDA AMS direct PDF: https://www\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:ams.usda.gov \\\"United States Standards for Grades of Orange Juice (Dehydrated)\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Orange Juice (Dehydrated)\\\"\\n---\\nUSDA AMS \\\"Orange Juice (Dehydrated)\\\" standards PDF\\n---\\nSkip to main content An official website of the United States government Here’s how you know Agricultural Marketing Service U\\n---\\nExtract the title page and metadata: exact title, issuing agency, effective/issued date(s), and any listed revision dates or notes. Confirm that the product is dehydrated orange juice and list grade definitions.\\n---\\nSkip to main content TEXTS VIDEO AUDIO SOFTWARE IMAGES SIGN UP | LOG IN UPLOAD Search the Archive Sign up for free Log in Search metadata Search text contents Search TV news captions Search radio transcripts Search archi\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Extract the exact title as printed, issuing agency, and the effective date. Note any statements about superseding prior standards or amendments on the title or preliminary pages.\\n---\\nhttps://prod.ams.usda.gov/sites/default/files/media/Dehydrated_Orange_Juice_Standard%5B1%5D.pdf\\n---\\nhttps://www.ams.usda.gov/grades-standards/dehydrated-orange-juice-grades-and-standards\\n---\\n\\\"United States Standards for Grades of Orange Juice\\\" 1983 pdf\\n---\\nExtract the exact document title, issuing agency, effective/issued dates, and confirm that it includes grading for Dehydrated Orange Juice (Table VI).\\n---\\nOfficial USDA AMS direct PDF link: https://www\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Frozen Apples\\\" PDF\\n---\\nUnited States Standards for Grades of Frozen Apples United States Department of Agriculture Agricultural Marketing Service Fruit and Vegetable Division Processed Products Branch Effective date May 17, 1954 This is the Th\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Frozen Apples\\\"\\n---\\n\\\"United States Standards for Grades of Frozen Apples\\\" PDF site:.gov\\n---\\n\\\"United States Standards for Grades of Frozen Apples\\\" site:permanent.access.gpo.gov PDF\\n---\\nhttps://www.ams.usda.gov/sites/default/files/media/Frozen_Apples_Standard%5B1%5D.pdf\\n---\\nhttps://www.ams.usda.gov/sites/default/files/media/Frozen_Apples_Standard%5B1%5D.pdf\\n---\\nOfficial USDA AMS direct PDF link: https://www\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Grapefruit Juice, Concentrated\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Grapefruit Juice, Concentrated\\\" PDF\\n---\\nsite:ams.usda.gov Grapefruit Juice Concentrated \\\"United States Standards\\\" filetype:pdf\\n---\\nsite:ams.usda.gov Concentrated Grapefruit Juice \\\"United States Standards for Grades of\\\" filetype:pdf\\n---\\nsite:ams.usda.gov \\\"grapefruit juice from concentrate\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Grapefruit Juice, Concentrated\\\"\\n---\\nExtract the title page and table of contents text, including any sections specifically named \\\"Grapefruit Juice, Concentrated\\\" or similar, and list the publication/effective dates and revision history statements.\\n---\\n\\\"United States Standards for Grades of Grapefruit Juice, Concentrated\\\" pdf\\n---\\nsite:ams.usda.gov \\\"Grapefruit Juice, Concentrated\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Frozen Concentrated Grapefruit Juice\\\" pdf\\n---\\nsite:ams.usda.gov \\\"Frozen Grapefruit Juice\\\" filetype:pdf\\n---\\n\\\"United States standards for grades of concentrated grapefruit juice\\\" pdf\\n---\\nI could not find an AMS\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Grapefruit Juice\\\"\\n---\\nsite:ams.usda.gov \\\"Orange Juice, Concentrated, Blended\\\"\\n---\\nExtract the title page, issuing agency/division, publication/effective dates, and any revision history notes from this PDF. Confirm if it is the official United States Standards for Grades of Grapefruit Juice and list section headings.\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Orange Juice\\\"\\n---\\nExtract the title page text, issuing agency/division, publication/effective dates, Federal Register cite, and any revision history notes. Also list the “Styles” and “Definitions” sections to confirm coverage of concentrated and blended forms.\\n---\\nExtract the title page text, issuing agency/division, issue number, publication/effective dates, and any revision history notes. Confirm whether this is a combined standard documenting both Grapefruit Juice and Orange Juice, and list any Federal Register citations if present.\\n---\\nhttps://www.ams.usda.gov/sites/default/files/media/Canned_Grapefruit_and_Orange_Juice_Standard%5B1%5D.pdf\\n---\\nhttps://www.ams.usda.gov/sites/default/files/media/Canned_Grapefruit_and_Orange_Juice_Standard%5B1%5D.pdf\\n---\\nsite:ams.usda.gov Grapefruit Juice and Orange Juice Concentrated Blended pdf\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Extract the title page, issuing agency/division, publication/effective dates, Federal Register citation, and any revision history notes. Confirm exact title wording (e.g., “United States Standards for Grades of Frozen Concentrated Blended Grapefruit Juice and Orange Juice”) and whether it uses “Concentrated, Blended.” List key sections to show scope (product description, styles, definitions, grades).\\n---\\nhttps://www.ams.usda.gov/sites/default/files/media/Frozen_Grapefruit_and_Orange_Juice_Standard%5B1%5D.pdf\\n---\\nFound the official USDA AMS PDF for the blended, concentrated product: “United States Standards for Grades of Frozen Concentrated Blended Grapefruit Juice and Orange Juice\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"United States Standards for Grades of Orange Juice, Concentrated\\\" site:ams.usda.gov filetype:pdf\\n---\\n\\\"United States Standards for Grades of Orange Juice, Concentrated\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Orange Juice, Concentrated\\\"\\n---\\nSkip to main content An official website of the United States government Here’s how you know Agricultural Marketing Service U\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades\\\" orange juice concentrated\\n---\\nsite:ams.usda.gov \\\"Orange Juice, Concentrated\\\" \\\"United States Standards for Grades\\\"\\n---\\nsite:ams.usda.gov concentrated orange juice \\\"United States Standards for Grades\\\" filetype:pdf\\n---\\nUnited States Department of Agriculture Agricultural Marketing Service Fruit and Vegetable Division Processed Products Branch United States Standards for Grades of Frozen Concentrated Blended Grapefruit Juice and Orange\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Orange Juice, Concentrated\\\"\\n---\\nsite:ams.usda.gov \\\"Orange Juice, Concentrated\\\" filetype:pdf\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Frozen Concentrated Orange Juice\\\"\\n---\\nsite:ams.usda.gov Orange Juice Concentrated \\\"United States Standards for Grades\\\"\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I could not locate an AMS PDF whose exact title matches “United States Standards for Grades of Orange Juice, Concentrated\\n---\\nThought: We have identified the authoritative July 2, 1959 consolidated listing (AMS-141 Rev\\n---\\n{ \\\"queries\\\": [\\\"1959 USDA standards dehydrated frozen grade superseded\\\", \\\"1959 processed fruit vegetables USDA standards update\\\", \\\"August 2023 USDA updated standards for processed fruits and vegetables\\\"] }It appears I was\\n---\\n{ \\\"queries\\\": [\\\"1959 USDA standards superseded percentage update\\\"] }Based on the documents retrieved and the context provided, I was able to find several relevant pieces of information\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"> *Thought for 8s* > **Confirming superseded standards** > I need to evaluate the user's standards list, so I’m reviewing the uploaded files\\n---\\nsite:ams.usda.gov \\\"U.S. Standards for Grades\\\" dried apples PDF\\n---\\n\\\"United States Standards for Grades of Apples, Dehydrated (Low-moisture)\\\"\\n---\\nsite:ams.usda.gov \\\"U.S. Standards for Grades\\\" \\\"Dried Apples\\\" PDF\\n---\\n\\\"Apples, Dehydrated (Low-moisture)\\\" \\\"United States Standards for Grades\\\"\\n---\\nExtract the cover page header/footer and any issuance history notes, including: the exact title, effective date, any revision dates, and any explicit supersession statement such as 'This issue supersedes the [date] issue.' Also list the edition number if present (e.g., 'This is the fourth issue').\\n---\\n\\\"United States Standards for Grades of Apples, Dehydrated\\\" low-moisture PDF\\n---\\nFind the entry for Apples, Dehydrated (Low-moisture) and report the effective date listed, and any notes or cross-references. Also confirm how the title is presented in that consolidated listing.\\n---\\nSearch for \\\"Apples, dehydrated (low moisture)\\\" and extract the entry details: date(s), citation(s) (Federal Register or CFR section), and any notes indicating issuance, revision, or supersession. Also capture nearby entries for context (e.g., Apples, dried; Apricots, dehydrated low-moisture).\\n---\\nFederal Register 1977 \\\"United States Standards for Grades\\\" Apples dehydrated low moisture AMS\\n---\\nExtract the cover page header/footer and any issuance history notes, including: the exact title, effective date, any revision dates, and any explicit supersession statement such as 'This issue supersedes the [date] issue.' Also capture any Federal Register citation (volume/page/date) and administrative signature/date lines.\\n---\\nYes, a later AMS edition replaced the November 29, 1955 “Apples, Dehydrated (Low\"\n    },\n    {\n      \"span_id\": \"s014\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"United States Standards for Grades of Grapefruit Juice (Dehydrated)\\\" March 19, 1956 AMS PDF\\n---\\n\\\"United States Standards for Grades of Grapefruit Juice (Dehydrated)\\\"\\n---\\nConsolidated listing United States Standards for Grades of Processed Fruits and Vegetables 1959 AMS PDF\"\n    },\n    {\n      \"span_id\": \"s015\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I will reconstruct the inclusion set from the July 2, 1959 AMS-141 listing, applying the rules: - Include only items in “DRIED or DEHYDRATED (Low-moisture)” that are explicitly marked “Dehydrated\\n---\\nThought: We have verified supersession evidence for \\\"Apples, Dehydrated (Low-moisture)\\\" from 1959 being replaced by a second issue effective July 31, 1977 (42 FR 33259)\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0828",
+        "task_goal": "short string",
+        "hard_constraints": [
+          "short string"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \"dried and dehydrated section\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled.",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "As of August 2023, the percentage of those standards that have been superseded by a new version since the date given in the 1959 standards is to the nearest percent.",
+            "introduced_at": "s012",
+            "becomes_consequential_at": "s015",
+            "used_by": [
+              "s015"
+            ],
+            "claim_type": "compute",
+            "status": "consequential"
+          }
+        ],
+        "notes": "short string"
+      },
+      "validated": {
+        "traj_id": "0828",
+        "task_goal": "short string",
+        "hard_constraints": [
+          "short string"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \"dried and dehydrated section\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled.",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "As of August 2023, the percentage of those standards that have been superseded by a new version since the date given in the 1959 standards is to the nearest percent.",
+            "introduced_at": "s012",
+            "becomes_consequential_at": "s015",
+            "used_by": [
+              "s015"
+            ],
+            "claim_type": "compute",
+            "status": "consequential"
+          }
+        ],
+        "notes": "short string"
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001",
+            "s011",
+            "s015"
+          ],
+          "grep_queries": [
+            "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \""
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s012",
+            "s015"
+          ],
+          "grep_queries": [
+            "As of August 2023, the percentage of those standards that have been superseded by a new version since the date given in the 1959 standards is to the nearest per"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s011",
+        "s012",
+        "s015"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s009",
+        "s011",
+        "s012",
+        "s013",
+        "s015"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \"",
+          "matched_chunk_ids": [
+            "s001:c001",
+            "s009:c001",
+            "s013:c001",
+            "s009:c002"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s009",
+            "s013"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "As of August 2023, the percentage of those standards that have been superseded by a new version since the date given in the 1959 standards is to the nearest per",
+          "matched_chunk_ids": [
+            "s013:c001",
+            "s001:c001",
+            "s012:c001",
+            "s009:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s009",
+            "s012",
+            "s013"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0828\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated section\\\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled. As of August 2023, what is the percentage (to the nearest percent) of those standards that have been superseded by a new version since the date given in the 1959 standards?\",\n  \"traj_id\": \"0828\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0828\",\n    \"task_goal\": \"short string\",\n    \"hard_constraints\": [\n      \"short string\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated section\\\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled.\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"As of August 2023, the percentage of those standards that have been superseded by a new version since the date given in the 1959 standards is to the nearest percent.\",\n        \"introduced_at\": \"s012\",\n        \"becomes_consequential_at\": \"s015\",\n        \"used_by\": [\n          \"s015\"\n        ],\n        \"claim_type\": \"compute\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"short string\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s012\",\n      \"s015\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s012\",\n      \"s015\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s009:c001\",\n          \"s013:c001\",\n          \"s009:c002\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s009\",\n          \"s013\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"As of August 2023, the percentage of those standards that have been superseded by a new version since the date given in the 1959 standards is to the nearest per\",\n        \"matched_chunk_ids\": [\n          \"s013:c001\",\n          \"s001:c001\",\n          \"s012:c001\",\n          \"s009:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s009\",\n          \"s012\",\n          \"s013\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s009\",\n      \"s011\",\n      \"s012\",\n      \"s013\",\n      \"s015\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1686,\n        \"text\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated\\n---\\n\\\"United States standards for grades of processed fruits, vegetables, and certain other products\\\" July 2, 1959 consolidated listing\\n---\\n\\\"United States standards for grades of processed fruits, vegetables, and certain other products\\\" 1959\\n---\\nPlease extract the sections titled “DRIED AND DEHYDRATED” and “FROZEN / CHILLED” (or similar variants such as “FROZEN OR CHILLED”, “Frozen and Chilled”) from this July 2, 1959 consolidated listing. Include the item names under each section along with their dates as presented in the document.\\n---\\nPlease extract the title page (exact title, issuing agency/division, series/number if present) and any preface/notes that explain the footnotes “1/” and “2/”. Also, identify the page numbers where the headings “DRIED or DEHYDRATED (Low-moisture)” and “FROZEN or CHILLED (if so stated)” appear in this July 2, 1959 consolidated listing.\\n---\\nSkip to main content TEXTS VIDEO AUDIO SOFTWARE IMAGES SIGN UP | LOG IN UPLOAD Search the Archive Sign up for free Log in Search metadata Search text contents Search TV news captions Search radio transcripts Search archi\\n---\\nFound the authoritative USDA/AMS consolidated listing: “UNITED STATES STANDARDS FOR GRADES OF PROCESSED FRUITS, VEGETABLES, AND CERTAIN OTHER PRODUCTS (as of July 2, 1959),” AMS\\n---\\nThought: I need to locate the July 2, 1959 “United States standards for grades of processed fruits, vegetables, and certain other products” listing and extract the “dried and dehydrated” and “Frozen/Chilled” sections\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1210,\n        \"text\": \"\\\"United States Standards for Grades of Orange Juice, Concentrated\\\" site:ams.usda.gov filetype:pdf\\n---\\n\\\"United States Standards for Grades of Orange Juice, Concentrated\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Orange Juice, Concentrated\\\"\\n---\\nSkip to main content An official website of the United States government Here’s how you know Agricultural Marketing Service U\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades\\\" orange juice concentrated\\n---\\nsite:ams.usda.gov \\\"Orange Juice, Concentrated\\\" \\\"United States Standards for Grades\\\"\\n---\\nsite:ams.usda.gov concentrated orange juice \\\"United States Standards for Grades\\\" filetype:pdf\\n---\\nUnited States Department of Agriculture Agricultural Marketing Service Fruit and Vegetable Division Processed Products Branch United States Standards for Grades of Frozen Concentrated Blended Grapefruit Juice and Orange\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Orange Juice, Concentrated\\\"\\n---\\nsite:ams.usda.gov \\\"Orange Juice, Concentrated\\\" filetype:pdf\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Frozen Concentrated Orange Juice\\\"\\n---\\nsite:ams.usda.gov Orange Juice Concentrated \\\"United States Standards for Grades\\\"\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 631,\n        \"text\": \"I could not locate an AMS PDF whose exact title matches “United States Standards for Grades of Orange Juice, Concentrated\\n---\\nThought: We have identified the authoritative July 2, 1959 consolidated listing (AMS-141 Rev\\n---\\n{ \\\"queries\\\": [\\\"1959 USDA standards dehydrated frozen grade superseded\\\", \\\"1959 processed fruit vegetables USDA standards update\\\", \\\"August 2023 USDA updated standards for processed fruits and vegetables\\\"] }It appears I was\\n---\\n{ \\\"queries\\\": [\\\"1959 USDA standards superseded percentage update\\\"] }Based on the documents retrieved and the context provided, I was able to find several relevant pieces of information\"\n      },\n      {\n        \"span_id\": \"s015\",\n        \"chunk_id\": \"s015:c001\",\n        \"char_start\": 0,\n        \"char_end\": 377,\n        \"text\": \"Thought: I will reconstruct the inclusion set from the July 2, 1959 AMS-141 listing, applying the rules: - Include only items in “DRIED or DEHYDRATED (Low-moisture)” that are explicitly marked “Dehydrated\\n---\\nThought: We have verified supersession evidence for \\\"Apples, Dehydrated (Low-moisture)\\\" from 1959 being replaced by a second issue effective July 31, 1977 (42 FR 33259)\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"Extract the exact title as printed, issuing agency, and the effective date. Note any statements about superseding prior standards or amendments on the title or preliminary pages.\\n---\\nhttps://prod.ams.usda.gov/sites/default/files/media/Dehydrated_Orange_Juice_Standard%5B1%5D.pdf\\n---\\nhttps://www.ams.usda.gov/grades-standards/dehydrated-orange-juice-grades-and-standards\\n---\\n\\\"United States Standards for Grades of Orange Juice\\\" 1983 pdf\\n---\\nExtract the exact document title, issuing agency, effective/issued dates, and confirm that it includes grading for Dehydrated Orange Juice (Table VI).\\n---\\nOfficial USDA AMS direct PDF link: https://www\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Frozen Apples\\\" PDF\\n---\\nUnited States Standards for Grades of Frozen Apples United States Department of Agriculture Agricultural Marketing Service Fruit and Vegetable Division Processed Products Branch Effective date May 17, 1954 This is the Th\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Frozen Apples\\\"\\n---\\n\\\"United States Standards for Grades of Frozen Apples\\\" PDF site:.gov\\n---\\n\\\"United States Standards for Grades of Frozen Apples\\\" site:permanent.access.gpo.gov PDF\\n---\\nhttps://www.ams.usda.gov/sites/default/files/media/Frozen_Apples_Standard%5B1%5D.pdf\\n---\\nhttps://www.ams.usda.gov/sites/default/files/media/Frozen_Apples_Standard%5B1%5D.pdf\\n---\\nOfficial USDA AMS direct PDF link: https://www\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Grapefruit Juice, Concentrated\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Grapefruit Juice, Concentrated\\\" PDF\\n---\\nsite:ams.usda.gov Grapefruit Juice Concentrated \\\"United States Standards\\\" filetype:pdf\\n---\\nsite:ams.usda.gov Concentrated Grapefruit Juice \\\"United States Standards for Grades of\\\" filetype:pdf\\n---\"\n      },\n      {\n        \"span_id\": \"s013\",\n        \"chunk_id\": \"s013:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"> *Thought for 8s* > **Confirming superseded standards** > I need to evaluate the user's standards list, so I’m reviewing the uploaded files\\n---\\nsite:ams.usda.gov \\\"U.S. Standards for Grades\\\" dried apples PDF\\n---\\n\\\"United States Standards for Grades of Apples, Dehydrated (Low-moisture)\\\"\\n---\\nsite:ams.usda.gov \\\"U.S. Standards for Grades\\\" \\\"Dried Apples\\\" PDF\\n---\\n\\\"Apples, Dehydrated (Low-moisture)\\\" \\\"United States Standards for Grades\\\"\\n---\\nExtract the cover page header/footer and any issuance history notes, including: the exact title, effective date, any revision dates, and any explicit supersession statement such as 'This issue supersedes the [date] issue.' Also list the edition number if present (e.g., 'This is the fourth issue').\\n---\\n\\\"United States Standards for Grades of Apples, Dehydrated\\\" low-moisture PDF\\n---\\nFind the entry for Apples, Dehydrated (Low-moisture) and report the effective date listed, and any notes or cross-references. Also confirm how the title is presented in that consolidated listing.\\n---\\nSearch for \\\"Apples, dehydrated (low moisture)\\\" and extract the entry details: date(s), citation(s) (Federal Register or CFR section), and any notes indicating issuance, revision, or supersession. Also capture nearby entries for context (e.g., Apples, dried; Apricots, dehydrated low-moisture).\\n---\\nFederal Register 1977 \\\"United States Standards for Grades\\\" Apples dehydrated low moisture AMS\\n---\\nExtract the cover page header/footer and any issuance history notes, including: the exact title, effective date, any revision dates, and any explicit supersession statement such as 'This issue supersedes the [date] issue.' Also capture any Federal Register citation (volume/page/date) and administrative signature/date lines.\\n---\\nYes, a later AMS edition replaced the November 29, 1955\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3440,\n        \"text\": \"Concentrated \\\"United States Standards\\\" filetype:pdf\\n---\\nsite:ams.usda.gov Concentrated Grapefruit Juice \\\"United States Standards for Grades of\\\" filetype:pdf\\n---\\nsite:ams.usda.gov \\\"grapefruit juice from concentrate\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Grapefruit Juice, Concentrated\\\"\\n---\\nExtract the title page and table of contents text, including any sections specifically named \\\"Grapefruit Juice, Concentrated\\\" or similar, and list the publication/effective dates and revision history statements.\\n---\\n\\\"United States Standards for Grades of Grapefruit Juice, Concentrated\\\" pdf\\n---\\nsite:ams.usda.gov \\\"Grapefruit Juice, Concentrated\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Frozen Concentrated Grapefruit Juice\\\" pdf\\n---\\nsite:ams.usda.gov \\\"Frozen Grapefruit Juice\\\" filetype:pdf\\n---\\n\\\"United States standards for grades of concentrated grapefruit juice\\\" pdf\\n---\\nI could not find an AMS\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Grapefruit Juice\\\"\\n---\\nsite:ams.usda.gov \\\"Orange Juice, Concentrated, Blended\\\"\\n---\\nExtract the title page, issuing agency/division, publication/effective dates, and any revision history notes from this PDF. Confirm if it is the official United States Standards for Grades of Grapefruit Juice and list section headings.\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Orange Juice\\\"\\n---\\nExtract the title page text, issuing agency/division, publication/effective dates, Federal Register cite, and any revision history notes. Also list the “Styles” and “Definitions” sections to confirm coverage of concentrated and blended forms.\\n---\\nExtract the title page text, issuing agency/division, issue number, publication/effective dates, and any revision history notes. Confirm whether this is a combined standard docu\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s001",
+              "s009",
+              "s013"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s001",
+                "chunk_id": "s001:c001",
+                "role": "partial_support",
+                "text": "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \"dried and dehydrated section\""
+              },
+              {
+                "span_id": "s009",
+                "chunk_id": "s009:c001",
+                "role": "partial_support",
+                "text": "Extract the exact title as printed, issuing agency, and the effective date. Note any statements about superseding prior standards or amendments on the title or preliminary pages."
+              },
+              {
+                "span_id": "s013",
+                "chunk_id": "s013:c001",
+                "role": "partial_support",
+                "text": "Extract the exact title as printed, issuing agency, and the effective date. Note any statements about superseding prior standards or amendments on the title or preliminary pages."
+              }
+            ]
+          },
+          {
+            "claim_id": "c2",
+            "support_spans": [
+              "s001",
+              "s009",
+              "s012",
+              "s015"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s001",
+                "chunk_id": "s001:c001",
+                "role": "partial_support",
+                "text": "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \"dried and dehydrated section\""
+              },
+              {
+                "span_id": "s009",
+                "chunk_id": "s009:c001",
+                "role": "partial_support",
+                "text": "Extract the exact title as printed, issuing agency, and the effective date. Note any statements about superseding prior standards or amendments on the title or preliminary pages."
+              },
+              {
+                "span_id": "s012",
+                "chunk_id": "s012:c001",
+                "role": "partial_support",
+                "text": "I could not locate an AMS PDF whose exact title matches “United States Standards for Grades of Orange Juice, Concentrated”"
+              },
+              {
+                "span_id": "s015",
+                "chunk_id": "s015:c001",
+                "role": "partial_support",
+                "text": "Thought: I will reconstruct the inclusion set from the July 2, 1959 AMS-141 listing, applying the rules: - Include only items in “DRIED or DEHYDRATED (Low-moisture)” that are explicitly marked “Dehydrated”"
+              }
+            ]
+          }
+        ],
+        "notes": "short string"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s001",
+            "s009",
+            "s013"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s001",
+              "chunk_id": "s001:c001",
+              "role": "partial_support",
+              "text": "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \"dried and dehydrated section\""
+            },
+            {
+              "span_id": "s009",
+              "chunk_id": "s009:c001",
+              "role": "partial_support",
+              "text": "Extract the exact title as printed, issuing agency, and the effective date. Note any statements about superseding prior standards or amendments on the title or preliminary pages."
+            },
+            {
+              "span_id": "s013",
+              "chunk_id": "s013:c001",
+              "role": "partial_support",
+              "text": "Extract the exact title as printed, issuing agency, and the effective date. Note any statements about superseding prior standards or amendments on the title or preliminary pages."
+            }
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "support_spans": [
+            "s001",
+            "s009",
+            "s012",
+            "s015"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s001",
+              "chunk_id": "s001:c001",
+              "role": "partial_support",
+              "text": "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \"dried and dehydrated section\""
+            },
+            {
+              "span_id": "s009",
+              "chunk_id": "s009:c001",
+              "role": "partial_support",
+              "text": "Extract the exact title as printed, issuing agency, and the effective date. Note any statements about superseding prior standards or amendments on the title or preliminary pages."
+            },
+            {
+              "span_id": "s012",
+              "chunk_id": "s012:c001",
+              "role": "partial_support",
+              "text": "I could not locate an AMS PDF whose exact title matches “United States Standards for Grades of Orange Juice, Concentrated”"
+            },
+            {
+              "span_id": "s015",
+              "chunk_id": "s015:c001",
+              "role": "partial_support",
+              "text": "Thought: I will reconstruct the inclusion set from the July 2, 1959 AMS-141 listing, applying the rules: - Include only items in “DRIED or DEHYDRATED (Low-moisture)” that are explicitly marked “Dehydrated”"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0828\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated section\\\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled. As of August 2023, what is the percentage (to the nearest percent) of those standards that have been superseded by a new version since the date given in the 1959 standards?\",\n  \"traj_id\": \"0828\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0828\",\n    \"task_goal\": \"short string\",\n    \"hard_constraints\": [\n      \"short string\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated section\\\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled.\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"As of August 2023, the percentage of those standards that have been superseded by a new version since the date given in the 1959 standards is to the nearest percent.\",\n        \"introduced_at\": \"s012\",\n        \"becomes_consequential_at\": \"s015\",\n        \"used_by\": [\n          \"s015\"\n        ],\n        \"claim_type\": \"compute\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"short string\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s001\",\n        \"s009\",\n        \"s013\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s001\",\n          \"chunk_id\": \"s001:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated section\\\"\"\n        },\n        {\n          \"span_id\": \"s009\",\n          \"chunk_id\": \"s009:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Extract the exact title as printed, issuing agency, and the effective date. Note any statements about superseding prior standards or amendments on the title or preliminary pages.\"\n        },\n        {\n          \"span_id\": \"s013\",\n          \"chunk_id\": \"s013:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Extract the exact title as printed, issuing agency, and the effective date. Note any statements about superseding prior standards or amendments on the title or preliminary pages.\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c2\",\n      \"support_spans\": [\n        \"s001\",\n        \"s009\",\n        \"s012\",\n        \"s015\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s001\",\n          \"chunk_id\": \"s001:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated section\\\"\"\n        },\n        {\n          \"span_id\": \"s009\",\n          \"chunk_id\": \"s009:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Extract the exact title as printed, issuing agency, and the effective date. Note any statements about superseding prior standards or amendments on the title or preliminary pages.\"\n        },\n        {\n          \"span_id\": \"s012\",\n          \"chunk_id\": \"s012:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"I could not locate an AMS PDF whose exact title matches “United States Standards for Grades of Orange Juice, Concentrated”\"\n        },\n        {\n          \"span_id\": \"s015\",\n          \"chunk_id\": \"s015:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Thought: I will reconstruct the inclusion set from the July 2, 1959 AMS-141 listing, applying the rules: - Include only items in “DRIED or DEHYDRATED (Low-moisture)” that are explicitly marked “Dehydrated”\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s012\",\n      \"s015\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s012\",\n      \"s015\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s009:c001\",\n          \"s013:c001\",\n          \"s009:c002\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s009\",\n          \"s013\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"As of August 2023, the percentage of those standards that have been superseded by a new version since the date given in the 1959 standards is to the nearest per\",\n        \"matched_chunk_ids\": [\n          \"s013:c001\",\n          \"s001:c001\",\n          \"s012:c001\",\n          \"s009:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s009\",\n          \"s012\",\n          \"s013\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s009\",\n      \"s011\",\n      \"s012\",\n      \"s013\",\n      \"s015\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1686,\n        \"text\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated\\n---\\n\\\"United States standards for grades of processed fruits, vegetables, and certain other products\\\" July 2, 1959 consolidated listing\\n---\\n\\\"United States standards for grades of processed fruits, vegetables, and certain other products\\\" 1959\\n---\\nPlease extract the sections titled “DRIED AND DEHYDRATED” and “FROZEN / CHILLED” (or similar variants such as “FROZEN OR CHILLED”, “Frozen and Chilled”) from this July 2, 1959 consolidated listing. Include the item names under each section along with their dates as presented in the document.\\n---\\nPlease extract the title page (exact title, issuing agency/division, series/number if present) and any preface/notes that explain the footnotes “1/” and “2/”. Also, identify the page numbers where the headings “DRIED or DEHYDRATED (Low-moisture)” and “FROZEN or CHILLED (if so stated)” appear in this July 2, 1959 consolidated listing.\\n---\\nSkip to main content TEXTS VIDEO AUDIO SOFTWARE IMAGES SIGN UP | LOG IN UPLOAD Search the Archive Sign up for free Log in Search metadata Search text contents Search TV news captions Search radio transcripts Search archi\\n---\\nFound the authoritative USDA/AMS consolidated listing: “UNITED STATES STANDARDS FOR GRADES OF PROCESSED FRUITS, VEGETABLES, AND CERTAIN OTHER PRODUCTS (as of July 2, 1959),” AMS\\n---\\nThought: I need to locate the July 2, 1959 “United States standards for grades of processed fruits, vegetables, and certain other products” listing and extract the “dried and dehydrated” and “Frozen/Chilled” sections\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1210,\n        \"text\": \"\\\"United States Standards for Grades of Orange Juice, Concentrated\\\" site:ams.usda.gov filetype:pdf\\n---\\n\\\"United States Standards for Grades of Orange Juice, Concentrated\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Orange Juice, Concentrated\\\"\\n---\\nSkip to main content An official website of the United States government Here’s how you know Agricultural Marketing Service U\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades\\\" orange juice concentrated\\n---\\nsite:ams.usda.gov \\\"Orange Juice, Concentrated\\\" \\\"United States Standards for Grades\\\"\\n---\\nsite:ams.usda.gov concentrated orange juice \\\"United States Standards for Grades\\\" filetype:pdf\\n---\\nUnited States Department of Agriculture Agricultural Marketing Service Fruit and Vegetable Division Processed Products Branch United States Standards for Grades of Frozen Concentrated Blended Grapefruit Juice and Orange\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Orange Juice, Concentrated\\\"\\n---\\nsite:ams.usda.gov \\\"Orange Juice, Concentrated\\\" filetype:pdf\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Frozen Concentrated Orange Juice\\\"\\n---\\nsite:ams.usda.gov Orange Juice Concentrated \\\"United States Standards for Grades\\\"\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 631,\n        \"text\": \"I could not locate an AMS PDF whose exact title matches “United States Standards for Grades of Orange Juice, Concentrated\\n---\\nThought: We have identified the authoritative July 2, 1959 consolidated listing (AMS-141 Rev\\n---\\n{ \\\"queries\\\": [\\\"1959 USDA standards dehydrated frozen grade superseded\\\", \\\"1959 processed fruit vegetables USDA standards update\\\", \\\"August 2023 USDA updated standards for processed fruits and vegetables\\\"] }It appears I was\\n---\\n{ \\\"queries\\\": [\\\"1959 USDA standards superseded percentage update\\\"] }Based on the documents retrieved and the context provided, I was able to find several relevant pieces of information\"\n      },\n      {\n        \"span_id\": \"s015\",\n        \"chunk_id\": \"s015:c001\",\n        \"char_start\": 0,\n        \"char_end\": 377,\n        \"text\": \"Thought: I will reconstruct the inclusion set from the July 2, 1959 AMS-141 listing, applying the rules: - Include only items in “DRIED or DEHYDRATED (Low-moisture)” that are explicitly marked “Dehydrated\\n---\\nThought: We have verified supersession evidence for \\\"Apples, Dehydrated (Low-moisture)\\\" from 1959 being replaced by a second issue effective July 31, 1977 (42 FR 33259)\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"Extract the exact title as printed, issuing agency, and the effective date. Note any statements about superseding prior standards or amendments on the title or preliminary pages.\\n---\\nhttps://prod.ams.usda.gov/sites/default/files/media/Dehydrated_Orange_Juice_Standard%5B1%5D.pdf\\n---\\nhttps://www.ams.usda.gov/grades-standards/dehydrated-orange-juice-grades-and-standards\\n---\\n\\\"United States Standards for Grades of Orange Juice\\\" 1983 pdf\\n---\\nExtract the exact document title, issuing agency, effective/issued dates, and confirm that it includes grading for Dehydrated Orange Juice (Table VI).\\n---\\nOfficial USDA AMS direct PDF link: https://www\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Frozen Apples\\\" PDF\\n---\\nUnited States Standards for Grades of Frozen Apples United States Department of Agriculture Agricultural Marketing Service Fruit and Vegetable Division Processed Products Branch Effective date May 17, 1954 This is the Th\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Frozen Apples\\\"\\n---\\n\\\"United States Standards for Grades of Frozen Apples\\\" PDF site:.gov\\n---\\n\\\"United States Standards for Grades of Frozen Apples\\\" site:permanent.access.gpo.gov PDF\\n---\\nhttps://www.ams.usda.gov/sites/default/files/media/Frozen_Apples_Standard%5B1%5D.pdf\\n---\\nhttps://www.ams.usda.gov/sites/default/files/media/Frozen_Apples_Standard%5B1%5D.pdf\\n---\\nOfficial USDA AMS direct PDF link: https://www\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Grapefruit Juice, Concentrated\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Grapefruit Juice, Concentrated\\\" PDF\\n---\\nsite:ams.usda.gov Grapefruit Juice Concentrated \\\"United States Standards\\\" filetype:pdf\\n---\\nsite:ams.usda.gov Concentrated Grapefruit Juice \\\"United States Standards for Grades of\\\" filetype:pdf\\n---\"\n      },\n      {\n        \"span_id\": \"s013\",\n        \"chunk_id\": \"s013:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"> *Thought for 8s* > **Confirming superseded standards** > I need to evaluate the user's standards list, so I’m reviewing the uploaded files\\n---\\nsite:ams.usda.gov \\\"U.S. Standards for Grades\\\" dried apples PDF\\n---\\n\\\"United States Standards for Grades of Apples, Dehydrated (Low-moisture)\\\"\\n---\\nsite:ams.usda.gov \\\"U.S. Standards for Grades\\\" \\\"Dried Apples\\\" PDF\\n---\\n\\\"Apples, Dehydrated (Low-moisture)\\\" \\\"United States Standards for Grades\\\"\\n---\\nExtract the cover page header/footer and any issuance history notes, including: the exact title, effective date, any revision dates, and any explicit supersession statement such as 'This issue supersedes the [date] issue.' Also list the edition number if present (e.g., 'This is the fourth issue').\\n---\\n\\\"United States Standards for Grades of Apples, Dehydrated\\\" low-moisture PDF\\n---\\nFind the entry for Apples, Dehydrated (Low-moisture) and report the effective date listed, and any notes or cross-references. Also confirm how the title is presented in that consolidated listing.\\n---\\nSearch for \\\"Apples, dehydrated (low moisture)\\\" and extract the entry details: date(s), citation(s) (Federal Register or CFR section), and any notes indicating issuance, revision, or supersession. Also capture nearby entries for context (e.g., Apples, dried; Apricots, dehydrated low-moisture).\\n---\\nFederal Register 1977 \\\"United States Standards for Grades\\\" Apples dehydrated low moisture AMS\\n---\\nExtract the cover page header/footer and any issuance history notes, including: the exact title, effective date, any revision dates, and any explicit supersession statement such as 'This issue supersedes the [date] issue.' Also capture any Federal Register citation (volume/page/date) and administrative signature/date lines.\\n---\\nYes, a later AMS edition replaced the November 29, 1955\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3440,\n        \"text\": \"Concentrated \\\"United States Standards\\\" filetype:pdf\\n---\\nsite:ams.usda.gov Concentrated Grapefruit Juice \\\"United States Standards for Grades of\\\" filetype:pdf\\n---\\nsite:ams.usda.gov \\\"grapefruit juice from concentrate\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Grapefruit Juice, Concentrated\\\"\\n---\\nExtract the title page and table of contents text, including any sections specifically named \\\"Grapefruit Juice, Concentrated\\\" or similar, and list the publication/effective dates and revision history statements.\\n---\\n\\\"United States Standards for Grades of Grapefruit Juice, Concentrated\\\" pdf\\n---\\nsite:ams.usda.gov \\\"Grapefruit Juice, Concentrated\\\" filetype:pdf\\n---\\n\\\"United States Standards for Grades of Frozen Concentrated Grapefruit Juice\\\" pdf\\n---\\nsite:ams.usda.gov \\\"Frozen Grapefruit Juice\\\" filetype:pdf\\n---\\n\\\"United States standards for grades of concentrated grapefruit juice\\\" pdf\\n---\\nI could not find an AMS\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Grapefruit Juice\\\"\\n---\\nsite:ams.usda.gov \\\"Orange Juice, Concentrated, Blended\\\"\\n---\\nExtract the title page, issuing agency/division, publication/effective dates, and any revision history notes from this PDF. Confirm if it is the official United States Standards for Grades of Grapefruit Juice and list section headings.\\n---\\nsite:ams.usda.gov \\\"United States Standards for Grades of Orange Juice\\\"\\n---\\nExtract the title page text, issuing agency/division, publication/effective dates, Federal Register cite, and any revision history notes. Also list the “Styles” and “Definitions” sections to confirm coverage of concentrated and blended forms.\\n---\\nExtract the title page text, issuing agency/division, issue number, publication/effective dates, and any revision history notes. Confirm whether this is a combined standard docu\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0828",
+        "first_error_span": "s015",
+        "linked_error_span_ids": [
+          "s011",
+          "s012"
+        ],
+        "non_errors": [
+          "s001",
+          "s009",
+          "s013"
+        ],
+        "reason": "weak support for c2, linked to c1",
+        "error_span_ids": [
+          "s015",
+          "s011",
+          "s012"
+        ],
+        "earliest_harmful_span_id": "s015"
+      },
+      "validated": {
+        "traj_id": "0828",
+        "first_error_span": "s015",
+        "linked_error_span_ids": [
+          "s011",
+          "s012"
+        ],
+        "non_errors": [
+          "s001",
+          "s009",
+          "s013"
+        ],
+        "reason": "weak support for c2, linked to c1",
+        "error_span_ids": [
+          "s011",
+          "s012",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s015"
+      }
+    },
+    "full_span_count": 15,
+    "evidence_span_count": 6
+  },
+  "usage": {
+    "call_count": 4,
+    "input_tokens": 18435,
+    "output_tokens": 1949,
+    "total_tokens": 20384
+  }
+}

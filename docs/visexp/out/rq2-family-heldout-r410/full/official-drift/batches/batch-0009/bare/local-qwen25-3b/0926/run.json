@@ -1,0 +1,69 @@
+{
+  "setting": "bare",
+  "case_id": "0926",
+  "prediction": {
+    "traj_id": "0926",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "Thought: 我需要找到一个由一位老太太用瓷片建造的旅游景点的门票上的一行字"
+      },
+      {
+        "span_id": "s007",
+        "reason": "我之前的搜索尝试都失败了"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0926\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"有一个景点，是一个老太太花了很多年的心血，用一片片瓷片建成的。这个景点的门票上，印着一行字，请问这行字是什么？\",\n  \"traj_id\": \"0926\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"有一个景点，是一个老太太花了很多年的心血，用一片片瓷片建成的\\n---\\n老太太用瓷片建造的景点\\n---\\n请您登录后查看更多专业优质内容\\n---\\n首页 资讯 视频 直播 凤凰卫视 财经 娱乐 体育 时尚 汽车 房产 科技 军事 文化 旅游 佛教 国学 数码 更多 注册 登录 江西 > 景德镇 > 正文 站内 “瓷宫”奶奶和她的传奇一生 当代江西 2024年06月20日 10:16:27 0人参与0评论 她用7年的时间亲手盖起了一座堂皇巍峨的宫殿，堪称一座集陶瓷艺术大成的杰作\\n---\\n天津瓷房子建造者\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我需要找到一个由一位老太太用瓷片建造的旅游景点的门票上的一行字\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"用瓷片建造的景点\\n---\\n天津 瓷房子\\n---\\nAntoni Gaudí Trencadís architecture\\n---\\nPorcelain Tower of Nanjing history\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我需要找到一个由一位老太太用瓷片建造的旅游景点的门票上的一行字\\n---\\n瓷片 景点\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我之前的中文搜索失败了\\n---\\ntourist attraction built with porcelain pieces\\n---\\nPorcelain House Tianjin\\n---\\nPorcelain Tower of Nanjing\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我之前的中文搜索尝试都失败了\\n---\\n瓷房子 天津\\n---\\n瓷房子 张连志\\n---\\n瓷房子 材料 数量\\n---\\n天津瓷房子 开放时间 门票 交通\\n---\\n瓷房子 争议\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我之前的搜索尝试都失败了\\n---\\nTianjin Porcelain House official name\\n---\\n瓷房子 门票\\n---\\nimage of 瓷房子 门票\\n---\\nI was unable to find a definitive, high\\n---\\n我之前的尝试因为图片链接失效而失败了\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我之前的搜索和图片分析都失败了，这表明 `search_agent` 工具目前无法直接提供图片，并且我之前找到的链接也已失效\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "Thought: 我需要找到一个由一位老太太用瓷片建造的旅游景点的门票上的一行字"
+          },
+          {
+            "span_id": "s007",
+            "reason": "我之前的搜索尝试都失败了"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0926",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "Thought: 我需要找到一个由一位老太太用瓷片建造的旅游景点的门票上的一行字"
+          },
+          {
+            "span_id": "s007",
+            "reason": "我之前的搜索尝试都失败了"
+          }
+        ]
+      }
+    },
+    "full_span_count": 8
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1153,
+    "output_tokens": 117,
+    "total_tokens": 1270
+  }
+}

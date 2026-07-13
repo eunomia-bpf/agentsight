@@ -1,0 +1,409 @@
+{
+  "setting": "drift",
+  "case_id": "0677",
+  "prediction": {
+    "traj_id": "0677",
+    "error_span_ids": [
+      "s003",
+      "s011",
+      "s015"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "short string"
+      },
+      {
+        "span_id": "s011",
+        "reason": "short string"
+      },
+      {
+        "span_id": "s015",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0677\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species. According to the abstract of a research article published in Science Advances in 2021, beads made from the shells of this species were found that are at least how many thousands of years old?\",\n  \"traj_id\": \"0677\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"The object in the British Museum's collection with a museum number of 2012,5015\\n---\\nBritish Museum 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nNassa gibbosula mollusk species taxonomy\\n---\\nmarine only extant only Home About Subregisters Users Photogallery Documents LifeWatch Contribute Taxa Literature Distribution Specimen Editors Statistics Tools Manual Log in WoRMS name details Nassarius gibbosulus (Linn\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Tritia gibbosula Nassariidae family characteristics habitat\\n---\\nNassariidae dog whelks mud snails characteristics scavengers\\n---\\n\\\\n\\\\nThe British Museum collection object with museum number 2012,5015\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nsite:britishmuseum.org 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nNassa gibbosula marine gastropod mollusk species\\n---\\n\\\\n\\\\nObject number 2012,5015\\n---\\nScience Advances 2021 ancient beads mollusk shells\\n---\\nwww\\n---\\n\\\\n\\\\nThe research article published in Science Advances in 2021 about ancient beads made from mollusk shells is titled \\\\\\\"Early Middle Stone Age personal ornaments from Bizmoune Cave, Essaouira, Morocco\\\\\\\" by Sehasseh et al\\n---\\nScience Advances 2021 ancient shell beads Nassarius Glycymeris Spondylus mollusks\\n---\\nScience Advances 2021 ancient shell beads\\n---\\nwww\\n---\\nScience Advances 2021 Glycymeris Spondylus shell beads archaeology\\n---\\nsite:science.org/journal/sciadv 2021 shell beads mollusks\\n---\\nScience Advances 2021 marine mollusks beads prehistoric\\n---\\nwww\\n---\\n\\\"Science Advances\\\" 2021 shell beads ancient\\n---\\nScience Advances 2021 shell beads\\n---\\nI identified one Science Advances article from 2021 about ancient shell beads: \\\"Early Middle Stone Age personal ornaments from Bizmoune Cave, Essaouira, Morocco\\\" (DOI: 10\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"British Museum 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\n2012,5015.17 British Museum Spondylus gaederopus Glycymeris Nassarius\\n---\\n2012,5015.17 British Museum 2021\\n---\\n\\\"2012,5015.17\\\" British Museum publication\\n---\\nNaukratis shell Nassa gibbosula 2021\\n---\\nNaukratis British Museum shells 2021 publication\\n---\\nNewsletter Egypt and Sudan Issue 7–8, 2020–2021 Introduction Neal Spencer Former Keeper of Nile Valley & Mediterranean Collections The British Museum’s Collection Online was relaunched in Spring 2020, replacing a system\\n---\\n\\\"2012,5015.17\\\" OR \\\"2012.5015.17\\\" Naukratis shell mollusk 2021\\n---\\nNaukratis Greeks Egypt British Museum online research catalogue shells 2021\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Villing Naukratis shells bone horn tooth 2021\\n---\\nBritish Museum object 2012,5015\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"British Museum 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum 2012,5015.17 Nassa gibbosula Naukratis publication catalog\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nVilling et al 2013-2025 Naukratis Greeks in Egypt WC.27 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:britishmuseum.org/naukratis WC.27 shell\\n---\\nbritishmuseum.org naukratis online catalogue 2012,5015.17\\n---\\nNassa gibbosula mollusk species Mediterranean gastropod\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Petrie Naukratis excavation shells Egypt Exploration Fund 1886\\n---\\n\\\"2012,5015\\\" British Museum Naukratis shells registration\\n---\\nSuccessfully identified British Museum object 2012,5015\\n---\\nScience Advances 2021 mollusk shell beads\\n---\\nwww\\n---\\nsite:science.org/journal/advances 2021 beads mollusk\\n---\\nScience Advances 2021 Tritia shell beads\\n---\\nScience Advances 2021 Columbella shell beads\\n---\\nScience Advances 2021 shell beads archaeological\\n---\\nScience Advances 2021 mollusk shell beads archaeological\\n---\\nCalling tools: [{'id': 'call_3456789012345678902', 'type': 'function', 'function': {'name': 'google_search', 'arguments': {'query': 'Science Advances 2021 beads shells paleolithic neolithic', 'filter_year': '2021'}}}]\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"British Museum 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nHoffmann et al 2021 Science Advances Iberian Neandertal shell\\n---\\nHoffmann Science Advances 2018 Iberian Neandertals marine shells pigments\\n---\\nwww\\n---\\nBritish Museum 2012,5015.17 Hoffmann Neanderthal Cueva de los Aviones\\n---\\n\\\"2012,5015.17\\\" Glycymeris Spondylus shell\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Zilhao 2010 Cueva de los Aviones Glycymeris Acanthocardia perforated shells\\n---\\nARTICLES FRONT MATTER AUTHORS TOPICS SHOPPING CART WITH 0 ITEM SIGN IN SUBMIT Reference #1 RESEARCH ARTICLE ANTHROPOLOGY FREE ACCESS SHARE ON Symbolic use of marine shells and mineral pigments by Iberian Neandertals João\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"British Museum Naukratis shells Nassa gibbosula 2012,5015\\n---\\nBritish Museum object 2012,5015\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum collection 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\n\\\\nObject 2012,5015\\n---\\nBritish Museum 2012,5015.17 mollusk shell specimen\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\n\\\"2012,5015.17\\\" Nassa gibbosula academic publication research\\n---\\n\\\"Tritia gibbosula\\\" Naukratis British Museum academic publication\\n---\\nNassarius gibbosula Naukratis shell beads species identification\\n---\\n\\\"Nassa gibbosula\\\" \\\"Tritia gibbosula\\\" taxonomy species name\\n---\\n\\\"2012,5015.17\\\" British Museum Naukratis publication cite reference\\n---\\nNaukratis Greeks in Egypt British Museum online research catalogue Villing\\n---\\nBritish Museum specimen 2012,5015\\n---\\nBritish Museum mollusk shell acquisition 2012 archaeological research\\n---\\nBritish Museum annual report 2012 acquisitions donations\\n---\\nWhat mollusk shell acquisitions or donations were made in 2012 for archaeological or shell bead research purposes? What mollusk species were acquired?\\n---\\nBritish Museum shell bead research 2012 mollusk species\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum 2012,5015 Naukratis shell acquisition donation\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nsite:britishmuseum.org 2012,5015 shell Naukratis\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum 2012,5015 complete list all shells registered 2012\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nThe British Museum registered multiple mollusk shell specimens in 2012 (registration numbers starting with 2012,5015) from the archaeological site of Naukratis, Egypt\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"https://www.science.org/doi/10.1126/sciadv.abi8620\\n---\\nScience Advances abi8620 Bizmoune Cave Nassarius abstract age\\n---\\nsite:science.org sciadv 2021 Nassarius beads abstract age thousands years\\n---\\n\\\"Science Advances\\\" 2021 Nassarius beads \\\"100 ka\\\" OR \\\"135 ka\\\" OR \\\"76 ka\\\" OR \\\"142 ka\\\"\\n---\\nScience Advances 2021 Nassarius shell beads age abstract\\n---\\nScience Advances 2021 Nassarius shell beads abstract age ka thousands\\n---\\n\\\\n\\\\nIn the Science Advances 2021 article about Nassarius shell beads from Bizmoune Cave, Morocco, the abstract mentions the following specific ages in thousands of years:\\\\n\\n---\\nwww\\n---\\nScience Advances 2021 beads shells symbolic behavior ornaments\\n---\\nsite:science.org/journal/sciadv 2021 beads marine shells mollusk\\n---\\nScience Advances 2021 archaeology shells beads paleolithic\\n---\\nScience Advances 2021 marine shells archaeology Africa Asia\\n---\\nScience Advances 2021 shell ornaments symbolic behavior -Bizmoune\\n---\\nScience Advances 2021 beads shells mollusk marine ornaments\\n---\\n\\\"Science Advances\\\" 2021 beads shells archaeology paleolithic neolithic\\n---\\n\\\"Science Advances\\\" 2021 ostrich eggshell beads Africa\\n---\\nCalling tools: [{'id': 'call_8261593748261593748', 'type': 'function', 'function': {'name': 'google_search', 'arguments': {'query': '\\\"Science Advances\\\" 2021 shell beads ornaments symbolic -Bizmoune -Morocco', 'filter_year': '2021'}}}]\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"British Museum object 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Hoffmann et al 2021 Science Advances Iberian Neandertal shells\\n---\\nHoffmann 2018 Science Advances Cueva de los Aviones Spondylus Glycymeris 115000 years\\n---\\nBritish Museum 2012,5015.17 Cueva de los Aviones Hoffmann Neandertal\\n---\\nZilhao 2010 PNAS Cueva de los Aviones Spondylus Glycymeris perforated shells\"\n    },\n    {\n      \"span_id\": \"s014\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"ARTICLES FRONT MATTER AUTHORS TOPICS SHOPPING CART WITH 0 ITEM SIGN IN SUBMIT Reference #1 RESEARCH ARTICLE ANTHROPOLOGY FREE ACCESS SHARE ON Symbolic use of marine shells and mineral pigments by Iberian Neandertals João\\n---\\nBritish Museum 2012,5015.17 Naukratis Egypt Nassa gibbosula shell\\n---\\n\\\"115000 year old\\\" OR \\\"115,000 year old\\\" shell beads Neandertal Iberian\\n---\\nHoffmann 2018 Science Advances British Museum collection Cueva de los Aviones\\n---\\nZilhao 2010 PNAS Cueva de los Aviones British Museum\\n---\\n**NO, these are NOT all related to the same research\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum H_2012-5015-17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\n\\\\n\\\\nSuccessfully accessed the British Museum collection page for object 2012,5015\\n---\\nBritish Museum collection 2012,5015.17 Spondylus gaederopus Glycymeris\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum collection 2012,5015 Spondylus gaederopus shell\\n---\\nsite:britishmuseum.org/collection/object 2012,5015 Glycymeris\\n---\\nsite:britishmuseum.org 2012,5015 shell\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nsite:britishmuseum.org/collection/object 2012,5015\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum 2012,5015.1 2012,5015.2 2012,5015.3 2012,5015.4 2012,5015.5\"\n    },\n    {\n      \"span_id\": \"s015\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:britishmuseum.org/collection/object/G_2012-5015\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nThe search of the British Museum's collection for object 2012,5015\\n---\\nwww\"\n    },\n    {\n      \"span_id\": \"s016\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:science.org/doi sciadv 2021 shell beads OR marine shells OR mollusk beads OR Nassarius OR Spondylus OR Glycymeris OR ancient ornaments\\n---\\nwww\\n---\\n\\\"sciadv.abi8620\\\" abstract age years\\n---\\nSkip to main page content An official website of the United States government Here's how you know Log in Access keys NCBI Homepage MyNCBI Homepage Main Content Main Navigation Search: Search Advanced User Guide SaveEmail\\n---\\n\\\"sciadv.abe9510\\\" abstract age years conch shell\\n---\\nSkip to main content An official website of the United States government Here's how you know Search Log in Primary site navigation Search PMC Full-Text Archive Search in PMC Journal List User Guide As a library, NLM prov\"\n    },\n    {\n      \"span_id\": \"s017\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"sciadv.abb9314\\\" abstract age years ancient protein\\n---\\nsite:science.org/doi sciadv 2021 Nassarius beads\\n---\\nsite:science.org/doi sciadv 2021 Spondylus OR Glycymeris beads ornaments\\n---\\nsite:sciadv.org 2021 shell beads marine ornaments archaeology\\n---\\nFound 3 relevant Science Advances articles from 2021 mentioning shell beads/ornaments:\"\n    },\n    {\n      \"span_id\": \"s018\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Symbolic use of marine shells and mineral pigments by Iberian Neandertals 115,000 years ago Hoffmann Science Advances\\n---\\nHoffmann 2018 Science Advances eaar5255 Neandertals shells pigments abstract\\n---\\nwww\\n---\\nsite:researchgate.net Hoffmann Symbolic use marine shells mineral pigments Iberian Neandertals 115000 years ago\\n---\\nSecurity check required We've detected unusual activity from your network\"\n    },\n    {\n      \"span_id\": \"s019\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Hoffmann 2018 Symbolic marine shells Neandertals abstract full text PDF\\n---\\nLog In Sign Up Log In Sign Up more About Press Papers Terms Privacy Copyright We're Hiring\"\n    },\n    {\n      \"span_id\": \"s020\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"Hoffmann\\\" \\\"2018\\\" \\\"Science Advances\\\" \\\"eaar5255\\\" \\\"shell beads\\\" abstract\\n---\\nHoffmann 2018 Science Advances Cueva de los Aviones 115000 years shell beads abstract\\n---\\n\\\\n\\\\nThe exact wording about the age of the shell beads from the abstract is: \\\\\\\"U\\n---\\nI'll solve this step by step, following my plan to find the correct answer\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0677",
+        "task_goal": "The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species. According to the abstract of a research article published in Science Advances in 2021, beads made from the shells of this species were found that are at least how many thousands of years old?",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species.",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "The abstract of a research article published in Science Advances in 2021 mentions the age of shell beads made from the shells of a particular mollusk species.",
+            "introduced_at": "s006",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "The abstract of the Science Advances article mentions the age of shell beads made from the shells of a particular mollusk species as 115,000 years.",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s015",
+            "used_by": [
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0677",
+        "task_goal": "The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species. According to the abstract of a research article published in Science Advances in 2021, beads made from the shells of this species were found that are at least how many thousands of years old?",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species.",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "The abstract of a research article published in Science Advances in 2021 mentions the age of shell beads made from the shells of a particular mollusk species.",
+            "introduced_at": "s006",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "The abstract of the Science Advances article mentions the age of shell beads made from the shells of a particular mollusk species as 115,000 years.",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s015",
+            "used_by": [
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s003",
+            "s011",
+            "s015"
+          ],
+          "grep_queries": [
+            "The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s006",
+            "s011",
+            "s015"
+          ],
+          "grep_queries": [
+            "The abstract of a research article published in Science Advances in 2021 mentions the age of shell beads made from the shells of a particular mollusk species."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s015",
+            "s016"
+          ],
+          "grep_queries": [
+            "The abstract of the Science Advances article mentions the age of shell beads made from the shells of a particular mollusk species as 115,000 years."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s003",
+        "s006",
+        "s011",
+        "s015",
+        "s016",
+        "s020"
+      ],
+      "available_span_ids": [
+        "s002",
+        "s003",
+        "s006",
+        "s007",
+        "s010",
+        "s011",
+        "s014",
+        "s015",
+        "s016",
+        "s020"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species.",
+          "matched_chunk_ids": [
+            "s010:c001",
+            "s014:c001",
+            "s002:c001",
+            "s003:c001"
+          ],
+          "matched_span_ids": [
+            "s002",
+            "s003",
+            "s010",
+            "s014"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "The abstract of a research article published in Science Advances in 2021 mentions the age of shell beads made from the shells of a particular mollusk species.",
+          "matched_chunk_ids": [
+            "s011:c001",
+            "s002:c001",
+            "s007:c001",
+            "s010:c001"
+          ],
+          "matched_span_ids": [
+            "s002",
+            "s007",
+            "s010",
+            "s011"
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "query": "The abstract of the Science Advances article mentions the age of shell beads made from the shells of a particular mollusk species as 115,000 years.",
+          "matched_chunk_ids": [
+            "s011:c001",
+            "s002:c001",
+            "s007:c001",
+            "s010:c001"
+          ],
+          "matched_span_ids": [
+            "s002",
+            "s007",
+            "s010",
+            "s011"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0677\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species. According to the abstract of a research article published in Science Advances in 2021, beads made from the shells of this species were found that are at least how many thousands of years old?\",\n  \"traj_id\": \"0677\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0677\",\n    \"task_goal\": \"The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species. According to the abstract of a research article published in Science Advances in 2021, beads made from the shells of this species were found that are at least how many thousands of years old?\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species.\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"The abstract of a research article published in Science Advances in 2021 mentions the age of shell beads made from the shells of a particular mollusk species.\",\n        \"introduced_at\": \"s006\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s015\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"The abstract of the Science Advances article mentions the age of shell beads made from the shells of a particular mollusk species as 115,000 years.\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s015\",\n        \"used_by\": [\n          \"s015\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s006\",\n      \"s011\",\n      \"s015\",\n      \"s016\",\n      \"s020\"\n    ],\n    \"requested_span_ids\": [\n      \"s003\",\n      \"s006\",\n      \"s011\",\n      \"s015\",\n      \"s016\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species.\",\n        \"matched_chunk_ids\": [\n          \"s010:c001\",\n          \"s014:c001\",\n          \"s002:c001\",\n          \"s003:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s002\",\n          \"s003\",\n          \"s010\",\n          \"s014\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"The abstract of a research article published in Science Advances in 2021 mentions the age of shell beads made from the shells of a particular mollusk species.\",\n        \"matched_chunk_ids\": [\n          \"s011:c001\",\n          \"s002:c001\",\n          \"s007:c001\",\n          \"s010:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s002\",\n          \"s007\",\n          \"s010\",\n          \"s011\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"The abstract of the Science Advances article mentions the age of shell beads made from the shells of a particular mollusk species as 115,000 years.\",\n        \"matched_chunk_ids\": [\n          \"s011:c001\",\n          \"s002:c001\",\n          \"s007:c001\",\n          \"s010:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s002\",\n          \"s007\",\n          \"s010\",\n          \"s011\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s002\",\n      \"s003\",\n      \"s006\",\n      \"s007\",\n      \"s010\",\n      \"s011\",\n      \"s014\",\n      \"s015\",\n      \"s016\",\n      \"s020\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 950,\n        \"text\": \"British Museum 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\n2012,5015.17 British Museum Spondylus gaederopus Glycymeris Nassarius\\n---\\n2012,5015.17 British Museum 2021\\n---\\n\\\"2012,5015.17\\\" British Museum publication\\n---\\nNaukratis shell Nassa gibbosula 2021\\n---\\nNaukratis British Museum shells 2021 publication\\n---\\nNewsletter Egypt and Sudan Issue 7–8, 2020–2021 Introduction Neal Spencer Former Keeper of Nile Valley & Mediterranean Collections The British Museum’s Collection Online was relaunched in Spring 2020, replacing a system\\n---\\n\\\"2012,5015.17\\\" OR \\\"2012.5015.17\\\" Naukratis shell mollusk 2021\\n---\\nNaukratis Greeks Egypt British Museum online research catalogue shells 2021\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\"\n      },\n      {\n        \"span_id\": \"s006\",\n        \"chunk_id\": \"s006:c001\",\n        \"char_start\": 0,\n        \"char_end\": 166,\n        \"text\": \"site:britishmuseum.org/naukratis WC.27 shell\\n---\\nbritishmuseum.org naukratis online catalogue 2012,5015.17\\n---\\nNassa gibbosula mollusk species Mediterranean gastropod\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1371,\n        \"text\": \"https://www.science.org/doi/10.1126/sciadv.abi8620\\n---\\nScience Advances abi8620 Bizmoune Cave Nassarius abstract age\\n---\\nsite:science.org sciadv 2021 Nassarius beads abstract age thousands years\\n---\\n\\\"Science Advances\\\" 2021 Nassarius beads \\\"100 ka\\\" OR \\\"135 ka\\\" OR \\\"76 ka\\\" OR \\\"142 ka\\\"\\n---\\nScience Advances 2021 Nassarius shell beads age abstract\\n---\\nScience Advances 2021 Nassarius shell beads abstract age ka thousands\\n---\\n\\\\n\\\\nIn the Science Advances 2021 article about Nassarius shell beads from Bizmoune Cave, Morocco, the abstract mentions the following specific ages in thousands of years:\\\\n\\n---\\nwww\\n---\\nScience Advances 2021 beads shells symbolic behavior ornaments\\n---\\nsite:science.org/journal/sciadv 2021 beads marine shells mollusk\\n---\\nScience Advances 2021 archaeology shells beads paleolithic\\n---\\nScience Advances 2021 marine shells archaeology Africa Asia\\n---\\nScience Advances 2021 shell ornaments symbolic behavior -Bizmoune\\n---\\nScience Advances 2021 beads shells mollusk marine ornaments\\n---\\n\\\"Science Advances\\\" 2021 beads shells archaeology paleolithic neolithic\\n---\\n\\\"Science Advances\\\" 2021 ostrich eggshell beads Africa\\n---\\nCalling tools: [{'id': 'call_8261593748261593748', 'type': 'function', 'function': {'name': 'google_search', 'arguments': {'query': '\\\"Science Advances\\\" 2021 shell beads ornaments symbolic -Bizmoune -Morocco', 'filter_year': '2021'}}}]\"\n      },\n      {\n        \"span_id\": \"s015\",\n        \"chunk_id\": \"s015:c001\",\n        \"char_start\": 0,\n        \"char_end\": 282,\n        \"text\": \"site:britishmuseum.org/collection/object/G_2012-5015\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nThe search of the British Museum's collection for object 2012,5015\\n---\\nwww\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c001\",\n        \"char_start\": 0,\n        \"char_end\": 689,\n        \"text\": \"site:science.org/doi sciadv 2021 shell beads OR marine shells OR mollusk beads OR Nassarius OR Spondylus OR Glycymeris OR ancient ornaments\\n---\\nwww\\n---\\n\\\"sciadv.abi8620\\\" abstract age years\\n---\\nSkip to main page content An official website of the United States government Here's how you know Log in Access keys NCBI Homepage MyNCBI Homepage Main Content Main Navigation Search: Search Advanced User Guide SaveEmail\\n---\\n\\\"sciadv.abe9510\\\" abstract age years conch shell\\n---\\nSkip to main content An official website of the United States government Here's how you know Search Log in Primary site navigation Search PMC Full-Text Archive Search in PMC Journal List User Guide As a library, NLM prov\"\n      },\n      {\n        \"span_id\": \"s020\",\n        \"chunk_id\": \"s020:c001\",\n        \"char_start\": 0,\n        \"char_end\": 324,\n        \"text\": \"\\\"Hoffmann\\\" \\\"2018\\\" \\\"Science Advances\\\" \\\"eaar5255\\\" \\\"shell beads\\\" abstract\\n---\\nHoffmann 2018 Science Advances Cueva de los Aviones 115000 years shell beads abstract\\n---\\n\\\\n\\\\nThe exact wording about the age of the shell beads from the abstract is: \\\\\\\"U\\n---\\nI'll solve this step by step, following my plan to find the correct answer\"\n      },\n      {\n        \"span_id\": \"s010\",\n        \"chunk_id\": \"s010:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"British Museum Naukratis shells Nassa gibbosula 2012,5015\\n---\\nBritish Museum object 2012,5015\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum collection 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\n\\\\nObject 2012,5015\\n---\\nBritish Museum 2012,5015.17 mollusk shell specimen\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\n\\\"2012,5015.17\\\" Nassa gibbosula academic publication research\\n---\\n\\\"Tritia gibbosula\\\" Naukratis British Museum academic publication\\n---\\nNassarius gibbosula Naukratis shell beads species identification\\n---\\n\\\"Nassa gibbosula\\\" \\\"Tritia gibbosula\\\" taxonomy species name\\n---\\n\\\"2012,5015.17\\\" British Museum Naukratis publication cite reference\\n---\\nNaukratis Greeks in Egypt British Museum online research catalogue Villing\\n---\\nBritish Museum specimen 2012,5015\\n---\\nBritish Museum mollusk shell acquisition 2012 archaeological research\\n---\\nBritish Museum annual report 2012 acquisitions donations\\n---\\nWhat mollusk shell acquisitions or donations were made in 2012 for archaeological or shell bead research purposes? What mollusk species were acquired?\\n---\\nBritish Museum shell bead research 2012 mollusk species\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum 2012,5015 Naukratis shell acquisition donation\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our\"\n      },\n      {\n        \"span_id\": \"s014\",\n        \"chunk_id\": \"s014:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"ARTICLES FRONT MATTER AUTHORS TOPICS SHOPPING CART WITH 0 ITEM SIGN IN SUBMIT Reference #1 RESEARCH ARTICLE ANTHROPOLOGY FREE ACCESS SHARE ON Symbolic use of marine shells and mineral pigments by Iberian Neandertals João\\n---\\nBritish Museum 2012,5015.17 Naukratis Egypt Nassa gibbosula shell\\n---\\n\\\"115000 year old\\\" OR \\\"115,000 year old\\\" shell beads Neandertal Iberian\\n---\\nHoffmann 2018 Science Advances British Museum collection Cueva de los Aviones\\n---\\nZilhao 2010 PNAS Cueva de los Aviones British Museum\\n---\\n**NO, these are NOT all related to the same research\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum H_2012-5015-17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\n\\\\n\\\\nSuccessfully accessed the British Museum collection page for object 2012,5015\\n---\\nBritish Museum collection 2012,5015.17 Spondylus gaederopus Glycymeris\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum collection 2012,5015 Spondylus gaederopus shell\\n---\\nsite:britishmuseum.org/collection/object 2012,5015 Glycymeris\\n---\\nsite:britishmuseum.org 2012,5015 shell\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nsite:britishmuseum.org/collection/object 2012,5015\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum 2012,5015.1 2012,5015.2 2012,5015.3 20\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1666,\n        \"text\": \"Tritia gibbosula Nassariidae family characteristics habitat\\n---\\nNassariidae dog whelks mud snails characteristics scavengers\\n---\\n\\\\n\\\\nThe British Museum collection object with museum number 2012,5015\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nsite:britishmuseum.org 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nNassa gibbosula marine gastropod mollusk species\\n---\\n\\\\n\\\\nObject number 2012,5015\\n---\\nScience Advances 2021 ancient beads mollusk shells\\n---\\nwww\\n---\\n\\\\n\\\\nThe research article published in Science Advances in 2021 about ancient beads made from mollusk shells is titled \\\\\\\"Early Middle Stone Age personal ornaments from Bizmoune Cave, Essaouira, Morocco\\\\\\\" by Sehasseh et al\\n---\\nScience Advances 2021 ancient shell beads Nassarius Glycymeris Spondylus mollusks\\n---\\nScience Advances 2021 ancient shell beads\\n---\\nwww\\n---\\nScience Advances 2021 Glycymeris Spondylus shell beads archaeology\\n---\\nsite:science.org/journal/sciadv 2021 shell beads mollusks\\n---\\nScience Advances 2021 marine mollusks beads prehistoric\\n---\\nwww\\n---\\n\\\"Science Advances\\\" 2021 shell beads ancient\\n---\\nScience Advances 2021 shell beads\\n---\\nI identified one Science Advances article from 2021 about ancient shell beads: \\\"Early Middle Stone Age personal ornaments from Bizmoune Cave, Essaouira, Morocco\\\" (DOI: 10\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 724,\n        \"text\": \"Petrie Naukratis excavation shells Egypt Exploration Fund 1886\\n---\\n\\\"2012,5015\\\" British Museum Naukratis shells registration\\n---\\nSuccessfully identified British Museum object 2012,5015\\n---\\nScience Advances 2021 mollusk shell beads\\n---\\nwww\\n---\\nsite:science.org/journal/advances 2021 beads mollusk\\n---\\nScience Advances 2021 Tritia shell beads\\n---\\nScience Advances 2021 Columbella shell beads\\n---\\nScience Advances 2021 shell beads archaeological\\n---\\nScience Advances 2021 mollusk shell beads archaeological\\n---\\nCalling tools: [{'id': 'call_3456789012345678902', 'type': 'function', 'function': {'name': 'google_search', 'arguments': {'query': 'Science Advances 2021 beads shells paleolithic neolithic', 'filter_year': '2021'}}}]\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0677",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s003"
+            ],
+            "support_status": "weak",
+            "missing_support": "The abstract of the Science Advances article does not explicitly mention the age of the shell beads as 115,000 years.",
+            "needs_auditors": [
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "2012,5015.17 British Museum Spondylus gaederopus Glycymeris Nassarius"
+              }
+            ]
+          },
+          {
+            "claim_id": "c2",
+            "support_spans": [
+              "s006"
+            ],
+            "support_status": "weak",
+            "missing_support": "The abstract of the Science Advances article does not explicitly mention the age of the shell beads as 115,000 years.",
+            "needs_auditors": [
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s006",
+                "chunk_id": "s006:c001",
+                "role": "partial_support",
+                "text": "site:britishmuseum.org/naukratis WC.27 shell"
+              }
+            ]
+          },
+          {
+            "claim_id": "c3",
+            "support_spans": [
+              "s011"
+            ],
+            "support_status": "weak",
+            "missing_support": "The abstract of the Science Advances article does not explicitly mention the age of the shell beads as 115,000 years.",
+            "needs_auditors": [
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s011",
+                "chunk_id": "s011:c001",
+                "role": "partial_support",
+                "text": "Science Advances 2021 Nassarius shell beads abstract age ka thousands"
+              }
+            ]
+          }
+        ],
+        "notes": "The abstract of the Science Advances article does not explicitly mention the age of the shell beads as 115,000 years."
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s003"
+          ],
+          "support_status": "weak",
+          "missing_support": "The abstract of the Science Advances article does not explicitly mention the age of the shell beads as 115,000 years.",
+          "needs_auditors": [
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "2012,5015.17 British Museum Spondylus gaederopus Glycymeris Nassarius"
+            }
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "support_spans": [
+            "s006"
+          ],
+          "support_status": "weak",
+          "missing_support": "The abstract of the Science Advances article does not explicitly mention the age of the shell beads as 115,000 years.",
+          "needs_auditors": [
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s006",
+              "chunk_id": "s006:c001",
+              "role": "partial_support",
+              "text": "site:britishmuseum.org/naukratis WC.27 shell"
+            }
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "support_spans": [
+            "s011"
+          ],
+          "support_status": "weak",
+          "missing_support": "The abstract of the Science Advances article does not explicitly mention the age of the shell beads as 115,000 years.",
+          "needs_auditors": [
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s011",
+              "chunk_id": "s011:c001",
+              "role": "partial_support",
+              "text": "Science Advances 2021 Nassarius shell beads abstract age ka thousands"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0677\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species. According to the abstract of a research article published in Science Advances in 2021, beads made from the shells of this species were found that are at least how many thousands of years old?\",\n  \"traj_id\": \"0677\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0677\",\n    \"task_goal\": \"The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species. According to the abstract of a research article published in Science Advances in 2021, beads made from the shells of this species were found that are at least how many thousands of years old?\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species.\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"The abstract of a research article published in Science Advances in 2021 mentions the age of shell beads made from the shells of a particular mollusk species.\",\n        \"introduced_at\": \"s006\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s015\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"The abstract of the Science Advances article mentions the age of shell beads made from the shells of a particular mollusk species as 115,000 years.\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s015\",\n        \"used_by\": [\n          \"s015\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s003\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"The abstract of the Science Advances article does not explicitly mention the age of the shell beads as 115,000 years.\",\n      \"needs_auditors\": [\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"2012,5015.17 British Museum Spondylus gaederopus Glycymeris Nassarius\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c2\",\n      \"support_spans\": [\n        \"s006\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"The abstract of the Science Advances article does not explicitly mention the age of the shell beads as 115,000 years.\",\n      \"needs_auditors\": [\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s006\",\n          \"chunk_id\": \"s006:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"site:britishmuseum.org/naukratis WC.27 shell\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c3\",\n      \"support_spans\": [\n        \"s011\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"The abstract of the Science Advances article does not explicitly mention the age of the shell beads as 115,000 years.\",\n      \"needs_auditors\": [\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s011\",\n          \"chunk_id\": \"s011:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Science Advances 2021 Nassarius shell beads abstract age ka thousands\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s006\",\n      \"s011\",\n      \"s015\",\n      \"s016\",\n      \"s020\"\n    ],\n    \"requested_span_ids\": [\n      \"s003\",\n      \"s006\",\n      \"s011\",\n      \"s015\",\n      \"s016\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species.\",\n        \"matched_chunk_ids\": [\n          \"s010:c001\",\n          \"s014:c001\",\n          \"s002:c001\",\n          \"s003:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s002\",\n          \"s003\",\n          \"s010\",\n          \"s014\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"The abstract of a research article published in Science Advances in 2021 mentions the age of shell beads made from the shells of a particular mollusk species.\",\n        \"matched_chunk_ids\": [\n          \"s011:c001\",\n          \"s002:c001\",\n          \"s007:c001\",\n          \"s010:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s002\",\n          \"s007\",\n          \"s010\",\n          \"s011\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"The abstract of the Science Advances article mentions the age of shell beads made from the shells of a particular mollusk species as 115,000 years.\",\n        \"matched_chunk_ids\": [\n          \"s011:c001\",\n          \"s002:c001\",\n          \"s007:c001\",\n          \"s010:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s002\",\n          \"s007\",\n          \"s010\",\n          \"s011\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s002\",\n      \"s003\",\n      \"s006\",\n      \"s007\",\n      \"s010\",\n      \"s011\",\n      \"s014\",\n      \"s015\",\n      \"s016\",\n      \"s020\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 950,\n        \"text\": \"British Museum 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\n2012,5015.17 British Museum Spondylus gaederopus Glycymeris Nassarius\\n---\\n2012,5015.17 British Museum 2021\\n---\\n\\\"2012,5015.17\\\" British Museum publication\\n---\\nNaukratis shell Nassa gibbosula 2021\\n---\\nNaukratis British Museum shells 2021 publication\\n---\\nNewsletter Egypt and Sudan Issue 7–8, 2020–2021 Introduction Neal Spencer Former Keeper of Nile Valley & Mediterranean Collections The British Museum’s Collection Online was relaunched in Spring 2020, replacing a system\\n---\\n\\\"2012,5015.17\\\" OR \\\"2012.5015.17\\\" Naukratis shell mollusk 2021\\n---\\nNaukratis Greeks Egypt British Museum online research catalogue shells 2021\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\"\n      },\n      {\n        \"span_id\": \"s006\",\n        \"chunk_id\": \"s006:c001\",\n        \"char_start\": 0,\n        \"char_end\": 166,\n        \"text\": \"site:britishmuseum.org/naukratis WC.27 shell\\n---\\nbritishmuseum.org naukratis online catalogue 2012,5015.17\\n---\\nNassa gibbosula mollusk species Mediterranean gastropod\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1371,\n        \"text\": \"https://www.science.org/doi/10.1126/sciadv.abi8620\\n---\\nScience Advances abi8620 Bizmoune Cave Nassarius abstract age\\n---\\nsite:science.org sciadv 2021 Nassarius beads abstract age thousands years\\n---\\n\\\"Science Advances\\\" 2021 Nassarius beads \\\"100 ka\\\" OR \\\"135 ka\\\" OR \\\"76 ka\\\" OR \\\"142 ka\\\"\\n---\\nScience Advances 2021 Nassarius shell beads age abstract\\n---\\nScience Advances 2021 Nassarius shell beads abstract age ka thousands\\n---\\n\\\\n\\\\nIn the Science Advances 2021 article about Nassarius shell beads from Bizmoune Cave, Morocco, the abstract mentions the following specific ages in thousands of years:\\\\n\\n---\\nwww\\n---\\nScience Advances 2021 beads shells symbolic behavior ornaments\\n---\\nsite:science.org/journal/sciadv 2021 beads marine shells mollusk\\n---\\nScience Advances 2021 archaeology shells beads paleolithic\\n---\\nScience Advances 2021 marine shells archaeology Africa Asia\\n---\\nScience Advances 2021 shell ornaments symbolic behavior -Bizmoune\\n---\\nScience Advances 2021 beads shells mollusk marine ornaments\\n---\\n\\\"Science Advances\\\" 2021 beads shells archaeology paleolithic neolithic\\n---\\n\\\"Science Advances\\\" 2021 ostrich eggshell beads Africa\\n---\\nCalling tools: [{'id': 'call_8261593748261593748', 'type': 'function', 'function': {'name': 'google_search', 'arguments': {'query': '\\\"Science Advances\\\" 2021 shell beads ornaments symbolic -Bizmoune -Morocco', 'filter_year': '2021'}}}]\"\n      },\n      {\n        \"span_id\": \"s015\",\n        \"chunk_id\": \"s015:c001\",\n        \"char_start\": 0,\n        \"char_end\": 282,\n        \"text\": \"site:britishmuseum.org/collection/object/G_2012-5015\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nThe search of the British Museum's collection for object 2012,5015\\n---\\nwww\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c001\",\n        \"char_start\": 0,\n        \"char_end\": 689,\n        \"text\": \"site:science.org/doi sciadv 2021 shell beads OR marine shells OR mollusk beads OR Nassarius OR Spondylus OR Glycymeris OR ancient ornaments\\n---\\nwww\\n---\\n\\\"sciadv.abi8620\\\" abstract age years\\n---\\nSkip to main page content An official website of the United States government Here's how you know Log in Access keys NCBI Homepage MyNCBI Homepage Main Content Main Navigation Search: Search Advanced User Guide SaveEmail\\n---\\n\\\"sciadv.abe9510\\\" abstract age years conch shell\\n---\\nSkip to main content An official website of the United States government Here's how you know Search Log in Primary site navigation Search PMC Full-Text Archive Search in PMC Journal List User Guide As a library, NLM prov\"\n      },\n      {\n        \"span_id\": \"s020\",\n        \"chunk_id\": \"s020:c001\",\n        \"char_start\": 0,\n        \"char_end\": 324,\n        \"text\": \"\\\"Hoffmann\\\" \\\"2018\\\" \\\"Science Advances\\\" \\\"eaar5255\\\" \\\"shell beads\\\" abstract\\n---\\nHoffmann 2018 Science Advances Cueva de los Aviones 115000 years shell beads abstract\\n---\\n\\\\n\\\\nThe exact wording about the age of the shell beads from the abstract is: \\\\\\\"U\\n---\\nI'll solve this step by step, following my plan to find the correct answer\"\n      },\n      {\n        \"span_id\": \"s010\",\n        \"chunk_id\": \"s010:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"British Museum Naukratis shells Nassa gibbosula 2012,5015\\n---\\nBritish Museum object 2012,5015\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum collection 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\n\\\\nObject 2012,5015\\n---\\nBritish Museum 2012,5015.17 mollusk shell specimen\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\n\\\"2012,5015.17\\\" Nassa gibbosula academic publication research\\n---\\n\\\"Tritia gibbosula\\\" Naukratis British Museum academic publication\\n---\\nNassarius gibbosula Naukratis shell beads species identification\\n---\\n\\\"Nassa gibbosula\\\" \\\"Tritia gibbosula\\\" taxonomy species name\\n---\\n\\\"2012,5015.17\\\" British Museum Naukratis publication cite reference\\n---\\nNaukratis Greeks in Egypt British Museum online research catalogue Villing\\n---\\nBritish Museum specimen 2012,5015\\n---\\nBritish Museum mollusk shell acquisition 2012 archaeological research\\n---\\nBritish Museum annual report 2012 acquisitions donations\\n---\\nWhat mollusk shell acquisitions or donations were made in 2012 for archaeological or shell bead research purposes? What mollusk species were acquired?\\n---\\nBritish Museum shell bead research 2012 mollusk species\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum 2012,5015 Naukratis shell acquisition donation\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our\"\n      },\n      {\n        \"span_id\": \"s014\",\n        \"chunk_id\": \"s014:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"ARTICLES FRONT MATTER AUTHORS TOPICS SHOPPING CART WITH 0 ITEM SIGN IN SUBMIT Reference #1 RESEARCH ARTICLE ANTHROPOLOGY FREE ACCESS SHARE ON Symbolic use of marine shells and mineral pigments by Iberian Neandertals João\\n---\\nBritish Museum 2012,5015.17 Naukratis Egypt Nassa gibbosula shell\\n---\\n\\\"115000 year old\\\" OR \\\"115,000 year old\\\" shell beads Neandertal Iberian\\n---\\nHoffmann 2018 Science Advances British Museum collection Cueva de los Aviones\\n---\\nZilhao 2010 PNAS Cueva de los Aviones British Museum\\n---\\n**NO, these are NOT all related to the same research\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum H_2012-5015-17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\n\\\\n\\\\nSuccessfully accessed the British Museum collection page for object 2012,5015\\n---\\nBritish Museum collection 2012,5015.17 Spondylus gaederopus Glycymeris\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum collection 2012,5015 Spondylus gaederopus shell\\n---\\nsite:britishmuseum.org/collection/object 2012,5015 Glycymeris\\n---\\nsite:britishmuseum.org 2012,5015 shell\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nsite:britishmuseum.org/collection/object 2012,5015\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nBritish Museum 2012,5015.1 2012,5015.2 2012,5015.3 20\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1666,\n        \"text\": \"Tritia gibbosula Nassariidae family characteristics habitat\\n---\\nNassariidae dog whelks mud snails characteristics scavengers\\n---\\n\\\\n\\\\nThe British Museum collection object with museum number 2012,5015\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nsite:britishmuseum.org 2012,5015.17\\n---\\nThe British Museum British Museum Consent Details Ad Settings About Responsible use of your data We and our partners process your personal data, e\\n---\\nNassa gibbosula marine gastropod mollusk species\\n---\\n\\\\n\\\\nObject number 2012,5015\\n---\\nScience Advances 2021 ancient beads mollusk shells\\n---\\nwww\\n---\\n\\\\n\\\\nThe research article published in Science Advances in 2021 about ancient beads made from mollusk shells is titled \\\\\\\"Early Middle Stone Age personal ornaments from Bizmoune Cave, Essaouira, Morocco\\\\\\\" by Sehasseh et al\\n---\\nScience Advances 2021 ancient shell beads Nassarius Glycymeris Spondylus mollusks\\n---\\nScience Advances 2021 ancient shell beads\\n---\\nwww\\n---\\nScience Advances 2021 Glycymeris Spondylus shell beads archaeology\\n---\\nsite:science.org/journal/sciadv 2021 shell beads mollusks\\n---\\nScience Advances 2021 marine mollusks beads prehistoric\\n---\\nwww\\n---\\n\\\"Science Advances\\\" 2021 shell beads ancient\\n---\\nScience Advances 2021 shell beads\\n---\\nI identified one Science Advances article from 2021 about ancient shell beads: \\\"Early Middle Stone Age personal ornaments from Bizmoune Cave, Essaouira, Morocco\\\" (DOI: 10\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 724,\n        \"text\": \"Petrie Naukratis excavation shells Egypt Exploration Fund 1886\\n---\\n\\\"2012,5015\\\" British Museum Naukratis shells registration\\n---\\nSuccessfully identified British Museum object 2012,5015\\n---\\nScience Advances 2021 mollusk shell beads\\n---\\nwww\\n---\\nsite:science.org/journal/advances 2021 beads mollusk\\n---\\nScience Advances 2021 Tritia shell beads\\n---\\nScience Advances 2021 Columbella shell beads\\n---\\nScience Advances 2021 shell beads archaeological\\n---\\nScience Advances 2021 mollusk shell beads archaeological\\n---\\nCalling tools: [{'id': 'call_3456789012345678902', 'type': 'function', 'function': {'name': 'google_search', 'arguments': {'query': 'Science Advances 2021 beads shells paleolithic neolithic', 'filter_year': '2021'}}}]\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0677",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0677",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 20,
+    "evidence_span_count": 10
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 16411,
+    "output_tokens": 1058,
+    "total_tokens": 17469
+  }
+}

@@ -1,0 +1,427 @@
+{
+  "setting": "drift",
+  "case_id": "0551",
+  "prediction": {
+    "traj_id": "0551",
+    "error_span_ids": [
+      "s016",
+      "s017",
+      "s031"
+    ],
+    "earliest_harmful_span_id": "s016",
+    "reasons": [
+      {
+        "span_id": "s016",
+        "reason": "weak support for the specific year 1976-1980 found, but no explicit support for the specific year 1976-1980 found"
+      },
+      {
+        "span_id": "s017",
+        "reason": "weak support for the specific year 1976-1980 found, but no explicit support for the specific year 1976-1980 found"
+      },
+      {
+        "span_id": "s031",
+        "reason": "weak support for the specific year 1976-1980 found, but no explicit support for the specific year 1976-1980 found"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0551\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"A group was formed between 2009 and 2015 (exclusive) to archive a city’s musicians and bands, especially those active in the nightlife entertainment scene since before the country the city is in became independent in the 1940s. An article the group published online spotlighting a musician, Musician A, less than ten years after its formation provides the information below: - The musician's parent was a director of music for a branch of the country’s military organization. - The first set of the instrument they became known for playing was made for them by their sibling and one of their parents.\",\n  \"traj_id\": \"0551\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"A group was formed between 2009 and 2015 (exclusive) to archive a city’s musicians and bands, especially those active in the nightlife entertainment scene since before the country\\n---\\nmusic archival group formed 2010-2014 documenting 1940s independent nightlife musicians bands\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"music archival project 2010 2011 2012 2013 2014 1940s nightlife documentation\\n---\\nRed Hot Jazz Archive formed 2010 1940s documentation\\n---\\nExcavated Shellac music archival project formed 2010 2011\\n---\\nSkip to content EXCAVATED SHELLAC MENU About A website dedicated to 78rpm recordings of folkloric and vernacular music from around the world\\n---\\nExcavated Shellac Jonathan Ward when started founded 2010\\n---\\nExcavated Shellac started 2007 Jonathan Ward first post\\n---\\nmusic archival group 2010-2014 1940s independent nightlife city country documentation\\n---\\nNumero Group archival label 1940s independent music documentation\\n---\\nRed Hot Jazz Archive 1940s nightlife documentation project formed\\n---\\n\\\"formed 2010\\\" OR \\\"formed 2011\\\" OR \\\"formed 2012\\\" OR \\\"formed 2013\\\" OR \\\"formed 2014\\\" music archival 1940s nightlife\\n---\\nUnable to definitively identify a specific music archival group matching all provided criteria (formed 2010\\n---\\nSingapore music archive group 2010s pre-independence musicians bands nightlife entertainment\\n---\\nSingapore music archive documenting pre-1965 independence musicians bands formed 2010s\\n---\\nSingapore Memory Project music archive 2010s pre-independence nightlife bands\\n---\\n\\\"Singapore Heritage Society\\\" OR \\\"Yesteryear Music\\\" OR \\\"Singapore music heritage\\\" archive 2010s pre-independence\\n---\\n\\\"People's Association\\\" OR \\\"Singapore Memory Project\\\" music bands nightlife 1950s 1960s archive\\n---\\nSingapore \\\"pop yeh yeh\\\" archive documentation project 2010s bands musicians\\n---\\n\\\"Menari Go Go\\\" Singapore music archive pop yeh yeh 1960s documentation\\n---\\nMenari Go Go Singapore Malaysia pop yeh yeh archive project founder\\n---\\n\\\"Menari Go Go\\\" blog about Singapore Malaysia 1960s music bands nightlife\\n---\\nSUBSCRIBE STORE MENU Help Xeni's brother get to Malaysia to research and archive psychedelic '60s pop XENI JARDIN 8:07 AM THU APR 29, 2010 (IMAGE: From Carl's '60s Malaysian vinyl collection, the cover for \\\"Tonic Chop Ga\\n---\\nCarl Hamm DJ Carlito Menari Go Go blog Malaysian Singapore pop yeh yeh archive\\n---\\nThe primary Singapore music archive group formed in the 2010s is **MusicSG**, launched by the National Library Board (NLB) in November 2010\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Israeli music archive group formed 2010-2014 pre-1948 Tel Aviv Jerusalem musicians bands nightlife\\n---\\nIsraeli music archive pre-1948 Palestine musicians documentation project\\n---\\nRenanot Israeli music archive 2010 pre-1948 Tel Aviv Jerusalem\\n---\\nIsraeli music archive founded 2012 2013 pre-state Palestine entertainment nightlife\\n---\\nSkip to main content Skip to main navigation menu Skip to site footer Min-Ad: Israel Studies in Musicology Current Archives About About the Journal Submissions Editorial Team Privacy Statement Contact Search Register Log\\n---\\n\\\"Israeli Music Archive\\\" Herzl Shmueli 1979 founded\\n---\\n\\\"Israeli Music Archive\\\" Tel Aviv University history collections\\n---\\nTel-Aviv University David and Yolanda Katz Faculty of Arts The Archive of Israeli Music The Archive of Israeli Music was founded in 1977 and has become a center for Israeli music and musical life\\n---\\n\\\"Telavivian\\\" archive music nightlife pre-1948 2010 2011 2012 2013 2014\\n---\\nTelavivian archive music pre-1948 Palestine musicians bands entertainment\\n---\\nI was unable to identify a specific Israeli music archive group that was formed between 2010\\n---\\nIndia music archive group formed 2010-2014 Mumbai Bombay Kolkata pre-1947 independence musicians bands nightlife\\n---\\nArchive of Indian Music AIM project Mumbai Kolkata pre-independence documentation\\n---\\nABOUT US PEOPLE FOUNDERS BOARD OF TRUSTEES ADVISORS ARTISTS EVENTS FORUMS CONTACT PARTNERS SIGN IN SUBSCRIBE DONATE MEDIA Abdul Karim Khan Welcome to the ARCHIVE OF INDIAN MUSIC (AIM) The repository of gramophone recordi\\n---\\nArchive of Indian Music AIM founded when year 2010 2011 2012 2013 2014 Bangalore\\n---\\nJump to Navigation Home Volume 24 (2023) Sounding Board Archive Volume 22/2 Volume 22/1 (2020) Volume 21 (2017) Volume 20 (2015) Volume 19 (2014) Volume 18 (2013) Volume 17 (2012) Volume 16 (2011) Volume 15 (2010) Volume\\n---\\nVikram Sampath Archive of Indian Music founder biography\\n---\\nABOUT US PEOPLE FOUNDERS BOARD OF TRUSTEES ADVISORS ARTISTS EVENTS FORUMS CONTACT PARTNERS SIGN IN SUBSCRIBE DONATE MEDIA Home » The People Founders CHIEF PATRON MR\\n---\\nArchive of Indian Music AIM Mumbai Bombay Kolkata nightlife entertainment pre-1947 collection\\n---\\nArchive of Indian Music Gauhar Jaan Bombay Mumbai Kolkata Calcutta theatre musicians\\n---\\n\\\"Archive of Indian Music\\\" gramophone records 1902 1947 early cinema theatre bands\\n---\\nHome Explore Play Nearby Favorites The Lab Sign in Archive of Indian Music Bangalore, India Archive of Indian Music (AIM) is a private not-for-profit Trust that seeks to digitize and preserve old and rare gramophone reco\\n---\\nVikram Sampath \\\"My Name is Gauhar Jaan\\\" book 2010 2011 2012 publication date\\n---\\nThe **Archive of Indian Music (AIM)** is the organization matching your criteria\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Pakistan music archive group 2010-2014 pre-1947 Karachi Lahore musicians bands nightlife independence\\n---\\nCitizen Archive Pakistan music pre-partition 1947 Karachi Lahore\\n---\\nFollow Us HOME ABOUT US PROJECTS SHOP DONATE CONTACT US SUPPORT US JOBS 0 No products in the cart\\n---\\nCitizens Archive Pakistan founded when year established 2010 2011 2012\\n---\\n\\\"Citizens Archive Pakistan\\\" music musicians bands nightlife pre-1947 partition\\n---\\nPakistan music archive pre-independence nightlife Karachi Lahore 2010 2011 2012 2013 2014\\n---\\nMohatta Palace Museum Karachi music archive nightlife pre-1947\\n---\\n\\\"Sounds of Kolachi\\\" Pakistan music archive Karachi pre-partition\\n---\\nSounds of Kolachi band formed when year Karachi history\\n---\\nupstream connect error or disconnect/reset before headers\\n---\\nSounds of Kolachi Ahsan Bari 2014 pre-partition music Karachi nightlife archive\\n---\\nSounds of Kolachi documenting pre-1947 musicians bands nightlife Karachi Lahore archive project\\n---\\nBased on extensive searches, I could not identify a specific Pakistan\\n---\\nSri Lanka Ceylon music archive group 2010-2014 Colombo before 1948 independence\\n---\\nCeylon music archive Colombo nightlife musicians bands pre-1948 documentation project\\n---\\nSri Lanka music heritage archive group formed 2010 2011 2012 2013 2014 pre-independence\\n---\\n\\\"Lanka Music Archive\\\" Sri Lanka Ceylon\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Folk music Sri Lankan country music Toggle Sri Lankan country music subsection Pageantry Kolam and puppetry Nurthi Music Sinhala light mus\\n---\\nLanka Music Archive website Facebook group Ceylon pre-1948\\n---\\nFacebook Email or phone Password Forgot account\\n---\\n\\\"Ceylon Nightlife\\\" OR \\\"Colombo nightlife\\\" archive group Facebook 2010 2011 2012 2013 musicians bands\\n---\\nCeylon Nightlife Archive Facebook group Colombo musicians bands pre-independence\\n---\\nLog In Forgot Account\\n---\\n\\\"Ceylon Then Sri Lanka Now\\\" Facebook group about history\\n---\\nI was unable to identify a specific archive group formed between 2010\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"LP long-playing record history invention 1948 Columbia Records\\n---\\nstereo LP records history first stereo album 1950s when introduced\\n---\\nfirst stereo LP record 1957 1958 Audio Fidelity history\\n---\\nHMV India vinyl LP records 1950s Gramophone Company India history\\n---\\nPakistan music industry LP records 1940s 1950s history first vinyl\\n---\\nIsrael music industry LP records 1940s 1950s history vinyl first pressing\\n---\\nSri Lanka Ceylon music industry LP records 1940s 1950s history vinyl\\n---\\nMyanmar Burma music industry LP records 1940s 1950s history vinyl\\n---\\nindependent record labels India Pakistan Israel Sri Lanka Myanmar 1940s 1950s\\n---\\nfirst LP record India 1950s HMV Gramophone Company classical music\\n---\\n**No stereo LP albums existed in the 1940s from any country\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"magazine editor oncologist mountain climbing faith-based charity founded 1976-1980\\n---\\noncologist magazine editor charity founder mountain climber\\n---\\nTom Dooley doctor magazine editor Maryknoll charity 1976 mountain climbing\\n---\\nEric Hansen oncologist magazine editor charity founder mountain climbing\\n---\\nEric Hansen Partners in Health oncologist magazine editor mountain climbing\\n---\\nPaul Farmer Partners in Health founder oncologist magazine editor mountain climbing\\n---\\nPaul Farmer Partners in Health founded 1987\\n---\\nJim Yong Kim Partners in Health founder oncologist magazine editor mountain climbing\\n---\\nJim Yong Kim magazine editor mountain climbing article 2010-2014\\n---\\nphysician oncologist magazine editor charity 1976-1980 mountain climbing\\n---\\nGeoff Tabin ophthalmologist magazine editor charity founded mountain climbing\\n---\\nGeoff Tabin Himalayan Cataract Project founded year\\n---\\nUnable to identify a specific individual matching all criteria (magazine editor + oncologist + faith\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"artifact excavated 1870s exhibited museum 2010-2014 faith-based charity magazine\\n---\\n1870s excavation museum exhibition 2010 2011 2012 2013 2014 religious charity\\n---\\nDead Sea Scrolls exhibition 2010-2014 museum charity magazine\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nDead Sea Scrolls excavated 1870s faith-based charity magazine 2010-2014\\n---\\nCNEWA< EN | ES Search CONTACT DONATE Who We Are Where We Work What We Do How to Help Our Media Home ONE Magazine Spring 1983 The Dead Sea Scrolls ONE Magazine The official publication of Catholic Near East Welfare Associ\\n---\\nMoabite Stone Mesha Stele excavated 1868 1870 exhibited museum 2010-2014\\n---\\nMesha Stele Moabite Stone exhibition 2010 2011 2012 2013 2014 Catholic Near East Welfare Association CNEWA ONE Magazine\\n---\\nMesha Stele Louvre Museum exhibition 2010-2014 Jordan return demand\\n---\\njordantimes\\n---\\n\\\"Mesha Stele\\\" \\\"2010\\\" OR \\\"2011\\\" OR \\\"2012\\\" OR \\\"2013\\\" OR \\\"2014\\\" exhibition museum\\n---\\nThe artifact is the **Mesha Stele (Moabite Stone)**, excavated in **1868** (late 1860s\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"countries gained independence 1948\\n---\\ncountries independence 1948 Israel Burma Myanmar Sri Lanka Ceylon\\n---\\nIsrael music archive nightlife 2010 2011 2012 documenting musicians\\n---\\nSri Lanka music archive nightlife 2010 2011 2012 documenting musicians\\n---\\nIsrael music archive formed 2010 2011 2012 Tel Aviv nightlife\\n---\\n\\\"Beit Hatfutsot\\\" OR \\\"Diarna\\\" OR \\\"Israeli music archive\\\" 2010 2011 2012 nightlife musicians\\n---\\nDiarna Geo-Museum Jewish sites archive 2010 2011 2012\\n---\\nDISCOVER the Exhibits EXPLORE the Map HEAR the Interviews LEARN about Diarna CONTRIBUTE Your Passport to 2500 Years of Jewish History Discover the Exhibits Take a walk through our expert curated digital geo-exhibits\\n---\\nDiarna founded 2010 Jason Guberman-Pfeffer\\n---\\nDiarna nightlife musicians documenting North Africa Middle East\\n---\\nThe music archive is **Diarna** (meaning \\\"Our Homes\\\" in Judeo\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Sri Lanka Music Archive SLMA Ceylon musicians bands\\n---\\nSri Lanka Music Archive SLMA official website\\n---\\n\\\"Sri Lanka Music Archive\\\" Ceylon entertainment history nightlife\\n---\\nCeylon nightlife entertainment history musicians bands 1950s 1960s\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nCeylon musicians bands Coconut Grove Galle Face Hotel 1950s 1960s 1970s\\n---\\nVERNON COREA 1927-2002 Tribute to the legendary Radio Ceylon/SLBC and BBC Broadcaster Menu Skip to content Home Vernon Corea Vernon Corea - The Golden Voice of Radio Ceylon/Sri Lanka Broadcasting Corporation Vernon Corea\\n---\\nCeylon bands musicians 1960s 1970s Jetliners Moonstones Golden Chimes Annesley Malewana\\n---\\nCeylon nightlife Blue Leopard Silver Fawn La Langousterie nightclubs 1960s 1970s\\n---\\nRadio Ceylon Vernon Corea broadcasting history music programs 1950s 1960s\\n---\\nSri Lanka music history baila calypso Harry Belafonte influence Caribbean\\n---\\nThe term \\\"SLMA\\\" does not appear to refer to a specific Sri Lanka Music Archive organization\\n---\\nmusic archive project pre-independence 1940s nightlife bands Asian country\\n---\\nSingapore 1940s pre-independence nightlife bands musicians archive project\\n---\\nHOME – ISSUE 41 REVIEWS ARCHIVE TRENDSETTERS PUBLICATIONS VIDEOS ABOUT COMMITTEE CONTACT CSEAS Facebook YouTube HOMEBOOK REVIEWSBook Review: Muzika: Malaya’s Early Music Scene, 1900-1965 Book Review: Muzika: Malaya’s Ear\\n---\\nMuzika Malaya early music scene 1940s nightlife bands Singapore pre-independence\\n---\\nMENU BACK MUSIC TLDR: THE LONG AND SHORT OF MALAY MUSIC IN SINGAPORE From traditional to pop, Malay music continues to live on Published: 8 Jun 2025 By: Fezhah Maznan Time taken : >15mins Malay music in Singapore exists\\n---\\nAzlan Mohamed Said Muzika Malaya music archive project Singapore 1940s musicians\\n---\\nSaid Tenor Mohamad Said Abdul Rahman Singapore 1940s nightlife cabaret jazz bands\\n---\\nA Singapore Government Agency Website How to identify TOPICS MOST POPULAR PRINT ISSUE BOOKS VIDEOS PODCAST SUBSCRIBE HOME BIBLIOASIA APR-JUN 2016 OLD-WORLD AMUSEMENT PARKS Old-world Amusement Parks 02 APR 2016 Theme park\\n---\\nSingapore independence 1965 pre-independence 1940s music musicians bands\\n---\\n\\\"Muzika\\\" book Azlan Mohamed Said purchase where to buy Singapore\\n---\\nThe music archive project is \\\"Muzika: Malaya's Early Music Scene, 1900\\n---\\nmusician parent military music director\\n---\\nfamous musician father military band director conductor\\n---\\nJohn Philip Sousa children musician son daughter\\n---\\nAntonio Sousa John Philip Sousa father military band musician\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Antonio Sousa instrument maker first instrument trombone\\n---\\nsousaphone John Philip Sousa first instrument created invented\\n---\\nsousaphone sibling instrument tuba helicon related\\n---\\nRay Draper Tuba Jazz 1958 stereo LP first tuba album\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Ray Draper Tuba Jazz 1958 country recorded released United States\\n---\\nfirst stereo LP album tuba 1957 1958 Audio Fidelity\\n---\\nUnited States ### 2\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Tel Aviv music archive pre-1948 nightlife musicians British Mandate\\n---\\nTel Aviv music archive Felicja Blumental pre-1948 collection\\n---\\nwww\\n---\\nFelicja Blumental Music Center Tel Aviv archive nightlife musicians 1920s 1930s 1940s\\n---\\nStudio Annette About us Concerts and Events Umbrella Organization Felicja Blumental Music Festival Poem Balev Season 2025-26 Recordings Ensemble Mezzo & Guests Meitar Ensemble Season 22 Lieder in Pita Bread Shishi Tarbut\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Tel Aviv nightlife 1920s 1930s 1940s British Mandate cafes musicians venues\\n---\\nFelicja Blumental Music Library archive collection pre-1948 Israeli music history\\n---\\nTel Aviv music archive documenting nightlife musicians before 1948\\n---\\nTop menu Main Content Research and Publications Archive The David and Yolanda Katz Faculty of the Arts Tel Aviv University Home Academic Units Staff Directory Hebrew Student Portal TAU Welcome2TAU Inquiry Portal Student\\n---\\nArchive of Israeli Music Tel Aviv University pre-1948 nightlife musicians collection\\n---\\nTel-Aviv University David and Yolanda Katz Faculty of Arts The Archive of Israeli Music The Archive of Israeli Music was founded in 1977 and has become a center for Israeli music and musical life\\n---\\nThere are two main archives in Tel Aviv documenting musicians and nightlife before 1948: **The Archive of Israeli Music** at Tel Aviv University (founded 1977) and **The Felicja Blumental Music Center and Library Archive\"\n    },\n    {\n      \"span_id\": \"s014\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Myanmar Burma music archive Yangon Rangoon before 1948 independence\\n---\\nHome Menu Home Archive Blog About Us Contact msa What is the Myanmar Sound Archive\\n---\\nBy using this site, you agree we can set and use cookies\"\n    },\n    {\n      \"span_id\": \"s015\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Rangoon Yangon nightlife musicians bands 1920s 1930s 1940s colonial Burma\\n---\\npre-1948 Burma Rangoon musicians entertainment venues clubs colonial era\"\n    },\n    {\n      \"span_id\": \"s016\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"ABOUT Past In The Present TRAVELLING THE WORLD, DISCOVERING THE PAST SEARCH FOR\\n---\\n78rpm records Burma Burmese recording companies 1920s 1930s 1940s musicians\\n---\\nBurmese musicians singers 1930s 1940s pre-independence names artists\\n---\\nGitameit Music Center Library Yangon Burma music archive collection\\n---\\nwww\\n---\\nBurma 1948 independence music cultural impact transition\\n---\\nSeveral music archives exist that preserve pre\\n---\\nCatholic charity organization founded 1976 1977 1978 1979 1980 magazine editor stepped down 2010s\\n---\\nCatholic charity founded 1977 1978 magazine publication\\n---\\nFocolare Movement founded 1976 magazine editor\\n---\\nCatholic charity organization founded 1976 1977 1978 1979 1980 list\\n---\\nCovenant House founded 1972 magazine editor\\n---\\nL'Arche founded 1964 magazine editor stepped down 2010s\\n---\\nCatholic Relief Services founded 1943 magazine editor\\n---\\nSojourners magazine founded 1971 Jim Wallis editor stepped down\\n---\\nSojourners magazine founded 1971 1975 Catholic charity\\n---\\nCatholic Worker Movement founded Dorothy Day magazine editor 2010s\\n---\\nSt Vincent de Paul Society founded 1833 magazine editor\\n---\\nCommonweal magazine Catholic founded 1924 editor stepped down 2010s\\n---\\nI need to search more specifically for Catholic organizations founded in the late 1970s with magazines. Calling tools: [{'id': 'call_1048271593104827159', 'type': 'function', 'function': {'name': 'google_search', 'arguments': {'query': 'America magazine Catholic editor stepped down 2014 2015 2016 2017 2018 2019'}}}]\\n---\\nCaritas founded 1976-1980 magazine editor oncologist mountain climbing\\n---\\noncologist magazine editor mountain climbing 1976 1977 1978 1979 1980\\n---\\n\\\"magazine editor\\\" \\\"oncologist\\\" \\\"mountain climbing\\\" 1970s\"\n    },\n    {\n      \"span_id\": \"s017\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Caritas founder oncologist mountain climbing article\\n---\\nCaritas 1976 1977 1978 1979 1980 founded\\n---\\nWitness and Solidarity 70 years of Caritas InternationalisWitness and Solidarity 70 years of Caritas InternationalisWitness and Solidarity 70 years of Caritas InternationalisThis book has been produced by the General Sec\"\n    },\n    {\n      \"span_id\": \"s018\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll start solving this complex puzzle step by step\\n---\\nI need to take a completely different approach to this puzzle\\n---\\nI need to take a systematic approach to solve this puzzle\\n---\\nI'll take a completely different approach and use web search systematically to find the specific information needed\"\n    },\n    {\n      \"span_id\": \"s019\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Sri Lanka music archive group 2010-2014 documenting musicians before 1948 independence Ceylon\\n---\\nSri Lanka music archive Derana Aruna Loku Putha documenting pre-1948 Ceylon musicians\\n---\\nSinhala music archive project Ceylon musicians pre-independence 2010 2011 2012\\n---\\nSkip to main content TEXTS VIDEO AUDIO SOFTWARE IMAGES SIGN UP | LOG IN UPLOAD Search the Archive Sign up for free Log in Search metadata Search text contents Search TV news captions Search radio transcripts Search archi\\n---\\nTiraj Adikari Ravindra Cintron Sri Lanka music archive Ceylon gramophone\\n---\\nOther Way Sunday, June 12, 2011 Old Sinhalese Gramophone Songs (පරණ ග්‍රෙමෆෝන් සිංහල ගීත ) - MP3 Download ©2011 Lexie Kahn Well , I couldn't resist this part\"\n    },\n    {\n      \"span_id\": \"s020\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"123ravindra.blogspot.com Ceylon music archive\\n---\\nRavindra Cintron 123ravindra blogspot Sri Lanka music\\n---\\nSkip to main content TEXTS VIDEO AUDIO SOFTWARE IMAGES SIGN UP | LOG IN UPLOAD Search the Archive Sign up for free Log in Search metadata Search text contents Search TV news captions Search radio transcripts Search archi\\n---\\nTiraj Adikari Sri Lanka music archivist about\\n---\\n\\\"Tiraj Adikari\\\" profile biography Sri Lanka\\n---\\narchive.org Ceylon music collection 2010 2011 2012 pre-1948 independence\\n---\\nThe individual/initiative that matches your description is **Tiraj Adikari**, a Sri Lankan music archivist who between **2011\\n---\\nSri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980 magazine publication\\n---\\nSri Lanka Catholic magazine 1976 1977 1978 founded Messenger\\n---\\n\\\"Catholic Messenger\\\" Sri Lanka founded history\"\n    },\n    {\n      \"span_id\": \"s021\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Sections Network Home E-Paper Today's Paper News Opinion Features Mirror Business Sports Expose Video World News Weekend Online DailyMirror Online Previous Election Life Cartoon Todays Exchange Rate Political Gossip Pres\\n---\\n\\\"Gnanartha Pradeepaya\\\" Sri Lanka Catholic magazine founded 1976 1977 1978\\n---\\nGnanartha Pradeepaya Catholic magazine Sri Lanka founded year history\\n---\\nCall Us: 0112695984 / 0112678106 E-mail Now: pradeepayaadds@yahoo\"\n    },\n    {\n      \"span_id\": \"s022\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"Colombo Catholic Press\\\" founded 1976 1977 1978 charity organization\\n---\\nSri Lanka Catholic charity organization 1976 1977 1978 founded Caritas\\n---\\n077 737 3013 sedec@caritaslk\\n---\\nCaritas Sri Lanka SEDEC founded year 1976 1977 history establishment\\n---\\nSri Lanka Catholic organization founded 1978 magazine publication charity\\n---\\nI was unable to identify a Sri Lankan Catholic faith\\n---\\nSri Lanka oncologist mountain climbing charity magazine article 2010-2014\\n---\\nSri Lankan doctor oncologist Everest mountain climbing charity\\n---\\nJayanthi Kuru-Utumpala Sri Lanka oncologist cancer doctor mountain climbing charity\\n---\\nJayanthi Kuru-Utumpala oncologist cancer doctor charity magazine article\\n---\\nSri Lanka cancer doctor oncologist mountain climbing magazine 2010 2011 2012 2013 2014\\n---\\nSri Lanka oncologist mountain climbing charity magazine publication 2010-2014\\n---\\nFocus on the Family magazine oncologist mountain climbing Sri Lanka 2010 2011 2012 2013 2014\\n---\\n\\\"Focus on the Family\\\" magazine oncologist mountain climbing article 2011 2012 2013\\n---\\nfaith based charity magazine oncologist mountain climbing 2011 2012 2013 2014 Sri Lanka Pakistan India\\n---\\nDr Lareef Idroos oncologist mountain climbing charity magazine article 2011 2012 2013\\n---\\nLareef Idroos mountain climbing Everest Kilimanjaro charity\\n---\\n\\\"Lareef Idroos\\\" oncologist Sri Lanka mountain climbing\\n---\\nI could not locate a specific magazine article matching all criteria (Sri Lanka, oncologist, mountain climbing, charity, 2010\"\n    },\n    {\n      \"span_id\": \"s023\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Sri Lanka Ceylon first stereo LP album recorded history\\n---\\nCeylon first stereo LP long-playing record album musician band 1960s\\n---\\nJetliners Ceylon first stereo LP album Sri Lanka\"\n    },\n    {\n      \"span_id\": \"s024\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"SKIP TO MAIN CONTENT HOME ABOUT US VINYL RECORDS PHYSICAL MEDIA TURNTABLES HEADPHONES HI-FI AND HOME THEATER WATCHES COMMUNITY AND EVENTS DJ & PRODUCTION Gear Consultation Request a Record A Go Go At Blow Up - The Jetlin\\n---\\nJetliners \\\"Go Go at Blow Up\\\" stereo first Ceylon Sri Lanka 1969\\n---\\nLewis Brown recording studio Ceylon Sri Lanka first stereo recording\\n---\\nMenu PEOPLE LOCATIONS TRANSPORT EVENTS BRANDS TEA MORE PHOTOS Search for: SEARCH SWITCH SKIN You are here: Home Music The Jetliners & Mignonne MUSIC, PEOPLE The Jetliners & Mignonne 7\"\n    },\n    {\n      \"span_id\": \"s025\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Tony Fernando Lewis Brown studio Ceylon first stereo album recording 1960s\\n---\\nJetliners Columbia S-33EIX 5019 1969 stereo first Ceylon album\\n---\\nCeylon Sri Lanka stereo recording technology history 1960s EMI Columbia\\n---\\nThe Sri Lanka Journal of the Humanities (2017) 41: 1&2, 26-45 DOI: http://doi\\n---\\nThe Jetliners' album \\\"A Go Go at Blow Up\\\" released in 1969 on Columbia Records (catalog number S\\n---\\nSri Lanka musician parent military music director Ceylon Defence Force Navy Army Air Force band\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nM.P.H Bartholomeusz Ceylon Air Force bandmaster son daughter musician\\n---\\nBartholomeusz Sri Lanka musician family military band\\n---\\nRussell Bartholomeusz father M.P.H Bartholomeusz Air Force\\n---\\n\\\"Russell Bartholomeusz\\\" organist St Thomas College father musician\\n---\\nA SERVICE OF THANKSGIVING FOR THE LIFE AND WORK OF George Russell Layton Bartholomeusz (1942 - 2024) Sunday 6th July 2025 5\\n---\\n\\\"M.P.H. Bartholomeusz\\\" \\\"Russell Bartholomeusz\\\" father son Ceylon Air Force\"\n    },\n    {\n      \"span_id\": \"s026\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"M.P.H. Bartholomeusz Chief Petty Officer Royal Ceylon Air Force 1970\\n---\\nHOME ABOUT US EXHIBITS GALLERY VISITOR INFORMATION HISTORY SOUVENIR SHOP CONTACT US THE WINDS OF CHANGE The next step was the setting up of a Board of Management, under the Chairmanship of the Commander\"\n    },\n    {\n      \"span_id\": \"s027\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"George Russell Layton Bartholomeusz\\\" father M.P.H\\n---\\nGeorge Russell Layton Bartholomeusz (1942\"\n    },\n    {\n      \"span_id\": \"s028\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"University of Calcutta Bombay Madras established 1857\\n---\\nSri Lanka Ceylon university 1850s established connection India\\n---\\nSri Lanka Ceylon students University of Calcutta Bombay Madras 1857 1850s affiliation\\n---\\nCeylon Medical School 1870 affiliation University of Calcutta Madras Bombay\\n---\\nCeylon students sent to Calcutta medical studies 1839 University affiliation\\n---\\nCeylon Medical College 1870 degrees affiliated University of Madras\"\n    },\n    {\n      \"span_id\": \"s029\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"LMS(Undergraduate) LMS(Postgraduate) DMS AMP ABOUT About Us Student Life Student Counselling FACULTY Departments Allied Health Sciences Anatomy, Genetics & Biomedical Informatics Anaesthesiology & Critical Care Biochemis\\n---\\nUniversity of Calcutta Bombay Madras 1857 Economics Politics degree programs history\\n---\\nUniversity of Calcutta 1857 first degree programs arts science economics political science\\n---\\nCeylon students degrees University of Madras Calcutta Bombay 1857 1870s affiliation\\n---\\nThe Universities of Calcutta, Bombay (now Mumbai), and Madras (now Chennai) were all established on the same day in 1857\"\n    },\n    {\n      \"span_id\": \"s030\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"artifact excavated 1875-1879 exhibited museum 2010-2014 Sri Lanka\\n---\\nAll Section HOME PAGE ABOUT US PROJECTS PUBLICATION VIDEO GALLERY UPDATES RESOURCES ANCIENT CEYLON CONTACT English தமிழ் සිංහල Home PageAbout UsProjectsPublicationVideo GalleryUpdatesResourcesANCIENT CEYLONContact SUN, J\"\n    },\n    {\n      \"span_id\": \"s031\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Professor P. Goldschmidt Ceylon inscriptions 1875-1879 Sinhalese Epigraphy\\n---\\nHeinrich Schliemann Troy excavation 1875 1876 1877 1878 1879 exhibited 2010 2011 2012 2013 2014\\n---\\nSchliemann Troy treasure exhibited museum 2010 2011 2012 2013 2014 Sri Lanka\\n---\\nSubscribe Search Digital Editions Newsletters Sign in / Create account Subscribe Digital Editions Newsletters Art market Museums & heritage Exhibitions Books Podcasts Columns Art of Luxury Adventures with Van Gogh Art ma\\n---\\nBritish Museum Troy exhibition 2019 2020 Sri Lanka connection\\n---\\nSigiriya excavation 1875 1876 1877 1878 1879 Sri Lanka museum exhibition 2010-2014\\n---\\nAnuradhapura excavation 1875-1879 artifacts museum exhibition 2010-2014\\n---\\n\\\"Priam's Treasure\\\" \\\"Sri Lanka\\\" museum exhibition\\n---\\nSchliemann Troy artifacts 1870s British Museum exhibition 2019 2020 dates\\n---\\nI was unable to identify a specific artifact that was both excavated during 1875\\n---\\nLanka Music Archive LMA Sri Lanka founded\\n---\\nLanka Music Archive 2012 2013 founding year\\n---\\n\\\"Lanka Music Archive\\\" Sri Lanka\\n---\\n\\\"Lanka Music Archive\\\" founded 2012 OR 2013\\n---\\nLanka Music Archive pre-independence Sri Lanka musicians bands nightlife\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Folk music Sri Lankan country music Toggle Sri Lankan country music subsection Pageantry Kolam and puppetry Nurthi Music Sinhala light mus\\n---\\n\\\"Lanka Music Archive\\\" website official\\n---\\nLanka Music Archive LMA Sri Lanka history founding\\n---\\nLanka Music Archive thusitha.com Sri Lanka\\n---\\nSri Lanka pre-independence music musicians bands nightlife colonial era\\n---\\nSri Lanka independence 1948 music history colonial Portuguese Dutch British\\n---\\n\\\"Lanka Music Archive\\\" about mission collections\\n---\\nThe Lanka Music Archive (LMA) is a private music archive in Sri Lanka that promotes Sinhala country music\\n---\\nThe Messenger magazine Sri Lanka Catholic weekly editor\\n---\\nThe Messenger Sri Lanka editor resigned stepped down 2010 2011 2012 2013 2014 2015\\n---\\nThe Messenger Catholic weekly Sri Lanka editor resigned\"\n    },\n    {\n      \"span_id\": \"s032\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"HOME ABOUT US LIBRARY CATHOLIC PRESS CONTACT LOGIN ABOUT CATHOLIC PRESS “First, a good press should be fostered\\n---\\nFather Camillus Fernando The Messenger Sri Lanka editor\\n---\\nCamillus Fernando Messenger editor Sri Lanka resigned 2011 2012 2013\\n---\\nFather Camillus Fernando stepped down resigned Messenger 2010 2011 2012 2013 2014 2015\\n---\\nThe Messenger Sri Lanka editor 2010 2011 2012 before Camillus Fernando\\n---\\nHector Welgampola Messenger Sri Lanka editor resigned stepped down\\n---\\nNews Features Commentary Series Specials Video Stories South Asia Southeast Asia East Asia From the Vatican World Showcase Interviews Podcasts Asia This Week Letter From Rome UCAN Directory Editorial Partnerships Share Y\"\n    },\n    {\n      \"span_id\": \"s033\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Hector Welgampola Messenger editor Sri Lanka when did he serve years\\n---\\nSkip to content Citizen Journalism Advertise with Us Contact Us Matters India India’s Complete Socioeconomic & Religious News Primary Navigation Menu HOME TOP STORY NATIONAL INTERNATIONAL INDIANS ABROAD RELIGIOUS FEATURE\\n---\\nI was unable to find specific documentation of an editor resignation or stepping down at The Messenger (Catholic weekly in Sri Lanka) during the 2010\"\n    },\n    {\n      \"span_id\": \"s034\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need to properly format my code blocks\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0551",
+        "task_goal": "Identify the specific Catholic charity organization founded in the late 1970s with magazines.",
+        "hard_constraints": [
+          "Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s017",
+            "used_by": [
+              "s017"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "Sri Lanka Catholic magazine 1976 1977 1978",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s017",
+            "used_by": [
+              "s017"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s017",
+            "used_by": [
+              "s017"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 founded",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s017",
+            "used_by": [
+              "s017"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 magazine publication",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s017",
+            "used_by": [
+              "s017"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0551",
+        "task_goal": "Identify the specific Catholic charity organization founded in the late 1970s with magazines.",
+        "hard_constraints": [
+          "Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s017",
+            "used_by": [
+              "s017"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "Sri Lanka Catholic magazine 1976 1977 1978",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s017",
+            "used_by": [
+              "s017"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s017",
+            "used_by": [
+              "s017"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 founded",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s017",
+            "used_by": [
+              "s017"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 magazine publication",
+            "introduced_at": "s016",
+            "becomes_consequential_at": "s017",
+            "used_by": [
+              "s017"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s016",
+            "s017"
+          ],
+          "grep_queries": [
+            "Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s016",
+            "s017"
+          ],
+          "grep_queries": [
+            "Sri Lanka Catholic magazine 1976 1977 1978"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s016",
+            "s017"
+          ],
+          "grep_queries": [
+            "Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c4",
+          "span_ids": [
+            "s016",
+            "s017"
+          ],
+          "grep_queries": [
+            "Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 founded"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c5",
+          "span_ids": [
+            "s016",
+            "s017"
+          ],
+          "grep_queries": [
+            "Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 magazine publication"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s016",
+        "s017",
+        "s034"
+      ],
+      "available_span_ids": [
+        "s016",
+        "s017",
+        "s020",
+        "s022",
+        "s031",
+        "s034"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980",
+          "matched_chunk_ids": [
+            "s022:c001",
+            "s016:c001",
+            "s031:c001",
+            "s020:c001"
+          ],
+          "matched_span_ids": [
+            "s016",
+            "s020",
+            "s022",
+            "s031"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "Sri Lanka Catholic magazine 1976 1977 1978",
+          "matched_chunk_ids": [
+            "s022:c001",
+            "s016:c001",
+            "s031:c001",
+            "s020:c001"
+          ],
+          "matched_span_ids": [
+            "s016",
+            "s020",
+            "s022",
+            "s031"
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "query": "Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980",
+          "matched_chunk_ids": [
+            "s022:c001",
+            "s016:c001",
+            "s031:c001",
+            "s020:c001"
+          ],
+          "matched_span_ids": [
+            "s016",
+            "s020",
+            "s022",
+            "s031"
+          ]
+        },
+        {
+          "claim_id": "c4",
+          "query": "Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 founded",
+          "matched_chunk_ids": [
+            "s022:c001",
+            "s016:c001",
+            "s031:c001",
+            "s020:c001"
+          ],
+          "matched_span_ids": [
+            "s016",
+            "s020",
+            "s022",
+            "s031"
+          ]
+        },
+        {
+          "claim_id": "c5",
+          "query": "Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 magazine publication",
+          "matched_chunk_ids": [
+            "s022:c001",
+            "s016:c001",
+            "s031:c001",
+            "s020:c001"
+          ],
+          "matched_span_ids": [
+            "s016",
+            "s020",
+            "s022",
+            "s031"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0551\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"A group was formed between 2009 and 2015 (exclusive) to archive a city’s musicians and bands, especially those active in the nightlife entertainment scene since before the country the city is in became independent in the 1940s. An article the group published online spotlighting a musician, Musician A, less than ten years after its formation provides the information below: - The musician's parent was a director of music for a branch of the country’s military organization. - The first set of the instrument they became known for playing was made for them by their sibling and one of their parents.\",\n  \"traj_id\": \"0551\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0551\",\n    \"task_goal\": \"Identify the specific Catholic charity organization founded in the late 1970s with magazines.\",\n    \"hard_constraints\": [\n      \"Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s017\",\n        \"used_by\": [\n          \"s017\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"Sri Lanka Catholic magazine 1976 1977 1978\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s017\",\n        \"used_by\": [\n          \"s017\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s017\",\n        \"used_by\": [\n          \"s017\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 founded\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s017\",\n        \"used_by\": [\n          \"s017\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 magazine publication\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s017\",\n        \"used_by\": [\n          \"s017\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s016\",\n      \"s017\",\n      \"s034\"\n    ],\n    \"requested_span_ids\": [\n      \"s016\",\n      \"s017\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980\",\n        \"matched_chunk_ids\": [\n          \"s022:c001\",\n          \"s016:c001\",\n          \"s031:c001\",\n          \"s020:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s016\",\n          \"s020\",\n          \"s022\",\n          \"s031\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"Sri Lanka Catholic magazine 1976 1977 1978\",\n        \"matched_chunk_ids\": [\n          \"s022:c001\",\n          \"s016:c001\",\n          \"s031:c001\",\n          \"s020:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s016\",\n          \"s020\",\n          \"s022\",\n          \"s031\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980\",\n        \"matched_chunk_ids\": [\n          \"s022:c001\",\n          \"s016:c001\",\n          \"s031:c001\",\n          \"s020:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s016\",\n          \"s020\",\n          \"s022\",\n          \"s031\"\n        ]\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 founded\",\n        \"matched_chunk_ids\": [\n          \"s022:c001\",\n          \"s016:c001\",\n          \"s031:c001\",\n          \"s020:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s016\",\n          \"s020\",\n          \"s022\",\n          \"s031\"\n        ]\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"query\": \"Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 magazine publication\",\n        \"matched_chunk_ids\": [\n          \"s022:c001\",\n          \"s016:c001\",\n          \"s031:c001\",\n          \"s020:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s016\",\n          \"s020\",\n          \"s022\",\n          \"s031\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s016\",\n      \"s017\",\n      \"s020\",\n      \"s022\",\n      \"s031\",\n      \"s034\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1737,\n        \"text\": \"ABOUT Past In The Present TRAVELLING THE WORLD, DISCOVERING THE PAST SEARCH FOR\\n---\\n78rpm records Burma Burmese recording companies 1920s 1930s 1940s musicians\\n---\\nBurmese musicians singers 1930s 1940s pre-independence names artists\\n---\\nGitameit Music Center Library Yangon Burma music archive collection\\n---\\nwww\\n---\\nBurma 1948 independence music cultural impact transition\\n---\\nSeveral music archives exist that preserve pre\\n---\\nCatholic charity organization founded 1976 1977 1978 1979 1980 magazine editor stepped down 2010s\\n---\\nCatholic charity founded 1977 1978 magazine publication\\n---\\nFocolare Movement founded 1976 magazine editor\\n---\\nCatholic charity organization founded 1976 1977 1978 1979 1980 list\\n---\\nCovenant House founded 1972 magazine editor\\n---\\nL'Arche founded 1964 magazine editor stepped down 2010s\\n---\\nCatholic Relief Services founded 1943 magazine editor\\n---\\nSojourners magazine founded 1971 Jim Wallis editor stepped down\\n---\\nSojourners magazine founded 1971 1975 Catholic charity\\n---\\nCatholic Worker Movement founded Dorothy Day magazine editor 2010s\\n---\\nSt Vincent de Paul Society founded 1833 magazine editor\\n---\\nCommonweal magazine Catholic founded 1924 editor stepped down 2010s\\n---\\nI need to search more specifically for Catholic organizations founded in the late 1970s with magazines. Calling tools: [{'id': 'call_1048271593104827159', 'type': 'function', 'function': {'name': 'google_search', 'arguments': {'query': 'America magazine Catholic editor stepped down 2014 2015 2016 2017 2018 2019'}}}]\\n---\\nCaritas founded 1976-1980 magazine editor oncologist mountain climbing\\n---\\noncologist magazine editor mountain climbing 1976 1977 1978 1979 1980\\n---\\n\\\"magazine editor\\\" \\\"oncologist\\\" \\\"mountain climbing\\\" 1970s\"\n      },\n      {\n        \"span_id\": \"s017\",\n        \"chunk_id\": \"s017:c001\",\n        \"char_start\": 0,\n        \"char_end\": 322,\n        \"text\": \"Caritas founder oncologist mountain climbing article\\n---\\nCaritas 1976 1977 1978 1979 1980 founded\\n---\\nWitness and Solidarity 70 years of Caritas InternationalisWitness and Solidarity 70 years of Caritas InternationalisWitness and Solidarity 70 years of Caritas InternationalisThis book has been produced by the General Sec\"\n      },\n      {\n        \"span_id\": \"s034\",\n        \"chunk_id\": \"s034:c001\",\n        \"char_start\": 0,\n        \"char_end\": 49,\n        \"text\": \"Thought: I need to properly format my code blocks\"\n      },\n      {\n        \"span_id\": \"s022\",\n        \"chunk_id\": \"s022:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1501,\n        \"text\": \"\\\"Colombo Catholic Press\\\" founded 1976 1977 1978 charity organization\\n---\\nSri Lanka Catholic charity organization 1976 1977 1978 founded Caritas\\n---\\n077 737 3013 sedec@caritaslk\\n---\\nCaritas Sri Lanka SEDEC founded year 1976 1977 history establishment\\n---\\nSri Lanka Catholic organization founded 1978 magazine publication charity\\n---\\nI was unable to identify a Sri Lankan Catholic faith\\n---\\nSri Lanka oncologist mountain climbing charity magazine article 2010-2014\\n---\\nSri Lankan doctor oncologist Everest mountain climbing charity\\n---\\nJayanthi Kuru-Utumpala Sri Lanka oncologist cancer doctor mountain climbing charity\\n---\\nJayanthi Kuru-Utumpala oncologist cancer doctor charity magazine article\\n---\\nSri Lanka cancer doctor oncologist mountain climbing magazine 2010 2011 2012 2013 2014\\n---\\nSri Lanka oncologist mountain climbing charity magazine publication 2010-2014\\n---\\nFocus on the Family magazine oncologist mountain climbing Sri Lanka 2010 2011 2012 2013 2014\\n---\\n\\\"Focus on the Family\\\" magazine oncologist mountain climbing article 2011 2012 2013\\n---\\nfaith based charity magazine oncologist mountain climbing 2011 2012 2013 2014 Sri Lanka Pakistan India\\n---\\nDr Lareef Idroos oncologist mountain climbing charity magazine article 2011 2012 2013\\n---\\nLareef Idroos mountain climbing Everest Kilimanjaro charity\\n---\\n\\\"Lareef Idroos\\\" oncologist Sri Lanka mountain climbing\\n---\\nI could not locate a specific magazine article matching all criteria (Sri Lanka, oncologist, mountain climbing, charity, 2010\"\n      },\n      {\n        \"span_id\": \"s031\",\n        \"chunk_id\": \"s031:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"Professor P. Goldschmidt Ceylon inscriptions 1875-1879 Sinhalese Epigraphy\\n---\\nHeinrich Schliemann Troy excavation 1875 1876 1877 1878 1879 exhibited 2010 2011 2012 2013 2014\\n---\\nSchliemann Troy treasure exhibited museum 2010 2011 2012 2013 2014 Sri Lanka\\n---\\nSubscribe Search Digital Editions Newsletters Sign in / Create account Subscribe Digital Editions Newsletters Art market Museums & heritage Exhibitions Books Podcasts Columns Art of Luxury Adventures with Van Gogh Art ma\\n---\\nBritish Museum Troy exhibition 2019 2020 Sri Lanka connection\\n---\\nSigiriya excavation 1875 1876 1877 1878 1879 Sri Lanka museum exhibition 2010-2014\\n---\\nAnuradhapura excavation 1875-1879 artifacts museum exhibition 2010-2014\\n---\\n\\\"Priam's Treasure\\\" \\\"Sri Lanka\\\" museum exhibition\\n---\\nSchliemann Troy artifacts 1870s British Museum exhibition 2019 2020 dates\\n---\\nI was unable to identify a specific artifact that was both excavated during 1875\\n---\\nLanka Music Archive LMA Sri Lanka founded\\n---\\nLanka Music Archive 2012 2013 founding year\\n---\\n\\\"Lanka Music Archive\\\" Sri Lanka\\n---\\n\\\"Lanka Music Archive\\\" founded 2012 OR 2013\\n---\\nLanka Music Archive pre-independence Sri Lanka musicians bands nightlife\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Folk music Sri Lankan country music Toggle Sri Lankan country music subsection Pageantry Kolam and puppetry Nurthi Music Sinhala light mus\\n---\\n\\\"Lanka Music Archive\\\" website official\\n---\\nLanka Music Archive LMA Sri Lanka history founding\\n---\\nLanka Music Archive thusitha.com Sri Lanka\\n---\\nSri Lanka pre-independence music musicians bands nightlife colonial era\\n---\\nSri Lanka independence 1948 music history colonial Portuguese Dutch British\\n---\\n\\\"Lanka Music Archive\\\" about mission collections\\n---\\nThe Lanka Music Archive (LMA) is a pri\"\n      },\n      {\n        \"span_id\": \"s020\",\n        \"chunk_id\": \"s020:c001\",\n        \"char_start\": 0,\n        \"char_end\": 847,\n        \"text\": \"123ravindra.blogspot.com Ceylon music archive\\n---\\nRavindra Cintron 123ravindra blogspot Sri Lanka music\\n---\\nSkip to main content TEXTS VIDEO AUDIO SOFTWARE IMAGES SIGN UP | LOG IN UPLOAD Search the Archive Sign up for free Log in Search metadata Search text contents Search TV news captions Search radio transcripts Search archi\\n---\\nTiraj Adikari Sri Lanka music archivist about\\n---\\n\\\"Tiraj Adikari\\\" profile biography Sri Lanka\\n---\\narchive.org Ceylon music collection 2010 2011 2012 pre-1948 independence\\n---\\nThe individual/initiative that matches your description is **Tiraj Adikari**, a Sri Lankan music archivist who between **2011\\n---\\nSri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980 magazine publication\\n---\\nSri Lanka Catholic magazine 1976 1977 1978 founded Messenger\\n---\\n\\\"Catholic Messenger\\\" Sri Lanka founded history\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0551",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s016"
+            ],
+            "support_status": "weak",
+            "missing_support": "no explicit support for the specific year 1976-1980 found",
+            "needs_auditors": [
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s016",
+                "chunk_id": "s016:c001",
+                "role": "partial_support",
+                "text": "Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980 magazine editor stepped down 2010s"
+              }
+            ]
+          }
+        ],
+        "notes": "The claim is weak as no explicit support for the specific year 1976-1980 is found in the evidence. The evidence only mentions the years 1976-1980 but does not specify which year the charity organization was founded."
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s016"
+          ],
+          "support_status": "weak",
+          "missing_support": "no explicit support for the specific year 1976-1980 found",
+          "needs_auditors": [
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s016",
+              "chunk_id": "s016:c001",
+              "role": "partial_support",
+              "text": "Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980 magazine editor stepped down 2010s"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0551\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"A group was formed between 2009 and 2015 (exclusive) to archive a city’s musicians and bands, especially those active in the nightlife entertainment scene since before the country the city is in became independent in the 1940s. An article the group published online spotlighting a musician, Musician A, less than ten years after its formation provides the information below: - The musician's parent was a director of music for a branch of the country’s military organization. - The first set of the instrument they became known for playing was made for them by their sibling and one of their parents.\",\n  \"traj_id\": \"0551\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0551\",\n    \"task_goal\": \"Identify the specific Catholic charity organization founded in the late 1970s with magazines.\",\n    \"hard_constraints\": [\n      \"Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s017\",\n        \"used_by\": [\n          \"s017\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"Sri Lanka Catholic magazine 1976 1977 1978\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s017\",\n        \"used_by\": [\n          \"s017\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s017\",\n        \"used_by\": [\n          \"s017\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 founded\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s017\",\n        \"used_by\": [\n          \"s017\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 magazine publication\",\n        \"introduced_at\": \"s016\",\n        \"becomes_consequential_at\": \"s017\",\n        \"used_by\": [\n          \"s017\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s016\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"no explicit support for the specific year 1976-1980 found\",\n      \"needs_auditors\": [\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s016\",\n          \"chunk_id\": \"s016:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980 magazine editor stepped down 2010s\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s016\",\n      \"s017\",\n      \"s034\"\n    ],\n    \"requested_span_ids\": [\n      \"s016\",\n      \"s017\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"Sri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980\",\n        \"matched_chunk_ids\": [\n          \"s022:c001\",\n          \"s016:c001\",\n          \"s031:c001\",\n          \"s020:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s016\",\n          \"s020\",\n          \"s022\",\n          \"s031\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"Sri Lanka Catholic magazine 1976 1977 1978\",\n        \"matched_chunk_ids\": [\n          \"s022:c001\",\n          \"s016:c001\",\n          \"s031:c001\",\n          \"s020:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s016\",\n          \"s020\",\n          \"s022\",\n          \"s031\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980\",\n        \"matched_chunk_ids\": [\n          \"s022:c001\",\n          \"s016:c001\",\n          \"s031:c001\",\n          \"s020:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s016\",\n          \"s020\",\n          \"s022\",\n          \"s031\"\n        ]\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 founded\",\n        \"matched_chunk_ids\": [\n          \"s022:c001\",\n          \"s016:c001\",\n          \"s031:c001\",\n          \"s020:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s016\",\n          \"s020\",\n          \"s022\",\n          \"s031\"\n        ]\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"query\": \"Sri Lanka Catholic charity organization 1976 1977 1978 1979 1980 magazine publication\",\n        \"matched_chunk_ids\": [\n          \"s022:c001\",\n          \"s016:c001\",\n          \"s031:c001\",\n          \"s020:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s016\",\n          \"s020\",\n          \"s022\",\n          \"s031\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s016\",\n      \"s017\",\n      \"s020\",\n      \"s022\",\n      \"s031\",\n      \"s034\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1737,\n        \"text\": \"ABOUT Past In The Present TRAVELLING THE WORLD, DISCOVERING THE PAST SEARCH FOR\\n---\\n78rpm records Burma Burmese recording companies 1920s 1930s 1940s musicians\\n---\\nBurmese musicians singers 1930s 1940s pre-independence names artists\\n---\\nGitameit Music Center Library Yangon Burma music archive collection\\n---\\nwww\\n---\\nBurma 1948 independence music cultural impact transition\\n---\\nSeveral music archives exist that preserve pre\\n---\\nCatholic charity organization founded 1976 1977 1978 1979 1980 magazine editor stepped down 2010s\\n---\\nCatholic charity founded 1977 1978 magazine publication\\n---\\nFocolare Movement founded 1976 magazine editor\\n---\\nCatholic charity organization founded 1976 1977 1978 1979 1980 list\\n---\\nCovenant House founded 1972 magazine editor\\n---\\nL'Arche founded 1964 magazine editor stepped down 2010s\\n---\\nCatholic Relief Services founded 1943 magazine editor\\n---\\nSojourners magazine founded 1971 Jim Wallis editor stepped down\\n---\\nSojourners magazine founded 1971 1975 Catholic charity\\n---\\nCatholic Worker Movement founded Dorothy Day magazine editor 2010s\\n---\\nSt Vincent de Paul Society founded 1833 magazine editor\\n---\\nCommonweal magazine Catholic founded 1924 editor stepped down 2010s\\n---\\nI need to search more specifically for Catholic organizations founded in the late 1970s with magazines. Calling tools: [{'id': 'call_1048271593104827159', 'type': 'function', 'function': {'name': 'google_search', 'arguments': {'query': 'America magazine Catholic editor stepped down 2014 2015 2016 2017 2018 2019'}}}]\\n---\\nCaritas founded 1976-1980 magazine editor oncologist mountain climbing\\n---\\noncologist magazine editor mountain climbing 1976 1977 1978 1979 1980\\n---\\n\\\"magazine editor\\\" \\\"oncologist\\\" \\\"mountain climbing\\\" 1970s\"\n      },\n      {\n        \"span_id\": \"s017\",\n        \"chunk_id\": \"s017:c001\",\n        \"char_start\": 0,\n        \"char_end\": 322,\n        \"text\": \"Caritas founder oncologist mountain climbing article\\n---\\nCaritas 1976 1977 1978 1979 1980 founded\\n---\\nWitness and Solidarity 70 years of Caritas InternationalisWitness and Solidarity 70 years of Caritas InternationalisWitness and Solidarity 70 years of Caritas InternationalisThis book has been produced by the General Sec\"\n      },\n      {\n        \"span_id\": \"s034\",\n        \"chunk_id\": \"s034:c001\",\n        \"char_start\": 0,\n        \"char_end\": 49,\n        \"text\": \"Thought: I need to properly format my code blocks\"\n      },\n      {\n        \"span_id\": \"s022\",\n        \"chunk_id\": \"s022:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1501,\n        \"text\": \"\\\"Colombo Catholic Press\\\" founded 1976 1977 1978 charity organization\\n---\\nSri Lanka Catholic charity organization 1976 1977 1978 founded Caritas\\n---\\n077 737 3013 sedec@caritaslk\\n---\\nCaritas Sri Lanka SEDEC founded year 1976 1977 history establishment\\n---\\nSri Lanka Catholic organization founded 1978 magazine publication charity\\n---\\nI was unable to identify a Sri Lankan Catholic faith\\n---\\nSri Lanka oncologist mountain climbing charity magazine article 2010-2014\\n---\\nSri Lankan doctor oncologist Everest mountain climbing charity\\n---\\nJayanthi Kuru-Utumpala Sri Lanka oncologist cancer doctor mountain climbing charity\\n---\\nJayanthi Kuru-Utumpala oncologist cancer doctor charity magazine article\\n---\\nSri Lanka cancer doctor oncologist mountain climbing magazine 2010 2011 2012 2013 2014\\n---\\nSri Lanka oncologist mountain climbing charity magazine publication 2010-2014\\n---\\nFocus on the Family magazine oncologist mountain climbing Sri Lanka 2010 2011 2012 2013 2014\\n---\\n\\\"Focus on the Family\\\" magazine oncologist mountain climbing article 2011 2012 2013\\n---\\nfaith based charity magazine oncologist mountain climbing 2011 2012 2013 2014 Sri Lanka Pakistan India\\n---\\nDr Lareef Idroos oncologist mountain climbing charity magazine article 2011 2012 2013\\n---\\nLareef Idroos mountain climbing Everest Kilimanjaro charity\\n---\\n\\\"Lareef Idroos\\\" oncologist Sri Lanka mountain climbing\\n---\\nI could not locate a specific magazine article matching all criteria (Sri Lanka, oncologist, mountain climbing, charity, 2010\"\n      },\n      {\n        \"span_id\": \"s031\",\n        \"chunk_id\": \"s031:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"Professor P. Goldschmidt Ceylon inscriptions 1875-1879 Sinhalese Epigraphy\\n---\\nHeinrich Schliemann Troy excavation 1875 1876 1877 1878 1879 exhibited 2010 2011 2012 2013 2014\\n---\\nSchliemann Troy treasure exhibited museum 2010 2011 2012 2013 2014 Sri Lanka\\n---\\nSubscribe Search Digital Editions Newsletters Sign in / Create account Subscribe Digital Editions Newsletters Art market Museums & heritage Exhibitions Books Podcasts Columns Art of Luxury Adventures with Van Gogh Art ma\\n---\\nBritish Museum Troy exhibition 2019 2020 Sri Lanka connection\\n---\\nSigiriya excavation 1875 1876 1877 1878 1879 Sri Lanka museum exhibition 2010-2014\\n---\\nAnuradhapura excavation 1875-1879 artifacts museum exhibition 2010-2014\\n---\\n\\\"Priam's Treasure\\\" \\\"Sri Lanka\\\" museum exhibition\\n---\\nSchliemann Troy artifacts 1870s British Museum exhibition 2019 2020 dates\\n---\\nI was unable to identify a specific artifact that was both excavated during 1875\\n---\\nLanka Music Archive LMA Sri Lanka founded\\n---\\nLanka Music Archive 2012 2013 founding year\\n---\\n\\\"Lanka Music Archive\\\" Sri Lanka\\n---\\n\\\"Lanka Music Archive\\\" founded 2012 OR 2013\\n---\\nLanka Music Archive pre-independence Sri Lanka musicians bands nightlife\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Folk music Sri Lankan country music Toggle Sri Lankan country music subsection Pageantry Kolam and puppetry Nurthi Music Sinhala light mus\\n---\\n\\\"Lanka Music Archive\\\" website official\\n---\\nLanka Music Archive LMA Sri Lanka history founding\\n---\\nLanka Music Archive thusitha.com Sri Lanka\\n---\\nSri Lanka pre-independence music musicians bands nightlife colonial era\\n---\\nSri Lanka independence 1948 music history colonial Portuguese Dutch British\\n---\\n\\\"Lanka Music Archive\\\" about mission collections\\n---\\nThe Lanka Music Archive (LMA) is a pri\"\n      },\n      {\n        \"span_id\": \"s020\",\n        \"chunk_id\": \"s020:c001\",\n        \"char_start\": 0,\n        \"char_end\": 847,\n        \"text\": \"123ravindra.blogspot.com Ceylon music archive\\n---\\nRavindra Cintron 123ravindra blogspot Sri Lanka music\\n---\\nSkip to main content TEXTS VIDEO AUDIO SOFTWARE IMAGES SIGN UP | LOG IN UPLOAD Search the Archive Sign up for free Log in Search metadata Search text contents Search TV news captions Search radio transcripts Search archi\\n---\\nTiraj Adikari Sri Lanka music archivist about\\n---\\n\\\"Tiraj Adikari\\\" profile biography Sri Lanka\\n---\\narchive.org Ceylon music collection 2010 2011 2012 pre-1948 independence\\n---\\nThe individual/initiative that matches your description is **Tiraj Adikari**, a Sri Lankan music archivist who between **2011\\n---\\nSri Lanka Catholic charity organization founded 1976 1977 1978 1979 1980 magazine publication\\n---\\nSri Lanka Catholic magazine 1976 1977 1978 founded Messenger\\n---\\n\\\"Catholic Messenger\\\" Sri Lanka founded history\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0551",
+        "first_error_span": "s016",
+        "linked_error_span_ids": [
+          "s017",
+          "s031"
+        ],
+        "non_errors": [
+          "s020",
+          "s022",
+          "s034"
+        ],
+        "reason": "weak support for the specific year 1976-1980 found, but no explicit support for the specific year 1976-1980 found",
+        "error_span_ids": [
+          "s016",
+          "s017",
+          "s031"
+        ],
+        "earliest_harmful_span_id": "s016"
+      },
+      "validated": {
+        "traj_id": "0551",
+        "first_error_span": "s016",
+        "linked_error_span_ids": [
+          "s017",
+          "s031"
+        ],
+        "non_errors": [
+          "s020",
+          "s022",
+          "s034"
+        ],
+        "reason": "weak support for the specific year 1976-1980 found, but no explicit support for the specific year 1976-1980 found",
+        "error_span_ids": [
+          "s016",
+          "s017",
+          "s031"
+        ],
+        "earliest_harmful_span_id": "s016"
+      }
+    },
+    "full_span_count": 34,
+    "evidence_span_count": 6
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 19651,
+    "output_tokens": 998,
+    "total_tokens": 20649
+  }
+}

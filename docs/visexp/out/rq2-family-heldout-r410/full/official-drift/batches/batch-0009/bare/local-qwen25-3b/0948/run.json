@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0948",
+  "prediction": {
+    "traj_id": "0948",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "Germany government policy Indo-Pacific --- Germany Singapore defense agreement --- Germany Vietnam defense agreement --- Germany Indonesia defense agreement"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0948\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"国家A是位于欧洲心脏地带的工业强国，2025年5月国家A与东南亚国家B签署防务协议扩大双边合作。国家B的国果是什么？\",\n  \"traj_id\": \"0948\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"国家A是位于欧洲心脏地带的工业强国，2025年5月国家A与东南亚国家B签署防务协议扩大双边合作\\n---\\nGermany Singapore defense agreement\\n---\\nSkip to main content A Singapore Government Agency Website How to identify Government officials will never ask you to transfer money or disclose bank log-in details over a phone call\\n---\\nGermany Indo-Pacific strategy\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"e user wants me to identify the national fruit of \\\"Country B\\\"\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"member states of ASEAN\\n---\\nGermany-ASEAN defense agreement\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Germany government policy Indo-Pacific\\n---\\nGermany Singapore defense agreement\\n---\\nGermany Vietnam defense agreement\\n---\\nGermany Indonesia defense agreement\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"The previous tool call failed because it contained two separate `search_agent` calls in one block\\n---\\n无法访问外部搜索工具，我将根据已知信息和逻辑进行推理\\n---\\nI have been unable to use the search_agent tool successfully\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0948",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "Germany government policy Indo-Pacific --- Germany Singapore defense agreement --- Germany Vietnam defense agreement --- Germany Indonesia defense agreement"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0948",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "Germany government policy Indo-Pacific --- Germany Singapore defense agreement --- Germany Vietnam defense agreement --- Germany Indonesia defense agreement"
+          }
+        ]
+      }
+    },
+    "full_span_count": 5
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 744,
+    "output_tokens": 92,
+    "total_tokens": 836
+  }
+}

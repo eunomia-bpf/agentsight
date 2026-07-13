@@ -1,0 +1,280 @@
+{
+  "setting": "drift",
+  "case_id": "0917",
+  "prediction": {
+    "traj_id": "0917",
+    "error_span_ids": [
+      "s011",
+      "s013"
+    ],
+    "earliest_harmful_span_id": "s011",
+    "reasons": [
+      {
+        "span_id": "s011",
+        "reason": "缺少支持性记录，无法确定与三个祠堂的距离。"
+      },
+      {
+        "span_id": "s013",
+        "reason": "缺少支持性记录，无法确定与三个祠堂的距离。"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0917\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等，请问这个点与三个祠堂的距离是多少？\",\n  \"traj_id\": \"0917\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等，请问这个点与三个祠堂的距离是多少\\n---\\n北京文天祥祠 经纬度\\n---\\nThe coordinates for the Beijing Wen Tianxiang Shrine (北京文天祥祠) are approximately 39\\n---\\n北京于谦祠 地址 坐标\\n---\\nlatitude longitude of 西裱褙胡同23号 北京\\n---\\n北京于谦祠 map\\n---\\nYu Qian Shrine Beijing coordinates\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I need to find a point N in Beijing that is equidistant from Wen Tianxiang Shrine, Yu Qian Shrine, and Yuan Chonghuan Shrine\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"北京于谦祠\\n---\\n北京东城区西裱褙胡同甲23号 经纬度\\n---\\nlatitude longitude of \\\"西裱褙胡同23号\\\"\\n---\\nYu Qian Ancestral Hall Beijing coordinates\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 11 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have encountered an error while retrieving the coordinates\\n---\\n北京文天祥祠经纬度\\n---\\n北京袁崇焕祠经纬度\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have encountered another error\\n---\\n北京于谦祠地址\\n---\\n北京于谦祠开放时间 门票 交通\\n---\\n于谦 历史\\n---\\n北京于谦祠的地址是：**北京市东城区西裱褙胡同23号**\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I am still facing issues with the `search_agent`\\n---\\n北京袁崇焕祠地址\\n---\\n北京袁崇焕祠 开放时间 周一\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have successfully found the address of the Yu Qian Shrine\\n---\\n北京袁崇焕祠地址\\n---\\nThe Yuan Chonghuan Shrine and Tomb (袁崇焕祠和墓) is located at **No\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I am still facing issues with the `search_agent`\\n---\\n北京文天祥祠地址\\n---\\n北京文天祥祠 开放时间 门票 交通\\n---\\n文天祥 生平\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have now successfully found the addresses of two of the three shrines: * **Yu Qian Shrine:** 北京市东城区西裱褙胡同23号 (No\\n---\\n于谦祠 经纬度\\n---\\nThe address 北京市东城区西裱褙胡同23号 is the location of the Yu Qian Shrine (于谦祠)\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I am still having trouble with the `search_agent`\\n---\\n北京市东城区东花市斜街52号 经纬度\\n---\\n1000 公里 路况 地铁 工具箱 享受最佳体验，请将浏览器设置为默认缩放级别\\n---\\nYuan Chonghuan Tomb and Ancestral Hall coordinates\\n---\\n袁崇焕墓和祠 经纬度\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have found the approximate coordinates for the Yu Qian Shrine: Latitude 39\\n---\\n北京袁崇焕祠 经纬度\\n---\\n袁崇焕\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I am still encountering issues with the `search_agent`\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I am still having trouble with the `search_agent`\\n---\\nYuan Chonghuan Shrine Beijing\\n---\\nYuan Chonghuan Memorial Beijing address coordinates\\n---\\n袁崇焕祠 坐标 OR 地址\\n---\\n东花市斜街52号 北京 coordinates\\n---\\n1000 公里 路况 地铁 工具箱 享受最佳体验，请将浏览器设置为默认缩放级别\\n---\\nYuan Chonghuan Shrine Beijing coordinates\\n---\\nI am still having a lot of trouble with the `search_agent`\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "question": "在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等，请问这个点与三个祠堂的距离是多少？",
+        "traj_id": "0917",
+        "spans": [
+          {
+            "span_id": "s001",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等，请问这个点与三个祠堂的距离是多少\n---\n北京文天祥祠 经纬度\n---\nThe coordinates for the Beijing Wen Tianxiang Shrine (北京文天祥祠) are approximately 39\n---\n北京于谦祠 地址 坐标\n---\nlatitude longitude of 西裱褙胡同23号 北京\n---\n北京于谦祠 map\n---\nYu Qian Shrine Beijing coordinates"
+          },
+          {
+            "span_id": "s002",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "I need to find a point N in Beijing that is equidistant from Wen Tianxiang Shrine, Yu Qian Shrine, and Yuan Chonghuan Shrine"
+          },
+          {
+            "span_id": "s003",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "北京于谦祠\n---\n北京东城区西裱褙胡同甲23号 经纬度\n---\nlatitude longitude of \"西裱褙胡同23号\"\n---\nYu Qian Ancestral Hall Beijing coordinates\n---\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 11 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入"
+          },
+          {
+            "span_id": "s004",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "I have encountered an error while retrieving the coordinates\n---\n北京文天祥祠经纬度\n---\n北京袁崇焕祠经纬度"
+          },
+          {
+            "span_id": "s005",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "I have encountered another error\n---\n北京于谦祠地址\n---\n北京于谦祠开放时间 门票 交通\n---\n于谦 历史\n---\n北京于谦祠的地址是：**北京市东城区西裱褙胡同23号**"
+          },
+          {
+            "span_id": "s006",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "I am still facing issues with the `search_agent`\n---\n北京袁崇焕祠地址\n---\n北京袁崇焕祠 开放时间 周一"
+          },
+          {
+            "span_id": "s007",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "I have successfully found the address of the Yu Qian Shrine\n---\n北京袁崇焕祠地址\n---\nThe Yuan Chonghuan Shrine and Tomb (袁崇焕祠和墓) is located at **No"
+          },
+          {
+            "span_id": "s008",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "I am still facing issues with the `search_agent`\n---\n北京文天祥祠地址\n---\n北京文天祥祠 开放时间 门票 交通\n---\n文天祥 生平"
+          },
+          {
+            "span_id": "s009",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "I have now successfully found the addresses of two of the three shrines: * **Yu Qian Shrine:** 北京市东城区西裱褙胡同23号 (No\n---\n于谦祠 经纬度\n---\nThe address 北京市东城区西裱褙胡同23号 is the location of the Yu Qian Shrine (于谦祠)"
+          },
+          {
+            "span_id": "s010",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "I am still having trouble with the `search_agent`\n---\n北京市东城区东花市斜街52号 经纬度\n---\n1000 公里 路况 地铁 工具箱 享受最佳体验，请将浏览器设置为默认缩放级别\n---\nYuan Chonghuan Tomb and Ancestral Hall coordinates\n---\n袁崇焕墓和祠 经纬度"
+          },
+          {
+            "span_id": "s011",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "I have found the approximate coordinates for the Yu Qian Shrine: Latitude 39\n---\n北京袁崇焕祠 经纬度\n---\n袁崇焕"
+          },
+          {
+            "span_id": "s012",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "I am still encountering issues with the `search_agent`"
+          },
+          {
+            "span_id": "s013",
+            "raw_start_step": null,
+            "raw_end_step": null,
+            "span_text": "I am still having trouble with the `search_agent`\n---\nYuan Chonghuan Shrine Beijing\n---\nYuan Chonghuan Memorial Beijing address coordinates\n---\n袁崇焕祠 坐标 OR 地址\n---\n东花市斜街52号 北京 coordinates\n---\n1000 公里 路况 地铁 工具箱 享受最佳体验，请将浏览器设置为默认缩放级别\n---\nYuan Chonghuan Shrine Beijing coordinates\n---\nI am still having a lot of trouble with the `search_agent`"
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "这个点N的坐标为39",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "compute",
+            "status": "consequential"
+          }
+        ],
+        "notes": "这个点N的坐标为39，但无法找到其他两个祠堂的坐标，因此无法确定与三个祠堂的距离。"
+      },
+      "validated": {
+        "traj_id": "0917",
+        "task_goal": "",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "这个点N的坐标为39",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "compute",
+            "status": "consequential"
+          }
+        ],
+        "notes": "这个点N的坐标为39，但无法找到其他两个祠堂的坐标，因此无法确定与三个祠堂的距离。"
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "这个点N的坐标为39"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s011",
+        "s013"
+      ],
+      "available_span_ids": [
+        "s011",
+        "s013"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "这个点N的坐标为39",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0917\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等，请问这个点与三个祠堂的距离是多少？\",\n  \"traj_id\": \"0917\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0917\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"这个点N的坐标为39\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"compute\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"这个点N的坐标为39，但无法找到其他两个祠堂的坐标，因此无法确定与三个祠堂的距离。\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s011\",\n      \"s013\"\n    ],\n    \"requested_span_ids\": [\n      \"s011\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"这个点N的坐标为39\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s011\",\n      \"s013\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 99,\n        \"text\": \"I have found the approximate coordinates for the Yu Qian Shrine: Latitude 39\\n---\\n北京袁崇焕祠 经纬度\\n---\\n袁崇焕\"\n      },\n      {\n        \"span_id\": \"s013\",\n        \"chunk_id\": \"s013:c001\",\n        \"char_start\": 0,\n        \"char_end\": 338,\n        \"text\": \"I am still having trouble with the `search_agent`\\n---\\nYuan Chonghuan Shrine Beijing\\n---\\nYuan Chonghuan Memorial Beijing address coordinates\\n---\\n袁崇焕祠 坐标 OR 地址\\n---\\n东花市斜街52号 北京 coordinates\\n---\\n1000 公里 路况 地铁 工具箱 享受最佳体验，请将浏览器设置为默认缩放级别\\n---\\nYuan Chonghuan Shrine Beijing coordinates\\n---\\nI am still having a lot of trouble with the `search_agent`\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0917",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s011"
+            ],
+            "support_status": "missing",
+            "missing_support": "无法找到其他两个祠堂的坐标，因此无法确定与三个祠堂的距离。",
+            "needs_auditors": [
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s011",
+                "chunk_id": "s011:c001",
+                "role": "partial_support",
+                "text": "这个点N的坐标为39，但无法找到其他两个祠堂的坐标，因此无法确定与三个祠堂的距离。"
+              }
+            ]
+          }
+        ],
+        "notes": "无法找到其他两个祠堂的坐标，因此无法确定与三个祠堂的距离。"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s011"
+          ],
+          "support_status": "missing",
+          "missing_support": "无法找到其他两个祠堂的坐标，因此无法确定与三个祠堂的距离。",
+          "needs_auditors": [
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s011",
+              "chunk_id": "s011:c001",
+              "role": "partial_support",
+              "text": "这个点N的坐标为39，但无法找到其他两个祠堂的坐标，因此无法确定与三个祠堂的距离。"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0917\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"在北京有一个点N，与文天祥祠堂、于谦祠堂、袁崇焕祠堂，三地距离相等，请问这个点与三个祠堂的距离是多少？\",\n  \"traj_id\": \"0917\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0917\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"这个点N的坐标为39\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"compute\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"这个点N的坐标为39，但无法找到其他两个祠堂的坐标，因此无法确定与三个祠堂的距离。\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s011\"\n      ],\n      \"support_status\": \"missing\",\n      \"missing_support\": \"无法找到其他两个祠堂的坐标，因此无法确定与三个祠堂的距离。\",\n      \"needs_auditors\": [\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s011\",\n          \"chunk_id\": \"s011:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"这个点N的坐标为39，但无法找到其他两个祠堂的坐标，因此无法确定与三个祠堂的距离。\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s011\",\n      \"s013\"\n    ],\n    \"requested_span_ids\": [\n      \"s011\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"这个点N的坐标为39\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s011\",\n      \"s013\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 99,\n        \"text\": \"I have found the approximate coordinates for the Yu Qian Shrine: Latitude 39\\n---\\n北京袁崇焕祠 经纬度\\n---\\n袁崇焕\"\n      },\n      {\n        \"span_id\": \"s013\",\n        \"chunk_id\": \"s013:c001\",\n        \"char_start\": 0,\n        \"char_end\": 338,\n        \"text\": \"I am still having trouble with the `search_agent`\\n---\\nYuan Chonghuan Shrine Beijing\\n---\\nYuan Chonghuan Memorial Beijing address coordinates\\n---\\n袁崇焕祠 坐标 OR 地址\\n---\\n东花市斜街52号 北京 coordinates\\n---\\n1000 公里 路况 地铁 工具箱 享受最佳体验，请将浏览器设置为默认缩放级别\\n---\\nYuan Chonghuan Shrine Beijing coordinates\\n---\\nI am still having a lot of trouble with the `search_agent`\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0917",
+        "first_error_span": "s011",
+        "linked_error_span_ids": [
+          "s011",
+          "s013"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "缺少支持性记录，无法确定与三个祠堂的距离。",
+        "error_span_ids": [
+          "s011",
+          "s013"
+        ],
+        "earliest_harmful_span_id": "s011"
+      },
+      "validated": {
+        "traj_id": "0917",
+        "first_error_span": "s011",
+        "linked_error_span_ids": [
+          "s011",
+          "s013"
+        ],
+        "non_errors": [],
+        "reason": "缺少支持性记录，无法确定与三个祠堂的距离。",
+        "error_span_ids": [
+          "s011",
+          "s013"
+        ],
+        "earliest_harmful_span_id": "s011"
+      }
+    },
+    "full_span_count": 13,
+    "evidence_span_count": 2
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 4712,
+    "output_tokens": 1983,
+    "total_tokens": 6695
+  }
+}

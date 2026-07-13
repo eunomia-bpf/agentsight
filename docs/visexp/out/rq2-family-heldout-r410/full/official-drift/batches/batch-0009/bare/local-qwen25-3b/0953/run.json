@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0953",
+  "prediction": {
+    "traj_id": "0953",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0953\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"2024年全年共有多少位新晋学术人员加入了香港大学？\",\n  \"traj_id\": \"0953\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"2024年全年共有多少位新晋学术人员加入了香港大学\\n---\\n香港大学2024年新晋学术人员\\n---\\nHOME RESOURCES NEWS AWARDS & RECOGNITION Welcoming HKU’s Newest Academic Staff for 2024 Attracting Global Talent Each year the University of Hong Kong draws scholars from around the world\\n---\\n{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Invalid protocol httpshttps:\\\",\\\"readableMessage\\\":\\\"ParamValidationError(url): Invalid protocol httpshttps:\\\"}\\n---\\n新的搜索 接入API，立即获得深度搜索能力\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我需要找出2024年加入香港大学的新晋学术人员数量\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"香港大学 2024年 新晋学术人员\\n---\\nHOME RESOURCES NEWS AWARDS & RECOGNITION Welcoming HKU’s Newest Academic Staff for 2024 Attracting Global Talent Each year the University of Hong Kong draws scholars from around the world\\n---\\n新的搜索 登录后保存搜索记录 登录账户可以保存和查看历史搜索记录 去登录 接入API，立即获得深度搜索能力\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I need to find out the number of new academic staff who joined the University of Hong Kong in 2024\\n---\\nUniversity of Hong Kong academic staff recruitment 2024\\n---\\nSkip to content HKU Home Start main Content Career Opportunities Home Explore Careers at HKU Career Opportunities Applicant login Job alert Internal openings Job Search e\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"HKU Global Professoriate Recruitment Campaign\\n---\\nHKU Professoriate Recruitment Campaign Home About Eligibility Apply Now HKU Global Professoriate Recruitment Campaign Learn More About the HKU Global Professoriate Recruitment Campaign HKU is pleased to invite outstandin\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"University of Hong Kong academic staff conditions of service\\n---\\nThe University of Hong Kong (HKU) is actively recruiting academic staff in 2024, with a substantial number of open positions across a wide range of faculties and disciplines\\n---\\nI need to find the number of new academic staff who joined the University of Hong Kong in 2024\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have searched for the number of new academic staff who joined the University of Hong Kong in 2024\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0953",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0953",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 7
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1085,
+    "output_tokens": 74,
+    "total_tokens": 1159
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "setting": "bare",
+  "case_id": "0784",
+  "prediction": {
+    "traj_id": "0784",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0784\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"According to github, when was Regression added to the oldest closed numpy.polynomial issue that has the Regression label in MM/DD/YY?\",\n  \"traj_id\": \"0784\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"According to github, when was Regression added to the oldest closed numpy\\n---\\nsite:github.com numpy/numpy issues is:issue is:closed label:Regression \\\"numpy.polynomial\\\" sort:created-asc\\n---\\ngithub api get issue events\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need to find the date when the 'Regression' label was added to the oldest closed numpy\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"official NumPy website\\n---\\nInstall Documentation Learn Community About Us News Contribute English NumPy The fundamental package for scientific computing with Python LATEST RELEASE: NUMPY 2\\n---\\nSkip to main content Search PyPI Search Help Docs Sponsors Log in Register numpy 2\\n---\\nThe official URL for the NumPy GitHub repository is: https://github\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need to find the date when the 'Regression' label was added to the oldest closed numpy\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up numpy / numpy Public Sponsor Notifications Fork 12k Star 31\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up numpy / numpy Public Sponsor Notifications Fork 12k Star 31\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up numpy / numpy Public Sponsor Notifications Fork 12k Star 31\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up numpy / numpy Public Sponsor Notifications Fork 12k Star 31\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have the URL for the NumPy repository\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up numpy / numpy Public Sponsor Notifications Fork 12k Star 31\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up numpy / numpy Public Sponsor Notifications Fork 12k Star 31\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up numpy / numpy Public Sponsor Notifications Fork 12k Star 31\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: My previous attempts to get the information in one step failed\\n---\\ngithub advanced search syntax for issues\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Invalid protocol httpshttps:\\\",\\\"readableMessage\\\":\\\"ParamValidationError(url): Invalid protocol httpshttps:\\\"}\\n---\\nSkip to main content GitHub Docs Version: Free, Pro, & Team Search or askCopilot GitHub Issues/Issues/Using issues/Filter and search Filtering and searching issues and pull requests To find detailed information about a r\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up numpy / numpy Public Sponsor Notifications Fork 12k Star 31\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up numpy / numpy Public Sponsor Notifications Fork 12k Star 31\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up numpy / numpy Public Sponsor Notifications Fork 12k Star 31\\n---\\nThe URL for the search results is: `https://github\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have tried to get the answer with a single complex query to the `search_agent` and it has failed\\n---\\ngithub numpy issue 18341\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"The search results show three issues, sorted by the oldest: #18341, #22669, and #22865\\n---\\nThe requested page, NumPy issue #18341, titled \\\"f2py (1\\n---\\nI have identified the oldest issue as #18341\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I've retrieved the full content of the issue page\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0784",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 10
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1512,
+    "output_tokens": 62,
+    "total_tokens": 1574
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "setting": "bare",
+  "case_id": "0697",
+  "prediction": {
+    "traj_id": "0697",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0697\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"I went to Virtue restaurant & bar in Chicago for my birthday on March 22, 2021 and the main course I had was delicious! Unfortunately, when I went back about a month later on April 21, it was no longer on the dinner menu. Using the Wayback Machine, can you help me figure out which main course was on the dinner menu for Virtue on March 22, 2021 but not April 21, 2021? Answer using the singular form, without articles.\",\n  \"traj_id\": \"0697\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I went to Virtue restaurant & bar in Chicago for my birthday on March 22, 2021 and the main course I had was delicious\\n---\\nVirtue restaurant bar Chicago official website\\n---\\nSkip to main content Reservations Menus About Join Our Team Press Donate Gift Cards Store HOME Main content starts here, tab to start navigating Scroll Down to Content The image gallery carousel displays a single slide a\\n---\\nVirtue restaurant Chicago Hyde Park\\n---\\nSkip to main content Reservations Menus About Join Our Team Press Donate Gift Cards Store Main content starts here, tab to start navigating CONTACT Send us a message and we’ll get back to you as soon as possible\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Page Not Found The page you were looking for was not found\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Virtue restaurant Chicago Erick Williams website\\n---\\n\\\\n\\\\nThe official website URL for Virtue restaurant & bar in Chicago is: **https://www\\n---\\nhttps://www.virtuerestaurant.com/\\n---\\nhttps://www.virtuerestaurant.com/menus\\n---\\n\\\\n\\\\nSuccessfully retrieved the archived dinner menu from Virtue Restaurant (https://www\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"https://www.virtuerestaurant.com/\\n---\\nhttps://www.virtuerestaurant.com/menus\\n---\\n\\\\n\\\\nSuccessfully retrieved the archived dinner menu from Virtue Restaurant (https://www\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll solve this task step by step by accessing the Wayback Machine to compare the dinner menus from Virtue restaurant in Chicago on the two dates mentioned\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0697",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 5
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 943,
+    "output_tokens": 62,
+    "total_tokens": 1005
+  }
+}

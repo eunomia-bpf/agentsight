@@ -1,0 +1,200 @@
+{
+  "setting": "drift",
+  "case_id": "0861",
+  "prediction": {
+    "traj_id": "0861",
+    "error_span_ids": [
+      "s002"
+    ],
+    "earliest_harmful_span_id": "s002",
+    "reasons": []
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0861\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"有一种美食，起源于中国南北朝时期，分为两大流派，可以裹饼吃、也可以蘸糖吃，这个美食是什么？\",\n  \"traj_id\": \"0861\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"有一种美食，起源于中国南北朝时期，分为两大流派，可以裹饼吃、也可以蘸糖吃，这个美食是什么\\n---\\nI need to search for information about this Chinese food with these specific characteristics\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Northern and Southern Dynasties China 南北朝 period dates history\\n---\\nspring rolls egg rolls Northern Southern Dynasties origin China history\\n---\\n春饼 spring pancakes Northern Southern Dynasties 南北朝 origin history\\n---\\n春卷 spring rolls 南北朝 two schools northern southern origin sugar\\n---\\nChinese food Northern Southern Dynasties two schools pancakes sugar 南北朝\\n---\\n润饼 popiah Northern Southern Dynasties origin two styles sugar\\n---\\nrunbing 润饼 Northern Southern styles Taiwan Qingming Festival sugar sweet savory\\n---\\nExplore the things you love\\n---\\npopiah runbing 润饼 Northern Taiwan Southern Taiwan two styles sugar peanut powder\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Etymology Wrapper and fillings Types Toggle Types subsection Taiwanese Southeast Asian See also References External links Popiah 9 languag\\n---\\nThe Chinese food being described is **Popiah (薄餅/潤餅)**, also known as **Runbing** in Taiwan\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"北京烤鸭 起源 南北朝 历史\\n---\\n北京烤鸭 两大流派 挂炉 焖炉 全聚德 便宜坊\\n---\\n北京烤鸭 裹饼 荷叶饼 吃法 配料\\n---\\n北京烤鸭 蘸糖 吃法 鸭皮 白糖\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科Discord、IRC、LINE、QQ及Telegram等各平臺交流群歡迎大家加入\\n---\\n焖炉烤鸭 挂炉烤鸭 区别 特点 全聚德 便宜坊\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"北京烤鸭 荷叶饼 甜面酱 葱丝 黄瓜丝 传统吃法\\n---\\n\\\\n\\\\n\\\\u5317\\\\u4eac\\\\u70e4\\\\u9e2d\\\\u8d77\\\\u6e90\\\\u4e8e\\\\u5357\\\\u5317\\\\u671d\\\\u65f6\\\\u671f\\\\uff08420\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need to search for information about a Chinese food that originated during the Northern and Southern Dynasties period, has two major schools, and can be eaten both wrapped in pancakes and dipped in sugar\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "这个美食是润饼（薄饼/润饼）",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s002",
+            "used_by": [
+              "s002"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0861",
+        "task_goal": "",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "这个美食是润饼（薄饼/润饼）",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s002",
+            "used_by": [
+              "s002"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001",
+            "s002"
+          ],
+          "grep_queries": [
+            "这个美食是润饼（薄饼/润饼）"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s002",
+        "s006"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s002",
+        "s006"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "这个美食是润饼（薄饼/润饼）",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0861\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"有一种美食，起源于中国南北朝时期，分为两大流派，可以裹饼吃、也可以蘸糖吃，这个美食是什么？\",\n  \"traj_id\": \"0861\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0861\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"这个美食是润饼（薄饼/润饼）\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s002\",\n        \"used_by\": [\n          \"s002\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s006\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s002\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"这个美食是润饼（薄饼/润饼）\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s006\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 141,\n        \"text\": \"有一种美食，起源于中国南北朝时期，分为两大流派，可以裹饼吃、也可以蘸糖吃，这个美食是什么\\n---\\nI need to search for information about this Chinese food with these specific characteristics\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 939,\n        \"text\": \"Northern and Southern Dynasties China 南北朝 period dates history\\n---\\nspring rolls egg rolls Northern Southern Dynasties origin China history\\n---\\n春饼 spring pancakes Northern Southern Dynasties 南北朝 origin history\\n---\\n春卷 spring rolls 南北朝 two schools northern southern origin sugar\\n---\\nChinese food Northern Southern Dynasties two schools pancakes sugar 南北朝\\n---\\n润饼 popiah Northern Southern Dynasties origin two styles sugar\\n---\\nrunbing 润饼 Northern Southern styles Taiwan Qingming Festival sugar sweet savory\\n---\\nExplore the things you love\\n---\\npopiah runbing 润饼 Northern Taiwan Southern Taiwan two styles sugar peanut powder\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Etymology Wrapper and fillings Types Toggle Types subsection Taiwanese Southeast Asian See also References External links Popiah 9 languag\\n---\\nThe Chinese food being described is **Popiah (薄餅/潤餅)**, also known as **Runbing** in Taiwan\"\n      },\n      {\n        \"span_id\": \"s006\",\n        \"chunk_id\": \"s006:c001\",\n        \"char_start\": 0,\n        \"char_end\": 214,\n        \"text\": \"Thought: I need to search for information about a Chinese food that originated during the Northern and Southern Dynasties period, has two major schools, and can be eaten both wrapped in pancakes and dipped in sugar\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0861",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s001",
+              "s002"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s001",
+                "chunk_id": "s001:c001",
+                "role": "partial_support",
+                "text": "有一种美食，起源于中国南北朝时期，分为两大流派，可以裹饼吃、也可以蘸糖吃，这个美食是什么"
+              },
+              {
+                "span_id": "s002",
+                "chunk_id": "s002:c001",
+                "role": "partial_support",
+                "text": "Chinese food Northern Southern Dynasties two schools pancakes sugar 南北朝"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串说明相关证据的不足"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s001",
+            "s002"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s001",
+              "chunk_id": "s001:c001",
+              "role": "partial_support",
+              "text": "有一种美食，起源于中国南北朝时期，分为两大流派，可以裹饼吃、也可以蘸糖吃，这个美食是什么"
+            },
+            {
+              "span_id": "s002",
+              "chunk_id": "s002:c001",
+              "role": "partial_support",
+              "text": "Chinese food Northern Southern Dynasties two schools pancakes sugar 南北朝"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0861\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"有一种美食，起源于中国南北朝时期，分为两大流派，可以裹饼吃、也可以蘸糖吃，这个美食是什么？\",\n  \"traj_id\": \"0861\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0861\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"这个美食是润饼（薄饼/润饼）\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s002\",\n        \"used_by\": [\n          \"s002\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s001\",\n        \"s002\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s001\",\n          \"chunk_id\": \"s001:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"有一种美食，起源于中国南北朝时期，分为两大流派，可以裹饼吃、也可以蘸糖吃，这个美食是什么\"\n        },\n        {\n          \"span_id\": \"s002\",\n          \"chunk_id\": \"s002:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Chinese food Northern Southern Dynasties two schools pancakes sugar 南北朝\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s006\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s002\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"这个美食是润饼（薄饼/润饼）\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s006\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 141,\n        \"text\": \"有一种美食，起源于中国南北朝时期，分为两大流派，可以裹饼吃、也可以蘸糖吃，这个美食是什么\\n---\\nI need to search for information about this Chinese food with these specific characteristics\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 939,\n        \"text\": \"Northern and Southern Dynasties China 南北朝 period dates history\\n---\\nspring rolls egg rolls Northern Southern Dynasties origin China history\\n---\\n春饼 spring pancakes Northern Southern Dynasties 南北朝 origin history\\n---\\n春卷 spring rolls 南北朝 two schools northern southern origin sugar\\n---\\nChinese food Northern Southern Dynasties two schools pancakes sugar 南北朝\\n---\\n润饼 popiah Northern Southern Dynasties origin two styles sugar\\n---\\nrunbing 润饼 Northern Southern styles Taiwan Qingming Festival sugar sweet savory\\n---\\nExplore the things you love\\n---\\npopiah runbing 润饼 Northern Taiwan Southern Taiwan two styles sugar peanut powder\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Etymology Wrapper and fillings Types Toggle Types subsection Taiwanese Southeast Asian See also References External links Popiah 9 languag\\n---\\nThe Chinese food being described is **Popiah (薄餅/潤餅)**, also known as **Runbing** in Taiwan\"\n      },\n      {\n        \"span_id\": \"s006\",\n        \"chunk_id\": \"s006:c001\",\n        \"char_start\": 0,\n        \"char_end\": 214,\n        \"text\": \"Thought: I need to search for information about a Chinese food that originated during the Northern and Southern Dynasties period, has two major schools, and can be eaten both wrapped in pancakes and dipped in sugar\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0861",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0861",
+        "first_error_span": null,
+        "linked_error_span_ids": [],
+        "non_errors": [],
+        "reason": "short string",
+        "error_span_ids": [],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 6,
+    "evidence_span_count": 3
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 4457,
+    "output_tokens": 443,
+    "total_tokens": 4900
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "setting": "bare",
+  "case_id": "0845",
+  "prediction": {
+    "traj_id": "0845",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0845\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"In terms of geographical distance between capital cities, which 2 countries are the furthest from each other within the ASEAN bloc according to wikipedia? Answer using a comma separated list, ordering the countries by alphabetical order.\",\n  \"traj_id\": \"0845\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"In terms of geographical distance between capital cities, which 2 countries are the furthest from each other within the ASEAN bloc according to wikipedia\\n---\\nDirect URL: https://en\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need to determine which two ASEAN countries have capital cities that are geographically the furthest apart, strictly “according to Wikipedia\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Etymology History Government and politics Toggle Government and politics subsection Geography Toggle Geography subsection Economy Toggle E\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Etymology History Toggle History subsection Early history Colonial era Independence era Government Geography Toggle Geography subsection C\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: To answer which two ASEAN countries have capital cities that are geographically the furthest apart according to Wikipedia, I will: - Confirm the official capitals of all current ASEAN members on Wikipedia, inclu\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Etymology History Toggle History subsection Background Planning and design Construction phase one under Joko Widodo Transition and continu\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJakarta\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: The previous attempt to query the search agent failed due to an API/tool configuration issue when making a large, complex request\\n---\\nSource: Wikipedia article “Dili” (English)\\n---\\nNaypyidaw Wikipedia\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nLatitude (decimal degrees): 19\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: We now know Indonesia’s capital is Jakarta according to Wikipedia\\n---\\nHanoi Wikipedia\\n---\\nInfobox coordinates (decimal degrees, ≥4 decimal places): 21\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nInfobox coordinates (decimal degrees, ≥4 decimal places): 13\\n---\\nThought: We have confirmed via Wikipedia that Indonesia’s current capital is Jakarta\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: We need to identify, within ASEAN (which now includes Timor-Leste as the 11th member according to Wikipedia), the pair of countries whose capital cities are geographically furthest apart, “according to Wikipedia\\n---\\n```py final_answer(\\\"Myanmar, Timor-Leste\\\") ```\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0845",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0845",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 7
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1187,
+    "output_tokens": 80,
+    "total_tokens": 1267
+  }
+}

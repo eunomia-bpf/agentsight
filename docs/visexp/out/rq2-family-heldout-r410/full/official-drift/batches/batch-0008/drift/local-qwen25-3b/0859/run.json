@@ -1,0 +1,237 @@
+{
+  "setting": "drift",
+  "case_id": "0859",
+  "prediction": {
+    "traj_id": "0859",
+    "error_span_ids": [
+      "s003",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "Denver Nuggets' final game score is not provided in the given evidence."
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0859\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"2023-24赛季美国职业篮球联赛（简称NBA），常规赛犯规总数排名第2的球员所在球队，在赛季最后一场（包括附加赛、季后赛）中对战双方的最终比分之差为多少?\",\n  \"traj_id\": \"0859\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"2023-24赛季美国职业篮球联赛（简称NBA），常规赛犯规总数排名第2的球员所在球队，在赛季最后一场（包括附加赛、季后赛）中对战双方的最终比分之差为多少\\n---\\n2023-24 NBA regular season total fouls leaders statistics\\n---\\nNBA 2023-24 season personal fouls committed leaders most fouls\\n---\\nJusuf Nurkic Domantas Sabonis Jordan Poole 2023-24 NBA personal fouls committed leaders\\n---\\nNBA.com stats 2023-24 season personal fouls leaders\\n---\\nbasketball-reference.com 2023-24 NBA season personal fouls leaders statistics\\n---\\n2023-24 NBA regular season total personal fouls committed leaders Nurkic Sabonis\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"ESPN NBA stats 2023-24 season personal fouls committed leaders\\n---\\n\\\\n\\\\nThe 2023\\n---\\nDenver Nuggets 2023-24 playoffs elimination final game when season ended\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Denver Nuggets Timberwolves Game 7 May 19 2024 final score elimination\\n---\\nGames Schedule Watch News All-Star Stats Standings Teams Players NBA Play Fantasy League Pass Store Tickets Sign In FRI JAN 16 12:00 AM UTC Pelicans 10-33 Pacers 9-32 League Pass 12:00 AM UTC Cavaliers 23-19 76ers 22-17\\n---\\nDenver Nuggets 2022-23 NBA championship win defending champions context\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Denver Nuggets 2023-24 season highlights Nikola Jokic third MVP award\\n---\\nNBA history first team lose Game 7 after leading 15 points halftime 2024\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Denver Nuggets 2023-24 regular season record 57-25 second seed Western Conference\\n---\\n\\\\n\\\\nThe Denver Nuggets' 2023\\n---\\nDenver Nuggets vs Minnesota Timberwolves Game 7 May 12 2024 Western Conference Semifinals final score\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to main content Skip to navigation Top Events NFL NCAAF NBA NHL NCAAM NCAAW Top Soccer MLB UFC TGL PGA Tour F1 NASCAR LPGA Tour Tennis (M) Tennis (W) Women's NCAA Ice Hockey Men's NCAA Ice Hockey Bundesliga LALIGA J\\n---\\nMinnesota Timberwolves Game 7 comeback 20 points Anthony Edwards May 19 2024\\n---\\nSkip to main content Skip to navigation Top Events NFL NCAAF NBA NHL NCAAM NCAAW Top Soccer MLB UFC TGL PGA Tour F1 NASCAR LPGA Tour Tennis (M) Tennis (W) Women's NCAA Ice Hockey Men's NCAA Ice Hockey Bundesliga LALIGA J\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Denver Nuggets Minnesota Timberwolves Game 7 Western Conference Semifinals 2024 date May 12 or May 19\\n---\\n\\\\n**IMPORTANT CLARIFICATION**: There was NO Game 7 on May 12, 2024\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll solve this task step by step\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "Denver Nuggets are the team with the 2nd highest regular season fouls committed in the 2023-24 NBA season.",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s003",
+            "used_by": [
+              "s003",
+              "s004",
+              "s005",
+              "s006",
+              "s007"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0859",
+        "task_goal": "",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "Denver Nuggets are the team with the 2nd highest regular season fouls committed in the 2023-24 NBA season.",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s003",
+            "used_by": [
+              "s003",
+              "s004",
+              "s005",
+              "s006",
+              "s007"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001",
+            "s003",
+            "s007"
+          ],
+          "grep_queries": [
+            "Denver Nuggets are the team with the 2nd highest regular season fouls committed in the 2023-24 NBA season."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s003",
+        "s004",
+        "s005",
+        "s006",
+        "s007",
+        "s008"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s002",
+        "s003",
+        "s004",
+        "s005",
+        "s006",
+        "s007",
+        "s008"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "Denver Nuggets are the team with the 2nd highest regular season fouls committed in the 2023-24 NBA season.",
+          "matched_chunk_ids": [
+            "s001:c001",
+            "s002:c001",
+            "s005:c001",
+            "s003:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s002",
+            "s003",
+            "s005"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0859\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"2023-24赛季美国职业篮球联赛（简称NBA），常规赛犯规总数排名第2的球员所在球队，在赛季最后一场（包括附加赛、季后赛）中对战双方的最终比分之差为多少?\",\n  \"traj_id\": \"0859\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0859\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"Denver Nuggets are the team with the 2nd highest regular season fouls committed in the 2023-24 NBA season.\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [\n          \"s003\",\n          \"s004\",\n          \"s005\",\n          \"s006\",\n          \"s007\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s006\",\n      \"s007\",\n      \"s008\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s003\",\n      \"s007\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"Denver Nuggets are the team with the 2nd highest regular season fouls committed in the 2023-24 NBA season.\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s002:c001\",\n          \"s005:c001\",\n          \"s003:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s003\",\n          \"s005\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s006\",\n      \"s007\",\n      \"s008\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 521,\n        \"text\": \"2023-24赛季美国职业篮球联赛（简称NBA），常规赛犯规总数排名第2的球员所在球队，在赛季最后一场（包括附加赛、季后赛）中对战双方的最终比分之差为多少\\n---\\n2023-24 NBA regular season total fouls leaders statistics\\n---\\nNBA 2023-24 season personal fouls committed leaders most fouls\\n---\\nJusuf Nurkic Domantas Sabonis Jordan Poole 2023-24 NBA personal fouls committed leaders\\n---\\nNBA.com stats 2023-24 season personal fouls leaders\\n---\\nbasketball-reference.com 2023-24 NBA season personal fouls leaders statistics\\n---\\n2023-24 NBA regular season total personal fouls committed leaders Nurkic Sabonis\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 370,\n        \"text\": \"Denver Nuggets Timberwolves Game 7 May 19 2024 final score elimination\\n---\\nGames Schedule Watch News All-Star Stats Standings Teams Players NBA Play Fantasy League Pass Store Tickets Sign In FRI JAN 16 12:00 AM UTC Pelicans 10-33 Pacers 9-32 League Pass 12:00 AM UTC Cavaliers 23-19 76ers 22-17\\n---\\nDenver Nuggets 2022-23 NBA championship win defending champions context\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 146,\n        \"text\": \"Denver Nuggets 2023-24 season highlights Nikola Jokic third MVP award\\n---\\nNBA history first team lose Game 7 after leading 15 points halftime 2024\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 220,\n        \"text\": \"Denver Nuggets 2023-24 regular season record 57-25 second seed Western Conference\\n---\\n\\\\n\\\\nThe Denver Nuggets' 2023\\n---\\nDenver Nuggets vs Minnesota Timberwolves Game 7 May 12 2024 Western Conference Semifinals final score\"\n      },\n      {\n        \"span_id\": \"s006\",\n        \"chunk_id\": \"s006:c001\",\n        \"char_start\": 0,\n        \"char_end\": 526,\n        \"text\": \"Skip to main content Skip to navigation Top Events NFL NCAAF NBA NHL NCAAM NCAAW Top Soccer MLB UFC TGL PGA Tour F1 NASCAR LPGA Tour Tennis (M) Tennis (W) Women's NCAA Ice Hockey Men's NCAA Ice Hockey Bundesliga LALIGA J\\n---\\nMinnesota Timberwolves Game 7 comeback 20 points Anthony Edwards May 19 2024\\n---\\nSkip to main content Skip to navigation Top Events NFL NCAAF NBA NHL NCAAM NCAAW Top Soccer MLB UFC TGL PGA Tour F1 NASCAR LPGA Tour Tennis (M) Tennis (W) Women's NCAA Ice Hockey Men's NCAA Ice Hockey Bundesliga LALIGA J\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 172,\n        \"text\": \"Denver Nuggets Minnesota Timberwolves Game 7 Western Conference Semifinals 2024 date May 12 or May 19\\n---\\n\\\\n**IMPORTANT CLARIFICATION**: There was NO Game 7 on May 12, 2024\"\n      },\n      {\n        \"span_id\": \"s008\",\n        \"chunk_id\": \"s008:c001\",\n        \"char_start\": 0,\n        \"char_end\": 33,\n        \"text\": \"I'll solve this task step by step\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 156,\n        \"text\": \"ESPN NBA stats 2023-24 season personal fouls committed leaders\\n---\\n\\\\n\\\\nThe 2023\\n---\\nDenver Nuggets 2023-24 playoffs elimination final game when season ended\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0859",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s003",
+              "s007"
+            ],
+            "support_status": "weak",
+            "missing_support": "Denver Nuggets' final game score is not provided in the given evidence.",
+            "needs_auditors": [
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "Denver Nuggets vs Minnesota Timberwolves Game 7 May 12 2024 Western Conference Semifinals final score"
+              },
+              {
+                "span_id": "s007",
+                "chunk_id": "s007:c001",
+                "role": "partial_support",
+                "text": "Denver Nuggets Minnesota Timberwolves Game 7 Western Conference Semifinals 2024 date May 12 or May 19"
+              }
+            ]
+          }
+        ],
+        "notes": "The final score of the Denver Nuggets vs Minnesota Timberwolves Game 7 is not provided in the given evidence, making it impossible to determine the final score difference."
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s003",
+            "s007"
+          ],
+          "support_status": "weak",
+          "missing_support": "Denver Nuggets' final game score is not provided in the given evidence.",
+          "needs_auditors": [
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "Denver Nuggets vs Minnesota Timberwolves Game 7 May 12 2024 Western Conference Semifinals final score"
+            },
+            {
+              "span_id": "s007",
+              "chunk_id": "s007:c001",
+              "role": "partial_support",
+              "text": "Denver Nuggets Minnesota Timberwolves Game 7 Western Conference Semifinals 2024 date May 12 or May 19"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0859\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"2023-24赛季美国职业篮球联赛（简称NBA），常规赛犯规总数排名第2的球员所在球队，在赛季最后一场（包括附加赛、季后赛）中对战双方的最终比分之差为多少?\",\n  \"traj_id\": \"0859\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0859\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"Denver Nuggets are the team with the 2nd highest regular season fouls committed in the 2023-24 NBA season.\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [\n          \"s003\",\n          \"s004\",\n          \"s005\",\n          \"s006\",\n          \"s007\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s003\",\n        \"s007\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"Denver Nuggets' final game score is not provided in the given evidence.\",\n      \"needs_auditors\": [\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Denver Nuggets vs Minnesota Timberwolves Game 7 May 12 2024 Western Conference Semifinals final score\"\n        },\n        {\n          \"span_id\": \"s007\",\n          \"chunk_id\": \"s007:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Denver Nuggets Minnesota Timberwolves Game 7 Western Conference Semifinals 2024 date May 12 or May 19\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s006\",\n      \"s007\",\n      \"s008\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s003\",\n      \"s007\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"Denver Nuggets are the team with the 2nd highest regular season fouls committed in the 2023-24 NBA season.\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s002:c001\",\n          \"s005:c001\",\n          \"s003:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s003\",\n          \"s005\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s006\",\n      \"s007\",\n      \"s008\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 521,\n        \"text\": \"2023-24赛季美国职业篮球联赛（简称NBA），常规赛犯规总数排名第2的球员所在球队，在赛季最后一场（包括附加赛、季后赛）中对战双方的最终比分之差为多少\\n---\\n2023-24 NBA regular season total fouls leaders statistics\\n---\\nNBA 2023-24 season personal fouls committed leaders most fouls\\n---\\nJusuf Nurkic Domantas Sabonis Jordan Poole 2023-24 NBA personal fouls committed leaders\\n---\\nNBA.com stats 2023-24 season personal fouls leaders\\n---\\nbasketball-reference.com 2023-24 NBA season personal fouls leaders statistics\\n---\\n2023-24 NBA regular season total personal fouls committed leaders Nurkic Sabonis\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 370,\n        \"text\": \"Denver Nuggets Timberwolves Game 7 May 19 2024 final score elimination\\n---\\nGames Schedule Watch News All-Star Stats Standings Teams Players NBA Play Fantasy League Pass Store Tickets Sign In FRI JAN 16 12:00 AM UTC Pelicans 10-33 Pacers 9-32 League Pass 12:00 AM UTC Cavaliers 23-19 76ers 22-17\\n---\\nDenver Nuggets 2022-23 NBA championship win defending champions context\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 146,\n        \"text\": \"Denver Nuggets 2023-24 season highlights Nikola Jokic third MVP award\\n---\\nNBA history first team lose Game 7 after leading 15 points halftime 2024\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 220,\n        \"text\": \"Denver Nuggets 2023-24 regular season record 57-25 second seed Western Conference\\n---\\n\\\\n\\\\nThe Denver Nuggets' 2023\\n---\\nDenver Nuggets vs Minnesota Timberwolves Game 7 May 12 2024 Western Conference Semifinals final score\"\n      },\n      {\n        \"span_id\": \"s006\",\n        \"chunk_id\": \"s006:c001\",\n        \"char_start\": 0,\n        \"char_end\": 526,\n        \"text\": \"Skip to main content Skip to navigation Top Events NFL NCAAF NBA NHL NCAAM NCAAW Top Soccer MLB UFC TGL PGA Tour F1 NASCAR LPGA Tour Tennis (M) Tennis (W) Women's NCAA Ice Hockey Men's NCAA Ice Hockey Bundesliga LALIGA J\\n---\\nMinnesota Timberwolves Game 7 comeback 20 points Anthony Edwards May 19 2024\\n---\\nSkip to main content Skip to navigation Top Events NFL NCAAF NBA NHL NCAAM NCAAW Top Soccer MLB UFC TGL PGA Tour F1 NASCAR LPGA Tour Tennis (M) Tennis (W) Women's NCAA Ice Hockey Men's NCAA Ice Hockey Bundesliga LALIGA J\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 172,\n        \"text\": \"Denver Nuggets Minnesota Timberwolves Game 7 Western Conference Semifinals 2024 date May 12 or May 19\\n---\\n\\\\n**IMPORTANT CLARIFICATION**: There was NO Game 7 on May 12, 2024\"\n      },\n      {\n        \"span_id\": \"s008\",\n        \"chunk_id\": \"s008:c001\",\n        \"char_start\": 0,\n        \"char_end\": 33,\n        \"text\": \"I'll solve this task step by step\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 156,\n        \"text\": \"ESPN NBA stats 2023-24 season personal fouls committed leaders\\n---\\n\\\\n\\\\nThe 2023\\n---\\nDenver Nuggets 2023-24 playoffs elimination final game when season ended\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0859",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "Denver Nuggets' final game score is not provided in the given evidence.",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0859",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "Denver Nuggets' final game score is not provided in the given evidence.",
+        "error_span_ids": [
+          "s003"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 8,
+    "evidence_span_count": 8
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 6426,
+    "output_tokens": 539,
+    "total_tokens": 6965
+  }
+}

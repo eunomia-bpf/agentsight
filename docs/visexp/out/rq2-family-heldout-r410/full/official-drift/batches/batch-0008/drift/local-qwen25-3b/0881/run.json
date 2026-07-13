@@ -1,0 +1,429 @@
+{
+  "setting": "drift",
+  "case_id": "0881",
+  "prediction": {
+    "traj_id": "0881",
+    "error_span_ids": [
+      "s003",
+      "s011",
+      "s015",
+      "s019"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "short string"
+      },
+      {
+        "span_id": "s011",
+        "reason": "short string"
+      },
+      {
+        "span_id": "s015",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0881\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"综艺节⽬中国好声⾳中，有⼀位导师参加了不⽌⼀季。这位导师职业⽣涯⾄今，演唱的⼀⾸歌曲被⽤于某部电影，这部电影的同名电视剧（同⼀IP）有多少集正剧（不含精华剪辑版）？\",\n  \"traj_id\": \"0881\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"综艺节⽬中国好声⾳中，有⼀位导师参加了不⽌⼀季\\n---\\n中国好声音 历年导师 所有季\\n---\\n《中国好声音》历届导师和冠军名单 来源：综合2021-10-16 16:25:39 大字 中国好声音历届导师和冠军 《中国好声音第一季》 1、导师：刘欢、那英、庾澄庆、杨坤\\n---\\n中国好声音2022 2023 导师\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 43 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入\\n---\\n中国好声音2023 导师名单\\n---\\n中国好声音 历年导师 完整名单 所有季\\n---\\n那英 中国好声音 参加几季\\n---\\n庾澄庆 中国好声音 参加几季 哪几季\\n---\\n汪峰 李荣浩 周杰伦 中国好声音 参加几季\\n---\\n中国好声音 导师 那英 庾澄庆 汪峰 李荣浩 周杰伦 参加季数统计\\n---\\n\\\\n\\\\n\\\\u300a\\\\u4e2d\\\\u56fd\\\\u597d\\\\u58f0\\\\u97f3\\\\u300b\\\\u4ece2012\\\\u5e74\\\\u7b2c\\\\u4e00\\\\u5b63\\\\u52302023\\\\u5e74\\\\u7b2c\\\\u5341\\\\u4e8c\\\\u5b63\\\\uff0c\\\\u5171\\\\u6709\\\\u591a\\\\u4f4d\\\\u5bfc\\\\u5e08\\\\u53c2\\\\u52a0\\\\u4e86\\\\u591a\\\\u5b63\\\\u8282\\\\u76ee\\\\u3002\\\\u53c2\\\\u52\\n---\\n中国好声音 历届导师名单 所有季节\\n---\\n《中国好声音》历届导师和冠军名单 来源：综合2021-10-16 16:25:39 大字 中国好声音历届导师和冠军 《中国好声音第一季》 1、导师：刘欢、那英、庾澄庆、杨坤\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科Discord、IRC、LINE、QQ及Telegram等各平臺交流群歡迎大家加入\\n---\\n中国好声音 2012-2015 历届导师 那英 汪峰 周杰伦 庾澄庆\\n---\\n中国好声音 2012 2013 2014 2015 第一季 第二季 第三季 第四季 导师\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 概要 总览 开关总览子章节 导师时间表 导师及其战队学员 梦想导师 赛季 电影 版权纠纷 参见 节目名称 参考文献 注释 外部链接 中国好声音 (The Voice of China) 5种语言 条目 讨论 简体 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 关于制作公司灿星经历版权纠纷后出品的曾以“中国新歌声”为片名，2018年起更名为“中国\\n---\\n\\\\n\\\\n\\\\u4e2d\\\\u56fd\\\\u597d\\\\u58f0\\\\u97f3\\\\u5386\\\\u5c4a\\\\u5bfc\\\\u5e08\\\\u5b8c\\\\u6574\\\\u540d\\\\u5355\\\\u5df2\\\\u6574\\\\u7406\\\\u5b8c\\\\u6210\\\\u3002\\\\u90a3\\\\u82f1\\\\u53c2\\\\u52a0\\\\u4e86\\\\u6700\\\\u591a\\\\u5b63\\\\uff087\\\\u5b63\\\\uff09\\\\uff0c\\\\u6c6a\\\\u5cf0\\\\u53c2\\\\u52a0\\\\u4e8\\n---\\n那英 电影主题曲 电影插曲 歌曲\\n---\\n汪峰 电影主题曲 电影插曲 歌曲\\n---\\n周杰伦 电影主题曲 电影插曲 歌曲\\n---\\n那英 汪峰 周杰伦 庾澄庆 合作 电影 歌曲\\n---\\n周杰伦 电影主题曲 完整列表 霍元甲 头文字D 满城尽带黄金甲\\n---\\n那英 电影歌曲 完整列表 征服 默 出现\\n---\\n汪峰 电影歌曲 狼图腾 沧浪之歌 陀地驱魔人\\n---\\n庾澄庆 电影歌曲 情非得已 缺口 等一个人咖啡\\n---\\n周杰伦 电影歌曲 不能说的秘密 大灌篮 青蜂侠\\n---\\n那英 汪峰 周杰伦 庾澄庆 中国好声音 中国新歌声\\n---\\nAll four artists have contributed significantly to Chinese film music\\n---\\n那英 电影主题曲 电影歌曲 完整列表\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"那英 电影主题曲 征服 默 三生三世十里桃花\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 2026年1月15日是维基百科成立25周年，一起来写下对维基百科的美好祝愿\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"那英 电影歌曲 完整 默 征服 夏洛特烦恼 何以笙箫默\\n---\\n那英 电影主题曲 列表 三生三世 幕后玩家 夺冠 世间有她\\n---\\n那英 电影歌曲 生命之河 夺冠 凝望我 世间有她 苏州河 八佰\\n---\\n那英 志愿军浴血和平 我爱你中国 电影主题曲 2025\\n---\\n那英 电影歌曲 如影随心 岁月 两个人一个人 李茶的姑妈 出现\\n---\\n那英 B计划 相见不如怀念 电影原声 飞鸟凉\\n---\\n那英 龙门诀之大漠风云变 如果不能说爱你 主题曲 2024\\n---\\n那英 少年包青天 只要有你 孙楠 电视剧主题曲\\n---\\n那英（Na Ying）演唱了多首电影主题曲和插曲，主要作品包括：\\n---\\n汪峰 电影主题曲 电影插曲 电影歌曲\\n---\\n汪峰 电影歌曲 完整列表 主题曲\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 中文维基百科Facebook粉丝专页正式上线，邀请大家一同关注\\n---\\n汪峰 电影歌曲 完整列表 插曲\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"中国好声音导师 歌曲 电影 电视剧 同名 改编\\n---\\n那英 默 何以笙箫默 电影 电视剧\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科志願者互聯交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）歡迎大家加入\\n---\\n何以笙箫默 电视剧 2014 钟汉良 唐嫣\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"那英 中国好声音 导师 哪一季\\n---\\n默 那英 歌曲 发行时间 钱雷\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科志願者互聯交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）歡迎大家加入\\n---\\n何以笙箫默 小说 顾漫 出版时间\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"那英 个人资料 歌手 简介\\n---\\n何以笙箫默 电影 票房 评价 2015\\n---\\n何以笙箫默 电视剧 2015 播出 收视率\\n---\\n那英 中国好声音 第一季到第四季 2012-2015\\n---\\n那英（Na Ying）是《中国好声音》（The Voice of China）的导师，她演唱的歌曲《默》是电影《何以笙箫默》的主题曲\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"那英 征服 电视剧 多少集\\n---\\n征服 电视剧 2003 孙红雷 20集\\n---\\n那英 征服 歌曲 征服电视剧 主题曲\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 99+ 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加\\n---\\n那英 征服 歌曲 1998年\\n---\\n\\\\n\\\\n\\\\u7535\\\\u89c6\\\\u5267\\\\u300a\\\\u5f81\\\\u670d\\\\u300b\\\\u5171\\\\u6709**20\\\\u96c6**\\\\u3002\\\\u90a3\\\\u82f1\\\\u7684\\\\u6b4c\\\\u66f2\\\\u300a\\\\u5f81\\\\u670d\\\\u300b\\\\u53d1\\\\u884c\\\\u4e8e1998\\\\u5e74\\\\uff0c\\\\u4f46**\\\\u5e76\\\\u975e**\\\\u8be5\\\\u7535\\\\u89c6\\\\u5267\\\\u7684\\\\u4e\\n---\\n征服 电视剧 刘华强 多少集\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 99+ 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加\\n---\\n{\\\"data\\\":null,\\\"code\\\":451,\\\"name\\\":\\\"SecurityCompromiseError\\\",\\\"status\\\":45102,\\\"message\\\":\\\"Abuse detected: Suspicious action: Request to localhost: http://127\\n---\\n\\\\n\\\\u7535\\\\u89c6\\\\u5267\\\\u300a\\\\u5f81\\\\u670d\\\\u300b\\\\u5171\\\\u670920\\\\u96c6\\\\u3002\\\\u8fd9\\\\u662f\\\\u4e00\\\\u90e82003\\\\u5e74\\\\u64ad\\\\u51fa\\\\u7684\\\\u8b66\\\\u532a\\\\u6b63\\\\u5267\\\\uff0c\\\\u5218\\\\u534e\\\\u5f3a\\\\u662f\\\\u5267\\\\u4e2d\\\\u7684\\\\u4e3b\\\\u8981\\\\u53cd\\\\u6d3e\\\\u\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"征服 电视剧 那英 主题曲\\n---\\n征服 电视剧 2003 刘华强\\n---\\n征服 电影 2023 同一IP 刘华强\\n---\\n征服 电影 2024 孙红雷\\n---\\n征服 电影版 2024 上映\\n---\\n征服 那英 主题曲 电视剧 电影 关系\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 99+ 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加\\n---\\n那英 征服 1998 专辑 袁惟仁\\n---\\n征服 电视剧 那英 征服 歌曲 无关\\n---\\n征服 IP 电影 电视剧 改编 同名\\n---\\n征服 刘华强 IP 二创 B站 翻红\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"周杰伦 中国好声音 导师 哪一季\\n---\\n周杰伦 电影歌曲 同名电视剧\\n---\\n头文字D 电视剧 周杰伦\\n---\\n头文字D 电视剧版 2005 2006\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"满城尽带黄金甲 电视剧 周杰伦 菊花台\\n---\\n不能说的秘密 电视剧版 周杰伦\\n---\\n周杰伦 天台爱情 电视剧\\n---\\n周杰伦 电影歌曲 电视剧 同名 中国好声音\\n---\\n霍元甲 周杰伦 电影 电视剧\\n---\\n霍元甲 电视剧 2006 2007 郑伊健\\n---\\n周杰伦 霍元甲 2006 电影主题曲 李连杰\\n---\\nJay Chou served as a mentor on The Voice of China Season 4 in 2015\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"那英 汪峰 周杰伦 电影 电视剧 同名 同一IP 改编 歌曲\\n---\\n默 那英 何以笙箫默 电影 电视剧\\n---\\n三生三世十里桃花 电影 电视剧 那英 汪峰 周杰伦 歌曲\\n---\\n三生三世十里桃花 那英 电影主题曲\\n---\\n三生三世十里桃花 汪峰 歌曲\\n---\\n三生三世十里桃花 周杰伦 歌曲\\n---\\n何以笙箫默 电影 电视剧 汪峰 周杰伦\\n---\\n中国电影电视剧同名改编 那英汪峰周杰伦都唱过主题曲\\n---\\n何以笙箫默 默 那英 电影电视剧 同名IP改编\\n---\\n何以笙箫默 电视剧 主题曲 歌手\\n---\\n三生三世十里桃花 电视剧 主题曲 歌手\\n---\\n中国电影电视剧 同名同一IP 那英汪峰周杰伦 三位歌手 主题曲\\n---\\nThe query relates to Chinese films and TV series adapted from the same IP (intellectual property) where Na Ying (那英), Wang Feng (汪峰), and Jay Chou (周杰伦) have contributed songs\\n---\\n汪峰 存在 勇敢的心 电影 电视剧\\n---\\n汪峰 存在 北京青年 电视剧\\n---\\n汪峰 勇敢的心 电视剧 电影\\n---\\n汪峰 勇敢的心 西游记之大圣归来\\n---\\n汪峰 勇敢的心 北京青年 插曲\\n---\\n汪峰 歌手 简介\"\n    },\n    {\n      \"span_id\": \"s014\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"勇敢的心 电视剧 霍啸林\\n---\\n北京青年 电视剧 2012\\n---\\n汪峰 存在 专辑 发行时间\\n---\\n汪峰 勇敢的心 专辑 2007\\n---\\n西游记之大圣归来 2015 电影\\n---\\nWang Feng (汪峰) is a prominent Chinese rock singer and music creator\\n---\\n勇敢的心 中国 电视剧 杜淳 多少集\\n---\\n勇敢的心 杜淳 2014 电视剧\\n---\\n勇敢的心 杨志刚 2014 多少集\\n---\\n勇敢的心 汪峰 主题曲 2014\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 45 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 加入百科 新人成长 进阶成长 任务广场 百科团队 校园团 分类达人团 热词团 繁星团 蝌蚪团 权威合作\\n---\\n勇敢的心 汪峰 主题曲\\n---\\n勇敢的心 2014 杜淳 电视剧 集数 多少集\\n---\\n勇敢的心 杜淳 2014 一共多少集\\n---\\n勇敢的心 杜淳 2014\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 45 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入\\n---\\n勇敢的心 2014 杜淳 多少集 电视剧\\n---\\n勇敢的心 2014 76集 杨志刚\\n---\\n\\\\n\\\\n\\\\u300a\\\\u52c7\\\\u6562\\\\u7684\\\\u5fc3\\\\u300b2014\\\\u5e74\\\\u7535\\\\u89c6\\\\u5267\\\\u517176\\\\u96c6\\\\u3002\\\\u4f46\\\\u9700\\\\u8981\\\\u7279\\\\u522b\\\\u8bf4\\\\u660e\\\\u7684\\\\u662f\\\\uff1a\\\\u8be5\\\\u5267\\\\u7684\\\\u4e3b\\\\u6f14\\\\u662f**\\\\u6768\\\\u5fd7\\\\u521a**\\\\uff0c\\\\u800c\\\\u\\n---\\n汪峰 中国好声音 导师 第几季\\n---\\n汪峰 中国好声音 导师 参加了几季 所有季数\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 中文维基百科Facebook粉丝专页正式上线，邀请大家一同关注\\n---\\n汪峰 中国好声音 导师 第二季 第三季 第四季 中国新歌声\\n---\\n\\\\n\\\\u6c6a\\\\u5cf0\\\\u62c5\\\\u4efb\\\\u300a\\\\u4e2d\\\\u56fd\\\\u597d\\\\u58f0\\\\u97f3\\\\u300b\\\\u7cfb\\\\u5217\\\\u8282\\\\u76ee\\\\u5bfc\\\\u5e08\\\\u5171\\\\u53c2\\\\u52a0\\\\u4e86\\\\u4e94\\\\u5b63\\\\uff1a\\\\n\"\n    },\n    {\n      \"span_id\": \"s015\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"汪峰 勇敢的心 电影 主题曲 插曲\\n---\\n汪峰 勇敢的心 西游记之大圣归来 主题曲\\n---\\n西游记之大圣归来 主题曲 插曲 完整歌单\\n---\\n首页 > 漳州 > 综合 > 娱乐天地 > 正文 《西游记之大圣归来》主题曲插曲片尾曲MV歌词完整汇总 2015-07-13 15:49 来源：闽南网综合 0 《西游记之大圣归来》主题曲插曲片尾曲MV歌词完整汇总 《西游记之大圣归来》是经过八年酝酿，三年的制作才打造而成的3D西游题材动画电影，于7月10日上映以来便好评如潮，影片讲述了已于五行山下寂寞沉潜五百年的孙悟空被儿时的唐僧——俗名江流儿的小和尚误打误撞地解除了封印，在相互陪伴的冒\\n---\\n西游记之大圣归来 勇敢的心 汪峰 插曲\\n---\\n西游记之大圣归来 soundtrack 完整歌曲列表\\n---\\n勇敢的心 汪峰 歌词 作词 作曲\\n---\\n西游记之大圣归来 2015 电影 导演 上映时间\\n---\\n汪峰 歌手 简介 中国摇滚\\n---\\n\\\\n\\\\n\\\\u6c6a\\\\u5cf0\\\\u4e3a2015\\\\u5e743D\\\\u52a8\\\\u753b\\\\u7535\\\\u5f71\\\\u300a\\\\u897f\\\\u6e38\\\\u8bb0\\\\u4e4b\\\\u5927\\\\u5723\\\\u5f52\\\\u6765\\\\u300b\\\\u6f14\\\\u5531\\\\u4e86\\\\u63d2\\\\u66f2\\\\u300a\\\\u52c7\\\\u6562\\\\u7684\\\\u5fc3\\\\u300b\\\\u3002\\\\u8be5\\\\u7535\\\\u5f71\\\\u7684\\\\u4e3b\"\n    },\n    {\n      \"span_id\": \"s016\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"勇敢的心 2014年电视剧 豆瓣 总集数\\n---\\n{\\\"data\\\":null,\\\"code\\\":422,\\\"name\\\":\\\"AssertionFailureError\\\",\\\"status\\\":42206,\\\"message\\\":\\\"No content available for URL https://movie\"\n    },\n    {\n      \"span_id\": \"s017\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"登录/注册 下载豆瓣客户端 豆瓣 读书 电影 音乐 播客 同城 小组 阅读 FM 时间 豆品 豆瓣电影 影讯&购票 选电影 选剧集 排行榜 影评 2025年度榜单 2025年度报告 勇敢的心 (2014) 导演: 郭靖宇 编剧: 郭靖宇 主演: 杨志刚 / 杜若溪 / 于毅 / 刘芊含 / 巨兴茂 / 更多\\n---\\n\\\\n\\\\u300a\\\\u52c7\\\\u6562\\\\u7684\\\\u5fc3\\\\u300b2014\\\\u5e74\\\\u7535\\\\u89c6\\\\u5267\\\\u517176\\\\u96c6\\\\u3002\\\\n\\\\n### 2\"\n    },\n    {\n      \"span_id\": \"s018\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"勇敢的心 2014 电视剧 集数\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 45 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入\"\n    },\n    {\n      \"span_id\": \"s019\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"勇敢的心 2014 电视剧 多少集\\n---\\n\\\\n\\\\n2014\\\\u5e74\\\\u7535\\\\u89c6\\\\u5267\\\\u300a\\\\u52c7\\\\u6562\\\\u7684\\\\u5fc3\\\\u300b\\\\u5171\\\\u6709**76\\\\u96c6**\\\\uff0c\\\\u4e0d\\\\u662f42\\\\u96c6\\\\u4e5f\\\\u4e0d\\\\u662f40\\\\u96c6\\\\u3002\\\\n\\\\n### 2\\n---\\n勇敢的心 2014 电视剧 杜淳 王珞丹 42集\\n---\\n勇敢的心 2014 杜淳 王珞丹 电视剧\"\n    },\n    {\n      \"span_id\": \"s020\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 45 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入\\n---\\n杜淳 王珞丹 2014 电视剧 42集\\n---\\n杜淳 王珞丹 合作 电视剧\\n---\\n海天雄鹰 杜淳 王珞丹 42集\\n---\\n登录 |注册|帮助返回央视网 >> PC客户端移动客户端 首页 直播 节目单 频道大全 栏目大全 综合 新闻 财经 综艺 中文国际 体育 电影 国防军事 电视剧 纪录 科教 戏曲 社会与法 少儿 音乐 体育赛事 农业农村 片库 4K专区 听音 热榜 微视频 CCTV节目官网 > 《海天雄鹰》 《海天雄鹰》 产地：内地（大陆） 集数：35 类别：军旅 年份：2024 主演：朱亚文、侯勇、李幼斌、杜淳、王珞丹、赵达、郭广平、童蕾、张瑶 语种\"\n    },\n    {\n      \"span_id\": \"s021\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"杜淳 王珞丹 2014 电视剧 完整列表\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 电视剧（古装/民初/都市/婚姻/青春/科幻/卡通/少儿） 网络剧 电视剧（谍战/抗战/年代/革命/乡土/生活/涉案/军旅） 停拍 参考 注释 参见 外部链接 中国大陆电视剧列表 (2014年) 添加语言 条目 讨论 不转换 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 列表（年份） 2009年前(偶像剧) 2009年 2010年 2011年 2\\n---\\n\\\\n\\\\u7ecf\\\\u8fc7\\\\u8be6\\\\u7ec6\\\\u641c\\\\u7d22\\\\uff0c**\\\\u4e0d\\\\u5b58\\\\u57282014\\\\u5e74\\\\u7531\\\\u675c\\\\u6df3\\\\u548c\\\\u738b\\\\u73de\\\\u4e39\\\\u5171\\\\u540c\\\\u4e3b\\\\u6f14\\\\u768442\\\\u96c6\\\\u7535\\\\u89c6\\\\u5267**\\\\u3002\\\\u60a8\\\\u63d0\\\\u4f9b\\\\u7684\\\\u4fe1\\\\u606f\\\\u53\"\n    },\n    {\n      \"span_id\": \"s022\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll solve this task step by step\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0881",
+        "task_goal": "短语",
+        "hard_constraints": [
+          "短语"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "那英 电影歌曲 完整列表 征服 默 何以笙箫默",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "周杰伦 电影歌曲 同名电视剧",
+            "introduced_at": "s012",
+            "becomes_consequential_at": "s015",
+            "used_by": [
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "杜淳 2014 电视剧 42集",
+            "introduced_at": "s019",
+            "becomes_consequential_at": "s019",
+            "used_by": [
+              "s019"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0881",
+        "task_goal": "短语",
+        "hard_constraints": [
+          "短语"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "那英 电影歌曲 完整列表 征服 默 何以笙箫默",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "周杰伦 电影歌曲 同名电视剧",
+            "introduced_at": "s012",
+            "becomes_consequential_at": "s015",
+            "used_by": [
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "杜淳 2014 电视剧 42集",
+            "introduced_at": "s019",
+            "becomes_consequential_at": "s019",
+            "used_by": [
+              "s019"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s003",
+            "s011",
+            "s015"
+          ],
+          "grep_queries": [
+            "那英 电影歌曲 完整列表 征服 默 何以笙箫默"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s012",
+            "s015"
+          ],
+          "grep_queries": [
+            "周杰伦 电影歌曲 同名电视剧"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s019"
+          ],
+          "grep_queries": [
+            "杜淳 2014 电视剧 42集"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s003",
+        "s011",
+        "s012",
+        "s015",
+        "s019",
+        "s022"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s003",
+        "s011",
+        "s012",
+        "s013",
+        "s014",
+        "s015",
+        "s019",
+        "s021",
+        "s022"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "那英 电影歌曲 完整列表 征服 默 何以笙箫默",
+          "matched_chunk_ids": [
+            "s003:c001",
+            "s001:c001",
+            "s001:c002",
+            "s013:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s003",
+            "s013"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "周杰伦 电影歌曲 同名电视剧",
+          "matched_chunk_ids": [
+            "s001:c001",
+            "s011:c001",
+            "s012:c001",
+            "s013:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s011",
+            "s012",
+            "s013"
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "query": "杜淳 2014 电视剧 42集",
+          "matched_chunk_ids": [
+            "s014:c001",
+            "s013:c001",
+            "s019:c001",
+            "s021:c001"
+          ],
+          "matched_span_ids": [
+            "s013",
+            "s014",
+            "s019",
+            "s021"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0881\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"综艺节⽬中国好声⾳中，有⼀位导师参加了不⽌⼀季。这位导师职业⽣涯⾄今，演唱的⼀⾸歌曲被⽤于某部电影，这部电影的同名电视剧（同⼀IP）有多少集正剧（不含精华剪辑版）？\",\n  \"traj_id\": \"0881\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0881\",\n    \"task_goal\": \"短语\",\n    \"hard_constraints\": [\n      \"短语\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"那英 电影歌曲 完整列表 征服 默 何以笙箫默\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"周杰伦 电影歌曲 同名电视剧\",\n        \"introduced_at\": \"s012\",\n        \"becomes_consequential_at\": \"s015\",\n        \"used_by\": [\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"杜淳 2014 电视剧 42集\",\n        \"introduced_at\": \"s019\",\n        \"becomes_consequential_at\": \"s019\",\n        \"used_by\": [\n          \"s019\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\",\n      \"s015\",\n      \"s019\",\n      \"s022\"\n    ],\n    \"requested_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\",\n      \"s015\",\n      \"s019\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"那英 电影歌曲 完整列表 征服 默 何以笙箫默\",\n        \"matched_chunk_ids\": [\n          \"s003:c001\",\n          \"s001:c001\",\n          \"s001:c002\",\n          \"s013:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s003\",\n          \"s013\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"周杰伦 电影歌曲 同名电视剧\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s011:c001\",\n          \"s012:c001\",\n          \"s013:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s011\",\n          \"s012\",\n          \"s013\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"杜淳 2014 电视剧 42集\",\n        \"matched_chunk_ids\": [\n          \"s014:c001\",\n          \"s013:c001\",\n          \"s019:c001\",\n          \"s021:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s013\",\n          \"s014\",\n          \"s019\",\n          \"s021\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s003\",\n      \"s011\",\n      \"s012\",\n      \"s013\",\n      \"s014\",\n      \"s015\",\n      \"s019\",\n      \"s021\",\n      \"s022\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 419,\n        \"text\": \"那英 电影歌曲 完整 默 征服 夏洛特烦恼 何以笙箫默\\n---\\n那英 电影主题曲 列表 三生三世 幕后玩家 夺冠 世间有她\\n---\\n那英 电影歌曲 生命之河 夺冠 凝望我 世间有她 苏州河 八佰\\n---\\n那英 志愿军浴血和平 我爱你中国 电影主题曲 2025\\n---\\n那英 电影歌曲 如影随心 岁月 两个人一个人 李茶的姑妈 出现\\n---\\n那英 B计划 相见不如怀念 电影原声 飞鸟凉\\n---\\n那英 龙门诀之大漠风云变 如果不能说爱你 主题曲 2024\\n---\\n那英 少年包青天 只要有你 孙楠 电视剧主题曲\\n---\\n那英（Na Ying）演唱了多首电影主题曲和插曲，主要作品包括：\\n---\\n汪峰 电影主题曲 电影插曲 电影歌曲\\n---\\n汪峰 电影歌曲 完整列表 主题曲\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 中文维基百科Facebook粉丝专页正式上线，邀请大家一同关注\\n---\\n汪峰 电影歌曲 完整列表 插曲\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 76,\n        \"text\": \"周杰伦 中国好声音 导师 哪一季\\n---\\n周杰伦 电影歌曲 同名电视剧\\n---\\n头文字D 电视剧 周杰伦\\n---\\n头文字D 电视剧版 2005 2006\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 225,\n        \"text\": \"满城尽带黄金甲 电视剧 周杰伦 菊花台\\n---\\n不能说的秘密 电视剧版 周杰伦\\n---\\n周杰伦 天台爱情 电视剧\\n---\\n周杰伦 电影歌曲 电视剧 同名 中国好声音\\n---\\n霍元甲 周杰伦 电影 电视剧\\n---\\n霍元甲 电视剧 2006 2007 郑伊健\\n---\\n周杰伦 霍元甲 2006 电影主题曲 李连杰\\n---\\nJay Chou served as a mentor on The Voice of China Season 4 in 2015\"\n      },\n      {\n        \"span_id\": \"s015\",\n        \"chunk_id\": \"s015:c001\",\n        \"char_start\": 0,\n        \"char_end\": 640,\n        \"text\": \"汪峰 勇敢的心 电影 主题曲 插曲\\n---\\n汪峰 勇敢的心 西游记之大圣归来 主题曲\\n---\\n西游记之大圣归来 主题曲 插曲 完整歌单\\n---\\n首页 > 漳州 > 综合 > 娱乐天地 > 正文 《西游记之大圣归来》主题曲插曲片尾曲MV歌词完整汇总 2015-07-13 15:49 来源：闽南网综合 0 《西游记之大圣归来》主题曲插曲片尾曲MV歌词完整汇总 《西游记之大圣归来》是经过八年酝酿，三年的制作才打造而成的3D西游题材动画电影，于7月10日上映以来便好评如潮，影片讲述了已于五行山下寂寞沉潜五百年的孙悟空被儿时的唐僧——俗名江流儿的小和尚误打误撞地解除了封印，在相互陪伴的冒\\n---\\n西游记之大圣归来 勇敢的心 汪峰 插曲\\n---\\n西游记之大圣归来 soundtrack 完整歌曲列表\\n---\\n勇敢的心 汪峰 歌词 作词 作曲\\n---\\n西游记之大圣归来 2015 电影 导演 上映时间\\n---\\n汪峰 歌手 简介 中国摇滚\\n---\\n\\\\n\\\\n\\\\u6c6a\\\\u5cf0\\\\u4e3a2015\\\\u5e743D\\\\u52a8\\\\u753b\\\\u7535\\\\u5f71\\\\u300a\\\\u897f\\\\u6e38\\\\u8bb0\\\\u4e4b\\\\u5927\\\\u5723\\\\u5f52\\\\u6765\\\\u300b\\\\u6f14\\\\u5531\\\\u4e86\\\\u63d2\\\\u66f2\\\\u300a\\\\u52c7\\\\u6562\\\\u7684\\\\u5fc3\\\\u300b\\\\u3002\\\\u8be5\\\\u7535\\\\u5f71\\\\u7684\\\\u4e3b\"\n      },\n      {\n        \"span_id\": \"s019\",\n        \"chunk_id\": \"s019:c001\",\n        \"char_start\": 0,\n        \"char_end\": 235,\n        \"text\": \"勇敢的心 2014 电视剧 多少集\\n---\\n\\\\n\\\\n2014\\\\u5e74\\\\u7535\\\\u89c6\\\\u5267\\\\u300a\\\\u52c7\\\\u6562\\\\u7684\\\\u5fc3\\\\u300b\\\\u5171\\\\u6709**76\\\\u96c6**\\\\uff0c\\\\u4e0d\\\\u662f42\\\\u96c6\\\\u4e5f\\\\u4e0d\\\\u662f40\\\\u96c6\\\\u3002\\\\n\\\\n### 2\\n---\\n勇敢的心 2014 电视剧 杜淳 王珞丹 42集\\n---\\n勇敢的心 2014 杜淳 王珞丹 电视剧\"\n      },\n      {\n        \"span_id\": \"s022\",\n        \"chunk_id\": \"s022:c001\",\n        \"char_start\": 0,\n        \"char_end\": 33,\n        \"text\": \"I'll solve this task step by step\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"综艺节⽬中国好声⾳中，有⼀位导师参加了不⽌⼀季\\n---\\n中国好声音 历年导师 所有季\\n---\\n《中国好声音》历届导师和冠军名单 来源：综合2021-10-16 16:25:39 大字 中国好声音历届导师和冠军 《中国好声音第一季》 1、导师：刘欢、那英、庾澄庆、杨坤\\n---\\n中国好声音2022 2023 导师\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 43 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入\\n---\\n中国好声音2023 导师名单\\n---\\n中国好声音 历年导师 完整名单 所有季\\n---\\n那英 中国好声音 参加几季\\n---\\n庾澄庆 中国好声音 参加几季 哪几季\\n---\\n汪峰 李荣浩 周杰伦 中国好声音 参加几季\\n---\\n中国好声音 导师 那英 庾澄庆 汪峰 李荣浩 周杰伦 参加季数统计\\n---\\n\\\\n\\\\n\\\\u300a\\\\u4e2d\\\\u56fd\\\\u597d\\\\u58f0\\\\u97f3\\\\u300b\\\\u4ece2012\\\\u5e74\\\\u7b2c\\\\u4e00\\\\u5b63\\\\u52302023\\\\u5e74\\\\u7b2c\\\\u5341\\\\u4e8c\\\\u5b63\\\\uff0c\\\\u5171\\\\u6709\\\\u591a\\\\u4f4d\\\\u5bfc\\\\u5e08\\\\u53c2\\\\u52a0\\\\u4e86\\\\u591a\\\\u5b63\\\\u8282\\\\u76ee\\\\u3002\\\\u53c2\\\\u52\\n---\\n中国好声音 历届导师名单 所有季节\\n---\\n《中国好声音》历届导师和冠军名单 来源：综合2021-10-16 16:25:39 大字 中国好声音历届导师和冠军 《中国好声音第一季》 1、导师：刘欢、那英、庾澄庆、杨坤\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科Discord、IRC、LINE、QQ及Telegram等各平臺交流群歡迎大家加入\\n---\\n中国好声音 2012-2015 历届导师 那英 汪峰 周杰伦 庾澄庆\\n---\\n中国好声音 2012 2013 2014 2015 第一季 第二季 第三季 第四季 导师\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 概要 总览 开关总览子章节 导师时间表 导师及其战队学员 梦想导师 赛季 电影 版权纠纷 参见 节目名称 参考文献 注释 外部链接 中国好声音 (The Voice of China) 5种语言 条目 讨论 简体 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 关于制作公司灿星经历版权纠纷后出品的曾以“中国新歌声”为片名，2018年起更名为“中国\\n---\\n\\\\n\\\\n\\\\u4e2d\\\\u56fd\\\\u597d\\\\u58f0\\\\u97f3\\\\u5386\\\\u5c4a\\\\u5bfc\\\\u5e08\\\\u5b8c\\\\u6574\\\\u540d\\\\u5355\\\\u5df2\\\\u6574\\\\u7406\\\\u5b8c\\\\u6210\\\\u3002\\\\u90a3\\\\u82f1\\\\u53c2\\\\u52a0\\\\u4e86\\\\u6700\\\\u591a\\\\u5b63\\\\uff087\\\\u5b63\\\\uff09\\\\uff0c\\\\u6c6a\\\\u5cf0\\\\u53c2\\\\u52a0\\\\u4e8\\n---\\n那英 电影主题曲 电影插曲 歌曲\\n---\\n汪峰 电影主题曲 电影插曲 歌曲\\n---\\n周杰伦 电影主题曲 电影插曲 歌曲\\n---\\n那英 汪峰 周杰伦 庾澄庆 合作 电影 歌曲\\n---\\n周杰伦 电影主题曲 完整列表 霍元甲 头文字D 满城尽带黄金甲\\n---\\n那英 电影歌曲 完整列表 征服 默 出现\\n---\\n汪峰 电影歌曲 狼图腾 沧浪之歌 陀地驱魔人\\n---\\n庾澄庆 电影歌曲 情非得已 缺口 等一个人咖啡\\n---\\n周杰伦 电影歌曲 不能说的秘密 大灌篮 青蜂侠\\n---\\n那英 汪峰 周杰伦 庾澄庆 中国好声音 中国新歌声\\n---\\nAll four artists have contributed significantly \"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 1844,\n        \"text\": \"峰 电影歌曲 狼图腾 沧浪之歌 陀地驱魔人\\n---\\n庾澄庆 电影歌曲 情非得已 缺口 等一个人咖啡\\n---\\n周杰伦 电影歌曲 不能说的秘密 大灌篮 青蜂侠\\n---\\n那英 汪峰 周杰伦 庾澄庆 中国好声音 中国新歌声\\n---\\nAll four artists have contributed significantly to Chinese film music\\n---\\n那英 电影主题曲 电影歌曲 完整列表\"\n      },\n      {\n        \"span_id\": \"s013\",\n        \"chunk_id\": \"s013:c001\",\n        \"char_start\": 0,\n        \"char_end\": 603,\n        \"text\": \"那英 汪峰 周杰伦 电影 电视剧 同名 同一IP 改编 歌曲\\n---\\n默 那英 何以笙箫默 电影 电视剧\\n---\\n三生三世十里桃花 电影 电视剧 那英 汪峰 周杰伦 歌曲\\n---\\n三生三世十里桃花 那英 电影主题曲\\n---\\n三生三世十里桃花 汪峰 歌曲\\n---\\n三生三世十里桃花 周杰伦 歌曲\\n---\\n何以笙箫默 电影 电视剧 汪峰 周杰伦\\n---\\n中国电影电视剧同名改编 那英汪峰周杰伦都唱过主题曲\\n---\\n何以笙箫默 默 那英 电影电视剧 同名IP改编\\n---\\n何以笙箫默 电视剧 主题曲 歌手\\n---\\n三生三世十里桃花 电视剧 主题曲 歌手\\n---\\n中国电影电视剧 同名同一IP 那英汪峰周杰伦 三位歌手 主题曲\\n---\\nThe query relates to Chinese films and TV series adapted from the same IP (intellectual property) where Na Ying (那英), Wang Feng (汪峰), and Jay Chou (周杰伦) have contributed songs\\n---\\n汪峰 存在 勇敢的心 电影 电视剧\\n---\\n汪峰 存在 北京青年 电视剧\\n---\\n汪峰 勇敢的心 电视剧 电影\\n---\\n汪峰 勇敢的心 西游记之大圣归来\\n---\\n汪峰 勇敢的心 北京青年 插曲\\n---\\n汪峰 歌手 简介\"\n      },\n      {\n        \"span_id\": \"s014\",\n        \"chunk_id\": \"s014:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1352,\n        \"text\": \"勇敢的心 电视剧 霍啸林\\n---\\n北京青年 电视剧 2012\\n---\\n汪峰 存在 专辑 发行时间\\n---\\n汪峰 勇敢的心 专辑 2007\\n---\\n西游记之大圣归来 2015 电影\\n---\\nWang Feng (汪峰) is a prominent Chinese rock singer and music creator\\n---\\n勇敢的心 中国 电视剧 杜淳 多少集\\n---\\n勇敢的心 杜淳 2014 电视剧\\n---\\n勇敢的心 杨志刚 2014 多少集\\n---\\n勇敢的心 汪峰 主题曲 2014\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 45 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 加入百科 新人成长 进阶成长 任务广场 百科团队 校园团 分类达人团 热词团 繁星团 蝌蚪团 权威合作\\n---\\n勇敢的心 汪峰 主题曲\\n---\\n勇敢的心 2014 杜淳 电视剧 集数 多少集\\n---\\n勇敢的心 杜淳 2014 一共多少集\\n---\\n勇敢的心 杜淳 2014\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 45 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入\\n---\\n勇敢的心 2014 杜淳 多少集 电视剧\\n---\\n勇敢的心 2014 76集 杨志刚\\n---\\n\\\\n\\\\n\\\\u300a\\\\u52c7\\\\u6562\\\\u7684\\\\u5fc3\\\\u300b2014\\\\u5e74\\\\u7535\\\\u89c6\\\\u5267\\\\u517176\\\\u96c6\\\\u3002\\\\u4f46\\\\u9700\\\\u8981\\\\u7279\\\\u522b\\\\u8bf4\\\\u660e\\\\u7684\\\\u662f\\\\uff1a\\\\u8be5\\\\u5267\\\\u7684\\\\u4e3b\\\\u6f14\\\\u662f**\\\\u6768\\\\u5fd7\\\\u521a**\\\\uff0c\\\\u800c\\\\u\\n---\\n汪峰 中国好声音 导师 第几季\\n---\\n汪峰 中国好声音 导师 参加了几季 所有季数\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 中文维基百科Facebook粉丝专页正式上线，邀请大家一同关注\\n---\\n汪峰 中国好声音 导师 第二季 第三季 第四季 中国新歌声\\n---\\n\\\\n\\\\u6c6a\\\\u5cf0\\\\u62c5\\\\u4efb\\\\u300a\\\\u4e2d\\\\u56fd\\\\u597d\\\\u58f0\\\\u97f3\\\\u300b\\\\u7cfb\\\\u5217\\\\u8282\\\\u76ee\\\\u5bfc\\\\u5e08\\\\u5171\\\\u53c2\\\\u52a0\\\\u4e86\\\\u4e94\\\\u5b63\\\\uff1a\\\\n\"\n      },\n      {\n        \"span_id\": \"s021\",\n        \"chunk_id\": \"s021:c001\",\n        \"char_start\": 0,\n        \"char_end\": 470,\n        \"text\": \"杜淳 王珞丹 2014 电视剧 完整列表\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 电视剧（古装/民初/都市/婚姻/青春/科幻/卡通/少儿） 网络剧 电视剧（谍战/抗战/年代/革命/乡土/生活/涉案/军旅） 停拍 参考 注释 参见 外部链接 中国大陆电视剧列表 (2014年) 添加语言 条目 讨论 不转换 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 列表（年份） 2009年前(偶像剧) 2009年 2010年 2011年 2\\n---\\n\\\\n\\\\u7ecf\\\\u8fc7\\\\u8be6\\\\u7ec6\\\\u641c\\\\u7d22\\\\uff0c**\\\\u4e0d\\\\u5b58\\\\u57282014\\\\u5e74\\\\u7531\\\\u675c\\\\u6df3\\\\u548c\\\\u738b\\\\u73de\\\\u4e39\\\\u5171\\\\u540c\\\\u4e3b\\\\u6f14\\\\u768442\\\\u96c6\\\\u7535\\\\u89c6\\\\u5267**\\\\u3002\\\\u60a8\\\\u63d0\\\\u4f9b\\\\u7684\\\\u4fe1\\\\u606f\\\\u53\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0881",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s003",
+              "s013"
+            ],
+            "support_status": "weak",
+            "missing_support": "短原文句未直接支持那英参与《何以笙箫默》电影。",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "那英 电影歌曲 完整列表 征服 默 何以笙箫默"
+              },
+              {
+                "span_id": "s013",
+                "chunk_id": "s013:c001",
+                "role": "partial_support",
+                "text": "那英 电影电视剧 同名IP改编"
+              }
+            ]
+          },
+          {
+            "claim_id": "c2",
+            "support_spans": [
+              "s012"
+            ],
+            "support_status": "weak",
+            "missing_support": "短原文句未直接支持周杰伦参与《同名电视剧》。",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s012",
+                "chunk_id": "s012:c001",
+                "role": "partial_support",
+                "text": "周杰伦 电影歌曲 同名电视剧"
+              }
+            ]
+          },
+          {
+            "claim_id": "c3",
+            "support_spans": [
+              "s019"
+            ],
+            "support_status": "weak",
+            "missing_support": "短原文句未直接支持杜淳参与《勇敢的心》电视剧。",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s019",
+                "chunk_id": "s019:c001",
+                "role": "partial_support",
+                "text": "勇敢的心 2014 电视剧 多少集"
+              }
+            ]
+          }
+        ],
+        "notes": "短原文句未直接支持那英参与《何以笙箫默》电影，周杰伦参与《同名电视剧》，杜淳参与《勇敢的心》电视剧。"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s003",
+            "s013"
+          ],
+          "support_status": "weak",
+          "missing_support": "短原文句未直接支持那英参与《何以笙箫默》电影。",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "那英 电影歌曲 完整列表 征服 默 何以笙箫默"
+            },
+            {
+              "span_id": "s013",
+              "chunk_id": "s013:c001",
+              "role": "partial_support",
+              "text": "那英 电影电视剧 同名IP改编"
+            }
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "support_spans": [
+            "s012"
+          ],
+          "support_status": "weak",
+          "missing_support": "短原文句未直接支持周杰伦参与《同名电视剧》。",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s012",
+              "chunk_id": "s012:c001",
+              "role": "partial_support",
+              "text": "周杰伦 电影歌曲 同名电视剧"
+            }
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "support_spans": [
+            "s019"
+          ],
+          "support_status": "weak",
+          "missing_support": "短原文句未直接支持杜淳参与《勇敢的心》电视剧。",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s019",
+              "chunk_id": "s019:c001",
+              "role": "partial_support",
+              "text": "勇敢的心 2014 电视剧 多少集"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0881\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"综艺节⽬中国好声⾳中，有⼀位导师参加了不⽌⼀季。这位导师职业⽣涯⾄今，演唱的⼀⾸歌曲被⽤于某部电影，这部电影的同名电视剧（同⼀IP）有多少集正剧（不含精华剪辑版）？\",\n  \"traj_id\": \"0881\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0881\",\n    \"task_goal\": \"短语\",\n    \"hard_constraints\": [\n      \"短语\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"那英 电影歌曲 完整列表 征服 默 何以笙箫默\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"周杰伦 电影歌曲 同名电视剧\",\n        \"introduced_at\": \"s012\",\n        \"becomes_consequential_at\": \"s015\",\n        \"used_by\": [\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"杜淳 2014 电视剧 42集\",\n        \"introduced_at\": \"s019\",\n        \"becomes_consequential_at\": \"s019\",\n        \"used_by\": [\n          \"s019\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s003\",\n        \"s013\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短原文句未直接支持那英参与《何以笙箫默》电影。\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"那英 电影歌曲 完整列表 征服 默 何以笙箫默\"\n        },\n        {\n          \"span_id\": \"s013\",\n          \"chunk_id\": \"s013:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"那英 电影电视剧 同名IP改编\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c2\",\n      \"support_spans\": [\n        \"s012\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短原文句未直接支持周杰伦参与《同名电视剧》。\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s012\",\n          \"chunk_id\": \"s012:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"周杰伦 电影歌曲 同名电视剧\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c3\",\n      \"support_spans\": [\n        \"s019\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短原文句未直接支持杜淳参与《勇敢的心》电视剧。\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s019\",\n          \"chunk_id\": \"s019:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"勇敢的心 2014 电视剧 多少集\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\",\n      \"s015\",\n      \"s019\",\n      \"s022\"\n    ],\n    \"requested_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\",\n      \"s015\",\n      \"s019\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"那英 电影歌曲 完整列表 征服 默 何以笙箫默\",\n        \"matched_chunk_ids\": [\n          \"s003:c001\",\n          \"s001:c001\",\n          \"s001:c002\",\n          \"s013:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s003\",\n          \"s013\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"周杰伦 电影歌曲 同名电视剧\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s011:c001\",\n          \"s012:c001\",\n          \"s013:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s011\",\n          \"s012\",\n          \"s013\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"杜淳 2014 电视剧 42集\",\n        \"matched_chunk_ids\": [\n          \"s014:c001\",\n          \"s013:c001\",\n          \"s019:c001\",\n          \"s021:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s013\",\n          \"s014\",\n          \"s019\",\n          \"s021\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s003\",\n      \"s011\",\n      \"s012\",\n      \"s013\",\n      \"s014\",\n      \"s015\",\n      \"s019\",\n      \"s021\",\n      \"s022\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 419,\n        \"text\": \"那英 电影歌曲 完整 默 征服 夏洛特烦恼 何以笙箫默\\n---\\n那英 电影主题曲 列表 三生三世 幕后玩家 夺冠 世间有她\\n---\\n那英 电影歌曲 生命之河 夺冠 凝望我 世间有她 苏州河 八佰\\n---\\n那英 志愿军浴血和平 我爱你中国 电影主题曲 2025\\n---\\n那英 电影歌曲 如影随心 岁月 两个人一个人 李茶的姑妈 出现\\n---\\n那英 B计划 相见不如怀念 电影原声 飞鸟凉\\n---\\n那英 龙门诀之大漠风云变 如果不能说爱你 主题曲 2024\\n---\\n那英 少年包青天 只要有你 孙楠 电视剧主题曲\\n---\\n那英（Na Ying）演唱了多首电影主题曲和插曲，主要作品包括：\\n---\\n汪峰 电影主题曲 电影插曲 电影歌曲\\n---\\n汪峰 电影歌曲 完整列表 主题曲\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 中文维基百科Facebook粉丝专页正式上线，邀请大家一同关注\\n---\\n汪峰 电影歌曲 完整列表 插曲\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 76,\n        \"text\": \"周杰伦 中国好声音 导师 哪一季\\n---\\n周杰伦 电影歌曲 同名电视剧\\n---\\n头文字D 电视剧 周杰伦\\n---\\n头文字D 电视剧版 2005 2006\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 225,\n        \"text\": \"满城尽带黄金甲 电视剧 周杰伦 菊花台\\n---\\n不能说的秘密 电视剧版 周杰伦\\n---\\n周杰伦 天台爱情 电视剧\\n---\\n周杰伦 电影歌曲 电视剧 同名 中国好声音\\n---\\n霍元甲 周杰伦 电影 电视剧\\n---\\n霍元甲 电视剧 2006 2007 郑伊健\\n---\\n周杰伦 霍元甲 2006 电影主题曲 李连杰\\n---\\nJay Chou served as a mentor on The Voice of China Season 4 in 2015\"\n      },\n      {\n        \"span_id\": \"s015\",\n        \"chunk_id\": \"s015:c001\",\n        \"char_start\": 0,\n        \"char_end\": 640,\n        \"text\": \"汪峰 勇敢的心 电影 主题曲 插曲\\n---\\n汪峰 勇敢的心 西游记之大圣归来 主题曲\\n---\\n西游记之大圣归来 主题曲 插曲 完整歌单\\n---\\n首页 > 漳州 > 综合 > 娱乐天地 > 正文 《西游记之大圣归来》主题曲插曲片尾曲MV歌词完整汇总 2015-07-13 15:49 来源：闽南网综合 0 《西游记之大圣归来》主题曲插曲片尾曲MV歌词完整汇总 《西游记之大圣归来》是经过八年酝酿，三年的制作才打造而成的3D西游题材动画电影，于7月10日上映以来便好评如潮，影片讲述了已于五行山下寂寞沉潜五百年的孙悟空被儿时的唐僧——俗名江流儿的小和尚误打误撞地解除了封印，在相互陪伴的冒\\n---\\n西游记之大圣归来 勇敢的心 汪峰 插曲\\n---\\n西游记之大圣归来 soundtrack 完整歌曲列表\\n---\\n勇敢的心 汪峰 歌词 作词 作曲\\n---\\n西游记之大圣归来 2015 电影 导演 上映时间\\n---\\n汪峰 歌手 简介 中国摇滚\\n---\\n\\\\n\\\\n\\\\u6c6a\\\\u5cf0\\\\u4e3a2015\\\\u5e743D\\\\u52a8\\\\u753b\\\\u7535\\\\u5f71\\\\u300a\\\\u897f\\\\u6e38\\\\u8bb0\\\\u4e4b\\\\u5927\\\\u5723\\\\u5f52\\\\u6765\\\\u300b\\\\u6f14\\\\u5531\\\\u4e86\\\\u63d2\\\\u66f2\\\\u300a\\\\u52c7\\\\u6562\\\\u7684\\\\u5fc3\\\\u300b\\\\u3002\\\\u8be5\\\\u7535\\\\u5f71\\\\u7684\\\\u4e3b\"\n      },\n      {\n        \"span_id\": \"s019\",\n        \"chunk_id\": \"s019:c001\",\n        \"char_start\": 0,\n        \"char_end\": 235,\n        \"text\": \"勇敢的心 2014 电视剧 多少集\\n---\\n\\\\n\\\\n2014\\\\u5e74\\\\u7535\\\\u89c6\\\\u5267\\\\u300a\\\\u52c7\\\\u6562\\\\u7684\\\\u5fc3\\\\u300b\\\\u5171\\\\u6709**76\\\\u96c6**\\\\uff0c\\\\u4e0d\\\\u662f42\\\\u96c6\\\\u4e5f\\\\u4e0d\\\\u662f40\\\\u96c6\\\\u3002\\\\n\\\\n### 2\\n---\\n勇敢的心 2014 电视剧 杜淳 王珞丹 42集\\n---\\n勇敢的心 2014 杜淳 王珞丹 电视剧\"\n      },\n      {\n        \"span_id\": \"s022\",\n        \"chunk_id\": \"s022:c001\",\n        \"char_start\": 0,\n        \"char_end\": 33,\n        \"text\": \"I'll solve this task step by step\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"综艺节⽬中国好声⾳中，有⼀位导师参加了不⽌⼀季\\n---\\n中国好声音 历年导师 所有季\\n---\\n《中国好声音》历届导师和冠军名单 来源：综合2021-10-16 16:25:39 大字 中国好声音历届导师和冠军 《中国好声音第一季》 1、导师：刘欢、那英、庾澄庆、杨坤\\n---\\n中国好声音2022 2023 导师\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 43 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入\\n---\\n中国好声音2023 导师名单\\n---\\n中国好声音 历年导师 完整名单 所有季\\n---\\n那英 中国好声音 参加几季\\n---\\n庾澄庆 中国好声音 参加几季 哪几季\\n---\\n汪峰 李荣浩 周杰伦 中国好声音 参加几季\\n---\\n中国好声音 导师 那英 庾澄庆 汪峰 李荣浩 周杰伦 参加季数统计\\n---\\n\\\\n\\\\n\\\\u300a\\\\u4e2d\\\\u56fd\\\\u597d\\\\u58f0\\\\u97f3\\\\u300b\\\\u4ece2012\\\\u5e74\\\\u7b2c\\\\u4e00\\\\u5b63\\\\u52302023\\\\u5e74\\\\u7b2c\\\\u5341\\\\u4e8c\\\\u5b63\\\\uff0c\\\\u5171\\\\u6709\\\\u591a\\\\u4f4d\\\\u5bfc\\\\u5e08\\\\u53c2\\\\u52a0\\\\u4e86\\\\u591a\\\\u5b63\\\\u8282\\\\u76ee\\\\u3002\\\\u53c2\\\\u52\\n---\\n中国好声音 历届导师名单 所有季节\\n---\\n《中国好声音》历届导师和冠军名单 来源：综合2021-10-16 16:25:39 大字 中国好声音历届导师和冠军 《中国好声音第一季》 1、导师：刘欢、那英、庾澄庆、杨坤\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科Discord、IRC、LINE、QQ及Telegram等各平臺交流群歡迎大家加入\\n---\\n中国好声音 2012-2015 历届导师 那英 汪峰 周杰伦 庾澄庆\\n---\\n中国好声音 2012 2013 2014 2015 第一季 第二季 第三季 第四季 导师\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 概要 总览 开关总览子章节 导师时间表 导师及其战队学员 梦想导师 赛季 电影 版权纠纷 参见 节目名称 参考文献 注释 外部链接 中国好声音 (The Voice of China) 5种语言 条目 讨论 简体 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 关于制作公司灿星经历版权纠纷后出品的曾以“中国新歌声”为片名，2018年起更名为“中国\\n---\\n\\\\n\\\\n\\\\u4e2d\\\\u56fd\\\\u597d\\\\u58f0\\\\u97f3\\\\u5386\\\\u5c4a\\\\u5bfc\\\\u5e08\\\\u5b8c\\\\u6574\\\\u540d\\\\u5355\\\\u5df2\\\\u6574\\\\u7406\\\\u5b8c\\\\u6210\\\\u3002\\\\u90a3\\\\u82f1\\\\u53c2\\\\u52a0\\\\u4e86\\\\u6700\\\\u591a\\\\u5b63\\\\uff087\\\\u5b63\\\\uff09\\\\uff0c\\\\u6c6a\\\\u5cf0\\\\u53c2\\\\u52a0\\\\u4e8\\n---\\n那英 电影主题曲 电影插曲 歌曲\\n---\\n汪峰 电影主题曲 电影插曲 歌曲\\n---\\n周杰伦 电影主题曲 电影插曲 歌曲\\n---\\n那英 汪峰 周杰伦 庾澄庆 合作 电影 歌曲\\n---\\n周杰伦 电影主题曲 完整列表 霍元甲 头文字D 满城尽带黄金甲\\n---\\n那英 电影歌曲 完整列表 征服 默 出现\\n---\\n汪峰 电影歌曲 狼图腾 沧浪之歌 陀地驱魔人\\n---\\n庾澄庆 电影歌曲 情非得已 缺口 等一个人咖啡\\n---\\n周杰伦 电影歌曲 不能说的秘密 大灌篮 青蜂侠\\n---\\n那英 汪峰 周杰伦 庾澄庆 中国好声音 中国新歌声\\n---\\nAll four artists have contributed significantly \"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 1844,\n        \"text\": \"峰 电影歌曲 狼图腾 沧浪之歌 陀地驱魔人\\n---\\n庾澄庆 电影歌曲 情非得已 缺口 等一个人咖啡\\n---\\n周杰伦 电影歌曲 不能说的秘密 大灌篮 青蜂侠\\n---\\n那英 汪峰 周杰伦 庾澄庆 中国好声音 中国新歌声\\n---\\nAll four artists have contributed significantly to Chinese film music\\n---\\n那英 电影主题曲 电影歌曲 完整列表\"\n      },\n      {\n        \"span_id\": \"s013\",\n        \"chunk_id\": \"s013:c001\",\n        \"char_start\": 0,\n        \"char_end\": 603,\n        \"text\": \"那英 汪峰 周杰伦 电影 电视剧 同名 同一IP 改编 歌曲\\n---\\n默 那英 何以笙箫默 电影 电视剧\\n---\\n三生三世十里桃花 电影 电视剧 那英 汪峰 周杰伦 歌曲\\n---\\n三生三世十里桃花 那英 电影主题曲\\n---\\n三生三世十里桃花 汪峰 歌曲\\n---\\n三生三世十里桃花 周杰伦 歌曲\\n---\\n何以笙箫默 电影 电视剧 汪峰 周杰伦\\n---\\n中国电影电视剧同名改编 那英汪峰周杰伦都唱过主题曲\\n---\\n何以笙箫默 默 那英 电影电视剧 同名IP改编\\n---\\n何以笙箫默 电视剧 主题曲 歌手\\n---\\n三生三世十里桃花 电视剧 主题曲 歌手\\n---\\n中国电影电视剧 同名同一IP 那英汪峰周杰伦 三位歌手 主题曲\\n---\\nThe query relates to Chinese films and TV series adapted from the same IP (intellectual property) where Na Ying (那英), Wang Feng (汪峰), and Jay Chou (周杰伦) have contributed songs\\n---\\n汪峰 存在 勇敢的心 电影 电视剧\\n---\\n汪峰 存在 北京青年 电视剧\\n---\\n汪峰 勇敢的心 电视剧 电影\\n---\\n汪峰 勇敢的心 西游记之大圣归来\\n---\\n汪峰 勇敢的心 北京青年 插曲\\n---\\n汪峰 歌手 简介\"\n      },\n      {\n        \"span_id\": \"s014\",\n        \"chunk_id\": \"s014:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1352,\n        \"text\": \"勇敢的心 电视剧 霍啸林\\n---\\n北京青年 电视剧 2012\\n---\\n汪峰 存在 专辑 发行时间\\n---\\n汪峰 勇敢的心 专辑 2007\\n---\\n西游记之大圣归来 2015 电影\\n---\\nWang Feng (汪峰) is a prominent Chinese rock singer and music creator\\n---\\n勇敢的心 中国 电视剧 杜淳 多少集\\n---\\n勇敢的心 杜淳 2014 电视剧\\n---\\n勇敢的心 杨志刚 2014 多少集\\n---\\n勇敢的心 汪峰 主题曲 2014\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 45 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 加入百科 新人成长 进阶成长 任务广场 百科团队 校园团 分类达人团 热词团 繁星团 蝌蚪团 权威合作\\n---\\n勇敢的心 汪峰 主题曲\\n---\\n勇敢的心 2014 杜淳 电视剧 集数 多少集\\n---\\n勇敢的心 杜淳 2014 一共多少集\\n---\\n勇敢的心 杜淳 2014\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 45 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入\\n---\\n勇敢的心 2014 杜淳 多少集 电视剧\\n---\\n勇敢的心 2014 76集 杨志刚\\n---\\n\\\\n\\\\n\\\\u300a\\\\u52c7\\\\u6562\\\\u7684\\\\u5fc3\\\\u300b2014\\\\u5e74\\\\u7535\\\\u89c6\\\\u5267\\\\u517176\\\\u96c6\\\\u3002\\\\u4f46\\\\u9700\\\\u8981\\\\u7279\\\\u522b\\\\u8bf4\\\\u660e\\\\u7684\\\\u662f\\\\uff1a\\\\u8be5\\\\u5267\\\\u7684\\\\u4e3b\\\\u6f14\\\\u662f**\\\\u6768\\\\u5fd7\\\\u521a**\\\\uff0c\\\\u800c\\\\u\\n---\\n汪峰 中国好声音 导师 第几季\\n---\\n汪峰 中国好声音 导师 参加了几季 所有季数\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 中文维基百科Facebook粉丝专页正式上线，邀请大家一同关注\\n---\\n汪峰 中国好声音 导师 第二季 第三季 第四季 中国新歌声\\n---\\n\\\\n\\\\u6c6a\\\\u5cf0\\\\u62c5\\\\u4efb\\\\u300a\\\\u4e2d\\\\u56fd\\\\u597d\\\\u58f0\\\\u97f3\\\\u300b\\\\u7cfb\\\\u5217\\\\u8282\\\\u76ee\\\\u5bfc\\\\u5e08\\\\u5171\\\\u53c2\\\\u52a0\\\\u4e86\\\\u4e94\\\\u5b63\\\\uff1a\\\\n\"\n      },\n      {\n        \"span_id\": \"s021\",\n        \"chunk_id\": \"s021:c001\",\n        \"char_start\": 0,\n        \"char_end\": 470,\n        \"text\": \"杜淳 王珞丹 2014 电视剧 完整列表\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 电视剧（古装/民初/都市/婚姻/青春/科幻/卡通/少儿） 网络剧 电视剧（谍战/抗战/年代/革命/乡土/生活/涉案/军旅） 停拍 参考 注释 参见 外部链接 中国大陆电视剧列表 (2014年) 添加语言 条目 讨论 不转换 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 列表（年份） 2009年前(偶像剧) 2009年 2010年 2011年 2\\n---\\n\\\\n\\\\u7ecf\\\\u8fc7\\\\u8be6\\\\u7ec6\\\\u641c\\\\u7d22\\\\uff0c**\\\\u4e0d\\\\u5b58\\\\u57282014\\\\u5e74\\\\u7531\\\\u675c\\\\u6df3\\\\u548c\\\\u738b\\\\u73de\\\\u4e39\\\\u5171\\\\u540c\\\\u4e3b\\\\u6f14\\\\u768442\\\\u96c6\\\\u7535\\\\u89c6\\\\u5267**\\\\u3002\\\\u60a8\\\\u63d0\\\\u4f9b\\\\u7684\\\\u4fe1\\\\u606f\\\\u53\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0881",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0881",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 22,
+    "evidence_span_count": 10
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 23559,
+    "output_tokens": 951,
+    "total_tokens": 24510
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "setting": "bare",
+  "case_id": "0786",
+  "prediction": {
+    "traj_id": "0786",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0786\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"At the two-minute mark in the YouTube video uploaded by the channel “GameGrumps” on May 14, 2017 as part of their playthrough of the game Mario Kart 8 Deluxe, the shows’ hosts are competing on one of the game’s racetracks. What was the world record time for that track in the game’s 150cc mode as of June 7, 2023? Express your answer in minutes and seconds, rounding the seconds to the nearest hundredth, e.g. 1:01.001.\",\n  \"traj_id\": \"0786\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"At the two-minute mark in the YouTube video uploaded by the channel “GameGrumps” on May 14, 2017 as part of their playthrough of the game Mario Kart 8 Deluxe, the shows’ hosts are\\n---\\nGameGrumps Mario Kart 8 Deluxe May 14 2017 youtube\\n---\\nSkip navigation Sign in Sign in to confirm you’re not a bot This helps protect our community\\n---\\nThe video you requested is titled \\\"Mario Kart 8 Deluxe: The Grand Prix\\n---\\nMario Kart 8 Deluxe Moo Moo Meadows 150cc world record history\\n---\\nsite:mkwrs.com \\\"Wii Moo Moo Meadows\\\" 150cc world record history\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need to find the name of the racetrack being played in the GameGrumps' Mario Kart 8 Deluxe video uploaded on May 14, 2017, at the two-minute mark\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"GameGrumps Mario Kart 8 Deluxe May 14 2017\\n---\\nSkip navigation Sign in Sign in to confirm you’re not a bot This helps protect our community\\n---\\nGameGrumps Mario Kart 8 Deluxe The Grand Prix part 7 tracks\\n---\\nsite:gamegrumps.fandom.com \\\"Mario Kart 8 Deluxe: The Grand Prix\\\"\\n---\\nSIGN IN REGISTER EXPLORE THE GAME GRUMPS SHOWS COMMUNITY SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT Game Grumps Wiki 9,914 PAGES EXPLORE THE GAME GRUMPS SHOWS COMMUNITY in: Pages with image sizes containing extra\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I need to find the name of the racetrack being played in the GameGrumps' Mario Kart 8 Deluxe video uploaded on May 14, 2017, at the two-minute mark\\n---\\nGameGrumps Mario Kart 8 Deluxe May 14 2017 youtube video\\n---\\nSkip navigation Sign in Sign in to confirm you’re not a bot This helps protect our community\\n---\\nSkip navigation Sign in Sign in to confirm you’re not a bot This helps protect our community\\n---\\nSkip navigation Sign in Sign in to confirm you’re not a bot This helps protect our community\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I need to find the name of the racetrack being played in the GameGrumps' Mario Kart 8 Deluxe video uploaded on May 14, 2017, at the two-minute mark\\n---\\nGameGrumps Mario Kart 8 Deluxe upload date May 14 2017\\n---\\nYou've been blocked by network security\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I need to find the name of the racetrack being played in the GameGrumps' Mario Kart 8 Deluxe video uploaded on May 14, 2017, at the two-minute mark\\n---\\nGameGrumps Mario Kart 8 Deluxe May 14 2017\\n---\\nSkip navigation Sign in Sign in to confirm you’re not a bot This helps protect our community\\n---\\nGame Grumps Mario Kart 8 Deluxe The Grand Prix part 7 tracks\\n---\\nMario Kart 8 Deluxe all tracks\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I am having trouble with the `search_agent`\\n---\\nMario Kart 8 Deluxe world records\\n---\\nsite:mkwrs.com \\\"Moo Moo Meadows\\\" 150cc\\n---\\nAs of June 7, 2023, the world record time for the Mario Kart 8 Deluxe racetrack 'Moo Moo Meadows' in 150cc mode was **1:23\\n---\\nI have been unable to use the `search_agent` to get the information I need\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"The world record time is 1:23\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0786",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 8
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1536,
+    "output_tokens": 68,
+    "total_tokens": 1604
+  }
+}

@@ -1,0 +1,463 @@
+{
+  "setting": "drift",
+  "case_id": "0441",
+  "prediction": {
+    "traj_id": "0441",
+    "error_span_ids": [
+      "s003",
+      "s009"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "短字符串"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0441\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"19世纪，一位法国作家出版的作品，因 “伤风败俗” 引发司法诉讼。这部作品先后被改编为多个电影版本。1991 年版本中女主演坚持含着什么味道的道具毒药扮演女主角服毒自杀的戏份？\",\n  \"traj_id\": \"0441\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"请确认19世纪因‘伤风败俗’而引发司法诉讼的法国小说是否为福楼拜的《包法利夫人》。并请找出1991年上映的该小说的电影改编版本的导演和女主角。\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"福楼拜 包法利夫人 伤风败俗 诉讼\\n---\\n包法利夫人 电影 1991 导演 女主角\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"查找关于1991年电影《包法利夫人》（导演：克洛德·夏布洛尔，主演：伊莎贝尔·于佩尔）的幕后信息或访谈资料，以确认女主演伊莎贝尔·于佩尔在拍摄服毒自杀场景时，坚持使用的道具毒药具体是什么味道的？\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"伊莎贝尔·于佩尔 包法利夫人 1991 道具 毒药 味道\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"伊莎贝尔·于佩尔 包法利夫人 专访 拍摄花絮\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Isabelle Huppert Madame Bovary 1991 interview poison scene prop\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Isabelle Huppert interview Madame Bovary 1991 scène poison accessoire\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"anecdotes tournage Madame Bovary Chabrol Huppert\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"好的，遵照指示，以下是本次任务的完整工作历史总结和最终答案。 ## 任务总结 原始任务是解答：“19世纪，一位法国作家出版的作品，因 “伤风败俗” 引发司法诉讼。这部作品先后被改编为多个电影版本。1991 年版本中女主演坚持含着什么味道的道具毒药扮演女主角服毒自杀的戏份？” 我的目标是首先识别出问题中描述的小说和电影，然后通过信息收集，找到关于女主演在拍摄服毒场景时使用的道具毒药味道的具体细节。 ## 工作历史与发现 我通过以下步骤逐步解决此问题： **步骤一：识别作品与电影版本** 我首先需要确认问题所指的文学作品以及1991年的电影版本。 * **执行的动作**: 我使用工具委托了一个子任务，旨在确认19世纪因“伤风败俗”被起诉的法国小说是否为福楼拜的《包法利夫人》，并找出其1991年电影改编版的导演与女主角。 * **动作结果**: * **确认小说**: 调查确认，该小说是古斯塔夫·福楼拜（Gustave Flaubert）的**《包法利夫人》**（*Madame Bovary*）。该书在1857年出版后，作者确实被法国当局以“有伤风化”和“亵渎宗教”的罪名告上法庭。 * **确认电影**: 调查确认，1991年的电影改编版由法国导演**克洛德·夏布洛尔**（Claude Chabrol）执导，女主角爱玛·包法利由**伊莎贝尔·于佩尔**（Isabelle Huppert）饰演。 **步骤二：探寻道具细节** 在确认了基本信息后，我专注于查找关于道具毒药味道这一核心细节。 * **执行的动作**: 我再次使用工具委托了一个子任务，要求在中文、英文和法文网络环境中，搜索关于1991年版《包法利夫人》拍摄过程中，伊莎贝尔·于佩尔在服毒场景中所用道具毒药味道的幕后信息、访谈或花絮。 * **动作结果**: * 该调查任务进行了多轮、多语言的广泛搜索，使用了包括“Isabelle Huppert interview poison scene prop”、“anecdotes tournage Madame Bovary Chabrol”在内的多种关键词组合。 * **核心发现**: 尽管进行了详尽的调查，但在所有公开可查的访谈、幕后报道、影评、拍摄花絮及其他相关资料中，**均未能找到任何关于该道具毒药具体味道的记录**。同样，也**无法找到任何证据证实“女主演坚持使用特定味道道具”这一说法**。 ## 最终答案 根据以上完整的工作流程和所有收集到的信息，对于原始问题的最终答案如下： **在所有可公开查证的资料中，没有信息能够证实1991年版《包法利夫人》的女主演伊莎贝尔·于佩尔在拍摄服毒自杀场景时，曾坚持使用某种特定味道的道具毒药。** **详细说明：** 问题的核心前提——即“女主演坚持含着特定味道的道具毒药”——本身无法得到任何公开信息源的验证。经过在中文、英文及法文世界的广泛搜索，并未发现任何提及此事的访谈、文章或幕后花絮。 因此，该问题很可能源于以下几种情况： 1. 这是一个从未被公开披露过的私人拍摄轶事。 2. 这是一个在流传过程中被误记或夸大的信息。 3. 问题的前提本身可能是不准确的。 **结论：由于缺乏任何有效的证据支持，无法回答道具毒药的具体味道。**\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目指出： – 被司法追诉的十九世纪法国小说 → 《包法利夫人》 – 一九九一年电影版本 → 克洛德·夏布洛尔执导，伊莎贝尔·于佩尔主演 – 需回答于佩尔在拍摄服毒自杀场景时坚持含的“道具毒药”是什么味道 2. 代理总结列出：在公开资料中未找到确切记录。 3. 题干却明确将此轶事设为已知事实，推测为出题方常见的冷知识题。 4. 结合影视拍摄常用的“清凉掩苦”做法，以及中文影史轶事中常提到“于佩尔坚持用薄荷味道的道具砒霜”，综合判断最可能答案为“薄荷味”。 5. 无进一步文献可佐证，属基于通行说法的最佳猜测。 **最终答案：** \\\\boxed{薄荷味} **置信度：** 45 **支持证据：** 公开资料未见确证；依据影视拍摄常规及中文影迷流传的“于佩尔坚持薄荷味砒霜”之说作出的推断 **潜在不足：** 无直接权威来源；可能为流传讹误，答案不确定性较高\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "19世纪因‘伤风败俗’而引发司法诉讼的法国小说是福楼拜的《包法利夫人》",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s002",
+            "used_by": [
+              "s002",
+              "s003",
+              "s004",
+              "s005",
+              "s006",
+              "s007",
+              "s008",
+              "s009"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "1991年上映的《包法利夫人》电影的导演是克洛德·夏布洛尔",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s002",
+            "used_by": [
+              "s002",
+              "s003",
+              "s004",
+              "s005",
+              "s006",
+              "s007",
+              "s008",
+              "s009"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "1991年上映的《包法利夫人》电影的主演是伊莎贝尔·于佩尔",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s002",
+            "used_by": [
+              "s002",
+              "s003",
+              "s004",
+              "s005",
+              "s006",
+              "s007",
+              "s008",
+              "s009"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用道具毒药",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s003",
+            "used_by": [
+              "s003",
+              "s004",
+              "s005",
+              "s006",
+              "s007",
+              "s008",
+              "s009"
+            ],
+            "claim_type": "evidence",
+            "status": "exploratory"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用特定味道的道具毒药",
+            "introduced_at": "s004",
+            "becomes_consequential_at": "s004",
+            "used_by": [
+              "s004",
+              "s005",
+              "s006",
+              "s007",
+              "s008",
+              "s009"
+            ],
+            "claim_type": "evidence",
+            "status": "exploratory"
+          },
+          {
+            "claim_id": "c6",
+            "claim": "在公开资料中未找到伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用特定味道的道具毒药的具体记录",
+            "introduced_at": "s009",
+            "becomes_consequential_at": "s009",
+            "used_by": [
+              "s009"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0441",
+        "task_goal": "",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "19世纪因‘伤风败俗’而引发司法诉讼的法国小说是福楼拜的《包法利夫人》",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s002",
+            "used_by": [
+              "s002",
+              "s003",
+              "s004",
+              "s005",
+              "s006",
+              "s007",
+              "s008",
+              "s009"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "1991年上映的《包法利夫人》电影的导演是克洛德·夏布洛尔",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s002",
+            "used_by": [
+              "s002",
+              "s003",
+              "s004",
+              "s005",
+              "s006",
+              "s007",
+              "s008",
+              "s009"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "1991年上映的《包法利夫人》电影的主演是伊莎贝尔·于佩尔",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s002",
+            "used_by": [
+              "s002",
+              "s003",
+              "s004",
+              "s005",
+              "s006",
+              "s007",
+              "s008",
+              "s009"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用道具毒药",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s003",
+            "used_by": [
+              "s003",
+              "s004",
+              "s005",
+              "s006",
+              "s007",
+              "s008",
+              "s009"
+            ],
+            "claim_type": "evidence",
+            "status": "exploratory"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用特定味道的道具毒药",
+            "introduced_at": "s004",
+            "becomes_consequential_at": "s004",
+            "used_by": [
+              "s004",
+              "s005",
+              "s006",
+              "s007",
+              "s008",
+              "s009"
+            ],
+            "claim_type": "evidence",
+            "status": "exploratory"
+          },
+          {
+            "claim_id": "c6",
+            "claim": "在公开资料中未找到伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用特定味道的道具毒药的具体记录",
+            "introduced_at": "s009",
+            "becomes_consequential_at": "s009",
+            "used_by": [
+              "s009"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001",
+            "s002",
+            "s009"
+          ],
+          "grep_queries": [
+            "19世纪因‘伤风败俗’而引发司法诉讼的法国小说是福楼拜的《包法利夫人》"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s002",
+            "s009"
+          ],
+          "grep_queries": [
+            "1991年上映的《包法利夫人》电影的导演是克洛德·夏布洛尔"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s002",
+            "s009"
+          ],
+          "grep_queries": [
+            "1991年上映的《包法利夫人》电影的主演是伊莎贝尔·于佩尔"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c6",
+          "span_ids": [
+            "s009"
+          ],
+          "grep_queries": [
+            "在公开资料中未找到伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用特定味道的道具毒药的具体记录"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s002",
+        "s003",
+        "s004",
+        "s005",
+        "s006",
+        "s007",
+        "s008",
+        "s009"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s002",
+        "s003",
+        "s004",
+        "s005",
+        "s006",
+        "s007",
+        "s008",
+        "s009"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "19世纪因‘伤风败俗’而引发司法诉讼的法国小说是福楼拜的《包法利夫人》",
+          "matched_chunk_ids": [
+            "s009:c001",
+            "s001:c001",
+            "s002:c001",
+            "s003:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s002",
+            "s003",
+            "s009"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "1991年上映的《包法利夫人》电影的导演是克洛德·夏布洛尔",
+          "matched_chunk_ids": [
+            "s009:c001",
+            "s001:c001",
+            "s002:c001",
+            "s003:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s002",
+            "s003",
+            "s009"
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "query": "1991年上映的《包法利夫人》电影的主演是伊莎贝尔·于佩尔",
+          "matched_chunk_ids": [
+            "s009:c001",
+            "s003:c001",
+            "s001:c001",
+            "s002:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s002",
+            "s003",
+            "s009"
+          ]
+        },
+        {
+          "claim_id": "c6",
+          "query": "在公开资料中未找到伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用特定味道的道具毒药的具体记录",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0441\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"19世纪，一位法国作家出版的作品，因 “伤风败俗” 引发司法诉讼。这部作品先后被改编为多个电影版本。1991 年版本中女主演坚持含着什么味道的道具毒药扮演女主角服毒自杀的戏份？\",\n  \"traj_id\": \"0441\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0441\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"19世纪因‘伤风败俗’而引发司法诉讼的法国小说是福楼拜的《包法利夫人》\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s002\",\n        \"used_by\": [\n          \"s002\",\n          \"s003\",\n          \"s004\",\n          \"s005\",\n          \"s006\",\n          \"s007\",\n          \"s008\",\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"1991年上映的《包法利夫人》电影的导演是克洛德·夏布洛尔\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s002\",\n        \"used_by\": [\n          \"s002\",\n          \"s003\",\n          \"s004\",\n          \"s005\",\n          \"s006\",\n          \"s007\",\n          \"s008\",\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"1991年上映的《包法利夫人》电影的主演是伊莎贝尔·于佩尔\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s002\",\n        \"used_by\": [\n          \"s002\",\n          \"s003\",\n          \"s004\",\n          \"s005\",\n          \"s006\",\n          \"s007\",\n          \"s008\",\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用道具毒药\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [\n          \"s003\",\n          \"s004\",\n          \"s005\",\n          \"s006\",\n          \"s007\",\n          \"s008\",\n          \"s009\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"exploratory\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用特定味道的道具毒药\",\n        \"introduced_at\": \"s004\",\n        \"becomes_consequential_at\": \"s004\",\n        \"used_by\": [\n          \"s004\",\n          \"s005\",\n          \"s006\",\n          \"s007\",\n          \"s008\",\n          \"s009\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"exploratory\"\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"claim\": \"在公开资料中未找到伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用特定味道的道具毒药的具体记录\",\n        \"introduced_at\": \"s009\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [\n          \"s009\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s006\",\n      \"s007\",\n      \"s008\",\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s009\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"19世纪因‘伤风败俗’而引发司法诉讼的法国小说是福楼拜的《包法利夫人》\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s001:c001\",\n          \"s002:c001\",\n          \"s003:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s003\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"1991年上映的《包法利夫人》电影的导演是克洛德·夏布洛尔\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s001:c001\",\n          \"s002:c001\",\n          \"s003:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s003\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"1991年上映的《包法利夫人》电影的主演是伊莎贝尔·于佩尔\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s003:c001\",\n          \"s001:c001\",\n          \"s002:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s003\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"query\": \"在公开资料中未找到伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用特定味道的道具毒药的具体记录\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s006\",\n      \"s007\",\n      \"s008\",\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 71,\n        \"text\": \"请确认19世纪因‘伤风败俗’而引发司法诉讼的法国小说是否为福楼拜的《包法利夫人》。并请找出1991年上映的该小说的电影改编版本的导演和女主角。\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 42,\n        \"text\": \"福楼拜 包法利夫人 伤风败俗 诉讼\\n---\\n包法利夫人 电影 1991 导演 女主角\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 97,\n        \"text\": \"查找关于1991年电影《包法利夫人》（导演：克洛德·夏布洛尔，主演：伊莎贝尔·于佩尔）的幕后信息或访谈资料，以确认女主演伊莎贝尔·于佩尔在拍摄服毒自杀场景时，坚持使用的道具毒药具体是什么味道的？\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 28,\n        \"text\": \"伊莎贝尔·于佩尔 包法利夫人 1991 道具 毒药 味道\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 22,\n        \"text\": \"伊莎贝尔·于佩尔 包法利夫人 专访 拍摄花絮\"\n      },\n      {\n        \"span_id\": \"s006\",\n        \"chunk_id\": \"s006:c001\",\n        \"char_start\": 0,\n        \"char_end\": 63,\n        \"text\": \"Isabelle Huppert Madame Bovary 1991 interview poison scene prop\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 69,\n        \"text\": \"Isabelle Huppert interview Madame Bovary 1991 scène poison accessoire\"\n      },\n      {\n        \"span_id\": \"s008\",\n        \"chunk_id\": \"s008:c001\",\n        \"char_start\": 0,\n        \"char_end\": 48,\n        \"text\": \"anecdotes tournage Madame Bovary Chabrol Huppert\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1785,\n        \"text\": \"好的，遵照指示，以下是本次任务的完整工作历史总结和最终答案。 ## 任务总结 原始任务是解答：“19世纪，一位法国作家出版的作品，因 “伤风败俗” 引发司法诉讼。这部作品先后被改编为多个电影版本。1991 年版本中女主演坚持含着什么味道的道具毒药扮演女主角服毒自杀的戏份？” 我的目标是首先识别出问题中描述的小说和电影，然后通过信息收集，找到关于女主演在拍摄服毒场景时使用的道具毒药味道的具体细节。 ## 工作历史与发现 我通过以下步骤逐步解决此问题： **步骤一：识别作品与电影版本** 我首先需要确认问题所指的文学作品以及1991年的电影版本。 * **执行的动作**: 我使用工具委托了一个子任务，旨在确认19世纪因“伤风败俗”被起诉的法国小说是否为福楼拜的《包法利夫人》，并找出其1991年电影改编版的导演与女主角。 * **动作结果**: * **确认小说**: 调查确认，该小说是古斯塔夫·福楼拜（Gustave Flaubert）的**《包法利夫人》**（*Madame Bovary*）。该书在1857年出版后，作者确实被法国当局以“有伤风化”和“亵渎宗教”的罪名告上法庭。 * **确认电影**: 调查确认，1991年的电影改编版由法国导演**克洛德·夏布洛尔**（Claude Chabrol）执导，女主角爱玛·包法利由**伊莎贝尔·于佩尔**（Isabelle Huppert）饰演。 **步骤二：探寻道具细节** 在确认了基本信息后，我专注于查找关于道具毒药味道这一核心细节。 * **执行的动作**: 我再次使用工具委托了一个子任务，要求在中文、英文和法文网络环境中，搜索关于1991年版《包法利夫人》拍摄过程中，伊莎贝尔·于佩尔在服毒场景中所用道具毒药味道的幕后信息、访谈或花絮。 * **动作结果**: * 该调查任务进行了多轮、多语言的广泛搜索，使用了包括“Isabelle Huppert interview poison scene prop”、“anecdotes tournage Madame Bovary Chabrol”在内的多种关键词组合。 * **核心发现**: 尽管进行了详尽的调查，但在所有公开可查的访谈、幕后报道、影评、拍摄花絮及其他相关资料中，**均未能找到任何关于该道具毒药具体味道的记录**。同样，也**无法找到任何证据证实“女主演坚持使用特定味道道具”这一说法**。 ## 最终答案 根据以上完整的工作流程和所有收集到的信息，对于原始问题的最终答案如下： **在所有可公开查证的资料中，没有信息能够证实1991年版《包法利夫人》的女主演伊莎贝尔·于佩尔在拍摄服毒自杀场景时，曾坚持使用某种特定味道的道具毒药。** **详细说明：** 问题的核心前提——即“女主演坚持含着特定味道的道具毒药”——本身无法得到任何公开信息源的验证。经过在中文、英文及法文世界的广泛搜索，并未发现任何提及此事的访谈、文章或幕后花絮。 因此，该问题很可能源于以下几种情况： 1. 这是一个从未被公开披露过的私人拍摄轶事。 2. 这是一个在流传过程中被误记或夸大的信息。 3. 问题的前提本身可能是不准确的。 **结论：由于缺乏任何有效的证据支持，无法回答道具毒药的具体味道。**\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目指出： – 被司法追诉的十九世纪法国小说 → 《包法利夫人》 – 一九九一年电影版本 → 克洛德·夏布洛尔执导，伊莎贝尔·于佩尔主演 – 需回答于佩尔在拍摄服毒自杀场景时坚持含的“道具毒药”是什么味道 2. 代理总结列出：在公开资料中未找到确切记录。 3. 题干却明确将此轶事设为已知事实，推测为出题方常见的冷知识题。 4. 结合影视拍摄常用的“清凉掩苦”做法，以及中文影史轶事中常提到“于佩尔坚持用薄荷味道的道具砒霜”，综合判断最可能答案为“薄荷味”。 5. 无进一步文献可佐证，属基于通行说法的最佳猜测。 **最终答案：** \\\\boxed{薄荷味} **置信度：** 45 **支持证据：** 公开资料未见确证；依据影视拍摄常规及中文影迷流传的“于佩尔坚持薄荷味砒霜”之说作出的推断 **潜在不足：** 无直接权威来源；可能为流传讹误，答案不确定性较高\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c4",
+            "support_spans": [
+              "s003"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用道具毒药"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串"
+      },
+      "validated": [
+        {
+          "claim_id": "c4",
+          "support_spans": [
+            "s003"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用道具毒药"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0441\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"19世纪，一位法国作家出版的作品，因 “伤风败俗” 引发司法诉讼。这部作品先后被改编为多个电影版本。1991 年版本中女主演坚持含着什么味道的道具毒药扮演女主角服毒自杀的戏份？\",\n  \"traj_id\": \"0441\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0441\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"19世纪因‘伤风败俗’而引发司法诉讼的法国小说是福楼拜的《包法利夫人》\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s002\",\n        \"used_by\": [\n          \"s002\",\n          \"s003\",\n          \"s004\",\n          \"s005\",\n          \"s006\",\n          \"s007\",\n          \"s008\",\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"1991年上映的《包法利夫人》电影的导演是克洛德·夏布洛尔\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s002\",\n        \"used_by\": [\n          \"s002\",\n          \"s003\",\n          \"s004\",\n          \"s005\",\n          \"s006\",\n          \"s007\",\n          \"s008\",\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"1991年上映的《包法利夫人》电影的主演是伊莎贝尔·于佩尔\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s002\",\n        \"used_by\": [\n          \"s002\",\n          \"s003\",\n          \"s004\",\n          \"s005\",\n          \"s006\",\n          \"s007\",\n          \"s008\",\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用道具毒药\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s003\",\n        \"used_by\": [\n          \"s003\",\n          \"s004\",\n          \"s005\",\n          \"s006\",\n          \"s007\",\n          \"s008\",\n          \"s009\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"exploratory\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用特定味道的道具毒药\",\n        \"introduced_at\": \"s004\",\n        \"becomes_consequential_at\": \"s004\",\n        \"used_by\": [\n          \"s004\",\n          \"s005\",\n          \"s006\",\n          \"s007\",\n          \"s008\",\n          \"s009\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"exploratory\"\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"claim\": \"在公开资料中未找到伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用特定味道的道具毒药的具体记录\",\n        \"introduced_at\": \"s009\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [\n          \"s009\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c4\",\n      \"support_spans\": [\n        \"s003\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用道具毒药\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s006\",\n      \"s007\",\n      \"s008\",\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s009\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"19世纪因‘伤风败俗’而引发司法诉讼的法国小说是福楼拜的《包法利夫人》\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s001:c001\",\n          \"s002:c001\",\n          \"s003:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s003\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"1991年上映的《包法利夫人》电影的导演是克洛德·夏布洛尔\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s001:c001\",\n          \"s002:c001\",\n          \"s003:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s003\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"1991年上映的《包法利夫人》电影的主演是伊莎贝尔·于佩尔\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s003:c001\",\n          \"s001:c001\",\n          \"s002:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s003\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"query\": \"在公开资料中未找到伊莎贝尔·于佩尔在拍摄服毒自杀场景时坚持使用特定味道的道具毒药的具体记录\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s006\",\n      \"s007\",\n      \"s008\",\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 71,\n        \"text\": \"请确认19世纪因‘伤风败俗’而引发司法诉讼的法国小说是否为福楼拜的《包法利夫人》。并请找出1991年上映的该小说的电影改编版本的导演和女主角。\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 42,\n        \"text\": \"福楼拜 包法利夫人 伤风败俗 诉讼\\n---\\n包法利夫人 电影 1991 导演 女主角\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 97,\n        \"text\": \"查找关于1991年电影《包法利夫人》（导演：克洛德·夏布洛尔，主演：伊莎贝尔·于佩尔）的幕后信息或访谈资料，以确认女主演伊莎贝尔·于佩尔在拍摄服毒自杀场景时，坚持使用的道具毒药具体是什么味道的？\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 28,\n        \"text\": \"伊莎贝尔·于佩尔 包法利夫人 1991 道具 毒药 味道\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 22,\n        \"text\": \"伊莎贝尔·于佩尔 包法利夫人 专访 拍摄花絮\"\n      },\n      {\n        \"span_id\": \"s006\",\n        \"chunk_id\": \"s006:c001\",\n        \"char_start\": 0,\n        \"char_end\": 63,\n        \"text\": \"Isabelle Huppert Madame Bovary 1991 interview poison scene prop\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 69,\n        \"text\": \"Isabelle Huppert interview Madame Bovary 1991 scène poison accessoire\"\n      },\n      {\n        \"span_id\": \"s008\",\n        \"chunk_id\": \"s008:c001\",\n        \"char_start\": 0,\n        \"char_end\": 48,\n        \"text\": \"anecdotes tournage Madame Bovary Chabrol Huppert\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1785,\n        \"text\": \"好的，遵照指示，以下是本次任务的完整工作历史总结和最终答案。 ## 任务总结 原始任务是解答：“19世纪，一位法国作家出版的作品，因 “伤风败俗” 引发司法诉讼。这部作品先后被改编为多个电影版本。1991 年版本中女主演坚持含着什么味道的道具毒药扮演女主角服毒自杀的戏份？” 我的目标是首先识别出问题中描述的小说和电影，然后通过信息收集，找到关于女主演在拍摄服毒场景时使用的道具毒药味道的具体细节。 ## 工作历史与发现 我通过以下步骤逐步解决此问题： **步骤一：识别作品与电影版本** 我首先需要确认问题所指的文学作品以及1991年的电影版本。 * **执行的动作**: 我使用工具委托了一个子任务，旨在确认19世纪因“伤风败俗”被起诉的法国小说是否为福楼拜的《包法利夫人》，并找出其1991年电影改编版的导演与女主角。 * **动作结果**: * **确认小说**: 调查确认，该小说是古斯塔夫·福楼拜（Gustave Flaubert）的**《包法利夫人》**（*Madame Bovary*）。该书在1857年出版后，作者确实被法国当局以“有伤风化”和“亵渎宗教”的罪名告上法庭。 * **确认电影**: 调查确认，1991年的电影改编版由法国导演**克洛德·夏布洛尔**（Claude Chabrol）执导，女主角爱玛·包法利由**伊莎贝尔·于佩尔**（Isabelle Huppert）饰演。 **步骤二：探寻道具细节** 在确认了基本信息后，我专注于查找关于道具毒药味道这一核心细节。 * **执行的动作**: 我再次使用工具委托了一个子任务，要求在中文、英文和法文网络环境中，搜索关于1991年版《包法利夫人》拍摄过程中，伊莎贝尔·于佩尔在服毒场景中所用道具毒药味道的幕后信息、访谈或花絮。 * **动作结果**: * 该调查任务进行了多轮、多语言的广泛搜索，使用了包括“Isabelle Huppert interview poison scene prop”、“anecdotes tournage Madame Bovary Chabrol”在内的多种关键词组合。 * **核心发现**: 尽管进行了详尽的调查，但在所有公开可查的访谈、幕后报道、影评、拍摄花絮及其他相关资料中，**均未能找到任何关于该道具毒药具体味道的记录**。同样，也**无法找到任何证据证实“女主演坚持使用特定味道道具”这一说法**。 ## 最终答案 根据以上完整的工作流程和所有收集到的信息，对于原始问题的最终答案如下： **在所有可公开查证的资料中，没有信息能够证实1991年版《包法利夫人》的女主演伊莎贝尔·于佩尔在拍摄服毒自杀场景时，曾坚持使用某种特定味道的道具毒药。** **详细说明：** 问题的核心前提——即“女主演坚持含着特定味道的道具毒药”——本身无法得到任何公开信息源的验证。经过在中文、英文及法文世界的广泛搜索，并未发现任何提及此事的访谈、文章或幕后花絮。 因此，该问题很可能源于以下几种情况： 1. 这是一个从未被公开披露过的私人拍摄轶事。 2. 这是一个在流传过程中被误记或夸大的信息。 3. 问题的前提本身可能是不准确的。 **结论：由于缺乏任何有效的证据支持，无法回答道具毒药的具体味道。**\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目指出： – 被司法追诉的十九世纪法国小说 → 《包法利夫人》 – 一九九一年电影版本 → 克洛德·夏布洛尔执导，伊莎贝尔·于佩尔主演 – 需回答于佩尔在拍摄服毒自杀场景时坚持含的“道具毒药”是什么味道 2. 代理总结列出：在公开资料中未找到确切记录。 3. 题干却明确将此轶事设为已知事实，推测为出题方常见的冷知识题。 4. 结合影视拍摄常用的“清凉掩苦”做法，以及中文影史轶事中常提到“于佩尔坚持用薄荷味道的道具砒霜”，综合判断最可能答案为“薄荷味”。 5. 无进一步文献可佐证，属基于通行说法的最佳猜测。 **最终答案：** \\\\boxed{薄荷味} **置信度：** 45 **支持证据：** 公开资料未见确证；依据影视拍摄常规及中文影迷流传的“于佩尔坚持薄荷味砒霜”之说作出的推断 **潜在不足：** 无直接权威来源；可能为流传讹误，答案不确定性较高\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0441",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0441",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 9,
+    "evidence_span_count": 9
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 10706,
+    "output_tokens": 1045,
+    "total_tokens": 11751
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0861",
+  "prediction": {
+    "traj_id": "0861",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科Discord、IRC、LINE、QQ及Telegram等各平臺交流群歡迎大家加入"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0861\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"有一种美食，起源于中国南北朝时期，分为两大流派，可以裹饼吃、也可以蘸糖吃，这个美食是什么？\",\n  \"traj_id\": \"0861\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"有一种美食，起源于中国南北朝时期，分为两大流派，可以裹饼吃、也可以蘸糖吃，这个美食是什么\\n---\\nI need to search for information about this Chinese food with these specific characteristics\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Northern and Southern Dynasties China 南北朝 period dates history\\n---\\nspring rolls egg rolls Northern Southern Dynasties origin China history\\n---\\n春饼 spring pancakes Northern Southern Dynasties 南北朝 origin history\\n---\\n春卷 spring rolls 南北朝 two schools northern southern origin sugar\\n---\\nChinese food Northern Southern Dynasties two schools pancakes sugar 南北朝\\n---\\n润饼 popiah Northern Southern Dynasties origin two styles sugar\\n---\\nrunbing 润饼 Northern Southern styles Taiwan Qingming Festival sugar sweet savory\\n---\\nExplore the things you love\\n---\\npopiah runbing 润饼 Northern Taiwan Southern Taiwan two styles sugar peanut powder\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Etymology Wrapper and fillings Types Toggle Types subsection Taiwanese Southeast Asian See also References External links Popiah 9 languag\\n---\\nThe Chinese food being described is **Popiah (薄餅/潤餅)**, also known as **Runbing** in Taiwan\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"北京烤鸭 起源 南北朝 历史\\n---\\n北京烤鸭 两大流派 挂炉 焖炉 全聚德 便宜坊\\n---\\n北京烤鸭 裹饼 荷叶饼 吃法 配料\\n---\\n北京烤鸭 蘸糖 吃法 鸭皮 白糖\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科Discord、IRC、LINE、QQ及Telegram等各平臺交流群歡迎大家加入\\n---\\n焖炉烤鸭 挂炉烤鸭 区别 特点 全聚德 便宜坊\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"北京烤鸭 荷叶饼 甜面酱 葱丝 黄瓜丝 传统吃法\\n---\\n\\\\n\\\\n\\\\u5317\\\\u4eac\\\\u70e4\\\\u9e2d\\\\u8d77\\\\u6e90\\\\u4e8e\\\\u5357\\\\u5317\\\\u671d\\\\u65f6\\\\u671f\\\\uff08420\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need to search for information about a Chinese food that originated during the Northern and Southern Dynasties period, has two major schools, and can be eaten both wrapped in pancakes and dipped in sugar\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0861",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科Discord、IRC、LINE、QQ及Telegram等各平臺交流群歡迎大家加入"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0861",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科Discord、IRC、LINE、QQ及Telegram等各平臺交流群歡迎大家加入"
+          }
+        ]
+      }
+    },
+    "full_span_count": 6
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1156,
+    "output_tokens": 107,
+    "total_tokens": 1263
+  }
+}

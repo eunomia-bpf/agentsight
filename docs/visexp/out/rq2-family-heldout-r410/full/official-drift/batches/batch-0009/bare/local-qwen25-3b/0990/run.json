@@ -1,0 +1,58 @@
+{
+  "setting": "bare",
+  "case_id": "0990",
+  "prediction": {
+    "traj_id": "0990",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0990\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"截至2025年5月16日，上交所科创板自开板以来，在所有注册生效状态且申报历时小于等于180天的公司中，多少家注册地是在中国沿海地区的？\",\n  \"traj_id\": \"0990\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"截至2025年5月16日，上交所科创板自开板以来，在所有注册生效状态且申报历时小于等于180天的公司中，多少家注册地是在中国沿海地区的\\n---\\n上交所 科创板 发行上市 审核 信息公开 注册生效 受理 申报历时 180天 截至 2025 年\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我需要从上交所科创板的披露平台获得截至2025年5月16日的全部科创板已注册生效公司数据，筛选出申报历时小于等于180天且注册地属于沿海地区的公司数量\\n---\\n2025年5月16日 科创板 注册生效公司名单 site:sse.com.cn\\n---\\nsite:sse.com.cn 科创板 注册结果 2025年5月16日\\n---\\nsite:star.sse.com.cn 注册结果 科创板 2025年5月16日\\n---\\nsite:sse.com.cn 科创板 注册生效 2025年5月16日\\n---\\nsite:sse.com.cn 科创板 注册结果 2025年5月16日\\n---\\nsite:star.sse.com.cn 注册项目动态\\n---\\nsite:sse.com.cn 2025年5月16日 科创板 同意注册 注册生效 发行上市 审核\\n---\\nsite:sse.com.cn 科创板 同意注册 2025年5月16日\\n---\\n未能在 sse\\n---\\nThought: 上一次调用失败是因为输入比较长且过于复杂，可能导致连接问题\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:sse.com.cn query.sse.com.cn commonQuery.do 科创板 审核项目动态\\n---\\nsite:kcb.sse.com.cn 审核项目动态\\n---\\nsite:sse.com.cn commonQuery.do sqlId\\n---\\nsite:sse.com.cn \\\"commonQuery.do\\\"\\n---\\n科创板 审核 项目 动态 上交所\\n---\\nsite:sse.com.cn 科创板 注册 项目 动态 下载 接口 json\\n---\\nquery.sse.com.cn commonQuery.do sqlId 科创板 审核 项目 动态\\n---\\nsite:sse.com.cn renewal.js 科创板\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"commonQuery.do 注册 项目 动态 site:sse.com.cn\\n---\\nsite:sse.com.cn sqlId 科创板\\n---\\nquery.sse.com.cn sseQuery commonQuery.do 科创板\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我们需要一个可核验、可复现的统计：截至2025-05-16，科创板自开板以来，处于“注册生效状态”的IPO发行人中，受理至注册生效的申报历时≤180天，且注册地位于中国沿海地区的“公司家数”\\n---\\n{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Invalid protocol view-source:\\\",\\\"readableMessage\\\":\\\"ParamValidationError(url): Invalid protocol view-source:\\\"}\\n---\\nsite:sse.com.cn query.sse.com.cn commonQuery.do sqlId jsonCallBack pageHelp 科创板 注册结果 注册项目动态\\n---\\nsite:query.sse.com.cn commonQuery.do sqlId pageHelp\\n---\\nsite:sse.com.cn 科创板 注册项目动态 js\\n---\\nsite:query.sse.com.cn 注册结果 sqlId pageHelp jsonCallBack\\n---\\nsite:sse.com.cn renewal js filetype:js 科创板 注册项目动态\\n---\\nI was unable to open the exact “view\\n---\\nThought: 我们需要通过上交所科创板“注册项目动态/审核项目动态”权威数据来筛选：状态为“注册生效”的IPO发行人，且受理日至注册生效的申报历时小于等于180天\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我未能在当前环境直接抓取到科创板“注册项目动态”页面的底层JSON接口全部数据，但已确认其使用 `query\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"科创板 申报历时 注册生效 180天 统计 截至2025年5月16日\\n---\\n科创板 申报历时 180天 注册生效 历时 统计 截至 2025年5月16日\\n---\\nsite:sse.com.cn 科创板 发行上市 审核 受理 注册生效 申报历时\\n---\\nsite:sse.com.cn 科创板 发行上市 审核 首发 项目 动态 受理 注册生效\\n---\\n科创板 申报历时 定义 受理 注册生效\\n---\\n上交所 科创板 审核项目动态 首发 受理 注册生效\\n---\\nsite:sse.com.cn 科创板 首发 项目 动态 受理 注册生效 index_listing_detail.shtml\\n---\\nsite:sse.com.cn index_listing_detail.shtml 首发 科创板 受理 注册生效\\n---\\nsite:sse.com.cn listing/ipo/index_listing_detail.shtml 科创板 受理 注册生效 首发\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"404 Not Found webserver\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"申报历时 定义 科创板 受理 注册生效 东方财富 新股 发行上市审核\\n---\\n科创板 申报历时 东方财富 受理 注册生效 统计\\n---\\nCurrent environment limits prevent me from querying the authoritative STAR Market (科创板) IPO review database to compute the exact “家数” whose 申报历时 equals exactly 180天 (受理/申报 → 注册生效)\\n---\\nsite:sse.com.cn 科创板 发行上市 审核信息公开 注册结果 受理日期 导出\\n---\\n科创板 发行上市 审核信息公开 受理 注册结果 上交所\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:sse.com.cn star/renewal 下载 导出\\n---\\nsite:sse.com.cn 科创板 审核信息公开 下载 xls\\n---\\nsite:sse.com.cn 科创板 注册项目动态 注册结果 下载 导出\\n---\\nquery.sse.com.cn 科创板 发行上市 审核 信息披露 下载\\n---\\nsite:query.sse.com.cn 发行上市 审核项目动态 sqlId 科创板 注册结果\\n---\\n目标与范围明确：以“受理日期”为起点、“注册结果日期”（注册生效或不予注册决定）为终点，按自然日计算“申报历时”，围绕180天阈值进行分类与统计，口径为科创板项目，截止时间包含2025\\n---\\nsite:csrc.gov.cn 科创板 注册项目动态\\n---\\nsite:csrc.gov.cn 科创板 注册项目动态\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"上交所 科创板 发行上市 审核 信息公开 网站\\n---\\nsite:sse.com.cn 科创板 项目动态 接口\\n---\\nhttp://www.sse.com.cn/star/renewal/\\n---\\nsite:sse.com.cn 科创板 审核 项目 动态 JSON 接口 query.sse.com.cn\\n---\\nsite:sse.com.cn 发行上市 审核项目动态 下载 科创板\\n---\\nsite:csrc.gov.cn 科创板 提交注册 申请 企业 基本情况\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我将先尝试通过搜索代理检索是否存在权威统计或可直接导出的官方数据，能够直接回答“截至2025-05-16，科创板注册生效状态且申报历时≤180天、注册地位于沿海地区的公司家数”\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0990",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0990",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 12
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 2556,
+    "output_tokens": 80,
+    "total_tokens": 2636
+  }
+}

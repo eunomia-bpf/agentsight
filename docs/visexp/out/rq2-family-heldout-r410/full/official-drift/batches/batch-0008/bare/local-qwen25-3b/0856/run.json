@@ -1,0 +1,57 @@
+{
+  "setting": "bare",
+  "case_id": "0856",
+  "prediction": {
+    "traj_id": "0856",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0856\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"影视飓风在2022年12月的视频中，Tim称其一般将哈苏自然色彩解决方案戏称为什么？\",\n  \"traj_id\": \"0856\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"影视飓风在2022年12月的视频中，Tim称其一般将哈苏自然色彩解决方案戏称为什么\\n---\\n影视飓风 Tim 哈苏自然色彩解决方案 2022年12月\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"新的搜索 接入API，立即获得深度搜索能力\\n---\\n影视飓风 Tim 哈苏 HNCS 湖南长沙 戏称\\n---\\n影视飓风 2022年12月27日 哈苏 视频 bilibili\\n---\\nsite:bilibili.com 影视飓风 2022年12月 哈苏X2D\\n---\\n首页 番剧 直播 游戏中心 会员购 漫画 赛事 下载客户端 登录 大会员 消息 动态 收藏 历史 创作中心 投稿 关于哈苏 X2D 100C 的「自然色彩解决方案」 5\\n---\\nsite:bilibili.com 影视飓风 2022年12月27日\\n---\\n影视飓风 2022年12月27 哈苏 视频\\n---\\n影视飓风 2022年12月 哈苏 还有微单不能拍视频\\n---\\n首页 番剧 直播 游戏中心 会员购 漫画 赛事 下载客户端 登录 大会员 消息 动态 收藏 历史 创作中心 投稿 2022年还有微单不能拍视频\\n---\\n影视飓风 Yingshi Jufeng Tim Hasselblad December 2022 哈苏自然色彩解决方案\\n---\\n影视飓风 Tim Hasselblad Natural Color Solution December 2022\\n---\\n影视飓风 哈苏自然色彩解决方案 Tim\\n---\\n新的搜索 登录后保存搜索记录 登录账户可以保存和查看历史搜索记录 去登录 接入API，立即获得深度搜索能力\\n---\\n首页 番剧 直播 游戏中心 会员购 漫画 赛事 下载客户端 登录 大会员 消息 动态 收藏 历史 创作中心 投稿 关于哈苏 X2D 100C 的「自然色彩解决方案」 5\\n---\\n影视飓风 Tim 湖南长沙 HNCS 哈苏自然色彩解决方案\\n---\\n影视飓风 Tim 2022年12月 哈苏 HNCS 湖南长沙 视频\\n---\\nsite:bilibili.com 影视飓风 哈苏 X2D 湖南长沙 HNCS 2022\\n---\\n影视飓风 2022年12月 哈苏X2D 视频 Tim 戏称\\n---\\n首页 番剧 直播 游戏中心 会员购 漫画 赛事 下载客户端 登录 大会员 消息 动态 收藏 历史 创作中心 投稿 2022年还有微单不能拍视频\\n---\\n\\\\n\\\\n\\\\u5f71\\\\u89c6\\\\u98d3\\\\u98ce\\\\u7684Tim\\\\u57282022\\\\u5e7412\\\\u6708\\\\u7684\\\\u89c6\\\\u9891\\\\u4e2d\\\\u5c06\\\\u54c8\\\\u82cf\\\\u81ea\\\\u7136\\\\u8272\\\\u5f69\\\\u89e3\\\\u51b3\\\\u65b9\\\\u6848(HNCS\\n---\\n影视飓风 2022年12月 Tim 哈苏\\n---\\n影视飓风 Tim 哈苏 2022年12月\\n---\\n新的搜索 登录后保存搜索记录 登录账户可以保存和查看历史搜索记录 去登录 接入API，立即获得深度搜索能力\\n---\\n影视飓风 Tim 哈苏 X2D 2022年12月 bilibili\\n---\\n影视飓风 哈苏X2D 2022年12月 HNCS 湖南长沙\\n---\\nbilibili 影视飓风 关于哈苏 X2D 100C 自然色彩解决方案\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"首页 番剧 直播 游戏中心 会员购 漫画 赛事 下载客户端 登录 大会员 消息 动态 收藏 历史 创作中心 投稿 关于哈苏 X2D 100C 的「自然色彩解决方案」 5\\n---\\n\\\\n\\\\u5f71\\\\u89c6\\\\u98d3\\\\u98ceTim\\\\u57282022\\\\u5e7412\\\\u6708\\\\u7684\\\\u89c6\\\\u9891\\\\u4e2d\\\\u5c06\\\\u54c8\\\\u82cf\\\\u81ea\\\\u7136\\\\u8272\\\\u5f69\\\\u89e3\\\\u51b3\\\\u65b9\\\\u6848(HNCS)\\\\u620f\\\\u79f0\\\\u4e3a\\\\\\\"\\\\u6e56\\\\u5357\\\\u957f\\\\u6c99\\\\\\\"\\\\u6216\\\\\\\"\\\\u6e56\\\\u5357\\\\u957\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"影视飓风 Tim 哈苏自然色彩解决方案\\n---\\n新的搜索 登录后保存搜索记录 登录账户可以保存和查看历史搜索记录 去登录 接入API，立即获得深度搜索能力\\n---\\n首页 番剧 直播 游戏中心 会员购 漫画 赛事 下载客户端 登录 大会员 消息 动态 收藏 历史 创作中心 投稿 2022年还有微单不能拍视频\\n---\\n首页 番剧 直播 游戏中心 会员购 漫画 赛事 下载客户端 登录 大会员 消息 动态 收藏 历史 创作中心 投稿 关于哈苏 X2D 100C 的「自然色彩解决方案」 5\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"影视飓风 Tim 哈苏 湖南长沙 HNCS 2022年12月\\n---\\n\\\\n\\\\u5f71\\\\u89c6\\\\u98d3\\\\u98ceTim\\\\u5c06\\\\u54c8\\\\u82cf\\\\u81ea\\\\u7136\\\\u8272\\\\u5f69\\\\u89e3\\\\u51b3\\\\u65b9\\\\u6848\\\\uff08HNCS\\\\uff09\\\\u620f\\\\u79f0\\\\u4e3a\\\\\\\"\\\\u6e56\\\\u5357\\\\u957f\\\\u6c99\\\\\\\"\\\\u6216\\\\\\\"\\\\u6e56\\\\u5357\\\\u957f\\\\u6c99\\\\u65b9\\\\u6848\\\\\\\"\\\\u3002\\\\n\\\\n### 2\\n---\\n影视飓风 Tim 哈苏 自然色彩 December 2022\\n---\\n影视飓风 Tim Hasselblad natural color\\n---\\n影视飓风 Tim 哈苏 自然色彩 玩笑 戏称\\n---\\n影视飓风 哈苏自然色彩 HNCS\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"新的搜索 登录后保存搜索记录 登录账户可以保存和查看历史搜索记录 去登录 接入API，立即获得深度搜索能力\\n---\\nSkip navigation Sign in Sign in to confirm you’re not a bot This helps protect our community\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"影视飓风 Tim 哈苏 湖南长沙 HNCS 2022年12月\\n---\\n影视飓风 哈苏X2D 湖南长沙 HNCS\\n---\\nBilibili 影视飓风 哈苏X2D 2022年12月 BV1RM411m7FP\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"首页 番剧 直播 游戏中心 会员购 漫画 赛事 下载客户端 登录 大会员 消息 动态 收藏 历史 创作中心 投稿 2022年还有微单不能拍视频\\n---\\nI'll help you find what Tim from 影视飓风 called the Hasselblad Natural Color Solution in their December 2022 video\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0856",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 8
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 2722,
+    "output_tokens": 68,
+    "total_tokens": 2790
+  }
+}

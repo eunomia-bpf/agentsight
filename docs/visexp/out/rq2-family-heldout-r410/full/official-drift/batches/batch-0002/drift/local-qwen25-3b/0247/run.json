@@ -1,0 +1,831 @@
+{
+  "setting": "drift",
+  "case_id": "0247",
+  "prediction": {
+    "traj_id": "0247",
+    "error_span_ids": [
+      "s012"
+    ],
+    "earliest_harmful_span_id": "s012",
+    "reasons": [
+      {
+        "span_id": "s012",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0247\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated section\\\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled. As of August 2023, what is the percentage (to the nearest percent) of those standards that have been superseded by a new version since the date given in the 1959 standards?\",\n  \"traj_id\": \"0247\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Find the \\\"United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products\\\" document from July 2, 1959. Extract and provide the full text lists of products under the \\\\\\n---\\n\\\"United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products\\\" July 2, 1959\\n---\\nTitle: United States standards for grades of processed fruits, vegetables, and certain other products (as of July 2, 1959) URL Source: https https://upload.wikimedia.org/wikipedia/commons/0/06/United_States_standards_for_grades_of_processed_fruits,_vegetables,_and_certain_other_products_(as_of_July_2,_1959)_(IA_unitedstatesstan14unit_4).pdf\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{'subtask': \\\"For the following list of 7 products from the 1959 'United States Standards for Grades', determine if the standard for each has been superseded. For each product, find the title and effective date of the current or most recent standard. Note if a standard was withdrawn or cancelled without replacement.\\\\n\\\\n1. Apples, Dehydrated (Low-moisture)\\\\n2. Grapefruit Juice (Dehydrated)\\\\n3. Orange Juice (Dehydrated)\\\\n4. Apples (Frozen)\\\\n5. Grapefruit Juice, Concentrated (Frozen)\\\\n6. Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)\\\\n7. Orange Juice, Concentrated (Frozen)\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\nUnited States Standards for Grades\\n---\\n\\\"United States Standards for Grades of Dehydrated Apples\\\" site:ams.usda.gov\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"dehydrated apples\\\" site:ams.usda.gov\\n---\\nTitle: Dehydrated Apples Grades and Standards URL Source: https://www https://www.ams.usda.gov/grades-standards/dehydrated-apples-grades-and-standards\\n---\\nTitle: A:DHYAPLES https://www.ams.usda.gov/sites/default/files/media/Dehydrated_Apples_Standard[1].pdf\\n---\\n\\\"United States Standards for Grades of Dehydrated Grapefruit Juice\\\" site:ams.usda.gov\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"dehydrated grapefruit juice\\\" site:ams.usda.gov\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Dehydrated Grapefruit Juice Grades and Standards URL Source: https://www https://www.ams.usda.gov/grades-standards/dehydrated-grapefruit-juice-grades-and-standards\\n---\\nTitle: Dehydrated_Grapefruit_Juice_Standard[1] https://www.ams.usda.gov/sites/default/files/media/Dehydrated_Grapefruit_Juice_Standard[1].pdf\\n---\\n\\\"United States Standards for Grades of Dehydrated Orange Juice\\\" site:ams.usda.gov\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"dehydrated orange juice\\\" site:ams.usda.gov\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Dehydrated Orange Juice Grades and Standards URL Source: https://www https://www.ams.usda.gov/grades-standards/dehydrated-orange-juice-grades-and-standards\\n---\\nTitle: Orange Juice URL Source: https://www https://www.ams.usda.gov/sites/default/files/media/Dehydrated_Orange_Juice_Standard[1].pdf\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"United States Standards for Grades of Frozen Apples\\\" site:ams.usda.gov\\n---\\nTitle: Microsoft Word - FZAPPLES https://www.ams.usda.gov/sites/default/files/media/Frozen_Apples_Standard[1].pdf\\n---\\n\\\"United States Standards for Grades of Frozen Apples\\\" withdrawn site:ams.usda.gov\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"United States Standards for Grades of Frozen Concentrated Grapefruit Juice\\\" site:ams.usda.gov\\n---\\n\\\"United States Standards for Grades of Frozen Concentrated Blended Grapefruit Juice and Orange Juice\\\" site:ams.usda.gov\\n---\\n\\\"frozen concentrated blended grapefruit juice and orange juice\\\" site:ams.usda.gov\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Frozen Blended Grapefruit & Orange Juice Grades & Standards URL Source: https://www https://www.ams.usda.gov/grades-standards/frozen-blended-grapefruit-orange-juice-grades-standards\\n---\\nTitle: Frozen Grapefruit Juice and Orange Juice Concentrated Blended URL Source: https://www https://www.ams.usda.gov/sites/default/files/media/Frozen_Grapefruit_and_Orange_Juice_Standard[1].pdf\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"United States Standards for Grades of Frozen Concentrated Orange Juice\\\" site:ams.usda.gov\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Here is a summary of the work performed to answer your request. ### Final Answer The following table details the current status of the standards for the seven products listed from the 1959 'United States Standards for Grades'. All original standards from the 1959 list have been superseded. | # | Product Name | Status | Current Standard Title | Effective Date | |---|---|---|---|---| | 1 | Apples, Dehydrated (Low-moisture) | Superseded | United States Standards for Grades of Dehydrated (Low Moisture) Apples | July 31, 1977 | | 2 | Grapefruit Juice (Dehydrated) | Superseded | United States Standards for Grades of Grapefruit Juice | September 26, 2012 | | 3 | Orange Juice (Dehydrated) | Superseded | United States Standards for Grades of Orange Juice | January 10, 1983 | | 4 | Apples (Frozen) | Superseded | United States Standards for Grades of Frozen Apples | May 17, 1954 | | 5 | Grapefruit Juice, Concentrated (Frozen) | Superseded | United States Standards for Grades of Grapefruit Juice | September 26, 2012 | | 6 | Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) | Superseded | United States Standards for Grades of Frozen Concentrated Blended Grapefruit Juice and Orange Juice | September 21, 1968 | | 7 | Orange Juice, Concentrated (Frozen) | Superseded | United States Standards for Grades of Orange Juice | January 10, 1983 | *** ### Supporting Information and Methodology The following is a detailed account of the steps taken to determine the status of each product standard. The primary source for these standards was identified as the U.S. Department of Agriculture (USDA) Agricultural Marketing Service (AMS). **1. Apples, Dehydrated (Low-moisture)** * **Action:** A search was conducted for `\\\"United States Standards for Grades of Dehydrated Apples\\\" site:ams.usda.gov`, which yielded no direct results. A broader search for `\\\"dehydrated apples\\\" site:ams.usda.gov` was then performed. * **Result:** This search led to a webpage and a PDF document titled \\\"United States Standards for Grades of Dehydrated (Low Moisture) Apples\\\". * **Finding:** The document states, \\\"Effective date July 31, 1977. This is the second issue of the United States Standards for Grades of Dehydrated (Low Moisture) Apples...\\\". This confirms the 1959 standard was superseded. **2. Grapefruit Juice (Dehydrated) & 5. Grapefruit Juice, Concentrated (Frozen)** * **Action:** A search for `\\\"United States Standards for Grades of Dehydrated Grapefruit Juice\\\" site:ams.usda.gov` initially failed. A broader search for `\\\"dehydrated grapefruit juice\\\" site:ams.usda.gov` was successful. * **Result:** This led to the discovery of a comprehensive standard titled \\\"United States Standards for Grades of Grapefruit Juice\\\". * **Finding:** This single document, effective September 26, 2012, covers multiple grapefruit juice products. * For **Dehydrated Grapefruit Juice**, §52.1221(e) provides the product description, and Table V outlines its specific requirements. * For **Frozen Concentrated Grapefruit Juice**, §52.1221(c) provides the product description, and Table III outlines its specific requirements. * **Conclusion:** The standards for both products were superseded by this consolidated document. **3. Orange Juice (Dehydrated) & 7. Orange Juice, Concentrated (Frozen)** * **Action:** A search for `\\\"United States Standards for Grades of Dehydrated Orange Juice\\\" site:ams.usda.gov` initially failed. A broader search for `\\\"dehydrated orange juice\\\" site:ams.usda.gov` was successful. * **Result:** This led to the discovery of a comprehensive standard titled \\\"United States Standards for Grades of Orange Juice\\\". * **Finding:** This document, effective January 10, 1983, consolidates standards for several orange juice products. The document explicitly states it supersedes multiple previous standards, including the \\\"United States Standards for Grades of Dehydrated Orange Juice (First Issue, as amended, September 21, 1968)\\\" and the \\\"United States Standards for Grades of Frozen Concentrated Orange Juice (Fourth Issue, as amended, September 21, 1968)\\\". * For **Dehydrated Orange Juice**, §52.1551(b) provides the product description, and Table VI outlines its requirements. * For **Frozen Concentrated Orange Juice**, §52.1551(a)(4) provides the product description, and Table II outlines its requirements. * **Conclusion:** The standards for both products were superseded by this consolidated document. **4. Apples (Frozen)** * **Action:** A search for `\\\"United States Standards for Grades of Frozen Apples\\\" site:ams.usda.gov` was immediately successful, returning a PDF of the standard. * **Result:** The document is titled \\\"United States Standards for Grades of Frozen Apples\\\". * **Finding:** The document states, \\\"Effective date May 17, 1954. This is the Third issue of the United States Standards for Grades of Frozen Apples... This issue supersedes the second issue, which has been in effect since June 3, 1952.\\\" A follow-up search for a withdrawal notice yielded no results, indicating this 1954 standard is the most recent and was the one in effect in 1959. **6. Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)** * **Action:** A search for the specific standard name failed. A broader search for `\\\"frozen concentrated blended grapefruit juice and orange juice\\\" site:ams.usda.gov` was successful. * **Result:** This led to a PDF document titled \\\"United States Standards for Grades of Frozen Concentrated Blended Grapefruit Juice and Orange Juice\\\". * **Finding:** The document states, \\\"Effective date September 21, 1968. This is the first issue, as amended, of the United States Standards for Frozen Concentrated Blended Grapefruit Juice and Orange Juice.\\\" This confirms the 1959 standard was superseded.\\n---\\n### Final Report This report summarizes the process and findings for determining the percentage of specific 1959 U.S. food standards that have been superseded as of August 2023. ### 1. Objective The goal was to identify a specific subset of standards from the \\\"United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products\\\" (as of July 2, 1959), research their current status, and calculate the percentage that has been superseded by a newer version since that 1959 date. The result must be rounded to the nearest percent. ### 2. Information Gathering and Analysis The task was completed in a series of steps, as detailed below. #### Step 1: Locating the 1959 Standards Document The first action was to find the specified 1959 document and extract the necessary product lists. **Tool Call:** ```xml <use_mcp_tool> <server_name>agent-worker</server_name> <tool_name>execute_subtask</tool_name> <arguments> { \\\"subtask\\\": \\\"Find the \\\\\\\"United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products\\\\\\\" document from July 2, 1959. Extract and provide the full text lists of products under the 'Dried and Dehydrated' and 'Frozen/Chilled' sections.\\\" } </arguments> </use_mcp_tool> ``` **Result of Tool Call:** The tool successfully located a PDF scan of the document and extracted the following lists: * **Dried or Dehydrated (Low-moisture)** * Apples * Apples, Dehydrated (Low-moisture) * Apricots * Currants * Dates * Figs * Grapefruit Juice (Dehydrated) * Orange Juice (Dehydrated) * Peaches * Pears * Prunes * Raisins, Processed * **Frozen or Chilled** * Apples * Apricots * Grades for Manufacturing * Asparagus * Beans, Green and Wax * Beans, Lima * Berries, (Blackberries, Boysenberries, etc.) * Blueberries * Broccoli * Brussels Sprouts * Carrots, Diced * Cauliflower * Cherries, Red Sour (Tart) Pitted * Cherries, Sweet * Corn-on-the-Cob * Corn, Whole Kernel (or Whole Grain) * Grapefruit * Grapefruit Juice, Concentrated * Grapefruit Juice and Orange Juice, Concentrated, Blended * Grape Juice, Concentrated Sweetened * Leafy Greens * Lemonade, Frozen Concentrate * Limeade, Frozen Concentrate * Okra * Orange Juice, Chilled * Orange Juice, Concentrated * Peaches * Grades for Manufacturing * Peas * Peas and Carrots * Peas, Field and Black-eye * Peppers, Sweet * Pineapple * Plums * Potatoes, French Fried * Raspberries * Rhubarb * Spinach * Squash (Cooked) * Squash (Summer Type) * Strawberries * Succotash * Turnip Greens with Turnips * Vegetables, Mixed #### Step 2: Filtering and Compiling the Final Item List Based on the user's specific filtering rules, the lists were narrowed down to a final set of 7 standards for investigation: 1. **Apples, Dehydrated (Low-moisture)** (from the \\\"Dried or Dehydrated\\\" list) 2. **Grapefruit Juice (Dehydrated)** (from the \\\"Dried or Dehydrated\\\" list) 3. **Orange Juice (Dehydrated)** (from the \\\"Dried or Dehydrated\\\" list) 4. **Apples (Frozen)** (matches \\\"Apples\\\" from the dehydrated list) 5. **Grapefruit Juice, Concentrated (Frozen)** (matches \\\"Grapefruit Juice\\\" from the dehydrated list) 6. **Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)** (matches both \\\"Grapefruit Juice\\\" and \\\"Orange Juice\\\") 7. **Orange Juice, Concentrated (Frozen)** (matches \\\"Orange Juice\\\" from the dehydrated list) The item \\\"Orange Juice, Chilled\\\" was excluded as per the instructions. #### Step 3: Researching the Status of Each Standard The next step was to determine if the standard for each of the 7 items had been superseded since July 2, 1959. **Tool Call:** ```xml <use_mcp_tool> <server_name>agent-worker</server_name> <tool_name>execute_subtask</tool_name> <arguments> { \\\"subtask\\\": \\\"For the following list of 7 products from the 1959 'United States Standards for Grades', determine if the standard for each has been superseded. For each product, find the title and effective date of the current or most recent standard. Note if a standard was withdrawn or cancelled without replacement.\\\\n\\\\n1. Apples, Dehydrated (Low-moisture)\\\\n2. Grapefruit Juice (Dehydrated)\\\\n3. Orange Juice (Dehydrated)\\\\n4. Apples (Frozen)\\\\n5. Grapefruit Juice, Concentrated (Frozen)\\\\n6. Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)\\\\n7. Orange Juice, Concentrated (Frozen)\\\" } </arguments> </use_mcp_tool> ``` **Result of Tool Call:** The research provided the status of each standard. The key findings are summarized in the table below. | # | Product Name | Status Since 1959 | Current/Latest Standard Effective Date | Finding Notes | |---|---|---|---|---| | 1 | Apples, Dehydrated (Low-moisture) | **Superseded** | July 31, 1977 | The 1977 standard is the \\\"second issue,\\\" replacing the previous version. | | 2 | Grapefruit Juice (Dehydrated) | **Superseded** | September 26, 2012 | Replaced by a consolidated standard for various grapefruit juice products. | | 3 | Orange Juice (Dehydrated) | **Superseded** | January 10, 1983 | Replaced by a consolidated standard that explicitly supersedes the prior dehydrated version. | | 4 | Apples (Frozen) | **Not Superseded** | May 17, 1954 | The standard in the 1959 document was the 1954 version. Research found no newer version issued since 1959. | | 5 | Grapefruit Juice, Concentrated (Frozen) | **Superseded** | September 26, 2012 | Replaced by the same consolidated standard for grapefruit juice. | | 6 | Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) | **Superseded** | September 21, 1968 | A new version was issued in 1968. | | 7 | Orange Juice, Concentrated (Frozen) | **Superseded** | January 10, 1983 | Replaced by the same consolidated standard for orange juice. | ### 3. Final Answer The analysis identified 7 distinct standards that met the user's criteria. Of these 7 standards, 6 were found to have been superseded by a new version since July 2, 1959. The standard for Frozen Apples was already in effect before 1959 and has not been superseded since. * **Total number of relevant standards:** 7 * **Number of standards superseded since July 2, 1959:** 6 The percentage of superseded standards is calculated as: (6 / 7) * 100 ≈ 85.714% **Rounding to the nearest percent, the final answer is 86%.**\\n---\\nLLM extracted final answer: **Step-by-step Analysis:** 1. The 1959 document’s “Dried and Dehydrated (Low-moisture)” list contains 12 items, but only those explicitly labelled “dehydrated” are to be used. These are: • Apples, Dehydrated (Low-moisture) • Grapefruit Juice (Dehydrated) • Orange Juice (Dehydrated) 2. For each of these three, we must also include any item in the “Frozen/Chilled” list whose title contains the whole name of the dehydrated item, excluding ones marked “Chilled.” Matching the frozen list yields: • Apples (Frozen) – contains “Apples” • Grapefruit Juice, Concentrated (Frozen) – contains “Grapefruit Juice” • Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) – contains both “Grapefruit Juice” and “Orange Juice” • Orange Juice, Concentrated (Frozen) – contains “Orange Juice” 3. Combining the three dehydrated items with these four frozen items gives 7 distinct standards to evaluate. 4. Research in the summary shows the current status (as of Aug 2023): • 6 of the 7 standards have been superseded (all except “Apples (Frozen)”). 5. Percentage superseded = (6 ÷ 7) × 100 ≈ 85.714 → rounded to the nearest whole percent = 86. **Final Answer:** \\\\boxed{86} **Confidence:** 82 **Supporting Evidence:** – List of 7 qualifying standards identified in the Agent Summary. – Table showing 6 marked “Superseded” and 1 “Not Superseded.” – Calculation 6/7 ≈ 85.7% → rounds to 86. **Potential Weaknesses:** – Inclusion of “Grapefruit Juice and Orange Juice, Concentrated, Blended” assumes it counts once; if exclusion rules differ, item count may change. – Status determinations rely on external research summarized but not fully documented; possible inaccuracies in whether “Apples (Frozen)” has been superseded.\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0247",
+        "task_goal": "short string",
+        "hard_constraints": [
+          "short string"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \"dried and dehydrated section\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled.",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "The standard for Apples, Dehydrated (Low-moisture) has been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "The standard for Grapefruit Juice (Dehydrated) has been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "The standard for Orange Juice (Dehydrated) has been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "The standard for Apples (Frozen) has not been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c6",
+            "claim": "The standard for Grapefruit Juice, Concentrated (Frozen) has been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c7",
+            "claim": "The standard for Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) has been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c8",
+            "claim": "The standard for Orange Juice, Concentrated (Frozen) has been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c9",
+            "claim": "The percentage of those standards that have been superseded since July 2, 1959 is approximately 85.714%.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "compute",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c10",
+            "claim": "The final answer is 86.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ],
+        "notes": "short string"
+      },
+      "validated": {
+        "traj_id": "0247",
+        "task_goal": "short string",
+        "hard_constraints": [
+          "short string"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \"dried and dehydrated section\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled.",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "The standard for Apples, Dehydrated (Low-moisture) has been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "The standard for Grapefruit Juice (Dehydrated) has been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "The standard for Orange Juice (Dehydrated) has been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "The standard for Apples (Frozen) has not been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c6",
+            "claim": "The standard for Grapefruit Juice, Concentrated (Frozen) has been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c7",
+            "claim": "The standard for Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) has been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c8",
+            "claim": "The standard for Orange Juice, Concentrated (Frozen) has been superseded since July 2, 1959.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ],
+        "notes": "short string"
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001",
+            "s011"
+          ],
+          "grep_queries": [
+            "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \""
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "The standard for Apples, Dehydrated (Low-moisture) has been superseded since July 2, 1959."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "The standard for Grapefruit Juice (Dehydrated) has been superseded since July 2, 1959."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c4",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "The standard for Orange Juice (Dehydrated) has been superseded since July 2, 1959."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c5",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "The standard for Apples (Frozen) has not been superseded since July 2, 1959."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c6",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "The standard for Grapefruit Juice, Concentrated (Frozen) has been superseded since July 2, 1959."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c7",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "The standard for Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) has been superseded since July 2, 1959."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c8",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "The standard for Orange Juice, Concentrated (Frozen) has been superseded since July 2, 1959."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s011",
+        "s012"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s011",
+        "s012"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \"",
+          "matched_chunk_ids": [
+            "s012:c001",
+            "s012:c003",
+            "s012:c004",
+            "s012:c002"
+          ],
+          "matched_span_ids": [
+            "s012"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "The standard for Apples, Dehydrated (Low-moisture) has been superseded since July 2, 1959.",
+          "matched_chunk_ids": [
+            "s012:c001",
+            "s012:c008",
+            "s012:c006",
+            "s012:c007"
+          ],
+          "matched_span_ids": [
+            "s012"
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "query": "The standard for Grapefruit Juice (Dehydrated) has been superseded since July 2, 1959.",
+          "matched_chunk_ids": [
+            "s012:c006",
+            "s012:c001",
+            "s012:c007",
+            "s012:c008"
+          ],
+          "matched_span_ids": [
+            "s012"
+          ]
+        },
+        {
+          "claim_id": "c4",
+          "query": "The standard for Orange Juice (Dehydrated) has been superseded since July 2, 1959.",
+          "matched_chunk_ids": [
+            "s012:c006",
+            "s012:c001",
+            "s012:c007",
+            "s012:c008"
+          ],
+          "matched_span_ids": [
+            "s012"
+          ]
+        },
+        {
+          "claim_id": "c5",
+          "query": "The standard for Apples (Frozen) has not been superseded since July 2, 1959.",
+          "matched_chunk_ids": [
+            "s012:c007",
+            "s012:c001",
+            "s012:c008",
+            "s012:c004"
+          ],
+          "matched_span_ids": [
+            "s012"
+          ]
+        },
+        {
+          "claim_id": "c6",
+          "query": "The standard for Grapefruit Juice, Concentrated (Frozen) has been superseded since July 2, 1959.",
+          "matched_chunk_ids": [
+            "s012:c007",
+            "s012:c001",
+            "s012:c006",
+            "s012:c008"
+          ],
+          "matched_span_ids": [
+            "s012"
+          ]
+        },
+        {
+          "claim_id": "c7",
+          "query": "The standard for Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) has been superseded since July 2, 1959.",
+          "matched_chunk_ids": [
+            "s012:c007",
+            "s012:c001",
+            "s012:c004",
+            "s012:c006"
+          ],
+          "matched_span_ids": [
+            "s012"
+          ]
+        },
+        {
+          "claim_id": "c8",
+          "query": "The standard for Orange Juice, Concentrated (Frozen) has been superseded since July 2, 1959.",
+          "matched_chunk_ids": [
+            "s012:c007",
+            "s012:c001",
+            "s012:c006",
+            "s012:c008"
+          ],
+          "matched_span_ids": [
+            "s012"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0247\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated section\\\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled. As of August 2023, what is the percentage (to the nearest percent) of those standards that have been superseded by a new version since the date given in the 1959 standards?\",\n  \"traj_id\": \"0247\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0247\",\n    \"task_goal\": \"short string\",\n    \"hard_constraints\": [\n      \"short string\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated section\\\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled.\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"The standard for Apples, Dehydrated (Low-moisture) has been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"The standard for Grapefruit Juice (Dehydrated) has been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"The standard for Orange Juice (Dehydrated) has been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"The standard for Apples (Frozen) has not been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"claim\": \"The standard for Grapefruit Juice, Concentrated (Frozen) has been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"claim\": \"The standard for Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) has been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c8\",\n        \"claim\": \"The standard for Orange Juice, Concentrated (Frozen) has been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"short string\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s011\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s012:c003\",\n          \"s012:c004\",\n          \"s012:c002\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"The standard for Apples, Dehydrated (Low-moisture) has been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s012:c008\",\n          \"s012:c006\",\n          \"s012:c007\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"The standard for Grapefruit Juice (Dehydrated) has been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c006\",\n          \"s012:c001\",\n          \"s012:c007\",\n          \"s012:c008\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"The standard for Orange Juice (Dehydrated) has been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c006\",\n          \"s012:c001\",\n          \"s012:c007\",\n          \"s012:c008\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"query\": \"The standard for Apples (Frozen) has not been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c007\",\n          \"s012:c001\",\n          \"s012:c008\",\n          \"s012:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"query\": \"The standard for Grapefruit Juice, Concentrated (Frozen) has been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c007\",\n          \"s012:c001\",\n          \"s012:c006\",\n          \"s012:c008\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"query\": \"The standard for Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) has been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c007\",\n          \"s012:c001\",\n          \"s012:c004\",\n          \"s012:c006\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c8\",\n        \"query\": \"The standard for Orange Juice, Concentrated (Frozen) has been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c007\",\n          \"s012:c001\",\n          \"s012:c006\",\n          \"s012:c008\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 658,\n        \"text\": \"Find the \\\"United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products\\\" document from July 2, 1959. Extract and provide the full text lists of products under the \\\\\\n---\\n\\\"United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products\\\" July 2, 1959\\n---\\nTitle: United States standards for grades of processed fruits, vegetables, and certain other products (as of July 2, 1959) URL Source: https https://upload.wikimedia.org/wikipedia/commons/0/06/United_States_standards_for_grades_of_processed_fruits,_vegetables,_and_certain_other_products_(as_of_July_2,_1959)_(IA_unitedstatesstan14unit_4).pdf\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 90,\n        \"text\": \"\\\"United States Standards for Grades of Frozen Concentrated Orange Juice\\\" site:ams.usda.gov\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c009\",\n        \"char_start\": 13120,\n        \"char_end\": 13673,\n        \"text\": \"ed{86} **Confidence:** 82 **Supporting Evidence:** – List of 7 qualifying standards identified in the Agent Summary. – Table showing 6 marked “Superseded” and 1 “Not Superseded.” – Calculation 6/7 ≈ 85.7% → rounds to 86. **Potential Weaknesses:** – Inclusion of “Grapefruit Juice and Orange Juice, Concentrated, Blended” assumes it counts once; if exclusion rules differ, item count may change. – Status determinations rely on external research summarized but not fully documented; possible inaccuracies in whether “Apples (Frozen)” has been superseded.\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"Here is a summary of the work performed to answer your request. ### Final Answer The following table details the current status of the standards for the seven products listed from the 1959 'United States Standards for Grades'. All original standards from the 1959 list have been superseded. | # | Product Name | Status | Current Standard Title | Effective Date | |---|---|---|---|---| | 1 | Apples, Dehydrated (Low-moisture) | Superseded | United States Standards for Grades of Dehydrated (Low Moisture) Apples | July 31, 1977 | | 2 | Grapefruit Juice (Dehydrated) | Superseded | United States Standards for Grades of Grapefruit Juice | September 26, 2012 | | 3 | Orange Juice (Dehydrated) | Superseded | United States Standards for Grades of Orange Juice | January 10, 1983 | | 4 | Apples (Frozen) | Superseded | United States Standards for Grades of Frozen Apples | May 17, 1954 | | 5 | Grapefruit Juice, Concentrated (Frozen) | Superseded | United States Standards for Grades of Grapefruit Juice | September 26, 2012 | | 6 | Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) | Superseded | United States Standards for Grades of Frozen Concentrated Blended Grapefruit Juice and Orange Juice | September 21, 1968 | | 7 | Orange Juice, Concentrated (Frozen) | Superseded | United States Standards for Grades of Orange Juice | January 10, 1983 | *** ### Supporting Information and Methodology The following is a detailed account of the steps taken to determine the status of each product standard. The primary source for these standards was identified as the U.S. Department of Agriculture (USDA) Agricultural Marketing Service (AMS). **1. Apples, Dehydrated (Low-moisture)** * **Action:** A search was conducted for `\\\"United States Standards for Grades of Dehydrated Apples\\\" site:ams.\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 5080,\n        \"text\": \")** * **Action:** A search for `\\\"United States Standards for Grades of Dehydrated Orange Juice\\\" site:ams.usda.gov` initially failed. A broader search for `\\\"dehydrated orange juice\\\" site:ams.usda.gov` was successful. * **Result:** This led to the discovery of a comprehensive standard titled \\\"United States Standards for Grades of Orange Juice\\\". * **Finding:** This document, effective January 10, 1983, consolidates standards for several orange juice products. The document explicitly states it supersedes multiple previous standards, including the \\\"United States Standards for Grades of Dehydrated Orange Juice (First Issue, as amended, September 21, 1968)\\\" and the \\\"United States Standards for Grades of Frozen Concentrated Orange Juice (Fourth Issue, as amended, September 21, 1968)\\\". * For **Dehydrated Orange Juice**, §52.1551(b) provides the product description, and Table VI outlines its requirements. * For **Frozen Concentrated Orange Juice**, §52.1551(a)(4) provides the product description, and Table II outlines its requirements. * **Conclusion:** The standards for both products were superseded by this consolidated document. **4. Apples (Frozen)** * **Action:** A search for `\\\"United States Standards for Grades of Frozen Apples\\\" site:ams.usda.gov` was immediately successful, returning a PDF of the standard. * **Result:** The document is titled \\\"United States Standards for Grades of Frozen Apples\\\". * **Finding:** The document states, \\\"Effective date May 17, 1954. This is the Third issue of the United States Standards for Grades of Frozen Apples... This issue supersedes the second issue, which has been in effect since June 3, 1952.\\\" A follow-up search for a withdrawal notice yielded no results, indicating this 1954 standard is the most recent and was the one in effect in 1959.\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 6720,\n        \"text\": \"une 3, 1952.\\\" A follow-up search for a withdrawal notice yielded no results, indicating this 1954 standard is the most recent and was the one in effect in 1959. **6. Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)** * **Action:** A search for the specific standard name failed. A broader search for `\\\"frozen concentrated blended grapefruit juice and orange juice\\\" site:ams.usda.gov` was successful. * **Result:** This led to a PDF document titled \\\"United States Standards for Grades of Frozen Concentrated Blended Grapefruit Juice and Orange Juice\\\". * **Finding:** The document states, \\\"Effective date September 21, 1968. This is the first issue, as amended, of the United States Standards for Frozen Concentrated Blended Grapefruit Juice and Orange Juice.\\\" This confirms the 1959 standard was superseded.\\n---\\n### Final Report This report summarizes the process and findings for determining the percentage of specific 1959 U.S. food standards that have been superseded as of August 2023. ### 1. Objective The goal was to identify a specific subset of standards from the \\\"United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products\\\" (as of July 2, 1959), research their current status, and calculate the percentage that has been superseded by a newer version since that 1959 date. The result must be rounded to the nearest percent. ### 2. Information Gathering and Analysis The task was completed in a series of steps, as detailed below. #### Step 1: Locating the 1959 Standards Document The first action was to find the specified 1959 document and extract the necessary product lists. **Tool Call:** ```xml <use_mcp_tool> <server_name>agent-worker</server_name> <tool_name>execute_subtask</tool_name> <arguments> { \\\"subtask\\\": \\\"Find the \\\\\\\"United St\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3440,\n        \"text\": \"ce (AMS). **1. Apples, Dehydrated (Low-moisture)** * **Action:** A search was conducted for `\\\"United States Standards for Grades of Dehydrated Apples\\\" site:ams.usda.gov`, which yielded no direct results. A broader search for `\\\"dehydrated apples\\\" site:ams.usda.gov` was then performed. * **Result:** This search led to a webpage and a PDF document titled \\\"United States Standards for Grades of Dehydrated (Low Moisture) Apples\\\". * **Finding:** The document states, \\\"Effective date July 31, 1977. This is the second issue of the United States Standards for Grades of Dehydrated (Low Moisture) Apples...\\\". This confirms the 1959 standard was superseded. **2. Grapefruit Juice (Dehydrated) & 5. Grapefruit Juice, Concentrated (Frozen)** * **Action:** A search for `\\\"United States Standards for Grades of Dehydrated Grapefruit Juice\\\" site:ams.usda.gov` initially failed. A broader search for `\\\"dehydrated grapefruit juice\\\" site:ams.usda.gov` was successful. * **Result:** This led to the discovery of a comprehensive standard titled \\\"United States Standards for Grades of Grapefruit Juice\\\". * **Finding:** This single document, effective September 26, 2012, covers multiple grapefruit juice products. * For **Dehydrated Grapefruit Juice**, §52.1221(e) provides the product description, and Table V outlines its specific requirements. * For **Frozen Concentrated Grapefruit Juice**, §52.1221(c) provides the product description, and Table III outlines its specific requirements. * **Conclusion:** The standards for both products were superseded by this consolidated document. **3. Orange Juice (Dehydrated) & 7. Orange Juice, Concentrated (Frozen)** * **Action:** A search for `\\\"United States Standards for Grades of Dehydrated Orange Juice\\\" site:ams.usda.gov` initially failed. A broader search for `\\\"dehy\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c008\",\n        \"char_start\": 11480,\n        \"char_end\": 13280,\n        \"text\": \". Of these 7 standards, 6 were found to have been superseded by a new version since July 2, 1959. The standard for Frozen Apples was already in effect before 1959 and has not been superseded since. * **Total number of relevant standards:** 7 * **Number of standards superseded since July 2, 1959:** 6 The percentage of superseded standards is calculated as: (6 / 7) * 100 ≈ 85.714% **Rounding to the nearest percent, the final answer is 86%.**\\n---\\nLLM extracted final answer: **Step-by-step Analysis:** 1. The 1959 document’s “Dried and Dehydrated (Low-moisture)” list contains 12 items, but only those explicitly labelled “dehydrated” are to be used. These are: • Apples, Dehydrated (Low-moisture) • Grapefruit Juice (Dehydrated) • Orange Juice (Dehydrated) 2. For each of these three, we must also include any item in the “Frozen/Chilled” list whose title contains the whole name of the dehydrated item, excluding ones marked “Chilled.” Matching the frozen list yields: • Apples (Frozen) – contains “Apples” • Grapefruit Juice, Concentrated (Frozen) – contains “Grapefruit Juice” • Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) – contains both “Grapefruit Juice” and “Orange Juice” • Orange Juice, Concentrated (Frozen) – contains “Orange Juice” 3. Combining the three dehydrated items with these four frozen items gives 7 distinct standards to evaluate. 4. Research in the summary shows the current status (as of Aug 2023): • 6 of the 7 standards have been superseded (all except “Apples (Frozen)”). 5. Percentage superseded = (6 ÷ 7) × 100 ≈ 85.714 → rounded to the nearest whole percent = 86. **Final Answer:** \\\\boxed{86} **Confidence:** 82 **Supporting Evidence:** – List of 7 qualifying standards identified in the Agent Summary. – Table showing 6 marked “Superseded” and 1\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c006\",\n        \"char_start\": 8200,\n        \"char_end\": 10000,\n        \"text\": \"wberries * Succotash * Turnip Greens with Turnips * Vegetables, Mixed #### Step 2: Filtering and Compiling the Final Item List Based on the user's specific filtering rules, the lists were narrowed down to a final set of 7 standards for investigation: 1. **Apples, Dehydrated (Low-moisture)** (from the \\\"Dried or Dehydrated\\\" list) 2. **Grapefruit Juice (Dehydrated)** (from the \\\"Dried or Dehydrated\\\" list) 3. **Orange Juice (Dehydrated)** (from the \\\"Dried or Dehydrated\\\" list) 4. **Apples (Frozen)** (matches \\\"Apples\\\" from the dehydrated list) 5. **Grapefruit Juice, Concentrated (Frozen)** (matches \\\"Grapefruit Juice\\\" from the dehydrated list) 6. **Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)** (matches both \\\"Grapefruit Juice\\\" and \\\"Orange Juice\\\") 7. **Orange Juice, Concentrated (Frozen)** (matches \\\"Orange Juice\\\" from the dehydrated list) The item \\\"Orange Juice, Chilled\\\" was excluded as per the instructions. #### Step 3: Researching the Status of Each Standard The next step was to determine if the standard for each of the 7 items had been superseded since July 2, 1959. **Tool Call:** ```xml <use_mcp_tool> <server_name>agent-worker</server_name> <tool_name>execute_subtask</tool_name> <arguments> { \\\"subtask\\\": \\\"For the following list of 7 products from the 1959 'United States Standards for Grades', determine if the standard for each has been superseded. For each product, find the title and effective date of the current or most recent standard. Note if a standard was withdrawn or cancelled without replacement.\\\\n\\\\n1. Apples, Dehydrated (Low-moisture)\\\\n2. Grapefruit Juice (Dehydrated)\\\\n3. Orange Juice (Dehydrated)\\\\n4. Apples (Frozen)\\\\n5. Grapefruit Juice, Concentrated (Frozen)\\\\n6. Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)\\\\n7. Orange Juice, \"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c007\",\n        \"char_start\": 9840,\n        \"char_end\": 11640,\n        \"text\": \"drated)\\\\n4. Apples (Frozen)\\\\n5. Grapefruit Juice, Concentrated (Frozen)\\\\n6. Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)\\\\n7. Orange Juice, Concentrated (Frozen)\\\" } </arguments> </use_mcp_tool> ``` **Result of Tool Call:** The research provided the status of each standard. The key findings are summarized in the table below. | # | Product Name | Status Since 1959 | Current/Latest Standard Effective Date | Finding Notes | |---|---|---|---|---| | 1 | Apples, Dehydrated (Low-moisture) | **Superseded** | July 31, 1977 | The 1977 standard is the \\\"second issue,\\\" replacing the previous version. | | 2 | Grapefruit Juice (Dehydrated) | **Superseded** | September 26, 2012 | Replaced by a consolidated standard for various grapefruit juice products. | | 3 | Orange Juice (Dehydrated) | **Superseded** | January 10, 1983 | Replaced by a consolidated standard that explicitly supersedes the prior dehydrated version. | | 4 | Apples (Frozen) | **Not Superseded** | May 17, 1954 | The standard in the 1959 document was the 1954 version. Research found no newer version issued since 1959. | | 5 | Grapefruit Juice, Concentrated (Frozen) | **Superseded** | September 26, 2012 | Replaced by the same consolidated standard for grapefruit juice. | | 6 | Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) | **Superseded** | September 21, 1968 | A new version was issued in 1968. | | 7 | Orange Juice, Concentrated (Frozen) | **Superseded** | January 10, 1983 | Replaced by the same consolidated standard for orange juice. | ### 3. Final Answer The analysis identified 7 distinct standards that met the user's criteria. Of these 7 standards, 6 were found to have been superseded by a new version since July 2, 1959. The standard for Frozen Apples was already in effect before 19\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0247",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s012"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s012",
+                "chunk_id": "s012:c001",
+                "role": "partial_support",
+                "text": "United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products (as of July 2, 1959)"
+              }
+            ]
+          },
+          {
+            "claim_id": "c2",
+            "support_spans": [
+              "s012"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s012",
+                "chunk_id": "s012:c001",
+                "role": "partial_support",
+                "text": "United States Standards for Grades of Dehydrated (Low Moisture) Apples"
+              }
+            ]
+          },
+          {
+            "claim_id": "c3",
+            "support_spans": [
+              "s012"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s012",
+                "chunk_id": "s012:c001",
+                "role": "partial_support",
+                "text": "United States Standards for Grades of Grapefruit Juice"
+              }
+            ]
+          },
+          {
+            "claim_id": "c4",
+            "support_spans": [
+              "s012"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s012",
+                "chunk_id": "s012:c001",
+                "role": "partial_support",
+                "text": "United States Standards for Grades of Orange Juice"
+              }
+            ]
+          },
+          {
+            "claim_id": "c5",
+            "support_spans": [
+              "s012"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s012",
+                "chunk_id": "s012:c001",
+                "role": "partial_support",
+                "text": "United States Standards for Grades of Frozen Apples"
+              }
+            ]
+          },
+          {
+            "claim_id": "c6",
+            "support_spans": [
+              "s012"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s012",
+                "chunk_id": "s012:c001",
+                "role": "partial_support",
+                "text": "United States Standards for Grades of Grapefruit Juice, Concentrated (Frozen)"
+              }
+            ]
+          },
+          {
+            "claim_id": "c7",
+            "support_spans": [
+              "s012"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s012",
+                "chunk_id": "s012:c001",
+                "role": "partial_support",
+                "text": "United States Standards for Grades of Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)"
+              }
+            ]
+          },
+          {
+            "claim_id": "c8",
+            "support_spans": [
+              "s012"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s012",
+                "chunk_id": "s012:c001",
+                "role": "partial_support",
+                "text": "United States Standards for Grades of Orange Juice, Concentrated (Frozen)"
+              }
+            ]
+          }
+        ],
+        "notes": "short string"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s012"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s012",
+              "chunk_id": "s012:c001",
+              "role": "partial_support",
+              "text": "United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products (as of July 2, 1959)"
+            }
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "support_spans": [
+            "s012"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s012",
+              "chunk_id": "s012:c001",
+              "role": "partial_support",
+              "text": "United States Standards for Grades of Dehydrated (Low Moisture) Apples"
+            }
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "support_spans": [
+            "s012"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s012",
+              "chunk_id": "s012:c001",
+              "role": "partial_support",
+              "text": "United States Standards for Grades of Grapefruit Juice"
+            }
+          ]
+        },
+        {
+          "claim_id": "c4",
+          "support_spans": [
+            "s012"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s012",
+              "chunk_id": "s012:c001",
+              "role": "partial_support",
+              "text": "United States Standards for Grades of Orange Juice"
+            }
+          ]
+        },
+        {
+          "claim_id": "c5",
+          "support_spans": [
+            "s012"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s012",
+              "chunk_id": "s012:c001",
+              "role": "partial_support",
+              "text": "United States Standards for Grades of Frozen Apples"
+            }
+          ]
+        },
+        {
+          "claim_id": "c6",
+          "support_spans": [
+            "s012"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s012",
+              "chunk_id": "s012:c001",
+              "role": "partial_support",
+              "text": "United States Standards for Grades of Grapefruit Juice, Concentrated (Frozen)"
+            }
+          ]
+        },
+        {
+          "claim_id": "c7",
+          "support_spans": [
+            "s012"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s012",
+              "chunk_id": "s012:c001",
+              "role": "partial_support",
+              "text": "United States Standards for Grades of Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)"
+            }
+          ]
+        },
+        {
+          "claim_id": "c8",
+          "support_spans": [
+            "s012"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s012",
+              "chunk_id": "s012:c001",
+              "role": "partial_support",
+              "text": "United States Standards for Grades of Orange Juice, Concentrated (Frozen)"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0247\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated section\\\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled. As of August 2023, what is the percentage (to the nearest percent) of those standards that have been superseded by a new version since the date given in the 1959 standards?\",\n  \"traj_id\": \"0247\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0247\",\n    \"task_goal\": \"short string\",\n    \"hard_constraints\": [\n      \"short string\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"dried and dehydrated section\\\" specifically marked as dehydrated along with any items in the Frozen/Chilled section that contain the whole name of the item, but not if they're marked Chilled.\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"The standard for Apples, Dehydrated (Low-moisture) has been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"The standard for Grapefruit Juice (Dehydrated) has been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"The standard for Orange Juice (Dehydrated) has been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"The standard for Apples (Frozen) has not been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"claim\": \"The standard for Grapefruit Juice, Concentrated (Frozen) has been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"claim\": \"The standard for Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) has been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c8\",\n        \"claim\": \"The standard for Orange Juice, Concentrated (Frozen) has been superseded since July 2, 1959.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"short string\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s012\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s012\",\n          \"chunk_id\": \"s012:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products (as of July 2, 1959)\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c2\",\n      \"support_spans\": [\n        \"s012\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s012\",\n          \"chunk_id\": \"s012:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"United States Standards for Grades of Dehydrated (Low Moisture) Apples\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c3\",\n      \"support_spans\": [\n        \"s012\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s012\",\n          \"chunk_id\": \"s012:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"United States Standards for Grades of Grapefruit Juice\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c4\",\n      \"support_spans\": [\n        \"s012\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s012\",\n          \"chunk_id\": \"s012:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"United States Standards for Grades of Orange Juice\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c5\",\n      \"support_spans\": [\n        \"s012\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s012\",\n          \"chunk_id\": \"s012:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"United States Standards for Grades of Frozen Apples\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c6\",\n      \"support_spans\": [\n        \"s012\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s012\",\n          \"chunk_id\": \"s012:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"United States Standards for Grades of Grapefruit Juice, Concentrated (Frozen)\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c7\",\n      \"support_spans\": [\n        \"s012\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s012\",\n          \"chunk_id\": \"s012:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"United States Standards for Grades of Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c8\",\n      \"support_spans\": [\n        \"s012\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s012\",\n          \"chunk_id\": \"s012:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"United States Standards for Grades of Orange Juice, Concentrated (Frozen)\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s011\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"In July 2, 1959 United States standards for grades of processed fruits, vegetables, and certain other products listed as dehydrated, consider the items in the \\\"\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s012:c003\",\n          \"s012:c004\",\n          \"s012:c002\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"The standard for Apples, Dehydrated (Low-moisture) has been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s012:c008\",\n          \"s012:c006\",\n          \"s012:c007\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"The standard for Grapefruit Juice (Dehydrated) has been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c006\",\n          \"s012:c001\",\n          \"s012:c007\",\n          \"s012:c008\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"The standard for Orange Juice (Dehydrated) has been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c006\",\n          \"s012:c001\",\n          \"s012:c007\",\n          \"s012:c008\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"query\": \"The standard for Apples (Frozen) has not been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c007\",\n          \"s012:c001\",\n          \"s012:c008\",\n          \"s012:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"query\": \"The standard for Grapefruit Juice, Concentrated (Frozen) has been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c007\",\n          \"s012:c001\",\n          \"s012:c006\",\n          \"s012:c008\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"query\": \"The standard for Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) has been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c007\",\n          \"s012:c001\",\n          \"s012:c004\",\n          \"s012:c006\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c8\",\n        \"query\": \"The standard for Orange Juice, Concentrated (Frozen) has been superseded since July 2, 1959.\",\n        \"matched_chunk_ids\": [\n          \"s012:c007\",\n          \"s012:c001\",\n          \"s012:c006\",\n          \"s012:c008\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 658,\n        \"text\": \"Find the \\\"United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products\\\" document from July 2, 1959. Extract and provide the full text lists of products under the \\\\\\n---\\n\\\"United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products\\\" July 2, 1959\\n---\\nTitle: United States standards for grades of processed fruits, vegetables, and certain other products (as of July 2, 1959) URL Source: https https://upload.wikimedia.org/wikipedia/commons/0/06/United_States_standards_for_grades_of_processed_fruits,_vegetables,_and_certain_other_products_(as_of_July_2,_1959)_(IA_unitedstatesstan14unit_4).pdf\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 90,\n        \"text\": \"\\\"United States Standards for Grades of Frozen Concentrated Orange Juice\\\" site:ams.usda.gov\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c009\",\n        \"char_start\": 13120,\n        \"char_end\": 13673,\n        \"text\": \"ed{86} **Confidence:** 82 **Supporting Evidence:** – List of 7 qualifying standards identified in the Agent Summary. – Table showing 6 marked “Superseded” and 1 “Not Superseded.” – Calculation 6/7 ≈ 85.7% → rounds to 86. **Potential Weaknesses:** – Inclusion of “Grapefruit Juice and Orange Juice, Concentrated, Blended” assumes it counts once; if exclusion rules differ, item count may change. – Status determinations rely on external research summarized but not fully documented; possible inaccuracies in whether “Apples (Frozen)” has been superseded.\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"Here is a summary of the work performed to answer your request. ### Final Answer The following table details the current status of the standards for the seven products listed from the 1959 'United States Standards for Grades'. All original standards from the 1959 list have been superseded. | # | Product Name | Status | Current Standard Title | Effective Date | |---|---|---|---|---| | 1 | Apples, Dehydrated (Low-moisture) | Superseded | United States Standards for Grades of Dehydrated (Low Moisture) Apples | July 31, 1977 | | 2 | Grapefruit Juice (Dehydrated) | Superseded | United States Standards for Grades of Grapefruit Juice | September 26, 2012 | | 3 | Orange Juice (Dehydrated) | Superseded | United States Standards for Grades of Orange Juice | January 10, 1983 | | 4 | Apples (Frozen) | Superseded | United States Standards for Grades of Frozen Apples | May 17, 1954 | | 5 | Grapefruit Juice, Concentrated (Frozen) | Superseded | United States Standards for Grades of Grapefruit Juice | September 26, 2012 | | 6 | Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) | Superseded | United States Standards for Grades of Frozen Concentrated Blended Grapefruit Juice and Orange Juice | September 21, 1968 | | 7 | Orange Juice, Concentrated (Frozen) | Superseded | United States Standards for Grades of Orange Juice | January 10, 1983 | *** ### Supporting Information and Methodology The following is a detailed account of the steps taken to determine the status of each product standard. The primary source for these standards was identified as the U.S. Department of Agriculture (USDA) Agricultural Marketing Service (AMS). **1. Apples, Dehydrated (Low-moisture)** * **Action:** A search was conducted for `\\\"United States Standards for Grades of Dehydrated Apples\\\" site:ams.\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 5080,\n        \"text\": \")** * **Action:** A search for `\\\"United States Standards for Grades of Dehydrated Orange Juice\\\" site:ams.usda.gov` initially failed. A broader search for `\\\"dehydrated orange juice\\\" site:ams.usda.gov` was successful. * **Result:** This led to the discovery of a comprehensive standard titled \\\"United States Standards for Grades of Orange Juice\\\". * **Finding:** This document, effective January 10, 1983, consolidates standards for several orange juice products. The document explicitly states it supersedes multiple previous standards, including the \\\"United States Standards for Grades of Dehydrated Orange Juice (First Issue, as amended, September 21, 1968)\\\" and the \\\"United States Standards for Grades of Frozen Concentrated Orange Juice (Fourth Issue, as amended, September 21, 1968)\\\". * For **Dehydrated Orange Juice**, §52.1551(b) provides the product description, and Table VI outlines its requirements. * For **Frozen Concentrated Orange Juice**, §52.1551(a)(4) provides the product description, and Table II outlines its requirements. * **Conclusion:** The standards for both products were superseded by this consolidated document. **4. Apples (Frozen)** * **Action:** A search for `\\\"United States Standards for Grades of Frozen Apples\\\" site:ams.usda.gov` was immediately successful, returning a PDF of the standard. * **Result:** The document is titled \\\"United States Standards for Grades of Frozen Apples\\\". * **Finding:** The document states, \\\"Effective date May 17, 1954. This is the Third issue of the United States Standards for Grades of Frozen Apples... This issue supersedes the second issue, which has been in effect since June 3, 1952.\\\" A follow-up search for a withdrawal notice yielded no results, indicating this 1954 standard is the most recent and was the one in effect in 1959.\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 6720,\n        \"text\": \"une 3, 1952.\\\" A follow-up search for a withdrawal notice yielded no results, indicating this 1954 standard is the most recent and was the one in effect in 1959. **6. Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)** * **Action:** A search for the specific standard name failed. A broader search for `\\\"frozen concentrated blended grapefruit juice and orange juice\\\" site:ams.usda.gov` was successful. * **Result:** This led to a PDF document titled \\\"United States Standards for Grades of Frozen Concentrated Blended Grapefruit Juice and Orange Juice\\\". * **Finding:** The document states, \\\"Effective date September 21, 1968. This is the first issue, as amended, of the United States Standards for Frozen Concentrated Blended Grapefruit Juice and Orange Juice.\\\" This confirms the 1959 standard was superseded.\\n---\\n### Final Report This report summarizes the process and findings for determining the percentage of specific 1959 U.S. food standards that have been superseded as of August 2023. ### 1. Objective The goal was to identify a specific subset of standards from the \\\"United States Standards for Grades of Processed Fruits, Vegetables, and Certain Other Products\\\" (as of July 2, 1959), research their current status, and calculate the percentage that has been superseded by a newer version since that 1959 date. The result must be rounded to the nearest percent. ### 2. Information Gathering and Analysis The task was completed in a series of steps, as detailed below. #### Step 1: Locating the 1959 Standards Document The first action was to find the specified 1959 document and extract the necessary product lists. **Tool Call:** ```xml <use_mcp_tool> <server_name>agent-worker</server_name> <tool_name>execute_subtask</tool_name> <arguments> { \\\"subtask\\\": \\\"Find the \\\\\\\"United St\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3440,\n        \"text\": \"ce (AMS). **1. Apples, Dehydrated (Low-moisture)** * **Action:** A search was conducted for `\\\"United States Standards for Grades of Dehydrated Apples\\\" site:ams.usda.gov`, which yielded no direct results. A broader search for `\\\"dehydrated apples\\\" site:ams.usda.gov` was then performed. * **Result:** This search led to a webpage and a PDF document titled \\\"United States Standards for Grades of Dehydrated (Low Moisture) Apples\\\". * **Finding:** The document states, \\\"Effective date July 31, 1977. This is the second issue of the United States Standards for Grades of Dehydrated (Low Moisture) Apples...\\\". This confirms the 1959 standard was superseded. **2. Grapefruit Juice (Dehydrated) & 5. Grapefruit Juice, Concentrated (Frozen)** * **Action:** A search for `\\\"United States Standards for Grades of Dehydrated Grapefruit Juice\\\" site:ams.usda.gov` initially failed. A broader search for `\\\"dehydrated grapefruit juice\\\" site:ams.usda.gov` was successful. * **Result:** This led to the discovery of a comprehensive standard titled \\\"United States Standards for Grades of Grapefruit Juice\\\". * **Finding:** This single document, effective September 26, 2012, covers multiple grapefruit juice products. * For **Dehydrated Grapefruit Juice**, §52.1221(e) provides the product description, and Table V outlines its specific requirements. * For **Frozen Concentrated Grapefruit Juice**, §52.1221(c) provides the product description, and Table III outlines its specific requirements. * **Conclusion:** The standards for both products were superseded by this consolidated document. **3. Orange Juice (Dehydrated) & 7. Orange Juice, Concentrated (Frozen)** * **Action:** A search for `\\\"United States Standards for Grades of Dehydrated Orange Juice\\\" site:ams.usda.gov` initially failed. A broader search for `\\\"dehy\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c008\",\n        \"char_start\": 11480,\n        \"char_end\": 13280,\n        \"text\": \". Of these 7 standards, 6 were found to have been superseded by a new version since July 2, 1959. The standard for Frozen Apples was already in effect before 1959 and has not been superseded since. * **Total number of relevant standards:** 7 * **Number of standards superseded since July 2, 1959:** 6 The percentage of superseded standards is calculated as: (6 / 7) * 100 ≈ 85.714% **Rounding to the nearest percent, the final answer is 86%.**\\n---\\nLLM extracted final answer: **Step-by-step Analysis:** 1. The 1959 document’s “Dried and Dehydrated (Low-moisture)” list contains 12 items, but only those explicitly labelled “dehydrated” are to be used. These are: • Apples, Dehydrated (Low-moisture) • Grapefruit Juice (Dehydrated) • Orange Juice (Dehydrated) 2. For each of these three, we must also include any item in the “Frozen/Chilled” list whose title contains the whole name of the dehydrated item, excluding ones marked “Chilled.” Matching the frozen list yields: • Apples (Frozen) – contains “Apples” • Grapefruit Juice, Concentrated (Frozen) – contains “Grapefruit Juice” • Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) – contains both “Grapefruit Juice” and “Orange Juice” • Orange Juice, Concentrated (Frozen) – contains “Orange Juice” 3. Combining the three dehydrated items with these four frozen items gives 7 distinct standards to evaluate. 4. Research in the summary shows the current status (as of Aug 2023): • 6 of the 7 standards have been superseded (all except “Apples (Frozen)”). 5. Percentage superseded = (6 ÷ 7) × 100 ≈ 85.714 → rounded to the nearest whole percent = 86. **Final Answer:** \\\\boxed{86} **Confidence:** 82 **Supporting Evidence:** – List of 7 qualifying standards identified in the Agent Summary. – Table showing 6 marked “Superseded” and 1\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c006\",\n        \"char_start\": 8200,\n        \"char_end\": 10000,\n        \"text\": \"wberries * Succotash * Turnip Greens with Turnips * Vegetables, Mixed #### Step 2: Filtering and Compiling the Final Item List Based on the user's specific filtering rules, the lists were narrowed down to a final set of 7 standards for investigation: 1. **Apples, Dehydrated (Low-moisture)** (from the \\\"Dried or Dehydrated\\\" list) 2. **Grapefruit Juice (Dehydrated)** (from the \\\"Dried or Dehydrated\\\" list) 3. **Orange Juice (Dehydrated)** (from the \\\"Dried or Dehydrated\\\" list) 4. **Apples (Frozen)** (matches \\\"Apples\\\" from the dehydrated list) 5. **Grapefruit Juice, Concentrated (Frozen)** (matches \\\"Grapefruit Juice\\\" from the dehydrated list) 6. **Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)** (matches both \\\"Grapefruit Juice\\\" and \\\"Orange Juice\\\") 7. **Orange Juice, Concentrated (Frozen)** (matches \\\"Orange Juice\\\" from the dehydrated list) The item \\\"Orange Juice, Chilled\\\" was excluded as per the instructions. #### Step 3: Researching the Status of Each Standard The next step was to determine if the standard for each of the 7 items had been superseded since July 2, 1959. **Tool Call:** ```xml <use_mcp_tool> <server_name>agent-worker</server_name> <tool_name>execute_subtask</tool_name> <arguments> { \\\"subtask\\\": \\\"For the following list of 7 products from the 1959 'United States Standards for Grades', determine if the standard for each has been superseded. For each product, find the title and effective date of the current or most recent standard. Note if a standard was withdrawn or cancelled without replacement.\\\\n\\\\n1. Apples, Dehydrated (Low-moisture)\\\\n2. Grapefruit Juice (Dehydrated)\\\\n3. Orange Juice (Dehydrated)\\\\n4. Apples (Frozen)\\\\n5. Grapefruit Juice, Concentrated (Frozen)\\\\n6. Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)\\\\n7. Orange Juice, \"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c007\",\n        \"char_start\": 9840,\n        \"char_end\": 11640,\n        \"text\": \"drated)\\\\n4. Apples (Frozen)\\\\n5. Grapefruit Juice, Concentrated (Frozen)\\\\n6. Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen)\\\\n7. Orange Juice, Concentrated (Frozen)\\\" } </arguments> </use_mcp_tool> ``` **Result of Tool Call:** The research provided the status of each standard. The key findings are summarized in the table below. | # | Product Name | Status Since 1959 | Current/Latest Standard Effective Date | Finding Notes | |---|---|---|---|---| | 1 | Apples, Dehydrated (Low-moisture) | **Superseded** | July 31, 1977 | The 1977 standard is the \\\"second issue,\\\" replacing the previous version. | | 2 | Grapefruit Juice (Dehydrated) | **Superseded** | September 26, 2012 | Replaced by a consolidated standard for various grapefruit juice products. | | 3 | Orange Juice (Dehydrated) | **Superseded** | January 10, 1983 | Replaced by a consolidated standard that explicitly supersedes the prior dehydrated version. | | 4 | Apples (Frozen) | **Not Superseded** | May 17, 1954 | The standard in the 1959 document was the 1954 version. Research found no newer version issued since 1959. | | 5 | Grapefruit Juice, Concentrated (Frozen) | **Superseded** | September 26, 2012 | Replaced by the same consolidated standard for grapefruit juice. | | 6 | Grapefruit Juice and Orange Juice, Concentrated, Blended (Frozen) | **Superseded** | September 21, 1968 | A new version was issued in 1968. | | 7 | Orange Juice, Concentrated (Frozen) | **Superseded** | January 10, 1983 | Replaced by the same consolidated standard for orange juice. | ### 3. Final Answer The analysis identified 7 distinct standards that met the user's criteria. Of these 7 standards, 6 were found to have been superseded by a new version since July 2, 1959. The standard for Frozen Apples was already in effect before 19\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0247",
+        "first_error_span": "s012",
+        "linked_error_span_ids": [
+          "s012"
+        ],
+        "non_errors": [],
+        "reason": "short string",
+        "error_span_ids": [
+          "s012"
+        ],
+        "earliest_harmful_span_id": "s012"
+      },
+      "validated": {
+        "traj_id": "0247",
+        "first_error_span": "s012",
+        "linked_error_span_ids": [
+          "s012"
+        ],
+        "non_errors": [],
+        "reason": "short string",
+        "error_span_ids": [
+          "s012"
+        ],
+        "earliest_harmful_span_id": "s012"
+      }
+    },
+    "full_span_count": 12,
+    "evidence_span_count": 3
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 20730,
+    "output_tokens": 2242,
+    "total_tokens": 22972
+  }
+}

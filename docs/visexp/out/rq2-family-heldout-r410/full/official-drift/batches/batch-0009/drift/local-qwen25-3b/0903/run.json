@@ -1,0 +1,540 @@
+{
+  "setting": "drift",
+  "case_id": "0903",
+  "prediction": {
+    "traj_id": "0903",
+    "error_span_ids": [
+      "s003",
+      "s011"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "短字符串说明缺失支持"
+      },
+      {
+        "span_id": "s011",
+        "reason": "短字符串说明缺失支持"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0903\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"根据中央音乐学院校外音乐水平考级细则，如果选用《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》，从一级到演奏级共有十个级别，其音阶速度最低的平均值为♩=多少？将结果四舍五入到个位数。\",\n  \"traj_id\": \"0903\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"根据中央音乐学院校外音乐水平考级细则，如果选用《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》，从一级到演奏级共有十个级别，其音阶速度最低的平均值为♩=多少\\n---\\n中央音乐学院钢琴考级一级音阶速度要求\\n---\\n学琴记 首页 学琴 演奏 入门 乐理 教学 考级 曲谱 音乐书籍 资讯 钢琴 注册 登录 当前位置：首页 » 考级 » 中央音乐学院钢琴考级1~9级速度标准 中央音乐学院钢琴考级1~9级速度标准 2022-08-11 考级 标签：中央音乐学院钢琴考级 1—3级 1级乐曲无明确速度要求，音阶最低速度54每拍\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Code: ```py search_agent(task=\\\"中央音乐学院钢琴考级一级音阶速度要求\\\") ```<end_code>\\n---\\n中央音乐学院钢琴考级一级 音阶速度要求\\n---\\n中央音乐学院钢琴考级一级 基本练习\\n---\\nFor the Central Conservatory of Music (CCOM) Grade 1 Piano Examination, the minimum speed requirement for scales is **♩ = 54** (54 quarter\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我需要找出中央音乐学院钢琴考级一级到演奏级，每个级别音阶速度的最低要求，然后计算平均值\\n---\\n中央音乐学院钢琴考级二级音阶速度要求\\n---\\n中央音乐学院钢琴考级二级 C大调音阶\\n---\\n中央音乐学院钢琴考级二级 基本练习\\n---\\nThe minimum speed requirement for scales in the Central Conservatory of Music (CCOM) Grade 2 piano examination is **♩ = 66 BPM** (66 beats per minute), with each beat corresponding to a quarter note\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我已找到一级（Level 1）的音阶速度最低要求为 ♩=54\\n---\\n中央音乐学院钢琴考级三级音阶速度要求\\n---\\nThe speed requirement for the Central Conservatory of Music (CCOM) Grade 3 piano examination scales is **♩ = 72** (72 beats per minute), with the scales being played as **sixteenth notes** (four notes per beat)\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我现已查到一级和二级的音阶速度要求，分别是 ♩=54 和 ♩=66\\n---\\n中央音乐学院钢琴考级 音阶速度要求\\n---\\n{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Domain 'https\\n---\\n{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Domain 'https\\n---\\n中央音乐学院钢琴考级2024新版教材音阶速度要求\\n---\\n新的搜索 登录后保存搜索记录 登录账户可以保存和查看历史搜索记录 去登录 接入API，立即获得深度搜索能力\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我已获得一级至三级的音阶速度要求，分别为 ♩=54、♩=66 和 ♩=72\\n---\\n中央音乐学院钢琴考级四级音阶速度要求\\n---\\n请您登录后查看更多专业优质内容\\n---\\n学琴记 首页 学琴 演奏 入门 乐理 教学 考级 曲谱 音乐书籍 资讯 钢琴 注册 登录 当前位置：首页 » 考级 » 中央音乐学院钢琴考级1~9级速度标准 中央音乐学院钢琴考级1~9级速度标准 2022-08-11 考级 标签：中央音乐学院钢琴考级 1—3级 1级乐曲无明确速度要求，音阶最低速度54每拍\\n---\\n中央音乐学院钢琴考级第四级基本练习要求\\n---\\n中央音乐学院钢琴考级三级基本练习\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我之前的搜索策略是一次搜索多个级别，但似乎效果不佳\\n---\\n中央音乐学院钢琴考级四级音阶速度要求\\n---\\nThe minimum speed requirement for the Central Conservatory of Music (CCOM) Grade 4 piano examination scales is **♩ = 76 BPM** (76 beats per minute), played as sixteenth notes\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"之前的搜索失败了，我将再次尝试搜索四级的音阶速度要求\\n---\\n中央音乐学院钢琴考级 音阶速度要求\\n---\\n学琴记 首页 学琴 演奏 入门 乐理 教学 考级 曲谱 音乐书籍 资讯 钢琴 注册 登录 当前位置：首页 » 考级 » 中央音乐学院钢琴考级1~9级速度标准 中央音乐学院钢琴考级1~9级速度标准 2022-08-11 考级 标签：中央音乐学院钢琴考级 1—3级 1级乐曲无明确速度要求，音阶最低速度54每拍\\n---\\n中央音乐学院钢琴考级教程 音阶琶音速度要求\\n---\\n中央音乐学院钢琴考级第五级音阶速度\\n---\\n中央音乐学院钢琴考级新教材 速度要求\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我已找到一级至四级的速度要求，分别为 ♩=54、♩=66、♩=72 和 ♩=76\\n---\\n中央音乐学院钢琴考级五级音阶速度要求\\n---\\n学琴记 首页 学琴 演奏 入门 乐理 教学 考级 曲谱 音乐书籍 资讯 钢琴 注册 登录 当前位置：首页 » 考级 » 中央音乐学院钢琴考级1~9级速度标准 中央音乐学院钢琴考级1~9级速度标准 2022-08-11 考级 标签：中央音乐学院钢琴考级 1—3级 1级乐曲无明确速度要求，音阶最低速度54每拍\\n---\\n选择语言：简体中文 | English 网站首页 企业介绍 师资团队 办学特色 开设课程 考级比赛 办学成果 招生招聘 乐器销售 企业音讯 音乐话题 联系方式 联系我们 销售电话：0898-66274528 地址：海口市海甸岛人民大道50号罗牛山大夏A座三楼 电话：0898-66258758 邮件：hnlsk255@163\\n---\\nThe minimum speed requirement for scales in the Central Conservatory of Music (CCOM) Grade 5 piano examination is **♩ = 72** (72 beats per minute), with each beat corresponding to a quarter note\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我之前的多次尝试表明，一次性搜索多个级别的音阶速度要求是行不通的\\n---\\n中央音乐学院钢琴考级九级音阶速度要求\\n---\\n请您登录后查看更多专业优质内容\\n---\\n中央音乐学院钢琴考级九级大纲\\n---\\n跳至主要內容 跳至瀏覽 Eng | 簡 考評局簡介 考評局服務 香港中學文憑 文憑試資歷認可 全港性系統評估 全球評估及學習 國際及專業考試 活動 資源 人才招聘 中央音樂學院音樂水平等級術科考試 簡介 音樂/舞蹈/藝術考試 專業/職業考試 入學/預科考試 語文水平考試 學位考試 聯絡我們 主頁 > 國際及專業考試 > 中央音樂學院考試 2025年中央音樂學院音樂水平等級術科考試 — 證書 2025年7月中央音樂學院音樂水平等級術科考試\\n---\\n中央音乐学院钢琴考级九级教材 速度要求\\n---\\n中央音乐学院钢琴考级九级 音阶琶音 速度要求\\n---\\nThe speed requirement for the etudes and pieces in the Central Conservatory of Music's Grade 9 piano examination is a minimum of 180 beats per minute (BPM)\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我已获得一级至五级的音阶速度要求，分别为 ♩=54、♩=66、♩=72、♩=76 和 ♩=72\\n---\\n中央音乐学院钢琴考级 演奏级 音阶速度要求\\n---\\n中央音乐学院钢琴考级 演奏级\\n---\\n中央音乐学院钢琴演奏级 考级教材\\n---\\n中央音乐学院钢琴演奏级考级经验分享\\n---\\n中央音乐学院钢琴考级十级 音阶速度\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我已获得一级至九级的音阶速度要求，分别为：♩=54、♩=66、♩=72、♩=76、♩=72、♩=84、♩=88、♩=100、♩=120\\n---\\n中央音乐学院钢琴考级 演奏级音阶速度要求\\n---\\n中央音乐学院钢琴考级演奏级\\n---\\n中央音乐学院 钢琴 演奏级 基本练习 要求\\n---\\n中央音乐学院钢琴演奏级教材 基本练习\\n---\\nThe specific metronome speed for scales at the Central Conservatory of Music (CCOM) Piano **Performance Level (演奏级)** is not publicly listed on free\\n---\\n我之前的搜索遇到了问题，现在我将再次尝试搜索“演奏级”的音阶速度要求\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0903",
+        "task_goal": "计算中央音乐学院钢琴考级从一级到演奏级的音阶速度最低平均值。",
+        "hard_constraints": [
+          "中央音乐学院钢琴考级从一级到演奏级共有十个级别"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "中央音乐学院钢琴考级从一级到演奏级共有十个级别",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "中央音乐学院钢琴考级一级音阶速度要求为♩=54",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "中央音乐学院钢琴考级二级音阶速度要求为♩=66",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "中央音乐学院钢琴考级三级音阶速度要求为♩=72",
+            "introduced_at": "s004",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "中央音乐学院钢琴考级四级音阶速度要求为♩=76",
+            "introduced_at": "s007",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c6",
+            "claim": "中央音乐学院钢琴考级五级音阶速度要求为♩=72",
+            "introduced_at": "s009",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c7",
+            "claim": "中央音乐学院钢琴考级九级音阶速度要求为♩=120",
+            "introduced_at": "s012",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ],
+        "notes": "已找到一级至九级的音阶速度要求，计算平均值为 (54 + 66 + 72 + 76 + 72 + 84 + 88 + 100 + 120) / 9 ≈ 81.33，四舍五入后为81。"
+      },
+      "validated": {
+        "traj_id": "0903",
+        "task_goal": "计算中央音乐学院钢琴考级从一级到演奏级的音阶速度最低平均值。",
+        "hard_constraints": [
+          "中央音乐学院钢琴考级从一级到演奏级共有十个级别"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "中央音乐学院钢琴考级从一级到演奏级共有十个级别",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "中央音乐学院钢琴考级一级音阶速度要求为♩=54",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "中央音乐学院钢琴考级二级音阶速度要求为♩=66",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "中央音乐学院钢琴考级三级音阶速度要求为♩=72",
+            "introduced_at": "s004",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "中央音乐学院钢琴考级四级音阶速度要求为♩=76",
+            "introduced_at": "s007",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c6",
+            "claim": "中央音乐学院钢琴考级五级音阶速度要求为♩=72",
+            "introduced_at": "s009",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c7",
+            "claim": "中央音乐学院钢琴考级九级音阶速度要求为♩=120",
+            "introduced_at": "s012",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ],
+        "notes": "已找到一级至九级的音阶速度要求，计算平均值为 (54 + 66 + 72 + 76 + 72 + 84 + 88 + 100 + 120) / 9 ≈ 81.33，四舍五入后为81。"
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001",
+            "s011"
+          ],
+          "grep_queries": [
+            "中央音乐学院钢琴考级从一级到演奏级共有十个级别"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s002",
+            "s011"
+          ],
+          "grep_queries": [
+            "中央音乐学院钢琴考级一级音阶速度要求为♩=54"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s003",
+            "s011"
+          ],
+          "grep_queries": [
+            "中央音乐学院钢琴考级二级音阶速度要求为♩=66"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c4",
+          "span_ids": [
+            "s004",
+            "s011"
+          ],
+          "grep_queries": [
+            "中央音乐学院钢琴考级三级音阶速度要求为♩=72"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c5",
+          "span_ids": [
+            "s007",
+            "s011"
+          ],
+          "grep_queries": [
+            "中央音乐学院钢琴考级四级音阶速度要求为♩=76"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c6",
+          "span_ids": [
+            "s009",
+            "s011"
+          ],
+          "grep_queries": [
+            "中央音乐学院钢琴考级五级音阶速度要求为♩=72"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c7",
+          "span_ids": [
+            "s011",
+            "s012"
+          ],
+          "grep_queries": [
+            "中央音乐学院钢琴考级九级音阶速度要求为♩=120"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s002",
+        "s003",
+        "s004",
+        "s007",
+        "s009",
+        "s011",
+        "s012"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s002",
+        "s003",
+        "s004",
+        "s007",
+        "s009",
+        "s011",
+        "s012"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "中央音乐学院钢琴考级从一级到演奏级共有十个级别",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        },
+        {
+          "claim_id": "c2",
+          "query": "中央音乐学院钢琴考级一级音阶速度要求为♩=54",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        },
+        {
+          "claim_id": "c3",
+          "query": "中央音乐学院钢琴考级二级音阶速度要求为♩=66",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        },
+        {
+          "claim_id": "c4",
+          "query": "中央音乐学院钢琴考级三级音阶速度要求为♩=72",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        },
+        {
+          "claim_id": "c5",
+          "query": "中央音乐学院钢琴考级四级音阶速度要求为♩=76",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        },
+        {
+          "claim_id": "c6",
+          "query": "中央音乐学院钢琴考级五级音阶速度要求为♩=72",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        },
+        {
+          "claim_id": "c7",
+          "query": "中央音乐学院钢琴考级九级音阶速度要求为♩=120",
+          "matched_chunk_ids": [
+            "s012:c001"
+          ],
+          "matched_span_ids": [
+            "s012"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0903\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"根据中央音乐学院校外音乐水平考级细则，如果选用《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》，从一级到演奏级共有十个级别，其音阶速度最低的平均值为♩=多少？将结果四舍五入到个位数。\",\n  \"traj_id\": \"0903\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0903\",\n    \"task_goal\": \"计算中央音乐学院钢琴考级从一级到演奏级的音阶速度最低平均值。\",\n    \"hard_constraints\": [\n      \"中央音乐学院钢琴考级从一级到演奏级共有十个级别\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"中央音乐学院钢琴考级从一级到演奏级共有十个级别\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"中央音乐学院钢琴考级一级音阶速度要求为♩=54\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"中央音乐学院钢琴考级二级音阶速度要求为♩=66\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"中央音乐学院钢琴考级三级音阶速度要求为♩=72\",\n        \"introduced_at\": \"s004\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"中央音乐学院钢琴考级四级音阶速度要求为♩=76\",\n        \"introduced_at\": \"s007\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"claim\": \"中央音乐学院钢琴考级五级音阶速度要求为♩=72\",\n        \"introduced_at\": \"s009\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"claim\": \"中央音乐学院钢琴考级九级音阶速度要求为♩=120\",\n        \"introduced_at\": \"s012\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"已找到一级至九级的音阶速度要求，计算平均值为 (54 + 66 + 72 + 76 + 72 + 84 + 88 + 100 + 120) / 9 ≈ 81.33，四舍五入后为81。\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s007\",\n      \"s009\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s007\",\n      \"s009\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"中央音乐学院钢琴考级从一级到演奏级共有十个级别\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"中央音乐学院钢琴考级一级音阶速度要求为♩=54\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"中央音乐学院钢琴考级二级音阶速度要求为♩=66\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"中央音乐学院钢琴考级三级音阶速度要求为♩=72\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"query\": \"中央音乐学院钢琴考级四级音阶速度要求为♩=76\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"query\": \"中央音乐学院钢琴考级五级音阶速度要求为♩=72\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"query\": \"中央音乐学院钢琴考级九级音阶速度要求为♩=120\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s007\",\n      \"s009\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 269,\n        \"text\": \"根据中央音乐学院校外音乐水平考级细则，如果选用《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》，从一级到演奏级共有十个级别，其音阶速度最低的平均值为♩=多少\\n---\\n中央音乐学院钢琴考级一级音阶速度要求\\n---\\n学琴记 首页 学琴 演奏 入门 乐理 教学 考级 曲谱 音乐书籍 资讯 钢琴 注册 登录 当前位置：首页 » 考级 » 中央音乐学院钢琴考级1~9级速度标准 中央音乐学院钢琴考级1~9级速度标准 2022-08-11 考级 标签：中央音乐学院钢琴考级 1—3级 1级乐曲无明确速度要求，音阶最低速度54每拍\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 254,\n        \"text\": \"Code: ```py search_agent(task=\\\"中央音乐学院钢琴考级一级音阶速度要求\\\") ```<end_code>\\n---\\n中央音乐学院钢琴考级一级 音阶速度要求\\n---\\n中央音乐学院钢琴考级一级 基本练习\\n---\\nFor the Central Conservatory of Music (CCOM) Grade 1 Piano Examination, the minimum speed requirement for scales is **♩ = 54** (54 quarter\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 314,\n        \"text\": \"我需要找出中央音乐学院钢琴考级一级到演奏级，每个级别音阶速度的最低要求，然后计算平均值\\n---\\n中央音乐学院钢琴考级二级音阶速度要求\\n---\\n中央音乐学院钢琴考级二级 C大调音阶\\n---\\n中央音乐学院钢琴考级二级 基本练习\\n---\\nThe minimum speed requirement for scales in the Central Conservatory of Music (CCOM) Grade 2 piano examination is **♩ = 66 BPM** (66 beats per minute), with each beat corresponding to a quarter note\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 268,\n        \"text\": \"我已找到一级（Level 1）的音阶速度最低要求为 ♩=54\\n---\\n中央音乐学院钢琴考级三级音阶速度要求\\n---\\nThe speed requirement for the Central Conservatory of Music (CCOM) Grade 3 piano examination scales is **♩ = 72** (72 beats per minute), with the scales being played as **sixteenth notes** (four notes per beat)\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 227,\n        \"text\": \"我之前的搜索策略是一次搜索多个级别，但似乎效果不佳\\n---\\n中央音乐学院钢琴考级四级音阶速度要求\\n---\\nThe minimum speed requirement for the Central Conservatory of Music (CCOM) Grade 4 piano examination scales is **♩ = 76 BPM** (76 beats per minute), played as sixteenth notes\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 587,\n        \"text\": \"我已找到一级至四级的速度要求，分别为 ♩=54、♩=66、♩=72 和 ♩=76\\n---\\n中央音乐学院钢琴考级五级音阶速度要求\\n---\\n学琴记 首页 学琴 演奏 入门 乐理 教学 考级 曲谱 音乐书籍 资讯 钢琴 注册 登录 当前位置：首页 » 考级 » 中央音乐学院钢琴考级1~9级速度标准 中央音乐学院钢琴考级1~9级速度标准 2022-08-11 考级 标签：中央音乐学院钢琴考级 1—3级 1级乐曲无明确速度要求，音阶最低速度54每拍\\n---\\n选择语言：简体中文 | English 网站首页 企业介绍 师资团队 办学特色 开设课程 考级比赛 办学成果 招生招聘 乐器销售 企业音讯 音乐话题 联系方式 联系我们 销售电话：0898-66274528 地址：海口市海甸岛人民大道50号罗牛山大夏A座三楼 电话：0898-66258758 邮件：hnlsk255@163\\n---\\nThe minimum speed requirement for scales in the Central Conservatory of Music (CCOM) Grade 5 piano examination is **♩ = 72** (72 beats per minute), with each beat corresponding to a quarter note\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 157,\n        \"text\": \"我已获得一级至五级的音阶速度要求，分别为 ♩=54、♩=66、♩=72、♩=76 和 ♩=72\\n---\\n中央音乐学院钢琴考级 演奏级 音阶速度要求\\n---\\n中央音乐学院钢琴考级 演奏级\\n---\\n中央音乐学院钢琴演奏级 考级教材\\n---\\n中央音乐学院钢琴演奏级考级经验分享\\n---\\n中央音乐学院钢琴考级十级 音阶速度\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 351,\n        \"text\": \"我已获得一级至九级的音阶速度要求，分别为：♩=54、♩=66、♩=72、♩=76、♩=72、♩=84、♩=88、♩=100、♩=120\\n---\\n中央音乐学院钢琴考级 演奏级音阶速度要求\\n---\\n中央音乐学院钢琴考级演奏级\\n---\\n中央音乐学院 钢琴 演奏级 基本练习 要求\\n---\\n中央音乐学院钢琴演奏级教材 基本练习\\n---\\nThe specific metronome speed for scales at the Central Conservatory of Music (CCOM) Piano **Performance Level (演奏级)** is not publicly listed on free\\n---\\n我之前的搜索遇到了问题，现在我将再次尝试搜索“演奏级”的音阶速度要求\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0903",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s001",
+              "s002",
+              "s003",
+              "s004",
+              "s007",
+              "s009",
+              "s011",
+              "s012"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串说明缺失支持",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s001",
+                "chunk_id": "s001:c001",
+                "role": "partial_support",
+                "text": "中央音乐学院钢琴考级从一级到演奏级共有十个级别"
+              },
+              {
+                "span_id": "s002",
+                "chunk_id": "s002:c001",
+                "role": "partial_support",
+                "text": "中央音乐学院钢琴考级一级音阶速度要求为♩=54"
+              },
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "中央音乐学院钢琴考级二级音阶速度要求为♩=66"
+              },
+              {
+                "span_id": "s004",
+                "chunk_id": "s004:c001",
+                "role": "partial_support",
+                "text": "中央音乐学院钢琴考级三级音阶速度要求为♩=72"
+              },
+              {
+                "span_id": "s007",
+                "chunk_id": "s007:c001",
+                "role": "partial_support",
+                "text": "中央音乐学院钢琴考级四级音阶速度要求为♩=76"
+              },
+              {
+                "span_id": "s009",
+                "chunk_id": "s009:c001",
+                "role": "partial_support",
+                "text": "中央音乐学院钢琴考级五级音阶速度要求为♩=72"
+              },
+              {
+                "span_id": "s011",
+                "chunk_id": "s011:c001",
+                "role": "partial_support",
+                "text": "中央音乐学院钢琴考级一级至五级的音阶速度要求分别为♩=54、♩=66、♩=72、♩=76和♩=72"
+              },
+              {
+                "span_id": "s012",
+                "chunk_id": "s012:c001",
+                "role": "partial_support",
+                "text": "中央音乐学院钢琴考级九级音阶速度要求为♩=120"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串说明缺失支持"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s001",
+            "s002",
+            "s003",
+            "s004",
+            "s007",
+            "s009",
+            "s011",
+            "s012"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串说明缺失支持",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s001",
+              "chunk_id": "s001:c001",
+              "role": "partial_support",
+              "text": "中央音乐学院钢琴考级从一级到演奏级共有十个级别"
+            },
+            {
+              "span_id": "s002",
+              "chunk_id": "s002:c001",
+              "role": "partial_support",
+              "text": "中央音乐学院钢琴考级一级音阶速度要求为♩=54"
+            },
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "中央音乐学院钢琴考级二级音阶速度要求为♩=66"
+            },
+            {
+              "span_id": "s004",
+              "chunk_id": "s004:c001",
+              "role": "partial_support",
+              "text": "中央音乐学院钢琴考级三级音阶速度要求为♩=72"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0903\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"根据中央音乐学院校外音乐水平考级细则，如果选用《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》，从一级到演奏级共有十个级别，其音阶速度最低的平均值为♩=多少？将结果四舍五入到个位数。\",\n  \"traj_id\": \"0903\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0903\",\n    \"task_goal\": \"计算中央音乐学院钢琴考级从一级到演奏级的音阶速度最低平均值。\",\n    \"hard_constraints\": [\n      \"中央音乐学院钢琴考级从一级到演奏级共有十个级别\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"中央音乐学院钢琴考级从一级到演奏级共有十个级别\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"中央音乐学院钢琴考级一级音阶速度要求为♩=54\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"中央音乐学院钢琴考级二级音阶速度要求为♩=66\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"中央音乐学院钢琴考级三级音阶速度要求为♩=72\",\n        \"introduced_at\": \"s004\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"中央音乐学院钢琴考级四级音阶速度要求为♩=76\",\n        \"introduced_at\": \"s007\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"claim\": \"中央音乐学院钢琴考级五级音阶速度要求为♩=72\",\n        \"introduced_at\": \"s009\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"claim\": \"中央音乐学院钢琴考级九级音阶速度要求为♩=120\",\n        \"introduced_at\": \"s012\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"已找到一级至九级的音阶速度要求，计算平均值为 (54 + 66 + 72 + 76 + 72 + 84 + 88 + 100 + 120) / 9 ≈ 81.33，四舍五入后为81。\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s001\",\n        \"s002\",\n        \"s003\",\n        \"s004\",\n        \"s007\",\n        \"s009\",\n        \"s011\",\n        \"s012\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串说明缺失支持\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s001\",\n          \"chunk_id\": \"s001:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"中央音乐学院钢琴考级从一级到演奏级共有十个级别\"\n        },\n        {\n          \"span_id\": \"s002\",\n          \"chunk_id\": \"s002:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"中央音乐学院钢琴考级一级音阶速度要求为♩=54\"\n        },\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"中央音乐学院钢琴考级二级音阶速度要求为♩=66\"\n        },\n        {\n          \"span_id\": \"s004\",\n          \"chunk_id\": \"s004:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"中央音乐学院钢琴考级三级音阶速度要求为♩=72\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s007\",\n      \"s009\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s007\",\n      \"s009\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"中央音乐学院钢琴考级从一级到演奏级共有十个级别\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"中央音乐学院钢琴考级一级音阶速度要求为♩=54\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"中央音乐学院钢琴考级二级音阶速度要求为♩=66\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"中央音乐学院钢琴考级三级音阶速度要求为♩=72\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"query\": \"中央音乐学院钢琴考级四级音阶速度要求为♩=76\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c6\",\n        \"query\": \"中央音乐学院钢琴考级五级音阶速度要求为♩=72\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c7\",\n        \"query\": \"中央音乐学院钢琴考级九级音阶速度要求为♩=120\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s007\",\n      \"s009\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 269,\n        \"text\": \"根据中央音乐学院校外音乐水平考级细则，如果选用《新编中央音乐学院校外音乐水平考级教程丛书——钢琴（业余）考级教程》，从一级到演奏级共有十个级别，其音阶速度最低的平均值为♩=多少\\n---\\n中央音乐学院钢琴考级一级音阶速度要求\\n---\\n学琴记 首页 学琴 演奏 入门 乐理 教学 考级 曲谱 音乐书籍 资讯 钢琴 注册 登录 当前位置：首页 » 考级 » 中央音乐学院钢琴考级1~9级速度标准 中央音乐学院钢琴考级1~9级速度标准 2022-08-11 考级 标签：中央音乐学院钢琴考级 1—3级 1级乐曲无明确速度要求，音阶最低速度54每拍\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 254,\n        \"text\": \"Code: ```py search_agent(task=\\\"中央音乐学院钢琴考级一级音阶速度要求\\\") ```<end_code>\\n---\\n中央音乐学院钢琴考级一级 音阶速度要求\\n---\\n中央音乐学院钢琴考级一级 基本练习\\n---\\nFor the Central Conservatory of Music (CCOM) Grade 1 Piano Examination, the minimum speed requirement for scales is **♩ = 54** (54 quarter\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 314,\n        \"text\": \"我需要找出中央音乐学院钢琴考级一级到演奏级，每个级别音阶速度的最低要求，然后计算平均值\\n---\\n中央音乐学院钢琴考级二级音阶速度要求\\n---\\n中央音乐学院钢琴考级二级 C大调音阶\\n---\\n中央音乐学院钢琴考级二级 基本练习\\n---\\nThe minimum speed requirement for scales in the Central Conservatory of Music (CCOM) Grade 2 piano examination is **♩ = 66 BPM** (66 beats per minute), with each beat corresponding to a quarter note\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 268,\n        \"text\": \"我已找到一级（Level 1）的音阶速度最低要求为 ♩=54\\n---\\n中央音乐学院钢琴考级三级音阶速度要求\\n---\\nThe speed requirement for the Central Conservatory of Music (CCOM) Grade 3 piano examination scales is **♩ = 72** (72 beats per minute), with the scales being played as **sixteenth notes** (four notes per beat)\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 227,\n        \"text\": \"我之前的搜索策略是一次搜索多个级别，但似乎效果不佳\\n---\\n中央音乐学院钢琴考级四级音阶速度要求\\n---\\nThe minimum speed requirement for the Central Conservatory of Music (CCOM) Grade 4 piano examination scales is **♩ = 76 BPM** (76 beats per minute), played as sixteenth notes\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 587,\n        \"text\": \"我已找到一级至四级的速度要求，分别为 ♩=54、♩=66、♩=72 和 ♩=76\\n---\\n中央音乐学院钢琴考级五级音阶速度要求\\n---\\n学琴记 首页 学琴 演奏 入门 乐理 教学 考级 曲谱 音乐书籍 资讯 钢琴 注册 登录 当前位置：首页 » 考级 » 中央音乐学院钢琴考级1~9级速度标准 中央音乐学院钢琴考级1~9级速度标准 2022-08-11 考级 标签：中央音乐学院钢琴考级 1—3级 1级乐曲无明确速度要求，音阶最低速度54每拍\\n---\\n选择语言：简体中文 | English 网站首页 企业介绍 师资团队 办学特色 开设课程 考级比赛 办学成果 招生招聘 乐器销售 企业音讯 音乐话题 联系方式 联系我们 销售电话：0898-66274528 地址：海口市海甸岛人民大道50号罗牛山大夏A座三楼 电话：0898-66258758 邮件：hnlsk255@163\\n---\\nThe minimum speed requirement for scales in the Central Conservatory of Music (CCOM) Grade 5 piano examination is **♩ = 72** (72 beats per minute), with each beat corresponding to a quarter note\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 157,\n        \"text\": \"我已获得一级至五级的音阶速度要求，分别为 ♩=54、♩=66、♩=72、♩=76 和 ♩=72\\n---\\n中央音乐学院钢琴考级 演奏级 音阶速度要求\\n---\\n中央音乐学院钢琴考级 演奏级\\n---\\n中央音乐学院钢琴演奏级 考级教材\\n---\\n中央音乐学院钢琴演奏级考级经验分享\\n---\\n中央音乐学院钢琴考级十级 音阶速度\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 351,\n        \"text\": \"我已获得一级至九级的音阶速度要求，分别为：♩=54、♩=66、♩=72、♩=76、♩=72、♩=84、♩=88、♩=100、♩=120\\n---\\n中央音乐学院钢琴考级 演奏级音阶速度要求\\n---\\n中央音乐学院钢琴考级演奏级\\n---\\n中央音乐学院 钢琴 演奏级 基本练习 要求\\n---\\n中央音乐学院钢琴演奏级教材 基本练习\\n---\\nThe specific metronome speed for scales at the Central Conservatory of Music (CCOM) Piano **Performance Level (演奏级)** is not publicly listed on free\\n---\\n我之前的搜索遇到了问题，现在我将再次尝试搜索“演奏级”的音阶速度要求\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0903",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串说明缺失支持",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0903",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011"
+        ],
+        "non_errors": [
+          "s004"
+        ],
+        "reason": "短字符串说明缺失支持",
+        "error_span_ids": [
+          "s003",
+          "s011"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 12,
+    "evidence_span_count": 8
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 11241,
+    "output_tokens": 1578,
+    "total_tokens": 12819
+  }
+}

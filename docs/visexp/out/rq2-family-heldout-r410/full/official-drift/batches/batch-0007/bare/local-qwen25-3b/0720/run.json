@@ -1,0 +1,57 @@
+{
+  "setting": "bare",
+  "case_id": "0720",
+  "prediction": {
+    "traj_id": "0720",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0720\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"The Metropolitan Museum of Art has a portrait in its collection with an accession number of 29.100.5. Of the consecrators and co-consecrators of this portrait's subject as a bishop, what is the name of the one who never became pope?\",\n  \"traj_id\": \"0720\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"The Metropolitan Museum of Art has a portrait in its collection with an accession number of 29\\n---\\nMetropolitan Museum of Art accession number 29.100.5\\n---\\nSkip to main content Donate Membership Tickets Visit Exhibitions and Events Art Learn with Us Research Shop The Met Collection Search Art Cardinal Fernando Niño de Guevara (1541–1609) Select language English Cardinal Fer\\n---\\nEl Greco Cardinal Fernando Niño de Guevara 29.100.5 H.O. Havemeyer collection history\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nH.O. Havemeyer collection Metropolitan Museum bequest 1929 history\\n---\\nEl Greco Cardinal Guevara Inquisitor General Spain 1599 biography\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nLouisine Havemeyer art collector El Greco paintings bequest Metropolitan Museum\\n---\\nEl Greco mannerism style Toledo Spain artistic significance influence\\n---\\n\\\"29.100\\\" Havemeyer bequest 1929 Metropolitan Museum accession number system\\n---\\nEl Greco Cardinal Guevara portrait psychological intensity Titian influence modern painting\\n---\\n\\\\n\\\\nMetropolitan Museum of Art accession number 29\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Niccolò Albergati bishop consecration\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Life Toggle Life subsection Education and priesthood Episcopate Cardinalate Mentorship Death Beatification See also References External li\\n---\\nPietro Ondedi bishop Imola 1417\\n---\\nOrigin is unreachable Error code 523 Visit cloudflare\\n---\\nPietro Bolardi bishop Ferrara 1417\\n---\\nTommaso Perenduli archbishop Ravenna 1417\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Origin is unreachable Error code 523 Visit cloudflare\\n---\\n\\\"Tommaso Perenduli\\\" OR \\\"Tommaso Perendoli\\\" archbishop Ravenna biography\\n---\\nOrigin is unreachable Error code 523 Visit cloudflare\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Pietro Ondedi bishop Imola catholic hierarchy\\n---\\n\\\"Pietro Bolardi\\\" OR \\\"Petrus Bolardi\\\" bishop Ferrara\\n---\\n\\\\n\\\\nNiccolò Albergati was consecrated as Bishop of Bologna on **4 July 1417**\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Cardinal Antonio Correr pope papacy\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Early life Pontificate Toggle Pontificate subsection Negotiations to end the schism Resolution of the schism Retirement and death Historio\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Great Western Schism Council of Constance 1415\\n---\\nAntonio Correr cardinal nephew Pope Gregory XII Correr family Venice\\n---\\nPope Eugene IV Gabriele Condulmer cousin Antonio Correr\\n---\\nAntonio Correr Dean College Cardinals 1438 Camerlengo\\n---\\n\\\\n\\\\nCardinal Antonio Correr (1359\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Cardinal Giordano Orsini pope papacy\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Orsini family popes Nicholas III Celestine III Benedictus XIII\\n---\\n\\\"Giordano Orsini\\\" cardinal papabile papal conclave candidate\\n---\\n\\\"Giordano Orsini\\\" 1431 papal conclave Eugenius IV election\\n---\\nOrsini family popes complete list Stephen II Paul I\\n---\\n\\\"Giordano Orsini\\\" 1438 death Dean Sacred College Cardinals\\n---\\n\\\\n\\\\nCardinal Giordano Orsini (1360/70\\n---\\nGiordano Orsini cardinal biography\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nGiordano Orsini 1438 papal conclave pope candidate\\n---\\nOrsini family popes cardinals history\\n---\\n1431 papal conclave Martin V death cardinals election\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Giordano Orsini 1438 death why never became pope papabile\\n---\\nGiordano Orsini 1406 1417 papal conclave candidate papabile\\n---\\nSede Vacante 1406 November 6 —November 30, 1406 [Roman Obedience] Castel S\\n---\\nOrsini family three popes Celestine III Nicholas III Benedict XIII\\n---\\nCardinal Giordano Orsini (1360/70\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll solve this step by step, following the plan to identify the portrait and then find the consecrator who never became pope\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0720",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 11
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1924,
+    "output_tokens": 68,
+    "total_tokens": 1992
+  }
+}

@@ -1,0 +1,432 @@
+{
+  "setting": "drift",
+  "case_id": "0791",
+  "prediction": {
+    "traj_id": "0791",
+    "error_span_ids": [
+      "s003",
+      "s011",
+      "s012"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "short string"
+      },
+      {
+        "span_id": "s011",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0791\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"A 5-man group made up of one tank, one healer, and three DPS is doing a dungeon that was just released in World of Warcraft. Two are plate wearers and two are cloth wearers. At the final boss, both the tank and the healer are casting holy spells. Ice and fire are being used, each one by a different DPS. A bear from the group is attacking the boss. Metamorphosis is cast. The Kilt of the Forgotten One drops as loot, but no one can use it. If all classes were using their class abilities and all classes are unique, what are the five classes in the group in alphabetical order separated by commas?\",\n  \"traj_id\": \"0791\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"A 5-man group made up of one tank, one healer, and three DPS is doing a dungeon that was just released in World of Warcraft\\n---\\nworld of warcraft tank specializations\\n---\\nProtection Paladin spells World of Warcraft\\n---\\n{\\\"data\\\":null,\\\"cause\\\":{},\\\"code\\\":422,\\\"name\\\":\\\"AssertionFailureError\\\",\\\"status\\\":42206,\\\"message\\\":\\\"Failed to goto http://https\\n---\\n{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Domain 'https\\n---\\nProtection Paladin spell school and armor type\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"Protection Paladin\\\" \\\"armor type\\\" \\\"spell school\\\"\\n---\\nProtection Paladin spells wow\\n---\\nProtection Paladin holy spells world of warcraft\\n---\\nProtection Paladin armor type world of warcraft\\n---\\nThe only World of Warcraft tank specialization that uses holy spells is the **Protection Paladin**\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Code: ```py print(search_agent(task=\\\"Which World of Warcraft tank specializations use holy spells and what is their armor type\\n---\\nworld of warcraft healer specializations\\n---\\nWOW RETAIL CLASSIC TBC MISTS ··· DIABLO IV ··· LIVE PTR 12\\n---\\nworld of warcraft priest armor type\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have identified the tank as a Protection Paladin, which wears Plate armor\\n---\\nWorld of Warcraft healer specializations\\n---\\nWOW RETAIL CLASSIC TBC MISTS ··· DIABLO IV ··· LIVE PTR 12\\n---\\nWorld of Warcraft Holy Paladin spell school\\n---\\nWOW RETAIL CLASSIC TBC MISTS ··· DIABLO IV ··· LIVE PTR 12\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have identified the tank as a Protection Paladin, which wears Plate armor\\n---\\nwow healer holy spells armor type\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"all healer specializations in World of Warcraft\\n---\\nWorld of Warcraft healer specializations magic school and armor type\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Restoration Druid magic school and armor type\\n---\\nMistweaver Monk magic school and armor type\\n---\\nHoly Paladin magic school and armor type\\n---\\nDiscipline Priest magic school and armor type\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I have identified the tank as a Protection Paladin (Plate)\\n---\\nWorld of Warcraft healer specializations\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"WOW RETAIL CLASSIC TBC MISTS ··· DIABLO IV ··· LIVE PTR 12\\n---\\nDruid armor type world of warcraft\\n---\\nMonk armor type world of warcraft\\n---\\nPaladin armor type world of warcraft\\n---\\nPriest armor type world of warcraft\\n---\\nShaman armor type world of warcraft\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"The search agent is failing to respond to my queries about healer specializations\\n---\\ncurrent world of warcraft expansion\\n---\\nworld of warcraft dragonflight healer classes\\n---\\nRestoration Druid guide Dragonflight\\n---\\nDiscipline Priest guide Dragonflight\\n---\\nWOW RETAIL CLASSIC TBC MISTS ··· DIABLO IV ··· LIVE PTR 12\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'm still facing issues with the `search_agent`\\n---\\n\\\"Kilt of the Forgotten One\\\" wowhead\\n---\\nWOW RETAIL CLASSIC TBC WRATH MISTS ··· DIABLO IV ··· LOG IN WITH: Battle\\n---\\nThought: I have been tasked with identifying a 5-man group in World of Warcraft based on a series of clues\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"My reasoning has led me to the conclusion that the five classes are Death Knight, Druid, Paladin, Priest, and Warlock\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "The tank is a Protection Paladin who wears Plate armor.",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s012"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "The healer is a Holy Paladin who wears Plate armor.",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s012"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "The DPS classes are Death Knight, Druid, Paladin, Priest, and Warlock.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s012",
+            "used_by": [
+              "s012"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0791",
+        "task_goal": "",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "The tank is a Protection Paladin who wears Plate armor.",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s012"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "The healer is a Holy Paladin who wears Plate armor.",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s012"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "The DPS classes are Death Knight, Druid, Paladin, Priest, and Warlock.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s012",
+            "used_by": [
+              "s012"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s003",
+            "s011",
+            "s012"
+          ],
+          "grep_queries": [
+            "The tank is a Protection Paladin who wears Plate armor."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s003",
+            "s011",
+            "s012"
+          ],
+          "grep_queries": [
+            "The healer is a Holy Paladin who wears Plate armor."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s011",
+            "s012"
+          ],
+          "grep_queries": [
+            "The DPS classes are Death Knight, Druid, Paladin, Priest, and Warlock."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s003",
+        "s011",
+        "s012"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s002",
+        "s003",
+        "s004",
+        "s005",
+        "s007",
+        "s011",
+        "s012"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "The tank is a Protection Paladin who wears Plate armor.",
+          "matched_chunk_ids": [
+            "s002:c001",
+            "s004:c001",
+            "s005:c001",
+            "s001:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s002",
+            "s004",
+            "s005"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "The healer is a Holy Paladin who wears Plate armor.",
+          "matched_chunk_ids": [
+            "s002:c001",
+            "s004:c001",
+            "s005:c001",
+            "s007:c001"
+          ],
+          "matched_span_ids": [
+            "s002",
+            "s004",
+            "s005",
+            "s007"
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "query": "The DPS classes are Death Knight, Druid, Paladin, Priest, and Warlock.",
+          "matched_chunk_ids": [
+            "s012:c001",
+            "s002:c001",
+            "s007:c001",
+            "s001:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s002",
+            "s007",
+            "s012"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0791\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"A 5-man group made up of one tank, one healer, and three DPS is doing a dungeon that was just released in World of Warcraft. Two are plate wearers and two are cloth wearers. At the final boss, both the tank and the healer are casting holy spells. Ice and fire are being used, each one by a different DPS. A bear from the group is attacking the boss. Metamorphosis is cast. The Kilt of the Forgotten One drops as loot, but no one can use it. If all classes were using their class abilities and all classes are unique, what are the five classes in the group in alphabetical order separated by commas?\",\n  \"traj_id\": \"0791\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0791\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"The tank is a Protection Paladin who wears Plate armor.\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s012\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"The healer is a Holy Paladin who wears Plate armor.\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s012\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"The DPS classes are Death Knight, Druid, Paladin, Priest, and Warlock.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s012\",\n        \"used_by\": [\n          \"s012\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"requested_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"The tank is a Protection Paladin who wears Plate armor.\",\n        \"matched_chunk_ids\": [\n          \"s002:c001\",\n          \"s004:c001\",\n          \"s005:c001\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s004\",\n          \"s005\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"The healer is a Holy Paladin who wears Plate armor.\",\n        \"matched_chunk_ids\": [\n          \"s002:c001\",\n          \"s004:c001\",\n          \"s005:c001\",\n          \"s007:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s002\",\n          \"s004\",\n          \"s005\",\n          \"s007\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"The DPS classes are Death Knight, Druid, Paladin, Priest, and Warlock.\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s002:c001\",\n          \"s007:c001\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s007\",\n          \"s012\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s007\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 274,\n        \"text\": \"Code: ```py print(search_agent(task=\\\"Which World of Warcraft tank specializations use holy spells and what is their armor type\\n---\\nworld of warcraft healer specializations\\n---\\nWOW RETAIL CLASSIC TBC MISTS ··· DIABLO IV ··· LIVE PTR 12\\n---\\nworld of warcraft priest armor type\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 275,\n        \"text\": \"I'm still facing issues with the `search_agent`\\n---\\n\\\"Kilt of the Forgotten One\\\" wowhead\\n---\\nWOW RETAIL CLASSIC TBC WRATH MISTS ··· DIABLO IV ··· LOG IN WITH: Battle\\n---\\nThought: I have been tasked with identifying a 5-man group in World of Warcraft based on a series of clues\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 117,\n        \"text\": \"My reasoning has led me to the conclusion that the five classes are Death Knight, Druid, Paladin, Priest, and Warlock\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 290,\n        \"text\": \"\\\"Protection Paladin\\\" \\\"armor type\\\" \\\"spell school\\\"\\n---\\nProtection Paladin spells wow\\n---\\nProtection Paladin holy spells world of warcraft\\n---\\nProtection Paladin armor type world of warcraft\\n---\\nThe only World of Warcraft tank specialization that uses holy spells is the **Protection Paladin**\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 294,\n        \"text\": \"I have identified the tank as a Protection Paladin, which wears Plate armor\\n---\\nWorld of Warcraft healer specializations\\n---\\nWOW RETAIL CLASSIC TBC MISTS ··· DIABLO IV ··· LIVE PTR 12\\n---\\nWorld of Warcraft Holy Paladin spell school\\n---\\nWOW RETAIL CLASSIC TBC MISTS ··· DIABLO IV ··· LIVE PTR 12\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 113,\n        \"text\": \"I have identified the tank as a Protection Paladin, which wears Plate armor\\n---\\nwow healer holy spells armor type\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 500,\n        \"text\": \"A 5-man group made up of one tank, one healer, and three DPS is doing a dungeon that was just released in World of Warcraft\\n---\\nworld of warcraft tank specializations\\n---\\nProtection Paladin spells World of Warcraft\\n---\\n{\\\"data\\\":null,\\\"cause\\\":{},\\\"code\\\":422,\\\"name\\\":\\\"AssertionFailureError\\\",\\\"status\\\":42206,\\\"message\\\":\\\"Failed to goto http://https\\n---\\n{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Domain 'https\\n---\\nProtection Paladin spell school and armor type\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 188,\n        \"text\": \"Restoration Druid magic school and armor type\\n---\\nMistweaver Monk magic school and armor type\\n---\\nHoly Paladin magic school and armor type\\n---\\nDiscipline Priest magic school and armor type\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0791",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s003",
+              "s008"
+            ],
+            "support_status": "weak",
+            "missing_support": "The claim is supported by the text that the tank is a Protection Paladin who wears Plate armor, but the exact classes of the other members of the group are not explicitly mentioned.",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "Protection Paladin spells World of Warcraft"
+              },
+              {
+                "span_id": "s008",
+                "chunk_id": "s008:c001",
+                "role": "partial_support",
+                "text": "Holy Paladin spell school"
+              }
+            ]
+          },
+          {
+            "claim_id": "c2",
+            "support_spans": [
+              "s003",
+              "s008"
+            ],
+            "support_status": "weak",
+            "missing_support": "The claim is supported by the text that the healer is a Holy Paladin who wears Plate armor, but the exact classes of the other members of the group are not explicitly mentioned.",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "Holy Paladin spell school"
+              },
+              {
+                "span_id": "s008",
+                "chunk_id": "s008:c001",
+                "role": "partial_support",
+                "text": "Holy Paladin spell school"
+              }
+            ]
+          },
+          {
+            "claim_id": "c3",
+            "support_spans": [
+              "s011",
+              "s012"
+            ],
+            "support_status": "weak",
+            "missing_support": "The claim is supported by the text that the DPS classes are Death Knight, Druid, Paladin, Priest, and Warlock, but the exact classes of the other members of the group are not explicitly mentioned.",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s011",
+                "chunk_id": "s011:c001",
+                "role": "partial_support",
+                "text": "My reasoning has led me to the conclusion that the five classes are Death Knight, Druid, Paladin, Priest, and Warlock"
+              },
+              {
+                "span_id": "s012",
+                "chunk_id": "s012:c001",
+                "role": "partial_support",
+                "text": "My reasoning has led me to the conclusion that the five classes are Death Knight, Druid, Paladin, Priest, and Warlock"
+              }
+            ]
+          }
+        ],
+        "notes": "The claims about the tank and healer are supported by the text, but the exact classes of the other members of the group are not explicitly mentioned."
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s003"
+          ],
+          "support_status": "weak",
+          "missing_support": "The claim is supported by the text that the tank is a Protection Paladin who wears Plate armor, but the exact classes of the other members of the group are not explicitly mentioned.",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "Protection Paladin spells World of Warcraft"
+            }
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "support_spans": [
+            "s003"
+          ],
+          "support_status": "weak",
+          "missing_support": "The claim is supported by the text that the healer is a Holy Paladin who wears Plate armor, but the exact classes of the other members of the group are not explicitly mentioned.",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "Holy Paladin spell school"
+            }
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "support_spans": [
+            "s011",
+            "s012"
+          ],
+          "support_status": "weak",
+          "missing_support": "The claim is supported by the text that the DPS classes are Death Knight, Druid, Paladin, Priest, and Warlock, but the exact classes of the other members of the group are not explicitly mentioned.",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s011",
+              "chunk_id": "s011:c001",
+              "role": "partial_support",
+              "text": "My reasoning has led me to the conclusion that the five classes are Death Knight, Druid, Paladin, Priest, and Warlock"
+            },
+            {
+              "span_id": "s012",
+              "chunk_id": "s012:c001",
+              "role": "partial_support",
+              "text": "My reasoning has led me to the conclusion that the five classes are Death Knight, Druid, Paladin, Priest, and Warlock"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0791\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"A 5-man group made up of one tank, one healer, and three DPS is doing a dungeon that was just released in World of Warcraft. Two are plate wearers and two are cloth wearers. At the final boss, both the tank and the healer are casting holy spells. Ice and fire are being used, each one by a different DPS. A bear from the group is attacking the boss. Metamorphosis is cast. The Kilt of the Forgotten One drops as loot, but no one can use it. If all classes were using their class abilities and all classes are unique, what are the five classes in the group in alphabetical order separated by commas?\",\n  \"traj_id\": \"0791\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0791\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"The tank is a Protection Paladin who wears Plate armor.\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s012\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"The healer is a Holy Paladin who wears Plate armor.\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s012\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"The DPS classes are Death Knight, Druid, Paladin, Priest, and Warlock.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s012\",\n        \"used_by\": [\n          \"s012\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s003\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"The claim is supported by the text that the tank is a Protection Paladin who wears Plate armor, but the exact classes of the other members of the group are not explicitly mentioned.\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Protection Paladin spells World of Warcraft\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c2\",\n      \"support_spans\": [\n        \"s003\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"The claim is supported by the text that the healer is a Holy Paladin who wears Plate armor, but the exact classes of the other members of the group are not explicitly mentioned.\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Holy Paladin spell school\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c3\",\n      \"support_spans\": [\n        \"s011\",\n        \"s012\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"The claim is supported by the text that the DPS classes are Death Knight, Druid, Paladin, Priest, and Warlock, but the exact classes of the other members of the group are not explicitly mentioned.\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s011\",\n          \"chunk_id\": \"s011:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"My reasoning has led me to the conclusion that the five classes are Death Knight, Druid, Paladin, Priest, and Warlock\"\n        },\n        {\n          \"span_id\": \"s012\",\n          \"chunk_id\": \"s012:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"My reasoning has led me to the conclusion that the five classes are Death Knight, Druid, Paladin, Priest, and Warlock\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"requested_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"The tank is a Protection Paladin who wears Plate armor.\",\n        \"matched_chunk_ids\": [\n          \"s002:c001\",\n          \"s004:c001\",\n          \"s005:c001\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s004\",\n          \"s005\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"The healer is a Holy Paladin who wears Plate armor.\",\n        \"matched_chunk_ids\": [\n          \"s002:c001\",\n          \"s004:c001\",\n          \"s005:c001\",\n          \"s007:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s002\",\n          \"s004\",\n          \"s005\",\n          \"s007\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"The DPS classes are Death Knight, Druid, Paladin, Priest, and Warlock.\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s002:c001\",\n          \"s007:c001\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s007\",\n          \"s012\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s007\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 274,\n        \"text\": \"Code: ```py print(search_agent(task=\\\"Which World of Warcraft tank specializations use holy spells and what is their armor type\\n---\\nworld of warcraft healer specializations\\n---\\nWOW RETAIL CLASSIC TBC MISTS ··· DIABLO IV ··· LIVE PTR 12\\n---\\nworld of warcraft priest armor type\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 275,\n        \"text\": \"I'm still facing issues with the `search_agent`\\n---\\n\\\"Kilt of the Forgotten One\\\" wowhead\\n---\\nWOW RETAIL CLASSIC TBC WRATH MISTS ··· DIABLO IV ··· LOG IN WITH: Battle\\n---\\nThought: I have been tasked with identifying a 5-man group in World of Warcraft based on a series of clues\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 117,\n        \"text\": \"My reasoning has led me to the conclusion that the five classes are Death Knight, Druid, Paladin, Priest, and Warlock\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 290,\n        \"text\": \"\\\"Protection Paladin\\\" \\\"armor type\\\" \\\"spell school\\\"\\n---\\nProtection Paladin spells wow\\n---\\nProtection Paladin holy spells world of warcraft\\n---\\nProtection Paladin armor type world of warcraft\\n---\\nThe only World of Warcraft tank specialization that uses holy spells is the **Protection Paladin**\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 294,\n        \"text\": \"I have identified the tank as a Protection Paladin, which wears Plate armor\\n---\\nWorld of Warcraft healer specializations\\n---\\nWOW RETAIL CLASSIC TBC MISTS ··· DIABLO IV ··· LIVE PTR 12\\n---\\nWorld of Warcraft Holy Paladin spell school\\n---\\nWOW RETAIL CLASSIC TBC MISTS ··· DIABLO IV ··· LIVE PTR 12\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 113,\n        \"text\": \"I have identified the tank as a Protection Paladin, which wears Plate armor\\n---\\nwow healer holy spells armor type\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 500,\n        \"text\": \"A 5-man group made up of one tank, one healer, and three DPS is doing a dungeon that was just released in World of Warcraft\\n---\\nworld of warcraft tank specializations\\n---\\nProtection Paladin spells World of Warcraft\\n---\\n{\\\"data\\\":null,\\\"cause\\\":{},\\\"code\\\":422,\\\"name\\\":\\\"AssertionFailureError\\\",\\\"status\\\":42206,\\\"message\\\":\\\"Failed to goto http://https\\n---\\n{\\\"data\\\":null,\\\"path\\\":\\\"url\\\",\\\"code\\\":400,\\\"name\\\":\\\"ParamValidationError\\\",\\\"status\\\":40001,\\\"message\\\":\\\"Domain 'https\\n---\\nProtection Paladin spell school and armor type\"\n      },\n      {\n        \"span_id\": \"s007\",\n        \"chunk_id\": \"s007:c001\",\n        \"char_start\": 0,\n        \"char_end\": 188,\n        \"text\": \"Restoration Druid magic school and armor type\\n---\\nMistweaver Monk magic school and armor type\\n---\\nHoly Paladin magic school and armor type\\n---\\nDiscipline Priest magic school and armor type\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0791",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0791",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s011"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 12,
+    "evidence_span_count": 8
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 7626,
+    "output_tokens": 1089,
+    "total_tokens": 8715
+  }
+}

@@ -156,3 +156,11 @@ RQs4 个：attribution、localization、tag accuracy、cost 四个 RQ 也不应�
 ---
 
 我们的论文回到原始的 submodule 的版本了吧? 那个是权威版本
+
+---
+
+submodule 的原始 AgentProf 版本 是啥?
+
+---
+
+这个版本吧

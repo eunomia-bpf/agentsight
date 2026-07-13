@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0852",
+  "prediction": {
+    "traj_id": "0852",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0852\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"考虑全球影史票房榜top20的影片，其中21世纪的第一部，当中国将它引进并在大陆上映时，负责发行的两家公司中，LOGO中未出现绿色的那一家，LOGO上共有几个英文字母？\",\n  \"traj_id\": \"0852\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"考虑全球影史票房榜top20的影片，其中21世纪的第一部，当中国将它引进并在大陆上映时，负责发行的两家公司中，LOGO中未出现绿色的那一家，LOGO上共有几个英文字母\\n---\\nI'll help you solve this task step by step\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"global box office top 20 highest grossing films all time 2024\\n---\\n\\\\n\\\\nThe **Global Box Office Top 20 Highest\\n---\\nAvatar 2009 director studio distributor\\n---\\nAvengers Endgame director studio Marvel\\n---\\ntop 20 highest grossing films directors studios complete list\\n---\\nAvatar The Way of Water director James Cameron\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Titanic 1997 director James Cameron studio distributor\\n---\\nNe Zha 2 2025 film director studio China\\n---\\nStar Wars Force Awakens director JJ Abrams Disney Lucasfilm\\n---\\nAvengers Infinity War Spider-Man No Way Home Inside Out 2 directors studios\\n---\\nInside Out 2 director Kelsey Mann Pixar Disney\\n---\\nAccording to Box Office Mojo data (as of January 16, 2025), the top 20 highest grossing films worldwide all time are: 1\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Avatar 2009 film China mainland distributor 中国大陆发行公司\\n---\\nAvatar 2009 China distributor 中影集团 华夏电影\\n---\\nAvatar 2009 阿凡达 中国大陆 发行公司 distributor China Film Group Huaxia\\n---\\n阿凡达 2009 中国电影集团 华夏电影发行\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 99+ 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加\\n---\\n\\\\n\\\\u300a\\\\u963f\\\\u51e1\\\\u8fbe\\\\u300b(Avatar) 2009\\\\u5e74\\\\u7535\\\\u5f71\\\\u5728\\\\u4e2d\\\\u56fd\\\\u5927\\\\u9646\\\\u7684\\\\u53d1\\\\u884c\\\\u516c\\\\u53f8\\\\u4e3a\\\\uff1a**\\\\u4e2d\\\\u56fd\\\\u7535\\\\u5f71\\\\u96c6\\\\u56e2\\\\u516c\\\\u53f8**\\\\uff08China Film Group Corporatio\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Avatar 阿凡达 中国电影集团 华夏电影 发行\\n---\\nAvatar 2009 中国 发行 中国电影集团 华夏电影 进口\\n---\\nAvatar The Way of Water 阿凡达2 中国 发行公司 2022\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 99+ 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加\\n---\\n阿凡达2 水之道 中国电影集团 华夏电影 发行 2022\\n---\\n\\\\n\\\\n\\\\u300a\\\\u963f\\\\u51e1\\\\u8fbe\\\\u300b(Avatar) \\\\u7cfb\\\\u5217\\\\u7535\\\\u5f71\\\\u5728\\\\u4e2d\\\\u56fd\\\\u7684\\\\u53d1\\\\u884c\\\\u516c\\\\u53f8\\\\u4e3a\\\\uff1a**\\\\u4e2d\\\\u56fd\\\\u7535\\\\u5f71\\\\u96c6\\\\u56e2\\\\u516c\\\\u53f8**\\\\uff08\\\\u8fdb\\\\u53e3\\\\u65b9\\\\uff09\\\\u548c**\\\\u5\\n---\\nChina Film Group Corporation logo 中国电影集团 logo colors\\n---\\nhttps://www.avid.wiki/China_Film_Group_Corporation\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"SIGN IN REGISTER EXPLORE BROWSE WIKI EDIT MAINTENANCE COMMUNITY SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT The Closing Logo Group 8,155 PAGES EXPLORE BROWSE WIKI EDIT MAINTENANCE COMMUNITY in: China China Film Gr\\n---\\nLOGOPEDIA Welcome to Logopedia\\n---\\nChina Film Group Corporation official website 中国电影集团官网\\n---\\n欢迎进入中国电影网官方门户\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\"China Film Group\\\" logo blue arcs filmstrip colors specifications\\n---\\nChina Film Group Corporation 中国电影集团 logo gold statue worker soldier peasant colors\\n---\\nChina Film Group Corporation logo colors blue gold 中国电影集团标志颜色\\n---\\n标志情报局 - 全球LOGO新闻和品牌设计趋势平台 话题社区  网址导航  关注订阅  投稿 首页 专题 榜单 作品 灵感库 分类  企业 · 中国 · 2025\\n---\\nhttps://www.avid.wiki/China_Film_Group_Corporation\\n---\\nChina Film Group Corporation has used multiple logo versions with different color schemes:\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I apologize for the formatting error\\n---\\nI need to search for information about Avatar's distribution in China and the logos of the distribution companies\\n---\\nI apologize for the formatting errors\\n---\\nThought: I need to provide my answer in the correct format with a code block\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0852",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0852",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 9
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 2287,
+    "output_tokens": 74,
+    "total_tokens": 2361
+  }
+}

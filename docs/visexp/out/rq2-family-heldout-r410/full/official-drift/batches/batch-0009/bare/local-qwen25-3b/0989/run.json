@@ -1,0 +1,55 @@
+{
+  "setting": "bare",
+  "case_id": "0989",
+  "prediction": {
+    "traj_id": "0989",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0989\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"IShowSpeed在YouTube上发布过一条关于物理挑战的播放量过亿的短视频（截至2025年5月18日），请问视频是在哪拍摄的？\",\n  \"traj_id\": \"0989\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"IShowSpeed在YouTube上发布过一条关于物理挑战的播放量过亿的短视频（截至2025年5月18日），请问视频是在哪拍摄的\\n---\\nIShowSpeed physics challenge YouTube Shorts location\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我需要先搜索IShowSpeed在YouTube上发布的、主题是“物理挑战”的短视频，并且在2025年5月18日之前播放量超过1亿，以确认是哪一个视频，然后根据视频画面找出拍摄地点\\n---\\nThought: 刚才出错是因为search_agent的参数不符合要求，我需要直接传入query参数，而不是task\\n---\\nIShowSpeed physics challenge Shorts location\\n---\\nIShowSpeed spiral pit China physics challenge short YouTube IShowSpeed channel\\n---\\nStreamers NFL Sidelines SK NBA Soccer Tennis NCAAF LOG IN Streamers IShowSpeed Behzinga PewDiePie Streamers \\\"This looks so intense\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我将先通过search_agent以英文查询，寻找与“IShowSpeed Physics challenge Shorts 超过1亿播放、拍摄地点”相关的可靠信息和页面链接\\n---\\nIShowSpeed physics challenge shorts\\n---\\nSkip navigation Sign in Home Shorts Subscriptions You @SpeedNaldoo7 Subscribe iShowSpeed Physics Challenge 🥶🔥 309K Dislike 1,877 Share Remix Sign in to confirm you’re not a bot This helps protect our community\\n---\\nSkip navigation Sign in Home Shorts Subscriptions You @espn Subscribe Speed takes on the physics challenge 👀 (via ishowspeed/TT) 1\\n---\\n\\\"Eight Diagrams Pit\\\" physics challenge\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Eight Diagrams Pit Handan Bagua Keng address\\n---\\nEight Diagrams Pit Handan\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip navigation Sign in Home Shorts Subscriptions You @supbrice Subscribe iShowspeed Buys A $250K Chinese Car 🤯 #Reaction #youtubeshorts iShowSpeed VS The 8 Diagram Pit #ishowspeed #reaction 29 Dislike 2 Share Remix Sign\\n---\\n八卦坑 邯郸 地址\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"八卦坑 永年区 明珠小镇 地址\\n---\\n八卦坑 邯郸 永年区 明珠小镇 位置\\n---\\n邯郸 永年区 明珠小镇 八卦坑 地址\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我需要通过网络检索来确定IShowSpeed的这条“物理挑战”YouTube短视频的具体拍摄地点\\n---\\nThought: 我已经通过上一轮的检索结果确认该“物理挑战”短视频是在中国河北省邯郸市永年区的洺州小镇景区的“八卦坑”拍摄，来源包含TikTok与YouTube的多条复述与中文平台（抖音搜索与新闻）指向同一地点，满足多源交叉验证\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0989",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0989",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 7
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1230,
+    "output_tokens": 74,
+    "total_tokens": 1304
+  }
+}

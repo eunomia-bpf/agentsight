@@ -1,0 +1,365 @@
+{
+  "setting": "drift",
+  "case_id": "0404",
+  "prediction": {
+    "traj_id": "0404",
+    "error_span_ids": [
+      "s003",
+      "s011",
+      "s012"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "短字符串"
+      },
+      {
+        "span_id": "s011",
+        "reason": "短字符串"
+      },
+      {
+        "span_id": "s012",
+        "reason": "短字符串"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0404\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"在苏州，有一所江苏省重点学校的两个校区分别坐落在在一个湖两岸，并且恰好都在CBD旁，请问那个距离火车站只有一站地铁的校区如今叫什么？\",\n  \"traj_id\": \"0404\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"请调查在苏州，是否有江苏省重点学校（或四星级高中）的两个校区，分别坐落在同一个湖的两岸，且都位于CBD旁边。请列出候选学校和对应的湖泊名称。\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"江苏省四星级高中 苏州 名单\\n---\\n江苏省苏州中学校 校区分布\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"苏州工业园区星海实验中学\\n---\\n苏州工业园区星海实验中学 苏茜路校区 沈浒路校区 地图\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"请调查苏州工业园区星海实验中学的“苏茜路校区”和“沈浒路校区”，哪一个距离苏州的某个主要火车站（如苏州火车站、苏州园区站）只有一站地铁的距离？请明确指出是哪个火车站、哪个校区，以及具体的地铁线路和站点名称。\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"苏州工业园区星海实验中学 苏茜路校区 地址\\n---\\n苏州工业园区星海实验中学 沈浒路校区 地址\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"苏州火车站 地铁站\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"苏州园区站 地铁站\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"苏州市苏州工业园区苏茜路18号 附近地铁站\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"苏州市工业园区西沈浒路168号 附近地铁站\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"苏州地铁8号线 站点图\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"苏州工业园区星海实验中学已分为高中部和初中部。请调查位于沈浒路的校区现在是哪个学部，以及其当前的官方全称是什么？\\n---\\n苏州工业园区星海实验中学 沈浒路\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"好的，遵照您的指示，以下是本次任务的完整总结报告。 ### **任务总结** 本次任务旨在回答一个关于苏州特定学校校区名称的问题。原始问题为：“在苏州，有一所江苏省重点学校的两个校区分别坐落在在一个湖两岸，并且恰好都在CBD旁，请问那个距离火车站只有一站地铁的校区如今叫什么？” 为解答此问题，我进行了分步信息收集与核实，整个过程透明且有据可查。 ### **最终答案** 根据详细的调查与分析，问题的最终答案是： **苏州工业园区星海实验高级中学** ### **工作历史与分析过程** 我的工作流程分为三个主要步骤，旨在逐层解析问题并锁定最终答案： **第一步：识别符合条件的学校和湖泊** * **思考与分析**：问题的首要条件是“江苏省重点学校”、“两个校区”、“坐落在一个湖两岸”和“都在CBD旁”。我需要首先找出满足这些地理和属性特征的学校。 * **行动**：我委托子任务代理进行调查，要求其搜索在苏州满足以上所有条件的学校。 * **子任务**：“请调查在苏州，是否有江苏省重点学校（或四星级高中）的两个校区，分别坐落在同一个湖的两岸，且都位于CBD旁边。请列出候选学校和对应的湖泊名称。” * **结果与发现**：调查结果明确指向了**苏州工业园区星海实验中学**。该校是江苏省重点中学，其两个校区——**苏茜路校区**（西岸）和**沈浒路校区**（东岸）——恰好分立于**金鸡湖**两岸，且均位于环金鸡湖的CBD区域。 **第二步：确定距离火车站一站地铁的校区** * **思考与分析**：在锁定候选学校后，下一步是确定两个校区中哪一个符合“距离火车站只有一站地铁”的条件。我将“火车站”的范围扩大到苏州主要的几个火车站进行排查。 * **行动**：我再次委托子任务代理，针对两个校区的交通情况进行核实。 * **子任务**：“请调查苏州工业园区星海实验中学的‘苏茜路校区’和‘沈浒路校区’，哪一个距离苏州的某个主要火车站（如苏州火车站、苏州园区站）只有一站地铁的距离？请明确指出是哪个火车站、哪个校区，以及具体的地铁线路和站点名称。” * **结果与发现**：调查确认，**沈浒路校区**符合此条件。它距离**苏州园区站**仅一站地铁。具体而言，从**苏州园区站**上车，乘坐地铁3号线或8号线，下一站即为紧邻该校区的**星海公园站**。苏茜路校区则不满足此条件。 **第三步：查明目标校区的现用官方名称** * **思考与分析**：问题的核心在于“如今叫什么”，这暗示该校区可能经历了更名或改制。我需要查明沈浒路校区当前的官方全称。 * **行动**：我发起了第三个子任务，以探究沈浒路校区的最新名称。 * **子任务**：“苏州工业园区星海实验中学已分为高中部和初中部。请调查位于沈浒路的校区现在是哪个学部，以及其当前的官方全称是什么？” * **结果与发现**：调查证实，原星海实验中学已进行初、高中分设。位于沈浒路的校区现为**高中部**。根据苏州工业园区管理委员会的官方公告，2023年5月，原“星海实验中学”建制被撤销，并在沈浒路校区的地址上新设立了**“苏州工业园区星海实验高级中学”**。 ### **详细支持证据** 以下是在调查过程中收集到的关键事实与证据，为最终答案提供了有力支持： 1. **关于学校、湖泊与校区位置** * **学校名称**：苏州工业园区星海实验中学 * **湖泊名称**：金鸡湖 * **校区分布**： * **苏茜路校区**：位于金鸡湖西岸CBD（地址：苏州工业园区苏茜路18号）。 * **沈浒路校区**：位于金鸡湖东岸CBD（地址：苏州工业园区西沈浒路168号）。 * **相关引述**：一份搜索结果直接描述：“深度解析苏州工业园区星海实验中学：作为江苏省重点中学，其两个校区分别坐落在金鸡湖两岸且均位于CBD旁。苏茜路校区位于西岸，沈浒路校区位于东岸。” 2. **关于地铁交通连接** * **目标校区**：沈浒路校区 * **对应火车站**：苏州园区站 * **地铁连接**：从**苏州园区站**（地铁3号线/8号线换乘站）乘坐一站即可到达**星海公园站**，该站紧邻沈浒路校区。 3. **关于校区当前官方名称** * **学部归属**：沈浒路校区为**高中部**。 * **官方名称变更**： * 根据**苏州工业园区管理委员会官网**发布的《苏州工业园区星海实验高级中学2024年教师招聘启事》：“学校前身苏州工业园区星海实验中学为完全中学。后经初、高分设，**2023年5月苏州工业园区星海实验高级中学新设，建址西沈浒路168号**。” * 根据**苏州市人力资源和社会保障局网站**信息：“2023年5月，撤销星海实验中学建制，**新设苏州工业园区星海实验高级中学**。” 综上所述，所有证据链完整地指向了最终答案。\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目条件：江苏省重点学校；两个校区分列某湖两岸；均在 CBD；其中一校区距火车站仅一站地铁。 2. 代理总结给出的调查结果： • 该校为“苏州工业园区星海实验中学”（江苏省重点中学），两个校区位于金鸡湖东西两岸的 CBD。 • 位于金鸡湖东岸、西沈浒路的校区距苏州园区站仅一站地铁，满足“距火车站一站地铁”。 3. 名称变化：2023 年 5 月撤销原校建制，在沈浒路校区设立新校名“苏州工业园区星海实验高级中学”。 4. 因此，题目所问“那个距离火车站只有一站地铁的校区如今叫什么”——答案即为该新设名称。 **最终答案：** \\\\boxed{苏州工业园区星海实验高级中学} **置信度：** 86 **支持证据：** - 代理总结列明官方公告：2023 年 5 月在西沈浒路 168 号设立“苏州工业园区星海实验高级中学”。 - 该地址即距苏州园区站一站地铁的沈浒路校区。 **潜在不足：** - 题干未明确是指校区名称还是学校名称；若仍称“沈浒路校区”，答案可能需写出“沈浒路校区”。然而官方已改制为独立高中，故使用现行正式校名应更贴合“如今叫什么”。\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0404",
+        "task_goal": "在苏州，有一所江苏省重点学校的两个校区分别坐落在一个湖两岸，并且恰好都在CBD旁，请问那个距离火车站只有一站地铁的校区如今叫什么？",
+        "hard_constraints": [
+          "在苏州，有一所江苏省重点学校的两个校区分别坐落在一个湖两岸，并且恰好都在CBD旁",
+          "那个距离火车站只有一站地铁的校区如今叫什么"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "苏州工业园区星海实验中学",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "沈浒路校区",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "苏州工业园区星海实验高级中学",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s015",
+            "used_by": [
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0404",
+        "task_goal": "在苏州，有一所江苏省重点学校的两个校区分别坐落在一个湖两岸，并且恰好都在CBD旁，请问那个距离火车站只有一站地铁的校区如今叫什么？",
+        "hard_constraints": [
+          "在苏州，有一所江苏省重点学校的两个校区分别坐落在一个湖两岸，并且恰好都在CBD旁",
+          "那个距离火车站只有一站地铁的校区如今叫什么"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "苏州工业园区星海实验中学",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "沈浒路校区",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "苏州工业园区星海实验高级中学",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s003",
+            "s011"
+          ],
+          "grep_queries": [
+            "苏州工业园区星海实验中学"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "沈浒路校区"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "苏州工业园区星海实验高级中学"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s003",
+        "s011",
+        "s012"
+      ],
+      "available_span_ids": [
+        "s003",
+        "s004",
+        "s005",
+        "s011",
+        "s012"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "苏州工业园区星海实验中学",
+          "matched_chunk_ids": [
+            "s012:c001",
+            "s003:c001",
+            "s005:c001",
+            "s011:c001"
+          ],
+          "matched_span_ids": [
+            "s003",
+            "s005",
+            "s011",
+            "s012"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "沈浒路校区",
+          "matched_chunk_ids": [
+            "s012:c001",
+            "s012:c002",
+            "s003:c001",
+            "s004:c001"
+          ],
+          "matched_span_ids": [
+            "s003",
+            "s004",
+            "s012"
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "query": "苏州工业园区星海实验高级中学",
+          "matched_chunk_ids": [
+            "s012:c002",
+            "s012:c001"
+          ],
+          "matched_span_ids": [
+            "s012"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0404\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"在苏州，有一所江苏省重点学校的两个校区分别坐落在在一个湖两岸，并且恰好都在CBD旁，请问那个距离火车站只有一站地铁的校区如今叫什么？\",\n  \"traj_id\": \"0404\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0404\",\n    \"task_goal\": \"在苏州，有一所江苏省重点学校的两个校区分别坐落在一个湖两岸，并且恰好都在CBD旁，请问那个距离火车站只有一站地铁的校区如今叫什么？\",\n    \"hard_constraints\": [\n      \"在苏州，有一所江苏省重点学校的两个校区分别坐落在一个湖两岸，并且恰好都在CBD旁\",\n      \"那个距离火车站只有一站地铁的校区如今叫什么\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"苏州工业园区星海实验中学\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"沈浒路校区\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"苏州工业园区星海实验高级中学\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"requested_span_ids\": [\n      \"s003\",\n      \"s011\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"苏州工业园区星海实验中学\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s003:c001\",\n          \"s005:c001\",\n          \"s011:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s003\",\n          \"s005\",\n          \"s011\",\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"沈浒路校区\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s012:c002\",\n          \"s003:c001\",\n          \"s004:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s003\",\n          \"s004\",\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"苏州工业园区星海实验高级中学\",\n        \"matched_chunk_ids\": [\n          \"s012:c002\",\n          \"s012:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 44,\n        \"text\": \"苏州工业园区星海实验中学\\n---\\n苏州工业园区星海实验中学 苏茜路校区 沈浒路校区 地图\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 77,\n        \"text\": \"苏州工业园区星海实验中学已分为高中部和初中部。请调查位于沈浒路的校区现在是哪个学部，以及其当前的官方全称是什么？\\n---\\n苏州工业园区星海实验中学 沈浒路\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 2526,\n        \"text\": \"*：沈浒路校区 * **对应火车站**：苏州园区站 * **地铁连接**：从**苏州园区站**（地铁3号线/8号线换乘站）乘坐一站即可到达**星海公园站**，该站紧邻沈浒路校区。 3. **关于校区当前官方名称** * **学部归属**：沈浒路校区为**高中部**。 * **官方名称变更**： * 根据**苏州工业园区管理委员会官网**发布的《苏州工业园区星海实验高级中学2024年教师招聘启事》：“学校前身苏州工业园区星海实验中学为完全中学。后经初、高分设，**2023年5月苏州工业园区星海实验高级中学新设，建址西沈浒路168号**。” * 根据**苏州市人力资源和社会保障局网站**信息：“2023年5月，撤销星海实验中学建制，**新设苏州工业园区星海实验高级中学**。” 综上所述，所有证据链完整地指向了最终答案。\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目条件：江苏省重点学校；两个校区分列某湖两岸；均在 CBD；其中一校区距火车站仅一站地铁。 2. 代理总结给出的调查结果： • 该校为“苏州工业园区星海实验中学”（江苏省重点中学），两个校区位于金鸡湖东西两岸的 CBD。 • 位于金鸡湖东岸、西沈浒路的校区距苏州园区站仅一站地铁，满足“距火车站一站地铁”。 3. 名称变化：2023 年 5 月撤销原校建制，在沈浒路校区设立新校名“苏州工业园区星海实验高级中学”。 4. 因此，题目所问“那个距离火车站只有一站地铁的校区如今叫什么”——答案即为该新设名称。 **最终答案：** \\\\boxed{苏州工业园区星海实验高级中学} **置信度：** 86 **支持证据：** - 代理总结列明官方公告：2023 年 5 月在西沈浒路 168 号设立“苏州工业园区星海实验高级中学”。 - 该地址即距苏州园区站一站地铁的沈浒路校区。 **潜在不足：** - 题干未明确是指校区名称还是学校名称；若仍称“沈浒路校区”，答案可能需写出“沈浒路校区”。然而官方已改制为独立高中，故使用现行正式校名应更贴合“如今叫什么”。\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"好的，遵照您的指示，以下是本次任务的完整总结报告。 ### **任务总结** 本次任务旨在回答一个关于苏州特定学校校区名称的问题。原始问题为：“在苏州，有一所江苏省重点学校的两个校区分别坐落在在一个湖两岸，并且恰好都在CBD旁，请问那个距离火车站只有一站地铁的校区如今叫什么？” 为解答此问题，我进行了分步信息收集与核实，整个过程透明且有据可查。 ### **最终答案** 根据详细的调查与分析，问题的最终答案是： **苏州工业园区星海实验高级中学** ### **工作历史与分析过程** 我的工作流程分为三个主要步骤，旨在逐层解析问题并锁定最终答案： **第一步：识别符合条件的学校和湖泊** * **思考与分析**：问题的首要条件是“江苏省重点学校”、“两个校区”、“坐落在一个湖两岸”和“都在CBD旁”。我需要首先找出满足这些地理和属性特征的学校。 * **行动**：我委托子任务代理进行调查，要求其搜索在苏州满足以上所有条件的学校。 * **子任务**：“请调查在苏州，是否有江苏省重点学校（或四星级高中）的两个校区，分别坐落在同一个湖的两岸，且都位于CBD旁边。请列出候选学校和对应的湖泊名称。” * **结果与发现**：调查结果明确指向了**苏州工业园区星海实验中学**。该校是江苏省重点中学，其两个校区——**苏茜路校区**（西岸）和**沈浒路校区**（东岸）——恰好分立于**金鸡湖**两岸，且均位于环金鸡湖的CBD区域。 **第二步：确定距离火车站一站地铁的校区** * **思考与分析**：在锁定候选学校后，下一步是确定两个校区中哪一个符合“距离火车站只有一站地铁”的条件。我将“火车站”的范围扩大到苏州主要的几个火车站进行排查。 * **行动**：我再次委托子任务代理，针对两个校区的交通情况进行核实。 * **子任务**：“请调查苏州工业园区星海实验中学的‘苏茜路校区’和‘沈浒路校区’，哪一个距离苏州的某个主要火车站（如苏州火车站、苏州园区站）只有一站地铁的距离？请明确指出是哪个火车站、哪个校区，以及具体的地铁线路和站点名称。” * **结果与发现**：调查确认，**沈浒路校区**符合此条件。它距离**苏州园区站**仅一站地铁。具体而言，从**苏州园区站**上车，乘坐地铁3号线或8号线，下一站即为紧邻该校区的**星海公园站**。苏茜路校区则不满足此条件。 **第三步：查明目标校区的现用官方名称** * **思考与分析**：问题的核心在于“如今叫什么”，这暗示该校区可能经历了更名或改制。我需要查明沈浒路校区当前的官方全称。 * **行动**：我发起了第三个子任务，以探究沈浒路校区的最新名称。 * **子任务**：“苏州工业园区星海实验中学已分为高中部和初中部。请调查位于沈浒路的校区现在是哪个学部，以及其当前的官方全称是什么？” * **结果与发现**：调查证实，原星海实验中学已进行初、高中分设。位于沈浒路的校区现为**高中部**。根据苏州工业园区管理委员会的官方公告，2023年5月，原“星海实验中学”建制被撤销，并在沈浒路校区的地址上新设立了**“苏州工业园区星海实验高级中学”**。 ### **详细支持证据** 以下是在调查过程中收集到的关键事实与证据，为最终答案提供了有力支持： 1. **关于学校、湖泊与校区位置** * **学校名称**：苏州工业园区星海实验中学 * **湖泊名称**：金鸡湖 * **校区分布**： * **苏茜路校区**：位于金鸡湖西岸CBD（地址：苏州工业园区苏茜路18号）。 * **沈浒路校区**：位于金鸡湖东岸CBD（地址：苏州工业园区西沈浒路168号）。 * **相关引述**：一份搜索结果直接描述：“深度解析苏州工业园区星海实验中学：作为江苏省重点中学，其两个校区分别坐落在金鸡湖两岸且均位于CBD旁。苏茜路校区位于西岸，沈浒路校区位于东岸。” 2. **关于地铁交通连接** * **目标校区**：沈浒路校区 * **对应火车站**：苏州园区站 * **地铁连接**：从**苏州园区站**（地铁3号线/8号线换乘站）乘坐一站即可到达**星海公园站**，该站紧邻沈浒路校区。 3. **关于校区当前官方名称** * **学部归属**：沈浒路校区为**高中部**。 * **官方名称变更**： * 根据**苏州工业园区\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 47,\n        \"text\": \"苏州工业园区星海实验中学 苏茜路校区 地址\\n---\\n苏州工业园区星海实验中学 沈浒路校区 地址\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 103,\n        \"text\": \"请调查苏州工业园区星海实验中学的“苏茜路校区”和“沈浒路校区”，哪一个距离苏州的某个主要火车站（如苏州火车站、苏州园区站）只有一站地铁的距离？请明确指出是哪个火车站、哪个校区，以及具体的地铁线路和站点名称。\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s003",
+              "s011"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "苏州工业园区星海实验中学\n---\n苏州工业园区星海实验中学 苏茜路校区 沈浒路校区 地图"
+              }
+            ]
+          },
+          {
+            "claim_id": "c2",
+            "support_spans": [
+              "s003",
+              "s011"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "苏州工业园区星海实验中学\n---\n苏州工业园区星海实验中学 苏茜路校区 沈浒路校区 地图"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s003",
+            "s011"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "苏州工业园区星海实验中学\n---\n苏州工业园区星海实验中学 苏茜路校区 沈浒路校区 地图"
+            }
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "support_spans": [
+            "s003",
+            "s011"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "苏州工业园区星海实验中学\n---\n苏州工业园区星海实验中学 苏茜路校区 沈浒路校区 地图"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0404\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"在苏州，有一所江苏省重点学校的两个校区分别坐落在在一个湖两岸，并且恰好都在CBD旁，请问那个距离火车站只有一站地铁的校区如今叫什么？\",\n  \"traj_id\": \"0404\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0404\",\n    \"task_goal\": \"在苏州，有一所江苏省重点学校的两个校区分别坐落在一个湖两岸，并且恰好都在CBD旁，请问那个距离火车站只有一站地铁的校区如今叫什么？\",\n    \"hard_constraints\": [\n      \"在苏州，有一所江苏省重点学校的两个校区分别坐落在一个湖两岸，并且恰好都在CBD旁\",\n      \"那个距离火车站只有一站地铁的校区如今叫什么\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"苏州工业园区星海实验中学\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"沈浒路校区\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"苏州工业园区星海实验高级中学\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s003\",\n        \"s011\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"苏州工业园区星海实验中学\\n---\\n苏州工业园区星海实验中学 苏茜路校区 沈浒路校区 地图\"\n        }\n      ]\n    },\n    {\n      \"claim_id\": \"c2\",\n      \"support_spans\": [\n        \"s003\",\n        \"s011\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"苏州工业园区星海实验中学\\n---\\n苏州工业园区星海实验中学 苏茜路校区 沈浒路校区 地图\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s003\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"requested_span_ids\": [\n      \"s003\",\n      \"s011\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"苏州工业园区星海实验中学\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s003:c001\",\n          \"s005:c001\",\n          \"s011:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s003\",\n          \"s005\",\n          \"s011\",\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"沈浒路校区\",\n        \"matched_chunk_ids\": [\n          \"s012:c001\",\n          \"s012:c002\",\n          \"s003:c001\",\n          \"s004:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s003\",\n          \"s004\",\n          \"s012\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"苏州工业园区星海实验高级中学\",\n        \"matched_chunk_ids\": [\n          \"s012:c002\",\n          \"s012:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s012\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s003\",\n      \"s004\",\n      \"s005\",\n      \"s011\",\n      \"s012\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 44,\n        \"text\": \"苏州工业园区星海实验中学\\n---\\n苏州工业园区星海实验中学 苏茜路校区 沈浒路校区 地图\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 77,\n        \"text\": \"苏州工业园区星海实验中学已分为高中部和初中部。请调查位于沈浒路的校区现在是哪个学部，以及其当前的官方全称是什么？\\n---\\n苏州工业园区星海实验中学 沈浒路\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 2526,\n        \"text\": \"*：沈浒路校区 * **对应火车站**：苏州园区站 * **地铁连接**：从**苏州园区站**（地铁3号线/8号线换乘站）乘坐一站即可到达**星海公园站**，该站紧邻沈浒路校区。 3. **关于校区当前官方名称** * **学部归属**：沈浒路校区为**高中部**。 * **官方名称变更**： * 根据**苏州工业园区管理委员会官网**发布的《苏州工业园区星海实验高级中学2024年教师招聘启事》：“学校前身苏州工业园区星海实验中学为完全中学。后经初、高分设，**2023年5月苏州工业园区星海实验高级中学新设，建址西沈浒路168号**。” * 根据**苏州市人力资源和社会保障局网站**信息：“2023年5月，撤销星海实验中学建制，**新设苏州工业园区星海实验高级中学**。” 综上所述，所有证据链完整地指向了最终答案。\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题目条件：江苏省重点学校；两个校区分列某湖两岸；均在 CBD；其中一校区距火车站仅一站地铁。 2. 代理总结给出的调查结果： • 该校为“苏州工业园区星海实验中学”（江苏省重点中学），两个校区位于金鸡湖东西两岸的 CBD。 • 位于金鸡湖东岸、西沈浒路的校区距苏州园区站仅一站地铁，满足“距火车站一站地铁”。 3. 名称变化：2023 年 5 月撤销原校建制，在沈浒路校区设立新校名“苏州工业园区星海实验高级中学”。 4. 因此，题目所问“那个距离火车站只有一站地铁的校区如今叫什么”——答案即为该新设名称。 **最终答案：** \\\\boxed{苏州工业园区星海实验高级中学} **置信度：** 86 **支持证据：** - 代理总结列明官方公告：2023 年 5 月在西沈浒路 168 号设立“苏州工业园区星海实验高级中学”。 - 该地址即距苏州园区站一站地铁的沈浒路校区。 **潜在不足：** - 题干未明确是指校区名称还是学校名称；若仍称“沈浒路校区”，答案可能需写出“沈浒路校区”。然而官方已改制为独立高中，故使用现行正式校名应更贴合“如今叫什么”。\"\n      },\n      {\n        \"span_id\": \"s012\",\n        \"chunk_id\": \"s012:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"好的，遵照您的指示，以下是本次任务的完整总结报告。 ### **任务总结** 本次任务旨在回答一个关于苏州特定学校校区名称的问题。原始问题为：“在苏州，有一所江苏省重点学校的两个校区分别坐落在在一个湖两岸，并且恰好都在CBD旁，请问那个距离火车站只有一站地铁的校区如今叫什么？” 为解答此问题，我进行了分步信息收集与核实，整个过程透明且有据可查。 ### **最终答案** 根据详细的调查与分析，问题的最终答案是： **苏州工业园区星海实验高级中学** ### **工作历史与分析过程** 我的工作流程分为三个主要步骤，旨在逐层解析问题并锁定最终答案： **第一步：识别符合条件的学校和湖泊** * **思考与分析**：问题的首要条件是“江苏省重点学校”、“两个校区”、“坐落在一个湖两岸”和“都在CBD旁”。我需要首先找出满足这些地理和属性特征的学校。 * **行动**：我委托子任务代理进行调查，要求其搜索在苏州满足以上所有条件的学校。 * **子任务**：“请调查在苏州，是否有江苏省重点学校（或四星级高中）的两个校区，分别坐落在同一个湖的两岸，且都位于CBD旁边。请列出候选学校和对应的湖泊名称。” * **结果与发现**：调查结果明确指向了**苏州工业园区星海实验中学**。该校是江苏省重点中学，其两个校区——**苏茜路校区**（西岸）和**沈浒路校区**（东岸）——恰好分立于**金鸡湖**两岸，且均位于环金鸡湖的CBD区域。 **第二步：确定距离火车站一站地铁的校区** * **思考与分析**：在锁定候选学校后，下一步是确定两个校区中哪一个符合“距离火车站只有一站地铁”的条件。我将“火车站”的范围扩大到苏州主要的几个火车站进行排查。 * **行动**：我再次委托子任务代理，针对两个校区的交通情况进行核实。 * **子任务**：“请调查苏州工业园区星海实验中学的‘苏茜路校区’和‘沈浒路校区’，哪一个距离苏州的某个主要火车站（如苏州火车站、苏州园区站）只有一站地铁的距离？请明确指出是哪个火车站、哪个校区，以及具体的地铁线路和站点名称。” * **结果与发现**：调查确认，**沈浒路校区**符合此条件。它距离**苏州园区站**仅一站地铁。具体而言，从**苏州园区站**上车，乘坐地铁3号线或8号线，下一站即为紧邻该校区的**星海公园站**。苏茜路校区则不满足此条件。 **第三步：查明目标校区的现用官方名称** * **思考与分析**：问题的核心在于“如今叫什么”，这暗示该校区可能经历了更名或改制。我需要查明沈浒路校区当前的官方全称。 * **行动**：我发起了第三个子任务，以探究沈浒路校区的最新名称。 * **子任务**：“苏州工业园区星海实验中学已分为高中部和初中部。请调查位于沈浒路的校区现在是哪个学部，以及其当前的官方全称是什么？” * **结果与发现**：调查证实，原星海实验中学已进行初、高中分设。位于沈浒路的校区现为**高中部**。根据苏州工业园区管理委员会的官方公告，2023年5月，原“星海实验中学”建制被撤销，并在沈浒路校区的地址上新设立了**“苏州工业园区星海实验高级中学”**。 ### **详细支持证据** 以下是在调查过程中收集到的关键事实与证据，为最终答案提供了有力支持： 1. **关于学校、湖泊与校区位置** * **学校名称**：苏州工业园区星海实验中学 * **湖泊名称**：金鸡湖 * **校区分布**： * **苏茜路校区**：位于金鸡湖西岸CBD（地址：苏州工业园区苏茜路18号）。 * **沈浒路校区**：位于金鸡湖东岸CBD（地址：苏州工业园区西沈浒路168号）。 * **相关引述**：一份搜索结果直接描述：“深度解析苏州工业园区星海实验中学：作为江苏省重点中学，其两个校区分别坐落在金鸡湖两岸且均位于CBD旁。苏茜路校区位于西岸，沈浒路校区位于东岸。” 2. **关于地铁交通连接** * **目标校区**：沈浒路校区 * **对应火车站**：苏州园区站 * **地铁连接**：从**苏州园区站**（地铁3号线/8号线换乘站）乘坐一站即可到达**星海公园站**，该站紧邻沈浒路校区。 3. **关于校区当前官方名称** * **学部归属**：沈浒路校区为**高中部**。 * **官方名称变更**： * 根据**苏州工业园区\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 47,\n        \"text\": \"苏州工业园区星海实验中学 苏茜路校区 地址\\n---\\n苏州工业园区星海实验中学 沈浒路校区 地址\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 103,\n        \"text\": \"请调查苏州工业园区星海实验中学的“苏茜路校区”和“沈浒路校区”，哪一个距离苏州的某个主要火车站（如苏州火车站、苏州园区站）只有一站地铁的距离？请明确指出是哪个火车站、哪个校区，以及具体的地铁线路和站点名称。\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0404",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s012"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s012"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0404",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s012"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s012"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 12,
+    "evidence_span_count": 5
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 10383,
+    "output_tokens": 777,
+    "total_tokens": 11160
+  }
+}

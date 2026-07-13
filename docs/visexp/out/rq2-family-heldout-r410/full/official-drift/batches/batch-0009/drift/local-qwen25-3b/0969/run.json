@@ -1,0 +1,227 @@
+{
+  "setting": "drift",
+  "case_id": "0969",
+  "prediction": {
+    "traj_id": "0969",
+    "error_span_ids": [
+      "s003",
+      "s013"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "短字符串"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0969\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"《乐队的夏天》各季 top5 乐队中一共有多少名女性成员？\",\n  \"traj_id\": \"0969\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"《乐队的夏天》各季 top5 乐队中一共有多少名女性成员\\n---\\n乐队的夏天 第一季 年度Hot5\\n---\\n乐队的夏天 第一季 百度百科 最终排名\\n---\\n乐队的夏天 第三季 百度百科 年度Hot5 总决赛\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 超级乐迷 乐队 分期内容 开关分期内容子章节 复活踢馆赛资格 开关复活踢馆赛资格子章节 奖项 争议 开关争议子章节 注释 外部链接 参考资料 乐队的夏天 (第一季) 添加语言 条目 讨论 简体 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 乐队的夏天 (第一季) The Big Band 1 类型 音乐比赛真人秀 总导演 李楠楠、王雷、陈雨璇\\n---\\n乐队的夏天第二季 百度百科 最终 排名\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 5 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n乐队的夏天 第二季 百度百科 收官 HOT5 排名\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 8 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 8 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"新京报 乐队的夏天 第二季 收官 HOT5 排名\\n---\\n新京报客户端 好新闻 无止境 立即打开 重塑雕像的权利：拿下第一是小众音乐的胜利｜新京报×乐队的夏天 新京报 记者 张赫 编辑 田偲妮 2020-10-10 21:03 大戏看北京 订阅 重塑雕像的权利（下文简称“重塑”）拿下了《乐队的夏天》第二季（下文简称《乐夏2》）HOT5的第一名，这个结果在主唱华东看来是“意料之外，情理之中”\\n---\\n已完结季数与最终Top5：\\n---\\nThought: The task is to find, across all seasons of the show 《乐队的夏天》, the total number of female members among the final Top 5 bands of each season\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"新裤子 乐队的夏天 第一季 成员\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 50 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入\\n---\\n乐队的夏天 第一季 新裤子 成员 爱奇艺 官方 页面\\n---\\n赵梦 新裤子 百度百科\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 7 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n彭磊 百度百科\\n---\\n庞宽 百度百科\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 超級樂迷 樂隊 分期內容 开关分期內容子章节 復活踢館賽資格 开关復活踢館賽資格子章节 獎項 爭議 开关爭議子章节 註釋 外部連結 參考資料 樂隊的夏天 (第一季) 添加语言 条目 讨论 不转换 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 樂隊的夏天 (第一季) The Big Band 1 类型 音樂比賽真人秀 总导演 李楠楠、王雷、陳雨璇\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"乐队的夏天 第一季 百度百科\\n---\\nHayato 新裤子 百度百科\\n---\\n新裤子 维基百科 中文\\n---\\n爱奇艺 乐队的夏天 新裤子 成员 乐队 资料 页面\\n---\\n《乐队的夏天》第一季（2019）期间，新裤子在节目官方口径的参赛成员为：彭磊（男）、庞宽（男）、赵梦（女）、Hayato（男）\\n---\\n痛仰乐队 成员 百度百科\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:baike.baidu.com 痛仰乐队 词条\\n---\\n迟功伟 痛仰 百度百科\\n---\\nsite:iqiyi.com 乐队的夏天 痛仰 第一季 成员\\n---\\nsite:iqiyi.com 痛仰 明星资料 乐队的夏天\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 4 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\nsite:baike.baidu.com 乐队的夏天 第一季 词条\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 7 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 5 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n宋捷 痛仰 百度百科\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"痛仰 乐队 张静 女 贝斯手 媒体 报道\\n---\\n《乐队的夏天》第一季（2019）中，痛仰乐队的“官方参赛成员”（排除嘉宾/合作/伴奏）为：高虎（男，主唱）、宋捷（男，吉他）、张静（男，贝斯）、迟功伟/大伟（男，鼓）\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"刺猬 乐队的夏天 第一季 2019 参赛 成员 刺猬乐队 成员 石璐 赵子健 贝斯 谁\\n---\\n乐队的夏天 第一季 参赛乐队 刺猬 爱奇艺 官方 页面\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 9 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 2026年1月15日是维基百科成立25周年，一起来写下对维基百科的美好祝愿\\n---\\nhttps://baike.baidu.com/item/%E5%88%BA%E7%8C%AC%E4%B9%90%E9%98%9F/3111646\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:iqiyi.com 刺猬 乐队的夏天 第一季 乐队档案 成员\\n---\\nhttps://baike.baidu.com/item/%E7%9F%B3%E7%92%90/23610429\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: The question asks for the total number of female members among the final Top5 bands of each completed season of 《乐队的夏天》\\n---\\n最终答案:10\\n---\\n最终答案:10\\n---\\n最终答案:10\\n---\\nfinal_answer(\\\"最终答案:10\\\")\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0969",
+        "task_goal": "短字符串",
+        "hard_constraints": [
+          "短字符串"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "《乐队的夏天》各季 top5 乐队中一共有10名女性成员",
+            "introduced_at": "s013",
+            "becomes_consequential_at": "s013",
+            "used_by": [
+              "s013"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ],
+        "notes": "短字符串"
+      },
+      "validated": {
+        "traj_id": "0969",
+        "task_goal": "短字符串",
+        "hard_constraints": [
+          "短字符串"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "《乐队的夏天》各季 top5 乐队中一共有10名女性成员",
+            "introduced_at": "s013",
+            "becomes_consequential_at": "s013",
+            "used_by": [
+              "s013"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ],
+        "notes": "短字符串"
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s013"
+          ],
+          "grep_queries": [
+            "《乐队的夏天》各季 top5 乐队中一共有10名女性成员"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s013"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s002",
+        "s003",
+        "s005",
+        "s013"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "《乐队的夏天》各季 top5 乐队中一共有10名女性成员",
+          "matched_chunk_ids": [
+            "s001:c001",
+            "s003:c001",
+            "s002:c001",
+            "s005:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s002",
+            "s003",
+            "s005"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0969\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"《乐队的夏天》各季 top5 乐队中一共有多少名女性成员？\",\n  \"traj_id\": \"0969\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0969\",\n    \"task_goal\": \"短字符串\",\n    \"hard_constraints\": [\n      \"短字符串\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"《乐队的夏天》各季 top5 乐队中一共有10名女性成员\",\n        \"introduced_at\": \"s013\",\n        \"becomes_consequential_at\": \"s013\",\n        \"used_by\": [\n          \"s013\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"短字符串\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s013\"\n    ],\n    \"requested_span_ids\": [\n      \"s013\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"《乐队的夏天》各季 top5 乐队中一共有10名女性成员\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s003:c001\",\n          \"s002:c001\",\n          \"s005:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s003\",\n          \"s005\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s005\",\n      \"s013\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s013\",\n        \"chunk_id\": \"s013:c001\",\n        \"char_start\": 0,\n        \"char_end\": 192,\n        \"text\": \"Thought: The question asks for the total number of female members among the final Top5 bands of each completed season of 《乐队的夏天》\\n---\\n最终答案:10\\n---\\n最终答案:10\\n---\\n最终答案:10\\n---\\nfinal_answer(\\\"最终答案:10\\\")\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 103,\n        \"text\": \"《乐队的夏天》各季 top5 乐队中一共有多少名女性成员\\n---\\n乐队的夏天 第一季 年度Hot5\\n---\\n乐队的夏天 第一季 百度百科 最终排名\\n---\\n乐队的夏天 第三季 百度百科 年度Hot5 总决赛\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 366,\n        \"text\": \"新京报 乐队的夏天 第二季 收官 HOT5 排名\\n---\\n新京报客户端 好新闻 无止境 立即打开 重塑雕像的权利：拿下第一是小众音乐的胜利｜新京报×乐队的夏天 新京报 记者 张赫 编辑 田偲妮 2020-10-10 21:03 大戏看北京 订阅 重塑雕像的权利（下文简称“重塑”）拿下了《乐队的夏天》第二季（下文简称《乐夏2》）HOT5的第一名，这个结果在主唱华东看来是“意料之外，情理之中”\\n---\\n已完结季数与最终Top5：\\n---\\nThought: The task is to find, across all seasons of the show 《乐队的夏天》, the total number of female members among the final Top 5 bands of each season\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 948,\n        \"text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 超级乐迷 乐队 分期内容 开关分期内容子章节 复活踢馆赛资格 开关复活踢馆赛资格子章节 奖项 争议 开关争议子章节 注释 外部链接 参考资料 乐队的夏天 (第一季) 添加语言 条目 讨论 简体 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 乐队的夏天 (第一季) The Big Band 1 类型 音乐比赛真人秀 总导演 李楠楠、王雷、陈雨璇\\n---\\n乐队的夏天第二季 百度百科 最终 排名\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 5 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n乐队的夏天 第二季 百度百科 收官 HOT5 排名\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 8 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 8 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 165,\n        \"text\": \"乐队的夏天 第一季 百度百科\\n---\\nHayato 新裤子 百度百科\\n---\\n新裤子 维基百科 中文\\n---\\n爱奇艺 乐队的夏天 新裤子 成员 乐队 资料 页面\\n---\\n《乐队的夏天》第一季（2019）期间，新裤子在节目官方口径的参赛成员为：彭磊（男）、庞宽（男）、赵梦（女）、Hayato（男）\\n---\\n痛仰乐队 成员 百度百科\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0969",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s003",
+              "s005"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "《乐队的夏天》第二季收官HOT5排名"
+              },
+              {
+                "span_id": "s005",
+                "chunk_id": "s005:c001",
+                "role": "partial_support",
+                "text": "《乐队的夏天》第一季期间新裤子参赛成员"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s003",
+            "s005"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "《乐队的夏天》第二季收官HOT5排名"
+            },
+            {
+              "span_id": "s005",
+              "chunk_id": "s005:c001",
+              "role": "partial_support",
+              "text": "《乐队的夏天》第一季期间新裤子参赛成员"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0969\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"《乐队的夏天》各季 top5 乐队中一共有多少名女性成员？\",\n  \"traj_id\": \"0969\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0969\",\n    \"task_goal\": \"短字符串\",\n    \"hard_constraints\": [\n      \"短字符串\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"《乐队的夏天》各季 top5 乐队中一共有10名女性成员\",\n        \"introduced_at\": \"s013\",\n        \"becomes_consequential_at\": \"s013\",\n        \"used_by\": [\n          \"s013\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"短字符串\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s003\",\n        \"s005\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"《乐队的夏天》第二季收官HOT5排名\"\n        },\n        {\n          \"span_id\": \"s005\",\n          \"chunk_id\": \"s005:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"《乐队的夏天》第一季期间新裤子参赛成员\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s013\"\n    ],\n    \"requested_span_ids\": [\n      \"s013\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"《乐队的夏天》各季 top5 乐队中一共有10名女性成员\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s003:c001\",\n          \"s002:c001\",\n          \"s005:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s003\",\n          \"s005\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s005\",\n      \"s013\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s013\",\n        \"chunk_id\": \"s013:c001\",\n        \"char_start\": 0,\n        \"char_end\": 192,\n        \"text\": \"Thought: The question asks for the total number of female members among the final Top5 bands of each completed season of 《乐队的夏天》\\n---\\n最终答案:10\\n---\\n最终答案:10\\n---\\n最终答案:10\\n---\\nfinal_answer(\\\"最终答案:10\\\")\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 103,\n        \"text\": \"《乐队的夏天》各季 top5 乐队中一共有多少名女性成员\\n---\\n乐队的夏天 第一季 年度Hot5\\n---\\n乐队的夏天 第一季 百度百科 最终排名\\n---\\n乐队的夏天 第三季 百度百科 年度Hot5 总决赛\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 366,\n        \"text\": \"新京报 乐队的夏天 第二季 收官 HOT5 排名\\n---\\n新京报客户端 好新闻 无止境 立即打开 重塑雕像的权利：拿下第一是小众音乐的胜利｜新京报×乐队的夏天 新京报 记者 张赫 编辑 田偲妮 2020-10-10 21:03 大戏看北京 订阅 重塑雕像的权利（下文简称“重塑”）拿下了《乐队的夏天》第二季（下文简称《乐夏2》）HOT5的第一名，这个结果在主唱华东看来是“意料之外，情理之中”\\n---\\n已完结季数与最终Top5：\\n---\\nThought: The task is to find, across all seasons of the show 《乐队的夏天》, the total number of female members among the final Top 5 bands of each season\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 948,\n        \"text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 目录 隐藏 序言 超级乐迷 乐队 分期内容 开关分期内容子章节 复活踢馆赛资格 开关复活踢馆赛资格子章节 奖项 争议 开关争议子章节 注释 外部链接 参考资料 乐队的夏天 (第一季) 添加语言 条目 讨论 简体 阅读 编辑 查看历史 工具 外观 隐藏 维基百科，自由的百科全书 乐队的夏天 (第一季) The Big Band 1 类型 音乐比赛真人秀 总导演 李楠楠、王雷、陈雨璇\\n---\\n乐队的夏天第二季 百度百科 最终 排名\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 5 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n乐队的夏天 第二季 百度百科 收官 HOT5 排名\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 8 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 8 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 165,\n        \"text\": \"乐队的夏天 第一季 百度百科\\n---\\nHayato 新裤子 百度百科\\n---\\n新裤子 维基百科 中文\\n---\\n爱奇艺 乐队的夏天 新裤子 成员 乐队 资料 页面\\n---\\n《乐队的夏天》第一季（2019）期间，新裤子在节目官方口径的参赛成员为：彭磊（男）、庞宽（男）、赵梦（女）、Hayato（男）\\n---\\n痛仰乐队 成员 百度百科\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0969",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0969",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [],
+        "non_errors": [
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 13,
+    "evidence_span_count": 5
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 9444,
+    "output_tokens": 465,
+    "total_tokens": 9909
+  }
+}

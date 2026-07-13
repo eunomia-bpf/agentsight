@@ -1,0 +1,228 @@
+{
+  "setting": "drift",
+  "case_id": "0689",
+  "prediction": {
+    "traj_id": "0689",
+    "error_span_ids": [
+      "s011",
+      "s013"
+    ],
+    "earliest_harmful_span_id": "s011",
+    "reasons": [
+      {
+        "span_id": "s011",
+        "reason": "weak support and missing span for R in core policies"
+      },
+      {
+        "span_id": "s013",
+        "reason": "weak support and missing span for R in core policies"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0689\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"In the year 2022, and before December, what does \\\"R\\\" stand for in the three core policies of the type of content that was violated in the public logs on the Legume Wikipedia page?\",\n  \"traj_id\": \"0689\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"In the year 2022, and before December, what does \\\"R\\\" stand for in the three core policies of the type of content that was violated in the public logs on the Legume Wikipedia page\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Terminology Distribution Ecology Toggle Ecology subsection Nitrogen fixation Pests and diseases Storage Uses Toggle Uses subsection Human\\n---\\nJump to content Main menu Search Donate Create account Log in Legume: Revision history Help Article Talk Read Edit View history Tools Appearance hide Text Small Standard Large This page always uses small font size Width\\n---\\nJump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D\\n---\\nWikipedia Legume page content violation 2022\\n---\\nsite:en.wikipedia.org Legume vandalism protection 2022\\n---\\nJump to content Main menu Search Donate Create account Log in Protection log Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light Dar\\n---\\nJump to content Main menu Search Donate Create account Log in Deletion log Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light Dark\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Block log Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light Dark Vie\\n---\\nJump to content Main menu Search Donate Create account Log in Edit filter log Help Home Recent filter changes Examine past edits Edit filter log Tools Appearance hide Text Small Standard Large This page always uses small\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nI found **one significant content violation** in the Wikipedia Legume page's public logs for 2022 before December: On **March 27, 2021** (not 2022, but relevant to understanding the page's violation history), an administ\\n---\\nJump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Wikipedia Legume page edit war 2022\\n---\\nWikipedia Legume administrator actions protection log 2022\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D\\n---\\nsite:en.wikipedia.org \\\"Legume\\\" \\\"administrator\\\" OR \\\"edit war\\\" OR \\\"violation\\\" 2022\\n---\\nsite:en.wikipedia.org \\\"Wikipedia:Administrators' noticeboard\\\" \\\"Legume\\\" 2022\\n---\\nsite:en.wikipedia.org \\\"Wikipedia:Administrators' noticeboard/Edit warring\\\" Legume\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Wikipedia three core content policies acronym\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n\\\\n\\\\nWikipedia's three core content policies are:\\\\n1\\n---\\nWikipedia three core content policies NVR VNR acronym\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nWikipedia NVR acronym meaning letters stand for\\n---\\nWikipedia core content policies acronym NPOV NOR Verifiability\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n\\\\n\\\\nThe three\\n---\\nWikipedia Legume page violation logs 2022 content policy\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nWikipedia Legume page edit history violations 2022 protection log\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:en.wikipedia.org Legume page protection log vandalism 2022\\n---\\nWikipedia Legume article vandalism edit war content policy 2022\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D\\n---\\nWikipedia Legume page November 2023 protection persistent disruptive editing\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nsite:en.wikipedia.org/w/index.php Legume oldid 2022\\n---\\n\\\\n\\\\nNo specific content policy violations were found in public records for the Wikipedia Legume page before December 2022\\n---\\nWikipedia three core content policies acronym\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n\\\\n\\\\nThe three\\n---\\nWikipedia three core content policies abbreviation\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nWikipedia NPOV NOR V abbreviation collective name three core policies\\n---\\nWikipedia three core content policies called together abbreviation letter R\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nWikipedia three core content policies called together NOR NPOV Verifiability abbreviation\\n---\\n\\\"core content policies\\\" Wikipedia \\\"called\\\" OR \\\"known as\\\" OR \\\"referred to as\\\" abbreviation\\n---\\nWikipedia content policy triad three pillars NPOV NOR V\\n---\\nWikipedia \\\"content policy triad\\\" OR \\\"policy triad\\\" OR \\\"three content policies\\\" collective name\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Write Sign up Sign in Down the Rabbit Hole Facts, stories, and people from across the Wikimedia movement Follow publication The 3 building blocks of trustworthy information: Lessons from Wikipedia A new series explores h\\n---\\n\\\\n\\\\nWikipedia's three core content policies do NOT have an official collective name or abbreviation\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Wikipedia three core content policies neutral point of view verifiability no original research\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nWikipedia NVR abbreviation three core policies\\n---\\nWikipedia policies abbreviation NPOV NOR V\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n\\\"NVR\\\" Wikipedia three policies abbreviation meaning\\n---\\nWikipedia three core policies abbreviation letters NPOV V NOR\\n---\\nWikipedia \\\"NVR\\\" \\\"Neutral Verifiability Research\\\" OR \\\"NPOV V NOR\\\" abbreviation\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Contents hide (Top) Explanation What to include and exclude Toggle What to include and exclude subsection How to write neutrally Toggle How to write neutrally\\n---\\n\\\\n\\\\nNo, Wikipedia does NOT use an abbreviation \\\\\\\"NVR\\\\\\\" or similar for its three core content policies\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need to search for information about the Wikipedia \\\"Legume\\\" page's public logs and any content violations that occurred in 2022 before December\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0689",
+        "task_goal": "Identify the three core content policies of the Legume Wikipedia page in 2022 before December.",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "The three core content policies of the Legume Wikipedia page in 2022 before December are NPOV, NOR, and Verifiability.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ],
+        "notes": "The claim that the three core content policies of the Legume Wikipedia page in 2022 before December are NPOV, NOR, and Verifiability is introduced and becomes consequential at the same span."
+      },
+      "validated": {
+        "traj_id": "0689",
+        "task_goal": "Identify the three core content policies of the Legume Wikipedia page in 2022 before December.",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "The three core content policies of the Legume Wikipedia page in 2022 before December are NPOV, NOR, and Verifiability.",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ],
+        "notes": "The claim that the three core content policies of the Legume Wikipedia page in 2022 before December are NPOV, NOR, and Verifiability is introduced and becomes consequential at the same span."
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "The three core content policies of the Legume Wikipedia page in 2022 before December are NPOV, NOR, and Verifiability."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s011",
+        "s013"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s002",
+        "s008",
+        "s009",
+        "s011",
+        "s013"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "The three core content policies of the Legume Wikipedia page in 2022 before December are NPOV, NOR, and Verifiability.",
+          "matched_chunk_ids": [
+            "s001:c001",
+            "s009:c001",
+            "s008:c001",
+            "s002:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s002",
+            "s008",
+            "s009"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0689\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"In the year 2022, and before December, what does \\\"R\\\" stand for in the three core policies of the type of content that was violated in the public logs on the Legume Wikipedia page?\",\n  \"traj_id\": \"0689\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0689\",\n    \"task_goal\": \"Identify the three core content policies of the Legume Wikipedia page in 2022 before December.\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"The three core content policies of the Legume Wikipedia page in 2022 before December are NPOV, NOR, and Verifiability.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"The claim that the three core content policies of the Legume Wikipedia page in 2022 before December are NPOV, NOR, and Verifiability is introduced and becomes consequential at the same span.\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s011\",\n      \"s013\"\n    ],\n    \"requested_span_ids\": [\n      \"s011\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"The three core content policies of the Legume Wikipedia page in 2022 before December are NPOV, NOR, and Verifiability.\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s009:c001\",\n          \"s008:c001\",\n          \"s002:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s008\",\n          \"s009\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s008\",\n      \"s009\",\n      \"s011\",\n      \"s013\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 606,\n        \"text\": \"Wikipedia three core content policies neutral point of view verifiability no original research\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nWikipedia NVR abbreviation three core policies\\n---\\nWikipedia policies abbreviation NPOV NOR V\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n\\\"NVR\\\" Wikipedia three policies abbreviation meaning\\n---\\nWikipedia three core policies abbreviation letters NPOV V NOR\\n---\\nWikipedia \\\"NVR\\\" \\\"Neutral Verifiability Research\\\" OR \\\"NPOV V NOR\\\" abbreviation\"\n      },\n      {\n        \"span_id\": \"s013\",\n        \"chunk_id\": \"s013:c001\",\n        \"char_start\": 0,\n        \"char_end\": 154,\n        \"text\": \"Thought: I need to search for information about the Wikipedia \\\"Legume\\\" page's public logs and any content violations that occurred in 2022 before December\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1408,\n        \"text\": \"In the year 2022, and before December, what does \\\"R\\\" stand for in the three core policies of the type of content that was violated in the public logs on the Legume Wikipedia page\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Terminology Distribution Ecology Toggle Ecology subsection Nitrogen fixation Pests and diseases Storage Uses Toggle Uses subsection Human\\n---\\nJump to content Main menu Search Donate Create account Log in Legume: Revision history Help Article Talk Read Edit View history Tools Appearance hide Text Small Standard Large This page always uses small font size Width\\n---\\nJump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D\\n---\\nWikipedia Legume page content violation 2022\\n---\\nsite:en.wikipedia.org Legume vandalism protection 2022\\n---\\nJump to content Main menu Search Donate Create account Log in Protection log Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light Dar\\n---\\nJump to content Main menu Search Donate Create account Log in Deletion log Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light Dark\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 706,\n        \"text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nWikipedia NPOV NOR V abbreviation collective name three core policies\\n---\\nWikipedia three core content policies called together abbreviation letter R\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nWikipedia three core content policies called together NOR NPOV Verifiability abbreviation\\n---\\n\\\"core content policies\\\" Wikipedia \\\"called\\\" OR \\\"known as\\\" OR \\\"referred to as\\\" abbreviation\\n---\\nWikipedia content policy triad three pillars NPOV NOR V\\n---\\nWikipedia \\\"content policy triad\\\" OR \\\"policy triad\\\" OR \\\"three content policies\\\" collective name\"\n      },\n      {\n        \"span_id\": \"s008\",\n        \"chunk_id\": \"s008:c001\",\n        \"char_start\": 0,\n        \"char_end\": 816,\n        \"text\": \"Jump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D\\n---\\nWikipedia Legume page November 2023 protection persistent disruptive editing\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nsite:en.wikipedia.org/w/index.php Legume oldid 2022\\n---\\n\\\\n\\\\nNo specific content policy violations were found in public records for the Wikipedia Legume page before December 2022\\n---\\nWikipedia three core content policies acronym\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n\\\\n\\\\nThe three\\n---\\nWikipedia three core content policies abbreviation\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1315,\n        \"text\": \"Jump to content Main menu Search Donate Create account Log in Block log Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light Dark Vie\\n---\\nJump to content Main menu Search Donate Create account Log in Edit filter log Help Home Recent filter changes Examine past edits Edit filter log Tools Appearance hide Text Small Standard Large This page always uses small\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nI found **one significant content violation** in the Wikipedia Legume page's public logs for 2022 before December: On **March 27, 2021** (not 2022, but relevant to understanding the page's violation history), an administ\\n---\\nJump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0689",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s008",
+              "s009"
+            ],
+            "support_status": "weak",
+            "missing_support": "The claim is supported by the text mentioning NPOV, NOR, and Verifiability, but the exact span linking R to these policies is not provided.",
+            "needs_auditors": [
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s008",
+                "chunk_id": "s008:c001",
+                "role": "partial_support",
+                "text": "Jump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D"
+              },
+              {
+                "span_id": "s009",
+                "chunk_id": "s009:c001",
+                "role": "partial_support",
+                "text": "Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\n---\nWikipedia three core content policies called together NOR NPOV Verifiability abbreviation"
+              }
+            ]
+          }
+        ],
+        "notes": "The claim is supported by the text mentioning NPOV, NOR, and Verifiability, but the exact span linking R to these policies is not provided."
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s008",
+            "s009"
+          ],
+          "support_status": "weak",
+          "missing_support": "The claim is supported by the text mentioning NPOV, NOR, and Verifiability, but the exact span linking R to these policies is not provided.",
+          "needs_auditors": [
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s008",
+              "chunk_id": "s008:c001",
+              "role": "partial_support",
+              "text": "Jump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D"
+            },
+            {
+              "span_id": "s009",
+              "chunk_id": "s009:c001",
+              "role": "partial_support",
+              "text": "Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\n---\nWikipedia three core content policies called together NOR NPOV Verifiability abbreviation"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0689\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"In the year 2022, and before December, what does \\\"R\\\" stand for in the three core policies of the type of content that was violated in the public logs on the Legume Wikipedia page?\",\n  \"traj_id\": \"0689\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0689\",\n    \"task_goal\": \"Identify the three core content policies of the Legume Wikipedia page in 2022 before December.\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"The three core content policies of the Legume Wikipedia page in 2022 before December are NPOV, NOR, and Verifiability.\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"The claim that the three core content policies of the Legume Wikipedia page in 2022 before December are NPOV, NOR, and Verifiability is introduced and becomes consequential at the same span.\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s008\",\n        \"s009\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"The claim is supported by the text mentioning NPOV, NOR, and Verifiability, but the exact span linking R to these policies is not provided.\",\n      \"needs_auditors\": [\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s008\",\n          \"chunk_id\": \"s008:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Jump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D\"\n        },\n        {\n          \"span_id\": \"s009\",\n          \"chunk_id\": \"s009:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nWikipedia three core content policies called together NOR NPOV Verifiability abbreviation\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s011\",\n      \"s013\"\n    ],\n    \"requested_span_ids\": [\n      \"s011\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"The three core content policies of the Legume Wikipedia page in 2022 before December are NPOV, NOR, and Verifiability.\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s009:c001\",\n          \"s008:c001\",\n          \"s002:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s008\",\n          \"s009\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s008\",\n      \"s009\",\n      \"s011\",\n      \"s013\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 606,\n        \"text\": \"Wikipedia three core content policies neutral point of view verifiability no original research\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nWikipedia NVR abbreviation three core policies\\n---\\nWikipedia policies abbreviation NPOV NOR V\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n\\\"NVR\\\" Wikipedia three policies abbreviation meaning\\n---\\nWikipedia three core policies abbreviation letters NPOV V NOR\\n---\\nWikipedia \\\"NVR\\\" \\\"Neutral Verifiability Research\\\" OR \\\"NPOV V NOR\\\" abbreviation\"\n      },\n      {\n        \"span_id\": \"s013\",\n        \"chunk_id\": \"s013:c001\",\n        \"char_start\": 0,\n        \"char_end\": 154,\n        \"text\": \"Thought: I need to search for information about the Wikipedia \\\"Legume\\\" page's public logs and any content violations that occurred in 2022 before December\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1408,\n        \"text\": \"In the year 2022, and before December, what does \\\"R\\\" stand for in the three core policies of the type of content that was violated in the public logs on the Legume Wikipedia page\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Terminology Distribution Ecology Toggle Ecology subsection Nitrogen fixation Pests and diseases Storage Uses Toggle Uses subsection Human\\n---\\nJump to content Main menu Search Donate Create account Log in Legume: Revision history Help Article Talk Read Edit View history Tools Appearance hide Text Small Standard Large This page always uses small font size Width\\n---\\nJump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D\\n---\\nWikipedia Legume page content violation 2022\\n---\\nsite:en.wikipedia.org Legume vandalism protection 2022\\n---\\nJump to content Main menu Search Donate Create account Log in Protection log Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light Dar\\n---\\nJump to content Main menu Search Donate Create account Log in Deletion log Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light Dark\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 706,\n        \"text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nWikipedia NPOV NOR V abbreviation collective name three core policies\\n---\\nWikipedia three core content policies called together abbreviation letter R\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nWikipedia three core content policies called together NOR NPOV Verifiability abbreviation\\n---\\n\\\"core content policies\\\" Wikipedia \\\"called\\\" OR \\\"known as\\\" OR \\\"referred to as\\\" abbreviation\\n---\\nWikipedia content policy triad three pillars NPOV NOR V\\n---\\nWikipedia \\\"content policy triad\\\" OR \\\"policy triad\\\" OR \\\"three content policies\\\" collective name\"\n      },\n      {\n        \"span_id\": \"s008\",\n        \"chunk_id\": \"s008:c001\",\n        \"char_start\": 0,\n        \"char_end\": 816,\n        \"text\": \"Jump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D\\n---\\nWikipedia Legume page November 2023 protection persistent disruptive editing\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nsite:en.wikipedia.org/w/index.php Legume oldid 2022\\n---\\n\\\\n\\\\nNo specific content policy violations were found in public records for the Wikipedia Legume page before December 2022\\n---\\nWikipedia three core content policies acronym\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n\\\\n\\\\nThe three\\n---\\nWikipedia three core content policies abbreviation\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1315,\n        \"text\": \"Jump to content Main menu Search Donate Create account Log in Block log Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light Dark Vie\\n---\\nJump to content Main menu Search Donate Create account Log in Edit filter log Help Home Recent filter changes Examine past edits Edit filter log Tools Appearance hide Text Small Standard Large This page always uses small\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nI found **one significant content violation** in the Wikipedia Legume page's public logs for 2022 before December: On **March 27, 2021** (not 2022, but relevant to understanding the page's violation history), an administ\\n---\\nJump to content Main menu Search Donate Create account Log in Main public logs Help Tools Appearance hide Text Small Standard Large This page always uses small font size Width Standard Wide Color (beta) Automatic Light D\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0689",
+        "first_error_span": "s011",
+        "linked_error_span_ids": [
+          "s011",
+          "s013"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "weak support and missing span for R in core policies",
+        "error_span_ids": [
+          "s011",
+          "s013"
+        ],
+        "earliest_harmful_span_id": "s011"
+      },
+      "validated": {
+        "traj_id": "0689",
+        "first_error_span": "s011",
+        "linked_error_span_ids": [
+          "s011",
+          "s013"
+        ],
+        "non_errors": [],
+        "reason": "weak support and missing span for R in core policies",
+        "error_span_ids": [
+          "s011",
+          "s013"
+        ],
+        "earliest_harmful_span_id": "s011"
+      }
+    },
+    "full_span_count": 13,
+    "evidence_span_count": 6
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 8111,
+    "output_tokens": 640,
+    "total_tokens": 8751
+  }
+}

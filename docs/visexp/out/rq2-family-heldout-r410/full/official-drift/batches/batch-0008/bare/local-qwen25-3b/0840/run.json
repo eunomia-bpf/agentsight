@@ -1,0 +1,45 @@
+{
+  "setting": "bare",
+  "case_id": "0840",
+  "prediction": {
+    "traj_id": "0840",
+    "error_span_ids": [
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s007",
+    "reasons": []
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0840\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"Of the cities within the United States where U.S. presidents were born, which two are the farthest apart from the westernmost to the easternmost going east, giving the city names only? Give them to me in alphabetical order, in a comma-separated list\",\n  \"traj_id\": \"0840\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Of the cities within the United States where U\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nsite:wikipedia.org Birthplaces of presidents of the United States\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nAccess blocked You have been blocked because you have violated the usage policy of OSM's Nominatim geocoding service\\n---\\nGeoNames About Browse Download API Help anonymous × Honolulu - to view map click on map icon in bottom toolbar\\n---\\nsite:geonames.org Quincy Massachusetts\\n---\\nSkip to content PRESIDENT DONALD J\\n---\\nApplication Domestic ​ Search Useful Links Help Official Replacement Names for Sq___ Invalid Feature ID\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to content PRESIDENT DONALD J\\n---\\nWesternmost presidential birthplace (within current U\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"GeoNames Honolulu Hawaii populated place longitude site:geonames.org\\n---\\nsite:geonames.org Honolulu Hawaii populated place\\n---\\nGeoNames About Browse Download API Help anonymous × Honolulu - to view map click on map icon in bottom toolbar\\n---\\nGNIS Honolulu 366212 longitude site:edits.nationalmap.gov\\n---\\nAccess blocked You have been blocked because you have violated the usage policy of OSM's Nominatim geocoding service\\n---\\nGeoHack (21\\n---\\nGNIS Honolulu 366212\\n---\\nApplication Domestic ​ Search Useful Links Help Official Replacement Names for Sq___ Feature Details Feature ID 366212 Name Honolulu Class Populated Place Feature Code Unincorporated Place Location Honolulu County - Hawa\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:openstreetmap.org Honolulu relation\\n---\\nVerified decimal longitude for Honolulu, Hawaii (city/CDP): approximately −157\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Quincy, Massachusetts Wikipedia\\n---\\nGeoNames Quincy Massachusetts\\n---\\nGNIS Quincy Massachusetts 0617701\\n---\\nGeoNames Brookline Massachusetts\\n---\\nGeoNames Milton Massachusetts\\n---\\nGeoNames About Browse Download API Help anonymous × Quincy - to view map click on map icon in bottom toolbar\\n---\\nGNIS Quincy Massachusetts feature detail report\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Access blocked You have been blocked because you have violated the usage policy of OSM's Nominatim geocoding service\\n---\\nGeoHack (42\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Quincy Massachusetts GNIS 0617701 site:usgs.gov\\n---\\nVerified Quincy, Massachusetts longitude from two independent sources:\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I will use the search_agent team member to compile an authoritative list of U\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0840",
+        "error_span_ids": [
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0840",
+        "error_span_ids": [
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s007",
+        "reasons": []
+      }
+    },
+    "full_span_count": 8
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1234,
+    "output_tokens": 66,
+    "total_tokens": 1300
+  }
+}

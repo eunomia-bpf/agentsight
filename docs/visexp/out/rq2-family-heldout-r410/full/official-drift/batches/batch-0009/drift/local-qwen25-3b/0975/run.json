@@ -1,0 +1,189 @@
+{
+  "setting": "drift",
+  "case_id": "0975",
+  "prediction": {
+    "traj_id": "0975",
+    "error_span_ids": [
+      "s005"
+    ],
+    "earliest_harmful_span_id": "s005",
+    "reasons": []
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0975\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"2025年五一期间，北京飞悉尼最早的直飞航班是哪天的什么时间？\",\n  \"traj_id\": \"0975\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"2025年五一期间，北京飞悉尼最早的直飞航班是哪天的什么时间\\n---\\n2025年 五一 劳动节 假期 国务院 通知 site:gov.cn\\n---\\nsite:gov.cn 国务院办公厅 关于 2025年 部分 节假日 安排 的 通知\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"首頁 | 簡 | 繁 | EN | 登錄 | 郵箱 | 無障礙 首頁 > 信息公開 > 國務院文件 > 綜合政務 > 其他 字號：默認 大 超大 | 打印 收藏 留言 | 索 引 號： 000014349/2024-00094 主題分類： 綜合政務\\\\其他 發文機關： 國務院辦公廳 成文日期： 2024年11月12日 標 題： 國務院辦公廳關於2025年部分節假日安排的通知 發文字號： 國辦發明電〔2024〕12號 發佈日期： 2024年\\n---\\n首页 | 简 | 繁 | EN | 登录 | 邮箱 | 无障碍 首页 > 信息公开 > 国务院文件 > 综合政务 > 其他 字号：默认 大 超大 | 打印 收藏 留言 | 索 引 号： 000014349/2024-00094 主题分类： 综合政务\\\\其他 发文机关： 国务院办公厅 成文日期： 2024年11月12日 标 题： 国务院办公厅关于2025年部分节假日安排的通知 发文字号： 国办发明电〔2024〕12号 发布日期： 2024年\\n---\\n2025年五一劳动节：5月1日（周四）至5月5日（周一）放假调休，共5天\\n---\\nThought: 我需要先查询中国国务院公布的2025年五一假期的具体日期，然后查找北京（首都或大兴）飞悉尼的直飞航班信息，筛选这些日期内的所有直飞航班，并找出最早的一个\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"CA173 北京 悉尼 起飞 时间\\n---\\n2025年5月 日历 星期\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳至主要内容 澳大利亚-中国 登录 语言 1800-860-999 隐私设置 cookies偏好设置 允许所有 全部拒绝 基本的网站cookies 在为您提供我们网站的服务并使用其中的一些功能时，例如访问安全区域，这些cookies是绝对必要的\\n---\\n2025年5月 北京 悉尼 直飞 国航 CA173 班期 起飞时间\\n---\\nQantas Beijing Sydney 2025 直飞\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我已经获得了2025年五一假期的范围（5月1日至5月5日），下一步需要查询在这些日期内北京直飞悉尼的航班时刻，找出最早的一个出发时间\\n---\\n最终答案:2025年5月2日 01:05\\n---\\nThought: 已根据前一步检索与多源交叉验证确认：2025年五一假期为5月1日至5月5日\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "2025年五一假期为5月1日至5月5日",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s005",
+            "used_by": [
+              "s005"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0975",
+        "task_goal": "",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "2025年五一假期为5月1日至5月5日",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s005",
+            "used_by": [
+              "s005"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s002",
+            "s005"
+          ],
+          "grep_queries": [
+            "2025年五一假期为5月1日至5月5日"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s002",
+        "s005"
+      ],
+      "available_span_ids": [
+        "s002",
+        "s005"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "2025年五一假期为5月1日至5月5日",
+          "matched_chunk_ids": [
+            "s005:c001"
+          ],
+          "matched_span_ids": [
+            "s005"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0975\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"2025年五一期间，北京飞悉尼最早的直飞航班是哪天的什么时间？\",\n  \"traj_id\": \"0975\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0975\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"2025年五一假期为5月1日至5月5日\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s005\",\n        \"used_by\": [\n          \"s005\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s002\",\n      \"s005\"\n    ],\n    \"requested_span_ids\": [\n      \"s002\",\n      \"s005\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"2025年五一假期为5月1日至5月5日\",\n        \"matched_chunk_ids\": [\n          \"s005:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s005\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s002\",\n      \"s005\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 576,\n        \"text\": \"首頁 | 簡 | 繁 | EN | 登錄 | 郵箱 | 無障礙 首頁 > 信息公開 > 國務院文件 > 綜合政務 > 其他 字號：默認 大 超大 | 打印 收藏 留言 | 索 引 號： 000014349/2024-00094 主題分類： 綜合政務\\\\其他 發文機關： 國務院辦公廳 成文日期： 2024年11月12日 標 題： 國務院辦公廳關於2025年部分節假日安排的通知 發文字號： 國辦發明電〔2024〕12號 發佈日期： 2024年\\n---\\n首页 | 简 | 繁 | EN | 登录 | 邮箱 | 无障碍 首页 > 信息公开 > 国务院文件 > 综合政务 > 其他 字号：默认 大 超大 | 打印 收藏 留言 | 索 引 号： 000014349/2024-00094 主题分类： 综合政务\\\\其他 发文机关： 国务院办公厅 成文日期： 2024年11月12日 标 题： 国务院办公厅关于2025年部分节假日安排的通知 发文字号： 国办发明电〔2024〕12号 发布日期： 2024年\\n---\\n2025年五一劳动节：5月1日（周四）至5月5日（周一）放假调休，共5天\\n---\\nThought: 我需要先查询中国国务院公布的2025年五一假期的具体日期，然后查找北京（首都或大兴）飞悉尼的直飞航班信息，筛选这些日期内的所有直飞航班，并找出最早的一个\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 151,\n        \"text\": \"Thought: 我已经获得了2025年五一假期的范围（5月1日至5月5日），下一步需要查询在这些日期内北京直飞悉尼的航班时刻，找出最早的一个出发时间\\n---\\n最终答案:2025年5月2日 01:05\\n---\\nThought: 已根据前一步检索与多源交叉验证确认：2025年五一假期为5月1日至5月5日\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s005"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s005",
+                "chunk_id": "s005:c001",
+                "role": "partial_support",
+                "text": "查询2025年五一假期日期"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s005"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s005",
+              "chunk_id": "s005:c001",
+              "role": "partial_support",
+              "text": "查询2025年五一假期日期"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0975\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"2025年五一期间，北京飞悉尼最早的直飞航班是哪天的什么时间？\",\n  \"traj_id\": \"0975\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0975\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"2025年五一假期为5月1日至5月5日\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s005\",\n        \"used_by\": [\n          \"s005\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s005\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s005\",\n          \"chunk_id\": \"s005:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"查询2025年五一假期日期\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s002\",\n      \"s005\"\n    ],\n    \"requested_span_ids\": [\n      \"s002\",\n      \"s005\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"2025年五一假期为5月1日至5月5日\",\n        \"matched_chunk_ids\": [\n          \"s005:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s005\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s002\",\n      \"s005\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 576,\n        \"text\": \"首頁 | 簡 | 繁 | EN | 登錄 | 郵箱 | 無障礙 首頁 > 信息公開 > 國務院文件 > 綜合政務 > 其他 字號：默認 大 超大 | 打印 收藏 留言 | 索 引 號： 000014349/2024-00094 主題分類： 綜合政務\\\\其他 發文機關： 國務院辦公廳 成文日期： 2024年11月12日 標 題： 國務院辦公廳關於2025年部分節假日安排的通知 發文字號： 國辦發明電〔2024〕12號 發佈日期： 2024年\\n---\\n首页 | 简 | 繁 | EN | 登录 | 邮箱 | 无障碍 首页 > 信息公开 > 国务院文件 > 综合政务 > 其他 字号：默认 大 超大 | 打印 收藏 留言 | 索 引 号： 000014349/2024-00094 主题分类： 综合政务\\\\其他 发文机关： 国务院办公厅 成文日期： 2024年11月12日 标 题： 国务院办公厅关于2025年部分节假日安排的通知 发文字号： 国办发明电〔2024〕12号 发布日期： 2024年\\n---\\n2025年五一劳动节：5月1日（周四）至5月5日（周一）放假调休，共5天\\n---\\nThought: 我需要先查询中国国务院公布的2025年五一假期的具体日期，然后查找北京（首都或大兴）飞悉尼的直飞航班信息，筛选这些日期内的所有直飞航班，并找出最早的一个\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 151,\n        \"text\": \"Thought: 我已经获得了2025年五一假期的范围（5月1日至5月5日），下一步需要查询在这些日期内北京直飞悉尼的航班时刻，找出最早的一个出发时间\\n---\\n最终答案:2025年5月2日 01:05\\n---\\nThought: 已根据前一步检索与多源交叉验证确认：2025年五一假期为5月1日至5月5日\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0975",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0975",
+        "first_error_span": null,
+        "linked_error_span_ids": [],
+        "non_errors": [
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 5,
+    "evidence_span_count": 2
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 4995,
+    "output_tokens": 346,
+    "total_tokens": 5341
+  }
+}

@@ -1,0 +1,331 @@
+{
+  "setting": "drift",
+  "case_id": "0983",
+  "prediction": {
+    "traj_id": "0983",
+    "error_span_ids": [
+      "s011"
+    ],
+    "earliest_harmful_span_id": "s011",
+    "reasons": [
+      {
+        "span_id": "s011",
+        "reason": "短字符串"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0983\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"2025年前5个月，中国电影票房已累计的金额（只算整数/单位：亿元），相较篮球运动员勒布朗詹姆斯的第六份合同（按当前汇率1 美元≈7.0 人民币元），是其多少倍（保留2位小数）\",\n  \"traj_id\": \"0983\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"2025年前5个月，中国电影票房已累计的金额（只算整数/单位：亿元），相较篮球运动员勒布朗詹姆斯的第六份合同（按当前汇率1 美元≈7\\n---\\nsite:news.cn 截至5月31日 全国电影票房 2025 灯塔专业版 新华社\\n---\\n截止5月31日 全国电影票房 2025 灯塔专业版\\n---\\n截至5月31日 全国电影总票房 2025 人民网\\n---\\n截至5月31日 全国电影票房 2025 中国内地\\n---\\n截至5月31日 全国电影票房 2025 灯塔专业版 猫眼专业版 中国内地 累计\\n---\\nsite:news.cn 截至5月31日 全国电影票房 2025 年度 数据 新华社\\n---\\n截至5月31日 2025年 全国电影票房 灯塔专业版 猫眼 专资办 新华社 人民日报\\n---\\n截至5月31日 全国电影票房 2025 累计\\n---\\n2025年1—5月 全国电影票房 亿元 新华社 灯塔 专资办\\n---\\n2025年1-5月 全国电影票房 累计 截至5月31日 灯塔专业版 猫眼 专资办 新华社 人民日报\\n---\\n截至5月31日 2025年 全国电影票房 前五个月 灯塔专业版 猫眼 专资办\\n---\\n2025年1-5月全国电影票房累计 灯塔专业版\\n---\\n1-5月全国电影票房累计 2025 灯塔专业版\\n---\\n2025年1-5月 全国电影票房 累计 灯塔 专业版\\n---\\n2025年1-5月 全国电影票房 累计\\n---\\n2025年1-5月 全国电影票房 累计 灯塔 专业版\\n---\\n灯塔研究院 2025年5月 1-5月 票房 累计 灯塔专业版 月度\\n---\\n2025年5月全国电影票房 灯塔专业版 数据显示\\n---\\n2025年5月 全国票房 灯塔专业版 月度 报告 5月票房\\n---\\n2025年5月 全国电影票房 累计 1-5月 数据显示\\n---\\n2025年1-5月 全国电影票房 累计 灯塔研究院 5月 总结\\n---\\n未检索到直接使用“截至5月31日累计票房为×××亿元”表述的权威报道\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"LeBron James Spotrac contracts history\\n---\\nHello, Sign in Premium HOME NFL NBA MLB NHL WNBA EPL MLS NWSL GOLF MORE NEWS PODCASTS TRENDING PAGES Atlanta Hawks Contracts NBA Trade Machine 2025 Guard Free Agents TRENDING PLAYERS Ja Morant (PG, MEM) LeBron James (PF,\\n---\\nLeBron James contract history ESPN\\n---\\nSpotrac LeBron James 2016 contract Cleveland 3 year $100 million site:spotrac.com\\n---\\nsite:spotrac.com LeBron James 2 yr $46,974,673\\n---\\nHoopsHype LeBron James salary contract history\\n---\\nsite:spotrac.com LeBron James transactions Spotrac\\n---\\nsite:spotrac.com LeBron James 99,857,127 Cleveland contract 2016\\n---\\nFull Details LeBron James Los Angeles Lakers, Power Forward Contract 2025 Rankings Career Earnings Transactions 2024-2025 MAXIMUM (CURRENT) VISUAL BREAKDOWN CAP BREAKDOWN CASH BREAKDOWN Dead Cap Cap Hit 2024 2025 2026 $0\\n---\\nsite:spotrac.com \\\"99,857,127\\\" LeBron James\\n---\\nSpotrac LeBron James 2015 Cavaliers 2 year $46,974,673\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I need two key numbers: (1) China’s cumulative box office for the first five months of 2025, expressed as an integer in 亿元\\n---\\n灯塔专业版 2025年 上半年 全国 电影 总票房\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"新浪首页 新闻 体育 财经 娱乐 科技 博客 图片 专栏 更多 移动客户端 注册 登录 新浪科技> 数码 > 正文 2025 上半年全国电影平均票价 45\\n---\\nsite:199it.com 灯塔 专业版 2025 上半年 票房 6月\\n---\\nsite:news.cn 灯塔专业版 2025 上半年 总票房 292.31 6月 票房\\n---\\nsite:mp.weixin.qq.com 灯塔专业版 2025 上半年 数据盘点 6月 票房\\n---\\nENGLISH新华报刊地方频道承建网站中文/繁体网站无障碍客户端手机版站内搜索 新华通讯社主办 公司官网 股票代码：603888 学习进行时高层时政人事国际财经网评港澳台湾思客智库全球连线教育科技科创量子体育文化书画健康军事访谈视频图片政务法律中央文件 金融汽车食品房产信息化数字经济学术中国乡村振兴银龄溯源中国城市旅游能源会展彩票娱乐时尚悦读公益一带一路亚太网上市公司文化产业 新华网 > 娱乐 > 正文 2025 07/02 09:25\\n---\\n灯塔专业版 2025年6月 全国 票房 19.1亿元\\n---\\n首页 快讯 要闻 股市 新股 信披+ 人民鉴真 公众号 电子报 客户端 您当前的位置：证券时报 > 独家解读 > 正文 暑期档票房突破百亿 A股影视板块“涨声”雷动 来源：证券时报 2025-08-19 A005版作者：吴志2025-08-19 06:54 点赞 分享 证券时报记者 吴志 灯塔平台数据显示，8月18日，2025年暑期档票房突破100亿元（含预售及服务费，下同），破百亿时间与2024年基本相当（2024年8月17日晚）\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:thepaper.cn 灯塔专业版 6月 票房 19.1 2025\\n---\\n灯塔专业版 6月 仅 19.1 亿 2025 上半年 盘点\\n---\\n首页 VIP 新闻 关注 视听 快讯 一财号 直播 电视 ESG 图集 专题 数字报 搜索 登录 首页 > 新闻 > 产经 半年盘点｜上半年票房同比增长23%：《哪吒2》贡献一半，国产片票房占比超91% 第一财经 2025-07-12 21:50 575 听新闻 作者：揭书宜 责编：乐琰 上一篇 下一篇 分享到： AI帮你提炼, 10秒 看完要点 智能挖掘 相关板块, 定位投资机会 不仅是2025年上半年国产电影贡献了绝大部分票房，这种\\n---\\n灯塔专业版 6月 19.1亿元 2025 媒体 报道\\n---\\n灯塔专业版披露的2025年上半年（1\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"2025年上半年 全国电影总票房 猫眼 专业版\\n---\\n人物库 网站首页金融证券产业市场国际经济时政社会评论理论地方经济城市频道食品安全网乡村振兴生态文明 股市银行基金期货理财保险IT业食品汽车商车能源房产医药文化会展旅游生活科技健康VR ·“浪漫”的二十四节气 ·老外的中国映像(视频) ·厂房转型文创园调研 ·中国文化产业政策库 当前位置 首页 > 文化产业 > 文化大滚动 > 正文 中经搜索 2025年上半年电影总票房292\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"2025年6月 全国电影票房 猫眼 专业版\\n---\\nsite:finance.sina.com.cn 2025年上半年 猫眼 专业版 票房 292.26\\n---\\n2025年6月 全国票房 猫眼 19.06\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"精选频道 发布厅 城市频道 下载客户端 学习首页广州读+南方号粤港澳大湾区党建经济文化国际南方报业小记者南方都市报 更多 南方+>电影文娱>正文 2025年上半年全国票房超292亿元，春节档影片包揽票房前5 作者 张思毅 2025-07-01 11:27 据国家电影局统计，2025年上半年电影票房为292\\n---\\n2025年6月 全国电影票房 猫眼 19.06 媒体\\n---\\nsite:finance.sina.com.cn 6月 全国 票房 猫眼 2025\\n---\\n2025年6月 全国票房 19.06 猫眼 专业版 澎湃\\n---\\n猫眼专业版披露的2025年上半年全国电影总票房：292\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Spotrac LeBron James contract history\\n---\\nHello, Sign in Premium HOME NFL NBA MLB NHL WNBA EPL MLS NWSL GOLF MORE NEWS PODCASTS TRENDING PAGES Atlanta Hawks Contracts NBA Trade Machine 2025 Guard Free Agents TRENDING PLAYERS Ja Morant (PG, MEM) LeBron James (PF,\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"ESPN LeBron James 4-year $153.3 million Lakers 2018\\n---\\nSpotrac合同历史页面链接（LeBron James）：https://www\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 我需要两个关键数据：(1) 2025年1—5月中国内地电影累计票房（以“亿元”为单位并按题意“只算整数”）\\n---\\nThought: 我已经通过多源数据交叉验证得到如下关键数值： - 灯塔专业版与主流媒体引用显示：2025年上半年全国电影总票房为292\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "2025年上半年全国电影总票房为292亿元",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "2025年1—5月中国内地电影累计票房为292.31亿元",
+            "introduced_at": "s004",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "2025年6月全国电影票房为19.1亿元",
+            "introduced_at": "s004",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "勒布朗·詹姆斯第六份合同金额为99,857,127美元",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0983",
+        "task_goal": "",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "2025年上半年全国电影总票房为292亿元",
+            "introduced_at": "s011",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "2025年1—5月中国内地电影累计票房为292.31亿元",
+            "introduced_at": "s004",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "2025年6月全国电影票房为19.1亿元",
+            "introduced_at": "s004",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "勒布朗·詹姆斯第六份合同金额为99,857,127美元",
+            "introduced_at": "s002",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s011"
+          ],
+          "grep_queries": [
+            "2025年上半年全国电影总票房为292亿元"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s004",
+            "s011"
+          ],
+          "grep_queries": [
+            "2025年1—5月中国内地电影累计票房为292.31亿元"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s004",
+            "s011"
+          ],
+          "grep_queries": [
+            "2025年6月全国电影票房为19.1亿元"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c4",
+          "span_ids": [
+            "s002",
+            "s011"
+          ],
+          "grep_queries": [
+            "勒布朗·詹姆斯第六份合同金额为99,857,127美元"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s002",
+        "s004",
+        "s011"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s002",
+        "s004",
+        "s005",
+        "s011"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "2025年上半年全国电影总票房为292亿元",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        },
+        {
+          "claim_id": "c2",
+          "query": "2025年1—5月中国内地电影累计票房为292.31亿元",
+          "matched_chunk_ids": [
+            "s001:c001",
+            "s011:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s011"
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "query": "2025年6月全国电影票房为19.1亿元",
+          "matched_chunk_ids": [
+            "s004:c001",
+            "s005:c001"
+          ],
+          "matched_span_ids": [
+            "s004",
+            "s005"
+          ]
+        },
+        {
+          "claim_id": "c4",
+          "query": "勒布朗·詹姆斯第六份合同金额为99,857,127美元",
+          "matched_chunk_ids": [
+            "s002:c001",
+            "s001:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s002"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0983\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"2025年前5个月，中国电影票房已累计的金额（只算整数/单位：亿元），相较篮球运动员勒布朗詹姆斯的第六份合同（按当前汇率1 美元≈7.0 人民币元），是其多少倍（保留2位小数）\",\n  \"traj_id\": \"0983\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0983\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"2025年上半年全国电影总票房为292亿元\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"2025年1—5月中国内地电影累计票房为292.31亿元\",\n        \"introduced_at\": \"s004\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"2025年6月全国电影票房为19.1亿元\",\n        \"introduced_at\": \"s004\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"勒布朗·詹姆斯第六份合同金额为99,857,127美元\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s002\",\n      \"s004\",\n      \"s011\"\n    ],\n    \"requested_span_ids\": [\n      \"s002\",\n      \"s004\",\n      \"s011\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"2025年上半年全国电影总票房为292亿元\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"2025年1—5月中国内地电影累计票房为292.31亿元\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s011:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s011\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"2025年6月全国电影票房为19.1亿元\",\n        \"matched_chunk_ids\": [\n          \"s004:c001\",\n          \"s005:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s004\",\n          \"s005\"\n        ]\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"勒布朗·詹姆斯第六份合同金额为99,857,127美元\",\n        \"matched_chunk_ids\": [\n          \"s002:c001\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s004\",\n      \"s005\",\n      \"s011\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 945,\n        \"text\": \"LeBron James Spotrac contracts history\\n---\\nHello, Sign in Premium HOME NFL NBA MLB NHL WNBA EPL MLS NWSL GOLF MORE NEWS PODCASTS TRENDING PAGES Atlanta Hawks Contracts NBA Trade Machine 2025 Guard Free Agents TRENDING PLAYERS Ja Morant (PG, MEM) LeBron James (PF,\\n---\\nLeBron James contract history ESPN\\n---\\nSpotrac LeBron James 2016 contract Cleveland 3 year $100 million site:spotrac.com\\n---\\nsite:spotrac.com LeBron James 2 yr $46,974,673\\n---\\nHoopsHype LeBron James salary contract history\\n---\\nsite:spotrac.com LeBron James transactions Spotrac\\n---\\nsite:spotrac.com LeBron James 99,857,127 Cleveland contract 2016\\n---\\nFull Details LeBron James Los Angeles Lakers, Power Forward Contract 2025 Rankings Career Earnings Transactions 2024-2025 MAXIMUM (CURRENT) VISUAL BREAKDOWN CAP BREAKDOWN CASH BREAKDOWN Dead Cap Cap Hit 2024 2025 2026 $0\\n---\\nsite:spotrac.com \\\"99,857,127\\\" LeBron James\\n---\\nSpotrac LeBron James 2015 Cavaliers 2 year $46,974,673\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 698,\n        \"text\": \"新浪首页 新闻 体育 财经 娱乐 科技 博客 图片 专栏 更多 移动客户端 注册 登录 新浪科技> 数码 > 正文 2025 上半年全国电影平均票价 45\\n---\\nsite:199it.com 灯塔 专业版 2025 上半年 票房 6月\\n---\\nsite:news.cn 灯塔专业版 2025 上半年 总票房 292.31 6月 票房\\n---\\nsite:mp.weixin.qq.com 灯塔专业版 2025 上半年 数据盘点 6月 票房\\n---\\nENGLISH新华报刊地方频道承建网站中文/繁体网站无障碍客户端手机版站内搜索 新华通讯社主办 公司官网 股票代码：603888 学习进行时高层时政人事国际财经网评港澳台湾思客智库全球连线教育科技科创量子体育文化书画健康军事访谈视频图片政务法律中央文件 金融汽车食品房产信息化数字经济学术中国乡村振兴银龄溯源中国城市旅游能源会展彩票娱乐时尚悦读公益一带一路亚太网上市公司文化产业 新华网 > 娱乐 > 正文 2025 07/02 09:25\\n---\\n灯塔专业版 2025年6月 全国 票房 19.1亿元\\n---\\n首页 快讯 要闻 股市 新股 信披+ 人民鉴真 公众号 电子报 客户端 您当前的位置：证券时报 > 独家解读 > 正文 暑期档票房突破百亿 A股影视板块“涨声”雷动 来源：证券时报 2025-08-19 A005版作者：吴志2025-08-19 06:54 点赞 分享 证券时报记者 吴志 灯塔平台数据显示，8月18日，2025年暑期档票房突破100亿元（含预售及服务费，下同），破百亿时间与2024年基本相当（2024年8月17日晚）\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 135,\n        \"text\": \"Thought: 我需要两个关键数据：(1) 2025年1—5月中国内地电影累计票房（以“亿元”为单位并按题意“只算整数”）\\n---\\nThought: 我已经通过多源数据交叉验证得到如下关键数值： - 灯塔专业版与主流媒体引用显示：2025年上半年全国电影总票房为292\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 848,\n        \"text\": \"2025年前5个月，中国电影票房已累计的金额（只算整数/单位：亿元），相较篮球运动员勒布朗詹姆斯的第六份合同（按当前汇率1 美元≈7\\n---\\nsite:news.cn 截至5月31日 全国电影票房 2025 灯塔专业版 新华社\\n---\\n截止5月31日 全国电影票房 2025 灯塔专业版\\n---\\n截至5月31日 全国电影总票房 2025 人民网\\n---\\n截至5月31日 全国电影票房 2025 中国内地\\n---\\n截至5月31日 全国电影票房 2025 灯塔专业版 猫眼专业版 中国内地 累计\\n---\\nsite:news.cn 截至5月31日 全国电影票房 2025 年度 数据 新华社\\n---\\n截至5月31日 2025年 全国电影票房 灯塔专业版 猫眼 专资办 新华社 人民日报\\n---\\n截至5月31日 全国电影票房 2025 累计\\n---\\n2025年1—5月 全国电影票房 亿元 新华社 灯塔 专资办\\n---\\n2025年1-5月 全国电影票房 累计 截至5月31日 灯塔专业版 猫眼 专资办 新华社 人民日报\\n---\\n截至5月31日 2025年 全国电影票房 前五个月 灯塔专业版 猫眼 专资办\\n---\\n2025年1-5月全国电影票房累计 灯塔专业版\\n---\\n1-5月全国电影票房累计 2025 灯塔专业版\\n---\\n2025年1-5月 全国电影票房 累计 灯塔 专业版\\n---\\n2025年1-5月 全国电影票房 累计\\n---\\n2025年1-5月 全国电影票房 累计 灯塔 专业版\\n---\\n灯塔研究院 2025年5月 1-5月 票房 累计 灯塔专业版 月度\\n---\\n2025年5月全国电影票房 灯塔专业版 数据显示\\n---\\n2025年5月 全国票房 灯塔专业版 月度 报告 5月票房\\n---\\n2025年5月 全国电影票房 累计 1-5月 数据显示\\n---\\n2025年1-5月 全国电影票房 累计 灯塔研究院 5月 总结\\n---\\n未检索到直接使用“截至5月31日累计票房为×××亿元”表述的权威报道\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 351,\n        \"text\": \"site:thepaper.cn 灯塔专业版 6月 票房 19.1 2025\\n---\\n灯塔专业版 6月 仅 19.1 亿 2025 上半年 盘点\\n---\\n首页 VIP 新闻 关注 视听 快讯 一财号 直播 电视 ESG 图集 专题 数字报 搜索 登录 首页 > 新闻 > 产经 半年盘点｜上半年票房同比增长23%：《哪吒2》贡献一半，国产片票房占比超91% 第一财经 2025-07-12 21:50 575 听新闻 作者：揭书宜 责编：乐琰 上一篇 下一篇 分享到： AI帮你提炼, 10秒 看完要点 智能挖掘 相关板块, 定位投资机会 不仅是2025年上半年国产电影贡献了绝大部分票房，这种\\n---\\n灯塔专业版 6月 19.1亿元 2025 媒体 报道\\n---\\n灯塔专业版披露的2025年上半年（1\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s004"
+            ],
+            "support_status": "weak",
+            "missing_support": "no direct support for 2025年上半年全国电影总票房为292亿元",
+            "needs_auditors": [
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s004",
+                "chunk_id": "s004:c001",
+                "role": "partial_support",
+                "text": "2025年前5个月，中国电影票房已累计的金额（只算整数/单位：亿元），相较篮球运动员勒布朗詹姆斯的第六份合同（按当前汇率1 美元≈7.0 人民币元），是其多少倍（保留2位小数）"
+              }
+            ]
+          }
+        ],
+        "notes": "no direct support for 2025年上半年全国电影总票房为292亿元"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s004"
+          ],
+          "support_status": "weak",
+          "missing_support": "no direct support for 2025年上半年全国电影总票房为292亿元",
+          "needs_auditors": [
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s004",
+              "chunk_id": "s004:c001",
+              "role": "partial_support",
+              "text": "2025年前5个月，中国电影票房已累计的金额（只算整数/单位：亿元），相较篮球运动员勒布朗詹姆斯的第六份合同（按当前汇率1 美元≈7.0 人民币元），是其多少倍（保留2位小数）"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0983\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"2025年前5个月，中国电影票房已累计的金额（只算整数/单位：亿元），相较篮球运动员勒布朗詹姆斯的第六份合同（按当前汇率1 美元≈7.0 人民币元），是其多少倍（保留2位小数）\",\n  \"traj_id\": \"0983\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0983\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"2025年上半年全国电影总票房为292亿元\",\n        \"introduced_at\": \"s011\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"2025年1—5月中国内地电影累计票房为292.31亿元\",\n        \"introduced_at\": \"s004\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"2025年6月全国电影票房为19.1亿元\",\n        \"introduced_at\": \"s004\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"勒布朗·詹姆斯第六份合同金额为99,857,127美元\",\n        \"introduced_at\": \"s002\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s004\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"no direct support for 2025年上半年全国电影总票房为292亿元\",\n      \"needs_auditors\": [\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s004\",\n          \"chunk_id\": \"s004:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"2025年前5个月，中国电影票房已累计的金额（只算整数/单位：亿元），相较篮球运动员勒布朗詹姆斯的第六份合同（按当前汇率1 美元≈7.0 人民币元），是其多少倍（保留2位小数）\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s002\",\n      \"s004\",\n      \"s011\"\n    ],\n    \"requested_span_ids\": [\n      \"s002\",\n      \"s004\",\n      \"s011\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"2025年上半年全国电影总票房为292亿元\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"2025年1—5月中国内地电影累计票房为292.31亿元\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s011:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s011\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"2025年6月全国电影票房为19.1亿元\",\n        \"matched_chunk_ids\": [\n          \"s004:c001\",\n          \"s005:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s004\",\n          \"s005\"\n        ]\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"勒布朗·詹姆斯第六份合同金额为99,857,127美元\",\n        \"matched_chunk_ids\": [\n          \"s002:c001\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s004\",\n      \"s005\",\n      \"s011\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 945,\n        \"text\": \"LeBron James Spotrac contracts history\\n---\\nHello, Sign in Premium HOME NFL NBA MLB NHL WNBA EPL MLS NWSL GOLF MORE NEWS PODCASTS TRENDING PAGES Atlanta Hawks Contracts NBA Trade Machine 2025 Guard Free Agents TRENDING PLAYERS Ja Morant (PG, MEM) LeBron James (PF,\\n---\\nLeBron James contract history ESPN\\n---\\nSpotrac LeBron James 2016 contract Cleveland 3 year $100 million site:spotrac.com\\n---\\nsite:spotrac.com LeBron James 2 yr $46,974,673\\n---\\nHoopsHype LeBron James salary contract history\\n---\\nsite:spotrac.com LeBron James transactions Spotrac\\n---\\nsite:spotrac.com LeBron James 99,857,127 Cleveland contract 2016\\n---\\nFull Details LeBron James Los Angeles Lakers, Power Forward Contract 2025 Rankings Career Earnings Transactions 2024-2025 MAXIMUM (CURRENT) VISUAL BREAKDOWN CAP BREAKDOWN CASH BREAKDOWN Dead Cap Cap Hit 2024 2025 2026 $0\\n---\\nsite:spotrac.com \\\"99,857,127\\\" LeBron James\\n---\\nSpotrac LeBron James 2015 Cavaliers 2 year $46,974,673\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 698,\n        \"text\": \"新浪首页 新闻 体育 财经 娱乐 科技 博客 图片 专栏 更多 移动客户端 注册 登录 新浪科技> 数码 > 正文 2025 上半年全国电影平均票价 45\\n---\\nsite:199it.com 灯塔 专业版 2025 上半年 票房 6月\\n---\\nsite:news.cn 灯塔专业版 2025 上半年 总票房 292.31 6月 票房\\n---\\nsite:mp.weixin.qq.com 灯塔专业版 2025 上半年 数据盘点 6月 票房\\n---\\nENGLISH新华报刊地方频道承建网站中文/繁体网站无障碍客户端手机版站内搜索 新华通讯社主办 公司官网 股票代码：603888 学习进行时高层时政人事国际财经网评港澳台湾思客智库全球连线教育科技科创量子体育文化书画健康军事访谈视频图片政务法律中央文件 金融汽车食品房产信息化数字经济学术中国乡村振兴银龄溯源中国城市旅游能源会展彩票娱乐时尚悦读公益一带一路亚太网上市公司文化产业 新华网 > 娱乐 > 正文 2025 07/02 09:25\\n---\\n灯塔专业版 2025年6月 全国 票房 19.1亿元\\n---\\n首页 快讯 要闻 股市 新股 信披+ 人民鉴真 公众号 电子报 客户端 您当前的位置：证券时报 > 独家解读 > 正文 暑期档票房突破百亿 A股影视板块“涨声”雷动 来源：证券时报 2025-08-19 A005版作者：吴志2025-08-19 06:54 点赞 分享 证券时报记者 吴志 灯塔平台数据显示，8月18日，2025年暑期档票房突破100亿元（含预售及服务费，下同），破百亿时间与2024年基本相当（2024年8月17日晚）\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 135,\n        \"text\": \"Thought: 我需要两个关键数据：(1) 2025年1—5月中国内地电影累计票房（以“亿元”为单位并按题意“只算整数”）\\n---\\nThought: 我已经通过多源数据交叉验证得到如下关键数值： - 灯塔专业版与主流媒体引用显示：2025年上半年全国电影总票房为292\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 848,\n        \"text\": \"2025年前5个月，中国电影票房已累计的金额（只算整数/单位：亿元），相较篮球运动员勒布朗詹姆斯的第六份合同（按当前汇率1 美元≈7\\n---\\nsite:news.cn 截至5月31日 全国电影票房 2025 灯塔专业版 新华社\\n---\\n截止5月31日 全国电影票房 2025 灯塔专业版\\n---\\n截至5月31日 全国电影总票房 2025 人民网\\n---\\n截至5月31日 全国电影票房 2025 中国内地\\n---\\n截至5月31日 全国电影票房 2025 灯塔专业版 猫眼专业版 中国内地 累计\\n---\\nsite:news.cn 截至5月31日 全国电影票房 2025 年度 数据 新华社\\n---\\n截至5月31日 2025年 全国电影票房 灯塔专业版 猫眼 专资办 新华社 人民日报\\n---\\n截至5月31日 全国电影票房 2025 累计\\n---\\n2025年1—5月 全国电影票房 亿元 新华社 灯塔 专资办\\n---\\n2025年1-5月 全国电影票房 累计 截至5月31日 灯塔专业版 猫眼 专资办 新华社 人民日报\\n---\\n截至5月31日 2025年 全国电影票房 前五个月 灯塔专业版 猫眼 专资办\\n---\\n2025年1-5月全国电影票房累计 灯塔专业版\\n---\\n1-5月全国电影票房累计 2025 灯塔专业版\\n---\\n2025年1-5月 全国电影票房 累计 灯塔 专业版\\n---\\n2025年1-5月 全国电影票房 累计\\n---\\n2025年1-5月 全国电影票房 累计 灯塔 专业版\\n---\\n灯塔研究院 2025年5月 1-5月 票房 累计 灯塔专业版 月度\\n---\\n2025年5月全国电影票房 灯塔专业版 数据显示\\n---\\n2025年5月 全国票房 灯塔专业版 月度 报告 5月票房\\n---\\n2025年5月 全国电影票房 累计 1-5月 数据显示\\n---\\n2025年1-5月 全国电影票房 累计 灯塔研究院 5月 总结\\n---\\n未检索到直接使用“截至5月31日累计票房为×××亿元”表述的权威报道\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 351,\n        \"text\": \"site:thepaper.cn 灯塔专业版 6月 票房 19.1 2025\\n---\\n灯塔专业版 6月 仅 19.1 亿 2025 上半年 盘点\\n---\\n首页 VIP 新闻 关注 视听 快讯 一财号 直播 电视 ESG 图集 专题 数字报 搜索 登录 首页 > 新闻 > 产经 半年盘点｜上半年票房同比增长23%：《哪吒2》贡献一半，国产片票房占比超91% 第一财经 2025-07-12 21:50 575 听新闻 作者：揭书宜 责编：乐琰 上一篇 下一篇 分享到： AI帮你提炼, 10秒 看完要点 智能挖掘 相关板块, 定位投资机会 不仅是2025年上半年国产电影贡献了绝大部分票房，这种\\n---\\n灯塔专业版 6月 19.1亿元 2025 媒体 报道\\n---\\n灯塔专业版披露的2025年上半年（1\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0983",
+        "first_error_span": "s011",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0983",
+        "first_error_span": "s011",
+        "linked_error_span_ids": [
+          "s011"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s011"
+        ],
+        "earliest_harmful_span_id": "s011"
+      }
+    },
+    "full_span_count": 11,
+    "evidence_span_count": 5
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 11259,
+    "output_tokens": 707,
+    "total_tokens": 11966
+  }
+}

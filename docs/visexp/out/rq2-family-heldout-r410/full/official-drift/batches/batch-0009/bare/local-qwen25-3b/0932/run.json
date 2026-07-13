@@ -1,0 +1,57 @@
+{
+  "setting": "bare",
+  "case_id": "0932",
+  "prediction": {
+    "traj_id": "0932",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0932\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"有一个来自巴黎创立于某个世纪60年代，字母样式logo的小众服装品牌与另外一个来自创立于18世纪40年代的瑞典的知名品牌的logo恰好对称 同样也是字母样式 这个瑞典品牌从2015年起被一家公司逐步收购 这家公司的总部叫什么名字？\",\n  \"traj_id\": \"0932\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"有一个来自巴黎创立于某个世纪60年代，字母样式logo的小众服装品牌与另外一个来自创立于18世纪40年代的瑞典的知名品牌的logo恰好对称 同样也是字母样式 这个瑞典品牌从2015年起被一家公司逐步收购 这家公司的总部叫什么名字\\n---\\nList of oldest companies in Sweden\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我需要找到一家公司总部的名称\\n---\\nList of oldest companies in Sweden\\n---\\nfamous Swedish brands founded between 1740 and 1750\\n---\\nKosta Boda founding date\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我需要找到一家公司总部的名称\\n---\\noldest companies in Sweden\\n---\\nHere is a list of the oldest companies in Sweden, ranked by their founding year: 1\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我需要找到一个公司总部的名称\\n---\\nSwedish companies founded in 1740s\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我之前的搜索返回了瑞典最古老的公司列表，但没有一家成立于18世纪40年代\\n---\\ntypes of symmetry in logo design\\n---\\nForbes most valuable brands list\\n---\\nLICENSING OPTIONS Logo Licensing Article Reprints Spreadsheet Premium Profile SEARCH BY INDUSTRY All Alcohol Apparel Automotive Beverages Business Services Consumer Packaged Goods Diversified Electronics Financial Servic\\n---\\nfamous brands with symmetrical logos\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"之前的搜索策略没有找到成立于18世纪40年代的瑞典公司\\n---\\nParisian and Swedish clothing brands\\n---\\nAcne Studios Paris connection\\n---\\nAcne Studios logo\\n---\\nAcne Studios face logo symmetrical\\n---\\nThe brand you are likely looking for is **Acne Studios**\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"之前的搜索策略都失败了\\n---\\nbrands with mirror image logos\\n---\\nCanva home Design Product Plans Business Education Help Sign up Log in Home Learn Design 30 symmetrical logos to inspire you 30 symmetrical logos to inspire you When you’re designing your logo, you want to create somethi\\n---\\nVolkswagen logo symmetry\\n---\\nMcDonald's logo meaning\\n---\\nbrands with reflection symmetry logos\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"前面的搜索找到了Acne Studios，这是一个与巴黎有很强联系的瑞典品牌，并且拥有一个对称的logo\\n---\\n1960s Paris niche clothing brand letter logo\\n---\\nEmmanuelle Khanh logo 1960s\\n---\\nSwedish East India Company logo\\n---\\nEmmanuelle Khanh EK logo\\n---\\nFor the first part of your query, a notable 1960s Parisian niche clothing brand with a letter\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"之前的搜索策略都未能直接找到答案\\n---\\nSvenska Ostindiska Companiet AB acquisition 2015\\n---\\n\\\"Svenska Ostindiska Companiet\\\" \\\"Götheborg\\\" acquisition 2015\\n---\\nSailing ships Information Extended search Identifydeutsch Ship profile for the sailing ship: \\\"Götheborg\\\" Photos of the sailing ship: Please click into a photo to see it in higher resolution\\n---\\nGreencarrier AB Svenska Ostindiska Companiet acquisition\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我之前的搜索通过中文关键词成功识别出了两个关键实体： 1\\n---\\nmodern Swedish East India Company brand owner\\n---\\nwho owns Greencarrier Group AB\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我之前的搜索通过中文关键词成功识别出了两个可能的品牌：巴黎的Emmanuelle Khanh (EK) 和瑞典的Swedish East India Company (SOIC)\\n---\\nmodern Swedish East India Company\\n---\\nwho owns \\\"Götheborg of Sweden\\\" ship\\n---\\nwho owns Greencarrier Group\\n---\\nGreencarrier Group official website\\n---\\nThe modern Swedish East India Company (Svenska Ostindiska Companiet) brand is owned by the Greencarrier Group, a Swedish logistics company\\n---\\n我之前的搜索已经成功地将范围缩小到了两个关键实体：巴黎的**Emmanuelle Khanh (EK)**品牌和瑞典的**Swedish East India Company (SOIC)**\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0932",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 11
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1778,
+    "output_tokens": 68,
+    "total_tokens": 1846
+  }
+}

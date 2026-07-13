@@ -1,0 +1,226 @@
+{
+  "setting": "drift",
+  "case_id": "0359",
+  "prediction": {
+    "traj_id": "0359",
+    "error_span_ids": [
+      "s011",
+      "s015"
+    ],
+    "earliest_harmful_span_id": "s011",
+    "reasons": [
+      {
+        "span_id": "s011",
+        "reason": "short string"
+      },
+      {
+        "span_id": "s015",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0359\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。请问这味草药叫什么？\",\n  \"traj_id\": \"0359\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{'subtask': \\\"搜索《本草纲目》中李时珍描述的草药，特征为：药性平和、味道甘甜、质地柔润、叶子如竹子、根像黄精一样横着生长。请查找原文记载，确定这味草药的名称。搜索关键词可以包括：'本草纲目 叶如竹 根似黄精 味甘 性平'、'李时珍 叶似竹叶 甘平'等。\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\\n---\\n[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\\n---\\n[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{'subtask': \\\"查找《本草纲目》中关于'玉竹'（别名：萎蕤、葳蕤）的记载，特别是李时珍对其药性、味道、叶子形状、根茎特征的描述。同时也搜索其他可能符合'叶如竹、根似黄精、味甘性平'特征的草药，如黄精、麦冬等，进行对比验证。请尝试访问中医药数据库、古籍数字化网站或学术资源。\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 中医宝典希望得到您的帮助 URL Source: https://zhongyibaodian https://zhongyibaodian.com/zizhu/\\n---\\nTitle: 玉竹,玉竹的功效与作用_中药玉竹_玉竹是什么_玉竹的用法用量_A+医学百科 URL Source: https://www https://www.a-hospital.com/w/%E7%8E%89%E7%AB%B9\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 黄精（图）_中医药书籍汇集【中药材大全】 URL Source: https://www https://www.zhongyaocai360.com/zhongyao/huangjing.html\\n---\\nTitle: 麦冬（图）_中医药书籍汇集【中药材大全】 URL Source: https://www https://www.zhongyaocai360.com/zhongyao/maidong.html\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{'subtask': \\\"查找《本草纲目》中李时珍对玉竹（萎蕤）质地特征的具体描述，特别是是否有'柔润'、'滋润'等相关表述。同时查找李时珍是否明确将玉竹的根茎与黄精进行过对比，是否有'根似黄精'或'根如黄精'的原文表述。请尽可能找到《本草纲目》的原文或可靠的古籍整理版本。\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\\n---\\n[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\\n---\\n[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 中医宝典希望得到您的帮助 URL Source: https://zhongyibaodian https://zhongyibaodian.com/zizhu/\\n---\\nTitle: 《本草纲目》在线阅读_【中医宝典】 URL Source: https://zhongyibaodian https://zhongyibaodian.com/bencaogangmu/index.html\\n---\\nTitle: 萎蕤_草部_《本草纲目》图文版在线阅读【中医宝典】 URL Source: https://zhongyibaodian https://zhongyibaodian.com/bencaogangmu/weirui.html\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"# 《本草纲目》玉竹（萎蕤）条目查找任务最终报告 ## 一、任务目标 查找《本草纲目》中李时珍对玉竹（萎蕤）的具体描述，重点确认： 1. 是否有\\\"柔润\\\"、\\\"滋润\\\"等质地特征描述 2. 是否将玉竹根茎与黄精进行对比 3. 是否有\\\"根似黄精\\\"或\\\"根如黄精\\\"的原文表述 ## 二、工作历程 ### 第1步：尝试中文搜索 - 使用Google搜索\\\"本草纲目 萎蕤 玉竹 李时珍 原文\\\" - **结果**：搜索工具连续失败 ### 第2步：尝试维基百科 - 查询\\\"本草纲目\\\"词条 - **结果**：网络连接错误 ### 第3-4步：继续尝试搜索 - 多次尝试不同搜索策略 - **结果**：搜索工具持续失败 ### 第5步：访问中医宝典网站 - 成功访问中医宝典《本草纲目》目录页面 - 找到草部（一）章节链接 ### 第6步：访问草部（一）内容 - 成功获取草部（一）完整内容 - 确认包含\\\"萎蕤\\\"条目 ### 第7步：访问萎蕤专页 - 成功访问萎蕤（玉竹）专门页面 - **获得完整原文内容** ## 三、最终答案 ### ✅ 关于\\\"柔润\\\"描述 - **已确认找到** **原文出处**：《本草纲目》萎蕤条目\\\"附方\\\"部分 **李时珍原文**： > \\\"李明珍说：萎蕤性平味甘，**柔润可食**。.....我常用来治虚劳寒热疟及一切不足的疾病，代替人参和黄芪，不寒不躁，效果很好，不仅仅能去风热湿毒而已。这是前人还没有记述过的。\\\" **关键发现**： - ✅ **\\\"柔润\\\"二字明确出现**在李时珍的评述中 - 李时珍强调萎蕤\\\"性平味甘，**柔润可食**\\\" - 这是对玉竹质地特征的直接描述 - ❌ 未找到\\\"滋润\\\"的表述 ### ❌ 关于与黄精对比 - **未找到相关内容** **查找结果**： - 在萎蕤条目中**未发现**李时珍将玉竹根茎与黄精进行形态对比的记载 - **没有**\\\"根似黄精\\\"的原文表述 - **没有**\\\"根如黄精\\\"的原文表述 **条目包含内容**： - 释名：女萎、葳蕤、萎、委萎、萎香、荧、玉竹、地节 - 气味：（根）甘、平、无毒 - 主治：5条具体方剂 - 附方：李时珍的评述 ## 四、原文完整记录 ### 基本信息 - **释名**：亦名女萎、葳蕤、萎、委萎、萎香、荧、玉竹、地节 - **气味**：（根）甘、平、无毒 ### 主治方剂（5条） 1. 眼红兼有涩、痛：用萎蕤、赤芍、当归、黄连等分，煎汤熏洗 2. 眼见黑花，红痛昏暗：用萎蕤（焙）四两，每取二钱，略加薄荷、生姜、蜂蜜，同煎汤。睡前温服，一天服一次。此方名\\\"甘露汤\\\" 3. 小便淋：用萎蕤一两、芭蕉根四两、滑石二钱，水煎，分三次服 4. 小便涩，发热口干：用萎蕤五两，煎水服 5. 后虚肿：用萎蕤、葵子、龙胆、茯苓、前胡，等分为末。每服一钱，水煎服 ### 附方（李时珍评述） \\\"李明珍说：萎蕤性平味甘，**柔润可食**。.....我常用来治虚劳寒热疟及一切不足的疾病，代替人参和黄芪，不寒不躁，效果很好，不仅仅能去风热湿毒而已。这是前人还没有记述过的。\\\" ## 五、信息来源可靠性 **来源网站**：中医宝典（zhongyibaodian.com） - 专业的中医古籍在线阅读平台 - 提供《本草纲目》图文版在线阅读 - 内容经过整理和数字化 **可靠性评估**： - ✅ 来源于正规中医古籍整理网站 - ✅ \\\"柔润\\\"描述明确出现在原文中 - ⚠️ 这是现代整理版本，非明代原刻本 - 💡 建议：如需更权威验证，可查阅人民卫生出版社等权威出版的《本草纲目》校注本 ## 六、结论 ### 明确结论 1. **\\\"柔润\\\"描述** - ✅ **确认存在**：李时珍在《本草纲目》中明确使用\\\"柔润可食\\\"描述玉竹（萎蕤）的质地特征 2. **与黄精对比** - ❌ **未找到**：在萎蕤条目中未发现\\\"根似黄精\\\"或\\\"根如黄精\\\"等对比性描述 ### 补充建议 如需查找玉竹与黄精的对比关系，建议： - 查看《本草纲目》\\\"黄精\\\"条目，看是否在黄精条目中提到与玉竹的比较 - 查阅其他版本的《本草纲目》或相关注释本 - 参考其他本草类古籍，如《神农本草经》《本草经集注》等\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{'subtask': \\\"查找《本草纲目》中'黄精'条目的完整内容，特别关注李时珍是否在黄精条目中提到与玉竹（萎蕤）的形态对比，或者是否描述了黄精与玉竹根茎的相似性。同时查找是否有其他古籍（如《本草经集注》《神农本草经》等）中提到玉竹'根似黄精'的表述。\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\\n---\\n[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\\n---\\n[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\\n---\\n[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\"\n    },\n    {\n      \"span_id\": \"s014\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 本草綱目 URL Source: https://zh https://zh.wikisource.org/wiki/%E6%9C%AC%E8%8D%89%E7%B6%B1%E7%9B%AE\\n---\\nTitle: 本草綱目/草之一 URL Source: https://zh https://zh.wikisource.org/wiki/%E6%9C%AC%E8%8D%89%E7%B6%B1%E7%9B%AE/%E8%8D%89%E4%B9%8B%E4%B8%80\\n---\\n![轉為手機模式](static/mobile.png \\\"轉為手機模式\\\")![轉為完整模式](static/mobile.png \\\"轉為完整模式\\\") [简体](wiki.pl?if=gb&chapter=286066&remap=gb)[**English**](wiki.pl?if=en&chapter=286066) [![首頁](static/home.png \\\"首頁\\\")](https://ctext.org/zh) [本站介紹](https://ctext.org/zh) [簡介](introduction/zh) [字體試驗頁](font-test-page/zh) [+](help-us/zh \\\"+\\\") [協助](help-us/zh) [+](faq/zh \\\"+\\\") [常見問答集](faq/zh) [+](instructions/zh \\\"+\\\") [使用說明](instructions/zh) [+](tools/zh \\\"+\\\") [工具](tools/zh) [系統統計](system-statistics/zh) [+](digital-humanities/zh \\\"+\\\") [數位人文](digital-humanities/zh) [原典全文](pre-qin-and-han/zh) [簡介說明](notes/zh) [相關資料](resource.pl?node=3925&if=gb) [字典](dictionary.pl?if=gb) [討論區](discuss.pl?if=gb) [圖書館](library.pl?if=gb) [維基](wiki.pl?if=gb) [數據維基](datawiki.pl?if=gb) 在 \\\"\\\" 中檢索： [書名檢索](searchbooks.pl?if=gb)： [登入](account.pl?if=gb&return=%2Fwiki%2Epl%3Fif%3Dgb%26chapter%3D286066) [![在Facebook上關注我們，隨時得到最新消息](icons/facebook.gif \\\"在Facebook上關注我們，隨時得到最新消息\\\")](https://zh-tw.facebook.com/pages/Chinese-Text-Project/112118272147647) [![在Twitter上關注我們，隨時得到最新消息](icons/twitter.gif \\\"在Twitter上關注我們，隨時得到最新消息\\\")](https://www.twitter.com/chinesetextproj) [![在新浪微博上關注我們，隨時得到最新消息](icons/xinlang.gif \\\"在新浪微博上關注我們，隨時得到最新消息\\\")](http://weibo.com/ctext) [![在豆瓣上關注我們，隨時得到最新消息](icons/douban.png \\\"在豆瓣上關注我們，隨時得到最新消息\\\")](https://site.douban.com/137325/) | | | | --- | --- | | [中國哲學書電子化計劃](http://ctext.org/zh \\\"中國哲學書電子化計劃\\\") | 中國哲學書電子化計劃 [維基](wiki.pl?if=gb \\\"維基區：開放共同編輯的原典文獻\\\") | ## 《》[[查看正文](wiki.pl?if=gb&chapter=286066)] [[修改](instructions/wiki/zh#editing)] [[查看歷史](instructions/wiki/zh#editing)] 該資料已刪除。若要還原，請參考歷史頁面並透過「修改」功能還原其標題及其它資料。 [URN](tools/api/zh#urn): ctp:ws286066 --- | | | | | --- | --- | --- | | **喜歡我們的網站？[請支持我們的發展](help-us/zh)。** | *網站的設計與内容[(c)版權2006-2026](faq/zh#copyright)。如果您想引用本網站上的内容，請同時加上至本站的鏈接：<http://ctext.org/zh>。請注意：嚴禁使用自動下載軟体下載本網站的大量網頁，違者自動封鎖，不另行通知。[沪ICP备09015720号-3](http://www.miibeian.gov.cn/)* | **若有任何意見或建議，請[在此提出](discuss.pl?if=gb&board=7)。**[Do not click this link](https://ctext.org/hp.pl?src=h) |\"\n    },\n    {\n      \"span_id\": \"s015\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\"\n    },\n    {\n      \"span_id\": \"s016\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"# 《本草纲目》草药考证最终报告 --- ## 一、任务回顾 **原始问题：** 《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。请问这味草药叫什么？ **任务要求：** 全面收集信息，呈现所有可能的候选答案，提供详细证据支持，保持透明度和完整性。 --- ## 二、调查过程总结 ### 第一步：初步信息收集 - 使用关键词\\\"本草纲目 叶如竹 根似黄精 味甘 性平\\\"进行搜索 - 遇到网络工具技术问题，但获得基于中药学知识的初步推测：**玉竹（萎蕤）** - 识别出需要验证的候选答案：玉竹、黄精、麦冬 ### 第二步：深入查证《本草纲目》记载 - 成功访问A+医学百科和中药材360网站 - 获取了玉竹、黄精、麦冬的详细中医药信息 - 确认了玉竹的基本特征与题目描述高度吻合 ### 第三步：验证\\\"柔润\\\"特征 - 成功访问中医宝典网站《本草纲目》数字化版本 - 在《本草纲目·萎蕤》条目中找到李时珍的明确表述 - **关键发现**：李时珍原文\\\"萎蕤性平味甘，**柔润可食**\\\" ### 第四步：确认\\\"根似黄精\\\"表述 - 成功访问维基文库《本草纲目》完整原文 - 获取了《本草纲目·草之一》中黄精和葳蕤两个条目的全部内容 - **关键发现**：李时珍在葳蕤条明确写道\\\"其根**橫生似黃精**，差小\\\" --- ## 三、所有候选答案及证据分析 ### 候选答案1：玉竹（葳蕤）✅ **最终答案** **匹配度：100%（6/6特征完全匹配）** #### 《本草纲目》原文证据： **1. 名称** - 正名：葳蕤 - 别名：萎蕤、女萎、玉竹、地节等 **2. 药性平和** ✅ - 原文：\\\"气味：（根）**甘、平**、无毒\\\" **3. 味道甘甜** ✅ - 原文：李时珍评述\\\"萎蕤**性平味甘**\\\" **4. 质地柔润** ✅ - 原文：李时珍评述\\\"**柔润可食**\\\" - 原文：李时珍集解\\\"**性柔**多須，最難燥\\\" **5. 叶子如竹子一样** ✅ - 原文：李时珍集解\\\"其叶光莹**像竹**，其根长而多节，故有玉竹、地节诸名\\\" **6. 根像黄精横着生长** ✅ - 原文：李时珍集解\\\"其根**橫生似黃精**，差小，黃白色\\\" - 原文：陶弘景注\\\"根**似黃精**，小異\\\" #### 完整原文摘录： >\\\"其叶光莹像竹，其根长而多节，故有玉竹、地节诸名。其根橫生似黃精，差小，黃白色，性柔多須，最難燥。......萎蕤性平味甘，柔润可食。\\\" > >——李时珍《本草纲目·草之一·葳蕤》 #### 结论： **玉竹完全符合题目描述的所有6项特征，证据确凿，无任何矛盾或模糊之处。** --- ### 候选答案2：黄精 ❌ **不符合** **匹配度：50%（3/6特征匹配）** #### 匹配的特征： - ✅ 药性平和：甘、平、无毒 - ✅ 味道甘甜：气味甘 - ✅ 叶如竹：有\\\"叶如竹叶而短\\\"的描述 #### 不匹配的特征： - ❌ **质地柔润**：黄精条目中无\\\"柔润\\\"描述 - ❌ **根像黄精**：逻辑矛盾——黄精本身不能说\\\"根像黄精一样\\\" - ⚠️ 叶形描述不如玉竹贴切 #### 《本草纲目》原文： - 李时珍集解：\\\"其根橫行，**狀如葳蕤**\\\"（说明黄精像玉竹，而非玉竹像黄精） - 陶弘景注：\\\"根**似葳蕤**\\\" #### 结论： **黄精不符合题目要求，特别是\\\"根像黄精\\\"这一表述明确排除了黄精本身作为答案。** --- ### 候选答案3：麦冬 ❌ **完全不符合** **匹配度：17%（1/6特征匹配）** #### 不匹配的特征： - ❌ **叶形**：麦冬\\\"叶如韭菜\\\"，不是\\\"叶如竹\\\" - ❌ **根茎**：麦冬为纺锤形块根，不是横走根茎 - ❌ **性味**：麦冬\\\"甘、微苦、微寒\\\"，不是\\\"性平\\\" - ❌ **无\\\"根似黄精\\\"的任何描述** #### 结论： **麦冬与题目描述完全不符，可以排除。** --- ## 四、关键鉴别点分析 ### 1. \\\"根似黄精\\\"的决定性意义 - 题目表述：\\\"根**像黄精一样**是横着生长的\\\" - 这个表述使用了比喻，说明答案**不是黄精本身** - 只有玉竹在《本草纲目》中被明确描述为\\\"根橫生**似黃精**\\\" - 黄精条目中反而说黄精\\\"狀如**葳蕤**\\\"（像玉竹） ### 2. \\\"柔润\\\"是独特标识 - 李时珍对玉竹的特别评价：\\\"**柔润可食**\\\" - 这是玉竹区别于黄精的标志性特征 - 黄精条目中完全没有\\\"柔润\\\"的描述 - 这一特征具有排他性，只有玉竹符合 ### 3. 古籍交叉验证 - **陶弘景《本草经集注》**（南北朝）：\\\"根似黃精，小異\\\"（葳蕤条） - **苏恭《唐本草》**（唐代）：\\\"葳蕤肥根，頗類其小者，肌理形色，大都相似\\\" - 多位古代医家都确认了玉竹与黄精的相似性 --- ## 五、不确定性与局限性说明 ### 已完全解决的问题： 1. ✅ 所有6项特征均在《本草纲目》原文中找到明确对应 2. ✅ \\\"柔润\\\"表述已确认存在于李时珍原文 3. ✅ \\\"根似黄精\\\"表述已确认存在于李时珍原文 4. ✅ 候选答案已全面收集和对比验证 ### 信息来源说明： - **主要来源**：维基文库《本草纲目》原文、中医宝典数字化版本、A+医学百科、中药材360 - **可靠性评估**：这些都是经过整理的《本草纲目》文本，内容准确可靠 - **权威性建议**：如需最高学术权威性，可进一步参考人民卫生出版社等权威机构出版的《本草纲目》校注本 ### 无未解决的疑问： 本次调查已完整回答了原始问题，所有特征均得到验证，答案确定性为100%。 --- ## 六、最终答案 ### **答案：玉竹** **别名：萎蕤、葳蕤、女萎、玉参、地节** ### 答案确定性：**100%确定** ### 核心理由： 1. **所有特征完全匹配** - 药性平和：甘、平、无毒 ✅ - 味道甘甜：性平味甘 ✅ - 质地柔润：柔润可食 ✅ - 叶如竹：叶光莹像竹 ✅ - 根似黄精横生：根橫生似黃精 ✅ 2. **李时珍原文逐字对应** 《本草纲目》中李时珍对玉竹的描述与题目要求的每一个特征都精确对应，无任何矛盾。 3. **独特性特征排除其他答案** - \\\"柔润\\\"是玉竹的独特标识，黄精不具备 - \\\"根似黄精\\\"的表述排除了黄精本身 - 麦冬的叶形和根茎完全不符 4. **多部古籍交叉验证** 从陶弘景到李时珍，历代医家都确认了玉竹\\\"根似黄精\\\"的特征。 ### 《本草纲目》权威依据： >\\\"其叶光莹像竹，其根长而多节，故有玉竹、地节诸名。其根橫生似黃精，差小，黃白色，性柔多須，最難燥。......萎蕤性平味甘，柔润可食。我常用来治虚劳寒热疟及一切不足的疾病，代替人参和黄芪，不寒不躁，效果很好。\\\" > >——李时珍《本草纲目·草之一·葳蕤》 --- ## 七、补充信息 ### 现代分类学信息： - **科属**：百合科（Liliaceae）黄精属（Polygonatum） - **学名**：Polygonatum odoratum (Mill.) Druce - **药用部位**：根茎 ### 药用价值（李时珍评价）： \\\"我常用来治虚劳寒热疟及一切不足的疾病，代替人参和黄芪，不寒不躁，效果很好，不仅仅能去风热湿毒而已。这是前人还没有记述过的。\\\" ### 玉竹与黄精的关系： - 两者同属百合科，形态相似 - 民间有\\\"玉竹黄精\\\"的俗称 - 主要区别：黄精更粗大，节更明显；玉竹更柔润，节较平直 --- ## 八、结论 经过系统的文献查证、特征对比和逻辑分析，**答案确定无疑是玉竹（萎蕤）**。 这味草药在《本草纲目》中的描述与题目要求的所有特征完全吻合。李时珍对其\\\"性平味甘，柔润可食，叶光莹像竹，根橫生似黃精\\\"的评价，精准地概括了题目所述的全部特点。证据链完整，逻辑严密，无任何不确定性。 **最终答案：玉竹**\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题干特征： - 药性平和 - 味道甘甜 - 质地柔润 - 叶似竹 - 根横生似黄精 2. 代理总结提供《本草纲目》原文： - “萎蕤性平味甘，柔润可食” → 符合前三项 - “其叶光莹像竹” → 符合叶似竹 - “其根橫生似黃精” → 符合根横生似黄精 3. 该条药物别名“玉竹、萎蕤、葳蕤”，常用名为“玉竹”。 4. 综上所有特征完全吻合“玉竹”。 **最终答案：** \\\\boxed{玉竹} **置信度：** 92 **支持证据：** 《本草纲目·葳蕤》记载：“萎蕤性平味甘，柔润可食”“其叶光莹像竹，其根橫生似黄精”，并列出别名“玉竹”。 **潜在不足：** 李时珍正文条目标题为“葳蕤”，但民间及现代普遍称“玉竹”；题干未明确要求使用何种别名，选择最常用名称或有争议。\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0359",
+        "task_goal": "短文本",
+        "hard_constraints": [
+          "短文本"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ],
+        "notes": "短文本"
+      },
+      "validated": {
+        "traj_id": "0359",
+        "task_goal": "短文本",
+        "hard_constraints": [
+          "短文本"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ],
+        "notes": "短文本"
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001",
+            "s011",
+            "s015"
+          ],
+          "grep_queries": [
+            "《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s011",
+        "s015",
+        "s016"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s011",
+        "s015",
+        "s016"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。",
+          "matched_chunk_ids": [
+            "s016:c001",
+            "s016:c002",
+            "s011:c001",
+            "s001:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s011",
+            "s016"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0359\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。请问这味草药叫什么？\",\n  \"traj_id\": \"0359\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0359\",\n    \"task_goal\": \"短文本\",\n    \"hard_constraints\": [\n      \"短文本\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"短文本\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s015\",\n      \"s016\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s015\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。\",\n        \"matched_chunk_ids\": [\n          \"s016:c001\",\n          \"s016:c002\",\n          \"s011:c001\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s011\",\n          \"s016\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s015\",\n      \"s016\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 225,\n        \"text\": \"{'subtask': \\\"搜索《本草纲目》中李时珍描述的草药，特征为：药性平和、味道甘甜、质地柔润、叶子如竹子、根像黄精一样横着生长。请查找原文记载，确定这味草药的名称。搜索关键词可以包括：'本草纲目 叶如竹 根似黄精 味甘 性平'、'李时珍 叶似竹叶 甘平'等。\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1721,\n        \"text\": \"# 《本草纲目》玉竹（萎蕤）条目查找任务最终报告 ## 一、任务目标 查找《本草纲目》中李时珍对玉竹（萎蕤）的具体描述，重点确认： 1. 是否有\\\"柔润\\\"、\\\"滋润\\\"等质地特征描述 2. 是否将玉竹根茎与黄精进行对比 3. 是否有\\\"根似黄精\\\"或\\\"根如黄精\\\"的原文表述 ## 二、工作历程 ### 第1步：尝试中文搜索 - 使用Google搜索\\\"本草纲目 萎蕤 玉竹 李时珍 原文\\\" - **结果**：搜索工具连续失败 ### 第2步：尝试维基百科 - 查询\\\"本草纲目\\\"词条 - **结果**：网络连接错误 ### 第3-4步：继续尝试搜索 - 多次尝试不同搜索策略 - **结果**：搜索工具持续失败 ### 第5步：访问中医宝典网站 - 成功访问中医宝典《本草纲目》目录页面 - 找到草部（一）章节链接 ### 第6步：访问草部（一）内容 - 成功获取草部（一）完整内容 - 确认包含\\\"萎蕤\\\"条目 ### 第7步：访问萎蕤专页 - 成功访问萎蕤（玉竹）专门页面 - **获得完整原文内容** ## 三、最终答案 ### ✅ 关于\\\"柔润\\\"描述 - **已确认找到** **原文出处**：《本草纲目》萎蕤条目\\\"附方\\\"部分 **李时珍原文**： > \\\"李明珍说：萎蕤性平味甘，**柔润可食**。.....我常用来治虚劳寒热疟及一切不足的疾病，代替人参和黄芪，不寒不躁，效果很好，不仅仅能去风热湿毒而已。这是前人还没有记述过的。\\\" **关键发现**： - ✅ **\\\"柔润\\\"二字明确出现**在李时珍的评述中 - 李时珍强调萎蕤\\\"性平味甘，**柔润可食**\\\" - 这是对玉竹质地特征的直接描述 - ❌ 未找到\\\"滋润\\\"的表述 ### ❌ 关于与黄精对比 - **未找到相关内容** **查找结果**： - 在萎蕤条目中**未发现**李时珍将玉竹根茎与黄精进行形态对比的记载 - **没有**\\\"根似黄精\\\"的原文表述 - **没有**\\\"根如黄精\\\"的原文表述 **条目包含内容**： - 释名：女萎、葳蕤、萎、委萎、萎香、荧、玉竹、地节 - 气味：（根）甘、平、无毒 - 主治：5条具体方剂 - 附方：李时珍的评述 ## 四、原文完整记录 ### 基本信息 - **释名**：亦名女萎、葳蕤、萎、委萎、萎香、荧、玉竹、地节 - **气味**：（根）甘、平、无毒 ### 主治方剂（5条） 1. 眼红兼有涩、痛：用萎蕤、赤芍、当归、黄连等分，煎汤熏洗 2. 眼见黑花，红痛昏暗：用萎蕤（焙）四两，每取二钱，略加薄荷、生姜、蜂蜜，同煎汤。睡前温服，一天服一次。此方名\\\"甘露汤\\\" 3. 小便淋：用萎蕤一两、芭蕉根四两、滑石二钱，水煎，分三次服 4. 小便涩，发热口干：用萎蕤五两，煎水服 5. 后虚肿：用萎蕤、葵子、龙胆、茯苓、前胡，等分为末。每服一钱，水煎服 ### 附方（李时珍评述） \\\"李明珍说：萎蕤性平味甘，**柔润可食**。.....我常用来治虚劳寒热疟及一切不足的疾病，代替人参和黄芪，不寒不躁，效果很好，不仅仅能去风热湿毒而已。这是前人还没有记述过的。\\\" ## 五、信息来源可靠性 **来源网站**：中医宝典（zhongyibaodian.com） - 专业的中医古籍在线阅读平台 - 提供《本草纲目》图文版在线阅读 - 内容经过整理和数字化 **可靠性评估**： - ✅ 来源于正规中医古籍整理网站 - ✅ \\\"柔润\\\"描述明确出现在原文中 - ⚠️ 这是现代整理版本，非明代原刻本 - 💡 建议：如需更权威验证，可查阅人民卫生出版社等权威出版的《本草纲目》校注本 ## 六、结论 ### 明确结论 1. **\\\"柔润\\\"描述** - ✅ **确认存在**：李时珍在《本草纲目》中明确使用\\\"柔润可食\\\"描述玉竹（萎蕤）的质地特征 2. **与黄精对比** - ❌ **未找到**：在萎蕤条目中未发现\\\"根似黄精\\\"或\\\"根如黄精\\\"等对比性描述 ### 补充建议 如需查找玉竹与黄精的对比关系，建议： - 查看《本草纲目》\\\"黄精\\\"条目，看是否在黄精条目中提到与玉竹的比较 - 查阅其他版本的《本草纲目》或相关注释本 - 参考其他本草类古籍，如《神农本草经》《本草经集注》等\"\n      },\n      {\n        \"span_id\": \"s015\",\n        \"chunk_id\": \"s015:c001\",\n        \"char_start\": 0,\n        \"char_end\": 112,\n        \"text\": \"[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 3663,\n        \"text\": \"\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题干特征： - 药性平和 - 味道甘甜 - 质地柔润 - 叶似竹 - 根横生似黄精 2. 代理总结提供《本草纲目》原文： - “萎蕤性平味甘，柔润可食” → 符合前三项 - “其叶光莹像竹” → 符合叶似竹 - “其根橫生似黃精” → 符合根横生似黄精 3. 该条药物别名“玉竹、萎蕤、葳蕤”，常用名为“玉竹”。 4. 综上所有特征完全吻合“玉竹”。 **最终答案：** \\\\boxed{玉竹} **置信度：** 92 **支持证据：** 《本草纲目·葳蕤》记载：“萎蕤性平味甘，柔润可食”“其叶光莹像竹，其根橫生似黄精”，并列出别名“玉竹”。 **潜在不足：** 李时珍正文条目标题为“葳蕤”，但民间及现代普遍称“玉竹”；题干未明确要求使用何种别名，选择最常用名称或有争议。\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"# 《本草纲目》草药考证最终报告 --- ## 一、任务回顾 **原始问题：** 《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。请问这味草药叫什么？ **任务要求：** 全面收集信息，呈现所有可能的候选答案，提供详细证据支持，保持透明度和完整性。 --- ## 二、调查过程总结 ### 第一步：初步信息收集 - 使用关键词\\\"本草纲目 叶如竹 根似黄精 味甘 性平\\\"进行搜索 - 遇到网络工具技术问题，但获得基于中药学知识的初步推测：**玉竹（萎蕤）** - 识别出需要验证的候选答案：玉竹、黄精、麦冬 ### 第二步：深入查证《本草纲目》记载 - 成功访问A+医学百科和中药材360网站 - 获取了玉竹、黄精、麦冬的详细中医药信息 - 确认了玉竹的基本特征与题目描述高度吻合 ### 第三步：验证\\\"柔润\\\"特征 - 成功访问中医宝典网站《本草纲目》数字化版本 - 在《本草纲目·萎蕤》条目中找到李时珍的明确表述 - **关键发现**：李时珍原文\\\"萎蕤性平味甘，**柔润可食**\\\" ### 第四步：确认\\\"根似黄精\\\"表述 - 成功访问维基文库《本草纲目》完整原文 - 获取了《本草纲目·草之一》中黄精和葳蕤两个条目的全部内容 - **关键发现**：李时珍在葳蕤条明确写道\\\"其根**橫生似黃精**，差小\\\" --- ## 三、所有候选答案及证据分析 ### 候选答案1：玉竹（葳蕤）✅ **最终答案** **匹配度：100%（6/6特征完全匹配）** #### 《本草纲目》原文证据： **1. 名称** - 正名：葳蕤 - 别名：萎蕤、女萎、玉竹、地节等 **2. 药性平和** ✅ - 原文：\\\"气味：（根）**甘、平**、无毒\\\" **3. 味道甘甜** ✅ - 原文：李时珍评述\\\"萎蕤**性平味甘**\\\" **4. 质地柔润** ✅ - 原文：李时珍评述\\\"**柔润可食**\\\" - 原文：李时珍集解\\\"**性柔**多須，最難燥\\\" **5. 叶子如竹子一样** ✅ - 原文：李时珍集解\\\"其叶光莹**像竹**，其根长而多节，故有玉竹、地节诸名\\\" **6. 根像黄精横着生长** ✅ - 原文：李时珍集解\\\"其根**橫生似黃精**，差小，黃白色\\\" - 原文：陶弘景注\\\"根**似黃精**，小異\\\" #### 完整原文摘录： >\\\"其叶光莹像竹，其根长而多节，故有玉竹、地节诸名。其根橫生似黃精，差小，黃白色，性柔多須，最難燥。......萎蕤性平味甘，柔润可食。\\\" > >——李时珍《本草纲目·草之一·葳蕤》 #### 结论： **玉竹完全符合题目描述的所有6项特征，证据确凿，无任何矛盾或模糊之处。** --- ### 候选答案2：黄精 ❌ **不符合** **匹配度：50%（3/6特征匹配）** #### 匹配的特征： - ✅ 药性平和：甘、平、无毒 - ✅ 味道甘甜：气味甘 - ✅ 叶如竹：有\\\"叶如竹叶而短\\\"的描述 #### 不匹配的特征： - ❌ **质地柔润**：黄精条目中无\\\"柔润\\\"描述 - ❌ **根像黄精**：逻辑矛盾——黄精本身不能说\\\"根像黄精一样\\\" - ⚠️ 叶形描述不如玉竹贴切 #### 《本草纲目》原文： - 李时珍集解：\\\"其根橫行，**狀如葳蕤**\\\"（说明黄精像玉竹，而非玉竹像黄精） - 陶弘景注：\\\"根**似葳蕤**\\\" #### 结论： **黄精不符合题目要求，特别是\\\"根像黄精\\\"这一表述明确排除了黄精本身作为答案。** --- ### 候选答案3：麦冬 ❌ **完全不符合** **匹配度：17%（1/6特征匹配）** #### 不匹配的特征： - ❌ **叶形**：麦冬\\\"叶如韭菜\\\"，不是\\\"叶如竹\\\" - ❌ **根茎**：麦冬为纺锤形块根，不是横走根茎 - ❌ **性味**：麦冬\\\"甘、微苦、微寒\\\"，不是\\\"性平\\\" - ❌ **无\\\"根似黄精\\\"的任何描述** #### 结论： **麦冬与题目描述完全不符，可以排除。** --- ## 四、关键鉴别点分析 ### 1. \\\"根似黄精\\\"的决定性意义 - 题目表述：\\\"根**像黄精一样**是横着生长的\\\" - 这个表述使用了比喻，说明答案**不是黄精本身** - 只有玉竹在《本草纲目》中被明确描述为\\\"根橫生**似黃精**\\\" - 黄精条目中反而说黄精\\\"狀如**葳蕤**\\\"（像玉竹\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3440,\n        \"text\": \"不符，可以排除。** --- ## 四、关键鉴别点分析 ### 1. \\\"根似黄精\\\"的决定性意义 - 题目表述：\\\"根**像黄精一样**是横着生长的\\\" - 这个表述使用了比喻，说明答案**不是黄精本身** - 只有玉竹在《本草纲目》中被明确描述为\\\"根橫生**似黃精**\\\" - 黄精条目中反而说黄精\\\"狀如**葳蕤**\\\"（像玉竹） ### 2. \\\"柔润\\\"是独特标识 - 李时珍对玉竹的特别评价：\\\"**柔润可食**\\\" - 这是玉竹区别于黄精的标志性特征 - 黄精条目中完全没有\\\"柔润\\\"的描述 - 这一特征具有排他性，只有玉竹符合 ### 3. 古籍交叉验证 - **陶弘景《本草经集注》**（南北朝）：\\\"根似黃精，小異\\\"（葳蕤条） - **苏恭《唐本草》**（唐代）：\\\"葳蕤肥根，頗類其小者，肌理形色，大都相似\\\" - 多位古代医家都确认了玉竹与黄精的相似性 --- ## 五、不确定性与局限性说明 ### 已完全解决的问题： 1. ✅ 所有6项特征均在《本草纲目》原文中找到明确对应 2. ✅ \\\"柔润\\\"表述已确认存在于李时珍原文 3. ✅ \\\"根似黄精\\\"表述已确认存在于李时珍原文 4. ✅ 候选答案已全面收集和对比验证 ### 信息来源说明： - **主要来源**：维基文库《本草纲目》原文、中医宝典数字化版本、A+医学百科、中药材360 - **可靠性评估**：这些都是经过整理的《本草纲目》文本，内容准确可靠 - **权威性建议**：如需最高学术权威性，可进一步参考人民卫生出版社等权威机构出版的《本草纲目》校注本 ### 无未解决的疑问： 本次调查已完整回答了原始问题，所有特征均得到验证，答案确定性为100%。 --- ## 六、最终答案 ### **答案：玉竹** **别名：萎蕤、葳蕤、女萎、玉参、地节** ### 答案确定性：**100%确定** ### 核心理由： 1. **所有特征完全匹配** - 药性平和：甘、平、无毒 ✅ - 味道甘甜：性平味甘 ✅ - 质地柔润：柔润可食 ✅ - 叶如竹：叶光莹像竹 ✅ - 根似黄精横生：根橫生似黃精 ✅ 2. **李时珍原文逐字对应** 《本草纲目》中李时珍对玉竹的描述与题目要求的每一个特征都精确对应，无任何矛盾。 3. **独特性特征排除其他答案** - \\\"柔润\\\"是玉竹的独特标识，黄精不具备 - \\\"根似黄精\\\"的表述排除了黄精本身 - 麦冬的叶形和根茎完全不符 4. **多部古籍交叉验证** 从陶弘景到李时珍，历代医家都确认了玉竹\\\"根似黄精\\\"的特征。 ### 《本草纲目》权威依据： >\\\"其叶光莹像竹，其根长而多节，故有玉竹、地节诸名。其根橫生似黃精，差小，黃白色，性柔多須，最難燥。......萎蕤性平味甘，柔润可食。我常用来治虚劳寒热疟及一切不足的疾病，代替人参和黄芪，不寒不躁，效果很好。\\\" > >——李时珍《本草纲目·草之一·葳蕤》 --- ## 七、补充信息 ### 现代分类学信息： - **科属**：百合科（Liliaceae）黄精属（Polygonatum） - **学名**：Polygonatum odoratum (Mill.) Druce - **药用部位**：根茎 ### 药用价值（李时珍评价）： \\\"我常用来治虚劳寒热疟及一切不足的疾病，代替人参和黄芪，不寒不躁，效果很好，不仅仅能去风热湿毒而已。这是前人还没有记述过的。\\\" ### 玉竹与黄精的关系： - 两者同属百合科，形态相似 - 民间有\\\"玉竹黄精\\\"的俗称 - 主要区别：黄精更粗大，节更明显；玉竹更柔润，节较平直 --- ## 八、结论 经过系统的文献查证、特征对比和逻辑分析，**答案确定无疑是玉竹（萎蕤）**。 这味草药在《本草纲目》中的描述与题目要求的所有特征完全吻合。李时珍对其\\\"性平味甘，柔润可食，叶光莹像竹，根橫生似黃精\\\"的评价，精准地概括了题目所述的全部特点。证据链完整，逻辑严密，无任何不确定性。 **最终答案：玉竹**\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题干特征： - 药性平和 - 味道甘甜 - 质地柔润 - 叶似竹 - 根横生似黄精 2. 代理总结提供《本草纲目》原文： - “萎蕤性平味甘，柔润可食” → 符合前三项 - “其叶光莹像竹” → 符合叶似竹 - “其根橫生似黃精\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0359",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s001",
+              "s011"
+            ],
+            "support_status": "weak",
+            "missing_support": "short string",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s001",
+                "chunk_id": "s001:c001",
+                "role": "partial_support",
+                "text": "《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。"
+              }
+            ]
+          }
+        ],
+        "notes": "short string"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s001",
+            "s011"
+          ],
+          "support_status": "weak",
+          "missing_support": "short string",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s001",
+              "chunk_id": "s001:c001",
+              "role": "partial_support",
+              "text": "《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0359\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。请问这味草药叫什么？\",\n  \"traj_id\": \"0359\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0359\",\n    \"task_goal\": \"短文本\",\n    \"hard_constraints\": [\n      \"短文本\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s011\",\n        \"used_by\": [\n          \"s011\",\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"短文本\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s001\",\n        \"s011\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"short string\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s001\",\n          \"chunk_id\": \"s001:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s015\",\n      \"s016\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s015\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。\",\n        \"matched_chunk_ids\": [\n          \"s016:c001\",\n          \"s016:c002\",\n          \"s011:c001\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s011\",\n          \"s016\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s011\",\n      \"s015\",\n      \"s016\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 225,\n        \"text\": \"{'subtask': \\\"搜索《本草纲目》中李时珍描述的草药，特征为：药性平和、味道甘甜、质地柔润、叶子如竹子、根像黄精一样横着生长。请查找原文记载，确定这味草药的名称。搜索关键词可以包括：'本草纲目 叶如竹 根似黄精 味甘 性平'、'李时珍 叶似竹叶 甘平'等。\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\"\n      },\n      {\n        \"span_id\": \"s011\",\n        \"chunk_id\": \"s011:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1721,\n        \"text\": \"# 《本草纲目》玉竹（萎蕤）条目查找任务最终报告 ## 一、任务目标 查找《本草纲目》中李时珍对玉竹（萎蕤）的具体描述，重点确认： 1. 是否有\\\"柔润\\\"、\\\"滋润\\\"等质地特征描述 2. 是否将玉竹根茎与黄精进行对比 3. 是否有\\\"根似黄精\\\"或\\\"根如黄精\\\"的原文表述 ## 二、工作历程 ### 第1步：尝试中文搜索 - 使用Google搜索\\\"本草纲目 萎蕤 玉竹 李时珍 原文\\\" - **结果**：搜索工具连续失败 ### 第2步：尝试维基百科 - 查询\\\"本草纲目\\\"词条 - **结果**：网络连接错误 ### 第3-4步：继续尝试搜索 - 多次尝试不同搜索策略 - **结果**：搜索工具持续失败 ### 第5步：访问中医宝典网站 - 成功访问中医宝典《本草纲目》目录页面 - 找到草部（一）章节链接 ### 第6步：访问草部（一）内容 - 成功获取草部（一）完整内容 - 确认包含\\\"萎蕤\\\"条目 ### 第7步：访问萎蕤专页 - 成功访问萎蕤（玉竹）专门页面 - **获得完整原文内容** ## 三、最终答案 ### ✅ 关于\\\"柔润\\\"描述 - **已确认找到** **原文出处**：《本草纲目》萎蕤条目\\\"附方\\\"部分 **李时珍原文**： > \\\"李明珍说：萎蕤性平味甘，**柔润可食**。.....我常用来治虚劳寒热疟及一切不足的疾病，代替人参和黄芪，不寒不躁，效果很好，不仅仅能去风热湿毒而已。这是前人还没有记述过的。\\\" **关键发现**： - ✅ **\\\"柔润\\\"二字明确出现**在李时珍的评述中 - 李时珍强调萎蕤\\\"性平味甘，**柔润可食**\\\" - 这是对玉竹质地特征的直接描述 - ❌ 未找到\\\"滋润\\\"的表述 ### ❌ 关于与黄精对比 - **未找到相关内容** **查找结果**： - 在萎蕤条目中**未发现**李时珍将玉竹根茎与黄精进行形态对比的记载 - **没有**\\\"根似黄精\\\"的原文表述 - **没有**\\\"根如黄精\\\"的原文表述 **条目包含内容**： - 释名：女萎、葳蕤、萎、委萎、萎香、荧、玉竹、地节 - 气味：（根）甘、平、无毒 - 主治：5条具体方剂 - 附方：李时珍的评述 ## 四、原文完整记录 ### 基本信息 - **释名**：亦名女萎、葳蕤、萎、委萎、萎香、荧、玉竹、地节 - **气味**：（根）甘、平、无毒 ### 主治方剂（5条） 1. 眼红兼有涩、痛：用萎蕤、赤芍、当归、黄连等分，煎汤熏洗 2. 眼见黑花，红痛昏暗：用萎蕤（焙）四两，每取二钱，略加薄荷、生姜、蜂蜜，同煎汤。睡前温服，一天服一次。此方名\\\"甘露汤\\\" 3. 小便淋：用萎蕤一两、芭蕉根四两、滑石二钱，水煎，分三次服 4. 小便涩，发热口干：用萎蕤五两，煎水服 5. 后虚肿：用萎蕤、葵子、龙胆、茯苓、前胡，等分为末。每服一钱，水煎服 ### 附方（李时珍评述） \\\"李明珍说：萎蕤性平味甘，**柔润可食**。.....我常用来治虚劳寒热疟及一切不足的疾病，代替人参和黄芪，不寒不躁，效果很好，不仅仅能去风热湿毒而已。这是前人还没有记述过的。\\\" ## 五、信息来源可靠性 **来源网站**：中医宝典（zhongyibaodian.com） - 专业的中医古籍在线阅读平台 - 提供《本草纲目》图文版在线阅读 - 内容经过整理和数字化 **可靠性评估**： - ✅ 来源于正规中医古籍整理网站 - ✅ \\\"柔润\\\"描述明确出现在原文中 - ⚠️ 这是现代整理版本，非明代原刻本 - 💡 建议：如需更权威验证，可查阅人民卫生出版社等权威出版的《本草纲目》校注本 ## 六、结论 ### 明确结论 1. **\\\"柔润\\\"描述** - ✅ **确认存在**：李时珍在《本草纲目》中明确使用\\\"柔润可食\\\"描述玉竹（萎蕤）的质地特征 2. **与黄精对比** - ❌ **未找到**：在萎蕤条目中未发现\\\"根似黄精\\\"或\\\"根如黄精\\\"等对比性描述 ### 补充建议 如需查找玉竹与黄精的对比关系，建议： - 查看《本草纲目》\\\"黄精\\\"条目，看是否在黄精条目中提到与玉竹的比较 - 查阅其他版本的《本草纲目》或相关注释本 - 参考其他本草类古籍，如《神农本草经》《本草经集注》等\"\n      },\n      {\n        \"span_id\": \"s015\",\n        \"chunk_id\": \"s015:c001\",\n        \"char_start\": 0,\n        \"char_end\": 112,\n        \"text\": \"[ERROR]: google_search tool execution failed after 5 attempts: unhandled errors in a TaskGroup (1 sub-exception)\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 3663,\n        \"text\": \"\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题干特征： - 药性平和 - 味道甘甜 - 质地柔润 - 叶似竹 - 根横生似黄精 2. 代理总结提供《本草纲目》原文： - “萎蕤性平味甘，柔润可食” → 符合前三项 - “其叶光莹像竹” → 符合叶似竹 - “其根橫生似黃精” → 符合根横生似黄精 3. 该条药物别名“玉竹、萎蕤、葳蕤”，常用名为“玉竹”。 4. 综上所有特征完全吻合“玉竹”。 **最终答案：** \\\\boxed{玉竹} **置信度：** 92 **支持证据：** 《本草纲目·葳蕤》记载：“萎蕤性平味甘，柔润可食”“其叶光莹像竹，其根橫生似黄精”，并列出别名“玉竹”。 **潜在不足：** 李时珍正文条目标题为“葳蕤”，但民间及现代普遍称“玉竹”；题干未明确要求使用何种别名，选择最常用名称或有争议。\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"# 《本草纲目》草药考证最终报告 --- ## 一、任务回顾 **原始问题：** 《本草纲目》中李时珍提到过一味草药，评价其药性平和，味道甘甜，质地柔润，叶子如竹子一样，根像黄精一样是横着生长的。请问这味草药叫什么？ **任务要求：** 全面收集信息，呈现所有可能的候选答案，提供详细证据支持，保持透明度和完整性。 --- ## 二、调查过程总结 ### 第一步：初步信息收集 - 使用关键词\\\"本草纲目 叶如竹 根似黄精 味甘 性平\\\"进行搜索 - 遇到网络工具技术问题，但获得基于中药学知识的初步推测：**玉竹（萎蕤）** - 识别出需要验证的候选答案：玉竹、黄精、麦冬 ### 第二步：深入查证《本草纲目》记载 - 成功访问A+医学百科和中药材360网站 - 获取了玉竹、黄精、麦冬的详细中医药信息 - 确认了玉竹的基本特征与题目描述高度吻合 ### 第三步：验证\\\"柔润\\\"特征 - 成功访问中医宝典网站《本草纲目》数字化版本 - 在《本草纲目·萎蕤》条目中找到李时珍的明确表述 - **关键发现**：李时珍原文\\\"萎蕤性平味甘，**柔润可食**\\\" ### 第四步：确认\\\"根似黄精\\\"表述 - 成功访问维基文库《本草纲目》完整原文 - 获取了《本草纲目·草之一》中黄精和葳蕤两个条目的全部内容 - **关键发现**：李时珍在葳蕤条明确写道\\\"其根**橫生似黃精**，差小\\\" --- ## 三、所有候选答案及证据分析 ### 候选答案1：玉竹（葳蕤）✅ **最终答案** **匹配度：100%（6/6特征完全匹配）** #### 《本草纲目》原文证据： **1. 名称** - 正名：葳蕤 - 别名：萎蕤、女萎、玉竹、地节等 **2. 药性平和** ✅ - 原文：\\\"气味：（根）**甘、平**、无毒\\\" **3. 味道甘甜** ✅ - 原文：李时珍评述\\\"萎蕤**性平味甘**\\\" **4. 质地柔润** ✅ - 原文：李时珍评述\\\"**柔润可食**\\\" - 原文：李时珍集解\\\"**性柔**多須，最難燥\\\" **5. 叶子如竹子一样** ✅ - 原文：李时珍集解\\\"其叶光莹**像竹**，其根长而多节，故有玉竹、地节诸名\\\" **6. 根像黄精横着生长** ✅ - 原文：李时珍集解\\\"其根**橫生似黃精**，差小，黃白色\\\" - 原文：陶弘景注\\\"根**似黃精**，小異\\\" #### 完整原文摘录： >\\\"其叶光莹像竹，其根长而多节，故有玉竹、地节诸名。其根橫生似黃精，差小，黃白色，性柔多須，最難燥。......萎蕤性平味甘，柔润可食。\\\" > >——李时珍《本草纲目·草之一·葳蕤》 #### 结论： **玉竹完全符合题目描述的所有6项特征，证据确凿，无任何矛盾或模糊之处。** --- ### 候选答案2：黄精 ❌ **不符合** **匹配度：50%（3/6特征匹配）** #### 匹配的特征： - ✅ 药性平和：甘、平、无毒 - ✅ 味道甘甜：气味甘 - ✅ 叶如竹：有\\\"叶如竹叶而短\\\"的描述 #### 不匹配的特征： - ❌ **质地柔润**：黄精条目中无\\\"柔润\\\"描述 - ❌ **根像黄精**：逻辑矛盾——黄精本身不能说\\\"根像黄精一样\\\" - ⚠️ 叶形描述不如玉竹贴切 #### 《本草纲目》原文： - 李时珍集解：\\\"其根橫行，**狀如葳蕤**\\\"（说明黄精像玉竹，而非玉竹像黄精） - 陶弘景注：\\\"根**似葳蕤**\\\" #### 结论： **黄精不符合题目要求，特别是\\\"根像黄精\\\"这一表述明确排除了黄精本身作为答案。** --- ### 候选答案3：麦冬 ❌ **完全不符合** **匹配度：17%（1/6特征匹配）** #### 不匹配的特征： - ❌ **叶形**：麦冬\\\"叶如韭菜\\\"，不是\\\"叶如竹\\\" - ❌ **根茎**：麦冬为纺锤形块根，不是横走根茎 - ❌ **性味**：麦冬\\\"甘、微苦、微寒\\\"，不是\\\"性平\\\" - ❌ **无\\\"根似黄精\\\"的任何描述** #### 结论： **麦冬与题目描述完全不符，可以排除。** --- ## 四、关键鉴别点分析 ### 1. \\\"根似黄精\\\"的决定性意义 - 题目表述：\\\"根**像黄精一样**是横着生长的\\\" - 这个表述使用了比喻，说明答案**不是黄精本身** - 只有玉竹在《本草纲目》中被明确描述为\\\"根橫生**似黃精**\\\" - 黄精条目中反而说黄精\\\"狀如**葳蕤**\\\"（像玉竹\"\n      },\n      {\n        \"span_id\": \"s016\",\n        \"chunk_id\": \"s016:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3440,\n        \"text\": \"不符，可以排除。** --- ## 四、关键鉴别点分析 ### 1. \\\"根似黄精\\\"的决定性意义 - 题目表述：\\\"根**像黄精一样**是横着生长的\\\" - 这个表述使用了比喻，说明答案**不是黄精本身** - 只有玉竹在《本草纲目》中被明确描述为\\\"根橫生**似黃精**\\\" - 黄精条目中反而说黄精\\\"狀如**葳蕤**\\\"（像玉竹） ### 2. \\\"柔润\\\"是独特标识 - 李时珍对玉竹的特别评价：\\\"**柔润可食**\\\" - 这是玉竹区别于黄精的标志性特征 - 黄精条目中完全没有\\\"柔润\\\"的描述 - 这一特征具有排他性，只有玉竹符合 ### 3. 古籍交叉验证 - **陶弘景《本草经集注》**（南北朝）：\\\"根似黃精，小異\\\"（葳蕤条） - **苏恭《唐本草》**（唐代）：\\\"葳蕤肥根，頗類其小者，肌理形色，大都相似\\\" - 多位古代医家都确认了玉竹与黄精的相似性 --- ## 五、不确定性与局限性说明 ### 已完全解决的问题： 1. ✅ 所有6项特征均在《本草纲目》原文中找到明确对应 2. ✅ \\\"柔润\\\"表述已确认存在于李时珍原文 3. ✅ \\\"根似黄精\\\"表述已确认存在于李时珍原文 4. ✅ 候选答案已全面收集和对比验证 ### 信息来源说明： - **主要来源**：维基文库《本草纲目》原文、中医宝典数字化版本、A+医学百科、中药材360 - **可靠性评估**：这些都是经过整理的《本草纲目》文本，内容准确可靠 - **权威性建议**：如需最高学术权威性，可进一步参考人民卫生出版社等权威机构出版的《本草纲目》校注本 ### 无未解决的疑问： 本次调查已完整回答了原始问题，所有特征均得到验证，答案确定性为100%。 --- ## 六、最终答案 ### **答案：玉竹** **别名：萎蕤、葳蕤、女萎、玉参、地节** ### 答案确定性：**100%确定** ### 核心理由： 1. **所有特征完全匹配** - 药性平和：甘、平、无毒 ✅ - 味道甘甜：性平味甘 ✅ - 质地柔润：柔润可食 ✅ - 叶如竹：叶光莹像竹 ✅ - 根似黄精横生：根橫生似黃精 ✅ 2. **李时珍原文逐字对应** 《本草纲目》中李时珍对玉竹的描述与题目要求的每一个特征都精确对应，无任何矛盾。 3. **独特性特征排除其他答案** - \\\"柔润\\\"是玉竹的独特标识，黄精不具备 - \\\"根似黄精\\\"的表述排除了黄精本身 - 麦冬的叶形和根茎完全不符 4. **多部古籍交叉验证** 从陶弘景到李时珍，历代医家都确认了玉竹\\\"根似黄精\\\"的特征。 ### 《本草纲目》权威依据： >\\\"其叶光莹像竹，其根长而多节，故有玉竹、地节诸名。其根橫生似黃精，差小，黃白色，性柔多須，最難燥。......萎蕤性平味甘，柔润可食。我常用来治虚劳寒热疟及一切不足的疾病，代替人参和黄芪，不寒不躁，效果很好。\\\" > >——李时珍《本草纲目·草之一·葳蕤》 --- ## 七、补充信息 ### 现代分类学信息： - **科属**：百合科（Liliaceae）黄精属（Polygonatum） - **学名**：Polygonatum odoratum (Mill.) Druce - **药用部位**：根茎 ### 药用价值（李时珍评价）： \\\"我常用来治虚劳寒热疟及一切不足的疾病，代替人参和黄芪，不寒不躁，效果很好，不仅仅能去风热湿毒而已。这是前人还没有记述过的。\\\" ### 玉竹与黄精的关系： - 两者同属百合科，形态相似 - 民间有\\\"玉竹黄精\\\"的俗称 - 主要区别：黄精更粗大，节更明显；玉竹更柔润，节较平直 --- ## 八、结论 经过系统的文献查证、特征对比和逻辑分析，**答案确定无疑是玉竹（萎蕤）**。 这味草药在《本草纲目》中的描述与题目要求的所有特征完全吻合。李时珍对其\\\"性平味甘，柔润可食，叶光莹像竹，根橫生似黃精\\\"的评价，精准地概括了题目所述的全部特点。证据链完整，逻辑严密，无任何不确定性。 **最终答案：玉竹**\\n---\\nLLM extracted final answer: **逐步分析：** 1. 题干特征： - 药性平和 - 味道甘甜 - 质地柔润 - 叶似竹 - 根横生似黄精 2. 代理总结提供《本草纲目》原文： - “萎蕤性平味甘，柔润可食” → 符合前三项 - “其叶光莹像竹” → 符合叶似竹 - “其根橫生似黃精\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0359",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "short string",
+        "error_span_ids": [
+          "s003",
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0359",
+        "first_error_span": null,
+        "linked_error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "non_errors": [],
+        "reason": "short string",
+        "error_span_ids": [
+          "s011",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 16,
+    "evidence_span_count": 4
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 19328,
+    "output_tokens": 488,
+    "total_tokens": 19816
+  }
+}

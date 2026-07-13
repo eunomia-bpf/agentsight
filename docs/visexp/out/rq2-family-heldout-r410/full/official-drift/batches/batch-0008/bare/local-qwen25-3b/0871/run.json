@@ -1,0 +1,58 @@
+{
+  "setting": "bare",
+  "case_id": "0871",
+  "prediction": {
+    "traj_id": "0871",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0871\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"阿里巴巴成立时，18位创始团队成员中，姓马、姓蔡、姓张的创始人的平均年龄，保留一位小数\",\n  \"traj_id\": \"0871\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"阿里巴巴成立时，18位创始团队成员中，姓马、姓蔡、姓张的创始人的平均年龄，保留一位小数\\n---\\nI'll help you find the average age of Alibaba's founding team members with surnames Ma, Cai, and Zhang\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Alibaba 18 founding members list names Jack Ma\\n---\\nAwards Events The Drum Recommends Ask The Drum What's On Newsletters Search Sign In Editor's Picks Latest Opinion TV Podcasts Subscribe Close Ad Technology Meet the 18 original founders of Alibaba Share By Angela Marie G\\n---\\nSolutions Features Pricing Resources Log In Contact Sales Try for Free How Jack Ma Built Alibaba with His 18 Founders By Eric Lian · 4th October, 2018 Table of Contents How Jack Ma’s Networking Skills Sparked Alibaba’s R\\n---\\n阿里巴巴18位创始人名单 完整名单\\n---\\n请您登录后查看更多专业优质内容\\n---\\n新闻 体育 汽车 房产 旅游 教育 时尚 科技 财经 娱乐 更多 无障碍 关怀版 登录 阿里巴巴初创时的十八罗汉与上市时的三十合伙人 2019-03-23 15:39 来源: HY全球上市孵化器 1999年2月20日，年初五，杭州湖畔花园风荷院16幢1单元202室，在一家几乎家徒四壁的屋里，十八个人聚在一起开了一个动员会，只有一个破沙发摆在一边，大部分人席地而坐，马云站在中间讲了整整两个小时，就这样“忽悠”大家一起合伙创业，下面就跟大家\\n---\\nAlibaba 18 founders complete list Han Min Dai Shan Ma Yun Peng Lei\\n---\\nhttps://www.garyfox.co/who-owns-alibaba/\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"You're right, I need to follow the proper format with Thought and Code blocks\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jack Ma birth year 1964\\n---\\n\\\\n**CONFIRMED: Jack Ma (\\\\u9a6c\\\\u4e91) was born in 1964\\n---\\nJoe Tsai 蔡崇信 biography birth 1964 Alibaba cofounder\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Joe Tsai net worth 2024 2025 current positions Alibaba chairman\\n---\\nSubscribe: Less than $1\\n---\\nJoe Tsai education Yale University career before Alibaba Sullivan Cromwell Investor AB\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Early life and education Career Sports ownership Personal life Political views Philanthropy Awards See also References Joseph Tsai 15 lang\\n---\\n\\\\n\\\\nJoe Tsai (\\\\u8521\\\\u5d07\\\\u4fe1), born in January 1964 in Taipei, Taiwan, is indeed a co\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Zhang Ying 张瑛 Ma Yun Jack Ma wife birth year\\n---\\nThe most read Vietnamese newspaper Vietnamese Edition | Contact us | Follow us on News Business Tech Travel Life Sports World Perspectives VnE-GO All sections Life Trend Arts Celebrities Vogue Love Wellness Most Read 1\\n---\\nHome China Arts, Culture, Media - Internet and Communications JACK MA: HIS LIFE, CAREER AND PERSONALITY JACK MA Jack Ma's Early Life and Education Jack Ma’s Wife, Zhang Ying Jack Ma Enters the Internet Business Jack Ma a\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"张瑛 马云 妻子 出生年份 1966\\n---\\nZhang Ying 张瑛 born 1966 age 59 2025\\n---\\nJack Ma wife Zhang Ying biography birth year\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Wednesday , 14 January 2026 Recent Posts Agent (2025) Movie Leaked Online: Akhil Akkineni’s Blockbuster Hit by Piracy on Filmyzilla, HDHub4U, 9xFlix and More Home Privacy Policy Disclaimer About Us Contact us News Unzip\\n---\\n\\\\nZhang Ying (\\\\u5f20\\\\u745b), also known as Cathy Zhang, the wife of Alibaba founder Jack Ma (Ma Yun), was born in **1966**\\n---\\nI see there was a connection error\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0871",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0871",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 8
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1570,
+    "output_tokens": 80,
+    "total_tokens": 1650
+  }
+}

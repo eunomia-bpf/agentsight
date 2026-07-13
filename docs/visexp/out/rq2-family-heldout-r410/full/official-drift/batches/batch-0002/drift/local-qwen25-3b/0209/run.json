@@ -1,0 +1,261 @@
+{
+  "setting": "drift",
+  "case_id": "0209",
+  "prediction": {
+    "traj_id": "0209",
+    "error_span_ids": [
+      "s001",
+      "s009"
+    ],
+    "earliest_harmful_span_id": "s001",
+    "reasons": [
+      {
+        "span_id": "s001",
+        "reason": "weak support for the claim, but the claim is finalized and the evidence packet shows the answer is 5 movies"
+      },
+      {
+        "span_id": "s009",
+        "reason": "weak support for the claim, but the claim is finalized and the evidence packet shows the answer is 5 movies"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0209\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies? Your answer should be a numerical integer value.\",\n  \"traj_id\": \"0209\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{'subtask': \\\"Access Box Office Mojo and retrieve the top 10 movies from the '2020 Worldwide Box Office' list (yearly rankings for films released in 2020). Provide the exact titles and their worldwide gross amounts in order from #1 to #10. Make sure to access the correct page that shows films released in 2020 (not calendar year grosses), which should start with titles like 'Tenet' or 'The Eight Hundred' at the top.\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\nBox Office Mojo 2020 worldwide box office yearly rankings\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: 2020 Worldwide Box Office URL Source: https://www https://www.boxofficemojo.com/year/world/2020/\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{'subtask': \\\"Access Box Office Mojo and retrieve the top 10 movies from the '2020 Domestic Box Office' list (yearly rankings for films released in 2020 in the US/Canada market). Provide the exact titles and their domestic gross amounts in order from #1 to #10. Make sure to access the correct page that shows domestic grosses for films released in 2020, which should be topped by titles like 'Bad Boys for Life' or '1917'. Do NOT use the 'Domestic Box Office for 2020' page which includes films released in other years.\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Domestic Box Office For 2020 URL Source: https://www https://www.boxofficemojo.com/year/2020/\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:boxofficemojo.com 2020 yearly releases Bad Boys for Life\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Title: Error - Box Office Mojo URL Source: https://www https://www.boxofficemojo.com/year/2020/?grossesOption=releaseGrosses\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:boxofficemojo.com \\\"2020\\\" \\\"release date\\\" \\\"domestic gross\\\" filter by release year\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Box Office Mojo 2020 releases only exclude 2019 releases\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"# FINAL REPORT: Box Office Mojo 2020 Worldwide vs Domestic Top 10 Overlap Analysis ## Executive Summary This task required determining how many movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists. Through systematic data collection and comparison, **5 movies** were identified as appearing in both lists. --- ## Working History and Methodology ### Step 1: Retrieved 2020 Worldwide Box Office Top 10 **Source:** Box Office Mojo - https://www.boxofficemojo.com/year/world/2020/ Successfully accessed the yearly rankings for films released in 2020 (not calendar year grosses). The list was confirmed to be correct as it started with titles like \\\"Demon Slayer\\\" and \\\"The Eight Hundred\\\" as expected. **Complete List:** 1. Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train ($469,119,320) 2. The Eight Hundred ($461,421,559) 3. Bad Boys for Life ($426,505,244) 4. My People, My Homeland ($422,390,820) 5. Tenet ($365,304,105) 6. Sonic the Hedgehog ($319,715,683) 7. Dolittle ($251,410,631) 8. Jiang Ziya ($240,646,355) 9. A Little Red Flower ($216,000,000) 10. The Croods: A New Age ($215,905,815) ### Step 2: Retrieved 2020 Domestic Box Office Top 10 **Source:** Box Office Mojo - https://www.boxofficemojo.com/year/2020/ Accessed the domestic box office data and applied filtering to ensure only films **released in 2020** were included (excluding late 2019 releases like \\\"1917\\\" and \\\"Jumanji: The Next Level\\\" that earned money in calendar year 2020 but were released in 2019). **Complete List (Filtered for 2020 Releases):** 1. Bad Boys for Life ($204,417,855) 2. Sonic the Hedgehog ($146,066,470) 3. Birds of Prey and the Fantabulous Emancipation of One Harley Quinn ($84,158,461) 4. Dolittle ($77,047,065) 5. The Invisible Man ($64,914,050) 6. The Call of the Wild ($62,342,368) 7. Onward ($61,555,145) 8. Tenet ($57,235,189) 9. The Gentlemen ($36,471,397) 10. The Croods: A New Age ($32,334,280) ### Step 3: Compared Lists and Identified Overlaps Performed title-by-title comparison using exact movie names from both lists. --- ## DETAILED FINDINGS: Overlapping Movies ### Movies Appearing in BOTH Top 10 Lists: 1. **Bad Boys for Life** - Worldwide Rank: #3 ($426.5M worldwide) - Domestic Rank: #1 ($204.4M domestic) 2. **Tenet** - Worldwide Rank: #5 ($365.3M worldwide) - Domestic Rank: #8 ($57.2M domestic) 3. **Sonic the Hedgehog** - Worldwide Rank: #6 ($319.7M worldwide) - Domestic Rank: #2 ($146.1M domestic) 4. **Dolittle** - Worldwide Rank: #7 ($251.4M worldwide) - Domestic Rank: #4 ($77.0M domestic) 5. **The Croods: A New Age** - Worldwide Rank: #10 ($215.9M worldwide) - Domestic Rank: #10 ($32.3M domestic) --- ## Analysis and Context ### Why Only 5 Overlaps? **Worldwide Top 10 Films NOT in Domestic Top 10:** - **Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train** (#1 worldwide) - Japanese film with limited U.S. release - **The Eight Hundred** (#2 worldwide) - Chinese film, not released in U.S./Canada - **My People, My Homeland** (#4 worldwide) - Chinese film, not released in U.S./Canada - **Jiang Ziya** (#8 worldwide) - Chinese film with minimal U.S. release - **A Little Red Flower** (#9 worldwide) - Chinese film, not released in U.S./Canada **Domestic Top 10 Films NOT in Worldwide Top 10:** - **Birds of Prey** (#3 domestic) - Strong domestic performance but weaker internationally - **The Invisible Man** (#5 domestic) - Mid-budget film with limited international reach - **The Call of the Wild** (#6 domestic) - Domestic-focused release - **Onward** (#7 domestic) - Released just before pandemic shutdowns affected international markets - **The Gentlemen** (#9 domestic) - Limited international distribution ### Key Observations 1. **Geographic Distribution Impact:** The worldwide list heavily features Asian films (4 Chinese films, 1 Japanese film) that had little to no U.S. theatrical presence due to limited distribution. 2. **COVID-19 Pandemic Effect:** 2020 box office was significantly impacted by theater closures, affecting both domestic and international revenues differently. 3. **All 5 Overlapping Films:** Were major studio releases with wide international distribution from Universal, Warner Bros., Paramount, and DreamWorks. --- ## FINAL ANSWER **5** According to Box Office Mojo's 2020 Worldwide Box Office list and 2020 Domestic Box Office list (for films released in 2020), exactly **5 movies** appear in both top 10 lists: 1. Bad Boys for Life 2. Tenet 3. Sonic the Hedgehog 4. Dolittle 5. The Croods: A New Age --- ## Data Quality and Verification Notes - **Source Reliability:** Data collected directly from Box Office Mojo's official pages - **Temporal Consistency:** Both lists accessed during the same session to ensure data consistency - **Release Year Filtering:** Domestic list was carefully filtered to include only films released in 2020, excluding late 2019 releases that earned revenue in calendar year 2020 - **Title Matching:** Exact title matching was used; no discrepancies or variations were found - **No Uncertainties:** The answer is definitive with no alternative interpretations or conflicting data\\n---\\nLLM extracted final answer: **Step-by-step Analysis:** 1. The Agent Summary reproduces the two required lists from Box Office Mojo: • 2020 Worldwide Box Office Top 10 • 2020 Domestic Box Office Top 10 (filtered to 2020 releases) 2. By direct comparison, the summary identifies the overlapping titles: - Bad Boys for Life - Tenet - Sonic the Hedgehog - Dolittle - The Croods: A New Age 3. Counting these titles gives 5 overlaps. 4. No contradictions or missing data appear in the summary; the overlap count is explicitly supported. **Final Answer:** \\\\boxed{5} **Confidence:** 90 **Supporting Evidence:** The Agent Summary lists exactly five films present in both the Worldwide and Domestic 2020 Top 10: Bad Boys for Life, Tenet, Sonic the Hedgehog, Dolittle, and The Croods: A New Age. **Potential Weaknesses:** The Domestic Top 10 was “filtered for 2020 releases”; if the official domestic list without filtering were required, the overlap count might differ. However, the question specifies “top 10 highest-grossing domestic movies” for 2020, which matches the list used, so the answer should be correct.\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0209",
+        "task_goal": "short string",
+        "hard_constraints": [
+          "short string"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies?",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s009",
+            "used_by": [
+              "s009",
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "5 movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists.",
+            "introduced_at": "s009",
+            "becomes_consequential_at": "s009",
+            "used_by": [
+              "s009",
+              "s011",
+              "s015"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          }
+        ],
+        "notes": "short string"
+      },
+      "validated": {
+        "traj_id": "0209",
+        "task_goal": "short string",
+        "hard_constraints": [
+          "short string"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies?",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s009",
+            "used_by": [
+              "s009"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "5 movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists.",
+            "introduced_at": "s009",
+            "becomes_consequential_at": "s009",
+            "used_by": [
+              "s009"
+            ],
+            "claim_type": "evidence",
+            "status": "finalized"
+          }
+        ],
+        "notes": "short string"
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001",
+            "s009"
+          ],
+          "grep_queries": [
+            "According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s009"
+          ],
+          "grep_queries": [
+            "5 movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s009"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s009"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing",
+          "matched_chunk_ids": [
+            "s009:c001",
+            "s009:c004",
+            "s009:c003",
+            "s009:c002"
+          ],
+          "matched_span_ids": [
+            "s009"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "5 movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists.",
+          "matched_chunk_ids": [
+            "s009:c001",
+            "s009:c002",
+            "s009:c003",
+            "s009:c004"
+          ],
+          "matched_span_ids": [
+            "s009"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0209\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies? Your answer should be a numerical integer value.\",\n  \"traj_id\": \"0209\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0209\",\n    \"task_goal\": \"short string\",\n    \"hard_constraints\": [\n      \"short string\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies?\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"5 movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists.\",\n        \"introduced_at\": \"s009\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [\n          \"s009\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"short string\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s009\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s009:c004\",\n          \"s009:c003\",\n          \"s009:c002\"\n        ],\n        \"matched_span_ids\": [\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"5 movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists.\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s009:c002\",\n          \"s009:c003\",\n          \"s009:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s009\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 572,\n        \"text\": \"{'subtask': \\\"Access Box Office Mojo and retrieve the top 10 movies from the '2020 Worldwide Box Office' list (yearly rankings for films released in 2020). Provide the exact titles and their worldwide gross amounts in order from #1 to #10. Make sure to access the correct page that shows films released in 2020 (not calendar year grosses), which should start with titles like 'Tenet' or 'The Eight Hundred' at the top.\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\nBox Office Mojo 2020 worldwide box office yearly rankings\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"# FINAL REPORT: Box Office Mojo 2020 Worldwide vs Domestic Top 10 Overlap Analysis ## Executive Summary This task required determining how many movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists. Through systematic data collection and comparison, **5 movies** were identified as appearing in both lists. --- ## Working History and Methodology ### Step 1: Retrieved 2020 Worldwide Box Office Top 10 **Source:** Box Office Mojo - https://www.boxofficemojo.com/year/world/2020/ Successfully accessed the yearly rankings for films released in 2020 (not calendar year grosses). The list was confirmed to be correct as it started with titles like \\\"Demon Slayer\\\" and \\\"The Eight Hundred\\\" as expected. **Complete List:** 1. Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train ($469,119,320) 2. The Eight Hundred ($461,421,559) 3. Bad Boys for Life ($426,505,244) 4. My People, My Homeland ($422,390,820) 5. Tenet ($365,304,105) 6. Sonic the Hedgehog ($319,715,683) 7. Dolittle ($251,410,631) 8. Jiang Ziya ($240,646,355) 9. A Little Red Flower ($216,000,000) 10. The Croods: A New Age ($215,905,815) ### Step 2: Retrieved 2020 Domestic Box Office Top 10 **Source:** Box Office Mojo - https://www.boxofficemojo.com/year/2020/ Accessed the domestic box office data and applied filtering to ensure only films **released in 2020** were included (excluding late 2019 releases like \\\"1917\\\" and \\\"Jumanji: The Next Level\\\" that earned money in calendar year 2020 but were released in 2019). **Complete List (Filtered for 2020 Releases):** 1. Bad Boys for Life ($204,417,855) 2. Sonic the Hedgehog ($146,066,470) 3. Birds of Prey and the Fantabulous Emancipation of One Harley Quinn ($84,158,461) 4. Dolittle ($77,047,065) 5. The Invisible Man ($64\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3440,\n        \"text\": \" Hedgehog ($146,066,470) 3. Birds of Prey and the Fantabulous Emancipation of One Harley Quinn ($84,158,461) 4. Dolittle ($77,047,065) 5. The Invisible Man ($64,914,050) 6. The Call of the Wild ($62,342,368) 7. Onward ($61,555,145) 8. Tenet ($57,235,189) 9. The Gentlemen ($36,471,397) 10. The Croods: A New Age ($32,334,280) ### Step 3: Compared Lists and Identified Overlaps Performed title-by-title comparison using exact movie names from both lists. --- ## DETAILED FINDINGS: Overlapping Movies ### Movies Appearing in BOTH Top 10 Lists: 1. **Bad Boys for Life** - Worldwide Rank: #3 ($426.5M worldwide) - Domestic Rank: #1 ($204.4M domestic) 2. **Tenet** - Worldwide Rank: #5 ($365.3M worldwide) - Domestic Rank: #8 ($57.2M domestic) 3. **Sonic the Hedgehog** - Worldwide Rank: #6 ($319.7M worldwide) - Domestic Rank: #2 ($146.1M domestic) 4. **Dolittle** - Worldwide Rank: #7 ($251.4M worldwide) - Domestic Rank: #4 ($77.0M domestic) 5. **The Croods: A New Age** - Worldwide Rank: #10 ($215.9M worldwide) - Domestic Rank: #10 ($32.3M domestic) --- ## Analysis and Context ### Why Only 5 Overlaps? **Worldwide Top 10 Films NOT in Domestic Top 10:** - **Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train** (#1 worldwide) - Japanese film with limited U.S. release - **The Eight Hundred** (#2 worldwide) - Chinese film, not released in U.S./Canada - **My People, My Homeland** (#4 worldwide) - Chinese film, not released in U.S./Canada - **Jiang Ziya** (#8 worldwide) - Chinese film with minimal U.S. release - **A Little Red Flower** (#9 worldwide) - Chinese film, not released in U.S./Canada **Domestic Top 10 Films NOT in Worldwide Top 10:** - **Birds of Prey** (#3 domestic) - Strong domestic performance but weaker internationally - **The Invisible Man** (#5 domestic) - Mid-budget film \"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 6253,\n        \"text\": \"e in calendar year 2020 - **Title Matching:** Exact title matching was used; no discrepancies or variations were found - **No Uncertainties:** The answer is definitive with no alternative interpretations or conflicting data\\n---\\nLLM extracted final answer: **Step-by-step Analysis:** 1. The Agent Summary reproduces the two required lists from Box Office Mojo: • 2020 Worldwide Box Office Top 10 • 2020 Domestic Box Office Top 10 (filtered to 2020 releases) 2. By direct comparison, the summary identifies the overlapping titles: - Bad Boys for Life - Tenet - Sonic the Hedgehog - Dolittle - The Croods: A New Age 3. Counting these titles gives 5 overlaps. 4. No contradictions or missing data appear in the summary; the overlap count is explicitly supported. **Final Answer:** \\\\boxed{5} **Confidence:** 90 **Supporting Evidence:** The Agent Summary lists exactly five films present in both the Worldwide and Domestic 2020 Top 10: Bad Boys for Life, Tenet, Sonic the Hedgehog, Dolittle, and The Croods: A New Age. **Potential Weaknesses:** The Domestic Top 10 was “filtered for 2020 releases”; if the official domestic list without filtering were required, the overlap count might differ. However, the question specifies “top 10 highest-grossing domestic movies” for 2020, which matches the list used, so the answer should be correct.\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 5080,\n        \"text\": \"de Top 10:** - **Birds of Prey** (#3 domestic) - Strong domestic performance but weaker internationally - **The Invisible Man** (#5 domestic) - Mid-budget film with limited international reach - **The Call of the Wild** (#6 domestic) - Domestic-focused release - **Onward** (#7 domestic) - Released just before pandemic shutdowns affected international markets - **The Gentlemen** (#9 domestic) - Limited international distribution ### Key Observations 1. **Geographic Distribution Impact:** The worldwide list heavily features Asian films (4 Chinese films, 1 Japanese film) that had little to no U.S. theatrical presence due to limited distribution. 2. **COVID-19 Pandemic Effect:** 2020 box office was significantly impacted by theater closures, affecting both domestic and international revenues differently. 3. **All 5 Overlapping Films:** Were major studio releases with wide international distribution from Universal, Warner Bros., Paramount, and DreamWorks. --- ## FINAL ANSWER **5** According to Box Office Mojo's 2020 Worldwide Box Office list and 2020 Domestic Box Office list (for films released in 2020), exactly **5 movies** appear in both top 10 lists: 1. Bad Boys for Life 2. Tenet 3. Sonic the Hedgehog 4. Dolittle 5. The Croods: A New Age --- ## Data Quality and Verification Notes - **Source Reliability:** Data collected directly from Box Office Mojo's official pages - **Temporal Consistency:** Both lists accessed during the same session to ensure data consistency - **Release Year Filtering:** Domestic list was carefully filtered to include only films released in 2020, excluding late 2019 releases that earned revenue in calendar year 2020 - **Title Matching:** Exact title matching was used; no discrepancies or variations were found - **No Uncertainties:** The answer is def\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s009"
+            ],
+            "support_status": "weak",
+            "missing_support": "The claim is based on the overlap of movies appearing in both the 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists. The evidence provided in the raw chunks does not explicitly verify the exact count of movies.",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s009",
+                "chunk_id": "s009:c001",
+                "role": "partial_support",
+                "text": "5 movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists."
+              }
+            ]
+          }
+        ],
+        "notes": "The claim is based on the overlap of movies appearing in both the 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists. The evidence provided in the raw chunks does not explicitly verify the exact count of movies."
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s009"
+          ],
+          "support_status": "weak",
+          "missing_support": "The claim is based on the overlap of movies appearing in both the 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists. The evidence provided in the raw chunks does not explicitly verify the exact count of movies.",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s009",
+              "chunk_id": "s009:c001",
+              "role": "partial_support",
+              "text": "5 movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists."
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0209\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies? Your answer should be a numerical integer value.\",\n  \"traj_id\": \"0209\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0209\",\n    \"task_goal\": \"short string\",\n    \"hard_constraints\": [\n      \"short string\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing domestic movies?\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [\n          \"s009\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"5 movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists.\",\n        \"introduced_at\": \"s009\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [\n          \"s009\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"short string\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s009\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"The claim is based on the overlap of movies appearing in both the 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists. The evidence provided in the raw chunks does not explicitly verify the exact count of movies.\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s009\",\n          \"chunk_id\": \"s009:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"5 movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists.\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s009\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"According to Box Office Mojo's 2020 Worldwide Box Office list, how many of the top 10 highest-grossing worldwide movies are also on the top 10 highest-grossing\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s009:c004\",\n          \"s009:c003\",\n          \"s009:c002\"\n        ],\n        \"matched_span_ids\": [\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"5 movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists.\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s009:c002\",\n          \"s009:c003\",\n          \"s009:c004\"\n        ],\n        \"matched_span_ids\": [\n          \"s009\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 572,\n        \"text\": \"{'subtask': \\\"Access Box Office Mojo and retrieve the top 10 movies from the '2020 Worldwide Box Office' list (yearly rankings for films released in 2020). Provide the exact titles and their worldwide gross amounts in order from #1 to #10. Make sure to access the correct page that shows films released in 2020 (not calendar year grosses), which should start with titles like 'Tenet' or 'The Eight Hundred' at the top.\\\"} Please provide the answer and detailed supporting information of the subtask given to you.\\n---\\nBox Office Mojo 2020 worldwide box office yearly rankings\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"# FINAL REPORT: Box Office Mojo 2020 Worldwide vs Domestic Top 10 Overlap Analysis ## Executive Summary This task required determining how many movies appear in both Box Office Mojo's 2020 Worldwide Box Office top 10 and the 2020 Domestic Box Office top 10 lists. Through systematic data collection and comparison, **5 movies** were identified as appearing in both lists. --- ## Working History and Methodology ### Step 1: Retrieved 2020 Worldwide Box Office Top 10 **Source:** Box Office Mojo - https://www.boxofficemojo.com/year/world/2020/ Successfully accessed the yearly rankings for films released in 2020 (not calendar year grosses). The list was confirmed to be correct as it started with titles like \\\"Demon Slayer\\\" and \\\"The Eight Hundred\\\" as expected. **Complete List:** 1. Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train ($469,119,320) 2. The Eight Hundred ($461,421,559) 3. Bad Boys for Life ($426,505,244) 4. My People, My Homeland ($422,390,820) 5. Tenet ($365,304,105) 6. Sonic the Hedgehog ($319,715,683) 7. Dolittle ($251,410,631) 8. Jiang Ziya ($240,646,355) 9. A Little Red Flower ($216,000,000) 10. The Croods: A New Age ($215,905,815) ### Step 2: Retrieved 2020 Domestic Box Office Top 10 **Source:** Box Office Mojo - https://www.boxofficemojo.com/year/2020/ Accessed the domestic box office data and applied filtering to ensure only films **released in 2020** were included (excluding late 2019 releases like \\\"1917\\\" and \\\"Jumanji: The Next Level\\\" that earned money in calendar year 2020 but were released in 2019). **Complete List (Filtered for 2020 Releases):** 1. Bad Boys for Life ($204,417,855) 2. Sonic the Hedgehog ($146,066,470) 3. Birds of Prey and the Fantabulous Emancipation of One Harley Quinn ($84,158,461) 4. Dolittle ($77,047,065) 5. The Invisible Man ($64\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 3440,\n        \"text\": \" Hedgehog ($146,066,470) 3. Birds of Prey and the Fantabulous Emancipation of One Harley Quinn ($84,158,461) 4. Dolittle ($77,047,065) 5. The Invisible Man ($64,914,050) 6. The Call of the Wild ($62,342,368) 7. Onward ($61,555,145) 8. Tenet ($57,235,189) 9. The Gentlemen ($36,471,397) 10. The Croods: A New Age ($32,334,280) ### Step 3: Compared Lists and Identified Overlaps Performed title-by-title comparison using exact movie names from both lists. --- ## DETAILED FINDINGS: Overlapping Movies ### Movies Appearing in BOTH Top 10 Lists: 1. **Bad Boys for Life** - Worldwide Rank: #3 ($426.5M worldwide) - Domestic Rank: #1 ($204.4M domestic) 2. **Tenet** - Worldwide Rank: #5 ($365.3M worldwide) - Domestic Rank: #8 ($57.2M domestic) 3. **Sonic the Hedgehog** - Worldwide Rank: #6 ($319.7M worldwide) - Domestic Rank: #2 ($146.1M domestic) 4. **Dolittle** - Worldwide Rank: #7 ($251.4M worldwide) - Domestic Rank: #4 ($77.0M domestic) 5. **The Croods: A New Age** - Worldwide Rank: #10 ($215.9M worldwide) - Domestic Rank: #10 ($32.3M domestic) --- ## Analysis and Context ### Why Only 5 Overlaps? **Worldwide Top 10 Films NOT in Domestic Top 10:** - **Demon Slayer: Kimetsu no Yaiba - The Movie: Mugen Train** (#1 worldwide) - Japanese film with limited U.S. release - **The Eight Hundred** (#2 worldwide) - Chinese film, not released in U.S./Canada - **My People, My Homeland** (#4 worldwide) - Chinese film, not released in U.S./Canada - **Jiang Ziya** (#8 worldwide) - Chinese film with minimal U.S. release - **A Little Red Flower** (#9 worldwide) - Chinese film, not released in U.S./Canada **Domestic Top 10 Films NOT in Worldwide Top 10:** - **Birds of Prey** (#3 domestic) - Strong domestic performance but weaker internationally - **The Invisible Man** (#5 domestic) - Mid-budget film \"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c004\",\n        \"char_start\": 4920,\n        \"char_end\": 6253,\n        \"text\": \"e in calendar year 2020 - **Title Matching:** Exact title matching was used; no discrepancies or variations were found - **No Uncertainties:** The answer is definitive with no alternative interpretations or conflicting data\\n---\\nLLM extracted final answer: **Step-by-step Analysis:** 1. The Agent Summary reproduces the two required lists from Box Office Mojo: • 2020 Worldwide Box Office Top 10 • 2020 Domestic Box Office Top 10 (filtered to 2020 releases) 2. By direct comparison, the summary identifies the overlapping titles: - Bad Boys for Life - Tenet - Sonic the Hedgehog - Dolittle - The Croods: A New Age 3. Counting these titles gives 5 overlaps. 4. No contradictions or missing data appear in the summary; the overlap count is explicitly supported. **Final Answer:** \\\\boxed{5} **Confidence:** 90 **Supporting Evidence:** The Agent Summary lists exactly five films present in both the Worldwide and Domestic 2020 Top 10: Bad Boys for Life, Tenet, Sonic the Hedgehog, Dolittle, and The Croods: A New Age. **Potential Weaknesses:** The Domestic Top 10 was “filtered for 2020 releases”; if the official domestic list without filtering were required, the overlap count might differ. However, the question specifies “top 10 highest-grossing domestic movies” for 2020, which matches the list used, so the answer should be correct.\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c003\",\n        \"char_start\": 3280,\n        \"char_end\": 5080,\n        \"text\": \"de Top 10:** - **Birds of Prey** (#3 domestic) - Strong domestic performance but weaker internationally - **The Invisible Man** (#5 domestic) - Mid-budget film with limited international reach - **The Call of the Wild** (#6 domestic) - Domestic-focused release - **Onward** (#7 domestic) - Released just before pandemic shutdowns affected international markets - **The Gentlemen** (#9 domestic) - Limited international distribution ### Key Observations 1. **Geographic Distribution Impact:** The worldwide list heavily features Asian films (4 Chinese films, 1 Japanese film) that had little to no U.S. theatrical presence due to limited distribution. 2. **COVID-19 Pandemic Effect:** 2020 box office was significantly impacted by theater closures, affecting both domestic and international revenues differently. 3. **All 5 Overlapping Films:** Were major studio releases with wide international distribution from Universal, Warner Bros., Paramount, and DreamWorks. --- ## FINAL ANSWER **5** According to Box Office Mojo's 2020 Worldwide Box Office list and 2020 Domestic Box Office list (for films released in 2020), exactly **5 movies** appear in both top 10 lists: 1. Bad Boys for Life 2. Tenet 3. Sonic the Hedgehog 4. Dolittle 5. The Croods: A New Age --- ## Data Quality and Verification Notes - **Source Reliability:** Data collected directly from Box Office Mojo's official pages - **Temporal Consistency:** Both lists accessed during the same session to ensure data consistency - **Release Year Filtering:** Domestic list was carefully filtered to include only films released in 2020, excluding late 2019 releases that earned revenue in calendar year 2020 - **Title Matching:** Exact title matching was used; no discrepancies or variations were found - **No Uncertainties:** The answer is def\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0209",
+        "first_error_span": "s009",
+        "linked_error_span_ids": [
+          "s009"
+        ],
+        "non_errors": [
+          "s001"
+        ],
+        "reason": "weak support for the claim, but the claim is finalized and the evidence packet shows the answer is 5 movies",
+        "error_span_ids": [
+          "s001",
+          "s009"
+        ],
+        "earliest_harmful_span_id": "s009"
+      },
+      "validated": {
+        "traj_id": "0209",
+        "first_error_span": "s009",
+        "linked_error_span_ids": [
+          "s009"
+        ],
+        "non_errors": [
+          "s001"
+        ],
+        "reason": "weak support for the claim, but the claim is finalized and the evidence packet shows the answer is 5 movies",
+        "error_span_ids": [
+          "s001",
+          "s009"
+        ],
+        "earliest_harmful_span_id": "s009"
+      }
+    },
+    "full_span_count": 9,
+    "evidence_span_count": 2
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 10870,
+    "output_tokens": 684,
+    "total_tokens": 11554
+  }
+}

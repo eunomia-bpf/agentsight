@@ -1,0 +1,428 @@
+{
+  "setting": "drift",
+  "case_id": "0429",
+  "prediction": {
+    "traj_id": "0429",
+    "error_span_ids": [
+      "s003",
+      "s006",
+      "s008",
+      "s009"
+    ],
+    "earliest_harmful_span_id": "s003",
+    "reasons": [
+      {
+        "span_id": "s003",
+        "reason": "短字符串说明缺失支持的原因"
+      },
+      {
+        "span_id": "s008",
+        "reason": "短字符串说明缺失支持的原因"
+      },
+      {
+        "span_id": "s009",
+        "reason": "短字符串说明缺失支持的原因"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0429\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"有一部短暂获得过奥斯卡最佳影片的电影，在最广为人知的一张海报上左手的手势被称作叫什么（英文）？\",\n  \"traj_id\": \"0429\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"历史上哪部电影曾在奥斯卡颁奖典礼上被错误地宣布为“最佳影片”得主？请说明具体是哪一届奥斯卡以及最终真正的获奖影片是什么。\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"奥斯卡 最佳影片 错误宣布\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"搜索电影《爱乐之城》（La La Land）的海报，并找出最广为人知、最具代表性的一张。请描述这张海报的画面内容，特别是男女主角的姿态和动作。\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"电影《爱乐之城》海报\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"爱乐之城 星空 海报\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。请找出这个手势在舞蹈或表演领域最常用的英文名称是什么？\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"what are jazz hands in dance\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"La La Land poster hand gesture \\\"jazz hands\\\"\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"好的，这是对本次任务的完整总结报告。 ### 任务总结 本任务旨在回答一个多步骤问题：“有一部短暂获得过奥斯卡最佳影片的电影，在最广为人知的一张海报上左手的手势被称作叫什么（英文）？” 为了回答这个问题，我通过分步信息收集，依次确认了电影名称、最具代表性的海报、以及海报上特定手势的英文名称。 ### 最终答案 这部短暂获得过奥斯卡最佳影片的电影是《爱乐之城》（La La Land）。在其最广为人知的一张海报上，女主角左手的手势在英文中被称作： **Jazz Hands** ### 工作历史与分析过程 **第一步：确定电影名称** * **目标**：找出“短暂获得过奥斯卡最佳影片”荣誉的电影。 * **行动**：我委托了一个子任务，要求查找在奥斯卡历史上被错误宣布为“最佳影片”的电影。 * **结果**：收到的报告确认，在2017年第89届奥斯卡金像奖颁奖典礼上，电影**《爱乐之城》（La La Land）**被错误地宣布为“最佳影片”得主，而真正的获奖者是《月光男孩》（Moonlight）。这确定了问题的目标影片。 **第二步：确定最广为人知的海报** * **目标**：找到《爱乐之城》最广为人知、最具代表性的海报。 * **行动**：我委托了第二个子任务，要求搜索并描述《爱乐之城》最具代表性的海报。 * **结果**：报告指出，该电影最著名的海报是其**“星空海报”**（也被称为“终极海报”）。海报画面描述如下： > 这张海报以深邃的蓝紫色调为主，男女主角位于画面中心，正在一个可以俯瞰城市夜景的平台上共舞。女主角（米娅/Mia）身穿亮黄色连衣裙，身体随着舞蹈的律动向后舒展，一只手搭在男主角的肩上，同时一条腿向后轻盈地踢起。她的姿态优雅而充满动感。 **第三步：识别手势并确定英文名称** * **目标**：根据已确定的海报，找出画面中“左手的手势”的英文名称。 * **行动**：我分析了海报画面，注意到女主角米娅（Mia）的左手（从其自身视角）做出了一个手掌张开、手指分离的舞蹈动作。我委托了第三个子任务，要求找出这个特定手势在舞蹈或表演领域最常用的英文名称。 * **结果**：报告提供了决定性的信息，确认该手势最常用的英文名称是 **“Jazz Hands”**。 ### 详细支撑信息 1. **“Jazz Hands”的定义**：根据维基百科（Wikipedia）和柯林斯词典（Collins Dictionary）等权威来源的定义，“Jazz Hands”是一种表演手势，其特征是手掌朝向观众，手指完全张开（\\\"palms toward the audience and fingers splayed\\\"）。这一定义与《爱乐之城》海报上女主角米娅的左手姿势完全吻合。 2. **与海报的直接关联**：在关于《爱乐之城》海报的网络社区讨论中，有观众直接使用“Jazz Hands”来描述海报中女主角的手势，这表明公众能够自然地将这一姿势与该术语联系起来。 3. **结论**：综合来看，无论是从手势的专业定义还是从公众的普遍认知，“Jazz Hands”都是描述《爱乐之城》“星空海报”上女主角左手手势最准确、最常用的英文名称。这个手势也与电影整体致敬经典好莱坞歌舞片和爵士乐的风格相契合。\\n---\\nLLM extracted final answer: **逐步分析：** 1. 问题要求：找出一部曾被误宣布为奥斯卡最佳影片的电影，其最知名海报中左手的手势英文名称。 2. 代理总结显示： • 该电影为《La La Land》，在 2017 年被误宣布为最佳影片。 • 最知名海报是“星空海报”，海报中女主角左手手掌朝外、五指张开。 • 这种表演/舞蹈手势的常用英文名称为 “Jazz Hands”。 3. 没有其他备选名称或矛盾信息，证据直接支持 “Jazz Hands”。 4. 按格式要求，答案须为一个简短短语，放在 \\\\boxed{...} 中，不加多余符号或说明。 **最终答案：** \\\\boxed{Jazz Hands} **置信度：** 88 **支持证据：** - 代理总结明确指出海报中手势被称为 “Jazz Hands”；并引用维基百科、柯林斯词典等权威来源的定义，与海报动作相符。 - 无其他候选说法或矛盾信息出现。 **潜在不足：** - 判断该手势为 “Jazz Hands”主要基于代理对海报的描述及常见称谓，未直接查看原始图像；若海报动作被他人不同称呼，答案可能偏差。但现有证据支持度高。\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0429",
+        "task_goal": "有一部短暂获得过奥斯卡最佳影片的电影，在最广为人知的一张海报上左手的手势被称作叫什么（英文）？",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "历史上哪部电影曾在奥斯卡颁奖典礼上被错误地宣布为“最佳影片”得主？请说明具体是哪一届奥斯卡以及最终真正的获奖影片是什么。",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011",
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "电影《爱乐之城》（La La Land）的海报。",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s006",
+            "used_by": [
+              "s006"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。",
+            "introduced_at": "s006",
+            "becomes_consequential_at": "s006",
+            "used_by": [
+              "s006"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "电影《爱乐之城》（La La Land）在2017年第89届奥斯卡金像奖颁奖典礼上被错误地宣布为“最佳影片”得主。",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s011",
+            "used_by": [
+              "s011"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "电影《爱乐之城》（La La Land）的海报上女主角左手的手势在英文中被称作：Jazz Hands。",
+            "introduced_at": "s006",
+            "becomes_consequential_at": "s006",
+            "used_by": [
+              "s006"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0429",
+        "task_goal": "有一部短暂获得过奥斯卡最佳影片的电影，在最广为人知的一张海报上左手的手势被称作叫什么（英文）？",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "历史上哪部电影曾在奥斯卡颁奖典礼上被错误地宣布为“最佳影片”得主？请说明具体是哪一届奥斯卡以及最终真正的获奖影片是什么。",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s001",
+            "used_by": [],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "电影《爱乐之城》（La La Land）的海报。",
+            "introduced_at": "s003",
+            "becomes_consequential_at": "s006",
+            "used_by": [
+              "s006"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c3",
+            "claim": "在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。",
+            "introduced_at": "s006",
+            "becomes_consequential_at": "s006",
+            "used_by": [
+              "s006"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c4",
+            "claim": "电影《爱乐之城》（La La Land）在2017年第89届奥斯卡金像奖颁奖典礼上被错误地宣布为“最佳影片”得主。",
+            "introduced_at": "s001",
+            "becomes_consequential_at": "s001",
+            "used_by": [],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c5",
+            "claim": "电影《爱乐之城》（La La Land）的海报上女主角左手的手势在英文中被称作：Jazz Hands。",
+            "introduced_at": "s006",
+            "becomes_consequential_at": "s006",
+            "used_by": [
+              "s006"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s001"
+          ],
+          "grep_queries": [
+            "历史上哪部电影曾在奥斯卡颁奖典礼上被错误地宣布为“最佳影片”得主？请说明具体是哪一届奥斯卡以及最终真正的获奖影片是什么。"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s003",
+            "s006"
+          ],
+          "grep_queries": [
+            "电影《爱乐之城》（La La Land）的海报。"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c3",
+          "span_ids": [
+            "s006"
+          ],
+          "grep_queries": [
+            "在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c4",
+          "span_ids": [
+            "s001"
+          ],
+          "grep_queries": [
+            "电影《爱乐之城》（La La Land）在2017年第89届奥斯卡金像奖颁奖典礼上被错误地宣布为“最佳影片”得主。"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c5",
+          "span_ids": [
+            "s006"
+          ],
+          "grep_queries": [
+            "电影《爱乐之城》（La La Land）的海报上女主角左手的手势在英文中被称作：Jazz Hands。"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s001",
+        "s003",
+        "s006",
+        "s009"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s002",
+        "s003",
+        "s004",
+        "s006",
+        "s008",
+        "s009"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "历史上哪部电影曾在奥斯卡颁奖典礼上被错误地宣布为“最佳影片”得主？请说明具体是哪一届奥斯卡以及最终真正的获奖影片是什么。",
+          "matched_chunk_ids": [
+            "s009:c001",
+            "s001:c001",
+            "s002:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s002",
+            "s009"
+          ]
+        },
+        {
+          "claim_id": "c2",
+          "query": "电影《爱乐之城》（La La Land）的海报。",
+          "matched_chunk_ids": [
+            "s009:c001",
+            "s003:c001",
+            "s006:c001",
+            "s004:c001"
+          ],
+          "matched_span_ids": [
+            "s003",
+            "s004",
+            "s006",
+            "s009"
+          ]
+        },
+        {
+          "claim_id": "c3",
+          "query": "在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。",
+          "matched_chunk_ids": [
+            "s009:c001",
+            "s006:c001",
+            "s003:c001",
+            "s004:c001"
+          ],
+          "matched_span_ids": [
+            "s003",
+            "s004",
+            "s006",
+            "s009"
+          ]
+        },
+        {
+          "claim_id": "c4",
+          "query": "电影《爱乐之城》（La La Land）在2017年第89届奥斯卡金像奖颁奖典礼上被错误地宣布为“最佳影片”得主。",
+          "matched_chunk_ids": [
+            "s009:c001",
+            "s003:c001",
+            "s006:c001",
+            "s001:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s003",
+            "s006",
+            "s009"
+          ]
+        },
+        {
+          "claim_id": "c5",
+          "query": "电影《爱乐之城》（La La Land）的海报上女主角左手的手势在英文中被称作：Jazz Hands。",
+          "matched_chunk_ids": [
+            "s009:c001",
+            "s009:c002",
+            "s008:c001",
+            "s003:c001"
+          ],
+          "matched_span_ids": [
+            "s003",
+            "s008",
+            "s009"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0429\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"有一部短暂获得过奥斯卡最佳影片的电影，在最广为人知的一张海报上左手的手势被称作叫什么（英文）？\",\n  \"traj_id\": \"0429\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0429\",\n    \"task_goal\": \"有一部短暂获得过奥斯卡最佳影片的电影，在最广为人知的一张海报上左手的手势被称作叫什么（英文）？\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"历史上哪部电影曾在奥斯卡颁奖典礼上被错误地宣布为“最佳影片”得主？请说明具体是哪一届奥斯卡以及最终真正的获奖影片是什么。\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s001\",\n        \"used_by\": [],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"电影《爱乐之城》（La La Land）的海报。\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s006\",\n        \"used_by\": [\n          \"s006\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。\",\n        \"introduced_at\": \"s006\",\n        \"becomes_consequential_at\": \"s006\",\n        \"used_by\": [\n          \"s006\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"电影《爱乐之城》（La La Land）在2017年第89届奥斯卡金像奖颁奖典礼上被错误地宣布为“最佳影片”得主。\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s001\",\n        \"used_by\": [],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"电影《爱乐之城》（La La Land）的海报上女主角左手的手势在英文中被称作：Jazz Hands。\",\n        \"introduced_at\": \"s006\",\n        \"becomes_consequential_at\": \"s006\",\n        \"used_by\": [\n          \"s006\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s003\",\n      \"s006\",\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s003\",\n      \"s006\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"历史上哪部电影曾在奥斯卡颁奖典礼上被错误地宣布为“最佳影片”得主？请说明具体是哪一届奥斯卡以及最终真正的获奖影片是什么。\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s001:c001\",\n          \"s002:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"电影《爱乐之城》（La La Land）的海报。\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s003:c001\",\n          \"s006:c001\",\n          \"s004:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s003\",\n          \"s004\",\n          \"s006\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s006:c001\",\n          \"s003:c001\",\n          \"s004:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s003\",\n          \"s004\",\n          \"s006\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"电影《爱乐之城》（La La Land）在2017年第89届奥斯卡金像奖颁奖典礼上被错误地宣布为“最佳影片”得主。\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s003:c001\",\n          \"s006:c001\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s003\",\n          \"s006\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"query\": \"电影《爱乐之城》（La La Land）的海报上女主角左手的手势在英文中被称作：Jazz Hands。\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s009:c002\",\n          \"s008:c001\",\n          \"s003:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s003\",\n          \"s008\",\n          \"s009\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s006\",\n      \"s008\",\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 60,\n        \"text\": \"历史上哪部电影曾在奥斯卡颁奖典礼上被错误地宣布为“最佳影片”得主？请说明具体是哪一届奥斯卡以及最终真正的获奖影片是什么。\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 71,\n        \"text\": \"搜索电影《爱乐之城》（La La Land）的海报，并找出最广为人知、最具代表性的一张。请描述这张海报的画面内容，特别是男女主角的姿态和动作。\"\n      },\n      {\n        \"span_id\": \"s006\",\n        \"chunk_id\": \"s006:c001\",\n        \"char_start\": 0,\n        \"char_end\": 95,\n        \"text\": \"在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。请找出这个手势在舞蹈或表演领域最常用的英文名称是什么？\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 1876,\n        \"text\": \"} 中，不加多余符号或说明。 **最终答案：** \\\\boxed{Jazz Hands} **置信度：** 88 **支持证据：** - 代理总结明确指出海报中手势被称为 “Jazz Hands”；并引用维基百科、柯林斯词典等权威来源的定义，与海报动作相符。 - 无其他候选说法或矛盾信息出现。 **潜在不足：** - 判断该手势为 “Jazz Hands”主要基于代理对海报的描述及常见称谓，未直接查看原始图像；若海报动作被他人不同称呼，答案可能偏差。但现有证据支持度高。\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"好的，这是对本次任务的完整总结报告。 ### 任务总结 本任务旨在回答一个多步骤问题：“有一部短暂获得过奥斯卡最佳影片的电影，在最广为人知的一张海报上左手的手势被称作叫什么（英文）？” 为了回答这个问题，我通过分步信息收集，依次确认了电影名称、最具代表性的海报、以及海报上特定手势的英文名称。 ### 最终答案 这部短暂获得过奥斯卡最佳影片的电影是《爱乐之城》（La La Land）。在其最广为人知的一张海报上，女主角左手的手势在英文中被称作： **Jazz Hands** ### 工作历史与分析过程 **第一步：确定电影名称** * **目标**：找出“短暂获得过奥斯卡最佳影片”荣誉的电影。 * **行动**：我委托了一个子任务，要求查找在奥斯卡历史上被错误宣布为“最佳影片”的电影。 * **结果**：收到的报告确认，在2017年第89届奥斯卡金像奖颁奖典礼上，电影**《爱乐之城》（La La Land）**被错误地宣布为“最佳影片”得主，而真正的获奖者是《月光男孩》（Moonlight）。这确定了问题的目标影片。 **第二步：确定最广为人知的海报** * **目标**：找到《爱乐之城》最广为人知、最具代表性的海报。 * **行动**：我委托了第二个子任务，要求搜索并描述《爱乐之城》最具代表性的海报。 * **结果**：报告指出，该电影最著名的海报是其**“星空海报”**（也被称为“终极海报”）。海报画面描述如下： > 这张海报以深邃的蓝紫色调为主，男女主角位于画面中心，正在一个可以俯瞰城市夜景的平台上共舞。女主角（米娅/Mia）身穿亮黄色连衣裙，身体随着舞蹈的律动向后舒展，一只手搭在男主角的肩上，同时一条腿向后轻盈地踢起。她的姿态优雅而充满动感。 **第三步：识别手势并确定英文名称** * **目标**：根据已确定的海报，找出画面中“左手的手势”的英文名称。 * **行动**：我分析了海报画面，注意到女主角米娅（Mia）的左手（从其自身视角）做出了一个手掌张开、手指分离的舞蹈动作。我委托了第三个子任务，要求找出这个特定手势在舞蹈或表演领域最常用的英文名称。 * **结果**：报告提供了决定性的信息，确认该手势最常用的英文名称是 **“Jazz Hands”**。 ### 详细支撑信息 1. **“Jazz Hands”的定义**：根据维基百科（Wikipedia）和柯林斯词典（Collins Dictionary）等权威来源的定义，“Jazz Hands”是一种表演手势，其特征是手掌朝向观众，手指完全张开（\\\"palms toward the audience and fingers splayed\\\"）。这一定义与《爱乐之城》海报上女主角米娅的左手姿势完全吻合。 2. **与海报的直接关联**：在关于《爱乐之城》海报的网络社区讨论中，有观众直接使用“Jazz Hands”来描述海报中女主角的手势，这表明公众能够自然地将这一姿势与该术语联系起来。 3. **结论**：综合来看，无论是从手势的专业定义还是从公众的普遍认知，“Jazz Hands”都是描述《爱乐之城》“星空海报”上女主角左手手势最准确、最常用的英文名称。这个手势也与电影整体致敬经典好莱坞歌舞片和爵士乐的风格相契合。\\n---\\nLLM extracted final answer: **逐步分析：** 1. 问题要求：找出一部曾被误宣布为奥斯卡最佳影片的电影，其最知名海报中左手的手势英文名称。 2. 代理总结显示： • 该电影为《La La Land》，在 2017 年被误宣布为最佳影片。 • 最知名海报是“星空海报”，海报中女主角左手手掌朝外、五指张开。 • 这种表演/舞蹈手势的常用英文名称为 “Jazz Hands”。 3. 没有其他备选名称或矛盾信息，证据直接支持 “Jazz Hands”。 4. 按格式要求，答案须为一个简短短语，放在 \\\\boxed{...} 中，不加多余符号或说明。 **最终答案：** \\\\boxed{Jazz Hands} **置信度：** 88 **支持证据：** - 代理总结明确指出海报中手势被称为 “Jazz Hands”；并引用维基百科、柯林斯词典等权威来源的定义，与海报动作相符。 - 无其他候选说法或矛盾信息出现。 **潜在不足：** - 判\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 13,\n        \"text\": \"奥斯卡 最佳影片 错误宣布\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 10,\n        \"text\": \"电影《爱乐之城》海报\"\n      },\n      {\n        \"span_id\": \"s008\",\n        \"chunk_id\": \"s008:c001\",\n        \"char_start\": 0,\n        \"char_end\": 43,\n        \"text\": \"La La Land poster hand gesture \\\"jazz hands\\\"\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c5",
+            "support_spans": [
+              "s003",
+              "s008"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串说明缺失支持的原因",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s003",
+                "chunk_id": "s003:c001",
+                "role": "partial_support",
+                "text": "在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。"
+              },
+              {
+                "span_id": "s008",
+                "chunk_id": "s008:c001",
+                "role": "partial_support",
+                "text": "La La Land poster hand gesture \"jazz hands\""
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串说明缺失支持的原因"
+      },
+      "validated": [
+        {
+          "claim_id": "c5",
+          "support_spans": [
+            "s003",
+            "s008"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串说明缺失支持的原因",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s003",
+              "chunk_id": "s003:c001",
+              "role": "partial_support",
+              "text": "在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。"
+            },
+            {
+              "span_id": "s008",
+              "chunk_id": "s008:c001",
+              "role": "partial_support",
+              "text": "La La Land poster hand gesture \"jazz hands\""
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0429\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"有一部短暂获得过奥斯卡最佳影片的电影，在最广为人知的一张海报上左手的手势被称作叫什么（英文）？\",\n  \"traj_id\": \"0429\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0429\",\n    \"task_goal\": \"有一部短暂获得过奥斯卡最佳影片的电影，在最广为人知的一张海报上左手的手势被称作叫什么（英文）？\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"历史上哪部电影曾在奥斯卡颁奖典礼上被错误地宣布为“最佳影片”得主？请说明具体是哪一届奥斯卡以及最终真正的获奖影片是什么。\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s001\",\n        \"used_by\": [],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"电影《爱乐之城》（La La Land）的海报。\",\n        \"introduced_at\": \"s003\",\n        \"becomes_consequential_at\": \"s006\",\n        \"used_by\": [\n          \"s006\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"claim\": \"在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。\",\n        \"introduced_at\": \"s006\",\n        \"becomes_consequential_at\": \"s006\",\n        \"used_by\": [\n          \"s006\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"claim\": \"电影《爱乐之城》（La La Land）在2017年第89届奥斯卡金像奖颁奖典礼上被错误地宣布为“最佳影片”得主。\",\n        \"introduced_at\": \"s001\",\n        \"becomes_consequential_at\": \"s001\",\n        \"used_by\": [],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"claim\": \"电影《爱乐之城》（La La Land）的海报上女主角左手的手势在英文中被称作：Jazz Hands。\",\n        \"introduced_at\": \"s006\",\n        \"becomes_consequential_at\": \"s006\",\n        \"used_by\": [\n          \"s006\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c5\",\n      \"support_spans\": [\n        \"s003\",\n        \"s008\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串说明缺失支持的原因\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s003\",\n          \"chunk_id\": \"s003:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。\"\n        },\n        {\n          \"span_id\": \"s008\",\n          \"chunk_id\": \"s008:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"La La Land poster hand gesture \\\"jazz hands\\\"\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s001\",\n      \"s003\",\n      \"s006\",\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s001\",\n      \"s003\",\n      \"s006\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"历史上哪部电影曾在奥斯卡颁奖典礼上被错误地宣布为“最佳影片”得主？请说明具体是哪一届奥斯卡以及最终真正的获奖影片是什么。\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s001:c001\",\n          \"s002:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s002\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"电影《爱乐之城》（La La Land）的海报。\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s003:c001\",\n          \"s006:c001\",\n          \"s004:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s003\",\n          \"s004\",\n          \"s006\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c3\",\n        \"query\": \"在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s006:c001\",\n          \"s003:c001\",\n          \"s004:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s003\",\n          \"s004\",\n          \"s006\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c4\",\n        \"query\": \"电影《爱乐之城》（La La Land）在2017年第89届奥斯卡金像奖颁奖典礼上被错误地宣布为“最佳影片”得主。\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s003:c001\",\n          \"s006:c001\",\n          \"s001:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s003\",\n          \"s006\",\n          \"s009\"\n        ]\n      },\n      {\n        \"claim_id\": \"c5\",\n        \"query\": \"电影《爱乐之城》（La La Land）的海报上女主角左手的手势在英文中被称作：Jazz Hands。\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\",\n          \"s009:c002\",\n          \"s008:c001\",\n          \"s003:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s003\",\n          \"s008\",\n          \"s009\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s002\",\n      \"s003\",\n      \"s004\",\n      \"s006\",\n      \"s008\",\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 60,\n        \"text\": \"历史上哪部电影曾在奥斯卡颁奖典礼上被错误地宣布为“最佳影片”得主？请说明具体是哪一届奥斯卡以及最终真正的获奖影片是什么。\"\n      },\n      {\n        \"span_id\": \"s003\",\n        \"chunk_id\": \"s003:c001\",\n        \"char_start\": 0,\n        \"char_end\": 71,\n        \"text\": \"搜索电影《爱乐之城》（La La Land）的海报，并找出最广为人知、最具代表性的一张。请描述这张海报的画面内容，特别是男女主角的姿态和动作。\"\n      },\n      {\n        \"span_id\": \"s006\",\n        \"chunk_id\": \"s006:c001\",\n        \"char_start\": 0,\n        \"char_end\": 95,\n        \"text\": \"在电影《爱乐之城》（La La Land）最著名的‘星空海报’上，女主角米娅（Mia）用她的左手做出了一个手掌张开、手指分离的舞蹈手势。请找出这个手势在舞蹈或表演领域最常用的英文名称是什么？\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c002\",\n        \"char_start\": 1640,\n        \"char_end\": 1876,\n        \"text\": \"} 中，不加多余符号或说明。 **最终答案：** \\\\boxed{Jazz Hands} **置信度：** 88 **支持证据：** - 代理总结明确指出海报中手势被称为 “Jazz Hands”；并引用维基百科、柯林斯词典等权威来源的定义，与海报动作相符。 - 无其他候选说法或矛盾信息出现。 **潜在不足：** - 判断该手势为 “Jazz Hands”主要基于代理对海报的描述及常见称谓，未直接查看原始图像；若海报动作被他人不同称呼，答案可能偏差。但现有证据支持度高。\"\n      },\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1800,\n        \"text\": \"好的，这是对本次任务的完整总结报告。 ### 任务总结 本任务旨在回答一个多步骤问题：“有一部短暂获得过奥斯卡最佳影片的电影，在最广为人知的一张海报上左手的手势被称作叫什么（英文）？” 为了回答这个问题，我通过分步信息收集，依次确认了电影名称、最具代表性的海报、以及海报上特定手势的英文名称。 ### 最终答案 这部短暂获得过奥斯卡最佳影片的电影是《爱乐之城》（La La Land）。在其最广为人知的一张海报上，女主角左手的手势在英文中被称作： **Jazz Hands** ### 工作历史与分析过程 **第一步：确定电影名称** * **目标**：找出“短暂获得过奥斯卡最佳影片”荣誉的电影。 * **行动**：我委托了一个子任务，要求查找在奥斯卡历史上被错误宣布为“最佳影片”的电影。 * **结果**：收到的报告确认，在2017年第89届奥斯卡金像奖颁奖典礼上，电影**《爱乐之城》（La La Land）**被错误地宣布为“最佳影片”得主，而真正的获奖者是《月光男孩》（Moonlight）。这确定了问题的目标影片。 **第二步：确定最广为人知的海报** * **目标**：找到《爱乐之城》最广为人知、最具代表性的海报。 * **行动**：我委托了第二个子任务，要求搜索并描述《爱乐之城》最具代表性的海报。 * **结果**：报告指出，该电影最著名的海报是其**“星空海报”**（也被称为“终极海报”）。海报画面描述如下： > 这张海报以深邃的蓝紫色调为主，男女主角位于画面中心，正在一个可以俯瞰城市夜景的平台上共舞。女主角（米娅/Mia）身穿亮黄色连衣裙，身体随着舞蹈的律动向后舒展，一只手搭在男主角的肩上，同时一条腿向后轻盈地踢起。她的姿态优雅而充满动感。 **第三步：识别手势并确定英文名称** * **目标**：根据已确定的海报，找出画面中“左手的手势”的英文名称。 * **行动**：我分析了海报画面，注意到女主角米娅（Mia）的左手（从其自身视角）做出了一个手掌张开、手指分离的舞蹈动作。我委托了第三个子任务，要求找出这个特定手势在舞蹈或表演领域最常用的英文名称。 * **结果**：报告提供了决定性的信息，确认该手势最常用的英文名称是 **“Jazz Hands”**。 ### 详细支撑信息 1. **“Jazz Hands”的定义**：根据维基百科（Wikipedia）和柯林斯词典（Collins Dictionary）等权威来源的定义，“Jazz Hands”是一种表演手势，其特征是手掌朝向观众，手指完全张开（\\\"palms toward the audience and fingers splayed\\\"）。这一定义与《爱乐之城》海报上女主角米娅的左手姿势完全吻合。 2. **与海报的直接关联**：在关于《爱乐之城》海报的网络社区讨论中，有观众直接使用“Jazz Hands”来描述海报中女主角的手势，这表明公众能够自然地将这一姿势与该术语联系起来。 3. **结论**：综合来看，无论是从手势的专业定义还是从公众的普遍认知，“Jazz Hands”都是描述《爱乐之城》“星空海报”上女主角左手手势最准确、最常用的英文名称。这个手势也与电影整体致敬经典好莱坞歌舞片和爵士乐的风格相契合。\\n---\\nLLM extracted final answer: **逐步分析：** 1. 问题要求：找出一部曾被误宣布为奥斯卡最佳影片的电影，其最知名海报中左手的手势英文名称。 2. 代理总结显示： • 该电影为《La La Land》，在 2017 年被误宣布为最佳影片。 • 最知名海报是“星空海报”，海报中女主角左手手掌朝外、五指张开。 • 这种表演/舞蹈手势的常用英文名称为 “Jazz Hands”。 3. 没有其他备选名称或矛盾信息，证据直接支持 “Jazz Hands”。 4. 按格式要求，答案须为一个简短短语，放在 \\\\boxed{...} 中，不加多余符号或说明。 **最终答案：** \\\\boxed{Jazz Hands} **置信度：** 88 **支持证据：** - 代理总结明确指出海报中手势被称为 “Jazz Hands”；并引用维基百科、柯林斯词典等权威来源的定义，与海报动作相符。 - 无其他候选说法或矛盾信息出现。 **潜在不足：** - 判\"\n      },\n      {\n        \"span_id\": \"s002\",\n        \"chunk_id\": \"s002:c001\",\n        \"char_start\": 0,\n        \"char_end\": 13,\n        \"text\": \"奥斯卡 最佳影片 错误宣布\"\n      },\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 10,\n        \"text\": \"电影《爱乐之城》海报\"\n      },\n      {\n        \"span_id\": \"s008\",\n        \"chunk_id\": \"s008:c001\",\n        \"char_start\": 0,\n        \"char_end\": 43,\n        \"text\": \"La La Land poster hand gesture \\\"jazz hands\\\"\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0429",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s008",
+          "s009"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "短字符串说明缺失支持的原因",
+        "error_span_ids": [
+          "s003",
+          "s008",
+          "s009"
+        ],
+        "earliest_harmful_span_id": "s003"
+      },
+      "validated": {
+        "traj_id": "0429",
+        "first_error_span": "s003",
+        "linked_error_span_ids": [
+          "s008",
+          "s009"
+        ],
+        "non_errors": [
+          "s004"
+        ],
+        "reason": "短字符串说明缺失支持的原因",
+        "error_span_ids": [
+          "s003",
+          "s008",
+          "s009"
+        ],
+        "earliest_harmful_span_id": "s003"
+      }
+    },
+    "full_span_count": 9,
+    "evidence_span_count": 7
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 10144,
+    "output_tokens": 944,
+    "total_tokens": 11088
+  }
+}

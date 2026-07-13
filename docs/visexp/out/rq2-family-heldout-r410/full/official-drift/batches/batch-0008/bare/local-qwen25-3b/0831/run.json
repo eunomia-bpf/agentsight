@@ -1,0 +1,54 @@
+{
+  "setting": "bare",
+  "case_id": "0831",
+  "prediction": {
+    "traj_id": "0831",
+    "error_span_ids": [
+      "s004"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0831\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"At the two-minute mark in the YouTube video uploaded by the channel “GameGrumps” on May 14, 2017 as part of their playthrough of the game Mario Kart 8 Deluxe, the shows’ hosts are competing on one of the game’s racetracks. What was the world record time for that track in the game’s 150cc mode as of June 7, 2023? Express your answer in minutes and seconds, rounding the seconds to the nearest hundredth, e.g. 1:01.001.\",\n  \"traj_id\": \"0831\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"At the two-minute mark in the YouTube video uploaded by the channel “GameGrumps” on May 14, 2017 as part of their playthrough of the game Mario Kart 8 Deluxe, the shows’ hosts are\\n---\\nGame Grumps Mario Kart 8 Deluxe May 14 2017\\n---\\nSkip navigation Sign in Video unavailable 0:00 / 11:57 Mario Kart 8 Deluxe: The Grand Prix - PART 7 - Game Grumps VS GameGrumps 5\\n---\\nSIGN IN REGISTER EXPLORE THE GAME GRUMPS SHOWS COMMUNITY SIGN IN Menu Explore ADVERTISEMENT SKIP TO CONTENT Game Grumps Wiki 9,914 PAGES EXPLORE THE GAME GRUMPS SHOWS COMMUNITY in: Pages with image sizes containing extra\\n---\\nYou've been blocked by network security\\n---\\n{\\\"data\\\":null,\\\"cause\\\":{},\\\"code\\\":422,\\\"name\\\":\\\"AssertionFailureError\\\",\\\"status\\\":42206,\\\"message\\\":\\\"Failed to goto https://m\\n---\\nGame Grumps \\\"The Grand Prix\\\" \\\"Mario Kart 8 Deluxe\\\" track\\n---\\nThis XML file does not appear to have any style information associated with it\\n---\\nhttps://video.google.com/timedtext?lang=en&v=nvaLkvUkW0w\\n---\\nyewtu\\n---\\nSkip to player Skip to main content Search Upload Connect 1 Bookmark Share More Mario Kart 8 Deluxe ~ New Tracks JayceeAuth Follow 4 years ago The 8 new tracks for Mario Kart 8 Deluxe Twitch ~ https://www\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip navigation Sign in Home Shorts Subscriptions You History Play all Mario Kart 8 Deluxe by GameGrumps Playlist • 7 videos • 820,509 views Play all 1 11:32 Now playing Mario Kart 8 Deluxe: Balloon Boys - PART 1 - Game\\n---\\n\\\"Mario Kart 8 Deluxe: The Grand Prix - PART 7 - Game Grumps VS\\\" track two-minute mark\\n---\\nVideo: Mario Kart 8 Deluxe: The Grand Prix\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: To answer the question, I need to: - Identify the exact GameGrumps Mario Kart 8 Deluxe video uploaded on May 14, 2017\\n---\\nsite:mkleaderboards.com mk8dx Mario Kart Stadium 150cc Time Trial\\n---\\nsite:mkleaderboards.com mk8dx \\\"Mario Kart Stadium\\\"\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: We need the 150cc Time Trial world record for the specific track shown at the 2:00 mark of the Game Grumps video uploaded May 14, 2017\\n---\\n{ \\\"queries\\\": [\\\"Mario Kart Stadium world record 150cc June 7 2023\\\", \\\"Mario Kart 8 Deluxe track Mario Kart Stadium world record 150cc June 7 2023\\\"] }It appears that I've faced some challenges gathering specific world recor\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Home MK8DX ▾ MK7 ▾ MKW ▾ Players Submit Records Site Info ▾ Links ▾ Donate My Account ▾ Mario Kart 8 Deluxe Leaderboards Here, find the world's top time trial records for Mario Kart 8 Deluxe\\n---\\n404 Not Found Sorry, the page you requested couldn't be found on this website\\n---\\n404 Not Found Sorry, the page you requested couldn't be found on this website\\n---\\nsite:mkleaderboards.com mk8dx \\\"Mario Kart Stadium\\\"\\n---\\n404 Not Found Sorry, the page you requested couldn't be found on this website\\n---\\nsite:mkleaderboards.com \\\"Mario Kart Stadium\\\" mk8dx 150cc\\n---\\n404 Not Found Sorry, the page you requested couldn't be found on this website\\n---\\nHome MK8DX ▾ MK7 ▾ MKW ▾ Players Submit Records Site Info ▾ Links ▾ Donate My Account ▾ 150cc 200cc Mario Kart Stadium Water Park Sweet Sweet Canyon Thwomp Ruins Mario Circuit Toad Harbor Twisted Mansion Shy Guy Falls Su\\n---\\n404 Not Found Sorry, the page you requested couldn't be found on this website\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:mkleaderboards.com mk8dx \\\"Mario Kart Stadium\\\" world record 150cc\\n---\\nHome MK8DX ▾ MK7 ▾ MKW ▾ Players Submit Records Site Info ▾ Links ▾ Donate My Account ▾ Standard Inward Mario Kart 8 Deluxe: World Records Welcome to the World Records page for Mario Kart 8 Deluxe\\n---\\nAs of June 7, 2023, the Mario Kart 8 Deluxe 150cc Time Trial world record for Mario Kart Stadium was 1:33\\n---\\nThought: We already identified the track at the 2:00 mark as Mario Kart Stadium\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: We have identified the track at the 2:00 mark as Mario Kart Stadium\\n---\\nThought: The track at the 2:00 mark was identified as Mario Kart Stadium\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0831",
+        "error_span_ids": [
+          "s004"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 7
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1806,
+    "output_tokens": 62,
+    "total_tokens": 1868
+  }
+}

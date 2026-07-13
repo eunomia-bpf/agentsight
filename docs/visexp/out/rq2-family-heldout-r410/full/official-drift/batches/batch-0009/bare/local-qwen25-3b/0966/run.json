@@ -1,0 +1,58 @@
+{
+  "setting": "bare",
+  "case_id": "0966",
+  "prediction": {
+    "traj_id": "0966",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0966\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"有一种化学现象，有一位英国人发现，当光照射溶液时会出现一道光路；还有一种生物方面的实验，最终发现了豌豆花的颜色不一样。请问两个发现相差的年份是多少\",\n  \"traj_id\": \"0966\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"有一种化学现象，有一位英国人发现，当光照射溶液时会出现一道光路\\n---\\nTyndall effect discovery year John Tyndall 1869 site:britannica.com OR site:wikipedia.org OR site:oxfordreference.com\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nsite:britannica.com \\\"Tyndall effect\\\"\\n---\\nSearch Britannica Click here to search SUBSCRIBE Login Ask the Chatbot Games & Quizzes History & Society Science & Tech Biographies Animals & Nature Geography & Travel Arts & Culture ProCon Money Videos Science Physics M\\n---\\nsite:oxfordreference.com \\\"Tyndall effect\\\"\\n---\\nSearch Britannica Click here to search SUBSCRIBE Login Ask the Chatbot Games & Quizzes History & Society Science & Tech Biographies Animals & Nature Geography & Travel Arts & Culture ProCon Money Videos Science Physics P\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) History Small size parameter approximation From molecules Effect of fluctuations Cause of the blue color of the sky Of sound in amorphous\\n---\\nsite:wikipedia.org \\\"Tyndall effect\\\" 1869\\n---\\nJump to Content Login About News Subscriber Services Contact Us Help For Authors Oxford Reference Subject Reference Type My Content (1) My Searches (0) Cite Save Share This Email this content Related Content OVERVIEW Tyn\\n---\\nJohn Tyndall’s discovery/first report of the phenomenon now called the Tyndall effect dates to 1869\\n---\\nsite:baike.baidu.com 丁达尔效应\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 收藏 赞 登录 近期有不法分子冒充百度百科官方人员，以删除词条为由威胁并敲诈相关企业\\n---\\nsite:baike.com 丁达尔效应\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 1 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百\\n---\\n您当前所在地区 不支持访问抖音百科\\n---\\nTEXTS VIDEO AUDIO SOFTWARE IMAGES SIGN UP | LOG IN UPLOAD Search the Archive Sign up for free Log in Search metadata Search text contents Search TV news captions Search radio transcripts Search archived web sites Advance\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"请定位“丁达尔效应”所在的段落，摘录包含“1869 年发现”或相近表述的原文，并给出该表述所在页码（如文档标注页码）。\\n---\\nMendel pea experiments publication year flower color Versuche über Pflanzen-Hybriden 1866 site:britannica.com OR site:wikipedia.org OR site:nature.com\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\nYour privacy, your choice We use essential cookies to make sure the site can function\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:britannica.com Gregor Mendel Versuche über Pflanzen-Hybriden 1866 flower color publication year\\n---\\nsite:britannica.com Mendel 1866 Experiments on Plant Hybridization flower color\\n---\\nSearch Britannica Click here to search SUBSCRIBE Login Ask the ChatbotGames & QuizzesHistory & SocietyScience & TechBiographiesAnimals & NatureGeography & TravelArts & CultureProConMoneyVideos Gregor Mendel Introduction\\n---\\nSearch Britannica Click here to search SUBSCRIBE Login Ask the ChatbotGames & QuizzesHistory & SocietyScience & TechBiographiesAnimals & NatureGeography & TravelArts & CultureProConMoneyVideos heredity Introduction Basic\\n---\\nGregor Mendel’s paper “Versuche über Pflanzen\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:baike.baidu.com 孟德尔 豌豆 实验\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n网页新闻贴吧知道网盘图片视频地图文库资讯采购百科 百度首页 登录 注册 进入词条 全站搜索 帮助 进入词条 播报 编辑 讨论 收藏 赞 登录 首页 历史上的今天 百科冷知识 图解百科 秒懂百科 懂啦 秒懂本尊答 秒懂大师说 秒懂看瓦特 秒懂五千年 秒懂全视界 特色百科 动态百科 数字博物馆 非遗百科 艺术百科 科学百科 知识专题 史记2025·科学100词 观千年·见今朝 中国航天 食品百科 80年，80件 数字文物守护计划 加入百科\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"人教版 高中 生物 必修二 豌豆 紫花 白花 显性 教材\\n---\\n孟德尔豌豆杂交实验的论文《植物杂交实验（德文：Versuche über Pflanzen\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: The question likely refers to two well-known discoveries: - The chemical phenomenon where a light beam becomes visible in a solution is the Tyndall effect, discovered by British physicist John Tyndall\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0966",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0966",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 8
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1979,
+    "output_tokens": 80,
+    "total_tokens": 2059
+  }
+}

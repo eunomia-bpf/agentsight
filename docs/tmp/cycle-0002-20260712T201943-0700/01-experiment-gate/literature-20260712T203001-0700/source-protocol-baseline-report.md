@@ -7,6 +7,24 @@
 **Owner:** `research-literature-novelty`  
 **Status:** complete; handoff to `research-experiment-design`
 
+## Source-Fidelity Correction — 2026-07-12T20:57:10-07:00
+
+The first source screen incorrectly treated the `full` and `verified` Parquet
+files as disjoint populations and added their counts. Direct row-level audit of
+the downloaded official manifests proves that `verified` is an exact 1,000-row
+subset of `full`: all 1,000 `traj_id` values and all projected row fields match.
+The source therefore contains **3,316 unique trajectories and 147,628 declared
+steps**, not 4,316 trajectories and 194,167 steps. The verified subset contains
+1,000 of those trajectories and 46,539 of those steps.
+
+This correction supersedes every later statement in this report that calls the
+two manifests disjoint or adds their counts. It does not invalidate source
+selection, but it invalidates any experiment that learns a target's score from
+the unfiltered full manifest. The experiment handoff is now: use the verified
+subset as the terminally labeled target population and, for every target,
+exclude all full-manifest rows with the same `task_name` before estimating an
+outcome-derived profile. Hidden annotations remain terminal-scoring inputs only.
+
 ## Question And Entry
 
 The fixed paper question is:
@@ -71,7 +89,8 @@ other sources only as possible later replications.
 
 CodeTraceBench is the strongest current primary condition.
 
-- The official dataset contains 4,316 executed coding-agent trajectories with
+- The official dataset contains 3,316 unique executed coding-agent trajectories
+  (the 1,000 verified rows are a subset, not an additional split) with
   human-verified step-level `incorrect` and `unuseful` annotations. The paper
   reports both stage- and step-level supervision and a 15% independent
   double-annotation study with Cohen's kappa of 0.73 on the error-critical step.
@@ -149,8 +168,10 @@ redundancy is scientifically unimportant.
 ## Published Protocol And Fair Comparison Handoff
 
 The next experiment should use the complete 1,000-trajectory CodeTraceBench
-verified split for confirmatory scoring. The 3,316-row full split may be used
-only for label-free format development and operation-schema validation. Neither
+verified subset for confirmatory scoring. The 3,316-row full manifest may be
+used for label-free format development and, under a reviewed cross-fit design,
+for target-blind outcome-derived reference profiles only after the target and
+all rows sharing its task have been excluded. Neither
 split's `incorrect_stages`, `incorrect_step_ids`, `unuseful_step_ids`, label
 reasoning, or annotation-derived stage boundaries may reach extraction,
 tagging, grouping, ranking, threshold selection, or profile construction.

@@ -1,0 +1,185 @@
+{
+  "setting": "drift",
+  "case_id": "0972",
+  "prediction": {
+    "traj_id": "0972",
+    "error_span_ids": [
+      "s009"
+    ],
+    "earliest_harmful_span_id": "s009",
+    "reasons": [
+      {
+        "span_id": "s009",
+        "reason": "weak support for the restaurant name, no explicit support for the claim"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0972\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"我在某天乘坐北京地铁 13 号线，出站后看到了马路对面有一间驾校，走了几百米后来到剧场看了一场话剧，印象深刻的台词和视力的变化有关。看完后下楼的过程中我看到的第一家餐厅和这片区域很相关，这家餐厅叫什么？\",\n  \"traj_id\": \"0972\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我在某天乘坐北京地铁 13 号线，出站后看到了马路对面有一间驾校，走了几百米后来到剧场看了一场话剧，印象深刻的台词和视力的变化有关\\n---\\nBeijing Subway Line 13 stations list\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Contents hide (Top) Fare Hours of operation Route Stations (from West to East) History Future development Toggle Future development subsection Line 13-18 temp\\n---\\nBeijing Subway Line 13 currently has 17 stations, running west\\n---\\n五道口站 坐标\\n---\\n五道口 剧场\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科Discord、IRC、LINE、QQ及Telegram等各平臺交流群歡迎大家加入\\n---\\n小柯剧场 海淀 五道口 附近\\n---\\n枝屋推理演绎剧场 五道口 地址 坐标\\n---\\n财智国际大厦 五道口 坐标\\n---\\n五道口 话剧 演出 剧场 附近\\n---\\n海淀区文化馆 小剧场 坐标\\n---\\n五道口 话剧 剧场 附近\\n---\\nWithin an 800 m radius of Wudaokou Station (五道口站) in Beijing, there are no mainstream public “话剧” (spoken drama) theaters that regularly stage traditional drama productions\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Shaoyaoju Station Beijing coordinates\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n芍药居 话剧 博物馆\\n---\\n北京喜剧院 地址 坐标\\n---\\n芍药居 小剧场 话剧\\n---\\n中国现代文学馆 剧场 芍药居\\n---\\n太阳宫 文化中心 剧场 芍药居\\n---\\n和平里 剧场 话剧\\n---\\n芍药居地铁站 附近 剧场\\n---\\n芍药居 剧场\\n---\\nNo confirmed, dedicated spoken\\n---\\n多维剧场 地址\\n---\\n柳芳站 坐标\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"柳芳站 附近 剧场\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\n柳芳 附近 剧场 话剧\\n---\\n西坝河 剧场 话剧\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"和平街 文化中心 小剧场 柳芳\\n---\\nBased on verified coordinates for Liufang Station (柳芳站) and available POI data, there are no dedicated drama theaters (话剧 剧场) within 800 meters of Liufang Station\\n---\\n东直门 话剧 剧场 附近\\n---\\n东直门站 坐标\\n---\\n东直门 附近 话剧 剧场 小剧场\\n---\\n蜂巢剧场 坐标\\n---\\n新中街3号 坐标\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科Discord、IRC、LINE、QQ及Telegram等各平台交流群欢迎大家加入\\n---\\n东直门 小剧场 话剧 剧场 附近\\n---\\n蜂巢剧场 经纬度\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"东直门外大街 十字坡西里甲3号 坐标\\n---\\n东直门 话剧 剧场 附近 剧院\\n---\\n西直门地铁站 坐标\\n---\\n西直门 附近 话剧 剧场\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\n枫蓝熙剧场 地址 坐标\\n---\\n北京展览馆剧场 坐标\\n---\\nhttps://zh.wikipedia.org/wiki/%E5%8C%97%E4%BA%AC%E5%B1%95%E8%A7%88%E9%A6%86\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I will first retrieve the full list of Beijing Subway Line 13 stations to narrow candidate areas\\n---\\n最终答案:望京小腰\\n---\\nfinal_answer(\\\"最终答案:望京小腰\\\")\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "望京小腰",
+            "introduced_at": "s009",
+            "becomes_consequential_at": "s009",
+            "used_by": [],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0972",
+        "task_goal": "",
+        "hard_constraints": [],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "望京小腰",
+            "introduced_at": "s009",
+            "becomes_consequential_at": "s009",
+            "used_by": [],
+            "claim_type": "entity",
+            "status": "finalized"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s009"
+          ],
+          "grep_queries": [
+            "望京小腰"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s009"
+      ],
+      "available_span_ids": [
+        "s009"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "望京小腰",
+          "matched_chunk_ids": [
+            "s009:c001"
+          ],
+          "matched_span_ids": [
+            "s009"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0972\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"我在某天乘坐北京地铁 13 号线，出站后看到了马路对面有一间驾校，走了几百米后来到剧场看了一场话剧，印象深刻的台词和视力的变化有关。看完后下楼的过程中我看到的第一家餐厅和这片区域很相关，这家餐厅叫什么？\",\n  \"traj_id\": \"0972\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0972\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"望京小腰\",\n        \"introduced_at\": \"s009\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s009\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"望京小腰\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s009\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 149,\n        \"text\": \"Thought: I will first retrieve the full list of Beijing Subway Line 13 stations to narrow candidate areas\\n---\\n最终答案:望京小腰\\n---\\nfinal_answer(\\\"最终答案:望京小腰\\\")\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0972",
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s009"
+            ],
+            "support_status": "weak",
+            "missing_support": "no explicit support for the restaurant name",
+            "needs_auditors": [
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s009",
+                "chunk_id": "s009:c001",
+                "role": "partial_support",
+                "text": "望京小腰 - final answer"
+              }
+            ]
+          }
+        ],
+        "notes": "no explicit support for the restaurant name, only the final answer is provided"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s009"
+          ],
+          "support_status": "weak",
+          "missing_support": "no explicit support for the restaurant name",
+          "needs_auditors": [
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s009",
+              "chunk_id": "s009:c001",
+              "role": "partial_support",
+              "text": "望京小腰 - final answer"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0972\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"我在某天乘坐北京地铁 13 号线，出站后看到了马路对面有一间驾校，走了几百米后来到剧场看了一场话剧，印象深刻的台词和视力的变化有关。看完后下楼的过程中我看到的第一家餐厅和这片区域很相关，这家餐厅叫什么？\",\n  \"traj_id\": \"0972\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0972\",\n    \"task_goal\": \"\",\n    \"hard_constraints\": [],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"望京小腰\",\n        \"introduced_at\": \"s009\",\n        \"becomes_consequential_at\": \"s009\",\n        \"used_by\": [],\n        \"claim_type\": \"entity\",\n        \"status\": \"finalized\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s009\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"no explicit support for the restaurant name\",\n      \"needs_auditors\": [\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s009\",\n          \"chunk_id\": \"s009:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"望京小腰 - final answer\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s009\"\n    ],\n    \"requested_span_ids\": [\n      \"s009\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"望京小腰\",\n        \"matched_chunk_ids\": [\n          \"s009:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s009\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s009\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s009\",\n        \"chunk_id\": \"s009:c001\",\n        \"char_start\": 0,\n        \"char_end\": 149,\n        \"text\": \"Thought: I will first retrieve the full list of Beijing Subway Line 13 stations to narrow candidate areas\\n---\\n最终答案:望京小腰\\n---\\nfinal_answer(\\\"最终答案:望京小腰\\\")\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0972",
+        "first_error_span": "s009",
+        "linked_error_span_ids": [
+          "s009"
+        ],
+        "non_errors": [
+          "s004",
+          "s005"
+        ],
+        "reason": "weak support for the restaurant name, no explicit support for the claim",
+        "error_span_ids": [
+          "s009"
+        ],
+        "earliest_harmful_span_id": "s009"
+      },
+      "validated": {
+        "traj_id": "0972",
+        "first_error_span": "s009",
+        "linked_error_span_ids": [
+          "s009"
+        ],
+        "non_errors": [],
+        "reason": "weak support for the restaurant name, no explicit support for the claim",
+        "error_span_ids": [
+          "s009"
+        ],
+        "earliest_harmful_span_id": "s009"
+      }
+    },
+    "full_span_count": 9,
+    "evidence_span_count": 1
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 4212,
+    "output_tokens": 346,
+    "total_tokens": 4558
+  }
+}

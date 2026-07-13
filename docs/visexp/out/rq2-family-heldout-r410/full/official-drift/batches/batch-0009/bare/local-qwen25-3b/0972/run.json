@@ -1,0 +1,57 @@
+{
+  "setting": "bare",
+  "case_id": "0972",
+  "prediction": {
+    "traj_id": "0972",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0972\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"我在某天乘坐北京地铁 13 号线，出站后看到了马路对面有一间驾校，走了几百米后来到剧场看了一场话剧，印象深刻的台词和视力的变化有关。看完后下楼的过程中我看到的第一家餐厅和这片区域很相关，这家餐厅叫什么？\",\n  \"traj_id\": \"0972\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"我在某天乘坐北京地铁 13 号线，出站后看到了马路对面有一间驾校，走了几百米后来到剧场看了一场话剧，印象深刻的台词和视力的变化有关\\n---\\nBeijing Subway Line 13 stations list\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Contents hide (Top) Fare Hours of operation Route Stations (from West to East) History Future development Toggle Future development subsection Line 13-18 temp\\n---\\nBeijing Subway Line 13 currently has 17 stations, running west\\n---\\n五道口站 坐标\\n---\\n五道口 剧场\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 維基百科Discord、IRC、LINE、QQ及Telegram等各平臺交流群歡迎大家加入\\n---\\n小柯剧场 海淀 五道口 附近\\n---\\n枝屋推理演绎剧场 五道口 地址 坐标\\n---\\n财智国际大厦 五道口 坐标\\n---\\n五道口 话剧 演出 剧场 附近\\n---\\n海淀区文化馆 小剧场 坐标\\n---\\n五道口 话剧 剧场 附近\\n---\\nWithin an 800 m radius of Wudaokou Station (五道口站) in Beijing, there are no mainstream public “话剧” (spoken drama) theaters that regularly stage traditional drama productions\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Shaoyaoju Station Beijing coordinates\\n---\\nJump to content Main menu Search Donate Create account Log in Wikipedia began as an impossible dream\\n---\\n芍药居 话剧 博物馆\\n---\\n北京喜剧院 地址 坐标\\n---\\n芍药居 小剧场 话剧\\n---\\n中国现代文学馆 剧场 芍药居\\n---\\n太阳宫 文化中心 剧场 芍药居\\n---\\n和平里 剧场 话剧\\n---\\n芍药居地铁站 附近 剧场\\n---\\n芍药居 剧场\\n---\\nNo confirmed, dedicated spoken\\n---\\n多维剧场 地址\\n---\\n柳芳站 坐标\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"柳芳站 附近 剧场\\n---\\n跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\n柳芳 附近 剧场 话剧\\n---\\n西坝河 剧场 话剧\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"和平街 文化中心 小剧场 柳芳\\n---\\nBased on verified coordinates for Liufang Station (柳芳站) and available POI data, there are no dedicated drama theaters (话剧 剧场) within 800 meters of Liufang Station\\n---\\n东直门 话剧 剧场 附近\\n---\\n东直门站 坐标\\n---\\n东直门 附近 话剧 剧场 小剧场\\n---\\n蜂巢剧场 坐标\\n---\\n新中街3号 坐标\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科Discord、IRC、LINE、QQ及Telegram等各平台交流群欢迎大家加入\\n---\\n东直门 小剧场 话剧 剧场 附近\\n---\\n蜂巢剧场 经纬度\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"东直门外大街 十字坡西里甲3号 坐标\\n---\\n东直门 话剧 剧场 附近 剧院\\n---\\n西直门地铁站 坐标\\n---\\n西直门 附近 话剧 剧场\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"跳转到内容 主菜单 搜索 资助维基百科 创建账号 登录 维基百科志愿者互联交流群（Telegram：@wikipedia_zh_n、Discord及IRC：#wikipedia-zh IRC://互联）欢迎大家加入\\n---\\n枫蓝熙剧场 地址 坐标\\n---\\n北京展览馆剧场 坐标\\n---\\nhttps://zh.wikipedia.org/wiki/%E5%8C%97%E4%BA%AC%E5%B1%95%E8%A7%88%E9%A6%86\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: I will first retrieve the full list of Beijing Subway Line 13 stations to narrow candidate areas\\n---\\n最终答案:望京小腰\\n---\\nfinal_answer(\\\"最终答案:望京小腰\\\")\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0972",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 9
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1755,
+    "output_tokens": 68,
+    "total_tokens": 1823
+  }
+}

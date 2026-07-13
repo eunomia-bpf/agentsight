@@ -1,0 +1,245 @@
+{
+  "setting": "drift",
+  "case_id": "0981",
+  "prediction": {
+    "traj_id": "0981",
+    "error_span_ids": [
+      "s004",
+      "s005"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "短字符串"
+      },
+      {
+        "span_id": "s005",
+        "reason": "短字符串"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0981\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"经典电影《肖申克的救赎》中，有一句非常经典的台词，说的是鸟和牢笼的关系，这句话的后半句描述了一样东西，做成10个符合GB/T 11881-2006物品，至少需要多少只拥有这个东西的可饲养动物？\",\n  \"traj_id\": \"0981\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"经典电影《肖申克的救赎》中，有一句非常经典的台词，说的是鸟和牢笼的关系，这句话的后半句描述了一样东西，做成10个符合GB/T 11881-2006物品，至少需要多少只拥有这个东西的可饲养动物\\n---\\nShawshank Redemption quote birds not meant to be caged site:wikiquote.org OR site:springfieldspringfield.co.uk OR site:imsdb.com\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide Beginning Andy Dufresne Ellis Boyd Samuel Norton Brooks Hatlen Others Dialogue Cast External links The Shawshank Redemption 18 languages Page Di\\n---\\nThe Internet Movie Script Database (IMSDb) The web's largest movie script resource\\n---\\n有些鸟儿是注定不能被关在牢笼里的 后半句 肖申克的救赎\\n---\\n“有些鸟儿是注定不会被关在牢笼里的”这句的后半句（中文常见续句）是：\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: 首先需要找到《肖申克的救赎》中那句经典台词，内容涉及鸟与牢笼，并确认后半句描述的是什么东西\\n---\\nGB/T 11881-2006 羽毛球 标准 羽毛 数量 左翼 右翼 材料\\n---\\nGB/T 11881-2006 羽毛球\\n---\\n仪器谱 导购 安特百货 新品 药典 统计与分析 国标采用 期刊文献 搜索 GB/T 11881-2006 羽毛球 Shuttlecocks GBT11881-2006, GB11881-2006 首页 标准 GB/T 11881-2006 标准全文 GB/T 11881-2006 预览[下载] 仪器设备 50 引用关系 谁引用了GB/T 11881-2006 发布历史GB/T 11881-2006 点击打开全屏PDF预览 点击查看大图\\n---\\nGB/T 11881-2006 羽毛球 标准 全文\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"首页 文档 任务 文辑 > 登录   下载  打印  / 11    视图 标记  批注        tv897  上传于：2015-08-09 粉丝量：483   下载此文档 相关 目录 笔记 书签 更多 相关文档  GB-T 11881-2006 羽毛球 星级：  11 页  GB_T 11881-2006 羽毛球 星级：  12 页  GBT 11881-20\\n---\\n注册 登录 首页 国家标准 行业标准 地方标准 团体标准 企业标准 国际标准 国外标准 技术委员会 标准化人才 羽毛球 Shuttlecocks 国家标准 推荐性 现行 国家标准《羽毛球》 由TC514（全国文具运动器材标准化技术委员会）归口 ，主管部门为中国轻工业联合会\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"GB/T 11881-2006 羽毛球 16 左翼 右翼 材料\\n---\\nGB/T 11881-2006 羽毛球 羽毛 16 右翼 左翼 允许 材料\\n---\\nGB/T 11881-2006 每个羽毛球 16 根 羽毛 左翼 右翼 材料 规定 条款\\n---\\nGB/T 11881-2006 羽毛球 羽毛 数量 左翼 右翼 允许 材料 标准 条款\\n---\\nGB/T 11881-2006 羽毛球 标准 材料 羽毛 16 左翼 右翼\\n---\\nStandard referenced: GB/T 11881\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: We need to identify the “thing” described in the latter half of the classic Shawshank Redemption quote about birds and cages, then determine what GB/T 11881-2006 covers, how many units of that “thing” are requir\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0981",
+        "task_goal": "经典电影《肖申克的救赎》中，有一句非常经典的台词，说的是鸟和牢笼的关系，这句话的后半句描述了一样东西，做成10个符合GB/T 11881-2006物品，至少需要多少只拥有这个东西的可饲养动物？",
+        "hard_constraints": [
+          "GB/T 11881-2006"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "GB/T 11881-2006标准中规定了每个羽毛球16根羽毛。",
+            "introduced_at": "s004",
+            "becomes_consequential_at": "s005",
+            "used_by": [
+              "s005"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "GB/T 11881-2006标准中描述的物品是羽毛球。",
+            "introduced_at": "s004",
+            "becomes_consequential_at": "s005",
+            "used_by": [
+              "s005"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0981",
+        "task_goal": "经典电影《肖申克的救赎》中，有一句非常经典的台词，说的是鸟和牢笼的关系，这句话的后半句描述了一样东西，做成10个符合GB/T 11881-2006物品，至少需要多少只拥有这个东西的可饲养动物？",
+        "hard_constraints": [
+          "GB/T 11881-2006"
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "GB/T 11881-2006标准中规定了每个羽毛球16根羽毛。",
+            "introduced_at": "s004",
+            "becomes_consequential_at": "s005",
+            "used_by": [
+              "s005"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          },
+          {
+            "claim_id": "c2",
+            "claim": "GB/T 11881-2006标准中描述的物品是羽毛球。",
+            "introduced_at": "s004",
+            "becomes_consequential_at": "s005",
+            "used_by": [
+              "s005"
+            ],
+            "claim_type": "evidence",
+            "status": "consequential"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s004",
+            "s005"
+          ],
+          "grep_queries": [
+            "GB/T 11881-2006标准中规定了每个羽毛球16根羽毛。"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        },
+        {
+          "claim_id": "c2",
+          "span_ids": [
+            "s004",
+            "s005"
+          ],
+          "grep_queries": [
+            "GB/T 11881-2006标准中描述的物品是羽毛球。"
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s004",
+        "s005"
+      ],
+      "available_span_ids": [
+        "s004",
+        "s005"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "GB/T 11881-2006标准中规定了每个羽毛球16根羽毛。",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        },
+        {
+          "claim_id": "c2",
+          "query": "GB/T 11881-2006标准中描述的物品是羽毛球。",
+          "matched_chunk_ids": [],
+          "matched_span_ids": []
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0981\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"经典电影《肖申克的救赎》中，有一句非常经典的台词，说的是鸟和牢笼的关系，这句话的后半句描述了一样东西，做成10个符合GB/T 11881-2006物品，至少需要多少只拥有这个东西的可饲养动物？\",\n  \"traj_id\": \"0981\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0981\",\n    \"task_goal\": \"经典电影《肖申克的救赎》中，有一句非常经典的台词，说的是鸟和牢笼的关系，这句话的后半句描述了一样东西，做成10个符合GB/T 11881-2006物品，至少需要多少只拥有这个东西的可饲养动物？\",\n    \"hard_constraints\": [\n      \"GB/T 11881-2006\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"GB/T 11881-2006标准中规定了每个羽毛球16根羽毛。\",\n        \"introduced_at\": \"s004\",\n        \"becomes_consequential_at\": \"s005\",\n        \"used_by\": [\n          \"s005\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"GB/T 11881-2006标准中描述的物品是羽毛球。\",\n        \"introduced_at\": \"s004\",\n        \"becomes_consequential_at\": \"s005\",\n        \"used_by\": [\n          \"s005\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s004\",\n      \"s005\"\n    ],\n    \"requested_span_ids\": [\n      \"s004\",\n      \"s005\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"GB/T 11881-2006标准中规定了每个羽毛球16根羽毛。\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"GB/T 11881-2006标准中描述的物品是羽毛球。\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s004\",\n      \"s005\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 248,\n        \"text\": \"GB/T 11881-2006 羽毛球 16 左翼 右翼 材料\\n---\\nGB/T 11881-2006 羽毛球 羽毛 16 右翼 左翼 允许 材料\\n---\\nGB/T 11881-2006 每个羽毛球 16 根 羽毛 左翼 右翼 材料 规定 条款\\n---\\nGB/T 11881-2006 羽毛球 羽毛 数量 左翼 右翼 允许 材料 标准 条款\\n---\\nGB/T 11881-2006 羽毛球 标准 材料 羽毛 16 左翼 右翼\\n---\\nStandard referenced: GB/T 11881\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 220,\n        \"text\": \"Thought: We need to identify the “thing” described in the latter half of the classic Shawshank Redemption quote about birds and cages, then determine what GB/T 11881-2006 covers, how many units of that “thing” are requir\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s004"
+            ],
+            "support_status": "weak",
+            "missing_support": "短字符串",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s004",
+                "chunk_id": "s004:c001",
+                "role": "partial_support",
+                "text": "GB/T 11881-2006标准中规定每个羽毛球16根羽毛"
+              }
+            ]
+          }
+        ],
+        "notes": "短字符串"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s004"
+          ],
+          "support_status": "weak",
+          "missing_support": "短字符串",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s004",
+              "chunk_id": "s004:c001",
+              "role": "partial_support",
+              "text": "GB/T 11881-2006标准中规定每个羽毛球16根羽毛"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0981\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"经典电影《肖申克的救赎》中，有一句非常经典的台词，说的是鸟和牢笼的关系，这句话的后半句描述了一样东西，做成10个符合GB/T 11881-2006物品，至少需要多少只拥有这个东西的可饲养动物？\",\n  \"traj_id\": \"0981\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0981\",\n    \"task_goal\": \"经典电影《肖申克的救赎》中，有一句非常经典的台词，说的是鸟和牢笼的关系，这句话的后半句描述了一样东西，做成10个符合GB/T 11881-2006物品，至少需要多少只拥有这个东西的可饲养动物？\",\n    \"hard_constraints\": [\n      \"GB/T 11881-2006\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"GB/T 11881-2006标准中规定了每个羽毛球16根羽毛。\",\n        \"introduced_at\": \"s004\",\n        \"becomes_consequential_at\": \"s005\",\n        \"used_by\": [\n          \"s005\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"claim\": \"GB/T 11881-2006标准中描述的物品是羽毛球。\",\n        \"introduced_at\": \"s004\",\n        \"becomes_consequential_at\": \"s005\",\n        \"used_by\": [\n          \"s005\"\n        ],\n        \"claim_type\": \"evidence\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s004\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"短字符串\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s004\",\n          \"chunk_id\": \"s004:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"GB/T 11881-2006标准中规定每个羽毛球16根羽毛\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s004\",\n      \"s005\"\n    ],\n    \"requested_span_ids\": [\n      \"s004\",\n      \"s005\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"GB/T 11881-2006标准中规定了每个羽毛球16根羽毛。\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      },\n      {\n        \"claim_id\": \"c2\",\n        \"query\": \"GB/T 11881-2006标准中描述的物品是羽毛球。\",\n        \"matched_chunk_ids\": [],\n        \"matched_span_ids\": []\n      }\n    ],\n    \"available_span_ids\": [\n      \"s004\",\n      \"s005\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s004\",\n        \"chunk_id\": \"s004:c001\",\n        \"char_start\": 0,\n        \"char_end\": 248,\n        \"text\": \"GB/T 11881-2006 羽毛球 16 左翼 右翼 材料\\n---\\nGB/T 11881-2006 羽毛球 羽毛 16 右翼 左翼 允许 材料\\n---\\nGB/T 11881-2006 每个羽毛球 16 根 羽毛 左翼 右翼 材料 规定 条款\\n---\\nGB/T 11881-2006 羽毛球 羽毛 数量 左翼 右翼 允许 材料 标准 条款\\n---\\nGB/T 11881-2006 羽毛球 标准 材料 羽毛 16 左翼 右翼\\n---\\nStandard referenced: GB/T 11881\"\n      },\n      {\n        \"span_id\": \"s005\",\n        \"chunk_id\": \"s005:c001\",\n        \"char_start\": 0,\n        \"char_end\": 220,\n        \"text\": \"Thought: We need to identify the “thing” described in the latter half of the classic Shawshank Redemption quote about birds and cages, then determine what GB/T 11881-2006 covers, how many units of that “thing” are requir\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0981",
+        "first_error_span": "s005",
+        "linked_error_span_ids": [
+          "s004",
+          "s005"
+        ],
+        "non_errors": [
+          "s004"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s004",
+          "s005"
+        ],
+        "earliest_harmful_span_id": "s004"
+      },
+      "validated": {
+        "traj_id": "0981",
+        "first_error_span": "s005",
+        "linked_error_span_ids": [
+          "s004",
+          "s005"
+        ],
+        "non_errors": [
+          "s004"
+        ],
+        "reason": "短字符串",
+        "error_span_ids": [
+          "s004",
+          "s005"
+        ],
+        "earliest_harmful_span_id": "s005"
+      }
+    },
+    "full_span_count": 5,
+    "evidence_span_count": 2
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 5371,
+    "output_tokens": 554,
+    "total_tokens": 5925
+  }
+}

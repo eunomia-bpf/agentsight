@@ -1,0 +1,252 @@
+{
+  "generated_at": "1970-01-01T00:00:00Z",
+  "profile": {
+    "operation_stack_induction": {
+      "allow_session": false,
+      "derived_stack_field": "operation",
+      "excluded_oracle_fields": [
+        "annotator",
+        "attack",
+        "attack_type",
+        "boundary_label",
+        "boundary_positive",
+        "correct",
+        "expected_action",
+        "gold",
+        "gold_action",
+        "group",
+        "group_id",
+        "group_pattern",
+        "human_boundary",
+        "human_group",
+        "label",
+        "looping",
+        "optimality",
+        "oracle",
+        "problem_oracle",
+        "problem_value",
+        "redundant",
+        "reference",
+        "reference_action",
+        "safe",
+        "safety",
+        "side_effect",
+        "status",
+        "step_correct",
+        "step_optimal",
+        "step_redundant",
+        "step_success",
+        "target_positive",
+        "unsafe"
+      ],
+      "excluded_oracle_prefixes": [
+        "gold_",
+        "group_",
+        "human_",
+        "label_",
+        "oracle_",
+        "problem_",
+        "reference_",
+        "target_"
+      ],
+      "excluded_oracle_suffixes": [
+        "_answer",
+        "_attack",
+        "_correct",
+        "_gold",
+        "_ground_truth",
+        "_label",
+        "_oracle",
+        "_positive",
+        "_redundant",
+        "_reference",
+        "_safe",
+        "_safety",
+        "_target",
+        "_unsafe"
+      ],
+      "max_depth": 4,
+      "max_majority_fraction": 0.985,
+      "min_score": 0.055,
+      "min_second_child": 5,
+      "objective": "recursive boundary segmentation over operations; fields are evidence, not stack levels",
+      "policy": "query-conditioned-recursive-boundary-operation-stack-induction",
+      "selected_evidence_fields": [
+        "action",
+        "repeat_state"
+      ],
+      "selected_source_fields": [
+        "action",
+        "repeat_state"
+      ],
+      "split_decisions": [
+        {
+          "boundary_id": "b0012",
+          "candidate_scores": [
+            {
+              "balance": 0.918296,
+              "boundary_id": "b0012",
+              "cardinality_penalty": 0.235409,
+              "changed_field_fraction": 0.5,
+              "changed_fields": [
+                "action"
+              ],
+              "coverage": 0.333333,
+              "cut_after": 12,
+              "evidence_fields": [
+                "action",
+                "repeat_state"
+              ],
+              "field": "action",
+              "groups": {
+                "left_click+single": 12,
+                "scroll": 6
+              },
+              "label_evidence": [
+                "left:action=left_click@0.75",
+                "left:repeat_state=single@1",
+                "right:action=scroll@0.667"
+              ],
+              "label_quality": 0.805556,
+              "left_label": "left_click+single",
+              "left_weight": 12,
+              "query_bonus": 0.0,
+              "right_label": "scroll",
+              "right_weight": 6,
+              "score": 0.349066,
+              "semantic_shift": 0.545455,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.390208
+            },
+            {
+              "balance": 0.964079,
+              "boundary_id": "b0011",
+              "cardinality_penalty": 0.235409,
+              "changed_field_fraction": 0.5,
+              "changed_fields": [
+                "action"
+              ],
+              "coverage": 0.388889,
+              "cut_after": 11,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left_click": 11,
+                "scroll": 7
+              },
+              "label_evidence": [
+                "left:action=left_click@0.818",
+                "right:action=scroll@0.571"
+              ],
+              "label_quality": 0.722223,
+              "left_label": "left_click",
+              "left_weight": 11,
+              "query_bonus": 0.0,
+              "right_label": "scroll",
+              "right_weight": 7,
+              "score": 0.347644,
+              "semantic_shift": 0.545455,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.409853
+            }
+          ],
+          "evidence_fields": [
+            "action",
+            "repeat_state"
+          ],
+          "node_weight": 18,
+          "path": [],
+          "primary_evidence_field": "action",
+          "selected_score": {
+            "balance": 0.918296,
+            "boundary_id": "b0012",
+            "cardinality_penalty": 0.235409,
+            "changed_field_fraction": 0.5,
+            "changed_fields": [
+              "action"
+            ],
+            "coverage": 0.333333,
+            "cut_after": 12,
+            "evidence_fields": [
+              "action",
+              "repeat_state"
+            ],
+            "field": "action",
+            "groups": {
+              "left_click+single": 12,
+              "scroll": 6
+            },
+            "label_evidence": [
+              "left:action=left_click@0.75",
+              "left:repeat_state=single@1",
+              "right:action=scroll@0.667"
+            ],
+            "label_quality": 0.805556,
+            "left_label": "left_click+single",
+            "left_weight": 12,
+            "query_bonus": 0.0,
+            "right_label": "scroll",
+            "right_weight": 6,
+            "score": 0.349066,
+            "semantic_shift": 0.545455,
+            "small_child_penalty": 0.5,
+            "structural_gain": 0.390208
+          },
+          "source_field": "action"
+        }
+      ],
+      "stop_reasons": {
+        "no_material_split": 1,
+        "small_node": 1
+      }
+    },
+    "ranking": {
+      "groups": 2,
+      "limit": 2,
+      "policy": "width",
+      "rank_operation_rules": [],
+      "rank_rules": [],
+      "top": [
+        {
+          "matched_rank_rules": [],
+          "rank_score": 12.0,
+          "stack": "operation:left_click+single",
+          "weight": 12
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 6.0,
+          "stack": "operation:scroll",
+          "weight": 6
+        }
+      ]
+    },
+    "sample_type": "operations",
+    "stacks": {
+      "operation:left_click+single": 12,
+      "operation:scroll": 6
+    },
+    "summary": {
+      "compression_ratio": 9.0,
+      "max_stack_reuse": 12,
+      "top": [
+        {
+          "stack": "operation:left_click+single",
+          "weight": 12
+        },
+        {
+          "stack": "operation:scroll",
+          "weight": 6
+        }
+      ],
+      "total_weight": 18,
+      "unique_stacks": 2
+    },
+    "unit": "count",
+    "view": "operations"
+  },
+  "schema_version": 1,
+  "sessions": []
+}

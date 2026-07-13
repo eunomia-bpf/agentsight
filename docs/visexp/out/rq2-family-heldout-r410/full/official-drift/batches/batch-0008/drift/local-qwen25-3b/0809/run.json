@@ -1,0 +1,232 @@
+{
+  "setting": "drift",
+  "case_id": "0809",
+  "prediction": {
+    "traj_id": "0809",
+    "error_span_ids": [
+      "s014",
+      "s015"
+    ],
+    "earliest_harmful_span_id": "s014",
+    "reasons": [
+      {
+        "span_id": "s014",
+        "reason": "weak support for Li Peng's name matching a former Chinese head of government, and no direct evidence linking Li Peng to OpenCV release notes or DNN module support for Mask-RCNN"
+      },
+      {
+        "span_id": "s015",
+        "reason": "weak support for Li Peng's name matching a former Chinese head of government, and no direct evidence linking Li Peng to OpenCV release notes or DNN module support for Mask-RCNN"
+      }
+    ]
+  },
+  "logs": {
+    "audit_room": {
+      "agents": [
+        "claim_keeper",
+        "support_seeker",
+        "dependency_tracer"
+      ],
+      "context_access": "claim_graph_chunk_grep"
+    },
+    "claim_keeper": {
+      "prompt": "DRIFT Audit Room - A: Claim Keeper.\nRead the question and ordered trajectory as an audit ledger, not as a final judge.\nTrack consequential claims the agent comes to believe: entities, constraints, dates/ranges, evidence interpretations, retrieval coverage, computations, and process/tool assumptions.\nFor each claim, record when it first appears, when it first becomes consequential for later work, and which later spans use it.\nKeep only decision-critical claims: claims that choose the answer path, narrow to one candidate, verify a hard constraint, justify the final response, or explain why no answer can be produced.\nUse status=finalized only for claims that are submitted, finalized, used in the final answer/no-answer, or explicitly treated as solved. Use status=consequential for claims that drive later work but are not yet final. Use tentative/exploratory for probes and candidates.\nTreat an early span as a claim when it already states a final answer, a chosen candidate, or an inability-to-answer decision; even s001 can be the first harmful commitment candidate.\nA search query, subtask request, tool call, or candidate name inside a query is not a commitment. Record it only if the span also says it has identified/found/verified the candidate or uses it as the answer path.\nIf earlier spans only search and the final report is the first span that asserts the answer, set both introduced_at and becomes_consequential_at to the final report span.\nFor no-answer cases, track the claim that the agent cannot answer only when it says final answer / cannot determine / unable / apology and stops or avoids the requested computation.\nDo not create claims for ordinary searches, abandoned candidates, broad plans, tool noise, or process observations unless a later answer/abort decision explicitly relies on them.\nIf a span only searches, probes, lists a candidate, or asks another subtask without endorsing it as the answer path, mark it exploratory or omit it.\nKeep the ledger compact: prefer 3-5 claims, and never include more than the few claims that could change the final error decision.\nDo not decide final error spans.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0809\", \"task_goal\": \"short string\", \"hard_constraints\": [\"short string\"], \"claims\": [{\"claim_id\": \"c1\", \"claim\": \"short factual or procedural claim\", \"introduced_at\": \"s003\", \"becomes_consequential_at\": \"s011\", \"used_by\": [\"s011\", \"s015\"], \"claim_type\": \"entity\", \"status\": \"tentative\"}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"Which contributor to the version of OpenCV where support was added for the Mask-RCNN model has the same name as a former Chinese head of government when the names are transliterated to the Latin alphabet?\",\n  \"traj_id\": \"0809\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Which contributor to the version of OpenCV where support was added for the Mask-RCNN model has the same name as a former Chinese head of government when the names are transliterate\\n---\\nsite:opencv.org Mask R-CNN DNN release notes OpenCV\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / News / OpenCV 4\\n---\\nsite:opencv.org OpenCV 3.4 release notes Mask R-CNN DNN\\n---\\nsite:github.com opencv 4.0 alpha release tag\\n---\\nsite:opencv.org Mask RCNN OpenCV 3.4 release notes\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nsite:opencv.org OpenCV 3.4.3 release notes Mask R-CNN\\n---\\nsite:github.com/opencv/opencv mask_rcnn.cpp\\n---\\nsite:github.com/opencv/opencv samples/dnn/mask_rcnn\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / News / OpenCV 4\\n---\\nsite:opencv.org OpenCV 3.4.3 release notes\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nThe first OpenCV release that added support for the Mask R\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:github.com/opencv/opencv PR ROIAlign dnn\\n---\\nsite:github.com/opencv/opencv ROIAlign dnn\\n---\\nopencv dnn ROIAlign PR site:github.com\\n---\\nsite:github.com/opencv/opencv mask r-cnn sample dnn\\n---\\nsite:github.com/opencv/opencv pull \\\"mask_rcnn.py\\\"\\n---\\nsite:github.com/opencv/opencv ROIAlign\\n---\\nsite:github.com/opencv/opencv \\\"mask_rcnn.py\\\" pull request\\n---\\nsite:github.com/opencv/opencv \\\"mask_rcnn.py\\\"\\n---\\nsite:github.com/opencv/opencv/pull \\\"Mask R-CNN\\\" sample dnn\\n---\\nsite:github.com/opencv/opencv/pull ROIAlign dnn\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nOpenCV ROIAlign pull request site:github.com/opencv/opencv/pull\\n---\\nCNN sample:\\n---\\nsite:github.com/opencv/opencv/releases Mask R-CNN\\n---\\nOpenCV Mask R-CNN support release notes site:github.com/opencv\\n---\\nsite:github.com/opencv/opencv mask_rcnn.cpp\\n---\\nsite:github.com/opencv/opencv/releases Mask R-CNN\\n---\\nOpenCV \\\"Mask R-CNN\\\" release notes\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nsite:github.com/opencv/opencv \\\"Mask R-CNN\\\"\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"OpenCV 3.4.2 Mask R-CNN release notes site:github.com/opencv/opencv\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nIdentified version: OpenCV 3\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"site:opencv.org Mask R-CNN OpenCV release notes\\n---\\nsite:opencv.org \\\"Mask R-CNN\\\"\\n---\\nOpenCV Mask R-CNN release opencv.org blog\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources Releases Phil Nelson July 9, 2025 OpenCV – 4\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources Releases OpenCV Library April 11, 2014 OpenCV – 2\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources Releases OpenCV Library August 1, 2017 OpenCV – 2\\n---\\nsite:opencv.org/blog \\\"Mask R-CNN\\\"\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources Releases OpenCV Library November 12, 2018 OpenCV – 4\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / Releases / OpenCV – 3\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"OpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / Releases / OpenCV – 3\\n---\\nOpenCV \\\"Mask R-CNN\\\" release notes\\n---\\nhttps://opencv.org/blog/opencv-3-4-3/\\n---\\nI identified the OpenCV release where Mask R\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"List of Premiers of the People's Republic of China Wikipedia\\n---\\nsite:britannica.com Premier of China list\"\n    },\n    {\n      \"span_id\": \"s010\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Jump to content Main menu Search Donate Create account Log in Contents hide (Top) History Toggle History subsection People's Republic of China Selection Powers and duties List of premiers Toggle List of premiers subsecti\\n---\\nSearch Britannica Click here to search SUBSCRIBE Login Ask the ChatbotGames & QuizzesHistory & SocietyScience & TechBiographiesAnimals & NatureGeography & TravelArts & CultureProConMoneyVideos China Introduction & Quick\\n---\\nA complete list of former Premiers (heads of government) of the People’s Republic of China, given in Hanyu Pinyin, excluding the current incumbent, is:\"\n    },\n    {\n      \"span_id\": \"s011\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"OpenCV 4.1 blog opencv.org\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / News / OpenCV 4\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\"\n    },\n    {\n      \"span_id\": \"s012\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"see [OpenCV Change Logs](https://github\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / Releases / OpenCV – 4\\n---\\nI extracted the contributor credits from the official OpenCV 4\"\n    },\n    {\n      \"span_id\": \"s013\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nsite:opencv.org OpenCV 4.1 has been released blog\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / News / OpenCV 4\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / Releases / OpenCV – 4\\n---\\nsite:opencv.org \\\"Li Peng\\\"\"\n    },\n    {\n      \"span_id\": \"s014\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"{\\\"data\\\":null,\\\"code\\\":422,\\\"name\\\":\\\"AssertionFailureError\\\",\\\"status\\\":42206,\\\"message\\\":\\\"Could not extract any meaningful content from the page\\\",\\\"readableMessage\\\":\\\"AssertionFailureError: Could not extract any meaningful content\\n---\\n\\\"Li Peng\\\" does not appear on the OpenCV 4\\n---\\nLi Peng Wikipedia\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Childhood Early career Premiership (1988–1998) Toggle Premiership (1988–1998) subsection 1989 Tiananmen Square protests and massacre Post-\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) History Toggle History subsection People's Republic of China Selection Powers and duties List of premiers Toggle List of premiers subsecti\\n---\\nConfirmed via Wikipedia: Li Peng is a former Premier of the People’s Republic of China (the country’s head of government)\"\n    },\n    {\n      \"span_id\": \"s015\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Thought: To answer the question, I need to: - Identify the specific OpenCV release where support for the Mask-RCNN model was first added (likely via the DNN module, e\"\n    }\n  ],\n  \"allowed_claim_types\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_status_values\": [\n    \"exploratory\",\n    \"tentative\",\n    \"consequential\",\n    \"finalized\"\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0809",
+        "task_goal": "Identify the contributor to the version of OpenCV where support was added for the Mask-RCNN model with the same name as a former Chinese head of government when transliterated to the Latin alphabet.",
+        "hard_constraints": [
+          "Identify the specific OpenCV release where support for the Mask-RCNN model was first added (likely via the DNN module, and the name matches a former Chinese head of government when transliterated to the Latin alphabet)."
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "The name 'Li Peng' matches a former Chinese head of government when transliterated to the Latin alphabet.",
+            "introduced_at": "s014",
+            "becomes_consequential_at": "s015",
+            "used_by": [
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0809",
+        "task_goal": "Identify the contributor to the version of OpenCV where support was added for the Mask-RCNN model with the same name as a former Chinese head of government when transliterated to the Latin alphabet.",
+        "hard_constraints": [
+          "Identify the specific OpenCV release where support for the Mask-RCNN model was first added (likely via the DNN module, and the name matches a former Chinese head of government when transliterated to the Latin alphabet)."
+        ],
+        "claims": [
+          {
+            "claim_id": "c1",
+            "claim": "The name 'Li Peng' matches a former Chinese head of government when transliterated to the Latin alphabet.",
+            "introduced_at": "s014",
+            "becomes_consequential_at": "s015",
+            "used_by": [
+              "s015"
+            ],
+            "claim_type": "entity",
+            "status": "consequential"
+          }
+        ],
+        "notes": ""
+      }
+    },
+    "context_request": {
+      "prompt": null,
+      "raw_output": null,
+      "validated": [
+        {
+          "claim_id": "c1",
+          "span_ids": [
+            "s014",
+            "s015"
+          ],
+          "grep_queries": [
+            "The name 'Li Peng' matches a former Chinese head of government when transliterated to the Latin alphabet."
+          ],
+          "rationale": "auto request from claim ledger endpoints and claim text"
+        }
+      ]
+    },
+    "span_store": {
+      "seed_span_ids": [
+        "s014",
+        "s015"
+      ],
+      "available_span_ids": [
+        "s001",
+        "s010",
+        "s014",
+        "s015"
+      ],
+      "grep_results": [
+        {
+          "claim_id": "c1",
+          "query": "The name 'Li Peng' matches a former Chinese head of government when transliterated to the Latin alphabet.",
+          "matched_chunk_ids": [
+            "s001:c001",
+            "s014:c001",
+            "s010:c001",
+            "s015:c001"
+          ],
+          "matched_span_ids": [
+            "s001",
+            "s010",
+            "s014",
+            "s015"
+          ]
+        }
+      ]
+    },
+    "support_seeker": {
+      "prompt": "DRIFT Audit Room - B: Tuned On-demand Support Seeker.\nYour role is high-recall claim-support mining, not final judgment.\nAudit A's consequential/finalized claims using only the raw_chunks in evidence_packet. The packet is original trajectory text fetched from the same span store; it contains no generated preview, no span labels, no outcome fields, and no answer key.\n\nFor each decision-critical claim, expose support risk rather than clearing it too early.\nUse direct only when the fetched spans explicitly verify the decisive identity, hard constraint, source link, exact count/computation, retrieval coverage, or no-answer justification required by the question.\nUse weak when evidence is related but one decisive bridge is only implied, assumed, based on partial snippets, or not checked against the exact question.\nUse missing when a finalized answer/no-answer/computation claim has no fetched support for a required decisive link. Use conflicting when fetched evidence contradicts the claim or a hard constraint.\nPrefer weak over direct when unsure. This B step may over-route because C will later decide which risky claims become harmful errors.\nDo not rewrite concrete answer claims into safer process claims. Do not drop a finalized claim merely because some related searches exist.\nRoute weak/missing/conflicting claims when the gap could change the final answer, justify stopping, or explain a linked error chain.\nSupport_spans must be span ids present in evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, cite the parent span_id, not chunk_id.\n\nAlso write compact evidence_handles for C using exactly these keys: span_id, chunk_id, role, text. Role must be one of allowed_handle_roles. Text should be a short original-text handle under 40 words. Handles are not summaries of the whole span; they are evidence pointers for dependency tracing.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0809\", \"support_records\": [{\"claim_id\": \"c1\", \"support_spans\": [\"s003\", \"s008\"], \"support_status\": \"weak\", \"missing_support\": \"short string\", \"needs_auditors\": [\"entity\", \"evidence\"], \"evidence_handles\": [{\"span_id\": \"s003\", \"chunk_id\": \"s003:c001\", \"role\": \"partial_support\", \"text\": \"short original-text handle\"}]}], \"notes\": \"short string\"}\n\n{\n  \"question\": \"Which contributor to the version of OpenCV where support was added for the Mask-RCNN model has the same name as a former Chinese head of government when the names are transliterated to the Latin alphabet?\",\n  \"traj_id\": \"0809\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0809\",\n    \"task_goal\": \"Identify the contributor to the version of OpenCV where support was added for the Mask-RCNN model with the same name as a former Chinese head of government when transliterated to the Latin alphabet.\",\n    \"hard_constraints\": [\n      \"Identify the specific OpenCV release where support for the Mask-RCNN model was first added (likely via the DNN module, and the name matches a former Chinese head of government when transliterated to the Latin alphabet).\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"The name 'Li Peng' matches a former Chinese head of government when transliterated to the Latin alphabet.\",\n        \"introduced_at\": \"s014\",\n        \"becomes_consequential_at\": \"s015\",\n        \"used_by\": [\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s014\",\n      \"s015\"\n    ],\n    \"requested_span_ids\": [\n      \"s014\",\n      \"s015\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"The name 'Li Peng' matches a former Chinese head of government when transliterated to the Latin alphabet.\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s014:c001\",\n          \"s010:c001\",\n          \"s015:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s010\",\n          \"s014\",\n          \"s015\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s010\",\n      \"s014\",\n      \"s015\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s014\",\n        \"chunk_id\": \"s014:c001\",\n        \"char_start\": 0,\n        \"char_end\": 863,\n        \"text\": \"{\\\"data\\\":null,\\\"code\\\":422,\\\"name\\\":\\\"AssertionFailureError\\\",\\\"status\\\":42206,\\\"message\\\":\\\"Could not extract any meaningful content from the page\\\",\\\"readableMessage\\\":\\\"AssertionFailureError: Could not extract any meaningful content\\n---\\n\\\"Li Peng\\\" does not appear on the OpenCV 4\\n---\\nLi Peng Wikipedia\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Childhood Early career Premiership (1988–1998) Toggle Premiership (1988–1998) subsection 1989 Tiananmen Square protests and massacre Post-\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) History Toggle History subsection People's Republic of China Selection Powers and duties List of premiers Toggle List of premiers subsecti\\n---\\nConfirmed via Wikipedia: Li Peng is a former Premier of the People’s Republic of China (the country’s head of government)\"\n      },\n      {\n        \"span_id\": \"s015\",\n        \"chunk_id\": \"s015:c001\",\n        \"char_start\": 0,\n        \"char_end\": 166,\n        \"text\": \"Thought: To answer the question, I need to: - Identify the specific OpenCV release where support for the Mask-RCNN model was first added (likely via the DNN module, e\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1112,\n        \"text\": \"Which contributor to the version of OpenCV where support was added for the Mask-RCNN model has the same name as a former Chinese head of government when the names are transliterate\\n---\\nsite:opencv.org Mask R-CNN DNN release notes OpenCV\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / News / OpenCV 4\\n---\\nsite:opencv.org OpenCV 3.4 release notes Mask R-CNN DNN\\n---\\nsite:github.com opencv 4.0 alpha release tag\\n---\\nsite:opencv.org Mask RCNN OpenCV 3.4 release notes\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nsite:opencv.org OpenCV 3.4.3 release notes Mask R-CNN\\n---\\nsite:github.com/opencv/opencv mask_rcnn.cpp\\n---\\nsite:github.com/opencv/opencv samples/dnn/mask_rcnn\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / News / OpenCV 4\\n---\\nsite:opencv.org OpenCV 3.4.3 release notes\"\n      },\n      {\n        \"span_id\": \"s010\",\n        \"chunk_id\": \"s010:c001\",\n        \"char_start\": 0,\n        \"char_end\": 600,\n        \"text\": \"Jump to content Main menu Search Donate Create account Log in Contents hide (Top) History Toggle History subsection People's Republic of China Selection Powers and duties List of premiers Toggle List of premiers subsecti\\n---\\nSearch Britannica Click here to search SUBSCRIBE Login Ask the ChatbotGames & QuizzesHistory & SocietyScience & TechBiographiesAnimals & NatureGeography & TravelArts & CultureProConMoneyVideos China Introduction & Quick\\n---\\nA complete list of former Premiers (heads of government) of the People’s Republic of China, given in Hanyu Pinyin, excluding the current incumbent, is:\"\n      }\n    ]\n  },\n  \"allowed_support_status\": [\n    \"direct\",\n    \"weak\",\n    \"missing\",\n    \"conflicting\"\n  ],\n  \"allowed_auditors\": [\n    \"entity\",\n    \"constraint\",\n    \"evidence\",\n    \"retrieval\",\n    \"compute\",\n    \"process\"\n  ],\n  \"allowed_handle_roles\": [\n    \"direct_support\",\n    \"partial_support\",\n    \"missing_link\",\n    \"conflict\",\n    \"commitment\",\n    \"linked_use\",\n    \"related\"\n  ]\n}",
+      "raw_output": {
+        "support_records": [
+          {
+            "claim_id": "c1",
+            "support_spans": [
+              "s014",
+              "s015"
+            ],
+            "support_status": "weak",
+            "missing_support": "no direct evidence linking Li Peng to OpenCV release notes or DNN module support for Mask-RCNN",
+            "needs_auditors": [
+              "entity",
+              "evidence"
+            ],
+            "evidence_handles": [
+              {
+                "span_id": "s014",
+                "chunk_id": "s014:c001",
+                "role": "partial_support",
+                "text": "Li Peng Wikipedia"
+              },
+              {
+                "span_id": "s015",
+                "chunk_id": "s015:c001",
+                "role": "partial_support",
+                "text": "Thought: To answer the question, I need to:"
+              }
+            ]
+          }
+        ],
+        "notes": "no direct evidence linking Li Peng to OpenCV release notes or DNN module support for Mask-RCNN"
+      },
+      "validated": [
+        {
+          "claim_id": "c1",
+          "support_spans": [
+            "s014",
+            "s015"
+          ],
+          "support_status": "weak",
+          "missing_support": "no direct evidence linking Li Peng to OpenCV release notes or DNN module support for Mask-RCNN",
+          "needs_auditors": [
+            "entity",
+            "evidence"
+          ],
+          "evidence_handles": [
+            {
+              "span_id": "s014",
+              "chunk_id": "s014:c001",
+              "role": "partial_support",
+              "text": "Li Peng Wikipedia"
+            },
+            {
+              "span_id": "s015",
+              "chunk_id": "s015:c001",
+              "role": "partial_support",
+              "text": "Thought: To answer the question, I need to:"
+            }
+          ]
+        }
+      ]
+    },
+    "dependency_tracer": {
+      "prompt": "DRIFT Audit Room - C: Tuned On-demand Dependency Tracer.\nA has produced a claim ledger and B has produced support-risk records from an on-demand raw_chunks packet. C now localizes final error spans by tracing which risky claims become harmful commitments.\n\nTreat weak/missing/conflicting support as candidate signals when the claim is consequential or finalized. Do not clear a finalized claim just because the packet has related but non-decisive searches.\nFirst-error selection rule: choose the earliest fetched span that states the risky claim as settled, selects it as the answer path, completes a computation from it, or uses it to stop the task. Do not choose the earliest mere mention in a query or snippet.\nLinked-error rule: include later fetched spans that explicitly repeat, compute from, verify as final, give up because of, or finalize the same risky claim.\nFavor recall over excessive sparsity: if a first harmful commitment and final commitment both carry the same unsupported claim, include both. If the unsupported answer path is repeatedly asserted as settled, include the committed chain.\nDo not mark pure searches, tool calls, support snippets, retries, broad plans, or abandoned candidates unless the span itself commits to the claim.\nReturn empty only when support records and fetched spans show no consequential/finalized harmful commitment, or when the weakness is merely incomplete logging for an otherwise verified answer.\nDo not output spans outside evidence_packet.available_span_ids. If evidence_packet contains raw_chunks, output the parent span_id, not chunk_id.\n\nReturn JSON only.\nSchema: {\"traj_id\": \"0809\", \"first_error_span\": \"s003\", \"linked_error_span_ids\": [\"s011\", \"s015\"], \"non_errors\": [\"s004\", \"s005\"], \"reason\": \"short string\", \"error_span_ids\": [\"s003\", \"s011\", \"s015\"], \"earliest_harmful_span_id\": \"s003\"}\n\n{\n  \"question\": \"Which contributor to the version of OpenCV where support was added for the Mask-RCNN model has the same name as a former Chinese head of government when the names are transliterated to the Latin alphabet?\",\n  \"traj_id\": \"0809\",\n  \"claim_ledger\": {\n    \"traj_id\": \"0809\",\n    \"task_goal\": \"Identify the contributor to the version of OpenCV where support was added for the Mask-RCNN model with the same name as a former Chinese head of government when transliterated to the Latin alphabet.\",\n    \"hard_constraints\": [\n      \"Identify the specific OpenCV release where support for the Mask-RCNN model was first added (likely via the DNN module, and the name matches a former Chinese head of government when transliterated to the Latin alphabet).\"\n    ],\n    \"claims\": [\n      {\n        \"claim_id\": \"c1\",\n        \"claim\": \"The name 'Li Peng' matches a former Chinese head of government when transliterated to the Latin alphabet.\",\n        \"introduced_at\": \"s014\",\n        \"becomes_consequential_at\": \"s015\",\n        \"used_by\": [\n          \"s015\"\n        ],\n        \"claim_type\": \"entity\",\n        \"status\": \"consequential\"\n      }\n    ],\n    \"notes\": \"\"\n  },\n  \"support_records\": [\n    {\n      \"claim_id\": \"c1\",\n      \"support_spans\": [\n        \"s014\",\n        \"s015\"\n      ],\n      \"support_status\": \"weak\",\n      \"missing_support\": \"no direct evidence linking Li Peng to OpenCV release notes or DNN module support for Mask-RCNN\",\n      \"needs_auditors\": [\n        \"entity\",\n        \"evidence\"\n      ],\n      \"evidence_handles\": [\n        {\n          \"span_id\": \"s014\",\n          \"chunk_id\": \"s014:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Li Peng Wikipedia\"\n        },\n        {\n          \"span_id\": \"s015\",\n          \"chunk_id\": \"s015:c001\",\n          \"role\": \"partial_support\",\n          \"text\": \"Thought: To answer the question, I need to:\"\n        }\n      ]\n    }\n  ],\n  \"evidence_packet\": {\n    \"access_mode\": \"claim_graph_chunk_grep\",\n    \"seed_span_ids\": [\n      \"s014\",\n      \"s015\"\n    ],\n    \"requested_span_ids\": [\n      \"s014\",\n      \"s015\"\n    ],\n    \"grep_results\": [\n      {\n        \"claim_id\": \"c1\",\n        \"query\": \"The name 'Li Peng' matches a former Chinese head of government when transliterated to the Latin alphabet.\",\n        \"matched_chunk_ids\": [\n          \"s001:c001\",\n          \"s014:c001\",\n          \"s010:c001\",\n          \"s015:c001\"\n        ],\n        \"matched_span_ids\": [\n          \"s001\",\n          \"s010\",\n          \"s014\",\n          \"s015\"\n        ]\n      }\n    ],\n    \"available_span_ids\": [\n      \"s001\",\n      \"s010\",\n      \"s014\",\n      \"s015\"\n    ],\n    \"raw_chunks\": [\n      {\n        \"span_id\": \"s014\",\n        \"chunk_id\": \"s014:c001\",\n        \"char_start\": 0,\n        \"char_end\": 863,\n        \"text\": \"{\\\"data\\\":null,\\\"code\\\":422,\\\"name\\\":\\\"AssertionFailureError\\\",\\\"status\\\":42206,\\\"message\\\":\\\"Could not extract any meaningful content from the page\\\",\\\"readableMessage\\\":\\\"AssertionFailureError: Could not extract any meaningful content\\n---\\n\\\"Li Peng\\\" does not appear on the OpenCV 4\\n---\\nLi Peng Wikipedia\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) Childhood Early career Premiership (1988–1998) Toggle Premiership (1988–1998) subsection 1989 Tiananmen Square protests and massacre Post-\\n---\\nJump to content Main menu Search Donate Create account Log in Contents hide (Top) History Toggle History subsection People's Republic of China Selection Powers and duties List of premiers Toggle List of premiers subsecti\\n---\\nConfirmed via Wikipedia: Li Peng is a former Premier of the People’s Republic of China (the country’s head of government)\"\n      },\n      {\n        \"span_id\": \"s015\",\n        \"chunk_id\": \"s015:c001\",\n        \"char_start\": 0,\n        \"char_end\": 166,\n        \"text\": \"Thought: To answer the question, I need to: - Identify the specific OpenCV release where support for the Mask-RCNN model was first added (likely via the DNN module, e\"\n      },\n      {\n        \"span_id\": \"s001\",\n        \"chunk_id\": \"s001:c001\",\n        \"char_start\": 0,\n        \"char_end\": 1112,\n        \"text\": \"Which contributor to the version of OpenCV where support was added for the Mask-RCNN model has the same name as a former Chinese head of government when the names are transliterate\\n---\\nsite:opencv.org Mask R-CNN DNN release notes OpenCV\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / News / OpenCV 4\\n---\\nsite:opencv.org OpenCV 3.4 release notes Mask R-CNN DNN\\n---\\nsite:github.com opencv 4.0 alpha release tag\\n---\\nsite:opencv.org Mask RCNN OpenCV 3.4 release notes\\n---\\nSkip to content Navigation Menu Platform Solutions Resources Open Source Enterprise Pricing Sign in Sign up opencv / opencv Public Sponsor Notifications Fork 56\\n---\\nsite:opencv.org OpenCV 3.4.3 release notes Mask R-CNN\\n---\\nsite:github.com/opencv/opencv mask_rcnn.cpp\\n---\\nsite:github.com/opencv/opencv samples/dnn/mask_rcnn\\n---\\nOpenCV Open Computer Vision Library Library Forum OpenCV University Free Courses Services Face Recognition Contribute Resources You are here: Home / News / OpenCV 4\\n---\\nsite:opencv.org OpenCV 3.4.3 release notes\"\n      },\n      {\n        \"span_id\": \"s010\",\n        \"chunk_id\": \"s010:c001\",\n        \"char_start\": 0,\n        \"char_end\": 600,\n        \"text\": \"Jump to content Main menu Search Donate Create account Log in Contents hide (Top) History Toggle History subsection People's Republic of China Selection Powers and duties List of premiers Toggle List of premiers subsecti\\n---\\nSearch Britannica Click here to search SUBSCRIBE Login Ask the ChatbotGames & QuizzesHistory & SocietyScience & TechBiographiesAnimals & NatureGeography & TravelArts & CultureProConMoneyVideos China Introduction & Quick\\n---\\nA complete list of former Premiers (heads of government) of the People’s Republic of China, given in Hanyu Pinyin, excluding the current incumbent, is:\"\n      }\n    ]\n  }\n}",
+      "raw_output": {
+        "traj_id": "0809",
+        "first_error_span": "s014",
+        "linked_error_span_ids": [
+          "s015"
+        ],
+        "non_errors": [
+          "s001",
+          "s010"
+        ],
+        "reason": "weak support for Li Peng's name matching a former Chinese head of government, and no direct evidence linking Li Peng to OpenCV release notes or DNN module support for Mask-RCNN",
+        "error_span_ids": [
+          "s014",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s014"
+      },
+      "validated": {
+        "traj_id": "0809",
+        "first_error_span": "s014",
+        "linked_error_span_ids": [
+          "s015"
+        ],
+        "non_errors": [
+          "s001",
+          "s010"
+        ],
+        "reason": "weak support for Li Peng's name matching a former Chinese head of government, and no direct evidence linking Li Peng to OpenCV release notes or DNN module support for Mask-RCNN",
+        "error_span_ids": [
+          "s014",
+          "s015"
+        ],
+        "earliest_harmful_span_id": "s014"
+      }
+    },
+    "full_span_count": 15,
+    "evidence_span_count": 4
+  },
+  "usage": {
+    "call_count": 3,
+    "input_tokens": 7316,
+    "output_tokens": 575,
+    "total_tokens": 7891
+  }
+}

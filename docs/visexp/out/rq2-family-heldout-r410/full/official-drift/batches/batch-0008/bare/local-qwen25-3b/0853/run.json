@@ -1,0 +1,57 @@
+{
+  "setting": "bare",
+  "case_id": "0853",
+  "prediction": {
+    "traj_id": "0853",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0853\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"2024年滴滴自动驾驶主力运营车辆的最小转弯半径是多少（单位：米）\",\n  \"traj_id\": \"0853\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"2024年滴滴自动驾驶主力运营车辆的最小转弯半径是多少（单位：米）\\n---\\n我需要查找2024年滴滴自动驾驶主力运营车辆的最小转弯半径信息\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"DiDi autonomous driving vehicles 2024\\n---\\n滴滴自动驾驶 2024 运营车辆\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"关闭 ENGLISH新华报刊地方频道承建网站中文/繁体网站无障碍客户端手机版站内搜索 新华通讯社主办 公司官网 股票代码：603888 学习进行时高层时政人事国际财经网评港澳台湾思客智库全球连线教育科技科创量子体育文化书画健康军事访谈视频图片政务法律中央文件 金融汽车食品房产信息化数字经济学术中国乡村振兴银龄溯源中国城市旅游能源会展彩票娱乐时尚悦读公益一带一路亚太网上市公司文化产业 新华网 > 汽车 > 正文 2024 04/07 11\\n---\\nDiDi robotaxi 2024 operational fleet current vehicles\\n---\\nwww\\n---\\n\\\\n\\\\n**2024\\\\u5e74\\\\u6ef4\\\\u6ef4\\\\u81ea\\\\u52a8\\\\u9a7e\\\\u9a76\\\\u4e3b\\\\u529b\\\\u8fd0\\\\u8425\\\\u8f66\\\\u8f86 / DiDi Autonomous Driving Main Operational Vehicles 2024:**\\\\n\\\\n\\\\u6ef4\\\\u6ef4\\\\u81ea\\\\u52a8\\\\u9a7e\\\\u9a76\\\\u57282024\\\\u5e74\\\\u7684\\\\u4e3b\\\\u52\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Volvo XC90 minimum turning radius specifications meters\\n---\\nAccess Denied You don't have permission to access \\\"http://www\\n---\\nXC90 Gas (mild hybrid) Overview Interior Specifications Features View inventory Build yours Explore XC90 specifications Powertrain options\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"What is the minimum turning radius specification in meters for the Volvo XC90?\\n---\\nVolvo XC90 2024 2023 2022 turning radius meters specifications\\n---\\nVolvo XC90 first generation 2003-2014 turning radius specifications\\n---\\nBMW X5 Mercedes GLE Audi Q7 turning radius meters comparison\\n---\\n39.7 feet to meters conversion turning radius\\n---\\ncurb to curb vs wall to wall turning radius difference explanation\\n---\\nmid-size luxury SUV average turning radius comparison 2024\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"\\\\n\\\\n**Volvo XC90 Minimum Turning Radius: 11\\n---\\n沃尔沃XC90 最小转弯半径 官方 技术参数 volvocars.com.cn\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Access Denied You don't have permission to access \\\"http://www\\n---\\n新闻与媒体 新闻材料 产品信息 公司介绍 媒体联系人 location: CN 0 XC90 新闻稿 图像 视频 媒体资料包 技术数据 其他 型号年份 2023 Volvo XC90 型号年份 2023 - 技术数据 技术数据 (0) 搜索\\n---\\nVolvo XC90 minimum turning radius official specifications 2023 2024\\n---\\nAccess Denied You don't have permission to access \\\"http://www\\n---\\nPrice and Specification | Model Year 2024 | Edition 4 VOLVO XC902 VOLVO XC903VOLVO XC90 VOLVO XC90 PRICING HP WLTP 1) 5) CO2 EAER 1) 5) (MILES) BIK % TAX £ 2) BASIC £ VAT £ REC RETAIL £ P11D 3) VALUE £ ON THE 4) ROAD £ C\"\n    },\n    {\n      \"span_id\": \"s008\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"沃尔沃XC90 转弯半径 11.8米 12.2米 官方参数\\n---\\nVolvo XC90 turning radius 5.9 meters 6.0 meters curb to curb\\n---\\nVolvo XC90 turning radius meters conversion 39.7 feet\\n---\\n沃尔沃XC90 2024 2025 转弯直径 最小转弯半径 官方技术参数\"\n    },\n    {\n      \"span_id\": \"s009\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"新的搜索 接入API，立即获得深度搜索能力\\n---\\nThought: I need to search for information about DiDi's autonomous driving main operational vehicles in 2024 and their minimum turning radius\"\n    }\n  ]\n}",
+      "raw_output": {
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0853",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 9
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1702,
+    "output_tokens": 68,
+    "total_tokens": 1770
+  }
+}

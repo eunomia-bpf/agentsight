@@ -1,0 +1,58 @@
+{
+  "setting": "bare",
+  "case_id": "0898",
+  "prediction": {
+    "traj_id": "0898",
+    "error_span_ids": [
+      "s004",
+      "s007"
+    ],
+    "earliest_harmful_span_id": "s004",
+    "reasons": [
+      {
+        "span_id": "s004",
+        "reason": "short string"
+      }
+    ]
+  },
+  "logs": {
+    "bare": {
+      "prompt": "You are evaluating one deep-research trajectory for span-level error localization.\nThis is a bare single-call evaluation: read the full question and all ordered spans once, then predict final error spans directly.\n\nMark a span only if the span itself contains a committed harmful mistake, an unsupported committed conclusion, a harmful premature finalization, or a harmful continuation.\nDo not mark harmless exploration, ordinary evidence gaps, isolated tool failures without commitment, retries, search queries, tentative candidate pivots, or generic uncertainty.\nPrefer a sparse set of committed harmful spans. If the actual harmful commitment appears only in the final report, output only that final span.\nIf an early span already commits to the wrong answer path or harmful no-answer decision, mark that earliest committed span and any later spans that explicitly rely on or finalize it.\nIf there is no committed harmful error, return an empty error_span_ids list.\n\nReturn JSON only. Do not include markdown or explanations outside JSON.\nSchema: {\"traj_id\": \"0898\", \"error_span_ids\": [\"s004\", \"s007\"], \"earliest_harmful_span_id\": \"s004\", \"reasons\": [{\"span_id\": \"s004\", \"reason\": \"short string\"}]}\n\n{\n  \"question\": \"IShowSpeed在YouTube上发布过一条关于物理挑战的播放量过亿的短视频（截至2025年5月18日），请问视频是在哪拍摄的？\",\n  \"traj_id\": \"0898\",\n  \"spans\": [\n    {\n      \"span_id\": \"s001\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"IShowSpeed在YouTube上发布过一条关于物理挑战的播放量过亿的短视频（截至2025年5月18日），请问视频是在哪拍摄的\\n---\\nIShowSpeed physics challenge 100 million views 2025 YouTube short\\n---\\nIShowSpeed YouTube short 100 million views 2025\\n---\\nSOCIALCOUNTS Login Live Views Count Live Sub Count Compare IShowSpeed hits 100 million views on Shake #shorts Socialcounts\\n---\\nSkip navigation Sign in Sign in to confirm you’re not a bot This helps protect our community\\n---\\nIShowSpeed Shake video 100 million views physics challenge\"\n    },\n    {\n      \"span_id\": \"s002\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"Skip navigation Sign in Home Shorts Subscriptions You @espn Subscribe Speed takes on the physics challenge 👀 (via ishowspeed/TT) 1\\n---\\nIShowSpeed physics challenge viral short April 2025 over 100 million views\\n---\\nTODAY’S PAPER | DECEMBER 09, 2025 | EPAPER HOME LATEST PAKISTAN BUSINESS WORLD SPORTS OPINION LIFE & STYLE T-MAGAZINE BLOGS TECH CARTOON Home Entertainment IShowSpeed goes viral with spiral pit challenge in China, teases\\n---\\nIShowSpeed spiral pit challenge China video title 100 million views YouTube\\n---\\nIShowSpeed China physics challenge conical pit exact video title YouTube shorts\\n---\\nSkip navigation Sign in Home Shorts Subscriptions You @entertainment_cam Subscribe iShowSpeed Used Physics to Escape a 20-Foot Pit – UNBELIEVABLE\"\n    },\n    {\n      \"span_id\": \"s003\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"IShowSpeed China conical pit physics challenge where filmed location city\\n---\\nI was unable to identify a single specific IShowSpeed YouTube short video with a confirmed 100+ million views from 2025 featuring a physics challenge\\n---\\nIShowSpeed physics challenge YouTube Shorts 100 million views\\n---\\nIShowSpeed mousetrap backflip challenge 102 million views filming location\\n---\\nSkip navigation Sign in Home Shorts Subscriptions You @IShowSpeed Subscribe IShowSpeed - Bailar (Official Music Video) Mousetrap Backflip Challenge🐭😱 #ishowspeed 2\\n---\\nIShowSpeed mousetrap backflip challenge where filmed location house\\n---\\n\\\"IShowSpeed\\\" \\\"mousetrap backflip\\\" \\\"102 million\\\" shorts\\n---\\nIShowSpeed physics challenge shorts 100M views where filmed\\n---\\nStreamers NFL Sidelines SK NBA Soccer Tennis NCAAF LOG IN Streamers IShowSpeed Behzinga PewDiePie Streamers \\\"This looks so intense\"\n    },\n    {\n      \"span_id\": \"s004\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"IShowSpeed conical pit physics challenge China location city where\\n---\\nSkip to content Twitter Facebook-f Youtube Instagram Tiktok HOME NEWS BUSINESS CULTURE COMMUNITY HERITAGE INTERVIEWS ABOUT US IShowSpeed China Tour: From Panda Paint to Kung Fu Pain HOME NEWS Yi Shen Work Link THE COMPAN\"\n    },\n    {\n      \"span_id\": \"s005\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"IShowSpeed spiral pit challenge Chongqing China location venue\\n---\\nIShowSpeed physics challenge conical pit spiral China April 2025\\n---\\n\\\"Eight Diagrams Pit\\\" China location city address IShowSpeed\\n---\\nThe IShowSpeed physics challenge YouTube Shorts video with approximately 100 million views was filmed at the **Eight Diagrams Pit (Bagua Keng) in Handan City, Hebei Province, China** during his April 2025 China tour\\n---\\nIShowSpeed YouTube Shorts over 100 million views physical challenge\\n---\\nIShowSpeed Mousetrap Backflip Challenge 102 million views filming location\\n---\\nSkip navigation Sign in Home Shorts Subscriptions You @IShowSpeed Subscribe IShowSpeed - Bailar (Official Music Video) Mousetrap Backflip Challenge🐭😱 #ishowspeed 2\\n---\\nIShowSpeed mousetrap backflip challenge where filmed location house\\n---\\nIShowSpeed lives where city state Cincinnati Ohio Florida\"\n    },\n    {\n      \"span_id\": \"s006\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"IShowSpeed mousetrap backflip 102 million views YouTube Short filmed location\\n---\\nIShowSpeed Florida house address location city mousetrap video\\n---\\nIShowSpeed house Davie Florida mansion\\n---\\nIShowSpeed mousetrap backflip challenge July 2024 when filmed date\\n---\\nIShowSpeed 物理挑战 捕鼠器后空翻 拍摄地点\\n---\\nIShowSpeed physics challenge 河北 邯郸 永年区 洺珠小镇 八卦坑\\n---\\nIShowSpeed China physics challenge cone pit April 2025 Handan Yongnian\\n---\\nIShowSpeed has two major physical challenge videos that went viral with over 100 million views: 1\"\n    },\n    {\n      \"span_id\": \"s007\",\n      \"raw_start_step\": null,\n      \"raw_end_step\": null,\n      \"span_text\": \"I'll help you find where IShowSpeed's physics challenge short video (with over 100 million views) was filmed\\n---\\nI need to search for information about IShowSpeed's physics challenge video that has over 100 million views on YouTube\\n---\\nI need to search for information about IShowSpeed's physics challenge video with over 100 million views on YouTube to identify the filming location\\n---\\nThought: Based on the search results I received earlier, I found that IShowSpeed filmed a physics challenge video in China during April 2025\"\n    }\n  ]\n}",
+      "raw_output": {
+        "traj_id": "0898",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      },
+      "validated": {
+        "traj_id": "0898",
+        "error_span_ids": [
+          "s004",
+          "s007"
+        ],
+        "earliest_harmful_span_id": "s004",
+        "reasons": [
+          {
+            "span_id": "s004",
+            "reason": "short string"
+          }
+        ]
+      }
+    },
+    "full_span_count": 7
+  },
+  "usage": {
+    "call_count": 1,
+    "input_tokens": 1788,
+    "output_tokens": 80,
+    "total_tokens": 1868
+  }
+}
