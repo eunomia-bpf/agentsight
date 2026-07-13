@@ -66,3 +66,43 @@ evidence.
 
 **Round-1 disposition:** all three must-fix items are addressed in Revision 2.
 Round 2 must independently read and review the complete revised artifacts.
+
+## Round 2
+
+**Reviewed:** 2026-07-13T06:24:35-07:00
+
+**Plan read:** Revision 2
+
+**Required skill:** `research-experiment-design`
+
+**Reviewer mode:** independent and read-only
+
+**Verdict:** **REVISE**
+
+The second reviewer independently read the complete revised artifacts and
+verified all three Round-1 fixes. It found no remaining problem in the Wilson
+formula, zero-vote handling, benchmark-reuse role, atomic AP, label sequencing,
+query-cluster bootstrap, matched shuffle, baseline fairness, AgentProf realism,
+execution paths, or story/RQ/hypothesis preservation.
+
+### Must-fix: family-local group identity
+
+Revision 2 wrote stack keys without an explicit `family` component. The source-
+only screen, prior scorer, shuffle, bootstrap, and equal-family macro all imply
+family-local scoring, but a literal implementation could pool identical stack
+keys across families and change every score and outcome.
+
+Revision 3 defines every scoring group as:
+
+```text
+(family, AgentProf stack key)
+```
+
+Votes never pool across families. Flat is one group per family, and the rule
+applies to point estimates, controls, and every bootstrap draw. The focused
+test plan now requires identical-looking keys in different families to remain
+separate.
+
+**Round-2 disposition:** the sole must-fix is addressed in Revision 3. Round 3
+must independently audit the complete plan and return zero must-fix before
+REAL PREFLIGHT.

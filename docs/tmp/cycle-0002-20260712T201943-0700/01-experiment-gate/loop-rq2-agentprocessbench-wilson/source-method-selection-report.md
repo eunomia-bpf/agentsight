@@ -145,9 +145,11 @@ new scorer is implemented.
 
 ## Exact score semantics
 
-For group `g`, let `h_g` be the number of non-null released predictions equal
-to `-1` across every operation in the group, and let `n_g` be the number of all
-non-null released predictions in the group. Then:
+Every group identity is family-local: `g = (family, AgentProf stack key)`. No
+vote or operation pools across families, even when two stack keys have the same
+text. Let `h_g` be the number of non-null released predictions equal to `-1`
+across every operation in `g`, and let `n_g` be the number of all non-null
+released predictions in `g`. Then:
 
 ```text
 p_g = h_g / n_g

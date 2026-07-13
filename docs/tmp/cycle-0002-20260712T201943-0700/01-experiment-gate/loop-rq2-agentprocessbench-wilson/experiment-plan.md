@@ -1,10 +1,12 @@
 # Experiment plan: finite-evidence semantic ranking on AgentProcessBench
 
-**Plan revision:** 2
+**Plan revision:** 3
 
 **Proposed:** 2026-07-13T06:05:24-07:00
 
 **Revised:** 2026-07-13T06:15:08-07:00
+
+**Revised after Round 2:** 2026-07-13T06:24:35-07:00
 
 **Outer gate:** EXPERIMENT
 
@@ -106,8 +108,16 @@ derived from them.
 ## Released-vote score
 
 For each operation, load the same 20 official blind-judge prediction slots used
-by the first construction. Give every judge equal weight. For each profile
-group `g`:
+by the first construction. Give every judge equal weight. Every scoring group
+is family-local:
+
+```text
+g = (family, AgentProf stack key)
+```
+
+Operations and votes never pool across families, even if their AgentProf stack
+keys are textually identical. This identity applies to full-population point
+estimates, every matched shuffle, and every bootstrap draw. For each `g`:
 
 ```text
 h_g = number of non-null released predictions equal to -1 in g
@@ -137,7 +147,7 @@ Real `agentpprof 0.2.37` constructs all group assignments. The released-vote
 aggregator reads those exact assignments and independently totals `h_g` and
 `n_g` before applying the same Wilson-shaped score to:
 
-1. **flat:** one group;
+1. **flat:** one group per family;
 2. **per session:** one group per trajectory;
 3. **raw action:** `action → target → repeat_state`;
 4. **semantic operation stack:**
@@ -256,8 +266,9 @@ After at least three serial independent reviews approve this Markdown plan:
 
 1. extend the existing converter/scorer without changing the prior result;
 2. run focused tests for the Wilson formula, zero-score null-vote handling,
-   the exact tier-end AP formula,
-   label-after-score sequencing, vote accounting, shuffles, and bootstrap;
+   the exact tier-end AP formula, family-local group identity with identical
+   stack keys in different families, label-after-score sequencing, vote
+   accounting, shuffles, and bootstrap;
 3. run a REAL PREFLIGHT on the first 10 query IDs in every family through real
    AgentProf, score materialization, and final scoring;
 4. independently review validity; preflight values cannot answer the tested
