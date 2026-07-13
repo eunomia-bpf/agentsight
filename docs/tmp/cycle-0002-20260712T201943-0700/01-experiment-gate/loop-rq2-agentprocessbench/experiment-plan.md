@@ -1,20 +1,22 @@
 # Experiment plan: cross-family AgentProcessBench problem localization
 
-**Plan revision:** 1  
-**Proposed:** 2026-07-13T04:52:00-07:00  
-**Outer gate:** EXPERIMENT  
+**Plan revision:** 2
+**Proposed:** 2026-07-13T05:13:00-07:00
+**Outer gate:** EXPERIMENT
 **Research question:** RQ2 — Does Profiler Output Correspond to Real Problems?
 
 ## One tested hypothesis
 
-Across the complete four-family AgentProcessBench population, a
-target-preserving semantic AgentProf stack will localize human-annotated
-harmful steps with higher average precision and less work to recover half of
-the harmful steps than a raw-action profile under the same target-label-blind
-risk signal.
+Using the same externally published, target-label-blind step-risk signal across
+the complete four-family AgentProcessBench population, target-preserving
+semantic context `(intent, phase)` will improve human-harmful-step localization
+over the raw `(action, target, repeat_state)` profile—yielding higher macro
+average precision and lower work-to-50—and its average-precision gain will
+exceed a group-size-matched shuffled refinement of the same raw profile.
 
-This experiment tests that one construction. It does not answer all of RQ2 and
-cannot change the paper thesis, story, four RQs, or positive RQ2 hypothesis.
+This is a decisive RQ2 construction test: it tests that one load-bearing
+localization construction, not all of RQ2. It cannot change the paper thesis,
+story, four RQs, or positive RQ2 hypothesis.
 
 ## Why this experiment matters
 
@@ -48,20 +50,13 @@ No family, trajectory, task, step, or neutral label is discarded. Published
 aggregate statistics may be reported, but target-family labels do not select
 fields, thresholds, metrics, or baselines.
 
-## Four held-out folds
+## Four complete result strata
 
-Run one fold for each target family:
-
-1. train on GAIA + HotpotQA + tau2; score BFCL;
-2. train on BFCL + HotpotQA + tau2; score GAIA;
-3. train on BFCL + GAIA + tau2; score HotpotQA;
-4. train on BFCL + GAIA + HotpotQA; score tau2.
-
-In each fold, the predictor may read human labels from the three reference
-families. It produces every target operation risk and every AgentProf view
-without reading the target-family labels. The scorer reads target labels only
-after those outputs exist. No target result is used to revise the same plan or
-construction.
+BFCL, GAIA dev, HotpotQA, and tau2 are evaluated independently, then combined
+only as an equal-family macro result. There is no model fitting and therefore
+no train/test fold. All operation fields, external risks, and AgentProf views
+are produced before the final scorer reads any human step label. No family
+result may revise the same construction.
 
 ## Fixed visible operation fields
 
@@ -71,16 +66,18 @@ roles, tool calls, tool returns, and step order:
 - `intent`: AgentProf's existing label-blind TF-IDF/K-Means prompt tag over the
   200 unique task descriptions; cluster selection uses its existing silhouette
   procedure over 5–25 clusters and seed 42;
-- `phase`: `open` before the first tool interaction, `work` from the first
-  through the last tool interaction, and `close` afterward;
+- `phase`: `open` before the first assistant tool call, `work` from the first
+  through the last assistant tool call, `close` afterward, and `no_tool` for a
+  trajectory without a tool call;
 - `action`: `tool_call` for an assistant message containing tool calls,
   `final_answer` for the final non-tool assistant message, and `reasoning` for
   every other non-tool assistant message;
 - `target`: the sorted set of called tool names for `tool_call`, `final` for a
   final answer, and `user` for other reasoning;
-- `repeat_state`: `single`, `repeated`, or `loop`, derived from preceding
-  `(action, target)` signatures only;
-- visible numeric context: normalized step position and trajectory length.
+- `repeat_state`: the existing fixed
+  `repeat_features_for_signatures(action, target)` result—`single`,
+  `light-repeat`, `same-action-run`, `same-action-window`, or `target-window`—
+  using only the preceding five-operation window.
 
 The semantic stack retains every raw local field:
 
@@ -97,25 +94,28 @@ action → target → repeat_state
 Thus the comparison adds semantic context without dropping `target`, the
 construction defect found in the completed AgentNet experiment.
 
-The operation converter and risk model must not use `step_labels`,
-`final_label`, ground-truth answers, task rewards, expert explanations, or any
-field derived from them. Source task text is allowed only for the unsupervised
-intent tag.
+The operation converter must not use `step_labels`, `final_label`, ground-truth
+answers, task rewards, expert explanations, or any field derived from them.
+Source task text is allowed only for the unsupervised intent tag.
 
-## Shared target-label-blind risk signal
+## Shared externally published risk signal
 
-Each fold fits one fixed scikit-learn pipeline on its three reference families:
+The official repository releases blind step predictions from all 20 judge
+models evaluated in the KDD paper. For each operation `i`, define:
 
-- one-hot categorical features: intent, phase, action, target, and
-  repeat state, with unknown values ignored;
-- numeric features: normalized step position and `log1p` trajectory length;
-- logistic regression with L2 penalty, `C=1`, balanced class weights, seed
-  4204, and no hyperparameter search.
+```text
+risk_i = count(non-null official predictions equal to -1)
+         / count(non-null official predictions)
+```
 
-The same predicted harmful probability is used by every view. A grouped view
-is ranked by the mean predicted probability of its operations. Complete equal-
-score groups remain tied. Individual-step risk is a strong non-profile
-reference, not a contribution.
+All 20 models have equal weight. Published accuracy does not select or weight a
+model. Exactly three GAIA steps have all 20 predictions null; each receives the
+predeclared uninformative risk `0.5`. Every other step has at least 15 non-null
+predictions. The experiment trains no predictor and incurs no API cost.
+
+The same saved risk is used by every view. A grouped view is ranked by the mean
+risk of its operations. Complete equal-score groups remain tied. Individual-
+step risk is a strong non-profile reference, not a contribution.
 
 ## Five fixed views
 
@@ -126,11 +126,27 @@ Real `agentpprof 0.2.37` constructs and exports every grouped view:
 3. **raw action:** `action → target → repeat_state`;
 4. **semantic operation stack:**
    `intent → phase → action → target → repeat_state`;
-5. **ungrouped risk:** individual operations ranked by the same predictor.
+5. **ungrouped risk:** individual operations ranked by the same external risk.
 
 The first four are actual profile organizations. Ungrouped risk shows how much
-localization comes from the shared predictor without aggregation. No target
-result chooses a comparator or a stack depth.
+localization comes from the shared external signal without aggregation. No
+target result chooses a comparator or a stack depth.
+
+### Group-size-matched shuffled-refinement control
+
+Semantic is a strict refinement of raw action, so a matched control must test
+whether any equally fine split would give the same gain. For each of 200
+permutations derived from seed 4204:
+
+1. enter each `(family, action, target, repeat_state)` raw leaf separately;
+2. jointly shuffle its observed `(intent, phase)` pairs among operations;
+3. keep the pair multiset unchanged.
+
+This preserves the exact semantic subgroup count and subgroup-size multiset in
+every raw leaf while breaking the connection between semantic context and the
+operations assigned to it. The scorer only reaggregates fixed operations and
+risks; it does not retrain or rerun an external model. This is a granularity
+control, not a sixth headline view.
 
 ## Measurements
 
@@ -144,35 +160,40 @@ The two primary metrics use official `-1` labels only in the final scorer:
 Required supporting measurements are:
 
 - recall after inspecting 30% of operations;
-- the benchmark's FirstErrAcc, using 0.5 as the fixed harmful threshold on the
-  risk assigned by each view;
-- StepAcc at the same threshold, treating `0/+1` as non-harmful;
+- a binary adaptation of the benchmark's FirstErrAcc: the first operation with
+  assigned `risk > 0.5` is compared with the official first `-1` operation;
+- binary harmful-step accuracy at the same `risk > 0.5` threshold, treating
+  official `0/+1` as non-harmful; this is not the benchmark's ternary StepAcc;
 - total groups, groups opened to reach 50% of harmful steps, and operations in
   the top five groups;
 - operation and predicted-risk conservation through every AgentProf view;
 - per-family results and an equal-family macro summary.
 
 For uncertainty, run 10,000 paired bootstrap draws. Within every draw, sample
-50 query IDs with replacement inside each held-out family and keep their five
+50 query IDs with replacement inside each family and keep their five
 rollouts together. Use the same draw for every view, then compute the
 equal-family macro effect. Report percentile 95% intervals and all four family
 point estimates. The seed remains 4204.
 
 ## Predeclared comparison and verdict
 
-The only primary comparison is semantic operation stack versus raw action.
+The co-primary comparison is semantic operation stack versus raw action. The
+matched shuffled-refinement distribution tests whether an AP gain comes from
+semantic content rather than finer grouping alone.
 
 - **SUPPORTED:** the macro 95% interval is entirely favorable for both
   semantic-minus-raw average precision and raw-minus-semantic work-to-50, and
-  at least three of four held-out family point estimates favor semantic on
-  both metrics.
+  the observed macro AP gain exceeds the 95th percentile of the 200 matched
+  shuffled refinements.
 - **CONTRADICTED:** the full execution is valid and either macro interval is
   entirely adverse.
-- **MIXED:** every other complete valid outcome.
+- **INCONCLUSIVE:** every other complete valid outcome, including improvement
+  over raw that does not beat the group-size-matched shuffle null.
 
-Recall, FirstErrAcc, StepAcc, per-session grouping, flat grouping, and
-ungrouped risk explain the result but do not silently add more pass conditions.
-This is not a zero-objection gate.
+Recall, adapted FirstErrAcc, binary harmful-step accuracy, per-session grouping,
+flat grouping, ungrouped risk, and per-family heterogeneity explain the result
+but do not silently add more pass conditions. This is not a zero-objection
+gate.
 
 Whatever the verdict, it applies only to this tested stack and fixed risk
 signal. A non-supporting result stays in research history and routes to a new
@@ -182,8 +203,8 @@ experiment; it does not narrow RQ2 or rewrite the paper.
 
 After the plan passes at least three serial independent reviews:
 
-1. implement the converter, four held-out folds, AgentProf invocation,
-   scorer, and focused tests;
+1. implement the converter, released-risk loader, AgentProf invocation,
+   matched shuffle, scorer, and focused tests;
 2. run a REAL PREFLIGHT on the first 10 query IDs from each family through the
    complete pipeline, including real AgentProf and final scoring;
 3. review whether the source joins, target-label boundary, operation counts,
@@ -192,8 +213,48 @@ After the plan passes at least three serial independent reviews:
 5. independently recalculate the full results and write a Markdown result
    review.
 
+Fixed input paths:
+
+```text
+source and blind predictions:
+  docs/visexp/out/agentprocessbench-rq2/source/official-repo
+AgentProf:
+  agentpprof/target/release/agentpprof
+```
+
+Fixed commands:
+
+```bash
+python3 script/agentprocessbench_profile_eval.py preflight \
+  --source docs/visexp/out/agentprocessbench-rq2/source/official-repo \
+  --agentpprof-bin agentpprof/target/release/agentpprof \
+  --out docs/visexp/out/agentprocessbench-rq2/preflight \
+  --query-limit 10 --permutations 200 --bootstraps 1000 --seed 4204
+
+python3 script/agentprocessbench_profile_eval.py full \
+  --source docs/visexp/out/agentprocessbench-rq2/source/official-repo \
+  --agentpprof-bin agentpprof/target/release/agentpprof \
+  --out docs/visexp/out/agentprocessbench-rq2/full \
+  --permutations 200 --bootstraps 10000 --seed 4204
+```
+
+Each output directory contains the visible operations, aligned external risks,
+real AgentProf exports and group assignments, shuffle effects, bootstrap
+effects, machine summary, and a complete `report.md`. These are ordinary data
+artifacts; the approval and result contracts remain the Markdown plan and
+reports.
+
+The FULL run is complete only when it accounts for exactly four families,
+1,000 trajectories, 8,509 assistant steps, 20 prediction slots per step, the
+three declared all-null steps, all five fixed views, 200 matched shuffles, and
+10,000 paired query-cluster bootstrap draws. Each step must have exactly one
+human label, one external risk, and one assignment in every grouped view. Every
+view must conserve operation count and risk sum. Every shuffle must preserve
+the exact semantic subgroup-count and subgroup-size multiset inside every raw
+leaf.
+
 The preflight may repair implementation defects. It may not change the RQ,
-hypothesis, population, fields, model, views, metrics, or verdict based on a
+hypothesis, population, fields, risk, views, metrics, or verdict based on a
 target result. Any scientific change returns to PROPOSE and repeats plan
 review.
 
@@ -203,6 +264,8 @@ A source-screening command accidentally printed part of the HotpotQA and tau2
 label files before this plan was written. The detailed incident is recorded in
 `source-protocol-baseline-report.md`. No label distribution or candidate-stack
 metric was computed. Independent plan reviewers must explicitly decide whether
-the now-fixed design remains a valid predeclared external test. If not, this
-complete benchmark becomes development evidence and the same construction is
-confirmed on a new source; no paper claim or RQ is weakened.
+the now-fixed design remains a valid predeclared external test. Revision 1's
+independent review accepted the residual risk after replacement with the
+already-published blind ensemble, provided this source is not described as a
+pristine never-viewed holdout and no result-driven revision occurs. The event
+does not authorize a paper claim or RQ change.

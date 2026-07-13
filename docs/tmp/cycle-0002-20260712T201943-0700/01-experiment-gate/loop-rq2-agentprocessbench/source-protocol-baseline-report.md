@@ -171,9 +171,9 @@ rules, thresholds, or comparator choice.
 
 ## Proposed scientific use, before plan review
 
-The plan should test one construction-level hypothesis and keep RQ2 fixed:
+The plan tests one decisive construction-level hypothesis and keeps RQ2 fixed:
 
-> Across complete held-out AgentProcessBench families, a target-preserving
+> Across the complete four-family AgentProcessBench population, a target-preserving
 > semantic operation stack built from intent, workflow phase, action, target,
 > and repetition will localize human-annotated harmful steps more effectively
 > and with less inspection work than raw-action and per-session profiles under
@@ -186,12 +186,15 @@ from AgentProf's existing label-blind TF-IDF/K-Means prompt tagger over the 200
 unique task descriptions. Candidate phase tags come only from visible message
 and tool-interaction structure. Neither source uses human labels.
 
-Use four leave-one-family-out folds. In each fold, labels from three families
-may fit one fixed risk predictor; the held-out family's labels are read only by
-the final scorer. Bootstrap clusters are original query IDs so the five
-rollouts for one task remain dependent. The exact predictor, stack fields,
-rank rule, metrics, and verdict belong in the approved experiment plan rather
-than being improvised during execution.
+Revision 1 proposed four leave-one-family-out fitted predictors. Independent
+review rejected that choice because the predictor used the same semantic fields
+that defined the tested stack. The approved direction instead uses the one
+fixed released 20-model blind-consensus risk described above, with human labels
+read only by the final scorer. The four families remain complete result strata.
+Bootstrap clusters are original query IDs so the five rollouts for one task
+remain dependent. Exact stack fields, the group-size-matched shuffled control,
+metrics, and verdict belong in the approved experiment plan rather than being
+improvised during execution.
 
 ## Label-exposure incident and consequence
 
