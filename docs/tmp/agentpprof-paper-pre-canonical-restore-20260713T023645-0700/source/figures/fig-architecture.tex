@@ -6,29 +6,15 @@
   input/.style={rectangle, draw, fill=gray!15, minimum width=2.0cm,
                minimum height=0.7cm, font=\small, align=center,
                rounded corners=2pt},
-  output/.style={rectangle, draw, fill=green!12, minimum width=1.6cm,
-                minimum height=0.7cm, font=\small, align=center,
-                rounded corners=2pt},
   arr/.style={-{Stealth[length=1.8mm]}, thick, gray!70},
 ]
-
-% Input (left)
 \node[input] (traj) {Agent\\Trajectories};
-
-% Node 1: Intent Attribution
 \node[box, right=0.8cm of traj, fill=orange!15] (intent) {Intent\\Attribution};
-\node[font=\footnotesize, below=0.05cm of intent, text=gray] (backends) {regex / LLM / clustering};
-
-% Node 3: Stack Construction
+\node[font=\footnotesize, below=0.05cm of intent, text=gray] {regex / LLM / clustering};
 \node[box, right=0.8cm of intent] (stack) {Stack\\Construction};
-
-% Node 4: Output
 \node[box, right=0.8cm of stack, fill=green!12] (out) {Output};
 \node[font=\footnotesize, below=0.05cm of out, text=gray] {pprof / SVG / JSON};
-
-% Arrows
 \draw[arr] (traj) -- (intent);
 \draw[arr] (intent) -- (stack);
 \draw[arr] (stack) -- (out);
-
 \end{tikzpicture}

@@ -1,10 +1,11 @@
 # Cycle 0002 Report — Canonical-Story Evidence Program
 
 **Started:** 2026-07-12T20:19:43-07:00
-**Status:** EXPERIMENT gate active; complete CodeTraceBench run passed execution;
-independent result review classifies the tested construction MIXED and routes to
-one ToolSafe TS-Bench operational-effect transfer experiment without changing
-RQ2, the positive hypothesis, thesis, story, or paper
+**Status:** EXPERIMENT gate active; CodeTraceBench completed with a MIXED tested
+construction and ToolSafe completed with a valid but CONTRADICTED tested
+construction. Neither result directly challenges the thesis, four RQs, or
+positive RQ2 hypothesis. The experiment loop is screening a materially
+different real public source rather than tuning either failed construction.
 
 ## Objective
 
@@ -24,21 +25,21 @@ This cycle changes evidence and mechanisms, not story.
 
 ## Current Route
 
-1. completed official-source/protocol/baseline refresh: CodeTraceBench verified
-   subset selected as the primary RQ2 condition;
-2. corrected source identity: verified is an exact subset of full; the source
-   has 3,316 unique manifest rows, 3,291 released raw archives, and 992
-   raw-available verified rows;
-3. completed source-unit audit over all 992 raw-available verified rows: 911
-   align exactly, including 405 failed trajectories that define the primary
-   target population; 89 rows remain explicit source exclusions;
-4. completed one real end-to-end preflight through source extraction, release
-   AgentProf, task-held-out reference profiles, pre-label predictions, terminal
-   label join, and primary metrics; implementation re-review is next;
-5. one full `research-experiment-design` loop over all released raw trajectories
-   through complete result review, with each target scored from other tasks;
-6. light evidence propagation under the canonical story lock;
-7. REVIEW reflection and next fixed RQ.
+1. completed the full CodeTraceBench hidden-label experiment and independent
+   result review; the run was valid and the tested construction was MIXED;
+2. completed three serial ToolSafe plan reviews, a real preflight, a second
+   preflight review, the full 7,182-record run, and an independent result
+   review; the run was valid and the construction was CONTRADICTED because its
+   aggregate advantage reversed by family and on the unsafe-only target;
+3. preserved the positive RQ2 hypothesis and prohibited tuple, label, threshold,
+   family-weight, or fallback tuning on ToolSafe;
+4. materially restored the user-designated canonical AgentProf scientific body
+   into the active AAAI paper workspace without editing the submodule;
+5. screen the next independent public benchmark and published protocol, then
+   run one complete `research-experiment-design` loop after at least three
+   serial plan reviews;
+6. propagate only complete positive evidence under the canonical story lock;
+7. finish WRITE and whole-paper REVIEW before deciding the next fixed RQ.
 
 ## Current Reports
 
@@ -60,3 +61,11 @@ This cycle changes evidence and mechanisms, not story.
 - end-to-end output:
   `../../visexp/out/codetracebench-rq2/real-preflight/report.md`; implementation:
   `../../../script/codetracebench_agentprof_eval.py`.
+- ToolSafe source and protocol audit:
+  `01-experiment-gate/loop-rq2-toolsafe/source-protocol-baseline-report.md`;
+- ToolSafe approved experiment plan and serial review history:
+  `01-experiment-gate/loop-rq2-toolsafe/experiment-plan.md` and
+  `01-experiment-gate/loop-rq2-toolsafe/plan-review.md`;
+- ToolSafe complete run and independent result review:
+  `01-experiment-gate/loop-rq2-toolsafe/full-run-report.md` and
+  `01-experiment-gate/loop-rq2-toolsafe/result-review.md`.

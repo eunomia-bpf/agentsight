@@ -201,10 +201,14 @@ unchanged mechanisms as positive evidence and teach that grouping needs a real
 visible signal and that recursion alone is insufficient. They are development
 history, not the current paper's result story and not a thesis challenge.
 
-The final paper reports only results from the materially improved methods and
-complete experiments that answer the four fixed RQs. Until those experiments
-finish, the draft uses explicit unresolved-result TODOs rather than unaudited
-positive numbers or a limitation-centered negative narrative.
+The final paper reports only results from materially improved methods and
+complete experiments that answer the four fixed RQs. During the current
+restoration, the original positive empirical sentences remain in the canonical
+paper as the intended claim surface; their presence is not an internal
+authorization verdict. Experiment records identify which numbers are verified,
+superseded, or still require reruns. WRITE replaces a number only with complete
+positive evidence for the same RQ and hypothesis, rather than turning local
+negative development results into the paper's story.
 
 ### Competing Explanations
 
@@ -419,6 +423,35 @@ only the later evidence discipline, making it both stronger and more faithful.
 **Revisit:** the submodule story remains the project-level baseline until a
 later explicit user instruction changes it. Reviewer objections, venue advice,
 local negative results, and writing improvements cannot replace it.
+
+### E008 — Materialize the canonical paper in the AAAI workspace
+
+**Before:** `docs/agentpprof-paper/main.tex` was declared authoritative, but
+`docs/paper/main.tex` still contained the shorter reviewer-driven rewrite. The
+two files differed across 1,142 lines, so the repository's active paper did not
+actually implement E007.
+**After:** the complete submodule scientific body—from abstract through
+conclusion—and its bibliography and figures now occupy `docs/paper/`. The only
+changes are the official AAAI-27 anonymous-submission wrapper, author
+anonymization, bibliography invocation, and a no-op compatibility definition
+for ACM's accessibility-description command. The prior active draft is
+archived under
+`docs/tmp/agentpprof-paper-pre-canonical-restore-20260713T023645-0700/`.
+**Reason/evidence:** the user identified the attached/submodule LaTeX as the
+exact desired version after a normalized byte comparison proved they were
+identical, then reaffirmed that this version is the authority. A mechanical
+content comparison now proves the active scientific body is exact.
+**Root disposition:** accept the material restoration; preserve every original
+story section and four RQs; treat original numerical sentences as positive
+targets that still require complete experimental authorization.
+**Initial/previous/chosen comparison:** the chosen paper is the Initial
+Narrative itself, not a new story. The superseded active draft remains useful
+for possible citations and formatting but is smaller and unauthorized as a
+replacement narrative.
+**Detail:** [pre-restoration archive and provenance report](tmp/agentpprof-paper-pre-canonical-restore-20260713T023645-0700/README.md).
+**Revisit:** future WRITE passes may improve expression and replace empirical
+values with stronger complete evidence, but they must begin by comparing
+against this exact restored body and may not silently reinvent the story.
 
 ## Invariants For Every Future Story Decision
 

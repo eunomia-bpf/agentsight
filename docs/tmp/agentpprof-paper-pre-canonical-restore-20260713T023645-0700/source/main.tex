@@ -1,0 +1,655 @@
+\documentclass[letterpaper]{article}
+\usepackage[submission]{aaai2027}
+
+\usepackage[hyphens]{url}
+\urlstyle{rm}
+\def\UrlFont{\rm}
+\usepackage{graphicx}
+\usepackage{natbib}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xspace}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\frenchspacing
+\pdfinfo{
+/TemplateVersion (2027.1)
+}
+
+\newcommand{\sys}{\textsc{AgentProf}\xspace}
+\newcommand{\operation}{\texttt{operation}\xspace}
+\newcommand{\opstack}{\texttt{operation stack}\xspace}
+
+\begin{document}
+
+\title{AgentProf: Semantic Profiling for AI Agents}
+\author{Anonymous Submission}
+\affiliations{}
+
+\maketitle
+
+\begin{abstract}
+AI agents increasingly orchestrate long-running, multi-step activities
+involving thousands to millions of interactions with users, tools, and system
+resources. To improve agent quality, safety, and cost efficiency, developers
+need to determine where failures concentrate, which workflows trigger unsafe
+effects, and which task categories consume the most budget. Traditional
+profiling answers analogous questions in systems software by aggregating
+resource consumption under responsible code paths rather than debugging one
+execution at a time. Yet existing agent observability tools are mainly built
+for debugging and tracing, not profiling. Agent behavior also requires a
+different profiling index: responsible entities are semantic categories such
+as task intent and workflow phase, while natural-language activities lack the
+stable semantic identifiers and cross-run attribution hierarchy provided by a
+runtime call stack. We propose a semantic operation stack model that adapts
+profiling to agent trajectories. Uniform \operation{} records represent agent
+activities and effects, and query-time \opstack{} paths provide hierarchical
+attribution at different semantic granularities from the same data. \sys
+implements this model as an offline Rust profiler with pluggable intent
+attribution and stack construction and emits pprof-compatible profiles. Our
+four RQs evaluate resource attribution, correspondence to real problems, tag
+accuracy, and profiling cost on real trajectories and public agent datasets.
+% 长期运行的 AI agent 产生跨 prompt、model、tool 与 system effect 的 trajectory 集合。逐运行调试会拆散重复成本、regression 与 unsafe effect。Agent observability 需要 profiling，而不只是 debugging。AgentProf 把 trajectory 作为 profiling sample，以 operation 和查询时 operation stack 归因跨运行的 measured activity，并围绕 attribution、real problems、tag accuracy 和 cost 进行完整评估。
+\end{abstract}
+
+%% ===================================================================
+\section{Introduction}
+\label{sec:intro}
+
+%% ¶1: Background + context
+AI agents~\cite{sweagent,claudecode,codexcli,osworld} orchestrate multi-step
+activities that span high-level intent---prompts, large language model calls,
+and tool invocations---and low-level system effects such as process spawns and
+file or network I/O. As agents evolve from short, scripted workflows into
+complex systems that run for hours or days, production teams accumulate many
+such trajectories over weeks or months.
+% AI 智能体编排跨越高层意图和低层系统副作用的多步骤活动；随着运行时间和交互规模增长，团队会积累许多轨迹。
+
+%% ¶2: Problem
+To improve agent quality, safety, and cost efficiency, developers need to
+analyze operational behavior across trajectories. Which task categories
+consume the most token budget? Where do failures concentrate across workflows?
+Which behavioral patterns trigger unsafe system effects? Answering these
+questions requires analysis across many trajectories~\cite{agentatlas,agentrewardbench},
+which becomes costly for manual inspection or per-trajectory LLM
+evaluation~\cite{llm-as-judge}. In traditional systems software, profiling
+answers such questions by aggregating resource consumption under responsible
+entities, rather than debugging or tracing a single execution.
+% 为了提高质量、安全性和成本效率，开发者需要跨轨迹回答预算、故障和不安全副作用集中在哪里。
+
+%% ¶3: Existing solutions
+Yet existing agent tools support debugging and tracing rather than profiling
+(Section~\ref{sec:background}). Span-based tools~\cite{langsmith,langfuse,phoenix,otel}
+organize events into per-execution trees that are effective for diagnosing one
+run but do not aggregate resource consumption by semantic category across
+runs. Other systems~\cite{datadog-llmobs,laminar-signals} cluster inputs or
+extract structured signals, but input distributions do not by themselves
+attribute downstream model, tool, and system costs to the responsible work.
+% 现有工具主要面向单次运行调试或输入分布分析，而不是把下游资源和副作用跨运行归因到语义类别。
+
+%% ¶4: Challenge
+Adapting profiling to agent trajectories is challenging. In traditional
+software, stable function names identify responsible entities and runtime call
+nesting supplies the attribution hierarchy. Agent behavior differs: the
+responsible entities are semantic categories such as task intent and workflow
+phase, while two natural-language activities with the same intent need not
+share an identifier. Agent traces may preserve execution spans, but execution
+location alone does not define the semantic hierarchy needed to aggregate
+recurring work across runs.
+% 传统 profiler 从函数名和调用栈获得稳定责任实体与层次；agent profiling 必须从自然语言活动中获得跨运行的语义身份与归因层次。
+
+%% ¶5: Model
+Despite these differences, the fundamental profiling methodology transfers:
+project resources onto responsible entities, assign stable tags, and attribute
+them hierarchically. Agent observability needs profiling, not only debugging.
+We propose a semantic operation stack model with two components. Uniform
+\operation{} records represent prompts, model calls, tool invocations, and
+system effects with additive measures. \opstack{} paths replace the fixed
+runtime call stack for semantic attribution: choosing task, phase, action,
+session, or effect fields changes the granularity while retaining the same
+recorded evidence.
+% 基本 profiling 方法可以迁移到 agent trajectory：统一 operation 记录活动和度量，operation stack 提供查询时语义归因。
+
+%% ¶6: This paper, system, and evaluation
+We implement this model in \sys, an offline Rust profiler that compiles local
+agent trajectories and trace containers into pprof-compatible profiles
+(Figure~\ref{fig:architecture}). Pluggable intent-attribution methods derive
+stable tags from natural-language fields, and pluggable stack construction
+builds the semantic attribution hierarchy. We evaluate whether the resulting
+profiles improve resource attribution, locate real problems, derive accurate
+tags, and remain practical on real trajectories and public agent datasets.
+% AgentProf 以可插拔意图归因和栈构造实现语义 operation stack 模型，并围绕四个固定 RQ 进行评估。
+
+%% ¶7: Contributions
+This paper makes three contributions:
+% 本文提出三项贡献，并明确当前证据边界：
+
+\begin{enumerate}
+\item \textbf{Semantic operation stack model.}
+  We identify the missing profiling layer in agent observability and propose
+  uniform operations plus query-time operation stacks for semantic resource
+  attribution (Background and Motivation; Design).
+% 语义 operation stack 模型。识别 agent observability 中缺失的 profiling 层，并提出统一 operation 与查询时 operation stack。
+\item \textbf{System: \sys.}
+  We implement the model in a profiler with pluggable intent attribution and
+  stack construction that produces pprof-compatible output (Design;
+  Implementation).
+% 系统 AgentProf。实现具有可插拔 intent attribution 和 stack construction 的 profiler。
+\item \textbf{Evaluation.}
+  We evaluate profiler output through resource attribution, correspondence to
+  real problems, tag accuracy, and profiling cost on real trajectories and
+  public datasets (Evaluation).
+% 评估。围绕四个固定问题，在真实轨迹和公开数据集上验证 profiler output。
+\end{enumerate}
+
+%% ===================================================================
+\section{Background and Motivation}
+\label{sec:background}
+
+\subsection{LLMs and AI Agents}
+% AI 智能体
+
+We use \emph{trajectory} for one recorded agent execution and
+\emph{cross-run} for aggregation, transfer, or models learned across
+multiple trajectories. Session and span denote source-specific fields
+within one trajectory.
+
+A typical agent trajectory interleaves two layers of activity.
+% 典型的智能体轨迹交织两层活动。
+At the intent layer, the agent receives a user prompt, issues LLM
+calls, and invokes tools (code execution, web search, file editing).
+% 在意图层，智能体接收用户提示词、发出 LLM 调用并调用工具（代码执行、网络搜索、文件编辑）。
+Tool invocations can trigger lower-layer system effects, including
+process spawns, file reads and writes, and network requests~\cite{agentsight}.
+% 每次工具调用在下层触发系统副作用：进程创建、文件读写和网络请求。
+These layers repeat through a trajectory, and a corpus accumulates many
+trajectories over time.
+% 这些层在一条 trajectory 中反复出现，corpus 随时间积累许多 trajectories。
+
+\subsection{System Profiling}
+% 系统 Profiling
+
+Profiling aggregates resource consumption by responsible entity,
+unlike single-execution debugging and tracing.
+% Profiling 通过聚合将资源消耗归因到负责实体，区别于单次执行调试和 tracing。
+Traditional profilers sample execution state, attach each sample to its
+call stack, and merge identical stacks.
+% 在传统软件中，profiling 管线如下工作：profiler 周期性采样执行状态，将每个样本附加到当前调用栈，合并具有相同栈的样本。
+Flame graphs~\cite{flamegraphs} and pprof~\cite{pprof} call graphs
+visualize these aggregates, while Perfetto SQL~\cite{perfetto} and
+pprof's \texttt{tagroot}/\texttt{tagleaf} regroup supplied semantic
+attributes.
+% 火焰图~\cite{flamegraphs}和 pprof~\cite{pprof} 调用图可视化其结果，宽度或节点大小代表聚合开销。
+
+\subsection{Challenges for Agent Profiling}
+% 智能体 Profiling 的挑战
+
+Existing tools~\cite{langsmith,langfuse,phoenix,otel} record agent
+events as per-execution span trees, effective for debugging a single
+trajectory.
+% 现有工具~\cite{langsmith,langfuse,phoenix,otel}将智能体事件记录为按执行划分的 span 树，有效调试单次运行。
+AgentSight~\cite{agentsight} bridges intent and system-effect layers
+by correlating eBPF-captured system events with intercepted LLM
+traffic, but the resulting recordings still lack aggregate profiling.
+% AgentSight~\cite{agentsight} 通过关联 eBPF 捕获的系统事件与拦截的 LLM 流量来桥接意图层和系统副作用层，但生成的记录仍缺乏聚合分析能力。
+
+
+Adapting profiling to agent trajectories faces two core challenges.
+In traditional software, stable function identities and
+the call stack jointly identify which code path owns a sample at every
+level. First, agent profiling instead asks which semantic role, such as task
+intent or workflow phase, owns an effect across trajectories. Equivalent
+natural-language activities need not share a stable identifier. Second, when
+present, a trajectory's emitted span tree encodes execution structure
+rather than cross-run semantic responsibility. The tree therefore cannot
+by itself determine whether a task, phase, action, or system effect
+should define the attribution granularity.
+% 将 profiling 适配到智能体轨迹会暴露抽象错位。在传统软件中，稳定的函数身份和调用栈共同回答每个层级由哪条代码路径拥有一个样本。智能体 profiling 则询问跨运行由哪个语义角色（如任务意图或工作流阶段）拥有某个影响。等价的自然语言活动不一定共享稳定标识符；即使存在运行/span 树，它固定的也是执行结构，而非跨运行的语义责任，因此本身无法决定任务、阶段、动作或系统影响应按哪些替代粒度归因。
+An agent profiler must therefore derive stable semantic tags and construct an
+attribution hierarchy while retaining the original execution evidence.
+% 因此 agent profiler 必须派生稳定语义标签并构造归因层次，同时保留原始 execution evidence。
+
+\subsection{Design Requirements for Agent Profiling}
+% 智能体 Profiling 的设计需求
+
+Traditional profiling obtains three mechanisms from the call stack. Agent
+profiling needs the same capabilities for agent trajectories:
+
+\begin{description}
+\item[R1: Cross-layer resource projection.]
+Connect model, tool, and system resource consumption to the intent-layer
+semantic categories responsible for that work.
+\item[R2: Stable tags for folding.]
+Derive short, stable, repeatable tags from natural-language activity so
+equivalent work can fold across trajectories.
+\item[R3: Hierarchical attribution.]
+Construct semantic attribution hierarchies at the granularity required by the
+analysis rather than assuming one fixed execution tree answers every cross-run
+question.
+\end{description}
+
+%% ===================================================================
+\section{Design}
+% 设计
+\label{sec:design}
+
+The three requirements---cross-layer resource projection, stable tags, and
+hierarchical attribution---drive the design. Operations
+(Section~\ref{sec:ops}) represent intent and system-effect activities in one
+record and allow intent-layer tags to propagate to the effects they trigger.
+Intent attribution (Section~\ref{sec:intent}) derives stable tags from
+natural-language fields. Operation stacks (Section~\ref{sec:stacks}) replace
+the fixed runtime call stack with query-time field projections that attribute
+resources at multiple semantic granularities from the same data.
+
+The profiling pipeline has four stages: (1) parse raw trajectories into
+operations, (2) enrich operations through intent attribution or mapping rules,
+(3) project each operation onto a stack-frame sequence selected at query time,
+and (4) fold operations with identical stacks while summing their weights.
+% 三个设计需求直接导出 operation、intent attribution 和 operation stack；完整 pipeline 从 trajectory parsing 到加权 stack folding。
+
+\begin{figure}[t]
+\centering
+\resizebox{\linewidth}{!}{\input{figures/fig-architecture.tex}}
+\caption{AgentProf pipeline. Agent trajectories pass through pluggable intent
+attribution and stack construction before standard profiler output.}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Semantic Operation Stack Model}
+% 语义 Operation Stack 模型
+\label{sec:ops}
+
+%% ¶1: Operations
+Because agent activities span both the intent and system-effect
+layers described above, a profiler should
+represent both uniformly.
+% 由于智能体活动跨越 \S\ref{sec:background} 中描述的意图层和系统副作用层，分析器不应在数据表示层面区分它们。
+\sys therefore represents every activity as an \operation, a weighted
+record with string fields and additive measures.
+% 因此 \sys 将每个活动表示为单一抽象——operation，一个带有字符串字段和可加度量的加权记录。
+Illustrative string fields include \texttt{project},
+\texttt{agent}, \texttt{session}, \texttt{prompt\_tag},
+\texttt{kind}, \texttt{model}, \texttt{path}, \texttt{domain}, and
+\texttt{status}. A prompt, an LLM call, a tool invocation, a file read, a GUI
+click, and a process event share this schema and differ only in populated
+fields.
+% 每个 operation 携带字符串字段（\texttt{project}、\texttt{agent}、\texttt{session}、\texttt{prompt\_tag}、\texttt{kind}、\texttt{model}、\texttt{path}、\texttt{domain}、\texttt{status} 等）和可加度量（token 数、持续时间、事件数）。
+
+The reported built-in profiles use token count, elapsed time to the next recorded
+event, and event count. The schema accepts arbitrary imported fields, so source
+operation IDs and native run, trace, span, tool, or parent paths remain
+available for source-native projections when the input supplies them.
+% 提示词、LLM 调用、工具调用、文件读取、GUI 点击和进程事件都是具有相同 schema 的 operation，仅通过哪些字段有值来区分。
+
+%% ¶2: Operation Stacks
+\subsection{Operation Stacks}
+% Operation stacks
+\label{sec:stacks}
+In CPU profiling, the call stack determines which code paths
+share responsibility for a resource cost.
+% 在 CPU 分析中，调用栈决定哪些代码路径共同承担资源开销。
+An \opstack serves the same role for agent trajectories: it is an ordered list
+of fields $[f_1,f_2,\ldots,f_k]$ that projects each operation $o$ to the frame
+sequence $\langle o.f_1,o.f_2,\ldots,o.f_k\rangle$. Operations with identical
+sequences are merged and their additive weights are summed.
+% Operation stack 是有序字段列表，把每个 operation 投影成 frame sequence，并折叠相同序列、累加权重。
+
+Unlike a runtime call stack, these fields are chosen at query time. The same
+operations can therefore be attributed as a flat task summary, a per-session
+tree, a semantic phase/action hierarchy, or a source-native trajectory view.
+Changing fields changes attribution without changing the recorded data.
+Sessions and spans are optional operation fields, so including
+\texttt{session} yields a debugging view while excluding it yields an aggregate
+profiling view.
+% 字段在查询时选择；同一组 operation 可以形成 task、session、phase/action 或 source-native 等不同 profile。
+
+A profile view is a triple $(\varphi,\sigma,w)$: predicate $\varphi$ selects
+operations, stack function $\sigma=[f_1,\ldots,f_k]$ maps an operation to its
+frame sequence, and weight function $w$ assigns a nonnegative measure. Built-in
+views cover token count, elapsed time, file operations, and network operations.
+This compact model lets the same evidence answer different attribution
+questions without adding another scientific abstraction.
+% view 由选择 operation 的 predicate、构造 frame sequence 的 stack function 和指定可加度量的 weight function 组成。
+
+\subsection{Algorithms}
+% 算法
+\label{sec:intent}
+
+\paragraph{Intent attribution.}
+Intent attribution maps natural-language prompts to short, stable, repeatable
+tags, giving agent trajectories the identifiers that traditional profiling
+gets from function names. The framework supports three pluggable backends.
+Ordered regular-expression rules are the production default. A cached local
+LLM tagger can generate constrained short labels, and TF-IDF/K-Means clustering
+can discover recurring prompt groups to help author rules. For structured
+trajectories, mapping rules derive semantic fields from existing action and
+state fields.
+% Intent attribution 通过 regex、local LLM、clustering 或 structured mapping 把自然语言活动映射到稳定标签。
+
+\paragraph{Stack construction.}
+Stack construction builds an attribution hierarchy from available fields. When
+users supply an ordered field list, projection is direct. When no field list is
+supplied, \sys can induce stacks by scoring adjacent operations for shifts in
+prompt content and structured fields, then placing boundaries between work
+phases. A configurable depth cap controls granularity. Both modes produce the
+same weighted stack representation and standard profiler outputs.
+% Stack construction 可以直接使用用户给出的字段序列，也可以从相邻 operation 的内容与字段变化中诱导阶段边界。
+
+%% ===================================================================
+\section{Implementation}
+% 实现
+\label{sec:impl}
+
+\sys is an offline, post-hoc profiler implemented as a Rust CLI
+(Figure~\ref{fig:architecture}). It reads Codex~\cite{codexcli} and Claude
+Code~\cite{claudecode} local histories, explicit operation JSONL, portable
+agent-session traces, and Chrome/Perfetto trace containers. AgentSight
+recordings~\cite{agentsight} enter after conversion to a supported operation or
+trace input. These importers reconstruct prompts, model calls, tool invocations,
+and recorded file, process, and network effects as uniform operations.
+% AgentProf 是离线 Rust profiler，读取 Codex/Claude 历史、统一 operation、trace container 和 AgentSight recording。
+
+The implementation provides pluggable intent-attribution and stack-construction
+algorithms over one folding pipeline. Output formats include pprof protobuf,
+folded-stack text, standalone SVG flame graphs, and JSON summaries. Pprof
+profiles open with \texttt{go tool pprof -http}, and folded stacks render with
+\texttt{flamegraph.pl}.
+% 实现以一条 folding pipeline 支持可插拔 intent attribution 与 stack construction，并输出 pprof、folded stack、SVG 和 JSON。
+
+Built-in profiles weight model calls by token count, timed operations by
+elapsed duration, and file or network operations by event count.
+% 内置 profile 分别按 token、elapsed time、file event count 和 network event count 加权。
+All admitted results use positive integer weights. The current importer
+normalizes an imported zero value to one, so the paper makes no claim about
+faithful zero-valued measures until that behavior is corrected.
+
+%% ===================================================================
+\section{Evaluation}
+% 评估
+\label{sec:eval}
+
+We ask four paper-level research questions. \textbf{RQ1: Does Semantic
+Profiling Improve Resource Attribution?} \textbf{RQ2: Does Profiler Output
+Correspond to Real Problems?} \textbf{RQ3: How Accurate Are the Tags?}
+\textbf{RQ4: What Is the Profiling Cost?} Together they test whether semantic
+profiling attributes real additive measures, brings real annotated problems to
+the analyst's attention, retains accurate tags on unseen data, and remains
+practical at scale. Each subsection distinguishes verified evidence
+from the complete experiment required for a final answer.
+% 我们提出四个论文级研究问题：resource attribution、real-problem localization、tag accuracy 和 profiling cost。它们构成从归因到问题定位、语义可靠性与实用成本的完整证明链。
+
+\subsection{Experimental Setup}
+
+We use two data classes.
+% 我们使用两类数据。
+The \emph{real agent trajectories} comprise 325 readable local
+trajectories (198~Codex, 50~Claude, 77~Claude subagent) from a
+multi-month development project and contain 183{,}714 system
+observations.
+% 真实智能体会话：来自一个多月开发项目的 325 个可读本地会话（198 个 Codex、50 个 Claude、77 个 Claude 子智能体），包含 183,714 个系统观测。
+The \emph{public annotated trajectories} comprise 15 families used to
+evaluate mapping and representation coverage, with 47{,}590 operations
+from real agent or human executions.
+% 公开标注轨迹：15 个用于映射与覆盖的真实智能体或人类执行家族，通过映射规则共计 47,590 个 operation，另有下述两个保留故障家族。
+These families cover web agents (WebLINX~\cite{weblinx},
+Mind2Web~\cite{mind2web}, AgentTrek~\cite{agenttrek}, and
+WebShop~\cite{webshop}) and API agents (API-Bank~\cite{apibank},
+ToolBench~\cite{toolbench}, and tau-bench~\cite{taubench}). They also
+cover coding agents (SWE-agent~\cite{sweagent}) and mobile/GUI agents
+(AndroidCtrl~\cite{androidcontrol}, GUI-Odyssey~\cite{guiodyssey}, and
+ScaleCUA~\cite{scalecua}). The remaining four families are
+AgentRewardBench~\cite{agentrewardbench}, SATraj-OS~\cite{safactory},
+OSWorld-Human~\cite{osworldhuman}, and AgentNet~\cite{opencua}.
+% 涵盖 web 智能体、API 智能体、编码智能体和移动/GUI 智能体；另外四个 family 是 AgentRewardBench、SATraj-OS、OSWorld-Human 和 AgentNet。
+
+Each RQ uses controls appropriate to its question while holding visible inputs
+fixed within each comparison. RQ1 uses the complete 325-trajectory corpus,
+four declared grouping projections, and 1{,}000 session-preserving
+permutations. RQ2 hides real failure, safety, redundancy, and task-boundary
+annotations from every non-oracle method and compares localization and
+inspection work. RQ3 fixes its tag vocabulary and tagger before held-out
+family evaluation. RQ4 measures release-build parsing, field derivation,
+caching, folding, output, CPU, peak memory, and storage. Reference annotations
+are scoring-only unless a view is explicitly marked as an oracle upper bound.
+% 每个 RQ 使用自己的对照；同一比较中的 visible input 保持一致，reference annotation 只用于 scoring 或明确标记的 oracle。
+%% -------------------------------------------------------------------
+\subsection{RQ1: Does Semantic Profiling Improve Resource Attribution?}
+% RQ1：语义 profiling 是否改善 resource attribution？
+
+RQ1 asks whether semantic profiling improves attribution of independently
+recorded resources across runs. The current evidence establishes that every
+projection conserves the selected measure and that semantic fields can reunite
+declared recurring work that flat or session-only profiles mix. The complete
+answer additionally measures independent tool, span, and process lineage.
+% RQ1 将正确性与守恒分开。正确性要求每个下游影响继承其真实工具/进程谱系中独立验证的语义上下文；守恒要求每个 operation 只分配一次且总度量不变。当前消融检验守恒和声明类别分离，而非谱系正确性。
+
+We run an ablation over semantic grouping fields on 325 real
+Codex/Claude trajectories (183{,}714 system observations).
+% 我们在 325 个真实 Codex/Claude 轨迹（183,714 个系统观测）上进行语义轴消融。
+We compare four projections (no tags, session only, prompt only, and
+session plus prompt) and report two measures: (1) mixed-weight
+percentage, the fraction of system-effect weight in groups containing
+multiple prompt-tag categories, and (2) residual percentage, the weight
+in groups whose majority category accounts for less than 90\% of the
+group's weight.
+% 我们比较四种投影（无标签、仅会话、仅提示词、会话加提示词），测量混合权重百分比——混合了多个任务类别观测的桶中的系统副作用权重比例。
+
+Lower values indicate stronger separation of the declared categories.
+Because the same categories define the reference, both measures describe
+accounting and compression rather than independently verified intent.
+% 更低百分比表示投影分离了更多已声明的提示词标签类别。由于这些类别同时定义分离 oracle，这是一项记账/压缩属性，而不是标签恢复真实意图的独立证明。
+
+The prompt-tag projection separates the declared categories more strongly,
+whereas the no-tag projection mixes their contexts
+(Figure~\ref{fig:rq1-separation}). For example,
+\texttt{cargo~test} appears 2{,}903 times but the no-tag projection cannot
+distinguish review, refactor, research, design, and test contexts.
+% 没有语义标签时，几乎所有系统副作用权重落入混合桶：扁平的 cargo test 计数器显示 2,903 次执行，但无法区分 review、refactor、research、design 和 test 上下文。
+
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=\linewidth]{figures/fig-rq1-separation.pdf}
+\caption{RQ1 grouping ablation over 183{,}714 observations from 325
+trajectories. Bars show mixed-weight and residual percentages, and the
+line shows unique operation stacks. The selected mixed-weight values are
+90.4\% without tags, 84.4\% with sessions, and 36.7\% with prompt tags. Stack counts
+are 11{,}967, 15{,}027, and 24{,}703. Every projection conserves
+183{,}714 units. This tests declared prompt-tag separation, not lineage.
+}
+\label{fig:rq1-separation}
+\end{figure}
+
+To test whether prompt tags reduce weighted behavior entropy beyond
+session membership, let $B$ be the (\texttt{process}, \texttt{effect},
+\texttt{status}) tuple, $S$ the session, and $P$ the prompt tag. We
+report $100[H_w(B\mid S)-H_w(B\mid S,P)]/H_w(B\mid S)$, where $H_w$ is
+empirical Shannon entropy under system-effect-count weights. In each
+permutation, we expand integer weights into repeated observations and
+shuffle $P$ within each fixed $S$. The observed gain of 8.419\% exceeds the
+null distribution's 95th percentile of 1.903\% over 1{,}000 permutations
+($p=0.001$). This p-value applies to weighted
+observations rather than independent sessions and does not establish
+intent or inheritance correctness.
+% 保持会话的 prompt-to-behavior shuffle 检验 prompt 标签在会话成员关系之外带来的行为熵下降；观测增益为 8.419%，而 1,000 次置换的 null p95 为 1.903%（p=0.001）。统计单元是展开的系统影响权重而非独立会话，因此它不建立意图或继承正确性。
+
+The operation model supports multiple projections across heterogeneous
+trajectory sources. Five field selections fold 13{,}265 operations from nine
+datasets into 9, 57, 226, 455, or 3{,}757 groups, and the operation schema
+represents all 15 families. This coverage makes the same attribution model
+applicable to agent and human trajectories rather than one source-specific
+schema.
+
+The selected measure can change which recurring work appears most prominent.
+Prompt-duration and system-effect-count rankings share seven of their ten
+highest-ranked categories (Spearman $\rho=0.623$), with network-tagged prompts
+ranked 8th and 93rd. The divergence shows why attribution must declare its
+measure.
+% 表示检查在其他视图下保持相同事实：五种字段选择把九个数据集的 13,265 个 operation 折叠为 9、57、226、455 或 3,757 个组，模型覆盖全部 15 个家族；提示词时长与系统影响计数排名共享 7/10 个前十类别（rho=0.623），network 类别排名第 8 与第 93。这些检查验证投影和多度量支持，而非诊断效用或相对 SQL rollup 的优势。
+
+\textbf{RQ1 answer.} In the grouping ablation, semantic profiling conserves all
+183{,}714 units and separates recurring declared work that no-tag and
+session-only profiles mix.
+The complete attribution evaluation joins real trajectories to
+independently recorded tool/span identifiers and sandbox process
+lineage, then measures parent precision/recall, unassigned and duplicate
+effects, and mass loss against a reference independent of \sys{} tags.
+% RQ1 得到部分回答：每个投影只分配每个 operation 一次并保持全部 183,714 单位，建立守恒与声明类别分离，但不建立正确谱系。真实智能体运行仍需与独立记录的原生 tool/span 标识和沙箱进程谱系连接，并报告父级精确率/召回率、未分配和重复影响与质量损失；AgentProf 标签不得定义该 oracle。
+
+%% -------------------------------------------------------------------
+\subsection{RQ2: Does Profiler Output Correspond to Real Problems?}
+% RQ2：profiler output 是否对应真实问题？
+
+RQ2 tests whether the profiler's top-ranked groups actually contain real
+failures, safety violations, or wasted effort. We use public benchmark datasets
+with independently supplied quality annotations, hide those annotations from
+the profiler, and check whether its highest-ranked groups recover them. This is
+analogous to evaluating a CPU profiler against known bottlenecks without giving
+their locations to the profiler.
+
+The complete experiment covers multiple real agent and human-trajectory
+families with failure, unsafe-operation, redundant-step, and task-boundary
+annotations. It compares a flat summary, per-session grouping, the dataset's
+native hierarchy, raw-action grouping, and semantic operation-stack profiling.
+Hidden-annotation views appear only as oracle upper bounds. Every non-oracle
+method receives the same visible operations and fields.
+
+The primary outcomes are average precision, recall among the highest-ranked
+groups, recall at a fixed inspection budget, work to the first positive, total
+inspection work, and group count. The semantic profile supports RQ2 when it
+concentrates hidden positives into useful groups and reduces analyst inspection
+relative to flat and per-session views without using the target labels.
+
+\textbf{RQ2 evaluation.} The complete experiment reports all included tasks,
+all non-oracle baselines, the hidden-label protocol, localization quality, and
+inspection effort. Intermediate failed constructions remain in experiment
+history rather than defining the paper's final result story.
+
+%% -------------------------------------------------------------------
+\subsection{RQ3: How Accurate Are the Tags?}
+% RQ3：tags 有多准确？
+\label{sec:rq3}
+
+RQ3 asks whether tags remain accurate and stable on unseen agents and task
+families. A tag is useful only if it is derived without reference
+annotations, agrees with an independently meaningful task, phase, action, or
+boundary annotation, and does not materially distort the attribution
+reported by RQ1.
+
+The complete experiment fixes one tag vocabulary and one target-blind tagger or
+mapping before target inspection. It leaves out both benchmark families and
+agent/model families, then compares predicted task, phase, action, and boundary
+tags with independently supplied annotations using macro-F1, V-measure,
+boundary precision/recall/F1, abstention, coverage, and stability. Reference
+annotations never enter field derivation, model selection, or vocabulary
+revision.
+
+To connect tag accuracy to profiling rather than treat annotation agreement as
+an end in itself, the experiment replaces predicted tags with independent
+reference tags and measures changes in RQ1 resource totals and rankings. A
+clean result must include every held-out family and report contamination checks
+for mappings, prompts, and ranking choices developed in earlier work.
+
+\textbf{RQ3 evaluation.} The complete target-blind held-out experiment remains
+required. Historical mapping and boundary scores are omitted until they are
+revalidated under this protocol.
+% RQ3 固定 vocabulary 与 target-blind tagger，在 held-out benchmark 和 agent family 上检验 accuracy、stability 与对 RQ1 attribution 的实际影响；历史数字需要按该协议重新验证。
+
+%% -------------------------------------------------------------------
+\subsection{RQ4: What Is the Profiling Cost?}
+% RQ4：profiling cost 是多少？
+
+RQ4 asks whether complete semantic profiling is practical on real trajectory
+corpora. The relevant cost begins at source parsing and includes uncached field
+derivation, cache construction, stack folding, serialization, CPU time, peak
+memory, model or accelerator use, and storage. Repeated queries must be measured
+separately because their value comes from reusing derived fields while changing
+the selected measure or operation stack.
+
+The complete experiment uses release builds on naturally occurring full
+corpora at multiple sizes, including the final RQ1 and RQ2 workloads. It records
+cold construction, repeated projections from cached fields, scaling with operations and unique
+tags, and any AgentSight capture overhead when capture is part of the evaluated
+path. The comparison includes the cost of reviewing raw trajectories so that
+the result tests whether profiling amortizes the work it replaces.
+
+\textbf{RQ4 evaluation.} The complete experiment reports the
+scaling matrix, cold and warm costs, resource use, and uncertainty.
+
+\subsection{Limitations}
+
+\sys is an offline profiler and complements rather than replaces live tracing
+or single-run debugging. Its operation stacks express accounting ownership,
+not causation, and their lineage is only as complete as the source fields and
+recorded intent--effect links. Public benchmark and local development
+populations may differ from production deployments, so each profile must state
+its cohort and measure. Our claims therefore concern offline profiles with
+recorded source fields, declared additive measures, and explicitly evaluated
+tags. They do not imply causal ownership or universal behavior
+across unmeasured deployment populations.
+% AgentProf 是离线 profiler，与 live tracing 和 single-run debugging 互补。Responsibility 表示 accounting ownership 而非 causation；profile 结论以 source lineage、cohort 和 selected measure 为条件。
+
+%% ===================================================================
+\section{Related Work}
+% 相关工作
+
+\textbf{Agent tracing and observability.}
+Tracing tools record request traces~\cite{langsmith,langfuse,phoenix},
+and OpenTelemetry/OpenInference standardize GenAI
+spans~\cite{otel,openinference}. AgentOps and provenance work organize
+retained evidence, while AgentTelemetry benchmarks telemetry-based fault
+detection~\cite{agentops,agenttraces-trust,agenttelemetry}. Datadog and
+Laminar derive topics or signals~\cite{datadog-llmobs,laminar-signals},
+not recurring-measure attribution.
+% 现有工具分别记录 request trace、标准化 GenAI span、系统化 evidence retention 或从 telemetry 检测 fault；production clustering/signal extraction 仍不等同于归因 measured recurring activity。
+
+\textbf{Profiling and aggregation.}
+Domain-specific profiling builds hierarchies along selected
+dimensions~\cite{dsprofile}. Perfetto/pprof compute prefix
+aggregates~\cite{perfetto,pprof}, Pivot Tracing groups causally related
+metrics~\cite{pivottracing}, and aggregate-trace work summarizes similar
+traces~\cite{aggregatetraces}. \sys tests attribution projections for
+recurring agent activity.
+% 这些系统是计算与 fidelity precedent；AgentProf 不增加 grouping operator，而是把统一 profiling model 用于重复 agent activity，并用独立证据检验 attribution view。
+
+\textbf{Failure localization and diagnostic benchmarks.}
+AgentRx/TELBench localize steps or spans, TrajAD marks anomalies, and AgentFixer
+adds root-cause and repair recommendations
+~\cite{agentrx,telbench,trajad,agentfixer}. AgentAtlas supplies a
+diagnostic vocabulary and audit protocol~\cite{agentatlas}. TS-Bench,
+RedundancyBench, and SDBL contribute safety, redundancy, and failure-scope
+labels~\cite{toolsafe,redundancybench,sdbl}, while Who\&When and TRAIL add
+agent/time responsibility and error taxonomies~\cite{whowhen,trail}.
+These systems provide independently grounded problems, labels, and strong
+baselines for testing whether a profile corresponds to real agent behavior.
+% 这些工作提供 failure-localization method、dataset 与 native metric，是 comparison asset 而不是新的 AgentProf component。
+
+\textbf{Semantic trajectory analysis.}
+Hodoscope compares semantic behavior distributions across agent
+cohorts~\cite{hodoscope}; AgentDiagnose visualizes trajectory behavior, and ARIA
+aggregates rewards over semantically similar actions
+~\cite{agentdiagnose,aria}. These systems establish semantic cross-run analysis
+as an important neighboring problem. \sys{} instead organizes recorded
+resource and effect measures as profiles and evaluates attribution,
+real-problem localization, tag accuracy, and profiling cost.
+
+%% ===================================================================
+\section{Conclusion}
+% 结论
+
+Agent observability needs profiling, not only debugging. \sys{} shows how a
+semantic operation stack model with pluggable intent attribution and stack
+construction brings hierarchical resource attribution to agent trajectories.
+Uniform operations connect agent intent, model and tool activity, and recorded
+system effects; query-time operation stacks fold this activity by task, phase,
+action, or another semantic dimension. The four-part evaluation asks whether
+semantic profiling improves resource attribution, locates real annotated
+problems, derives accurate tags, and remains practical. Profiling complements
+per-run debugging by turning many agent trajectories into aggregate views of
+quality, safety, and cost.
+% Agent observability 需要 profiling，而不只是 debugging。AgentProf 以 semantic operation stack model 为 agent trajectory 带来分层资源归因，并围绕 attribution、real-problem localization、tag accuracy 和 cost 进行验证。
+
+\bibliography{references}
+
+\end{document}
