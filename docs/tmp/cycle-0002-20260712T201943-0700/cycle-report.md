@@ -1,11 +1,13 @@
 # Cycle 0002 Report — Canonical-Story Evidence Program
 
 **Started:** 2026-07-12T20:19:43-07:00
-**Status:** EXPERIMENT gate active; CodeTraceBench completed with a MIXED tested
-construction and ToolSafe completed with a valid but CONTRADICTED tested
-construction. Neither result directly challenges the thesis, four RQs, or
-positive RQ2 hypothesis. The experiment loop is screening a materially
-different real public source rather than tuning either failed construction.
+**Status:** EXPERIMENT gate active. CodeTraceBench completed with a MIXED tested
+construction, ToolSafe and AgentNet completed valid but non-supporting tested
+constructions, and AgentProcessBench completed a valid `INCONCLUSIVE`
+construction with independently confirmed positive AP specificity but an
+unresolved work-to-50 interval. None directly challenges the thesis, four RQs,
+or positive RQ2 hypothesis. The next experiment retains RQ2 and targets stable
+inspection-work improvement.
 
 ## Objective
 
@@ -31,15 +33,22 @@ This cycle changes evidence and mechanisms, not story.
    preflight review, the full 7,182-record run, and an independent result
    review; the run was valid and the construction was CONTRADICTED because its
    aggregate advantage reversed by family and on the unsafe-only target;
-3. preserved the positive RQ2 hypothesis and prohibited tuple, label, threshold,
-   family-weight, or fallback tuning on ToolSafe;
-4. materially restored the user-designated canonical AgentProf scientific body
+3. completed the full AgentNet cross-platform experiment; its semantic key
+   dropped the target and the tested construction was contradicted, so the next
+   construction preserved the complete raw local leaf;
+4. completed three serial AgentProcessBench plan reviews, two implementation
+   reviews, REAL PREFLIGHT and review, the complete 1,000-trajectory run, and
+   independent artifact recalculation; AP improved beyond the matched shuffle,
+   while work-to-50 remained inconclusive;
+5. preserved the positive RQ2 hypothesis and prohibited target-label tuning or
+   story narrowing after every non-supporting construction;
+6. materially restored the user-designated canonical AgentProf scientific body
    into the active AAAI paper workspace without editing the submodule;
-5. screen the next independent public benchmark and published protocol, then
-   run one complete `research-experiment-design` loop after at least three
-   serial plan reviews;
-6. propagate only complete positive evidence under the canonical story lock;
-7. finish WRITE and whole-paper REVIEW before deciding the next fixed RQ.
+7. design the next single RQ2 construction from published group-ranking or
+   diagnostic-inspection practice, then run one complete
+   `research-experiment-design` loop after at least three serial plan reviews;
+8. propagate only complete positive evidence under the canonical story lock;
+9. finish WRITE and whole-paper REVIEW before deciding the next fixed RQ.
 
 ## Current Reports
 
@@ -68,4 +77,13 @@ This cycle changes evidence and mechanisms, not story.
   `01-experiment-gate/loop-rq2-toolsafe/plan-review.md`;
 - ToolSafe complete run and independent result review:
   `01-experiment-gate/loop-rq2-toolsafe/full-run-report.md` and
-  `01-experiment-gate/loop-rq2-toolsafe/result-review.md`.
+  `01-experiment-gate/loop-rq2-toolsafe/result-review.md`;
+- AgentNet full experiment and result review:
+  `01-experiment-gate/loop-rq2-agentnet/full-execution-and-result-report.md` and
+  `01-experiment-gate/loop-rq2-agentnet/full-result-review.md`;
+- AgentProcessBench approved plan, implementation, REAL PREFLIGHT, full result,
+  and independent reviews:
+  `01-experiment-gate/loop-rq2-agentprocessbench/experiment-plan.md`,
+  `01-experiment-gate/loop-rq2-agentprocessbench/implementation-report.md`,
+  `01-experiment-gate/loop-rq2-agentprocessbench/preflight-report.md`, and
+  `01-experiment-gate/loop-rq2-agentprocessbench/full-execution-report.md`.

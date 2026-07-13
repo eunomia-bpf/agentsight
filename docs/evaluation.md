@@ -19,7 +19,7 @@ later explicit user instruction may change the four author-fixed RQs.
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | Compare flat, source-native, and one fixed semantic profile against independent tool/span/process resource identities on real traces. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | Run one complete hidden-annotation localization experiment on official public agent benchmarks against flat, per-session, native, and raw-action baselines, with oracle views used only as upper bounds. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | Preserve the complete positive AgentProcessBench AP result and run a second independently planned construction that turns semantic concentration into a stable work-to-50 reduction without target-label tuning. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | Evaluate one frozen tagger or mapping on held-out real families with independent labels and downstream attribution sensitivity. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | Measure end-to-end construction, memory, output size, and repeated-query cost across complete real workloads and scaling points. |
 
@@ -67,7 +67,28 @@ conservation, declared-category separation, and weighted association beyond
 session membership. It does not establish correct semantic intent, causal
 lineage, developer utility, or the final RQ1 answer.
 
-## Admitted RQ2 Boundaries
+## Admitted RQ2 Evidence And Boundaries
+
+The complete AgentProcessBench experiment provides current supporting RQ2
+evidence without yet authorizing a paper result. On all 1,000 official
+trajectories and 8,509 human-labeled assistant steps, the target-preserving
+semantic profile improves equal-family macro AP over raw action by 0.031522
+with a paired 95% interval of [0.015138, 0.053514]. The matched within-raw-leaf
+shuffle control gives `p=0.009950`, so the AP gain exceeds pure refinement
+granularity. The raw-minus-semantic work-to-50 point estimate is favorable at
+0.016320, but its interval [-0.022550, 0.074214] crosses zero. The valid tested
+construction is therefore `INCONCLUSIVE`, with positive AP specificity and an
+unresolved inspection-work condition. Complete plan, implementation reviews,
+preflight, full execution, and independent recalculation are under
+`docs/tmp/cycle-0002-20260712T201943-0700/01-experiment-gate/loop-rq2-agentprocessbench/`.
+
+Three other current-cycle constructions remain internal boundaries. The
+CodeTraceBench comparison was valid but mixed, ToolSafe was valid but
+contradicted for its tested cross-family construction, and the full AgentNet
+comparison showed that dropping `target` from the semantic key invalidates the
+intended comparison. Their reports remain under the corresponding
+`loop-rq2-codetracebench/`, `loop-rq2-toolsafe/`, and `loop-rq2-agentnet/`
+directories. None changes RQ2 or the positive hypothesis.
 
 Two complete negative conditions remain auditable and constrain mechanism
 reuse; neither changes RQ2 or belongs in the final paper's positive result
@@ -119,48 +140,29 @@ satisfy these project-local controls:
 
 ## Next Evidence Selection
 
-The previous tau-bench additive-regression and OpenTelemetry source screens
-served the superseded intervention story and are no longer the current RQ2
-route. Their reports remain historical evidence under
-`01-experiment-gate/loop-rq2-03/`; they do not constrain the restored
-hidden-annotation localization experiment.
+The current RQ2 frontier is no longer source discovery. AgentProcessBench is a
+complete official four-family benchmark with independent human step labels and
+released blind judge outputs, and the first target-preserving construction has
+already established semantic-specific AP concentration beyond a matched
+granularity control. The remaining uncertainty is whether a principled
+semantic profile can convert that concentration into a stable reduction in the
+operations required to recover half of the harmful steps.
 
-The next RQ2 experiment must prove the original positive localization
-hypothesis with official public trajectories and independent annotations, not
-retune the failed hierarchy on the iQuest oracle or invent a smaller private
-task.
+The next experiment must retain the exact RQ2 and positive hypothesis. It may
+change the profiling/ranking construction, visible signal, or workload
+protocol, but it may not weaken the claim, remove work-to-50, choose fields or
+thresholds from the now-observed human labels, or rewrite the completed result.
+Before proposing Revision 2, perform a bounded external search for published
+group-ranking, risk-coverage, or diagnostic-inspection protocols and choose the
+simplest construction that directly targets early inspection concentration.
+Prefer an independently published mechanism and, when available, a fresh real
+public validation source over target-label retuning on AgentProcessBench.
 
-The bounded source screen selected CodeTraceBench as the primary condition.
-Its complete verified split contains 1,000 trajectories and 46,539 steps across
-four coding-agent frameworks, with raw per-trajectory archives separated from
-human incorrect/unuseful step annotations. The full source/protocol/baseline
-decision is recorded in
-`docs/tmp/cycle-0002-20260712T201943-0700/01-experiment-gate/literature-20260712T203001-0700/source-protocol-baseline-report.md`.
-ToolSafe TS-Bench and RedundancyBench remain later independent-family
-replications; they do not expand the first experiment matrix.
-
-Before a plan is approved, a source preflight must verify:
-
-1. the exact raw trajectories are available without unresolved access gates;
-2. the same tasks or cohorts define a defensible real comparison;
-3. real failure, safety, redundancy, or task-boundary annotations are supplied
-   independently of AgentProf and can remain hidden until scoring;
-4. the source preserves session or dataset-native structure and visible raw
-   action fields for the required baselines;
-5. every non-oracle view consumes identical visible operations, while hidden
-   annotations are scoring-only.
-
-For CodeTraceBench, human annotation-derived stage boundaries are also
-scoring/oracle information. The fair source-native view comes from raw
-framework event, episode, checkpoint, or action structure. The experiment must
-freeze its measured signal, ranking, semantic stack, and prediction cutoff
-without reading `incorrect_stages`, `incorrect_step_ids`, `unuseful_step_ids`,
-annotation reasoning, or annotation-derived stages.
-
-The experiment compares flat, per-session, source-native, raw-action, and one
-target-blind semantic operation-stack view; hidden-annotation groupings are
-oracle upper bounds only. If no public source passes this preflight, record the
-rejection and continue the search rather than creating a toy experiment.
+The new plan must state one construction and one hypothesis, preserve
+`target` and the raw local leaf, use real complete data, and pass at least three
+serial independent plan reviews before REAL PREFLIGHT. The existing
+AgentProcessBench result remains the fixed prior observation; it cannot be
+recomputed into a different verdict.
 
 ## Experiment History Policy
 
