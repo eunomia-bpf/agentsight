@@ -72,7 +72,12 @@ alternate, wrong-platform, and withheld target-label invariance.
 
 REAL PREFLIGHT satisfies every approved execution obligation. FULL is
 authorized with no code, plan, RQ, hypothesis, paper, or story change. It must
-use the complete 17,625 trajectories / 333,005 operations, exactly 10,000 valid
+use the complete 17,625 trajectories / 339,005 operations, exactly 10,000 valid
 task-cluster draws per fold, a 50,000 attempt cap, and seed 4204.
+
+**Read-back correction (2026-07-13):** the operation total in the original
+review text was an arithmetic typo. The reviewed per-platform counts and
+machine source remained `239,710 + 99,295 = 339,005`; no execution input or
+authorization condition changed.
 
 **Files modified by reviewer:** none.

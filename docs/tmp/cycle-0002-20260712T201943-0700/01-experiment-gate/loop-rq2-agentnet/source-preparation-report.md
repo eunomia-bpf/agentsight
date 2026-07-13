@@ -35,7 +35,14 @@ Dataset revision:
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Windows | 12,364 | 12,427 | 63 | 239,710 | 38,565 | 201,145 | 0 |
 | Darwin | 5,168 | 5,198 | 30 | 99,295 | 16,653 | 82,642 | 0 |
-| **Total** | **17,532** | **17,625** | **93** | **333,005** | **55,218** | **277,787** | **0** |
+| **Total** | **17,532** | **17,625** | **93** | **339,005** | **55,218** | **283,787** | **0** |
+
+**Arithmetic correction (2026-07-13T04:14:00-07:00):** the original total
+row transposed `339,005` as `333,005` and consequently reported `277,787`
+instead of `283,787` negatives. The platform rows, prepared files, and machine
+status were always correct. The corrected totals are
+`239,710 + 99,295 = 339,005` operations and
+`201,145 + 82,642 = 283,787` negatives.
 
 Positive means the predeclared combined truth table
 `incorrect OR redundant`; negative means `correct AND necessary`. These counts
@@ -45,7 +52,7 @@ held-out predictor.
 
 ## Prepared boundary
 
-- Visible projection: 333,005 rows, approximately 275 MiB.
+- Visible projection: 339,005 rows, approximately 275 MiB.
 - Windows label file: 239,710 rows, approximately 67 MiB.
 - Darwin label file: 99,295 rows, approximately 28 MiB.
 - Every raw row has a deterministic trajectory ID and unique operation IDs.

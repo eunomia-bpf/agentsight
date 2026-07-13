@@ -125,5 +125,8 @@ All approved preflight obligations passed:
 
 An independent `research-experiment-design` review must recompute these
 execution checks and decide whether the implementation may run the entire
-333,005-operation, 17,625-trajectory population with 10,000 valid draws per
+339,005-operation, 17,625-trajectory population with 10,000 valid draws per
 fold. No paper or story change is authorized by this report.
+
+The operation total above was corrected on 2026-07-13 after independent
+read-back of the unchanged platform counts (`239,710 + 99,295`).

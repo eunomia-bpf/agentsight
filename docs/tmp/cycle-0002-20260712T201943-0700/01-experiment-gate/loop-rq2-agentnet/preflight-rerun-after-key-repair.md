@@ -140,6 +140,9 @@ checks.
 
 This report requests a fresh independent `research-experiment-design` review
 of the repaired REAL PREFLIGHT. Only that review may authorize restarting FULL
-on all 17,625 released trajectories / 333,005 operations, with exactly 10,000
+on all 17,625 released trajectories / 339,005 operations, with exactly 10,000
 valid task-cluster draws per fold, a 50,000-attempt cap, and seed 4204. This
 report authorizes no paper or story change.
+
+The operation total was corrected during independent read-back from the
+unchanged platform counts (`239,710 + 99,295`) before FULL authorization.
