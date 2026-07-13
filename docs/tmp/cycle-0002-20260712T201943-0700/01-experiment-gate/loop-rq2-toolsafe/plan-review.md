@@ -65,3 +65,43 @@ an unrelated paper-recovery question.
 Revision 2 implements all six must-fix items without changing RQ2, the four-RQ
 program, positive hypothesis, thesis, canonical story, or paper. It adds no
 non-Markdown contract, freeze protocol, Git gate, or human wait.
+
+## Round 2 — 2026-07-13 — REVISE
+
+The same independent reviewer reread the complete Revision 2 plan, source
+audit, and review log using `research-experiment-design`.
+
+### Must-fix finding
+
+Revision 2 gave an unseen `risk_rating -> raw_tool` key the correct risk-only
+backoff but did not grant an unseen semantic triple the same backoff, even
+though the triple deterministically maps to a risk rating. This left the two
+refined main views asymmetric. Both must use:
+
+```text
+seen refined key -> refined-key density
+unseen refined key -> corresponding risk-only density
+absent risk key -> global reference prevalence
+```
+
+All fallback types and counts must be reported.
+
+### Round 1 closure audit
+
+- Equal-information baseline: partially closed only because of the asymmetric
+  semantic fallback.
+- Target-label isolation: closed at plan level; implementation remains a
+  preflight audit item.
+- Ground-truth meaning and unsafe-only robustness: closed.
+- Paired interaction bootstrap: closed.
+- Tie and coarse-group controls: closed.
+- Role, commands, cost, and completion rule: closed.
+
+### Revision 3 response
+
+Revision 3 applies identical risk-only backoff to unseen semantic and raw-tool
+refinements. It also makes nonempty unparsed actions execution failures,
+clarifies that the 10x comparison uses the matched risk-conditioned raw view,
+states that bootstrap prediction artifacts precede held-out-label scoring, and
+marks the preliminary baseline text in the source audit as superseded. No new
+method, metric, gate, claim, or paper change was introduced.

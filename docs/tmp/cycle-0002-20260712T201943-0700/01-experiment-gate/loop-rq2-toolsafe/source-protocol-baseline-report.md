@@ -235,13 +235,19 @@ of alerts into at most 11 recurring stacks.
 
 ## Baseline Interpretation
 
+**Planning update after independent review:** the source facts below remain
+valid, but `experiment-plan.md` Revision 3 supersedes the preliminary matched
+baseline recommendation. The main identity baseline is now
+`risk_rating -> raw_tool` with the same risk-only backoff as an unseen semantic
+triple. Exact tool alone is retained only as a lower-bound control.
+
 The TS-Bench paper evaluates eight direct guardrail models. Its official
 TS-Guard result is a **published direct-diagnosis reference**, not an AgentProf
 baseline. AgentProf does not need to beat a safety classifier at classification;
 the experiment asks whether profiling makes the same per-step detector output
 useful across runs.
 
-Matched profile views should receive the identical official TS-Guard signal:
+Profile views should receive the identical official TS-Guard signal:
 
 1. **Flat detector output:** individual steps ranked by published risk;
 2. **Per-interaction view:** ordinary debugging/session grouping;

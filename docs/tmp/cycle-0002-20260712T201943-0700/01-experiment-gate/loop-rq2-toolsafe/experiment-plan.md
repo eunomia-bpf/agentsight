@@ -3,7 +3,7 @@
 **Started:** 2026-07-13T00:51:04-07:00  
 **Cycle/gate:** cycle 0002 / EXPERIMENT  
 **Source audit:** `source-protocol-baseline-report.md`  
-**Plan revision:** 2 — Round 1 REVISE repaired; serial re-review required
+**Plan revision:** 3 — Round 2 REVISE repaired; serial re-review required
 **Paper edits:** forbidden during this experiment
 
 ## Research Question and One Tested Hypothesis
@@ -127,6 +127,9 @@ optional numeric marker + Action: value
 `Action Input` is never a tool name. Normalize only surrounding whitespace and
 Markdown punctuation; preserve case and the exact tool string for the raw-tool
 view. `None`, empty, and `Final Answer` are visible non-operations.
+A nonempty proposed action that does not match the declared parser is an
+execution failure, not a non-tool exclusion. Preparation must terminate with
+exactly 6,786 real operations and 396 declared non-operations.
 
 ## Information Boundary
 
@@ -225,17 +228,22 @@ For each target fold and each transferable profile view:
                 / (reference operations for key + 2)
    ```
 
-4. for `risk_rating -> raw_tool`, back an unseen joint key off to the smoothed
-   reference density for its risk rating; for every other main view, and only
-   if a required risk-rating key is absent, use the equally smoothed global
-   reference prevalence;
+4. apply the same hierarchical backoff to both refined main views:
+   - seen semantic triple -> its smoothed triple density;
+   - unseen semantic triple -> the smoothed density for its corresponding risk
+     rating;
+   - seen risk/tool pair -> its smoothed pair density;
+   - unseen risk/tool pair -> the smoothed density for its risk rating;
+   - absent risk-rating key only -> the equally smoothed global reference
+     prevalence;
 5. save the key, reference support, fallback status, and score before loading
    target labels.
 
 The formula is identical for semantic, risk-only, and risk-conditioned raw-tool
-profiles. The only hierarchical fallback is the predeclared raw-tool-to-risk
-backoff. There is no tuned minimum support, target-dependent cutoff,
-family-specific mapping, or favorable-key selection.
+profiles. Both refinements use the identical predeclared risk-only backoff and
+report counts for `exact`, `risk-backoff`, and `global-backoff`. There is no
+tuned minimum support, target-dependent cutoff, family-specific mapping, or
+favorable-key selection.
 
 ## Real AgentProf Execution
 
@@ -340,7 +348,8 @@ Classify the tested hypothesis as supported only if:
 3. all three target-family AP differences are positive against both main
    baselines;
 4. the semantic view uses at least 10x fewer groups than raw-tool and
-   per-interaction views;
+   per-interaction views, where raw-tool means the matched
+   `risk_rating -> raw_tool` main view;
 5. AgentProf counts, source coverage, target-label isolation, and official
    TS-Guard metric reproduction all pass;
 6. operation-level localization passes independently of group-count
@@ -430,7 +439,9 @@ and exactly two explicit reference-label files, then close it after saved target
 predictions exist. Only afterward do they launch a scoring subprocess with the
 single held-out target-label file. The coordinator may resolve paths in
 `--labels-dir`, but the prediction process cannot receive or open the held-out
-file.
+file. Inside every bootstrap attempt, the prediction subprocess completes the
+resampled reference densities, fallback decisions, and label-blind target
+cluster draws before the scoring subprocess receives held-out labels.
 
 Run a real preflight over the first 32 interaction clusters in neutral source
 order from each family, using both populations, all three folds, all main views,
