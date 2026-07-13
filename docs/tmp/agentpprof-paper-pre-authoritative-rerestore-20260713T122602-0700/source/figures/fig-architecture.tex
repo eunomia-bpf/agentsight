@@ -1,0 +1,27 @@
+\begin{tikzpicture}[
+  node distance=0.68cm,
+  box/.style={rectangle, draw, fill=blue!15, minimum width=2.45cm,
+              minimum height=1.0cm, font=\small, align=center,
+              rounded corners=2pt},
+  input/.style={rectangle, draw, fill=gray!15, minimum width=2.45cm,
+               minimum height=1.0cm, font=\small, align=center,
+               rounded corners=2pt},
+  output/.style={rectangle, draw, fill=green!12, minimum width=2.45cm,
+                minimum height=1.0cm, font=\small, align=center,
+                rounded corners=2pt},
+  arr/.style={-{Stealth[length=1.8mm]}, thick, gray!70},
+]
+
+\node[input] (inputs) {Agent histories\\Public datasets};
+\node[box, right=of inputs] (parse) {Parse to\\operations};
+\node[box, right=of parse, fill=orange!15] (intent) {Intent\\attribution};
+\node[box, right=of intent] (stack) {Stack\\construction};
+\node[output, right=of stack] (out) {Folded profiles\\pprof / SVG / JSON};
+
+% Arrows
+\draw[arr] (inputs) -- (parse);
+\draw[arr] (parse) -- (intent);
+\draw[arr] (intent) -- (stack);
+\draw[arr] (stack) -- (out);
+
+\end{tikzpicture}

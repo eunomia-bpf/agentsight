@@ -1,0 +1,47 @@
+# AgentProf AAAI-27 Paper Workspace
+
+This is the active, editable paper workspace for the AAAI-27 submission target.
+
+## Provenance
+
+- Canonical scientific content: tracked files from
+  `docs/agentpprof-paper/` at commit `7f80c433c9555317a2aa45a78d0ff93518f4c12c`.
+- Canonical content restored: 2026-07-13. The abstract, introduction,
+  background, model, design, implementation, evaluation, related work, and
+  conclusion begin from that source; only the LaTeX venue wrapper was
+  mechanically converted from ACM `sigconf` to the official AAAI-27
+  anonymous-submission wrapper.
+- The source repository remains read-only. Changes in this directory are not
+  synchronized back into it.
+- Previous Chinese LaTeX paper snapshot:
+  `docs/tmp/agentpprof-paper-zh-20260711/source/`.
+- The superseded pre-restore AAAI draft is preserved at
+  `docs/tmp/agentpprof-paper-pre-canonical-restore-20260713T023645-0700/source/`.
+
+## Venue and Build
+
+The paper uses the official AAAI-27 anonymous-submission style from the
+AAAI-27 Author Kit published at <https://aaai.org/authorkit27/>.
+
+```bash
+cd docs/paper
+make
+```
+
+AAAI-27 Main Track permits seven pages of main content and at most nine pages
+total; pages after page seven may contain references only. The paper must remain
+anonymous and use the unmodified `aaai2027.sty` and `aaai2027.bst` files.
+
+## Current Status
+
+The paper again uses the original AgentProf thesis---agent observability needs
+profiling, not only debugging---and its four fixed RQs: resource attribution,
+real-problem localization, tag accuracy, and profiling cost. This restoration
+is a content baseline, not a scientific-readiness verdict. Existing numerical
+claims still require reconciliation with complete real experiments. New
+evidence may strengthen those claims, but experiments do not silently replace
+the thesis, story, hypotheses, or RQs.
+
+The AAAI page limit is a writing constraint to address after the current
+experiment gate. Page-limit pressure must not be resolved by narrowing the
+scientific contribution.

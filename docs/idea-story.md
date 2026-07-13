@@ -449,6 +449,17 @@ Narrative itself, not a new story. The superseded active draft remains useful
 for possible citations and formatting but is smaller and unauthorized as a
 replacement narrative.
 **Detail:** [pre-restoration archive and provenance report](tmp/agentpprof-paper-pre-canonical-restore-20260713T023645-0700/README.md).
+
+**Subsequent enforcement.** Cycle 0002 writing later rewrote the restored body
+while retaining its headline thesis and RQ names. The author rejected that
+rewrite and identified the complete attached/submodule paper as the authority
+again. The root archived the rewritten workspace under
+[`docs/tmp/agentpprof-paper-pre-authoritative-rerestore-20260713T122602-0700/`](tmp/agentpprof-paper-pre-authoritative-rerestore-20260713T122602-0700/README.md)
+and restored the already verified AAAI conversion from `eb5f332e`. A fresh
+normalized comparison found zero differences between the restored scientific
+body and `docs/agentpprof-paper/main.tex`. This is enforcement of E007/E008,
+not a new narrative.
+
 **Revisit:** future WRITE passes may improve expression and replace empirical
 values with stronger complete evidence, but they must begin by comparing
 against this exact restored body and may not silently reinvent the story.
