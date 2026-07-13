@@ -7,13 +7,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 plt.rcParams.update({
-    'figure.figsize': (3.33, 2.1),
-    'font.size': 8,
+    'figure.figsize': (3.25, 2.1),
+    'font.size': 8.5,
     'axes.labelsize': 8,
-    'xtick.labelsize': 7,
-    'ytick.labelsize': 7,
-    'legend.fontsize': 7,
+    'xtick.labelsize': 7.5,
+    'ytick.labelsize': 7.5,
+    'legend.fontsize': 7.5,
     'font.family': 'serif',
+    'text.usetex': True,
     'axes.grid': True,
     'grid.alpha': 0.3,
     'lines.linewidth': 1.2,
@@ -26,7 +27,7 @@ GRAY = '#9E9E9E'
 
 
 def make_rq1_separation():
-    labels = ['No semantic\ntags', 'Session\ntag only', 'Prompt\ntag only', 'Session\n+ Prompt']
+    labels = ['Neither\nfield', 'Session\nfield', 'Prompt\nfield', 'Both\nfields']
     mixed = [90.4, 84.4, 36.7, 0.0]
     residual = [44.7, 33.4, 7.5, 0.0]
     stacks = [11967, 15027, 24703, 26829]
@@ -34,7 +35,7 @@ def make_rq1_separation():
     x = np.arange(len(labels))
     width = 0.28
 
-    fig, ax1 = plt.subplots(figsize=(3.33, 2.3))
+    fig, ax1 = plt.subplots(figsize=(3.25, 2.25))
 
     ax1.bar(x - width/2, mixed, width, label='Mixed weight %',
             color=RED, alpha=0.85, edgecolor='white')
@@ -56,7 +57,7 @@ def make_rq1_separation():
 
     h1, l1 = ax1.get_legend_handles_labels()
     h2, l2 = ax2.get_legend_handles_labels()
-    fig.legend(h1 + h2, l1 + l2, fontsize=7,
+    fig.legend(h1 + h2, l1 + l2, fontsize=7.5,
                loc='upper center', bbox_to_anchor=(0.5, 1.02),
                ncol=3, framealpha=0.9, columnspacing=0.8)
 
@@ -75,7 +76,7 @@ def make_rq3_vmeasure():
     x = np.arange(len(datasets))
     width = 0.35
 
-    fig, ax = plt.subplots(figsize=(3.33, 2.3))
+    fig, ax = plt.subplots(figsize=(3.25, 2.25))
 
     vm_colors = [BLUE if v >= 0.7 else GRAY for v in vmeasure]
     bf_colors = ['#81D4FA' if (b is not None and b >= 0.7) else '#BDBDBD'
@@ -90,14 +91,14 @@ def make_rq3_vmeasure():
     for i, b in enumerate(boundary_f1):
         if b is None:
             ax.text(i + width/2, 0.02, '---', ha='center', va='bottom',
-                    fontsize=7, color=GRAY)
+                    fontsize=7.5, color=GRAY)
 
     ax.axhline(y=0.7, color=RED, linestyle='--', linewidth=1.0, label='Threshold (0.7)')
     ax.set_ylabel('Score')
     ax.set_xticks(x)
     ax.set_xticklabels(datasets, rotation=40, ha='right')
     ax.set_ylim(0, 1.15)
-    ax.legend(fontsize=7, loc='upper right', framealpha=0.9, ncol=1)
+    ax.legend(fontsize=7.5, loc='upper right', framealpha=0.9, ncol=1)
 
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)

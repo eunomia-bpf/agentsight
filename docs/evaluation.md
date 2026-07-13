@@ -19,8 +19,8 @@ later explicit user instruction may change the four author-fixed RQs.
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | Compare flat, source-native, and one fixed semantic profile against independent tool/span/process resource identities on real traces. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | Two complete AgentProcessBench constructions establish semantic-specific AP concentration and favorable work point estimates but leave the task-cluster work interval unresolved. End same-target score variants; enter WRITE, then use whole-paper REVIEW to select a fresh external source or different evidence mechanism without narrowing RQ2. |
-| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | Evaluate one frozen tagger or mapping on held-out real families with independent labels and downstream attribution sensitivity. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | REVIEW selected one HINTBench experiment over the current official 536-record snapshot: compare a plan-defined AgentProf profile with the strongest same-information non-oracle baseline at 80% macro recall of official risky-step targets. |
+| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | Evaluate one approved fixed tagger or mapping on held-out real families with independent labels and downstream attribution sensitivity. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | Measure end-to-end construction, memory, output size, and repeated-query cost across complete real workloads and scaling points. |
 
 ## Admitted RQ1 Mechanism Evidence
@@ -162,28 +162,37 @@ satisfy these project-local controls:
 
 ## Next Evidence Selection
 
-The AgentProcessBench score-selection frontier is complete for this cycle. Two
-fully executed target-preserving constructions produce independently verified
-semantic AP specificity and favorable inspection-work point estimates, while
-both task-cluster work intervals remain unresolved. The second construction
-used the allowed target-reused adaptation; a third would be target retuning
-rather than stronger external evidence.
+The AgentProcessBench score-selection frontier is closed. The completed WRITE
+gate and user-requested whole-paper REVIEW are recorded in
+[`WRITE 999`](tmp/cycle-0002-20260712T201943-0700/02-write-gate/999-gate-report-20260713T103942-0700.md)
+and
+[`review-001`](tmp/cycle-0002-20260712T201943-0700/03-review-gate/review-001/400-cycle-change-audit-final-verdict-and-routing.md).
+The dedicated
+[`meta-review`](tmp/cycle-0002-20260712T201943-0700/03-review-gate/800-meta-review-20260713T111135-0700.md)
+retained one RQ2 experiment and corrected its RQ boundary. The first selected
+source, AgentTelemetry, was rejected by the
+[`outer audit`](tmp/cycle-0002-20260712T201943-0700/03-review-gate/990-independent-outer-audit-20260713T112434-0700.md)
+because its accepted artifact has run/cell fault-detection outcomes but no
+official step/span localization gold. A bounded
+[`source repair`](tmp/cycle-0002-20260712T201943-0700/03-review-gate/review-002/200-bounded-fresh-localization-source-selection-20260713T114636-0700.md)
+selected HINTBench and received an independent
+[`PASS`](tmp/cycle-0002-20260712T201943-0700/03-review-gate/review-002/400-independent-source-repair-verification-20260713T120251-0700.md).
 
-The next outer state is WRITE, not another immediate AgentProcessBench
-experiment. WRITE must read the canonical AgentProf paper as a whole, preserve
-the exact thesis and four RQs, run idea and writing discussions in their
-assigned roles, and avoid inserting unsupported or negative-result prose. The
-paper remains the current scientific state; detailed experiment evolution stays
-in these timestamped reports and this frontier file.
+The next outer state is EXPERIMENT for fixed RQ2. Use the official
+HINTBench artifact and current 536-record test snapshot: 400 risky and 136 safe
+trajectories. The ordinary Markdown plan defines one target-blind profile, the
+strongest same-information non-oracle comparison, and one primary decision:
+atomic-step inspection work needed to reach 80% macro recall over each risky
+trajectory's union of official target step IDs. Support requires a paired
+work-reduction interval excluding zero while the recall target is met.
 
-Whole-paper REVIEW then searches external literature and benchmark information
-while judging the complete paper. If it returns to RQ2, it must select a fresh
-real public source or a different independently grounded evidence mechanism.
-It may not weaken the positive hypothesis, remove inspection work, choose
-fields or thresholds from observed AgentProcessBench labels, or rewrite either
-completed verdict. One new plan still states one construction and hypothesis,
-preserves `target` and the raw local leaf, uses complete real data, and follows
-the normal reviewed preflight-to-FULL loop.
+REAL PREFLIGHT must reproduce 978 annotations, 938 distinct target pairs, 935
+mappable pairs, and the three absent official targets in records 170, 233, and
+516. Those three remain common terminal misses for every method and are never
+remapped or dropped. FULL is every current record/method/repetition cell, not
+the paper/README's unavailable 629-record population. Do not add cold/warm
+profiling cost or tagger-accuracy programs; whatever the sign, close this one
+experiment before another paper-level choice.
 
 ## Experiment History Policy
 
