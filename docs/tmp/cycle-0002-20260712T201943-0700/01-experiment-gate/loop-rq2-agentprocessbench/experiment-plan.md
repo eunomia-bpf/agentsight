@@ -1,7 +1,7 @@
 # Experiment plan: cross-family AgentProcessBench problem localization
 
-**Plan revision:** 2
-**Proposed:** 2026-07-13T05:13:00-07:00
+**Plan revision:** 3
+**Proposed:** 2026-07-13T05:26:00-07:00
 **Outer gate:** EXPERIMENT
 **Research question:** RQ2 — Does Profiler Output Correspond to Real Problems?
 
@@ -114,8 +114,9 @@ predeclared uninformative risk `0.5`. Every other step has at least 15 non-null
 predictions. The experiment trains no predictor and incurs no API cost.
 
 The same saved risk is used by every view. A grouped view is ranked by the mean
-risk of its operations. Complete equal-score groups remain tied. Individual-
-step risk is a strong non-profile reference, not a contribution.
+risk of its operations. Each operation's profile score is exactly its group's
+mean external risk. Individual-step risk is a strong non-profile reference,
+not a contribution.
 
 ## Five fixed views
 
@@ -152,16 +153,24 @@ control, not a sixth headline view.
 
 The two primary metrics use official `-1` labels only in the final scorer:
 
-- operation-weighted average precision after ranking groups by predicted
-  harmful density;
+- operation-weighted average precision over operations scored by their shared
+  group mean risk;
 - fraction of operations inspected to recover 50% of harmful steps
   (`work-to-50`; lower is better).
+
+Metrics are group-atomic. Equal score is one complete threshold: AP may not use
+individual risk, human label, stable ID, or any other secondary order inside a
+group or among equal-score groups. Work-to-50 opens a complete group at once.
+All groups with exactly the same score form one tier and are opened together;
+if that tier crosses 50% of harmful steps, the metric charges every operation
+in the tier.
 
 Required supporting measurements are:
 
 - recall after inspecting 30% of operations;
 - a binary adaptation of the benchmark's FirstErrAcc: the first operation with
-  assigned `risk > 0.5` is compared with the official first `-1` operation;
+  assigned group `risk > 0.5` in original trajectory step order is compared
+  with the official first `-1` operation; if none exists, predict no error;
 - binary harmful-step accuracy at the same `risk > 0.5` threshold, treating
   official `0/+1` as non-harmful; this is not the benchmark's ternary StepAcc;
 - total groups, groups opened to reach 50% of harmful steps, and operations in
@@ -169,22 +178,34 @@ Required supporting measurements are:
 - operation and predicted-risk conservation through every AgentProf view;
 - per-family results and an equal-family macro summary.
 
-For uncertainty, run 10,000 paired bootstrap draws. Within every draw, sample
-50 query IDs with replacement inside each family and keep their five
-rollouts together. Use the same draw for every view, then compute the
-equal-family macro effect. Report percentile 95% intervals and all four family
-point estimates. The seed remains 4204.
+For uncertainty, retain 10,000 paired bootstrap draws. Within every draw,
+sample 50 query IDs with replacement inside each family and keep their five
+rollouts together. Group membership and each operation's external risk remain
+fixed, but each group mean is recomputed over the resampled operation multiset.
+Use the same draw and atomic/tie metric for every view, then compute the equal-
+family macro effect. If any family draw has no harmful positive, discard the
+entire four-family draw. Examine at most 50,000 deterministic draws to retain
+10,000 valid draws; report examined and discarded counts. Fewer than 10,000
+valid draws makes the FULL run `INCOMPLETE` and yields no scientific verdict.
+Report percentile 95% intervals and all four family point estimates. The seed
+remains 4204.
 
 ## Predeclared comparison and verdict
 
 The co-primary comparison is semantic operation stack versus raw action. The
 matched shuffled-refinement distribution tests whether an AP gain comes from
-semantic content rather than finer grouping alone.
+semantic content rather than finer grouping alone. Define the empirical test
+without percentile interpolation:
+
+```text
+delta_observed = macro_AP_semantic - macro_AP_raw
+delta_shuffle_j = macro_AP_shuffle_j - macro_AP_raw
+p_shuffle = (1 + count(delta_shuffle_j >= delta_observed)) / 201
+```
 
 - **SUPPORTED:** the macro 95% interval is entirely favorable for both
   semantic-minus-raw average precision and raw-minus-semantic work-to-50, and
-  the observed macro AP gain exceeds the 95th percentile of the 200 matched
-  shuffled refinements.
+  `p_shuffle <= 0.05`.
 - **CONTRADICTED:** the full execution is valid and either macro interval is
   entirely adverse.
 - **INCONCLUSIVE:** every other complete valid outcome, including improvement
@@ -229,13 +250,15 @@ python3 script/agentprocessbench_profile_eval.py preflight \
   --source docs/visexp/out/agentprocessbench-rq2/source/official-repo \
   --agentpprof-bin agentpprof/target/release/agentpprof \
   --out docs/visexp/out/agentprocessbench-rq2/preflight \
-  --query-limit 10 --permutations 200 --bootstraps 1000 --seed 4204
+  --query-limit 10 --permutations 200 --bootstraps 1000 \
+  --max-bootstrap-attempts 5000 --seed 4204
 
 python3 script/agentprocessbench_profile_eval.py full \
   --source docs/visexp/out/agentprocessbench-rq2/source/official-repo \
   --agentpprof-bin agentpprof/target/release/agentpprof \
   --out docs/visexp/out/agentprocessbench-rq2/full \
-  --permutations 200 --bootstraps 10000 --seed 4204
+  --permutations 200 --bootstraps 10000 \
+  --max-bootstrap-attempts 50000 --seed 4204
 ```
 
 Each output directory contains the visible operations, aligned external risks,
@@ -247,11 +270,15 @@ reports.
 The FULL run is complete only when it accounts for exactly four families,
 1,000 trajectories, 8,509 assistant steps, 20 prediction slots per step, the
 three declared all-null steps, all five fixed views, 200 matched shuffles, and
-10,000 paired query-cluster bootstrap draws. Each step must have exactly one
+10,000 valid paired query-cluster bootstrap draws within 50,000 attempts. Each
+step must have exactly one
 human label, one external risk, and one assignment in every grouped view. Every
 view must conserve operation count and risk sum. Every shuffle must preserve
 the exact semantic subgroup-count and subgroup-size multiset inside every raw
 leaf.
+
+The result report records the actual source commit and `agentpprof --version`
+used. These are ordinary provenance, not a freeze or a verdict gate.
 
 The preflight may repair implementation defects. It may not change the RQ,
 hypothesis, population, fields, risk, views, metrics, or verdict based on a

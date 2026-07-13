@@ -209,7 +209,7 @@ mechanism diagnosis and the published schema.
 This is recorded rather than hidden. The plan cannot describe the benchmark as
 a pristine never-viewed target. It can still provide a valid predeclared
 external test if all design choices are fixed now, the implementation never
-uses held-out labels before scoring, no result-driven revision occurs, and the
+uses human labels before scoring, no result-driven revision occurs, and the
 independent plan reviewers accept the residual exposure risk. If reviewers
 judge that standard too weak, AgentProcessBench remains a complete development
 benchmark and the same fixed construction must be tested on a new external
@@ -222,9 +222,9 @@ source; the paper story and RQ2 do not change.
 - The 1,000 trajectories are benchmark rollouts, not production telemetry.
 - Error propagation makes pooled harmful-step counts partly dependent on an
   earlier mistake, so FirstErrAcc must accompany operation-level AP.
-- Family-specific tool vocabularies create a real distribution shift. That is
-  a reason to use leave-one-family-out evaluation, not a reason to remove a
-  difficult family.
+- Family-specific tool vocabularies create a real distribution shift. Report
+  all four complete family strata separately rather than hiding a difficult
+  family inside the macro result.
 - Rollout model identity is not recoverable from the released row schema and
   will not be invented.
 

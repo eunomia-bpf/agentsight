@@ -119,3 +119,63 @@ discarding families, narrowing RQ2, or changing the paper.
 > `(action, target, repeat_state)` profile—yielding higher macro AP and lower
 > work-to-50—and its AP gain exceeds a group-size-matched shuffled refinement
 > of the same raw profile.
+
+## Round 2 — independent Revision 2 audit
+
+**Reviewed:** 2026-07-13T05:24:00-07:00
+**Required skill:** `research-experiment-design`
+**Mode:** read-only
+**Plan reviewed:** Revision 2
+**Verdict:** **REVISE — close to PASS**
+
+Round 1's four material defects are resolved. The released 20-model consensus
+is independent of stack fields; the matched shuffle exactly preserves semantic
+subgroup count and sizes inside each raw leaf; the hypothesis and simplified
+verdict correspond to AP, inspection work, and semantic specificity; and the
+commands/completion rule are executable without freeze, manifest, or Git
+coupling.
+
+### Must-fix 1: make metrics group-atomic and ties unique
+
+- Each operation receives its group's mean external risk as its profile score.
+- AP is computed over operations using that shared score. Equal score is one
+  threshold; individual risk, human label, ID, or any other secondary order may
+  not break a tie.
+- Work-to-50 opens groups atomically. All groups with an equal score form one
+  complete tier and are opened together. If a tier crosses 50%, its complete
+  operation count is charged.
+
+Without these rules, arbitrary within-group or tie ordering could create a
+false AP or inspection-work improvement.
+
+### Must-fix 2: fix bootstrap recomputation and empty draws
+
+Group membership and per-operation external risk remain fixed. On every query-
+cluster bootstrap multiset, group mean risks are recomputed from the resampled
+operations, then all views use the same paired draw and group-atomic metric. If
+any family has no harmful positive, discard the complete four-family draw.
+Examine at most 50,000 deterministic draws to retain exactly 10,000 valid
+draws. Fewer makes the full execution `INCOMPLETE`, not a scientific outcome.
+
+### Must-fix 3: define one empirical shuffle test
+
+Replace the interpolated 95th-percentile rule with:
+
+```text
+delta_observed = macro_AP_semantic - macro_AP_raw
+delta_shuffle_j = macro_AP_shuffle_j - macro_AP_raw
+p_shuffle = (1 + count(delta_shuffle_j >= delta_observed)) / 201
+```
+
+The specificity condition is `p_shuffle <= 0.05`. This handles equality and
+has one implementation-independent meaning.
+
+### Should-fix
+
+- Adapted FirstErrAcc scans each trajectory in original step order and predicts
+  no error when no group risk exceeds 0.5.
+- Remove the stale leave-one-family-out rationale from the source report.
+- Record the actual AgentProf version and source commit in the result report,
+  without making them a freeze or pass gate.
+
+After these local definitions, no further scientific redesign is expected.
