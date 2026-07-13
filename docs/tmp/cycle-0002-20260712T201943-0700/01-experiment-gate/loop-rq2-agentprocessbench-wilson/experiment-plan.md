@@ -1,8 +1,13 @@
 # Experiment plan: finite-evidence semantic ranking on AgentProcessBench
 
-**Plan revision:** 1  
-**Proposed:** 2026-07-13T06:05:24-07:00  
-**Outer gate:** EXPERIMENT  
+**Plan revision:** 2
+
+**Proposed:** 2026-07-13T06:05:24-07:00
+
+**Revised:** 2026-07-13T06:15:08-07:00
+
+**Outer gate:** EXPERIMENT
+
 **Research question:** RQ2 — Does Profiler Output Correspond to Real Problems?
 
 ## One tested hypothesis
@@ -15,17 +20,22 @@ lower work-to-50 than the raw profile, while the semantic AP gain exceeds a
 group-size-matched shuffled refinement of that raw profile.
 
 This is the second and final planned AgentProcessBench construction in this
-cycle. It tests one positive construction hypothesis inside fixed RQ2. It does
-not answer all of RQ2 and cannot change the paper thesis, canonical story, four
-RQs, or positive RQ2 hypothesis.
+cycle. Its planned paper-value role is **supporting adaptive within-benchmark
+construction evidence**. It is decisive only for this fixed AgentProcessBench
+construction: the human targets have already been observed by the project, so
+the run is neither a new holdout nor an independent confirmation of RQ2 or
+external generalization. It tests one positive construction hypothesis inside
+fixed RQ2. It does not answer all of RQ2 and cannot change the paper thesis,
+canonical story, four RQs, or positive RQ2 hypothesis.
 
 ## Decisive uncertainty
 
 The first complete construction established a semantic-specific macro AP
 increase but left work-to-50 uncertain. The remaining question is whether a
-published, fixed finite-evidence ranking rule can stop small high-mean groups
-from consuming the beginning of the inspection order, allowing the already
-observed semantic concentration to reduce early inspection work reliably.
+published score formula, adapted as a fixed finite-ensemble ranking rule, can
+stop small high-mean groups from consuming the beginning of the inspection
+order, allowing the already observed semantic concentration to reduce early
+inspection work reliably.
 
 The strongest competing explanation is that the first AP gain comes from
 semantic refinement but is not operationally useful: after accounting for
@@ -45,10 +55,11 @@ The construction combines three externally published principles documented in
    more released evidence.
 
 The 20 released judges are not assumed independent. `score_g` is therefore a
-deterministic finite-ensemble ranking score, not a calibrated 95% confidence
-bound on human harmfulness. No result may claim nominal statistical coverage
-for this group score. Statistical uncertainty about the semantic-versus-raw
-effect comes only from the predeclared query-cluster bootstrap.
+Wilson-shaped deterministic finite-ensemble ranking score, not a calibrated
+95% confidence bound on human harmfulness and not a previously published
+LLM-judge protocol. No result may claim nominal statistical coverage for this
+group score. Statistical uncertainty about the semantic-versus-raw effect
+comes only from the predeclared query-cluster bootstrap.
 
 ## Complete source and unit of analysis
 
@@ -109,10 +120,12 @@ score_g = (p_g + z²/(2n_g)
           / (1 + z²/n_g)
 ```
 
-If `n_g = 0`, assign `score_g = 0.5` and report the group and operations. All
-operations in a group receive `score_g`. There is no fitted parameter, model
-selection, judge weighting, human-label threshold, parent smoothing, or
-family-specific rule.
+If `n_g = 0`, assign `score_g = 0` and report the group and operations. This
+places a group with no released evidence at the bottom rather than ahead of a
+group with observed harmful-vote support. Its operations remain in AP,
+work-to-50, every denominator, and all accounting. All operations in a group
+receive `score_g`. There is no fitted parameter, model selection, judge
+weighting, human-label threshold, parent smoothing, or family-specific rule.
 
 The score must be materialized for every profile before human-label values are
 loaded. The implementation must independently verify the per-group operation,
@@ -120,8 +133,9 @@ harmful-vote, and available-vote totals that feed the score.
 
 ## Fixed views and fair baselines
 
-Real `agentpprof 0.2.37` constructs all group assignments. Apply the same
-Wilson score to:
+Real `agentpprof 0.2.37` constructs all group assignments. The released-vote
+aggregator reads those exact assignments and independently totals `h_g` and
+`n_g` before applying the same Wilson-shaped score to:
 
 1. **flat:** one group;
 2. **per session:** one group per trajectory;
@@ -130,11 +144,13 @@ Wilson score to:
    `intent → phase → action → target → repeat_state`;
 5. **ungrouped vote score:** one operation per group.
 
-The co-primary comparison is semantic versus raw under the Wilson score. The
-completed mean-risk raw and semantic point estimates are retained as a fixed
-historical diagnostic and may be recomputed only to verify implementation
-equivalence; they are not an alternative pass condition. Flat, session, and
-ungrouped views explain the frontier but do not add gates.
+Raw is the only primary baseline. Flat and session are structural references;
+ungrouped is an upper-frontier reference for the released local signal. The
+co-primary comparison is semantic versus raw under the Wilson-shaped score.
+The completed mean-risk raw and semantic point estimates are retained as a
+fixed historical diagnostic and may be recomputed only to verify implementation
+equivalence; they are not an alternative pass condition. Reference views
+explain the frontier but do not add gates.
 
 ## Group-size-matched semantic control
 
@@ -161,14 +177,21 @@ The two co-primary measurements use human labels only in the final scorer:
 
 Groups and equal scores are atomic. AP cannot order operations inside a group
 or use human label, operation ID, individual risk, or another score to break a
-tie. Work-to-50 opens the complete equal-score tier that crosses 50%.
+tie. After sorting complete score tiers in descending order, define AP only as
+the threshold/tier-end quantity:
+
+```text
+AP = sum_k (Recall_k - Recall_(k-1)) * Precision_k
+```
+
+`Precision_k` and `Recall_k` are both computed after opening the complete tier
+`k`; `Recall_0 = 0`. The implementation must match the previously audited
+scorer exactly on equivalent arrays. Work-to-50 opens the complete equal-score
+tier that crosses 50%.
 
 Supporting measurements are:
 
 - recall after inspecting 30% of operations;
-- adapted FirstErrAcc using the first operation whose group score is greater
-  than `0.5`, with “no predicted error” if none exists;
-- binary harmful-step accuracy at the same fixed threshold;
 - group count, groups-to-50, top-five work and recall;
 - raw and semantic mean-risk metrics reproduced from the prior construction;
 - per-family results and equal-family macro summaries;
@@ -208,18 +231,32 @@ p_shuffle_ap        = (1 + count(delta_ap_shuffle_j >= delta_ap_observed)) / 201
   is entirely adverse.
 - **INCONCLUSIVE:** every other complete valid outcome.
 
-The verdict applies only to this tested ranking construction. It does not
-change the paper-level thesis, story, RQs, or positive RQ2 hypothesis. Because
-this is the second AgentProcessBench construction, any non-supporting result
-returns to the outer WRITE/REVIEW decision with both complete records; it does
-not trigger a third target-reused ranking variant.
+The verdict applies only to this tested ranking construction. Its paper-level
+disposition is fixed before execution:
+
+- `SUPPORTED`: admit the result as supporting adaptive within-benchmark RQ2
+  evidence, with benchmark reuse and score interpretation stated; do not call
+  it independent external confirmation.
+- `CONTRADICTED`: preserve the result in research history, end further
+  AgentProcessBench score variants, and return to WRITE/REVIEW to select a new
+  external construction without changing the positive RQ2 hypothesis.
+- `INCONCLUSIVE`: preserve both complete constructions, end further
+  AgentProcessBench score variants, and return to WRITE/REVIEW for a fresh
+  source or different evidence mechanism.
+- `INCOMPLETE`: repair only execution validity and rerun the same approved
+  plan; do not interpret partial values.
+
+No disposition changes the paper-level thesis, story, RQs, or positive RQ2
+hypothesis. A non-supporting result does not trigger a third target-reused
+ranking variant.
 
 ## REAL PREFLIGHT, FULL run, and independent review
 
 After at least three serial independent reviews approve this Markdown plan:
 
 1. extend the existing converter/scorer without changing the prior result;
-2. run focused tests for the Wilson formula, null-vote handling, atomic ties,
+2. run focused tests for the Wilson formula, zero-score null-vote handling,
+   the exact tier-end AP formula,
    label-after-score sequencing, vote accounting, shuffles, and bootstrap;
 3. run a REAL PREFLIGHT on the first 10 query IDs in every family through real
    AgentProf, score materialization, and final scoring;

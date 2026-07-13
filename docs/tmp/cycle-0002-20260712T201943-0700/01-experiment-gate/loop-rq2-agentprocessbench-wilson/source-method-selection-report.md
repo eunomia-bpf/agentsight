@@ -15,8 +15,8 @@ AgentProcessBench experiment:
 1. retain the exact raw and target-preserving semantic stacks from the first
    complete experiment;
 2. pool the released non-null harmful/not-harmful votes inside each group;
-3. rank the groups by the standard two-sided 95% Wilson lower score of their
-   released harmful-vote proportion;
+3. rank the groups by a fixed Wilson-shaped lower score of their released
+   harmful-vote proportion;
 4. compare semantic and raw profiles under the same score on the complete
    four-family population.
 
@@ -101,8 +101,9 @@ percentile, before reading target labels.
 
 The 20 AgentProcessBench judges are models trained or prompted in related ways,
 not independent Bernoulli samples. Consequently, `lower` is used as a
-deterministic finite-ensemble ranking score. Neither the experiment report nor
-the paper may describe it as a calibrated 95% confidence bound on human harm.
+Wilson-shaped deterministic finite-ensemble ranking score. Neither the
+experiment report nor the paper may describe it as a calibrated 95% confidence
+bound on human harm or as a previously published LLM-judge ranking protocol.
 Human labels remain a separate final evaluation target.
 
 ## Source-only candidate screen
@@ -124,7 +125,7 @@ semantic group assignments:
 | Operation-count Wilson | treats operations as Bernoulli trials | reject: discards the released 20-judge evidence structure |
 | Beta pseudocount score | prior parameters | reject: avoidable prior choice |
 | EA-Z transplant | lower-bound parameter | reject: published value was empirically studied on another domain |
-| Pooled-vote Wilson lower score | fixed `z`, actual non-null votes | select: simple, published, no fitted threshold, directly penalizes small weakly supported groups |
+| Pooled-vote Wilson-shaped score | fixed `z`, actual non-null votes | select: simple, no fitted threshold, and directly penalizes small weakly supported groups |
 
 The selected score's source-risk-only work-to-50 diagnostic was favorable in
 all four families:
@@ -155,9 +156,10 @@ score_g = lower(p_g, n_g, 1.959963984540054)
 
 All 20 released judges have equal weight. Published judge accuracy does not
 select or weight models. Null predictions contribute no harmful or non-harmful
-vote. If a group has `n_g = 0`, it receives the predeclared uninformative score
-`0.5`; this path must be reported if observed. Every operation still counts in
-inspection work and receives its group's score.
+vote. If a group has `n_g = 0`, it receives `score_g = 0`, placing a completely
+unsupported group at the bottom rather than ahead of groups with observed
+harmful-vote evidence. This path must be reported if observed. Every operation
+still counts in inspection work and receives its group's score.
 
 The score is applied identically to raw, semantic, session, flat, and
 individual-operation reference views. It does not use the number or value of
@@ -179,9 +181,10 @@ AgentProcessBench. The protection is narrower and auditable:
   assignments and group scores have been materialized.
 
 This makes the run a transparent second construction on a reused benchmark,
-not a hidden-label holdout claim. A later fresh benchmark can strengthen
-external validity, but lack of a fresh source does not justify changing RQ2 or
-shrinking the positive hypothesis.
+not a hidden-label holdout claim. Its planned paper role is **supporting adaptive
+within-benchmark construction evidence**. A later fresh benchmark can
+strengthen external validity, but lack of a fresh source does not justify
+changing RQ2 or shrinking the positive hypothesis.
 
 ## Rejected fresh-source alternatives
 
