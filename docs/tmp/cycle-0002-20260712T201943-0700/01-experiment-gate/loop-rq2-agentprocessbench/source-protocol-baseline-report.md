@@ -124,6 +124,30 @@ obtains 81.6% StepAcc but only 65.8% FirstErrAcc. This published gap supports
 the premise that root-error localization is harder than recognizing downstream
 bad steps.
 
+### Released blind judge predictions
+
+The official repository also releases the actual blind step predictions used
+for Table 3 under `eval/results/`: four complete JSONL files for each of all 20
+evaluated judge models. Every model directory contains 1,000 aligned trajectory
+records, and every one of the 8,509 official assistant-step keys occurs once
+for every model. The files identify themselves as blind evaluation outputs and
+were produced by the repository's published judge prompt and evaluator.
+
+Some API or parse failures are represented by `null`, not a fabricated label.
+Across models, 6,914 steps have all 20 non-null predictions. Of the remaining
+steps, all but three still have at least 15 non-null predictions. The same
+three-step GAIA trajectory `(query_index=19, sample_index=4)` is null for all 20
+models. These are source-availability facts; no human target label is involved.
+
+This release provides a cleaner target-label-blind risk signal than fitting a
+new classifier from the same fields being evaluated. A fixed ensemble risk can
+be defined as the fraction of available official judge predictions equal to
+`-1`; the three all-null steps receive a predeclared uninformative value of
+0.5. This uses every trajectory, avoids target-label training, does not
+cherry-pick one judge, and imports a large external variable into the profiling
+test. Independent plan review must decide whether to adopt this signal before
+implementation.
+
 For AgentProf, the published metrics should be retained where their semantics
 fit, but classification accuracy alone is insufficient. The experiment plan
 should also retain the paper's existing RQ2 inspection metrics:
@@ -139,9 +163,11 @@ The mandatory non-oracle comparators are:
 - individual-step risk ranking;
 - the tested semantic operation stack.
 
-Hidden human labels may score results and train only the explicitly declared
-reference-family predictor. They may not define stack fields, intent tags,
-ranking rules, target-family thresholds, or comparator choice.
+Hidden human labels may score results. If a plan uses reference-family
+training, they may train only the explicitly declared reference-family
+predictor; the preferred released-ensemble design requires no human-label
+training at all. Human labels may not define stack fields, intent tags, ranking
+rules, thresholds, or comparator choice.
 
 ## Proposed scientific use, before plan review
 
