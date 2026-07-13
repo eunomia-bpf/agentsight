@@ -105,3 +105,35 @@ clarifies that the 10x comparison uses the matched risk-conditioned raw view,
 states that bootstrap prediction artifacts precede held-out-label scoring, and
 marks the preliminary baseline text in the source audit as superseded. No new
 method, metric, gate, claim, or paper change was introduced.
+
+## Round 3 — 2026-07-13 — PASS
+
+The same independent reviewer reread Revision 3 and all supporting reports
+using `research-experiment-design`.
+
+### Verdict
+
+**PASS.** There are zero remaining must-fix items. Implementation is authorized
+exactly under Revision 3, followed by real preflight and independent preflight
+review. Paper, story, RQ, thesis, and skills remain outside this authorization.
+
+### Closure table
+
+| Prior item | Status | Verification |
+|---|---|---|
+| Equal-information raw baseline | CLOSED | Main raw view is `risk_rating -> raw_tool`; both refined views use identical risk-only backoff. |
+| Target-label isolation | CLOSED | Preparation strips labels/attack metadata; prediction receives only the allowlisted projection and two reference-label tables; held-out labels first reach scoring after predictions exist. |
+| Ground-truth meaning | CLOSED | Strict labels are benchmark-positive triage targets; unsafe-only robustness bounds stronger interpretation. |
+| Paired cluster bootstrap | CLOSED | Family-scoped clusters, shared method draws, fold reconstruction, both mappings, and 10,000 valid replicates are explicit. |
+| Ties/coarse grouping | CLOSED | Whole-block operation metrics, `Work@5`, maximum-group share, family tables, and operation-level primacy prevent compression gaming. |
+| Role/executability | CLOSED | The experiment profiles an external detector; commands, cost, completion, and four outcomes are explicit. |
+| Symmetric fallback | CLOSED | Both unseen refinements back off to risk density; only absent risk uses global prevalence. |
+
+### Non-blocking notes
+
+The reviewer suggested four optional reporting clarifications: interpret family
+direction using AP; state the descriptive per-interaction aggregation; enlarge
+the neutral preflight prefix if it accidentally lacks a class; and prefer
+“structured semantic judgments” to “causal hierarchy” in result prose. None
+changes the approved method or verdict and none is required before
+implementation.
