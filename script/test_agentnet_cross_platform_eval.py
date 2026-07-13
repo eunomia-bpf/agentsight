@@ -50,6 +50,9 @@ def visible_rows(platform: str, tasks: int = 4, steps: int = 4) -> list[dict]:
         previous = "start"
         for step in range(steps):
             action = actions[step]
+            target = "text" if action == "type" else f"x{task}-y{step}"
+            if task == 0 and step == 0:
+                target = "backspace-_"
             rows.append(
                 {
                     "operation_id": f"{task_id}:{step}",
@@ -63,7 +66,7 @@ def visible_rows(platform: str, tasks: int = 4, steps: int = 4) -> list[dict]:
                     "application": "writer" if platform == "darwin" else "notepad",
                     "action_code": f"pyautogui.{action}()",
                     "action": action,
-                    "target": "text" if action == "type" else f"x{task}-y{step}",
+                    "target": target,
                     "phase": phases[step],
                     "repeat_state": "single",
                     "repeat_signal": "none",
@@ -112,6 +115,10 @@ class AgentNetCrossPlatformTests(unittest.TestCase):
         self.assertAlmostEqual(5.0 / 12.0, metric["average_precision"])
         self.assertEqual(0.0, metric["recall_at_30"])
         self.assertEqual(0.75, metric["work_to_50"])
+
+    def test_agentprof_frame_encoding_trims_trailing_separator(self) -> None:
+        self.assertEqual("backspace-", agentnet.agentprof_frame_value("backspace-_"))
+        self.assertEqual("unknown", agentnet.agentprof_frame_value("_"))
 
     def test_prepare_projection_separates_forbidden_labels(self) -> None:
         with tempfile.TemporaryDirectory() as raw_tmp:

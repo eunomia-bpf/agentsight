@@ -474,9 +474,22 @@ def safe_stack_value(value: Any) -> str:
     return text
 
 
+def agentprof_frame_value(value: Any) -> str:
+    """Mirror AgentProf safe-frame encoding for already visible stack fields."""
+    text = safe_stack_value(value)
+    output = ""
+    for char in text.lower():
+        if char.isascii() and (char.isalnum() or char in "._:/+-"):
+            output += char
+        elif not output.endswith("_"):
+            output += "_"
+    normalized = output.strip("_;")
+    return normalized or "unknown"
+
+
 def method_key(row: dict[str, Any], method: str) -> str:
     fields = PROFILE_FIELDS[method]
-    return ";".join(f"{field}:{safe_stack_value(row[field])}" for field in fields)
+    return ";".join(f"{field}:{agentprof_frame_value(row[field])}" for field in fields)
 
 
 def select_tasks(rows: list[dict[str, Any]], limit: int | None) -> list[dict[str, Any]]:
