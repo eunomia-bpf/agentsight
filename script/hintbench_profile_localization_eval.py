@@ -192,11 +192,59 @@ RESPONSE_SCHEMA: dict[str, Any] = {
 }
 
 
+def _gbnf_json_string(value: str) -> str:
+    """Return a GBNF terminal that matches one exact JSON string."""
+    return json.dumps(json.dumps(value, ensure_ascii=False), ensure_ascii=False)
+
+
+def _response_gbnf() -> str:
+    """Express RESPONSE_SCHEMA as llama.cpp-compatible constrained decoding.
+
+    The current local llama.cpp server accepts unconstrained ``json_object``
+    responses, but its JSON-schema-to-grammar sampler throws HTTP 400 before
+    inference.  This grammar preserves the same required fields, enums, JSON
+    integer arrays, and no-additional-property boundary without changing the
+    scientific prompt or parser.
+    """
+    verdict = " | ".join(_gbnf_json_string(value) for value in ("safe", "unsafe"))
+    risk_name = " | ".join(_gbnf_json_string(value) for value in RISK_NAMES_11)
+    key_verdict = _gbnf_json_string("verdict")
+    key_risks = _gbnf_json_string("risks")
+    key_risk_name = _gbnf_json_string("risk_name")
+    key_risk_steps = _gbnf_json_string("risk_steps")
+    return "\n".join(
+        (
+            "root ::= space object space",
+            (
+                f'object ::= "{{" space {key_verdict} space ":" space verdict space '
+                f'"," space {key_risks} space ":" space risks space "}}" | '
+                f'"{{" space {key_risks} space ":" space risks space "," space '
+                f'{key_verdict} space ":" space verdict space "}}"'
+            ),
+            f"verdict ::= {verdict}",
+            'risks ::= "[" space (risk (space "," space risk)*)? space "]"',
+            (
+                f'risk ::= "{{" space {key_risk_name} space ":" space risk-name '
+                f'space "," space {key_risk_steps} space ":" space steps space "}}" | '
+                f'"{{" space {key_risk_steps} space ":" space steps space "," space '
+                f'{key_risk_name} space ":" space risk-name space "}}"'
+            ),
+            f"risk-name ::= {risk_name}",
+            'steps ::= "[" space (integer (space "," space integer)*)? space "]"',
+            'integer ::= "-"? ("0" | [1-9] [0-9]*)',
+            r"space ::= [ \t\n\r]*",
+        )
+    )
+
+
+RESPONSE_GBNF = _response_gbnf()
+
+
 class ExperimentError(RuntimeError):
     """Raised when the approved experiment contract is not satisfied."""
 
 
-class RetryableResponseError(RuntimeError):
+class RetryableResponseError(ExperimentError):
     """Raised for a nonterminal transport/protocol response that may be retried."""
 
 
@@ -435,14 +483,10 @@ def chat_request_payload(record: Mapping[str, Any], model: str) -> dict[str, Any
         "stream": False,
         "reasoning_format": "none",
         "chat_template_kwargs": {"enable_thinking": False},
-        "response_format": {
-            "type": "json_schema",
-            "json_schema": {
-                "name": "hintbench_localization",
-                "strict": True,
-                "schema": RESPONSE_SCHEMA,
-            },
-        },
+        # The server's native schema compiler currently fails before inference.
+        # Use the equivalent explicit grammar so the approved structural
+        # constraints remain enforced by decoding rather than only by parsing.
+        "grammar": RESPONSE_GBNF,
     }
 
 
@@ -458,8 +502,16 @@ def _post_json(url: str, body: Mapping[str, Any], timeout: float) -> dict[str, A
         headers={"Content-Type": "application/json", "User-Agent": "AgentProf-HINTBench/1"},
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        value = json.loads(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            value = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        try:
+            detail = error.read().decode("utf-8", errors="replace")
+        except Exception:
+            detail = ""
+        suffix = f": {detail}" if detail else ""
+        raise RetryableResponseError(f"HTTP {error.code} from {url}{suffix}") from error
     if not isinstance(value, dict):
         raise RetryableResponseError(f"{url}: expected JSON object response")
     return value
@@ -679,6 +731,8 @@ def _terminal_localizer_row(
         "task_id": record["task_id"],
         "request_sha256": sha256_text(canonical_json(payload)),
         "request_body": dict(payload),
+        "response_schema": RESPONSE_SCHEMA,
+        "constraint_transport": "llama.cpp GBNF equivalent of response_schema",
         "terminal": True,
         "transport_attempts": attempts,
         "latency_seconds": latency_seconds,

@@ -74,10 +74,15 @@ class HintBenchAdapterTests(unittest.TestCase):
         self.assertEqual(payload["max_tokens"], 1024)
         self.assertEqual(payload["chat_template_kwargs"], {"enable_thinking": False})
         self.assertEqual(payload["reasoning_format"], "none")
-        schema = payload["response_format"]["json_schema"]["schema"]
+        schema = hint.RESPONSE_SCHEMA
         self.assertEqual(schema["required"], ["verdict", "risks"])
         self.assertFalse(schema["additionalProperties"])
         self.assertNotIn("minItems", schema["properties"]["risks"])
+        self.assertEqual(payload["grammar"], hint.RESPONSE_GBNF)
+        self.assertNotIn("response_format", payload)
+        for risk_name in hint.RISK_NAMES_11:
+            self.assertIn(json.dumps(json.dumps(risk_name)), payload["grammar"])
+        self.assertIn('integer ::= "-"? ("0" | [1-9] [0-9]*)', payload["grammar"])
 
     def test_official_style_response_normalization(self) -> None:
         verdict, risks, status = hint.parse_response(
@@ -193,6 +198,7 @@ class HintBenchAdapterTests(unittest.TestCase):
                 )
             self.assertEqual(post.call_count, 1)
             self.assertEqual(rows[0]["request_body"], payload)
+            self.assertEqual(rows[0]["response_schema"], hint.RESPONSE_SCHEMA)
             self.assertTrue(rows[0]["prompt_tokenization_exact"])
             with mock.patch.object(hint, "_post_json") as post:
                 resumed = hint.collect_localizer_outputs(
