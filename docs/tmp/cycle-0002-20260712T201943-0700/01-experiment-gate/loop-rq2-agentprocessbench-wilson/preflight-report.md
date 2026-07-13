@@ -184,3 +184,43 @@ The run satisfies every preflight completion condition:
 An independent reviewer must recalculate these facts and inspect the raw
 artifacts. A `PASS` authorizes the exact FULL run without plan revision. Any
 must-fix repairs only validity; it cannot tune the scientific construction.
+
+## Independent REAL PREFLIGHT review
+
+**Reviewed:** 2026-07-13T06:55:15-07:00
+
+**Required skill:** `research-experiment-design`
+
+**Reviewer mode:** independent, artifact-level, and read-only
+
+**Verdict:** **PASS**
+
+**Must-fix:** **zero**
+
+The reviewer independently recalculated every requested artifact rather than
+trusting `summary.json`. It confirmed:
+
+- exact 40-task, 200-trajectory, 1,630-operation source selection and family
+  counts;
+- 32,600 released slots, 32,258 non-null votes, and 4,909 harmful votes;
+- operation and risk-unit conservation for all five real AgentProf views;
+- exact 4/115/178/200/1,630 family-local score groups;
+- every group Wilson score and operation-score join;
+- flat-per-family identity and absence of cross-family pooling;
+- no human labels in pre-score artifacts and exact official coverage for all
+  1,630 selected labels;
+- bit-exact prior mean-risk regression and every atomic point metric;
+- all 200 shuffle rows and size preservation, including 20 effects at least
+  observed and `p = 21/201`;
+- all 1,000 bootstrap rows, with attempt 460 the sole discarded draw, exact
+  query multiplicities across all five rollouts, per-draw score recomputation,
+  and exact reported intervals;
+- focused 8/8 tests, including the zero-vote rule; no zero-vote group occurs in
+  this selected subset;
+- mechanical `VALID / PREFLIGHT_ONLY` status.
+
+The reviewer did not edit files, use Git, touch the paper/submodule, or run the
+FULL command. It explicitly rejected using any preflight value for tuning.
+
+**Disposition:** the exact approved FULL command may proceed without plan
+revision.
