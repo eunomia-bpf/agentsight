@@ -179,3 +179,37 @@ has one implementation-independent meaning.
   without making them a freeze or pass gate.
 
 After these local definitions, no further scientific redesign is expected.
+
+## Round 3 — independent Revision 3 convergence review
+
+**Reviewed:** 2026-07-13T05:31:00-07:00
+**Required skill:** `research-experiment-design`
+**Mode:** read-only
+**Plan reviewed:** Revision 3
+**Verdict:** **PASS**
+**Must-fix:** **zero**
+
+The reviewer independently confirmed:
+
+- every operation receives only its group mean risk for AP;
+- equal scores form one complete threshold and cannot use a secondary order;
+- work-to-50 opens complete groups and complete equal-score tiers;
+- query-cluster bootstrap fixes operation risk/membership, recomputes group
+  means on the resampled multiset, and uses identical paired draws;
+- any no-positive family invalidates the complete four-family draw, with
+  50,000 attempts for 10,000 valid draws and `INCOMPLETE` otherwise;
+- the empirical shuffle p-value has the correct direction, equality handling,
+  denominator, and fixed `p <= 0.05` condition;
+- adapted FirstErrAcc scans original step order and explicitly predicts
+  no-error when no assigned group risk exceeds 0.5;
+- preflight/full commands and completion counts agree;
+- the blind ensemble is independent of stack fields, semantic preserves the
+  raw leaf, and the matched shuffle removes pure-granularity attribution;
+- the experiment remains one RQ2 construction test and cannot edit the thesis,
+  story, or four RQs.
+
+No further plan revision is required. Proceed to implementation and REAL
+PREFLIGHT. The execution report should record actual source/AgentProf versions,
+bootstrap examined/discarded/valid counts, atomic tie checks, exact shuffle
+size preservation, and enough artifacts for an independent result
+recalculation.
