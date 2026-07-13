@@ -115,3 +115,86 @@ REAL PREFLIGHT: INCOMPLETE
 The full 3,291-archive scientific run must not begin until the four items above
 are repaired and an independent re-review passes. No change to the fixed RQ,
 hypothesis, thesis, contribution, or paper story is authorized or needed.
+
+## Round 2: End-To-End Implementation Re-Review
+
+**Reviewed:** 2026-07-12T23:21:56-07:00
+**Reviewer:** same independent subagent
+**Skill applied:** `research-experiment-design`
+**Verdict:** **REVISE**
+
+The reviewer confirmed that all four Round-1 must-fixes are closed:
+
+1. REAL PREFLIGHT now executes public source extraction, release AgentProf,
+   source-valid matching, scoring, pre-label prediction, terminal label join,
+   and tie-block metrics through one shared path.
+2. MiniSWE no longer synthesizes or count-fits a terminal operation.
+3. Native OpenHands uses real agent actions, excludes user prompt/recall from
+   semantic features, and pairs observations only through integer `cause`.
+4. SWE-raw OpenHands has a complete 313-archive lineage audit and never selects
+   a branch from `step_count` or annotations.
+
+The reviewer also passed safe manifest projection, predictions-before-label,
+same-task exclusion, source-valid support fallback, exact AgentProf counts, and
+complete tie-block semantics. The six-target negative sign remains a preflight
+diagnostic and does not authorize any hypothesis, RQ, thesis, story, or paper
+change.
+
+### Sole Remaining Must-Fix
+
+The then-current `full` command invoked only the deterministic primary path and
+could label that incomplete execution `PASS`. It lacked the declared
+frequency-matched controls, 2,000 outcome-null trials, 10,000 task-clustered
+bootstrap replicates, compatibility/secondary metrics, and terminal status for
+all 3,316 manifest rows.
+
+### Minimal Implementation Response
+
+The runner now:
+
+- gives every full-manifest row a terminal source-valid or excluded status;
+- runs main semantic/raw-action/phase paths through release AgentProf;
+- writes primary predictions and frequency-partition selection before labels;
+- computes CodeTracer-compatible macro P/R/F1 and separate zero-positive
+  false-positive burden;
+- reports incorrect, unuseful, and union labels plus framework breakdowns;
+- evaluates flat/session, absolute-hotspot, and 200 of 10,000 frequency-matched
+  non-semantic controls;
+- runs 2,000 exact-cell outcome permutations;
+- runs 10,000 task-clustered full score-recomputing bootstrap replicates with
+  same-task exclusion reapplied; and
+- emits `PASS` only when all approved counts and components complete.
+
+The altered shared path passed `py_compile`, a synthetic end-to-end control,
+null, bootstrap, and report-boundary test, and a fresh real six-target
+CodeTraceBench preflight with unchanged metrics. Round-3 independent re-review
+is required before the full run.
+
+## Round 3: Full-Runner Convergence Review
+
+**Reviewed:** 2026-07-12T23:26:19-07:00
+**Reviewer:** same independent subagent
+**Skill applied:** `research-experiment-design`
+**Verdict:** **PASS**
+
+The reviewer independently verified the sole Round-2 repair:
+
+- all 3,316 manifest rows receive exactly one terminal source status;
+- the auxiliary deterministic full report is always `INCOMPLETE`, and the
+  final report can pass only after 405 targets, 200 retained controls, 2,000
+  null trials, and 10,000 bootstrap replicates complete;
+- the 10,000-to-200 frequency partition selection is label-blind and the
+  retained controls reuse matching, same-task exclusion, the differential
+  estimator, and tie-block metrics;
+- outcome permutations rebuild exact-cell reference profiles and fallback;
+- task bootstrap multiplicities rebuild references, same-task subtraction,
+  fallback, target work, and positives jointly for all three paired methods;
+- compatibility metrics, zero-positive burden, unuseful/union analyses, and
+  framework breakdowns use frozen pre-label scores; and
+- CLI defaults equal revision 6, while the fresh real preflight remains PASS
+  with unchanged metrics.
+
+No scientific-validity or executability must-fix remains. This PASS authorizes
+the approved complete run, not a scientific conclusion, RQ answer, hypothesis
+change, story change, or paper edit. The reviewer changed no file and performed
+no Git or submodule action.

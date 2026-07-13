@@ -428,17 +428,20 @@ first complete block whose cumulative recall reaches at least 50%.
     --raw-root .agentsight/experiments/codetracebench-rq2/hub \
     --codetracer-root .agentsight/experiments/codetracebench-rq2/CodeTracer \
     --agentpprof-bin agentpprof/target/release/agentpprof \
-    --out docs/visexp/out/codetracebench-rq2
+    --out docs/visexp/out/codetracebench-rq2 \
+    --partition-candidates 10000 --partition-retained 200 \
+    --permutations 2000 --bootstraps 10000 --seed 4202
   ```
 
-  This command now runs the same source extraction, release-AgentProf
-  verification, matching, scoring, pre-label prediction, terminal label join,
-  and deterministic primary metrics as REAL PREFLIGHT. It is not yet the
-  complete declared experiment: frequency-matched controls, 2,000 outcome-null
-  trials, and 10,000 task-clustered bootstraps must be implemented and included
-  in the final full-run command before execution. The scorer derives every
-  stack from the exact operation fields and refuses completion unless every
-  recomputed stack weight matches AgentProf JSON exactly.
+  This command runs the same source extraction, release-AgentProf verification,
+  matching, scoring, pre-label prediction, terminal label join, and deterministic
+  primary metrics as REAL PREFLIGHT, then completes the frequency-matched
+  controls, 2,000 outcome-null trials, 10,000 task-clustered bootstraps,
+  compatibility metrics, secondary label families, framework breakdown, and
+  terminal source-coverage ledger. The scorer derives every stack from the
+  exact operation fields and refuses completion unless every recomputed stack
+  weight matches AgentProf JSON exactly. The implementation must pass
+  independent re-review before this command is launched.
 - **Real preflight:** completed with **PASS** on six source-valid verified
   targets covering the six released source variants across four frameworks.
   Selection used only framework, source layout, failed outcome, and

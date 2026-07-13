@@ -1335,15 +1335,24 @@ def run_task_cluster_bootstrap(
             scored, _ = score_targets(sampled_targets, index)
         except SourceError:
             continue
-        for view in VIEW_FIELDS:
-            results[view].append(
-                pooled_tie_block_metrics(
-                    scored,
-                    gold,
-                    view,
-                    target_task_weights=task_weights,
-                )
+        candidate_metrics = {
+            view: pooled_tie_block_metrics(
+                scored,
+                gold,
+                view,
+                target_task_weights=task_weights,
             )
+            for view in VIEW_FIELDS
+        }
+        if any(
+            metric["average_precision"] is None
+            or metric["recall_at_30_work"] is None
+            or metric["work_at_50_recall"] is None
+            for metric in candidate_metrics.values()
+        ):
+            continue
+        for view, metric in candidate_metrics.items():
+            results[view].append(metric)
         completed = len(results["semantic"])
         if completed % 250 == 0 or completed == repetitions:
             print(
@@ -1801,6 +1810,28 @@ def write_partition_selection(
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def write_partition_results(path: Path, results: list[dict[str, Any]]) -> None:
+    lines = [
+        "# Frequency-Matched Partition Results",
+        "",
+        "Every partition below was selected by operation-mass distance before the terminal "
+        "label join and then evaluated on the same target set and task-held-out scorer.",
+        "",
+        "| Rank | Seed | L1 mass distance | AP | Recall @ 30% | Work @ 50% |",
+        "|---:|---:|---:|---:|---:|---:|",
+    ]
+    for rank, item in enumerate(results, 1):
+        metric = item["metrics"]
+        lines.append(
+            f"| {rank} | {item['seed']} | {item['distance']:.12g} | "
+            f"{metric_text(metric['average_precision'])} | "
+            f"{metric_text(metric['recall_at_30_work'])} | "
+            f"{metric_text(metric['work_at_50_recall'])} |"
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def write_full_experiment_report(path: Path, result: dict[str, Any]) -> None:
     status = result["status"]
     lines = [
@@ -1821,6 +1852,7 @@ def write_full_experiment_report(path: Path, result: dict[str, Any]) -> None:
         f"Coverage ledger: `{result['coverage_path']}`",
         f"Pre-label predictions: `{result['prediction_path']}`",
         f"Pre-label partition selection: `{result['partition_path']}`",
+        f"Frequency-partition metrics: `{result['partition_result_path']}`",
         "",
         "## Primary Incorrect-Step Result",
         "",
@@ -2310,6 +2342,8 @@ def run_full(args: argparse.Namespace) -> None:
         )
         if index % 25 == 0 or index == len(partitions):
             print(f"frequency-control {index}/{len(partitions)}", flush=True)
+    partition_result_path = run_out / "frequency-partition-results.md"
+    write_partition_results(partition_result_path, partition_metrics)
 
     null_results = run_outcome_null_trials(
         reference_profiles,
@@ -2349,6 +2383,7 @@ def run_full(args: argparse.Namespace) -> None:
         "coverage_path": coverage_path,
         "prediction_path": prediction_path,
         "partition_path": partition_path,
+        "partition_result_path": partition_result_path,
         "primary_metrics": primary_metrics,
         "compatibility": compatibility,
         "secondary_metrics": secondary_metrics,
@@ -2760,7 +2795,7 @@ def build_parser() -> argparse.ArgumentParser:
         ),
         (
             "full",
-            "run the shared deterministic primary path on all source-valid failed targets",
+            "run the complete primary, control, null, and uncertainty experiment",
             run_full,
         ),
     ):
@@ -2771,6 +2806,12 @@ def build_parser() -> argparse.ArgumentParser:
         evaluation.add_argument("--codetracer-root", type=Path, required=True)
         evaluation.add_argument("--agentpprof-bin", type=Path, required=True)
         evaluation.add_argument("--out", type=Path, required=True)
+        if command == "full":
+            evaluation.add_argument("--partition-candidates", type=int, default=10000)
+            evaluation.add_argument("--partition-retained", type=int, default=200)
+            evaluation.add_argument("--permutations", type=int, default=2000)
+            evaluation.add_argument("--bootstraps", type=int, default=10000)
+            evaluation.add_argument("--seed", type=int, default=4202)
         evaluation.set_defaults(func=func)
     return parser
 
@@ -2780,7 +2821,7 @@ def main() -> None:
     try:
         args.func(args)
     except (SourceError, subprocess.CalledProcessError) as error:
-        raise SystemExit(f"preflight failed: {error}") from error
+        raise SystemExit(f"experiment command failed: {error}") from error
 
 
 if __name__ == "__main__":
