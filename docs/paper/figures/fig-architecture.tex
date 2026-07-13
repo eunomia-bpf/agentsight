@@ -1,0 +1,20 @@
+\begin{tikzpicture}[
+  node distance=0.5cm and 0.8cm,
+  box/.style={rectangle, draw, fill=blue!15, minimum width=2.2cm,
+              minimum height=0.8cm, font=\small, align=center,
+              rounded corners=2pt},
+  input/.style={rectangle, draw, fill=gray!15, minimum width=2.0cm,
+               minimum height=0.7cm, font=\small, align=center,
+               rounded corners=2pt},
+  arr/.style={-{Stealth[length=1.8mm]}, thick, gray!70},
+]
+\node[input] (traj) {Agent\\Trajectories};
+\node[box, right=0.8cm of traj, fill=orange!15] (intent) {Intent\\Attribution};
+\node[font=\footnotesize, below=0.05cm of intent, text=gray] {regex / LLM / clustering};
+\node[box, right=0.8cm of intent] (stack) {Stack\\Construction};
+\node[box, right=0.8cm of stack, fill=green!12] (out) {Output};
+\node[font=\footnotesize, below=0.05cm of out, text=gray] {pprof / SVG / JSON};
+\draw[arr] (traj) -- (intent);
+\draw[arr] (intent) -- (stack);
+\draw[arr] (stack) -- (out);
+\end{tikzpicture}

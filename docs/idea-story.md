@@ -31,7 +31,7 @@ not by themselves provide the cross-run aggregation and attribution that
 traditional profiling provides for software. The original problem statement
 was therefore simple and consequential:
 
-> **Agent observability needs profiling, not only debugging and tracing.**
+> **Agent observability needs profiling, not only debugging.**
 
 ### Challenged Belief
 
@@ -128,10 +128,14 @@ regression, unsafe effect, failure, or wasted effort. AgentProf treats
 trajectories as profiling samples and makes the attribution hierarchy explicit
 through operations and operation stacks.
 
-> **Agent observability needs cross-run profiling of recurring behavior and
-> measured effects, not only tracing individual executions. No emitted or
-> semantic hierarchy has automatic authority; the hierarchy used to attribute a
-> measure must be exposed and tested against the analyst's decision.**
+> **Agent observability needs profiling, not only debugging.**
+
+This sentence is the paper-level thesis and must remain exactly the same as the
+untouched submodule baseline. Cross-run recurring behavior and measured effects
+explain why profiling is needed and how it is evaluated; they are not a narrower
+replacement thesis. An execution or semantic hierarchy has no automatic
+authority inside that profiling method, so the hierarchy used to attribute a
+measure must be exposed and tested against the analyst's decision.
 
 This restores the original consequential problem. Hierarchy and representation
 choice are load-bearing parts of the model and evaluation, not the paper-level
@@ -150,46 +154,57 @@ projections over the same evidence. Mappings, tags, rankers, importers,
 differential comparison, pprof output, and visualizations remain supporting
 mechanisms.
 
-### Admitted Evidence And Boundaries
+### Positive Research Program
 
-- The Rust artifact implements operation ingestion, mapping, predicates,
-  configurable stacks, weighted folding, multiple views, and pprof/folded/
-  JSON/SVG output.
-- Existing local and public trajectories establish representation reach,
-  reprojection, and measure conservation. They do not establish independently
-  correct semantic lineage or causal responsibility.
-- AgentRx/TELBench invalidates the tested positive semantic-leaf localization
-  claim: AP gains over prevalence are small and statistically unresolved, and
-  simple controls are stronger in important cases.
-- Hodoscope establishes a sparse-anomaly boundary: its published continuous
-  density-gap/FPS bundle finds the first oracle action at `2.9 +/- 0.3`, while
-  the tested recursive bundle reaches `24.9 +/- 15.8`; adding recursive parents
-  has no stable matched advantage.
-- A hierarchy attributes a recorded signal; it cannot manufacture a missing
-  failure signal. Semantic membership and recursive parents are not automatic
-  proof of decision value.
+AgentProf transfers the profiling method from code execution to agent behavior:
+it treats real trajectories as samples, records additive activity and effects as
+operations, folds recurring responsibility through operation stacks, and uses
+the resulting profile to decide what to optimize, inspect, or constrain.
 
-These negative results change the expected answer for their tested hypotheses.
-They do not directly challenge the paper-level profiling thesis or authorize
-shrinking cost, regression, safety, or failure out of the RQ.
+The Rust artifact already implements operation ingestion, derived fields,
+predicates, configurable stacks, weighted folding, multiple views, and standard
+profile outputs. Existing real traces establish that the model can represent and
+conserve measured activity. The open task is to complete strong positive,
+independently grounded evidence for the four fixed questions below.
 
-### Current Research Questions
+### Fixed Research Questions And Hypotheses
 
-The paper keeps three explicit RQs:
+The paper keeps exactly four explicit RQs:
 
-- **RQ1 — fidelity and comparability:** can heterogeneous traces be represented
-  and reprojected into flat, source-native, and semantic profiles while
-  preserving the declared measure and independently verifiable source context?
-- **RQ2 — analytical value:** for real cross-run cost, regression, safety, or
-  failure analyses, when does a semantic or differential operation-stack
-  profile improve the decision over flat and source-native views under matched
-  information and inspection effort?
-- **RQ3 — generality and limits:** which workload, query, and projection
-  properties predict whether the advantage transfers across agents and task
-  families, and when are native structure or simpler grouping sufficient?
+1. **RQ1 — Does Semantic Profiling Improve Resource Attribution?** Semantic
+   operation stacks should reunite recurring responsibility fragmented across
+   executions and improve attribution of independently recorded token, time,
+   tool, process, file, network, or other additive measures while preserving
+   source lineage and mass.
+2. **RQ2 — Does Profiler Output Correspond to Real Problems?** A fixed semantic
+   profile should concentrate independently annotated failures, unsafe effects,
+   redundant work, or task boundaries and reduce inspection versus flat,
+   per-session, native, and raw-action views without using target labels.
+3. **RQ3 — How Accurate Are the Tags?** A target-blind fixed tagger or mapping
+   should assign accurate, stable task/phase/action identities and boundaries on
+   unseen agents and task families without materially corrupting attribution.
+4. **RQ4 — What Is the Profiling Cost?** Complete profile construction should
+   have practical predictable scaling, while cached field derivation makes
+   repeated profile queries substantially cheaper than initial construction and
+   repeated raw-trace review.
 
-These RQs preserve the original scope while repairing its organization. An
-experiment tests one hypothesis inside one RQ; it does not rewrite the RQ.
+These hypotheses remain fixed unless an explicit later user instruction changes
+them. Experiments may improve the mechanism, signal, workload, protocol, or
+implementation; a current failure does not authorize rewriting the RQ or
+weakening its hypothesis.
+
+### Research-History Boundary
+
+Failed induced-leaf and recursive-adapter studies remain linked in
+`docs/evaluation.md` and timestamped result reports. They prevent reuse of those
+unchanged mechanisms as positive evidence and teach that grouping needs a real
+visible signal and that recursion alone is insufficient. They are development
+history, not the current paper's result story and not a thesis challenge.
+
+The final paper reports only results from the materially improved methods and
+complete experiments that answer the four fixed RQs. Until those experiments
+finish, the draft uses explicit unresolved-result TODOs rather than unaudited
+positive numbers or a limitation-centered negative narrative.
 
 ### Competing Explanations
 
@@ -200,28 +215,22 @@ experiment tests one hypothesis inside one RQ; it does not rewrite the RQ.
 4. Native execution hierarchy is sufficient for the relevant decisions.
 5. Different signal shapes and decisions favor different projections.
 
-The current bold hypothesis is that additive changes distributed over recurring
-roles across many source trees are the condition most likely to benefit from a
-fixed semantic operation stack. Sparse isolated anomalies may favor continuous
-flat search, and subtree-local effects may favor native structure. This is a
-prediction to test, not an achieved law or new named taxonomy.
+The strongest next hypothesis is that a target-blind semantic operation stack
+concentrates independently annotated real problems across many trajectories
+more effectively than flat, per-session, native, or raw-action grouping and
+therefore reduces analyst inspection. This is the original positive
+localization prediction, not a replacement RQ or new named abstraction.
 
 ### Next Decisive Evidence
 
-First complete the following WRITE gate so the paper expresses the accepted
-story. Then reopen `research-literature-novelty` because the restored central
-position must be checked against closest work before the next empirical plan.
-After that, run one complete RQ2 experiment on a real published agent and
-benchmark, using a directly recorded additive regression, genuine native
-hierarchy, identical terminal operations and visible information, and only
-flat, native, and one semantic stack fixed before target inspection. The result
-must connect to an independently meaningful decision and retain all negative,
-failed, and nonterminated cells.
-
-If no released dataset contains the required evidence, run two pinned real
-agent revisions or configurations on an official benchmark with AgentSight
-instrumentation. Do not substitute a toy trace or retune the failed Hodoscope
-construction.
+The user has restored the untouched submodule as the canonical story source.
+The next evidence is one complete RQ2 hidden-annotation localization experiment
+using official public agent benchmarks with real failure, safety, redundancy,
+or task-boundary labels. Fix tag derivation and ranking without target labels;
+compare flat, per-session, native, raw-action, and semantic grouping; keep
+hidden-label groupings as oracle upper bounds; and report localization quality
+and inspection work over every planned task. Do not substitute a toy trace or
+retune the failed Hodoscope construction on its target labels.
 
 ## Narrative Evolution — Accepted Changes Only
 
@@ -321,6 +330,96 @@ either alone.
 **Revisit:** only a direct thesis challenge—not one local negative result,
 reviewer objection, or unavailable dataset—can reopen the paper-level center.
 
+### E005 — Restore the exact original thesis sentence
+
+**Before:** the restored thesis was paraphrased as a need for cross-run
+profiling of recurring behavior and measured effects rather than tracing
+individual executions.  
+**After:** the paper-level thesis is exactly **“Agent observability needs
+profiling, not only debugging.”** Cross-run recurrence, measures, tracing, and
+hierarchy validation are motivation, mechanism, or evaluation detail.  
+**Reason/evidence:** the user explicitly required the current thesis to match
+the untouched submodule rather than the narrower paraphrase. The complete
+Initial Narrative confirms that the original sentence carries the broader
+quality, safety, cost, failure, and long-running-agent ambition.  
+**Root disposition:** accept the direct correction immediately; do not ask a
+writing round or local experimental result to reinterpret it.  
+**Initial/previous/chosen comparison:** the initial sentence is simpler and
+broader than the immediately previous paraphrase. The paraphrase usefully
+explained the experimental setting but incorrectly promoted those details into
+the thesis. The chosen exact sentence is therefore both more faithful and more
+ambitious.  
+**Idea audit:** [direct user thesis correction](tmp/cycle-0001-20260711T164850-0700/03-review-gate/direct-user-thesis-correction-20260712T141306-0700/500-root-disposition.md).  
+**Revisit:** change this exact thesis only when a later explicit user
+instruction establishes a different thesis. A direct scientific challenge
+reopens evidence collection and idea discussion but does not itself authorize
+replacement.
+
+### E006 — Restore four fixed RQs and the positive paper program
+
+**Before:** the paper retained the exact thesis but organized Evaluation around
+three replacement RQs—fidelity/comparability, analytical value, and
+generality/limits—folded cost into RQ2, removed tag accuracy as an independent
+question, and foregrounded failed intermediate mechanisms.  
+**After:** the current frontier and following WRITE gate restore exactly four
+RQs—resource attribution, real-problem localization, tag accuracy, and profiling
+cost—with a positive falsifiable hypothesis for each. Failed intermediate
+experiments remain auditable research history but no longer define the final
+paper story. Experiment and mechanism design change before a viable hypothesis
+or claim changes.  
+**Reason/evidence:** the user explicitly fixed the four RQs, required a stronger
+and more attractive story, excluded negative intermediate results from the
+paper, and prohibited weakening a viable hypothesis because a current experiment
+failed. Three fresh read-only discussions independently found that the original
+four-RQ architecture is the strongest academic structure and that later controls
+should discipline experiments rather than become the contribution.  
+**Root disposition:** accept the four-RQ restoration and positive program;
+reject the three-RQ/negative-story organization; defer all paper edits to WRITE.  
+**Initial/previous/chosen comparison:** the Initial Narrative remains strongest
+in importance, simplicity, and the complete attribution-localization-tag-cost
+chain; the immediately previous version remains strongest in experimental
+discipline but is smaller and less attractive; the chosen direction combines the
+initial architecture with later controls and is therefore stronger and more
+faithful than both.  
+**Idea audit:** [root disposition](tmp/cycle-0001-20260711T164850-0700/03-review-gate/user-rq-restoration-20260712T171629-0700/500-root-disposition-20260712T173400-0700.md).  
+**Revisit:** only a later explicit user instruction may change the four RQs. A
+direct experimental challenge changes the mechanism and evidence branch first;
+it never silently authorizes a smaller question set.
+
+### E007 — Restore the submodule as the canonical story source
+
+**Before:** the post-E006 paper kept the exact thesis, two abstractions, and four
+RQ headings, but its abstract, introduction, background, design, discussion,
+and RQ2 program had been rebuilt around responsibility hierarchies, matched
+projections, and a profile-to-intervention rerun. This was a different story
+despite preserving the headline identifiers.  
+**After:** the untouched submodule again supplies the complete scientific
+spine: long-running agents create quality, safety, and cost questions across
+many trajectories; tracing/debugging is per execution whereas profiling
+aggregates responsible entities; semantic operations and operation stacks
+adapt profiling to agents; AgentProf implements the model; and the four RQs are
+resource attribution, real-problem localization, tag accuracy, and profiling
+cost. Evidence controls remain in Evaluation and history rather than becoming
+the paper's center.  
+**Reason/evidence:** the user explicitly judged the submodule story better,
+ordered direct restoration, prohibited arbitrary story changes, and specified
+that the abstract, introduction, system design, background, and motivation all
+start from the submodule. Execution-history audit showed that the root had
+accepted reviewer-driven reframings and then rebuilt these sections during
+WRITE without authorization to replace the story.  
+**Root disposition:** accept direct restoration; cancel further story invention;
+retain the AAAI format and verified evidence, but do not mechanically restore
+unsupported historical result numbers.  
+**Initial/previous/chosen comparison:** the Initial Narrative and submodule are
+simpler, more consequential, and more memorable; the immediately previous
+version improved evidence discipline but promoted experiment controls into the
+scientific narrative. The chosen version restores the original story and keeps
+only the later evidence discipline, making it both stronger and more faithful.  
+**Idea audit:** [direct user disposition](tmp/cycle-0001-20260711T164850-0700/03-review-gate/idea-discussions-20260712T193851-0700/100-direct-user-disposition.md).  
+**Revisit:** the submodule story remains the project-level baseline until a
+later explicit user instruction changes it. Reviewer objections, venue advice,
+local negative results, and writing improvements cannot replace it.
+
 ## Invariants For Every Future Story Decision
 
 - Read this entire file, including the Initial Narrative and every evolution
@@ -332,6 +431,10 @@ reviewer objection, or unavailable dataset—can reopen the paper-level center.
   they change the paper-level objective.
 - Keep operations and operation stacks as the only core abstractions unless
   implementation and decisive evidence justify a genuine new abstraction.
+- Treat `docs/agentpprof-paper/main.tex` as the read-only canonical AgentProf
+  story source. A WRITE pass may update evidence and wording but may not replace
+  its problem, gap, insight, system direction, contribution chain, or four-RQ
+  meaning without a later explicit user instruction.
 - Prefer one simple, non-obvious principle over stacked terminology.
 - Use real papers, benchmarks, systems, datasets, and complete experiments.
 - Record every accepted problem, thesis, contribution, system-direction, scope,

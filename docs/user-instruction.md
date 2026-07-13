@@ -100,3 +100,59 @@ idea story 是不是要记录每次任何idea/叙事层面的发生变化的原�
 ---
 
 改一下。另外一开始的叙事也要完整保留在 idea story 里面，每次修改叙事都得读完整的 idea story，仔细思考原始的好还是现在的好。
+
+---
+
+当前 thesis 是不是要和 submodule 里面完全一样，而不是什么Agent observability 需要跨运行 profiling recurring behavior 和 measured effects，不只是单次 tracing/debugging。
+
+---
+
+什么情况会导致你改写或者替代 thesis？auto reseach 和我们的 agents。md 是不是需要检查防止这种漂移
+
+---
+
+dea 已恢复为更大的原始方向：execution location、cross-run similarity、decision-oriented aggregation 是三种不同结构；execution tree 和 semantic tree 都不能自动获得权威。方向是啥? 和 submodule 里面有啥差异
+
+---
+
+现在进度如何了
+
+---
+
+现在进度如何了? 和 submodule 里面现在有啥差异? 接下来应该做什么
+
+---
+
+RQs4 个：attribution、localization、tag accuracy、cost 四个 RQ 也不应该改, 论文也不应该放负面结果, 故事越吸引人越好. 这些偏好记录在 user instruction 里面.
+
+---
+
+论文也不应该放负面结果, 故事越吸引人越好, 我们应该根据 hyposis 改实验尝试能不能证明, 而不是根据实验目前的设计问题修改 hyposis / claim, 除非这个 hyposis 本身完全不可能成立, 不然不应该改变 我们的 hyposis
+
+---
+
+故事要变得更强更吸引人
+
+---
+
+对比 submodule, submodule 的故事我觉得更好
+
+---
+
+直接恢复到 submodule 的情况. 禁止随便改变 syory
+
+---
+
+从 submodule 的开始, 所有的 sbtarct / intro / 系统设计, background / motivation 都应该恢复
+
+---
+
+我们的 skills 状态机应该怎么改?
+
+---
+
+你现在应该是 evaluation 阶段对不对? 按照我们新的状态机
+
+---
+
+我们的论文回到原始的 submodule 的版本了吧? 那个是权威版本

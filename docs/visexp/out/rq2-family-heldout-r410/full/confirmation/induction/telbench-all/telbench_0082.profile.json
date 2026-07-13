@@ -1,0 +1,593 @@
+{
+  "generated_at": "1970-01-01T00:00:00Z",
+  "profile": {
+    "operation_stack_induction": {
+      "allow_session": false,
+      "derived_stack_field": "operation",
+      "excluded_oracle_fields": [
+        "annotator",
+        "attack",
+        "attack_type",
+        "boundary_label",
+        "boundary_positive",
+        "correct",
+        "expected_action",
+        "gold",
+        "gold_action",
+        "group",
+        "group_id",
+        "group_pattern",
+        "human_boundary",
+        "human_group",
+        "label",
+        "looping",
+        "optimality",
+        "oracle",
+        "problem_oracle",
+        "problem_value",
+        "redundant",
+        "reference",
+        "reference_action",
+        "safe",
+        "safety",
+        "side_effect",
+        "status",
+        "step_correct",
+        "step_optimal",
+        "step_redundant",
+        "step_success",
+        "target_positive",
+        "unsafe"
+      ],
+      "excluded_oracle_prefixes": [
+        "gold_",
+        "group_",
+        "human_",
+        "label_",
+        "oracle_",
+        "problem_",
+        "reference_",
+        "target_"
+      ],
+      "excluded_oracle_suffixes": [
+        "_answer",
+        "_attack",
+        "_correct",
+        "_gold",
+        "_ground_truth",
+        "_label",
+        "_oracle",
+        "_positive",
+        "_redundant",
+        "_reference",
+        "_safe",
+        "_safety",
+        "_target",
+        "_unsafe"
+      ],
+      "max_depth": 2,
+      "max_majority_fraction": 0.985,
+      "min_score": 0.055,
+      "min_second_child": 5,
+      "objective": "recursive boundary segmentation over operations; fields are evidence, not stack levels",
+      "policy": "query-conditioned-recursive-boundary-operation-stack-induction",
+      "selected_evidence_fields": [
+        "action",
+        "content",
+        "length_bucket"
+      ],
+      "selected_source_fields": [
+        "action",
+        "content",
+        "length_bucket"
+      ],
+      "split_decisions": [
+        {
+          "boundary_id": "b0010",
+          "candidate_scores": [
+            {
+              "balance": 0.998364,
+              "boundary_id": "b0010",
+              "cardinality_penalty": 0.224244,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket",
+                "query_overlap"
+              ],
+              "coverage": 0.47619,
+              "cut_after": 10,
+              "evidence_fields": [
+                "content",
+                "length_bucket",
+                "action"
+              ],
+              "field": "content",
+              "groups": {
+                "long+search": 11,
+                "short+communicate": 10
+              },
+              "label_evidence": [
+                "left:length_bucket=short@0.5",
+                "left:action=communicate@0.5",
+                "right:length_bucket=long@0.455",
+                "right:action=search@0.545"
+              ],
+              "label_quality": 0.5,
+              "left_label": "short+communicate",
+              "left_weight": 10,
+              "query_bonus": 0.875,
+              "right_label": "long+search",
+              "right_weight": 11,
+              "score": 0.580266,
+              "semantic_shift": 0.914498,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.38453
+            },
+            {
+              "balance": 0.998364,
+              "boundary_id": "b0011",
+              "cardinality_penalty": 0.224244,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket"
+              ],
+              "coverage": 0.47619,
+              "cut_after": 11,
+              "evidence_fields": [
+                "content",
+                "length_bucket",
+                "action"
+              ],
+              "field": "content",
+              "groups": {
+                "medium+search": 10,
+                "short+communicate": 11
+              },
+              "label_evidence": [
+                "left:length_bucket=short@0.455",
+                "left:action=communicate@0.455",
+                "right:length_bucket=medium@0.5",
+                "right:action=search@0.5"
+              ],
+              "label_quality": 0.47619,
+              "left_label": "short+communicate",
+              "left_weight": 11,
+              "query_bonus": 0.875,
+              "right_label": "medium+search",
+              "right_weight": 10,
+              "score": 0.561903,
+              "semantic_shift": 0.886926,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.365128
+            },
+            {
+              "balance": 0.985228,
+              "boundary_id": "b0012",
+              "cardinality_penalty": 0.224244,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket"
+              ],
+              "coverage": 0.428571,
+              "cut_after": 12,
+              "evidence_fields": [
+                "content",
+                "length_bucket",
+                "action"
+              ],
+              "field": "content",
+              "groups": {
+                "communicate": 12,
+                "search": 9
+              },
+              "label_evidence": [
+                "left:action=communicate@0.5",
+                "right:action=search@0.556"
+              ],
+              "label_quality": 0.52381,
+              "left_label": "communicate",
+              "left_weight": 12,
+              "query_bonus": 0.875,
+              "right_label": "search",
+              "right_weight": 9,
+              "score": 0.443318,
+              "semantic_shift": 0.745665,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.368143
+            },
+            {
+              "balance": 0.863121,
+              "boundary_id": "b0006",
+              "cardinality_penalty": 0.224244,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket"
+              ],
+              "coverage": 0.285714,
+              "cut_after": 6,
+              "evidence_fields": [
+                "content",
+                "action",
+                "length_bucket"
+              ],
+              "field": "content",
+              "groups": {
+                "communicate+short": 6,
+                "search+medium": 15
+              },
+              "label_evidence": [
+                "left:action=communicate@0.667",
+                "left:length_bucket=short@0.667",
+                "right:action=search@0.533",
+                "right:length_bucket=medium@0.467"
+              ],
+              "label_quality": 0.547619,
+              "left_label": "communicate+short",
+              "left_weight": 6,
+              "query_bonus": 0.875,
+              "right_label": "search+medium",
+              "right_weight": 15,
+              "score": 0.441948,
+              "semantic_shift": 0.779221,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.414855
+            },
+            {
+              "balance": 0.958712,
+              "boundary_id": "b0013",
+              "cardinality_penalty": 0.224244,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket"
+              ],
+              "coverage": 0.380952,
+              "cut_after": 13,
+              "evidence_fields": [
+                "content",
+                "action"
+              ],
+              "field": "content",
+              "groups": {
+                "communicate": 13,
+                "search": 8
+              },
+              "label_evidence": [
+                "left:action=communicate@0.462",
+                "right:action=search@0.5"
+              ],
+              "label_quality": 0.47619,
+              "left_label": "communicate",
+              "left_weight": 13,
+              "query_bonus": 0.875,
+              "right_label": "search",
+              "right_weight": 8,
+              "score": 0.439648,
+              "semantic_shift": 0.847368,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.374896
+            },
+            {
+              "balance": 0.958712,
+              "boundary_id": "b0008",
+              "cardinality_penalty": 0.224244,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket"
+              ],
+              "coverage": 0.380952,
+              "cut_after": 8,
+              "evidence_fields": [
+                "content",
+                "length_bucket",
+                "action"
+              ],
+              "field": "content",
+              "groups": {
+                "medium+search": 13,
+                "short+communicate": 8
+              },
+              "label_evidence": [
+                "left:length_bucket=short@0.5",
+                "left:action=communicate@0.5",
+                "right:length_bucket=medium@0.462",
+                "right:action=search@0.462"
+              ],
+              "label_quality": 0.47619,
+              "left_label": "short+communicate",
+              "left_weight": 8,
+              "query_bonus": 0.875,
+              "right_label": "medium+search",
+              "right_weight": 13,
+              "score": 0.436746,
+              "semantic_shift": 0.850694,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.366312
+            },
+            {
+              "balance": 0.918296,
+              "boundary_id": "b0014",
+              "cardinality_penalty": 0.224244,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket"
+              ],
+              "coverage": 0.333333,
+              "cut_after": 14,
+              "evidence_fields": [
+                "content",
+                "action",
+                "length_bucket"
+              ],
+              "field": "content",
+              "groups": {
+                "communicate": 14,
+                "search": 7
+              },
+              "label_evidence": [
+                "left:action=communicate@0.5",
+                "right:action=search@0.571"
+              ],
+              "label_quality": 0.52381,
+              "left_label": "communicate",
+              "left_weight": 14,
+              "query_bonus": 0.875,
+              "right_label": "search",
+              "right_weight": 7,
+              "score": 0.419979,
+              "semantic_shift": 0.756219,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.357837
+            },
+            {
+              "balance": 0.863121,
+              "boundary_id": "b0015",
+              "cardinality_penalty": 0.224244,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket"
+              ],
+              "coverage": 0.285714,
+              "cut_after": 15,
+              "evidence_fields": [
+                "content",
+                "action"
+              ],
+              "field": "content",
+              "groups": {
+                "communicate": 15,
+                "search": 6
+              },
+              "label_evidence": [
+                "left:action=communicate@0.467",
+                "right:action=search@0.5"
+              ],
+              "label_quality": 0.476191,
+              "left_label": "communicate",
+              "left_weight": 15,
+              "query_bonus": 0.875,
+              "right_label": "search",
+              "right_weight": 6,
+              "score": 0.414544,
+              "semantic_shift": 0.831111,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.372017
+            }
+          ],
+          "evidence_fields": [
+            "content",
+            "length_bucket",
+            "action"
+          ],
+          "node_weight": 21,
+          "path": [],
+          "primary_evidence_field": "content",
+          "selected_score": {
+            "balance": 0.998364,
+            "boundary_id": "b0010",
+            "cardinality_penalty": 0.224244,
+            "changed_field_fraction": 0.8,
+            "changed_fields": [
+              "action",
+              "content",
+              "length_bucket",
+              "query_overlap"
+            ],
+            "coverage": 0.47619,
+            "cut_after": 10,
+            "evidence_fields": [
+              "content",
+              "length_bucket",
+              "action"
+            ],
+            "field": "content",
+            "groups": {
+              "long+search": 11,
+              "short+communicate": 10
+            },
+            "label_evidence": [
+              "left:length_bucket=short@0.5",
+              "left:action=communicate@0.5",
+              "right:length_bucket=long@0.455",
+              "right:action=search@0.545"
+            ],
+            "label_quality": 0.5,
+            "left_label": "short+communicate",
+            "left_weight": 10,
+            "query_bonus": 0.875,
+            "right_label": "long+search",
+            "right_weight": 11,
+            "score": 0.580266,
+            "semantic_shift": 0.914498,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.38453
+          },
+          "source_field": "content"
+        },
+        {
+          "boundary_id": "b0005",
+          "candidate_scores": [
+            {
+              "balance": 0.99403,
+              "boundary_id": "b0005",
+              "cardinality_penalty": 0.278943,
+              "changed_field_fraction": 1.0,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket"
+              ],
+              "coverage": 0.454545,
+              "cut_after": 5,
+              "evidence_fields": [
+                "content",
+                "length_bucket"
+              ],
+              "field": "content",
+              "groups": {
+                "long": 5,
+                "medium": 6
+              },
+              "label_evidence": [
+                "left:length_bucket=long@0.6",
+                "right:length_bucket=medium@0.5"
+              ],
+              "label_quality": 0.545455,
+              "left_label": "long",
+              "left_weight": 5,
+              "query_bonus": 0.75,
+              "right_label": "medium",
+              "right_weight": 6,
+              "score": 0.470358,
+              "semantic_shift": 0.87037,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.413166
+            }
+          ],
+          "evidence_fields": [
+            "content",
+            "length_bucket"
+          ],
+          "node_weight": 11,
+          "path": [
+            "long+search"
+          ],
+          "primary_evidence_field": "content",
+          "selected_score": {
+            "balance": 0.99403,
+            "boundary_id": "b0005",
+            "cardinality_penalty": 0.278943,
+            "changed_field_fraction": 1.0,
+            "changed_fields": [
+              "action",
+              "content",
+              "length_bucket"
+            ],
+            "coverage": 0.454545,
+            "cut_after": 5,
+            "evidence_fields": [
+              "content",
+              "length_bucket"
+            ],
+            "field": "content",
+            "groups": {
+              "long": 5,
+              "medium": 6
+            },
+            "label_evidence": [
+              "left:length_bucket=long@0.6",
+              "right:length_bucket=medium@0.5"
+            ],
+            "label_quality": 0.545455,
+            "left_label": "long",
+            "left_weight": 5,
+            "query_bonus": 0.75,
+            "right_label": "medium",
+            "right_weight": 6,
+            "score": 0.470358,
+            "semantic_shift": 0.87037,
+            "small_child_penalty": 0.5,
+            "structural_gain": 0.413166
+          },
+          "source_field": "content"
+        }
+      ],
+      "stop_reasons": {
+        "max_depth": 2,
+        "no_material_split": 1
+      }
+    },
+    "ranking": {
+      "groups": 3,
+      "limit": 3,
+      "policy": "width",
+      "rank_operation_rules": [],
+      "rank_rules": [],
+      "top": [
+        {
+          "matched_rank_rules": [],
+          "rank_score": 10.0,
+          "stack": "operation:short+communicate",
+          "weight": 10
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 6.0,
+          "stack": "operation:long+search;operation:medium",
+          "weight": 6
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 5.0,
+          "stack": "operation:long+search;operation:long",
+          "weight": 5
+        }
+      ]
+    },
+    "sample_type": "operations",
+    "stacks": {
+      "operation:long+search;operation:long": 5,
+      "operation:long+search;operation:medium": 6,
+      "operation:short+communicate": 10
+    },
+    "summary": {
+      "compression_ratio": 7.0,
+      "max_stack_reuse": 10,
+      "top": [
+        {
+          "stack": "operation:short+communicate",
+          "weight": 10
+        },
+        {
+          "stack": "operation:long+search;operation:medium",
+          "weight": 6
+        },
+        {
+          "stack": "operation:long+search;operation:long",
+          "weight": 5
+        }
+      ],
+      "total_weight": 21,
+      "unique_stacks": 3
+    },
+    "unit": "count",
+    "view": "operations"
+  },
+  "schema_version": 1,
+  "sessions": []
+}

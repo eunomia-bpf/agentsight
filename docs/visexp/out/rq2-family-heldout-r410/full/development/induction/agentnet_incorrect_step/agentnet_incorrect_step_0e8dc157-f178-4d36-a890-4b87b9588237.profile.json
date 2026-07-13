@@ -1,0 +1,294 @@
+{
+  "generated_at": "1970-01-01T00:00:00Z",
+  "profile": {
+    "operation_stack_induction": {
+      "allow_session": false,
+      "derived_stack_field": "operation",
+      "excluded_oracle_fields": [
+        "annotator",
+        "attack",
+        "attack_type",
+        "boundary_label",
+        "boundary_positive",
+        "correct",
+        "expected_action",
+        "gold",
+        "gold_action",
+        "group",
+        "group_id",
+        "group_pattern",
+        "human_boundary",
+        "human_group",
+        "label",
+        "looping",
+        "optimality",
+        "oracle",
+        "problem_oracle",
+        "problem_value",
+        "redundant",
+        "reference",
+        "reference_action",
+        "safe",
+        "safety",
+        "side_effect",
+        "status",
+        "step_correct",
+        "step_optimal",
+        "step_redundant",
+        "step_success",
+        "target_positive",
+        "unsafe"
+      ],
+      "excluded_oracle_prefixes": [
+        "gold_",
+        "group_",
+        "human_",
+        "label_",
+        "oracle_",
+        "problem_",
+        "reference_",
+        "target_"
+      ],
+      "excluded_oracle_suffixes": [
+        "_answer",
+        "_attack",
+        "_correct",
+        "_gold",
+        "_ground_truth",
+        "_label",
+        "_oracle",
+        "_positive",
+        "_redundant",
+        "_reference",
+        "_safe",
+        "_safety",
+        "_target",
+        "_unsafe"
+      ],
+      "max_depth": 3,
+      "max_majority_fraction": 0.985,
+      "min_score": 0.055,
+      "min_second_child": 5,
+      "objective": "recursive boundary segmentation over operations; fields are evidence, not stack levels",
+      "policy": "query-conditioned-recursive-boundary-operation-stack-induction",
+      "selected_evidence_fields": [
+        "action",
+        "phase"
+      ],
+      "selected_source_fields": [
+        "action",
+        "phase"
+      ],
+      "split_decisions": [
+        {
+          "boundary_id": "b0007",
+          "candidate_scores": [
+            {
+              "balance": 0.934068,
+              "boundary_id": "b0007",
+              "cardinality_penalty": 0.22767,
+              "changed_field_fraction": 0.666667,
+              "changed_fields": [
+                "action",
+                "phase"
+              ],
+              "coverage": 0.35,
+              "cut_after": 7,
+              "evidence_fields": [
+                "action",
+                "phase"
+              ],
+              "field": "action",
+              "groups": {
+                "click+navigate": 13,
+                "input": 7
+              },
+              "label_evidence": [
+                "left:phase=input@0.571",
+                "right:action=click@0.846",
+                "right:phase=navigate@0.846"
+              ],
+              "label_quality": 0.75,
+              "left_label": "input",
+              "left_weight": 7,
+              "query_bonus": 0.0,
+              "right_label": "click+navigate",
+              "right_weight": 13,
+              "score": 0.372251,
+              "semantic_shift": 0.571429,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.462974
+            },
+            {
+              "balance": 0.881291,
+              "boundary_id": "b0006",
+              "cardinality_penalty": 0.22767,
+              "changed_field_fraction": 0.666667,
+              "changed_fields": [
+                "action",
+                "phase"
+              ],
+              "coverage": 0.3,
+              "cut_after": 6,
+              "evidence_fields": [
+                "action",
+                "phase"
+              ],
+              "field": "action",
+              "groups": {
+                "click+navigate": 14,
+                "hotkey+input": 6
+              },
+              "label_evidence": [
+                "left:action=hotkey@0.5",
+                "left:phase=input@0.5",
+                "right:action=click@0.786",
+                "right:phase=navigate@0.786"
+              ],
+              "label_quality": 0.7,
+              "left_label": "hotkey+input",
+              "left_weight": 6,
+              "query_bonus": 0.0,
+              "right_label": "click+navigate",
+              "right_weight": 14,
+              "score": 0.328312,
+              "semantic_shift": 0.571429,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.413769
+            },
+            {
+              "balance": 0.811278,
+              "boundary_id": "b0005",
+              "cardinality_penalty": 0.22767,
+              "changed_field_fraction": 0.333333,
+              "changed_fields": [
+                "action"
+              ],
+              "coverage": 0.25,
+              "cut_after": 5,
+              "evidence_fields": [
+                "action",
+                "phase"
+              ],
+              "field": "action",
+              "groups": {
+                "click+navigate": 15,
+                "hotkey+input": 5
+              },
+              "label_evidence": [
+                "left:action=hotkey@0.6",
+                "left:phase=input@0.6",
+                "right:action=click@0.8",
+                "right:phase=navigate@0.8"
+              ],
+              "label_quality": 0.75,
+              "left_label": "hotkey+input",
+              "left_weight": 5,
+              "query_bonus": 0.0,
+              "right_label": "click+navigate",
+              "right_weight": 15,
+              "score": 0.242721,
+              "semantic_shift": 0.25,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.323567
+            }
+          ],
+          "evidence_fields": [
+            "action",
+            "phase"
+          ],
+          "node_weight": 20,
+          "path": [],
+          "primary_evidence_field": "action",
+          "selected_score": {
+            "balance": 0.934068,
+            "boundary_id": "b0007",
+            "cardinality_penalty": 0.22767,
+            "changed_field_fraction": 0.666667,
+            "changed_fields": [
+              "action",
+              "phase"
+            ],
+            "coverage": 0.35,
+            "cut_after": 7,
+            "evidence_fields": [
+              "action",
+              "phase"
+            ],
+            "field": "action",
+            "groups": {
+              "click+navigate": 13,
+              "input": 7
+            },
+            "label_evidence": [
+              "left:phase=input@0.571",
+              "right:action=click@0.846",
+              "right:phase=navigate@0.846"
+            ],
+            "label_quality": 0.75,
+            "left_label": "input",
+            "left_weight": 7,
+            "query_bonus": 0.0,
+            "right_label": "click+navigate",
+            "right_weight": 13,
+            "score": 0.372251,
+            "semantic_shift": 0.571429,
+            "small_child_penalty": 0.5,
+            "structural_gain": 0.462974
+          },
+          "source_field": "action"
+        }
+      ],
+      "stop_reasons": {
+        "no_material_split": 1,
+        "small_node": 1
+      }
+    },
+    "ranking": {
+      "groups": 2,
+      "limit": 2,
+      "policy": "width",
+      "rank_operation_rules": [],
+      "rank_rules": [],
+      "top": [
+        {
+          "matched_rank_rules": [],
+          "rank_score": 13.0,
+          "stack": "operation:click+navigate",
+          "weight": 13
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 7.0,
+          "stack": "operation:input",
+          "weight": 7
+        }
+      ]
+    },
+    "sample_type": "operations",
+    "stacks": {
+      "operation:click+navigate": 13,
+      "operation:input": 7
+    },
+    "summary": {
+      "compression_ratio": 10.0,
+      "max_stack_reuse": 13,
+      "top": [
+        {
+          "stack": "operation:click+navigate",
+          "weight": 13
+        },
+        {
+          "stack": "operation:input",
+          "weight": 7
+        }
+      ],
+      "total_weight": 20,
+      "unique_stacks": 2
+    },
+    "unit": "count",
+    "view": "operations"
+  },
+  "schema_version": 1,
+  "sessions": []
+}

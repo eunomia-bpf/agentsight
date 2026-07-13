@@ -1,0 +1,442 @@
+{
+  "generated_at": "1970-01-01T00:00:00Z",
+  "profile": {
+    "operation_stack_induction": {
+      "allow_session": false,
+      "derived_stack_field": "operation",
+      "excluded_oracle_fields": [
+        "annotator",
+        "attack",
+        "attack_type",
+        "boundary_label",
+        "boundary_positive",
+        "correct",
+        "expected_action",
+        "gold",
+        "gold_action",
+        "group",
+        "group_id",
+        "group_pattern",
+        "human_boundary",
+        "human_group",
+        "label",
+        "looping",
+        "optimality",
+        "oracle",
+        "problem_oracle",
+        "problem_value",
+        "redundant",
+        "reference",
+        "reference_action",
+        "safe",
+        "safety",
+        "side_effect",
+        "status",
+        "step_correct",
+        "step_optimal",
+        "step_redundant",
+        "step_success",
+        "target_positive",
+        "unsafe"
+      ],
+      "excluded_oracle_prefixes": [
+        "gold_",
+        "group_",
+        "human_",
+        "label_",
+        "oracle_",
+        "problem_",
+        "reference_",
+        "target_"
+      ],
+      "excluded_oracle_suffixes": [
+        "_answer",
+        "_attack",
+        "_correct",
+        "_gold",
+        "_ground_truth",
+        "_label",
+        "_oracle",
+        "_positive",
+        "_redundant",
+        "_reference",
+        "_safe",
+        "_safety",
+        "_target",
+        "_unsafe"
+      ],
+      "max_depth": 3,
+      "max_majority_fraction": 0.985,
+      "min_score": 0.055,
+      "min_second_child": 5,
+      "objective": "recursive boundary segmentation over operations; fields are evidence, not stack levels",
+      "policy": "query-conditioned-recursive-boundary-operation-stack-induction",
+      "selected_evidence_fields": [
+        "repeat_state"
+      ],
+      "selected_source_fields": [
+        "repeat_state"
+      ],
+      "split_decisions": [
+        {
+          "boundary_id": "b0015",
+          "candidate_scores": [
+            {
+              "balance": 0.989993,
+              "boundary_id": "b0015",
+              "cardinality_penalty": 0.194959,
+              "changed_field_fraction": 0.333333,
+              "changed_fields": [
+                "repeat_state"
+              ],
+              "coverage": 0.441176,
+              "cut_after": 15,
+              "evidence_fields": [
+                "repeat_state"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "light_repeat": 19,
+                "single": 15
+              },
+              "label_evidence": [
+                "left:repeat_state=single@0.733",
+                "right:repeat_state=light-repeat@0.579"
+              ],
+              "label_quality": 0.647058,
+              "left_label": "single",
+              "left_weight": 15,
+              "query_bonus": 0.0,
+              "right_label": "light_repeat",
+              "right_weight": 19,
+              "score": 0.37758,
+              "semantic_shift": 0.333333,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.332477
+            },
+            {
+              "balance": 0.989993,
+              "boundary_id": "b0019",
+              "cardinality_penalty": 0.194959,
+              "changed_field_fraction": 0.333333,
+              "changed_fields": [
+                "repeat_state"
+              ],
+              "coverage": 0.441176,
+              "cut_after": 19,
+              "evidence_fields": [
+                "repeat_state"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "light_repeat": 15,
+                "single": 19
+              },
+              "label_evidence": [
+                "left:repeat_state=single@0.684",
+                "right:repeat_state=light-repeat@0.6"
+              ],
+              "label_quality": 0.647059,
+              "left_label": "single",
+              "left_weight": 19,
+              "query_bonus": 0.0,
+              "right_label": "light_repeat",
+              "right_weight": 15,
+              "score": 0.373705,
+              "semantic_shift": 0.333333,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.322789
+            },
+            {
+              "balance": 0.959687,
+              "boundary_id": "b0021",
+              "cardinality_penalty": 0.194959,
+              "changed_field_fraction": 0.333333,
+              "changed_fields": [
+                "repeat_state"
+              ],
+              "coverage": 0.382353,
+              "cut_after": 21,
+              "evidence_fields": [
+                "repeat_state"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "light_repeat": 13,
+                "single": 21
+              },
+              "label_evidence": [
+                "left:repeat_state=single@0.667",
+                "right:repeat_state=light-repeat@0.615"
+              ],
+              "label_quality": 0.647059,
+              "left_label": "single",
+              "left_weight": 21,
+              "query_bonus": 0.0,
+              "right_label": "light_repeat",
+              "right_weight": 13,
+              "score": 0.360102,
+              "semantic_shift": 0.333333,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.320203
+            },
+            {
+              "balance": 1.0,
+              "boundary_id": "b0017",
+              "cardinality_penalty": 0.194959,
+              "changed_field_fraction": 0.333333,
+              "changed_fields": [
+                "repeat_state"
+              ],
+              "coverage": 0.5,
+              "cut_after": 17,
+              "evidence_fields": [
+                "repeat_state"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "light_repeat": 17,
+                "single": 17
+              },
+              "label_evidence": [
+                "left:repeat_state=single@0.647",
+                "right:repeat_state=light-repeat@0.529"
+              ],
+              "label_quality": 0.588236,
+              "left_label": "single",
+              "left_weight": 17,
+              "query_bonus": 0.0,
+              "right_label": "light_repeat",
+              "right_weight": 17,
+              "score": 0.359342,
+              "semantic_shift": 0.333333,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.29666
+            },
+            {
+              "balance": 0.977418,
+              "boundary_id": "b0020",
+              "cardinality_penalty": 0.194959,
+              "changed_field_fraction": 0.333333,
+              "changed_fields": [
+                "repeat_state"
+              ],
+              "coverage": 0.411765,
+              "cut_after": 20,
+              "evidence_fields": [
+                "repeat_state"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "light_repeat": 14,
+                "single": 20
+              },
+              "label_evidence": [
+                "left:repeat_state=single@0.65",
+                "right:repeat_state=light-repeat@0.571"
+              ],
+              "label_quality": 0.617647,
+              "left_label": "single",
+              "left_weight": 20,
+              "query_bonus": 0.0,
+              "right_label": "light_repeat",
+              "right_weight": 14,
+              "score": 0.35291,
+              "semantic_shift": 0.333333,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.305352
+            },
+            {
+              "balance": 0.936667,
+              "boundary_id": "b0012",
+              "cardinality_penalty": 0.194959,
+              "changed_field_fraction": 0.333333,
+              "changed_fields": [
+                "repeat_state"
+              ],
+              "coverage": 0.352941,
+              "cut_after": 12,
+              "evidence_fields": [
+                "repeat_state"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "light_repeat": 22,
+                "single": 12
+              },
+              "label_evidence": [
+                "left:repeat_state=single@0.75",
+                "right:repeat_state=light-repeat@0.545"
+              ],
+              "label_quality": 0.617647,
+              "left_label": "single",
+              "left_weight": 12,
+              "query_bonus": 0.0,
+              "right_label": "light_repeat",
+              "right_weight": 22,
+              "score": 0.34742,
+              "semantic_shift": 0.333333,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.323974
+            },
+            {
+              "balance": 0.908178,
+              "boundary_id": "b0023",
+              "cardinality_penalty": 0.194959,
+              "changed_field_fraction": 0.333333,
+              "changed_fields": [
+                "repeat_state"
+              ],
+              "coverage": 0.323529,
+              "cut_after": 23,
+              "evidence_fields": [
+                "repeat_state"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "light_repeat": 11,
+                "single": 23
+              },
+              "label_evidence": [
+                "left:repeat_state=single@0.652",
+                "right:repeat_state=light-repeat@0.636"
+              ],
+              "label_quality": 0.647059,
+              "left_label": "single",
+              "left_weight": 23,
+              "query_bonus": 0.0,
+              "right_label": "light_repeat",
+              "right_weight": 11,
+              "score": 0.346423,
+              "semantic_shift": 0.333333,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.318908
+            },
+            {
+              "balance": 0.936667,
+              "boundary_id": "b0022",
+              "cardinality_penalty": 0.194959,
+              "changed_field_fraction": 0.333333,
+              "changed_fields": [
+                "repeat_state"
+              ],
+              "coverage": 0.352941,
+              "cut_after": 22,
+              "evidence_fields": [
+                "repeat_state"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "light_repeat": 12,
+                "single": 22
+              },
+              "label_evidence": [
+                "left:repeat_state=single@0.636",
+                "right:repeat_state=light-repeat@0.583"
+              ],
+              "label_quality": 0.617647,
+              "left_label": "single",
+              "left_weight": 22,
+              "query_bonus": 0.0,
+              "right_label": "light_repeat",
+              "right_weight": 12,
+              "score": 0.339215,
+              "semantic_shift": 0.333333,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.303461
+            }
+          ],
+          "evidence_fields": [
+            "repeat_state"
+          ],
+          "node_weight": 34,
+          "path": [],
+          "primary_evidence_field": "repeat_state",
+          "selected_score": {
+            "balance": 0.989993,
+            "boundary_id": "b0015",
+            "cardinality_penalty": 0.194959,
+            "changed_field_fraction": 0.333333,
+            "changed_fields": [
+              "repeat_state"
+            ],
+            "coverage": 0.441176,
+            "cut_after": 15,
+            "evidence_fields": [
+              "repeat_state"
+            ],
+            "field": "repeat_state",
+            "groups": {
+              "light_repeat": 19,
+              "single": 15
+            },
+            "label_evidence": [
+              "left:repeat_state=single@0.733",
+              "right:repeat_state=light-repeat@0.579"
+            ],
+            "label_quality": 0.647058,
+            "left_label": "single",
+            "left_weight": 15,
+            "query_bonus": 0.0,
+            "right_label": "light_repeat",
+            "right_weight": 19,
+            "score": 0.37758,
+            "semantic_shift": 0.333333,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.332477
+          },
+          "source_field": "repeat_state"
+        }
+      ],
+      "stop_reasons": {
+        "no_material_split": 2
+      }
+    },
+    "ranking": {
+      "groups": 2,
+      "limit": 2,
+      "policy": "width",
+      "rank_operation_rules": [],
+      "rank_rules": [],
+      "top": [
+        {
+          "matched_rank_rules": [],
+          "rank_score": 19.0,
+          "stack": "operation:light_repeat",
+          "weight": 19
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 15.0,
+          "stack": "operation:single",
+          "weight": 15
+        }
+      ]
+    },
+    "sample_type": "operations",
+    "stacks": {
+      "operation:light_repeat": 19,
+      "operation:single": 15
+    },
+    "summary": {
+      "compression_ratio": 17.0,
+      "max_stack_reuse": 19,
+      "top": [
+        {
+          "stack": "operation:light_repeat",
+          "weight": 19
+        },
+        {
+          "stack": "operation:single",
+          "weight": 15
+        }
+      ],
+      "total_weight": 34,
+      "unique_stacks": 2
+    },
+    "unit": "count",
+    "view": "operations"
+  },
+  "schema_version": 1,
+  "sessions": []
+}

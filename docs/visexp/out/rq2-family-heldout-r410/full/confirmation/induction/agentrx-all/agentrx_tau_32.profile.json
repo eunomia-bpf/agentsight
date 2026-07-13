@@ -1,0 +1,1036 @@
+{
+  "generated_at": "1970-01-01T00:00:00Z",
+  "profile": {
+    "operation_stack_induction": {
+      "allow_session": false,
+      "derived_stack_field": "operation",
+      "excluded_oracle_fields": [
+        "annotator",
+        "attack",
+        "attack_type",
+        "boundary_label",
+        "boundary_positive",
+        "correct",
+        "expected_action",
+        "gold",
+        "gold_action",
+        "group",
+        "group_id",
+        "group_pattern",
+        "human_boundary",
+        "human_group",
+        "label",
+        "looping",
+        "optimality",
+        "oracle",
+        "problem_oracle",
+        "problem_value",
+        "redundant",
+        "reference",
+        "reference_action",
+        "safe",
+        "safety",
+        "side_effect",
+        "status",
+        "step_correct",
+        "step_optimal",
+        "step_redundant",
+        "step_success",
+        "target_positive",
+        "unsafe"
+      ],
+      "excluded_oracle_prefixes": [
+        "gold_",
+        "group_",
+        "human_",
+        "label_",
+        "oracle_",
+        "problem_",
+        "reference_",
+        "target_"
+      ],
+      "excluded_oracle_suffixes": [
+        "_answer",
+        "_attack",
+        "_correct",
+        "_gold",
+        "_ground_truth",
+        "_label",
+        "_oracle",
+        "_positive",
+        "_redundant",
+        "_reference",
+        "_safe",
+        "_safety",
+        "_target",
+        "_unsafe"
+      ],
+      "max_depth": 2,
+      "max_majority_fraction": 0.985,
+      "min_score": 0.055,
+      "min_second_child": 5,
+      "objective": "recursive boundary segmentation over operations; fields are evidence, not stack levels",
+      "policy": "query-conditioned-recursive-boundary-operation-stack-induction",
+      "selected_evidence_fields": [
+        "content",
+        "length_bucket",
+        "query_overlap"
+      ],
+      "selected_source_fields": [
+        "content",
+        "length_bucket",
+        "query_overlap"
+      ],
+      "split_decisions": [
+        {
+          "boundary_id": "b0020",
+          "candidate_scores": [
+            {
+              "balance": 0.998364,
+              "boundary_id": "b0020",
+              "cardinality_penalty": 0.184289,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "length_bucket",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.47619,
+              "cut_after": 20,
+              "evidence_fields": [
+                "query_overlap"
+              ],
+              "field": "query_overlap",
+              "groups": {
+                "no": 22,
+                "yes": 20
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.6",
+                "right:query_overlap=no@0.591"
+              ],
+              "label_quality": 0.595238,
+              "left_label": "yes",
+              "left_weight": 20,
+              "query_bonus": 0.0,
+              "right_label": "no",
+              "right_weight": 22,
+              "score": 0.388394,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.299003
+            },
+            {
+              "balance": 0.993447,
+              "boundary_id": "b0019",
+              "cardinality_penalty": 0.184289,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "length_bucket",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.452381,
+              "cut_after": 19,
+              "evidence_fields": [
+                "query_overlap"
+              ],
+              "field": "query_overlap",
+              "groups": {
+                "no": 23,
+                "yes": 19
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.579",
+                "right:query_overlap=no@0.565"
+              ],
+              "label_quality": 0.571428,
+              "left_label": "yes",
+              "left_weight": 19,
+              "query_bonus": 0.0,
+              "right_label": "no",
+              "right_weight": 23,
+              "score": 0.374217,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.290735
+            },
+            {
+              "balance": 0.973668,
+              "boundary_id": "b0017",
+              "cardinality_penalty": 0.184289,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.404762,
+              "cut_after": 17,
+              "evidence_fields": [
+                "query_overlap"
+              ],
+              "field": "query_overlap",
+              "groups": {
+                "no": 25,
+                "yes": 17
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.647",
+                "right:query_overlap=no@0.6"
+              ],
+              "label_quality": 0.619048,
+              "left_label": "yes",
+              "left_weight": 17,
+              "query_bonus": 0.0,
+              "right_label": "no",
+              "right_weight": 25,
+              "score": 0.371911,
+              "semantic_shift": 0.44,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.310907
+            },
+            {
+              "balance": 0.918296,
+              "boundary_id": "b0014",
+              "cardinality_penalty": 0.184289,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.333333,
+              "cut_after": 14,
+              "evidence_fields": [
+                "query_overlap"
+              ],
+              "field": "query_overlap",
+              "groups": {
+                "no": 28,
+                "yes": 14
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.714",
+                "right:query_overlap=no@0.607"
+              ],
+              "label_quality": 0.642857,
+              "left_label": "yes",
+              "left_weight": 14,
+              "query_bonus": 0.0,
+              "right_label": "no",
+              "right_weight": 28,
+              "score": 0.365714,
+              "semantic_shift": 0.416667,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.328874
+            },
+            {
+              "balance": 0.918296,
+              "boundary_id": "b0028",
+              "cardinality_penalty": 0.184289,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "length_bucket",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.333333,
+              "cut_after": 28,
+              "evidence_fields": [
+                "query_overlap"
+              ],
+              "field": "query_overlap",
+              "groups": {
+                "no": 14,
+                "yes": 28
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.571",
+                "right:query_overlap=no@0.643"
+              ],
+              "label_quality": 0.595238,
+              "left_label": "yes",
+              "left_weight": 28,
+              "query_bonus": 0.0,
+              "right_label": "no",
+              "right_weight": 14,
+              "score": 0.364574,
+              "semantic_shift": 0.555556,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.301422
+            },
+            {
+              "balance": 0.985228,
+              "boundary_id": "b0024",
+              "cardinality_penalty": 0.184289,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.428571,
+              "cut_after": 24,
+              "evidence_fields": [
+                "query_overlap"
+              ],
+              "field": "query_overlap",
+              "groups": {
+                "no": 18,
+                "yes": 24
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.583",
+                "right:query_overlap=no@0.611"
+              ],
+              "label_quality": 0.595238,
+              "left_label": "yes",
+              "left_weight": 24,
+              "query_bonus": 0.0,
+              "right_label": "no",
+              "right_weight": 18,
+              "score": 0.362435,
+              "semantic_shift": 0.416667,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.299367
+            },
+            {
+              "balance": 0.998364,
+              "boundary_id": "b0022",
+              "cardinality_penalty": 0.184289,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.47619,
+              "cut_after": 22,
+              "evidence_fields": [
+                "query_overlap"
+              ],
+              "field": "query_overlap",
+              "groups": {
+                "no": 20,
+                "yes": 22
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.545",
+                "right:query_overlap=no@0.55"
+              ],
+              "label_quality": 0.547619,
+              "left_label": "yes",
+              "left_weight": 22,
+              "query_bonus": 0.0,
+              "right_label": "no",
+              "right_weight": 20,
+              "score": 0.35377,
+              "semantic_shift": 0.416667,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.284729
+            },
+            {
+              "balance": 0.958712,
+              "boundary_id": "b0016",
+              "cardinality_penalty": 0.184289,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "length_bucket",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.380952,
+              "cut_after": 16,
+              "evidence_fields": [
+                "query_overlap"
+              ],
+              "field": "query_overlap",
+              "groups": {
+                "no": 26,
+                "yes": 16
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.625",
+                "right:query_overlap=no@0.577"
+              ],
+              "label_quality": 0.595238,
+              "left_label": "yes",
+              "left_weight": 16,
+              "query_bonus": 0.0,
+              "right_label": "no",
+              "right_weight": 26,
+              "score": 0.352481,
+              "semantic_shift": 0.416667,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.300138
+            }
+          ],
+          "evidence_fields": [
+            "query_overlap"
+          ],
+          "node_weight": 42,
+          "path": [],
+          "primary_evidence_field": "query_overlap",
+          "selected_score": {
+            "balance": 0.998364,
+            "boundary_id": "b0020",
+            "cardinality_penalty": 0.184289,
+            "changed_field_fraction": 0.8,
+            "changed_fields": [
+              "action",
+              "length_bucket",
+              "query_overlap",
+              "role"
+            ],
+            "coverage": 0.47619,
+            "cut_after": 20,
+            "evidence_fields": [
+              "query_overlap"
+            ],
+            "field": "query_overlap",
+            "groups": {
+              "no": 22,
+              "yes": 20
+            },
+            "label_evidence": [
+              "left:query_overlap=yes@0.6",
+              "right:query_overlap=no@0.591"
+            ],
+            "label_quality": 0.595238,
+            "left_label": "yes",
+            "left_weight": 20,
+            "query_bonus": 0.0,
+            "right_label": "no",
+            "right_weight": 22,
+            "score": 0.388394,
+            "semantic_shift": 0.52,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.299003
+          },
+          "source_field": "query_overlap"
+        },
+        {
+          "boundary_id": "b0008",
+          "candidate_scores": [
+            {
+              "balance": 0.970951,
+              "boundary_id": "b0008",
+              "cardinality_penalty": 0.22767,
+              "changed_field_fraction": 0.833333,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.4,
+              "cut_after": 8,
+              "evidence_fields": [
+                "content",
+                "query_overlap"
+              ],
+              "field": "content",
+              "groups": {
+                "no": 12,
+                "yes": 8
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.75",
+                "right:query_overlap=no@0.5"
+              ],
+              "label_quality": 0.6,
+              "left_label": "yes",
+              "left_weight": 8,
+              "query_bonus": 0.875,
+              "right_label": "no",
+              "right_weight": 12,
+              "score": 0.468186,
+              "semantic_shift": 0.792208,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.378095
+            },
+            {
+              "balance": 0.881291,
+              "boundary_id": "b0014",
+              "cardinality_penalty": 0.22767,
+              "changed_field_fraction": 0.666667,
+              "changed_fields": [
+                "action",
+                "content",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.3,
+              "cut_after": 14,
+              "evidence_fields": [
+                "content",
+                "query_overlap"
+              ],
+              "field": "content",
+              "groups": {
+                "no": 6,
+                "yes": 14
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.714",
+                "right:query_overlap=no@0.667"
+              ],
+              "label_quality": 0.7,
+              "left_label": "yes",
+              "left_weight": 14,
+              "query_bonus": 0.875,
+              "right_label": "no",
+              "right_weight": 6,
+              "score": 0.46514,
+              "semantic_shift": 0.727273,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.387251
+            },
+            {
+              "balance": 0.811278,
+              "boundary_id": "b0005",
+              "cardinality_penalty": 0.22767,
+              "changed_field_fraction": 0.666667,
+              "changed_fields": [
+                "action",
+                "content",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.25,
+              "cut_after": 5,
+              "evidence_fields": [
+                "query_overlap",
+                "content"
+              ],
+              "field": "query_overlap",
+              "groups": {
+                "no": 15,
+                "yes": 5
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@1",
+                "right:query_overlap=no@0.533"
+              ],
+              "label_quality": 0.65,
+              "left_label": "yes",
+              "left_weight": 5,
+              "query_bonus": 0.875,
+              "right_label": "no",
+              "right_weight": 15,
+              "score": 0.438694,
+              "semantic_shift": 0.604651,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.430391
+            },
+            {
+              "balance": 0.934068,
+              "boundary_id": "b0013",
+              "cardinality_penalty": 0.22767,
+              "changed_field_fraction": 0.666667,
+              "changed_fields": [
+                "content",
+                "length_bucket",
+                "role",
+                "tool_status"
+              ],
+              "coverage": 0.35,
+              "cut_after": 13,
+              "evidence_fields": [
+                "content",
+                "query_overlap"
+              ],
+              "field": "content",
+              "groups": {
+                "no": 7,
+                "yes": 13
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.692",
+                "right:query_overlap=no@0.571"
+              ],
+              "label_quality": 0.65,
+              "left_label": "yes",
+              "left_weight": 13,
+              "query_bonus": 0.875,
+              "right_label": "no",
+              "right_weight": 7,
+              "score": 0.409488,
+              "semantic_shift": 0.770115,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.235342
+            },
+            {
+              "balance": 0.970951,
+              "boundary_id": "b0012",
+              "cardinality_penalty": 0.22767,
+              "changed_field_fraction": 0.666667,
+              "changed_fields": [
+                "content",
+                "length_bucket",
+                "role",
+                "tool_status"
+              ],
+              "coverage": 0.4,
+              "cut_after": 12,
+              "evidence_fields": [
+                "content",
+                "query_overlap"
+              ],
+              "field": "content",
+              "groups": {
+                "no": 8,
+                "yes": 12
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.667",
+                "right:query_overlap=no@0.5"
+              ],
+              "label_quality": 0.6,
+              "left_label": "yes",
+              "left_weight": 12,
+              "query_bonus": 0.875,
+              "right_label": "no",
+              "right_weight": 8,
+              "score": 0.392727,
+              "semantic_shift": 0.695122,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.228282
+            },
+            {
+              "balance": 0.811278,
+              "boundary_id": "b0015",
+              "cardinality_penalty": 0.22767,
+              "changed_field_fraction": 0.666667,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket",
+                "role"
+              ],
+              "coverage": 0.25,
+              "cut_after": 15,
+              "evidence_fields": [
+                "content",
+                "query_overlap"
+              ],
+              "field": "content",
+              "groups": {
+                "no": 5,
+                "yes": 15
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.667",
+                "right:query_overlap=no@0.6"
+              ],
+              "label_quality": 0.65,
+              "left_label": "yes",
+              "left_weight": 15,
+              "query_bonus": 0.875,
+              "right_label": "no",
+              "right_weight": 5,
+              "score": 0.387015,
+              "semantic_shift": 0.802083,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.222218
+            },
+            {
+              "balance": 0.881291,
+              "boundary_id": "b0006",
+              "cardinality_penalty": 0.22767,
+              "changed_field_fraction": 0.5,
+              "changed_fields": [
+                "action",
+                "content",
+                "role"
+              ],
+              "coverage": 0.3,
+              "cut_after": 6,
+              "evidence_fields": [
+                "content",
+                "query_overlap"
+              ],
+              "field": "content",
+              "groups": {
+                "no": 14,
+                "yes": 6
+              },
+              "label_evidence": [
+                "left:query_overlap=yes@0.833",
+                "right:query_overlap=no@0.5"
+              ],
+              "label_quality": 0.6,
+              "left_label": "yes",
+              "left_weight": 6,
+              "query_bonus": 0.875,
+              "right_label": "no",
+              "right_weight": 14,
+              "score": 0.34234,
+              "semantic_shift": 0.486486,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.241566
+            }
+          ],
+          "evidence_fields": [
+            "content",
+            "query_overlap"
+          ],
+          "node_weight": 20,
+          "path": [
+            "yes"
+          ],
+          "primary_evidence_field": "content",
+          "selected_score": {
+            "balance": 0.970951,
+            "boundary_id": "b0008",
+            "cardinality_penalty": 0.22767,
+            "changed_field_fraction": 0.833333,
+            "changed_fields": [
+              "action",
+              "content",
+              "length_bucket",
+              "query_overlap",
+              "role"
+            ],
+            "coverage": 0.4,
+            "cut_after": 8,
+            "evidence_fields": [
+              "content",
+              "query_overlap"
+            ],
+            "field": "content",
+            "groups": {
+              "no": 12,
+              "yes": 8
+            },
+            "label_evidence": [
+              "left:query_overlap=yes@0.75",
+              "right:query_overlap=no@0.5"
+            ],
+            "label_quality": 0.6,
+            "left_label": "yes",
+            "left_weight": 8,
+            "query_bonus": 0.875,
+            "right_label": "no",
+            "right_weight": 12,
+            "score": 0.468186,
+            "semantic_shift": 0.792208,
+            "small_child_penalty": 0.5,
+            "structural_gain": 0.378095
+          },
+          "source_field": "content"
+        },
+        {
+          "boundary_id": "b0015",
+          "candidate_scores": [
+            {
+              "balance": 0.902393,
+              "boundary_id": "b0015",
+              "cardinality_penalty": 0.221065,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket",
+                "role"
+              ],
+              "coverage": 0.318182,
+              "cut_after": 15,
+              "evidence_fields": [
+                "content",
+                "length_bucket"
+              ],
+              "field": "content",
+              "groups": {
+                "medium": 7,
+                "short": 15
+              },
+              "label_evidence": [
+                "left:length_bucket=short@0.667",
+                "right:length_bucket=medium@0.571"
+              ],
+              "label_quality": 0.636364,
+              "left_label": "short",
+              "left_weight": 15,
+              "query_bonus": 0.625,
+              "right_label": "medium",
+              "right_weight": 7,
+              "score": 0.428724,
+              "semantic_shift": 0.845361,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.366285
+            },
+            {
+              "balance": 0.845351,
+              "boundary_id": "b0006",
+              "cardinality_penalty": 0.221065,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "content",
+                "length_bucket",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.272727,
+              "cut_after": 6,
+              "evidence_fields": [
+                "content",
+                "length_bucket"
+              ],
+              "field": "content",
+              "groups": {
+                "medium": 6,
+                "short": 16
+              },
+              "label_evidence": [
+                "left:length_bucket=medium@0.5",
+                "right:length_bucket=short@0.625"
+              ],
+              "label_quality": 0.590909,
+              "left_label": "medium",
+              "left_weight": 6,
+              "query_bonus": 0.625,
+              "right_label": "short",
+              "right_weight": 16,
+              "score": 0.398429,
+              "semantic_shift": 0.830189,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.351622
+            },
+            {
+              "balance": 0.773227,
+              "boundary_id": "b0005",
+              "cardinality_penalty": 0.221065,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "content",
+                "length_bucket",
+                "role"
+              ],
+              "coverage": 0.227273,
+              "cut_after": 5,
+              "evidence_fields": [
+                "content",
+                "action"
+              ],
+              "field": "content",
+              "groups": {
+                "communicate": 17,
+                "left-segment": 5
+              },
+              "label_evidence": [
+                "right:action=communicate@0.706"
+              ],
+              "label_quality": 0.545454,
+              "left_label": "left-segment",
+              "left_weight": 5,
+              "query_bonus": 0.625,
+              "right_label": "communicate",
+              "right_weight": 17,
+              "score": 0.379431,
+              "semantic_shift": 0.77907,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.378786
+            },
+            {
+              "balance": 0.94566,
+              "boundary_id": "b0014",
+              "cardinality_penalty": 0.221065,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "content",
+                "role"
+              ],
+              "coverage": 0.363636,
+              "cut_after": 14,
+              "evidence_fields": [
+                "content",
+                "length_bucket"
+              ],
+              "field": "content",
+              "groups": {
+                "medium": 8,
+                "short": 14
+              },
+              "label_evidence": [
+                "left:length_bucket=short@0.643",
+                "right:length_bucket=medium@0.5"
+              ],
+              "label_quality": 0.590909,
+              "left_label": "short",
+              "left_weight": 14,
+              "query_bonus": 0.625,
+              "right_label": "medium",
+              "right_weight": 8,
+              "score": 0.353954,
+              "semantic_shift": 0.75,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.221512
+            },
+            {
+              "balance": 0.845351,
+              "boundary_id": "b0016",
+              "cardinality_penalty": 0.221065,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "content",
+                "query_overlap",
+                "role"
+              ],
+              "coverage": 0.272727,
+              "cut_after": 16,
+              "evidence_fields": [
+                "content",
+                "length_bucket"
+              ],
+              "field": "content",
+              "groups": {
+                "medium": 6,
+                "short": 16
+              },
+              "label_evidence": [
+                "left:length_bucket=short@0.625",
+                "right:length_bucket=medium@0.5"
+              ],
+              "label_quality": 0.590909,
+              "left_label": "short",
+              "left_weight": 16,
+              "query_bonus": 0.625,
+              "right_label": "medium",
+              "right_weight": 6,
+              "score": 0.331704,
+              "semantic_shift": 0.763158,
+              "small_child_penalty": 0.5,
+              "structural_gain": 0.211622
+            }
+          ],
+          "evidence_fields": [
+            "content",
+            "length_bucket"
+          ],
+          "node_weight": 22,
+          "path": [
+            "no"
+          ],
+          "primary_evidence_field": "content",
+          "selected_score": {
+            "balance": 0.902393,
+            "boundary_id": "b0015",
+            "cardinality_penalty": 0.221065,
+            "changed_field_fraction": 0.8,
+            "changed_fields": [
+              "action",
+              "content",
+              "length_bucket",
+              "role"
+            ],
+            "coverage": 0.318182,
+            "cut_after": 15,
+            "evidence_fields": [
+              "content",
+              "length_bucket"
+            ],
+            "field": "content",
+            "groups": {
+              "medium": 7,
+              "short": 15
+            },
+            "label_evidence": [
+              "left:length_bucket=short@0.667",
+              "right:length_bucket=medium@0.571"
+            ],
+            "label_quality": 0.636364,
+            "left_label": "short",
+            "left_weight": 15,
+            "query_bonus": 0.625,
+            "right_label": "medium",
+            "right_weight": 7,
+            "score": 0.428724,
+            "semantic_shift": 0.845361,
+            "small_child_penalty": 0.5,
+            "structural_gain": 0.366285
+          },
+          "source_field": "content"
+        }
+      ],
+      "stop_reasons": {
+        "max_depth": 4
+      }
+    },
+    "ranking": {
+      "groups": 4,
+      "limit": 4,
+      "policy": "width",
+      "rank_operation_rules": [],
+      "rank_rules": [],
+      "top": [
+        {
+          "matched_rank_rules": [],
+          "rank_score": 15.0,
+          "stack": "operation:no;operation:short",
+          "weight": 15
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 12.0,
+          "stack": "operation:yes;operation:no",
+          "weight": 12
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 8.0,
+          "stack": "operation:yes",
+          "weight": 8
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 7.0,
+          "stack": "operation:no;operation:medium",
+          "weight": 7
+        }
+      ]
+    },
+    "sample_type": "operations",
+    "stacks": {
+      "operation:no;operation:medium": 7,
+      "operation:no;operation:short": 15,
+      "operation:yes": 8,
+      "operation:yes;operation:no": 12
+    },
+    "summary": {
+      "compression_ratio": 10.5,
+      "max_stack_reuse": 15,
+      "top": [
+        {
+          "stack": "operation:no;operation:short",
+          "weight": 15
+        },
+        {
+          "stack": "operation:yes;operation:no",
+          "weight": 12
+        },
+        {
+          "stack": "operation:yes",
+          "weight": 8
+        },
+        {
+          "stack": "operation:no;operation:medium",
+          "weight": 7
+        }
+      ],
+      "total_weight": 42,
+      "unique_stacks": 4
+    },
+    "unit": "count",
+    "view": "operations"
+  },
+  "schema_version": 1,
+  "sessions": []
+}

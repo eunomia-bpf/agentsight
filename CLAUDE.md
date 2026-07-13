@@ -92,12 +92,40 @@ agentpprof --project-root . -o agent.pb.gz
   editing, restoring, formatting, regenerating, committing, pushing, pulling, or
   updating the submodule. The user or another agent may be editing it in
   parallel.
-- The outer `main.tex` is the Chinese paper and may be updated iteratively when
-  the user asks to continue paper/research writing. Keep Chinese-paper work in
-  the outer repository and keep it separate from the English paper submodule.
+- The active editable paper is under `docs/paper/`. The previous Chinese paper
+  snapshot is archived under `docs/tmp/agentpprof-paper-zh-20260711/`; do not
+  treat the outer `main.tex` or the English paper submodule as the active paper.
 - When submodules are dirty, inspect and report their status separately. Do not
   commit, restore, or update submodule contents as a side effect of unrelated
   code, experiment, or documentation work.
+
+## AgentProf Research Invariants
+
+- Treat `docs/agentpprof-paper/main.tex` as the read-only canonical AgentProf
+  story source. Preserve its problem, stakes, debugging-versus-profiling gap,
+  semantic operation-stack insight, system direction, three-contribution
+  structure, and four-RQ meaning. Evidence and wording may improve, but only a
+  later explicit user instruction may replace that story.
+- Before AgentProf paper, evaluation, experiment, or review work, read the
+  complete docs/user-instruction.md and docs/idea-story.md. Preserve the exact
+  four author-fixed RQs—resource attribution, correspondence to real problems,
+  tag accuracy, and profiling cost—unless a later explicit user instruction
+  changes them.
+- The author-fixed paper-level thesis is exactly: **“Agent observability needs
+  profiling, not only debugging.”** Preserve this sentence verbatim in the
+  current scientific story and paper. Cross-run recurrence, measured effects,
+  hierarchy choice, operation stacks, and particular experiments motivate,
+  implement, or evaluate the thesis; they do not replace it.
+- Do not paraphrase, narrow, broaden, or replace the author-fixed thesis because
+  of a reviewer objection, literature neighbor, local negative result, missing
+  evidence, venue preference, or writing improvement. Record a direct challenge
+  and pursue discriminating evidence while retaining the thesis. Change it only
+  after an explicit user instruction establishes a different thesis.
+- Before any idea-level or paper-story change, read `docs/idea-story.md` from
+  the complete Initial Narrative through the latest evolution entry. Record
+  every accepted narrative change there with its reason and comparison against
+  the initial and immediately previous narratives. Idea reviewers propose;
+  only the root orchestrator records the disposition; WRITE only expresses it.
 
 ## Architecture
 
