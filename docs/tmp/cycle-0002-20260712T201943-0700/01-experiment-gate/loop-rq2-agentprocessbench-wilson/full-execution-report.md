@@ -284,3 +284,51 @@ An independent reviewer must now recalculate the complete source joins, scores,
 zero-vote mappings, point metrics, all 200 shuffles, all 10,000 bootstrap rows,
 intervals, and mechanical verdict. Only then may the outer experiment record
 be updated.
+
+## Independent FULL result review
+
+**Reviewed:** 2026-07-13T07:06:44-07:00
+
+**Required skill:** `research-experiment-design`
+
+**Reviewer mode:** independent, complete-artifact, and read-only
+
+**Verdict:** **PASS**
+
+**Must-fix:** **zero**
+
+The reviewer read all six loop Markdown artifacts, the complete implementation
+and tests, and every reused source/scorer/profile/shuffle/bootstrap function.
+It independently regenerated and recalculated the FULL artifacts rather than
+trusting the machine summary.
+
+The review confirmed:
+
+- exact 200-task, 1,000-trajectory, 8,509-operation source and label joins,
+  including 2,710 harmful, 452 neutral, and 5,347 positive human labels;
+- all 170,180 released judge slots, 168,382 non-null votes, 24,634 harmful
+  votes, and three all-null operations;
+- all five real AgentProf views and exact operation/risk conservation;
+- all 10,252 family-local group-score rows and 42,545 operation-to-view joins;
+- the exact one session plus three ungrouped zero-vote groups, with every
+  operation retained;
+- every per-family and macro complete-tier point metric;
+- bit-exact historical mean-risk regression;
+- all 200 regenerated shuffles, exact pair/size preservation, zero shuffled AP
+  effects at least observed, and `p=1/201`;
+- all 10,000 regenerated query-cluster bootstrap rows, zero discards, exact
+  five-rollout multiplicities, per-draw score recomputation, and exact stored
+  effects;
+- independently recomputed intervals of
+  `[0.016471713510014994, 0.05148598608266341]` for AP and
+  `[-0.026808793797087102, 0.08050625667383811]` for work;
+- mechanical `VALID / INCONCLUSIVE` status.
+
+The reviewer agreed that this is supporting adaptive within-benchmark evidence,
+not a thesis challenge. It does not authorize paper insertion from the
+unsupported conjunctive construction, a third target-reused scoring variant,
+or narrowing/replacing the thesis, RQ2, positive hypothesis, canonical story,
+or four RQs.
+
+**Disposition:** return to outer WRITE/REVIEW and select a fresh external source
+or different evidence mechanism after the canonical paper is read as a whole.

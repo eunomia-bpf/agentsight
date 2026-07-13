@@ -1,13 +1,14 @@
 # Cycle 0002 Report — Canonical-Story Evidence Program
 
 **Started:** 2026-07-12T20:19:43-07:00
-**Status:** EXPERIMENT gate active. CodeTraceBench completed with a MIXED tested
-construction, ToolSafe and AgentNet completed valid but non-supporting tested
-constructions, and AgentProcessBench completed a valid `INCONCLUSIVE`
-construction with independently confirmed positive AP specificity but an
-unresolved work-to-50 interval. None directly challenges the thesis, four RQs,
-or positive RQ2 hypothesis. The next experiment retains RQ2 and targets stable
-inspection-work improvement.
+**Status:** EXPERIMENT inner loop complete; transition to WRITE. CodeTraceBench
+completed with a MIXED tested construction, ToolSafe and AgentNet completed
+valid but non-supporting tested
+constructions, and two AgentProcessBench constructions completed with valid
+`INCONCLUSIVE` verdicts, independently confirmed semantic AP specificity, and
+favorable but unresolved work-to-50 effects. None directly challenges the
+thesis, four RQs, or positive RQ2 hypothesis. Same-target AgentProcessBench
+score variants are complete; WRITE precedes the next whole-paper REVIEW.
 
 ## Objective
 
@@ -44,11 +45,15 @@ This cycle changes evidence and mechanisms, not story.
    story narrowing after every non-supporting construction;
 6. materially restored the user-designated canonical AgentProf scientific body
    into the active AAAI paper workspace without editing the submodule;
-7. design the next single RQ2 construction from published group-ranking or
-   diagnostic-inspection practice, then run one complete
-   `research-experiment-design` loop after at least three serial plan reviews;
-8. propagate only complete positive evidence under the canonical story lock;
-9. finish WRITE and whole-paper REVIEW before deciding the next fixed RQ.
+7. completed the second AgentProcessBench construction from published ranking
+   and effort-aware inspection principles after three serial plan reviews,
+   implementation review, REAL PREFLIGHT review, FULL execution, and complete
+   artifact recalculation; AP and matched specificity passed, all four work
+   point effects were favorable, and the work interval remained inconclusive;
+8. ended further score variants on the already observed AgentProcessBench
+   targets without narrowing RQ2 or changing its positive hypothesis;
+9. enter WRITE under the canonical story lock, then finish whole-paper REVIEW
+   and external search before selecting the next experiment.
 
 ## Current Reports
 
@@ -87,3 +92,11 @@ This cycle changes evidence and mechanisms, not story.
   `01-experiment-gate/loop-rq2-agentprocessbench/implementation-report.md`,
   `01-experiment-gate/loop-rq2-agentprocessbench/preflight-report.md`, and
   `01-experiment-gate/loop-rq2-agentprocessbench/full-execution-report.md`.
+- AgentProcessBench Wilson source/method selection, approved Revision 3,
+  implementation review, REAL PREFLIGHT review, complete result, and independent
+  recalculation:
+  `01-experiment-gate/loop-rq2-agentprocessbench-wilson/source-method-selection-report.md`,
+  `01-experiment-gate/loop-rq2-agentprocessbench-wilson/experiment-plan.md`,
+  `01-experiment-gate/loop-rq2-agentprocessbench-wilson/implementation-report.md`,
+  `01-experiment-gate/loop-rq2-agentprocessbench-wilson/preflight-report.md`, and
+  `01-experiment-gate/loop-rq2-agentprocessbench-wilson/full-execution-report.md`.

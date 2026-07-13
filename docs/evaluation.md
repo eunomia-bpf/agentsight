@@ -19,7 +19,7 @@ later explicit user instruction may change the four author-fixed RQs.
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | Compare flat, source-native, and one fixed semantic profile against independent tool/span/process resource identities on real traces. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | Preserve the complete positive AgentProcessBench AP result and run a second independently planned construction that turns semantic concentration into a stable work-to-50 reduction without target-label tuning. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | Two complete AgentProcessBench constructions establish semantic-specific AP concentration and favorable work point estimates but leave the task-cluster work interval unresolved. End same-target score variants; enter WRITE, then use whole-paper REVIEW to select a fresh external source or different evidence mechanism without narrowing RQ2. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | Evaluate one frozen tagger or mapping on held-out real families with independent labels and downstream attribution sensitivity. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | Measure end-to-end construction, memory, output size, and repeated-query cost across complete real workloads and scaling points. |
 
@@ -69,8 +69,8 @@ lineage, developer utility, or the final RQ1 answer.
 
 ## Admitted RQ2 Evidence And Boundaries
 
-The complete AgentProcessBench experiment provides current supporting RQ2
-evidence without yet authorizing a paper result. On all 1,000 official
+The first complete AgentProcessBench experiment provides supporting RQ2
+evidence without authorizing a paper result. On all 1,000 official
 trajectories and 8,509 human-labeled assistant steps, the target-preserving
 semantic profile improves equal-family macro AP over raw action by 0.031522
 with a paired 95% interval of [0.015138, 0.053514]. The matched within-raw-leaf
@@ -81,6 +81,28 @@ construction is therefore `INCONCLUSIVE`, with positive AP specificity and an
 unresolved inspection-work condition. Complete plan, implementation reviews,
 preflight, full execution, and independent recalculation are under
 `docs/tmp/cycle-0002-20260712T201943-0700/01-experiment-gate/loop-rq2-agentprocessbench/`.
+
+The second complete construction reused published ranking/inspection
+principles and a fixed Wilson-shaped finite-ensemble score without selecting
+fields, constants, or thresholds from human-label values. Semantic again
+improves equal-family macro AP, by 0.024515 with paired interval
+[0.016472, 0.051486], and exceeds all 200 matched refinements
+(`p=0.004975`). Its work-to-50 point effect is favorable in all four families
+and improves the macro point estimate to 0.027651, but the paired task-cluster
+interval [-0.026809, 0.080506] still crosses zero. The fixed conjunctive verdict
+is therefore also `INCONCLUSIVE`, not `CONTRADICTED`. Complete source/method
+selection, three serial plan reviews, implementation and review, REAL
+PREFLIGHT and review, FULL result, and independent recalculation are under
+`docs/tmp/cycle-0002-20260712T201943-0700/01-experiment-gate/loop-rq2-agentprocessbench-wilson/`.
+
+Because project agents had already observed the benchmark's human targets, the
+second run is supporting adaptive within-benchmark construction evidence, not
+a fresh holdout. It shows that evidence-stabilized ranking improves the work
+point estimate and makes every family favorable, but does not resolve the
+cluster-level work uncertainty. The predeclared two-construction limit is now
+reached: do not create a third AgentProcessBench score variant. Neither result
+narrows RQ2 or the positive hypothesis, and neither unsupported conjunctive
+construction is inserted into the paper.
 
 Three other current-cycle constructions remain internal boundaries. The
 CodeTraceBench comparison was valid but mixed, ToolSafe was valid but
@@ -140,29 +162,28 @@ satisfy these project-local controls:
 
 ## Next Evidence Selection
 
-The current RQ2 frontier is no longer source discovery. AgentProcessBench is a
-complete official four-family benchmark with independent human step labels and
-released blind judge outputs, and the first target-preserving construction has
-already established semantic-specific AP concentration beyond a matched
-granularity control. The remaining uncertainty is whether a principled
-semantic profile can convert that concentration into a stable reduction in the
-operations required to recover half of the harmful steps.
+The AgentProcessBench score-selection frontier is complete for this cycle. Two
+fully executed target-preserving constructions produce independently verified
+semantic AP specificity and favorable inspection-work point estimates, while
+both task-cluster work intervals remain unresolved. The second construction
+used the allowed target-reused adaptation; a third would be target retuning
+rather than stronger external evidence.
 
-The next experiment must retain the exact RQ2 and positive hypothesis. It may
-change the profiling/ranking construction, visible signal, or workload
-protocol, but it may not weaken the claim, remove work-to-50, choose fields or
-thresholds from the now-observed human labels, or rewrite the completed result.
-Before proposing Revision 2, perform a bounded external search for published
-group-ranking, risk-coverage, or diagnostic-inspection protocols and choose the
-simplest construction that directly targets early inspection concentration.
-Prefer an independently published mechanism and, when available, a fresh real
-public validation source over target-label retuning on AgentProcessBench.
+The next outer state is WRITE, not another immediate AgentProcessBench
+experiment. WRITE must read the canonical AgentProf paper as a whole, preserve
+the exact thesis and four RQs, run idea and writing discussions in their
+assigned roles, and avoid inserting unsupported or negative-result prose. The
+paper remains the current scientific state; detailed experiment evolution stays
+in these timestamped reports and this frontier file.
 
-The new plan must state one construction and one hypothesis, preserve
-`target` and the raw local leaf, use real complete data, and pass at least three
-serial independent plan reviews before REAL PREFLIGHT. The existing
-AgentProcessBench result remains the fixed prior observation; it cannot be
-recomputed into a different verdict.
+Whole-paper REVIEW then searches external literature and benchmark information
+while judging the complete paper. If it returns to RQ2, it must select a fresh
+real public source or a different independently grounded evidence mechanism.
+It may not weaken the positive hypothesis, remove inspection work, choose
+fields or thresholds from observed AgentProcessBench labels, or rewrite either
+completed verdict. One new plan still states one construction and hypothesis,
+preserves `target` and the raw local leaf, uses complete real data, and follows
+the normal reviewed preflight-to-FULL loop.
 
 ## Experiment History Policy
 
