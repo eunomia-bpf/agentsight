@@ -1,6 +1,6 @@
 # Experiment plan: AgentNet cross-platform step-quality localization
 
-**Plan revision:** 2  
+**Plan revision:** 3  
 **Proposed:** 2026-07-13T02:46:31-07:00  
 **Outer gate:** EXPERIMENT  
 **Research question:** RQ2 — Does Profiler Output Correspond to Real Problems?  
@@ -60,9 +60,9 @@ not a target. No result from it enters the confirmatory metric.
    into the scorer.
 
 Reference-platform labels are training data for that fold. Held-out-platform
-labels are scoring data only. Aggregate results report both folds separately
-and a task-weighted pooled estimate; a pooled gain cannot hide a platform
-direction reversal.
+labels are scoring data only. The two folds are evaluated separately because
+their independently fitted probability scales are not assumed calibrated to
+one another. No pooled cross-model ranking participates in the verdict.
 
 ## Visible projection and prohibited information
 
@@ -82,8 +82,16 @@ inspected:
 - numeric: zero-based step index divided by `max(1, trajectory_length - 1)` and
   `log1p(trajectory_length)`.
 
-Action, target, phase, and repetition fields reuse the already-published Ubuntu
-development rules in `script/agent_trace_datasets.py` without modification:
+Action, target, phase, and repetition fields reuse only four pure helpers from
+the already-published Ubuntu development rules in
+`script/agent_trace_datasets.py`: `agentnet_code_action`,
+`agentnet_action_target`, `agentnet_action_phase`, and
+`repeat_features_for_signatures`. The experiment must not call
+`normalize_agentnet()` or pass its output to either the predictor or AgentProf,
+because that adapter also emits the forbidden step labels, task-completion
+status, and post-hoc scores.
+
+The four pure helpers are fixed without modification:
 
 - action is the first `pyautogui.<function>` or `computer.<function>` name,
   normalized by the existing aliases (`write`/`typewrite`→`type`,
@@ -92,8 +100,10 @@ development rules in `script/agent_trace_datasets.py` without modification:
   first four exact key tokens for keyboard actions, `text` for typing,
   `scroll` for scrolling, `none` for observation/wait, or the explicit
   termination status;
-- phase is the fixed action-family map: input, navigate, observe, finish, or
-  desktop-action;
+- phase is exactly `agentnet_action_phase(action)`: `terminate` maps to
+  `finish`; every other action uses the unmodified `osworld_action_phase`
+  result, including its possible `input`, `navigate`, `observe`, `fail`,
+  `system`, or `desktop-action` values;
 - repetition state and run use the existing preceding-five-step signature
   rules over `(action,target)`; the trajectory signal is `loop-like` exactly
   when those fixed rules observe a same-signature run/window or repeated target
@@ -102,6 +112,24 @@ development rules in `script/agent_trace_datasets.py` without modification:
 These rules were developed on the old Ubuntu path and are therefore declared
 development provenance. They cannot be changed after any Windows/macOS label or
 metric is read.
+
+### Physical label boundary
+
+`prepare` is the only stage allowed to read the raw official trajectory file.
+It writes one ordinary `projection.jsonl` containing only allowed visible
+fields and two separate label files, `labels/windows.jsonl` and
+`labels/darwin.jsonl`. It also writes a Markdown source/join report. The raw
+file, source directory, and target-label path are not valid predictor inputs.
+
+Each fold runs a predictor subprocess whose complete inputs are the visible
+projection, exactly one reference-platform label file, the reference and target
+platform names, fixed settings, and an output directory. It cannot receive the
+raw file, source root, or target label. Before scoring, a label-blind stage
+saves every target prediction, every view's group key, operation count and risk
+sum, and all deterministic bootstrap task-ID draws. Only a later scorer
+subprocess receives those saved artifacts plus the held-out platform label
+file. The implementation test must demonstrate that swapping or withholding
+the target-label path cannot change predictions, group artifacts, or draws.
 
 The predictor and AgentProf input must exclude:
 
@@ -190,15 +218,18 @@ Secondary diagnostic measurements:
 - profile counter and predicted-risk mass conservation.
 
 Fit each reciprocal-fold model once on the complete reference platform. Then
-use 10,000 paired task-cluster bootstrap draws over the held-out platform; all
-views share the identical task draw. A pooled draw resamples tasks separately
-within Windows and macOS and then combines every scorable step, so the pooled
-primary metric remains operation-weighted rather than averaging two platform
-metrics. If either platform copy of a draw has no positive or no negative, drop
-the entire paired draw. Attempt at most 50,000 deterministic draws to obtain
-10,000 valid draws. Fewer than 10,000 valid draws is an incomplete execution,
-not a scientific negative. Report percentile 95% intervals; never refresh the
-seed or draws in response to the result.
+use 10,000 paired task-cluster bootstrap draws over that fold's held-out
+platform; all views share the identical task draw. If a draw has no positive or
+no negative, drop the entire paired draw. Attempt at most 50,000 deterministic
+draws per fold to obtain 10,000 valid draws. Fewer than 10,000 valid draws in
+either fold is an incomplete execution, not a scientific negative. Report
+percentile 95% intervals separately for Windows→macOS and macOS→Windows; never
+refresh the seed or draws in response to the result.
+
+An equal-weight mean of the two within-fold metric differences may be reported
+as a secondary stratified summary. Raw predictions from the two independently
+trained models are never concatenated and ranked together, and no pooled
+interval participates in `SUPPORTED`, `CONTRADICTED`, or `MIXED`.
 
 ## Predeclared comparison and verdict
 
@@ -214,11 +245,10 @@ There are exactly two fixed primary comparisons:
 Flat, fixed-session, source-native, and exact-repeat results are mandatory
 controls and disaggregations. No target metric chooses a comparator.
 
-- **SUPPORTED:** semantic-minus-raw-action pooled AP and recall@30 intervals are
-  entirely above zero; raw-action-minus-semantic work-to-50 is entirely above
-  zero; semantic-minus-ungrouped-risk pooled AP is entirely above zero; and
-  both held-out platforms have the favorable point-estimate direction for
-  every corresponding comparison.
+- **SUPPORTED:** in each of the two held-out folds independently,
+  semantic-minus-raw-action AP and recall@30 intervals are entirely above zero,
+  raw-action-minus-semantic work-to-50 is entirely above zero, and
+  semantic-minus-ungrouped-risk AP is entirely above zero.
 - **CONTRADICTED:** execution is complete and valid, and either (a) both held-out
   platforms favor raw action on AP and work-to-50, or (b) one platform has a
   confidence interval excluding zero in the adverse direction for semantic AP
@@ -284,7 +314,7 @@ the two official source checksums; exactly 12,364 Windows and 5,168 Darwin
 metadata tasks; one-to-one raw/metadata task IDs; saved predictions for every
 held-out operation before held-out label access; exact AgentProf/source counts
 for every view; risk-mass reconstruction; 10,000 valid paired draws; both fold
-reports; pooled report; and no stale partial-run status.
+reports; optional stratified-effect report; and no stale partial-run status.
 
 ## Expected artifacts
 
