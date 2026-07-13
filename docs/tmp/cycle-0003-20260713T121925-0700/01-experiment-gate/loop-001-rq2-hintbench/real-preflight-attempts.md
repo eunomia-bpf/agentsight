@@ -95,3 +95,59 @@ handling were also verified.  All ten adapter tests passed.
 No paper, story, RQ, tested hypothesis, model, prompt, population, AgentProf
 construction, baseline, metric, or evidence threshold changed.  Attempt 2 is
 authorized.
+
+## Attempt 2 — 2026-07-13
+
+### Execution result
+
+**Status:** VALID
+
+The same approved command completed in 26.93 seconds.  All 616 exact prompts
+were templated and tokenized again; all fit the 32,768-token context, with
+`test:5` remaining the longest at 8,497 prompt tokens and 9,521 tokens with the
+output allowance.  The model returned terminal outputs for the fixed first
+risky and first safe validation records: one parsed `ok_unsafe` and one parsed
+`ok_safe`, with no out-of-range predicted step.
+
+The two trajectories contained 60 operations.  All 24 field-order profile
+paths completed through the real `agentpprof 0.2.37` binary.  Count/shifted
+recovery, leaf/prefix/global conservation, the independent flat reconstruction,
+the four main baselines, the width-only control, mappable-target sensitivity,
+and report generation all completed.  The flat reconstruction was exactly
+identical to the AgentProf path.
+
+### Interpretation boundary
+
+Preflight used the lexically first field order only to exercise downstream
+paths.  `scientific_selection=false`, no positive threshold was evaluated, and
+the emitted verdict is `PREFLIGHT_ONLY`.  The two-record point estimates are
+not evidence for or against the tested hypothesis and must not enter the paper.
+They neither select a scientific configuration nor alter RQ2, the hypothesis,
+or the planned FULL population.
+
+### Status
+
+The complete artifacts are under `results/preflight/`.  Independent result
+review passed and FULL execution is authorized.
+
+## Independent Attempt 2 Result Review — 2026-07-13
+
+**Skill:** `research-experiment-design`
+
+**Verdict:** PASS → FULL
+
+The reviewer independently matched all 616 current request bodies and hashes
+to the adapter and tokenization artifacts, confirmed all prompts fit, and
+matched the two terminal usage counts exactly at 4,219 and 2,601 tokens.  The
+selected records were the fixed first risky `validation:20` and first safe
+`validation:0`; gold top-level fields were absent from their prompts.
+
+All 24 real AgentProf candidates contained the expected 60 count units, 61
+shifted units, and one recovered localizer hit.  Leaf, prefix, and global
+conservation and flat identity were exact for every candidate.  The reviewer
+independently recomputed all seven method/control point paths from the emitted
+artifacts with no mismatch.  Attempt 1 failures were neither cached nor scored.
+
+The result remains `PREFLIGHT_ONLY`, uses no scientific selection, and evaluates
+no positive threshold.  FULL is authorized for all 80 validation records, all
+536 test records, and 10,000 paired trajectory-cluster bootstrap replicates.
