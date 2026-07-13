@@ -952,3 +952,230 @@ provenance mechanism.
 No must-fix remains. The repaired plan is scientifically meaningful, fair,
 source-complete, deterministic where result-changing choices occur, and
 executable for the declared one-RQ matrix. **REAL PREFLIGHT is authorized.**
+
+## Post-Round-4 Implementation-Audit Correction
+
+**Status:** Round-4 authorization is temporarily superseded; no inference was
+run. One final Round-5 review is required after the corrections below.
+
+### New official-source evidence
+
+A read-only implementation audit re-read the current official
+`eval/evaluate.py` and computed SHA-256
+`ab7bcfc70d6cb45fe91c8020a61754312c9fb7e6a8cb909fb260aab76236ab80`.
+The actual `SamplingParams` are temperature `0.1`, top-p `0.9`, and
+`max_tokens=1024`. Earlier plan/review text incorrectly described the official
+maximum as 4,096. The adapter had not yet made any inference request, so no
+result or cache is contaminated.
+
+### Factual repair
+
+The plan now uses the official 1,024-token maximum and reserves 1,024 tokens in
+the complete-population context check. It accurately distinguishes the
+remaining deviations: llama.cpp/Qwen rather than vLLM/example Llama; one Qwen
+chat-template envelope rather than direct raw-prompt generation; deterministic
+temperature zero/top-p one; and constrained rather than unconstrained JSON.
+
+### Exact implementation choices closed before inference
+
+The same audit found five places where multiple plausible implementations could
+change model output or a reported endpoint. The plan now fixes them without
+adding a method, workload, or analysis:
+
+1. one `/v1/chat/completions` user message contains the complete filled official
+   prompt; reasoning is disabled with the exact declared request fields;
+2. every role-specific item begins with the exact prefix bytes
+   `[STEP_ID=<id>]\n`, while the remaining official rendering is preserved;
+3. the JSON schema fixes required fields, official risk-name enum, integer step
+   arrays, and no extra properties, but deliberately adds no `minItems` or
+   safe/unsafe conditional beyond the published prompt/parser semantics;
+4. bootstrap percentile endpoints use NumPy `method="linear"`; and
+5. the signal-free width control ranks atomic width descending and consumes a
+   complete equal-width tier.
+
+The exact request is applied through llama.cpp `/apply-template` and then
+`/tokenize` with special-token handling before any inference for all 616
+records. The first real response must confirm the precomputed prompt-token
+count through its usage field. Resume reuse requires the canonical complete
+request body to match.
+
+### Scope and next action
+
+These are source-fidelity and deterministic-execution repairs only. RQ2,
+thesis, hypothesis, populations, operation mapping, AgentProf construction,
+four main baselines, exact flat identity, work/recall metric, positive
+threshold, and paper remain unchanged. A fresh Round-5 reviewer must verify the
+repaired plan and official evaluator before REAL PREFLIGHT resumes.
+
+## Round 5 — Final Fresh Official-Protocol And Regression Review
+
+**Reviewer role:** fresh independent Round-5 experiment-plan reviewer
+**Review date:** 2026-07-13
+**Skill used:** `research-experiment-design`
+**Scope:** verify the post-Round-4 official-protocol corrections and reconfirm
+that no earlier scientific repair regressed inside the same fixed HINTBench RQ2
+experiment
+**Files changed by this reviewer:** this Round-5 review only
+
+### Material Read And Independent Evidence
+
+Before judging the correction, I read the complete
+`research-experiment-design/SKILL.md`, its complete
+`references/plan-template.md`, and its complete
+`references/technique-catalog.md`. I then read the complete
+`docs/user-instruction.md`, complete `docs/idea-story.md`, complete cycle-0003
+EXPERIMENT gate entry, complete current `experiment-plan.md`, and the complete
+Round-1 through Round-4 discussion, root responses, and post-Round-4 correction
+above.
+
+I independently downloaded the current official HINTBench
+`eval/evaluate.py` from the plan's 4open URL. Its SHA-256 is exactly:
+
+`ab7bcfc70d6cb45fe91c8020a61754312c9fb7e6a8cb909fb260aab76236ab80`.
+
+The downloaded source constructs `SamplingParams` with temperature `0.1`,
+top-p `0.9`, and `max_tokens=1024`, builds each prompt by applying the official
+`format_trajectory` and `PROMPT_TEMPLATE`, and passes the resulting raw prompt
+strings directly to `llm.generate(prompts, sampling_params)`. It does not wrap
+them in chat messages or constrain generation with a JSON schema. The repaired
+plan therefore states both the official maximum and every material inference
+deviation accurately.
+
+I also independently downloaded the current test and validation JSON. Their
+SHA-256 values remain:
+
+- test: `87b33d3941be49cc40e6b38e1faec3cb420fd3483369eff68821e43a4db62e44`;
+- validation:
+  `3e3cb4d692faccbf1ca7bc4826fddba9af5feeb6373b00b7f9c14802059e7449`.
+
+Source recomputation still gives 536 test trajectories, 12,877 test items, 400
+risky and 136 safe records, 978 annotations, 938 distinct test targets, and the
+three declared absent targets. Validation still gives 80 trajectories, 3,050
+items, 60 target-bearing records, 163 distinct origins, and the declared absent
+origin at array index 39. Test item IDs remain present, integer, and unique
+within every trajectory; the test environment split remains 382 direct `env`
+values and 154 valid `task_id` fallbacks.
+
+Finally, I inspected the live llama.cpp service and its current server path
+without running model inference. `/v1/models` exposes the exact plan model and
+32,768-token context. `/apply-template` accepts the declared one-user-message
+envelope, `reasoning_format="none"`, `chat_template_kwargs`, and JSON-schema
+response format through the same chat-parameter parser used by
+`/v1/chat/completions`; `/tokenize` accepts the returned prompt with
+`add_special=true` and `parse_special=true`. The server reports the evaluated
+prompt length as `usage.prompt_tokens`, so the plan's first-request equality
+check is executable and catches any mismatch between the precomputed and
+actual chat-template path.
+
+### Post-Round-4 Correction Verification
+
+#### 1. Official output budget and protocol boundary — closed
+
+The plan now uses 1,024 everywhere that controls generation or context
+admission: the official-source description, concrete request, full-population
+token check, reproducibility notes, and known-deviation summary. No stale 4,096
+value remains in the current plan. The older value survives only inside the
+historical review record and is explicitly superseded above, so it cannot
+govern implementation.
+
+The official raw-vLLM path and the proposed serving path are not conflated.
+The adapter sends the complete filled official prompt as the content of exactly
+one user message to `/v1/chat/completions`; it discloses Qwen chat templating,
+llama.cpp, the different model, temperature zero, top-p one, reasoning off, and
+constrained JSON as deviations. This remains one shared target-blind response
+per record and does not create a method-specific signal.
+
+#### 2. Exact display-ID bytes and official rendering — closed
+
+For validation, the displayed integer is the zero-based trajectory ordinal;
+for test, it is the released integer `step_id`. Every system, user, agent, and
+environment item starts with the exact UTF-8/ASCII bytes
+`[STEP_ID=<display id>]\n`, immediately followed by that item's official
+role-specific rendering. The plan explicitly preserves the rest of the
+rendering byte-for-byte, including the official agent rendering's possible
+second `[STEP_ID]: <id>` line. Uniqueness, exact-ID lookup, out-of-range
+treatment, and absent-target behavior remain fixed. There is no remaining
+ordinal-versus-released-ID ambiguity.
+
+#### 3. Exact JSON schema without extra semantic constraints — closed
+
+The schema fixes only the output surface already requested by the official
+prompt: a root object with required `verdict` and `risks`; the official
+`safe`/`unsafe` enum; risk objects with required `risk_name` and `risk_steps`;
+the official eleven risk names; and integer step arrays. It disallows
+undeclared object properties but deliberately has no `minItems`,
+`uniqueItems`, verdict-dependent conditional, target range, or other semantic
+constraint. Empty arrays, duplicate integers, and safe/unsafe consistency are
+therefore left to the released parser semantics exactly as the plan states.
+The grammar cannot introduce gold labels or silently force a nonempty unsafe
+prediction.
+
+#### 4. Exact template-to-token context check — closed
+
+Before inference, all 616 complete requests are rendered. The declared
+one-message chat envelope and `enable_thinking=false` template argument are
+applied through the live server's `/apply-template`; the returned exact prompt
+is passed to `/tokenize` with both special-token flags true. Admission requires
+`input tokens + 1,024 <= 32,768` for every record, so neither a longest-sample
+estimate nor an untemplated trajectory can authorize FULL. The first real
+chat-completion response must report the same `usage.prompt_tokens`; a mismatch
+is an implementation error and cannot be treated as permission to truncate or
+change the prompt. This is sufficient to detect any overlooked prompt-affecting
+server behavior before continuing the cache.
+
+#### 5. Percentiles, width control, and cache identity — closed
+
+All primary work intervals and four paired-difference intervals use NumPy's
+explicit `method="linear"` percentile definition over the already fixed 10,000
+paired stratified trajectory-cluster replicates. The signal-free control ranks
+leaf groups by atomic width in descending order and consumes the entire
+equal-width tier before testing recall; it cannot use an unspecified secondary
+order to stop early. A cached response is reusable only when split, record key,
+and the complete canonical request body match, which captures the prompt,
+model, sampling, reasoning, schema, and template settings that can affect the
+terminal localizer output. Parse errors and out-of-range predictions remain
+terminal; only transport/non-2xx/missing-choice failures retry the identical
+request.
+
+### Regression Audit Of Earlier Scientific Repairs
+
+No earlier must-fix has regressed:
+
+- the exact thesis, RQ2 wording, fixed positive hypothesis, one-benchmark
+  scope, and decisive-but-not-whole-RQ interpretation remain unchanged;
+- all 80 validation and 536 test records remain in the complete matrix, with
+  safe work, duplicate-target deduplication, and every absent origin retained;
+- validation selection remains exactly one of 24 four-field orders using macro
+  recall over 60 target-bearing trajectories, work over all 3,050 items, and
+  lexical order as the sole exact-work tie-breaker;
+- operation derivation, the 382/154 environment rule, lowercase hexadecimal
+  injective frame encoding, count-plus-shifted AgentProf profiles, and exact
+  leaf/prefix/global conservation remain fixed before scoring;
+- the independently implemented flat `GROUP BY` reconstruction remains an
+  exact identity and claim-boundary control, not a fifth baseline or a false
+  representation-specific win;
+- native sequential, independent-step, per-session, and raw-action grouping
+  remain the four distinct main comparators with one shared visible signal;
+- complete numerical-score tiers, the 80% macro-recall work point, all four
+  paired comparisons, the strict positive threshold, and full clustered
+  bootstrap recomputation remain unchanged; and
+- REAL PREFLIGHT and FULL commands, terminal-response rules, all-operation
+  completion, raw paths, and result-class decisions remain executable without
+  adding another model, benchmark, prompt sweep, RQ, oracle, integrity
+  protocol, paper edit, or story change.
+
+The current plan continues to satisfy paper-value admission. A positive and a
+contradictory result produce different paper decisions, every main baseline
+represents a credible competing workflow, and the exact flat tie prevents the
+experiment from claiming an impossible serialization advantage. The
+post-Round-4 repairs improve source fidelity and determinism without narrowing
+the RQ2 hypothesis or expanding the experiment.
+
+## Round 5 Verdict
+
+**PASS**
+
+No scientific or executability must-fix remains. The five post-Round-4
+corrections are exact, the official evaluator facts are independently verified,
+and all prior scientific repairs remain intact. **REAL PREFLIGHT is explicitly
+authorized.**

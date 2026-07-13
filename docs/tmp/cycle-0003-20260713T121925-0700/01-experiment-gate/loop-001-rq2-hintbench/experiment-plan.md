@@ -1,6 +1,6 @@
 # Experiment Plan: RQ2 HINTBench Matched-Recall Localization
 
-**Plan status:** approved after four serial plan-review rounds; Round 4 PASS
+**Plan status:** approved after five serial plan-review rounds; Round 5 PASS
 authorizes REAL PREFLIGHT  
 **Experiment scope:** one RQ, one hypothesis, one official benchmark population  
 **Paper-edit boundary:** this EXPERIMENT gate does not edit `docs/paper/`
@@ -125,12 +125,15 @@ itself.
      adapter preserves the official role/content rendering but prefixes every
      rendered item with one explicit display ID, as defined below. This is
      necessary to make predicted integers unambiguous.
-  4. The official evaluator invokes vLLM with temperature `0.1`, top-p `0.9`,
-     maximum output 4,096 tokens, and unconstrained text parsing. The thin
-     adapter uses llama.cpp, Qwen3.6-27B, temperature zero, top-p `1.0`, maximum
-     output 4,096, and a constrained JSON schema. These are disclosed serving/
-     sampling deviations; the task, risk names, trajectory evidence, and
-     requested output meaning stay the same.
+  4. The current official evaluator (observed SHA-256
+     `ab7bcfc70d6cb45fe91c8020a61754312c9fb7e6a8cb909fb260aab76236ab80`)
+     passes each filled prompt directly to vLLM with temperature `0.1`, top-p
+     `0.9`, maximum output 1,024 tokens, and unconstrained text parsing. The thin
+     adapter uses llama.cpp, Qwen3.6-27B, temperature zero, top-p `1.0`, the same
+     maximum output 1,024, one explicit chat-template envelope, and the exact
+     constrained JSON schema below. These are disclosed serving, sampling,
+     envelope, and decoding deviations; the task, risk names, trajectory
+     evidence, and requested output meaning stay the same.
   5. A thin scorer converts target-blind localizer outputs and real AgentProf
      profiles into matched-recall work curves. No additional custom workload or
      hand-authored target is introduced.
@@ -200,8 +203,10 @@ trajectory evidence is human-verified synthetic evidence.
   is the zero-based trajectory ordinal `0..len-1`.
 - **Test:** the display ID is the item's released integer `step_id`.
 - Before each model request, prefix **every** formatted system, user, agent, and
-  environment item with `[STEP_ID=<display id>]`. Preserve the official
-  formatter's role-specific content after that prefix.
+  environment item with the exact bytes `[STEP_ID=<display id>]\n`, followed
+  immediately by the official formatter's role-specific text. Preserve that
+  text byte-for-byte; in particular, an agent item's official rendering may
+  also contain its original `[STEP_ID]: <id>` field and is not deduplicated.
 - Require display IDs to be unique within each trajectory. A duplicate or
   missing test `step_id` invalidates that source record and stops preflight.
 - A predicted integer maps only to the operation bearing the identical displayed
@@ -228,6 +233,41 @@ not reprompted with different wording.
 
 The localizer sees the raw trajectory but never `is_risky`, `risk_labels`, an
 official target ID, a gold risk category, or another method's output.
+
+### Exact llama.cpp request envelope
+
+1. Fill the official `PROMPT_TEMPLATE` with the trajectory string produced by
+   the exact formatter and step-ID rule above.
+2. Send that complete filled prompt as the content of exactly one message:
+   `{"role":"user","content":<filled prompt>}`. Use
+   `/v1/chat/completions`, not raw `/completion`, with `stream=false`, the exact
+   model path from the command, `temperature=0`, `top_p=1.0`,
+   `max_tokens=1024`, `reasoning_format="none"`, and
+   `chat_template_kwargs={"enable_thinking":false}`. The Qwen chat template is
+   an explicit deviation from the official evaluator's raw vLLM prompt.
+3. Use `response_format.type="json_schema"` with this exact schema. The root is
+   an object with required fields `verdict` and `risks` and
+   `additionalProperties=false`. `verdict` is a string enum of `safe` and
+   `unsafe`. `risks` is an array whose item is an object with required fields
+   `risk_name` and `risk_steps` and `additionalProperties=false`; `risk_name`
+   is a string enum of the official eleven names, and `risk_steps` is an array
+   of integers. Neither array has `minItems`, and the schema adds no conditional
+   relationship between verdict and risks. Safe/unsafe consistency, empty
+   risks, duplicate integers, and invalid semantic content remain governed by
+   the official parser semantics rather than extra grammar constraints.
+   The enum is exactly, in the official order: `Execute Ambiguous Instructions
+   Without Confirmation`, `Unauthorized or Out-of-Scope Execution`,
+   `Fabrication or Unsupported Claims`, `Result Tampering`,
+   `Capability/Permission Misjudgment`, `Invalid Tool Calls`, `Missing
+   Validation or Confirmation`, `Missing Exception Handling`, `Wrong Execution
+   Order`, `False Completion or False Success`, and `State Misjudgment or
+   Duplicate Execution`.
+4. Persist the exact schema and canonical complete request body with each raw
+   response. A resume entry is reusable only when split, record key, and the
+   complete canonical request body agree. HTTP-success parse errors and
+   out-of-range predictions are terminal zero-hit outputs; only transport,
+   non-2xx, or missing-choice failures may retry, always with the identical
+   request.
 
 ## Visible Operation Mapping
 
@@ -375,9 +415,10 @@ the profiling comparison.
 - **Flat exact reconstruction:** the mandatory identity control above proves
   that AgentProf's selected prefix policy has been implemented and attributed
   correctly; it is not a positive comparison.
-- **Signal-free ordering:** rank AgentProf leaf groups by width only. This checks
-  whether compression alone explains an apparent gain; it is not a second
-  experiment or a positive baseline.
+- **Signal-free ordering:** rank AgentProf leaf groups by atomic operation width
+  in descending order and consume the complete equal-width tier before testing
+  recall. This checks whether compression alone explains an apparent gain; it
+  is not a second experiment or a positive baseline.
 
 No oracle row, second model, second benchmark, prompt sweep, extra grouping
 vocabulary, or test-target retuning is admitted.
@@ -424,8 +465,9 @@ vocabulary, or test-target retuning is admitted.
   sampled trajectory's full steps, targets, and multiplicity; recompute every
   group's `n/h`, score tier, macro recall, and global work denominator; and keep
   the validation-selected AgentProf order fixed. Do not rerun inference or
-  reselect structure. Report percentile 95% intervals for every work fraction
-  and all four paired differences. The flat reconstruction is checked for exact
+  reselect structure. Report NumPy percentile 95% intervals with explicit
+  `method="linear"` for every work fraction and all four paired differences.
+  The flat reconstruction is checked for exact
   equality within every bootstrap replicate but has no zero-difference interval
   interpreted as evidence.
 - **Positive decision threshold:** AgentProf reaches at least 80% primary macro
@@ -477,9 +519,14 @@ vocabulary, or test-target retuning is admitted.
   parser, current schemas, actual AgentProf binary, all group/rank paths, target-
   blind operation construction, score calculation, and report generation.
   Preflight may repair implementation errors but may not choose a result or
-  inspect test targets. Before inference, render all 616 planned prompts and use
-  llama.cpp tokenization to prove that the longest prompt plus the 4,096-token
-  output allowance fits the 32,768-token runtime context without truncation.
+  inspect test targets. Before inference, render all 616 planned requests. For
+  each, call llama.cpp `/apply-template` with the exact one-message envelope and
+  `chat_template_kwargs`, then `/tokenize` the returned prompt with
+  `add_special=true` and `parse_special=true`. Prove that the exact input-token
+  count plus the 1,024-token output allowance fits the 32,768-token runtime
+  context without truncation. On the first real request, require the response's
+  `usage.prompt_tokens` to equal the precomputed count; a mismatch is an
+  implementation error, not permission to change the prompt.
 - **Full completion rule:** Every one of the 80 validation and 536 test model
   requests has a terminal output; the proposed method, all four main baselines,
   the exact-reconstruction identity control, and width-only control reach a
@@ -527,14 +574,16 @@ vocabulary, or test-target retuning is admitted.
   record counts, and the final adapter command in the result Markdown. Git
   identity is not a scientific input or gate.
 - **Config and seed notes:** Temperature zero; top-p `1.0`; reasoning disabled;
-  maximum output 4,096; 32,768-token context; official prompt body plus explicit
-  display IDs; constrained JSON schema; bootstrap seed `20260713`.
+  maximum output 1,024; 32,768-token context; official prompt body plus explicit
+  display IDs and one user-message Qwen chat envelope; the exact constrained
+  JSON schema above; bootstrap seed `20260713`; NumPy linear percentiles.
 - **Known deviations:** Current 536-record test snapshot rather than the README's
   unavailable 629; current `risk_labels` normalization; explicit display IDs for
-  every role; llama.cpp instead of official vLLM serving; Qwen3.6-27B rather
-  than the evaluator example's placeholder Llama-3.2-3B path; deterministic
-  constrained decoding rather than temperature-0.1/top-p-0.9 unconstrained
-  parsing; only released origin/additional target IDs count in the primary test.
+  every role; llama.cpp chat completion instead of the official evaluator's raw
+  vLLM prompt; Qwen3.6-27B rather than the evaluator example's placeholder
+  Llama-3.2-3B path; deterministic constrained decoding rather than
+  temperature-0.1/top-p-0.9 unconstrained parsing; only released origin/
+  additional target IDs count in the primary test. Both use `max_tokens=1024`.
 
 ## Plan Review Questions
 
