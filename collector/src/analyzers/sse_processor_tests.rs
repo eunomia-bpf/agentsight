@@ -397,6 +397,61 @@ mod sse_processor_tests {
     }
 
     #[tokio::test]
+    async fn test_openai_responses_stream_accumulates_text_usage_and_tools() {
+        let chunks = [
+            r#"event: response.output_item.added
+data: {"type":"response.output_item.added","response_id":"resp_1","output_index":0,"item":{"id":"fc_1","type":"function_call","name":"lookup","arguments":""}}"#,
+            r#"event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","response_id":"resp_1","item_id":"fc_1","output_index":0,"delta":"{\"q\":"}"#,
+            r#"event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","response_id":"resp_1","item_id":"fc_1","output_index":0,"delta":"\"x\"}"}"#,
+            r#"event: response.output_text.delta
+data: {"type":"response.output_text.delta","response_id":"resp_1","output_index":1,"content_index":0,"delta":"Hello"}"#,
+            r#"event: response.completed
+data: {"type":"response.completed","response":{"id":"resp_1","status":"completed","usage":{"input_tokens":2,"output_tokens":5,"total_tokens":7}}}"#,
+        ];
+        let collected = process_chunks(&chunks).await;
+
+        assert_eq!(collected.len(), 1);
+        assert_eq!(collected[0].data["message_id"], "resp_1");
+        assert_eq!(collected[0].data["text_content"], "Hello");
+        let json_content: serde_json::Value =
+            serde_json::from_str(collected[0].data["json_content"].as_str().unwrap()).unwrap();
+        assert_eq!(json_content["tool_calls"][0]["id"], "fc_1");
+        assert_eq!(json_content["tool_calls"][0]["function"]["name"], "lookup");
+        assert_eq!(
+            json_content["tool_calls"][0]["function"]["arguments"],
+            "{\"q\":\"x\"}"
+        );
+
+        let mut view = MaterializedView::new();
+        let req = Event::new_with_timestamp(
+            1,
+            "http_parser".to_string(),
+            1234,
+            "codex".to_string(),
+            json!({
+                "tid": 99,
+                "message_type": "request",
+                "method": "POST",
+                "path": "/v1/responses",
+                "headers": { "host": "api.openai.com" },
+                "body": "{\"model\":\"gpt-test\"}"
+            }),
+        );
+        view.ingest_event(&req).unwrap();
+        view.ingest_event(&collected[0]).unwrap();
+        let snapshot = view.export_snapshot(crate::model::SnapshotOptions { audit_limit: 0 });
+        assert_eq!(snapshot.summary.llm_calls, 1);
+        assert_eq!(snapshot.summary.token_usage_rows, 1);
+        assert_eq!(snapshot.summary.input_tokens, 2);
+        assert_eq!(snapshot.summary.output_tokens, 5);
+        assert_eq!(snapshot.tool_calls.len(), 1);
+        assert_eq!(snapshot.tool_calls[0].tool_name.as_deref(), Some("lookup"));
+        assert_eq!(snapshot.tool_calls[0].input["q"], "x");
+    }
+
+    #[tokio::test]
     async fn test_gemini_usage_metadata_fragment_completes_sse_stream() {
         let mut processor = SSEProcessor::new();
         let test_data = r#""text": ""}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":11,"candidatesTokenCount":4,"totalTokenCount":15},"modelVersion":"gemini-3-flash-preview","responseId":"abc"}"#;

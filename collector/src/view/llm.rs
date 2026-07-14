@@ -173,6 +173,9 @@ pub fn extract_token_usage_from_sse(data: &Value) -> TokenUsage {
         if let Some(delta_usage) = parsed.get("usage") {
             merge_usage(&mut usage, delta_usage);
         }
+        if let Some(response_usage) = parsed.get("response").and_then(|m| m.get("usage")) {
+            merge_usage(&mut usage, response_usage);
+        }
         if let Some(gemini_usage) = parsed.get("usageMetadata") {
             merge_usage(&mut usage, gemini_usage);
         }

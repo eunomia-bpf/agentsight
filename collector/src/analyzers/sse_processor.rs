@@ -249,6 +249,18 @@ impl SSEProcessor {
             {
                 return Some(id.to_string());
             }
+            if let Some(parsed_data) = &event.parsed_data {
+                if let Some(id) = parsed_data.get("response_id").and_then(|id| id.as_str()) {
+                    return Some(id.to_string());
+                }
+                if let Some(id) = parsed_data
+                    .get("response")
+                    .and_then(|response| response.get("id"))
+                    .and_then(|id| id.as_str())
+                {
+                    return Some(id.to_string());
+                }
+            }
         }
         None
     }
@@ -289,6 +301,11 @@ impl SSEProcessor {
             {
                 return true;
             }
+            if Self::sse_event_has_openai_response_delta(event)
+                || Self::sse_event_has_openai_response_terminal(event)
+            {
+                return true;
+            }
             if let Some(event_type) = &event.event {
                 match event_type.as_str() {
                     "content_block_delta" => has_content_deltas = true,
@@ -320,17 +337,21 @@ impl SSEProcessor {
 
     fn sse_event_completes_stream(event: &SSEEvent) -> bool {
         event.data.as_deref() == Some("[DONE]")
-            || event
-                .parsed_data
-                .as_ref()
-                .is_some_and(Self::has_stream_completing_usage)
+            || event.parsed_data.as_ref().is_some_and(|data| {
+                Self::has_stream_completing_usage(data) || Self::has_openai_response_terminal(data)
+            })
     }
 
     fn has_stream_completing_usage(data: &Value) -> bool {
-        [data.get("usageMetadata"), data.get("usage")]
-            .into_iter()
-            .flatten()
-            .any(Self::usage_has_meaningful_fields)
+        [
+            data.get("usageMetadata"),
+            data.get("usage"),
+            data.get("response")
+                .and_then(|response| response.get("usage")),
+        ]
+        .into_iter()
+        .flatten()
+        .any(Self::usage_has_meaningful_fields)
     }
 
     fn meaningful_usage(data: &Value) -> Option<&Value> {
@@ -338,6 +359,8 @@ impl SSEProcessor {
             data.get("usageMetadata"),
             data.get("usage"),
             data.get("message").and_then(|m| m.get("usage")),
+            data.get("response")
+                .and_then(|response| response.get("usage")),
         ]
         .into_iter()
         .flatten()
@@ -377,6 +400,27 @@ impl SSEProcessor {
             })
     }
 
+    fn sse_event_has_openai_response_delta(event: &SSEEvent) -> bool {
+        event
+            .parsed_data
+            .as_ref()
+            .is_some_and(Self::has_openai_response_delta)
+    }
+
+    fn has_openai_response_delta(data: &Value) -> bool {
+        matches!(
+            Self::openai_response_event_type(data),
+            Some(
+                "response.output_text.delta"
+                    | "response.reasoning_text.delta"
+                    | "response.reasoning_summary_text.delta"
+                    | "response.function_call_arguments.delta"
+                    | "response.output_item.added"
+                    | "response.output_item.done"
+            )
+        )
+    }
+
     fn sse_event_has_terminal_finish(event: &SSEEvent) -> bool {
         event
             .parsed_data
@@ -394,6 +438,31 @@ impl SSEProcessor {
                         .is_some_and(|reason| !reason.is_null())
                 })
             })
+    }
+
+    fn sse_event_has_openai_response_terminal(event: &SSEEvent) -> bool {
+        event
+            .parsed_data
+            .as_ref()
+            .is_some_and(Self::has_openai_response_terminal)
+    }
+
+    fn has_openai_response_terminal(data: &Value) -> bool {
+        matches!(
+            Self::openai_response_event_type(data),
+            Some(
+                "response.completed"
+                    | "response.failed"
+                    | "response.incomplete"
+                    | "response.cancelled"
+            )
+        )
+    }
+
+    fn openai_response_event_type(data: &Value) -> Option<&str> {
+        data.get("type")
+            .and_then(|value| value.as_str())
+            .filter(|value| value.starts_with("response."))
     }
 
     fn openai_reasoning_delta(delta: &serde_json::Map<String, Value>) -> Option<&str> {
@@ -452,6 +521,7 @@ impl SSEProcessor {
             }
             if let Some(parsed_data) = &event.parsed_data {
                 Self::accumulate_openai_content(accumulator, parsed_data);
+                Self::accumulate_openai_responses_content(accumulator, parsed_data);
             }
         }
     }
@@ -481,6 +551,81 @@ impl SSEProcessor {
             }
             if let Some(function_call) = delta.get("function_call") {
                 Self::accumulate_openai_function_call(accumulator, function_call);
+            }
+        }
+    }
+
+    fn accumulate_openai_responses_content(accumulator: &mut SSEAccumulator, data: &Value) {
+        match Self::openai_response_event_type(data) {
+            Some("response.output_text.delta") => {
+                if let Some(delta) = data.get("delta").and_then(|value| value.as_str()) {
+                    accumulator.accumulated_text.push_str(delta);
+                }
+            }
+            Some("response.reasoning_text.delta" | "response.reasoning_summary_text.delta") => {
+                if let Some(delta) = data.get("delta").and_then(|value| value.as_str()) {
+                    accumulator.openai_reasoning.push_str(delta);
+                }
+            }
+            Some("response.function_call_arguments.delta") => {
+                Self::accumulate_openai_response_function_arguments(accumulator, data, false);
+            }
+            Some("response.output_item.added" | "response.output_item.done") => {
+                Self::accumulate_openai_response_item(accumulator, data);
+            }
+            _ => {}
+        }
+    }
+
+    fn accumulate_openai_response_item(accumulator: &mut SSEAccumulator, data: &Value) {
+        let Some(item) = data.get("item").and_then(|value| value.as_object()) else {
+            return;
+        };
+        if item.get("type").and_then(|value| value.as_str()) != Some("function_call") {
+            return;
+        }
+        let index = data
+            .get("output_index")
+            .and_then(|value| value.as_u64())
+            .unwrap_or(accumulator.openai_tool_calls.len() as u64);
+        let entry = accumulator.openai_tool_calls.entry(index).or_default();
+        entry
+            .type_name
+            .get_or_insert_with(|| "function".to_string());
+        if let Some(id) = item.get("id").and_then(|value| value.as_str()) {
+            entry.id = Some(id.to_string());
+        } else if let Some(id) = item.get("call_id").and_then(|value| value.as_str()) {
+            entry.id = Some(id.to_string());
+        }
+        if let Some(name) = item.get("name").and_then(|value| value.as_str()) {
+            entry.function_name = Some(name.to_string());
+        }
+        if let Some(arguments) = item.get("arguments").and_then(|value| value.as_str()) {
+            entry.function_arguments = arguments.to_string();
+        }
+    }
+
+    fn accumulate_openai_response_function_arguments(
+        accumulator: &mut SSEAccumulator,
+        data: &Value,
+        replace: bool,
+    ) {
+        let index = data
+            .get("output_index")
+            .and_then(|value| value.as_u64())
+            .unwrap_or(0);
+        let entry = accumulator.openai_tool_calls.entry(index).or_default();
+        entry
+            .type_name
+            .get_or_insert_with(|| "function".to_string());
+        if let Some(id) = data.get("item_id").and_then(|value| value.as_str()) {
+            entry.id = Some(id.to_string());
+        }
+        if let Some(delta) = data.get("delta").and_then(|value| value.as_str()) {
+            if replace {
+                entry.function_arguments = delta.to_string();
+            } else {
+                entry.function_arguments.push_str(delta);
             }
         }
     }
