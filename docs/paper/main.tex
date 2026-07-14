@@ -769,17 +769,18 @@ full execution path fixed.
 % Raw-action 对照仅将分组字段改为各 workload 发布的 action，同时保持 step signal、排序规则、scorer、输入和完整执行路径不变。
 
 \begin{table}[t]
-\centering\small
-\caption{Target-blind RQ2 localization across public workloads. Work is the
-fraction of atomic steps inspected at the stated macro recall.}
+\centering\scriptsize
+\caption{Existing RQ2 controls. Lower Work is better; $\dagger$ is descriptive.
+AP and Work are not averaged.}
 \label{tab:rq2-localization}
-\begin{tabular}{@{}lrrr@{}}
+\begin{tabular}{@{}lrrl@{}}
 \toprule
-Workload & Steps & \sys & Raw action \\
+Metric & \sys & Raw & Other existing views \\
 \midrule
-AgentProcess & 8{,}509 & AP 0.588 & AP 0.556 \\
-HINT & 12{,}877 & Work@80 41.57\% & 46.29\% \\
-TraceElephant & 5{,}960 & Work@50 19.55\% & 46.64\% \\
+AgentProcess AP & .588 & .556 & flat .325; session .599; step .777 \\
+HINT Work@80 & .416 & .463 & native .579; session .591; step 1.00 \\
+Trace Work@80 & 1.00 & .719 & width .677; native/session 1.00 \\
+Trace Work@50$\dagger$ & .195 & .466 & width .396; session .568; native .578 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -788,33 +789,33 @@ AgentProcessBench contains 1{,}000 trajectories from BFCL, GAIA, HotpotQA, and
 $\tau$-bench with consensus human labels for all 8{,}509 assistant
 steps~\cite{agentprocessbench}.
 % AgentProcessBench 包含来自 BFCL、GAIA、HotpotQA 和 tau-bench 的 1,000 条轨迹，并为全部 8,509 个 assistant step 提供共识人工标签。
-Using the released target-blind risk signal, the semantic operation stack
-raises equal-family macro AP from 0.556 to 0.588. The paired gain is 0.0315
-with a 95\% interval of [0.0151, 0.0535].
-% 使用同一发布的目标盲风险信号，语义 operation stack 将等权 family 的 macro AP 从 0.556 提升到 0.588；配对增益为 0.0315，95% 区间为 [0.0151, 0.0535]。
-Within each raw-action group, a permutation test shuffles semantic assignments
-while preserving subgroup sizes. Its $p=0.00995$ shows that the gain comes from
-the semantic assignment rather than merely creating more groups.
-% 置换检验在每个 raw-action 分组内打乱语义分配并保持子组大小，得到 p=0.00995，说明增益来自语义分配而非仅仅增加分组数量。
-At a 30\% inspection budget, recall rises from 35.85\% to 43.52\%.
-% 在 30% 检查预算下，召回率从 35.85% 提升到 43.52%。
+Using the released target-blind risk signal, the semantic stack raises
+equal-family macro AP from 0.556 to 0.588 (gain 0.0315; 95\% interval
+[0.0151, 0.0535]). Shuffling semantic assignments within raw-action groups
+while preserving subgroup sizes gives $p=0.00995$, isolating semantic-specific
+concentration rather than refinement alone. Its 419 recurring groups lie
+between raw action's 259 and the 1{,}000 session or 8{,}509 per-step views;
+those finer references reach higher AP, so this is not uniform dominance.
+% 发布的目标盲风险信号下，语义 stack 相对 raw action 显著提升 AP；保持子组大小的组内置换隔离出语义特异性。其 419 个重复分组位于 raw action 与更细的 session/逐步视图之间，因此不声称统一支配。
 
-The independent workloads show the same practical effect in different
-inspection regimes.
-% 独立 workload 在不同检查区间展现了同样的实际效果。
-On all 536 released HINTBench test trajectories, \sys reaches 80\% macro
-recall after 41.57\% of the steps, compared with 46.29\% for raw action and
-57.93\% for the source-native order.
-% 在 HINTBench 发布的全部 536 条测试轨迹上，AgentProf 检查 41.57% 的步骤即可达到 80% macro recall，而 raw action 和源原生顺序分别需要 46.29% 和 57.93%。
-On all 220 TraceElephant real failed executions, \sys reaches 50\% macro
-decisive-step recall after inspecting 19.55\% of the steps, versus 46.64\% for
-raw action. At a 20\% budget, \sys recovers 52.57\% versus 23.79\%.
-% 在 TraceElephant 全部 220 个真实失败执行上，它检查 19.55% 的步骤即可达到 50% macro 决定步骤召回率，而 raw action 需要 46.64%；在 20% 预算下，两者召回率分别为 52.57% 和 23.79%。
+On HINTBench's 536 test trajectories, \sys reaches 80\% macro recall at 41.57\%
+work versus 46.29\% raw, 57.93\% native, 59.14\% session, and 100\% independent
+step. Paired intervals exclude zero for the latter three but not raw
+($[-0.2937,0.0086]$). This result belongs to the complete profile,
+validation-selected prefix policy, and scorer, not hierarchy alone.
+% 在 HINTBench 的全部 536 条测试轨迹上，AgentProf 达到 80% macro recall 需要检查 41.57% 的步骤，优于源原生顺序、session 分组与独立步骤；相对 raw action 的区间跨零，因此该证据归因于完整的 profile、验证集选择的 prefix 策略与 scorer 流水线，而不单独归因于 hierarchy。
+On TraceElephant's 220 failures, \sys reaches 50\% macro decisive-step recall
+at 19.55\% work versus 46.64\% raw; at 20\% work it recovers 52.57\% versus
+23.79\%. This early region is descriptive: a large final semantic score tier
+requires full work at prospective 80\% recall, where the interval crosses zero.
+% 在 TraceElephant 的全部 220 个真实失败执行上，语义 profile 在早期区间显著领先 raw action；但该结果为描述性证据，因为末端大规模同分层使预先设定的 80% recall 点需要完整检查，且配对区间跨零。
 
-These results answer RQ2 positively. Operation stacks expose recurring groups
-that are enriched for independently labeled problems and surface them earlier
-than raw-action inspection across three public workloads.
-% 这些结果对 RQ2 给出肯定回答：operation stack 暴露了富集独立标注问题的重复分组，并在三个公开 workload 上比 raw-action 检查更早呈现这些问题。
+Together, the complete workloads answer RQ2 positively without claiming
+uniform dominance: AgentProcessBench isolates semantic-specific concentration,
+HINTBench supports the complete profile pipeline, and TraceElephant shows
+strong early localization. Operation stacks expose recurring problem-enriched
+groups while revealing their high-recall boundaries.
+% 三个完整 workload 共同对 RQ2 给出肯定回答但不声称统一支配：AgentProcessBench 隔离出语义特异性集中，HINTBench 展示完整 profile 流水线相对原生、session 和逐步组织的优势，TraceElephant 展示强早期定位；operation stack 因而能暴露富集独立问题标签的重复分组，并同时呈现其高召回边界。
 
 %% -------------------------------------------------------------------
 \subsection{RQ3: Tag Accuracy}
@@ -1005,27 +1006,23 @@ execution's fault location.
 \section{Conclusion}
 % 结论
 
-Agent observability needs profiling, not only debugging. \sys brings semantic
-operation stacks, pluggable intent attribution, and hierarchical stack
-construction to agent trajectories.
+Agent observability needs profiling, not only debugging. \sys builds semantic
+operation stacks with pluggable intent attribution.
 % 智能体可观测性需要性能分析，不仅仅是调试。\sys 通过语义 operation stack、可插拔意图归因和栈构造为智能体轨迹带来分层归因能力。
-On 20 real Codex tasks, source lineage reaches 100.0\% precision and 96.569\%
-recall, rejects 1{,}629 controls, and preserves all 1{,}520 attributed effects.
+Across 20 real Codex tasks, lineage reaches 100.0\%/96.569\% precision/recall,
+rejects 1{,}629 controls, and preserves 1{,}520 effects.
 % 在 20 个真实 Codex 任务上，范围化源谱达到 100.0\% precision 和 96.569\% recall，拒绝全部 1,629 个并发对照副作用，并将 1,520 个已归因副作用送入 AgentProf 且不损失任何权重。
-Across 325 real trajectories, semantic fields separate effects mixed by tag-
-free and per-session views.
+Across 325 real trajectories and three public benchmarks, semantic fields
+separate mixed effects and target-blind stacks improve problem concentration at
+evaluated points.
 % 在 325 条真实轨迹上，语义字段将无标签和按会话视图仍混合的副作用分离为不同的责任视图。
-Across three public benchmarks, target-blind stacks improve problem
-concentration over raw action at the evaluated AP and recall points.
 % 在三个公开基准上，目标盲 operation stack 在所评估的 AP 和 recall 工作点上相比 raw action 提高问题集中度。
-On 287 held-out OSWorld-Human tasks, a pre-specified boundary predictor reaches
-0.739 F1 and 0.816 operation-weighted B$^3$ F1.
+On 287 held-out OSWorld-Human tasks, a pre-specified predictor reaches 0.739 F1
+and 0.816 operation-weighted B$^3$ F1.
 % 在 287 个 held-out OSWorld-Human 任务实例上，预先指定的边界预测器达到 0.739 F1 和 0.816 operation-weighted B$^3$ F1。
-On 27{,}765 public operations, \sys builds the complete semantic profile in
-1.17\,s.
+\sys profiles 27{,}765 public operations in 1.17\,s. Together, the results
+establish cross-trajectory semantic profiling alongside run-local debugging.
 % 在 27,765 个公开 operation 上，\sys 用 1.17 秒构建完整语义 profile。
-Together, these results establish cross-trajectory semantic profiling as a
-complement to run-local debugging and tracing.
 % 这些结果共同确立了跨轨迹语义 profiling 对单次运行 debugging 和 tracing 的补充价值。
 
 \bibliography{references}
