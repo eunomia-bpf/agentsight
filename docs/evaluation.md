@@ -18,7 +18,7 @@ later explicit user instruction may change the four author-fixed RQs.
 
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
-| RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Selected next experiment.** Replay R114's complete fixed 20-task exact-lineage suite through current AgentProf, checking scoped attribution precision/recall, negative false joins, task-category preservation, and mass conservation. |
+| RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Do not run another RQ1 lineage or grouping variant; WRITE the cumulative positive answer and let REVIEW select the next fixed RQ. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed paper-level answer.** AgentProcessBench provides significant target-blind AP concentration beyond matched refinement; HINTBench and TraceElephant add favorable inspection regions on independent public workloads. High-recall tail efficiency depends on ranking and tie structure. Do not open another RQ2 score or benchmark variant; WRITE the cumulative positive answer and let REVIEW select another fixed RQ. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human task instances. Task/phase/action and cross-family components remain fixed future evidence; do not run another boundary variant now. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
@@ -60,12 +60,44 @@ deterministic analyses over that generated evidence:
   top-10 overlap 7/10 and Spearman 0.623. Prompt spans may contain idle/user
   wait time and are not true active-runtime measurements.
 
-These are admitted mechanism/accounting results only. R170 records a dirty
+These are admitted mechanism/accounting results. R170 records a dirty
 working-tree provenance boundary; prompt tags define the declared grouping
 reference; R251 has no human adequacy labels. The evidence supports mass
 conservation, declared-category separation, and weighted association beyond
-session membership. It does not establish correct semantic intent, causal
-lineage, developer utility, or the final RQ1 answer.
+session membership. By itself it does not establish independent source
+lineage; Step 0007 supplies that separate edge below.
+
+## Admitted RQ1 Source-Lineage And Profile Evidence
+
+Step 0007 reran R114's unchanged fixed 20-task real-Codex suite with its
+existing capture-time process/tool scope, exact effect-lineage checker, and
+concurrent wrapper controls. All 20 target tasks completed and all 20 controls
+were observed. The scoped oracle contains 1,520 true positives, zero false
+positives, and 54 false negatives, giving 100.000% precision and 96.569%
+recall. None of 1,629 negative-control effects joined the target agent.
+
+One replay adapter then consumed the process and tool identities that R114 had
+already computed, selected exactly those 1,520 true-positive rows, converted
+each once to a unit-weight operation, and invoked release `agentpprof 0.2.37`
+once. AgentProf returned 1,520 samples with total mass 1,520. Per-category mass
+was preserved exactly for dependency (121), edit (380), failure (39), read
+(723), and test (257), producing 152 stacks. An independent read-only reviewer
+reconstructed every task count, all selected rows, the complete operation
+multiset, every profile stack, and all category masses with zero mismatch.
+
+The lineage capture used the existing R114-compatible `agentsight 0.2.37`
+research path because the PATH-installed 0.2.43 binary no longer exposes the
+R114 `--agent-comm` interface. This result therefore does not validate
+AgentSight 0.2.43 specifically. It does establish the tested integration edge:
+scoped real-agent effects reject concurrent controls, and current AgentProf
+folds the correctly attributed effects across runs without losing rows or
+mass. Combined with R170/R224/R251, it supplies a positive cumulative RQ1
+answer without claiming automatic task inference or unrestricted causal
+coverage. Complete plans, preflight, full result, and independent recomputation
+are under
+[`loop-001-rq1-r114-current-profile`](tmp/build-and-evaluate/step-0007-20260714T054617-0700/01-experiment-gate/loop-001-rq1-r114-current-profile/),
+with machine artifacts under
+`.agentsight/experiments/rq1-r114-current-profile-v1/`.
 
 ## Admitted RQ2 Evidence And Boundaries
 
@@ -259,13 +291,13 @@ next decisive experiment because the current declared-tag separation does not
 independently validate operation-to-effect attribution, while the repository
 already contains R114's complete real exact-lineage design and controls.
 
-The next run is one current-AgentProf replay of R114. Rerun the unchanged 20
-tasks only because their raw SQLite databases and snapshots were intentionally
-not committed, then send the exact-lineage rows through current operation
-ingestion and profile folding. Report scoped attribution precision/recall,
-negative-control false joins, task-category preservation, and mass
-conservation. Do not reopen RQ2/RQ4, add another boundary construction, or add
-a new dataset, model, tagger, ranker, cutoff, or ontology.
+Step 0007 completed the selected R114 replay. The unchanged 20-task suite passes
+its aggregate attribution thresholds at 100.000% precision and 96.569% recall,
+rejects all 1,629 concurrent-control effects, and current AgentProf preserves
+all 1,520 attributed rows and all five known task-category masses. This closes
+the selected RQ1 integration experiment. Do not open another RQ1 lineage,
+grouping, score, or benchmark variant; WRITE the cumulative positive answer and
+let the next whole-paper REVIEW choose the next fixed-RQ evidence need.
 
 ## Experiment History Policy
 

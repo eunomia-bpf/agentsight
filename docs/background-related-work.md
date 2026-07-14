@@ -33,8 +33,15 @@ The fixed semantic construction has strong early concentration but a large
 final tied tier, so its predeclared 80%-recall work comparison is inconclusive.
 The outer audit synthesized this with the earlier positive AgentProcessBench AP
 results and HINTBench work curve and accepted a positive cumulative RQ2 answer.
-The next outer route is WRITE then REVIEW; another RQ2 score or benchmark
-variant is not the current evidence priority.
+Another RQ2 score or benchmark variant is not the current evidence priority.
+
+Step 0007 then completed the selected RQ1 replay by reusing R114's fixed 20
+real Codex tasks, capture/export path, exact-lineage checker, manifest task
+categories, and concurrent controls. The scoped lineage path reaches 100.0%
+precision and 96.569% recall, rejects all 1,629 controls, and current
+`agentpprof 0.2.37` preserves all 1,520 attributed effects and all five
+category weights. The current frontier is the still-open task/phase/action
+component of RQ3, using existing public operation corpora and evaluation code.
 
 ## Verified Closest-Work Families
 
@@ -96,6 +103,10 @@ thesis. Full evidence remains in
   hierarchically clusters production LLM interactions and can scope clustering
   to failed evaluations. Semantic grouping and failure-topic discovery are
   therefore strong product baselines.
+- [LangSmith Insights](https://docs.langchain.com/langsmith/insights)
+  hierarchically categorizes cross-trace topics and aggregates latency, cost,
+  and evaluation metrics. Hierarchical cross-run categorization and metric
+  rollups are therefore precedents, not AgentProf's novelty.
 - [AgentTelemetry](https://dl.acm.org/doi/10.1145/3805760.3814931) supplies an
   agent-specific span taxonomy, fault-detection benchmark, and toolkit. Its
   accepted artifact has no released official fault-bearing step/span target,
@@ -122,7 +133,7 @@ aggregation, not asserted from terminology.
   annotated real failed executions across Captain-Agent, Magentic-One, and
   SWE-Agent with responsible-component and decisive-step targets plus full
   input/output, inter-agent, tool, environment, configuration, and architecture
-  context. It is the selected next fixed-RQ2 population.
+  context. Step 0004 completed this fixed-RQ2 population.
 - [Holistic Evaluation and Failure Diagnosis](https://arxiv.org/abs/2605.14865),
   [TrajAD](https://arxiv.org/abs/2602.06443), and
   [AgentFixer](https://arxiv.org/abs/2603.29848) diagnose, localize, or repair
@@ -171,10 +182,10 @@ alone.
 
 ## Open Evidence And Search Frontier
 
-1. **RQ1 — resource attribution.** Derive the headline percentage from an
-   explicit numerator and denominator, validate prompt/effect responsibility
-   against an independent trace or injected causal identity, and compare with
-   an information-equivalent trace/query baseline.
+1. **RQ1 — resource attribution.** Step 0007 supplies the current end-to-end
+   replay result on R114's fixed real-task suite. Its scope is the declared
+   process/tool lineage and R114-compatible AgentSight 0.2.37 capture path; it
+   is not arbitrary causal attribution or automatic task inference.
 2. **RQ2 — real-problem localization.** The cumulative AgentProcessBench,
    HINTBench, and TraceElephant evidence supplies an evidence-backed positive
    answer for target-blind problem concentration and useful inspection regions.
@@ -192,12 +203,13 @@ alone.
    supports the predecessor shared-cache mechanism. Do not reopen another
    cost/cache variant.
 
-Step 0006 completed EXPERIMENT, WRITE, and whole-paper REVIEW for the RQ3
-human-boundary component. REVIEW selects one RQ1 current-AgentProf exact-lineage
-replay next. It reuses R114's fixed 20 real Codex tasks, capture/export path,
-task categories, exact-lineage checker, and concurrent negative controls. The
-raw snapshots are regenerated only because they were intentionally not
-committed; no new dataset, model, tagger, ranker, cutoff, or ontology is added.
+Step 0006 completed the RQ3 human-boundary component, and Step 0007 completed
+the selected RQ1 exact-lineage replay. The next experiment should address the
+remaining RQ3 task/phase/action accuracy question by reusing the nine converted
+public operation corpora, their existing independent labels where applicable,
+`script/operation_leaveout_eval.py`, and the current operation/profile path.
+It should not add a benchmark, annotation pipeline, model family, metric, or
+cutoff merely to create another variant.
 
 ## Search Policy And Reopen Conditions
 

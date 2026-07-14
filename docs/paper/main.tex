@@ -46,9 +46,9 @@ and which task categories consume the most budget.
 %% S3: Profiling gap (→¶2+¶3)
 Traditional systems profiling answers analogous questions by aggregating
 resource use over code paths rather than debugging individual executions,
-but existing agent observability tools organize traces using run-local
-structure or application-supplied fields.
-% 传统系统 profiling 通过聚合代码路径上的资源使用而非调试单次执行来回答类似问题，但现有 agent 可观测性工具依赖单次运行结构或应用提供的字段组织 trace。
+but existing agent observability tools do not combine source-linked additive
+system effects with selectable profiler projections.
+% 传统系统 profiling 通过聚合代码路径上的资源使用而非调试单次执行来回答类似问题，但现有 agent 可观测性工具没有将带源谱连接的可加系统副作用与可选择的 profiler 投影结合起来。
 %% S4: Agent challenge (→¶4)
 Agent responsibility lies in semantic categories such as task intent and
 workflow phase rather than code paths, but trajectories lack stable identifiers
@@ -69,6 +69,10 @@ for \emph{intent attribution} and \emph{stack construction},
 compiling local agent trajectories into pprof-compatible profiles.
 % \sys 将此模型实现为具有可插拔意图归因和栈构造算法的 profiler，将本地智能体轨迹编译为 pprof 兼容的 profile。
 %% S8: Attribution, problem-concentration, and tag results (→¶6)
+On a fixed suite of 20 real Codex tasks, scoped source lineage reaches 100.0\%
+precision and 96.6\% recall, rejects all 1{,}629 concurrent-control effects,
+and \sys preserves all 1{,}520 attributed effects during folding.
+% 在固定的 20 个真实 Codex 任务上，范围化源谱达到 100.0\% precision 和 96.6\% recall，拒绝全部 1,629 个并发对照副作用，并在 AgentProf 折叠中保留全部 1,520 个已归因副作用。
 Across real and public trajectories, semantic profiles separate resource use
 by responsible semantic category and concentrate annotated problems.
 Out-of-fold evaluation of a pre-specified supervised boundary predictor on 287
@@ -140,18 +144,19 @@ entities rather than debug or trace individual executions.
 %% ¶3: Existing solutions
 Existing agent tools provide rich tracing, metadata aggregation, and population
 dashboards~\cite{langsmith,langfuse,phoenix,otel,datadog-llmobs,laminar-signals}.
-% 现有智能体工具提供丰富的 tracing、tag/metadata 聚合和群体级 dashboard。
-Yet these tools do not derive recurring semantic responsibility from
-heterogeneous histories or propagate it to downstream system effects as
-alternative profiler hierarchies.
-% 它们主要依赖单次运行结构和应用提供的字段；它们不会从异构智能体历史中派生重复出现的语义责任，并将其传播到下游进程、文件和网络副作用以形成可替换的 profiler 层次。
+Some now derive hierarchical categories across traces and aggregate latency,
+cost, or evaluation metrics~\cite{langsmith-insights,datadog-patterns}.
+They do not provide source-linked, additive cross-layer effects as selectable
+pprof-compatible operation-stack projections.
+% 现有智能体工具提供 tracing、tag/metadata 聚合和群体级 dashboard；部分工具也会跨 trace 派生分层类别并聚合 latency、cost 或 evaluation metric，但不提供带源谱连接的可加跨层副作用及可选择的 pprof 兼容 operation-stack 投影。
 
 %% ¶4: Challenge — why traditional profiling doesn't transfer directly
-Adapting profiling to agent trajectories creates two challenges
-(\S\ref{sec:background}).
-% 将 profiling 适配到智能体轨迹具有挑战性（\S\ref{sec:background}）。
+Adapting profiling to agent trajectories creates two challenges, detailed in
+Background and Motivation.
+% 将 profiling 适配到智能体轨迹具有两个挑战，详见 Background and Motivation。
 Traditional profilers use stable function names to identify responsible code
-paths and runtime call nesting to provide the attribution hierarchy.
+paths and runtime call nesting to provide the attribution
+hierarchy~\cite{pprof,flamegraphs}.
 % 在传统软件中，负责实体是代码路径。Profiling 是直接的，因为函数名是稳定的，运行时调用嵌套提供归因层次。
 Agent responsibility instead lies in semantic categories such as task intent
 and tool operation.
@@ -203,7 +208,7 @@ session, or action type (Figure~\ref{fig:flamegraph}).
 
 %% ¶6: This paper + system + results
 We implement this model in \sys, an offline profiler that compiles
-local agent trajectories into pprof-compatible profiles
+local agent trajectories into pprof-compatible profiles~\cite{pprof}
 (Figure~\ref{fig:architecture}).
 % 我们在 \sys 中实现此模型，这是一个离线 profiler，将本地智能体轨迹编译为 pprof 兼容的 profile（Figure~\ref{fig:architecture}）。
 Two pluggable mechanisms instantiate the model.
@@ -215,17 +220,24 @@ for free from function names.
 % 这为智能体提供了传统 profiling 从函数名免费获得的稳定标签。
 \emph{Stack construction} builds the attribution hierarchy, either from a user-specified field list or by automatically detecting boundaries between distinct work phases.
 % 栈构造构建归因层次，可通过用户指定的字段列表或自动检测不同工作阶段之间的边界。
+On a fixed suite of 20 real Codex tasks, the existing scoped source-lineage
+path reaches 100.0\% precision and 96.6\% recall while rejecting all 1{,}629
+concurrent-control effects. Current \sys then folds all 1{,}520 attributed
+effects and exactly preserves the total weight of all five manifest-defined
+task categories.
+% 在固定的 20 个真实 Codex 任务上，既有范围化源谱路径达到 100.0\% precision 和 96.6\% recall，并拒绝全部 1,629 个并发对照副作用；当前 AgentProf 随后折叠全部 1,520 个已归因副作用，并精确保留五个 manifest 定义任务类别的总权重。
 On 325 real Codex and Claude trajectories (183{,}714 system observations),
 prompt tags reduce mixed system-effect weight from 90.4\% to 36.7\%, while a
 session-only view leaves 84.4\% mixed.
 % 在 325 个真实 Codex 和 Claude 轨迹（183,714 个系统观测）上，prompt tag 将混合 system-effect 权重从 90.4% 降至 36.7%，而 session-only 视图仍有 84.4% 混合。
-Across three complete public benchmarks totaling 27{,}346 labeled steps,
+Across three complete public benchmarks totaling 27{,}346 labeled
+steps~\cite{agentprocessbench,hintbench,traceelephant},
 target-blind semantic profiles improve problem concentration over raw action.
 Average precision (AP) rises from 0.556 to 0.588 on AgentProcessBench, while inspection work falls
 from 46.29\% to 41.57\% at 80\% recall on HINTBench and from 46.64\% to
 19.55\% at 50\% recall on TraceElephant.
 % 在三个完整公开基准共 27,346 个带标签步骤上，目标盲语义 profile 相比 raw action 提高了问题集中度：AgentProcessBench 的 AP 从 0.556 提升到 0.588；HINTBench 在 80% 召回率下的检查工作量从 46.29% 降至 41.57%；TraceElephant 在 50% 召回率下从 46.64% 降至 19.55%。
-On 287 session-held-out OSWorld-Human task instances, a pre-specified supervised
+On 287 session-held-out OSWorld-Human task instances~\cite{osworldhuman}, a pre-specified supervised
 boundary predictor evaluated out of fold reaches
 0.739 F1 versus 0.645 for the strongest simple control and preserves human
 groups at 0.816 operation-weighted B$^3$ partition F1 versus 0.678.
@@ -244,18 +256,19 @@ This paper makes three contributions:
 \item \textbf{Semantic operation stack model.}
   We identify the missing profiling layer in agent observability and
   propose a model of uniform operations and query-time operation
-  stacks (\S\ref{sec:background}--\S\ref{sec:design}).
+  stacks, developed in Background and Motivation and Design.
 % 语义 operation stack 模型。识别智能体可观测性中缺失的 profiling 层，提出统一 operation 和查询时 operation stack 的模型。
 \item \textbf{System: \sys.}
   A profiler that implements this model with pluggable intent
   attribution and stack construction, producing pprof-compatible
-  output (\S\ref{sec:impl}).
+  output, as detailed in Implementation.
 % 系统：\sys。实现此模型的 profiler，具有可插拔意图归因和栈构造，产生 pprof 兼容输出。
 \item \textbf{Evaluation.}
-  We evaluate profiler output on 325 real trajectories, 15 mapped public
-  trajectory families, and three complete independently annotated public
-  benchmarks (\S\ref{sec:eval}).
-% 隐藏标注评估。我们在 325 条真实轨迹、15 个映射后的公开轨迹家族以及三个具有独立标注的完整公开基准上评估 profiler 输出。
+  We evaluate source lineage on 20 real Codex tasks, resource views on 325 real
+  trajectories and 15 mapped public families, problem correspondence on three
+  complete public benchmarks, boundary accuracy on 287 held-out task
+  instances, and construction cost on 27{,}765 operations.
+% 评估。我们在 20 个真实 Codex 任务上评估源谱，在 325 条真实轨迹和 15 个映射公开 family 上评估资源视图，在三个完整公开基准上评估问题对应性，在 287 个 held-out 任务实例上评估边界准确性，并在 27,765 个 operation 上评估构建成本。
 \end{enumerate}
 
 %% ===================================================================
@@ -265,13 +278,14 @@ This paper makes three contributions:
 \subsection{LLMs and AI Agents}
 % AI 智能体
 
-A typical agent trajectory interleaves two layers of activity.
+A typical agent trajectory interleaves two layers of
+activity~\cite{sweagent,codex,claudecode,agentsight}.
 % 典型的智能体轨迹交织两层活动。
 At the intent layer, the agent receives a user prompt, issues LLM calls, and
 invokes tools for code execution, web search, and file editing.
 % 在意图层，智能体接收用户提示词、发出 LLM 调用并调用工具（代码执行、网络搜索、文件编辑）。
 Each tool invocation triggers lower-layer system effects, including process
-spawns, file reads and writes, and network requests.
+spawns, file reads and writes, and network requests~\cite{agentsight}.
 % 每次工具调用在下层触发系统副作用：进程创建、文件读写和网络请求。
 A single trajectory may contain hundreds of such intent-effect
 cycles, and a production team accumulates many trajectories over
@@ -286,7 +300,8 @@ responsible entities, in contrast to single-execution debugging and tracing.
 % Profiling 通过聚合将资源消耗归因到负责实体，区别于单次执行调试和 tracing。
 In traditional software, the profiling pipeline uses three steps: (1)~a
 profiler periodically samples execution state, (2)~it attaches each sample to
-the current call stack, and (3)~it merges samples with identical stacks.
+the current call stack, and (3)~it merges samples with identical
+stacks~\cite{pprof,flamegraphs}.
 % 在传统软件中，profiling 管线如下工作：profiler 周期性采样执行状态，将每个样本附加到当前调用栈，合并具有相同栈的样本。
 Flame graphs~\cite{flamegraphs} and pprof~\cite{pprof} call graphs visualize
 aggregate cost as width or node size.
@@ -340,8 +355,8 @@ A prompt sequence may constitute one task or several. A task may also belong to
 a larger workflow, yet no runtime mechanism marks these boundaries or
 determines the appropriate attribution granularity.
 % 一串提示词可能构成一个任务也可能是多个任务，一个任务可能是更大工作流的一部分，但没有运行时机制标记这些边界或决定在哪个粒度归因开销。
-We quantify this in RQ1~(\S\ref{sec:eval}).
-% 我们在 RQ1~(\S\ref{sec:eval}) 中量化了这一点。
+We quantify this in RQ1 in Evaluation.
+% 我们在 Evaluation 的 RQ1 中量化这一点。
 
 \subsection{Design Requirements for Agent Profiling}
 % 智能体 Profiling 的设计需求
@@ -383,15 +398,15 @@ nesting, so the profiler must construct attribution hierarchies from the data.
 Cross-layer resource projection, stable tags, and hierarchical attribution
 drive the design.
 % 三个需求（跨层资源投影、稳定标签和分层归因）驱动了设计。
-Operations (\S\ref{sec:ops}) satisfy D1 by representing intent and system-effect activities in a single record with tag inheritance, so intent-layer tags propagate to the system effects they trigger.
-% Operation（\S\ref{sec:ops}）通过将意图和系统副作用活动表示在带标签继承的单一记录中满足 D1，使意图层标签传播到其触发的系统副作用。
-\emph{Intent attribution} (\S\ref{sec:intent}) satisfies D2 by deriving stable tags from natural-language fields.
-% 意图归因（\S\ref{sec:intent}）通过从自然语言字段派生稳定标签满足 D2。
-\emph{Operation stacks} (\S\ref{sec:stacks}) satisfy D3. They replace the
+Operations, defined in the Semantic Operation Stack Model, satisfy D1 by representing intent and system-effect activities in a single record with tag inheritance, so intent-layer tags propagate to the system effects they trigger.
+% Semantic Operation Stack Model 中定义的 operation 通过将意图和系统副作用活动表示在带标签继承的单一记录中满足 D1，使意图层标签传播到其触发的系统副作用。
+\emph{Intent attribution}, described under Algorithms, satisfies D2 by deriving stable tags from natural-language fields.
+% Algorithms 中的意图归因通过从自然语言字段派生稳定标签满足 D2。
+\emph{Operation stacks} satisfy D3. They replace the
 runtime call stack with query-time field projections that attribute resources
 at multiple granularities, allowing the same data to support multiple views
 without rebuilding the input.
-% Operation stack（\S\ref{sec:stacks}）通过以查询时字段投影替代运行时调用栈，在多个粒度层级归因资源来满足 D3，使同一数据支持多种视图而无需重建输入。
+% Operation stack 通过以查询时字段投影替代运行时调用栈，在多个粒度层级归因资源来满足 D3，使同一数据支持多种视图而无需重建输入。
 
 The profiling pipeline has four stages: (1)~parse raw trajectories into operations, (2)~enrich operations via intent attribution or mapping rules, (3)~project each operation onto a stack frame sequence chosen at query time, and (4)~fold operations with identical stacks, summing their weights.
 % 分析管线有四个阶段：(1) 将原始轨迹解析为 operation，(2) 通过意图归因或映射规则丰富 operation，(3) 将每个 operation 投影到查询时选择的栈帧序列上，(4) 折叠具有相同栈的 operation 并求和权重。
@@ -415,9 +430,9 @@ and profile export.}
 
 %% ¶1: Operations
 Because agent activities span both the intent and system-effect
-layers described in \S\ref{sec:background}, a profiler should not
+layers described in Background and Motivation, a profiler should not
 distinguish between them in the data representation.
-% 由于智能体活动跨越 \S\ref{sec:background} 中描述的意图层和系统副作用层，分析器不应在数据表示层面区分它们。
+% 由于智能体活动跨越 Background and Motivation 中描述的意图层和系统副作用层，分析器不应在数据表示层面区分它们。
 \sys therefore represents every activity as an \operation, a weighted record
 with string fields and additive measures.
 % 因此 \sys 将每个活动表示为单一抽象——operation，一个带有字符串字段和可加度量的加权记录。
@@ -479,9 +494,9 @@ calls by token count, (2)~\texttt{time} weights timed operations by duration,
 % 意图归因。
 Intent attribution maps natural-language prompts to short, stable,
 repeatable tags, giving agent trajectories the stable identifiers that traditional
-profiling gets for free from function names
-(\S\ref{sec:background}).
-% 意图归因将自然语言的提示词映射为短小、稳定、可重复的标签，为智能体轨迹提供传统 profiling 从函数名免费获得的稳定标识符（\S\ref{sec:background}）。
+profiling gets for free from function names, as discussed in Background and
+Motivation.
+% 意图归因将自然语言的提示词映射为短小、稳定、可重复的标签，为智能体轨迹提供传统 profiling 从函数名免费获得的稳定标识符，详见 Background and Motivation。
 The framework supports three pluggable backends.
 % 该框架支持三种可插拔后端。
 Explicit rules provide repeatable user control, a local model tags
@@ -510,8 +525,8 @@ controls stack granularity.
 % 诱导的栈具有可变深度，可配置的深度上限控制粒度。
 This mode produces coarser groups than hand-specified stacks but
 requires no domain knowledge, making it useful for initial
-exploration (\S\ref{sec:eval}).
-% 此模式产生比手动指定栈更粗的分组，但不需要领域知识，适用于初始探索（\S\ref{sec:eval}）。
+exploration, as evaluated in RQ1.
+% 此模式产生比手动指定栈更粗的分组，但不需要领域知识，适用于初始探索，并在 RQ1 中评估。
 
 %% ===================================================================
 \section{Implementation}
@@ -524,10 +539,12 @@ exploration (\S\ref{sec:eval}).
 
 \paragraph{Input reconstruction.}
 % 输入重建。
-\sys reads Codex and Claude Code local JSONL history files and AgentSight~\cite{agentsight}
-recordings of system effects, then reconstructs prompts, LLM calls, tool
-invocations, and their triggered file and network effects.
-% 它读取 Codex 和 Claude Code 本地 JSONL 历史文件以及 AgentSight~\cite{agentsight} 的系统副作用记录，重建提示词、LLM 调用、工具调用及其触发的文件和网络副作用。
+\sys reads Codex and Claude Code local JSONL histories and operation JSONL.
+AgentSight~\cite{agentsight} recordings first pass through a source-specific
+adapter that emits supported operations; the current CLI does not read those
+recordings directly. It then reconstructs prompts, LLM calls, tool invocations,
+and their linked file and network effects.
+% \sys 读取 Codex 和 Claude Code 本地 JSONL 历史及 operation JSONL。AgentSight~\cite{agentsight} 记录先经过源特定 adapter 转换为受支持的 operation；当前 CLI 不直接读取这些记录，随后重建 prompt、LLM 调用、工具调用及其连接的文件和网络副作用。
 
 \paragraph{Field derivation and boundaries.}
 % 字段派生和边界。
@@ -549,10 +566,11 @@ while mapping rules derive fields for structured trajectories, for example
 
 \paragraph{Boundary construction.}
 % 边界构建。
-Automatic stack construction scores adjacent operations using TF-IDF cosine
-shifts, structured-field changes, and group consistency before placing
-boundaries.
-% 自动 stack 构建使用 TF-IDF 余弦变化、结构化字段变化和分组一致性对相邻 operation 评分后放置边界。
+The built-in Rust stack inducer scores adjacent operations using visible
+token-set Jaccard distance, structured-field changes, segment balance, and
+query-term overlap before placing boundaries. This path is distinct from the
+optional Python TF-IDF/K-Means backend used to propose tagging rules.
+% 内置 Rust stack inducer 使用可见 token 集合的 Jaccard 距离、结构化字段变化、segment balance 和 query-term overlap 对相邻 operation 评分后放置边界；该路径不同于用于提出 tagging rule 的可选 Python TF-IDF/K-Means backend。
 
 \paragraph{Profile export.}
 % Profile 导出。
@@ -593,11 +611,12 @@ including AgentRewardBench~\cite{agentrewardbench}, SATraj-OS~\cite{safactory},
 AgentNet~\cite{agentnet}, and OSWorld-Human~\cite{osworldhuman}.
 % 其中四个映射后的家族提供结构化质量或边界标注：AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human。
 AgentProcessBench, HINTBench, and TraceElephant form the public
-problem-localization set and provide the independent targets for RQ2.
+problem-localization set and provide the independent targets for
+RQ2~\cite{agentprocessbench,hintbench,traceelephant}.
 % 公开问题定位基准：AgentProcessBench、HINTBench 和 TraceElephant 为 RQ2 提供独立目标。
 Of HINTBench's reported 629 trajectories, the current official test snapshot
 enumerates 536. We use all 536 after selecting the field order on the separate
-80-trajectory validation snapshot.
+80-trajectory validation snapshot~\cite{hintbench}.
 % HINTBench 报告 629 条基准轨迹；当前官方测试快照列出 536 条轨迹，我们在独立的 80 条验证轨迹上选择 field order 后使用了全部 536 条测试轨迹。
 
 %% -------------------------------------------------------------------
@@ -607,12 +626,31 @@ enumerates 536. We use all 536 after selecting the field order on the separate
 RQ1 asks whether semantic profiling improves resource attribution beyond what
 traditional tag-free tools provide.
 % 我们测试语义标签是否能超越传统无标签工具改善资源归因。
+We first test whether a source-linked path assigns system effects to a declared
+agent process/tool lineage while rejecting concurrent controls. The fixed suite
+runs 20 real Codex tasks and one concurrent negative control per task through
+the existing R114-compatible AgentSight 0.2.37 capture path, then converts the
+scoped joined effects to operation JSONL and folds them once with the current
+\texttt{agentpprof 0.2.37} binary.
+% 我们首先测试带源谱连接的路径能否将系统副作用归因到声明的 agent 进程/工具谱系，并拒绝并发对照。固定套件通过既有 R114 兼容 AgentSight 0.2.37 捕获路径运行 20 个真实 Codex 任务及每任务一个并发负对照，再将范围内连接的副作用转换为 operation JSONL，并用当前 \texttt{agentpprof 0.2.37} 二进制折叠一次。
+
+All 20 tasks and controls complete. The scoped join recovers 1{,}520 of 1{,}574
+in-scope effects with no false positive (100.0\% precision, 96.569\% recall),
+and none of 1{,}629 control effects joins. \sys emits 1{,}520 samples in 152
+stacks, exactly preserving the input total and all five manifest-category
+weights.
+% 20 个任务及对照全部完成。连接路径恢复 1,574 个范围内副作用中的 1,520 个，0 个 false positive（precision 100.0\%、recall 96.569\%），且 1,629 个对照副作用均未连接。AgentProf 在 152 个 stack 中输出 1,520 个 sample，并精确保留输入总量及全部五个 manifest 类别权重。
+
+This result establishes source fidelity for the suite's declared process/tool
+scope and lossless folding by \sys. The task categories come from the fixed
+manifest rather than automatic task inference.
+% 该结果在套件声明的进程/工具范围内确立源谱 fidelity 及 AgentProf 无损折叠；任务类别来自固定 manifest，而非自动任务推断。
 We run a semantic-axis ablation on 325 real Codex/Claude trajectories (183{,}714 system observations).
 % 我们在 325 个真实 Codex/Claude 轨迹（183,714 个系统观测）上进行语义轴消融。
 The prompt tags were produced by the local 3B-model backend described in
-\S\ref{sec:impl} and are treated here as declared categories, not as an
+Implementation and are treated here as declared categories, not as an
 independent correctness oracle.
-% Prompt tag 由 \S\ref{sec:impl} 所述本地 3B 模型 backend 产生；本实验将其视为已声明类别，而非独立正确性 oracle。
+% Prompt tag 由 Implementation 所述本地 3B 模型 backend 产生；本实验将其视为已声明类别，而非独立正确性 oracle。
 We progressively add four tag-axis configurations: (1)~no tags, (2)~session
 only, (3)~prompt only, and (4)~both. We then measure mixed-weight percentage,
 defined as the fraction of system-effect cost in groups containing observations
@@ -695,10 +733,11 @@ summaries without user configuration.
 
 Figure~\ref{fig:flamegraph} shows the resulting flame graphs for the \texttt{tokens} and \texttt{files} views, illustrating that changing only the stack fields and weight function produces different aggregates from the same operations.
 % Figure~\ref{fig:flamegraph} 展示了 \texttt{tokens} 和 \texttt{files} 视图的火焰图，说明仅改变栈字段和权重函数即可从同一组 operation 产生不同聚合。
-Together, these results answer RQ1. Semantic profiling improves resource
-attribution by separating mixed effects and providing multi-resolution,
-multi-weight, and automatically induced responsibility views.
-% 这些结果共同回答 RQ1：语义 profiling 通过分离混合副作用并提供多分辨率、多权重和自动诱导的责任视图来改善资源归因。
+Together, these results answer RQ1. Scoped source lineage rejects concurrent
+controls, \sys preserves attributed weight across runs, and semantic
+profiling provides multi-resolution, multi-weight, and automatically induced
+attribution views over the resulting operations.
+% 这些结果共同回答 RQ1：范围化源谱拒绝并发对照，AgentProf 在跨运行折叠中保留已归因权重，语义 profiling 在所得 operation 上提供多分辨率、多权重和自动诱导的归因视图。
 
 
 %% flamegraph figure moved to intro (between ¶4 and ¶5)
@@ -722,8 +761,12 @@ precision (AP) within each family and its equal-family macro average.
 AgentProcessBench uses 20 released judge votes as its step signal and ranks
 groups by mean risk. For HINTBench and TraceElephant, released localization
 predictions provide the step signal, and groups are ranked by the maximum 95\%
-Wilson lower bound on hit density over their profile prefixes.
+Wilson lower bound~\cite{wilson1927} on hit density over their profile prefixes.
 % AgentProcessBench 使用 20 个发布 judge 预测中判为错误的比例作为逐步 risk，并按分组平均 risk 排序。HINTBench 和 TraceElephant 使用发布的定位预测作为 step signal，并按各 profile prefix 上 hit density 的最大 95% Wilson 下界排序分组。
+The raw-action control changes only the grouping field to each workload's
+released action while keeping the step signal, ranking rule, scorer, input, and
+full execution path fixed.
+% Raw-action 对照仅将分组字段改为各 workload 发布的 action，同时保持 step signal、排序规则、scorer、输入和完整执行路径不变。
 
 \begin{table}[t]
 \centering\small
@@ -742,7 +785,8 @@ TraceElephant & 5{,}960 & Work@50 19.55\% & 46.64\% \\
 \end{table}
 
 AgentProcessBench contains 1{,}000 trajectories from BFCL, GAIA, HotpotQA, and
-$\tau$-bench with consensus human labels for all 8{,}509 assistant steps.
+$\tau$-bench with consensus human labels for all 8{,}509 assistant
+steps~\cite{agentprocessbench}.
 % AgentProcessBench 包含来自 BFCL、GAIA、HotpotQA 和 tau-bench 的 1,000 条轨迹，并为全部 8,509 个 assistant step 提供共识人工标签。
 Using the released target-blind risk signal, the semantic operation stack
 raises equal-family macro AP from 0.556 to 0.588. The paired gain is 0.0315
@@ -792,20 +836,20 @@ Each component is scored against its corresponding independent annotations and
 then profiled with the original additive weights.
 % 每个组成部分都与其对应的独立标注进行评分，得到的 operation 字段使用原始可加权重进行 profiling。
 
-We test all 287 OSWorld-Human task-instance sessions with complete group
+We test all 287 OSWorld-Human task-instance sessions~\cite{osworldhuman} with complete group
 annotations, covering 3{,}978 operations, 3{,}691 adjacent pairs, and 2{,}042
 groups.
 % 我们首先测试所有具有完整人工分组标注的 OSWorld-Human session：287 个 task-instance session 中的 3,978 个 operation，共 3,691 个相邻对和 2,042 个人工独立标注的动作组。
-Before evaluation, we fixed the supervised Bernoulli Naive Bayes predictor's
-model family, nine input fields, adjacent-pair feature construction, and
-training procedure. Each session-blocked fold fits parameters and a threshold
+For the supervised Bernoulli Naive Bayes predictor~\cite{mccallum-nigam-1998},
+we fixed the model family, nine input fields, adjacent-pair feature construction,
+and training procedure before evaluation. Each session-blocked fold fits parameters and a threshold
 only on training sessions, then predicts every held-out session once.
 % 我们评估一个监督式 Bernoulli Naive Bayes 相邻边界预测器。模型家族、用于构造相邻对特征的九个可见 operation 字段、特征构造和训练流程在评估前固定；每个 session-blocked fold 只使用训练 session 拟合参数和选择阈值，并恰好预测每个 held-out session 一次。
 The predicted boundaries define an ordinary group field that \sys projects and
 folds through its released profile-construction path. This test covers supervised boundary
-prediction and field integration, not the TF-IDF automatic backend in
-\S\ref{sec:impl}.
-% 预测边界成为普通分组字段，\sys 随后通过发布的 profile-construction 路径投影并折叠该字段；本实验不测试 Implementation 中基于 TF-IDF 的自动 stack-construction backend。
+prediction and field integration, not the built-in Rust stack inducer described
+in Implementation.
+% 预测边界成为普通分组字段，\sys 随后通过发布的 profile-construction 路径投影并折叠该字段；本实验不测试 Implementation 中的内置 Rust stack inducer。
 The three simple controls place a boundary after every operation, whenever the
 visible action field changes, or whenever the visible phase field changes.
 % 简单对照分别在每个 operation 后放置边界，或仅在可见 action 或 phase 字段变化时放置边界。
@@ -912,6 +956,11 @@ public workloads. It excludes live-agent overhead because \sys constructs
 profiles after execution.
 % 评估覆盖所测试本地轨迹和公开 workload 上的离线 profiling；由于 \sys 在执行后构建 profile，因此不测量在线 agent 运行时开销。
 
+RQ1 covers the fixed 20-task suite, its declared process/tool scope, and the
+R114-compatible AgentSight 0.2.37 path; manifest categories are fixed inputs,
+not inferred tasks.
+% RQ1 源谱结果覆盖固定的 20 任务套件、其声明的进程/工具范围及 R114 兼容 AgentSight 0.2.37 捕获路径；manifest 类别是固定输入，而非自动推断的任务。
+
 RQ3 currently establishes group-boundary fidelity on session-held-out
 OSWorld-Human task instances.
 % RQ3 当前在 session-held-out OSWorld-Human 任务实例上确立分组边界 fidelity。
@@ -928,10 +977,13 @@ evidence required to complete the broader fixed RQ3 hypothesis.
 Agent observability tools~\cite{langsmith,langfuse,phoenix,otel,openinference,agentops,agenttelemetry,agenttraces-trust,datadog-llmobs,laminar-signals}
 combine per-execution traces with tag, metadata, signal, and metric aggregation.
 % 智能体可观测性工具将单次执行 trace 与 tag、metadata、signal 和 metric 聚合结合起来。
-\sys instead derives recurring semantic fields across heterogeneous histories,
-propagates them to additive cross-layer effects, and constructs query-time
-profile hierarchies.
-% AgentProf 从异构历史中派生重复出现的语义责任字段，将其传播到可加的跨层副作用，再构建查询时 profile 层次，以此补充现有视图。
+LangSmith Insights builds cross-trace category hierarchies with aggregate
+metrics~\cite{langsmith-insights}, while Datadog Patterns builds topic
+hierarchies with token, cost, duration, status, and evaluation
+summaries~\cite{datadog-patterns}. \sys complements them with source-linked
+agent/system operations, conserved additive weights, and selectable
+pprof-compatible operation-stack projections.
+% LangSmith Insights 和 Datadog Patterns 已能跨 trace 形成分层类别并聚合多种 metric；\sys 以带源谱连接的 agent/system operation、守恒的可加权重，以及对同一证据的可选择 pprof 兼容 operation-stack 投影补充这些产品视图。
 
 Traditional profilers aggregate stack samples and can incorporate supplied
 labels into profile views~\cite{pprof,flamegraphs}. Trace systems such as
@@ -955,27 +1007,26 @@ execution's fault location.
 \section{Conclusion}
 % 结论
 
-Agent observability needs profiling, not only debugging.
-% 智能体可观测性需要性能分析，不仅仅是调试。
-\sys shows that the semantic operation stack model, with pluggable intent attribution and stack construction, brings hierarchical attribution to agent trajectories.
-% \sys 表明，语义 operation stack 模型结合可插拔的意图归因和栈构造，为智能体轨迹带来了分层归因能力。
+Agent observability needs profiling, not only debugging. \sys brings
+hierarchical attribution to agent trajectories through semantic operation
+stacks, pluggable intent attribution, and stack construction.
+% 智能体可观测性需要性能分析，不仅仅是调试。\sys 通过语义 operation stack、可插拔意图归因和栈构造为智能体轨迹带来分层归因能力。
+On 20 real Codex tasks, scoped source lineage reaches 100.0\% precision and
+96.569\% recall, rejects all 1{,}629 controls, and preserves all 1{,}520
+attributed effects in \sys.
+% 在 20 个真实 Codex 任务上，范围化源谱达到 100.0\% precision 和 96.569\% recall，拒绝全部 1,629 个并发对照副作用，并将 1,520 个已归因副作用送入 AgentProf 且不损失任何权重。
 Across 325 real trajectories, semantic fields separate effects left mixed by
-tag-free and per-session views, revealing distinct token, time, and
-system-effect responsibility profiles.
-% 在 325 条真实轨迹上，语义字段分离了无标签和按会话视图仍混合的系统副作用，并揭示不同的 token、time 和 system-effect 责任视图。
-Across AgentProcessBench, HINTBench, and TraceElephant, target-blind operation
-stacks improve annotated-problem concentration over raw-action inspection at
-the workloads' reported operating points.
-% 在 AgentProcessBench、HINTBench 和 TraceElephant 上，目标盲 operation stack 在各 workload 报告的工作点上相比 raw-action 检查提高了标注问题的集中度。
-On 287 session-held-out OSWorld-Human task instances, out-of-fold evaluation of
-the pre-specified supervised boundary predictor yields 0.739 F1 versus 0.645
-for the strongest simple control and 0.816 operation-weighted B$^3$ F1 versus
-0.678.
-% 在 287 个 session-held-out OSWorld-Human 任务实例上，预先指定的监督式边界预测器经折外评估达到 0.739 F1，最强简单对照为 0.645；其人工分组保持度达到 0.816 的 operation-weighted B$^3$ F1，对照为 0.678。
-On 27{,}765 public operations, \sys builds the complete
-semantic profile in 1.17\,s with 464.5\,MiB maximum RSS, adding only 18.2\%
-time and 1.3\% memory over raw action.
-% 在 27,765 个公开 operation 上，\sys 用 1.17 秒构建完整语义 profile，最大 RSS 为 464.5 MiB，相比 raw action 仅增加 18.2% 时间和 1.3% 内存。
+tag-free and per-session views into distinct responsibility profiles.
+% 在 325 条真实轨迹上，语义字段将无标签和按会话视图仍混合的副作用分离为不同的责任视图。
+Across three public benchmarks, target-blind operation stacks improve problem
+concentration over raw action at the evaluated AP and recall points.
+% 在三个公开基准上，目标盲 operation stack 在所评估的 AP 和 recall 工作点上相比 raw action 提高问题集中度。
+On 287 held-out OSWorld-Human task instances, a pre-specified boundary
+predictor reaches 0.739 F1 and 0.816 operation-weighted B$^3$ F1.
+% 在 287 个 held-out OSWorld-Human 任务实例上，预先指定的边界预测器达到 0.739 F1 和 0.816 operation-weighted B$^3$ F1。
+On 27{,}765 public operations, \sys builds the complete semantic profile in
+1.17\,s.
+% 在 27,765 个公开 operation 上，\sys 用 1.17 秒构建完整语义 profile。
 Together, these results establish cross-trajectory semantic profiling as a
 complement to run-local debugging and tracing.
 % 这些结果共同确立了跨轨迹语义 profiling 对单次运行 debugging 和 tracing 的补充价值。

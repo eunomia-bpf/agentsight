@@ -160,10 +160,10 @@ The complete HINTBench experiment adds a target-blind transfer boundary rather
 than a new abstraction. A fixed action/environment/phase/status profile had a
 favorable inspection-work point estimate but did not separate from raw action
 under the predeclared paired interval. The next mechanism therefore keeps the
-same two-object model while using information that raw action lacks: preceding
-intent or subgoal, component role, observed environment response, and outcome
-status propagated into downstream operations. Whether that profile improves
-real-problem localization remains an empirical RQ2 question.
+same two-object model. Later AgentProcessBench and TraceElephant results supply
+the cumulative positive RQ2 answer at their evaluated AP and recall operating
+points; HINTBench remains one scoped transfer boundary rather than a reason to
+change the model or RQ.
 
 ## Archived Proposal Mechanisms
 
@@ -204,18 +204,10 @@ The current design is not:
 
 ## Evaluation Consequence
 
-The next decisive RQ2 experiment restores the submodule's hidden-annotation
-localization design on all 220 official TraceElephant failures. It compares
-flat same-information, per-session, source-native, independent-step,
-raw-action, and target-blind semantic operation-stack views over identical
-visible operations. Responsible-component and decisive-step annotations remain
-scoring-only; oracle groupings are upper bounds. The experiment reports
-localization quality and analyst inspection work without replacing the fixed
-positive hypothesis or shrinking the paper into a hierarchy-selection study.
-
-Hodoscope currently supplies a complete bundle comparison, not a causal
-flat-versus-recursive result. Its matched native baseline is released turn
-position, not the full trajectory execution tree, and its runtimes begin after
-shared t-SNE. Future experiments must name those boundaries precisely and start
-from a real measure to attribute rather than relying on grouping alone for
-diagnostic signal.
+RQ1, RQ2, the human-boundary component of RQ3, and RQ4 now have complete
+paper-linked experiments. The next experiment addresses only the remaining
+RQ3 task/phase/action accuracy component. It reuses the nine existing converted
+public corpora, current mapping/profile implementation, and existing evaluation
+script. Only independently available labels score a field; scorer labels and
+aliases stay out of predictor inputs. Missing axes are reported unavailable,
+not replaced with a new benchmark or annotation pipeline.

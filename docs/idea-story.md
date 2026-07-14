@@ -222,26 +222,25 @@ negative development results into the paper's story.
 Step 0006 supports the boundary part of the fixed RQ3 hypothesis: a fixed
 target-blind boundary tagger recovers independently annotated human
 action-group boundaries on held-out sessions and preserves the corresponding
-group partition better than simple visible-field rules. The strongest next
-hypothesis returns to the load-bearing RQ1 edge: current AgentProf profiles
-preserve independently observed operation-to-effect lineage and do not assign
-concurrent negative-control effects to unrelated operations.
+group partition better than simple visible-field rules. Step 0007 now supports
+the load-bearing RQ1 integration edge: the complete fixed R114 suite attributes
+1,520 scoped real-Codex effects at 100.000% precision and 96.569% recall,
+rejects all 1,629 concurrent-control effects, and current AgentProf preserves
+every selected row and the mass of all five known task categories.
 
 ### Next Decisive Evidence
 
 The user has restored the untouched submodule as the canonical story source.
-RQ2 has a cumulative positive paper-level answer, RQ4 has a complete positive
-construction-cost answer, and Step 0006 supplies positive held-out evidence for
-RQ3's group-boundary component. The next evidence is one complete RQ1
-current-AgentProf replay of R114's fixed 20 real Codex tasks, exact-lineage
-checker, task categories, and concurrent negative controls. The raw R114
-snapshots must be regenerated because they were intentionally not committed;
-the experiment otherwise reuses the existing capture/export path and passes the
-lineage rows through the current operation/profile path. It reports attribution
-precision/recall, negative false joins, task-category preservation, and mass
-conservation without a new dataset, model, tagger, ranker, cutoff, or ontology.
-This is an evidence-frontier update, not a narrative evolution or change to the
-thesis, four RQs, or two-object model.
+RQ1 now has a cumulative positive paper-level answer from scoped source-lineage
+correctness plus lossless semantic folding, RQ2 has a cumulative positive
+problem-correspondence answer, RQ4 has a complete positive construction-cost
+answer, and Step 0006 supplies positive held-out evidence for RQ3's
+group-boundary component. Step 0007 reused and completed the selected R114
+experiment without adding a dataset, model, tagger, ranker, cutoff, or
+ontology. The next whole-paper REVIEW must choose the next evidence need among
+the unchanged four RQs; no further RQ1 variant is justified now. This is an
+evidence-frontier update, not a narrative evolution or change to the thesis,
+four RQs, or two-object model.
 
 ## Narrative Evolution — Accepted Changes Only
 

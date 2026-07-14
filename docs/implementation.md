@@ -125,19 +125,15 @@ configuration. In particular:
    an artifact correction before use.
 9. the complete HINTBench profile has a favorable inspection-work point estimate
    but does not separate from raw action under its predeclared paired interval;
-   action/status fields alone therefore do not yet prove the RQ2 hypothesis.
+   it is a scoped boundary within the cumulative three-benchmark RQ2 answer.
 
 ## Implementation Policy For The Next Experiment
 
-Do not build a large new subsystem before the next decisive comparison. Reuse
-operation ingestion, declared stacks, source-native and raw-action fields, and
-the existing ranking path. Add only a thin TraceElephant adapter that converts
-official visible trace fields into operations and invokes the real AgentProf
-binary. Responsible-component and decisive-step annotations remain scorer-only.
-The next profile may derive component role, preceding intent/subgoal,
-action/tool, observed response, and outcome status only from target-blind trace
-content fixed by the approved plan. Do not retune HINTBench or Hodoscope on
-their targets. If meaningful execution requires a new central mechanism,
-record that the frozen paper would require large reconstruction and stop that
-route; do not invoke idea refinement, change the fixed RQ, or weaken its
-hypothesis.
+Do not build a new subsystem for the remaining RQ3 task/phase/action test.
+Reuse the nine converted public operation corpora, existing splits and
+independent labels, `script/operation_leaveout_eval.py`, and the current
+operation/profile path. Exclude each scorer field and its aliases from inputs.
+Run every eligible corpus/axis cell to completion, report coverage, and mark
+missing independent axes unavailable. Do not add a benchmark, annotation
+pipeline, model family, metric, or cutoff unless the existing assets cannot
+answer the fixed RQ3 component at all.
