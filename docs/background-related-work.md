@@ -109,6 +109,11 @@ source execution view.
   official SWE-bench resolved rate on fired subsets. It is the strongest
   current precedent for connecting population-level trajectory structure to a
   downstream agent improvement, although it remains a May 2026 preprint.
+- [Agent Mentor](https://arxiv.org/abs/2604.10513) analyzes semantic features in
+  execution logs, derives corrective system-prompt instructions, and reports
+  repeated-run accuracy improvements across three agent configurations. It is
+  direct precedent for a semantic trajectory analysis-to-intervention loop,
+  though its target is prompt ambiguity rather than conserved system effects.
 - [AgentGraph](https://ojs.aaai.org/index.php/AAAI/article/view/42393), published
   in the AAAI-26 Demonstration Track, converts agent logs into source-linked
   knowledge graphs and supports failure detection, optimization
@@ -141,6 +146,10 @@ thesis. Full evidence remains in
   feedback, error, and extracted attributes. Hierarchical cross-run
   categorization and metric rollups are therefore precedents, not AgentProf's
   novelty.
+- [LangSmith Engine](https://docs.langchain.com/langsmith/engine) turns
+  recurring trace-supported issues into proposed code or prompt fixes,
+  deployable evaluators, offline examples, and optional pull requests. It is a
+  product-level diagnosis-to-action competitor, not merely another trace UI.
 - [AgentTelemetry](https://dl.acm.org/doi/10.1145/3805760.3814931) supplies an
   agent-specific span taxonomy, fault-detection benchmark, and toolkit. Its
   accepted artifact has no released official fault-bearing step/span target,

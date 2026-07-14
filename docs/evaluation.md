@@ -19,7 +19,7 @@ later explicit user instruction may change the four author-fixed RQs.
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Do not run another RQ1 lineage or grouping variant; WRITE the cumulative positive answer and let REVIEW select the next fixed RQ. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Supporting cumulative answer, ready for WRITE.** Step 0011 independently rechecked the completed AgentProcessBench, HINTBench, and TraceElephant primary outcomes, uncertainty, and full baseline/control families. AgentProcessBench supplies semantic-specific AP evidence; HINTBench supplies positive primary components for the complete profile/prefix/scorer pipeline; TraceElephant remains descriptively positive early and prospectively inconclusive at high recall. No run, score, cutoff, benchmark, model, metric, or original verdict changed. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Supporting cumulative answer; one reuse-only audit remains.** Step 0011 independently rechecked the completed AgentProcessBench, HINTBench, and TraceElephant primary outcomes, uncertainty, and full baseline/control families. AgentProcessBench supplies semantic-specific AP evidence; HINTBench supplies positive primary components for the complete profile/prefix/scorer pipeline; TraceElephant remains descriptively positive early and prospectively inconclusive at high recall. Step 0013 selected only a current-standard audit of existing R337 fixed-recall work and group-count results to test recurring compactness against fixed-session organization. It adds no benchmark, model, metric, cutoff, partition, resample, or human dependency. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer, strengthened.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Action evidence is mixed across a tiny AndroidControl prefix and complete GUI-Odyssey prefix; phase and broad action stability remain open. WRITE the positive task result; REVIEW must preserve the fixed hypothesis and select only a materially better next mechanism if more RQ3 evidence is needed. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
@@ -207,6 +207,19 @@ new confirmatory test or independent observation; all three original
 conjunctive workload verdicts remain `INCONCLUSIVE`. Full plan, three serial
 plan reviews, preflight, results, and fresh independent recomputation are under
 [`loop-001-rq2-cumulative-baseline-synthesis`](tmp/build-and-evaluate/step-0011-20260714T095842-0700/01-experiment-gate/loop-001-rq2-cumulative-baseline-synthesis/).
+
+Step 0013's complete paper review closed the idea of inventing a new
+matched-granularity partition, interpolation, Pareto score, or another
+localization benchmark. The only admitted next node is an audit and replay of
+the already complete R337 fixed-recall result over six labeled tasks from four
+public datasets. At the existing 25% recall target, the tracked report says the
+operation-stack view reaches all six tasks with median work 0.2000 and median
+16 inspected groups, versus 0.2495 work and 50 groups for fixed-session
+organization. These are not yet admitted paper numbers: the current audit must
+reconstruct the six task rows, scorer-only hidden-label use, source provenance,
+and raw/flat counterpoints. The audit must not add a new metric, cutoff,
+partition, resample, model, dataset, or human dependency, and it must not
+rebrand R337 as a matched-granularity proof or downstream intervention.
 
 The unexecuted revision-1 plan is superseded because it bundled roughly eleven
 comparator types and several independent research programs. Its history remains
