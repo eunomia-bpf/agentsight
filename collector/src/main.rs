@@ -253,7 +253,7 @@ enum Commands {
         /// Process PID filter
         #[arg(short = 'p', long, conflicts_with = "comm")]
         pid: Option<u32>,
-        /// Path to the binary executable to monitor (e.g., ~/.nvm/versions/node/v20.0.0/bin/node)
+        /// Binary path or container ref to monitor (e.g., /usr/bin/node, docker://name, k8s://ns/pod/container)
         #[arg(long)]
         binary_path: Option<String>,
         /// SQLite database path for view snapshots
@@ -398,7 +398,7 @@ enum DebugCommands {
         /// Server port (used with --server)
         #[arg(long, default_value = "7395")]
         server_port: u16,
-        /// Path to the binary executable to monitor (e.g., ~/.nvm/versions/node/v20.0.0/bin/node)
+        /// Binary path or container ref to monitor (e.g., /usr/bin/node, docker://name, k8s://ns/pod/container)
         #[arg(long)]
         binary_path: Option<String>,
         /// Additional arguments to pass to the SSL binary
@@ -518,7 +518,7 @@ enum DebugCommands {
         /// Include prompt/completion content in exported GenAI spans (opt-in; off by default for privacy)
         #[arg(long)]
         otel_capture_content: bool,
-        /// Path to the binary executable to monitor (e.g., ~/.nvm/versions/node/v20.0.0/bin/node)
+        /// Binary path or container ref to monitor (e.g., /usr/bin/node, docker://name, k8s://ns/pod/container)
         #[arg(long)]
         binary_path: Option<String>,
         /// SQLite database path for view snapshots

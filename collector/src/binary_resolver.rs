@@ -8,8 +8,9 @@
 //!     (PATH search, symlink canonicalization, shebang interpreter resolution).
 //!   - [`resolve_binary_path_for_ssl`] finds the concrete static TLS target.
 //!   - [`binary_embeds_ssl`] detects statically-linked TLS (Node.js/OpenClaw).
-//!   - [`parse_container_ref`] + [`resolve_container_binary_path`] map a
-//!     `docker://<container>` reference to an explicit host SSL attach target.
+//!   - [`resolve_container_binary_arg`] maps a container reference such as
+//!     `docker://<container>` or `k8s://<namespace>/<pod>/<container>` to an
+//!     explicit host SSL attach target.
 
 /// Resolve a command name/path to the real ELF binary that should be passed
 /// to sslsniff as `--binary-path`.
@@ -329,6 +330,28 @@ fn canonicalize_path(path: &std::path::Path) -> String {
         .unwrap_or_else(|_| path.to_string_lossy().into_owned())
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct KubernetesRef<'a> {
+    namespace: &'a str,
+    pod: &'a str,
+    container: Option<&'a str>,
+}
+
+impl KubernetesRef<'_> {
+    fn label(&self) -> String {
+        match self.container {
+            Some(container) => format!("k8s://{}/{}/{}", self.namespace, self.pod, container),
+            None => format!("k8s://{}/{}", self.namespace, self.pod),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct RuntimeContainerRef {
+    runtime: String,
+    id: String,
+}
+
 /// Strip a `docker://<ref>` or `docker:<ref>` scheme from a `--binary-path`
 /// value, returning the container reference (name or id). Returns `None` for
 /// ordinary filesystem paths, which are passed through to sslsniff unchanged.
@@ -336,18 +359,89 @@ pub(crate) fn parse_container_ref(binary_path: &str) -> Option<&str> {
     binary_path
         .strip_prefix("docker://")
         .or_else(|| binary_path.strip_prefix("docker:"))
-        .filter(|r| !r.is_empty())
+        .filter(|r| !r.is_empty() && !r.contains('/'))
+}
+
+fn has_docker_scheme(binary_path: &str) -> bool {
+    binary_path.starts_with("docker://") || binary_path.starts_with("docker:")
+}
+
+/// Parse a Kubernetes pod reference from `--binary-path`.
+///
+/// Supported forms:
+///   - `k8s://pod` (default namespace)
+///   - `k8s://namespace/pod`
+///   - `k8s://namespace/pod/container`
+///   - the same forms with `k8s:` or `kubernetes://` prefixes
+fn parse_kubernetes_ref(binary_path: &str) -> Option<KubernetesRef<'_>> {
+    let reference = binary_path
+        .strip_prefix("k8s://")
+        .or_else(|| binary_path.strip_prefix("k8s:"))
+        .or_else(|| binary_path.strip_prefix("kubernetes://"))
+        .or_else(|| binary_path.strip_prefix("kubernetes:"))?;
+
+    let parts = reference.split('/').collect::<Vec<_>>();
+    if parts.is_empty() || parts.iter().any(|part| part.is_empty()) {
+        return None;
+    }
+
+    match parts.as_slice() {
+        [pod] => Some(KubernetesRef {
+            namespace: "default",
+            pod,
+            container: None,
+        }),
+        [namespace, pod] => Some(KubernetesRef {
+            namespace,
+            pod,
+            container: None,
+        }),
+        [namespace, pod, container] => Some(KubernetesRef {
+            namespace,
+            pod,
+            container: Some(container),
+        }),
+        _ => None,
+    }
+}
+
+fn has_kubernetes_scheme(binary_path: &str) -> bool {
+    binary_path.starts_with("k8s://")
+        || binary_path.starts_with("k8s:")
+        || binary_path.starts_with("kubernetes://")
+        || binary_path.starts_with("kubernetes:")
 }
 
 pub(crate) fn resolve_container_binary_arg(
     binary_path: Option<&str>,
 ) -> Result<Option<(String, String)>, String> {
-    binary_path
-        .and_then(parse_container_ref)
-        .map(|reference| {
-            resolve_container_binary_path(reference).map(|path| (reference.to_string(), path))
-        })
-        .transpose()
+    let Some(binary_path) = binary_path else {
+        return Ok(None);
+    };
+
+    if let Some(reference) = parse_container_ref(binary_path) {
+        return resolve_container_binary_path(reference)
+            .map(|path| Some((reference.to_string(), path)));
+    }
+    if has_docker_scheme(binary_path) {
+        return Err(format!(
+            "invalid Docker container reference '{}'; expected docker://<name|id>",
+            binary_path
+        ));
+    }
+
+    if let Some(reference) = parse_kubernetes_ref(binary_path) {
+        let label = reference.label();
+        return resolve_kubernetes_binary_path(&reference).map(|path| Some((label, path)));
+    }
+    if has_kubernetes_scheme(binary_path) {
+        return Err(format!(
+            "invalid Kubernetes pod reference '{}'; expected k8s://pod, k8s://namespace/pod, or k8s://namespace/pod/container",
+            binary_path
+        ));
+    }
+
+    Ok(None)
 }
 
 /// Resolve a Docker container reference to the explicit host path that
@@ -363,6 +457,17 @@ pub(crate) fn resolve_container_binary_arg(
 /// That wrapper does not embed SSL, so we walk its descendant process tree and
 /// require an actual SSL target.
 pub(crate) fn resolve_container_binary_path(reference: &str) -> Result<String, String> {
+    let init_pid = resolve_docker_container_pid(reference)?;
+
+    find_ssl_target_in_tree(init_pid).ok_or_else(|| {
+        format!(
+            "container '{}' is running at host PID {}, but no SSL attach target was found in its process tree",
+            reference, init_pid
+        )
+    })
+}
+
+fn resolve_docker_container_pid(reference: &str) -> Result<u32, String> {
     let output = std::process::Command::new("docker")
         .args(["inspect", "--format", "{{.State.Pid}}", reference])
         .output()
@@ -392,12 +497,228 @@ pub(crate) fn resolve_container_binary_path(reference: &str) -> Result<String, S
         ));
     }
 
+    Ok(init_pid)
+}
+
+fn resolve_kubernetes_binary_path(reference: &KubernetesRef<'_>) -> Result<String, String> {
+    let pod = kubectl_get_pod(reference)?;
+    let container_id = select_kubernetes_container_id(&pod, reference)?;
+    let runtime = parse_runtime_container_id(&container_id)?;
+    let init_pid = resolve_runtime_container_pid(&runtime)?;
+
     find_ssl_target_in_tree(init_pid).ok_or_else(|| {
+        let node = pod
+            .pointer("/spec/nodeName")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("unknown");
         format!(
-            "container '{}' is running at host PID {}, but no SSL attach target was found in its process tree",
-            reference, init_pid
+            "Kubernetes pod '{}/{}' container target '{}' is running at host PID {}, but no SSL attach target was found in its process tree. AgentSight must run on the node that hosts the pod (node: {}).",
+            reference.namespace,
+            reference.pod,
+            runtime.id,
+            init_pid,
+            node
         )
     })
+}
+
+fn kubectl_get_pod(reference: &KubernetesRef<'_>) -> Result<serde_json::Value, String> {
+    let output = kubectl_command()
+        .args([
+            "get",
+            "pod",
+            reference.pod,
+            "-n",
+            reference.namespace,
+            "-o",
+            "json",
+        ])
+        .output()
+        .map_err(|e| format!(
+            "failed to run `kubectl get pod {}` in namespace '{}': {} (is kubectl installed and configured?)",
+            reference.pod, reference.namespace, e
+        ))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!(
+            "`kubectl get pod {} -n {}` failed: {}",
+            reference.pod,
+            reference.namespace,
+            stderr.trim()
+        ));
+    }
+
+    serde_json::from_slice(&output.stdout).map_err(|e| {
+        format!(
+            "`kubectl get pod {} -n {} -o json` returned invalid JSON: {}",
+            reference.pod, reference.namespace, e
+        )
+    })
+}
+
+fn kubectl_command() -> std::process::Command {
+    let mut command = std::process::Command::new("kubectl");
+    if std::env::var_os("KUBECONFIG").is_none()
+        && let Some(user) = std::env::var_os("SUDO_USER")
+        && let Some(home) = sudo_user_home(&user)
+    {
+        let kubeconfig = home.join(".kube/config");
+        if kubeconfig.is_file() {
+            command.env("KUBECONFIG", kubeconfig);
+        }
+    }
+    command
+}
+
+fn select_kubernetes_container_id(
+    pod: &serde_json::Value,
+    reference: &KubernetesRef<'_>,
+) -> Result<String, String> {
+    let statuses = pod
+        .pointer("/status/containerStatuses")
+        .and_then(serde_json::Value::as_array)
+        .ok_or_else(|| {
+            format!(
+                "Kubernetes pod '{}/{}' has no status.containerStatuses yet",
+                reference.namespace, reference.pod
+            )
+        })?;
+
+    if let Some(container) = reference.container {
+        let status = statuses
+            .iter()
+            .find(|status| {
+                status.get("name").and_then(serde_json::Value::as_str) == Some(container)
+            })
+            .ok_or_else(|| {
+                format!(
+                    "Kubernetes pod '{}/{}' has no container named '{}'",
+                    reference.namespace, reference.pod, container
+                )
+            })?;
+        return container_id_from_status(status).ok_or_else(|| {
+            format!(
+                "Kubernetes pod '{}/{}' container '{}' has no containerID yet (is it running?)",
+                reference.namespace, reference.pod, container
+            )
+        });
+    }
+
+    let containers = statuses
+        .iter()
+        .filter_map(|status| {
+            let name = status.get("name").and_then(serde_json::Value::as_str)?;
+            let id = container_id_from_status(status)?;
+            Some((name, id))
+        })
+        .collect::<Vec<_>>();
+
+    match containers.as_slice() {
+        [(_, id)] => Ok(id.clone()),
+        [] => Err(format!(
+            "Kubernetes pod '{}/{}' has no running containers with a containerID",
+            reference.namespace, reference.pod
+        )),
+        _ => {
+            let names = containers
+                .iter()
+                .map(|(name, _)| *name)
+                .collect::<Vec<_>>()
+                .join(", ");
+            Err(format!(
+                "Kubernetes pod '{}/{}' has multiple containers ({}); specify one as k8s://{}/{}/<container>",
+                reference.namespace, reference.pod, names, reference.namespace, reference.pod
+            ))
+        }
+    }
+}
+
+fn container_id_from_status(status: &serde_json::Value) -> Option<String> {
+    status.pointer("/state/running")?;
+    let id = status.get("containerID")?.as_str()?.trim();
+    (!id.is_empty()).then(|| id.to_string())
+}
+
+fn parse_runtime_container_id(container_id: &str) -> Result<RuntimeContainerRef, String> {
+    let (runtime, id) = container_id.split_once("://").ok_or_else(|| {
+        format!(
+            "Kubernetes containerID '{}' is missing a runtime scheme",
+            container_id
+        )
+    })?;
+    let id = id.trim();
+    if runtime.trim().is_empty() || id.is_empty() {
+        return Err(format!(
+            "Kubernetes containerID '{}' is incomplete",
+            container_id
+        ));
+    }
+    Ok(RuntimeContainerRef {
+        runtime: runtime.to_string(),
+        id: id.to_string(),
+    })
+}
+
+fn resolve_runtime_container_pid(container: &RuntimeContainerRef) -> Result<u32, String> {
+    match container.runtime.as_str() {
+        "docker" => resolve_docker_container_pid(&container.id),
+        "containerd" | "cri-o" | "crio" => resolve_cri_container_pid(&container.id),
+        other => resolve_cri_container_pid(&container.id).map_err(|e| {
+            format!(
+                "unsupported Kubernetes container runtime '{}' for container '{}': {}",
+                other, container.id, e
+            )
+        }),
+    }
+}
+
+fn resolve_cri_container_pid(container_id: &str) -> Result<u32, String> {
+    let output = std::process::Command::new("crictl")
+        .args(["inspect", "--output", "json", container_id])
+        .output()
+        .map_err(|e| format!(
+            "failed to run `crictl inspect` for container '{}': {} (is crictl installed and configured for this node's CRI runtime?)",
+            container_id, e
+        ))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!(
+            "`crictl inspect {}` failed: {}",
+            container_id,
+            stderr.trim()
+        ));
+    }
+
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).map_err(|e| {
+        format!(
+            "`crictl inspect --output json {}` returned invalid JSON: {}",
+            container_id, e
+        )
+    })?;
+
+    parse_crictl_pid(&value).ok_or_else(|| {
+        format!(
+            "could not determine host PID for CRI container '{}'",
+            container_id
+        )
+    })
+}
+
+fn parse_crictl_pid(value: &serde_json::Value) -> Option<u32> {
+    ["/info/pid", "/status/pid"]
+        .into_iter()
+        .filter_map(|path| value.pointer(path))
+        .find_map(value_as_u32)
+        .filter(|pid| *pid != 0)
+}
+
+fn value_as_u32(value: &serde_json::Value) -> Option<u32> {
+    if let Some(pid) = value.as_u64() {
+        return u32::try_from(pid).ok();
+    }
+    value.as_str()?.parse().ok()
 }
 
 /// Breadth-first search the descendant process tree rooted at `root_pid` for a
@@ -456,10 +777,8 @@ fn canonicalize_attach_path(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        binary_embeds_ssl, canonicalize_attach_path, find_executable_in_dirs, parse_container_ref,
-        resolve_binary_path_for_ssl,
-    };
+    use super::*;
+    use serde_json::json;
 
     #[test]
     fn parses_docker_double_slash_scheme() {
@@ -494,6 +813,217 @@ mod tests {
     fn rejects_empty_container_reference() {
         assert_eq!(parse_container_ref("docker://"), None);
         assert_eq!(parse_container_ref("docker:"), None);
+    }
+
+    #[test]
+    fn rejects_slash_separated_docker_reference() {
+        assert_eq!(parse_container_ref("docker://foo/bar"), None);
+        assert_eq!(parse_container_ref("docker:foo/bar"), None);
+    }
+
+    #[test]
+    fn parses_kubernetes_pod_reference_with_default_namespace() {
+        assert_eq!(
+            parse_kubernetes_ref("k8s://openclaw"),
+            Some(KubernetesRef {
+                namespace: "default",
+                pod: "openclaw",
+                container: None,
+            })
+        );
+    }
+
+    #[test]
+    fn parses_kubernetes_namespaced_pod_reference() {
+        assert_eq!(
+            parse_kubernetes_ref("k8s://agents/openclaw"),
+            Some(KubernetesRef {
+                namespace: "agents",
+                pod: "openclaw",
+                container: None,
+            })
+        );
+    }
+
+    #[test]
+    fn parses_kubernetes_container_reference() {
+        let reference = parse_kubernetes_ref("kubernetes://agents/openclaw/gateway");
+        assert_eq!(
+            reference,
+            Some(KubernetesRef {
+                namespace: "agents",
+                pod: "openclaw",
+                container: Some("gateway"),
+            })
+        );
+        assert_eq!(
+            reference.as_ref().map(KubernetesRef::label),
+            Some("k8s://agents/openclaw/gateway".to_string())
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_kubernetes_references() {
+        assert_eq!(parse_kubernetes_ref("k8s://"), None);
+        assert_eq!(parse_kubernetes_ref("k8s://agents/"), None);
+        assert_eq!(
+            parse_kubernetes_ref("k8s://agents/openclaw/gateway/extra"),
+            None
+        );
+        assert_eq!(parse_kubernetes_ref("/usr/bin/node"), None);
+    }
+
+    #[test]
+    fn invalid_container_scheme_errors_before_running_external_tools() {
+        assert!(
+            resolve_container_binary_arg(Some("docker://"))
+                .unwrap_err()
+                .contains("invalid Docker container reference")
+        );
+        assert!(
+            resolve_container_binary_arg(Some("k8s://agents/openclaw/gateway/extra"))
+                .unwrap_err()
+                .contains("invalid Kubernetes pod reference")
+        );
+    }
+
+    #[test]
+    fn selects_single_kubernetes_container_id() {
+        let pod = json!({
+            "status": {
+                "containerStatuses": [
+                    {
+                        "name": "gateway",
+                        "state": {"running": {"startedAt": "2026-07-01T00:00:00Z"}},
+                        "containerID": "containerd://abc123"
+                    }
+                ]
+            }
+        });
+        let reference = KubernetesRef {
+            namespace: "agents",
+            pod: "openclaw",
+            container: None,
+        };
+
+        assert_eq!(
+            select_kubernetes_container_id(&pod, &reference).unwrap(),
+            "containerd://abc123"
+        );
+    }
+
+    #[test]
+    fn selects_explicit_kubernetes_container_id() {
+        let pod = json!({
+            "status": {
+                "containerStatuses": [
+                    {
+                        "name": "sidecar",
+                        "state": {"running": {"startedAt": "2026-07-01T00:00:00Z"}},
+                        "containerID": "containerd://sidecar123"
+                    },
+                    {
+                        "name": "gateway",
+                        "state": {"running": {"startedAt": "2026-07-01T00:00:00Z"}},
+                        "containerID": "containerd://gateway123"
+                    }
+                ]
+            }
+        });
+        let reference = KubernetesRef {
+            namespace: "agents",
+            pod: "openclaw",
+            container: Some("gateway"),
+        };
+
+        assert_eq!(
+            select_kubernetes_container_id(&pod, &reference).unwrap(),
+            "containerd://gateway123"
+        );
+    }
+
+    #[test]
+    fn requires_container_name_for_multi_container_pod() {
+        let pod = json!({
+            "status": {
+                "containerStatuses": [
+                    {
+                        "name": "sidecar",
+                        "state": {"running": {"startedAt": "2026-07-01T00:00:00Z"}},
+                        "containerID": "containerd://sidecar123"
+                    },
+                    {
+                        "name": "gateway",
+                        "state": {"running": {"startedAt": "2026-07-01T00:00:00Z"}},
+                        "containerID": "containerd://gateway123"
+                    }
+                ]
+            }
+        });
+        let reference = KubernetesRef {
+            namespace: "agents",
+            pod: "openclaw",
+            container: None,
+        };
+
+        let err = select_kubernetes_container_id(&pod, &reference).unwrap_err();
+        assert!(err.contains("multiple containers"));
+        assert!(err.contains("k8s://agents/openclaw/<container>"));
+    }
+
+    #[test]
+    fn ignores_non_running_kubernetes_container_id() {
+        let pod = json!({
+            "status": {
+                "containerStatuses": [
+                    {
+                        "name": "gateway",
+                        "state": {"terminated": {"exitCode": 0}},
+                        "containerID": "containerd://old123"
+                    }
+                ]
+            }
+        });
+        let reference = KubernetesRef {
+            namespace: "agents",
+            pod: "openclaw",
+            container: None,
+        };
+
+        let err = select_kubernetes_container_id(&pod, &reference).unwrap_err();
+        assert!(err.contains("no running containers"));
+    }
+
+    #[test]
+    fn parses_kubernetes_runtime_container_id() {
+        assert_eq!(
+            parse_runtime_container_id("containerd://abc123").unwrap(),
+            RuntimeContainerRef {
+                runtime: "containerd".to_string(),
+                id: "abc123".to_string(),
+            }
+        );
+        assert_eq!(
+            parse_runtime_container_id("docker://def456").unwrap(),
+            RuntimeContainerRef {
+                runtime: "docker".to_string(),
+                id: "def456".to_string(),
+            }
+        );
+        assert!(parse_runtime_container_id("abc123").is_err());
+    }
+
+    #[test]
+    fn parses_crictl_pid_shapes() {
+        assert_eq!(
+            parse_crictl_pid(&json!({"info": {"pid": 1234}})),
+            Some(1234)
+        );
+        assert_eq!(
+            parse_crictl_pid(&json!({"status": {"pid": "5678"}})),
+            Some(5678)
+        );
+        assert_eq!(parse_crictl_pid(&json!({"info": {"pid": 0}})), None);
     }
 
     #[test]
