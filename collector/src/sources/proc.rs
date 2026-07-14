@@ -2,12 +2,14 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::fs;
 use std::io;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use std::time::Instant;
 use sysinfo::{Pid, Process, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
+
+#[cfg(target_os = "linux")]
+use std::fs;
 
 pub(crate) use agent_session::{ProcessKey, ProcessTree};
 
@@ -138,11 +140,11 @@ pub(crate) fn collect_fd_paths(
 
     for tree in process_trees {
         for key in &tree.members {
-            if process_starttime_ticks(key.pid) != Some(key.starttime_ticks) {
+            if !process_key_is_current(*key) {
                 continue;
             }
             let paths = scan_proc_fd_paths(key.pid);
-            if process_starttime_ticks(key.pid) != Some(key.starttime_ticks) {
+            if !process_key_is_current(*key) {
                 continue;
             }
             if !paths.is_empty() {
@@ -152,6 +154,20 @@ pub(crate) fn collect_fd_paths(
     }
 
     out
+}
+
+fn process_key_is_current(key: ProcessKey) -> bool {
+    process_key_is_current_impl(key)
+}
+
+#[cfg(target_os = "linux")]
+fn process_key_is_current_impl(key: ProcessKey) -> bool {
+    process_starttime_ticks(key.pid) == Some(key.starttime_ticks)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn process_key_is_current_impl(_key: ProcessKey) -> bool {
+    true
 }
 
 pub(crate) fn children_by_ppid(procs: &BTreeMap<u32, ProcInfo>) -> HashMap<u32, Vec<u32>> {
@@ -294,8 +310,14 @@ pub(crate) fn process_starttime_ticks(pid: u32) -> Option<u64> {
 
 pub(crate) fn scan_proc_fd_paths(pid: u32) -> BTreeSet<PathBuf> {
     let mut out = BTreeSet::new();
+    scan_proc_fd_paths_into(pid, &mut out);
+    out
+}
+
+#[cfg(target_os = "linux")]
+fn scan_proc_fd_paths_into(pid: u32, out: &mut BTreeSet<PathBuf>) {
     let Ok(entries) = fs::read_dir(format!("/proc/{pid}/fd")) else {
-        return out;
+        return;
     };
     for entry in entries.flatten() {
         let Ok(target) = fs::read_link(entry.path()) else {
@@ -303,7 +325,45 @@ pub(crate) fn scan_proc_fd_paths(pid: u32) -> BTreeSet<PathBuf> {
         };
         out.insert(target);
     }
-    out
+}
+
+#[cfg(target_os = "macos")]
+fn scan_proc_fd_paths_into(pid: u32, out: &mut BTreeSet<PathBuf>) {
+    let Ok(output) = std::process::Command::new(lsof_path())
+        .args(["-nP", "-Fn", "-p", &pid.to_string()])
+        .output()
+    else {
+        return;
+    };
+    if !output.status.success() {
+        return;
+    }
+    parse_lsof_file_names(&String::from_utf8_lossy(&output.stdout), out);
+}
+
+#[cfg(target_os = "macos")]
+fn lsof_path() -> &'static str {
+    if std::path::Path::new("/usr/sbin/lsof").is_file() {
+        "/usr/sbin/lsof"
+    } else {
+        "lsof"
+    }
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+fn scan_proc_fd_paths_into(_pid: u32, _out: &mut BTreeSet<PathBuf>) {}
+
+#[cfg(any(test, target_os = "macos"))]
+fn parse_lsof_file_names(output: &str, out: &mut BTreeSet<PathBuf>) {
+    for line in output.lines() {
+        let Some(path) = line.strip_prefix('n') else {
+            continue;
+        };
+        let path = path.trim().trim_end_matches(" (deleted)");
+        if path.starts_with('/') {
+            out.insert(PathBuf::from(path));
+        }
+    }
 }
 
 #[cfg(target_os = "linux")]
@@ -430,5 +490,18 @@ mod tests {
 
         let paths = scan_proc_fd_paths(std::process::id());
         assert!(paths.contains(&path));
+    }
+
+    #[test]
+    fn lsof_parser_keeps_absolute_file_names() {
+        let mut out = BTreeSet::new();
+
+        parse_lsof_file_names(
+            "p123\nn/private/tmp/session.jsonl\nnlocalhost:1234\nn\n",
+            &mut out,
+        );
+
+        assert!(out.contains(&PathBuf::from("/private/tmp/session.jsonl")));
+        assert_eq!(out.len(), 1);
     }
 }

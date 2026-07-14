@@ -105,23 +105,27 @@ fn top_discovers_agent_native_sessions() {
     std::fs::write(
         session_path,
         concat!(
-            "{\"type\":\"turn_context\",\"payload\":{\"model\":\"gpt-5.5\"}}\n",
-            "{\"type\":\"event_msg\",\"payload\":{\"type\":\"token_count\",\"info\":{\"total_token_usage\":{\"input_tokens\":11,\"output_tokens\":4,\"total_tokens\":15}}}}\n",
+            "{\"timestamp\":\"2026-07-12T10:00:00Z\",\"type\":\"turn_context\",\"payload\":{\"model\":\"gpt-5.5\"}}\n",
+            "{\"timestamp\":\"2026-07-12T10:00:00Z\",\"type\":\"event_msg\",\"payload\":{\"type\":\"token_count\",\"info\":{\"total_token_usage\":{\"input_tokens\":11,\"output_tokens\":4,\"total_tokens\":15}}}}\n",
             "{\"type\":\"response_item\",\"payload\":{\"type\":\"function_call\",\"name\":\"shell\"}}\n",
-            "{\"type\":\"message\",\"content\":\"fix the test\"}\n",
+            "{\"timestamp\":\"2026-07-12T10:00:00Z\",\"type\":\"message\",\"content\":\"fix the test\"}\n",
         ),
     )
     .expect("codex session");
 
+    let tz = std::ffi::OsStr::new("UTC");
     let top = agentsight_stdout_with_env(
         &["top", "--once", "--limit", "20"],
-        &[("HOME", temp.path().as_os_str())],
+        &[("HOME", temp.path().as_os_str()), ("TZ", tz)],
     );
     assert!(top.contains("live sessions"), "{top}");
     assert!(top.contains("codex:rollout-test"), "{top}");
     assert!(top.contains("TOKENS"), "{top}");
     assert!(top.contains("ACTIVITY"), "{top}");
+    assert!(top.contains("LAST MSG"), "{top}");
+    assert!(top.contains("session tokens: 15"), "{top}");
     assert!(top.contains("15"), "{top}");
+    assert!(top.contains("10:00:00"), "{top}");
     assert!(top.contains("1 tool"), "{top}");
     assert!(top.contains("fix the test"), "{top}");
 }
