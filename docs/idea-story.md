@@ -237,23 +237,35 @@ to narrow RQ3, replace the thesis, or change the paper story. The exact
 algorithm, properties, complete OSWorld-Human result, and evidence boundary are
 recorded in Step 0017's `algorithm-note.md` and result reports.
 
+Step 0018 removes only the arbitrary depth-four cap from that same algorithm.
+On the complete post-hoc population, intrinsic stopping reaches depth 26 and
+improves boundary F1 from 0.4231 to 0.4720 and B-cubed F1 from 0.6165 to
+0.6720. The result remains below the strongest simple controls and therefore
+contradicts the registered sufficient-explanation hypothesis. It establishes a
+better implementation configuration and a mechanism boundary, not a smaller
+RQ3, a new thesis, or a reason to replace the original story.
+
 ### Next Decisive Evidence
 
 The user has restored the untouched submodule as the canonical story source.
-RQ1 now has a cumulative positive paper-level answer from scoped source-lineage
-correctness plus lossless semantic folding, RQ2 has a cumulative positive
-problem-correspondence answer, RQ4 has a complete positive construction-cost
-answer, and Step 0006 supplies positive held-out evidence for RQ3's
-group-boundary component. Step 0007 reused and completed the selected R114
-experiment without adding a dataset, model, tagger, ranker, cutoff, or
-ontology. Step 0017 exposes the current RQ3 implementation gap and one binding
-mechanism constraint: 106/287 sessions reach the arbitrary depth-four limit.
-The next experiment may therefore remove only that cap while holding the
-objective, fields, penalty, labels, workload, metrics, and scorer fixed. This
-OSWorld-Human follow-up is explicitly post-hoc; even a positive result requires
-confirmation on an independent annotated workload. This is an
-evidence-frontier update, not a narrative evolution or change to the thesis,
-four RQs, or two-object model.
+RQ1 has strong scoped source-lineage and lossless-folding evidence, RQ4 has a
+complete positive construction-cost answer, and Steps 0006/0008 supply positive
+boundary/task-partition evidence within RQ3. Steps 0017--0018 close the bounded
+OSWorld-Human investigation of the built-in inducer: the single-objective
+mechanism is much better than the old heuristic and cap-free induction is better
+than depth four, but neither clears the strongest simple controls. No further
+OSWorld-Human depth, penalty, threshold, or score-term search is admitted.
+
+The Step 0018 whole-paper review preserves the thesis and four RQs but disputes
+the current cumulative positive RQ2 authorization: its three workload outcomes
+use different metrics/points and do not yet isolate downstream decision value.
+The proposed NeMo shared-trace comparison is not directly executable because
+NeMo instruments its own running workflows rather than importing the current
+artifacts. The next candidate is the paused fixed R315 reader comparison over
+existing AgentProf and native/raw packets, subject to a fresh plan review. It
+attempts to strengthen the original positive RQ2 hypothesis rather than weaken
+or replace it. This is an evidence-frontier update, not a narrative evolution
+or change to the thesis, four RQs, or two-object model.
 
 ## Narrative Evolution — Accepted Changes Only
 

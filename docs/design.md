@@ -271,12 +271,13 @@ The current design is not:
 ## Evaluation Consequence
 
 RQ1, RQ2, the human-boundary component of RQ3, and RQ4 have paper-linked
-evidence. Step 0017 directly tested the revised shipped Rust induction algorithm
-on the complete existing OSWorld-Human population because the paper evaluates a
-separate supervised boundary predictor rather than that built-in path. The
-single-objective revision substantially improves both registered metrics over
-the pre-change Rust heuristic but remains below the strongest simple controls.
-This bounds the fixed-depth candidate, not RQ3 or the operation-stack model.
-The next mechanism experiment changes only the arbitrary depth-four limit so
-the gain-versus-penalty rule becomes the actual stop condition; fields,
-objective, penalty, ties, workload, metrics, and scorer remain unchanged.
+evidence. Steps 0017--0018 directly test the revised shipped Rust induction
+algorithm on the complete existing OSWorld-Human population because the paper
+evaluates a separate supervised boundary predictor rather than that built-in
+path. The single-objective revision substantially improves both metrics over
+the old Rust heuristic, and removing depth four improves boundary F1 from
+0.4231 to 0.4720 and B-cubed F1 from 0.6165 to 0.6720. Intrinsic stopping ends
+at observed depth 26 without degenerating to always boundary, but the method
+still does not clear the strongest simple controls. This bounds the automatic
+constructor, not RQ3 or the operation-stack model. Further OSWorld-Human depth,
+penalty, threshold, or score-term tuning is not part of the design.

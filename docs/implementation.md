@@ -139,16 +139,21 @@ configuration. In particular:
    but does not separate from raw action under its predeclared paired interval;
    it is a scoped boundary within the cumulative three-benchmark RQ2 answer.
 
-## Implementation Policy For The Next Experiment
+## Implementation Policy After The Depth Experiment
 
-Do not add another score term, threshold, feature, model, dataset, or evaluator
-for the next RQ3 mechanism test. Reuse the complete 287-session
-OSWorld-Human operation population, the existing frozen depth-four result,
-`script/rq3_rust_inducer_fidelity_eval.py`, and the same boundary and B-cubed
-metrics. Change only the arbitrary hard depth limit so the registered
-gain-versus-penalty rule controls termination. Keep oracle-field exclusion,
-candidate fields, objective, complexity penalty, tie-breaking, stack labels,
-workload, scorer, and controls unchanged. Because the depth diagnosis came from
-this population, record the run as a post-hoc mechanism test rather than fresh
-confirmation; if it succeeds, use an independent annotated workload for the
-next confirmation instead of tuning another OSWorld constant.
+`script/rq3_rust_inducer_fidelity_eval.py` now preserves its old-heuristic
+comparison as the default and adds one registered depth-limit mode. That mode
+requires the same resolved release binary at depths 255 and four, verifies the
+actual reported configurations, and checks every depth-four session against the
+Step 0017 result. It reuses the existing loader, scrubber, replay, metrics,
+controls, and output format; there is no second scorer or algorithm.
+
+Step 0018 establishes depth 255 as the better tested research configuration on
+the declared population: it improves both metrics, never reaches the cap, and
+stops intrinsically at maximum observed depth 26. It does not establish a
+universal product default or broad accuracy. The production default remains an
+explicit implementation choice and must not be silently described as the
+cap-free evaluated path. Do not add another OSWorld-Human depth, score term,
+threshold, feature, model, dataset, or evaluator. A later experiment, if
+whole-paper REVIEW requires one, must use an independent annotated workload
+rather than tune this population again.
