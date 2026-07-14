@@ -228,6 +228,15 @@ the load-bearing RQ1 integration edge: the complete fixed R114 suite attributes
 rejects all 1,629 concurrent-control effects, and current AgentProf preserves
 every selected row and the mass of all five known task categories.
 
+Step 0017 tests the current built-in target-blind Rust operation-stack inducer
+instead of conflating it with the separate supervised boundary predictor. The
+single-objective information-gain revision substantially improves the old Rust
+heuristic, but at fixed depth four it remains below the strongest simple
+controls. This is a contradicted mechanism hypothesis within RQ3, not a reason
+to narrow RQ3, replace the thesis, or change the paper story. The exact
+algorithm, properties, complete OSWorld-Human result, and evidence boundary are
+recorded in Step 0017's `algorithm-note.md` and result reports.
+
 ### Next Decisive Evidence
 
 The user has restored the untouched submodule as the canonical story source.
@@ -237,8 +246,12 @@ problem-correspondence answer, RQ4 has a complete positive construction-cost
 answer, and Step 0006 supplies positive held-out evidence for RQ3's
 group-boundary component. Step 0007 reused and completed the selected R114
 experiment without adding a dataset, model, tagger, ranker, cutoff, or
-ontology. The next whole-paper REVIEW must choose the next evidence need among
-the unchanged four RQs; no further RQ1 variant is justified now. This is an
+ontology. Step 0017 exposes the current RQ3 implementation gap and one binding
+mechanism constraint: 106/287 sessions reach the arbitrary depth-four limit.
+The next experiment may therefore remove only that cap while holding the
+objective, fields, penalty, labels, workload, metrics, and scorer fixed. This
+OSWorld-Human follow-up is explicitly post-hoc; even a positive result requires
+confirmation on an independent annotated workload. This is an
 evidence-frontier update, not a narrative evolution or change to the thesis,
 four RQs, or two-object model.
 

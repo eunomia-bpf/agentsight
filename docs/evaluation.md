@@ -20,7 +20,7 @@ later explicit user instruction may change the four author-fixed RQs.
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Do not run another RQ1 lineage or grouping variant; WRITE the cumulative positive answer and let REVIEW select the next fixed RQ. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Supporting cumulative answer, strengthened and ready for WRITE.** Step 0011 independently rechecked the complete AgentProcessBench, HINTBench, and TraceElephant outcomes and controls. Step 0014 then replayed existing R333/R337 evidence from four public sources: across six labeled tasks at the existing 25%-recall point, operation stacks use median 0.2000 work and 16 groups versus fixed-session's 0.2495 and 50, with per-task work 4/1/1 and groups 5/0/1. Raw action remains mixed and slightly better by median, so this supports recurring-versus-session compactness rather than universal semantic dominance. No benchmark, model, metric, cutoff, partition, resample, or human dependency was added. |
-| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer, strengthened.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Action evidence is mixed across a tiny AndroidControl prefix and complete GUI-Odyssey prefix; phase and broad action stability remain open. WRITE the positive task result; REVIEW must preserve the fixed hypothesis and select only a materially better next mechanism if more RQ3 evidence is needed. |
+| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer with one open built-in-mechanism question.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0017's revised target-blind Rust inducer improves substantially over the old heuristic but remains below the strongest simple controls under its fixed depth-four limit. The selected next test changes only that materially binding arbitrary limit; it does not change RQ3 or replace the admitted supervised and task-partition evidence. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
 ## Admitted RQ1 Mechanism Evidence
@@ -336,6 +336,28 @@ independent recomputation are under
 with raw machine artifacts under
 `.agentsight/experiments/rq3-task-action-v1/`.
 
+Step 0017 then tested the actual built-in Rust stack-induction path on the same
+complete 287-session OSWorld-Human population used for boundary scoring. The
+revised target-blind mechanism replaces the old multi-term score with one equal
+mean of resource-weighted normalized per-field information gain and accepts a
+split only above `ln(n)/(2n)`. Both the revised and frozen pre-change binaries
+completed all 574 session-method executions; every operation received one
+terminal path, all 3,978 units were conserved, scorer/oracle fields remained
+excluded, and an independent reviewer recomputed all metrics.
+
+The revision raises boundary F1 from 0.0843 to 0.4231 and operation-weighted
+B-cubed F1 from 0.4653 to 0.6165, while reducing no-split sessions from 204 to
+4. It nevertheless trails the strongest simple controls (0.6445 boundary F1
+and 0.6784 B-cubed F1), so the fixed candidate hypothesis is contradicted. This
+is supporting mechanism evidence, not an answer to all of RQ3 and not a thesis
+challenge. The arbitrary depth-four limit is materially active in 106/287
+sessions; the next post-hoc experiment therefore changes only that limit while
+freezing the fields, objective, penalty, tie rules, population, metrics, and
+scorer. Complete reports are under
+[`loop-002-rq3-rust-inducer-fidelity`](tmp/build-and-evaluate/step-0017-20260714T121012-0700/01-experiment-gate/loop-002-rq3-rust-inducer-fidelity/),
+with raw artifacts under
+`.agentsight/experiments/rq3-rust-inducer-fidelity-v1/`.
+
 ## Requirements For The Next Experiment
 
 The next experiment follows one bounded literature/source screen and must
@@ -406,6 +428,16 @@ The full synthesis is now `VALID / COMPLETE`, and its fresh result review
 recomputed every reported number with zero must-fix findings after two
 interpretation corrections. It routes to WRITE; no new RQ2 benchmark, model,
 metric, threshold, resample, or human experiment is needed first.
+
+Step 0017 paused the unexecuted RQ2 reader proposal after explicit user
+redirection and completed the higher-value built-in RQ3 mechanism test above.
+The registered fixed-depth candidate is contradicted, but the matched revision
+substantially improves the shipped mechanism and exposes a material arbitrary
+capacity limit: 106/287 sessions terminate at depth four. The next experiment
+is therefore one post-hoc single-variable test that removes only that hard
+limit. It must not select a new depth or penalty from OSWorld-Human labels, add
+another benchmark or model inside the same experiment, or reinterpret a local
+mechanism result as the answer to RQ3.
 
 ## Experiment History Policy
 

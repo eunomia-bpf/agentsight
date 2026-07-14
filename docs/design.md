@@ -271,11 +271,12 @@ The current design is not:
 ## Evaluation Consequence
 
 RQ1, RQ2, the human-boundary component of RQ3, and RQ4 have paper-linked
-evidence. The current implementation step first replaces and directly tests
-the shipped Rust induction algorithm described above, because the paper now
-evaluates a separate supervised boundary predictor rather than that built-in
-path. The full experiment reuses existing annotated operations and scoring
-machinery. Only independently available labels score the induced output;
-scorer labels and aliases stay out of induction inputs. This repairs the
-mechanism/evidence mismatch without changing RQ3 or introducing another
-dataset, classifier, or paper story.
+evidence. Step 0017 directly tested the revised shipped Rust induction algorithm
+on the complete existing OSWorld-Human population because the paper evaluates a
+separate supervised boundary predictor rather than that built-in path. The
+single-objective revision substantially improves both registered metrics over
+the pre-change Rust heuristic but remains below the strongest simple controls.
+This bounds the fixed-depth candidate, not RQ3 or the operation-stack model.
+The next mechanism experiment changes only the arbitrary depth-four limit so
+the gain-versus-penalty rule becomes the actual stop condition; fields,
+objective, penalty, ties, workload, metrics, and scorer remain unchanged.

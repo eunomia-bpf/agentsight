@@ -550,9 +550,8 @@ and their linked file and network effects.
 % 字段派生和边界。
 Regex rules are the production default. Each rule has the form
 \texttt{KIND:TAG=REGEX}, and rules use first-match semantics. Agents can refine
-the rules through repeated \sys runs until the unmatched rate falls below 5\%,
-typically after 5--10 rounds.
-% 正则规则是生产环境默认：规则格式为 \texttt{KIND:TAG=REGEX}，按顺序求值（首个匹配胜出）；agent 可以通过重复运行 \sys 细化规则，直到未匹配率降至 5\% 以下，通常需要 5--10 轮。
+the rules through repeated \sys runs while inspecting unmatched operations.
+% 正则规则是生产环境默认：规则格式为 \texttt{KIND:TAG=REGEX}，按顺序求值（首个匹配胜出）；agent 可以通过重复运行 \sys 并检查未匹配 operation 来细化规则。
 A local LLM tagger, such as a quantized 3B-parameter model through
 llama.cpp~\cite{llamacpp},
 generates a single-word tag per prompt with grammar-constrained decoding and
@@ -566,11 +565,12 @@ while mapping rules derive fields for structured trajectories, for example
 
 \paragraph{Boundary construction.}
 % 边界构建。
-The built-in Rust stack inducer scores adjacent operations using visible
-token-set Jaccard distance, structured-field changes, segment balance, and
-query-term overlap before placing boundaries. This path is distinct from the
-optional Python TF-IDF/K-Means backend used to propose tagging rules.
-% 内置 Rust stack inducer 使用可见 token 集合的 Jaccard 距离、结构化字段变化、segment balance 和 query-term overlap 对相邻 operation 评分后放置边界；该路径不同于用于提出 tagging rule 的可选 Python TF-IDF/K-Means backend。
+Under a configurable depth bound, the Rust inducer recursively splits adjacent
+visible-field changes using mean resource-weighted normalized information gain.
+It accepts the best cut only above $\ln(n)/(2n)$, emits dominant child values as
+frames, uses query overlap only for exact ties, and excludes scoring or noisy
+fields.
+% 内置 Rust stack inducer 仅考虑相邻 operation 在合格可见字段上发生变化的位置；它对每个 informative 字段计算资源加权类别熵与归一化信息增益，取字段平均值，并仅在最佳增益超过区间大小惩罚时递归分割。选中字段的子区间主导值形成可重建的 field=value frame；query-term overlap 只用于确定性完全同分决胜，scorer label 不参与诱导。该路径不同于用于提出 tagging rule 的可选 Python TF-IDF/K-Means backend。
 
 \paragraph{Profile export.}
 % Profile 导出。

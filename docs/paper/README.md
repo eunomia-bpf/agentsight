@@ -31,6 +31,9 @@ make
 AAAI-27 Main Track permits seven pages of main content and at most nine pages
 total; pages after page seven may contain references only. The paper must remain
 anonymous and use the unmodified `aaai2027.sty` and `aaai2027.bst` files.
+The official deadlines are July 21, 2026 for the abstract, July 28 for the full
+paper, and July 31 for supplement/code, all at 23:59 UTC-12. AAAI-27 also
+requires the reproducibility checklist as a separate upload.
 
 ## Current Status
 
@@ -42,6 +45,10 @@ claims still require reconciliation with complete real experiments. New
 evidence may strengthen those claims, but experiments do not silently replace
 the thesis, story, hypotheses, or RQs.
 
-The AAAI page limit is a writing constraint to address after the current
-experiment gate. Page-limit pressure must not be resolved by narrowing the
-scientific contribution.
+As of 2026-07-14, a forced build produces nine US-letter pages with all main
+content ending on page seven and References beginning on page eight. All fonts
+are embedded Type 1 or TrueType, and the anonymous source contains no author or
+affiliation identity. `ReproducibilityChecklist.tex` is still the unfilled
+official template and must be completed from the final experiment/paper state.
+Page-limit pressure must not be resolved by narrowing the scientific
+contribution.

@@ -141,11 +141,14 @@ configuration. In particular:
 
 ## Implementation Policy For The Next Experiment
 
-Do not build a new subsystem for the remaining RQ3 task/phase/action test.
-Reuse the nine converted public operation corpora, existing splits and
-independent labels, `script/operation_leaveout_eval.py`, and the current
-operation/profile path. Exclude each scorer field and its aliases from inputs.
-Run every eligible corpus/axis cell to completion, report coverage, and mark
-missing independent axes unavailable. Do not add a benchmark, annotation
-pipeline, model family, metric, or cutoff unless the existing assets cannot
-answer the fixed RQ3 component at all.
+Do not add another score term, threshold, feature, model, dataset, or evaluator
+for the next RQ3 mechanism test. Reuse the complete 287-session
+OSWorld-Human operation population, the existing frozen depth-four result,
+`script/rq3_rust_inducer_fidelity_eval.py`, and the same boundary and B-cubed
+metrics. Change only the arbitrary hard depth limit so the registered
+gain-versus-penalty rule controls termination. Keep oracle-field exclusion,
+candidate fields, objective, complexity penalty, tie-breaking, stack labels,
+workload, scorer, and controls unchanged. Because the depth diagnosis came from
+this population, record the run as a post-hoc mechanism test rather than fresh
+confirmation; if it succeeds, use an independent annotated workload for the
+next confirmation instead of tuning another OSWorld constant.
