@@ -42,11 +42,23 @@ local Codex/Claude sessions, operation JSONL, or supported trace input
   -> pprof, folded, JSON, or SVG output
 ```
 
-The Rust inducer uses visible token-set/Jaccard shift, field changes, balance,
-and query-term overlap. TF-IDF/K-Means belongs only to the optional Python
-rule-authoring backend. The built-in time view weights a timestamped operation
-by elapsed time to the next recorded event rather than by an independently
-recorded operation duration.
+The Rust inducer now recursively partitions each contiguous operation interval
+with one target-blind objective. Candidate boundaries occur only where adjacent
+operations differ in an eligible visible field. For every informative field,
+the implementation computes resource-weighted categorical entropy and its
+normalized information gain at the boundary, then averages the field gains.
+It accepts the best boundary only when the mean gain is strictly greater than
+`ln(n)/(2n)` for the interval's `n` operations. Query relevance is only a
+deterministic exact-tie breaker; it does not enter the score. The selected
+field's dominant child values produce reconstructable `field=value` frames.
+The current CLI retains an explicit maximum-depth bound, whose default is four.
+
+The previous token-set/Jaccard, semantic-shift, balance, coverage, label-quality,
+small-child, majority, and fixed-score terms and gates are not part of the
+current candidate implementation. TF-IDF/K-Means belongs only to the optional
+Python rule-authoring backend. The built-in time view weights a timestamped
+operation by elapsed time to the next recorded event rather than by an
+independently recorded operation duration.
 
 Implemented CLI capabilities include:
 

@@ -114,12 +114,12 @@ recent negative RQ2 result shows that its flattened leaves are not a generally
 successful failure localizer on AgentRx or TELBench. The backend must not be
 confused with the operation-stack abstraction as a whole.
 
-The current implementation still combines information gain, semantic shift,
+Before Step 0017, the implementation combined information gain, semantic shift,
 query overlap, balance, coverage, label quality, and several penalties with
-fixed coefficients. Step 0017 replaces that heuristic mixture with one
-resource-weighted normalized information-gain objective; this is an algorithm
-detail change and does not change the thesis, the two core abstractions, or the
-four RQs.
+fixed coefficients. The current implementation replaces that heuristic mixture
+with one resource-weighted normalized information-gain objective. This is an
+algorithm-detail change: it does not change the thesis, the two core
+abstractions, or the four RQs, and it does not introduce a new named mechanism.
 
 For a contiguous interval $I$, eligible visible field $f$, and candidate cut
 $b$, let $H_w(f,I)$ be the categorical entropy of $f$ under operation weights.
@@ -169,6 +169,16 @@ operation, additive-weight conservation, positive accepted gain, termination,
 and deterministic output. Its paper value must then be tested through the real
 Rust path on complete existing annotated workloads; unit tests and a one-case
 preflight are engineering evidence only.
+
+The principle behind the design is deliberately stronger than the individual
+formula: stack induction should be a recursive partition of resource-weighted
+operations under one explicit objective, not an accumulation of independently
+tuned heuristics. Information gain and binary segmentation are established
+ingredients; the research question is whether combining them with agent-visible
+operation fields, additive profiling weights, and reconstructable stack frames
+produces a useful profiling hierarchy. The complete proposal, including its
+non-novel precedents, invariants, empirical boundary, and next single-variable
+test, is recorded in Step 0017's `algorithm-note.md`.
 
 ### Learned boundary fields
 
