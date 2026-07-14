@@ -183,12 +183,13 @@ A third variant would be target retuning rather than stronger external evidence.
 
 Step 0004 completed WRITE and whole-paper REVIEW. REVIEW selected one complete
 RQ4 experiment because its real inputs, current `agentpprof` binary, profile
-specs, cache path, and cost runner already exist, whereas construct-valid RQ1
+specs, cost runner, and prior bounded cache evidence already exist, whereas construct-valid RQ1
 and RQ3 experiments currently require new independent oracles. The RQ4 run
 uses the four existing public workloads plus their union for a natural scale
-curve and reuses a fixed real-session path for clean-cache versus warm-cache
-cost. It must not bundle RQs, rerun all 76 historical specifications, or add a
-new benchmark or statistical framework.
+curve and reuses R160's completed predecessor-CLI clean/cached pair only as
+cache-mechanism evidence. It does not recreate private sessions or rerun an LLM
+server. It must not bundle RQs, rerun all 76 historical specifications, or add
+a new benchmark or statistical framework.
 
 ## Search Policy And Reopen Conditions
 
