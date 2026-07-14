@@ -19,7 +19,7 @@ later explicit user instruction may change the four author-fixed RQs.
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | Compare flat, source-native, and one fixed semantic profile against independent tool/span/process resource identities on real traces. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | REVIEW selected one HINTBench experiment over the current official 536-record snapshot: compare a plan-defined AgentProf profile with the strongest same-information non-oracle baseline at 80% macro recall of official risky-step targets. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | REVIEW selected one complete TraceElephant experiment over all 220 officially annotated real failures: test whether a fixed intent/role-to-response/status AgentProf profile reaches 80% macro decisive-step recall with less atomic-step inspection than every fair same-information profiling baseline. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | Evaluate one approved fixed tagger or mapping on held-out real families with independent labels and downstream attribution sensitivity. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | Measure end-to-end construction, memory, output size, and repeated-query cost across complete real workloads and scaling points. |
 
@@ -130,6 +130,19 @@ story.
   that RQ2 should shrink. Full artifacts and review are under
   `docs/tmp/cycle-0001-20260711T164850-0700/01-experiment-gate/loop-rq2-02/`.
 
+The complete Cycle 0003 HINTBench experiment is a further mechanism boundary,
+not a thesis challenge or reader-facing paper result. It used all 80 official
+validation and 536 official test trajectories, 616/616 terminal local-model
+outputs, the real AgentProf binary, all 24 validation field orders, and 10,000
+trajectory-stratified paired bootstrap replicates. AgentProf reached 80% macro
+recall at 41.5702% inspection work versus 46.2918% for the mandatory raw-action
+baseline. The paired AgentProf-minus-raw-action interval was
+[-0.293709, +0.008566], so the strict all-baseline criterion was
+`INCONCLUSIVE`. Exact flat reconstruction matched AgentProf as the declared
+algebraic identity control. Do not retune this test population. The plan,
+preflight, full artifacts, and two independent exact result audits are under
+`docs/tmp/cycle-0003-20260713T121925-0700/01-experiment-gate/loop-001-rq2-hintbench/`.
+
 The unexecuted revision-1 plan is superseded because it bundled roughly eleven
 comparator types and several independent research programs. Its history remains
 under
@@ -162,37 +175,46 @@ satisfy these project-local controls:
 
 ## Next Evidence Selection
 
-The AgentProcessBench score-selection frontier is closed. The completed WRITE
-gate and user-requested whole-paper REVIEW are recorded in
-[`WRITE 999`](tmp/cycle-0002-20260712T201943-0700/02-write-gate/999-gate-report-20260713T103942-0700.md)
-and
-[`review-001`](tmp/cycle-0002-20260712T201943-0700/03-review-gate/review-001/400-cycle-change-audit-final-verdict-and-routing.md).
-The dedicated
-[`meta-review`](tmp/cycle-0002-20260712T201943-0700/03-review-gate/800-meta-review-20260713T111135-0700.md)
-retained one RQ2 experiment and corrected its RQ boundary. The first selected
-source, AgentTelemetry, was rejected by the
-[`outer audit`](tmp/cycle-0002-20260712T201943-0700/03-review-gate/990-independent-outer-audit-20260713T112434-0700.md)
-because its accepted artifact has run/cell fault-detection outcomes but no
-official step/span localization gold. A bounded
-[`source repair`](tmp/cycle-0002-20260712T201943-0700/03-review-gate/review-002/200-bounded-fresh-localization-source-selection-20260713T114636-0700.md)
-selected HINTBench and received an independent
-[`PASS`](tmp/cycle-0002-20260712T201943-0700/03-review-gate/review-002/400-independent-source-repair-verification-20260713T120251-0700.md).
+Cycle 0003 closed HINTBench as `VALID / INCONCLUSIVE` and prohibited test-set
+retuning. Its complete-paper REVIEW is recorded in
+[`review-001`](tmp/cycle-0003-20260713T121925-0700/03-review-gate/review-001/400-cycle-change-audit-final-verdict-and-routing.md).
+Two independent cross-domain reviewers converged on the same next decision:
+retain the exact thesis and four RQs, remain in fixed RQ2, and replace synthetic
+or output-only evidence with one complete real-execution TraceElephant test.
 
-The next outer state is EXPERIMENT for fixed RQ2. Use the official
-HINTBench artifact and current 536-record test snapshot: 400 risky and 136 safe
-trajectories. The ordinary Markdown plan defines one target-blind profile, the
-strongest same-information non-oracle comparison, and one primary decision:
-atomic-step inspection work needed to reach 80% macro recall over each risky
-trajectory's union of official target step IDs. Support requires a paired
-work-reduction interval excluding zero while the recall target is met.
+The next outer state is EXPERIMENT for fixed RQ2. Use all 220 official
+TraceElephant failed executions across Captain-Agent, Magentic-One, and
+SWE-Agent as a fresh test-only population unless plan review proves that a
+learned component is essential. The ordinary Markdown plan must fix one simple
+target-blind profile before reading responsible-component or decisive-step
+targets:
 
-REAL PREFLIGHT must reproduce 978 annotations, 938 distinct target pairs, 935
-mappable pairs, and the three absent official targets in records 170, 233, and
-516. Those three remain common terminal misses for every method and are never
-remapped or dropped. FULL is every current record/method/repetition cell, not
-the paper/README's unavailable 629-record population. Do not add cold/warm
-profiling cost or tagger-accuracy programs; whatever the sign, close this one
-experiment before another paper-level choice.
+```text
+system-or-scaffold
+-> component-role
+-> intent-or-subgoal
+-> action-or-tool
+-> observed-response-or-status
+```
+
+The primary decision is atomic-step inspection work needed to reach at least
+80% macro recall of official decisive failure steps. Main profiling comparisons
+must include native execution/component order, independent-step ranking,
+session grouping, raw action/tool grouping, flat same-information aggregation,
+and AgentProf. Exact relational reconstruction is an identity control, not a
+superiority baseline. Use official TraceElephant diagnosis methods only when
+their released runnable paths and outputs support a fair aligned comparison;
+Dynamic Agentic is extra-information context rather than a mandatory gate
+baseline.
+
+REAL PREFLIGHT must exercise the official data parser, actual model path, real
+AgentProf binary, baselines, and label-isolated scorer. FULL means all 220
+failures, every approved method cell, and every declared paired bootstrap
+replicate reach terminal status. Positive support requires AgentProf to meet
+the recall target and the upper paired 95% work-difference endpoint to remain
+below zero against every declared main same-information non-oracle profiling
+baseline. Whatever the sign, close this one experiment before selecting another
+paper-level question.
 
 ## Experiment History Policy
 

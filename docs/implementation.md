@@ -25,6 +25,7 @@ history is archived at
 | `agentpprof/backend/python/cluster_tagger.py` | optional Python tagging backend |
 | `agentpprof/examples/` | public fixture and usage material |
 | `script/hodoscope_representation_eval.py` | thin official-data adapter for the completed matched Hodoscope/flat/turn/recursive experiment; not a core AgentProf subsystem |
+| `script/hintbench_profile_localization_eval.py` | thin official-data adapter, real-AgentProf runner, baseline scorer, and result reporter for the completed HINTBench experiment; not a core AgentProf subsystem |
 
 ## Implemented Pipeline
 
@@ -122,16 +123,21 @@ configuration. In particular:
 8. imported zero values are currently normalized to one; existing admitted
    experiments use positive integer weights, but zero-valued measures require
    an artifact correction before use.
+9. the complete HINTBench profile has a favorable inspection-work point estimate
+   but does not separate from raw action under its predeclared paired interval;
+   action/status fields alone therefore do not yet prove the RQ2 hypothesis.
 
 ## Implementation Policy For The Next Experiment
 
 Do not build a large new subsystem before the next decisive comparison. Reuse
 operation ingestion, declared stacks, source-native and raw-action fields, and
-the existing ranking path. Add only thin adapters required by accessible
-official benchmarks. The next experiment uses independent failure, safety,
-redundancy, or task-boundary annotations only for scoring target-blind
-localization and inspection work. Do not retune the failed Hodoscope hierarchy
-on its oracle; improve the visible tag, stack, or ranking mechanism needed to
-prove the fixed RQ2 hypothesis. If meaningful execution requires a new central
-mechanism, return to idea synthesis without changing the fixed RQ or weakening
-its hypothesis.
+the existing ranking path. Add only a thin TraceElephant adapter that converts
+official visible trace fields into operations and invokes the real AgentProf
+binary. Responsible-component and decisive-step annotations remain scorer-only.
+The next profile may derive component role, preceding intent/subgoal,
+action/tool, observed response, and outcome status only from target-blind trace
+content fixed by the approved plan. Do not retune HINTBench or Hodoscope on
+their targets. If meaningful execution requires a new central mechanism,
+record that the frozen paper would require large reconstruction and stop that
+route; do not invoke idea refinement, change the fixed RQ, or weaken its
+hypothesis.

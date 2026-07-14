@@ -229,12 +229,15 @@ localization prediction, not a replacement RQ or new named abstraction.
 
 The user has restored the untouched submodule as the canonical story source.
 The next evidence is one complete RQ2 hidden-annotation localization experiment
-using official public agent benchmarks with real failure, safety, redundancy,
-or task-boundary labels. Fix tag derivation and ranking without target labels;
-compare flat, per-session, native, raw-action, and semantic grouping; keep
-hidden-label groupings as oracle upper bounds; and report localization quality
-and inspection work over every planned task. Do not substitute a toy trace or
-retune the failed Hodoscope construction on its target labels.
+using all 220 officially annotated real failed executions in TraceElephant.
+Fix role/intent-to-response/status propagation and ranking without responsible-
+component or decisive-step targets; compare flat same-information,
+per-session, native, independent-step, raw-action, and semantic grouping; keep
+hidden-label groupings as oracle upper bounds; and report decisive-step
+localization and inspection work over every planned failure. The completed
+HINTBench result is valid but inconclusive against raw action and is closed to
+retuning. It changes neither the original narrative nor the fixed positive RQ2
+hypothesis.
 
 ## Narrative Evolution — Accepted Changes Only
 

@@ -17,14 +17,15 @@ strengthen that positive program. A local negative or inconclusive construction
 does not authorize a hierarchy-centered replacement story, a smaller RQ, or a
 weaker hypothesis.
 
-Cycle 0002's RQ2 experiment search and WRITE gate are complete. The subsequent
-whole-paper REVIEW compared all four open RQs. Its first AgentTelemetry route
-failed independent source audit because the accepted artifact has no official
-step/span localization gold. A bounded reviewed repair selected one new
-highest-paper-value experiment: fixed-RQ2 localization on the current official
-HINTBench snapshot with official risky-step targets and strong same-information
-baselines. It may not become a third AgentProcessBench score variant or a
-run-level substitute task.
+Cycle 0003 completed the fixed-RQ2 HINTBench experiment selected by the prior
+whole-paper REVIEW. The full official snapshot and all declared cells ran, but
+the paired work interval against raw action crossed zero, so the strict result
+is `VALID / INCONCLUSIVE` and that population is closed to retuning. The next
+whole-paper REVIEW compared all four open RQs and selected one new
+highest-paper-value experiment: fixed-RQ2 localization over all 220 official
+TraceElephant real failed executions, with decisive-step targets scorer-only
+and strong same-information baselines. This is a stronger external evidence
+source for the unchanged RQ2, not a new story or a run-level substitute task.
 
 ## Verified Closest-Work Families
 
@@ -105,8 +106,14 @@ aggregation, not asserted from terminology.
   spans in deep-research trajectories.
 - [HINTBench](https://arxiv.org/abs/2604.13954) releases raw agent trajectories
   with official risky-step annotations. The current paper-linked snapshot has
-  536 test records rather than the paper/README's 629 and is the selected fresh
-  RQ2 source under explicit version and target-accounting rules.
+  536 test records rather than the paper/README's 629. Cycle 0003 completed this
+  full snapshot as `VALID / INCONCLUSIVE`; it is now a closed mechanism boundary,
+  not the next source, and may not be retuned.
+- [TraceElephant](https://github.com/TraceElephant/TraceElephant) releases 220
+  annotated real failed executions across Captain-Agent, Magentic-One, and
+  SWE-Agent with responsible-component and decisive-step targets plus full
+  input/output, inter-agent, tool, environment, configuration, and architecture
+  context. It is the selected next fixed-RQ2 population.
 - [Holistic Evaluation and Failure Diagnosis](https://arxiv.org/abs/2605.14865),
   [TrajAD](https://arxiv.org/abs/2602.06443), and
   [AgentFixer](https://arxiv.org/abs/2603.29848) diagnose, localize, or repair
@@ -150,13 +157,16 @@ A third variant would be target retuning rather than stronger external evidence.
    explicit numerator and denominator, validate prompt/effect responsibility
    against an independent trace or injected causal identity, and compare with
    an information-equivalent trace/query baseline.
-2. **RQ2 — real-problem localization.** REVIEW selected HINTBench's current
-   official 536-record snapshot. One ordinary approved Markdown plan defines
-   the target-blind profile, ranker, 80% macro-recall inspection metric, and
-   same-information baselines. REAL PREFLIGHT must reproduce 978 annotations,
-   938 distinct targets, 935 mappable targets, and the three common terminal
-   misses; it may never remap or delete them. Do not reopen AgentProcessBench
-   scoring, the target-dropping AgentNet key, or completed negative branches
+2. **RQ2 — real-problem localization.** HINTBench is now a complete
+   `VALID / INCONCLUSIVE` target-blind mechanism boundary: AgentProf's favorable
+   work point estimate did not separate from raw action under the predeclared
+   paired interval, so that test population is closed to retuning. REVIEW next
+   selected all 220 official TraceElephant real failed executions. One ordinary
+   approved Markdown plan must fix the role/intent-to-response/status profile,
+   target-blind ranker, 80% macro decisive-step-recall inspection metric, and
+   same-information baselines before loading responsible-component or
+   decisive-step labels. Do not reopen AgentProcessBench scoring, HINTBench
+   tuning, the target-dropping AgentNet key, or completed negative branches
    without materially new evidence.
 3. **RQ3 — tag accuracy.** Evaluate the actual prompt/intent attribution path
    and approved fixed mappings on held-out agents and task families, including coverage,
@@ -166,7 +176,7 @@ A third variant would be target retuning rather than stronger external evidence.
    including parsing, tag derivation, stack construction, folding, memory,
    output size, repeated queries, and clearly separated capture cost.
 
-The next EXPERIMENT gate owns only the selected HINTBench RQ2 experiment.
+The next EXPERIMENT gate owns only the selected TraceElephant RQ2 experiment.
 RQ1, RQ3, and RQ4 remain sibling branches for a later whole-paper choice; they
 must not be bundled into this run. Selection was based on paper-level decision
 value after separate systems, AI/ML, and bridging primary-source search.
