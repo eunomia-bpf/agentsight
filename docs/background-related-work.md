@@ -40,8 +40,23 @@ real Codex tasks, capture/export path, exact-lineage checker, manifest task
 categories, and concurrent controls. The scoped lineage path reaches 100.0%
 precision and 96.569% recall, rejects all 1,629 controls, and current
 `agentpprof 0.2.37` preserves all 1,520 attributed effects and all five
-category weights. The current frontier is the still-open task/phase/action
-component of RQ3, using existing public operation corpora and evaluation code.
+category weights.
+
+Step 0008 then reused four already supported public sources and current
+backends for RQ3. Target-blind task clustering reaches V-measure 0.5565 on the
+complete nine-session Mind2Web prefix and 0.8151 on 100 ScienceWorld sessions,
+both at full coverage versus 0 for a constant control. The current paper now
+combines this task-partition evidence with Step 0006's session-held-out human
+boundary result. Phase and broad action evidence remain open components of the
+fixed RQ3, but another dataset or metric variant is not automatically the next
+paper priority.
+
+Step 0010 is a whole-paper AAAI-27 review. Its external search must first test
+whether the apparent missing-baseline objection is a reporting gap: the
+completed HINTBench and TraceElephant matrices already include native sequence,
+independent-step, per-session, flat, width-only, raw-action, and oracle controls.
+A simple cumulative synthesis of those existing results has priority over a new
+benchmark or human-dependent study.
 
 ## Verified Closest-Work Families
 
@@ -82,8 +97,24 @@ source execution view.
   enables semantic cross-run comparison or behavior discovery.
 - [AgentDiagnose](https://aclanthology.org/2025.emnlp-demos.15/) embeds
   trajectory actions and exposes semantic and state-transition visualizations.
+  Its automatic competency metrics correlate with human judgments, and its
+  filtering of a 46k-example trajectory set improves a downstream WebArena
+  agent despite retaining only 13% of the data. This establishes a published
+  analysis-to-intervention evidence pattern stronger than visualization alone.
 - [ARIA](https://arxiv.org/abs/2506.00539) projects actions into intention space
   and aggregates reward over similar behavior.
+- [TraceGraph](https://arxiv.org/abs/2605.31308) pools multi-model trajectories
+  into shared action-observation decision landscapes, identifies productive
+  cores and traps, and uses those regions in a recovery pipeline that raises
+  official SWE-bench resolved rate on fired subsets. It is the strongest
+  current precedent for connecting population-level trajectory structure to a
+  downstream agent improvement, although it remains a May 2026 preprint.
+- [AgentGraph](https://ojs.aaai.org/index.php/AAAI/article/view/42393), published
+  in the AAAI-26 Demonstration Track, converts agent logs into source-linked
+  knowledge graphs and supports failure detection, optimization
+  recommendations, perturbation tests, and causal attribution. It is evidence
+  of AAAI relevance and a competing trace representation, not a Main-Track
+  precedent for AgentProf's exact claim.
 
 The completed Hodoscope experiment reproduced the official iQuest behavior and
 found that the tested recursive AgentProf construction did not beat the released
@@ -101,12 +132,15 @@ thesis. Full evidence remains in
   datasets, experiments, and span scoring.
 - [Datadog LLM Observability Patterns](https://docs.datadoghq.com/llm_observability/monitoring/patterns/)
   hierarchically clusters production LLM interactions and can scope clustering
-  to failed evaluations. Semantic grouping and failure-topic discovery are
-  therefore strong product baselines.
+  to failed evaluations. Its documented hierarchy reports interaction volume,
+  cost, tokens, errors, latency, and online evaluations and exports clusters to
+  datasets or annotation queues. Semantic grouping and failure-topic discovery
+  are therefore strong product baselines.
 - [LangSmith Insights](https://docs.langchain.com/langsmith/insights)
   hierarchically categorizes cross-trace topics and aggregates latency, cost,
-  and evaluation metrics. Hierarchical cross-run categorization and metric
-  rollups are therefore precedents, not AgentProf's novelty.
+  feedback, error, and extracted attributes. Hierarchical cross-run
+  categorization and metric rollups are therefore precedents, not AgentProf's
+  novelty.
 - [AgentTelemetry](https://dl.acm.org/doi/10.1145/3805760.3814931) supplies an
   agent-specific span taxonomy, fault-detection benchmark, and toolkit. Its
   accepted artifact has no released official fault-bearing step/span target,
@@ -194,22 +228,26 @@ alone.
    HINTBench/TraceElephant tuning, the target-dropping AgentNet key, or completed
    negative branches without materially new evidence.
 3. **RQ3 — tag accuracy.** Evaluate the actual prompt/intent attribution path
-   and approved fixed mappings on held-out agents and task families, including coverage,
-   stability, and downstream attribution sensitivity. Structured phase mapping
-   alone cannot authorize every tag backend.
+   and approved fixed mappings on held-out agents and task families, including
+   coverage, stability, and downstream attribution sensitivity. Step 0008 now
+   supplies positive independent task-partition evidence on Mind2Web and
+   ScienceWorld; Step 0006 supplies group-boundary evidence. Structured phase
+   mapping alone cannot authorize every tag backend, and a new dataset is not
+   justified merely to fill the remaining cells.
 4. **RQ4 — profiling cost.** Step 0005 supplies the paper-level construction
    answer: current `agentpprof 0.2.37` builds the 27,765-operation semantic
    union in 1.17 s median with 464.49 MiB maximum RSS, while R160 separately
    supports the predecessor shared-cache mechanism. Do not reopen another
    cost/cache variant.
 
-Step 0006 completed the RQ3 human-boundary component, and Step 0007 completed
-the selected RQ1 exact-lineage replay. The next experiment should address the
-remaining RQ3 task/phase/action accuracy question by reusing the nine converted
-public operation corpora, their existing independent labels where applicable,
-`script/operation_leaveout_eval.py`, and the current operation/profile path.
-It should not add a benchmark, annotation pipeline, model family, metric, or
-cutoff merely to create another variant.
+Step 0006 completed the RQ3 human-boundary component, Step 0007 completed the
+selected RQ1 exact-lineage replay, and Step 0008 added independent RQ3 task-
+partition evidence. The current whole-paper review identifies one lower-cost
+candidate before any new experiment: synthesize the already completed RQ2
+native, independent-step, session, flat, raw-action, width-only, matched-
+permutation, and oracle controls under their existing predeclared metrics. Only
+if that complete reuse cannot change the paper-level utility answer should the
+next experiment add a new mechanism or source.
 
 ## Search Policy And Reopen Conditions
 
