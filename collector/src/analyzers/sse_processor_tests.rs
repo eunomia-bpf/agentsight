@@ -403,8 +403,8 @@ mod sse_processor_tests {
 data: {"type":"response.output_item.added","response_id":"resp_1","output_index":0,"item":{"id":"fc_1","type":"function_call","name":"lookup","arguments":""}}"#,
             r#"event: response.function_call_arguments.delta
 data: {"type":"response.function_call_arguments.delta","response_id":"resp_1","item_id":"fc_1","output_index":0,"delta":"{\"q\":"}"#,
-            r#"event: response.function_call_arguments.delta
-data: {"type":"response.function_call_arguments.delta","response_id":"resp_1","item_id":"fc_1","output_index":0,"delta":"\"x\"}"}"#,
+            r#"event: response.function_call_arguments.done
+data: {"type":"response.function_call_arguments.done","response_id":"resp_1","item_id":"fc_1","output_index":0,"arguments":"{\"q\":\"x\"}"}"#,
             r#"event: response.output_text.delta
 data: {"type":"response.output_text.delta","response_id":"resp_1","output_index":1,"content_index":0,"delta":"Hello"}"#,
             r#"event: response.completed

@@ -158,7 +158,7 @@ static void test_codex_01441_table_entry(void)
 
 static void test_codex_01444_table_entry(void)
 {
-	const struct codex_offset_entry *entry = &codex_offset_table[0];
+	const struct codex_offset_entry *entry = find_table_entry("0.144.4");
 	static const uint8_t expected_sha[32] = {
 		0xfa, 0x92, 0x07, 0xb8, 0x78, 0x0b, 0xf4, 0x2c,
 		0x94, 0xff, 0x4a, 0xa0, 0x53, 0x23, 0x44, 0x89,
@@ -166,8 +166,10 @@ static void test_codex_01444_table_entry(void)
 		0x0e, 0xf9, 0x15, 0xde, 0x93, 0xc1, 0xdf, 0x64,
 	};
 
-	check(strcmp(entry->version, "0.144.4") == 0,
-	      "Codex 0.144.4 table entry is first");
+	check(entry != NULL && strcmp(entry->version, "0.144.4") == 0,
+	      "Codex 0.144.4 table entry is present");
+	if (!entry)
+		return;
 	check(entry->file_size == 298553392ULL,
 	      "Codex 0.144.4 table entry records file size");
 	check(entry->ssl_write == 229118432ULL,

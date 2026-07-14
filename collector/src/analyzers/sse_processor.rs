@@ -415,6 +415,7 @@ impl SSEProcessor {
                     | "response.reasoning_text.delta"
                     | "response.reasoning_summary_text.delta"
                     | "response.function_call_arguments.delta"
+                    | "response.function_call_arguments.done"
                     | "response.output_item.added"
                     | "response.output_item.done"
             )
@@ -570,6 +571,9 @@ impl SSEProcessor {
             Some("response.function_call_arguments.delta") => {
                 Self::accumulate_openai_response_function_arguments(accumulator, data, false);
             }
+            Some("response.function_call_arguments.done") => {
+                Self::accumulate_openai_response_function_arguments(accumulator, data, true);
+            }
             Some("response.output_item.added" | "response.output_item.done") => {
                 Self::accumulate_openai_response_item(accumulator, data);
             }
@@ -621,11 +625,12 @@ impl SSEProcessor {
         if let Some(id) = data.get("item_id").and_then(|value| value.as_str()) {
             entry.id = Some(id.to_string());
         }
-        if let Some(delta) = data.get("delta").and_then(|value| value.as_str()) {
+        let payload_key = if replace { "arguments" } else { "delta" };
+        if let Some(arguments) = data.get(payload_key).and_then(|value| value.as_str()) {
             if replace {
-                entry.function_arguments = delta.to_string();
+                entry.function_arguments = arguments.to_string();
             } else {
-                entry.function_arguments.push_str(delta);
+                entry.function_arguments.push_str(arguments);
             }
         }
     }
