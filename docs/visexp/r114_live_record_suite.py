@@ -601,6 +601,7 @@ def precision_recall_summary(
     recall_den = true_positives + false_negatives
     return {
         "agent_tool_ids": sorted(scoped_tool_ids),
+        "agent_process_ids": sorted(scoped_process_ids),
         "agent_process_count": len(scoped_process_ids),
         "in_scope_effect_events": len(in_scope_rows),
         "out_of_scope_effect_events": max(0, len(nonnegative_rows) - len(in_scope_rows)),
