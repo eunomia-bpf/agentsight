@@ -160,6 +160,15 @@ A third variant would be target retuning rather than stronger external evidence.
 | A conserved cross-layer record can attribute additive resources to semantic responsibility across runs. | Medium/high | Potential systems contribution; requires independent lineage and attribution truth. |
 | A plan-defined semantic profile concentrates real problems and reduces analyst inspection. | High | AgentProcessBench establishes significant target-blind AP concentration; HINTBench and TraceElephant add favorable inspection regions on independent public workloads. High-recall tail efficiency remains mechanism-dependent. |
 
+Two additional close neighbors sharpen this boundary. *Agentic AI Process
+Observability* applies process and causal discovery across agent execution logs
+(<https://ceur-ws.org/Vol-4087/paper3-Long.pdf>), while AgentDiagnose analyzes
+semantic trajectory competencies and validates them against human judgments
+(<https://aclanthology.org/2025.emnlp-demos.15/>). AgentProf must distinguish
+itself through weighted cross-layer responsibility attribution and query-time
+operation stacks, not through cross-run analysis or semantic visualization
+alone.
+
 ## Open Evidence And Search Frontier
 
 1. **RQ1 — resource attribution.** Derive the headline percentage from an
@@ -183,13 +192,12 @@ A third variant would be target retuning rather than stronger external evidence.
    supports the predecessor shared-cache mechanism. Do not reopen another
    cost/cache variant.
 
-Step 0005 completed EXPERIMENT, WRITE, and whole-paper REVIEW for RQ4. REVIEW
-selected one RQ3 held-out human-boundary fidelity experiment next because it
-can reuse OSWorld-Human's official grouped-action annotations, the fixed R297
-boundary features and runner, and the current AgentProf profile path. It tests
-one target-blind boundary tagger against action-change, phase-change, and
-always-boundary controls, plus grouped-resource preservation. It must not add a
-dataset, ontology, tagger family, or RQ2/RQ4 variant.
+Step 0006 completed EXPERIMENT, WRITE, and whole-paper REVIEW for the RQ3
+human-boundary component. REVIEW selects one RQ1 current-AgentProf exact-lineage
+replay next. It reuses R114's fixed 20 real Codex tasks, capture/export path,
+task categories, exact-lineage checker, and concurrent negative controls. The
+raw snapshots are regenerated only because they were intentionally not
+committed; no new dataset, model, tagger, ranker, cutoff, or ontology is added.
 
 ## Search Policy And Reopen Conditions
 

@@ -219,24 +219,29 @@ negative development results into the paper's story.
 4. Native execution hierarchy is sufficient for the relevant decisions.
 5. Different signal shapes and decisions favor different projections.
 
-The strongest next hypothesis is that a fixed target-blind boundary tagger
-recovers independently annotated human action-group boundaries on unseen tasks
-and preserves the corresponding grouped resource aggregates better than simple
-visible-field boundary rules. This advances the original positive RQ3 without
-changing the paper's thesis, four questions, or two-object model.
+Step 0006 supports the boundary part of the fixed RQ3 hypothesis: a fixed
+target-blind boundary tagger recovers independently annotated human
+action-group boundaries on held-out sessions and preserves the corresponding
+group partition better than simple visible-field rules. The strongest next
+hypothesis returns to the load-bearing RQ1 edge: current AgentProf profiles
+preserve independently observed operation-to-effect lineage and do not assign
+concurrent negative-control effects to unrelated operations.
 
 ### Next Decisive Evidence
 
 The user has restored the untouched submodule as the canonical story source.
-RQ2 now has a cumulative positive paper-level answer, and RQ4 has a complete
-positive construction-cost answer; both are closed to same-signal variants.
-The next evidence is one complete RQ3 held-out human-boundary fidelity
-experiment that reuses OSWorld-Human's official grouped-action annotations,
-the fixed R297 boundary features and runner, and the current AgentProf profile
-path. It tests boundary precision/recall/F1 and grouped-resource preservation
-against action-change, phase-change, and always-boundary controls without a new
-dataset, ontology, or tagger family. This is an evidence-frontier update, not a
-narrative evolution or change to the broader four-part RQ3.
+RQ2 has a cumulative positive paper-level answer, RQ4 has a complete positive
+construction-cost answer, and Step 0006 supplies positive held-out evidence for
+RQ3's group-boundary component. The next evidence is one complete RQ1
+current-AgentProf replay of R114's fixed 20 real Codex tasks, exact-lineage
+checker, task categories, and concurrent negative controls. The raw R114
+snapshots must be regenerated because they were intentionally not committed;
+the experiment otherwise reuses the existing capture/export path and passes the
+lineage rows through the current operation/profile path. It reports attribution
+precision/recall, negative false joins, task-category preservation, and mass
+conservation without a new dataset, model, tagger, ranker, cutoff, or ontology.
+This is an evidence-frontier update, not a narrative evolution or change to the
+thesis, four RQs, or two-object model.
 
 ## Narrative Evolution — Accepted Changes Only
 
