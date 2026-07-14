@@ -329,31 +329,34 @@ record_real_agent() {
     local top="$WORK_DIR/$name-top.out"
     local record_log="$WORK_DIR/$name-record.log"
     local opencode_config="$WORK_DIR/$name-opencode-config"
+    local agent_work="$WORK_DIR/$name-work"
     local recent_mock_requests="$WORK_DIR/$name-mock-requests.jsonl"
     local mock_before
     local mock_after
 
-    mkdir -p "$WORK_DIR/$name-home" "$WORK_DIR/$name-codex-home"
+    mkdir -p "$WORK_DIR/$name-home" "$WORK_DIR/$name-codex-home" "$agent_work"
     write_opencode_config "$opencode_config"
     mock_before="$(wc -l < "$MOCK_LOG")"
 
-    if ! sudo -n env \
-        PATH="$PATH" \
-        HOME="$WORK_DIR/$name-home" \
-        OPENAI_API_KEY=agentsight-test \
-        OPENAI_BASE_URL="https://127.0.0.1:$MOCK_PORT/v1" \
-        ANTHROPIC_API_KEY=agentsight-test \
-        ANTHROPIC_BASE_URL="https://127.0.0.1:$MOCK_PORT" \
-        SSL_CERT_FILE="$TLS_CA_CERT" \
-        REQUESTS_CA_BUNDLE="$TLS_CA_CERT" \
-        NODE_EXTRA_CA_CERTS="$TLS_CA_CERT" \
-        NODE_TLS_REJECT_UNAUTHORIZED=0 \
-        CODEX_HOME="$WORK_DIR/$name-codex-home" \
-        OPENCODE_CONFIG_DIR="$opencode_config" \
-        OPENCODE_DISABLE_PROJECT_CONFIG=1 \
-        OPENCODE_DISABLE_MODELS_FETCH=1 \
-        "$AGENTSIGHT_BIN" record --no-server --db "$db" -- "$@" \
-        > "$record_log" 2>&1; then
+    if ! (
+        cd "$agent_work"
+        sudo -n env \
+            PATH="$PATH" \
+            HOME="$WORK_DIR/$name-home" \
+            OPENAI_API_KEY=agentsight-test \
+            OPENAI_BASE_URL="https://127.0.0.1:$MOCK_PORT/v1" \
+            ANTHROPIC_API_KEY=agentsight-test \
+            ANTHROPIC_BASE_URL="https://127.0.0.1:$MOCK_PORT" \
+            SSL_CERT_FILE="$TLS_CA_CERT" \
+            REQUESTS_CA_BUNDLE="$TLS_CA_CERT" \
+            NODE_EXTRA_CA_CERTS="$TLS_CA_CERT" \
+            NODE_TLS_REJECT_UNAUTHORIZED=0 \
+            CODEX_HOME="$WORK_DIR/$name-codex-home" \
+            OPENCODE_CONFIG_DIR="$opencode_config" \
+            OPENCODE_DISABLE_PROJECT_CONFIG=1 \
+            OPENCODE_DISABLE_MODELS_FETCH=1 \
+            "$AGENTSIGHT_BIN" record --no-server --db "$db" -- "$@"
+    ) > "$record_log" 2>&1; then
         sed -n '1,240p' "$record_log" >&2 || true
         return 1
     fi

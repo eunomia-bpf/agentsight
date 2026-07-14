@@ -20,6 +20,16 @@ use crate::view::MaterializedView;
 
 pub(crate) type LocalSession = AgentSession;
 pub(crate) type SessionCache = agent_session::SessionCache;
+const CODEX_EXEC_DEDUPE_WINDOW_MS: u64 = 2_000;
+const CODEX_FALLBACK_TIME_SLOP_MS: u64 = 30_000;
+
+#[derive(Clone, Debug)]
+struct ObservedCodexPrompt {
+    prompt: String,
+    timestamp_ms: u64,
+    pid: Option<u32>,
+    native_exec: bool,
+}
 
 pub(crate) fn snapshot(
     cache: &mut SessionCache,
@@ -158,20 +168,42 @@ fn llm_row_for_session(
 pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEventRow> {
     let mut rows = Vec::new();
     let mut seen = HashSet::new();
-    let mut seen_sessions = HashSet::new();
+    let observed_exec_prompts = observed_codex_exec_prompts(audit_rows);
+    let mut seen_exec_prompts: Vec<ObservedCodexPrompt> = Vec::new();
     for row in audit_rows {
-        if row.audit_type == "process"
-            && row.action.as_deref() == Some("exec")
-            && agent_session::is_codex_cli_entrypoint(row.target.as_deref())
-        {
+        if row.audit_type == "process" && row.action.as_deref() == Some("exec") {
             let Some(prompt) = row
                 .details
                 .get("full_command")
                 .and_then(Value::as_str)
-                .and_then(agent_session::codex_exec_prompt)
+                .and_then(codex_exec_prompt_from_command)
             else {
                 continue;
             };
+            if !observed_exec_prompts.iter().any(|observed| {
+                observed.prompt == prompt
+                    && observed.timestamp_ms == row.timestamp_ms
+                    && observed.pid == row.pid
+            }) {
+                continue;
+            }
+            if seen_exec_prompts.iter().any(|seen| {
+                seen.prompt == prompt
+                    && timestamps_close(
+                        seen.timestamp_ms,
+                        row.timestamp_ms,
+                        CODEX_EXEC_DEDUPE_WINDOW_MS,
+                    )
+                    && (!seen.native_exec || !looks_like_native_codex_exec(row))
+            }) {
+                continue;
+            }
+            seen_exec_prompts.push(ObservedCodexPrompt {
+                prompt: prompt.clone(),
+                timestamp_ms: row.timestamp_ms,
+                pid: row.pid,
+                native_exec: looks_like_native_codex_exec(row),
+            });
             rows.push(AuditEventRow {
                 id: format!(
                     "audit-codex-exec-prompt-{}-{}",
@@ -212,8 +244,6 @@ pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<
         let Some(prompt) = session.prompt_preview.as_ref() else {
             continue;
         };
-        seen_sessions.insert(view_id(&session));
-
         rows.push(AuditEventRow {
             id: format!(
                 "audit-agent-native-prompt-{}-{pid}",
@@ -240,42 +270,15 @@ pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<
             }),
         });
     }
-    for session in observed_sessions_from_audit_rows(audit_rows) {
-        if !seen_sessions.insert(view_id(&session)) {
-            continue;
-        }
-        let Some(prompt) = session.prompt_preview.as_ref() else {
-            continue;
-        };
-        rows.push(AuditEventRow {
-            id: format!(
-                "audit-agent-native-prompt-{}-observed",
-                sanitize_id(&session.display_id)
-            ),
-            timestamp_ms: session_prompt_timestamp_ms(&session),
-            audit_type: "llm".to_string(),
-            pid: None,
-            comm: Some(session.agent_type.clone()),
-            subject: session.model.clone(),
-            action: Some("request".to_string()),
-            target: Some(session.path.to_string_lossy().to_string()),
-            status: Some("observed".to_string()),
-            summary: Some(truncate_text(prompt, 160)),
-            details: serde_json::json!({
-                "text_content": prompt,
-                "prompt_source": "local",
-                "session_id": view_id(&session),
-                "conversation_id": session.conversation_id.as_deref(),
-                "agent_type": session.agent_type,
-            }),
-        });
-    }
     rows
 }
 
 pub(crate) fn observed_sessions_from_audit_rows(audit_rows: &[AuditEventRow]) -> Vec<LocalSession> {
     let mut direct_paths = HashSet::new();
     let mut codex_session_dirs = HashSet::new();
+    let observed_codex_prompts = observed_codex_exec_prompts(audit_rows);
+    let observed_codex_exec = observed_codex_exec_command(audit_rows);
+    let observed_window = observed_audit_window_ms(audit_rows);
 
     for row in audit_rows.iter().filter(|row| row.audit_type == "file") {
         for path in audit_file_paths(row) {
@@ -293,32 +296,162 @@ pub(crate) fn observed_sessions_from_audit_rows(audit_rows: &[AuditEventRow]) ->
     let mut candidates = Vec::new();
     for path in direct_paths {
         if let Some(candidate) = agent_session::session_candidate_from_path(&path) {
-            candidates.push(candidate);
+            candidates.push((candidate, false));
         }
     }
     for dir in codex_session_dirs {
-        candidates.extend(agent_session::discover_session_files_in_dir(
-            agent_session::AGENT_CODEX,
-            &dir,
-        ));
+        let dir_candidates =
+            agent_session::discover_session_files_in_dir(agent_session::AGENT_CODEX, &dir);
+        candidates.extend(
+            dir_candidates
+                .into_iter()
+                .map(|candidate| (candidate, true)),
+        );
     }
-    candidates.sort_by_key(|candidate| Reverse(candidate.updated));
+    candidates.sort_by_key(|(candidate, _)| Reverse(candidate.updated));
 
     let mut seen_paths = HashSet::new();
     let mut seen_sessions = HashSet::new();
     let mut sessions = Vec::new();
-    for candidate in candidates.into_iter().take(75) {
+    for (candidate, is_codex_dir_fallback) in candidates.into_iter().take(75) {
         if !seen_paths.insert(candidate.path.clone()) {
             continue;
         }
         let Some(session) = agent_session::parse_session_file(&candidate) else {
             continue;
         };
+        if is_codex_dir_fallback && !observed_codex_exec {
+            continue;
+        }
+        if is_codex_dir_fallback
+            && !observed_codex_prompts.is_empty()
+            && !session_matches_observed_prompt(&session, &observed_codex_prompts)
+        {
+            continue;
+        }
+        if is_codex_dir_fallback && !session_is_in_observed_window(&session, observed_window) {
+            continue;
+        }
         if seen_sessions.insert(session.display_id.clone()) {
             sessions.push(session);
         }
     }
     sessions
+}
+
+fn observed_codex_exec_prompts(audit_rows: &[AuditEventRow]) -> Vec<ObservedCodexPrompt> {
+    let prompts = audit_rows
+        .iter()
+        .filter(|row| row.audit_type == "process" && row.action.as_deref() == Some("exec"))
+        .filter_map(|row| {
+            let prompt = row
+                .details
+                .get("full_command")
+                .and_then(Value::as_str)
+                .and_then(codex_exec_prompt_from_command)?;
+            Some(ObservedCodexPrompt {
+                prompt,
+                timestamp_ms: row.timestamp_ms,
+                pid: row.pid,
+                native_exec: looks_like_native_codex_exec(row),
+            })
+        })
+        .collect::<Vec<_>>();
+    prompts
+        .iter()
+        .filter(|candidate| {
+            !prompts
+                .iter()
+                .any(|other| is_nearby_longer_prefix(candidate, other))
+        })
+        .cloned()
+        .collect()
+}
+
+fn observed_codex_exec_command(audit_rows: &[AuditEventRow]) -> bool {
+    audit_rows
+        .iter()
+        .filter(|row| row.audit_type == "process" && row.action.as_deref() == Some("exec"))
+        .filter_map(|row| row.details.get("full_command").and_then(Value::as_str))
+        .any(looks_like_codex_exec_command)
+}
+
+fn codex_exec_prompt_from_command(command: &str) -> Option<String> {
+    if !looks_like_codex_exec_command(command) {
+        return None;
+    }
+    agent_session::codex_exec_prompt(command)
+}
+
+fn looks_like_codex_exec_command(command: &str) -> bool {
+    let tokens = command.split_whitespace().collect::<Vec<_>>();
+    tokens.windows(2).enumerate().any(|(index, tokens)| {
+        is_codex_executable_token(tokens[0], index == 0) && tokens[1] == "exec"
+    })
+}
+
+fn looks_like_native_codex_exec(row: &AuditEventRow) -> bool {
+    row.comm.as_deref() == Some("codex")
+        && row
+            .target
+            .as_deref()
+            .is_some_and(|target| is_codex_executable_token(target, true))
+}
+
+fn is_codex_executable_token(token: &str, allow_bare: bool) -> bool {
+    let token = token.trim_matches(|ch| matches!(ch, '"' | '\''));
+    (allow_bare && token == "codex")
+        || token.contains('/')
+            && Path::new(token).file_name().and_then(|name| name.to_str()) == Some("codex")
+}
+
+fn is_nearby_longer_prefix(candidate: &ObservedCodexPrompt, other: &ObservedCodexPrompt) -> bool {
+    other.prompt.len() > candidate.prompt.len()
+        && other.prompt.starts_with(candidate.prompt.as_str())
+        && timestamps_close(
+            candidate.timestamp_ms,
+            other.timestamp_ms,
+            CODEX_EXEC_DEDUPE_WINDOW_MS,
+        )
+        && (!candidate.native_exec || !other.native_exec)
+}
+
+fn timestamps_close(left: u64, right: u64, window_ms: u64) -> bool {
+    left.abs_diff(right) <= window_ms
+}
+
+fn session_matches_observed_prompt(
+    session: &LocalSession,
+    prompts: &[ObservedCodexPrompt],
+) -> bool {
+    let Some(preview) = session.prompt_preview.as_deref() else {
+        return false;
+    };
+    prompts.iter().any(|observed| {
+        let prompt = observed.prompt.as_str();
+        prompt_texts_overlap(prompt, preview)
+    })
+}
+
+fn prompt_texts_overlap(left: &str, right: &str) -> bool {
+    left == right || left.starts_with(right) || right.starts_with(left)
+}
+
+fn observed_audit_window_ms(audit_rows: &[AuditEventRow]) -> Option<(u64, u64)> {
+    let min = audit_rows.iter().map(|row| row.timestamp_ms).min()?;
+    let max = audit_rows.iter().map(|row| row.timestamp_ms).max()?;
+    Some((
+        min.saturating_sub(CODEX_FALLBACK_TIME_SLOP_MS),
+        max.saturating_add(CODEX_FALLBACK_TIME_SLOP_MS),
+    ))
+}
+
+fn session_is_in_observed_window(session: &LocalSession, window: Option<(u64, u64)>) -> bool {
+    let Some((min, max)) = window else {
+        return true;
+    };
+    let updated = updated_ms(session);
+    updated >= min && updated <= max
 }
 
 fn audit_session_path(row: &AuditEventRow) -> Option<PathBuf> {
@@ -370,21 +503,10 @@ fn looks_like_codex_home_file(path: &Path) -> bool {
     };
     (name.starts_with("state_")
         || name.starts_with("logs_")
-        || matches!(name, "config.toml" | "auth.json"))
+        || matches!(name, "config.toml" | "auth.json" | "stat"))
         && path
             .parent()
             .is_some_and(|parent| parent.join("sessions").is_dir())
-}
-
-fn session_prompt_timestamp_ms(session: &LocalSession) -> u64 {
-    session
-        .events
-        .prompts
-        .first()
-        .and_then(|prompt| prompt.ts_ms)
-        .and_then(|ts| u64::try_from(ts).ok())
-        .or(session.start_timestamp_ms)
-        .unwrap_or_else(|| updated_ms(session))
 }
 
 fn session_row(session: &LocalSession) -> SessionRow {
@@ -530,6 +652,8 @@ pub(crate) fn parse_content_for_test(
 mod tests {
     use super::*;
 
+    const CODEX: &str = "/usr/bin/codex exec --skip-git-repo-check ";
+
     #[test]
     fn agent_native_prompt_produces_llm_call_row() {
         let (_temp, path) = create_temp_session_path(agent_session::AGENT_CODEX);
@@ -550,5 +674,193 @@ mod tests {
             rows[0].request.get("prompt").and_then(Value::as_str),
             Some("agentsight local codex prompt")
         );
+    }
+
+    #[test]
+    fn crowded_codex_home_fallback_keeps_only_observed_exec_prompt() {
+        let temp = tempfile::tempdir().unwrap();
+        let state_path = write_codex_home(
+            temp.path(),
+            &[
+                "unrelated historical prompt",
+                "unrelated historical prompt",
+                "unrelated historical prompt",
+                "agentsight current run prompt",
+                "agentsight current run historical prompt",
+                "unrelated historical prompt",
+                "unrelated historical prompt",
+                "unrelated historical prompt",
+            ],
+        );
+        let now = current_epoch_ms();
+
+        let rows = vec![
+            exec_row(
+                "audit-exec",
+                now,
+                "codex",
+                &format!("{CODEX}agentsight current run prompt"),
+            ),
+            exec_row(
+                "audit-exec-truncated",
+                now + 1,
+                "node",
+                &format!("{CODEX}agentsight current run"),
+            ),
+            file_row("audit-file", now + 100, &state_path),
+        ];
+
+        let sessions = observed_sessions_from_audit_rows(&rows);
+
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(
+            sessions[0].prompt_preview.as_deref(),
+            Some("agentsight current run prompt")
+        );
+    }
+
+    #[test]
+    fn codex_home_fallback_accepts_time_window_when_exec_prompt_is_truncated() {
+        let temp = tempfile::tempdir().unwrap();
+        let state_path = write_codex_home(temp.path(), &["agentsight truncated command prompt"]);
+        let now = current_epoch_ms();
+
+        let sessions = observed_sessions_from_audit_rows(&[
+            exec_row(
+                "audit-exec",
+                now,
+                "codex",
+                &format!("{CODEX}-c model_provider=\"agentsight-mock"),
+            ),
+            file_row("audit-file", now + 100, &state_path),
+        ]);
+
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(
+            sessions[0].prompt_preview.as_deref(),
+            Some("agentsight truncated command prompt")
+        );
+    }
+
+    #[test]
+    fn codex_exec_prompt_rows_filter_only_wrapper_duplicates() {
+        let rows = [
+            (1_000, "node", "/usr/bin/node /opt/codex/bin/codex exec --skip-git-repo-check agentsight dedupe prompt"),
+            (1_001, "codex", "/opt/codex/bin/codex exec --skip-git-repo-check agentsight dedupe prompt"),
+            (2_000, "codex", "/usr/bin/codex exec --skip-git-repo-check agentsight short prompt"),
+            (3_000, "codex", "/usr/bin/codex exec --skip-git-repo-check agentsight much longer unrelated prompt"),
+            (10_000, "codex", "/usr/bin/codex exec --skip-git-repo-check agentsight repeated prompt"),
+            (11_000, "codex", "/usr/bin/codex exec --skip-git-repo-check agentsight repeated prompt"),
+            (20_000, "codex", "/usr/bin/codex exec --skip-git-repo-check agentsight repeated prompt"),
+            (21_000, "docker", "docker exec codex exec agentsight should not parse"),
+        ]
+        .into_iter()
+        .enumerate()
+        .map(|(index, (ts, comm, command))| exec_row(&format!("audit-{index}"), ts, comm, command))
+        .collect::<Vec<_>>();
+
+        let prompts = observed_session_prompt_rows(&rows)
+            .into_iter()
+            .map(|row| row.summary)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            prompts,
+            vec![
+                Some("agentsight dedupe prompt".to_string()),
+                Some("agentsight short prompt".to_string()),
+                Some("agentsight much longer unrelated prompt".to_string()),
+                Some("agentsight repeated prompt".to_string()),
+                Some("agentsight repeated prompt".to_string()),
+                Some("agentsight repeated prompt".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn codex_fallback_time_window_rejects_stale_matching_session() {
+        let (_temp, path) = create_temp_session_path(agent_session::AGENT_CODEX);
+        let session = parse_content_for_test(
+            agent_session::AGENT_CODEX,
+            &path,
+            UNIX_EPOCH,
+            "{\"type\":\"message\",\"content\":\"agentsight repeated prompt\"}\n",
+        )
+        .unwrap();
+
+        assert!(session_matches_observed_prompt(
+            &session,
+            &[ObservedCodexPrompt {
+                prompt: "agentsight repeated prompt".to_string(),
+                timestamp_ms: current_epoch_ms(),
+                pid: Some(42),
+                native_exec: true,
+            }]
+        ));
+        assert!(!session_is_in_observed_window(
+            &session,
+            Some((current_epoch_ms() - 1_000, current_epoch_ms() + 1_000))
+        ));
+    }
+
+    fn exec_row(id: &str, timestamp_ms: u64, comm: &str, full_command: &str) -> AuditEventRow {
+        AuditEventRow {
+            id: id.to_string(),
+            timestamp_ms,
+            audit_type: "process".to_string(),
+            pid: Some(42),
+            comm: Some(comm.to_string()),
+            subject: None,
+            action: Some("exec".to_string()),
+            target: Some(format!("/usr/bin/{comm}")),
+            status: Some("observed".to_string()),
+            summary: None,
+            details: serde_json::json!({ "full_command": full_command }),
+        }
+    }
+
+    fn file_row(id: &str, timestamp_ms: u64, path: &Path) -> AuditEventRow {
+        AuditEventRow {
+            id: id.to_string(),
+            timestamp_ms,
+            audit_type: "file".to_string(),
+            pid: Some(42),
+            comm: Some("codex".to_string()),
+            subject: None,
+            action: Some("write".to_string()),
+            target: Some(path.to_string_lossy().to_string()),
+            status: Some("observed".to_string()),
+            summary: None,
+            details: serde_json::json!({ "filepath": path.to_string_lossy() }),
+        }
+    }
+
+    fn current_epoch_ms() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64
+    }
+
+    fn write_codex_home(root: &Path, prompts: &[&str]) -> PathBuf {
+        let codex_home = root.join("codex-home");
+        let sessions_dir = codex_home.join("sessions/2026/07/14");
+        fs::create_dir_all(&sessions_dir).unwrap();
+        for (index, prompt) in prompts.iter().enumerate() {
+            fs::write(
+                sessions_dir.join(format!(
+                    "rollout-2026-07-14T00-00-{index:02}-session-{index}.jsonl"
+                )),
+                format!(
+                    "{{\"timestamp\":\"2026-07-14T00:00:{index:02}.000Z\",\
+                     \"type\":\"event_msg\",\
+                     \"payload\":{{\"type\":\"user_message\",\"message\":\"{prompt}\"}}}}\n"
+                ),
+            )
+            .unwrap();
+        }
+        let state_path = codex_home.join("stat");
+        fs::write(&state_path, "").unwrap();
+        state_path
     }
 }

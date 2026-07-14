@@ -78,11 +78,16 @@ fn load_view_inner(
         import_observed_process_nodes(&mut view, &llm_rows, &process_pids);
         let observed_sessions = agent_native::observed_sessions_from_audit_rows(&audit_rows);
         agent_native::import_into_view(&mut view, &observed_sessions);
-        let mut prompt_rows = llm_call_prompt_rows(&llm_rows);
-        append_deduped_local_session_prompt_rows(
-            &mut prompt_rows,
-            agent_native::observed_session_prompt_rows(&audit_rows),
-        );
+        let current_llm_rows = view.llm_call_rows(usize::MAX);
+        let mut prompt_rows = llm_call_prompt_rows(&current_llm_rows);
+        let mut local_prompt_rows = agent_native::observed_session_prompt_rows(&audit_rows);
+        local_prompt_rows.sort_by_key(|row| {
+            row.details
+                .get("session_id")
+                .and_then(Value::as_str)
+                .is_none()
+        });
+        append_deduped_local_session_prompt_rows(&mut prompt_rows, local_prompt_rows);
         for row in local_prompt_llm_call_rows(&prompt_rows) {
             view.apply_llm_call(&row);
         }
@@ -140,6 +145,9 @@ fn llm_call_prompt_rows(rows: &[LlmCallRow]) -> Vec<AuditEventRow> {
         let Some(text) = extract_prompt_text(&row.request) else {
             continue;
         };
+        let is_agent_native = row.request.get("prompt_source").and_then(Value::as_str)
+            == Some(crate::model::AGENT_NATIVE_SOURCE);
+        let prompt_source = if is_agent_native { "local" } else { "ssl" };
         prompts.push(AuditEventRow {
             id: format!("audit-{}-request", row.id),
             timestamp_ms: row.start_timestamp_ms,
@@ -153,7 +161,8 @@ fn llm_call_prompt_rows(rows: &[LlmCallRow]) -> Vec<AuditEventRow> {
             summary: Some(truncate_text(&text, 160)),
             details: json!({
                 "text_content": text,
-                "prompt_source": "ssl",
+                "prompt_source": prompt_source,
+                "session_id": row.request.get("session_id").and_then(Value::as_str),
                 "request": row.request,
                 "provider": row.provider,
                 "path": row.path,
@@ -173,7 +182,14 @@ fn append_deduped_local_session_prompt_rows(
             continue;
         };
         let duplicate = ssl_rows.iter().any(|ssl| {
-            if ssl.details.get("prompt_source").and_then(Value::as_str) != Some("ssl") {
+            let source = ssl.details.get("prompt_source").and_then(Value::as_str);
+            let is_session_bound_local = source == Some("local")
+                && ssl
+                    .details
+                    .get("session_id")
+                    .and_then(Value::as_str)
+                    .is_some();
+            if source != Some("ssl") && !is_session_bound_local {
                 return false;
             }
             if let (Some(local_pid), Some(ssl_pid)) = (local.pid, ssl.pid)
@@ -181,7 +197,9 @@ fn append_deduped_local_session_prompt_rows(
             {
                 return false;
             }
-            if local.timestamp_ms.abs_diff(ssl.timestamp_ms) > PROMPT_DEDUP_WINDOW_MS {
+            if !is_session_bound_local
+                && local.timestamp_ms.abs_diff(ssl.timestamp_ms) > PROMPT_DEDUP_WINDOW_MS
+            {
                 return false;
             }
             if let (Some(local_model), Some(ssl_model)) =
@@ -193,12 +211,25 @@ fn append_deduped_local_session_prompt_rows(
             let Some(ssl_text) = prompt_text_from_details(&ssl.details) else {
                 return false;
             };
-            local_text.eq_ignore_ascii_case(&ssl_text)
+            prompt_texts_match_or_truncated(&local_text, &ssl_text)
         });
         if !duplicate {
             ssl_rows.push(local);
         }
     }
+}
+
+fn prompt_texts_match_or_truncated(left: &str, right: &str) -> bool {
+    if left.eq_ignore_ascii_case(right) {
+        return true;
+    }
+    let min_len = left.len().min(right.len());
+    if min_len < 48 {
+        return false;
+    }
+    let left_lower = left.to_ascii_lowercase();
+    let right_lower = right.to_ascii_lowercase();
+    left_lower.starts_with(&right_lower) || right_lower.starts_with(&left_lower)
 }
 
 fn local_prompt_llm_call_rows(prompt_rows: &[AuditEventRow]) -> Vec<LlmCallRow> {
@@ -314,6 +345,18 @@ mod tests {
     }
 
     #[test]
+    fn prompt_text_dedupe_accepts_truncated_prefix() {
+        assert!(prompt_texts_match_or_truncated(
+            "Reply with exactly: agentsight-codex-ignore-user-c",
+            "Reply with exactly: agentsight-codex-ignore-user-config",
+        ));
+        assert!(!prompt_texts_match_or_truncated(
+            "Reply with exactly: agentsight-codex-",
+            "Reply with exactly: agentsight-codex-real-smoke",
+        ));
+    }
+
+    #[test]
     fn observed_codex_exec_prompt_reprojects_as_llm_call() {
         let temp = tempfile::tempdir().unwrap();
         let db = temp.path().join("codex.db");
@@ -395,38 +438,15 @@ mod tests {
     #[test]
     fn observed_codex_home_reprojects_session_prompt_as_llm_call() {
         let temp = tempfile::tempdir().unwrap();
-        let codex_home = temp.path().join("codex-home");
-        let session_dir = codex_home.join("sessions/2026/07/11");
-        std::fs::create_dir_all(&session_dir).unwrap();
-        std::fs::write(
-            session_dir.join("rollout-2026-07-11T00-00-00.jsonl"),
-            concat!(
-                "{\"timestamp\":\"2026-07-11T00:00:00.000Z\",",
-                "\"type\":\"event_msg\",",
-                "\"payload\":{\"type\":\"user_message\",",
-                "\"message\":\"agentsight inferred codex home prompt\"}}\n"
-            ),
-        )
-        .unwrap();
-        let state_path = codex_home.join("state_5.sqlite");
-        std::fs::write(&state_path, "").unwrap();
-
+        let state_path = write_codex_home(temp.path(), "agentsight inferred codex home prompt");
         let db = temp.path().join("codex.db");
         let store = SqliteStore::open(&db).unwrap();
-        store
-            .connection()
-            .execute(
-                "INSERT INTO audit_events (
-                    id, timestamp_ms, audit_type, pid, comm, action, target, status, details_json
-                 ) VALUES (
-                    'audit-file-1', 1000, 'file', 42, 'codex', 'write', ?1, 'observed', ?2
-                 )",
-                rusqlite::params![
-                    state_path.to_string_lossy().as_ref(),
-                    json!({"filepath": state_path.to_string_lossy()}).to_string(),
-                ],
-            )
-            .unwrap();
+        insert_exec_event(
+            &store,
+            current_epoch_ms(),
+            "/usr/bin/codex exec --skip-git-repo-check agentsight inferred codex home prompt",
+        );
+        insert_file_event(&store, current_epoch_ms() + 100, &state_path);
 
         let view = load_view_with_observed_session_prompts(&db).unwrap();
         let rows = view.llm_call_rows(10);
@@ -439,12 +459,19 @@ mod tests {
             Some("agentsight inferred codex home prompt")
         );
         assert_eq!(snapshot.sessions.len(), 1);
-        assert!(
-            snapshot
-                .audit_events
-                .iter()
-                .any(|row| row.summary.as_deref() == Some("agentsight inferred codex home prompt"))
-        );
+    }
+
+    #[test]
+    fn observed_codex_home_without_exec_prompt_does_not_import_sessions() {
+        let temp = tempfile::tempdir().unwrap();
+        let state_path = write_codex_home(temp.path(), "agentsight unrelated codex home prompt");
+        let db = temp.path().join("codex.db");
+        let store = SqliteStore::open(&db).unwrap();
+        insert_file_event(&store, current_epoch_ms(), &state_path);
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+
+        assert!(view.llm_call_rows(10).is_empty());
     }
 
     fn ssl_call_row(model: &str, text: &str) -> LlmCallRow {
@@ -512,5 +539,66 @@ mod tests {
                 "prompt_source": "local"
             }),
         }
+    }
+
+    fn current_epoch_ms() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64
+    }
+
+    fn write_codex_home(root: &std::path::Path, prompt: &str) -> std::path::PathBuf {
+        let codex_home = root.join("codex-home");
+        let session_dir = codex_home.join("sessions/2026/07/11");
+        std::fs::create_dir_all(&session_dir).unwrap();
+        std::fs::write(
+            session_dir.join("rollout-2026-07-11T00-00-00.jsonl"),
+            format!(
+                "{{\"timestamp\":\"2026-07-11T00:00:00.000Z\",\
+                 \"type\":\"event_msg\",\
+                 \"payload\":{{\"type\":\"user_message\",\"message\":\"{prompt}\"}}}}\n"
+            ),
+        )
+        .unwrap();
+        let state_path = codex_home.join("stat");
+        std::fs::write(&state_path, "").unwrap();
+        state_path
+    }
+
+    fn insert_exec_event(store: &SqliteStore, timestamp_ms: u64, full_command: &str) {
+        store
+            .connection()
+            .execute(
+                "INSERT INTO audit_events (
+                    id, timestamp_ms, audit_type, pid, comm, action, target, status, details_json
+                 ) VALUES (
+                    'audit-exec-1', ?1, 'process', 42, 'codex', 'exec', '/usr/bin/codex',
+                    'observed', ?2
+                 )",
+                rusqlite::params![
+                    timestamp_ms,
+                    json!({"full_command": full_command}).to_string()
+                ],
+            )
+            .unwrap();
+    }
+
+    fn insert_file_event(store: &SqliteStore, timestamp_ms: u64, path: &std::path::Path) {
+        store
+            .connection()
+            .execute(
+                "INSERT INTO audit_events (
+                    id, timestamp_ms, audit_type, pid, comm, action, target, status, details_json
+                 ) VALUES (
+                    'audit-file-1', ?1, 'file', 42, 'codex', 'write', ?2, 'observed', ?3
+                 )",
+                rusqlite::params![
+                    timestamp_ms,
+                    path.to_string_lossy().as_ref(),
+                    json!({"filepath": path.to_string_lossy()}).to_string(),
+                ],
+            )
+            .unwrap();
     }
 }
