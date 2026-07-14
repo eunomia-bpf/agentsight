@@ -19,7 +19,7 @@ later explicit user instruction may change the four author-fixed RQs.
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | Compare flat, source-native, and one fixed semantic profile against independent tool/span/process resource identities on real traces. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | REVIEW selected one complete TraceElephant experiment over all 220 officially annotated real failures: test whether a fixed intent/role-to-response/status AgentProf profile reaches 80% macro decisive-step recall with less atomic-step inspection than every fair same-information profiling baseline. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed paper-level answer.** AgentProcessBench provides significant target-blind AP concentration beyond matched refinement; HINTBench and TraceElephant add favorable inspection regions on independent public workloads. High-recall tail efficiency depends on ranking and tie structure. Do not open another RQ2 score or benchmark variant; WRITE the cumulative positive answer and let REVIEW select another fixed RQ. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | Evaluate one approved fixed tagger or mapping on held-out real families with independent labels and downstream attribution sensitivity. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | Measure end-to-end construction, memory, output size, and repeated-query cost across complete real workloads and scaling points. |
 
@@ -143,6 +143,23 @@ algebraic identity control. Do not retune this test population. The plan,
 preflight, full artifacts, and two independent exact result audits are under
 `docs/tmp/cycle-0003-20260713T121925-0700/01-experiment-gate/loop-001-rq2-hintbench/`.
 
+The complete Step 0004 TraceElephant experiment adds a real-failure population
+of all 220 released executions and 5,960 atomic steps. Every declared profile,
+200 matched semantic permutations, and 10,000 paired bootstrap replicates
+completed and passed an independent exact recalculation. At the predeclared
+80% macro decisive-step-recall point, the fixed AgentProf construction needs
+100.00% inspection work versus 71.91% for the source-native raw-action profile;
+the AgentProf-minus-raw interval `[-1.90, +45.86]` percentage points crosses
+zero, so that tested hypothesis is `VALID / INCONCLUSIVE`. The complete curve
+also shows a strong early concentration signal: AgentProf reaches 50% macro
+recall at 19.55% work versus 46.64% for raw action. The large final tied tier,
+not an everywhere-flat curve, causes the strict 80% outcome. This result closes
+the fixed propagation-and-ranking construction without changing the positive
+RQ2 hypothesis or authorizing retuning on these labels. Full reports are under
+[`loop-001-rq2-traceelephant`](tmp/build-and-evaluate/step-0004-20260713T172452-0700/01-experiment-gate/loop-001-rq2-traceelephant/),
+with terminal metrics under
+`.agentsight/experiments/traceelephant-rq2-v1/metrics/`.
+
 The unexecuted revision-1 plan is superseded because it bundled roughly eleven
 comparator types and several independent research programs. Its history remains
 under
@@ -175,46 +192,31 @@ satisfy these project-local controls:
 
 ## Next Evidence Selection
 
-Cycle 0003 closed HINTBench as `VALID / INCONCLUSIVE` and prohibited test-set
-retuning. Its complete-paper REVIEW is recorded in
-[`review-001`](tmp/cycle-0003-20260713T121925-0700/03-review-gate/review-001/400-cycle-change-audit-final-verdict-and-routing.md).
-Two independent cross-domain reviewers converged on the same next decision:
-retain the exact thesis and four RQs, remain in fixed RQ2, and replace synthetic
-or output-only evidence with one complete real-execution TraceElephant test.
+Step 0004 completed the selected TraceElephant experiment and its independent
+result and outer reviews. The experiment-specific 80%-recall hypothesis is
+`VALID / INCONCLUSIVE`, but the outer audit synthesizes it with the significant
+AgentProcessBench AP result and the independent HINTBench and TraceElephant work
+curves. The paper-level RQ2 correspondence/concentration question now has an
+evidence-backed positive answer; another tag, score, cutoff, or benchmark
+variant has lower paper value than testing a different fixed RQ.
 
-The next outer state is EXPERIMENT for fixed RQ2. Use all 220 official
-TraceElephant failed executions across Captain-Agent, Magentic-One, and
-SWE-Agent as a fresh test-only population unless plan review proves that a
-learned component is essential. The ordinary Markdown plan must fix one simple
-target-blind profile before reading responsible-component or decisive-step
-targets:
+WRITE and whole-paper REVIEW are complete. REVIEW selected RQ4 as the next
+complete experiment because it can reuse the existing public operation files,
+current `agentpprof` binary, profile-spec/cost runner, deterministic-output
+path, and fixed-session cache workflow. RQ1 remains dependent on an independent
+responsibility oracle, and the prior RQ3 phase-versus-action proxy is not a
+same-construct tag-accuracy test; neither gap should be hidden by another weak
+proxy.
 
-```text
-system-or-scaffold
--> component-role
--> intent-or-subgoal
--> action-or-tool
--> observed-response-or-status
-```
-
-The primary decision is atomic-step inspection work needed to reach at least
-80% macro recall of official decisive failure steps. Main profiling comparisons
-must include native execution/component order, independent-step ranking,
-session grouping, raw action/tool grouping, flat same-information aggregation,
-and AgentProf. Exact relational reconstruction is an identity control, not a
-superiority baseline. Use official TraceElephant diagnosis methods only when
-their released runnable paths and outputs support a fair aligned comparison;
-Dynamic Agentic is extra-information context rather than a mandatory gate
-baseline.
-
-REAL PREFLIGHT must exercise the official data parser, actual model path, real
-AgentProf binary, baselines, and label-isolated scorer. FULL means all 220
-failures, every approved method cell, and every declared paired bootstrap
-replicate reach terminal status. Positive support requires AgentProf to meet
-the recall target and the upper paired 95% work-difference endpoint to remain
-below zero against every declared main same-information non-oracle profiling
-baseline. Whatever the sign, close this one experiment before selecting another
-paper-level question.
+The next tested hypothesis is that complete profile construction has practical
+and predictable scaling over the four existing public workloads and their
+union, and that cached field derivation makes repeated profiling materially
+faster than first construction on a fixed real-session input. Use one fixed
+semantic profile and one raw-action profile per public input, three repetitions
+per cell, plus three paired clean-cache/warm-cache runs. Report wall time,
+milliseconds per operation, warm/cold ratio, peak RSS, throughput, output
+bytes, tag calls, and cache hits. Run the full declared matrix; do not expand it
+to all 76 historical specs, a new benchmark, or bootstrap/permutation analysis.
 
 ## Experiment History Policy
 

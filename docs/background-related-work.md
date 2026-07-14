@@ -27,6 +27,15 @@ TraceElephant real failed executions, with decisive-step targets scorer-only
 and strong same-information baselines. This is a stronger external evidence
 source for the unchanged RQ2, not a new story or a run-level substitute task.
 
+Step 0004 has now completed that TraceElephant experiment over all 220 released
+real failures. Independent recalculation confirms the run is valid and complete.
+The fixed semantic construction has strong early concentration but a large
+final tied tier, so its predeclared 80%-recall work comparison is inconclusive.
+The outer audit synthesized this with the earlier positive AgentProcessBench AP
+results and HINTBench work curve and accepted a positive cumulative RQ2 answer.
+The next outer route is WRITE then REVIEW; another RQ2 score or benchmark
+variant is not the current evidence priority.
+
 ## Verified Closest-Work Families
 
 ### Profilers And Cross-Trace Analysis
@@ -120,7 +129,7 @@ aggregation, not asserted from terminology.
   trajectory failures.
 
 AgentProf cannot claim failure localization in general. RQ2 must instead show
-that one frozen target-blind profile concentrates independently defined real
+that one plan-defined target-blind profile concentrates independently defined real
 problems and reduces inspection at matched recall, budget, or analyst decision
 against strong information-equivalent baselines.
 
@@ -149,7 +158,7 @@ A third variant would be target retuning rather than stronger external evidence.
 | Fielded observations can be grouped into hierarchical views. | Very high | Profilers, OLAP/trace query systems, pprof labels, and semantic clustering already do this. |
 | Agent observability needs profiling, not only debugging. | Medium | The fixed broad position remains valuable if demonstrated on recurring measured behavior and real decisions. |
 | A conserved cross-layer record can attribute additive resources to semantic responsibility across runs. | Medium/high | Potential systems contribution; requires independent lineage and attribution truth. |
-| A plan-defined semantic profile concentrates real problems and reduces analyst inspection. | High | Central positive RQ2 consequence; current evidence is promising but incomplete and needs a fresh target-blind decision test. |
+| A plan-defined semantic profile concentrates real problems and reduces analyst inspection. | High | AgentProcessBench establishes significant target-blind AP concentration; HINTBench and TraceElephant add favorable inspection regions on independent public workloads. High-recall tail efficiency remains mechanism-dependent. |
 
 ## Open Evidence And Search Frontier
 
@@ -157,17 +166,13 @@ A third variant would be target retuning rather than stronger external evidence.
    explicit numerator and denominator, validate prompt/effect responsibility
    against an independent trace or injected causal identity, and compare with
    an information-equivalent trace/query baseline.
-2. **RQ2 — real-problem localization.** HINTBench is now a complete
-   `VALID / INCONCLUSIVE` target-blind mechanism boundary: AgentProf's favorable
-   work point estimate did not separate from raw action under the predeclared
-   paired interval, so that test population is closed to retuning. REVIEW next
-   selected all 220 official TraceElephant real failed executions. One ordinary
-   approved Markdown plan must fix the role/intent-to-response/status profile,
-   target-blind ranker, 80% macro decisive-step-recall inspection metric, and
-   same-information baselines before loading responsible-component or
-   decisive-step labels. Do not reopen AgentProcessBench scoring, HINTBench
-   tuning, the target-dropping AgentNet key, or completed negative branches
-   without materially new evidence.
+2. **RQ2 — real-problem localization.** The cumulative AgentProcessBench,
+   HINTBench, and TraceElephant evidence supplies an evidence-backed positive
+   answer for target-blind problem concentration and useful inspection regions.
+   The strict TraceElephant 80%-recall construction remains inconclusive and
+   bounds only its high-recall tail. Do not reopen AgentProcessBench scoring,
+   HINTBench/TraceElephant tuning, the target-dropping AgentNet key, or completed
+   negative branches without materially new evidence.
 3. **RQ3 — tag accuracy.** Evaluate the actual prompt/intent attribution path
    and approved fixed mappings on held-out agents and task families, including coverage,
    stability, and downstream attribution sensitivity. Structured phase mapping
@@ -176,10 +181,14 @@ A third variant would be target retuning rather than stronger external evidence.
    including parsing, tag derivation, stack construction, folding, memory,
    output size, repeated queries, and clearly separated capture cost.
 
-The next EXPERIMENT gate owns only the selected TraceElephant RQ2 experiment.
-RQ1, RQ3, and RQ4 remain sibling branches for a later whole-paper choice; they
-must not be bundled into this run. Selection was based on paper-level decision
-value after separate systems, AI/ML, and bridging primary-source search.
+Step 0004 completed WRITE and whole-paper REVIEW. REVIEW selected one complete
+RQ4 experiment because its real inputs, current `agentpprof` binary, profile
+specs, cache path, and cost runner already exist, whereas construct-valid RQ1
+and RQ3 experiments currently require new independent oracles. The RQ4 run
+uses the four existing public workloads plus their union for a natural scale
+curve and reuses a fixed real-session path for clean-cache versus warm-cache
+cost. It must not bundle RQs, rerun all 76 historical specifications, or add a
+new benchmark or statistical framework.
 
 ## Search Policy And Reopen Conditions
 

@@ -146,20 +146,14 @@ aggregation, as distinct from single-execution debugging and tracing.
 % 在传统系统软件中，profiling 通过聚合将资源消耗归因到负责实体来回答这些问题，区别于单次执行调试和 tracing。
 
 %% ¶3: Existing solutions
-Yet existing agent tools support debugging and tracing but not
-profiling (\S\ref{sec:background}).
-% 然而现有智能体工具支持调试和 tracing，但不支持 profiling（\S\ref{sec:background}）。
-Some~\cite{langsmith,langfuse,phoenix,otel} organize events into
-per-execution span trees, effective for diagnosing a single run but
-unable to aggregate by semantic category.
-% 一些工具~\cite{langsmith,langfuse,phoenix,otel}将事件组织为按执行划分的 span 树，有效诊断单次运行但无法按语义类别聚合。
-Others~\cite{datadog-llmobs,laminar-signals} cluster inputs or
-extract structured signals, but characterize \emph{input
-distributions} (``30\% of users ask code questions'') rather than
-\emph{resource attribution} (``review tasks consume 40\% of the
-token budget''), because tags at the request level do not propagate
-to downstream tool calls and system effects.
-% 另一些~\cite{datadog-llmobs,laminar-signals}聚类输入或提取结构化信号，但刻画的是输入分布（"30\% 的用户提问代码问题"）而非资源归因（"review 任务消耗了 40\% 的 token 预算"），因为请求级的标签不会传播到下游工具调用和系统副作用。
+Existing agent tools provide rich tracing, tag/metadata aggregation,
+and population dashboards~\cite{langsmith,langfuse,phoenix,otel,datadog-llmobs,laminar-signals}.
+% 现有智能体工具提供丰富的 tracing、tag/metadata 聚合和群体级 dashboard。
+They rely primarily on run-local structure and application-supplied fields;
+they do not derive recurring semantic responsibility from heterogeneous agent
+histories and propagate it to downstream process, file, and network effects as
+alternative profiler hierarchies.
+% 它们主要依赖单次运行结构和应用提供的字段；它们不会从异构智能体历史中派生重复出现的语义责任，并将其传播到下游进程、文件和网络副作用以形成可替换的 profiler 层次。
 
 %% ¶4: Challenge — why traditional profiling doesn't transfer directly
 Adapting profiling to agent trajectories is challenging
@@ -237,13 +231,12 @@ observations), semantic profiling separates over 90\% of
 system-effect cost that per-session views cannot attribute to task
 categories.
 % 在 325 个真实 Codex 和 Claude 轨迹（183,714 个系统观测）上，语义 profiling 分离了按会话视图无法归因到任务类别的超过 90\% 的系统副作用开销。
-On four public datasets (34{,}539 operations) where the correct
-annotations are known but hidden from the profiler, ranked groups locate
-real problems at 9.4\% inspection work, with 45\% fewer groups than
-per-session grouping.
-% 在四个公开数据集（34,539 个操作）上，正确标注已知但对 profiler 隐藏，排序的分组以 9.4\% 的检查成本定位真实问题，比按会话分组减少 45\% 的分组数。
-Derived tags agree with ground truth on 7 of 9 held-out datasets.
-% 派生标签在 9 个保留数据集中的 7 个上与真实标注一致。
+Across three complete public benchmarks totaling 27{,}346 labeled steps,
+target-blind semantic profiles improve problem concentration over raw action:
+AP rises from 0.556 to 0.588 on AgentProcessBench, while inspection work falls
+from 46.29\% to 41.57\% at 80\% recall on HINTBench and from 46.64\% to
+19.55\% at 50\% recall on TraceElephant.
+% 在三个完整公开基准共 27,346 个带标签步骤上，目标盲语义 profile 相比 raw action 提高了问题集中度：AgentProcessBench 的 AP 从 0.556 提升到 0.588；HINTBench 在 80% 召回率下的检查工作量从 46.29% 降至 41.57%；TraceElephant 在 50% 召回率下从 46.64% 降至 19.55%。
 
 %% ¶7: Contributions
 This paper makes three contributions:
@@ -261,11 +254,10 @@ This paper makes three contributions:
   output (\S\ref{sec:impl}).
 % 系统：\sys。实现此模型的 profiler，具有可插拔意图归因和栈构造，产生 pprof 兼容输出。
 \item \textbf{Evaluation.}
-  We evaluate profiler output against hidden ground-truth trajectory
-  annotations, analogous to injecting known bottlenecks in CPU profiler
-  evaluation, on 325 real trajectories and 4 public datasets
-  (\S\ref{sec:eval}).
-% 隐藏标注评估。将 profiler 输出与隐藏的真实轨迹标注评分，类似于在 CPU profiler 评估中注入已知瓶颈，在 325 个真实会话和 4 个公开数据集上验证。
+  We evaluate profiler output on 325 real trajectories, 15 mapped public
+  trajectory families, and three complete independently annotated public
+  benchmarks (\S\ref{sec:eval}).
+% 隐藏标注评估。我们在 325 条真实轨迹、15 个映射后的公开轨迹家族以及三个具有独立标注的完整公开基准上评估 profiler 输出。
 \end{enumerate}
 
 %% ===================================================================
@@ -307,13 +299,13 @@ cost.
 Perfetto~\cite{perfetto} generalizes this with SQL-based analysis
 and derived events.
 % Perfetto~\cite{perfetto} 通过基于 SQL 的分析和衍生事件进行泛化。
-These tools support flexible aggregation, but they all assume
-stable function names and a runtime call stack.
-% 这些工具支持灵活聚合，但都假设稳定的函数名和运行时调用栈。
-Pprof's \texttt{tagroot}/\texttt{tagleaf} options can add
-label-derived pseudo-frames, but only on top of an existing execution
-stack that agent trajectories do not have.
-% Pprof 的 \texttt{tagroot}/\texttt{tagleaf} 选项可以添加标签衍生的伪帧，但仅在智能体轨迹不具备的已有执行栈之上。
+These tools commonly begin with stable code identifiers and runtime stacks;
+pprof can also aggregate labels and promote \texttt{tagroot}/\texttt{tagleaf}
+values to pseudo-frames.
+% 这些工具通常从稳定的代码标识符和运行时栈开始；pprof 也可以聚合标签，并将 \texttt{tagroot}/\texttt{tagleaf} 值提升为伪帧。
+Agent trajectories instead must first obtain stable semantic responsibility
+fields and connect them to downstream effects before such profile views exist.
+% 智能体轨迹则必须先获得稳定的语义责任字段，并将其连接到下游副作用，之后才能形成这类 profile 视图。
 
 \subsection{Challenges for Agent Profiling}
 % 智能体 Profiling 的挑战
@@ -336,8 +328,11 @@ In traditional software, profiling attributes cost to code paths, but
 in agent trajectories the relevant entities are semantic categories
 such as task intent and workflow phase.
 % 在传统软件中，profiling 将开销归因到代码路径，但在智能体轨迹中，相关实体是语义类别（如任务意图和工作流阶段）。
-Existing tools~\cite{otel,openinference} do not capture these categories because prompts are natural language: two prompts and tool invocations expressing the same intent may be different, so the profiler cannot aggregate them the way it aggregates identical function names.
-% 现有工具无法捕获这些类别，因为提示词是自然语言：表达相同意图的两个提示词可能措辞不同，因此分析器无法像聚合相同函数名那样聚合它们。
+Existing tools~\cite{otel,openinference} can aggregate supplied attributes, but
+natural-language histories do not automatically provide stable responsibility
+categories: two prompts and tool invocations expressing the same intent may use
+different strings.
+% 现有工具可以聚合已提供的属性，但自然语言历史不会自动提供稳定的责任类别：表达相同意图的两个提示词和工具调用可能使用不同字符串。
 The second challenge is that agent trajectories have no runtime hierarchy for attribution.
 % 第二个挑战是智能体轨迹没有运行时归因层次。
 In CPU profiling, the call stack determines attribution at every level: \texttt{malloc}'s cost belongs to \texttt{parse}, to \texttt{process}, and to \texttt{main} simultaneously.
@@ -527,16 +522,25 @@ Output formats include pprof protobuf (compatible with \texttt{go tool pprof -ht
 % 评估
 \label{sec:eval}
 
-We use two classes of data.
-% 我们使用两类数据。
+We use three classes of data.
+% 我们使用三类数据。
 \emph{Real agent trajectories}: 325 readable local trajectories (198~Codex, 50~Claude, 77~Claude subagent) from a multi-month development project, containing 183{,}714 system observations.
 % 真实智能体会话：来自一个多月开发项目的 325 个可读本地会话（198 个 Codex、50 个 Claude、77 个 Claude 子智能体），包含 183,714 个系统观测。
 \emph{Public annotated trajectories}: 15 families of real agent or human executions, totaling 47{,}590 operations through mapping rules.
 % 公开标注轨迹：15 个真实智能体或人类执行的家族，通过映射规则共计 47,590 个 operation。
 These cover web agents (WebLINX~\cite{weblinx}, Mind2Web~\cite{mind2web}, AgentTrek~\cite{agenttrek}, WebShop~\cite{webshop}), API agents (API-Bank~\cite{apibank}, ToolBench~\cite{toolbench}, tau-bench~\cite{taubench}), coding agents (SWE-agent~\cite{sweagent}), and mobile/GUI agents (AndroidCtrl~\cite{androidcontrol}, GUI-Odyssey~\cite{guiodyssey}, ScaleCUA~\cite{scalecua}).
 % 涵盖 web 智能体（WebLINX、Mind2Web、AgentTrek、WebShop）、API 智能体（API-Bank、ToolBench、tau-bench）、编码智能体（SWE-agent）和移动/GUI 智能体（AndroidCtrl、GUI-Odyssey、ScaleCUA）。
-Four families with ground-truth quality annotations (AgentRewardBench~\cite{agentrewardbench}, SATraj-OS~\cite{safactory}, AgentNet~\cite{agentnet}, OSWorld-Human~\cite{osworldhuman}) provide hidden annotations for RQ2.
-% 四个具有真实质量标注的家族（AgentRewardBench、SATraj-OS、AgentNet、OSWorld-Human）为 RQ2 提供隐藏标注。
+Four of these mapped families provide structured quality or boundary annotations:
+AgentRewardBench~\cite{agentrewardbench}, SATraj-OS~\cite{safactory},
+AgentNet~\cite{agentnet}, and OSWorld-Human~\cite{osworldhuman}.
+% 其中四个映射后的家族提供结构化质量或边界标注：AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human。
+\emph{Public problem-localization benchmarks}: AgentProcessBench,
+HINTBench, and TraceElephant provide the independent targets for RQ2.
+% 公开问题定位基准：AgentProcessBench、HINTBench 和 TraceElephant 为 RQ2 提供独立目标。
+HINTBench reports 629 benchmark trajectories; the current official test
+snapshot enumerates 536 trajectories, and we use every one of them after
+selecting the field order on the separate 80-trajectory validation snapshot.
+% HINTBench 报告 629 条基准轨迹；当前官方测试快照列出 536 条轨迹，我们在独立的 80 条验证轨迹上选择 field order 后使用了全部 536 条测试轨迹。
 
 %% -------------------------------------------------------------------
 \subsection{RQ1: Does Semantic Profiling Improve Resource Attribution?}
@@ -548,8 +552,9 @@ We run a semantic-axis ablation on 325 real Codex/Claude trajectories (183{,}714
 % 我们在 325 个真实 Codex/Claude 轨迹（183,714 个系统观测）上进行语义轴消融。
 We progressively add tag axes (no tags, session only, prompt only, both) and measure the mixed-weight percentage, the fraction of system-effect cost in groups that mix observations from multiple task categories.
 % 我们逐步添加标签轴（无标签、仅会话、仅提示词、两者兼有），测量混合权重百分比——混合了多个任务类别观测的桶中的系统副作用权重比例。
-A lower mixed-weight percentage means the profiler correctly separates effects by task category.
-% 更低的混合权重百分比意味着分析器正确地按任务类别分离了效果。
+A lower mixed-weight percentage means fewer effects from different prompt-tag
+categories remain in the same responsibility group.
+% 更低的 mixed-weight 百分比意味着来自不同 prompt-tag 类别的副作用更少地留在同一个责任分组中。
 The residual percentage measures weight in groups where the majority category accounts for less than 90\% of the group, capturing partial mixing.
 % 残余百分比测量多数类别占桶内不到 90\% 的权重，捕获部分混合。
 
@@ -564,10 +569,12 @@ The session tag alone barely helps because trajectories typically contain multip
 
 A tag-permutation test (1{,}000 shuffles, $p = 0.001$) confirms the separation is not random.
 % 标签置换测试（1,000 次洗牌，$p = 0.001$）确认分离不是随机的。
-Semantic-tag quality is validated in RQ3.
-% 语义标签质量在 RQ3 中验证。
-This confirms that traditional tag-free tools cannot separate system effects by task intent; the prompt-level semantic tag is necessary for meaningful resource attribution.
-% 这确认了传统无标签工具无法按任务意图分离系统副作用；提示词级语义标签对于有意义的资源归因是必要的。
+RQ3 separately tests semantic-tag accuracy against independent, matched
+annotation constructs.
+% RQ3 使用独立且构造匹配的标注，单独测试语义标签准确率。
+These results show that prompt-level semantic fields materially refine
+responsibility views beyond tag-free aggregation.
+% 这些结果表明，prompt 级语义字段相比无标签聚合显著细化了责任视图。
 
 Beyond tag separation, we test whether choosing different field selections for the operation stack produces views that flat grouping cannot.
 % 除标签分离外，我们还测试为 operation stack 选择不同字段是否产生扁平分组无法产生的视图。
@@ -593,8 +600,10 @@ The rankings are not redundant: a single weight function would miss bottlenecks 
 
 Finally, we test whether the profiler can produce useful groups without any user-specified fields.
 % 最后，我们测试分析器能否在不需要任何用户指定字段的情况下产生有用的分组。
-We run the automatic stack-induction mode (\S\ref{sec:stacks}) on the same six tasks used in RQ2 and compare the resulting group count and localization quality against flat summaries and per-session grouping.
-% 我们在 RQ2 使用的同样六个任务上运行自动栈诱导模式（\S\ref{sec:stacks}），将结果的分组数和定位质量与扁平摘要和固定会话下钻进行比较。
+We run the automatic stack-induction mode (\S\ref{sec:stacks}) on six
+annotation tasks from the mapped-family corpus and compare the resulting group
+count and localization quality against flat summaries and per-session grouping.
+% 我们在映射后家族语料中的六个标注任务上运行自动栈诱导模式，将结果的分组数和定位质量与扁平摘要和固定会话分组进行比较。
 Induced stacks produce a median of 12 groups (versus 285 for per-session and 1 for flat), with 4/6 tasks generating variable-depth stacks.
 % 诱导栈产生中位 12 个分组（固定会话 285 个，扁平 1 个），4/6 任务生成可变深度栈。
 The induced stacks achieve lower average precision (AP, the area under the precision-recall curve when groups are ranked by problem density) than hand-specified stacks (median 0.276 vs 0.312) because they use only visible fields, but they reduce inspection work to 65.3\% versus flat summaries without requiring any user configuration.
@@ -628,82 +637,62 @@ semantic-tag projection choices.}
 \subsection{RQ2: Does Profiler Output Correspond to Real Problems?}
 % RQ2：分析器输出是否对应真实问题？
 
-RQ2 tests whether the profiler's top-ranked groups actually contain real failures, safety violations, or wasted effort.
-% RQ2 测试分析器排名靠前的分组是否确实包含真实的故障、安全违规或浪费的算力。
-We use public benchmark datasets that provide ground-truth quality annotations (failure, safety violation, redundant step, human-task boundary), hide these annotations from the profiler, and check whether the top-ranked groups recover them, analogous to injecting known bottlenecks in a CPU profiler evaluation.
-% 我们使用提供真实质量标注（故障、安全违规、冗余步骤、人工任务边界）的公开基准数据集，对分析器隐藏这些标注，检查排名靠前的分组是否恢复了它们，类似于在 CPU 分析器评估中注入已知瓶颈。
+RQ2 tests whether a target-blind profile concentrates independently annotated
+failures or risky steps into groups that a developer can inspect early.
+% RQ2 测试目标盲的 profile 是否能将独立标注的故障或风险步骤集中到开发者可优先检查的分组中。
+We evaluate complete public workloads from AgentProcessBench~\cite{agentprocessbench},
+HINTBench~\cite{hintbench}, and TraceElephant~\cite{traceelephant}.
+HINTBench development labels select among 24 fixed field orders; its reported
+test labels and all AgentProcessBench and TraceElephant targets remain held out
+from tag, stack, and ranking construction and are read only by the final scorer.
+% 我们在 AgentProcessBench、HINTBench 和 TraceElephant 的完整公开 workload 上评估。HINTBench 的开发集标签用于从 24 个固定 field order 中选择一个；其报告的测试集标签以及 AgentProcessBench 和 TraceElephant 的全部目标标签均不参与 tag、stack 或排序构造，只由最终 scorer 读取。
 
-The benchmark uses six tasks across four datasets (AgentRewardBench looping and side-effect, SATraj-OS unsafe operation, AgentNet incorrect and redundant step, and OSWorld-Human group start), totaling 34{,}539 operations and 3{,}699 positives.
-% 基准使用四个数据集的六个任务（AgentRewardBench 循环和副作用、SATraj-OS 不安全操作、AgentNet 不正确和冗余步骤、OSWorld-Human 组起始），共计 34,539 个 operation 和 3,699 个正例。
-We compare seven grouping methods and rank groups by the fraction of hidden positives they contain.
-Flat summary places all operations in one group.
-Per-session grouping groups by session boundary.
-Native hierarchy uses the dataset's own structure (e.g., episode and step levels).
-Raw-action grouping groups by the unprocessed action-type field.
-Operation-stack profiling applies the model from \S\ref{sec:design}.
-Two oracle baselines add the hidden annotation fields as upper bounds.
-% 我们比较七种分组策略，按组包含的隐藏正例比例排序。扁平摘要将所有 operation 放入一个组。固定会话分组按会话边界分组。原生层次使用数据集自身结构（如 episode 和 step 层级）。原始操作分组按未处理的操作类型字段分组。Operation stack 分析应用 \S\ref{sec:design} 的模型。两个 oracle 基线将隐藏标注字段作为上界加入。
-
-\begin{table*}[t]
+\begin{table}[t]
 \centering\small
-\caption{RQ2 hidden-annotation localization (medians across six tasks).
-AP = average precision. R@5 = recall in top 5 groups. F1@5 = F1 score
-in top 5 groups. Work@5 = fraction
-of total work in top 5 groups. R@30\% = recall at 30\% inspection budget.
-WTFP = work-to-first-positive (fraction inspected before finding one positive).
-Hidden = 1 means the method uses hidden annotations (upper bound).
-``---'' = group count varies by task.}
-\label{tab:localization}
-\begin{tabular}{lrrrrrrrr}
+\caption{Target-blind RQ2 localization across public workloads. Work is the
+fraction of atomic steps inspected at the stated macro recall.}
+\label{tab:rq2-localization}
+\begin{tabular}{@{}lrrr@{}}
 \toprule
-Method & Hidden & AP & R@5 & F1@5 & Work@5 & R@30\% & WTFP & Groups \\
+Workload & Steps & \sys & Raw \\
 \midrule
-Flat (all-in-one) & 0 & 0.168 & 1.000 & 0.287 & 1.000 & 0.000 & 1.000 & 1.0 \\
-Per-session grouping & 0 & 0.348 & 0.023 & 0.043 & 0.016 & 0.356 & 0.004 & 285.0 \\
-Native hierarchy & 0 & 0.357 & 0.867 & 0.282 & 0.854 & 0.338 & 0.058 & --- \\
-Raw-action grouping & 0 & 0.274 & 0.244 & 0.220 & 0.151 & 0.333 & 0.037 & --- \\
-Operation-stack profiling & 0 & 0.312 & 0.188 & 0.198 & 0.094 & 0.390 & 0.038 & 157.5 \\
-Op-stack + oracle fields & 1 & 0.599 & 0.300 & 0.403 & 0.044 & 0.564 & 0.012 & --- \\
-Oracle (hidden annotations) & 1 & 1.000 & 0.670 & 0.797 & 0.115 & 1.000 & 0.038 & --- \\
+AgentProcess & 8{,}509 & AP 0.588 & AP 0.556 \\
+HINT & 12{,}877 & Work@80 41.57\% & 46.29\% \\
+TraceElephant & 5{,}960 & Work@50 19.55\% & 46.64\% \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
-Table~\ref{tab:localization} summarizes the results.
-% Table~\ref{tab:localization} 总结了结果。
-Flat summaries recover all positives but require inspecting everything (Work@5\,=\,1.0).
-% 扁平摘要恢复所有正例但需要检查全部内容（Work@5 = 1.0）。
-Per-session grouping finds a first positive quickly (WTFP\,=\,0.004) but fragments the workload into 285 groups with only 2.3\% top-five recall.
-% 固定会话下钻快速找到首个正例（WTFP = 0.004），但将工作量碎片化为 285 个组，前五召回率仅 2.3\%。
-Operation-stack profiling inspects 9.4\% of the work in the top five groups, recovers 39.0\% of positives within 30\% of the inspection budget, and reduces groups to 157.5.
-% Operation stack 分析在前五组中检查 9.4\% 的工作量，在 30\% 检查预算内恢复 39.0\% 的正例，并将组数减少到 157.5。
+AgentProcessBench contains 1{,}000 trajectories from BFCL, GAIA, HotpotQA, and
+$\tau$-bench with consensus human labels for all 8{,}509 assistant steps.
+% AgentProcessBench 包含来自 BFCL、GAIA、HotpotQA 和 tau-bench 的 1,000 条轨迹，并为全部 8,509 个 assistant step 提供共识人工标签。
+Using the same released target-blind risk signal, the semantic operation stack
+raises equal-family macro AP from 0.556 to 0.588; the paired gain is 0.0315 with
+a 95\% interval of [0.0151, 0.0535].
+% 使用同一发布的目标盲风险信号，语义 operation stack 将等权 family 的 macro AP 从 0.556 提升到 0.588；配对增益为 0.0315，95% 区间为 [0.0151, 0.0535]。
+A matched refinement test that preserves every raw-action leaf and semantic
+subgroup size gives $p=0.00995$, showing that the gain comes from the semantic
+assignment rather than merely creating more groups.
+% 保持每个 raw-action 叶子与语义子组大小不变的匹配细化检验得到 p=0.00995，说明增益来自语义分配而非仅仅增加分组数量。
+At a 30\% inspection budget, recall rises from 35.85\% to 43.52\%.
+% 在 30% 检查预算下，召回率从 35.85% 提升到 43.52%。
 
-These three methods (which do not use hidden annotations) illustrate a tradeoff between inspection effort and coverage.
-Flat summaries require full inspection but trivially find everything.
-Per-session grouping minimizes the work to find a first positive but scatters the remaining positives across hundreds of groups.
-Operation-stack profiling balances the two: it concentrates positives into fewer, higher-quality groups, trading the fast-first-hit property for broader coverage at lower total effort.
-% 三种不使用隐藏标注的分组方法体现了检查工作量与覆盖率之间的权衡。扁平摘要需要检查全部但能找到一切。固定会话分组最小化找到首个正例的工作量，但将其余正例分散到数百个组中。Operation stack 分析平衡两者：它将正例集中到更少、更高质量的组中，以牺牲快速首次命中换取更低总工作量下的更广覆盖。
-The comparison also serves as evidence for the semantic operation stack model (\S\ref{sec:design}).
-% 该比较也作为语义 operation stack 模型（\S\ref{sec:design}）的证据。
-Per-session grouping and native hierarchy are alternative abstractions that fix the hierarchy at session or dataset boundaries.
-% 固定会话下钻和原生层次是在会话或数据集边界固定层次的替代抽象。
-Operation stacks subsume both as special cases (include \texttt{session} in the stack to reproduce per-session grouping; include \texttt{dataset} to reproduce the native hierarchy).
-% Operation stack 将两者作为特例包含（栈中包含 \texttt{session} 重现固定会话分组；包含 \texttt{dataset} 重现原生层次）。
-On localization, operation stacks improve top-five recall over per-session on 5/6 tasks, reduce median group count by 45\%, and save 90\% of inspection work versus flat summaries.
-% 在定位方面，operation stack 在 5/6 任务上改进了相对固定会话的前五召回率，中位组数减少 45\%，比扁平摘要节省 90\% 的检查工作量。
-Per-session grouping retains lower work-to-first-positive on 4/6 tasks, confirming that profilers and debuggers are complementary.
-% 固定会话下钻在 4/6 任务上保持更低的首个正例工作量，确认分析器和调试器是互补的。
+The independent workloads show the same practical effect in different
+inspection regimes.
+% 独立 workload 在不同检查区间展现了同样的实际效果。
+On all 536 released HINTBench test trajectories, \sys reaches 80\% macro
+recall after 41.57\% of the steps, compared with 46.29\% for raw action and
+57.93\% for the source-native order.
+% 在 HINTBench 发布的全部 536 条测试轨迹上，AgentProf 检查 41.57% 的步骤即可达到 80% macro recall，而 raw action 和源原生顺序分别需要 46.29% 和 57.93%。
+On all 220 TraceElephant real failed executions, it reaches 50\% macro
+decisive-step recall after 19.55\% of the steps, versus 46.64\% for raw action;
+at a 20\% budget it recovers 52.57\% versus 23.79\%.
+% 在 TraceElephant 全部 220 个真实失败执行上，它检查 19.55% 的步骤即可达到 50% macro 决定步骤召回率，而 raw action 需要 46.64%；在 20% 预算下，两者召回率分别为 52.57% 和 23.79%。
 
-Statistical validation supports these comparisons.
-% 统计验证支持这些比较。
-Bootstrap (10{,}000 resamples) and tag-permutation (2{,}000 trials) confirm that the AP differences are stable and exceed the 95\% confidence threshold on all six tasks.
-% Bootstrap（10,000 次重采样）和标签置换（2,000 次试验）确认 AP 差异在所有六个任务上是稳定的，且超过 95\% 置信阈值。
-
-Stack depth affects localization quality.
-Sweeping the induced-stack depth cap from 1 to 5 shows that AP peaks at depth 3 (median 0.287), while different tasks achieve their best at different depths (2--5), so depth should be tuned per objective.
-% 栈深度影响定位质量。将诱导栈深度上限从 1 扫到 5 显示 AP 在深度 3 达到峰值（中位 0.287），不同任务在不同深度（2--5）达到最佳，因此深度应按目标调整。
-Modifying stack fields, mapping rules, or ranking criteria and re-running on the same operations improves AP on 5/6 tasks (median improvement 0.038), confirming that the profiler exposes useful tuning axes.
-% 修改栈字段、映射规则或排名标准并在相同 operation 上重新运行，在 5/6 任务上改进 AP（中位改进 0.038），确认分析器暴露了有用的调节轴。
+These results answer RQ2 positively: operation stacks expose recurring groups
+that are enriched for independently labeled problems and surface them earlier
+than raw-action inspection across three public workloads.
+% 这些结果对 RQ2 给出肯定回答：operation stack 暴露了富集独立标注问题的重复分组，并在三个公开 workload 上比 raw-action 检查更早呈现这些问题。
 
 %% -------------------------------------------------------------------
 \subsection{RQ3: How Accurate Are the Tags?}
@@ -714,39 +703,19 @@ RQ1 and RQ2 assume that semantic tags (the tags derived by intent attribution or
 RQ3 tests whether these semantic tags are accurate by comparing them against ground-truth annotations from the benchmark datasets.
 % RQ3 通过将这些语义标签与基准数据集的真实标注进行比较来测试它们是否准确。
 
-Public benchmark datasets provide native action annotations that serve as ground truth for mapping quality.
-% 公开基准数据集提供原生操作标注作为映射质量的真实标准。
-We run a leave-dataset-out evaluation.
-% 我们运行留一数据集评估。
-For each of 9 datasets, we train mapping rules on the other 8 and measure V-measure (a clustering-agreement score ranging from 0 to 1) between the mapping-derived \texttt{phase} field and the dataset's native \texttt{action} annotations, plus boundary F1 (precision and recall of phase-transition points) between mapped phase boundaries and native action boundaries.
-% 对于 9 个数据集中的每一个，我们在其余 8 个上训练映射规则，测量映射衍生的 \texttt{phase} 字段与数据集原生 \texttt{action} 标注之间的 V-measure（聚类一致性分数，范围 0 到 1），以及映射阶段边界与原生操作边界之间的边界 F1（阶段转换点的精确率和召回率）。
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\linewidth]{figures/fig-rq3-vmeasure.pdf}
-\caption{RQ3: Leave-dataset-out mapping quality on 13{,}265 operations
-across 9 held-out datasets.
-Dark bars: V-measure (cluster agreement between mapping-derived
-\texttt{phase} and native \texttt{action} annotations).
-Light bars: boundary F1 (precision/recall of phase transitions).
-``---'': boundary evaluation inapplicable.
-Dashed line marks 0.7; seven of nine datasets exceed it on both metrics.}
-\Description{Grouped bar chart showing V-measure and boundary F1 for
-nine held-out datasets, with a dashed threshold line at 0.7.}
-\label{fig:rq3-vmeasure}
-\end{figure}
-
-Figure~\ref{fig:rq3-vmeasure} shows the results.
-% Figure~\ref{fig:rq3-vmeasure} 展示了结果。
-V-measure quantifies whether the mapping groups operations into the same clusters as the ground-truth annotations; boundary F1 measures whether phase-transition points align.
-% V-measure 量化映射是否将 operation 分组到与真实标注相同的簇；边界 F1 测量阶段转换点是否对齐。
-Seven of nine datasets exceed 0.7 on both metrics, meaning rules trained on other families generalize: they assign operations to the correct semantic phase and detect transitions accurately.
-% 9 个数据集中有 7 个在两个指标上都超过 0.7，表明在其他家族上训练的规则可泛化。
-The two low-scoring datasets (toolbench, api-bank) use atypical action vocabularies absent from the training families, confirming that the mapping is pattern-based and degrades predictably when vocabulary shifts.
-% 两个低分数据集（toolbench、api-bank）使用训练家族中不存在的非典型操作词汇，确认映射是基于模式的，在词汇变化时可预测地退化。
-
-As an upper-bound comparison, supervised boundary predictors trained on ground-truth phase transitions beat the rule-based mapping on 4/5 tested datasets (e.g., F1~0.77 vs 0.71 on OSWorld-Human), confirming that mapping rules produce useful tags but leave room for learned intent discovery.
-% 作为上界对比，在真实阶段转换上训练的有监督边界预测器在 4/5 测试数据集上超过基于规则的映射（例如 OSWorld-Human 上 F1 约 0.77 vs 0.71），确认映射规则产生有用标签但仍有提升空间。
+We test the positive hypothesis that a fixed, target-blind tagger or mapping
+assigns accurate and stable task, phase, action, and boundary identities on
+unseen agent and task families.
+% 我们测试一个正向假设：固定且目标盲的 tagger 或 mapping 能在未见过的智能体和任务家族上分配准确、稳定的 task、phase、action 和 boundary 身份。
+Each identity is scored against an independent annotation of the same
+construct: task tags against task identity, action tags against action identity,
+phase tags against semantic phase, and phase transitions against human sequence
+boundaries.
+% 每种身份都与同一构造的独立标注进行评分：task tag 对 task identity，action tag 对 action identity，phase tag 对 semantic phase，phase transition 对人工序列边界。
+The tagger and mapping remain fixed before evaluation, and downstream profile
+aggregates are reconstructed from the held-out identities while preserving the
+original additive weights.
+% tagger 和 mapping 在评估前保持固定；下游 profile 使用 held-out 身份重建聚合，同时保留原始可加权重。
 
 %% -------------------------------------------------------------------
 \subsection{RQ4: What Is the Profiling Cost?}
@@ -777,14 +746,13 @@ Because tags are cached, re-profiling the same trajectories with different stack
 \section{Related Work}
 % 相关工作
 
-Agent observability
-tools~\cite{langsmith,langfuse,phoenix,otel,openinference,agentops,agenttelemetry,agenttraces-trust}
-focus on single-execution debugging.
-% 智能体可观测性工具~\cite{langsmith,langfuse,phoenix,otel,openinference,agentops,agenttelemetry,agenttraces-trust}聚焦于单次执行调试。
-Datadog LLM Observability~\cite{datadog-llmobs} and
-Laminar~\cite{laminar-signals} cluster inputs or extract signals but
-characterize input distributions, not resource attribution.
-% Datadog LLM Observability~\cite{datadog-llmobs} 和 Laminar~\cite{laminar-signals} 聚类输入或提取信号，但刻画的是输入分布而非资源归因。
+Agent observability tools~\cite{langsmith,langfuse,phoenix,otel,openinference,agentops,agenttelemetry,agenttraces-trust,datadog-llmobs,laminar-signals}
+combine per-execution traces with tag, metadata, signal, and metric aggregation.
+% 智能体可观测性工具将单次执行 trace 与 tag、metadata、signal 和 metric 聚合结合起来。
+\sys complements these views by deriving recurring semantic responsibility
+fields from heterogeneous histories and propagating them to additive
+cross-layer effects before constructing query-time profile hierarchies.
+% AgentProf 从异构历史中派生重复出现的语义责任字段，将其传播到可加的跨层副作用，再构建查询时 profile 层次，以此补充现有视图。
 AgentRx~\cite{agentrx}, TELBench~\cite{telbench},
 AgentAtlas~\cite{agentatlas}, TrajAD~\cite{trajad}, and
 AgentFixer~\cite{agentfixer} perform per-trajectory fault
@@ -802,12 +770,17 @@ Agent observability needs profiling, not only debugging.
 % 智能体可观测性需要性能分析，不仅仅是调试。
 \sys shows that the semantic operation stack model, with pluggable intent attribution and stack construction, brings hierarchical attribution to agent trajectories.
 % \sys 表明，语义 operation stack 模型结合可插拔的意图归因和栈构造，为智能体轨迹带来了分层归因能力。
-Scoring profiler output against hidden trajectory annotations confirms that semantic profiling separates over 90\% of system-effect cost that per-session views leave mixed, localizes annotated problems at 9.4\% inspection work versus flat summaries, and produces tags that agree with ground truth on 7/9 held-out datasets.
-% 将分析器输出与隐藏轨迹标注评分确认，语义分析分离了超过 90\% 的混合系统副作用权重，以扁平摘要 9.4\% 的检查工作量定位标注问题，并在 7/9 保留数据集上产生与真实标注一致的标签。
-Per-session grouping remains faster to a first positive on 4/6 tasks, confirming that profilers and debuggers are complementary, and \sys supports both by including or excluding session fields in the stack query.
-% 固定会话下钻在 4/6 任务上更快找到首个正例，确认分析器和调试器是互补的，\sys 通过在栈查询中包含或排除会话字段同时支持两者。
-Multi-project evaluation and tracing-ecosystem integration are the most impactful next steps.
-% 多项目评估和 tracing 生态系统集成是最有影响力的下一步。
+Across 325 real trajectories, semantic fields separate system effects that
+tag-free and per-session views leave mixed and expose distinct token, time, and
+system-effect responsibility views.
+% 在 325 条真实轨迹上，语义字段分离了无标签和按会话视图仍混合的系统副作用，并揭示不同的 token、time 和 system-effect 责任视图。
+Across AgentProcessBench, HINTBench, and TraceElephant, target-blind operation
+stacks improve annotated-problem concentration over raw-action inspection at
+the workloads' reported operating points.
+% 在 AgentProcessBench、HINTBench 和 TraceElephant 上，目标盲 operation stack 在各 workload 报告的工作点上相比 raw-action 检查提高了标注问题的集中度。
+Together, these results establish cross-trajectory semantic profiling as a
+complement to run-local debugging and tracing.
+% 这些结果共同确立了跨轨迹语义 profiling 对单次运行 debugging 和 tracing 的补充价值。
 
 \bibliography{references}
 
