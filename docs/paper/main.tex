@@ -824,9 +824,10 @@ RQ3 asks how accurately categorical operation fields recover independent
 annotations.
 % RQ3 询问类别型 operation 字段恢复独立标注构造的准确程度。
 RQ3 covers task, phase, and action labels produced by intent attribution or
-mappings, as well as group boundaries used to construct the hierarchy. The
-present experiment evaluates group boundaries rather than intent labels.
-% 这些字段包括由意图归因或 mapping 产生的 task、phase 和 action 标签，以及用于构造 profile 层次的分组边界；本实验测试分组边界而非 intent tag。
+mappings, as well as group boundaries used to construct the hierarchy. We
+evaluate task partitions and group boundaries; phase, action, and literal tag
+names remain outside the current evidence.
+% 这些字段包括由意图归因或 mapping 产生的 task、phase 和 action 标签，以及用于构造 profile 层次的分组边界；当前证据测试 task partition 和 group boundary，不测试 phase、action 或 tag 的字面命名。
 
 We hypothesize that pre-specified target-blind taggers or mappings recover
 accurate, stable task, phase, and action labels and group boundaries on unseen
@@ -885,9 +886,18 @@ falls from 0.322 to 0.184.
 \sys projects all 3{,}978 operations onto the predicted group field, producing
 2{,}249 stacks while preserving the total weight of all 3{,}978 operations.
 % \sys 将全部 3,978 个 operation 投影到预测分组字段，产生 2,249 个 stack，同时保持全部 operation 的总权重。
-This result supports the group-boundary component of RQ3 on session-held-out
-OSWorld-Human task instances.
-% 该结果支持 RQ3 在 session-held-out OSWorld-Human 任务实例上的分组边界组成部分。
+
+Using the existing target-blind TF-IDF/K-Means backend, we also infer task
+partitions from label-hidden text. On all nine available Mind2Web sessions
+(49 operations) and 100 ScienceWorld sessions (2{,}504
+operations)~\cite{mind2web,scienceworld}, it reaches operation-weighted
+V-measure 0.557 and 0.815 at full coverage, versus 0 for a constant tag. This
+label-permutation-invariant metric tests partitions, not literal tag names.
+% 我们还使用现有目标盲 TF-IDF/K-Means backend 单独测试 task tag 分区。tagger 每个 session 只看到一条 task 文本而看不到原生 task label，并将预测广播到该 session 的 operation。在全部 9 个可用 Mind2Web session（49 个 operation）和 100 个 ScienceWorld session（2,504 个 operation）上，operation-weighted V-measure 分别为 0.557 和 0.815，coverage 均为 100%，constant-tag control 均为 0。由于 V-measure 对标签置换不变，该结果测量 task partition fidelity 而非 cluster 的字面命名。
+
+Together, these experiments provide positive RQ3 evidence across three public
+families: target-blind task partitions and session-held-out operation groups.
+% task partition 与 boundary 实验共同在三个公开轨迹家族上提供正向 RQ3 证据：目标盲 task tag 恢复独立 task 分区，session-held-out boundary 恢复人工 operation group。
 
 %% -------------------------------------------------------------------
 \subsection{RQ4: Profiling Cost}
@@ -895,15 +905,12 @@ OSWorld-Human task instances.
 
 RQ4 asks what it costs to construct profiles after a session ends.
 % RQ4 询问会话结束后构建 profile 的开销。
-Because \sys constructs profiles after execution, profile construction adds no
-online overhead. We measure its post-session time and resources, excluding
-trajectory capture.
+Because \sys constructs profiles after execution, we measure post-session time
+and resources, excluding capture.
 % \sys 在执行后构造 profile，因此该阶段不增加在线 profile-construction 开销；测量不包括轨迹捕获。
-We measure \texttt{agentpprof 0.2.37} on four complete existing public
-operation workloads and their exact union. For each input, we run a fixed
-semantic hierarchy and an identical-input raw-action cost control three times.
-Both execute the full parsing, stack-construction, folding, and serialization
-path.
+We run \texttt{agentpprof 0.2.37} three times on four complete public workloads
+and their union, comparing a fixed semantic hierarchy with an identical-input
+raw-action control through the full parse, construct, fold, and serialize path.
 % 我们在四个完整的现有公开 operation workload 及其精确并集上测量 release \texttt{agentpprof 0.2.37}。对每个输入，我们分别运行固定的语义层次和输入相同的 raw-action 成本对照三次；两者都执行完整的解析、栈构造、折叠和序列化路径。
 The measurements run on a 24-core Intel Core Ultra 9 285K machine with
 125\,GiB RAM and Linux 6.15.11.
@@ -935,25 +942,21 @@ At that largest input, semantic construction adds 180\,ms (18.2\%) and
 6.0\,MiB maximum RSS (1.3\%) over raw action.
 % 在最大输入上，语义构建相比 raw action 增加 180 毫秒（18.2%）和 6.0 MiB 最大 RSS（1.3%）。
 
-Field derivation is cacheable.
-% 字段派生可以单独缓存。
 On matched inputs from eight real Codex sessions, the predecessor AgentFlame
-used 60 local-model calls and 1.64\,s. Cached reconstruction used no calls and
+used 60 local-model calls and 1.64\,s; cached reconstruction used no calls and
 0.11\,s with 76/76 hits.
 % 在前代 AgentFlame 对八个真实 Codex 会话的一组同输入比较中，首次构建进行 60 次本地模型调用并耗时 1.64 秒；缓存重建获得 76/76 次命中、不再调用模型，并耗时 0.11 秒。
-Thus, shared tag caching avoids repeated field-derivation calls. This
-predecessor result is not timing for the current \texttt{agentpprof} binary.
+Thus, shared tag caching avoids repeated field derivation; this predecessor
+result is not timing for the current \texttt{agentpprof} binary.
 % 这组比较支持共享 tag cache 消除重复字段派生调用的机制；它不是当前 \texttt{agentpprof} 二进制的重复性能估计。
-Together, these results answer RQ4. Profile construction is practical and
-predictable over the tested range, and cached derivation avoids repeated model
-work.
+Together, RQ4 shows practical, predictable construction over the tested range
+and that cached derivation avoids repeated model work.
 % 这些结果共同回答 RQ4：在测试范围内，profile 构建开销实用且可预测，缓存派生避免了重复模型工作。
 
 \subsection{Scope and Limitations}
 
-The evaluation covers offline profiling on tested local trajectories and
-public workloads. It excludes live-agent overhead because \sys constructs
-profiles after execution.
+The evaluation covers offline profiling on tested local and public trajectories;
+it excludes live-agent overhead because \sys profiles after execution.
 % 评估覆盖所测试本地轨迹和公开 workload 上的离线 profiling；由于 \sys 在执行后构建 profile，因此不测量在线 agent 运行时开销。
 
 RQ1 covers the fixed 20-task suite, its declared process/tool scope, and the
@@ -961,27 +964,22 @@ R114-compatible AgentSight 0.2.37 path; manifest categories are fixed inputs,
 not inferred tasks.
 % RQ1 源谱结果覆盖固定的 20 任务套件、其声明的进程/工具范围及 R114 兼容 AgentSight 0.2.37 捕获路径；manifest 类别是固定输入，而非自动推断的任务。
 
-RQ3 currently establishes group-boundary fidelity on session-held-out
-OSWorld-Human task instances.
-% RQ3 当前在 session-held-out OSWorld-Human 任务实例上确立分组边界 fidelity。
-Matched task, phase, and action annotations and the corresponding
-pre-specified taggers or mappings across additional agent families remain the
-evidence required to complete the broader fixed RQ3 hypothesis.
-% 在更多 agent family 上匹配的 task、phase 和 action 标注及其预先指定的 tagger 或 mapping，仍是完成更广泛固定 RQ3 假设所需的证据。
+RQ3 establishes task-partition fidelity on Mind2Web and ScienceWorld and
+session-held-out group-boundary fidelity on OSWorld-Human. Its fixed phase and
+action components require matched annotations and pre-specified mappings.
+% RQ3 在 Mind2Web 和 ScienceWorld 上确立 task partition fidelity，并在 session-held-out OSWorld-Human task instance 上确立 group-boundary fidelity；更广泛固定 RQ3 假设中的 phase 和 action 组成部分仍需要在更多 agent family 上使用匹配标注及预先指定 mapping 的证据。
 
 
 %% ===================================================================
 \section{Related Work}
 % 相关工作
 
-Agent observability tools~\cite{langsmith,langfuse,phoenix,otel,openinference,agentops,agenttelemetry,agenttraces-trust,datadog-llmobs,laminar-signals}
-combine per-execution traces with tag, metadata, signal, and metric aggregation.
+Agent observability tools combine per-execution traces with tag, metadata,
+signal, and metric aggregation~\cite{langsmith,langfuse,phoenix,otel,openinference,agentops,agenttelemetry,agenttraces-trust,datadog-llmobs,laminar-signals}.
 % 智能体可观测性工具将单次执行 trace 与 tag、metadata、signal 和 metric 聚合结合起来。
-LangSmith Insights builds cross-trace category hierarchies with aggregate
-metrics~\cite{langsmith-insights}, while Datadog Patterns builds topic
-hierarchies with token, cost, duration, status, and evaluation
-summaries~\cite{datadog-patterns}. \sys complements them with source-linked
-agent/system operations, conserved additive weights, and selectable
+LangSmith Insights and Datadog Patterns add cross-trace category hierarchies
+and aggregate metrics~\cite{langsmith-insights,datadog-patterns}. \sys adds
+source-linked agent/system operations, conserved weights, and selectable
 pprof-compatible operation-stack projections.
 % LangSmith Insights 和 Datadog Patterns 已能跨 trace 形成分层类别并聚合多种 metric；\sys 以带源谱连接的 agent/system operation、守恒的可加权重，以及对同一证据的可选择 pprof 兼容 operation-stack 投影补充这些产品视图。
 
@@ -1007,22 +1005,21 @@ execution's fault location.
 \section{Conclusion}
 % 结论
 
-Agent observability needs profiling, not only debugging. \sys brings
-hierarchical attribution to agent trajectories through semantic operation
-stacks, pluggable intent attribution, and stack construction.
+Agent observability needs profiling, not only debugging. \sys brings semantic
+operation stacks, pluggable intent attribution, and hierarchical stack
+construction to agent trajectories.
 % 智能体可观测性需要性能分析，不仅仅是调试。\sys 通过语义 operation stack、可插拔意图归因和栈构造为智能体轨迹带来分层归因能力。
-On 20 real Codex tasks, scoped source lineage reaches 100.0\% precision and
-96.569\% recall, rejects all 1{,}629 controls, and preserves all 1{,}520
-attributed effects in \sys.
+On 20 real Codex tasks, source lineage reaches 100.0\% precision and 96.569\%
+recall, rejects 1{,}629 controls, and preserves all 1{,}520 attributed effects.
 % 在 20 个真实 Codex 任务上，范围化源谱达到 100.0\% precision 和 96.569\% recall，拒绝全部 1,629 个并发对照副作用，并将 1,520 个已归因副作用送入 AgentProf 且不损失任何权重。
-Across 325 real trajectories, semantic fields separate effects left mixed by
-tag-free and per-session views into distinct responsibility profiles.
+Across 325 real trajectories, semantic fields separate effects mixed by tag-
+free and per-session views.
 % 在 325 条真实轨迹上，语义字段将无标签和按会话视图仍混合的副作用分离为不同的责任视图。
-Across three public benchmarks, target-blind operation stacks improve problem
+Across three public benchmarks, target-blind stacks improve problem
 concentration over raw action at the evaluated AP and recall points.
 % 在三个公开基准上，目标盲 operation stack 在所评估的 AP 和 recall 工作点上相比 raw action 提高问题集中度。
-On 287 held-out OSWorld-Human task instances, a pre-specified boundary
-predictor reaches 0.739 F1 and 0.816 operation-weighted B$^3$ F1.
+On 287 held-out OSWorld-Human tasks, a pre-specified boundary predictor reaches
+0.739 F1 and 0.816 operation-weighted B$^3$ F1.
 % 在 287 个 held-out OSWorld-Human 任务实例上，预先指定的边界预测器达到 0.739 F1 和 0.816 operation-weighted B$^3$ F1。
 On 27{,}765 public operations, \sys builds the complete semantic profile in
 1.17\,s.
