@@ -1,9 +1,9 @@
 \begin{tikzpicture}[
-  node distance=0.5cm and 0.8cm,
-  box/.style={rectangle, draw, fill=blue!15, minimum width=2.2cm,
+  node distance=0.35cm and 0.55cm,
+  box/.style={rectangle, draw, fill=blue!15, minimum width=2.0cm,
               minimum height=0.8cm, font=\small, align=center,
               rounded corners=2pt},
-  input/.style={rectangle, draw, fill=gray!15, minimum width=2.0cm,
+  input/.style={rectangle, draw, fill=gray!15, minimum width=1.9cm,
                minimum height=0.7cm, font=\small, align=center,
                rounded corners=2pt},
   output/.style={rectangle, draw, fill=green!12, minimum width=1.6cm,
@@ -12,23 +12,29 @@
   arr/.style={-{Stealth[length=1.8mm]}, thick, gray!70},
 ]
 
-% Input (left)
-\node[input] (traj) {Agent\\Trajectories};
+% Inputs (left)
+\node[input] (local) {Local\\Histories};
+\node[input, below=0.35cm of local] (public) {Operation\\JSONL};
 
-% Node 1: Intent Attribution
-\node[box, right=0.8cm of traj, fill=orange!15] (intent) {Intent\\Attribution};
-\node[font=\footnotesize, below=0.05cm of intent, text=gray] (backends) {regex / LLM / clustering};
+% Uniform representation
+\node[box, right=0.55cm of local, yshift=-0.52cm] (ops) {Uniform\\Operations};
 
-% Node 3: Stack Construction
-\node[box, right=0.8cm of intent] (stack) {Stack\\Construction};
+% Field derivation
+\node[box, right=0.55cm of ops, fill=orange!15] (fields) {Field\\Derivation};
+\node[font=\footnotesize, below=0.05cm of fields, text=gray] (backends) {rules / model / mapping};
 
-% Node 4: Output
-\node[box, right=0.8cm of stack, fill=green!12] (out) {Output};
+% Stack construction and folding
+\node[box, right=0.55cm of fields] (stack) {Stack Construction\\+ Folding};
+
+% Output
+\node[box, right=0.55cm of stack, fill=green!12] (out) {Profiles};
 \node[font=\footnotesize, below=0.05cm of out, text=gray] {pprof / SVG / JSON};
 
 % Arrows
-\draw[arr] (traj) -- (intent);
-\draw[arr] (intent) -- (stack);
+\draw[arr] (local) -- node[above, font=\scriptsize] {parse} (ops);
+\draw[arr] (public) -- node[below, font=\scriptsize] {read} (ops);
+\draw[arr] (ops) -- (fields);
+\draw[arr] (fields) -- (stack);
 \draw[arr] (stack) -- (out);
 
 \end{tikzpicture}
