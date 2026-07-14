@@ -19,7 +19,7 @@ later explicit user instruction may change the four author-fixed RQs.
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Do not run another RQ1 lineage or grouping variant; WRITE the cumulative positive answer and let REVIEW select the next fixed RQ. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed paper-level answer.** AgentProcessBench provides significant target-blind AP concentration beyond matched refinement; HINTBench and TraceElephant add favorable inspection regions on independent public workloads. High-recall tail efficiency depends on ranking and tie structure. Do not open another RQ2 score or benchmark variant; WRITE the cumulative positive answer and let REVIEW select another fixed RQ. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Supporting cumulative answer, ready for WRITE.** Step 0011 independently rechecked the completed AgentProcessBench, HINTBench, and TraceElephant primary outcomes, uncertainty, and full baseline/control families. AgentProcessBench supplies semantic-specific AP evidence; HINTBench supplies positive primary components for the complete profile/prefix/scorer pipeline; TraceElephant remains descriptively positive early and prospectively inconclusive at high recall. No run, score, cutoff, benchmark, model, metric, or original verdict changed. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer, strengthened.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Action evidence is mixed across a tiny AndroidControl prefix and complete GUI-Odyssey prefix; phase and broad action stability remain open. WRITE the positive task result; REVIEW must preserve the fixed hypothesis and select only a materially better next mechanism if more RQ3 evidence is needed. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
@@ -192,6 +192,22 @@ RQ2 hypothesis or authorizing retuning on these labels. Full reports are under
 with terminal metrics under
 `.agentsight/experiments/traceelephant-rq2-v1/metrics/`.
 
+Step 0011 then performed one complete read-only synthesis of the three full
+experiments and their existing controls. AgentProcessBench contributes a
+semantic-minus-raw AP interval of `[+0.015138,+0.053514]` and a matched-
+refinement `p=0.009950`. HINTBench's prospective Work@80 comparison is positive
+against native, independent-step, and session organization, while its raw-
+action interval still crosses zero. TraceElephant's favorable Work@50 and
+Recall@20 region remains descriptive because its prospective Work@80 result is
+inconclusive. The explicit cumulative rule is supporting: two independent
+workloads contain positive prospective components, AgentProcessBench supplies
+the semantic-specific matched control, and no workload has a supported primary
+contradiction. This is retrospective synthesis and reporting correction, not a
+new confirmatory test or independent observation; all three original
+conjunctive workload verdicts remain `INCONCLUSIVE`. Full plan, three serial
+plan reviews, preflight, results, and fresh independent recomputation are under
+[`loop-001-rq2-cumulative-baseline-synthesis`](tmp/build-and-evaluate/step-0011-20260714T095842-0700/01-experiment-gate/loop-001-rq2-cumulative-baseline-synthesis/).
+
 The unexecuted revision-1 plan is superseded because it bundled roughly eleven
 comparator types and several independent research programs. Its history remains
 under
@@ -338,6 +354,21 @@ does not robustly cover GUI-Odyssey. Current AgentProf conserves the complete
 the positive task-partition result, followed by whole-paper REVIEW. Neither the
 mixed action result nor the absence of a phase oracle authorizes changing the
 fixed RQ, hypothesis, thesis, or four-RQ structure.
+
+Step 0010's blind whole-paper review and mandatory external search found that
+the strongest fixable RQ2 objection is mostly a presentation gap: the completed
+full runs already contain native, independent-step, session, flat, width-only,
+raw-action, ungrouped-risk, matched-permutation, and oracle references. Step
+0011 therefore admits one supporting read-only synthesis inside unchanged RQ2.
+Its approved plan preserves every original workload verdict and metric, gives
+prospective results priority over descriptive curve regions, forbids a
+cross-metric aggregate, and uses only the three existing full-run summaries
+and reviews. The complete plan passed three serial independent reviews after
+adding an explicit cumulative verdict rule and exact executable input paths.
+The full synthesis is now `VALID / COMPLETE`, and its fresh result review
+recomputed every reported number with zero must-fix findings after two
+interpretation corrections. It routes to WRITE; no new RQ2 benchmark, model,
+metric, threshold, resample, or human experiment is needed first.
 
 ## Experiment History Policy
 
