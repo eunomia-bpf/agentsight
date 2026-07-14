@@ -747,6 +747,7 @@ def normalize_webshop_expert(
             "score": str(message.get("score") or reward),
         }
         if include_text:
+            fields["task_preview"] = truncate_clean(str(row.get("question") or ""), 180)
             fields["action_raw"] = truncate_clean(action, 180)
         operations.append({"value": 1, "fields": fields})
     return operations
