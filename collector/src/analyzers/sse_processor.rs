@@ -7,7 +7,7 @@ use crate::runners::EventStream;
 use async_trait::async_trait;
 use futures::stream::StreamExt;
 use serde_json::{Value, json};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
 
 use super::protocol_events::SSEProcessorEvent;
@@ -24,12 +24,22 @@ struct SSEAccumulator {
     message_id: Option<String>,
     accumulated_text: String,
     accumulated_json: String,
+    openai_reasoning: String,
+    openai_tool_calls: BTreeMap<u64, OpenAIToolCallAccumulator>,
     events: Vec<SSEEvent>,
     is_complete: bool,
     last_update: u64,
     has_message_start: bool,
     start_time: u64,
     end_time: u64,
+}
+
+#[derive(Clone, Debug, Default)]
+struct OpenAIToolCallAccumulator {
+    id: Option<String>,
+    type_name: Option<String>,
+    function_name: Option<String>,
+    function_arguments: String,
 }
 
 #[derive(Clone, Debug)]
@@ -233,6 +243,25 @@ impl SSEProcessor {
                 return Some(id_str.to_string());
             }
         }
+        for event in events {
+            if let Some(parsed_data) = &event.parsed_data
+                && let Some(id) = parsed_data.get("id").and_then(|id| id.as_str())
+            {
+                return Some(id.to_string());
+            }
+            if let Some(parsed_data) = &event.parsed_data {
+                if let Some(id) = parsed_data.get("response_id").and_then(|id| id.as_str()) {
+                    return Some(id.to_string());
+                }
+                if let Some(id) = parsed_data
+                    .get("response")
+                    .and_then(|response| response.get("id"))
+                    .and_then(|id| id.as_str())
+                {
+                    return Some(id.to_string());
+                }
+            }
+        }
         None
     }
 
@@ -256,6 +285,9 @@ impl SSEProcessor {
         if !accumulator.accumulated_text.is_empty() || !accumulator.accumulated_json.is_empty() {
             return true;
         }
+        if !accumulator.openai_reasoning.is_empty() || !accumulator.openai_tool_calls.is_empty() {
+            return true;
+        }
 
         let mut has_content_deltas = false;
         let mut has_message_start = false;
@@ -263,6 +295,15 @@ impl SSEProcessor {
 
         for event in &accumulator.events {
             if Self::sse_event_has_usage(event) {
+                return true;
+            }
+            if Self::sse_event_has_openai_delta(event) || Self::sse_event_has_terminal_finish(event)
+            {
+                return true;
+            }
+            if Self::sse_event_has_openai_response_delta(event)
+                || Self::sse_event_has_openai_response_terminal(event)
+            {
                 return true;
             }
             if let Some(event_type) = &event.event {
@@ -288,23 +329,162 @@ impl SSEProcessor {
     }
 
     fn sse_event_has_usage(event: &SSEEvent) -> bool {
-        event.parsed_data.as_ref().is_some_and(|data| {
-            data.get("usageMetadata").is_some()
-                || data.get("usage").is_some()
-                || data.get("message").and_then(|m| m.get("usage")).is_some()
-        })
+        event
+            .parsed_data
+            .as_ref()
+            .is_some_and(|data| Self::meaningful_usage(data).is_some())
     }
 
     fn sse_event_completes_stream(event: &SSEEvent) -> bool {
         event.data.as_deref() == Some("[DONE]")
             || event.parsed_data.as_ref().is_some_and(|data| {
-                data.get("usageMetadata").is_some() || data.get("usage").is_some()
+                Self::has_stream_completing_usage(data) || Self::has_openai_response_terminal(data)
             })
+    }
+
+    fn has_stream_completing_usage(data: &Value) -> bool {
+        [
+            data.get("usageMetadata"),
+            data.get("usage"),
+            data.get("response")
+                .and_then(|response| response.get("usage")),
+        ]
+        .into_iter()
+        .flatten()
+        .any(Self::usage_has_meaningful_fields)
+    }
+
+    fn meaningful_usage(data: &Value) -> Option<&Value> {
+        [
+            data.get("usageMetadata"),
+            data.get("usage"),
+            data.get("message").and_then(|m| m.get("usage")),
+            data.get("response")
+                .and_then(|response| response.get("usage")),
+        ]
+        .into_iter()
+        .flatten()
+        .find(|usage| Self::usage_has_meaningful_fields(usage))
+    }
+
+    fn usage_has_meaningful_fields(usage: &Value) -> bool {
+        usage
+            .as_object()
+            .is_some_and(|fields| fields.values().any(|value| !value.is_null()))
+    }
+
+    fn sse_event_has_openai_delta(event: &SSEEvent) -> bool {
+        event
+            .parsed_data
+            .as_ref()
+            .and_then(|data| data.get("choices"))
+            .and_then(|choices| choices.as_array())
+            .is_some_and(|choices| {
+                choices.iter().any(|choice| {
+                    choice
+                        .get("delta")
+                        .and_then(|delta| delta.as_object())
+                        .is_some_and(|delta| {
+                            delta
+                                .get("content")
+                                .and_then(|v| v.as_str())
+                                .is_some_and(|v| !v.is_empty())
+                                || delta
+                                    .get("tool_calls")
+                                    .and_then(|v| v.as_array())
+                                    .is_some_and(|v| !v.is_empty())
+                                || delta.get("function_call").is_some()
+                                || Self::openai_reasoning_delta(delta).is_some()
+                        })
+                })
+            })
+    }
+
+    fn sse_event_has_openai_response_delta(event: &SSEEvent) -> bool {
+        event
+            .parsed_data
+            .as_ref()
+            .is_some_and(Self::has_openai_response_delta)
+    }
+
+    fn has_openai_response_delta(data: &Value) -> bool {
+        matches!(
+            Self::openai_response_event_type(data),
+            Some(
+                "response.output_text.delta"
+                    | "response.reasoning_text.delta"
+                    | "response.reasoning_summary_text.delta"
+                    | "response.function_call_arguments.delta"
+                    | "response.function_call_arguments.done"
+                    | "response.output_item.added"
+                    | "response.output_item.done"
+            )
+        )
+    }
+
+    fn sse_event_has_terminal_finish(event: &SSEEvent) -> bool {
+        event
+            .parsed_data
+            .as_ref()
+            .is_some_and(Self::has_terminal_finish_reason)
+    }
+
+    fn has_terminal_finish_reason(data: &Value) -> bool {
+        data.get("choices")
+            .and_then(|choices| choices.as_array())
+            .is_some_and(|choices| {
+                choices.iter().any(|choice| {
+                    choice
+                        .get("finish_reason")
+                        .is_some_and(|reason| !reason.is_null())
+                })
+            })
+    }
+
+    fn sse_event_has_openai_response_terminal(event: &SSEEvent) -> bool {
+        event
+            .parsed_data
+            .as_ref()
+            .is_some_and(Self::has_openai_response_terminal)
+    }
+
+    fn has_openai_response_terminal(data: &Value) -> bool {
+        matches!(
+            Self::openai_response_event_type(data),
+            Some(
+                "response.completed"
+                    | "response.failed"
+                    | "response.incomplete"
+                    | "response.cancelled"
+            )
+        )
+    }
+
+    fn openai_response_event_type(data: &Value) -> Option<&str> {
+        data.get("type")
+            .and_then(|value| value.as_str())
+            .filter(|value| value.starts_with("response."))
+    }
+
+    fn openai_reasoning_delta(delta: &serde_json::Map<String, Value>) -> Option<&str> {
+        [
+            "reasoning_content",
+            "reasoning",
+            "reasoning_text",
+            "thinking",
+        ]
+        .into_iter()
+        .find_map(|key| delta.get(key).and_then(|v| v.as_str()))
+        .filter(|value| !value.is_empty())
     }
 
     fn accumulate_content(accumulator: &mut SSEAccumulator, events: &[SSEEvent]) {
         for event in events {
             accumulator.events.push(event.clone());
+
+            if accumulator.message_id.is_none() {
+                accumulator.message_id = Self::extract_message_id(std::slice::from_ref(event));
+            }
 
             if let Some(event_type) = &event.event {
                 match event_type.as_str() {
@@ -340,6 +520,157 @@ impl SSEProcessor {
                     _ => {}
                 }
             }
+            if let Some(parsed_data) = &event.parsed_data {
+                Self::accumulate_openai_content(accumulator, parsed_data);
+                Self::accumulate_openai_responses_content(accumulator, parsed_data);
+            }
+        }
+    }
+
+    fn accumulate_openai_content(accumulator: &mut SSEAccumulator, data: &Value) {
+        let Some(choices) = data.get("choices").and_then(|choices| choices.as_array()) else {
+            return;
+        };
+        for choice in choices {
+            let Some(delta) = choice.get("delta").and_then(|delta| delta.as_object()) else {
+                continue;
+            };
+            if let Some(content) = delta.get("content").and_then(|v| v.as_str()) {
+                accumulator.accumulated_text.push_str(content);
+            }
+            if let Some(reasoning) = Self::openai_reasoning_delta(delta) {
+                accumulator.openai_reasoning.push_str(reasoning);
+            }
+            if let Some(tool_calls) = delta.get("tool_calls").and_then(|v| v.as_array()) {
+                for (fallback_index, tool_call) in tool_calls.iter().enumerate() {
+                    Self::accumulate_openai_tool_call(
+                        accumulator,
+                        tool_call,
+                        fallback_index as u64,
+                    );
+                }
+            }
+            if let Some(function_call) = delta.get("function_call") {
+                Self::accumulate_openai_function_call(accumulator, function_call);
+            }
+        }
+    }
+
+    fn accumulate_openai_responses_content(accumulator: &mut SSEAccumulator, data: &Value) {
+        match Self::openai_response_event_type(data) {
+            Some("response.output_text.delta") => {
+                if let Some(delta) = data.get("delta").and_then(|value| value.as_str()) {
+                    accumulator.accumulated_text.push_str(delta);
+                }
+            }
+            Some("response.reasoning_text.delta" | "response.reasoning_summary_text.delta") => {
+                if let Some(delta) = data.get("delta").and_then(|value| value.as_str()) {
+                    accumulator.openai_reasoning.push_str(delta);
+                }
+            }
+            Some("response.function_call_arguments.delta") => {
+                Self::accumulate_openai_response_function_arguments(accumulator, data, false);
+            }
+            Some("response.function_call_arguments.done") => {
+                Self::accumulate_openai_response_function_arguments(accumulator, data, true);
+            }
+            Some("response.output_item.added" | "response.output_item.done") => {
+                Self::accumulate_openai_response_item(accumulator, data);
+            }
+            _ => {}
+        }
+    }
+
+    fn accumulate_openai_response_item(accumulator: &mut SSEAccumulator, data: &Value) {
+        let Some(item) = data.get("item").and_then(|value| value.as_object()) else {
+            return;
+        };
+        if item.get("type").and_then(|value| value.as_str()) != Some("function_call") {
+            return;
+        }
+        let index = data
+            .get("output_index")
+            .and_then(|value| value.as_u64())
+            .unwrap_or(accumulator.openai_tool_calls.len() as u64);
+        let entry = accumulator.openai_tool_calls.entry(index).or_default();
+        entry
+            .type_name
+            .get_or_insert_with(|| "function".to_string());
+        if let Some(id) = item.get("id").and_then(|value| value.as_str()) {
+            entry.id = Some(id.to_string());
+        } else if let Some(id) = item.get("call_id").and_then(|value| value.as_str()) {
+            entry.id = Some(id.to_string());
+        }
+        if let Some(name) = item.get("name").and_then(|value| value.as_str()) {
+            entry.function_name = Some(name.to_string());
+        }
+        if let Some(arguments) = item.get("arguments").and_then(|value| value.as_str()) {
+            entry.function_arguments = arguments.to_string();
+        }
+    }
+
+    fn accumulate_openai_response_function_arguments(
+        accumulator: &mut SSEAccumulator,
+        data: &Value,
+        replace: bool,
+    ) {
+        let index = data
+            .get("output_index")
+            .and_then(|value| value.as_u64())
+            .unwrap_or(0);
+        let entry = accumulator.openai_tool_calls.entry(index).or_default();
+        entry
+            .type_name
+            .get_or_insert_with(|| "function".to_string());
+        if let Some(id) = data.get("item_id").and_then(|value| value.as_str()) {
+            entry.id = Some(id.to_string());
+        }
+        let payload_key = if replace { "arguments" } else { "delta" };
+        if let Some(arguments) = data.get(payload_key).and_then(|value| value.as_str()) {
+            if replace {
+                entry.function_arguments = arguments.to_string();
+            } else {
+                entry.function_arguments.push_str(arguments);
+            }
+        }
+    }
+
+    fn accumulate_openai_tool_call(
+        accumulator: &mut SSEAccumulator,
+        tool_call: &Value,
+        fallback_index: u64,
+    ) {
+        let index = tool_call
+            .get("index")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(fallback_index);
+        let entry = accumulator.openai_tool_calls.entry(index).or_default();
+        if let Some(id) = tool_call.get("id").and_then(|v| v.as_str()) {
+            entry.id = Some(id.to_string());
+        }
+        if let Some(type_name) = tool_call.get("type").and_then(|v| v.as_str()) {
+            entry.type_name = Some(type_name.to_string());
+        }
+        if let Some(function) = tool_call.get("function").and_then(|v| v.as_object()) {
+            if let Some(name) = function.get("name").and_then(|v| v.as_str()) {
+                entry.function_name = Some(name.to_string());
+            }
+            if let Some(arguments) = function.get("arguments").and_then(|v| v.as_str()) {
+                entry.function_arguments.push_str(arguments);
+            }
+        }
+    }
+
+    fn accumulate_openai_function_call(accumulator: &mut SSEAccumulator, function_call: &Value) {
+        let entry = accumulator.openai_tool_calls.entry(0).or_default();
+        entry
+            .type_name
+            .get_or_insert_with(|| "function".to_string());
+        if let Some(name) = function_call.get("name").and_then(|v| v.as_str()) {
+            entry.function_name = Some(name.to_string());
+        }
+        if let Some(arguments) = function_call.get("arguments").and_then(|v| v.as_str()) {
+            entry.function_arguments.push_str(arguments);
         }
     }
 
@@ -348,15 +679,7 @@ impl SSEProcessor {
         accumulator: &SSEAccumulator,
         original_event: &Event,
     ) -> Event {
-        let json_content = if !accumulator.accumulated_json.is_empty() {
-            match serde_json::from_str::<Value>(&accumulator.accumulated_json) {
-                Ok(parsed_json) => serde_json::to_string_pretty(&parsed_json)
-                    .unwrap_or(accumulator.accumulated_json.clone()),
-                Err(_) => accumulator.accumulated_json.clone(),
-            }
-        } else {
-            String::new()
-        };
+        let json_content = Self::merged_json_content(accumulator);
 
         let text_content = accumulator.accumulated_text.clone();
 
@@ -418,6 +741,68 @@ impl SSEProcessor {
             sse_events: sse_events_json,
         }
         .to_event(original_event)
+    }
+
+    fn merged_json_content(accumulator: &SSEAccumulator) -> String {
+        let has_openai_json =
+            !accumulator.openai_reasoning.is_empty() || !accumulator.openai_tool_calls.is_empty();
+        if !has_openai_json {
+            return Self::formatted_accumulated_json(&accumulator.accumulated_json);
+        }
+
+        let mut merged = serde_json::Map::new();
+        if !accumulator.accumulated_json.is_empty() {
+            match serde_json::from_str::<Value>(&accumulator.accumulated_json) {
+                Ok(parsed_json) => {
+                    merged.insert("partial_json".to_string(), parsed_json);
+                }
+                Err(_) => {
+                    merged.insert(
+                        "partial_json".to_string(),
+                        Value::String(accumulator.accumulated_json.clone()),
+                    );
+                }
+            }
+        }
+        if !accumulator.openai_reasoning.is_empty() {
+            merged.insert(
+                "reasoning_content".to_string(),
+                Value::String(accumulator.openai_reasoning.clone()),
+            );
+        }
+        if !accumulator.openai_tool_calls.is_empty() {
+            let tool_calls = accumulator
+                .openai_tool_calls
+                .iter()
+                .map(|(index, tool_call)| {
+                    json!({
+                        "index": index,
+                        "id": tool_call.id,
+                        "type": tool_call.type_name,
+                        "function": {
+                            "name": tool_call.function_name,
+                            "arguments": tool_call.function_arguments,
+                        }
+                    })
+                })
+                .collect::<Vec<_>>();
+            merged.insert("tool_calls".to_string(), Value::Array(tool_calls));
+        }
+        if merged.is_empty() {
+            String::new()
+        } else {
+            serde_json::to_string_pretty(&Value::Object(merged)).unwrap_or_default()
+        }
+    }
+
+    fn formatted_accumulated_json(json_content: &str) -> String {
+        if json_content.is_empty() {
+            String::new()
+        } else if let Ok(parsed_json) = serde_json::from_str::<Value>(json_content) {
+            serde_json::to_string_pretty(&parsed_json).unwrap_or_else(|_| json_content.to_string())
+        } else {
+            json_content.to_string()
+        }
     }
 
     fn event_host(event: &Event) -> Option<String> {
@@ -548,6 +933,8 @@ impl Analyzer for SSEProcessor {
                         message_id: None,
                         accumulated_text: String::new(),
                         accumulated_json: String::new(),
+                        openai_reasoning: String::new(),
+                        openai_tool_calls: BTreeMap::new(),
                         events: Vec::new(),
                         is_complete: false,
                         last_update: event.timestamp,
@@ -561,7 +948,10 @@ impl Analyzer for SSEProcessor {
 
                 Self::accumulate_content(accumulator, &sse_events);
 
-                if Self::is_sse_complete(accumulator) {
+                let terminal_finish_completes_http_body = !allow_json_fragment
+                    && sse_events.iter().any(Self::sse_event_has_terminal_finish);
+
+                if Self::is_sse_complete(accumulator) || terminal_finish_completes_http_body {
                     let result_event = if Self::has_meaningful_content(accumulator) {
                         Some(Self::create_merged_event(
                             final_connection_id.clone(),
