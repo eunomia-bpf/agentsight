@@ -493,6 +493,42 @@ impl MaterializedView {
         pid: u32,
         confidence: f32,
     ) -> ViewResult<()> {
+        if let Some(openai_json) = event
+            .attributes
+            .get("json_content")
+            .and_then(Value::as_str)
+            .and_then(parse_json_str)
+            && let Some(tool_calls) = openai_json.get("tool_calls").and_then(Value::as_array)
+        {
+            for (idx, tool_call) in tool_calls.iter().enumerate() {
+                let function = tool_call.get("function").unwrap_or(&Value::Null);
+                let name = function.get("name").and_then(Value::as_str).unwrap_or("?");
+                let tool_call_id = tool_call.get("id").and_then(Value::as_str);
+                let arguments = function.get("arguments").and_then(Value::as_str);
+                let tool_id = tool_call_id
+                    .map(str::to_string)
+                    .unwrap_or_else(|| format!("openai-tool-{idx}"));
+                self.emit_tool_call(ToolCallRow {
+                    id: format!("tool-{llm_call_id}-{tool_id}"),
+                    session_id: None,
+                    conversation_id: Some(format!("conv-{llm_call_id}")),
+                    timestamp_ms: event.timestamp_ms,
+                    tool_name: Some(name.to_string()),
+                    tool_call_id: tool_call_id.map(str::to_string),
+                    start_timestamp_ms: Some(event.timestamp_ms),
+                    end_timestamp_ms: None,
+                    duration_ms: None,
+                    status: Some("observed".to_string()),
+                    input: parse_optional_json(arguments),
+                    output: Value::Null,
+                    related_pid: Some(pid),
+                    related_event_id: Some(event.event_id.clone()),
+                    view_source: "view".to_string(),
+                    confidence: Some(confidence),
+                })?;
+            }
+        }
+
         let Some(events) = event.attributes.get("sse_events").and_then(Value::as_array) else {
             return Ok(());
         };
