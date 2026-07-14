@@ -177,19 +177,19 @@ A third variant would be target retuning rather than stronger external evidence.
    and approved fixed mappings on held-out agents and task families, including coverage,
    stability, and downstream attribution sensitivity. Structured phase mapping
    alone cannot authorize every tag backend.
-4. **RQ4 — profiling cost.** Measure integrated cold and warm end-to-end cost,
-   including parsing, tag derivation, stack construction, folding, memory,
-   output size, repeated queries, and clearly separated capture cost.
+4. **RQ4 — profiling cost.** Step 0005 supplies the paper-level construction
+   answer: current `agentpprof 0.2.37` builds the 27,765-operation semantic
+   union in 1.17 s median with 464.49 MiB maximum RSS, while R160 separately
+   supports the predecessor shared-cache mechanism. Do not reopen another
+   cost/cache variant.
 
-Step 0004 completed WRITE and whole-paper REVIEW. REVIEW selected one complete
-RQ4 experiment because its real inputs, current `agentpprof` binary, profile
-specs, cost runner, and prior bounded cache evidence already exist, whereas construct-valid RQ1
-and RQ3 experiments currently require new independent oracles. The RQ4 run
-uses the four existing public workloads plus their union for a natural scale
-curve and reuses R160's completed predecessor-CLI clean/cached pair only as
-cache-mechanism evidence. It does not recreate private sessions or rerun an LLM
-server. It must not bundle RQs, rerun all 76 historical specifications, or add
-a new benchmark or statistical framework.
+Step 0005 completed EXPERIMENT, WRITE, and whole-paper REVIEW for RQ4. REVIEW
+selected one RQ3 held-out human-boundary fidelity experiment next because it
+can reuse OSWorld-Human's official grouped-action annotations, the fixed R297
+boundary features and runner, and the current AgentProf profile path. It tests
+one target-blind boundary tagger against action-change, phase-change, and
+always-boundary controls, plus grouped-resource preservation. It must not add a
+dataset, ontology, tagger family, or RQ2/RQ4 variant.
 
 ## Search Policy And Reopen Conditions
 

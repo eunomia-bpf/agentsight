@@ -219,25 +219,24 @@ negative development results into the paper's story.
 4. Native execution hierarchy is sufficient for the relevant decisions.
 5. Different signal shapes and decisions favor different projections.
 
-The strongest next hypothesis is that a target-blind semantic operation stack
-concentrates independently annotated real problems across many trajectories
-more effectively than flat, per-session, native, or raw-action grouping and
-therefore reduces analyst inspection. This is the original positive
-localization prediction, not a replacement RQ or new named abstraction.
+The strongest next hypothesis is that a fixed target-blind boundary tagger
+recovers independently annotated human action-group boundaries on unseen tasks
+and preserves the corresponding grouped resource aggregates better than simple
+visible-field boundary rules. This advances the original positive RQ3 without
+changing the paper's thesis, four questions, or two-object model.
 
 ### Next Decisive Evidence
 
 The user has restored the untouched submodule as the canonical story source.
-The next evidence is one complete RQ2 hidden-annotation localization experiment
-using all 220 officially annotated real failed executions in TraceElephant.
-Fix role/intent-to-response/status propagation and ranking without responsible-
-component or decisive-step targets; compare flat same-information,
-per-session, native, independent-step, raw-action, and semantic grouping; keep
-hidden-label groupings as oracle upper bounds; and report decisive-step
-localization and inspection work over every planned failure. The completed
-HINTBench result is valid but inconclusive against raw action and is closed to
-retuning. It changes neither the original narrative nor the fixed positive RQ2
-hypothesis.
+RQ2 now has a cumulative positive paper-level answer, and RQ4 has a complete
+positive construction-cost answer; both are closed to same-signal variants.
+The next evidence is one complete RQ3 held-out human-boundary fidelity
+experiment that reuses OSWorld-Human's official grouped-action annotations,
+the fixed R297 boundary features and runner, and the current AgentProf profile
+path. It tests boundary precision/recall/F1 and grouped-resource preservation
+against action-change, phase-change, and always-boundary controls without a new
+dataset, ontology, or tagger family. This is an evidence-frontier update, not a
+narrative evolution or change to the broader four-part RQ3.
 
 ## Narrative Evolution — Accepted Changes Only
 

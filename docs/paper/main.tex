@@ -237,6 +237,10 @@ AP rises from 0.556 to 0.588 on AgentProcessBench, while inspection work falls
 from 46.29\% to 41.57\% at 80\% recall on HINTBench and from 46.64\% to
 19.55\% at 50\% recall on TraceElephant.
 % 在三个完整公开基准共 27,346 个带标签步骤上，目标盲语义 profile 相比 raw action 提高了问题集中度：AgentProcessBench 的 AP 从 0.556 提升到 0.588；HINTBench 在 80% 召回率下的检查工作量从 46.29% 降至 41.57%；TraceElephant 在 50% 召回率下从 46.64% 降至 19.55%。
+On the exact union of four public operation workloads, \sys builds a
+27{,}765-operation semantic profile in 1.17\,s with 464.5\,MiB maximum RSS,
+adding 18.2\% time and 1.3\% memory over a raw-action cost control.
+% 在四个公开 operation workload 的精确并集上，\sys 用 1.17 秒构建包含 27,765 个 operation 的语义 profile，最大 RSS 为 464.5 MiB；相比 raw-action 成本对照，时间和内存分别增加 18.2% 和 1.3%。
 
 %% ¶7: Contributions
 This paper makes three contributions:
@@ -725,21 +729,54 @@ original additive weights.
 % \sys 是离线事后分析器，对智能体运行时不增加任何开销。
 The profiling cost is the time and resources spent after the session ends.
 % 分析开销是会话结束后花费的时间和资源。
-Each profiling run chooses a stack-field list, a predicate, a weight function, and ranking criteria, then executes the full pipeline (parse, enrich, construct stacks, fold) on the input operations.
-% 每次 profiling 运行选择栈字段列表、谓词、权重函数和排名标准，然后在输入 operation 上执行完整管线（解析、丰富、构造栈、折叠）。
-Across 76 configurations, median end-to-end time is 1.6\,s (p95 2.8\,s, max 4.3\,s).
-% 中位端到端时间为每次运行 1.6 秒（p95 2.8 秒，最大 4.3 秒）。
-The slowest runs process views with over 600 unique stacks, while runs that vary only ranking criteria or stack depth all complete within 1.6\,s.
-% 最慢的运行处理超过 600 个唯一栈的视图，而仅改变排名标准或栈深度的运行全部在 1.6 秒内完成。
+We measure release \texttt{agentpprof 0.2.37} on four complete existing public
+operation workloads and their exact union. For each input, we run a fixed
+semantic hierarchy and an identical-input raw-action cost control three times;
+both execute the full parse, stack-construction, folding, and serialization
+path.
+% 我们在四个完整的现有公开 operation workload 及其精确并集上测量 release \texttt{agentpprof 0.2.37}。对每个输入，我们分别运行固定的语义层次和输入相同的 raw-action 成本对照三次；两者都执行完整的解析、栈构造、折叠和序列化路径。
 
-Intent attribution adds a one-time cost for new prompts.
-% 意图归因对新提示词增加一次性开销。
-Of 118{,}021 tag requests on 325 real trajectories, 70\% are cache hits (zero cost), and the remaining 35{,}136 new calls complete at p95 latency of 31\,ms per tag using a local 3B-parameter model.
-% 在 325 个真实会话的 118,021 个标注请求中，70\% 为缓存命中（零开销），其余 35,136 个新调用使用本地 3B 参数模型以 p95 延迟 31 毫秒/标签完成。
-Grammar-constrained decoding ensures 100\% syntax validity (2{,}700/2{,}700 test tags).
-% 语法约束解码确保 100\% 语法有效性（2,700/2,700 测试标签）。
-Because tags are cached, re-profiling the same trajectories with different stack fields or predicates incurs no additional LLM calls.
-% 因为标签被缓存，用不同栈字段或谓词重新分析相同会话不产生额外 LLM 调用。
+\begin{table}[t]
+\centering\small
+\caption{RQ4 profile-construction cost. Times are three-run medians;
+RSS is the largest observed semantic-profile peak.}
+\label{tab:rq4-cost}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Workload & Ops & Sem. (s) & Raw (s) & RSS (MiB) \\
+\midrule
+AgentReward & 729 & 0.04 & 0.03 & 19.0 \\
+Satraj & 4{,}285 & 0.17 & 0.14 & 73.5 \\
+OSWorld & 6{,}010 & 0.25 & 0.21 & 108.4 \\
+AgentNet & 16{,}741 & 0.71 & 0.58 & 278.4 \\
+Union & 27{,}765 & 1.17 & 0.99 & 464.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Both time curves are monotonic across the five natural input sizes.
+The semantic curve has a descriptive slope of 0.0422\,ms per operation
+($R^2=0.9997$), reaching 23{,}731 operations/s on the union.
+% 两条时间曲线在五个自然输入规模上均单调增长。语义曲线的描述性斜率为每个 operation 0.0422 毫秒（R 方为 0.9997），在并集上达到每秒 23,731 个 operation。
+At that largest input, semantic construction adds 180\,ms (18.2\%) and
+6.0\,MiB maximum RSS (1.3\%) over raw action.
+% 在最大输入上，语义构建相比 raw action 增加 180 毫秒（18.2%）和 6.0 MiB 最大 RSS（1.3%）。
+
+Field derivation is separately cacheable.
+% 字段派生可以单独缓存。
+In one identical-input predecessor AgentFlame pair over eight real Codex
+sessions, the clean construction made 60 local-model calls and took 1.64\,s;
+the cached reconstruction obtained 76/76 hits, made no model calls, and took
+0.11\,s.
+% 在前代 AgentFlame 对八个真实 Codex 会话的一组同输入比较中，首次构建进行 60 次本地模型调用并耗时 1.64 秒；缓存重建获得 76/76 次命中、不再调用模型，并耗时 0.11 秒。
+This pair supports the shared tag-cache mechanism's elimination of repeated
+field-derivation calls; it is not a repeated timing estimate for the current
+\texttt{agentpprof} binary.
+% 这组比较支持共享 tag cache 消除重复字段派生调用的机制；它不是当前 \texttt{agentpprof} 二进制的重复性能估计。
+Together, these results answer RQ4: profile construction is practical and
+predictable over the tested range, and cached derivation avoids repeated model
+work.
+% 这些结果共同回答 RQ4：在测试范围内，profile 构建开销实用且可预测，缓存派生避免了重复模型工作。
 
 
 %% ===================================================================
@@ -778,6 +815,10 @@ Across AgentProcessBench, HINTBench, and TraceElephant, target-blind operation
 stacks improve annotated-problem concentration over raw-action inspection at
 the workloads' reported operating points.
 % 在 AgentProcessBench、HINTBench 和 TraceElephant 上，目标盲 operation stack 在各 workload 报告的工作点上相比 raw-action 检查提高了标注问题的集中度。
+On 27{,}765 public operations, the release profiler builds the complete
+semantic profile in 1.17\,s with 464.5\,MiB maximum RSS, adding only 18.2\%
+time and 1.3\% memory over raw action.
+% 在 27,765 个公开 operation 上，release profiler 用 1.17 秒构建完整语义 profile，最大 RSS 为 464.5 MiB，相比 raw action 仅增加 18.2% 时间和 1.3% 内存。
 Together, these results establish cross-trajectory semantic profiling as a
 complement to run-local debugging and tracing.
 % 这些结果共同确立了跨轨迹语义 profiling 对单次运行 debugging 和 tracing 的补充价值。

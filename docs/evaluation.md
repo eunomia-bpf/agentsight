@@ -21,7 +21,7 @@ later explicit user instruction may change the four author-fixed RQs.
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | Compare flat, source-native, and one fixed semantic profile against independent tool/span/process resource identities on real traces. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed paper-level answer.** AgentProcessBench provides significant target-blind AP concentration beyond matched refinement; HINTBench and TraceElephant add favorable inspection regions on independent public workloads. High-recall tail efficiency depends on ranking and tie structure. Do not open another RQ2 score or benchmark variant; WRITE the cumulative positive answer and let REVIEW select another fixed RQ. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | Evaluate one approved fixed tagger or mapping on held-out real families with independent labels and downstream attribution sensitivity. |
-| RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. WRITE these results with the binary boundary explicit. |
+| RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
 ## Admitted RQ1 Mechanism Evidence
 
@@ -222,12 +222,14 @@ curves. The paper-level RQ2 correspondence/concentration question now has an
 evidence-backed positive answer; another tag, score, cutoff, or benchmark
 variant has lower paper value than testing a different fixed RQ.
 
-Step 0005 RQ4 is complete and independently reviewed. Transition to WRITE to
-insert the current-binary scale curve and the strictly bounded predecessor
-cache-mechanism result. Do not open another cost variant, rerun the LLM path, or
-expand to all 76 specs. After WRITE and whole-paper REVIEW, choose the next
-fixed RQ based on the remaining paper-level evidence gap; RQ1 still requires an
-independent responsibility oracle, while RQ3 requires same-construct tag truth.
+Step 0005 RQ4 completed EXPERIMENT, WRITE, and whole-paper REVIEW. REVIEW
+selected RQ3 held-out human-boundary fidelity next because OSWorld-Human's
+official grouped-action annotations, the fixed R297 boundary features/runner,
+and the current profiler path already exist. Test one target-blind boundary
+tagger against action-change, phase-change, and always-boundary controls, and
+measure both boundary fidelity and grouped-resource preservation. Do not add a
+dataset, ontology, tagger family, RQ2 variant, or RQ4 variant. RQ1's independent
+responsibility oracle remains the later fixed-RQ evidence need.
 
 ## Experiment History Policy
 
