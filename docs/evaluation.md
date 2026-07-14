@@ -192,6 +192,35 @@ reviews, preflight, results, and independent recomputation are under
 with machine-readable results under
 `.agentsight/experiments/rq4-cost-scaling-v1/`.
 
+## Admitted RQ3 Evidence And Boundaries
+
+Step 0006 completed the fixed OSWorld-Human human-action-boundary experiment
+without adding a dataset, tagger family, feature design, or profiler mechanism.
+The run reused all 287 eligible task-instance sessions, 3,978 unit-weight
+operations, 3,691 adjacent pairs, and 2,042 official human groups. A fixed
+R297 Bernoulli boundary tagger was trained and evaluated with five
+session-blocked out-of-fold splits; each session supplied held-out predictions
+exactly once. The tagger reaches 0.7388 micro boundary F1, compared with 0.6445
+for the strongest simple control (`always_boundary`), an absolute gain of
+0.0943. It exceeds that control in every fold.
+
+The predicted groups reach 0.8160 operation-weighted B-cubed F1 against the
+human partition, compared with 0.6784 for the strongest simple control, an
+absolute gain of 0.1376. Release `agentpprof 0.2.37` consumes the learned group
+field through the real operation-stack path and conserves all 3,978 operation
+units in 2,249 stacks. An independent reviewer reconstructed every confusion
+count, all four partitions, fold assignment and isolation, predictions, and
+the complete stack-to-weight map from raw artifacts with zero mismatches.
+
+This evidence supports one supervised boundary-identity component of RQ3 on
+held-out OSWorld-Human task-instance sessions. It does not by itself establish
+unsupervised tagging, cross-family generalization, or the paper-level task,
+phase, and action identity components. Complete plans, three serial plan
+reviews, preflight, full results, and independent recomputation are under
+[`loop-001-rq3-osworld-boundary-fidelity`](tmp/build-and-evaluate/step-0006-20260714T031808-0700/01-experiment-gate/loop-001-rq3-osworld-boundary-fidelity/),
+with raw machine artifacts under
+`.agentsight/experiments/rq3-osworld-boundary-fidelity-v1/`.
+
 ## Requirements For The Next Experiment
 
 The next experiment follows one bounded literature/source screen and must
@@ -222,14 +251,16 @@ curves. The paper-level RQ2 correspondence/concentration question now has an
 evidence-backed positive answer; another tag, score, cutoff, or benchmark
 variant has lower paper value than testing a different fixed RQ.
 
-Step 0005 RQ4 completed EXPERIMENT, WRITE, and whole-paper REVIEW. REVIEW
-selected RQ3 held-out human-boundary fidelity next because OSWorld-Human's
-official grouped-action annotations, the fixed R297 boundary features/runner,
-and the current profiler path already exist. Test one target-blind boundary
-tagger against action-change, phase-change, and always-boundary controls, and
-measure both boundary fidelity and grouped-resource preservation. Do not add a
-dataset, ontology, tagger family, RQ2 variant, or RQ4 variant. RQ1's independent
-responsibility oracle remains the later fixed-RQ evidence need.
+Step 0006 completed that selected RQ3 held-out human-boundary experiment. The
+fixed tagger beats the strongest simple control on both predeclared outcomes,
+the full current-profiler path conserves all mass, and the independent result
+review and EXPERIMENT outer audit pass with no must-fix. The immediate next
+state is WRITE: add this positive boundary evidence to the existing RQ3
+subsection without changing the thesis, four fixed RQs, or canonical story.
+Whole-paper REVIEW must then decide whether the next decisive experiment is a
+reused task/phase/action identity result for the remaining RQ3 components or
+the later RQ1 independent-responsibility oracle. Do not reopen RQ2/RQ4 or add a
+second boundary construction.
 
 ## Experiment History Policy
 
