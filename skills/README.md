@@ -11,6 +11,7 @@ for a shareable skills pack, not AgentSight runtime code.
 | `agentpprof-flamegraph` | Generate semantic flamegraphs to visualize where token budget went |
 | `agent-interaction-insights` | Analyze transcripts to reduce corrections, improve trust, stop loops |
 | `agentsight-system-friction` | Analyze AgentSight system data for resource/retry/cleanup improvements |
+| `agentsight-testing` | Validate AgentSight changes with automated tests, TUI/UI checks, and real agent CLIs |
 
 ## Design Principles
 
