@@ -85,9 +85,10 @@ OPERATION STACK QUERY WORKFLOW:
 
   --induce-operation-stack derives a recursive operation-stack path before
   folding. The user supplies predicates and optional query terms, not a stack
-  field chain; adjacent operation boundaries are scored from visible evidence
-  such as action, effect, process, prompt tags, or an explicitly allowed
-  session field. Evidence fields explain a boundary; they are not stack levels.
+  field chain; adjacent operation boundaries are selected by mean normalized
+  information gain over eligible visible fields such as action, effect,
+  process, prompt tags, or an explicitly allowed session field. Evidence fields
+  explain a boundary; they are not stack levels.
 "#;
 
 #[derive(Parser)]
@@ -153,7 +154,7 @@ struct Cli {
     /// Maximum depth for --induce-operation-stack.
     #[arg(long = "induce-max-depth")]
     induce_max_depth: Option<usize>,
-    /// Query terms used by --induce-operation-stack to prefer relevant visible splits.
+    /// Query terms used only to break exact information-gain ties between visible splits.
     #[arg(long = "induce-query-term", value_name = "TERM")]
     induce_query_terms: Vec<String>,
     /// Write byte-stable profiles by replacing output timestamps with fixed values.

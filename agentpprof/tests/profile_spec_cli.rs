@@ -185,13 +185,13 @@ fn cli_induces_operation_stack_without_user_field_order() {
         serde_json::from_str(&fs::read_to_string(&output_path).unwrap()).unwrap();
     let stacks = profile_json["profile"]["stacks"].as_object().unwrap();
     assert!(!stacks.is_empty());
-    let stack_depths = stacks
-        .keys()
-        .map(|stack| stack.split(';').count())
-        .collect::<std::collections::BTreeSet<_>>();
-    assert!(
-        stack_depths.len() > 1,
-        "recursive induction should stop per segment and produce ragged depths, got {stack_depths:?}"
+    assert!(stacks.keys().all(|stack| stack.split(';').count() <= 4));
+    assert_eq!(
+        stacks
+            .values()
+            .map(|weight| weight.as_u64().unwrap())
+            .sum::<u64>(),
+        18
     );
     assert!(stacks.keys().all(|stack| {
         stack
@@ -211,11 +211,15 @@ fn cli_induces_operation_stack_without_user_field_order() {
     let report = &profile_json["profile"]["operation_stack_induction"];
     assert_eq!(
         report["policy"],
-        "query-conditioned-recursive-boundary-operation-stack-induction"
+        "recursive-information-gain-operation-stack-induction"
     );
     assert_eq!(
         report["objective"],
-        "recursive boundary segmentation over operations; fields are evidence, not stack levels"
+        "mean resource-weighted normalized information gain minus a fixed complexity penalty"
+    );
+    assert_eq!(
+        report["complexity_penalty"],
+        "ln(node_operation_count)/(2*node_operation_count)"
     );
     assert_eq!(report["derived_stack_field"], "operation");
     assert!(
@@ -230,14 +234,26 @@ fn cli_induces_operation_stack_without_user_field_order() {
             .as_array()
             .unwrap()
             .iter()
-            .all(|decision| decision["selected_score"]["semantic_shift"]
-                .as_f64()
-                .unwrap()
-                > 0.0
-                && !decision["selected_score"]["changed_fields"]
-                    .as_array()
+            .all(
+                |decision| decision["selected_score"]["normalized_information_gain"]
+                    .as_f64()
                     .unwrap()
-                    .is_empty())
+                    > 0.0
+                    && decision["selected_score"]["score"].as_f64().unwrap()
+                        > decision["selected_score"]["complexity_penalty"]
+                            .as_f64()
+                            .unwrap()
+                    && decision["selected_score"]["accepted_margin"]
+                        .as_f64()
+                        .unwrap()
+                        > 0.0
+                    && decision["selected_score"]["left_label"]
+                        != decision["selected_score"]["right_label"]
+                    && !decision["selected_score"]["changed_fields"]
+                        .as_array()
+                        .unwrap()
+                        .is_empty()
+            )
     );
     let selected = report["selected_source_fields"].as_array().unwrap();
     assert_eq!(
@@ -262,11 +278,22 @@ fn cli_induces_operation_stack_without_user_field_order() {
                 | "group_pattern"
         )
     }));
-    assert!(stacks.keys().all(|stack| {
-        !stack.contains("repeat_state=")
-            && !stack.contains("repeat_signal=")
-            && !stack.contains("action=")
-    }));
+    assert!(
+        report["split_decisions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|decision| {
+                decision["selected_score"]["left_label"]
+                    .as_str()
+                    .unwrap()
+                    .contains('=')
+                    && decision["selected_score"]["right_label"]
+                        .as_str()
+                        .unwrap()
+                        .contains('=')
+            })
+    );
     assert!(
         report["split_decisions"].as_array().unwrap().iter().all(
             |decision| decision["boundary_id"].as_str().unwrap().starts_with('b')

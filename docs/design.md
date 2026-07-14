@@ -114,6 +114,62 @@ recent negative RQ2 result shows that its flattened leaves are not a generally
 successful failure localizer on AgentRx or TELBench. The backend must not be
 confused with the operation-stack abstraction as a whole.
 
+The current implementation still combines information gain, semantic shift,
+query overlap, balance, coverage, label quality, and several penalties with
+fixed coefficients. Step 0017 replaces that heuristic mixture with one
+resource-weighted normalized information-gain objective; this is an algorithm
+detail change and does not change the thesis, the two core abstractions, or the
+four RQs.
+
+For a contiguous interval $I$, eligible visible field $f$, and candidate cut
+$b$, let $H_w(f,I)$ be the categorical entropy of $f$ under operation weights.
+The normalized gain for that field is
+
+```text
+G_f(I,b) = [H_w(f,I)
+            - (W_L/W_I) H_w(f,L)
+            - (W_R/W_I) H_w(f,R)] / H_w(f,I).
+```
+
+The cut score is the equal mean of $G_f(I,b)$ over eligible fields whose parent
+entropy is positive. Candidate cuts occur only where adjacent operations differ
+in at least one eligible visible field. Eligibility retains the existing
+target-blind field rules: remove declared oracle/label, metadata, noisy,
+session-by-default, near-numeric, constant, and high-cardinality fields. These
+rules define the visible input schema; they do not score or accept a split.
+
+For $n=|I|$ operations, the fixed complexity penalty is
+$P(I)=\ln(n)/(2n)$. The inducer selects the largest mean gain and accepts it iff
+$G(I,b)>P(I)$. There is no separate fixed score threshold, minimum node weight,
+minimum second-child weight, majority-fraction gate, label-quality gate,
+semantic-shift term, balance term, coverage term, or candidate subsampling.
+Both children need only be nonempty. Maximum depth remains an explicit runtime
+bound, fixed at four for the matched experiment.
+
+The split's primary field is the positive-gain field with the greatest
+$G_f(I,b)$ whose dominant weighted values differ between the two children.
+Each child frame is `field=value` from that dominant value. Every accepted
+split appends exactly one frame even if the same text appeared at an ancestor,
+so the two children always have distinct reconstructable paths. If two distinct
+raw values normalize to the same emitted folded frame, the implementation adds
+a deterministic value-derived suffix; the common case remains `field=value`.
+For a field,
+query relevance is the fraction of supplied lowercase query terms that occur
+as substrings of the lowercase field name or any parent-interval value of that
+field. It breaks only exact per-field gain ties; a cut inherits its selected
+primary field's relevance to break exact mean-gain ties. Earlier cut and then
+lexical field order are the remaining deterministic tie-breaks. Query relevance
+never changes $G$. Recursion ends at the depth limit or when no cut strictly
+exceeds the penalty.
+
+This revision is intentionally small: no new named abstraction, learned model,
+or benchmark-specific feature enters the profiler. Its implementation and
+tests must establish oracle-field exclusion, exactly one leaf assignment per
+operation, additive-weight conservation, positive accepted gain, termination,
+and deterministic output. Its paper value must then be tested through the real
+Rust path on complete existing annotated workloads; unit tests and a one-case
+preflight are engineering evidence only.
+
 ### Learned boundary fields
 
 External or learned models may derive fields before stack construction. They
@@ -204,10 +260,12 @@ The current design is not:
 
 ## Evaluation Consequence
 
-RQ1, RQ2, the human-boundary component of RQ3, and RQ4 now have complete
-paper-linked experiments. The next experiment addresses only the remaining
-RQ3 task/phase/action accuracy component. It reuses the nine existing converted
-public corpora, current mapping/profile implementation, and existing evaluation
-script. Only independently available labels score a field; scorer labels and
-aliases stay out of predictor inputs. Missing axes are reported unavailable,
-not replaced with a new benchmark or annotation pipeline.
+RQ1, RQ2, the human-boundary component of RQ3, and RQ4 have paper-linked
+evidence. The current implementation step first replaces and directly tests
+the shipped Rust induction algorithm described above, because the paper now
+evaluates a separate supervised boundary predictor rather than that built-in
+path. The full experiment reuses existing annotated operations and scoring
+machinery. Only independently available labels score the induced output;
+scorer labels and aliases stay out of induction inputs. This repairs the
+mechanism/evidence mismatch without changing RQ3 or introducing another
+dataset, classifier, or paper story.

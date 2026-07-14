@@ -185,8 +185,7 @@ def run_agentpprof(
 
 def push_path(path: list[str], label: str) -> list[str]:
     child = list(path)
-    if label not in child:
-        child.append(label)
+    child.append(label)
     return child
 
 

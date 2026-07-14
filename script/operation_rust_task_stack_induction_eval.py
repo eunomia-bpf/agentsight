@@ -331,7 +331,7 @@ def main() -> None:
         "all_views_use_rust_induction": all(view["induce_operation_stack"] for view in views.values()),
         "all_views_use_boundary_policy": all(
             view["top_stacks"]
-            and "query-conditioned-recursive-boundary-operation-stack-induction"
+            and "recursive-information-gain-operation-stack-induction"
             == operation_stack_induction_report(json.loads((OUT / f"{view_name}.json").read_text())["profile"])["policy"]
             for view_name, view in views.items()
         ),

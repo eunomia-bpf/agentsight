@@ -217,10 +217,6 @@ pub struct OperationStackInductionConfig {
     derived_field: String,
     allow_session: bool,
     max_depth: usize,
-    min_score: f64,
-    min_second_child: u64,
-    max_majority_fraction: f64,
-    min_node_weight: u64,
     query_terms: Vec<String>,
 }
 
@@ -230,10 +226,6 @@ impl OperationStackInductionConfig {
             derived_field: OPERATION_STACK_DERIVED_FIELD.to_string(),
             allow_session: false,
             max_depth: 4,
-            min_score: 0.055,
-            min_second_child: 5,
-            max_majority_fraction: 0.985,
-            min_node_weight: 10,
             query_terms: Vec::new(),
         }
     }
@@ -261,24 +253,6 @@ impl OperationStackInductionConfig {
             .collect();
         self
     }
-
-    #[cfg(test)]
-    fn with_min_score(mut self, min_score: f64) -> Self {
-        self.min_score = min_score;
-        self
-    }
-
-    #[cfg(test)]
-    fn with_min_second_child(mut self, min_second_child: u64) -> Self {
-        self.min_second_child = min_second_child;
-        self
-    }
-
-    #[cfg(test)]
-    fn with_min_node_weight(mut self, min_node_weight: u64) -> Self {
-        self.min_node_weight = min_node_weight;
-        self
-    }
 }
 
 impl Default for OperationStackInductionConfig {
@@ -294,9 +268,7 @@ pub struct OperationStackInductionReport {
     derived_stack_field: String,
     allow_session: bool,
     max_depth: usize,
-    min_score: f64,
-    min_second_child: u64,
-    max_majority_fraction: f64,
+    complexity_penalty: &'static str,
     selected_evidence_fields: Vec<String>,
     selected_source_fields: Vec<String>,
     excluded_oracle_fields: Vec<&'static str>,
@@ -330,32 +302,31 @@ pub struct OperationStackSplitScore {
     evidence_fields: Vec<String>,
     label_evidence: Vec<String>,
     score: f64,
-    structural_gain: f64,
-    label_quality: f64,
-    balance: f64,
-    coverage: f64,
-    query_bonus: f64,
-    semantic_shift: f64,
-    changed_field_fraction: f64,
+    normalized_information_gain: f64,
+    complexity_penalty: f64,
+    accepted_margin: f64,
+    query_relevance: f64,
+    informative_field_count: usize,
+    field_gains: Vec<OperationStackFieldGain>,
     changed_fields: Vec<String>,
-    cardinality_penalty: f64,
-    small_child_penalty: f64,
     groups: BTreeMap<String, u64>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct OperationStackFieldGain {
+    field: String,
+    normalized_information_gain: f64,
+    query_relevance: f64,
+    parent_entropy: f64,
+    left_entropy: f64,
+    right_entropy: f64,
+    left_dominant: String,
+    right_dominant: String,
 }
 
 #[derive(Clone, Debug)]
 struct TaskBoundaryEvidence {
     changed_fields: Vec<String>,
-    semantic_shift: f64,
-    query_bonus: f64,
-    changed_field_fraction: f64,
-}
-
-#[derive(Clone, Debug)]
-struct TaskSegmentLabel {
-    label: String,
-    quality: f64,
-    evidence: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -1029,13 +1000,12 @@ fn apply_operation_field_rules(sample: &Operation, rules: &[OperationStackRule])
     mapped
 }
 
-const OPERATION_STACK_POLICY: &str =
-    "query-conditioned-recursive-boundary-operation-stack-induction";
+const OPERATION_STACK_POLICY: &str = "recursive-information-gain-operation-stack-induction";
 const OPERATION_STACK_OBJECTIVE: &str =
-    "recursive boundary segmentation over operations; fields are evidence, not stack levels";
+    "mean resource-weighted normalized information gain minus a fixed complexity penalty";
+const OPERATION_STACK_COMPLEXITY_PENALTY: &str =
+    "ln(node_operation_count)/(2*node_operation_count)";
 const OPERATION_STACK_DERIVED_FIELD: &str = "operation";
-const MAX_OPERATION_STACK_BOUNDARY_CANDIDATES: usize = 512;
-const MIN_OPERATION_STACK_LABEL_QUALITY: f64 = 0.35;
 const ORACLE_OR_LABEL_FIELDS: &[&str] = &[
     "annotator",
     "attack",
@@ -1165,9 +1135,7 @@ fn induce_operation_stack(
         derived_stack_field: config.derived_field.clone(),
         allow_session: config.allow_session,
         max_depth: config.max_depth,
-        min_score: round6(config.min_score),
-        min_second_child: config.min_second_child,
-        max_majority_fraction: round6(config.max_majority_fraction),
+        complexity_penalty: OPERATION_STACK_COMPLEXITY_PENALTY,
         selected_evidence_fields: selected_evidence_fields.clone(),
         selected_source_fields: selected_evidence_fields,
         excluded_oracle_fields: ORACLE_OR_LABEL_FIELDS.to_vec(),
@@ -1196,12 +1164,6 @@ fn induce_operation_stack_recursive(
         increment_stop(stop_reasons, "max_depth");
         return;
     }
-    if node_weight < config.min_node_weight {
-        assign_task_path(indices, &path, task_paths);
-        increment_stop(stop_reasons, "small_node");
-        return;
-    }
-
     let (selected, candidates) = choose_task_split(samples, indices, config);
     let Some(selected) = selected else {
         assign_task_path(indices, &path, task_paths);
@@ -1221,11 +1183,6 @@ fn induce_operation_stack_recursive(
     }
     let left_label = selected.left_label.clone();
     let right_label = selected.right_label.clone();
-    if path.contains(&left_label) && path.contains(&right_label) {
-        assign_task_path(indices, &path, task_paths);
-        increment_stop(stop_reasons, "redundant_segment_label");
-        return;
-    }
     split_decisions.push(OperationStackSplitDecision {
         path: path.clone(),
         boundary_id,
@@ -1254,9 +1211,7 @@ fn induce_operation_stack_recursive(
 }
 
 fn push_task_path_label(path: &mut Vec<String>, value: String) {
-    if !path.contains(&value) {
-        path.push(value);
-    }
+    path.push(value);
 }
 
 fn assign_task_path(indices: &[usize], path: &[String], task_paths: &mut [Vec<String>]) {
@@ -1283,23 +1238,17 @@ fn choose_task_split(
     Vec<OperationStackSplitScore>,
 ) {
     let candidates = operation_stack_candidate_fields(samples, indices, config);
-    let boundary_cuts = operation_stack_boundary_cuts(samples, indices, &candidates, config);
+    let boundary_cuts = operation_stack_boundary_cuts(samples, indices, &candidates);
     let mut scores = boundary_cuts
         .into_iter()
         .filter_map(|cut_after| {
             score_task_boundary_split(samples, indices, cut_after, &candidates, config)
         })
         .collect::<Vec<_>>();
-    scores.sort_by(|left, right| {
-        right
-            .score
-            .partial_cmp(&left.score)
-            .unwrap_or(std::cmp::Ordering::Equal)
-            .then_with(|| left.cut_after.cmp(&right.cut_after))
-    });
+    scores.sort_by(compare_operation_stack_split_scores);
     let selected = scores
         .first()
-        .filter(|score| score.score >= round6(config.min_score))
+        .filter(|score| score.score > score.complexity_penalty)
         .cloned();
     scores.truncate(8);
     (selected, scores)
@@ -1309,26 +1258,17 @@ fn operation_stack_boundary_cuts(
     samples: &[Operation],
     indices: &[usize],
     candidates: &[String],
-    config: &OperationStackInductionConfig,
 ) -> Vec<usize> {
     if indices.len() <= 1 || candidates.is_empty() {
         return Vec::new();
     }
     let mut cuts = Vec::new();
     for cut_after in 1..indices.len() {
-        if adjacent_boundary_evidence(samples, indices, cut_after, candidates, config).is_some() {
+        if adjacent_boundary_evidence(samples, indices, cut_after, candidates).is_some() {
             cuts.push(cut_after);
         }
     }
-    if cuts.len() <= MAX_OPERATION_STACK_BOUNDARY_CANDIDATES {
-        return cuts;
-    }
-    let stride = cuts.len().div_ceil(MAX_OPERATION_STACK_BOUNDARY_CANDIDATES);
-    cuts.into_iter()
-        .enumerate()
-        .filter_map(|(idx, cut)| (idx % stride == 0).then_some(cut))
-        .take(MAX_OPERATION_STACK_BOUNDARY_CANDIDATES)
-        .collect()
+    cuts
 }
 
 fn operation_stack_candidate_fields(
@@ -1374,7 +1314,6 @@ fn adjacent_boundary_evidence(
     indices: &[usize],
     cut_after: usize,
     candidates: &[String],
-    config: &OperationStackInductionConfig,
 ) -> Option<TaskBoundaryEvidence> {
     if cut_after == 0 || cut_after >= indices.len() || candidates.is_empty() {
         return None;
@@ -1386,78 +1325,10 @@ fn adjacent_boundary_evidence(
         .filter(|field| operation_field_value(left, field) != operation_field_value(right, field))
         .cloned()
         .collect::<Vec<_>>();
-    let left_tokens = visible_operation_tokens(left, candidates);
-    let right_tokens = visible_operation_tokens(right, candidates);
-    let semantic_shift = token_set_distance(&left_tokens, &right_tokens);
-    if changed_fields.is_empty() && semantic_shift <= 0.0 {
+    if changed_fields.is_empty() {
         return None;
     }
-    let query_bonus = query_bonus(
-        "boundary",
-        left_tokens.iter().chain(right_tokens.iter()),
-        &config.query_terms,
-    );
-    Some(TaskBoundaryEvidence {
-        changed_field_fraction: changed_fields.len() as f64 / candidates.len().max(1) as f64,
-        changed_fields,
-        semantic_shift,
-        query_bonus,
-    })
-}
-
-fn visible_operation_tokens(sample: &Operation, candidates: &[String]) -> BTreeSet<String> {
-    let mut tokens = BTreeSet::new();
-    for field in candidates {
-        tokenize_visible_text(field, &mut tokens);
-        for value in sample.values(field) {
-            tokenize_visible_text(value, &mut tokens);
-            tokens.insert(format!(
-                "{}={}",
-                normalize_token(field),
-                normalize_token(value)
-            ));
-        }
-    }
-    tokens.retain(|token| !token.is_empty() && token != "unknown");
-    tokens
-}
-
-fn tokenize_visible_text(text: &str, tokens: &mut BTreeSet<String>) {
-    let mut current = String::new();
-    for ch in text.chars() {
-        if ch.is_ascii_alphanumeric() {
-            current.push(ch.to_ascii_lowercase());
-        } else if !current.is_empty() {
-            if current.len() >= 2 {
-                tokens.insert(current.clone());
-            }
-            current.clear();
-        }
-    }
-    if current.len() >= 2 {
-        tokens.insert(current);
-    }
-}
-
-fn normalize_token(text: &str) -> String {
-    let mut out = String::new();
-    for ch in text.chars() {
-        if ch.is_ascii_alphanumeric() {
-            out.push(ch.to_ascii_lowercase());
-        } else if !out.ends_with('_') {
-            out.push('_');
-        }
-    }
-    out.trim_matches('_').to_string()
-}
-
-fn token_set_distance(left: &BTreeSet<String>, right: &BTreeSet<String>) -> f64 {
-    if left.is_empty() && right.is_empty() {
-        return 0.0;
-    }
-    let intersection = left.intersection(right).count() as f64;
-    let union = left.union(right).count().max(1) as f64;
-    1.0 - intersection / union
+    Some(TaskBoundaryEvidence { changed_fields })
 }
 
 fn is_operation_stack_oracle_field(field: &str) -> bool {
@@ -1501,107 +1372,50 @@ fn score_task_boundary_split(
         return None;
     }
     let (left, right) = indices.split_at(cut_after);
-    let boundary = adjacent_boundary_evidence(samples, indices, cut_after, candidates, config)?;
+    let boundary = adjacent_boundary_evidence(samples, indices, cut_after, candidates)?;
     let left_weight = index_weight(samples, left);
     let right_weight = index_weight(samples, right);
-    let total = left_weight + right_weight;
-    let majority_fraction = left_weight.max(right_weight) as f64 / total.max(1) as f64;
-    if left_weight.min(right_weight) < config.min_second_child
-        || majority_fraction > config.max_majority_fraction
-    {
-        return None;
-    }
-
-    let mut evidence_scores = candidates
+    let mut field_gains = candidates
         .iter()
         .filter_map(|field| {
-            score_boundary_evidence_field(samples, indices, left, right, field, &config.query_terms)
+            operation_stack_field_gain(samples, indices, left, right, field, &config.query_terms)
         })
         .collect::<Vec<_>>();
-    evidence_scores.sort_by(|left, right| {
-        right
-            .1
-            .partial_cmp(&left.1)
-            .unwrap_or(std::cmp::Ordering::Equal)
-            .then_with(|| left.0.cmp(&right.0))
-    });
-    let primary_field = evidence_scores.first().map(|item| item.0.clone())?;
-    let evidence_fields = evidence_scores
-        .iter()
-        .take(4)
-        .map(|item| item.0.clone())
-        .collect::<Vec<_>>();
-    let structural_gain = if evidence_scores.is_empty() {
-        0.0
-    } else {
-        evidence_scores
-            .iter()
-            .take(4)
-            .map(|(_, score, _, _)| *score)
-            .sum::<f64>()
-            / evidence_scores.len().min(4) as f64
-    };
-    let query_bonus = evidence_scores
-        .iter()
-        .map(|(_, _, query, _)| *query)
-        .fold(boundary.query_bonus, f64::max);
-    let adjacent_change = evidence_scores
-        .iter()
-        .map(|(_, _, _, change)| *change)
-        .fold(boundary.changed_field_fraction, f64::max);
-    let child_counts = BTreeMap::from([
-        ("left".to_string(), left_weight),
-        ("right".to_string(), right_weight),
-    ]);
-    let balance = entropy(&child_counts);
-    let coverage = 1.0 - majority_fraction;
-    let cardinality_penalty = 1.0 / ((total + 1) as f64).log2().max(1.0);
-    let small_child_penalty = if left_weight.min(right_weight) < config.min_second_child * 2 {
-        0.5
-    } else {
-        0.0
-    };
-    let left_segment =
-        operation_stack_segment_label(samples, left, &evidence_fields, "left-segment");
-    let right_segment =
-        operation_stack_segment_label(samples, right, &evidence_fields, "right-segment");
-    let label_quality = (left_segment.quality * left_weight as f64
-        + right_segment.quality * right_weight as f64)
-        / total.max(1) as f64;
-    if label_quality < MIN_OPERATION_STACK_LABEL_QUALITY {
+    if field_gains.is_empty() {
         return None;
     }
-    let label_evidence = left_segment
-        .evidence
+    let score = field_gains
         .iter()
-        .map(|item| format!("left:{item}"))
-        .chain(
-            right_segment
-                .evidence
-                .iter()
-                .map(|item| format!("right:{item}")),
-        )
+        .map(|gain| gain.normalized_information_gain)
+        .sum::<f64>()
+        / field_gains.len() as f64;
+    field_gains.sort_by(compare_operation_stack_field_gains);
+    let primary = field_gains
+        .iter()
+        .find(|gain| {
+            gain.normalized_information_gain > 0.0 && gain.left_dominant != gain.right_dominant
+        })?
+        .clone();
+    let evidence_fields = field_gains
+        .iter()
+        .filter(|gain| gain.normalized_information_gain > 0.0)
+        .map(|gain| gain.field.clone())
         .collect::<Vec<_>>();
-    let left_label = left_segment.label;
-    let right_label = right_segment.label;
+    let (left_label, right_label) = operation_stack_child_labels(
+        &primary.field,
+        &primary.left_dominant,
+        &primary.right_dominant,
+    );
+    let label_evidence = vec![format!("left:{left_label}"), format!("right:{right_label}")];
     let groups = BTreeMap::from([
         (left_label.clone(), left_weight),
         (right_label.clone(), right_weight),
     ]);
     let boundary_id = format!("b{:04}", cut_after);
-    let low_label_penalty = 1.0 - label_quality;
-    let score = 0.40 * structural_gain
-        + 0.18 * balance * coverage
-        + 0.14 * query_bonus
-        + 0.16 * boundary.semantic_shift
-        + 0.10 * adjacent_change
-        + 0.12 * label_quality
-        - 0.08 * cardinality_penalty
-        - 0.14 * low_label_penalty
-        - 0.20 * small_child_penalty;
+    let complexity_penalty = operation_stack_complexity_penalty(indices.len());
     Some(OperationStackSplitScore {
         boundary_id,
-        field: primary_field,
+        field: primary.field,
         cut_after,
         left_label,
         right_label,
@@ -1609,29 +1423,88 @@ fn score_task_boundary_split(
         right_weight,
         evidence_fields,
         label_evidence,
-        score: round6(score),
-        structural_gain: round6(structural_gain),
-        label_quality: round6(label_quality),
-        balance: round6(balance),
-        coverage: round6(coverage),
-        query_bonus: round6(query_bonus),
-        semantic_shift: round6(boundary.semantic_shift),
-        changed_field_fraction: round6(boundary.changed_field_fraction),
+        score,
+        normalized_information_gain: score,
+        complexity_penalty,
+        accepted_margin: score - complexity_penalty,
+        query_relevance: primary.query_relevance,
+        informative_field_count: field_gains.len(),
+        field_gains,
         changed_fields: boundary.changed_fields,
-        cardinality_penalty: round6(cardinality_penalty),
-        small_child_penalty: round6(small_child_penalty),
         groups,
     })
 }
 
-fn score_boundary_evidence_field(
+fn compare_operation_stack_split_scores(
+    left: &OperationStackSplitScore,
+    right: &OperationStackSplitScore,
+) -> std::cmp::Ordering {
+    right
+        .score
+        .total_cmp(&left.score)
+        .then_with(|| right.query_relevance.total_cmp(&left.query_relevance))
+        .then_with(|| left.cut_after.cmp(&right.cut_after))
+        .then_with(|| left.field.cmp(&right.field))
+}
+
+fn compare_operation_stack_field_gains(
+    left: &OperationStackFieldGain,
+    right: &OperationStackFieldGain,
+) -> std::cmp::Ordering {
+    right
+        .normalized_information_gain
+        .total_cmp(&left.normalized_information_gain)
+        .then_with(|| right.query_relevance.total_cmp(&left.query_relevance))
+        .then_with(|| left.field.cmp(&right.field))
+}
+
+fn operation_stack_complexity_penalty(node_operation_count: usize) -> f64 {
+    let count = node_operation_count.max(1) as f64;
+    count.ln() / (2.0 * count)
+}
+
+fn operation_stack_child_labels(
+    field: &str,
+    left_value: &str,
+    right_value: &str,
+) -> (String, String) {
+    let left = format!("{field}={left_value}");
+    let right = format!("{field}={right_value}");
+    debug_assert_ne!(left, right);
+    let left_frame = safe_frame(&left, None);
+    let right_frame = safe_frame(&right, None);
+    if left_frame != right_frame {
+        return (left, right);
+    }
+
+    let left_hash = stable_operation_stack_label_hash(&left);
+    let right_hash = stable_operation_stack_label_hash(&right);
+    if left_hash != right_hash {
+        return (
+            format!("{left_frame}-{left_hash:016x}"),
+            format!("{right_frame}-{right_hash:016x}"),
+        );
+    }
+    (format!("{left_frame}-left"), format!("{right_frame}-right"))
+}
+
+fn stable_operation_stack_label_hash(text: &str) -> u64 {
+    let mut hash = 0xcbf29ce484222325_u64;
+    for byte in text.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    hash
+}
+
+fn operation_stack_field_gain(
     samples: &[Operation],
     parent: &[usize],
     left: &[usize],
     right: &[usize],
     field: &str,
     query_terms: &[String],
-) -> Option<(String, f64, f64, f64)> {
+) -> Option<OperationStackFieldGain> {
     let parent_counts = weighted_value_counts(samples, parent, field);
     if parent_counts.len() <= 1 {
         return None;
@@ -1644,92 +1517,28 @@ fn score_boundary_evidence_field(
     let right_counts = weighted_value_counts(samples, right, field);
     let left_dominant = dominant_value(&left_counts)?;
     let right_dominant = dominant_value(&right_counts)?;
-    if left_dominant == right_dominant {
-        return None;
-    }
     let left_weight = index_weight(samples, left);
     let right_weight = index_weight(samples, right);
     let total = (left_weight + right_weight).max(1) as f64;
     let child_entropy = (left_weight as f64 / total) * entropy(&left_counts)
         + (right_weight as f64 / total) * entropy(&right_counts);
-    let partition_gain = ((parent_entropy - child_entropy) / parent_entropy).max(0.0);
-    let adjacent_change = if operation_field_value(&samples[*left.last()?], field)
-        != operation_field_value(&samples[*right.first()?], field)
-    {
-        1.0
-    } else {
-        0.0
-    };
-    let query_bonus = query_bonus(
-        field,
-        left_counts.keys().chain(right_counts.keys()),
-        query_terms,
-    );
-    let score = 0.72 * partition_gain + 0.28 * adjacent_change;
-    Some((field.to_string(), score, query_bonus, adjacent_change))
-}
-
-fn operation_stack_segment_label(
-    samples: &[Operation],
-    indices: &[usize],
-    evidence_fields: &[String],
-    fallback: &str,
-) -> TaskSegmentLabel {
-    let mut parts = Vec::new();
-    let mut evidence = Vec::new();
-    let mut quality_sum = 0.0;
-    for field in evidence_fields.iter().take(3) {
-        let counts = weighted_value_counts(samples, indices, field);
-        let Some((value, share)) = dominant_value_with_share(&counts) else {
-            continue;
-        };
-        if share >= 0.45 {
-            let label = normalize_segment_label(&value);
-            if !label.is_empty() && !parts.contains(&label) {
-                parts.push(label);
-                evidence.push(format!("{field}={value}@{}", round3(share)));
-                quality_sum += share;
-            }
-        }
-    }
-    if !parts.is_empty() {
-        return TaskSegmentLabel {
-            quality: round6(quality_sum / parts.len() as f64),
-            label: parts.join("+"),
-            evidence,
-        };
-    }
-    TaskSegmentLabel {
-        label: fallback.to_string(),
-        quality: 0.0,
-        evidence,
-    }
-}
-
-fn normalize_segment_label(value: &str) -> String {
-    let mut label = normalize_token(value);
-    if label.len() > 48 {
-        label.truncate(48);
-        while label.ends_with('_') {
-            label.pop();
-        }
-    }
-    label
-}
-
-fn dominant_value_with_share(counts: &BTreeMap<String, u64>) -> Option<(String, f64)> {
-    let total = counts.values().sum::<u64>().max(1) as f64;
-    counts
-        .iter()
-        .filter(|(value, _)| value.as_str() != "unknown")
-        .max_by(|left, right| left.1.cmp(right.1).then_with(|| right.0.cmp(left.0)))
-        .map(|(value, weight)| (value.clone(), *weight as f64 / total))
+    let normalized_information_gain = ((parent_entropy - child_entropy) / parent_entropy).max(0.0);
+    let query_relevance = query_relevance(field, parent_counts.keys(), query_terms);
+    Some(OperationStackFieldGain {
+        field: field.to_string(),
+        normalized_information_gain,
+        query_relevance,
+        parent_entropy,
+        left_entropy: entropy(&left_counts),
+        right_entropy: entropy(&right_counts),
+        left_dominant,
+        right_dominant,
+    })
 }
 
 fn dominant_value(counts: &BTreeMap<String, u64>) -> Option<String> {
     counts
         .iter()
-        .filter(|(value, _)| value.as_str() != "unknown")
         .max_by(|left, right| left.1.cmp(right.1).then_with(|| right.0.cmp(left.0)))
         .map(|(value, _)| value.clone())
 }
@@ -1778,7 +1587,7 @@ fn entropy(counts: &BTreeMap<String, u64>) -> f64 {
         .sum()
 }
 
-fn query_bonus<'a>(
+fn query_relevance<'a>(
     field: &str,
     values: impl Iterator<Item = &'a String>,
     query_terms: &[String],
@@ -1795,10 +1604,6 @@ fn query_bonus<'a>(
         .filter(|term| haystack.contains(term.as_str()))
         .count() as f64
         / query_terms.len() as f64
-}
-
-fn round6(value: f64) -> f64 {
-    (value * 1_000_000.0).round() / 1_000_000.0
 }
 
 fn operation_matches_filters(sample: &Operation, filters: &[OperationFilterRule]) -> bool {
@@ -3325,10 +3130,7 @@ mod tests {
 
         let stack = parse_stack_spec("operation").unwrap();
         let induction = OperationStackInductionConfig::new()
-            .with_query_terms(vec!["loop".to_string(), "repeat".to_string()])
-            .with_min_score(0.0)
-            .with_min_second_child(2)
-            .with_min_node_weight(2);
+            .with_query_terms(vec!["loop".to_string(), "repeat".to_string()]);
         let options = OperationStackConfig::for_view(ProfileView::Operations)
             .with_stack(stack)
             .with_operation_stack_induction(induction);
@@ -3351,14 +3153,8 @@ mod tests {
                 && !stack.contains("human_group")
                 && !stack.contains("group_pattern")
         }));
-        let depths = stacks
-            .keys()
-            .map(|stack| stack.split(';').count())
-            .collect::<BTreeSet<_>>();
-        assert!(
-            depths.len() > 1,
-            "expected variable-depth operation stacks: {stacks:?}"
-        );
+        assert_eq!(stacks.values().sum::<u64>(), 18);
+        assert!(stacks.keys().all(|stack| stack.split(';').count() <= 4));
 
         let report = profile
             .operation_stack_induction
@@ -3371,15 +3167,66 @@ mod tests {
                 .iter()
                 .any(|field| matches!(field.as_str(), "repeat_state" | "repeat_signal" | "action"))
         );
+        assert_eq!(
+            report.complexity_penalty,
+            OPERATION_STACK_COMPLEXITY_PENALTY
+        );
         assert!(report.split_decisions.iter().all(|decision| {
-            decision.selected_score.semantic_shift > 0.0
+            decision.selected_score.normalized_information_gain > 0.0
+                && decision.selected_score.score > decision.selected_score.complexity_penalty
+                && decision.selected_score.accepted_margin > 0.0
+                && decision.selected_score.left_label != decision.selected_score.right_label
                 && !decision.selected_score.changed_fields.is_empty()
+                && !decision.selected_score.field_gains.is_empty()
+                && decision.path.len() < report.max_depth
         }));
+        assert!(
+            report
+                .stop_reasons
+                .keys()
+                .all(|reason| matches!(reason.as_str(), "max_depth" | "no_material_split"))
+        );
         assert!(
             report
                 .selected_source_fields
                 .iter()
                 .all(|field| !is_operation_stack_oracle_field(field))
+        );
+
+        let second =
+            build_profile_from_operation_records(&records, ProfileView::Operations, &options)
+                .unwrap();
+        assert_eq!(
+            serde_json::to_value(report).unwrap(),
+            serde_json::to_value(second.operation_stack_induction.as_ref().unwrap()).unwrap()
+        );
+    }
+
+    #[test]
+    fn operation_stack_induction_disambiguates_normalized_child_labels() {
+        let records = vec![
+            json!({"value": 1, "fields": {"dataset": "fixture", "action": "A B"}}),
+            json!({"value": 1, "fields": {"dataset": "fixture", "action": "a_b"}}),
+        ];
+        let options = OperationStackConfig::for_view(ProfileView::Operations)
+            .with_stack(parse_stack_spec("operation").unwrap())
+            .with_operation_stack_induction(OperationStackInductionConfig::new());
+        let profile =
+            build_profile_from_operation_records(&records, ProfileView::Operations, &options)
+                .unwrap();
+        let stacks = profile_to_stacks(&profile);
+        assert_eq!(stacks.len(), 2);
+        assert_eq!(stacks.values().sum::<u64>(), 2);
+        let decision = &profile
+            .operation_stack_induction
+            .as_ref()
+            .unwrap()
+            .split_decisions[0]
+            .selected_score;
+        assert_ne!(decision.left_label, decision.right_label);
+        assert_ne!(
+            safe_frame(&decision.left_label, Some("operation")),
+            safe_frame(&decision.right_label, Some("operation"))
         );
     }
 
