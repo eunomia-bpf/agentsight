@@ -19,7 +19,7 @@ later explicit user instruction may change the four author-fixed RQs.
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Do not run another RQ1 lineage or grouping variant; WRITE the cumulative positive answer and let REVIEW select the next fixed RQ. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Supporting cumulative answer; one reuse-only audit remains.** Step 0011 independently rechecked the completed AgentProcessBench, HINTBench, and TraceElephant primary outcomes, uncertainty, and full baseline/control families. AgentProcessBench supplies semantic-specific AP evidence; HINTBench supplies positive primary components for the complete profile/prefix/scorer pipeline; TraceElephant remains descriptively positive early and prospectively inconclusive at high recall. Step 0013 selected only a current-standard audit of existing R337 fixed-recall work and group-count results to test recurring compactness against fixed-session organization. It adds no benchmark, model, metric, cutoff, partition, resample, or human dependency. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Supporting cumulative answer, strengthened and ready for WRITE.** Step 0011 independently rechecked the complete AgentProcessBench, HINTBench, and TraceElephant outcomes and controls. Step 0014 then replayed existing R333/R337 evidence from four public sources: across six labeled tasks at the existing 25%-recall point, operation stacks use median 0.2000 work and 16 groups versus fixed-session's 0.2495 and 50, with per-task work 4/1/1 and groups 5/0/1. Raw action remains mixed and slightly better by median, so this supports recurring-versus-session compactness rather than universal semantic dominance. No benchmark, model, metric, cutoff, partition, resample, or human dependency was added. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer, strengthened.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Action evidence is mixed across a tiny AndroidControl prefix and complete GUI-Odyssey prefix; phase and broad action stability remain open. WRITE the positive task result; REVIEW must preserve the fixed hypothesis and select only a materially better next mechanism if more RQ3 evidence is needed. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
@@ -220,6 +220,30 @@ reconstruct the six task rows, scorer-only hidden-label use, source provenance,
 and raw/flat counterpoints. The audit must not add a new metric, cutoff,
 partition, resample, model, dataset, or human dependency, and it must not
 rebrand R337 as a matched-granularity proof or downstream intervention.
+
+Step 0014 completed that bounded audit. A fresh R333 run reconstructed all six
+task groupings, visible rankings, and inspection curves from the four public
+operation sources; all five emitted R333 CSV files were byte-identical to the
+existing result. A fresh R337 replay then reproduced all four emitted R337 CSV
+files byte-for-byte. Independent review directly recomputed six tasks, four
+datasets, 34,539 task-operation instances, and 3,699 positives from the task
+loader and operation files and verified that visible fields are derived from
+actions, source metadata, and separate execution outcomes rather than the
+target oracle.
+
+At the existing 25% positive-recall point, operation stacks reach all six
+tasks with median inspection work 0.2000 and median 16 groups, versus 0.2495
+and 50 for fixed-session organization. Per-task work wins/ties/losses are
+4/1/1 and group-count outcomes are 5/0/1. Against flat, operation stacks save
+work on 6/6 tasks but necessarily inspect more than one group. Against raw
+action, outcomes are mixed (work 3/1/2; groups 2/0/4), and raw has slightly
+lower medians. The admitted conclusion is therefore bounded: recurring
+operation-stack views reduce session fragmentation while retaining lower
+typical work on these six tasks. This is supporting reconstruction of old
+evidence, not a new independent observation, Pareto proof, universal semantic
+victory, human-productivity result, or downstream intervention. Complete plan,
+preflight, replay, and independent result review are under
+[`loop-001-rq2-r337-reuse-audit`](tmp/build-and-evaluate/step-0014-20260714T105109-0700/01-experiment-gate/loop-001-rq2-r337-reuse-audit/).
 
 The unexecuted revision-1 plan is superseded because it bundled roughly eleven
 comparator types and several independent research programs. Its history remains
