@@ -785,37 +785,37 @@ Trace Work@50$\dagger$ & .195 & .466 & width .396; session .568; native .578 \\
 \end{tabular}
 \end{table}
 
-AgentProcessBench contains 1{,}000 trajectories from BFCL, GAIA, HotpotQA, and
-$\tau$-bench with consensus human labels for all 8{,}509 assistant
-steps~\cite{agentprocessbench}.
+AgentProcessBench contains 1{,}000 BFCL, GAIA, HotpotQA, and $\tau$-bench
+trajectories with consensus labels for 8{,}509 assistant steps~\cite{agentprocessbench}.
 % AgentProcessBench 包含来自 BFCL、GAIA、HotpotQA 和 tau-bench 的 1,000 条轨迹，并为全部 8,509 个 assistant step 提供共识人工标签。
-Using the released target-blind risk signal, the semantic stack raises
-equal-family macro AP from 0.556 to 0.588 (gain 0.0315; 95\% interval
-[0.0151, 0.0535]). Shuffling semantic assignments within raw-action groups
-while preserving subgroup sizes gives $p=0.00995$, isolating semantic-specific
-concentration rather than refinement alone. Its 419 recurring groups lie
-between raw action's 259 and the 1{,}000 session or 8{,}509 per-step views;
-those finer references reach higher AP, so this is not uniform dominance.
+The released target-blind risk signal raises equal-family macro AP from 0.556
+to 0.588 (gain 0.0315; 95\% interval [0.0151, 0.0535]). Shuffling assignments
+within raw-action groups while preserving subgroup sizes gives $p=0.00995$,
+isolating semantic-specific concentration. Its 419 recurring groups lie
+between raw action's 259 and the 1{,}000 session or 8{,}509 per-step views,
+which reach higher AP and preclude uniform dominance.
 % 发布的目标盲风险信号下，语义 stack 相对 raw action 显著提升 AP；保持子组大小的组内置换隔离出语义特异性。其 419 个重复分组位于 raw action 与更细的 session/逐步视图之间，因此不声称统一支配。
 
-On HINTBench's 536 test trajectories, \sys reaches 80\% macro recall at 41.57\%
+On 536 HINTBench test trajectories, \sys reaches 80\% macro recall at 41.57\%
 work versus 46.29\% raw, 57.93\% native, 59.14\% session, and 100\% independent
 step. Paired intervals exclude zero for the latter three but not raw
-($[-0.2937,0.0086]$). This result belongs to the complete profile,
-validation-selected prefix policy, and scorer, not hierarchy alone.
+($[-0.2937,0.0086]$), so this supports the complete profile/prefix/scorer
+pipeline rather than hierarchy alone.
 % 在 HINTBench 的全部 536 条测试轨迹上，AgentProf 达到 80% macro recall 需要检查 41.57% 的步骤，优于源原生顺序、session 分组与独立步骤；相对 raw action 的区间跨零，因此该证据归因于完整的 profile、验证集选择的 prefix 策略与 scorer 流水线，而不单独归因于 hierarchy。
 On TraceElephant's 220 failures, \sys reaches 50\% macro decisive-step recall
-at 19.55\% work versus 46.64\% raw; at 20\% work it recovers 52.57\% versus
-23.79\%. This early region is descriptive: a large final semantic score tier
-requires full work at prospective 80\% recall, where the interval crosses zero.
+at 19.55\% work versus 46.64\% raw and, at 20\% work, recovers 52.57\% versus
+23.79\%. This descriptive early region ends in a large tied tier that requires
+full work at prospective 80\% recall, where the interval crosses zero.
 % 在 TraceElephant 的全部 220 个真实失败执行上，语义 profile 在早期区间显著领先 raw action；但该结果为描述性证据，因为末端大规模同分层使预先设定的 80% recall 点需要完整检查，且配对区间跨零。
 
-Together, the complete workloads answer RQ2 positively without claiming
-uniform dominance: AgentProcessBench isolates semantic-specific concentration,
-HINTBench supports the complete profile pipeline, and TraceElephant shows
-strong early localization. Operation stacks expose recurring problem-enriched
-groups while revealing their high-recall boundaries.
-% 三个完整 workload 共同对 RQ2 给出肯定回答但不声称统一支配：AgentProcessBench 隔离出语义特异性集中，HINTBench 展示完整 profile 流水线相对原生、session 和逐步组织的优势，TraceElephant 展示强早期定位；operation stack 因而能暴露富集独立问题标签的重复分组，并同时呈现其高召回边界。
+Together, the complete workloads answer RQ2 positively: AgentProcessBench
+isolates semantic-specific concentration, HINTBench supports the complete
+pipeline, and TraceElephant shows strong early localization. A secondary
+six-task analysis (34{,}539 task-operation instances) reaches 25\% recall at
+20.00\% work and 16 groups versus fixed-session's 24.95\% and 50; flat needs
+100\% work, while raw reaches 19.93\% and 13 groups. Thus operation stacks
+reduce session fragmentation without claiming universal semantic dominance.
+% 三个完整 workload 共同对 RQ2 给出肯定回答：AgentProcessBench 隔离出语义特异性集中，HINTBench 支持完整流水线，TraceElephant 展示强早期定位；补充的六任务分析在 25% 召回率下以 20.00% 工作量和 16 个分组达到目标，fixed-session 为 24.95% 和 50，flat 需要 100% 工作量，raw 为 19.93% 和 13 个分组，因此 operation stack 降低了 session 碎片化但不声称普遍语义支配。
 
 %% -------------------------------------------------------------------
 \subsection{RQ3: Tag Accuracy}
@@ -1013,15 +1013,14 @@ Across 20 real Codex tasks, lineage reaches 100.0\%/96.569\% precision/recall,
 rejects 1{,}629 controls, and preserves 1{,}520 effects.
 % 在 20 个真实 Codex 任务上，范围化源谱达到 100.0\% precision 和 96.569\% recall，拒绝全部 1,629 个并发对照副作用，并将 1,520 个已归因副作用送入 AgentProf 且不损失任何权重。
 Across 325 real trajectories and three public benchmarks, semantic fields
-separate mixed effects and target-blind stacks improve problem concentration at
-evaluated points.
+separate effects and target-blind stacks concentrate problems; on 287 held-out
+OSWorld-Human tasks, a pre-specified predictor reaches 0.739 F1 and 0.816
+operation-weighted B$^3$ F1.
 % 在 325 条真实轨迹上，语义字段将无标签和按会话视图仍混合的副作用分离为不同的责任视图。
 % 在三个公开基准上，目标盲 operation stack 在所评估的 AP 和 recall 工作点上相比 raw action 提高问题集中度。
-On 287 held-out OSWorld-Human tasks, a pre-specified predictor reaches 0.739 F1
-and 0.816 operation-weighted B$^3$ F1.
 % 在 287 个 held-out OSWorld-Human 任务实例上，预先指定的边界预测器达到 0.739 F1 和 0.816 operation-weighted B$^3$ F1。
-\sys profiles 27{,}765 public operations in 1.17\,s. Together, the results
-establish cross-trajectory semantic profiling alongside run-local debugging.
+\sys profiles 27{,}765 operations in 1.17\,s, complementing run-local debugging
+with cross-trajectory semantic profiles.
 % 在 27,765 个公开 operation 上，\sys 用 1.17 秒构建完整语义 profile。
 % 这些结果共同确立了跨轨迹语义 profiling 对单次运行 debugging 和 tracing 的补充价值。
 
