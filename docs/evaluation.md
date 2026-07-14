@@ -20,7 +20,7 @@ later explicit user instruction may change the four author-fixed RQs.
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Do not run another RQ1 lineage or grouping variant; WRITE the cumulative positive answer and let REVIEW select the next fixed RQ. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed paper-level answer.** AgentProcessBench provides significant target-blind AP concentration beyond matched refinement; HINTBench and TraceElephant add favorable inspection regions on independent public workloads. High-recall tail efficiency depends on ranking and tie structure. Do not open another RQ2 score or benchmark variant; WRITE the cumulative positive answer and let REVIEW select another fixed RQ. |
-| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human task instances. Task/phase/action and cross-family components remain fixed future evidence; do not run another boundary variant now. |
+| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer, strengthened.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Action evidence is mixed across a tiny AndroidControl prefix and complete GUI-Odyssey prefix; phase and broad action stability remain open. WRITE the positive task result; REVIEW must preserve the fixed hypothesis and select only a materially better next mechanism if more RQ3 evidence is needed. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
 ## Admitted RQ1 Mechanism Evidence
@@ -253,6 +253,36 @@ reviews, preflight, full results, and independent recomputation are under
 with raw machine artifacts under
 `.agentsight/experiments/rq3-osworld-boundary-fidelity-v1/`.
 
+Step 0008 completed the fixed task/action partition-fidelity experiment using
+only four reused public-source prefixes with independently scoreable native
+fields. The target-blind existing TF-IDF/K-Means backend received one task text
+per session, without native task labels, and predictions were broadcast back
+to operations for the predeclared operation-weighted V-measure. It reaches
+0.5565 on all 9 currently available Mind2Web sessions / 49 operations and
+0.8151 on 100 ScienceWorld sessions / 2,504 operations, both at full coverage;
+the matched constant-tag control is 0 on each source.
+
+The unchanged action normalization path is mixed. It reaches 0.8601 V-measure
+at full coverage on the small 2-session / 9-operation AndroidControl prefix,
+but only 0.3000 V-measure and 17.2344% coverage on 500 GUI-Odyssey sessions /
+7,868 operations. All 6,512 GUI unmatched rows remain inside scoring support.
+Both source-field audits found zero structured gold-label copies. These action
+rows are retained as a current-backend boundary; they do not change RQ3 or its
+positive hypothesis and are not automatically inserted into the paper's
+positive result story.
+
+Release `agentpprof 0.2.37` conserves every operation and all weight in each
+cell and their exact 10,430-operation union. A fresh independent reviewer
+regenerated every operation from the official source prefix, reproduced every
+prediction and metric, and matched every folded-stack multiset. The run is
+`VALID`, with positive task-partition evidence, one small positive action cell,
+and one complete negative action-backend boundary. Complete plans, three plan
+reviews, two implementation reviews, real preflight, full results, and
+independent recomputation are under
+[`loop-001-rq3-task-phase-action-reuse`](tmp/build-and-evaluate/step-0008-20260714T083320-0700/01-experiment-gate/loop-001-rq3-task-phase-action-reuse/),
+with raw machine artifacts under
+`.agentsight/experiments/rq3-task-action-v1/`.
+
 ## Requirements For The Next Experiment
 
 The next experiment follows one bounded literature/source screen and must
@@ -298,6 +328,16 @@ all 1,520 attributed rows and all five known task-category masses. This closes
 the selected RQ1 integration experiment. Do not open another RQ1 lineage,
 grouping, score, or benchmark variant; WRITE the cumulative positive answer and
 let the next whole-paper REVIEW choose the next fixed-RQ evidence need.
+
+Step 0008 then completed the selected RQ3 task/action experiment without a new
+benchmark, model, metric, parser, cutoff, or sweep. The existing task backend
+provides positive evidence on both independently scoreable public sources; the
+existing action normalizer is positive on the tiny AndroidControl prefix and
+does not robustly cover GUI-Odyssey. Current AgentProf conserves the complete
+10,430-operation union. The EXPERIMENT gate is complete and routes to WRITE for
+the positive task-partition result, followed by whole-paper REVIEW. Neither the
+mixed action result nor the absence of a phase oracle authorizes changing the
+fixed RQ, hypothesis, thesis, or four-RQ structure.
 
 ## Experiment History Policy
 
