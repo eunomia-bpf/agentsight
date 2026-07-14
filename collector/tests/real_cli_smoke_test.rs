@@ -139,7 +139,6 @@ fn real_gemini_cli_smoke_captures_http_tokens() {
     for attempt in 1..=3 {
         let temp = tempfile::tempdir().expect("tempdir");
         let db = temp.path().join("gemini.db");
-        let log = temp.path().join("gemini.log");
         let prompt = format!(
             "Reply with exactly: agentsight-smoke-{}-{}",
             std::process::id(),
@@ -150,8 +149,6 @@ fn real_gemini_cli_smoke_captures_http_tokens() {
             "--no-server",
             "--db",
             db.to_str().expect("db path"),
-            "-o",
-            log.to_str().expect("log path"),
             "--",
             "gemini",
             "--model",
@@ -195,14 +192,11 @@ fn real_claude_code_smoke_captures_observed_tokens() {
     for attempt in 1..=3 {
         let temp = tempfile::tempdir().expect("tempdir");
         let db = temp.path().join("claude.db");
-        let log = temp.path().join("claude.log");
         let output = run_agentsight(&[
             "record",
             "--no-server",
             "--db",
             db.to_str().expect("db path"),
-            "-o",
-            log.to_str().expect("log path"),
             "--",
             "claude",
             "-p",
@@ -242,14 +236,11 @@ fn real_claude_code_tool_use_smoke_captures_tool_calls() {
     for attempt in 1..=3 {
         let temp = tempfile::tempdir().expect("tempdir");
         let db = temp.path().join("claude-tool.db");
-        let log = temp.path().join("claude-tool.log");
         let output = run_agentsight(&[
             "record",
             "--no-server",
             "--db",
             db.to_str().expect("db path"),
-            "-o",
-            log.to_str().expect("log path"),
             "--",
             "claude",
             "-p",

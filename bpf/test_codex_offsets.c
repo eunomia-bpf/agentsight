@@ -32,6 +32,15 @@ static void hash_to_hex(const uint8_t hash[32], char out[65])
 	out[64] = '\0';
 }
 
+static const struct codex_offset_entry *find_table_entry(const char *version)
+{
+	for (size_t i = 0; i < sizeof(codex_offset_table) / sizeof(codex_offset_table[0]); i++) {
+		if (strcmp(codex_offset_table[i].version, version) == 0)
+			return &codex_offset_table[i];
+	}
+	return NULL;
+}
+
 static void test_sha256_abc(void)
 {
 	struct codex_sha256_ctx ctx;
@@ -93,7 +102,7 @@ static void test_nonmatching_binary_misses_table(void)
 
 static void test_codex_01425_table_entry(void)
 {
-	const struct codex_offset_entry *entry = &codex_offset_table[1];
+	const struct codex_offset_entry *entry = find_table_entry("0.142.5");
 	static const uint8_t expected_sha[32] = {
 		0xf0, 0xaa, 0xc9, 0x54, 0x9a, 0x69, 0x82, 0xa2,
 		0xd2, 0x9d, 0xb2, 0x03, 0x6b, 0xe7, 0x7e, 0xfe,
@@ -101,8 +110,10 @@ static void test_codex_01425_table_entry(void)
 		0x94, 0x53, 0xb1, 0x79, 0x59, 0x41, 0x9b, 0x5f,
 	};
 
-	check(strcmp(entry->version, "0.142.5") == 0,
+	check(entry != NULL && strcmp(entry->version, "0.142.5") == 0,
 	      "Codex 0.142.5 table entry is present");
+	if (!entry)
+		return;
 	check(entry->file_size == 285929520ULL,
 	      "Codex 0.142.5 table entry records file size");
 	check(entry->ssl_write == 218231264ULL,
@@ -119,7 +130,7 @@ static void test_codex_01425_table_entry(void)
 
 static void test_codex_01441_table_entry(void)
 {
-	const struct codex_offset_entry *entry = &codex_offset_table[0];
+	const struct codex_offset_entry *entry = find_table_entry("0.144.1");
 	static const uint8_t expected_sha[32] = {
 		0xba, 0x88, 0x2b, 0x3d, 0xb6, 0x9c, 0x15, 0x31,
 		0xf3, 0xd1, 0x96, 0x97, 0x1a, 0x6c, 0x59, 0xba,
@@ -127,8 +138,10 @@ static void test_codex_01441_table_entry(void)
 		0xf8, 0x4c, 0xcb, 0xce, 0xd9, 0x85, 0xb6, 0x8a,
 	};
 
-	check(strcmp(entry->version, "0.144.1") == 0,
-	      "Codex 0.144.1 table entry is first");
+	check(entry != NULL && strcmp(entry->version, "0.144.1") == 0,
+	      "Codex 0.144.1 table entry is present");
+	if (!entry)
+		return;
 	check(entry->file_size == 298520624ULL,
 	      "Codex 0.144.1 table entry records file size");
 	check(entry->ssl_write == 229089760ULL,
@@ -141,6 +154,32 @@ static void test_codex_01441_table_entry(void)
 	      "Codex 0.144.1 table entry uses *_ex uprobes");
 	check(memcmp(entry->head_sha256, expected_sha, sizeof(expected_sha)) == 0,
 	      "Codex 0.144.1 table entry records head SHA-256");
+}
+
+static void test_codex_01444_table_entry(void)
+{
+	const struct codex_offset_entry *entry = &codex_offset_table[0];
+	static const uint8_t expected_sha[32] = {
+		0xfa, 0x92, 0x07, 0xb8, 0x78, 0x0b, 0xf4, 0x2c,
+		0x94, 0xff, 0x4a, 0xa0, 0x53, 0x23, 0x44, 0x89,
+		0x01, 0xdd, 0x56, 0x90, 0x59, 0x62, 0x0c, 0xae,
+		0x0e, 0xf9, 0x15, 0xde, 0x93, 0xc1, 0xdf, 0x64,
+	};
+
+	check(strcmp(entry->version, "0.144.4") == 0,
+	      "Codex 0.144.4 table entry is first");
+	check(entry->file_size == 298553392ULL,
+	      "Codex 0.144.4 table entry records file size");
+	check(entry->ssl_write == 229118432ULL,
+	      "Codex 0.144.4 table entry records SSL_write_ex offset");
+	check(entry->ssl_read == 229117840ULL,
+	      "Codex 0.144.4 table entry records SSL_read_ex offset");
+	check(entry->ssl_do_handshake == 229116160ULL,
+	      "Codex 0.144.4 table entry records SSL_do_handshake offset");
+	check(entry->write_is_ex && entry->read_is_ex,
+	      "Codex 0.144.4 table entry uses *_ex uprobes");
+	check(memcmp(entry->head_sha256, expected_sha, sizeof(expected_sha)) == 0,
+	      "Codex 0.144.4 table entry records head SHA-256");
 }
 
 static void test_codex_01425_fixture_if_available(void)
@@ -173,6 +212,7 @@ int main(void)
 	test_sha256_abc();
 	test_marker_detection();
 	test_nonmatching_binary_misses_table();
+	test_codex_01444_table_entry();
 	test_codex_01441_table_entry();
 	test_codex_01425_table_entry();
 	test_codex_01425_fixture_if_available();
