@@ -373,21 +373,19 @@ fn observed_codex_exec_command(audit_rows: &[AuditEventRow]) -> bool {
         .iter()
         .filter(|row| row.audit_type == "process" && row.action.as_deref() == Some("exec"))
         .filter_map(|row| row.details.get("full_command").and_then(Value::as_str))
-        .any(looks_like_codex_exec_command)
+        .any(|command| codex_exec_command_tail(command).is_some())
 }
 
 fn codex_exec_prompt_from_command(command: &str) -> Option<String> {
-    if !looks_like_codex_exec_command(command) {
-        return None;
-    }
-    agent_session::codex_exec_prompt(command)
+    agent_session::codex_exec_prompt(&codex_exec_command_tail(command)?)
 }
 
-fn looks_like_codex_exec_command(command: &str) -> bool {
+fn codex_exec_command_tail(command: &str) -> Option<String> {
     let tokens = command.split_whitespace().collect::<Vec<_>>();
-    tokens.windows(2).enumerate().any(|(index, tokens)| {
-        is_codex_executable_token(tokens[0], index == 0) && tokens[1] == "exec"
-    })
+    let index = tokens.windows(2).enumerate().find_map(|(index, tokens)| {
+        (is_codex_executable_token(tokens[0], index == 0) && tokens[1] == "exec").then_some(index)
+    })?;
+    Some(tokens[index..].join(" "))
 }
 
 fn looks_like_native_codex_exec(row: &AuditEventRow) -> bool {
@@ -753,6 +751,7 @@ mod tests {
             (11_000, "codex", "/usr/bin/codex exec --skip-git-repo-check agentsight repeated prompt"),
             (20_000, "codex", "/usr/bin/codex exec --skip-git-repo-check agentsight repeated prompt"),
             (21_000, "docker", "docker exec codex exec agentsight should not parse"),
+            (22_000, "docker", "docker exec container /usr/local/bin/codex exec agentsight should parse once"),
         ]
         .into_iter()
         .enumerate()
@@ -773,6 +772,7 @@ mod tests {
                 Some("agentsight repeated prompt".to_string()),
                 Some("agentsight repeated prompt".to_string()),
                 Some("agentsight repeated prompt".to_string()),
+                Some("agentsight should parse once".to_string()),
             ]
         );
     }
