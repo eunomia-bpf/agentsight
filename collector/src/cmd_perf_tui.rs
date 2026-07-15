@@ -35,7 +35,7 @@ pub(crate) fn run_live_top_tui(
         true,
         |display_limit, options| {
             live_view
-                .refresh(display_limit, options)
+                .refresh(display_limit, options, true)
                 .map_err(Into::into)
         },
     )
