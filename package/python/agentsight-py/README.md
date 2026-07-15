@@ -25,4 +25,3 @@ agentsight report export -o snapshot.json
 
 The package is experimental and intentionally does not implement eBPF capture.
 Live capture remains the job of the Linux AgentSight collector.
-
