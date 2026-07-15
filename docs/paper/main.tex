@@ -179,7 +179,11 @@ projection contains only durable Git changes.
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=\textwidth]{../../vis-gallery/artifacts/paper-atlas.png}
+  \IfFileExists{../../vis-gallery/artifacts/paper-atlas.png}{%
+    \includegraphics[width=\textwidth]{../../vis-gallery/artifacts/paper-atlas.png}%
+  }{%
+    \fbox{\parbox{0.92\textwidth}{\centering Generate the local atlas plate with \texttt{npm run capture} in \texttt{vis-gallery}.}}%
+  }
   \caption{The atlas uses one navigation and playback grammar across every
   family. This field-atlas view overlays recorded read/write rates and Git
   commits while keeping their legends and evidence layers separate.}

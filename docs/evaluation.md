@@ -126,8 +126,10 @@ linked here after review. No result placeholder is treated as evidence.
   mechanism passed every gate. Mature naturalistic transfer failed
   support/calibration gates, line lineage was undersupported, and July 14 was
   right-censored and excluded.
-- Plan: [RQ1 association experiment plan](tmp/build-and-evaluate/step-0002-20260715T035503-0700/experiment-rq1-association-20260715T035503-0700/plan.md).
-- Raw path: `docs/tmp/build-and-evaluate/step-0002-20260715T035503-0700/experiment-rq1-association-20260715T035503-0700/raw/private/` for ignored native data and `raw/public/` for sanitized aggregates.
+- Plan: the RQ1 association experiment plan is a local ignored run artifact
+  under `docs/tmp/build-and-evaluate/.../experiment-rq1-association-.../plan.md`.
+- Raw path: ignored native data and sanitized aggregate outputs live under the
+  matching local `docs/tmp/build-and-evaluate/.../raw/` run directory.
 - Result boundary: the gallery may display candidate sets, ambiguity, unmatched
   states, ordered process evidence, Git history, and endpoint state. It may not
   claim calibrated real-history association, causality, authorship, accurate
