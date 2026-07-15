@@ -20,15 +20,22 @@ weaker hypothesis.
 RQ1 now has a complete scoped real-Codex lineage result, RQ4 has a complete
 current-binary construction-cost result, and RQ3 has positive held-out boundary
 and task-partition evidence. Steps 0017--0018 established that the former
-information-gain inducer remained below the strongest simple controls. Step
-0020 changes the core objective to cross-session action recurrence on the same
-development population and clears those controls on both boundary and partition
-fidelity; the release Rust path exactly matches the fixed evaluator. This is
-post-hoc mechanism-development evidence rather than independent cross-family
-confirmation. That OSWorld-Human mechanism branch is now closed.
+information-gain inducer remained below the strongest simple controls. Steps
+0020--0024 replace that objective with cross-session action recurrence, diagnose
+identity-dominated global calibration on existing CodeTraceBench trajectories,
+and adopt one monotone repair: action-changing pairs use
+`min(global_cutoff, cross_action_cutoff)`. The final Rust path exactly matches
+the fixed evaluator, preserves all 3,691 OSWorld decisions, and raises
+CodeTraceBench B-cubed F1 from 0.475 to 0.649 relative to the prior global
+constructor. External phase change remains slightly higher on pooled B-cubed
+F1 (0.654) but lower on boundary F1 (0.225 versus 0.287). This is post-hoc
+implementation-selection evidence on two reused populations, not independent
+confirmation or an answer to every RQ3 tag type. The bounded recurrence repair
+branch is closed; see the
+[`Step 0024 whole-paper review`](tmp/build-and-evaluate/step-0024-20260715T042557-0700/whole-paper-review.md).
 
-The Step 0018 source-grounded whole-paper review disputes the current cumulative
-positive RQ2 synthesis. AgentProcessBench contains a small semantic-specific AP
+The Step 0018 source-grounded whole-paper review disputed the then-current
+cumulative positive RQ2 synthesis. AgentProcessBench contains a small semantic-specific AP
 gain, whereas HINTBench versus raw action and TraceElephant's prospective
 Work@80 comparison remain inconclusive. Another score, cutoff, or localization
 benchmark would repeat the same evidence shape. Step 0019 therefore tested a
@@ -56,6 +63,12 @@ story.
 - [Perfetto Trace Processor](https://perfetto.dev/docs/analysis/trace-processor)
   supports trace ingestion, SQL analysis, derived events, and query-time
   aggregation.
+- [NVIDIA NeMo Agent Toolkit Profiler](https://docs.nvidia.com/nemo/agent-toolkit/latest/improve-workflows/profiler.html)
+  instruments supported agent workflows, aggregates per-invocation token and
+  latency data, and reports throughput, bottleneck, and concurrency analyses.
+  It is the closest named agent profiler; AgentProf's remaining distinction is
+  heterogeneous completed histories plus source-linked conserved agent/system
+  effects and selectable pprof-compatible semantic projections.
 - [Pivot Tracing](https://www.microsoft.com/en-us/research/publication/pivot-tracing-dynamic-causal-monitoring-for-distributed-systems/)
   dynamically selects, filters, and groups metrics across causally related
   component events. It makes independent lineage fidelity, not only mass
@@ -107,6 +120,12 @@ source execution view.
   trajectory structure to localize inspection targets, search loops, and failed
   work. This July 2026 preprint further prevents novelty claims based on
   corpus-level trajectory diagnostics alone.
+- [CodeTracer / CodeTraceBench](https://arxiv.org/abs/2604.11641) reconstructs
+  hierarchical state-transition traces and supports failure localization and
+  replay with author-annotated stages. It is both the source for Step 0024's
+  reused 405-trajectory implementation-selection population and a closest trace
+  representation; AgentProf's claim is cross-trajectory aggregate profiling,
+  not first hierarchical state reconstruction.
 
 The completed Hodoscope experiment reproduced the official iQuest behavior and
 found that the tested recursive AgentProf construction did not beat the released
@@ -238,9 +257,15 @@ alone.
    and approved fixed mappings on held-out agents and task families, including
    coverage, stability, and downstream attribution sensitivity. Step 0008 now
    supplies positive independent task-partition evidence on Mind2Web and
-   ScienceWorld; Step 0006 supplies group-boundary evidence. Structured phase
-   mapping alone cannot authorize every tag backend, and a new dataset is not
-   justified merely to fill the remaining cells.
+   ScienceWorld; Step 0006 supplies group-boundary evidence. Steps 0020--0024
+   establish the current recurrence constructor on OSWorld and reused
+   CodeTraceBench trajectories, with the complete external phase-change
+   tradeoff and post-hoc boundary above. Do not retune either observed
+   population. Structured phase mapping alone cannot authorize every tag
+   backend, and a new dataset is not justified merely to fill remaining cells;
+   the completed whole-paper re-review and independent outer audit do not find
+   broader constructor evidence load-bearing, so no next constructor experiment
+   is admitted.
 4. **RQ4 — profiling cost.** Step 0005 supplies the paper-level construction
    answer: current `agentpprof 0.2.37` builds the 27,765-operation semantic
    union in 1.17 s median with 464.49 MiB maximum RSS, while R160 separately

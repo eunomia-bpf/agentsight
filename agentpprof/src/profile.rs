@@ -276,12 +276,29 @@ pub struct OperationStackInductionReport {
     reference_transitions: usize,
     target_sessions: usize,
     target_operations: usize,
+    same_action_reference_transitions: usize,
+    action_change_reference_transitions: usize,
     cutoff: f64,
     low_center: f64,
     high_center: f64,
     low_occurrences: usize,
     high_occurrences: usize,
     two_means_iterations: usize,
+    global_cutoff: f64,
+    global_low_center: f64,
+    global_high_center: f64,
+    global_low_occurrences: usize,
+    global_high_occurrences: usize,
+    global_two_means_iterations: usize,
+    cross_action_cutoff: f64,
+    cross_action_applied_cutoff: f64,
+    cross_action_low_center: f64,
+    cross_action_high_center: f64,
+    cross_action_low_occurrences: usize,
+    cross_action_high_occurrences: usize,
+    cross_action_two_means_iterations: usize,
+    removed_current_boundaries: usize,
+    added_current_boundaries: usize,
     unseen_target_transitions: usize,
     predicted_groups: usize,
     unique_motifs: usize,
@@ -302,6 +319,9 @@ pub struct OperationStackBoundaryDecision {
     right_action: String,
     npmi: Option<f64>,
     unseen_in_reference: bool,
+    calibration_population: &'static str,
+    applied_cutoff: f64,
+    current_boundary: bool,
     boundary: bool,
 }
 
@@ -1098,7 +1118,16 @@ fn induce_operation_stack(
                 .association
                 .get(&(left_action.to_string(), right_action.to_string()))
                 .copied();
-            let boundary = npmi.is_none_or(|score| score < model.cutoff);
+            let current_boundary = npmi.is_none_or(|score| score < model.global.cutoff);
+            let (calibration_population, applied_cutoff) = if left_action == right_action {
+                ("all-transitions", model.global.cutoff)
+            } else {
+                (
+                    "monotone-action-changing-transitions",
+                    model.global.cutoff.min(model.cross_action.cutoff),
+                )
+            };
+            let boundary = npmi.is_none_or(|score| score < applied_cutoff);
             if boundary {
                 boundaries.push(position);
             }
@@ -1109,6 +1138,9 @@ fn induce_operation_stack(
                 right_action: right_action.to_string(),
                 npmi,
                 unseen_in_reference: npmi.is_none(),
+                calibration_population,
+                applied_cutoff,
+                current_boundary,
                 boundary,
             });
         }
@@ -1172,12 +1204,35 @@ fn induce_operation_stack(
         reference_transitions: model.transition_count,
         target_sessions: target_groups.len(),
         target_operations: samples.len(),
-        cutoff: model.cutoff,
-        low_center: model.low_center,
-        high_center: model.high_center,
-        low_occurrences: model.low_occurrences,
-        high_occurrences: model.high_occurrences,
-        two_means_iterations: model.iterations,
+        same_action_reference_transitions: model.same_action_transitions,
+        action_change_reference_transitions: model.action_change_transitions,
+        cutoff: model.global.cutoff,
+        low_center: model.global.low_center,
+        high_center: model.global.high_center,
+        low_occurrences: model.global.low_occurrences,
+        high_occurrences: model.global.high_occurrences,
+        two_means_iterations: model.global.iterations,
+        global_cutoff: model.global.cutoff,
+        global_low_center: model.global.low_center,
+        global_high_center: model.global.high_center,
+        global_low_occurrences: model.global.low_occurrences,
+        global_high_occurrences: model.global.high_occurrences,
+        global_two_means_iterations: model.global.iterations,
+        cross_action_cutoff: model.cross_action.cutoff,
+        cross_action_applied_cutoff: model.global.cutoff.min(model.cross_action.cutoff),
+        cross_action_low_center: model.cross_action.low_center,
+        cross_action_high_center: model.cross_action.high_center,
+        cross_action_low_occurrences: model.cross_action.low_occurrences,
+        cross_action_high_occurrences: model.cross_action.high_occurrences,
+        cross_action_two_means_iterations: model.cross_action.iterations,
+        removed_current_boundaries: decisions
+            .iter()
+            .filter(|decision| decision.current_boundary && !decision.boundary)
+            .count(),
+        added_current_boundaries: decisions
+            .iter()
+            .filter(|decision| !decision.current_boundary && decision.boundary)
+            .count(),
         unseen_target_transitions: decisions
             .iter()
             .filter(|decision| decision.unseen_in_reference)
@@ -1199,6 +1254,14 @@ fn induce_operation_stack(
 struct RecurrenceModel {
     association: BTreeMap<(String, String), f64>,
     transition_count: usize,
+    same_action_transitions: usize,
+    action_change_transitions: usize,
+    global: RecurrenceCalibration,
+    cross_action: RecurrenceCalibration,
+}
+
+#[derive(Debug)]
+struct RecurrenceCalibration {
     cutoff: f64,
     low_center: f64,
     high_center: f64,
@@ -1280,14 +1343,30 @@ fn recurrence_model(
         association.insert((left.clone(), right.clone()), npmi);
     }
     let mut occurrence_scores = Vec::with_capacity(transition_count);
+    let mut cross_action_scores = Vec::new();
     for (pair, count) in &pair_counts {
         occurrence_scores.extend(std::iter::repeat_n(association[pair], *count));
+        if pair.0 != pair.1 {
+            cross_action_scores.extend(std::iter::repeat_n(association[pair], *count));
+        }
     }
-    let (low_center, high_center, low_occurrences, high_occurrences, iterations) =
-        deterministic_recurrence_two_means(&occurrence_scores)?;
+    let global = recurrence_calibration(&occurrence_scores)?;
+    let cross_action = recurrence_calibration(&cross_action_scores)?;
+    let action_change_transitions = cross_action_scores.len();
     Ok(RecurrenceModel {
         association,
         transition_count,
+        same_action_transitions: transition_count - action_change_transitions,
+        action_change_transitions,
+        global,
+        cross_action,
+    })
+}
+
+fn recurrence_calibration(scores: &[f64]) -> Result<RecurrenceCalibration> {
+    let (low_center, high_center, low_occurrences, high_occurrences, iterations) =
+        deterministic_recurrence_two_means(scores)?;
+    Ok(RecurrenceCalibration {
         cutoff: (low_center + high_center) / 2.0,
         low_center,
         high_center,
@@ -2919,8 +2998,19 @@ mod tests {
             }}));
         }
 
+        let reference = [("fill", 5), ("click", 4), ("fill", 3), ("click", 2)]
+            .into_iter()
+            .flat_map(|(action, count)| {
+                std::iter::repeat_n(
+                    json!({"value": 1, "fields": {"session": "reference", "action": action}}),
+                    count,
+                )
+            })
+            .collect::<Vec<_>>();
         let stack = parse_stack_spec("operation").unwrap();
-        let induction = OperationStackInductionConfig::new();
+        let induction = OperationStackInductionConfig::new()
+            .with_reference_operation_records(&reference)
+            .unwrap();
         let options = OperationStackConfig::for_view(ProfileView::Operations)
             .with_stack(stack)
             .with_operation_stack_induction(induction);
@@ -2955,11 +3045,18 @@ mod tests {
         assert_eq!(report.association_field, "action");
         assert_eq!(report.selected_source_fields, vec!["action"]);
         assert_eq!(report.reference_sessions, 1);
-        assert_eq!(report.reference_operations, 18);
-        assert_eq!(report.reference_transitions, 17);
+        assert_eq!(report.reference_operations, 14);
+        assert_eq!(report.reference_transitions, 13);
         assert_eq!(report.target_sessions, 1);
         assert_eq!(report.target_operations, 18);
         assert_eq!(report.boundary_decisions.len(), 17);
+        assert_eq!(report.added_current_boundaries, 0);
+        assert!(
+            report
+                .boundary_decisions
+                .iter()
+                .all(|decision| !decision.boundary || decision.current_boundary)
+        );
         assert_eq!(report.segments.len(), 2);
         assert_eq!(report.predicted_groups, 2);
         assert_eq!(report.unique_motifs, 2);
@@ -3006,9 +3103,21 @@ mod tests {
                 "dataset": "fixture", "session": "s0", "action": "a_b"
             }}));
         }
+        let reference = [("a_b", 5), ("A B", 4), ("a_b", 3), ("A B", 2)]
+            .into_iter()
+            .flat_map(|(action, count)| {
+                std::iter::repeat_n(
+                    json!({"value": 1, "fields": {"session": "reference", "action": action}}),
+                    count,
+                )
+            })
+            .collect::<Vec<_>>();
+        let induction = OperationStackInductionConfig::new()
+            .with_reference_operation_records(&reference)
+            .unwrap();
         let options = OperationStackConfig::for_view(ProfileView::Operations)
             .with_stack(parse_stack_spec("operation").unwrap())
-            .with_operation_stack_induction(OperationStackInductionConfig::new());
+            .with_operation_stack_induction(induction);
         let profile =
             build_profile_from_operation_records(&records, ProfileView::Operations, &options)
                 .unwrap();
@@ -3022,6 +3131,42 @@ mod tests {
             safe_frame(&segments[0].motif, Some("operation")),
             safe_frame(&segments[1].motif, Some("operation"))
         );
+    }
+
+    #[test]
+    fn operation_stack_induction_only_removes_current_cross_action_boundaries() {
+        let reference = [("fill", 5), ("click", 4), ("fill", 3), ("click", 2)]
+            .into_iter()
+            .flat_map(|(action, count)| {
+                std::iter::repeat_n(
+                    json!({"value": 1, "fields": {"session": "reference", "action": action}}),
+                    count,
+                )
+            })
+            .collect::<Vec<_>>();
+        let target = ["fill", "click"]
+            .into_iter()
+            .map(|action| json!({"value": 1, "fields": {"session": "target", "action": action}}))
+            .collect::<Vec<_>>();
+        let induction = OperationStackInductionConfig::new()
+            .with_reference_operation_records(&reference)
+            .unwrap();
+        let options = OperationStackConfig::for_view(ProfileView::Operations)
+            .with_stack(parse_stack_spec("operation").unwrap())
+            .with_operation_stack_induction(induction);
+        let profile =
+            build_profile_from_operation_records(&target, ProfileView::Operations, &options)
+                .unwrap();
+        let report = profile.operation_stack_induction.as_ref().unwrap();
+        let decision = &report.boundary_decisions[0];
+
+        assert!(report.cross_action_applied_cutoff < report.global_cutoff);
+        assert!(decision.current_boundary);
+        assert!(!decision.boundary);
+        assert_eq!(report.removed_current_boundaries, 1);
+        assert_eq!(report.added_current_boundaries, 0);
+        assert_eq!(report.segments.len(), 1);
+        assert_eq!(report.segments[0].motif, "action=fill-then-click");
     }
 
     #[test]

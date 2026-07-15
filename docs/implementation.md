@@ -50,11 +50,14 @@ recurrence. It counts adjacent action transitions in a reference population,
 computes normalized pointwise mutual information (NPMI) with left and right
 marginals from that same transition sample space, and separates low- from
 high-association transitions with deterministic occurrence-weighted
-one-dimensional two-means. An unseen transition or a score strictly below the
-midpoint of the two centers starts a new segment; otherwise the current segment
-continues. Each resulting frame is the run-length-compressed action
-sequence of its segment, so the same recurring motif receives the same
-cross-session identity.
+one-dimensional two-means. It fits that calibration globally and over
+action-changing occurrences. Same-action decisions use the global midpoint;
+action-changing decisions use `min(global, cross-action)`. This parameter-free
+constraint can remove a global-rule boundary but cannot add one. An unseen
+transition or a score strictly below its applied midpoint starts a new segment;
+otherwise the current segment continues. Each resulting frame is the
+run-length-compressed action sequence of its segment, so the same recurring
+motif receives the same cross-session identity.
 
 Automatic induction requires exactly one nonempty `session` and one nonempty
 `action` value per operation. It uses input order within each session and gives
@@ -164,18 +167,18 @@ configuration. In particular:
 
 The Step 0017--0018 information-gain results remain frozen experiment artifacts
 and historical baselines; that mechanism is no longer the Rust runtime path.
-Step 0020 changes the objective rather than adding a feature, depth, threshold,
-or score term. On the same already-observed 287-session development population,
-recurrence induction reaches boundary F1 0.6799 and operation-weighted B-cubed
-F1 0.7862, above the strongest registered simple controls at 0.6445 and 0.6784.
-Because the labels had already informed mechanism diagnosis, these numbers are
-post-hoc implementation-development evidence rather than fresh RQ3
-confirmation.
+Step 0024 retains the Step 0020 recurrence objective and adds only the monotone
+cross-action calibration above. On the already-observed 287-session OSWorld
+population, all decisions and the 0.6799 boundary / 0.7862 B-cubed F1 results
+remain unchanged. On all 405 existing CodeTraceBench targets, boundary F1 rises
+from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 while removing 5,974
+global-rule boundaries and adding none. Both populations had already informed
+mechanism diagnosis, so these numbers authorize the release implementation but
+remain post-hoc rather than fresh RQ3 confirmation.
 
 The release Rust port exactly matches the fixed Python evaluator on all 3,691
 adjacent decisions, 3,978 motif assignments, and 2,656 segments across the five
-existing folds, while conserving all 3,978 profile units. Mutating scorer-only
-fields leaves the complete induction report unchanged. This closes the current
-OSWorld-Human mechanism-development round. Do not add another field, cutoff,
-depth, or objective variant on this population; if the paper requires broader
-algorithm evidence, use the unchanged port on an independent annotated family.
+existing folds, while conserving all 3,978 profile units. Raw global,
+cross-action, and applied cutoffs agree within `1e-12`; scorer-only fields remain
+outside induction. Complete adoption records are under
+[`step-0024-20260715T042557-0700`](tmp/build-and-evaluate/step-0024-20260715T042557-0700/).

@@ -18,9 +18,9 @@ later explicit user instruction may change the four author-fixed RQs.
 
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
-| RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Do not run another RQ1 lineage or grouping variant; WRITE the cumulative positive answer and let REVIEW select the next fixed RQ. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Positive hypothesis unchanged; Step 0019 adds valid supporting downstream evidence.** AgentProcessBench has a small isolated AP gain, HINTBench is numerically favorable but inconclusive versus raw action, and TraceElephant is strong at a descriptive early point but inconclusive at prospective Work@80. In the complete fixed-reader comparison, operation stack improves selected-positive recall on 5/6 tasks (median paired delta +0.080571) and precision on 4/6 (+0.035501) versus fixed session at a three-group budget. The result does not show lower work or raw-action, human, or universal-view superiority. Whole-paper REVIEW must now judge cumulative RQ2 submission readiness rather than rerun this packet study. |
-| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; the Step 0020 constructor remains current.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0020's post-hoc recurrence development reaches 0.6799 boundary F1 and 0.7862 B-cubed F1 on OSWorld-Human. Steps 0021–0023 reuse 405 complete CodeTraceBench targets plus the same OSWorld trajectories to diagnose and isolate identity-dominated calibration. The conditioned candidate preserves CodeTraceBench's B-cubed gain from 0.4750 to 0.6492 while reducing the OSWorld regression to 0.7862 versus 0.7846, but remains strictly lower there. The valid mixed result is not adopted; the paper, current Rust implementation, fixed RQ3 hypothesis, and story remain unchanged. |
+| RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Retain the cumulative positive paper answer; whole-paper REVIEW selects any next fixed RQ. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Positive hypothesis unchanged; Step 0019 adds valid supporting downstream evidence.** AgentProcessBench has a small isolated AP gain, HINTBench is numerically favorable but inconclusive versus raw action, and TraceElephant is strong at a descriptive early point but inconclusive at prospective Work@80. In the complete fixed-reader comparison, operation stack improves selected-positive recall on 5/6 tasks (median paired delta +0.080571) and precision on 4/6 (+0.035501) versus fixed session at a three-group budget. The result does not show lower work or raw-action, human, or universal-view superiority. The final Step 0024 whole-paper review and outer audit retain this cumulative positive answer and close the packet branch; do not rerun it. |
+| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; the Step 0024 monotone recurrence constructor is current.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. The final recurrence constructor keeps Step 0020's OSWorld result unchanged at 0.6799 boundary F1 and 0.7862 B-cubed F1. On all 405 reused CodeTraceBench targets, it raises boundary F1 from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 across all four frameworks while adding no current-relative boundary. The exact equal-plus-higher result supports release adoption as post-hoc implementation-selection evidence; it does not answer phase/action/literal-name accuracy or all of RQ3. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
 ## Admitted RQ1 Mechanism Evidence
@@ -498,6 +498,41 @@ with raw artifacts under
 `.agentsight/experiments/rq3-conditioned-recurrence-rust-equivalence-v1/full/`,
 and `.agentsight/experiments/rq3-conditioned-recurrence-codetracebench-v1/full/`.
 
+Step 0024 applies the single directional constraint exposed by Step 0023:
+same-action pairs retain the global cutoff, while action-changing pairs use
+`min(global_cutoff, cross_action_cutoff)`. NPMI, occurrence weighting,
+two-means, unseen-pair handling, segment construction, motifs, fields, and both
+complete trajectory populations remain unchanged. The rule is monotone with
+respect to the Step 0020 constructor: it can remove a current boundary but
+cannot add one.
+
+The complete OSWorld-Human result is exactly unchanged on every one of 3,691
+decisions: boundary F1 0.679922 and B-cubed F1 0.786170, with zero removed and
+zero added current boundaries. On complete CodeTraceBench, the rule removes
+5,974 current boundaries and adds zero; boundary F1 rises from 0.268506 to
+0.287106 and B-cubed F1 from 0.475008 to 0.649173. B-cubed improves in
+OpenHands, SWE-agent, Terminus2, and mini-SWE-agent relative to the prior
+global constructor. Against the external phase-change baseline, the final
+constructor has higher boundary F1 (0.287106 versus 0.225425) and slightly
+lower B-cubed F1 (0.649173 versus 0.654445), with per-framework B-cubed wins on
+two of four frameworks. This CodeTraceBench population is the existing 405
+source-valid failed trajectories from the verified split. The release Rust
+path matches Python on all 3,691 OSWorld decisions, 3,978 assignments, 2,656
+segments, 44 motifs, and all mass.
+
+Independent raw review classifies Step 0024 `VALID / COMPLETE / SUPPORTED`:
+B-cubed is no lower on both complete populations and strictly higher on one.
+The monotone candidate therefore replaces the Step 0020 runtime path. This is
+supporting post-hoc implementation-selection evidence because both populations
+were reused after mechanism diagnosis; it is not untouched confirmation,
+literal motif-name validation, or a complete RQ3 answer. Complete reports are
+under
+[`step-0024-20260715T042557-0700`](tmp/build-and-evaluate/step-0024-20260715T042557-0700/),
+with raw artifacts under
+`.agentsight/experiments/rq3-monotone-recurrence-v1/full/`,
+`.agentsight/experiments/rq3-monotone-recurrence-rust-equivalence-v1/full/`, and
+`.agentsight/experiments/rq3-monotone-recurrence-codetracebench-v1/full/`.
+
 ## Requirements For The Next Experiment
 
 The next experiment follows one bounded literature/source screen and must
@@ -572,20 +607,20 @@ metric, threshold, resample, or human experiment is needed first.
 Step 0017 paused the unexecuted RQ2 reader proposal after explicit user
 redirection and completed the higher-value built-in RQ3 mechanism test above.
 Step 0018 removed the active depth cap, but could not repair the information-
-gain objective's mismatch to heterogeneous operation groups. Step 0020 was
-admitted after the user's explicit direction because it changes that core
-objective and reuses the existing trajectories; it is not another depth,
-threshold, score-term, or benchmark variant. The recurrence mechanism now
-clears both registered simple controls, and its Rust port exactly reproduces the
-fixed evaluator. This closes the OSWorld-Human mechanism-development branch:
-do not tune this population again or reinterpret the post-hoc result as an
-untouched answer to all of RQ3. Route the current implementation through
-targeted WRITE and whole-paper REVIEW; if broader constructor evidence remains
-load-bearing, the next empirical step must be unchanged-port confirmation on an
-independent annotated family.
+gain objective's mismatch to heterogeneous operation groups. Steps 0020--0024
+then replace that objective with recurrence, diagnose its identity-dominated
+calibration on existing CodeTraceBench trajectories, and adopt the monotone
+cross-action rule. The final constructor clears the registered OSWorld controls,
+preserves every current OSWorld decision, improves B-cubed on all four
+CodeTraceBench frameworks, and exactly matches the fixed evaluator. This closes
+the bounded recurrence implementation branch: do not tune either reused
+population again or reinterpret the post-hoc result as an untouched answer to
+all of RQ3. Targeted WRITE, whole-paper re-review, and independent outer audit
+are complete and PASS. They do not require broader constructor evidence, so the
+recurrence branch remains closed with no next constructor experiment.
 
-The resulting fresh AAAI/cross-domain whole-paper review scores the current
-paper 4/10 (weak reject). It preserves the thesis and four RQs but identifies
+The earlier Step 0018 AAAI/cross-domain whole-paper review scored the
+then-current paper 4/10 (weak reject). It preserved the thesis and four RQs but identified
 RQ2's cross-workload positive synthesis and the missing closest-profiler
 comparison as the two largest scientific risks. NVIDIA NeMo Agent Toolkit must
 enter Related Work, but its official profiler instruments a running
@@ -596,9 +631,11 @@ comparison under a fresh single-RQ plan and independent result review. The
 complete 66-presentation run supports its registered recall and precision
 hypothesis against fixed-session packets, while the work rows and absent
 matched raw-action packet preserve the stated boundary. Do not repeat this
-packet study with a cosmetic prompt, model, cutoff, or seed. Route the admitted
-result through targeted WRITE and the step outer audit; let that review choose
-the strongest remaining paper-level gap.
+packet study with a cosmetic prompt, model, cutoff, or seed. Its admitted result
+has already entered the paper; the Step 0024 whole-paper/outer REVIEW direction
+governed the next paper-level decision. Step 0024's final whole-paper re-review
+and outer audit now PASS with no must-fix and authorize no return to
+EXPERIMENT, WRITE, or REVIEW.
 
 ## Experiment History Policy
 

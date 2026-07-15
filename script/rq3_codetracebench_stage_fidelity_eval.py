@@ -46,6 +46,10 @@ METHODS = (
     "session_one_block",
 )
 ALTERNATIVES = METHODS[1:]
+DEFAULT_STEP23_SUMMARY = (
+    ROOT
+    / ".agentsight/experiments/rq3-conditioned-recurrence-codetracebench-v1/full/summary.json"
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -204,6 +208,10 @@ def recurrence_predictions(
     for row in raw_decisions:
         key = (str(row["session"]), int(row["position"]))
         require(key not in decisions, f"duplicate recurrence decision: {key}")
+        require(
+            not bool(row["boundary"]) or bool(row["current_boundary"]),
+            f"monotone recurrence added a current-relative boundary: {key}",
+        )
         decisions[key] = bool(row["boundary"])
     expected_keys = {
         (session, position)
@@ -387,35 +395,22 @@ def aggregate(
     }
 
 
-def scientific_verdict(metrics: dict[str, Any]) -> dict[str, Any]:
-    strongest_boundary = max(
-        ALTERNATIVES, key=lambda method: float(metrics[method]["boundary"]["f1"])
+def population_relation(metrics: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
+    candidate_partition = float(metrics["recurrence"]["partition"]["f1"])
+    current_partition = float(current["partition"]["f1"])
+    relation = (
+        "higher"
+        if candidate_partition > current_partition
+        else "equal"
+        if candidate_partition == current_partition
+        else "lower"
     )
-    strongest_partition = max(
-        ALTERNATIVES, key=lambda method: float(metrics[method]["partition"]["f1"])
-    )
-    boundary_positive = metrics["recurrence"]["boundary"]["f1"] > metrics[
-        strongest_boundary
-    ]["boundary"]["f1"]
-    partition_positive = metrics["recurrence"]["partition"]["f1"] > metrics[
-        strongest_partition
-    ]["partition"]["f1"]
-    if boundary_positive and partition_positive:
-        verdict = "supported"
-    elif boundary_positive or partition_positive:
-        verdict = "mixed"
-    else:
-        verdict = "contradicted"
     return {
-        "verdict": verdict,
-        "boundary_positive": boundary_positive,
-        "strongest_boundary_alternative": strongest_boundary,
-        "boundary_f1_delta": metrics["recurrence"]["boundary"]["f1"]
-        - metrics[strongest_boundary]["boundary"]["f1"],
-        "partition_positive": partition_positive,
-        "strongest_partition_alternative": strongest_partition,
-        "partition_f1_delta": metrics["recurrence"]["partition"]["f1"]
-        - metrics[strongest_partition]["partition"]["f1"],
+        "population_relation": relation,
+        "boundary_f1_delta_vs_current": metrics["recurrence"]["boundary"]["f1"]
+        - current["boundary"]["f1"],
+        "partition_f1_delta_vs_current": candidate_partition - current_partition,
+        "overall_verdict": "requires the complete OSWorld-Human population",
     }
 
 
@@ -548,7 +543,27 @@ def main() -> None:
         )
         for framework in sorted(set(frameworks.values()))
     }
-    full_verdict = scientific_verdict(metrics) if args.mode == "full" else None
+    historical = None
+    local_relation = None
+    if args.mode == "full":
+        historical = json.loads(DEFAULT_STEP23_SUMMARY.read_text(encoding="utf-8"))
+        require(
+            historical["population"]
+            == {
+                "reference_sessions": EXPECTED_DISJOINT_REFERENCE_SESSIONS,
+                "reference_operations": EXPECTED_DISJOINT_REFERENCE_OPERATIONS,
+                "target_sessions": EXPECTED_TARGET_SESSIONS,
+                "target_operations": EXPECTED_TARGET_OPERATIONS,
+                "target_pairs": EXPECTED_TARGET_OPERATIONS - EXPECTED_TARGET_SESSIONS,
+                "official_stages": 2948,
+                "frameworks": dict(Counter(frameworks.values())),
+                "action_kinds": sorted(action_kinds),
+            },
+            "historical CodeTraceBench population changed",
+        )
+        local_relation = population_relation(
+            metrics, historical["current_recurrence_baseline"]
+        )
     official_stage_count = len(set(official.values()))
     expected_target_operations = sum(len(targets[session]) for session in selected)
     expected_target_pairs = expected_target_operations - len(selected)
@@ -568,7 +583,7 @@ def main() -> None:
 
     write_jsonl(out_dir / "pair-decisions.jsonl", pair_rows)
     write_jsonl(out_dir / "operation-assignments.jsonl", operation_rows)
-    if full_verdict is None:
+    if local_relation is None:
         tested_hypothesis = "not tested"
         verdict = {
             "verdict": "not tested",
@@ -580,23 +595,23 @@ def main() -> None:
             "metrics are diagnostics only."
         )
     else:
-        tested_hypothesis = full_verdict["verdict"]
-        verdict = full_verdict
+        tested_hypothesis = local_relation["population_relation"]
+        verdict = local_relation
         interpretation = (
-            "The unchanged recurrence constructor exceeds every registered baseline and control on both primary metrics."
-            if full_verdict["verdict"] == "supported"
-            else "The unchanged recurrence constructor is mixed across the two primary metrics."
-            if full_verdict["verdict"] == "mixed"
-            else "The unchanged recurrence constructor does not exceed the strongest alternatives on either primary metric."
+            "The monotone candidate is "
+            f"{local_relation['population_relation']} than the current recurrence path "
+            "on CodeTraceBench B-cubed F1; the fixed verdict requires OSWorld-Human too."
         )
     summary = {
         "schema": "agentsight.rq3-codetracebench-stage-fidelity.v1",
         "mode": args.mode,
         "run_status": "valid",
         "tested_hypothesis": tested_hypothesis,
-        "research_value": "decisive" if args.mode == "full" else "dependency-only",
+        "research_value": "supporting" if args.mode == "full" else "dependency-only",
         "paper_impact": (
-            "additional RQ3 evidence" if args.mode == "full" else "none; preflight only"
+            "implementation-selection evidence only"
+            if args.mode == "full"
+            else "none; preflight only"
         ),
         "next_paper_decision": (
             "route valid result to independent result review"
@@ -626,6 +641,11 @@ def main() -> None:
         "metrics": metrics,
         "per_framework": by_framework,
         "verdict": verdict,
+        "current_recurrence_baseline": (
+            historical["current_recurrence_baseline"] if historical else None
+        ),
+        "step22_component": historical["step22_component"] if historical else None,
+        "step23_component": historical["metrics"]["recurrence"] if historical else None,
         "recurrence": {
             key: recurrence_report[key]
             for key in (
@@ -638,9 +658,17 @@ def main() -> None:
                 "predicted_groups",
                 "unique_motifs",
                 "unseen_target_transitions",
-                "low_center",
-                "high_center",
-                "cutoff",
+                "same_action_reference_transitions",
+                "action_change_reference_transitions",
+                "global_low_center",
+                "global_high_center",
+                "global_cutoff",
+                "cross_action_low_center",
+                "cross_action_high_center",
+                "cross_action_cutoff",
+                "cross_action_applied_cutoff",
+                "removed_current_boundaries",
+                "added_current_boundaries",
             )
         },
         "validity": {
@@ -660,6 +688,10 @@ def main() -> None:
             "all_target_weight_conserved": status["samples"]
             == expected_target_operations,
             "algorithm_or_threshold_search": False,
+            "candidate_boundary_subset_of_current": recurrence_report[
+                "added_current_boundaries"
+            ]
+            == 0,
         },
         "raw": {
             "profile": relative(out_dir / "profile.json"),

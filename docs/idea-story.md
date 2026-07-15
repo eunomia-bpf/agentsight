@@ -259,6 +259,16 @@ matches every evaluated boundary, motif, segment, and conserved unit. This is a
 mechanism/frontier update on already observed labels, not a new narrative,
 thesis, contribution, RQ, or untouched cross-family confirmation.
 
+Step 0024 completes that implementation branch without changing the principle
+or story. It constrains action-changing decisions to the smaller of the global
+and cross-action recurrence cutoffs, so the refinement can recover continuity
+but cannot add a global-rule boundary. On the two already-complete development
+populations, it leaves every OSWorld-Human decision and the 0.7862 B-cubed F1
+unchanged, while raising CodeTraceBench B-cubed F1 from 0.4750 to 0.6492 across
+all four frameworks. The fixed equal-plus-higher rule supports adoption as the
+release constructor. This is a mechanism/frontier update on reused evidence,
+not a new narrative, thesis, contribution, RQ, or untouched confirmation.
+
 Step 0019 tests a different consequence inside unchanged RQ2. A fixed
 rank-hidden Qwen3.6-27B reader selects three of each view's query-aware top five
 groups across six public-data tasks and all five cyclic positions. The complete
@@ -274,25 +284,26 @@ changing the thesis, RQs, contributions, or two-object model.
 The user has restored the untouched submodule as the canonical story source.
 RQ1 has strong scoped source-lineage and lossless-folding evidence, RQ4 has a
 complete positive construction-cost answer, and Steps 0006/0008 supply positive
-boundary/task-partition evidence within RQ3. Step 0020 closes the bounded
-OSWorld-Human mechanism-development investigation by replacing the mismatched
-information-gain objective with recurrence induction and porting it exactly to
-Rust. It clears the registered controls on that already observed population,
-but the result remains post-hoc rather than independent confirmation. No
-further OSWorld-Human depth, field, penalty, threshold, or score-term search is
-admitted.
+boundary/task-partition evidence within RQ3. Steps 0020--0024 close the bounded
+recurrence implementation investigation by replacing the mismatched
+information-gain objective, isolating its calibration failure on existing
+CodeTraceBench trajectories, and adopting the monotone cross-action rule. The
+final constructor preserves the complete OSWorld result and improves the
+complete CodeTraceBench partition result without adding a current-relative
+boundary. The result remains post-hoc implementation selection rather than
+independent confirmation. No further OSWorld-Human or CodeTraceBench depth,
+field, penalty, threshold, or score-term search is admitted.
 
 The Step 0018 whole-paper review preserved the thesis and four RQs but disputed
 the current cumulative positive RQ2 authorization because its three workload
 outcomes used different metrics/points and did not isolate downstream decision
 value. Step 0019 has now completed the selected fixed-reader comparison and
-adds the bounded downstream evidence above. The next action is the targeted
-WRITE sync for the current recurrence implementation and an independent
-whole-paper/outer audit. If that audit still finds automatic identity fidelity
-load-bearing, the next empirical step is unchanged-port confirmation on an
-independent annotated family, not another OSWorld-Human mechanism variant. This
-is an evidence-frontier update, not a narrative evolution or change to the
-thesis, four RQs, or two-object model.
+adds the bounded downstream evidence above. The targeted WRITE sync for the
+adopted recurrence implementation is complete. The independent whole-paper
+re-review and outer audit both PASS and do not find broader automatic identity
+fidelity evidence load-bearing, so the recurrence branch stays closed with no
+next constructor experiment. This is an evidence-frontier update, not a
+narrative evolution or change to the thesis, four RQs, or two-object model.
 
 ## Narrative Evolution — Accepted Changes Only
 

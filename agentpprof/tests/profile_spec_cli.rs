@@ -3,6 +3,24 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
+fn recurrence_reference_jsonl() -> String {
+    [("fill", 5), ("click", 4), ("fill", 3), ("click", 2)]
+        .into_iter()
+        .flat_map(|(action, count)| {
+            std::iter::repeat_n(
+                serde_json::json!({
+                    "value": 1,
+                    "fields": {"session": "reference", "action": action}
+                })
+                .to_string(),
+                count,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n"
+}
+
 #[test]
 fn profile_spec_composes_mapping_filter_ranking_and_stack_depth() {
     let tmp = tempfile::tempdir().unwrap();
@@ -131,6 +149,7 @@ phase:submit=(action=click.*intent=authenticate.*target=submit)
 fn cli_induces_operation_stack_without_user_field_order() {
     let tmp = tempfile::tempdir().unwrap();
     let ops_path = tmp.path().join("ops.jsonl");
+    let reference_path = tmp.path().join("reference.jsonl");
     let output_path = tmp.path().join("induced.json");
     let binary = env!("CARGO_BIN_EXE_agentpprof");
 
@@ -139,6 +158,7 @@ fn cli_induces_operation_stack_without_user_field_order() {
     rows.extend(std::iter::repeat_n(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","session":"s0","repeat_state":"same-action-run","repeat_signal":"loop-like","action":"click","looping":"yes","problem_value":"positive","status":"failure","step_correct":"true","safety":"unsafe","human_group":"g1","group_pattern":"g1"}}"#, 6));
     rows.extend(std::iter::repeat_n(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","session":"s0","repeat_state":"same-action-run","repeat_signal":"loop-like","action":"fill","looping":"yes","problem_value":"positive","status":"failure","step_correct":"true","safety":"unsafe","human_group":"g2","group_pattern":"g2"}}"#, 6));
     fs::write(&ops_path, rows.join("\n") + "\n").unwrap();
+    fs::write(&reference_path, recurrence_reference_jsonl()).unwrap();
 
     let output = Command::new(binary)
         .args([
@@ -155,6 +175,8 @@ fn cli_induces_operation_stack_without_user_field_order() {
             "--where",
             "analysis_task=agentreward_looping",
             "--induce-operation-stack",
+            "--induce-reference-operation-file",
+            reference_path.to_str().unwrap(),
             "--deterministic-output",
         ])
         .output()
@@ -213,8 +235,9 @@ fn cli_induces_operation_stack_without_user_field_order() {
     assert_eq!(report["sequence_field"], "session");
     assert_eq!(report["association_field"], "action");
     assert_eq!(report["reference_sessions"], 1);
-    assert_eq!(report["reference_operations"], 18);
-    assert_eq!(report["reference_transitions"], 17);
+    assert_eq!(report["reference_operations"], 14);
+    assert_eq!(report["reference_transitions"], 13);
+    assert_eq!(report["added_current_boundaries"], 0);
     assert_eq!(report["target_sessions"], 1);
     assert_eq!(report["target_operations"], 18);
     assert_eq!(report["predicted_groups"], 2);
@@ -256,26 +279,19 @@ fn cli_induces_operation_stack_from_external_reference_corpus() {
     let output_path = tmp.path().join("induced.json");
     let binary = env!("CARGO_BIN_EXE_agentpprof");
 
-    let reference = [
-        ("r0", "click"),
-        ("r0", "click"),
-        ("r0", "click"),
-        ("r0", "fill"),
-        ("r0", "fill"),
-        ("r1", "click"),
-        ("r1", "click"),
-        ("r1", "fill"),
-        ("r1", "fill"),
-    ]
-    .into_iter()
-    .map(|(session, action)| {
-        serde_json::json!({"value": 1, "fields": {"session": session, "action": action}})
-            .to_string()
-    })
-    .collect::<Vec<_>>()
-    .join("\n");
+    let reference = [("fill", 5), ("click", 4), ("fill", 3), ("click", 2)]
+        .into_iter()
+        .flat_map(|(action, count)| {
+            std::iter::repeat_n(
+                serde_json::json!({"value": 1, "fields": {"session": "r0", "action": action}})
+                    .to_string(),
+                count,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
     fs::write(&reference_path, reference + "\n").unwrap();
-    let target = ["click", "click", "fill", "fill"]
+    let target = ["click", "click", "fill", "click"]
         .into_iter()
         .map(|action| {
             serde_json::json!({"value": 1, "fields": {"session": "t0", "action": action}})
@@ -310,15 +326,23 @@ fn cli_induces_operation_stack_from_external_reference_corpus() {
     let profile: Value = serde_json::from_str(&fs::read_to_string(&output_path).unwrap()).unwrap();
     let report = &profile["profile"]["operation_stack_induction"];
     assert_eq!(report["reference_source"], "external-operation-records");
-    assert_eq!(report["reference_sessions"], 2);
-    assert_eq!(report["reference_operations"], 9);
-    assert_eq!(report["reference_transitions"], 7);
+    assert_eq!(report["reference_sessions"], 1);
+    assert_eq!(report["reference_operations"], 14);
+    assert_eq!(report["reference_transitions"], 13);
     assert_eq!(report["target_sessions"], 1);
     assert_eq!(report["target_operations"], 4);
     assert_eq!(report["boundary_decisions"].as_array().unwrap().len(), 3);
+    assert!(
+        report["cross_action_applied_cutoff"].as_f64().unwrap()
+            < report["global_cutoff"].as_f64().unwrap()
+    );
+    assert_eq!(report["removed_current_boundaries"], 1);
+    assert_eq!(report["added_current_boundaries"], 0);
+    assert_eq!(report["boundary_decisions"][2]["current_boundary"], true);
+    assert_eq!(report["boundary_decisions"][2]["boundary"], false);
     assert_eq!(report["segments"].as_array().unwrap().len(), 2);
     assert_eq!(report["segments"][0]["motif"], "action=click");
-    assert_eq!(report["segments"][1]["motif"], "action=fill");
+    assert_eq!(report["segments"][1]["motif"], "action=fill-then-click");
 }
 
 #[test]
@@ -388,6 +412,7 @@ fn cli_rejects_legacy_information_gain_knobs_under_recurrence() {
 fn cli_legacy_task_stack_alias_ignores_hidden_oracle_only_boundaries() {
     let tmp = tempfile::tempdir().unwrap();
     let ops_path = tmp.path().join("ops.jsonl");
+    let reference_path = tmp.path().join("reference.jsonl");
     let output_path = tmp.path().join("induced.json");
     let binary = env!("CARGO_BIN_EXE_agentpprof");
 
@@ -396,6 +421,7 @@ fn cli_legacy_task_stack_alias_ignores_hidden_oracle_only_boundaries() {
     rows.extend(std::iter::repeat_n(r#"{"value":1,"fields":{"dataset":"fixture","analysis_task":"hidden_boundary","session":"s0","action":"click","step_correct":"true","safety":"unsafe","human_group":"g1","group_pattern":"g1","target_positive":"yes"}}"#, 6));
     rows.extend(std::iter::repeat_n(r#"{"value":1,"fields":{"dataset":"fixture","analysis_task":"hidden_boundary","session":"s0","action":"fill","step_correct":"true","safety":"unsafe","human_group":"g2","group_pattern":"g2","target_positive":"yes"}}"#, 6));
     fs::write(&ops_path, rows.join("\n") + "\n").unwrap();
+    fs::write(&reference_path, recurrence_reference_jsonl()).unwrap();
 
     let output = Command::new(binary)
         .args([
@@ -408,6 +434,8 @@ fn cli_legacy_task_stack_alias_ignores_hidden_oracle_only_boundaries() {
             "--output",
             output_path.to_str().unwrap(),
             "--induce-task-stack",
+            "--induce-reference-operation-file",
+            reference_path.to_str().unwrap(),
             "--deterministic-output",
         ])
         .output()

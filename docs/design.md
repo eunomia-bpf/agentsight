@@ -134,12 +134,16 @@ NPMI(a,b) = ln[p(a,b)/(p_L(a)p_R(b))] / -ln[p(a,b)].
 
 A deterministic occurrence-weighted one-dimensional two-means partition starts
 from the minimum and maximum finite NPMI values, assigns exact distance ties to
-the lower center, and uses the midpoint of the converged centers as its only
-cutoff. In a target session, an unseen transition or a score strictly below the
-cutoff starts a new group; every other transition continues the current group.
-No depth, field search, hand-weighted score term, complexity penalty, query
-tie-break, label-tuned threshold, or resource-weighted transition count enters
-this decision.
+the lower center, and uses the midpoint of the converged centers as the global
+cutoff. The same partition over action-changing reference occurrences supplies
+a cross-action cutoff. Same-action target pairs use the global cutoff;
+action-changing pairs use the smaller of the global and cross-action cutoffs.
+Thus the refinement can only merge a boundary produced by the global rule and
+can never add one. In a target session, an unseen transition or a score
+strictly below its applied cutoff starts a new group; every other transition
+continues the current group. No depth, field search, hand-weighted score term,
+complexity penalty, query tie-break, label-tuned threshold, or resource-weighted
+transition count enters this decision.
 
 Each group receives a run-length-compressed action motif such as
 `action=click-then-type-then-press`. Identical motifs therefore fold to the
@@ -155,14 +159,17 @@ Legacy information-gain knobs remain parseable only to produce a clear error:
 `--induce-task-stack` flag invokes the same implementation under the legacy
 derived-field name.
 
-Step 0020 developed this objective directly on the already completed
-OSWorld-Human trajectories. Under the existing five session-held-out folds, it
-raises boundary F1 from 0.4720 for the cap-free information-gain implementation
-to 0.6799 and operation-weighted B-cubed F1 from 0.6720 to 0.7862, clearing the
-strongest simple control on both metrics. The result is post-hoc mechanism
-development because the same label population informed failure diagnosis; it
-does not become fresh RQ3 confirmation or prove motif-name semantics or
-cross-family generalization.
+Steps 0020--0024 developed this objective directly on the already completed
+OSWorld-Human and CodeTraceBench trajectories. The final monotone calibration
+keeps all 3,691 OSWorld decisions and its 0.6799 boundary F1 and 0.7862
+operation-weighted B-cubed F1 unchanged. On 405 CodeTraceBench targets, it
+removes 5,974 global-rule boundaries, adds none, raises boundary F1 from 0.2685
+to 0.2871, and raises B-cubed F1 from 0.4750 to 0.6492 across all four agent
+frameworks. Under the fixed two-population rule, equal plus higher supports the
+replacement. Both populations had already informed mechanism diagnosis, so
+the result remains post-hoc implementation-selection evidence rather than
+fresh confirmation of all RQ3, motif-name semantics, or cross-family
+generalization.
 
 The Rust port was then checked mechanically against the approved Python
 candidate. Independent raw review reproduced exact equality for all 3,691
@@ -263,13 +270,14 @@ The current design is not:
 
 RQ1, RQ2, the human-boundary component of RQ3, and RQ4 have paper-linked
 evidence. Steps 0017--0018 established that the former information-gain runtime
-objective did not match heterogeneous human operation groups. Step 0020 then
-changed that objective, on the same already observed OSWorld-Human population,
-to the cross-session recurrence construction specified above. Recurrence raises
-boundary F1 from 0.4720 to 0.6799 and B-cubed F1 from 0.6720 to 0.7862, clearing
-the registered strongest simple controls on both metrics; the Rust port exactly
-reproduces every evaluated decision and conserved unit. Because those labels
-informed mechanism development, this is implementation-selection evidence, not
-fresh cross-family confirmation of the whole RQ3 hypothesis. Further
-OSWorld-Human field, depth, penalty, threshold, or score-term tuning is not part
-of the design.
+objective did not match heterogeneous human operation groups. Steps 0020--0024
+changed that objective to the cross-session recurrence construction specified
+above, diagnosed identity-dominated calibration on existing CodeTraceBench
+trajectories, and adopted the monotone cutoff composition. The final rule keeps
+OSWorld boundary F1 0.6799 and B-cubed F1 0.7862 unchanged while raising
+CodeTraceBench B-cubed F1 from 0.4750 to 0.6492 across all four frameworks; the
+Rust port exactly reproduces every evaluated OSWorld decision and conserved
+unit. Because both label populations informed mechanism development, this is
+implementation-selection evidence, not fresh confirmation of the whole RQ3
+hypothesis. Further field, depth, penalty, threshold, or score-term tuning on
+either reused population is not part of the design.

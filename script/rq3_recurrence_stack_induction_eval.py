@@ -59,6 +59,9 @@ DEFAULT_STEP6_SUMMARY = (
     / "full"
     / "summary.json"
 )
+DEFAULT_CURRENT_RECURRENCE_SUMMARY = ROOT / ".agentsight/experiments/rq3-recurrence-inducer-v1/full/summary.json"
+DEFAULT_STEP22_COMPONENT_SUMMARY = ROOT / ".agentsight/experiments/rq3-cross-action-recurrence-v1/full/summary.json"
+DEFAULT_STEP23_COMPONENT_SUMMARY = ROOT / ".agentsight/experiments/rq3-conditioned-recurrence-v1/full/summary.json"
 SIMPLE_CONTROLS = ("action_change", "phase_change", "always_boundary")
 
 
@@ -223,7 +226,17 @@ def predict_fold(
     if not train_ids or not test_ids or set(train_ids) & set(test_ids):
         raise SystemExit(f"fold {fold} does not have a disjoint nonempty split")
     association, occurrence_scores, counts = transition_npmi(train_ids, visible)
-    clusters = deterministic_two_means(occurrence_scores)
+    global_clusters = deterministic_two_means(occurrence_scores)
+    cross_action_scores = [
+        association[(left, right)]
+        for sequence in train_ids
+        for left, right in zip(visible[sequence], visible[sequence][1:])
+        if left != right
+    ]
+    cross_action_clusters = deterministic_two_means(cross_action_scores)
+    effective_cross_action_cutoff = min(
+        global_clusters["cutoff"], cross_action_clusters["cutoff"]
+    )
 
     predictions: dict[tuple[str, int], dict[str, Any]] = {}
     unseen = 0
@@ -231,7 +244,18 @@ def predict_fold(
         actions = visible[sequence]
         for position, (left, right) in enumerate(zip(actions, actions[1:]), 1):
             score = association.get((left, right))
-            boundary = score is None or score < clusters["cutoff"]
+            current_boundary = score is None or score < global_clusters["cutoff"]
+            calibration_population = (
+                "all-transitions"
+                if left == right
+                else "monotone-action-changing-transitions"
+            )
+            applied_cutoff = (
+                global_clusters["cutoff"]
+                if left == right
+                else effective_cross_action_cutoff
+            )
+            boundary = score is None or score < applied_cutoff
             if score is None:
                 unseen += 1
             key = (sequence, position)
@@ -243,15 +267,37 @@ def predict_fold(
                 "left_action": left,
                 "right_action": right,
                 "unseen_in_training": score is None,
+                "calibration_population": calibration_population,
+                "applied_cutoff": applied_cutoff,
+                "current_boundary": current_boundary,
             }
+    if any(
+        prediction["boundary"] and not prediction["current_boundary"]
+        for prediction in predictions.values()
+    ):
+        raise SystemExit("monotone recurrence added a current-relative boundary")
+    global_report = {f"global_{key}": value for key, value in global_clusters.items()}
+    cross_action_report = {
+        f"cross_action_{key}": value for key, value in cross_action_clusters.items()
+    }
     return predictions, {
         "fold": fold,
         "train_sessions": len(train_ids),
         "test_sessions": len(test_ids),
         "test_pairs": len(predictions),
         "unseen_test_pairs": unseen,
+        "same_action_reference_transitions": len(occurrence_scores)
+        - len(cross_action_scores),
+        "action_change_reference_transitions": len(cross_action_scores),
+        "effective_cross_action_cutoff": effective_cross_action_cutoff,
+        "removed_current_boundaries": sum(
+            prediction["current_boundary"] and not prediction["boundary"]
+            for prediction in predictions.values()
+        ),
+        "added_current_boundaries": 0,
         **counts,
-        **clusters,
+        **global_report,
+        **cross_action_report,
     }
 
 
@@ -338,6 +384,9 @@ def scorer_pair_rows(
                     "right_action": prediction["right_action"],
                     "npmi": prediction["npmi"],
                     "unseen_in_training": prediction["unseen_in_training"],
+                    "calibration_population": prediction["calibration_population"],
+                    "applied_cutoff": prediction["applied_cutoff"],
+                    "current_boundary": prediction["current_boundary"],
                     "recurrence": bool(prediction["boundary"]),
                     "action_change": previous["fields"].get("action")
                     != current["fields"].get("action"),
@@ -583,48 +632,16 @@ def run_profiler(
 def verdict(
     boundary: dict[str, dict[str, Any]], partition: dict[str, dict[str, Any]]
 ) -> dict[str, Any]:
-    strongest_boundary = max(
-        SIMPLE_CONTROLS, key=lambda method: float(boundary[method]["f1_exact"])
-    )
-    strongest_partition = max(
-        SIMPLE_CONTROLS, key=lambda method: float(partition[method]["f1"])
-    )
     candidate_boundary = float(boundary["recurrence"]["f1_exact"])
     candidate_partition = float(partition["recurrence"]["f1"])
-    current_boundary = float(boundary["current_information_gain"]["f1_exact"])
-    current_partition = float(partition["current_information_gain"]["f1"])
-    improves_current = (
-        candidate_boundary > current_boundary and candidate_partition > current_partition
-    )
-    clears_simple = (
-        candidate_boundary > float(boundary[strongest_boundary]["f1_exact"])
-        and candidate_partition > float(partition[strongest_partition]["f1"])
-    )
-    improves_neither = (
-        candidate_boundary <= current_boundary and candidate_partition <= current_partition
-    )
-    clears_neither = (
-        candidate_boundary <= float(boundary[strongest_boundary]["f1_exact"])
-        and candidate_partition <= float(partition[strongest_partition]["f1"])
-    )
-    if improves_current and clears_simple:
-        result = "supported"
-    elif improves_neither or clears_neither:
-        result = "contradicted"
-    else:
-        result = "mixed"
+    current_boundary = float(boundary["current_recurrence"]["f1_exact"])
+    current_partition = float(partition["current_recurrence"]["f1"])
+    relation = "higher" if candidate_partition > current_partition else "equal" if candidate_partition == current_partition else "lower"
     return {
-        "verdict": result,
-        "strongest_boundary_control": strongest_boundary,
-        "strongest_partition_control": strongest_partition,
-        "improves_current_on_both": improves_current,
-        "clears_strongest_simple_on_both": clears_simple,
+        "population_relation": relation,
         "boundary_delta_vs_current": candidate_boundary - current_boundary,
         "partition_delta_vs_current": candidate_partition - current_partition,
-        "boundary_delta_vs_strongest_simple": candidate_boundary
-        - float(boundary[strongest_boundary]["f1_exact"]),
-        "partition_delta_vs_strongest_simple": candidate_partition
-        - float(partition[strongest_partition]["f1"]),
+        "overall_verdict": "requires the complete CodeTraceBench population",
     }
 
 
@@ -698,6 +715,16 @@ def main() -> None:
     if args.mode == "full":
         boundary["supervised_oof"] = step6["boundary_metrics"]["learned"]
         partition["supervised_oof"] = step6["partition_metrics"]["learned"]
+        for method, path in (
+            ("current_recurrence", DEFAULT_CURRENT_RECURRENCE_SUMMARY),
+            ("step22_component", DEFAULT_STEP22_COMPONENT_SUMMARY),
+            ("step23_component", DEFAULT_STEP23_COMPONENT_SUMMARY),
+        ):
+            component = json.loads(path.read_text(encoding="utf-8"))
+            if component["source_counts"] != source_counts:
+                raise SystemExit(f"{method} source population changed")
+            boundary[method] = component["boundary_metrics"]["recurrence"]
+            partition[method] = component["partition_metrics"]["recurrence"]
 
     candidate_rows = candidate_operation_rows(groups, selected_ids, motifs)
     operation_file = out_dir / "candidate-operations.jsonl"
@@ -713,6 +740,9 @@ def main() -> None:
         "scientific_role": "post-hoc mechanism development on an already observed population",
         "paper_promotion": "prohibited as fresh confirmatory RQ3 evidence",
         "operation_file": relative(args.operation_file),
+        "current_recurrence_summary": relative(DEFAULT_CURRENT_RECURRENCE_SUMMARY),
+        "step22_component_summary": relative(DEFAULT_STEP22_COMPONENT_SUMMARY),
+        "step23_component_summary": relative(DEFAULT_STEP23_COMPONENT_SUMMARY),
         "step18_baseline": relative(args.step18_dir),
         "step18_commit": "7218564980d12fe3f493eed245fac03f0980cf2d",
         "source_counts": source_counts,
@@ -725,7 +755,7 @@ def main() -> None:
             "policy": "cross-session-action-transition-npmi-segmentation",
             "visible_field": "action",
             "association": "NPMI with left/right marginals over the training transition population",
-            "cutoff": "deterministic occurrence-weighted one-dimensional two-means midpoint",
+            "cutoff": "global two-means for same-action pairs; min(global, cross-action two-means) for action changes",
             "unseen_pair": "boundary",
             "motif": "run-length-compressed action sequence",
             "label_access": "none during association, cutoff, prediction, or motif construction",
@@ -755,6 +785,18 @@ def main() -> None:
             == len(candidate_rows),
             "candidate_inputs_exclude_scorer_fields": True,
             "all_scores_and_clusters_finite": True,
+            "candidate_boundary_subset_of_current": all(
+                not prediction["boundary"] or prediction["current_boundary"]
+                for prediction in all_predictions.values()
+            ),
+            "added_current_boundaries": sum(
+                prediction["boundary"] and not prediction["current_boundary"]
+                for prediction in all_predictions.values()
+            ),
+            "removed_current_boundaries": sum(
+                prediction["current_boundary"] and not prediction["boundary"]
+                for prediction in all_predictions.values()
+            ),
             "profiler_mass_conserved": profiler["total_weight"] == len(candidate_rows),
             "step18_baseline_complete": len(step18_groups) == len(candidate_rows),
         },
@@ -762,7 +804,7 @@ def main() -> None:
         if args.mode == "full"
         else "preflight-only; no scientific verdict",
         "claim_boundary": {
-            "supported_if_full_passes": "A cross-session label-free-at-prediction transition-association rule is a better post-hoc development candidate for session-local operation-group segmentation on this existing OSWorld-Human population.",
+            "local_result": "This summary records the candidate's exact higher, equal, or lower relation on OSWorld-Human; the fixed Pareto verdict requires both complete populations.",
             "not_supported": "Fresh RQ3 confirmation, motif-name correctness, phase/action identity, cross-family generalization, or a whole-RQ answer.",
         },
         "outputs": {
