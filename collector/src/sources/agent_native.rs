@@ -4,9 +4,9 @@
 use agent_session::{AgentSession, TokenUsage};
 use serde_json::Value;
 use std::cmp::Reverse;
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::time::{Duration, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[cfg(test)]
 use std::fs;
@@ -38,12 +38,182 @@ pub(crate) fn snapshot(
     limit: usize,
     max_age: Duration,
 ) -> Snapshot {
-    let filtered: Vec<LocalSession> = cache
-        .discover_cached(limit, max_age)
+    let indexed_codex = codex_state_sessions(limit);
+    let mut sessions = if indexed_codex.is_empty() {
+        cache.discover_cached(limit, max_age)
+    } else {
+        let mut sessions = indexed_codex;
+        sessions.extend(cache.discover_cached_excluding(
+            limit,
+            max_age,
+            &[agent_session::AGENT_CODEX],
+        ));
+        sessions.sort_by_key(|session| Reverse(session.updated));
+        sessions.truncate(limit.clamp(1, 25));
+        sessions
+    };
+    let mut seen = HashSet::new();
+    sessions.retain(|session| seen.insert(session.display_id.clone()));
+    let filtered: Vec<LocalSession> = sessions
         .into_iter()
         .filter(|s| matches_filter(s, pid_filter, text_filter))
         .collect();
     materialized_view(&filtered).export_snapshot(SnapshotOptions { audit_limit: 0 })
+}
+
+fn codex_state_sessions(limit: usize) -> Vec<LocalSession> {
+    user_home_dir()
+        .as_deref()
+        .map(|home| codex_state_sessions_in_home(home, limit))
+        .unwrap_or_default()
+}
+
+fn codex_state_sessions_in_home(home: &Path, limit: usize) -> Vec<LocalSession> {
+    let db_path = home.join(".codex/state_5.sqlite");
+    let Ok(conn) =
+        rusqlite::Connection::open_with_flags(db_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+    else {
+        return Vec::new();
+    };
+    let Ok(mut stmt) = conn.prepare(
+        "SELECT id, rollout_path, model, tokens_used, preview, cwd, created_at_ms, updated_at_ms
+         FROM threads
+         ORDER BY updated_at_ms DESC
+         LIMIT ?1",
+    ) else {
+        return Vec::new();
+    };
+    let Ok(rows) = stmt.query_map([limit.clamp(1, 25) as i64], |row| {
+        let id: String = row.get(0)?;
+        let rollout_path: String = row.get(1)?;
+        let model: Option<String> = row.get(2)?;
+        let tokens_used: i64 = row.get(3)?;
+        let preview: Option<String> = row.get(4)?;
+        let cwd: Option<String> = row.get(5)?;
+        let created_at_ms: Option<i64> = row.get(6)?;
+        let updated_at_ms: Option<i64> = row.get(7)?;
+        Ok(codex_state_session(
+            id,
+            rollout_path,
+            model,
+            tokens_used,
+            preview,
+            cwd,
+            created_at_ms,
+            updated_at_ms,
+        ))
+    }) else {
+        return Vec::new();
+    };
+
+    rows.filter_map(Result::ok).collect()
+}
+
+fn codex_state_session(
+    id: String,
+    rollout_path: String,
+    model: Option<String>,
+    tokens_used: i64,
+    preview: Option<String>,
+    cwd: Option<String>,
+    created_at_ms: Option<i64>,
+    updated_at_ms: Option<i64>,
+) -> LocalSession {
+    let updated_ms = updated_at_ms.and_then(non_negative_i64_to_u64);
+    let created_ms = created_at_ms
+        .and_then(non_negative_i64_to_u64)
+        .or(updated_ms);
+    let updated = updated_ms.map(system_time_from_ms).unwrap_or(UNIX_EPOCH);
+    let usage = TokenUsage {
+        total_tokens: tokens_used.max(0),
+        ..Default::default()
+    };
+    let model = model.filter(|value| !value.is_empty());
+    let mut model_usage = BTreeMap::new();
+    if let Some(model) = model.as_deref() {
+        model_usage.insert(model.to_string(), usage.clone());
+    }
+    let prompt_preview = preview
+        .and_then(|text| clean_prompt_text(&text))
+        .map(|text| truncate_text(&text, 180));
+    let last_message_at = updated_ms.map(iso_utc_from_ms);
+
+    LocalSession {
+        agent_type: agent_session::AGENT_CODEX.to_string(),
+        session_id: id.clone(),
+        conversation_id: Some(id.clone()),
+        display_id: format!("{}:{}", agent_session::AGENT_CODEX, short_session_id(&id)),
+        path: PathBuf::from(rollout_path),
+        updated,
+        start_timestamp_ms: created_ms,
+        end_timestamp_ms: updated_ms,
+        model,
+        usage,
+        model_usage,
+        tools: BTreeMap::new(),
+        files: BTreeMap::new(),
+        prompt_preview,
+        duration_ms: created_ms
+            .zip(updated_ms)
+            .map(|(start, end)| end.saturating_sub(start))
+            .unwrap_or_default(),
+        cwd,
+        last_message_at,
+        events: Default::default(),
+    }
+}
+
+fn user_home_dir() -> Option<PathBuf> {
+    std::env::var("SUDO_USER")
+        .ok()
+        .and_then(|user| {
+            std::fs::read_to_string("/etc/passwd")
+                .ok()
+                .and_then(|passwd| {
+                    passwd
+                        .lines()
+                        .find(|line| line.starts_with(&format!("{user}:")))
+                        .and_then(|line| line.split(':').nth(5))
+                        .map(PathBuf::from)
+                })
+        })
+        .or_else(dirs::home_dir)
+}
+
+fn non_negative_i64_to_u64(value: i64) -> Option<u64> {
+    u64::try_from(value).ok()
+}
+
+fn system_time_from_ms(value: u64) -> SystemTime {
+    UNIX_EPOCH + Duration::from_millis(value)
+}
+
+fn iso_utc_from_ms(value: u64) -> String {
+    chrono::DateTime::<chrono::Utc>::from_timestamp_millis(value as i64)
+        .map(|dt| dt.to_rfc3339_opts(chrono::SecondsFormat::Millis, true))
+        .unwrap_or_default()
+}
+
+fn short_session_id(id: &str) -> String {
+    let compact = id.rsplit(['/', '\\']).next().unwrap_or(id).trim();
+    if compact.chars().count() <= 12 {
+        return compact.to_string();
+    }
+    let head = compact.chars().take(6).collect::<String>();
+    let tail = compact
+        .chars()
+        .rev()
+        .take(5)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect::<String>();
+    format!("{head}.{tail}")
+}
+
+fn clean_prompt_text(text: &str) -> Option<String> {
+    let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    (!text.trim().is_empty()).then(|| text.trim().to_string())
 }
 
 fn view_id(session: &LocalSession) -> String {
@@ -672,6 +842,70 @@ mod tests {
             rows[0].request.get("prompt").and_then(Value::as_str),
             Some("agentsight local codex prompt")
         );
+    }
+
+    #[test]
+    fn codex_state_db_produces_indexed_session_metadata() {
+        let temp = tempfile::tempdir().unwrap();
+        let codex_dir = temp.path().join(".codex");
+        fs::create_dir_all(&codex_dir).unwrap();
+        let conn = rusqlite::Connection::open(codex_dir.join("state_5.sqlite")).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE threads (
+                id TEXT PRIMARY KEY,
+                rollout_path TEXT,
+                model TEXT,
+                tokens_used INTEGER NOT NULL DEFAULT 0,
+                preview TEXT,
+                cwd TEXT,
+                created_at_ms INTEGER,
+                updated_at_ms INTEGER
+            );",
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO threads
+             (id, rollout_path, model, tokens_used, preview, cwd, created_at_ms, updated_at_ms)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            rusqlite::params![
+                "019f49ca-54e7-7a91-82e7-a52b53cfd456",
+                temp.path()
+                    .join(".codex/sessions/session.jsonl")
+                    .to_string_lossy(),
+                "gpt-5.5",
+                12345i64,
+                "hello from state",
+                "/work/repo",
+                1_800_000i64,
+                1_900_000i64,
+            ],
+        )
+        .unwrap();
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].display_id, "codex:019f49.fd456");
+        assert_eq!(sessions[0].model.as_deref(), Some("gpt-5.5"));
+        assert_eq!(sessions[0].usage.total_tokens, 12345);
+        assert_eq!(
+            sessions[0].prompt_preview.as_deref(),
+            Some("hello from state")
+        );
+        assert_eq!(sessions[0].cwd.as_deref(), Some("/work/repo"));
+        assert_eq!(
+            sessions[0].last_message_at.as_deref(),
+            Some("1970-01-01T00:31:40.000Z")
+        );
+    }
+
+    #[test]
+    fn codex_state_db_errors_return_empty_for_jsonl_fallback() {
+        let temp = tempfile::tempdir().unwrap();
+        fs::create_dir_all(temp.path().join(".codex")).unwrap();
+        fs::write(temp.path().join(".codex/state_5.sqlite"), "not sqlite").unwrap();
+
+        assert!(codex_state_sessions_in_home(temp.path(), 5).is_empty());
     }
 
     #[test]

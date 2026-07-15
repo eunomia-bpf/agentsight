@@ -169,6 +169,7 @@ pub struct SessionCache {
     cached_sessions: Vec<AgentSession>,
     last_refresh: Option<Instant>,
     last_limit: usize,
+    last_excluded_agents: Vec<String>,
 }
 
 struct CacheEntry {
@@ -182,19 +183,39 @@ impl SessionCache {
     }
 
     pub fn discover_cached(&mut self, limit: usize, max_age: Duration) -> Vec<AgentSession> {
+        self.discover_cached_excluding(limit, max_age, &[])
+    }
+
+    pub fn discover_cached_excluding(
+        &mut self,
+        limit: usize,
+        max_age: Duration,
+        excluded_agents: &[&str],
+    ) -> Vec<AgentSession> {
         let target = limit.clamp(1, 25);
+        let mut excluded_agents = excluded_agents
+            .iter()
+            .map(|agent| (*agent).to_string())
+            .collect::<Vec<_>>();
+        excluded_agents.sort();
         if self.last_limit < target
+            || self.last_excluded_agents != excluded_agents
             || self
                 .last_refresh
                 .is_none_or(|last| last.elapsed() >= max_age)
         {
-            self.refresh(target);
+            self.refresh(target, &excluded_agents);
         }
         self.cached_sessions.iter().take(target).cloned().collect()
     }
 
-    fn refresh(&mut self, limit: usize) {
+    fn refresh(&mut self, limit: usize, excluded_agents: &[String]) {
         let mut candidates = discover_session_files();
+        candidates.retain(|candidate| {
+            !excluded_agents
+                .iter()
+                .any(|agent| agent == candidate.agent)
+        });
         candidates.sort_by_key(|candidate| std::cmp::Reverse(candidate.updated));
         let target = limit.clamp(1, 25);
         let mut live_paths = HashSet::new();
@@ -233,5 +254,6 @@ impl SessionCache {
         self.cached_sessions = sessions;
         self.last_refresh = Some(Instant::now());
         self.last_limit = target;
+        self.last_excluded_agents = excluded_agents.to_vec();
     }
 }
