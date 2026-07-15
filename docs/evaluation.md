@@ -545,6 +545,18 @@ mechanism boundary, not a new algorithm, smaller RQ, changed hypothesis, or
 paper-story revision. Complete reports are under
 [`step-0025-20260715T054105-0700`](tmp/build-and-evaluate/step-0025-20260715T054105-0700/).
 
+Step 0026 audits whether the retained decisions authorize another direct
+improvement. They do not under the current action-pair/small-window flat-
+segmentation contract. The same visible pair has mixed labels for 91.2% of
+OSWorld-Human decisions and 99.7% of CodeTraceBench decisions; Step 0025's
+suppression removes mostly true OSWorld boundaries but mostly false
+CodeTraceBench boundaries. Score, support, cutoff sign, and session length do
+not identify a common direction. Independent raw review therefore closes this
+existing-trajectory refinement branch with no candidate and no paper change.
+This is a scoped paper-value decision, not a claim that every future sequence
+model is impossible. Reports are under
+[`step-0026-20260715T063827-0700`](tmp/build-and-evaluate/step-0026-20260715T063827-0700/).
+
 ## Requirements For The Next Experiment
 
 The next experiment follows one bounded literature/source screen and must
@@ -628,8 +640,10 @@ CodeTraceBench frameworks, and exactly matches the fixed evaluator. This closes
 the bounded recurrence implementation branch. Step 0025 then tests one direct
 user-requested sequence-local refinement on the same retained trajectories,
 rejects it under the fixed cross-population rule, and restores the Step 0024
-release exactly. Do not reinterpret either post-hoc result as an untouched
-answer to all of RQ3. The paper story and four RQs remain unchanged.
+release exactly. Step 0026 finds no benchmark-independent small correction in
+those retained action-only decisions and closes further tuning of them. Do not
+reinterpret either post-hoc result as an untouched answer to all of RQ3. The
+paper story and four RQs remain unchanged.
 
 The earlier Step 0018 AAAI/cross-domain whole-paper review scored the
 then-current paper 4/10 (weak reject). It preserved the thesis and four RQs but identified

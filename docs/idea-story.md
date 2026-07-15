@@ -278,6 +278,14 @@ This is a rejected mechanism refinement in the evidence history; it is not an
 accepted narrative change, a smaller hypothesis, or a reason to alter the
 thesis, four RQs, contributions, or original AgentProf story.
 
+Step 0026 asks whether that mixed result exposes another common correction on
+the same trajectories. It does not: identical action pairs and small action
+windows remain label-ambiguous, while suppression, score, support, cutoff sign,
+and session length have opposed or population-confounded effects. Independent
+review therefore admits no further flat-segmentation tweak and keeps Step 0024
+as the release. This closes an implementation-selection branch; it does not
+change the narrative or claim that all future sequence models are impossible.
+
 Step 0019 tests a different consequence inside unchanged RQ2. A fixed
 rank-hidden Qwen3.6-27B reader selects three of each view's query-aware top five
 groups across six public-data tasks and all five cyclic positions. The complete
@@ -311,8 +319,9 @@ adds the bounded downstream evidence above. The targeted WRITE sync for the
 adopted recurrence implementation is complete. The independent whole-paper
 re-review and outer audit both PASS and do not find broader automatic identity
 fidelity evidence load-bearing. Step 0025's one user-requested local refinement
-is mixed and rejected, leaving Step 0024 as the current constructor. This is an
-evidence-frontier update, not a narrative evolution or change to the thesis,
+is mixed and rejected, and Step 0026 finds no common small correction in those
+same action-only decisions. Step 0024 remains the current constructor. This is
+an evidence-frontier update, not a narrative evolution or change to the thesis,
 four RQs, or two-object model.
 
 ## Narrative Evolution — Accepted Changes Only
