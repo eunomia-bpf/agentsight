@@ -77,4 +77,6 @@ npm run test:e2e
 ```
 
 Playwright visits every family, changes the shared cursor and filter state, and
-captures representative plates under `artifacts/`.
+captures ephemeral representative plates under ignored
+`test-results/screenshots/`. Curated, privacy-scanned paper plates live under
+`artifacts/` and are not rewritten by routine CI.

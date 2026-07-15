@@ -28,12 +28,12 @@ test("shared playback cursor and filters remain interactive", async ({ page }) =
 });
 
 test("capture representative atlas plates", async ({ page }) => {
-  await page.screenshot({ path: "artifacts/paper-atlas.png", fullPage: false });
-  await page.screenshot({ path: "artifacts/overview.png", fullPage: true });
+  await page.screenshot({ path: "test-results/screenshots/paper-atlas.png", fullPage: false });
+  await page.screenshot({ path: "test-results/screenshots/overview.png", fullPage: true });
   for (const family of ["pixel", "map", "forensic", "longitudinal"]) {
     await page.getByTestId(`nav-${family}`).click();
     await page.waitForTimeout(family === "forensic" ? 2_000 : 700);
-    if (family === "map") await page.screenshot({ path: "artifacts/paper-map.png", fullPage: false });
-    await page.screenshot({ path: `artifacts/${family}.png`, fullPage: true });
+    if (family === "map") await page.screenshot({ path: "test-results/screenshots/paper-map.png", fullPage: false });
+    await page.screenshot({ path: `test-results/screenshots/${family}.png`, fullPage: true });
   }
 });
