@@ -2,9 +2,9 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use crate::analyzers::{Analyzer, AnalyzerError};
+use crate::model::ViewSink;
 use crate::runners::EventStream;
 use crate::view::SharedMaterializedView;
-use crate::model::ViewSink;
 use async_trait::async_trait;
 use futures::stream::StreamExt;
 

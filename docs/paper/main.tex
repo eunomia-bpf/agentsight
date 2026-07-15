@@ -1,0 +1,407 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.72in]{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{microtype}
+\newcommand{\sys}{AgentSight Evolution Atlas}
+\newcommand{\tool}{\texttt{agent-session-export}}
+
+\title{Process, Outcome, and Survival:\\Visualizing Long-Horizon Agentic Software Evolution}
+\author{Anonymous Authors}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Commit-centric software-evolution tools assume that commits are the useful
+observation unit and that human contributors retain part of the development
+rationale. Long-running coding agents weaken both assumptions: native histories
+record second-scale exploration and editing, while no persistent participant
+may have observed the full process. Yet native events do not prove durable Git
+outcomes, and temporal adjacency does not prove causality or authorship.
+
+We present \sys, an uncertainty-preserving representation and interactive
+gallery that keeps three layers distinct: recorded agent process, durable Git
+history, and current endpoint state. A Rust exporter normalizes Claude, Codex,
+and Gemini histories, follows first-parent Git changes and file lifetimes, and
+retains zero, one, or many candidate event--Git associations. A coordinated
+TypeScript atlas adapts seven families from thirty years of software-evolution
+visualization and adds longitudinal rhythm, process-QA, and resource views.
+
+We evaluate the load-bearing association assumption before using the views for
+outcome claims. Exact-hunk evidence passes all controlled held-out gates. On two
+mature real-history days, annotators agree on 95.61\% of 933 event--path pairs,
+but naturalistic transfer fails prespecified support and calibration gates
+(ECE 0.192); endpoint line linkage is also undersupported. We therefore bound
+the system to descriptive process, Git, uncertainty, and endpoint views rather
+than claiming provenance. The public projection contains 56 sessions, 3,960
+path-event rows, 858 path records, 652 Git lifetimes, and 177 commits across six
+weeks. In seven local headless-browser repetitions, median first-view visibility
+is 234~ms and median two-frame scrub response is 83~ms. These results establish
+a working visual instrument and the claim boundary required to use it honestly.
+\end{abstract}
+
+\section{Introduction}
+Software-evolution visualizations made large histories perceptible by choosing
+an observation unit. SeeSoft compressed current lines into pixels
+\cite{eick1992seesoft}; Evolution Matrix compared files across versions
+\cite{lanza2002evolution}; CodeCity and stable software maps turned repositories
+into territories \cite{wettel2008codecity,steinbrueckner2010history,kuhn2010cartography};
+code\_swarm and Gource animated commit activity
+\cite{ogawa2009codeswarm,caudwell2025gource}; History Flow and Git burndown made
+survival visible \cite{viegas2004historyflow,sourced2020hercules}; and forensic
+views tied visual structure to maintenance decisions \cite{tornhill2015crime}.
+These systems differ visually, but nearly all begin with commits, versions, and
+human contributors.
+
+Coding-agent histories expose a different process. A long-running agent may
+read a configuration file, search several modules, attempt and revise an edit,
+run a test, and later produce a commit. Git retains the durable state transition
+but compresses that trajectory. Conversely, a native transcript can record a
+path reference without proving that the referenced content entered any commit.
+The current tree reveals what remains but discards failed and removed work.
+A recent multi-method census likewise finds that commit, pull-request,
+configuration, and identity signals recover substantially different agent
+populations, making a single repository signal an inadequate ground truth
+\cite{khosravani2026census}.
+
+This creates a knowledge-recovery problem. Reviewing ten thousand generated
+lines directly does not reveal why the system grew in that shape, while reading
+weeks of transcripts is mechanically infeasible. A scalar profiler can account
+for semantic units and resources, but structure, temporal rhythm, and
+exploration order are not scalars. Visualizations can serve as perceptual units
+for these patterns---provided they do not turn weak temporal evidence into
+false provenance.
+
+We build \sys{} around that constraint. The system preserves three evidence
+layers and coordinates multiple projections with one time, path, session,
+vendor, and uncertainty selection state. Rather than propose one novel chart,
+we treat the gallery as a visual instrument: established encodings become
+comparable lenses over the same event-resolved evidence model. The design
+covers line pixels, matrices, stable maps, particle playback, strata, forensic
+networks, storylines, and six longitudinal views.
+
+The central scientific risk is the join between native events and actual Git
+changes. We therefore evaluate it first and accept a negative transfer result.
+Controlled exact-hunk evidence is reliable, but our naturalistic sample does
+not satisfy the frozen calibration and null-support thresholds. Consequently,
+the deployed atlas exposes candidates and mismatches but does not label an
+agent as a Git author, a read as causal, or a current line as agent-derived.
+
+This paper contributes:
+\begin{enumerate}[leftmargin=*]
+  \item an event-resolved representation that separates recorded process,
+  durable Git outcome, and frozen endpoint state while retaining association
+  ambiguity and file-lifetime discontinuities;
+  \item a coordinated visual atlas covering seven historical software-
+  evolution families and longitudinal agent-process views over one stable
+  interaction grammar; and
+  \item a controlled and double-annotated naturalistic evaluation that both
+  validates exact-hunk matching in its supported setting and rules out stronger
+  real-history provenance and line-survival claims for the present artifact.
+\end{enumerate}
+
+\section{Evidence Model and Requirements}
+\subsection{Three Non-Interchangeable Layers}
+The \emph{process layer} contains vendor-native sessions, models, timestamps,
+tool actions, statuses, repository-relative path references, edit sizes and
+body-free fingerprints, and reported token counters. A recorded test or lint
+action is evidence that an action occurred, not that every prior edit was
+verified or that the result was correct.
+
+The \emph{durable layer} contains first-parent Git commits, parents, pseudonymous
+author labels, additions, deletions, and rename-aware changed paths. It is the
+authoritative source for integrated repository state transitions. The
+\emph{endpoint layer} contains current blobs, file-lifetime survival, and Git
+blame origins at one frozen revision. Endpoint survival means only that a Git
+file lifetime reaches that revision; it is not a causal or time-to-event claim.
+
+An event--Git association is an explicit edge between layers, never a relabeling
+of either endpoint. Eligible write--path pairs retain no candidate, one
+candidate, or multiple candidates. Ordered read-before-write edges record
+temporal order within a prompt/session, not information flow or causality.
+Native vendor labels remain distinct from Git authorship.
+
+\subsection{Lifetime and Censoring Semantics}
+A file lifetime begins at Git addition, follows a detected rename, and ends at
+deletion. Recreating the same literal path begins a new lifetime. A write during
+the deletion gap may target only the subsequent add, preventing a convenient
+path name from silently joining two different objects.
+
+Every naturalistic observation requires future Git history. Our frozen primary
+retrieval interval is 15 minutes before through 24 hours after an event; the
+independent oracle packet extends from 24 hours before the observation day
+through seven days after. An observation without that future horizon is
+right-censored rather than treated as an unmatched event. This rule excludes
+our July~14 cell from every association, calibration, lineage, and transfer
+metric.
+
+\subsection{Requirements}
+The design follows four requirements. R1 preserves layer identity and missing
+evidence. R2 makes uncertainty and disagreement visually inspectable. R3 keeps
+repository geography stable during time playback so frames remain comparable.
+R4 coordinates every compatible view through shared cursor, interval, vendor,
+association-state, path, and session selections. These requirements favor a
+two-dimensional multi-view instrument over an immersive 3D city: the latter
+adds navigation cost without adding an evidence dimension in this artifact.
+
+\section{System}
+\subsection{Exporter and Canonical Artifact}
+\tool extends AgentSight's vendor-neutral Rust parser. It accepts an explicit
+repository, time interval, optional native session paths, and a frozen Git
+revision. Claude, Codex, and Gemini tool schemas are normalized into a common
+event IR. Repository-relative paths remain exact; external paths are reduced to
+groups. Edit bodies, command bodies, prompts, secrets, native file locations,
+and author emails are not serialized. Edit hashes permit controlled hunk
+comparison without publishing source text.
+
+Exact-hunk comparison is deliberately limited to native edits with one
+repository path and one hunk. Multi-file or multi-hunk patches retain their
+path observations but carry no event-level exact-hunk claim.
+
+The Git reader walks first-parent history with 50\% rename detection, records
+all changes in the audit window, constructs file lifetimes, and measures
+current blob sizes. For an eligible write--path pair, it ranks compatible
+changes by exact-hunk evidence, direct versus compatibility path match,
+event-relative direction and distance, and commit hash. Prebirth and rename
+compatibility are tied. No matching algorithm forces a bijection, so squash,
+split, ambiguity, unmatched events, and Git-only changes remain visible.
+
+The canonical \texttt{agentsight.longitudinal.v1} JSON carries complete public
+semantics. Normalized event JSONL, Perfetto Trace Event JSON, and Gource custom
+logs are also available as explicitly lossy compatibility projections. The
+Perfetto projection emits process and Git events on separate tracks; the Gource
+projection contains only durable Git changes.
+
+\begin{figure*}[t]
+  \centering
+  \IfFileExists{../../vis-gallery/artifacts/paper-atlas.png}{%
+    \includegraphics[width=\textwidth]{../../vis-gallery/artifacts/paper-atlas.png}%
+  }{%
+    \fbox{\parbox{0.92\textwidth}{\centering Generate the local atlas plate with \texttt{npm run capture} in \texttt{vis-gallery}.}}%
+  }
+  \caption{The atlas uses one navigation and playback grammar across every
+  family. This field-atlas view overlays recorded read/write rates and Git
+  commits while keeping their legends and evidence layers separate.}
+  \label{fig:atlas}
+\end{figure*}
+
+\subsection{Gallery Projection}
+A privacy-checked Python projection derives hourly buckets, deterministic path
+coordinates, file-level activity and risk summaries, current-line blame pixels,
+survival cohorts, Git co-change edges, ordered read-before-write edges, and Git
+ownership aggregates. It rejects serialized prompt, command, preview, old/new
+string, content, and absolute home-path fields. The projection preserves the
+frozen endpoint revision and marks each source day as mature-descriptive or
+right-censored-excluded.
+
+The React/TypeScript client uses ECharts~6.1 for dense canvas charts,
+Cytoscape.js~3.34 for networks, uPlot~1.6 for time-series traces, and custom
+canvas renderers for SeeSoft pixels and particles. Vite produces a static local
+application. A single request-animation-frame clock advances the shared cursor;
+filters and selections are typed application state rather than renderer-local
+state.
+
+\subsection{Visual Families}
+Table~\ref{tab:views} summarizes the visual grammar. Each historical family
+contributes a distinct perceptual unit rather than a decorative theme.
+
+\begin{table*}[t]
+\centering
+\small
+\begin{tabular}{p{0.18\textwidth}p{0.30\textwidth}p{0.43\textwidth}}
+\toprule
+Family & Implemented views & Review question / evidence boundary \\
+\midrule
+Pixels / SeeSoft & Current-line age pixels; touch and association lanes & Which current lines are old, and which files received recorded attention? Blame age and process activity remain separate. \\
+Matrix & File--day evolution; association-state matrix; named signals & Which files burst, pulse, shrink, or remain short-lived, and where is join evidence absent or ambiguous? \\
+Maps / cities & Stable treemap; deterministic constellation; directory cartogram & Where did attention move while repository geography remained comparable? Area is current Git size, not agent contribution. \\
+Animation & Agent--file particle field; Git commit pulses; recent wake & In what order did recorded activity and durable commits occur? Trails encode recency only. \\
+Rivers / strata & Activity river; lifetime cohorts; survival ledger; Git sediment & What activity and file cohorts survive at the frozen endpoint? \\
+Crime scene & Hotspot treemap; Git co-change; ordered read-before-write & Where should review start, and which relationships are commit correlation versus temporal process order? \\
+Storylines & Session journeys; Git author--directory flow; cast list & How did pseudonymous sessions traverse repository regions, separately from Git ownership? \\
+Agent rhythms & Punch card; vital signs; semantic flow; verification lag; receipt; paired days & What clock rhythm, resource distribution, and recorded process-QA lag characterize long runs? \\
+\bottomrule
+\end{tabular}
+\caption{Seven established families plus longitudinal agent-process views.}
+\label{tab:views}
+\end{table*}
+
+Stable layout is critical to the map family: playback changes brightness and
+activity overlays, not coordinates. Matrix rows also remain stable across days.
+Forensic views deliberately split Git co-change from ordered process edges.
+The storyline view assigns one line to each pseudonymous session but uses a
+separate Sankey projection for Git authors. These separations make uncertainty
+visible through spatial and color channels rather than explanatory footnotes
+alone.
+
+\section{Evaluation}
+The completed scientific RQ asks whether native events can be associated with
+durable Git and current-line outcomes accurately enough for joined claims. Two
+artifact evaluations then report what the atlas exposes descriptively and how
+the local implementation responds at its tested scale. The original research
+program's behavioral-replication RQ and four-condition human review-utility RQ
+remain unexecuted. We do not relabel browser smoke tests or author inspection as
+answers to them.
+
+\subsection{RQ1 Protocol}
+The controlled corpus contains known target and null pairs plus rename,
+delete/recreate, ambiguity, squash, split, moved-and-rewritten line, clock-skew,
+merge, and pathless cases for every native schema. Thresholds are calibrated on
+60 separate pairs and evaluated once on 100 held-out pairs (50 target and 50
+null). A path method must have at least 50 positive and 50 null pairs, Wilson
+95\% lower bounds of 0.90 for precision and 0.85 for target recall and null
+specificity, and ECE at most 0.10. A line overlay additionally requires 100
+linked hunks and a joint-precision lower bound of 0.95.
+
+The naturalistic corpus samples two mature AgentSight observation days. Two
+independent annotators see oracle packets constructed independently of method
+scores. They label evidence-compatible target, null, or unadjudicable---never
+causality or authorship. A third July day remains descriptive because the
+endpoint provides only 4.8 future hours. All bootstrap intervals use 10,000
+resamples with a frozen seed.
+
+\subsection{RQ1 Results}
+On the controlled held-out set, the proposed method classifies all 50 targets
+and all 50 nulls correctly. Precision, recall, and specificity are 1.0 with
+Wilson lower bounds of 0.929; ECE is 0.030 and Brier score is 0.00135. The
+nearest literal-path baseline reaches 0.667 precision and 0.50 null
+specificity. Removing exact-hunk evidence reproduces that failure. A
+literal-only method with exact hunks matches the proposed method, so the
+supported advantage belongs to exact-hunk evidence, not lifetime/rename logic.
+
+The two mature real days contain 933 eligible event--path pairs. Annotators
+agree on 95.61\% of labels (Cohen's $\kappa=0.827$); reconciliation yields 110
+targets, 45 nulls, and 778 unadjudicable pairs. After call-ID deduplication,
+single-file/single-hunk safety, and conservative shell-path parsing, the method
+classifies 103/110 targets and 45/45 nulls. Top-1 precision is 0.972, positive
+recall is 0.936, classification accuracy is 0.955, the null-specificity Wilson
+lower bound is 0.921, and ECE is 0.192. It nevertheless fails the frozen gate:
+null support is 49 rather than 50 and ECE exceeds 0.10. The selected mode is
+\texttt{descriptive\_only}. Mature days contain Gemini sessions but no eligible
+Gemini write--path pairs, so cross-vendor transfer is not established.
+
+For 110 agreed target events, endpoint line linkage emits only 37 predictions:
+36 correct and one blame mismatch. Its 0.973 point precision has a 0.862 lower
+bound, failing both the 100-link support and 0.95 lower-bound gates. Accordingly,
+the SeeSoft view displays real Git-blame ages and process attention, but no
+validated event-to-current-line attribution overlay.
+
+RQ1 therefore has a mixed answer. Exact-hunk evidence works in the controlled
+protocol; naturalistic calibration, null support, line linkage, and Gemini
+transfer are insufficient. This negative boundary prevents stronger but
+unsupported ``agent-authored surviving code'' claims.
+
+\subsection{Artifact Experience on Real History}
+The public atlas combines 56 deduplicated native sessions, 3,960 path-resolvable
+event rows, 858 path records, 652 Git lifetimes, 177 commits, 1,852 Git changes,
+and 12,000 current Git-blame line pixels. Of the path records, 693 map to one or
+more Git lifetimes; aliases and literal-path reuse make these units non-bijective,
+while event-only paths remain distinct. Three observation days span June 2
+through July 14, 2026; gaps are retained. The July cell remains process-only.
+
+The same history appears qualitatively different across perceptual units.
+The matrix makes path bursts and long quiet intervals visible; the stable map
+shows that activity moves without moving repository geography; the activity
+river exposes vendor/source volume; lifetime cohorts show survival independently
+of attention; and the two forensic graphs make Git co-change and process order
+visibly non-equivalent. The named labels---Supernova, Pulsar, White Dwarf,
+Dayfly, Nova, Fossil, and Steady---are deterministic heuristics for inspection,
+not defect predictors. They supply a vocabulary for hypotheses, not validated
+behavioral classes.
+
+This experience supports the representational claim that one canonical model
+can drive all seven traditions and expose layer disagreement. It does not show
+that reviewers become faster or more accurate. Such a claim requires the
+predefined four-condition study (Git-only, event table, joined table, and
+coordinated atlas) following visualization-evaluation guidance
+\cite{merino2018evaluation}.
+
+\subsection{Local Systems Responsiveness}
+We measure the checked 4.82~MB artifact in Playwright Chromium~1.61 at a
+1600$\times$1050 viewport. Each of seven repetitions opens a fresh page, visits
+all families, and changes the shared range input. Median first-family visibility
+is 234~ms (p95 325~ms). Median two-animation-frame scrub response is 83~ms
+(p95 133~ms). Median family navigation ranges from 160~ms for strata to 908~ms
+for the Cytoscape forensic page; particle animation is 422~ms. The final run
+uses 76.6~MB of reported JavaScript heap. Unit tests, a production TypeScript
+build, and Playwright tests cover every family, filter state, cursor change, and
+representative screenshot.
+
+At this tested scale, the atlas is usable as a local interactive artifact, but
+the slower force-layout and particle families identify the next optimization
+boundary. These headless measurements establish implementation latency, not
+perceptual scalability or human review utility. The 4.77~MB monolithic payload
+and 606~KB gzipped JavaScript bundle also motivate lazy family loading and
+chunked data access before substantially larger deployments.
+
+\section{Related Work}
+\paragraph{Software evolution visualization.}
+Our visual vocabulary deliberately descends from SeeSoft
+\cite{eick1992seesoft}, Evolution Matrix \cite{lanza2002evolution}, CodeCity and
+stable maps \cite{wettel2008codecity,steinbrueckner2010history,kuhn2010cartography},
+History Flow \cite{viegas2004historyflow}, animated histories
+\cite{ogawa2009codeswarm,caudwell2025gource}, forensic analysis
+\cite{tornhill2015crime}, ownership maps \cite{girba2005ownership}, and
+storylines \cite{ogawa2010storylines}. Githru provides a strong Git visual-
+analytics baseline \cite{kim2021githru}; Hercules operationalizes Git burndown
+\cite{sourced2020hercules}. Our novelty lies in a common event-resolved evidence
+model and its uncertainty boundary, not in claiming invention of these charts.
+
+\paragraph{Agent process capture.}
+RECAP aligns IDE-local Copilot conversation with shadow-repository edits
+\cite{he2026recap}; trajectory studies normalize and compare agent action
+sequences \cite{majgaonkar2025behaviour,oderinwale2026programs}. Native
+cross-vendor histories cover a broader local process but offer weaker evidence
+than an instrumented shadow repository, which is precisely why our naturalistic
+join is gated rather than assumed.
+
+\paragraph{Survival and lineage.}
+Recent work compares agent- and human-associated code survival
+\cite{rahman2026survive} and uses AST-aware matching to distinguish deletion
+from migration and rewrite \cite{gurov2026clsa}. Our file-lifetime projection
+is structural Git evidence. Because our event-to-line stage fails its gate, we
+do not infer agent-associated survival from it.
+
+\section{Limitations and Discussion}
+The study concerns one repository and local native histories. Missing logs,
+clock skew, parallel work, schema differences, rebases, squashes, and private
+reasoning constrain observability. Deterministic hashes are pseudonymous
+evidence, not strong de-identification. Current Git blame is line-origin
+metadata rather than semantic authorship, and first-parent traversal excludes
+some branch structure.
+
+The naturalistic sample has 49 adjudicated nulls---one fewer than the frozen
+minimum---and no mature Gemini write cell. Its confidence is also miscalibrated.
+July's right censoring prevents a convenient but invalid expansion. RQ1 is
+therefore a reason to preserve uncertainty, not a validation of the full join.
+Named visual patterns remain exploratory, and the browser benchmark does not
+demonstrate review benefit.
+
+The deeper value of the atlas is epistemic. Resource profiles make agent work
+accountable in semantic units; visual encodings make structural and temporal
+patterns perceptible. Long-running agent development needs both: known metrics
+for routine control and coordinated views for theory recovery and unexpected
+structure. Treating the latter as a scientific instrument requires negative
+results and missing evidence to remain visible.
+
+\section{Conclusion}
+Long-running coding agents make development more recorded but not automatically
+more understandable. \sys{} turns real native histories, Git evolution, and a
+frozen endpoint into one coordinated visual atlas while refusing to collapse
+their evidence semantics. It demonstrates that thirty years of software-
+evolution visual grammar can be reused at event resolution, and it runs
+interactively on a real six-week-span artifact. Its evaluation also shows why
+visual polish cannot replace measurement: controlled exact-hunk association is
+supported, while naturalistic calibration, line linkage, and cross-vendor
+transfer are not. The result is a useful descriptive instrument with an
+explicit path toward stronger longitudinal studies, not a provenance claim in
+disguise.
+
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}

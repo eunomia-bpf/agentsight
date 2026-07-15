@@ -16,6 +16,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  evolution-gallery:
+    name: Evolution Gallery
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: npm
+        cache-dependency-path: vis-gallery/package-lock.json
+
+    - name: Install gallery dependencies
+      working-directory: vis-gallery
+      run: npm ci
+
+    - name: Build and unit-test gallery
+      working-directory: vis-gallery
+      run: |
+        npm run build
+        npm test
+        python3 -m unittest discover -s analysis -p 'test_*.py'
+
+    - name: Install Chromium
+      working-directory: vis-gallery
+      run: npx playwright install --with-deps chromium
+
+    - name: Run gallery browser tests
+      working-directory: vis-gallery
+      run: npm run test:e2e
+
   test:
     name: Build and Test
     runs-on: ubuntu-latest
@@ -74,6 +107,11 @@ jobs:
       run: |
         cd collector
         cargo build --verbose
+
+    - name: Check agent-session
+      run: |
+        cargo clippy --manifest-path agent-session/Cargo.toml --all-targets -- -D warnings
+        cargo test --manifest-path agent-session/Cargo.toml --verbose
 
     - name: E2E latest agent CLI canary
       run: script/e2e/latest_agent_cli_canary.sh

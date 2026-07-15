@@ -337,10 +337,8 @@ mod tests {
 
     #[test]
     fn recent_cwd_match_uses_canonical_paths() {
-        let raw = std::env::temp_dir().join(format!(
-            "agent-session-cwd-test-{}",
-            std::process::id()
-        ));
+        let raw =
+            std::env::temp_dir().join(format!("agent-session-cwd-test-{}", std::process::id()));
         std::fs::create_dir_all(&raw).unwrap();
         let cwd = raw.canonicalize().unwrap();
         let session = SessionProcessInput {

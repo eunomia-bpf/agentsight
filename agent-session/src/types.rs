@@ -57,6 +57,36 @@ impl UserPrompt {
     }
 }
 
+/// A privacy-safe exact path reference recovered from a native tool input.
+///
+/// `path` is a privacy-safe session-cwd-relative candidate. The longitudinal
+/// exporter resolves it against the actual repository root and drops paths
+/// that escape that root. External and unresolved paths are summarized by the
+/// existing `path_groups` field rather than copied here.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct PathReference {
+    pub path: String,
+    pub access: String,
+    pub source: String,
+}
+
+/// Size and fingerprint metadata for a native edit payload.
+///
+/// The source text is intentionally not retained. Hashes permit controlled
+/// hunk comparisons without serializing prompt or code bodies.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct EditSummary {
+    pub before_bytes: u64,
+    pub after_bytes: u64,
+    pub added_lines: u64,
+    pub removed_lines: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub before_hash: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub after_hash: Option<String>,
+    pub payload_kind: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolEvent {
     pub ts_ms: Option<i64>,
@@ -69,6 +99,10 @@ pub struct ToolEvent {
     pub process_chain: Vec<String>,
     pub status: String,
     pub path_groups: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub path_refs: Vec<PathReference>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edit_summary: Option<EditSummary>,
     pub domains: Vec<String>,
     pub call_id: Option<String>,
 }
@@ -139,6 +173,8 @@ pub struct AgentSession {
     pub prompt_preview: Option<String>,
     pub duration_ms: u64,
     pub cwd: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_hash: Option<String>,
     pub last_message_at: Option<String>,
     /// Vendor-neutral interaction events extracted from agent-native transcripts.
     #[serde(default)]
@@ -211,11 +247,8 @@ impl SessionCache {
 
     fn refresh(&mut self, limit: usize, excluded_agents: &[String]) {
         let mut candidates = discover_session_files();
-        candidates.retain(|candidate| {
-            !excluded_agents
-                .iter()
-                .any(|agent| agent == candidate.agent)
-        });
+        candidates
+            .retain(|candidate| !excluded_agents.iter().any(|agent| agent == candidate.agent));
         candidates.sort_by_key(|candidate| std::cmp::Reverse(candidate.updated));
         let target = limit.clamp(1, 25);
         let mut live_paths = HashSet::new();
