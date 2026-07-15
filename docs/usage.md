@@ -46,7 +46,8 @@ make build-frontend  # Frontend only
 
 Navigate to the repository root after `make build`. Commands that load eBPF
 probes should be run with `sudo`, except `top`, which can run without sudo and
-uses live eBPF capture only when sudo is already available.
+uses live eBPF capture only for the interactive TUI when sudo is already
+available; plain/non-TTY output stays snapshot-only.
 
 ```sh
 # Live view of local agent sessions
