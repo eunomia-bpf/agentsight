@@ -12,6 +12,7 @@ pub(crate) fn run_live_top_query(
     limit: usize,
     count: Option<u32>,
     options: &TopOptions,
+    scan_processes: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let limit = limit.clamp(1, 100);
     let interval = Duration::from_secs(interval_secs.max(1));
@@ -23,7 +24,7 @@ pub(crate) fn run_live_top_query(
         if should_clear_screen {
             clear_screen();
         }
-        let mut top = live_view.refresh(limit, options)?;
+        let mut top = live_view.refresh(limit, options, scan_processes)?;
         sort_agent_rows(&mut top.rows, &options.sort);
         top.rows.truncate(limit);
         print_agent_top(&top);

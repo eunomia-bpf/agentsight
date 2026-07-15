@@ -59,17 +59,35 @@ impl LiveView {
         &mut self,
         limit: usize,
         options: &TopOptions,
+        scan_processes: bool,
     ) -> io::Result<AgentTopOutput<'static>> {
-        let sample = LiveSample::collect()?;
+        let sample = if scan_processes {
+            LiveSample::collect()?
+        } else {
+            LiveSample::default()
+        };
         let session_snapshot = agent_native_sessions::snapshot(
             &mut self.session_cache,
-            options.pid,
+            scan_processes.then_some(options.pid).flatten(),
             options.comm.as_deref(),
             limit,
             Duration::from_secs(2),
         );
-        let top = self.build_top(&sample, &session_snapshot, options);
-        self.previous = Some(sample);
+        let mut top = self.build_top(&sample, &session_snapshot, options);
+        if scan_processes {
+            self.previous = Some(sample);
+        } else {
+            top.mode = "agent-native sessions";
+            top.notes
+                .insert(0, "agent-native once view; no process scan".to_string());
+            if options.pid.is_some() {
+                top.notes.insert(
+                    1,
+                    "pid filters need live process binding; remove -p or run continuous top/TUI"
+                        .to_string(),
+                );
+            }
+        }
         Ok(top)
     }
 
