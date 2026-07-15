@@ -45,7 +45,7 @@ const otherBinDir = path.join(temp, "other-bin");
 fs.mkdirSync(otherBinDir);
 fs.symlinkSync(path.join(scopedInstall, "bin", "agentsight.js"), path.join(otherBinDir, "agentsight"));
 const noCollector = childProcess.spawnSync(process.execPath, [bin, "top", "--plain", "--once"], {
-  env: { ...process.env, PATH: otherBinDir },
+  env: { ...process.env, AGENTSIGHT_COLLECTOR: "", PATH: otherBinDir },
   encoding: "utf8",
   timeout: 2000,
 });
