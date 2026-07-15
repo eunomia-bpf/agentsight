@@ -1507,8 +1507,7 @@ fn strip_heredoc_bodies(command: &str) -> String {
             while let Some(value) = bytes.get(index) {
                 if quote.is_some_and(|quote| *value == quote)
                     || (quote.is_none()
-                        && (value.is_ascii_whitespace()
-                            || [b';', b'|', b'&', b'>', b'<'].contains(value)))
+                        && (value.is_ascii_whitespace() || b";|&><".contains(value)))
                 {
                     break;
                 }
