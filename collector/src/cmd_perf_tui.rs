@@ -20,7 +20,7 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 use std::io;
 use std::time::{Duration, Instant};
 
-pub(crate) async fn run_live_top_tui(
+pub(crate) fn run_live_top_tui(
     interval_secs: u64,
     limit: usize,
     count: Option<u32>,
