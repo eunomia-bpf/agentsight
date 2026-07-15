@@ -207,6 +207,8 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                         .keys()
                         .map(|path| agent_session::path_group(path, Path::new(&record.cwd)))
                         .collect(),
+                    path_refs: Vec::new(),
+                    edit_summary: None,
                     domains: Vec::new(),
                     call_id: None,
                 });
