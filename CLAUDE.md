@@ -1,6 +1,8 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to coding agents working in this repository.
+`AGENTS.md` is a symlink to this file so Claude Code and other agents share the
+same repository instructions.
 
 ## Overview
 
@@ -37,7 +39,7 @@ make install
 
 ```bash
 # Live agent sessions
-sudo ./agentsight top
+./agentsight top
 
 # Launch and record a command
 sudo ./agentsight record -- claude
@@ -59,6 +61,16 @@ sudo ./bpf/process -c python
 # debug trace needs --server.
 ```
 
+## Documentation Hygiene
+
+- Keep the README Quick Start stable. Do not update Quick Start unless the
+  primary onboarding command or first-run flow changes.
+- Put details about mode-specific behavior, persistence paths, storage formats,
+  and operational caveats in Usage, FAQ, or dedicated docs sections instead of
+  Quick Start.
+- When changing user-facing CLI behavior, update the focused reference docs and
+  examples that describe that behavior, but avoid broad README churn.
+
 ## Architecture
 
 ```
@@ -77,7 +89,7 @@ eBPF Programs (kernel) → JSON stdout → Rust Runners → Analyzer Chain → O
   - `output/` — CLI/TUI rendering of snapshots
   - `event.rs` — Standardized `Event` struct with JSON payloads; `model.rs` — view row types + ViewSink trait
   - `binary_extractor.rs` — Extracts embedded eBPF binaries to temp files at runtime
-- **`collector/src/main.rs`** — CLI entry point. Main subcommands: `stat`, `top`, `record`, `report` (`summary`, `token`, `audit`, `prompts`, `export`, `list`), `discover`, and `debug` (`ssl`, `process`, `stdio`, `trace`, `system`).
+- **`collector/src/main.rs`** — CLI entry point. Main subcommands: `top`, `monitor`, `record`, `report` (`summary`, `token`, `audit`, `prompts`, `export`, `list`), and `debug` (`ssl`, `process`, `stdio`, `trace`, `system`).
 - **`collector/src/server/`** — Hyper-based embedded web server serving frontend assets and `/api/events`
 - **`frontend/`** — Next.js/React/TypeScript visualization with timeline, process tree, and log views
 
@@ -125,7 +137,7 @@ This logic is in `build_trace_agent()` in `collector/src/cmd_trace.rs`.
 
 ## CLI Subcommands
 
-- **`top`** — Primary live view. Run as `sudo ./agentsight top`; it loads eBPF probes and also reads agent-native sessions when present.
+- **`top`** — Primary live view. Plain and interactive output use process snapshots and agent-native sessions; it does not load eBPF probes.
 - **`record`** — Optimized recording. Use `sudo ./agentsight record -- <command>` to launch and trace a command, or `sudo ./agentsight record -c <comm>` / `-p <pid>` to attach. It enables SSL, process, stdio when applicable, system monitoring, materialized view sinks, and the web UI by default.
 - **`stat`** — Query the latest saved session, or run `sudo ./agentsight stat -- <command>` and print counters when the command exits.
 - **`report [summary|token|audit|prompts|export|list]`** — Query saved local SQLite sessions; these usually do not need sudo. `report` with no subcommand defaults to `summary`.
@@ -136,18 +148,28 @@ This logic is in `build_trace_agent()` in `collector/src/cmd_trace.rs`.
 
 In `build_trace_agent()`, when SSL is enabled and `--binary-path` is absent, the binary is auto-discovered from `--comm`: `resolve_binary_path(comm)` resolves the binary, and it is adopted **only if `binary_embeds_ssl()` returns true** (the binary contains the `SSL_write` symbol-name string). This fixes `record -c node` (Node statically links OpenSSL — no system `libssl.so` to hook) while leaving dynamically-linked runtimes like Python on sslsniff's system-libssl + comm-filter path. `record -- <command>` resolves the launched command directly because it targets one known process tree.
 
-## Containerized Agents: `docker://` Binary Path
+## Containerized Agents: `docker://` and `k8s://` Binary Paths
 
 `--binary-path docker://<name|id>` (or `docker:<name|id>`) targets an agent
 running in a Docker container. `resolve_container_binary_path()` in
-`collector/src/main.rs` runs `docker inspect --format '{{.State.Pid}}'` to get
-the container's init PID, then `find_ssl_pid_in_tree()` walks the descendant
-process tree (via `/proc/<pid>/task/<pid>/children`) and returns the first
-process whose `/proc/<pid>/exe` embeds SSL. This is needed because the init PID
-is often a wrapper like `tini` (OpenClaw runs `tini -s -- node openclaw.mjs
-gateway`) that contains no SSL code. The scheme is handled by the trace builder
-used by `record`/`debug trace` and by raw `debug ssl`. See
-`docs/experiment/openclaw.md`. `parse_container_ref()` has unit tests.
+`collector/src/binary_resolver.rs` runs `docker inspect --format
+'{{.State.Pid}}'` to get the container's init PID, then
+`find_ssl_target_in_tree()` walks the descendant process tree (via
+`/proc/<pid>/task/<pid>/children`) and returns the first process whose
+`/proc/<pid>/exe` embeds SSL or whose maps include `libssl.so`.
+
+`--binary-path k8s://pod`, `k8s://namespace/pod`, or
+`k8s://namespace/pod/container` targets an agent running in a Kubernetes Pod.
+AgentSight must run on the node that hosts the Pod. The resolver uses
+`kubectl get pod -o json` to read the Pod `containerID`, then resolves Docker
+containers with `docker inspect` or CRI containers with `crictl inspect
+--output json` before reusing the same descendant process-tree scan. Under
+`sudo`, it falls back to the invoking user's `~/.kube/config` when
+`KUBECONFIG` is not set. This is needed because container init processes are
+often wrappers like `tini` with no SSL code. The schemes are handled by the
+trace builder used by `record`/`debug trace` and by raw `debug ssl`. See
+`docs/agents.md` and `docs/experiment/openclaw.md`. Docker and Kubernetes
+parsing helpers have unit tests.
 
 ## Common Issues
 

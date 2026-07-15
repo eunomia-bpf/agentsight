@@ -53,6 +53,10 @@
 
   对外博客草稿：挑战“agent observability = prompt/tool trace”的默认理解，主张先观察真实状态变化，再解释 agent 叙事。
 
+- [blog-agent-observability-just-skills.md](blog-agent-observability-just-skills.md)
+
+  对外博客草稿：主张 AI agent observability 不需要再多一个固定 dashboard，而需要按证据边界拆分的 skills 来生成语义化判断和 artifact。
+
 ## What Everyone Is Doing
 
 市场已经拥挤的方向：

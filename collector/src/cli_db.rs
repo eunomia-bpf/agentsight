@@ -8,7 +8,9 @@ use crate::output::{
     sorted_top_counts,
 };
 use crate::sources::agent_native as agent_native_sessions;
+#[cfg(test)]
 use crate::sources::sqlite::load_view as load_sqlite_view;
+use crate::sources::sqlite::load_view_with_observed_session_prompts as load_sqlite_view_with_observed_session_prompts;
 use crate::view::MaterializedView;
 
 #[cfg(test)]
@@ -26,7 +28,7 @@ pub(crate) fn load_agentsight_view(
     db: Option<&str>,
 ) -> Result<MaterializedView, Box<dyn std::error::Error + Send + Sync>> {
     match db {
-        Some(db) => load_sqlite_view(db),
+        Some(db) => load_sqlite_view_with_observed_session_prompts(db),
         None => {
             let mut view = MaterializedView::new();
             view.set_source(AGENT_NATIVE_SOURCE);
@@ -37,11 +39,11 @@ pub(crate) fn load_agentsight_view(
 }
 
 pub(crate) fn run_token_query(
-    db: &str,
+    db: Option<&str>,
     group_by: &str,
     json: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(Some(db))?;
+    let view = load_agentsight_view(db)?;
     let rows = view.token_summary(group_by);
     if json {
         print_json(&rows)?;
@@ -52,12 +54,12 @@ pub(crate) fn run_token_query(
 }
 
 pub(crate) fn run_audit_query(
-    db: &str,
+    db: Option<&str>,
     audit_type: Option<&str>,
     limit: usize,
     json: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(Some(db))?;
+    let view = load_agentsight_view(db)?;
     let rows = view.audit_rows(audit_type, limit);
     if json {
         print_json(&rows)?;
@@ -68,11 +70,11 @@ pub(crate) fn run_audit_query(
 }
 
 pub(crate) fn run_prompts_query(
-    db: &str,
+    db: Option<&str>,
     limit: usize,
     json: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(Some(db))?;
+    let view = load_agentsight_view(db)?;
     let rows = view.llm_call_rows(limit);
     if json {
         print_json(&rows)?;
@@ -83,11 +85,11 @@ pub(crate) fn run_prompts_query(
 }
 
 pub(crate) fn run_export(
-    db: &str,
+    db: Option<&str>,
     output: &str,
     audit_limit: usize,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(Some(db))?;
+    let view = load_agentsight_view(db)?;
     let snapshot = view.export_snapshot(SnapshotOptions { audit_limit });
     let json = serde_json::to_vec_pretty(&snapshot)?;
     if output == "-" {
@@ -270,20 +272,6 @@ pub(crate) fn run_db_summary(
     Ok(())
 }
 
-pub(crate) fn run_agent_native_audit(
-    json: bool,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(None)?;
-    if json {
-        print_json(&view.export_snapshot(SnapshotOptions {
-            audit_limit: 50_000,
-        }))?;
-    } else {
-        print_session_summary(&SessionSummary::from_view(&view)?);
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -336,12 +324,12 @@ mod tests {
         let view = load_sqlite_view(&db).unwrap();
         let tokens = view.token_summary("model");
         assert_eq!(tokens[0].group, "claude-sonnet-4");
-        // agent-native session tokens are preferred over SSL-captured response usage.
-        assert_eq!(tokens[0].total_tokens, 150);
+        // Network-observed response usage is the primary fact source.
+        assert_eq!(tokens[0].total_tokens, 15);
         assert_eq!(tokens[0].calls, 1);
 
         let calls = view.llm_call_rows(10);
-        assert_eq!(calls[0].total_tokens, 150);
+        assert_eq!(calls[0].total_tokens, 15);
     }
 
     #[test]
@@ -451,9 +439,9 @@ mod tests {
     fn sqlite_summary_does_not_read_touched_local_claude_log_without_projection() {
         let temp = tempfile::tempdir().unwrap();
         let db = temp.path().join("local-log.db");
-        let session_dir = temp.path().join(".claude/projects/test");
-        std::fs::create_dir_all(&session_dir).unwrap();
-        let session_path = session_dir.join("session-1.jsonl");
+        let session_path =
+            agent_session::fixture_session_path(agent_session::AGENT_CLAUDE, temp.path()).unwrap();
+        std::fs::create_dir_all(session_path.parent().unwrap()).unwrap();
         std::fs::write(
             &session_path,
             concat!(
@@ -490,9 +478,9 @@ mod tests {
     fn sqlite_summary_uses_db_tokens_without_local_log_overlay() {
         let temp = tempfile::tempdir().unwrap();
         let db = temp.path().join("local-log-no-usage.db");
-        let session_dir = temp.path().join(".claude/projects/test");
-        std::fs::create_dir_all(&session_dir).unwrap();
-        let session_path = session_dir.join("session-1.jsonl");
+        let session_path =
+            agent_session::fixture_session_path(agent_session::AGENT_CLAUDE, temp.path()).unwrap();
+        std::fs::create_dir_all(session_path.parent().unwrap()).unwrap();
         std::fs::write(
             &session_path,
             "{\"type\":\"user\",\"message\":{\"content\":\"local prompt only\"}}\n",
@@ -528,7 +516,8 @@ mod tests {
     #[test]
     fn local_claude_summary_reads_active_message_usage() {
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join(".claude/projects/test/session.jsonl");
+        let path =
+            agent_session::fixture_session_path(agent_session::AGENT_CLAUDE, temp.path()).unwrap();
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         let session = agent_native_sessions::parse_content_for_test(
             "claude",

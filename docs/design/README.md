@@ -11,6 +11,7 @@ For current user-facing usage, prefer:
 - [docs/build.md](../build.md)
 - [docs/docker.md](../docker.md)
 - [docs/otel.md](../otel.md)
+- [docs/agent-session.md](../agent-session.md)
 
 When a design note conflicts with the current CLI or source code, treat the
 source code and the user-facing docs above as authoritative. Update or archive
@@ -21,3 +22,8 @@ Current architecture notes:
 - [Materialized View Architecture](materialized-view-architecture.md)
 - [View, Session, And Process Model](view-session-process-model.md)
 - [AgentSight Top as a Session Monitor](session-centric-top.md)
+
+Product and workflow proposals:
+
+- [Agent Behavior Analysis Skills](agent-behavior-analysis-skills.md)
+- [Skill-Generated Example Dashboards](../skills-examples/)

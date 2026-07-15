@@ -28,10 +28,9 @@ This document defines the desired command line and report experience. It complem
 
 Current CLI note: the user-facing entrypoint is `agentsight top` for live
 session monitoring. Use `agentsight record -- <command>` to save a run and
-`agentsight report` / `agentsight stat` to inspect saved runs. Low-level tracing
-is currently exposed as `agentsight debug trace`; top-level `script`, `trace`,
-and `export` commands below are future UX proposals unless explicitly marked as
-current.
+`agentsight report` to inspect saved runs. Low-level tracing is currently
+exposed as `agentsight debug trace`; top-level `script`, `trace`, and `export`
+commands below are future UX proposals unless explicitly marked as current.
 
 ## Product Positioning
 
@@ -39,7 +38,6 @@ AgentSight should borrow the interaction grammar of familiar systems tools:
 
 | Tool | User expectation | AgentSight equivalent |
 | --- | --- | --- |
-| `perf stat` | run a command, print counters | `agentsight stat -- <agent>` |
 | `perf top` / `top` | live ranked activity | `agentsight top` |
 | `perf record` | capture a session artifact | `agentsight record -- <agent>` |
 | `perf report` | inspect a saved artifact | `agentsight report` |
@@ -58,7 +56,7 @@ to decide whether an agent run was correct, safe, efficient, or explainable.
 
 | Scenario | User question | Best first answer | Evidence needed |
 | --- | --- | --- | --- |
-| Normal run receipt | What did the agent actually do? | `stat` + `report` summary | LLM calls, commands, files, network, exits |
+| Normal run receipt | What did the agent actually do? | `report` summary | LLM calls, commands, files, network, exits |
 | PR review | Can I trust this AI-generated diff? | blast radius section in `report` | read/write set, changed files, tests, high-risk paths |
 | File-level review | Why did this file change? | provenance chain for one path | prompt/tool/process/file event/diff hunk |
 | Debugging | Why did the agent fail or loop? | failed-command and repeated-work sections | tool calls, process exits, repeated reads/greps, tokens |
@@ -204,10 +202,9 @@ surface should answer a different class of questions:
 
 | Surface | Primary question | Secondary questions |
 | --- | --- | --- |
-| `stat` | How big was this run? | tokens, commands, files, network, failures, resource peaks |
 | `top` | What is active or dominant right now? | hot processes, risky paths, token-heavy model calls, unattributed activity |
 | `record` | What artifact did we capture? | DB path, capture health, attach target, replay commands |
-| `report` | What happened and why does it matter? | intent/effect chain, blast radius, side effects, warnings |
+| `report` | What happened and why does it matter? | counters, intent/effect chain, blast radius, side effects, warnings |
 | `script` | What is the ordered evidence stream? | exact time, PID, command, event kind, raw summary |
 | `trace` | What did this process family do in detail? | strace-like filtered process/file/network/LLM events |
 
@@ -229,8 +226,8 @@ Raw evidence pointers
 ## Implementation Boundary: Analyzer vs Renderer
 
 AgentSight currently has an `OutputAnalyzer`, but that is not the human-readable
-`stat`/`top`/`report` printer. It is a streaming analyzer that prints each event
-as raw JSON while the capture stream is being drained.
+`top`/`report` printer. It is a streaming analyzer that prints each event as raw
+JSON while the capture stream is being drained.
 
 The product output should use a separate query-time rendering layer:
 
@@ -242,7 +239,7 @@ runners
         -> MaterializingAnalyzer
           -> row sinks (SQLite / OTEL)
             -> query model
-              -> stat/top/report/script renderers
+              -> top/report/script renderers
 ```
 
 Responsibilities:
@@ -251,8 +248,8 @@ Responsibilities:
   running. It should not own terminal table layout or report wording.
 - Storage/projector: persist raw events and project canonical events, LLM calls,
   token usage, audit events, sessions, and adapter results.
-- Query model: aggregate saved data into `StatOutput`, `AgentTopSnapshot`,
-  `AgentSection`, `ActivityRow`, `ReportModel`, and similar typed structures.
+- Query model: aggregate saved data into `AgentTopSnapshot`, `AgentSection`,
+  `ActivityRow`, `ReportModel`, and similar typed structures.
 - Renderer: print text, JSON, Markdown, or other formats from those typed query
   models.
 
@@ -262,7 +259,6 @@ logic should move toward a dedicated module such as:
 ```text
 collector/src/cli_print/
   mod.rs
-  stat.rs
   top.rs
   report.rs
   script.rs
@@ -281,7 +277,6 @@ raw event stream printer used for debug/live event output.
 Current top-level command set:
 
 ```bash
-agentsight stat    [options] [-- command ...]
 agentsight top     [options]
 agentsight record  [options] [-- command ...]
 agentsight report  [options]
@@ -301,45 +296,12 @@ agentsight trace   [options]
 agentsight export  [options]
 ```
 
-### `agentsight stat`
+### Run Counters
 
-Like `perf stat`: run a command or read a saved run and print counters.
-
-Examples:
-
-```bash
-agentsight stat -- claude "fix the failing API test"
-agentsight stat --db run.db
-agentsight stat --json --db run.db
-agentsight stat --repeat 5 -- claude -p "summarize this repo"
-```
-
-Default output should be quiet and counter-focused:
-
-```text
-AgentSight stat for: claude "fix the failing API test"
-
-  13.241 s      elapsed time
-       1        LLM calls
-   1,380        tokens total              # 1,200 in, 180 out
-       4        process execs
-       4        process exits             # 2 success, 2 failure
-       3        files touched             # 2 writes, 1 lockfile update
-       2        network hosts             # api.anthropic.com, registry.npmjs.org
-       1        failed commands
-   42.8 MB      max RSS
-    6.2 %       max CPU
-
-  run db: ~/.local/share/agentsight/sessions/20260602-113015.db
-```
-
-Rules:
-
-- `stat -- <command>` should suppress setup chatter by default.
-- Use `--verbose` to show attach/probe details.
-- Do not start a server by default for `stat`.
-- JSON output should be clean JSON. If a command is run, setup logs go to
-  stderr or require `--json --db`.
+The old top-level counter surface has been removed. Counter-focused views now
+live under `agentsight report`: the default report prints a concise run summary,
+while structured counters are available through focused report queries such as
+`agentsight report token --json`.
 
 ### `agentsight top`
 
@@ -449,7 +411,6 @@ At exit:
 Recorded 13.2s to ~/.local/share/agentsight/sessions/20260602-113015.db
 Run:
   agentsight report --db ...
-  agentsight stat --db ...
 ```
 
 ### `agentsight report`
@@ -661,7 +622,6 @@ Capture health
 
 This belongs in:
 
-- `stat`
 - `report`
 - exported reports
 
@@ -673,7 +633,6 @@ Empty states should be action-oriented:
 No run loaded.
 
 Start a run:
-  agentsight stat -- claude
   agentsight record -- claude
 
 Or open an existing run:
@@ -741,7 +700,7 @@ The same filter grammar should work in:
 
 ### P0: Make the Core Claim Visible
 
-1. Run receipt in `stat` and `report`.
+1. Run receipt in `report`.
 2. Intent -> effect chain in `report`.
 3. Side effects and blast radius sections in `report`.
 4. Capture health block.
@@ -768,7 +727,7 @@ The same filter grammar should work in:
 The next release is good enough when a user can run:
 
 ```bash
-agentsight stat -- claude "fix the failing API test"
+agentsight record -- claude "fix the failing API test"
 agentsight report
 agentsight script --summary
 ```

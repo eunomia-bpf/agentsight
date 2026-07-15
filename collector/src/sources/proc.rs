@@ -2,10 +2,16 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::fs;
 use std::io;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 use std::time::Instant;
+use sysinfo::{Pid, Process, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
+
+#[cfg(target_os = "linux")]
+use std::fs;
+
+pub(crate) use agent_session::{ProcessKey, ProcessTree};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct PidSeed {
@@ -33,18 +39,8 @@ pub(crate) struct ProcInfo {
     pub(crate) rss_mb: u64,
     pub(crate) vsz_kb: u64,
     pub(crate) threads: u32,
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct ProcessKey {
-    pub(crate) pid: u32,
-    pub(crate) starttime_ticks: u64,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct ProcessTree {
-    pub(crate) root: ProcessKey,
-    pub(crate) members: Vec<ProcessKey>,
+    pub(crate) read_bytes: u64,
+    pub(crate) write_bytes: u64,
 }
 
 impl ProcInfo {
@@ -82,24 +78,21 @@ impl Default for ProcSnapshot {
 
 impl ProcSnapshot {
     pub(crate) fn collect() -> io::Result<Self> {
-        let page_size = page_size_bytes();
-        let mut procs = BTreeMap::new();
-
-        for entry in fs::read_dir("/proc")? {
-            let Ok(entry) = entry else { continue };
-            let file_name = entry.file_name();
-            let Some(pid) = file_name.to_str().and_then(|name| name.parse::<u32>().ok()) else {
-                continue;
-            };
-            let Some(proc_info) = read_proc_info(pid, page_size) else {
-                continue;
-            };
-            procs.insert(pid, proc_info);
-        }
+        let mut system = System::new();
+        system.refresh_processes_specifics(ProcessesToUpdate::All, true, process_refresh_kind());
+        let boot_time_s = System::boot_time();
+        let procs = system
+            .processes()
+            .values()
+            .map(|process| {
+                let info = proc_info_from_sysinfo(process, boot_time_s);
+                (info.pid, info)
+            })
+            .collect();
 
         Ok(Self {
             at: Instant::now(),
-            uptime_s: read_uptime_s().unwrap_or_default(),
+            uptime_s: System::uptime() as f64,
             procs,
         })
     }
@@ -110,22 +103,6 @@ impl ProcSnapshot {
 
     pub(crate) fn process_family(&self, root: u32) -> Vec<u32> {
         process_family(root, &self.children_by_ppid(), &self.procs)
-    }
-
-    pub(crate) fn process_tree(
-        &self,
-        root: u32,
-        children: &HashMap<u32, Vec<u32>>,
-    ) -> Option<ProcessTree> {
-        let root_key = self.procs.get(&root)?.process_key();
-        let members = process_family(root, children, &self.procs)
-            .into_iter()
-            .filter_map(|pid| self.procs.get(&pid).map(ProcInfo::process_key))
-            .collect();
-        Some(ProcessTree {
-            root: root_key,
-            members,
-        })
     }
 
     pub(crate) fn seeds_for_all(&self) -> Vec<PidSeed> {
@@ -163,11 +140,11 @@ pub(crate) fn collect_fd_paths(
 
     for tree in process_trees {
         for key in &tree.members {
-            if process_starttime_ticks(key.pid) != Some(key.starttime_ticks) {
+            if !process_key_is_current(*key) {
                 continue;
             }
             let paths = scan_proc_fd_paths(key.pid);
-            if process_starttime_ticks(key.pid) != Some(key.starttime_ticks) {
+            if !process_key_is_current(*key) {
                 continue;
             }
             if !paths.is_empty() {
@@ -177,6 +154,20 @@ pub(crate) fn collect_fd_paths(
     }
 
     out
+}
+
+fn process_key_is_current(key: ProcessKey) -> bool {
+    process_key_is_current_impl(key)
+}
+
+#[cfg(target_os = "linux")]
+fn process_key_is_current_impl(key: ProcessKey) -> bool {
+    process_starttime_ticks(key.pid) == Some(key.starttime_ticks)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn process_key_is_current_impl(_key: ProcessKey) -> bool {
+    true
 }
 
 pub(crate) fn children_by_ppid(procs: &BTreeMap<u32, ProcInfo>) -> HashMap<u32, Vec<u32>> {
@@ -195,6 +186,15 @@ pub(crate) fn process_family(
     children: &HashMap<u32, Vec<u32>>,
     procs: &BTreeMap<u32, ProcInfo>,
 ) -> Vec<u32> {
+    process_family_excluding(root, children, procs, &HashSet::new())
+}
+
+pub(crate) fn process_family_excluding(
+    root: u32,
+    children: &HashMap<u32, Vec<u32>>,
+    procs: &BTreeMap<u32, ProcInfo>,
+    excluded_roots: &HashSet<u32>,
+) -> Vec<u32> {
     let mut out = Vec::new();
     let mut stack = vec![root];
     let mut seen = HashSet::new();
@@ -204,7 +204,12 @@ pub(crate) fn process_family(
         }
         out.push(pid);
         if let Some(child_pids) = children.get(&pid) {
-            stack.extend(child_pids.iter().copied());
+            stack.extend(
+                child_pids
+                    .iter()
+                    .copied()
+                    .filter(|child_pid| !excluded_roots.contains(child_pid)),
+            );
         }
     }
     out
@@ -236,39 +241,83 @@ pub(crate) fn process_age_s(proc_info: &ProcInfo, sample: &ProcSnapshot) -> f64 
     (sample.uptime_s - process_start_s).max(0.0)
 }
 
-fn read_proc_info(pid: u32, page_size: u64) -> Option<ProcInfo> {
-    let proc_dir = format!("/proc/{pid}");
-    let stat = fs::read_to_string(format!("{proc_dir}/stat")).ok()?;
-    let (comm, ppid, session_id, ticks, starttime_ticks) = parse_proc_stat(&stat)?;
-    let command = read_cmdline(pid).unwrap_or_else(|| comm.clone());
-    let cwd = read_cwd(pid);
-    let (rss_kb, rss_mb, vsz_kb) = read_statm(pid, page_size).unwrap_or_default();
-    let threads = read_thread_count(pid);
-    Some(ProcInfo {
+fn proc_info_from_sysinfo(process: &Process, boot_time_s: u64) -> ProcInfo {
+    let pid = process.pid().as_u32();
+    let comm = process.name().to_string_lossy().into_owned();
+    let command = process_command(process, &comm);
+    let rss_bytes = process.memory();
+    let disk = process.disk_usage();
+    ProcInfo {
         pid,
-        ppid,
-        session_id,
+        ppid: process.parent().map(pid_to_u32).unwrap_or_default(),
+        session_id: process.session_id().map(pid_to_u32).unwrap_or_default(),
         comm,
         command,
-        cwd,
-        ticks,
-        starttime_ticks,
-        rss_kb,
-        rss_mb,
-        vsz_kb,
-        threads,
-    })
+        cwd: process.cwd().map(PathBuf::from),
+        ticks: cpu_ms_to_ticks(process.accumulated_cpu_time()),
+        starttime_ticks: platform_starttime_ticks(pid)
+            .unwrap_or_else(|| starttime_ticks_from_epoch(process.start_time(), boot_time_s)),
+        rss_kb: bytes_to_kb(rss_bytes),
+        rss_mb: bytes_to_mb(rss_bytes),
+        vsz_kb: bytes_to_kb(process.virtual_memory()),
+        threads: process
+            .tasks()
+            .map(|tasks| (tasks.len() as u32).saturating_add(1))
+            .unwrap_or(1),
+        read_bytes: disk.total_read_bytes,
+        write_bytes: disk.total_written_bytes,
+    }
+}
+
+fn process_refresh_kind() -> ProcessRefreshKind {
+    ProcessRefreshKind::nothing()
+        .with_memory()
+        .with_cpu()
+        .with_disk_usage()
+        .with_cmd(UpdateKind::Always)
+        .with_cwd(UpdateKind::Always)
+        .with_tasks()
+}
+
+fn process_command(process: &Process, fallback: &str) -> String {
+    let command = process
+        .cmd()
+        .iter()
+        .map(|arg| arg.to_string_lossy())
+        .collect::<Vec<_>>()
+        .join(" ");
+    if command.is_empty() {
+        fallback.to_string()
+    } else {
+        command
+    }
 }
 
 pub(crate) fn process_starttime_ticks(pid: u32) -> Option<u64> {
-    let stat = fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
-    parse_proc_stat(&stat).map(|(_, _, _, _, starttime_ticks)| starttime_ticks)
+    platform_starttime_ticks(pid).or_else(|| {
+        let sys_pid = Pid::from_u32(pid);
+        let mut system = System::new();
+        system.refresh_processes_specifics(
+            ProcessesToUpdate::Some(&[sys_pid]),
+            true,
+            ProcessRefreshKind::nothing(),
+        );
+        system
+            .process(sys_pid)
+            .map(|process| starttime_ticks_from_epoch(process.start_time(), System::boot_time()))
+    })
 }
 
 pub(crate) fn scan_proc_fd_paths(pid: u32) -> BTreeSet<PathBuf> {
     let mut out = BTreeSet::new();
+    scan_proc_fd_paths_into(pid, &mut out);
+    out
+}
+
+#[cfg(target_os = "linux")]
+fn scan_proc_fd_paths_into(pid: u32, out: &mut BTreeSet<PathBuf>) {
     let Ok(entries) = fs::read_dir(format!("/proc/{pid}/fd")) else {
-        return out;
+        return;
     };
     for entry in entries.flatten() {
         let Ok(target) = fs::read_link(entry.path()) else {
@@ -276,55 +325,62 @@ pub(crate) fn scan_proc_fd_paths(pid: u32) -> BTreeSet<PathBuf> {
         };
         out.insert(target);
     }
-    out
 }
 
-fn parse_proc_stat(stat: &str) -> Option<(String, u32, u32, u64, u64)> {
-    let open = stat.find('(')?;
+#[cfg(target_os = "macos")]
+fn scan_proc_fd_paths_into(pid: u32, out: &mut BTreeSet<PathBuf>) {
+    let Ok(output) = std::process::Command::new(lsof_path())
+        .args(["-nP", "-Fn", "-p", &pid.to_string()])
+        .output()
+    else {
+        return;
+    };
+    if !output.status.success() {
+        return;
+    }
+    parse_lsof_file_names(&String::from_utf8_lossy(&output.stdout), out);
+}
+
+#[cfg(target_os = "macos")]
+fn lsof_path() -> &'static str {
+    if std::path::Path::new("/usr/sbin/lsof").is_file() {
+        "/usr/sbin/lsof"
+    } else {
+        "lsof"
+    }
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+fn scan_proc_fd_paths_into(_pid: u32, _out: &mut BTreeSet<PathBuf>) {}
+
+#[cfg(any(test, target_os = "macos"))]
+fn parse_lsof_file_names(output: &str, out: &mut BTreeSet<PathBuf>) {
+    for line in output.lines() {
+        let Some(path) = line.strip_prefix('n') else {
+            continue;
+        };
+        let path = path.trim().trim_end_matches(" (deleted)");
+        if path.starts_with('/') {
+            out.insert(PathBuf::from(path));
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn platform_starttime_ticks(pid: u32) -> Option<u64> {
+    let stat = fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    parse_proc_starttime_ticks(&stat)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn platform_starttime_ticks(_pid: u32) -> Option<u64> {
+    None
+}
+
+#[cfg(target_os = "linux")]
+fn parse_proc_starttime_ticks(stat: &str) -> Option<u64> {
     let close = stat.rfind(')')?;
-    let comm = stat[open + 1..close].to_string();
-    let fields: Vec<&str> = stat[close + 1..].split_whitespace().collect();
-    let ppid = fields.get(1)?.parse().ok()?;
-    let session_id = fields.get(3)?.parse().ok()?;
-    let utime: u64 = fields.get(11)?.parse().ok()?;
-    let stime: u64 = fields.get(12)?.parse().ok()?;
-    let starttime_ticks = fields.get(19)?.parse().ok()?;
-    Some((
-        comm,
-        ppid,
-        session_id,
-        utime.saturating_add(stime),
-        starttime_ticks,
-    ))
-}
-
-fn read_cmdline(pid: u32) -> Option<String> {
-    let bytes = fs::read(format!("/proc/{pid}/cmdline")).ok()?;
-    let command = bytes
-        .split(|byte| *byte == 0)
-        .filter_map(|part| std::str::from_utf8(part).ok())
-        .filter(|part| !part.is_empty())
-        .collect::<Vec<_>>()
-        .join(" ");
-    (!command.is_empty()).then_some(command)
-}
-
-fn read_cwd(pid: u32) -> Option<PathBuf> {
-    fs::read_link(format!("/proc/{pid}/cwd")).ok()
-}
-
-fn read_statm(pid: u32, page_size: u64) -> Option<(u64, u64, u64)> {
-    let statm = fs::read_to_string(format!("/proc/{pid}/statm")).ok()?;
-    let mut fields = statm.split_whitespace();
-    let vsz_pages: u64 = fields.next()?.parse().ok()?;
-    let rss_pages: u64 = fields.next()?.parse().ok()?;
-    let rss_bytes = rss_pages.saturating_mul(page_size);
-    let vsz_bytes = vsz_pages.saturating_mul(page_size);
-    Some((
-        bytes_to_kb(rss_bytes),
-        bytes_to_mb(rss_bytes),
-        bytes_to_kb(vsz_bytes),
-    ))
+    stat[close + 1..].split_whitespace().nth(19)?.parse().ok()
 }
 
 fn bytes_to_kb(bytes: u64) -> u64 {
@@ -339,49 +395,107 @@ fn bytes_to_mb(bytes: u64) -> u64 {
     }
 }
 
-fn read_uptime_s() -> Option<f64> {
-    fs::read_to_string("/proc/uptime")
-        .ok()?
-        .split_whitespace()
-        .next()?
-        .parse()
-        .ok()
+fn cpu_ms_to_ticks(cpu_ms: u64) -> u64 {
+    ((cpu_ms as f64 / 1000.0) * ticks_per_second()).round() as u64
 }
 
-pub(crate) fn process_start_timestamp_ms(starttime_ticks: u64) -> Option<u64> {
-    let boot_ms = u64::try_from(crate::time::get_boot_time_secs().saturating_mul(1000)).ok()?;
-    let process_offset_ms = ((starttime_ticks as f64 / ticks_per_second()) * 1000.0).round() as u64;
-    Some(boot_ms.saturating_add(process_offset_ms))
+fn pid_to_u32(pid: Pid) -> u32 {
+    pid.as_u32()
 }
 
-fn page_size_bytes() -> u64 {
-    let value = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
-    if value > 0 { value as u64 } else { 4096 }
+fn starttime_ticks_from_epoch(start_time_s: u64, boot_time_s: u64) -> u64 {
+    let since_boot_s = if start_time_s >= boot_time_s {
+        start_time_s - boot_time_s
+    } else {
+        start_time_s
+    };
+    ((since_boot_s as f64) * ticks_per_second()).round() as u64
+}
+
+pub(crate) fn process_cpu_ms_delta(proc_info: &ProcInfo, previous: Option<&ProcSnapshot>) -> u64 {
+    let Some(previous) = previous else {
+        return 0;
+    };
+    let Some(prev_proc) = previous.procs.get(&proc_info.pid) else {
+        return 0;
+    };
+    if prev_proc.starttime_ticks != proc_info.starttime_ticks {
+        return 0;
+    }
+    let delta_ticks = proc_info.ticks.saturating_sub(prev_proc.ticks);
+    ((delta_ticks as f64 / ticks_per_second()) * 1000.0).round() as u64
 }
 
 fn ticks_per_second() -> f64 {
-    let value = unsafe { libc::sysconf(libc::_SC_CLK_TCK) };
-    if value > 0 { value as f64 } else { 100.0 }
-}
-
-fn read_thread_count(pid: u32) -> u32 {
-    fs::read_dir(format!("/proc/{pid}/task"))
-        .map(|entries| entries.count() as u32)
-        .unwrap_or(1)
+    static TICKS_PER_SECOND: OnceLock<f64> = OnceLock::new();
+    *TICKS_PER_SECOND.get_or_init(|| {
+        let value = unsafe { libc::sysconf(libc::_SC_CLK_TCK) };
+        if value > 0 { value as f64 } else { 100.0 }
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
 
+    #[test]
+    fn snapshot_collects_current_process() {
+        let snapshot = ProcSnapshot::collect().unwrap();
+        let current = snapshot.procs.get(&std::process::id()).unwrap();
+
+        assert_eq!(current.pid, std::process::id());
+        assert!(current.starttime_ticks > 0);
+        assert!(current.threads > 0);
+        assert!(!current.comm.is_empty() || !current.command.is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn snapshot_counts_single_thread_process() {
+        let mut child = std::process::Command::new("sleep")
+            .arg("5")
+            .spawn()
+            .unwrap();
+        let snapshot = ProcSnapshot::collect().unwrap();
+        let threads = snapshot
+            .procs
+            .get(&child.id())
+            .map(|proc_info| proc_info.threads);
+        let _ = child.kill();
+        let _ = child.wait();
+
+        assert_eq!(threads, Some(1));
+    }
+
+    #[test]
+    fn starttime_ticks_accepts_epoch_or_boot_relative_seconds() {
+        let ticks = ticks_per_second().round() as u64;
+
+        assert_eq!(starttime_ticks_from_epoch(125, 100), 25 * ticks);
+        assert_eq!(starttime_ticks_from_epoch(25, 100), 25 * ticks);
+    }
+
+    #[cfg(target_os = "linux")]
     #[test]
     fn proc_fd_scan_finds_open_file_path() {
         let temp = tempfile::tempdir().unwrap();
         let path = temp.path().join("fd-evidence.txt");
-        let _file = File::create(&path).unwrap();
+        let _file = std::fs::File::create(&path).unwrap();
 
         let paths = scan_proc_fd_paths(std::process::id());
         assert!(paths.contains(&path));
+    }
+
+    #[test]
+    fn lsof_parser_keeps_absolute_file_names() {
+        let mut out = BTreeSet::new();
+
+        parse_lsof_file_names(
+            "p123\nn/private/tmp/session.jsonl\nnlocalhost:1234\nn\n",
+            &mut out,
+        );
+
+        assert!(out.contains(&PathBuf::from("/private/tmp/session.jsonl")));
+        assert_eq!(out.len(), 1);
     }
 }

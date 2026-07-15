@@ -6,8 +6,7 @@ use crate::model::{
     AuditCounters, ResourceSampleRow, SessionRow, Snapshot, SnapshotOptions, ViewResult,
 };
 use crate::output::{
-    AgentTopOutput, AgentTopRow, ResourcePeaks, StatOutput, TopOptions, clear_screen,
-    print_agent_top, print_json, print_stat,
+    AgentTopOutput, AgentTopRow, ResourcePeaks, TopOptions, clear_screen, print_agent_top,
 };
 use crate::text::short_session_id;
 use crate::view::top::{recent_failures, sort_agent_rows, top_sections};
@@ -17,19 +16,6 @@ use std::time::Duration;
 
 #[cfg(test)]
 use crate::sources::agent_native as agent_native_sessions;
-
-pub(crate) fn run_stat_query(
-    db: &str,
-    json: bool,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let stat = load_stat(db)?;
-    if json {
-        print_json(&stat)?;
-    } else {
-        print_stat(&stat);
-    }
-    Ok(())
-}
 
 pub(crate) fn run_top_query(
     db: &str,
@@ -64,46 +50,19 @@ pub(crate) fn run_top_query(
     Ok(())
 }
 
-fn load_stat(db: &str) -> ViewResult<StatOutput> {
-    let view = load_agentsight_view(Some(db))?;
-    let snapshot = view.export_snapshot(SnapshotOptions {
-        audit_limit: 50_000,
-    });
-    let resources = resource_peaks_from_samples(&snapshot.resource_samples);
-    let tool_calls = snapshot.tool_calls.len() as i64;
-    let audit = AuditCounters::from_rows(&snapshot.audit_events);
-
-    let network_hosts = snapshot
-        .network_targets
-        .iter()
-        .map(|target| target.host.clone())
-        .collect::<BTreeSet<_>>()
-        .len();
-    let http_errors = snapshot
-        .network_targets
-        .iter()
-        .map(|target| target.error_count.max(0) as usize)
-        .sum();
-
-    Ok(StatOutput {
-        db: db.to_string(),
-        duration_s: snapshot.summary.duration_s(),
-        view_events: snapshot.summary.view_events,
-        llm_calls: snapshot.summary.llm_calls,
-        input_tokens: snapshot.summary.input_tokens,
-        output_tokens: snapshot.summary.output_tokens,
-        total_tokens: snapshot.summary.total_tokens,
-        process_execs: audit.process_execs,
-        process_exits: audit.process_exits,
-        process_exit_success: audit.process_exit_success,
-        process_exit_failure: audit.process_exit_failure,
-        file_events: audit.file_events,
-        unique_files: audit.unique_files.len(),
-        network_hosts,
-        http_errors,
-        tool_calls,
-        resources,
-    })
+pub(crate) fn load_top_output<'a>(
+    db: &'a str,
+    limit: usize,
+    options: &TopOptions,
+) -> Result<AgentTopOutput<'a>, Box<dyn std::error::Error + Send + Sync>> {
+    let (snapshot, resources) = load_snapshot_and_resources(db)?;
+    Ok(build_session_top(
+        db,
+        &snapshot,
+        &resources,
+        limit.clamp(1, 50),
+        options,
+    ))
 }
 
 fn build_session_top<'a>(
@@ -173,7 +132,6 @@ fn session_agent_rows(
                 failures: 0,
                 files: 0,
                 network: 0,
-                unattributed: 0,
                 trace: "db".to_string(),
                 command: session.agent_type.clone(),
                 workspace: cwd,
@@ -250,7 +208,6 @@ fn saved_session_row(
         failures: audit.process_exit_failure,
         files: audit.unique_files.len(),
         network,
-        unattributed: 0,
         trace: "db".to_string(),
         command: "saved session".to_string(),
         workspace: None,
@@ -329,7 +286,7 @@ mod tests {
     use crate::model::AuditEventRow;
 
     #[test]
-    fn stat_tokens_ignore_touched_local_log_without_usage() {
+    fn session_tokens_ignore_touched_local_log_without_usage() {
         let (_temp, path) = agent_native_sessions::create_temp_session_path("claude");
         std::fs::write(
             &path,

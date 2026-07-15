@@ -1,0 +1,54 @@
+name: Deploy Product Website
+
+# Builds the static AgentSight product website from docs/website and publishes
+# it to the `agentsight-site` branch. Cloudflare Pages can serve that branch at
+# agentsight.us while the existing app demo remains on app.agentsight.us.
+
+on:
+  push:
+    branches: [ "master" ]
+    paths:
+      - "docs/website/**"
+      - ".github/workflows/deploy-website.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PRODUCT_WEBSITE_BRANCH: agentsight-site
+
+concurrency:
+  group: deploy-product-website
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and Publish Product Website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: docs/website/package-lock.json
+
+      - name: Install dependencies
+        working-directory: docs/website
+        run: npm ci
+
+      - name: Build static export
+        working-directory: docs/website
+        run: npm run build
+
+      - name: Publish website to agentsight-site
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/website/out
+          publish_branch: ${{ env.PRODUCT_WEBSITE_BRANCH }}
+          force_orphan: true

@@ -70,7 +70,7 @@ pub(crate) fn extract_prompt_text(value: &Value) -> Option<String> {
         return clean_prompt_text(prompt);
     }
     let mut parts = Vec::new();
-    for key in ["messages", "contents"] {
+    for key in ["messages", "contents", "input"] {
         if let Some(items) = value.get(key).and_then(Value::as_array) {
             for item in items {
                 collect_content_text(item.get("content").unwrap_or(item), &mut parts);
@@ -94,5 +94,31 @@ fn collect_content_text(value: &Value, out: &mut Vec<String>) {
             }
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::extract_prompt_text;
+    use serde_json::json;
+
+    #[test]
+    fn extracts_openai_responses_input_text() {
+        let request = json!({
+            "model": "gpt-agentsight-mock",
+            "input": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "input_text", "text": "agentsight mock prompt collect this exact text"}
+                    ]
+                }
+            ]
+        });
+
+        assert_eq!(
+            extract_prompt_text(&request).as_deref(),
+            Some("agentsight mock prompt collect this exact text")
+        );
     }
 }

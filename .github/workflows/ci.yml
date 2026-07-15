@@ -65,6 +65,11 @@ jobs:
         cd collector
         cargo build --verbose
 
+    - name: E2E latest agent CLI canary
+      run: script/e2e/latest_agent_cli_canary.sh
+      env:
+        AGENTSIGHT_AGENT_CANARY_REQUIRE_EBPF: "1"
+
     - name: Run clippy (deny warnings)
       run: |
         cd collector
@@ -74,6 +79,18 @@ jobs:
       run: |
         cd collector
         cargo test --verbose
+
+    - name: Build agentpprof
+      run: |
+        cargo build --manifest-path agentpprof/Cargo.toml --verbose
+
+    - name: Run agentpprof clippy (deny warnings)
+      run: |
+        cargo clippy --manifest-path agentpprof/Cargo.toml --all-targets -- -D warnings
+
+    - name: Run agentpprof tests
+      run: |
+        cargo test --manifest-path agentpprof/Cargo.toml --verbose
 
     # Rebuild the C unit tests under AddressSanitizer and run them. Done last and
     # after `make clean` so the ASan objects don't replace the BPF binaries that
@@ -181,6 +198,22 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         set -euo pipefail
+        CRATES_IO_USER_AGENT="agentsight-release-ci (${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}; run ${GITHUB_RUN_ID})"
+        crates_io_version_exists() {
+          local crate="$1"
+          local version="$2"
+          local status
+          status="$(curl --retry 3 --retry-delay 2 -A "$CRATES_IO_USER_AGENT" -sS -o /dev/null -w "%{http_code}" "https://crates.io/api/v1/crates/${crate}/${version}" || true)"
+          case "$status" in
+            200) return 0 ;;
+            404) return 1 ;;
+            *)
+              echo "::error::crates.io returned HTTP ${status} for ${crate} ${version}."
+              exit 1
+              ;;
+          esac
+        }
+
         BASE_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' collector/Cargo.toml | head -1)"
         IFS=. read -r MAJOR MINOR PATCH <<EOF
         $BASE_VERSION
@@ -193,8 +226,10 @@ jobs:
             echo "::notice::GitHub release ${TAG} already exists; trying next patch version."
           elif git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
             echo "::notice::Git tag ${TAG} already exists; trying next patch version."
-          elif curl -fsS "https://crates.io/api/v1/crates/agentsight/${VERSION}" >/dev/null 2>&1; then
+          elif crates_io_version_exists "agentsight" "$VERSION"; then
             echo "::notice::crates.io agentsight ${VERSION} already exists; trying next patch version."
+          elif crates_io_version_exists "agentpprof" "$VERSION"; then
+            echo "::notice::crates.io agentpprof ${VERSION} already exists; trying next patch version."
           else
             break
           fi
@@ -203,13 +238,35 @@ jobs:
         done
 
         sed -i "s/^version = \".*\"/version = \"$VERSION\"/" collector/Cargo.toml
+        AGENT_SESSION_BASE_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' agent-session/Cargo.toml | head -1)"
+        IFS=. read -r AGENT_SESSION_MAJOR AGENT_SESSION_MINOR AGENT_SESSION_PATCH <<EOF
+        $AGENT_SESSION_BASE_VERSION
+        EOF
+
+        AGENT_SESSION_VERSION="$AGENT_SESSION_BASE_VERSION"
+        while crates_io_version_exists "agent-session" "$AGENT_SESSION_VERSION"; do
+          echo "::notice::crates.io agent-session ${AGENT_SESSION_VERSION} already exists; trying next patch version."
+          AGENT_SESSION_PATCH=$((AGENT_SESSION_PATCH + 1))
+          AGENT_SESSION_VERSION="${AGENT_SESSION_MAJOR}.${AGENT_SESSION_MINOR}.${AGENT_SESSION_PATCH}"
+        done
+
+        sed -i "s/^version = \".*\"/version = \"$AGENT_SESSION_VERSION\"/" agent-session/Cargo.toml
+        sed -i "s/agent-session = { version = \"[^\"]*\", path = \"..\\/agent-session\" }/agent-session = { version = \"$AGENT_SESSION_VERSION\", path = \"..\\/agent-session\" }/" collector/Cargo.toml
+        sed -i "s/^version = \".*\"/version = \"$VERSION\"/" agentpprof/Cargo.toml
+        sed -i "s/agent-session = { version = \"[^\"]*\", path = \"..\\/agent-session\" }/agent-session = { version = \"$AGENT_SESSION_VERSION\", path = \"..\\/agent-session\" }/" agentpprof/Cargo.toml
+        cargo generate-lockfile --manifest-path agent-session/Cargo.toml
         cd collector
         cargo generate-lockfile
         cd ..
+        cargo generate-lockfile --manifest-path agentpprof/Cargo.toml
 
         echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
         echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+        echo "agent_session_version=${AGENT_SESSION_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "agentpprof_version=${VERSION}" >> "$GITHUB_OUTPUT"
         echo "Using release version v${VERSION}"
+        echo "Using agent-session version ${AGENT_SESSION_VERSION}"
+        echo "Using agentpprof version ${VERSION}"
 
     - name: Setup Node.js
       uses: actions/setup-node@v3
@@ -224,7 +281,9 @@ jobs:
           make git clang llvm pkg-config build-essential
 
     - name: Build package
-      run: make build
+      run: |
+        make build
+        cargo build --release --manifest-path agentpprof/Cargo.toml
 
     - name: Commit release snapshot
       id: commit_release
@@ -238,7 +297,7 @@ jobs:
         # build.rs vendors generated BPF/frontend assets into collector/vendor.
         # Commit the full release snapshot before tagging or publishing so the
         # GitHub release, crates.io package, and master source agree.
-        git add collector/Cargo.toml collector/Cargo.lock collector/vendor
+        git add agent-session/Cargo.toml agent-session/Cargo.lock collector/Cargo.toml collector/Cargo.lock collector/vendor agentpprof/Cargo.toml agentpprof/Cargo.lock
         if git diff --cached --quiet; then
           echo "Release snapshot already matches ${VERSION}; no commit needed."
         else
@@ -246,9 +305,9 @@ jobs:
           git push origin "HEAD:${GITHUB_REF#refs/heads/}"
         fi
 
-        if [ -n "$(git status --porcelain --untracked-files=all -- collector)" ]; then
-          echo "::error::collector has uncommitted files after release snapshot commit."
-          git status --short --untracked-files=all -- collector
+        if [ -n "$(git status --porcelain --untracked-files=all -- agent-session collector agentpprof)" ]; then
+          echo "::error::release snapshot has uncommitted files after commit."
+          git status --short --untracked-files=all -- agent-session collector agentpprof
           exit 1
         fi
 
@@ -263,6 +322,10 @@ jobs:
         echo "Using Cargo package version: $VERSION_NO_V"
         grep "^version" collector/Cargo.toml
         grep -q "^version = \"$VERSION_NO_V\"" collector/Cargo.toml
+        grep -q "^version = \"${{ steps.set_version.outputs.agent_session_version }}\"" agent-session/Cargo.toml
+        grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" collector/Cargo.toml
+        grep -q "^version = \"$VERSION_NO_V\"" agentpprof/Cargo.toml
+        grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" agentpprof/Cargo.toml
 
     - name: Smoke test local release binary
       run: |
@@ -270,23 +333,86 @@ jobs:
         collector/target/release/agentsight --version
         collector/target/release/agentsight --help | tee /tmp/agentsight-local-help.txt
 
-        for cmd in stat top record report discover debug; do
+        for cmd in top monitor record report debug; do
           if ! grep -Eq "^[[:space:]]+$cmd[[:space:]]" /tmp/agentsight-local-help.txt; then
             echo "::error::local release binary is missing '$cmd' in agentsight --help"
             exit 1
           fi
         done
 
-    - name: Verify Cargo package
+        agentpprof/target/release/agentpprof --version
+        agentpprof/target/release/agentpprof --help | tee /tmp/agentpprof-local-help.txt
+
+        for flag in "--output" "--view" "--tagger" "--session-file"; do
+          if ! grep -Fq -- "$flag" /tmp/agentpprof-local-help.txt; then
+            echo "::error::local release binary is missing '$flag' in agentpprof --help"
+            exit 1
+          fi
+        done
+
+    - name: Verify agent-session Cargo package
+      run: |
+        CARGO_TARGET_DIR=/tmp/agentsight-agent-session-package \
+          cargo package --manifest-path agent-session/Cargo.toml
+
+    - name: Publish agent-session crate to crates.io
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      run: |
+        set -euo pipefail
+        CRATES_IO_USER_AGENT="agentsight-release-ci (${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}; run ${GITHUB_RUN_ID})"
+        crates_io_version_exists() {
+          local crate="$1"
+          local version="$2"
+          local status
+          status="$(curl --retry 3 --retry-delay 2 -A "$CRATES_IO_USER_AGENT" -sS -o /dev/null -w "%{http_code}" "https://crates.io/api/v1/crates/${crate}/${version}" || true)"
+          case "$status" in
+            200) return 0 ;;
+            404) return 1 ;;
+            *)
+              echo "::error::crates.io returned HTTP ${status} for ${crate} ${version}."
+              exit 1
+              ;;
+          esac
+        }
+
+        if [ -z "${CARGO_REGISTRY_TOKEN:-}" ]; then
+          echo "::error::CARGO_REGISTRY_TOKEN is not set; cannot publish to crates.io."
+          exit 1
+        fi
+
+        VERSION="${{ steps.set_version.outputs.agent_session_version }}"
+        if crates_io_version_exists "agent-session" "$VERSION"; then
+          echo "agent-session ${VERSION} already exists on crates.io; skipping publish."
+        else
+          cargo publish --manifest-path agent-session/Cargo.toml
+        fi
+
+        for attempt in 1 2 3 4 5 6; do
+          if crates_io_version_exists "agent-session" "$VERSION"; then
+            exit 0
+          fi
+          sleep $((attempt * 10))
+        done
+        echo "::error::agent-session ${VERSION} was not visible on crates.io after publish."
+        exit 1
+
+    - name: Verify agentsight Cargo package
       run: |
         cd collector
         cargo package
+
+    - name: Verify agentpprof Cargo package
+      run: |
+        CARGO_TARGET_DIR=/tmp/agentsight-agentpprof-package \
+          cargo package --manifest-path agentpprof/Cargo.toml
 
     - name: Publish Release
       uses: softprops/action-gh-release@v2
       with:
         files: |
           collector/target/release/agentsight
+          agentpprof/target/release/agentpprof
         prerelease: false
         tag_name: ${{ steps.set_version.outputs.tag }}
         target_commitish: ${{ steps.commit_release.outputs.publish_sha }}
@@ -307,19 +433,35 @@ jobs:
           --pattern agentsight \
           --dir "$smoke_dir" \
           --clobber
+        gh release download "$RELEASE_TAG" \
+          --repo "$GITHUB_REPOSITORY" \
+          --pattern agentpprof \
+          --dir "$smoke_dir" \
+          --clobber
 
         chmod +x "$smoke_dir/agentsight"
         "$smoke_dir/agentsight" --version
         "$smoke_dir/agentsight" --help | tee "$smoke_dir/help.txt"
 
-        for cmd in stat top record report discover debug; do
+        for cmd in top monitor record report debug; do
           if ! grep -Eq "^[[:space:]]+$cmd[[:space:]]" "$smoke_dir/help.txt"; then
             echo "::error::release artifact is missing '$cmd' in agentsight --help"
             exit 1
           fi
         done
 
-    - name: Publish crate to crates.io
+        chmod +x "$smoke_dir/agentpprof"
+        "$smoke_dir/agentpprof" --version
+        "$smoke_dir/agentpprof" --help | tee "$smoke_dir/agentpprof-help.txt"
+
+        for flag in "--output" "--view" "--tagger" "--session-file"; do
+          if ! grep -Fq -- "$flag" "$smoke_dir/agentpprof-help.txt"; then
+            echo "::error::release artifact is missing '$flag' in agentpprof --help"
+            exit 1
+          fi
+        done
+
+    - name: Publish agentsight crate to crates.io
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
       run: |
@@ -358,9 +500,54 @@ jobs:
         "$install_dir/bin/agentsight" --version
         "$install_dir/bin/agentsight" --help | tee /tmp/agentsight-cargo-install-help.txt
 
-        for cmd in stat top record report discover debug; do
+        for cmd in top monitor record report debug; do
           if ! grep -Eq "^[[:space:]]+$cmd[[:space:]]" /tmp/agentsight-cargo-install-help.txt; then
             echo "::error::cargo-installed agentsight is missing '$cmd' in --help"
+            exit 1
+          fi
+        done
+
+    - name: Publish agentpprof crate to crates.io
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      run: |
+        set -euo pipefail
+        if [ -z "${CARGO_REGISTRY_TOKEN:-}" ]; then
+          echo "::error::CARGO_REGISTRY_TOKEN is not set; cannot publish to crates.io."
+          exit 1
+        fi
+
+        cargo publish --manifest-path agentpprof/Cargo.toml
+
+    - name: Smoke test agentpprof cargo install from crates.io
+      env:
+        VERSION: ${{ steps.set_version.outputs.agentpprof_version }}
+      run: |
+        set -euo pipefail
+
+        install_dir="$(mktemp -d)"
+        for attempt in 1 2 3 4 5 6; do
+          if cargo install agentpprof \
+            --version "$VERSION" \
+            --locked \
+            --root "$install_dir"; then
+            break
+          fi
+
+          if [ "$attempt" -eq 6 ]; then
+            echo "::error::cargo install agentpprof ${VERSION} failed after ${attempt} attempts"
+            exit 1
+          fi
+
+          sleep $((attempt * 10))
+        done
+
+        "$install_dir/bin/agentpprof" --version
+        "$install_dir/bin/agentpprof" --help | tee /tmp/agentpprof-cargo-install-help.txt
+
+        for flag in "--output" "--view" "--tagger" "--session-file"; do
+          if ! grep -Fq -- "$flag" /tmp/agentpprof-cargo-install-help.txt; then
+            echo "::error::cargo-installed agentpprof is missing '$flag' in --help"
             exit 1
           fi
         done

@@ -18,6 +18,7 @@ pub mod auth_header_remover;
 pub mod common;
 mod filter_base;
 mod filter_metrics;
+pub mod http_decompressor;
 pub mod http_filter;
 pub mod http_parser;
 pub mod materializing;
@@ -30,6 +31,7 @@ pub mod timestamp_normalizer;
 mod sse_processor_tests;
 
 pub use auth_header_remover::AuthHeaderRemover;
+pub use http_decompressor::HTTPDecompressor;
 pub use http_filter::{HTTPFilter, print_global_http_filter_metrics};
 pub use http_parser::HTTPParser;
 pub use materializing::MaterializingAnalyzer;

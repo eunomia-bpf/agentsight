@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 pub type ViewResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -18,6 +18,7 @@ pub struct TokenSummary {
     pub cache_read_tokens: i64,
     pub total_tokens: i64,
     pub calls: i64,
+    pub sessions: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,12 +43,18 @@ pub struct TokenUsageRow {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmCallRow {
     pub id: String,
+    pub session_id: Option<String>,
+    pub conversation_id: Option<String>,
     pub start_timestamp_ms: u64,
     pub end_timestamp_ms: Option<u64>,
     pub pid: Option<u32>,
     pub comm: Option<String>,
     pub provider: Option<String>,
     pub model: Option<String>,
+    pub call_kind: Option<String>,
+    pub status: String,
+    pub error_type: Option<String>,
+    pub finish_reason: Option<String>,
     pub host: Option<String>,
     pub path: Option<String>,
     pub status_code: Option<u16>,
@@ -78,6 +85,7 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
+    #[cfg(test)]
     pub(crate) fn empty(source: impl Into<String>) -> Self {
         Self {
             schema_version: 1,
@@ -111,6 +119,7 @@ pub struct SnapshotSummary {
 }
 
 impl SnapshotSummary {
+    #[cfg(test)]
     pub(crate) fn empty(source: impl Into<String>) -> Self {
         Self {
             source: source.into(),
@@ -191,18 +200,6 @@ impl AuditCounters {
             counters.observe(row);
         }
         counters
-    }
-
-    pub(crate) fn by_pid<'a>(
-        rows: impl IntoIterator<Item = &'a AuditEventRow>,
-    ) -> BTreeMap<u32, Self> {
-        let mut by_pid = BTreeMap::new();
-        for row in rows {
-            if let Some(pid) = row.pid {
-                by_pid.entry(pid).or_insert_with(Self::default).observe(row);
-            }
-        }
-        by_pid
     }
 
     fn observe(&mut self, row: &AuditEventRow) {

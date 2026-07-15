@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent 协作改进报告</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --soft: #eef3f7;
+      --text: #17202a;
+      --muted: #627083;
+      --line: #dbe3ec;
+      --accent: #0f766e;
+      --blue: #2563eb;
+      --amber: #b45309;
+      --red: #b91c1c;
+      --green: #15803d;
+      --shadow: 0 14px 34px rgba(23, 32, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.55;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px clamp(18px, 4vw, 52px);
+      background: rgba(255, 255, 255, 0.92);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .brand { font-weight: 780; }
+    .brand span { display: block; color: var(--muted); font-size: 12px; font-weight: 500; }
+    nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    nav a, button {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--text);
+      padding: 7px 10px;
+      font: inherit;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    nav a:hover, button:hover { border-color: var(--accent); color: var(--accent); }
+    header {
+      padding: clamp(28px, 5vw, 64px) clamp(18px, 4vw, 52px) 30px;
+      background: linear-gradient(180deg, #fff 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--line);
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+      gap: clamp(22px, 4vw, 40px);
+      max-width: 1240px;
+      margin: 0 auto;
+      align-items: start;
+    }
+    .eyebrow { margin: 0 0 10px; color: var(--accent); font-weight: 780; font-size: 13px; }
+    h1 { margin: 0; max-width: 980px; font-size: clamp(30px, 4vw, 52px); line-height: 1.08; letter-spacing: 0; }
+    h2 { margin: 0 0 12px; font-size: clamp(21px, 2vw, 28px); letter-spacing: 0; }
+    h3 { margin: 0 0 8px; font-size: 17px; letter-spacing: 0; }
+    p { margin: 0; }
+    .lead { margin-top: 18px; max-width: 820px; color: #374151; font-size: clamp(16px, 1.5vw, 19px); }
+    .contract {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      background: #e8f7f3;
+      color: #1f4e49;
+      font-weight: 680;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .verdict { padding: 18px; }
+    .verdict .label { color: var(--muted); font-size: 13px; font-weight: 700; }
+    .verdict .value { margin-top: 6px; color: var(--amber); font-size: 28px; font-weight: 820; line-height: 1.1; }
+    .verdict ul { margin: 14px 0 0; padding-left: 18px; color: #374151; }
+    main { max-width: 1240px; margin: 0 auto; padding: 28px clamp(18px, 4vw, 52px) 54px; }
+    section { margin-top: 28px; }
+    .grid { display: grid; gap: 14px; }
+    .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .metric { padding: 16px; }
+    .metric .num { margin-top: 8px; font-size: 30px; line-height: 1; font-weight: 820; }
+    .metric .desc { margin-top: 8px; color: var(--muted); font-size: 13px; }
+    .actions { display: grid; gap: 12px; }
+    .action {
+      display: grid;
+      grid-template-columns: 62px minmax(0, 1fr) minmax(220px, 0.5fr);
+      gap: 14px;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      color: #fff;
+      background: var(--accent);
+      font-weight: 820;
+    }
+    .evidence { color: var(--muted); font-size: 13px; }
+    .module { padding: 16px; }
+    .module strong { display: block; margin-bottom: 6px; }
+    .bar { height: 9px; border-radius: 999px; background: #e5ebf2; overflow: hidden; margin-top: 12px; }
+    .bar i { display: block; height: 100%; background: var(--accent); }
+    .bar .red { background: var(--red); }
+    .bar .amber { background: var(--amber); }
+    .bar .blue { background: var(--blue); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: var(--soft); color: #334155; font-size: 13px; }
+    tr:last-child td { border-bottom: 0; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 760;
+      background: var(--soft);
+    }
+    .high { color: var(--red); background: #fee2e2; }
+    .medium { color: var(--amber); background: #fef3c7; }
+    .info { color: var(--blue); background: #dbeafe; }
+    .note { color: var(--muted); font-size: 14px; }
+    .callout { padding: 16px; border-left: 4px solid var(--blue); background: #eef5ff; border-radius: 8px; }
+    .footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 900px) {
+      .hero, .cols-4, .cols-3, .cols-2, .action { grid-template-columns: 1fr; }
+      .topbar { position: static; }
+      nav { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Agent 协作改进报告<span>近期本地 agent 会话摘要 · 团队内分享口径</span></div>
+    <nav aria-label="报告导航">
+      <a href="#changes">改进动作</a>
+      <a href="#overview">决策概览</a>
+      <a href="#evidence">证据</a>
+      <a href="#appendix">边界</a>
+      <button type="button" id="copySummary">复制摘要</button>
+    </nav>
+  </div>
+
+  <header>
+    <div class="hero">
+      <div>
+        <p class="eyebrow">Interaction decision</p>
+        <h1>下一批 agent 任务可以继续交给 agent，但要先加协作契约和验证门槛。</h1>
+        <p class="lead">
+          本报告基于 8 个近期非本任务的本地 coding/debugging 会话摘要，观察消息流、工具调用、纠正信号和验证痕迹。
+          目标是帮助 agent owner 决定：下一次怎样减少返工、提高总结可信度，并更早发现需要人工 checkpoint 的任务。
+        </p>
+        <div class="contract">
+          读者/决策契约：面向 agent owner 和 team lead，判断哪些协作规则、验证要求和任务分流策略应在下一轮 agent run 前更新。
+        </div>
+      </div>
+      <aside class="panel verdict">
+        <div class="label">执行判断</div>
+        <div class="value">可继续，但要加门槛</div>
+        <ul>
+          <li>长会话和高工具调用任务先写清交付判断。</li>
+          <li>连续纠正后暂停执行，重新确认目标和非目标。</li>
+          <li>最终总结必须列出已运行、未运行和推断项。</li>
+          <li>工具失败或重复尝试超过阈值时进入 checkpoint。</li>
+        </ul>
+      </aside>
+    </div>
+  </header>
+
+  <main>
+    <section id="changes">
+      <h2>下一轮最该改的 5 件事</h2>
+      <div class="actions">
+        <article class="action">
+          <div><span class="rank">1</span></div>
+          <div>
+            <h3>开局写清“这次要做什么判断”</h3>
+            <p>每个任务开始时先确认交付判断：能否合并、能否放行、是否需要复跑、还是只需要定位问题。这样可以减少 agent 把探索、实现和审查混在一起。</p>
+          </div>
+          <p class="evidence">证据：8 个会话中有 360 条用户消息和 270 次工具调用，长会话更容易出现目标漂移和后续纠正。</p>
+        </article>
+        <article class="action">
+          <div><span class="rank" style="background: var(--amber);">2</span></div>
+          <div>
+            <h3>把连续纠正设为 checkpoint 信号</h3>
+            <p>当用户连续重设范围、否定方向或要求重做时，agent 应停下来压缩当前理解，而不是继续扩大编辑或重复运行命令。</p>
+          </div>
+          <p class="evidence">证据：摘要里出现 74 个纠正/重设类信号，集中在长会话和工具密集会话。</p>
+        </article>
+        <article class="action">
+          <div><span class="rank" style="background: var(--blue);">3</span></div>
+          <div>
+            <h3>把验证结果写成可审查状态</h3>
+            <p>最终总结不要只说“完成”或“已验证”。应列出检查项、状态、范围和缺口，让 reviewer 能直接判断还差什么。</p>
+          </div>
+          <p class="evidence">证据：工具结果里有大量错误样式信号；没有统一状态模板时，用户需要重新追问真实验证范围。</p>
+        </article>
+        <article class="action">
+          <div><span class="rank" style="background: var(--green);">4</span></div>
+          <div>
+            <h3>工具计划从“全量尝试”改成“窄验证优先”</h3>
+            <p>对 build/test/debug 类任务，先运行最小复现和局部检查；只有在局部通过后再扩大范围，避免 Bash/Edit/Read 循环放大。</p>
+          </div>
+          <p class="evidence">证据：工具类别以 Bash、Read、Edit 为主，长会话中工具调用密度明显更高。</p>
+        </article>
+        <article class="action">
+          <div><span class="rank" style="background: var(--red);">5</span></div>
+          <div>
+            <h3>把高风险任务路由到更强采集</h3>
+            <p>当任务涉及文件边界、网络访问、权限变化或客户交付，交互日志只能解释协作过程，不能证明系统副作用。此时应补充系统级证据。</p>
+          </div>
+          <p class="evidence">证据：本报告没有读取文件内容、网络 payload 或进程级因果链；系统副作用需要独立证据。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="overview">
+      <h2>决策概览</h2>
+      <div class="grid cols-4">
+        <div class="panel metric">
+          <div class="note">会话样本</div>
+          <div class="num">8</div>
+          <div class="desc">近期非本任务 coding/debugging 会话。</div>
+        </div>
+        <div class="panel metric">
+          <div class="note">用户消息</div>
+          <div class="num">360</div>
+          <div class="desc">用于观察范围重设、批准、纠正和追问。</div>
+        </div>
+        <div class="panel metric">
+          <div class="note">工具调用</div>
+          <div class="num">270</div>
+          <div class="desc">以 Bash、Read、Edit 为主。</div>
+        </div>
+        <div class="panel metric">
+          <div class="note">纠正信号</div>
+          <div class="num">74</div>
+          <div class="desc">按关键词和消息角色粗略归类，需人工复核。</div>
+        </div>
+      </div>
+
+      <div class="grid cols-3" style="margin-top:14px;">
+        <div class="panel module">
+          <strong>协作清晰度</strong>
+          <p>长会话需要更强的读者/交付判断，否则容易在实现和验证之间来回切换。</p>
+          <div class="bar"><i class="amber" style="width: 72%"></i></div>
+        </div>
+        <div class="panel module">
+          <strong>验证可信度</strong>
+          <p>检查状态需要从自然语言总结变成可审查清单。</p>
+          <div class="bar"><i class="blue" style="width: 66%"></i></div>
+        </div>
+        <div class="panel module">
+          <strong>返工风险</strong>
+          <p>多轮纠正和工具密集任务应触发 checkpoint。</p>
+          <div class="bar"><i class="red" style="width: 78%"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="evidence">
+      <h2>证据与推断</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>观察项</th>
+              <th>摘要证据</th>
+              <th>解释</th>
+              <th>下一步</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="pill high">长会话</span></td>
+              <td>最长样本约 6 小时；另有多个 20-50 分钟级任务。</td>
+              <td>长会话容易把定位、实现、验证、总结混在一起。</td>
+              <td>超过时间或工具阈值时重写目标和剩余风险。</td>
+            </tr>
+            <tr>
+              <td><span class="pill medium">工具密集</span></td>
+              <td>工具调用 270 次；主要类别为 shell、读取和编辑。</td>
+              <td>适合设置窄验证优先和重试预算。</td>
+              <td>第一次失败后记录假设，第二次失败后缩小范围。</td>
+            </tr>
+            <tr>
+              <td><span class="pill medium">纠正信号</span></td>
+              <td>纠正/重设类信号 74 个，集中在复杂会话。</td>
+              <td>用户可能在不断修正 agent 的目标模型。</td>
+              <td>连续纠正后暂停执行并确认当前理解。</td>
+            </tr>
+            <tr>
+              <td><span class="pill info">证据缺口</span></td>
+              <td>未读取原始全文、文件 diff、网络内容或进程因果链。</td>
+              <td>本报告能解释协作摩擦，不能证明系统副作用。</td>
+              <td>高风险运行需要系统级报告配合。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>下一轮执行清单</h2>
+      <div class="grid cols-2">
+        <div class="panel module">
+          <h3>任务开始前</h3>
+          <ul>
+            <li>写明本次帮助谁做什么决定。</li>
+            <li>列出允许修改的范围和需要保留的证据。</li>
+            <li>为长任务设置时间、工具调用和重试阈值。</li>
+          </ul>
+        </div>
+        <div class="panel module">
+          <h3>任务结束前</h3>
+          <ul>
+            <li>把已运行、未运行、失败、推断分开写。</li>
+            <li>给 reviewer 一个可执行的剩余风险清单。</li>
+            <li>需要系统副作用证明时，补系统级采集。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="appendix">
+      <h2>附录：来源、隐私与边界</h2>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr>
+              <th>来源类型</th>
+              <td>近期本地 agent 会话摘要，过滤掉当前 AgentSight 示例生成任务。</td>
+            </tr>
+            <tr>
+              <th>提取字段</th>
+              <td>消息数量、工具调用类别、纠正/重设信号、错误样式信号、会话时间范围。</td>
+            </tr>
+            <tr>
+              <th>隐私口径</th>
+              <td>团队内分享；页面使用类别、计数和时间范围，不展示原始提示、回复正文、本地路径或命令正文。</td>
+            </tr>
+            <tr>
+              <th>证据限制</th>
+              <td>纠正和错误信号是启发式分类；最终原因需要结合具体任务上下文复核。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="footer">自包含 HTML 报告；无外部资源、无运行时网络请求、无后端依赖。</p>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const summary = "Agent 协作改进结论：下一批 agent 任务可以继续，但要先加协作契约、连续纠正 checkpoint、验证状态模板、窄验证优先和高风险系统级采集。证据来自 8 个近期本地会话摘要：360 条用户消息、270 次工具调用、74 个纠正/重设信号。";
+      const button = document.getElementById("copySummary");
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(summary);
+          button.textContent = "已复制";
+        } catch (err) {
+          button.textContent = "复制失败";
+        }
+        window.setTimeout(() => { button.textContent = "复制摘要"; }, 1600);
+      });
+    })();
+  </script>
+</body>
+</html>

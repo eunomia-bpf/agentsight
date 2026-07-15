@@ -14,7 +14,7 @@ AgentSight 是一款专为监控 LLM 智能体行为而设计的可观测性工�
 ```bash
 cargo install agentsight
 # 或：wget https://github.com/eunomia-bpf/agentsight/releases/latest/download/agentsight && chmod +x agentsight
-sudo agentsight top
+agentsight top
 ```
 
 <div align="center">
@@ -22,10 +22,24 @@ sudo agentsight top
   <p><em>按 model、session token、health、进程族、工具调用、文件活动和网络活动排序的实时智能体视图</em></p>
 </div>
 
-如果使用下载到当前目录的二进制，请运行 `sudo ./agentsight top`。
-AgentSight 在你忘记 sudo 时可以自动请求提权，但推荐命令仍然显式写
-`sudo`。`top` 会加载 eBPF probes，也会优先读取 Claude、Codex、Gemini、OpenCode
-和 OpenClaw 的本地 session 日志。
+如果使用下载到当前目录的二进制，请运行 `./agentsight top`。
+`top` 无需 sudo 也能工作，会读取进程快照以及 Claude、Codex、Gemini、OpenCode
+和 OpenClaw 的本地 session 日志；当你用 sudo 运行，或当前用户已有免密/缓存 sudo
+时，它会自动启用 live eBPF capture。
+
+如果希望长期后台观察本机智能体，而不是一直开着终端，可以安装 systemd user
+service：
+
+```bash
+agentsight monitor install-service
+```
+
+当 monitor service 正在运行时，`agentsight top` 会直接读取后台 monitor 已保存的窗口数据，
+不会再启动另一套 live probes。
+后台 monitor 是轻量模式：记录匹配到的本地 agent session，以及进程快照中的 CPU、内存、
+I/O 和文件目标数量。它不会捕获 SSL/API payload 或其它 eBPF 事件；如果需要完整 live
+eBPF capture，可以使用已有 sudo 权限运行 `agentsight top`，或使用
+`sudo agentsight record -- <command>` 录制命令。
 
 ## 为什么选择 AgentSight？
 
@@ -56,7 +70,7 @@ AgentSight 能捕获应用级工具遗漏的关键交互：
 ### 前置要求
 
 - **Linux 内核**：4.1+ 且支持 eBPF（推荐 5.0+）
-- **sudo 权限**：eBPF probes 会按需自动提权，智能体仍以普通用户运行
+- **sudo 权限**：`top` 可选；当 sudo 已可用时会自动启用 eBPF probes
 
 从源码构建时还需要 Rust 1.88.0+、Node.js 18+、clang、llvm 和 libelf-dev。
 
@@ -64,7 +78,10 @@ AgentSight 能捕获应用级工具遗漏的关键交互：
 
 #### Cargo 或 Release Binary
 
-本地使用优先安装 CLI，然后运行 `sudo agentsight top`。需要记录某个具体命令或查看历史 session 时，再参考下面的使用示例。
+本地使用优先安装 CLI，然后运行 `agentsight top`。需要记录某个具体命令时运行
+`sudo agentsight record -- <command>`；默认会在当前目录生成 `agentsight-*.db`，
+随后 `agentsight report` 和 `agentsight report list` 也默认查看当前目录里的记录。
+如果要查看 Claude/Codex/Gemini 的原生日志总览，显式运行 `agentsight report --local`。
 
 #### Docker
 
@@ -108,7 +125,7 @@ make build
 
 ### Web 界面
 
-`stat -- <command>` 和 `record` 默认启动 Web UI。低层 `debug trace` 需要传入 `--server`：
+`record -- <command>` 默认启动 Web UI。低层 `debug trace` 需要传入 `--server`：
 - **时间线视图**：http://127.0.0.1:7395/timeline
 - **进程树**：http://127.0.0.1:7395/tree
 - **原始日志**：http://127.0.0.1:7395/logs
@@ -143,8 +160,6 @@ make build
 | Python（aider、open-interpreter 等） | `sudo ./agentsight record -c python` |
 | Docker 容器（OpenClaw 等） | `sudo ./agentsight record -c node --binary-path docker://openclaw` |
 | 任意命令 | `sudo ./agentsight record -- <command>` |
-
-使用 `./agentsight discover` 发现本地已安装的智能体。
 
 详见 [docs/agents.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/agents.md)，了解各智能体的详细设置、SSL 注意事项、浏览器捕获、MCP stdio 和高级选项。
 

@@ -1,7 +1,7 @@
-name: Deploy Live Demo
+name: Deploy App Demo
 
 # Builds the Next.js frontend as a static site and publishes it to the
-# `gh-pages` branch. Cloudflare Pages serves it at agentsight.us.
+# `gh-pages` branch. Cloudflare Pages should serve it at app.agentsight.us.
 # The demo auto-loads a sample snapshot on first visit when the backend
 # API is unreachable.
 
@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Build and Publish Demo
+    name: Build and Publish App Demo
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -47,7 +47,7 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Publish to gh-pages
+      - name: Publish demo to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

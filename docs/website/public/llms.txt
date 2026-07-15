@@ -1,0 +1,39 @@
+# AgentSight by Eunomia
+
+AgentSight is a system-level profiling/tracing toolkit for AI agents, built from tools and skills.
+
+Primary website: https://agentsight.us/
+Live demo: https://app.agentsight.us/
+Documentation: https://eunomia.dev/agentsight/
+GitHub: https://github.com/eunomia-bpf/agentsight
+
+## What AgentSight Does
+
+- Profiles AI agent runs across time, tokens, commands, files, network calls, and system resources.
+- Combines eBPF profiling tools with agent-readable skills that drive profiling workflows.
+- Bridges the semantic gap between natural language prompt intent and low-level OS side effects.
+- Traces Claude Code, Codex, Gemini CLI, OpenCode, OpenClaw, Python agents, Node.js agents, Dockerized agents, and arbitrary local commands.
+- Uses eBPF, process monitoring, and TLS traffic tracing to observe agents from the system boundary.
+- Requires Linux and elevated privileges for live eBPF capture.
+- Stores recorded sessions locally and can serve or export reports from saved data.
+- Exports captured LLM calls as OpenTelemetry GenAI spans.
+- Supports skill-driven profiling workflows where an agent chooses tools, gathers evidence, ranks metrics, redacts sensitive data, and creates shareable HTML insight artifacts.
+
+## Positioning
+
+AgentSight is not an SDK-based LLM tracing platform, gateway, or transcript-only token tracker. It complements Langfuse, LangSmith, Phoenix, Helicone, Datadog, New Relic, and vendor-native telemetry by capturing system-level effects that app traces often miss: child processes, shell commands, file access, network destinations, and resource usage. AgentSight is designed for observer-agent workflows where an independent agent uses AgentSight tools and skills to connect prompt intent with raw system events.
+
+## Common Use Cases
+
+- Profile slow or expensive AI agent runs.
+- Understand token loops, repeated file scans, and long-running subprocesses.
+- Review AI-generated pull requests with a run profile.
+- Generate single-file HTML insight artifacts from saved traces or monitor databases.
+- Build causally linked Agent Flamegraphs from prompt intent and OS-level side effects.
+- Trace closed-source local agent CLIs without vendor hooks.
+- Audit MCP servers, skills, and plugins during real agent use.
+- Investigate risky file, process, and network behavior.
+
+## Short Description
+
+Let your agents profile AI agents like programs. AgentSight provides system-level profiling/tracing tools and skills for Claude Code, Codex, and other local agents.

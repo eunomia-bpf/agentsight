@@ -142,7 +142,6 @@ saved session is present.
 SQLite is the durable evidence store used by:
 
 - `agentsight record`
-- `agentsight stat -- <command>` when it captures a run
 - `agentsight report`
 - explicit `--db`
 - exported dashboards and CI artifacts
@@ -177,8 +176,6 @@ Default local persistence should be bounded and predictable.
 Recommended policy:
 
 - `record`: durable SQLite by default.
-- `stat -- <command>`: may create a temporary or durable session only because it
-  needs post-run counters; this should be explicit in help text.
 - `report`: reads the latest local/native session or latest AgentSight DB; when
   it materializes a report artifact, that artifact is explicit.
 - `top`: should not create an unbounded durable DB just because it was opened.

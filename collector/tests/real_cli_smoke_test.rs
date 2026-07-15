@@ -92,21 +92,23 @@ fn gemini_token_total(db: &std::path::Path) -> i64 {
     .expect("token query should run")
 }
 
-fn stat_total_tokens(db: &std::path::Path) -> i64 {
+fn report_total_tokens(db: &std::path::Path) -> i64 {
     let db = db.to_str().expect("db path");
-    let output = run_agentsight_user(&["stat", "--db", db, "--json"]);
+    let output = run_agentsight_user(&["report", "token", "--db", db, "--json"]);
     assert!(
         output.status.success(),
-        "agentsight stat failed\nstdout:\n{}\nstderr:\n{}",
+        "agentsight report token failed\nstdout:\n{}\nstderr:\n{}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
     let value: serde_json::Value =
-        serde_json::from_slice(&output.stdout).expect("stat JSON should parse");
-    value
-        .get("total_tokens")
-        .and_then(|value| value.as_i64())
-        .unwrap_or_default()
+        serde_json::from_slice(&output.stdout).expect("token report JSON should parse");
+    let rows = value
+        .as_array()
+        .expect("token report JSON should be an array");
+    rows.iter()
+        .filter_map(|row| row.get("total_tokens").and_then(|value| value.as_i64()))
+        .sum()
 }
 
 fn report_text(db: &std::path::Path) -> String {
@@ -137,7 +139,6 @@ fn real_gemini_cli_smoke_captures_http_tokens() {
     for attempt in 1..=3 {
         let temp = tempfile::tempdir().expect("tempdir");
         let db = temp.path().join("gemini.db");
-        let log = temp.path().join("gemini.log");
         let prompt = format!(
             "Reply with exactly: agentsight-smoke-{}-{}",
             std::process::id(),
@@ -148,8 +149,6 @@ fn real_gemini_cli_smoke_captures_http_tokens() {
             "--no-server",
             "--db",
             db.to_str().expect("db path"),
-            "-o",
-            log.to_str().expect("log path"),
             "--",
             "gemini",
             "--model",
@@ -193,14 +192,11 @@ fn real_claude_code_smoke_captures_observed_tokens() {
     for attempt in 1..=3 {
         let temp = tempfile::tempdir().expect("tempdir");
         let db = temp.path().join("claude.db");
-        let log = temp.path().join("claude.log");
         let output = run_agentsight(&[
             "record",
             "--no-server",
             "--db",
             db.to_str().expect("db path"),
-            "-o",
-            log.to_str().expect("log path"),
             "--",
             "claude",
             "-p",
@@ -210,7 +206,7 @@ fn real_claude_code_smoke_captures_observed_tokens() {
         ]);
         assert_agentsight_success(output, "real Claude Code smoke");
 
-        last_session_total = stat_total_tokens(&db);
+        last_session_total = report_total_tokens(&db);
         if last_session_total > 0 {
             return;
         }
@@ -240,14 +236,11 @@ fn real_claude_code_tool_use_smoke_captures_tool_calls() {
     for attempt in 1..=3 {
         let temp = tempfile::tempdir().expect("tempdir");
         let db = temp.path().join("claude-tool.db");
-        let log = temp.path().join("claude-tool.log");
         let output = run_agentsight(&[
             "record",
             "--no-server",
             "--db",
             db.to_str().expect("db path"),
-            "-o",
-            log.to_str().expect("log path"),
             "--",
             "claude",
             "-p",
@@ -259,7 +252,7 @@ fn real_claude_code_tool_use_smoke_captures_tool_calls() {
         ]);
         assert_agentsight_success(output, "real Claude Code tool-use smoke");
 
-        last_session_total = stat_total_tokens(&db);
+        last_session_total = report_total_tokens(&db);
         last_report = report_text(&db);
         if last_session_total > 0 && last_report.contains("tool calls:") {
             return;
@@ -378,5 +371,5 @@ fn real_openclaw_provider_smoke_captures_http_tokens() {
 
     assert_agentsight_success(trigger, "trigger OpenClaw inference");
     assert!(trace_status.success(), "agentsight debug trace failed");
-    assert!(stat_total_tokens(&db) > 0);
+    assert!(report_total_tokens(&db) > 0);
 }

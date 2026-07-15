@@ -6,8 +6,12 @@ import './globals.css'
 import { I18nProvider } from '@/i18n'
 
 export const metadata: Metadata = {
-  title: 'AgentSight — AI Agent Observability with eBPF',
-  description: 'Local-first perf/top/strace for AI agents. See what agents do to your machine — zero instrumentation required.',
+  title: 'AgentSight App: Live Demo',
+  description: 'Interactive AgentSight viewer for live and recorded AI agent traces.',
+  robots: {
+    index: false,
+    follow: true,
+  },
 }
 
 export default function RootLayout({

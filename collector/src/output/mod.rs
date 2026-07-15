@@ -5,4 +5,4 @@ pub mod format;
 pub mod tui;
 
 pub(crate) use format::*;
-pub(crate) use tui::{draw_live_top_tui, next_view_key};
+pub(crate) use tui::{TopRecordOverlay, draw_live_top_tui, next_view_key};

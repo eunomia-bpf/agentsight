@@ -39,8 +39,31 @@ impl SqliteStore {
 
     fn init(&mut self) -> ViewResult<()> {
         self.conn.pragma_update(None, "journal_mode", "WAL").ok();
+        self.conn
+            .busy_timeout(std::time::Duration::from_millis(500))
+            .ok();
         self.conn.pragma_update(None, "foreign_keys", "ON")?;
         self.conn.execute_batch(SCHEMA)?;
+        self.ensure_llm_call_columns()?;
+        Ok(())
+    }
+
+    fn ensure_llm_call_columns(&self) -> ViewResult<()> {
+        for (column, ty) in [
+            ("session_id", "TEXT"),
+            ("conversation_id", "TEXT"),
+            ("call_kind", "TEXT"),
+            ("status", "TEXT NOT NULL DEFAULT 'observed'"),
+            ("error_type", "TEXT"),
+            ("finish_reason", "TEXT"),
+        ] {
+            if !self.has_column("llm_calls", column) {
+                self.conn.execute(
+                    &format!("ALTER TABLE llm_calls ADD COLUMN {column} {ty}"),
+                    [],
+                )?;
+            }
+        }
         Ok(())
     }
 
@@ -88,18 +111,25 @@ impl SqliteStore {
     fn insert_llm_call(&self, call: &LlmCallRow) -> ViewResult<()> {
         self.conn.execute(
             "INSERT OR REPLACE INTO llm_calls (
-                id, start_timestamp_ms, end_timestamp_ms, pid, comm, provider, model,
+                id, session_id, conversation_id, start_timestamp_ms, end_timestamp_ms,
+                pid, comm, provider, model, call_kind, status, error_type, finish_reason,
                 host, path, status_code, request_body_json, response_body_json,
                 view_source, confidence
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20)",
             params![
                 call.id,
+                call.session_id.as_deref(),
+                call.conversation_id.as_deref(),
                 call.start_timestamp_ms as i64,
                 call.end_timestamp_ms.map(|v| v as i64),
                 call.pid.map(|v| v as i64),
                 call.comm.as_deref(),
                 call.provider.as_deref(),
                 call.model.as_deref(),
+                call.call_kind.as_deref(),
+                call.status.as_str(),
+                call.error_type.as_deref(),
+                call.finish_reason.as_deref(),
                 call.host.as_deref(),
                 call.path.as_deref(),
                 call.status_code.map(|v| v as i64),
@@ -185,7 +215,7 @@ impl SqliteStore {
                 comm = COALESCE(excluded.comm, comm),
                 command = COALESCE(excluded.command, command),
                 argv_json = CASE
-                    WHEN excluded.argv_json != '[]' THEN excluded.argv_json
+                    WHEN argv_json = '[]' AND excluded.argv_json != '[]' THEN excluded.argv_json
                     ELSE argv_json
                 END,
                 cwd = COALESCE(excluded.cwd, cwd),
@@ -242,13 +272,32 @@ impl SqliteStore {
     }
 
     pub(crate) fn all_llm_call_rows(&self) -> ViewResult<Vec<LlmCallRow>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT id, start_timestamp_ms, end_timestamp_ms, pid, comm,
+        let optional_cols = [
+            ("session_id", "NULL AS session_id"),
+            ("conversation_id", "NULL AS conversation_id"),
+            ("call_kind", "NULL AS call_kind"),
+            ("status", "'observed' AS status"),
+            ("error_type", "NULL AS error_type"),
+            ("finish_reason", "NULL AS finish_reason"),
+        ];
+        let optional_select = optional_cols
+            .iter()
+            .map(|(column, fallback)| {
+                if self.has_column("llm_calls", column) {
+                    (*column).to_string()
+                } else {
+                    (*fallback).to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        let mut stmt = self.conn.prepare(&format!(
+            "SELECT id, {optional_select}, start_timestamp_ms, end_timestamp_ms, pid, comm,
                     provider, model, host, path, status_code,
-                    COALESCE(request_body_json, '{}'), COALESCE(response_body_json, '{}')
+                    COALESCE(request_body_json, '{{}}'), COALESCE(response_body_json, '{{}}')
              FROM llm_calls
-             ORDER BY start_timestamp_ms DESC",
-        )?;
+             ORDER BY start_timestamp_ms DESC"
+        ))?;
         let rows = stmt.query_map([], read_llm_call_row)?;
         collect_rows(rows)
     }
@@ -291,11 +340,7 @@ impl SqliteStore {
                 } else {
                     "view".to_string()
                 },
-                confidence: if has_view_source {
-                    row.get(14)?
-                } else {
-                    None
-                },
+                confidence: if has_view_source { row.get(14)? } else { None },
             })
         })?;
         collect_rows(rows)
@@ -340,11 +385,7 @@ impl SqliteStore {
                 } else {
                     "view".to_string()
                 },
-                confidence: if has_view_source {
-                    row.get(15)?
-                } else {
-                    None
-                },
+                confidence: if has_view_source { row.get(15)? } else { None },
             })
         })?;
         collect_rows(rows)
@@ -435,11 +476,7 @@ impl SqliteStore {
                 } else {
                     "view".to_string()
                 },
-                confidence: if has_view_source {
-                    row.get(13)?
-                } else {
-                    None
-                },
+                confidence: if has_view_source { row.get(13)? } else { None },
             })
         })?;
         collect_rows(rows)
@@ -477,19 +514,27 @@ impl ViewSink for SqliteStore {
 }
 
 fn read_llm_call_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<LlmCallRow> {
-    let request_json: String = row.get(10)?;
-    let response_json: String = row.get(11)?;
+    let request_json: String = row.get(16)?;
+    let response_json: String = row.get(17)?;
     Ok(LlmCallRow {
         id: row.get(0)?,
-        start_timestamp_ms: row.get::<_, i64>(1)? as u64,
-        end_timestamp_ms: row.get::<_, Option<i64>>(2)?.map(|v| v as u64),
-        pid: row.get::<_, Option<i64>>(3)?.map(|v| v as u32),
-        comm: row.get(4)?,
-        provider: row.get(5)?,
-        model: row.get(6)?,
-        host: row.get(7)?,
-        path: row.get(8)?,
-        status_code: row.get::<_, Option<i64>>(9)?.map(|v| v as u16),
+        session_id: row.get(1)?,
+        conversation_id: row.get(2)?,
+        call_kind: row.get(3)?,
+        status: row
+            .get::<_, Option<String>>(4)?
+            .unwrap_or_else(|| "observed".to_string()),
+        error_type: row.get(5)?,
+        finish_reason: row.get(6)?,
+        start_timestamp_ms: row.get::<_, i64>(7)? as u64,
+        end_timestamp_ms: row.get::<_, Option<i64>>(8)?.map(|v| v as u64),
+        pid: row.get::<_, Option<i64>>(9)?.map(|v| v as u32),
+        comm: row.get(10)?,
+        provider: row.get(11)?,
+        model: row.get(12)?,
+        host: row.get(13)?,
+        path: row.get(14)?,
+        status_code: row.get::<_, Option<i64>>(15)?.map(|v| v as u16),
         input_tokens: 0,
         output_tokens: 0,
         total_tokens: 0,
@@ -556,12 +601,18 @@ CREATE INDEX IF NOT EXISTS idx_network_targets_pid ON network_targets(pid);
 
 CREATE TABLE IF NOT EXISTS llm_calls (
   id TEXT PRIMARY KEY,
+  session_id TEXT,
+  conversation_id TEXT,
   start_timestamp_ms INTEGER NOT NULL,
   end_timestamp_ms INTEGER,
   pid INTEGER,
   comm TEXT,
   provider TEXT,
   model TEXT,
+  call_kind TEXT,
+  status TEXT NOT NULL DEFAULT 'observed',
+  error_type TEXT,
+  finish_reason TEXT,
   host TEXT,
   path TEXT,
   status_code INTEGER,
@@ -663,3 +714,66 @@ CREATE TABLE IF NOT EXISTS resource_samples (
 );
 
 "#;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn open_migrates_legacy_llm_calls_schema() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("legacy.db");
+        {
+            let conn = Connection::open(&db).unwrap();
+            conn.execute_batch(
+                r#"
+                CREATE TABLE llm_calls (
+                  id TEXT PRIMARY KEY,
+                  start_timestamp_ms INTEGER NOT NULL,
+                  end_timestamp_ms INTEGER,
+                  pid INTEGER,
+                  comm TEXT,
+                  provider TEXT,
+                  model TEXT,
+                  host TEXT,
+                  path TEXT,
+                  status_code INTEGER,
+                  request_body_json TEXT,
+                  response_body_json TEXT,
+                  view_source TEXT,
+                  confidence REAL
+                );
+                INSERT INTO llm_calls (
+                  id, start_timestamp_ms, end_timestamp_ms, pid, comm, provider, model,
+                  host, path, status_code, request_body_json, response_body_json,
+                  view_source, confidence
+                ) VALUES (
+                  'legacy-call', 1000, 1100, 42, 'agent', 'openai', 'gpt-test',
+                  'api.openai.com', '/v1/chat/completions', 200, '{}', '{}',
+                  'view', 0.75
+                );
+                "#,
+            )
+            .unwrap();
+        }
+
+        let store = SqliteStore::open(&db).unwrap();
+        for column in [
+            "session_id",
+            "conversation_id",
+            "call_kind",
+            "status",
+            "error_type",
+            "finish_reason",
+        ] {
+            assert!(store.has_column("llm_calls", column), "{column}");
+        }
+
+        let calls = store.all_llm_call_rows().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].id, "legacy-call");
+        assert_eq!(calls[0].status, "observed");
+        assert_eq!(calls[0].session_id, None);
+        assert_eq!(calls[0].conversation_id, None);
+    }
+}

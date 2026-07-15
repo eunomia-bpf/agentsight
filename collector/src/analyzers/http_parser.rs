@@ -247,6 +247,11 @@ impl HTTPParser {
             .map(|v| v.to_lowercase().contains("chunked"))
             .unwrap_or(false);
         let has_body = parsed_message.body.is_some();
+        let body_hex = parsed_message
+            .body
+            .as_deref()
+            .map(ssl_json_string_to_bytes)
+            .map(hex::encode);
 
         // Calculate total size from parsed components
         let total_size = parsed_message.first_line.len() +
@@ -265,6 +270,7 @@ impl HTTPParser {
             status_text: parsed_message.status_text,
             headers: parsed_message.headers,
             body: parsed_message.body,
+            body_hex,
             total_size,
             has_body,
             is_chunked,
@@ -610,6 +616,7 @@ fn create_http2_request_event(
         path.as_deref().unwrap_or("/")
     );
     let body = body_string(&state.request_body);
+    let body_hex = (!state.request_body.is_empty()).then(|| hex::encode(&state.request_body));
     let total_size = headers_size(&state.request_headers) + state.request_body.len();
     HTTPEvent {
         tid: synthetic_http2_tid(tid, stream_id),
@@ -625,6 +632,7 @@ fn create_http2_request_event(
         has_body: body.is_some(),
         is_chunked: false,
         body,
+        body_hex,
         total_size,
         original_source: "ssl.http2".to_string(),
         raw_data: include_raw_data
@@ -647,6 +655,7 @@ fn create_http2_response_event(
         .or(Some(200));
     let first_line = format!("HTTP/2 {}", status_code.unwrap_or(200));
     let body = body_string(&state.response_body);
+    let body_hex = (!state.response_body.is_empty()).then(|| hex::encode(&state.response_body));
     let total_size = headers_size(&state.response_headers) + state.response_body.len();
     HTTPEvent {
         tid: synthetic_http2_tid(tid, stream_id),
@@ -662,6 +671,7 @@ fn create_http2_response_event(
         has_body: body.is_some(),
         is_chunked: false,
         body,
+        body_hex,
         total_size,
         original_source: "ssl.http2".to_string(),
         raw_data: include_raw_data
@@ -740,10 +750,14 @@ fn evict_over_capacity<T>(map: &mut HashMap<(u64, u32), T>, max: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::analyzers::{HTTPDecompressor, SSEProcessor};
     use crate::view::MaterializedView;
+    use flate2::Compression;
+    use flate2::write::GzEncoder;
     use futures::StreamExt;
     use hpack::Encoder as HpackEncoder;
     use serde_json::json;
+    use std::io::Write;
 
     fn ssl_event(timestamp: u64, function: &str, bytes: Vec<u8>) -> Event {
         Event::new_with_timestamp(
@@ -846,6 +860,75 @@ mod tests {
             .map(|row| row.total_tokens)
             .sum::<i64>();
         assert_eq!(total, 15);
+    }
+
+    #[tokio::test]
+    async fn http2_gzip_sse_capture_pipeline_reaches_materialized_view() {
+        let mut request_encoder = HpackEncoder::new();
+        let mut response_encoder = HpackEncoder::new();
+        let request_headers = [
+            (&b":method"[..], &b"POST"[..]),
+            (&b":scheme"[..], &b"https"[..]),
+            (&b":authority"[..], &b"api.openai.com"[..]),
+            (&b":path"[..], &b"/v1/chat/completions"[..]),
+        ];
+        let response_headers = [
+            (&b":status"[..], &b"200"[..]),
+            (&b"content-type"[..], &b"text/event-stream"[..]),
+            (&b"content-encoding"[..], &b"gzip"[..]),
+        ];
+        let request_body = br#"{"model":"gpt-test","metadata":{"session_id":"sess-h2"}}"#;
+        let mut gzip = GzEncoder::new(Vec::new(), Compression::default());
+        gzip.write_all(
+            b"data: {\"choices\":[{\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":5}}\n\ndata: [DONE]\n\n",
+        )
+        .unwrap();
+        let response_body = gzip.finish().unwrap();
+
+        let mut request_bytes = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".to_vec();
+        request_bytes.extend(frame(0x1, 0x4, 1, &request_encoder.encode(request_headers)));
+        request_bytes.extend(frame(0x0, 0x1, 1, request_body));
+
+        let mut response_bytes = Vec::new();
+        response_bytes.extend(frame(
+            0x1,
+            0x4,
+            1,
+            &response_encoder.encode(response_headers),
+        ));
+        response_bytes.extend(frame(0x0, 0x1, 1, &response_body));
+
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event(1, "WRITE/SEND", request_bytes),
+            ssl_event(2, "READ/RECV", response_bytes),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let parsed = parser.process(input).await.unwrap();
+        let mut decompressor = HTTPDecompressor::new();
+        let decompressed = decompressor.process(parsed).await.unwrap();
+        let mut sse = SSEProcessor::new();
+        let output: Vec<Event> = sse.process(decompressed).await.unwrap().collect().await;
+
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].data["message_type"], "request");
+        assert_eq!(output[1].source, "sse_processor");
+        assert_eq!(output[1].data["status_code"], 200);
+
+        let mut view = MaterializedView::new();
+        for event in output {
+            view.ingest_event(&event).unwrap();
+        }
+        let snapshot = view.export_snapshot(crate::model::SnapshotOptions { audit_limit: 0 });
+        assert_eq!(snapshot.summary.llm_calls, 1);
+        assert_eq!(snapshot.summary.token_usage_rows, 1);
+        assert_eq!(snapshot.summary.input_tokens, 2);
+        assert_eq!(snapshot.summary.output_tokens, 5);
+        assert_eq!(snapshot.summary.total_tokens, 7);
+        let calls = view.llm_call_rows(10);
+        assert_eq!(calls[0].status, "complete");
+        assert_eq!(calls[0].session_id.as_deref(), Some("sess-h2"));
+        assert_eq!(calls[0].call_kind.as_deref(), Some("chat"));
+        assert_eq!(calls[0].finish_reason.as_deref(), Some("stop"));
     }
 
     #[test]

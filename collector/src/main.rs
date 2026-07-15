@@ -21,13 +21,14 @@ mod analyzers;
 mod binary_extractor;
 mod binary_resolver;
 mod cli_db;
-mod cli_discover;
 mod cmd_debug;
 mod cmd_exec;
+mod cmd_monitor;
 mod cmd_perf;
 mod cmd_perf_live;
 mod cmd_perf_tui;
 mod cmd_trace;
+mod cmd_tui_record;
 mod event;
 mod json;
 mod model;
@@ -36,6 +37,7 @@ mod runners;
 mod server;
 mod sinks;
 mod sources;
+mod state;
 mod text;
 mod time;
 mod view;
@@ -46,18 +48,18 @@ use cli_db::{
     configured_db_path, run_audit_query, run_db_summary, run_export, run_prompts_query,
     run_token_query,
 };
-use cli_discover::run_discover;
 use cmd_debug::{run_raw_process, run_raw_ssl, run_raw_stdio, run_system};
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
-use cmd_perf::{run_stat_query, run_top_query};
+use cmd_monitor::{install_monitor_service, run_monitor};
+use cmd_perf::run_top_query;
 use cmd_perf_live::run_live_top_query;
-use cmd_perf_tui::run_live_top_tui;
+use cmd_perf_tui::{run_live_top_tui, run_saved_top_tui};
 use cmd_trace::{
     OtelConfig, TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled,
 };
 use output::TopOptions;
-use output::print_record_session_db_error;
-use sources::session_db::{resolve_db_or_latest, run_db_list};
+use output::{print_record_session_db_error, print_report_local_sessions_warning};
+use sources::session_db::{latest_session_db, run_db_list};
 
 static SHUTDOWN_REQUESTED: AtomicBool = AtomicBool::new(false);
 static SHUTDOWN_NOTIFY: OnceLock<Arc<Notify>> = OnceLock::new();
@@ -126,16 +128,17 @@ fn interactive_terminal_available() -> bool {
     unsafe { libc::isatty(libc::STDIN_FILENO) == 1 && libc::isatty(libc::STDOUT_FILENO) == 1 }
 }
 
-fn command_uses_live_top_tui(cli: &Cli) -> bool {
+fn top_uses_tui(plain: bool, interactive: bool) -> bool {
+    !plain && interactive
+}
+
+fn command_uses_top_tui(cli: &Cli) -> bool {
     matches!(
         &cli.command,
         Commands::Top {
-            db: None,
-            count: None,
-            once: false,
-            plain: false,
+            plain,
             ..
-        } if interactive_terminal_available()
+        } if top_uses_tui(*plain, interactive_terminal_available())
     )
 }
 
@@ -151,11 +154,16 @@ fn init_logging(suppress_terminal_output: bool) {
 async fn setup_signal_handler(suppress_terminal_output: bool) {
     let mut sigint = signal::unix::signal(signal::unix::SignalKind::interrupt())
         .expect("Failed to install SIGINT handler");
+    let mut sigterm = signal::unix::signal(signal::unix::SignalKind::terminate())
+        .expect("Failed to install SIGTERM handler");
 
     tokio::spawn(async move {
-        sigint.recv().await;
+        tokio::select! {
+            _ = sigint.recv() => {}
+            _ = sigterm.recv() => {}
+        }
         if !suppress_terminal_output {
-            println!("\n\nReceived SIGINT, shutting down...");
+            println!("\n\nReceived shutdown signal, shutting down...");
 
             // Print HTTP filter metrics using the global function
             print_global_http_filter_metrics();
@@ -173,16 +181,14 @@ async fn setup_signal_handler(suppress_terminal_output: bool) {
 #[command(
     author,
     version,
-    about = "AgentSight: stat/top/record/report for AI agent runs.\n\n\
+    about = "AgentSight: top/record/report for AI agent runs.\n\n\
              Common flow:\n\
-               sudo agentsight stat -- claude\n\
                sudo agentsight record -- claude\n\
-               sudo agentsight top\n\
+               agentsight top\n\
                agentsight report\n\
                agentsight report prompts --json\n\n\
-             eBPF probes require root. Use sudo for live capture commands;\n\
-             AgentSight can auto-elevate if you forget, while your agent still\n\
-             runs as your normal user."
+             top works without sudo from process snapshots and native agent sessions;\n\
+             record/debug trace use eBPF while keeping launched agents unprivileged."
 )]
 struct Cli {
     /// Web UI bind address when a command starts a server.
@@ -194,28 +200,6 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Print counters for a recorded session, or run a command and print counters when it exits.
-    /// Examples: agentsight stat --db run.db     (or)  sudo agentsight stat -- claude
-    Stat {
-        /// SQLite database path (defaults to latest session when no command is passed)
-        #[arg(long)]
-        db: Option<String>,
-        /// Emit JSON output. For clean JSON, use this with --db instead of a live command.
-        #[arg(long)]
-        json: bool,
-        /// Override the auto-discovered SSL binary path when tracing a command
-        #[arg(long)]
-        binary_path: Option<String>,
-        /// Disable the web server while tracing a command
-        #[arg(long)]
-        no_server: bool,
-        /// Server port for the web UI while tracing a command
-        #[arg(long, default_value = "7395")]
-        server_port: u16,
-        /// Optional command to launch and trace before printing counters
-        #[arg(last = true)]
-        command: Vec<String>,
-    },
     /// Show live agent sessions, or a saved session with --db.
     Top {
         /// SQLite database path for saved session mode
@@ -242,12 +226,17 @@ enum Commands {
         /// Number of refreshes before exiting
         #[arg(long)]
         count: Option<u32>,
-        /// Print one snapshot and exit
+        /// Render one refresh and exit
         #[arg(long)]
         once: bool,
-        /// Use plain table output instead of the interactive live TUI
+        /// Use plain table output instead of the interactive TUI
         #[arg(long)]
         plain: bool,
+    },
+    /// Long-running bounded trace monitor for matched local agent sessions.
+    Monitor {
+        #[command(subcommand)]
+        command: Option<MonitorCommands>,
     },
     /// Record a command, or attach to an already-running agent by command name or PID.
     /// Examples: sudo agentsight record -- claude     (or)  sudo agentsight record -c claude
@@ -258,7 +247,7 @@ enum Commands {
         /// Process PID filter
         #[arg(short = 'p', long, conflicts_with = "comm")]
         pid: Option<u32>,
-        /// Path to the binary executable to monitor (e.g., ~/.nvm/versions/node/v20.0.0/bin/node)
+        /// Binary path or container ref to monitor (e.g., /usr/bin/node, docker://name, k8s://ns/pod/container)
         #[arg(long)]
         binary_path: Option<String>,
         /// SQLite database path for view snapshots
@@ -274,19 +263,13 @@ enum Commands {
         #[arg(last = true)]
         command: Vec<String>,
     },
-    /// Discover supported local agent CLIs and recommended capture settings
-    Discover {
-        /// Emit JSON output
-        #[arg(long)]
-        json: bool,
-    },
     /// Query and report on recorded sessions: summary, tokens, audit, prompts, export, list.
     /// Defaults to summary when no subcommand is given.
     Report {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db, then local agent sessions)
         #[arg(long)]
         db: Option<String>,
-        /// Read agent-native Claude/Codex sessions (for summary)
+        /// Read agent-native Claude/Codex/Gemini sessions instead of a saved DB
         #[arg(long)]
         local: bool,
         #[command(subcommand)]
@@ -301,28 +284,28 @@ enum Commands {
 enum ReportCommands {
     /// Session summary: what the agent did, tokens, processes, files
     Summary {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db, then local agent sessions)
         #[arg(long)]
         db: Option<String>,
-        /// Read agent-native Claude/Codex sessions
+        /// Read agent-native Claude/Codex/Gemini sessions
         #[arg(long)]
         local: bool,
     },
-    /// Query token usage from a SQLite database
+    /// Query token usage from a saved DB or local agent sessions
     Token {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db, then local agent sessions)
         #[arg(long)]
         db: Option<String>,
-        /// Grouping key: model, provider, comm, pid
+        /// Grouping key: model, provider, comm, pid, dir (aliases: cwd, directory)
         #[arg(long, default_value = "model")]
         group_by: String,
         /// Emit JSON output
         #[arg(long)]
         json: bool,
     },
-    /// Query audit events from a SQLite database
+    /// Query audit events from a saved DB or local agent sessions
     Audit {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db, then local agent sessions)
         #[arg(long)]
         db: Option<String>,
         /// Audit type: llm, process, file
@@ -337,7 +320,7 @@ enum ReportCommands {
     },
     /// Show captured LLM prompts and responses when observable
     Prompts {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db, then local agent sessions)
         #[arg(long)]
         db: Option<String>,
         /// Maximum rows
@@ -347,9 +330,9 @@ enum ReportCommands {
         #[arg(long)]
         json: bool,
     },
-    /// Export a web/demo snapshot from a SQLite database
+    /// Export a web/demo snapshot from a saved DB or local agent sessions
     Export {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db, then local agent sessions)
         #[arg(long)]
         db: Option<String>,
         /// Output snapshot path, or '-' for stdout
@@ -359,9 +342,9 @@ enum ReportCommands {
         #[arg(long, default_value = "10000")]
         audit_limit: usize,
     },
-    /// Serve the web UI for a saved SQLite session
+    /// Serve the web UI for a saved SQLite session or local agent sessions
     Serve {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db, then local agent sessions)
         #[arg(long)]
         db: Option<String>,
         /// Server port for the web UI
@@ -370,6 +353,12 @@ enum ReportCommands {
     },
     /// List session databases
     List,
+}
+
+#[derive(Subcommand)]
+enum MonitorCommands {
+    /// Install and start monitor as a systemd user service.
+    InstallService,
 }
 
 #[derive(Subcommand)]
@@ -403,7 +392,7 @@ enum DebugCommands {
         /// Server port (used with --server)
         #[arg(long, default_value = "7395")]
         server_port: u16,
-        /// Path to the binary executable to monitor (e.g., ~/.nvm/versions/node/v20.0.0/bin/node)
+        /// Binary path or container ref to monitor (e.g., /usr/bin/node, docker://name, k8s://ns/pod/container)
         #[arg(long)]
         binary_path: Option<String>,
         /// Additional arguments to pass to the SSL binary
@@ -523,7 +512,7 @@ enum DebugCommands {
         /// Include prompt/completion content in exported GenAI spans (opt-in; off by default for privacy)
         #[arg(long)]
         otel_capture_content: bool,
-        /// Path to the binary executable to monitor (e.g., ~/.nvm/versions/node/v20.0.0/bin/node)
+        /// Binary path or container ref to monitor (e.g., /usr/bin/node, docker://name, k8s://ns/pod/container)
         #[arg(long)]
         binary_path: Option<String>,
         /// SQLite database path for view snapshots
@@ -583,7 +572,7 @@ async fn main() {
 
 async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let cli = Cli::parse();
-    let suppress_terminal_output = command_uses_live_top_tui(&cli);
+    let suppress_terminal_output = command_uses_top_tui(&cli);
     init_logging(suppress_terminal_output);
 
     // Setup signal handler for graceful shutdown
@@ -596,11 +585,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     Some(ReportCommands::Summary { db: d, local: l }) => (d, l),
                     _ => (db, local),
                 };
-                let resolved = if *local_ref {
-                    None
-                } else {
-                    resolve_db_or_latest(db_ref).ok()
-                };
+                let resolved = report_db_or_local(db_ref, *local_ref);
                 run_db_summary(resolved.as_deref())?;
             }
             Some(ReportCommands::Token {
@@ -609,8 +594,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 json,
             }) => {
                 let effective = d.as_ref().or(db.as_ref()).cloned();
-                let db = resolve_db_or_latest(&effective)?;
-                run_token_query(&db, group_by, *json)?;
+                let db = report_db_or_local(&effective, *local);
+                run_token_query(db.as_deref(), group_by, *json)?;
             }
             Some(ReportCommands::Audit {
                 db: d,
@@ -619,16 +604,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 json,
             }) => {
                 let effective = d.as_ref().or(db.as_ref()).cloned();
-                if let Ok(db) = resolve_db_or_latest(&effective) {
-                    run_audit_query(&db, audit_type.as_deref(), *limit, *json)?;
-                } else {
-                    cli_db::run_agent_native_audit(*json)?;
-                }
+                let db = report_db_or_local(&effective, *local);
+                run_audit_query(db.as_deref(), audit_type.as_deref(), *limit, *json)?;
             }
             Some(ReportCommands::Prompts { db: d, limit, json }) => {
                 let effective = d.as_ref().or(db.as_ref()).cloned();
-                let db = resolve_db_or_latest(&effective)?;
-                run_prompts_query(&db, *limit, *json)?;
+                let db = report_db_or_local(&effective, *local);
+                run_prompts_query(db.as_deref(), *limit, *json)?;
             }
             Some(ReportCommands::Export {
                 db: d,
@@ -636,24 +618,22 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 audit_limit,
             }) => {
                 let effective = d.as_ref().or(db.as_ref()).cloned();
-                let db = resolve_db_or_latest(&effective)?;
-                run_export(&db, output, *audit_limit)?;
+                let db = report_db_or_local(&effective, *local);
+                run_export(db.as_deref(), output, *audit_limit)?;
             }
             Some(ReportCommands::Serve { db: d, server_port }) => {
                 let effective = d.as_ref().or(db.as_ref()).cloned();
-                let db = resolve_db_or_latest(&effective)?;
-                run_report_serve(&db, &cli.listen, *server_port).await?;
+                let db = report_db_or_local(&effective, *local);
+                run_report_serve(db.as_deref(), &cli.listen, *server_port).await?;
             }
             Some(ReportCommands::List) => run_db_list()?,
         },
-        Commands::Stat {
-            db, json, command, ..
-        } if command.is_empty() => {
-            let db = resolve_db_or_latest(db)?;
-            run_stat_query(&db, *json)?;
-        }
+        Commands::Monitor { command } => match command {
+            None => run_monitor().await?,
+            Some(MonitorCommands::InstallService) => install_monitor_service()?,
+        },
         Commands::Top {
-            db: Some(db),
+            db,
             pid,
             comm,
             sort,
@@ -662,7 +642,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             limit,
             count,
             once,
-            plain: _,
+            plain,
         } => {
             let count = if *once { Some(1) } else { *count };
             let options = TopOptions {
@@ -671,10 +651,17 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 sort: sort.clone(),
                 view: view.clone(),
             };
-            run_top_query(db, *interval, *limit, count, &options)?;
-        }
-        Commands::Discover { json } => {
-            run_discover(*json)?;
+            if top_uses_tui(*plain, interactive_terminal_available()) {
+                if let Some(db) = db {
+                    run_saved_top_tui(db, *interval, *limit, count, &options)?;
+                } else {
+                    run_live_top_tui(*interval, *limit, count, &options)?;
+                }
+            } else if let Some(db) = db {
+                run_top_query(db, *interval, *limit, count, &options)?;
+            } else {
+                run_live_top_query(*interval, *limit, count, &options)?;
+            }
         }
         // All remaining commands need the binary extractor.
         _ => {
@@ -687,13 +674,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 
 async fn run_report_serve(
-    db: &str,
+    db: Option<&str>,
     listen: &str,
     server_port: u16,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let view = view::MaterializedView::shared_bounded();
     let _server_handle =
-        start_web_server_if_enabled(true, listen, server_port, view, Some(db.to_string()))
+        start_web_server_if_enabled(true, listen, server_port, view, db.map(str::to_string))
             .await
             .map_err(|e| std::io::Error::other(e.to_string()))?;
 
@@ -701,42 +688,25 @@ async fn run_report_serve(
     Ok(())
 }
 
+fn report_db_or_local(db: &Option<String>, force_local: bool) -> Option<String> {
+    if force_local {
+        return None;
+    }
+    if let Some(db) = db {
+        return Some(db.clone());
+    }
+    let latest = latest_session_db();
+    if latest.is_none() {
+        print_report_local_sessions_warning();
+    }
+    latest
+}
+
 async fn run_with_extractor(
     cli: &Cli,
     binary_extractor: &BinaryExtractor,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     match &cli.command {
-        Commands::Stat {
-            binary_path,
-            db,
-            json,
-            no_server,
-            server_port,
-            command,
-        } => {
-            if command.is_empty() {
-                unreachable!("stat without a command is handled before binary extraction");
-            }
-            if *json {
-                return Err("stat --json currently requires --db for clean JSON output".into());
-            }
-            let recorded_db = run_exec(
-                binary_extractor,
-                command,
-                binary_path.as_deref(),
-                configured_db_path(db),
-                !*no_server,
-                &cli.listen,
-                *server_port,
-                false,
-            )
-            .await
-            .map_err(convert_runner_error)?;
-            let db = recorded_db
-                .as_deref()
-                .ok_or("stat command did not produce a SQLite session database")?;
-            run_stat_query(db, false)?;
-        }
         Commands::Record {
             comm,
             pid,
@@ -775,10 +745,7 @@ async fn run_with_extractor(
             let db_path = match configured_db_path(db) {
                 Some(path) => Some(path),
                 None => match default_session_db_path() {
-                    Ok(path) => {
-                        sources::session_db::cleanup_old_sessions();
-                        Some(path)
-                    }
+                    Ok(path) => Some(path),
                     Err(e) => {
                         print_record_session_db_error(e);
                         None
@@ -802,31 +769,6 @@ async fn run_with_extractor(
                 .map_err(convert_runner_error)?;
             if let Some(ref db) = db_path_for_summary {
                 print_session_summary(db);
-            }
-        }
-        Commands::Top {
-            db: None,
-            pid,
-            comm,
-            sort,
-            view,
-            interval,
-            limit,
-            count,
-            once,
-            plain,
-        } => {
-            let count = if *once { Some(1) } else { *count };
-            let options = TopOptions {
-                pid: *pid,
-                comm: comm.clone(),
-                sort: sort.clone(),
-                view: view.clone(),
-            };
-            if !*plain && count.is_none() && interactive_terminal_available() {
-                run_live_top_tui(binary_extractor, *interval, *limit, &options).await?;
-            } else {
-                run_live_top_query(binary_extractor, *interval, *limit, count, &options).await?;
             }
         }
         Commands::Debug(cmd) => match cmd {
@@ -992,4 +934,20 @@ async fn run_with_extractor(
         _ => unreachable!("handled in run()"),
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::top_uses_tui;
+
+    #[test]
+    fn default_interactive_top_uses_tui() {
+        assert!(top_uses_tui(false, true));
+    }
+
+    #[test]
+    fn only_plain_or_non_tty_disable_tui() {
+        assert!(!top_uses_tui(true, true));
+        assert!(!top_uses_tui(false, false));
+    }
 }

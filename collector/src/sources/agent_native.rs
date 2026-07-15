@@ -1,145 +1,306 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+use agent_session::{AgentSession, TokenUsage};
 use serde_json::Value;
-use std::collections::{BTreeMap, HashMap, HashSet};
-use std::fs;
+use std::cmp::Reverse;
+use std::collections::{BTreeMap, HashSet};
+use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::json::i64_field as json_i64;
+#[cfg(not(test))]
+use std::fs::File;
+#[cfg(test)]
+use std::fs::{self, File};
+
 use crate::model::{
-    AGENT_NATIVE_SOURCE, AuditEventRow, SessionRow, Snapshot, SnapshotOptions, TokenUsageRow,
-    ToolCallRow,
+    AGENT_NATIVE_SOURCE, AuditEventRow, LlmCallRow, SessionRow, Snapshot, SnapshotOptions,
+    TokenUsageRow, ToolCallRow,
 };
-use crate::text::{
-    clean_prompt_text, sanitize_ascii_identifier as sanitize_id, short_session_id, truncate_text,
-};
+use crate::text::{sanitize_ascii_identifier as sanitize_id, truncate_text};
 use crate::view::MaterializedView;
 
-pub(crate) struct SessionCache {
-    entries: HashMap<PathBuf, CacheEntry>,
-    cached_sessions: Vec<LocalSession>,
-    last_refresh: Option<Instant>,
-    last_limit: usize,
+pub(crate) type LocalSession = AgentSession;
+pub(crate) type SessionCache = agent_session::SessionCache;
+const CODEX_EXEC_DEDUPE_WINDOW_MS: u64 = 2_000;
+const CODEX_FALLBACK_TIME_SLOP_MS: u64 = 30_000;
+
+#[derive(Clone, Debug)]
+struct ObservedCodexPrompt {
+    prompt: String,
+    timestamp_ms: u64,
+    pid: Option<u32>,
+    native_exec: bool,
+    comm: Option<String>,
+    target: Option<String>,
 }
 
-struct CacheEntry {
-    mtime: SystemTime,
-    session: Option<LocalSession>,
+pub(crate) fn snapshot(
+    cache: &mut SessionCache,
+    pid_filter: Option<u32>,
+    text_filter: Option<&str>,
+    limit: usize,
+    max_age: Duration,
+) -> Snapshot {
+    let filtered = discover_sessions(cache, pid_filter, text_filter, limit, max_age);
+    materialized_view(&filtered).export_snapshot(SnapshotOptions { audit_limit: 0 })
 }
 
-impl SessionCache {
-    pub(crate) fn new() -> Self {
-        Self {
-            entries: HashMap::new(),
-            cached_sessions: Vec::new(),
-            last_refresh: None,
-            last_limit: 0,
-        }
+pub(crate) fn discover_sessions(
+    cache: &mut SessionCache,
+    pid_filter: Option<u32>,
+    text_filter: Option<&str>,
+    limit: usize,
+    max_age: Duration,
+) -> Vec<LocalSession> {
+    let indexed_codex = codex_state_sessions(limit);
+    let mut sessions = if indexed_codex.is_empty() {
+        cache.discover_cached(limit, max_age)
+    } else {
+        let mut sessions = indexed_codex;
+        sessions.extend(cache.discover_cached_excluding(
+            limit,
+            max_age,
+            &[agent_session::AGENT_CODEX],
+        ));
+        sessions.sort_by_key(|session| Reverse(session.updated));
+        sessions.truncate(limit.clamp(1, 25));
+        sessions
+    };
+    let mut seen = HashSet::new();
+    sessions.retain(|session| seen.insert(session.display_id.clone()));
+    sessions
+        .into_iter()
+        .filter(|s| matches_filter(s, pid_filter, text_filter))
+        .collect()
+}
+
+fn codex_state_sessions(limit: usize) -> Vec<LocalSession> {
+    user_home_dir()
+        .as_deref()
+        .map(|home| codex_state_sessions_in_home(home, limit))
+        .unwrap_or_default()
+}
+
+fn codex_state_sessions_in_home(home: &Path, limit: usize) -> Vec<LocalSession> {
+    let db_path = home.join(".codex/state_5.sqlite");
+    let Ok(conn) =
+        rusqlite::Connection::open_with_flags(db_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+    else {
+        return Vec::new();
+    };
+    let Ok(mut stmt) = conn.prepare(
+        "SELECT id, rollout_path, model, tokens_used, preview, cwd, created_at_ms, updated_at_ms
+         FROM threads
+         ORDER BY updated_at_ms DESC
+         LIMIT ?1",
+    ) else {
+        return Vec::new();
+    };
+    let Ok(rows) = stmt.query_map([limit.clamp(1, 25) as i64], |row| {
+        let id: String = row.get(0)?;
+        let rollout_path: String = row.get(1)?;
+        let model: Option<String> = row.get(2)?;
+        let tokens_used: i64 = row.get(3)?;
+        let preview: Option<String> = row.get(4)?;
+        let cwd: Option<String> = row.get(5)?;
+        let created_at_ms: Option<i64> = row.get(6)?;
+        let updated_at_ms: Option<i64> = row.get(7)?;
+        Ok(codex_state_session(
+            id,
+            rollout_path,
+            model,
+            tokens_used,
+            preview,
+            cwd,
+            created_at_ms,
+            updated_at_ms,
+        ))
+    }) else {
+        return Vec::new();
+    };
+
+    rows.filter_map(Result::ok).collect()
+}
+
+fn codex_state_session(
+    id: String,
+    rollout_path: String,
+    model: Option<String>,
+    tokens_used: i64,
+    preview: Option<String>,
+    cwd: Option<String>,
+    created_at_ms: Option<i64>,
+    updated_at_ms: Option<i64>,
+) -> LocalSession {
+    let updated_ms = updated_at_ms.and_then(non_negative_i64_to_u64);
+    let created_ms = created_at_ms
+        .and_then(non_negative_i64_to_u64)
+        .or(updated_ms);
+    let updated = updated_ms.map(system_time_from_ms).unwrap_or(UNIX_EPOCH);
+    let usage = codex_state_usage(tokens_used, &rollout_path);
+    let model = model.filter(|value| !value.is_empty());
+    let mut model_usage = BTreeMap::new();
+    if let Some(model) = model.as_deref() {
+        model_usage.insert(model.to_string(), usage.clone());
     }
+    let prompt_preview = preview
+        .and_then(|text| clean_prompt_text(&text))
+        .map(|text| truncate_text(&text, 180));
+    let last_message_at = updated_ms.map(iso_utc_from_ms);
 
-    pub(crate) fn discover_cached(&mut self, limit: usize, max_age: Duration) -> Vec<LocalSession> {
-        let target = limit.clamp(1, 25);
-        if self.last_limit < target
-            || self
-                .last_refresh
-                .is_none_or(|last| last.elapsed() >= max_age)
-        {
-            self.refresh(target);
-        }
-        self.cached_sessions.iter().take(target).cloned().collect()
+    LocalSession {
+        agent_type: agent_session::AGENT_CODEX.to_string(),
+        session_id: id.clone(),
+        conversation_id: Some(id.clone()),
+        display_id: format!("{}:{}", agent_session::AGENT_CODEX, short_session_id(&id)),
+        path: PathBuf::from(rollout_path),
+        updated,
+        start_timestamp_ms: created_ms,
+        end_timestamp_ms: updated_ms,
+        model,
+        usage,
+        model_usage,
+        tools: BTreeMap::new(),
+        files: BTreeMap::new(),
+        prompt_preview,
+        duration_ms: created_ms
+            .zip(updated_ms)
+            .map(|(start, end)| end.saturating_sub(start))
+            .unwrap_or_default(),
+        cwd,
+        last_message_at,
+        events: Default::default(),
     }
+}
 
-    pub(crate) fn snapshot(
-        &mut self,
-        pid_filter: Option<u32>,
-        text_filter: Option<&str>,
-        limit: usize,
-        max_age: Duration,
-    ) -> Snapshot {
-        let filtered: Vec<LocalSession> = self
-            .discover_cached(limit, max_age)
-            .into_iter()
-            .filter(|s| matches_filter(s, pid_filter, text_filter))
-            .collect();
-        materialized_view(&filtered).export_snapshot(SnapshotOptions { audit_limit: 0 })
+fn user_home_dir() -> Option<PathBuf> {
+    std::env::var("SUDO_USER")
+        .ok()
+        .and_then(|user| {
+            std::fs::read_to_string("/etc/passwd")
+                .ok()
+                .and_then(|passwd| {
+                    passwd
+                        .lines()
+                        .find(|line| line.starts_with(&format!("{user}:")))
+                        .and_then(|line| line.split(':').nth(5))
+                        .map(PathBuf::from)
+                })
+        })
+        .or_else(dirs::home_dir)
+}
+
+fn non_negative_i64_to_u64(value: i64) -> Option<u64> {
+    u64::try_from(value).ok()
+}
+
+fn codex_state_usage(tokens_used: i64, rollout_path: &str) -> TokenUsage {
+    let total_tokens = plausible_codex_state_tokens(tokens_used);
+    if total_tokens > 0 {
+        return TokenUsage {
+            total_tokens,
+            ..Default::default()
+        };
     }
+    codex_rollout_tail_usage(Path::new(rollout_path)).unwrap_or_default()
+}
 
-    fn refresh(&mut self, limit: usize) {
-        let mut candidates: Vec<(SystemTime, &str, PathBuf)> = Vec::new();
-        for (agent, dir) in local_session_dirs() {
-            walk_jsonl(&dir, &mut |path, meta| {
-                candidates.push((
-                    meta.modified().unwrap_or(UNIX_EPOCH),
-                    agent,
-                    path.to_path_buf(),
-                ));
-            });
-        }
-        candidates.sort_by_key(|(updated, _, _)| std::cmp::Reverse(*updated));
+fn plausible_codex_state_tokens(value: i64) -> i64 {
+    const MAX_REPORTED_TOKENS: i64 = 10_000_000;
+    if (1..=MAX_REPORTED_TOKENS).contains(&value) {
+        value
+    } else {
+        0
+    }
+}
 
-        let target = limit.clamp(1, 25);
-        let scan = target.saturating_mul(3).clamp(10, 75);
+fn codex_rollout_tail_usage(path: &Path) -> Option<TokenUsage> {
+    const INITIAL_READ: u64 = 64 * 1024;
+    const MAX_READ: u64 = 8 * 1024 * 1024;
 
-        let mut live_paths: HashSet<PathBuf> = HashSet::new();
-        let mut sessions = Vec::new();
-        let mut seen = HashSet::new();
-
-        for (mtime, agent, path) in candidates.into_iter().take(scan) {
-            live_paths.insert(path.clone());
-            let session = match self.entries.get(&path) {
-                Some(entry) if entry.mtime == mtime => entry.session.clone(),
-                _ => {
-                    let parsed = read_session_path_with_source(agent, &path, mtime);
-                    self.entries.insert(
-                        path.clone(),
-                        CacheEntry {
-                            mtime,
-                            session: parsed.clone(),
-                        },
-                    );
-                    parsed
-                }
-            };
-            if let Some(session) = session {
-                if seen.insert(session.display_id.clone()) {
-                    sessions.push(session);
-                }
-                if sessions.len() >= target {
-                    break;
-                }
+    let mut file = File::open(path).ok()?;
+    let len = file.metadata().ok()?.len();
+    if len == 0 {
+        return None;
+    }
+    let mut read_len = INITIAL_READ.min(len);
+    loop {
+        let start = len.saturating_sub(read_len);
+        file.seek(SeekFrom::Start(start)).ok()?;
+        let mut bytes = vec![0u8; read_len as usize];
+        file.read_exact(&mut bytes).ok()?;
+        let text = String::from_utf8_lossy(&bytes);
+        for line in text.lines().rev() {
+            if !line.contains("\"token_count\"") || !line.contains("\"total_token_usage\"") {
+                continue;
+            }
+            if let Some(usage) = codex_usage_from_token_count_line(line) {
+                return Some(usage);
             }
         }
-
-        self.entries.retain(|path, _| live_paths.contains(path));
-        self.cached_sessions = sessions;
-        self.last_refresh = Some(Instant::now());
-        self.last_limit = target;
+        if read_len >= len || read_len >= MAX_READ {
+            return None;
+        }
+        read_len = (read_len * 2).min(len).min(MAX_READ);
     }
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct LocalSession {
-    agent: String,
-    display_id: String,
-    path: PathBuf,
-    updated: SystemTime,
-    model: Option<String>,
-    input_tokens: i64,
-    output_tokens: i64,
-    total_tokens: i64,
-    models: BTreeMap<String, (i64, i64, i64)>,
-    tools: BTreeMap<String, usize>,
-    pub(crate) files: BTreeMap<String, usize>,
-    prompt_preview: Option<String>,
-    duration_ms: u64,
-    cwd: Option<String>,
-    last_message_at: Option<String>,
+fn codex_usage_from_token_count_line(line: &str) -> Option<TokenUsage> {
+    let value: Value = serde_json::from_str(line).ok()?;
+    let usage = value.pointer("/payload/info/total_token_usage")?;
+    let input = usage.get("input_tokens").and_then(Value::as_i64)?.max(0);
+    let output = usage.get("output_tokens").and_then(Value::as_i64)?.max(0);
+    let cache = usage
+        .get("cached_input_tokens")
+        .and_then(Value::as_i64)
+        .unwrap_or_default()
+        .max(0);
+    let input = input.saturating_sub(cache);
+    Some(TokenUsage {
+        input_tokens: input,
+        output_tokens: output,
+        cache_read_tokens: cache,
+        total_tokens: input + output,
+        ..Default::default()
+    })
+}
+
+fn system_time_from_ms(value: u64) -> SystemTime {
+    UNIX_EPOCH + Duration::from_millis(value)
+}
+
+fn iso_utc_from_ms(value: u64) -> String {
+    chrono::DateTime::<chrono::Utc>::from_timestamp_millis(value as i64)
+        .map(|dt| dt.to_rfc3339_opts(chrono::SecondsFormat::Millis, true))
+        .unwrap_or_default()
+}
+
+fn short_session_id(id: &str) -> String {
+    let compact = id.rsplit(['/', '\\']).next().unwrap_or(id).trim();
+    if compact.chars().count() <= 12 {
+        return compact.to_string();
+    }
+    let head = compact.chars().take(6).collect::<String>();
+    let tail = compact
+        .chars()
+        .rev()
+        .take(5)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect::<String>();
+    format!("{head}.{tail}")
+}
+
+fn clean_prompt_text(text: &str) -> Option<String> {
+    let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    (!text.trim().is_empty()).then(|| text.trim().to_string())
 }
 
 fn view_id(session: &LocalSession) -> String {
-    format!("local:{}:{}", session.agent, session.display_id)
+    format!("local:{}:{}", session.agent_type, session.display_id)
 }
 
 pub(crate) fn materialized_view(sessions: &[LocalSession]) -> MaterializedView {
@@ -157,6 +318,9 @@ pub(crate) fn import_recent(view: &mut MaterializedView, limit: usize) {
 pub(crate) fn import_into_view(view: &mut MaterializedView, sessions: &[LocalSession]) {
     for session in sessions {
         view.upsert_session(&session_row(session));
+        for row in llm_rows(session) {
+            view.apply_llm_call(&row);
+        }
         for row in token_rows(session) {
             view.apply_token_usage(&row);
         }
@@ -166,42 +330,135 @@ pub(crate) fn import_into_view(view: &mut MaterializedView, sessions: &[LocalSes
     }
 }
 
+fn llm_rows(session: &LocalSession) -> Vec<LlmCallRow> {
+    let Some(prompt) = session.prompt_preview.as_ref() else {
+        return Vec::new();
+    };
+    let session_id = view_id(session);
+    let timestamp_ms = session
+        .events
+        .prompts
+        .first()
+        .and_then(|prompt| prompt.ts_ms)
+        .and_then(|ts| u64::try_from(ts).ok())
+        .or(session.start_timestamp_ms)
+        .unwrap_or_else(|| updated_ms(session));
+    let request = serde_json::json!({
+        "prompt": prompt,
+        "prompt_source": AGENT_NATIVE_SOURCE,
+        "session_id": session_id,
+        "agent_type": session.agent_type.as_str(),
+        "path": session.path.to_string_lossy(),
+    });
+
+    if session.model_usage.is_empty() {
+        let model = session
+            .model
+            .clone()
+            .unwrap_or_else(|| session.agent_type.clone());
+        return vec![llm_row_for_session(
+            &format!("{session_id}-{}", sanitize_id(&model)),
+            session,
+            &session_id,
+            timestamp_ms,
+            Some(model),
+            &session.usage,
+            request,
+        )];
+    }
+
+    session
+        .model_usage
+        .iter()
+        .map(|(model, usage)| {
+            llm_row_for_session(
+                &format!("{session_id}-{model}"),
+                session,
+                &session_id,
+                timestamp_ms,
+                Some(model.clone()),
+                usage,
+                request.clone(),
+            )
+        })
+        .collect()
+}
+
+fn llm_row_for_session(
+    id: &str,
+    session: &LocalSession,
+    session_id: &str,
+    timestamp_ms: u64,
+    model: Option<String>,
+    usage: &TokenUsage,
+    request: Value,
+) -> LlmCallRow {
+    LlmCallRow {
+        id: id.to_string(),
+        session_id: Some(session_id.to_string()),
+        conversation_id: session.conversation_id.clone(),
+        start_timestamp_ms: timestamp_ms,
+        end_timestamp_ms: session.end_timestamp_ms,
+        pid: None,
+        comm: Some(session.agent_type.clone()),
+        provider: None,
+        model,
+        call_kind: Some("agent_native_prompt".to_string()),
+        status: "observed".to_string(),
+        error_type: None,
+        finish_reason: None,
+        host: None,
+        path: Some(session.path.to_string_lossy().to_string()),
+        status_code: None,
+        input_tokens: usage.input_tokens,
+        output_tokens: usage.output_tokens,
+        total_tokens: usage.total_tokens,
+        request,
+        response: Value::Null,
+    }
+}
+
 pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEventRow> {
     let mut rows = Vec::new();
     let mut seen = HashSet::new();
+    let observed_exec_prompts = observed_codex_exec_prompts(audit_rows);
+    let mut seen_exec_prompts: Vec<ObservedCodexPrompt> = Vec::new();
+    for observed in observed_exec_prompts {
+        if seen_exec_prompts.iter().any(|seen| {
+            seen.prompt == observed.prompt
+                && timestamps_close(
+                    seen.timestamp_ms,
+                    observed.timestamp_ms,
+                    CODEX_EXEC_DEDUPE_WINDOW_MS,
+                )
+                && (!seen.native_exec || !observed.native_exec)
+        }) {
+            continue;
+        }
+        seen_exec_prompts.push(observed.clone());
+        rows.push(AuditEventRow {
+            id: format!(
+                "audit-codex-exec-prompt-{}-{}",
+                observed.timestamp_ms,
+                observed.pid.unwrap_or(0)
+            ),
+            timestamp_ms: observed.timestamp_ms,
+            audit_type: "llm".to_string(),
+            pid: observed.pid,
+            comm: observed.comm.or_else(|| Some("codex".to_string())),
+            subject: None,
+            action: Some("request".to_string()),
+            target: observed.target,
+            status: Some("observed".to_string()),
+            summary: Some(truncate_text(&observed.prompt, 160)),
+            details: serde_json::json!({
+                "text_content": observed.prompt,
+                "prompt_source": "local",
+            }),
+        });
+    }
     for row in audit_rows {
-        if row.audit_type == "process"
-            && row.action.as_deref() == Some("exec")
-            && is_codex_cli_entrypoint(row.target.as_deref())
-        {
-            let Some(prompt) = row
-                .details
-                .get("full_command")
-                .and_then(Value::as_str)
-                .and_then(codex_exec_prompt)
-            else {
-                continue;
-            };
-            rows.push(AuditEventRow {
-                id: format!(
-                    "audit-codex-exec-prompt-{}-{}",
-                    row.timestamp_ms,
-                    row.pid.unwrap_or(0)
-                ),
-                timestamp_ms: row.timestamp_ms,
-                audit_type: "llm".to_string(),
-                pid: row.pid,
-                comm: row.comm.clone().or_else(|| Some("codex".to_string())),
-                subject: None,
-                action: Some("request".to_string()),
-                target: row.target.clone(),
-                status: Some("observed".to_string()),
-                summary: Some(truncate_text(&prompt, 160)),
-                details: serde_json::json!({
-                    "text_content": prompt,
-                    "prompt_source": "local",
-                }),
-            });
+        if row.audit_type == "process" && row.action.as_deref() == Some("exec") {
             continue;
         }
         if row.audit_type != "file" {
@@ -215,20 +472,13 @@ pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<
         };
         if !seen.insert((path.clone(), pid)) {
             continue;
-        }
-        let Some(agent) = local_session_source(&path) else {
-            continue;
         };
-        let updated = fs::metadata(&path)
-            .and_then(|metadata| metadata.modified())
-            .unwrap_or(UNIX_EPOCH);
-        let Some(session) = read_session_path_with_source(agent, &path, updated) else {
+        let Some(session) = agent_session::parse_session_path(&path) else {
             continue;
         };
         let Some(prompt) = session.prompt_preview.as_ref() else {
             continue;
         };
-
         rows.push(AuditEventRow {
             id: format!(
                 "audit-agent-native-prompt-{}-{pid}",
@@ -237,7 +487,10 @@ pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<
             timestamp_ms: row.timestamp_ms,
             audit_type: "llm".to_string(),
             pid: Some(pid),
-            comm: row.comm.clone().or_else(|| Some(session.agent.clone())),
+            comm: row
+                .comm
+                .clone()
+                .or_else(|| Some(session.agent_type.clone())),
             subject: session.model.clone(),
             action: Some("request".to_string()),
             target: Some(path.to_string_lossy().to_string()),
@@ -247,74 +500,269 @@ pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<
                 "text_content": prompt,
                 "prompt_source": "local",
                 "session_id": view_id(&session),
-                "agent": session.agent,
+                "conversation_id": session.conversation_id.as_deref(),
+                "agent_type": session.agent_type,
             }),
         });
     }
     rows
 }
 
-fn is_codex_cli_entrypoint(target: Option<&str>) -> bool {
-    target.is_some_and(|target| {
-        Path::new(target).file_name().and_then(|name| name.to_str()) == Some("codex")
-            && !target.contains("/node_modules/")
+pub(crate) fn observed_sessions_from_audit_rows(audit_rows: &[AuditEventRow]) -> Vec<LocalSession> {
+    let mut direct_paths = HashSet::new();
+    let mut codex_session_dirs = HashSet::new();
+    let observed_codex_prompts = observed_codex_exec_prompts(audit_rows);
+    let observed_codex_exec = observed_codex_exec_command(audit_rows);
+    let observed_window = observed_audit_window_ms(audit_rows);
+
+    for row in audit_rows.iter().filter(|row| row.audit_type == "file") {
+        for path in audit_file_paths(row) {
+            if let Some(session_path) =
+                agent_session::session_log_path_from_str(path.to_string_lossy().as_ref())
+            {
+                direct_paths.insert(session_path);
+            }
+            if let Some(dir) = observed_codex_sessions_dir(&path) {
+                codex_session_dirs.insert(dir);
+            }
+        }
+    }
+
+    let mut candidates = Vec::new();
+    for path in direct_paths {
+        if let Some(candidate) = agent_session::session_candidate_from_path(&path) {
+            candidates.push((candidate, false));
+        }
+    }
+    for dir in codex_session_dirs {
+        let dir_candidates =
+            agent_session::discover_session_files_in_dir(agent_session::AGENT_CODEX, &dir);
+        candidates.extend(
+            dir_candidates
+                .into_iter()
+                .map(|candidate| (candidate, true)),
+        );
+    }
+    candidates.sort_by_key(|(candidate, _)| Reverse(candidate.updated));
+
+    let mut seen_paths = HashSet::new();
+    let mut seen_sessions = HashSet::new();
+    let mut sessions = Vec::new();
+    for (candidate, is_codex_dir_fallback) in candidates.into_iter().take(75) {
+        if !seen_paths.insert(candidate.path.clone()) {
+            continue;
+        }
+        let Some(session) = agent_session::parse_session_file(&candidate) else {
+            continue;
+        };
+        if is_codex_dir_fallback && !observed_codex_exec {
+            continue;
+        }
+        if is_codex_dir_fallback
+            && !observed_codex_prompts.is_empty()
+            && !session_matches_observed_prompt(&session, &observed_codex_prompts)
+        {
+            continue;
+        }
+        if is_codex_dir_fallback && !session_is_in_observed_window(&session, observed_window) {
+            continue;
+        }
+        if seen_sessions.insert(session.display_id.clone()) {
+            sessions.push(session);
+        }
+    }
+    sessions
+}
+
+fn observed_codex_exec_prompts(audit_rows: &[AuditEventRow]) -> Vec<ObservedCodexPrompt> {
+    let prompts = audit_rows
+        .iter()
+        .filter(|row| row.audit_type == "process" && row.action.as_deref() == Some("exec"))
+        .filter_map(|row| {
+            let prompt = row
+                .details
+                .get("full_command")
+                .and_then(Value::as_str)
+                .and_then(codex_exec_prompt_from_command)?;
+            Some(ObservedCodexPrompt {
+                prompt,
+                timestamp_ms: row.timestamp_ms,
+                pid: row.pid,
+                native_exec: looks_like_native_codex_exec(row),
+                comm: row.comm.clone(),
+                target: row.target.clone(),
+            })
+        })
+        .collect::<Vec<_>>();
+    prompts
+        .iter()
+        .filter(|candidate| {
+            !prompts
+                .iter()
+                .any(|other| is_nearby_longer_prefix(candidate, other))
+        })
+        .cloned()
+        .collect()
+}
+
+fn observed_codex_exec_command(audit_rows: &[AuditEventRow]) -> bool {
+    audit_rows
+        .iter()
+        .filter(|row| row.audit_type == "process" && row.action.as_deref() == Some("exec"))
+        .filter_map(|row| row.details.get("full_command").and_then(Value::as_str))
+        .any(|command| codex_exec_command_tail(command).is_some())
+}
+
+fn codex_exec_prompt_from_command(command: &str) -> Option<String> {
+    agent_session::codex_exec_prompt(&codex_exec_command_tail(command)?)
+}
+
+fn codex_exec_command_tail(command: &str) -> Option<String> {
+    let tokens = command.split_whitespace().collect::<Vec<_>>();
+    let index = tokens.windows(2).enumerate().find_map(|(index, tokens)| {
+        (is_codex_executable_token(tokens[0], index == 0) && tokens[1] == "exec").then_some(index)
+    })?;
+    Some(tokens[index..].join(" "))
+}
+
+fn looks_like_native_codex_exec(row: &AuditEventRow) -> bool {
+    row.comm.as_deref() == Some("codex")
+        && row
+            .target
+            .as_deref()
+            .is_some_and(|target| is_codex_executable_token(target, true))
+}
+
+fn is_codex_executable_token(token: &str, allow_bare: bool) -> bool {
+    let token = token.trim_matches(|ch| matches!(ch, '"' | '\''));
+    (allow_bare && token == "codex")
+        || token.contains('/')
+            && Path::new(token).file_name().and_then(|name| name.to_str()) == Some("codex")
+}
+
+fn is_nearby_longer_prefix(candidate: &ObservedCodexPrompt, other: &ObservedCodexPrompt) -> bool {
+    other.prompt.len() > candidate.prompt.len()
+        && other.prompt.starts_with(candidate.prompt.as_str())
+        && timestamps_close(
+            candidate.timestamp_ms,
+            other.timestamp_ms,
+            CODEX_EXEC_DEDUPE_WINDOW_MS,
+        )
+        && (!candidate.native_exec || !other.native_exec)
+}
+
+fn timestamps_close(left: u64, right: u64, window_ms: u64) -> bool {
+    left.abs_diff(right) <= window_ms
+}
+
+fn session_matches_observed_prompt(
+    session: &LocalSession,
+    prompts: &[ObservedCodexPrompt],
+) -> bool {
+    let Some(preview) = session.prompt_preview.as_deref() else {
+        return false;
+    };
+    prompts.iter().any(|observed| {
+        let prompt = observed.prompt.as_str();
+        prompt_texts_overlap(prompt, preview)
     })
 }
 
-fn codex_exec_prompt(command: &str) -> Option<String> {
-    let mut args = command.split_once(" exec ")?.1.trim();
-    while let Some(rest) = strip_codex_exec_option(args) {
-        args = rest.trim_start();
-    }
-    (!args.starts_with('-'))
-        .then(|| args.trim_matches(['"', '\'']))
-        .and_then(clean_prompt_text)
+fn prompt_texts_overlap(left: &str, right: &str) -> bool {
+    left == right || left.starts_with(right) || right.starts_with(left)
 }
 
-fn strip_codex_exec_option(args: &str) -> Option<&str> {
-    let (head, rest) = args.split_once(char::is_whitespace).unwrap_or((args, ""));
-    match head {
-        "--json" | "--skip-git-repo-check" | "--ephemeral" => Some(rest),
-        "-C" | "-a" | "-s" | "-m" | "-c" | "-p" => rest
-            .trim_start()
-            .split_once(char::is_whitespace)
-            .map(|(_, rest)| rest),
-        _ => None,
-    }
+fn observed_audit_window_ms(audit_rows: &[AuditEventRow]) -> Option<(u64, u64)> {
+    let min = audit_rows.iter().map(|row| row.timestamp_ms).min()?;
+    let max = audit_rows.iter().map(|row| row.timestamp_ms).max()?;
+    Some((
+        min.saturating_sub(CODEX_FALLBACK_TIME_SLOP_MS),
+        max.saturating_add(CODEX_FALLBACK_TIME_SLOP_MS),
+    ))
+}
+
+fn session_is_in_observed_window(session: &LocalSession, window: Option<(u64, u64)>) -> bool {
+    let Some((min, max)) = window else {
+        return true;
+    };
+    let updated = updated_ms(session);
+    updated >= min && updated <= max
 }
 
 fn audit_session_path(row: &AuditEventRow) -> Option<PathBuf> {
     row.target
         .as_deref()
-        .and_then(session_log_path_from_str)
+        .and_then(agent_session::session_log_path_from_str)
         .or_else(|| {
             row.details
                 .get("filepath")
                 .and_then(Value::as_str)
-                .and_then(session_log_path_from_str)
+                .and_then(agent_session::session_log_path_from_str)
         })
         .or_else(|| {
             row.details
                 .get("path")
                 .and_then(Value::as_str)
-                .and_then(session_log_path_from_str)
+                .and_then(agent_session::session_log_path_from_str)
         })
 }
 
+fn audit_file_paths(row: &AuditEventRow) -> Vec<PathBuf> {
+    [
+        row.target.as_deref(),
+        row.details.get("filepath").and_then(Value::as_str),
+        row.details.get("path").and_then(Value::as_str),
+        row.details.get("fd_target").and_then(Value::as_str),
+    ]
+    .into_iter()
+    .flatten()
+    .filter_map(|raw| {
+        let path = PathBuf::from(raw.trim().trim_end_matches(" (deleted)"));
+        path.is_absolute().then_some(path)
+    })
+    .collect()
+}
+
+fn observed_codex_sessions_dir(path: &Path) -> Option<PathBuf> {
+    if !looks_like_codex_home_file(path) {
+        return None;
+    }
+    let home = path.parent()?;
+    let sessions = home.join("sessions");
+    sessions.is_dir().then_some(sessions)
+}
+
+fn looks_like_codex_home_file(path: &Path) -> bool {
+    let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    (name.starts_with("state_")
+        || name.starts_with("logs_")
+        || matches!(name, "config.toml" | "auth.json" | "stat"))
+        && path
+            .parent()
+            .is_some_and(|parent| parent.join("sessions").is_dir())
+}
+
 fn session_row(session: &LocalSession) -> SessionRow {
+    let updated_ms = updated_ms(session);
     SessionRow {
         id: view_id(session),
-        agent_type: session.agent.clone(),
-        start_timestamp_ms: updated_ms(session).saturating_sub(session.duration_ms),
-        end_timestamp_ms: Some(updated_ms(session)),
+        agent_type: session.agent_type.clone(),
+        start_timestamp_ms: session
+            .start_timestamp_ms
+            .unwrap_or_else(|| updated_ms.saturating_sub(session.duration_ms)),
+        end_timestamp_ms: session.end_timestamp_ms.or(Some(updated_ms)),
         status: "observed".to_string(),
         model: session.model.clone(),
-        input_tokens: session.input_tokens,
-        output_tokens: session.output_tokens,
-        total_tokens: session.total_tokens,
+        input_tokens: session.usage.input_tokens,
+        output_tokens: session.usage.output_tokens,
+        total_tokens: session.usage.total_tokens,
         view_source: AGENT_NATIVE_SOURCE.to_string(),
         confidence: Some(0.95),
         attributes: serde_json::json!({
+            "session_id": session.session_id.clone(),
+            "conversation_id": session.conversation_id.as_deref(),
             "path": session.path.to_string_lossy(),
             "display_id": session.display_id,
             "prompt_preview": session.prompt_preview.clone(),
@@ -328,22 +776,22 @@ fn session_row(session: &LocalSession) -> SessionRow {
 fn token_rows(session: &LocalSession) -> Vec<TokenUsageRow> {
     let session_id = view_id(session);
     session
-        .models
+        .model_usage
         .iter()
-        .filter(|(_, (_, _, total))| *total > 0)
-        .map(|(model, (input, output, total))| TokenUsageRow {
+        .filter(|(_, usage)| usage.total_tokens > 0)
+        .map(|(model, usage)| TokenUsageRow {
             id: format!("token-{session_id}-{}", sanitize_id(model)),
             llm_call_id: format!("{session_id}-{model}"),
             timestamp_ms: updated_ms(session),
             pid: None,
-            comm: Some(session.agent.clone()),
+            comm: Some(session.agent_type.clone()),
             provider: None,
             model: Some(model.clone()),
-            input_tokens: *input,
-            output_tokens: *output,
-            cache_creation_tokens: 0,
-            cache_read_tokens: 0,
-            total_tokens: *total,
+            input_tokens: usage.input_tokens,
+            output_tokens: usage.output_tokens,
+            cache_creation_tokens: usage.cache_creation_tokens,
+            cache_read_tokens: usage.cache_read_tokens,
+            total_tokens: usage.total_tokens,
             source: AGENT_NATIVE_SOURCE.to_string(),
             view_source: AGENT_NATIVE_SOURCE.to_string(),
             confidence: Some(0.95),
@@ -360,7 +808,7 @@ fn tool_rows(session: &LocalSession) -> Vec<ToolCallRow> {
             rows.push(ToolCallRow {
                 id: format!("tool-{session_id}-{}-{index}", sanitize_id(tool)),
                 session_id: Some(session_id.clone()),
-                conversation_id: None,
+                conversation_id: session.conversation_id.clone(),
                 timestamp_ms,
                 tool_name: Some(tool.clone()),
                 tool_call_id: None,
@@ -400,7 +848,7 @@ fn matches_filter(
         return true;
     };
     let filter = filter.to_ascii_lowercase();
-    session.agent.to_ascii_lowercase().contains(&filter)
+    session.agent_type.to_ascii_lowercase().contains(&filter)
         || session
             .prompt_preview
             .as_ref()
@@ -416,496 +864,322 @@ fn matches_filter(
             .contains(&filter)
 }
 
-pub(crate) fn count_sessions() -> Vec<(&'static str, PathBuf, usize, u64)> {
-    local_session_dirs()
-        .into_iter()
-        .filter_map(|(name, dir)| {
-            let (mut count, mut bytes) = (0usize, 0u64);
-            walk_jsonl(&dir, &mut |_, meta| {
-                count += 1;
-                bytes += meta.len();
-            });
-            (count > 0).then_some((name, dir, count, bytes))
-        })
-        .collect()
-}
-
-pub(crate) fn session_log_path_from_str(raw: &str) -> Option<PathBuf> {
-    let trimmed = raw.trim().trim_end_matches(" (deleted)");
-    if trimmed.is_empty() {
-        return None;
-    }
-    let path = Path::new(trimmed);
-    if !path.is_absolute() || path.extension().and_then(|ext| ext.to_str()) != Some("jsonl") {
-        return None;
-    }
-    local_session_source(path).map(|_| normalize_session_log_path(path))
-}
-
-pub(crate) fn normalize_session_log_path(path: &Path) -> PathBuf {
-    fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
-}
-
-pub(crate) fn local_session_source(path: &Path) -> Option<&'static str> {
-    let path = path.to_string_lossy();
-    if path.contains("/.claude/") {
-        Some("claude")
-    } else if path.contains("/.codex/") {
-        Some("codex")
-    } else {
-        None
-    }
-}
-
 #[cfg(test)]
 pub(crate) fn create_temp_session_path(agent: &str) -> (tempfile::TempDir, PathBuf) {
     let temp = tempfile::tempdir().unwrap();
-    let base = match agent {
-        "claude" => [".claude", "projects"],
-        "codex" => [".codex", "sessions"],
-        _ => unreachable!("test agent"),
-    };
-    let path = temp
-        .path()
-        .join(base[0])
-        .join(base[1])
-        .join("session.jsonl");
+    let path = agent_session::fixture_session_path(agent, temp.path()).unwrap();
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     fs::write(&path, "{}\n").unwrap();
     (temp, path)
 }
 
-fn read_session_path_with_source(
-    agent: &str,
-    path: &Path,
-    updated: SystemTime,
-) -> Option<LocalSession> {
-    let content = fs::read_to_string(path).ok()?;
-    parse_content(agent, path, updated, &content)
-}
-
 #[cfg(test)]
 pub(crate) fn parse_content_for_test(
     agent: &str,
-    path: &Path,
-    updated: SystemTime,
+    path: &std::path::Path,
+    updated: std::time::SystemTime,
     content: &str,
 ) -> Option<LocalSession> {
-    parse_content(agent, path, updated, content)
+    agent_session::parse_session_content(agent, path, updated, content)
 }
 
-fn parse_content(
-    agent: &str,
-    path: &Path,
-    updated: SystemTime,
-    content: &str,
-) -> Option<LocalSession> {
-    let mut session_id = path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .unwrap_or("session")
-        .to_string();
-    let mut model = None;
-    let mut models = BTreeMap::<String, (i64, i64, i64)>::new();
-    let mut claude_message_models = BTreeMap::<String, (i64, i64, i64)>::new();
-    let mut claude_seen_usage = HashSet::new();
-    let mut tools = BTreeMap::new();
-    let mut files = BTreeMap::<String, usize>::new();
-    let mut prompt_preview = None;
-    let mut cwd: Option<String> = None;
-    let mut last_message_at: Option<String> = None;
-    let mut duration_ms = 0;
-    let mut codex_model = String::new();
-
-    for line in content.lines() {
-        let Ok(obj) = serde_json::from_str::<Value>(line) else {
-            continue;
-        };
-        if let Some(id) = local_session_id(&obj) {
-            session_id = id;
-        }
-        if cwd.is_none() {
-            cwd = obj
-                .get("cwd")
-                .and_then(Value::as_str)
-                .or_else(|| obj.pointer("/payload/cwd").and_then(Value::as_str))
-                .filter(|s| !s.is_empty())
-                .map(ToString::to_string);
-        }
-        if let Some(ts) = obj.get("timestamp").and_then(Value::as_str) {
-            last_message_at = Some(ts.to_string());
-        }
-        let typ = obj
-            .get("type")
-            .and_then(|value| value.as_str())
-            .unwrap_or("");
-        match (agent, typ) {
-            ("claude", "result") => {
-                duration_ms = json_u64(&obj, "duration_ms");
-                if let Some(model_usage) = obj.get("modelUsage").and_then(|value| value.as_object())
-                {
-                    for (name, usage) in model_usage {
-                        model.get_or_insert_with(|| name.clone());
-                        add_usage(
-                            &mut models,
-                            name,
-                            json_i64(usage, "inputTokens"),
-                            json_i64(usage, "outputTokens"),
-                            json_i64(usage, "inputTokens")
-                                + json_i64(usage, "outputTokens")
-                                + json_i64(usage, "cacheReadInputTokens")
-                                + json_i64(usage, "cacheCreationInputTokens"),
-                        );
-                    }
-                }
-            }
-            ("claude", "assistant") => {
-                if let Some(name) = obj
-                    .pointer("/message/model")
-                    .and_then(|value| value.as_str())
-                {
-                    model.get_or_insert_with(|| name.to_string());
-                }
-                if let Some(usage) = obj.pointer("/message/usage")
-                    && claude_seen_usage.insert(claude_usage_key(&obj))
-                {
-                    let name = obj
-                        .pointer("/message/model")
-                        .and_then(|value| value.as_str())
-                        .unwrap_or("unknown");
-                    add_usage(
-                        &mut claude_message_models,
-                        name,
-                        json_i64(usage, "input_tokens"),
-                        json_i64(usage, "output_tokens"),
-                        json_i64(usage, "input_tokens")
-                            + json_i64(usage, "output_tokens")
-                            + json_i64(usage, "cache_read_input_tokens")
-                            + json_i64(usage, "cache_creation_input_tokens"),
-                    );
-                }
-                if let Some(items) = obj
-                    .pointer("/message/content")
-                    .and_then(|value| value.as_array())
-                {
-                    for item in items {
-                        if item.get("type").and_then(|value| value.as_str()) == Some("tool_use") {
-                            let name = item
-                                .get("name")
-                                .and_then(|value| value.as_str())
-                                .unwrap_or("?");
-                            *tools.entry(name.to_string()).or_default() += 1;
-                            if let Some(fp) = item
-                                .pointer("/input/file_path")
-                                .and_then(Value::as_str)
-                                .filter(|s| !is_noise_path(s))
-                            {
-                                *files.entry(fp.to_string()).or_default() += 1;
-                            }
-                        }
-                    }
-                }
-            }
-            ("claude", "queue-operation") if prompt_preview.is_none() => {
-                if obj.get("operation").and_then(Value::as_str) == Some("enqueue")
-                    && let Some(text) = obj.get("content").and_then(Value::as_str)
-                    && let Some(text) = clean_prompt_text(text)
-                {
-                    prompt_preview = Some(text);
-                }
-            }
-            ("claude", "last-prompt") if prompt_preview.is_none() => {
-                if let Some(text) = obj.get("lastPrompt").and_then(Value::as_str)
-                    && let Some(text) = clean_prompt_text(text)
-                {
-                    prompt_preview = Some(text);
-                }
-            }
-            ("claude", "user") => {
-                if prompt_preview.is_none()
-                    && !is_claude_tool_result(&obj)
-                    && let Some(text) =
-                        local_message_preview(obj.pointer("/message/content").unwrap_or(&obj))
-                {
-                    prompt_preview = Some(text);
-                }
-            }
-            ("codex", "turn_context") => {
-                if let Some(name) = obj
-                    .pointer("/payload/model")
-                    .and_then(|value| value.as_str())
-                {
-                    codex_model = name.to_string();
-                    model = Some(name.to_string());
-                }
-            }
-            ("codex", "event_msg") => {
-                if obj
-                    .pointer("/payload/type")
-                    .and_then(|value| value.as_str())
-                    == Some("token_count")
-                    && let Some(usage) = obj.pointer("/payload/info/total_token_usage")
-                {
-                    let name = if codex_model.is_empty() {
-                        "unknown"
-                    } else {
-                        &codex_model
-                    };
-                    models.insert(
-                        name.to_string(),
-                        (
-                            json_i64(usage, "input_tokens"),
-                            json_i64(usage, "output_tokens"),
-                            json_i64(usage, "total_tokens"),
-                        ),
-                    );
-                }
-            }
-            ("codex", "response_item")
-                if obj
-                    .pointer("/payload/type")
-                    .and_then(|value| value.as_str())
-                    == Some("function_call") =>
-            {
-                let name = obj
-                    .pointer("/payload/name")
-                    .and_then(|value| value.as_str())
-                    .unwrap_or("?");
-                *tools.entry(name.to_string()).or_default() += 1;
-            }
-            ("codex", "message") | ("codex", "input") | ("codex", "user") => {
-                if let Some(text) = local_message_preview(&obj) {
-                    prompt_preview = Some(text);
-                }
-            }
-            _ if prompt_preview.is_none() && typ.contains("user") => {
-                if let Some(text) = local_message_preview(&obj) {
-                    prompt_preview = Some(text);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    if models.is_empty() {
-        models = claude_message_models;
-    }
-    let input_tokens = models.values().map(|usage| usage.0).sum();
-    let output_tokens = models.values().map(|usage| usage.1).sum();
-    let total_tokens = models.values().map(|usage| usage.2).sum();
-    if total_tokens == 0 && tools.is_empty() && prompt_preview.is_none() && model.is_none() {
-        return None;
-    }
-
-    Some(LocalSession {
-        agent: agent.to_string(),
-        display_id: format!("{agent}:{}", short_session_id(&session_id)),
-        path: normalize_session_log_path(path),
-        updated,
-        model,
-        input_tokens,
-        output_tokens,
-        total_tokens,
-        models,
-        tools,
-        files,
-        prompt_preview,
-        duration_ms,
-        cwd,
-        last_message_at,
-    })
-}
-
-fn local_session_dirs() -> Vec<(&'static str, PathBuf)> {
-    let Some(home) = user_home_dir() else {
-        return Vec::new();
-    };
-    [
-        ("claude", home.join(".claude/projects")),
-        ("codex", home.join(".codex/sessions")),
-    ]
-    .into_iter()
-    .filter(|(_, path)| path.is_dir())
-    .collect()
-}
-
-fn user_home_dir() -> Option<PathBuf> {
-    std::env::var("SUDO_USER")
-        .ok()
-        .and_then(|user| {
-            fs::read_to_string("/etc/passwd").ok().and_then(|passwd| {
-                passwd
-                    .lines()
-                    .find(|line| line.starts_with(&format!("{user}:")))
-                    .and_then(|line| line.split(':').nth(5))
-                    .map(PathBuf::from)
-            })
-        })
-        .or_else(dirs::home_dir)
-}
-
-fn walk_jsonl(dir: &Path, f: &mut dyn FnMut(&Path, &fs::Metadata)) {
-    let Ok(entries) = fs::read_dir(dir) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_dir() {
-            walk_jsonl(&path, f);
-        } else if path.extension().is_some_and(|ext| ext == "jsonl")
-            && let Ok(meta) = path.metadata()
-        {
-            f(&path, &meta);
-        }
-    }
-}
-
-fn add_usage(
-    models: &mut BTreeMap<String, (i64, i64, i64)>,
-    model: &str,
-    input: i64,
-    output: i64,
-    total: i64,
-) {
-    let entry = models.entry(model.to_string()).or_default();
-    entry.0 += input;
-    entry.1 += output;
-    entry.2 += total;
-}
-
-fn local_session_id(obj: &Value) -> Option<String> {
-    for key in ["sessionId", "session_id", "conversation_id"] {
-        if let Some(value) = obj.get(key).and_then(|value| value.as_str())
-            && !value.is_empty()
-        {
-            return Some(value.to_string());
-        }
-    }
-    for pointer in ["/payload/session_id", "/payload/sessionId"] {
-        if let Some(value) = obj.pointer(pointer).and_then(|value| value.as_str())
-            && !value.is_empty()
-        {
-            return Some(value.to_string());
-        }
-    }
-    None
-}
-
-fn is_noise_path(path: &str) -> bool {
-    const NOISE: &[&str] = &[
-        "/.claude/",
-        "/.codex/",
-        "/.git/",
-        "/.git\n",
-        "/node_modules/",
-        "/.npm/",
-        "/.cache/",
-        "CLAUDE.md",
-        "AGENTS.md",
-    ];
-    NOISE.iter().any(|pat| path.contains(pat))
-}
-
-fn claude_usage_key(obj: &Value) -> String {
-    obj.get("requestId")
-        .or_else(|| obj.pointer("/message/id"))
-        .or_else(|| obj.get("uuid"))
-        .and_then(|value| value.as_str())
-        .unwrap_or("usage")
-        .to_string()
-}
-
-fn local_message_preview(value: &Value) -> Option<String> {
-    let mut parts = Vec::new();
-    collect_local_text(value, &mut parts);
-    clean_prompt_text(&parts.join(" "))
-}
-
-fn collect_local_text(value: &Value, out: &mut Vec<String>) {
-    match value {
-        Value::String(text) => out.push(text.clone()),
-        Value::Array(items) => {
-            for item in items {
-                collect_local_text(item, out);
-            }
-        }
-        Value::Object(obj) => {
-            if obj
-                .get("type")
-                .and_then(|value| value.as_str())
-                .is_some_and(|typ| {
-                    typ == "tool_use" || typ == "function_call" || typ == "tool_result"
-                })
-            {
-                return;
-            }
-            for key in ["text", "content", "message", "input", "prompt"] {
-                if let Some(value) = obj.get(key) {
-                    collect_local_text(value, out);
-                }
-            }
-        }
-        _ => {}
-    }
-}
-
-fn is_claude_tool_result(obj: &Value) -> bool {
-    obj.get("toolUseResult").is_some()
-        || obj.get("tool_use_result").is_some()
-        || obj
-            .pointer("/message/content")
-            .and_then(Value::as_array)
-            .is_some_and(|items| {
-                items
-                    .iter()
-                    .any(|item| item.get("type").and_then(Value::as_str) == Some("tool_result"))
-            })
-}
-
-fn json_u64(value: &Value, key: &str) -> u64 {
-    value.get(key).and_then(|value| value.as_u64()).unwrap_or(0)
+#[cfg(test)]
+pub(crate) fn write_codex_state_db_for_test(home: &Path) {
+    let codex_dir = home.join(".codex");
+    fs::create_dir_all(&codex_dir).unwrap();
+    let conn = rusqlite::Connection::open(codex_dir.join("state_5.sqlite")).unwrap();
+    conn.execute_batch(
+        "CREATE TABLE threads (
+            id TEXT PRIMARY KEY,
+            rollout_path TEXT,
+            model TEXT,
+            tokens_used INTEGER NOT NULL DEFAULT 0,
+            preview TEXT,
+            cwd TEXT,
+            created_at_ms INTEGER,
+            updated_at_ms INTEGER
+        );
+        INSERT INTO threads
+        (id, rollout_path, model, tokens_used, preview, cwd, created_at_ms, updated_at_ms)
+        VALUES
+        ('019f49ca-54e7-7a91-82e7-a52b53cfd456', '/tmp/session.jsonl', 'gpt-web-ci', 33, 'web state prompt', '/work/repo', 1800000, 1900000);",
+    )
+    .unwrap();
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const CODEX: &str = "/usr/bin/codex exec --skip-git-repo-check ";
+
     #[test]
-    fn claude_prompt_preview_keeps_user_prompt_when_tool_result_follows() {
-        let (_temp, path) = create_temp_session_path("claude");
-        let content = concat!(
-            r#"{"type":"queue-operation","operation":"enqueue","sessionId":"session-1","content":"Run the command and summarize it."}"#,
-            "\n",
-            r#"{"type":"user","message":{"role":"user","content":"Run the command and summarize it."},"sessionId":"session-1"}"#,
-            "\n",
-            r#"{"type":"assistant","message":{"model":"claude-opus-4-6","content":[{"type":"tool_use","name":"Bash","input":{"command":"printf tool-output"}}],"usage":{"input_tokens":1,"output_tokens":1}},"requestId":"req-1","sessionId":"session-1"}"#,
-            "\n",
-            r#"{"type":"user","message":{"role":"user","content":[{"type":"tool_result","content":"tool-output","is_error":false}]},"toolUseResult":{"stdout":"tool-output"},"sessionId":"session-1"}"#,
-            "\n",
-            r#"{"type":"last-prompt","lastPrompt":"Run the command and summarize it.","sessionId":"session-1"}"#,
-            "\n",
-        );
+    fn agent_native_prompt_produces_llm_call_row() {
+        let (_temp, path) = create_temp_session_path(agent_session::AGENT_CODEX);
+        let session = parse_content_for_test(
+            agent_session::AGENT_CODEX,
+            &path,
+            UNIX_EPOCH,
+            "{\"type\":\"message\",\"content\":\"agentsight local codex prompt\"}\n",
+        )
+        .unwrap();
 
-        let session = parse_content_for_test("claude", &path, UNIX_EPOCH, content).unwrap();
+        let view = materialized_view(&[session]);
+        let rows = view.llm_call_rows(10);
 
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].comm.as_deref(), Some(agent_session::AGENT_CODEX));
         assert_eq!(
-            session.prompt_preview.as_deref(),
-            Some("Run the command and summarize it.")
+            rows[0].request.get("prompt").and_then(Value::as_str),
+            Some("agentsight local codex prompt")
         );
     }
 
     #[test]
-    fn codex_exec_entrypoint_projects_prompt_without_vendor_duplicate() {
+    fn codex_state_db_produces_indexed_session_metadata() {
+        let temp = tempfile::tempdir().unwrap();
+        write_codex_state_db_for_test(temp.path());
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].display_id, "codex:019f49.fd456");
+        assert_eq!(sessions[0].model.as_deref(), Some("gpt-web-ci"));
+        assert_eq!(sessions[0].usage.total_tokens, 33);
         assert_eq!(
-            codex_exec_prompt(
-                "/usr/bin/env node /usr/local/bin/codex -a never -s read-only exec --json -C /tmp --skip-git-repo-check Reply exactly: hello"
-            )
-            .as_deref(),
-            Some("Reply exactly: hello")
+            sessions[0].prompt_preview.as_deref(),
+            Some("web state prompt")
         );
-        assert!(is_codex_cli_entrypoint(Some("/usr/local/bin/codex")));
-        assert!(!is_codex_cli_entrypoint(Some(
-            "/opt/codex/node_modules/@openai/codex/vendor/bin/codex"
-        )));
+        assert_eq!(sessions[0].cwd.as_deref(), Some("/work/repo"));
+        assert_eq!(
+            sessions[0].last_message_at.as_deref(),
+            Some("1970-01-01T00:31:40.000Z")
+        );
+    }
+
+    #[test]
+    fn codex_state_db_errors_return_empty_for_jsonl_fallback() {
+        let temp = tempfile::tempdir().unwrap();
+        fs::create_dir_all(temp.path().join(".codex")).unwrap();
+        fs::write(temp.path().join(".codex/state_5.sqlite"), "not sqlite").unwrap();
+
+        assert!(codex_state_sessions_in_home(temp.path(), 5).is_empty());
+    }
+
+    #[test]
+    fn codex_state_db_falls_back_to_rollout_usage_for_large_totals() {
+        let (_temp, path) = create_temp_session_path(agent_session::AGENT_CODEX);
+        fs::write(
+            &path,
+            format!(
+                "{}\n{}",
+                "{\"type\":\"event_msg\",\"payload\":{\"type\":\"noop\"}}\n".repeat(2048),
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":2109758505,"output_tokens":5136738,"cached_input_tokens":2069213696,"total_tokens":2114895243}}}}"#
+            ),
+        )
+        .unwrap();
+        let usage = codex_state_usage(2_114_895_243, &path.to_string_lossy());
+
+        assert_eq!(plausible_codex_state_tokens(33), 33);
+        assert_eq!(plausible_codex_state_tokens(2_114_895_243), 0);
+        assert_eq!(usage.input_tokens, 40_544_809);
+        assert_eq!(usage.output_tokens, 5_136_738);
+        assert_eq!(usage.cache_read_tokens, 2_069_213_696);
+        assert_eq!(usage.total_tokens, 45_681_547);
+    }
+
+    #[test]
+    fn crowded_codex_home_fallback_keeps_only_observed_exec_prompt() {
+        let temp = tempfile::tempdir().unwrap();
+        let state_path = write_codex_home(
+            temp.path(),
+            &[
+                "unrelated historical prompt",
+                "unrelated historical prompt",
+                "unrelated historical prompt",
+                "agentsight current run prompt",
+                "agentsight current run historical prompt",
+                "unrelated historical prompt",
+                "unrelated historical prompt",
+                "unrelated historical prompt",
+            ],
+        );
+        let now = current_epoch_ms();
+
+        let rows = vec![
+            exec_row(
+                "audit-exec",
+                now,
+                "codex",
+                &format!("{CODEX}agentsight current run prompt"),
+            ),
+            exec_row(
+                "audit-exec-truncated",
+                now + 1,
+                "node",
+                &format!("{CODEX}agentsight current run"),
+            ),
+            file_row("audit-file", now + 100, &state_path),
+        ];
+
+        let sessions = observed_sessions_from_audit_rows(&rows);
+
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(
+            sessions[0].prompt_preview.as_deref(),
+            Some("agentsight current run prompt")
+        );
+    }
+
+    #[test]
+    fn codex_home_fallback_accepts_time_window_when_exec_prompt_is_truncated() {
+        let temp = tempfile::tempdir().unwrap();
+        let state_path = write_codex_home(temp.path(), &["agentsight truncated command prompt"]);
+        let now = current_epoch_ms();
+
+        let sessions = observed_sessions_from_audit_rows(&[
+            exec_row(
+                "audit-exec",
+                now,
+                "codex",
+                &format!("{CODEX}-c model_provider=\"agentsight-mock"),
+            ),
+            file_row("audit-file", now + 100, &state_path),
+        ]);
+
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(
+            sessions[0].prompt_preview.as_deref(),
+            Some("agentsight truncated command prompt")
+        );
+    }
+
+    #[test]
+    fn codex_exec_prompt_rows_filter_only_wrapper_duplicates() {
+        let rows = [
+            (1_000, "node", "/usr/bin/node /opt/codex/bin/codex exec --skip-git-repo-check agentsight dedupe prompt"),
+            (1_001, "codex", "/opt/codex/bin/codex exec --skip-git-repo-check agentsight dedupe prompt"),
+            (2_000, "codex", "/usr/bin/codex exec --skip-git-repo-check agentsight short prompt"),
+            (3_000, "codex", "/usr/bin/codex exec --skip-git-repo-check agentsight much longer unrelated prompt"),
+            (10_000, "codex", "/usr/bin/codex exec --skip-git-repo-check agentsight repeated prompt"),
+            (11_000, "codex", "/usr/bin/codex exec --skip-git-repo-check agentsight repeated prompt"),
+            (20_000, "codex", "/usr/bin/codex exec --skip-git-repo-check agentsight repeated prompt"),
+            (21_000, "docker", "docker exec codex exec agentsight should not parse"),
+            (22_000, "docker", "docker exec container /usr/local/bin/codex exec agentsight should parse once"),
+        ]
+        .into_iter()
+        .enumerate()
+        .map(|(index, (ts, comm, command))| exec_row(&format!("audit-{index}"), ts, comm, command))
+        .collect::<Vec<_>>();
+
+        let projected = observed_session_prompt_rows(&rows);
+        assert_eq!(projected[0].comm.as_deref(), Some("node"));
+        assert_eq!(projected[0].target.as_deref(), Some("/usr/bin/node"));
+        let prompts = projected
+            .into_iter()
+            .map(|row| row.summary)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            prompts,
+            vec![
+                Some("agentsight dedupe prompt".to_string()),
+                Some("agentsight short prompt".to_string()),
+                Some("agentsight much longer unrelated prompt".to_string()),
+                Some("agentsight repeated prompt".to_string()),
+                Some("agentsight repeated prompt".to_string()),
+                Some("agentsight repeated prompt".to_string()),
+                Some("agentsight should parse once".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn codex_fallback_time_window_rejects_stale_matching_session() {
+        let (_temp, path) = create_temp_session_path(agent_session::AGENT_CODEX);
+        let session = parse_content_for_test(
+            agent_session::AGENT_CODEX,
+            &path,
+            UNIX_EPOCH,
+            "{\"type\":\"message\",\"content\":\"agentsight repeated prompt\"}\n",
+        )
+        .unwrap();
+
+        assert!(session_matches_observed_prompt(
+            &session,
+            &[ObservedCodexPrompt {
+                prompt: "agentsight repeated prompt".to_string(),
+                timestamp_ms: current_epoch_ms(),
+                pid: Some(42),
+                native_exec: true,
+                comm: Some("codex".to_string()),
+                target: Some("/usr/bin/codex".to_string()),
+            }]
+        ));
+        assert!(!session_is_in_observed_window(
+            &session,
+            Some((current_epoch_ms() - 1_000, current_epoch_ms() + 1_000))
+        ));
+    }
+
+    fn exec_row(id: &str, timestamp_ms: u64, comm: &str, full_command: &str) -> AuditEventRow {
+        AuditEventRow {
+            id: id.to_string(),
+            timestamp_ms,
+            audit_type: "process".to_string(),
+            pid: Some(42),
+            comm: Some(comm.to_string()),
+            subject: None,
+            action: Some("exec".to_string()),
+            target: Some(format!("/usr/bin/{comm}")),
+            status: Some("observed".to_string()),
+            summary: None,
+            details: serde_json::json!({ "full_command": full_command }),
+        }
+    }
+
+    fn file_row(id: &str, timestamp_ms: u64, path: &Path) -> AuditEventRow {
+        AuditEventRow {
+            id: id.to_string(),
+            timestamp_ms,
+            audit_type: "file".to_string(),
+            pid: Some(42),
+            comm: Some("codex".to_string()),
+            subject: None,
+            action: Some("write".to_string()),
+            target: Some(path.to_string_lossy().to_string()),
+            status: Some("observed".to_string()),
+            summary: None,
+            details: serde_json::json!({ "filepath": path.to_string_lossy() }),
+        }
+    }
+
+    fn current_epoch_ms() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64
+    }
+
+    fn write_codex_home(root: &Path, prompts: &[&str]) -> PathBuf {
+        let codex_home = root.join("codex-home");
+        let sessions_dir = codex_home.join("sessions/2026/07/14");
+        fs::create_dir_all(&sessions_dir).unwrap();
+        for (index, prompt) in prompts.iter().enumerate() {
+            fs::write(
+                sessions_dir.join(format!(
+                    "rollout-2026-07-14T00-00-{index:02}-session-{index}.jsonl"
+                )),
+                format!(
+                    "{{\"timestamp\":\"2026-07-14T00:00:{index:02}.000Z\",\
+                     \"type\":\"event_msg\",\
+                     \"payload\":{{\"type\":\"user_message\",\"message\":\"{prompt}\"}}}}\n"
+                ),
+            )
+            .unwrap();
+        }
+        let state_path = codex_home.join("stat");
+        fs::write(&state_path, "").unwrap();
+        state_path
     }
 }
