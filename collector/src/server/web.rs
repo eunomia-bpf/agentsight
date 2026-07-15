@@ -203,10 +203,16 @@ fn snapshot_from_sources(
         return Ok(view.export_snapshot(SnapshotOptions { audit_limit }));
     }
 
-    let agent_native_rows = agent_native_sessions
+    let mut session_cache = agent_native_sessions
         .lock()
-        .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))?
-        .discover_cached(25, Duration::from_secs(2));
+        .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))?;
+    let agent_native_rows = agent_native_sessions::discover_sessions(
+        &mut session_cache,
+        None,
+        None,
+        25,
+        Duration::from_secs(2),
+    );
     let mut view = view
         .lock()
         .map_err(|_| std::io::Error::other("live view lock poisoned"))?;
@@ -249,6 +255,9 @@ mod tests {
     use crate::model::{LlmCallRow, ProcessNodeRow, ViewSink};
     use crate::sinks::sqlite::SqliteStore;
     use crate::view::MaterializedView;
+    use std::ffi::OsString;
+
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     #[test]
     fn parses_api_query_parameters() {
@@ -375,5 +384,49 @@ mod tests {
                 .and_then(|value| value.as_str()),
             Some("db prompt")
         );
+    }
+
+    #[test]
+    fn snapshot_uses_agent_native_indexed_codex_sessions() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let old_home = std::env::var_os("HOME");
+        let old_sudo_user = std::env::var_os("SUDO_USER");
+        let temp = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("HOME", temp.path());
+            std::env::remove_var("SUDO_USER");
+        }
+
+        let result = (|| {
+            agent_native_sessions::write_codex_state_db_for_test(
+                temp.path(),
+                "gpt-web-ci",
+                33,
+                "web state prompt",
+            );
+
+            let live_view = MaterializedView::shared_bounded();
+            let sessions = Arc::new(Mutex::new(SessionCache::new()));
+            let snapshot = snapshot_from_sources(&live_view, &sessions, None, 100).unwrap();
+
+            assert_eq!(snapshot.summary.total_tokens, 33);
+            assert_eq!(snapshot.sessions.len(), 1);
+            let session = &snapshot.sessions[0];
+            assert_eq!(session.agent_type, "codex");
+            assert_eq!(session.model.as_deref(), Some("gpt-web-ci"));
+        })();
+
+        restore_env("HOME", old_home);
+        restore_env("SUDO_USER", old_sudo_user);
+        result
+    }
+
+    fn restore_env(name: &str, value: Option<OsString>) {
+        unsafe {
+            match value {
+                Some(value) => std::env::set_var(name, value),
+                None => std::env::remove_var(name),
+            }
+        }
     }
 }

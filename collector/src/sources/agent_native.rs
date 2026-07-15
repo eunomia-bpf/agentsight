@@ -40,6 +40,17 @@ pub(crate) fn snapshot(
     limit: usize,
     max_age: Duration,
 ) -> Snapshot {
+    let filtered = discover_sessions(cache, pid_filter, text_filter, limit, max_age);
+    materialized_view(&filtered).export_snapshot(SnapshotOptions { audit_limit: 0 })
+}
+
+pub(crate) fn discover_sessions(
+    cache: &mut SessionCache,
+    pid_filter: Option<u32>,
+    text_filter: Option<&str>,
+    limit: usize,
+    max_age: Duration,
+) -> Vec<LocalSession> {
     let indexed_codex = codex_state_sessions(limit);
     let mut sessions = if indexed_codex.is_empty() {
         cache.discover_cached(limit, max_age)
@@ -56,11 +67,10 @@ pub(crate) fn snapshot(
     };
     let mut seen = HashSet::new();
     sessions.retain(|session| seen.insert(session.display_id.clone()));
-    let filtered: Vec<LocalSession> = sessions
+    sessions
         .into_iter()
         .filter(|s| matches_filter(s, pid_filter, text_filter))
-        .collect();
-    materialized_view(&filtered).export_snapshot(SnapshotOptions { audit_limit: 0 })
+        .collect()
 }
 
 fn codex_state_sessions(limit: usize) -> Vec<LocalSession> {
@@ -803,6 +813,38 @@ pub(crate) fn parse_content_for_test(
 }
 
 #[cfg(test)]
+pub(crate) fn write_codex_state_db_for_test(home: &Path, model: &str, tokens: i64, preview: &str) {
+    let codex_dir = home.join(".codex");
+    fs::create_dir_all(&codex_dir).unwrap();
+    let conn = rusqlite::Connection::open(codex_dir.join("state_5.sqlite")).unwrap();
+    let rollout_path = sql_quote(&home.join(".codex/sessions/session.jsonl").to_string_lossy());
+    let model = sql_quote(model);
+    let preview = sql_quote(preview);
+    conn.execute_batch(&format!(
+        "CREATE TABLE threads (
+            id TEXT PRIMARY KEY,
+            rollout_path TEXT,
+            model TEXT,
+            tokens_used INTEGER NOT NULL DEFAULT 0,
+            preview TEXT,
+            cwd TEXT,
+            created_at_ms INTEGER,
+            updated_at_ms INTEGER
+        );
+        INSERT INTO threads
+        (id, rollout_path, model, tokens_used, preview, cwd, created_at_ms, updated_at_ms)
+        VALUES
+        ('019f49ca-54e7-7a91-82e7-a52b53cfd456', '{rollout_path}', '{model}', {tokens}, '{preview}', '/work/repo', 1800000, 1900000);"
+    ))
+    .unwrap();
+}
+
+#[cfg(test)]
+fn sql_quote(value: &str) -> String {
+    value.replace('\'', "''")
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -833,40 +875,7 @@ mod tests {
     #[test]
     fn codex_state_db_produces_indexed_session_metadata() {
         let temp = tempfile::tempdir().unwrap();
-        let codex_dir = temp.path().join(".codex");
-        fs::create_dir_all(&codex_dir).unwrap();
-        let conn = rusqlite::Connection::open(codex_dir.join("state_5.sqlite")).unwrap();
-        conn.execute_batch(
-            "CREATE TABLE threads (
-                id TEXT PRIMARY KEY,
-                rollout_path TEXT,
-                model TEXT,
-                tokens_used INTEGER NOT NULL DEFAULT 0,
-                preview TEXT,
-                cwd TEXT,
-                created_at_ms INTEGER,
-                updated_at_ms INTEGER
-            );",
-        )
-        .unwrap();
-        conn.execute(
-            "INSERT INTO threads
-             (id, rollout_path, model, tokens_used, preview, cwd, created_at_ms, updated_at_ms)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            rusqlite::params![
-                "019f49ca-54e7-7a91-82e7-a52b53cfd456",
-                temp.path()
-                    .join(".codex/sessions/session.jsonl")
-                    .to_string_lossy(),
-                "gpt-5.5",
-                12345i64,
-                "hello from state",
-                "/work/repo",
-                1_800_000i64,
-                1_900_000i64,
-            ],
-        )
-        .unwrap();
+        write_codex_state_db_for_test(temp.path(), "gpt-5.5", 12345, "hello from state");
 
         let sessions = codex_state_sessions_in_home(temp.path(), 5);
 
