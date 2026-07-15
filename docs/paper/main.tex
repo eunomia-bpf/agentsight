@@ -746,34 +746,29 @@ attribution views over the resulting operations.
 \subsection{RQ2: Problem Correspondence}
 % RQ2：分析器输出是否对应真实问题？
 
-RQ2 asks whether profiler output corresponds to real problems by testing
-whether a target-blind profile concentrates independently annotated
-failures or risky steps into groups that a developer can inspect early.
-% RQ2 测试目标盲的 profile 是否能将独立标注的故障或风险步骤集中到开发者可优先检查的分组中。
-We evaluate complete public workloads from AgentProcessBench~\cite{agentprocessbench},
-HINTBench~\cite{hintbench}, and TraceElephant~\cite{traceelephant}.
-HINTBench development labels select among 24 fixed field orders. Its reported
-test labels and all AgentProcessBench and TraceElephant targets remain held out
-from tag, stack, and ranking construction. Only the final scorer reads them to
-compute inspection work or, for AgentProcessBench, operation-weighted average
-precision (AP) within each family and its equal-family macro average.
-% 我们在 AgentProcessBench、HINTBench 和 TraceElephant 的完整公开 workload 上评估。HINTBench 的开发集标签用于从 24 个固定 field order 中选择一个；其报告的测试集标签以及 AgentProcessBench 和 TraceElephant 的全部目标标签均不参与 tag、stack 或排序构造。最终 scorer 计算 inspection work；对 AgentProcessBench，它先计算 family 内 operation-weighted AP，再报告等权 family macro average。
-AgentProcessBench uses 20 released judge votes as its step signal and ranks
-groups by mean risk. For HINTBench and TraceElephant, released localization
-predictions provide the step signal, and groups are ranked by the maximum 95\%
-Wilson lower bound~\cite{wilson1927} on hit density over their profile prefixes.
-% AgentProcessBench 使用 20 个发布 judge 预测中判为错误的比例作为逐步 risk，并按分组平均 risk 排序。HINTBench 和 TraceElephant 使用发布的定位预测作为 step signal，并按各 profile prefix 上 hit density 的最大 95% Wilson 下界排序分组。
-The raw-action control changes only the grouping field to each workload's
-released action while keeping the step signal, ranking rule, scorer, input, and
-full execution path fixed.
-% Raw-action 对照仅将分组字段改为各 workload 发布的 action，同时保持 step signal、排序规则、scorer、输入和完整执行路径不变。
+RQ2 asks whether target-blind profiles place independently annotated problems
+in groups a developer can inspect early. We run complete AgentProcessBench,
+HINTBench, and TraceElephant workloads~\cite{agentprocessbench,hintbench,traceelephant}.
+HINTBench development labels select one of 24 fixed field orders; all reported
+test targets remain hidden from construction and ranking, then the final scorer
+computes inspection work or macro AP. AgentProcessBench ranks the mean of 20
+released judge votes; HINTBench and TraceElephant rank released localization
+signals by the best 95\% Wilson lower bound over profile prefixes~\cite{wilson1927}.
+Raw action changes only the grouping field.
+% RQ2 测试目标盲 profile 是否把独立标注问题放入开发者可提前检查的分组。我们运行完整的 AgentProcessBench、HINTBench 和 TraceElephant workload。HINTBench 开发标签从 24 个固定 field order 中选择一个；所有报告的测试目标均不参与构造和排序，最终 scorer 再计算 inspection work 或 macro AP。AgentProcessBench 按 20 个发布 judge vote 的均值排序；HINTBench 和 TraceElephant 按 profile prefix 上发布定位信号的最佳 95% Wilson 下界排序。Raw action 仅改变分组字段。
+
+A fixed quantized Qwen3.6-27B reader~\cite{qwen36} selects three of each view's
+query-aware top five groups on six tasks. Rank, view, and IDs are hidden; all
+positions are balanced; hidden positives are read only after all 66 responses,
+then rotation scores are averaged.
+% 固定的量化 Qwen3.6-27B reader 在六个任务上从每个视图 query-aware 的前五组中选择三组。Rank、view 和 ID 被隐藏；所有位置保持平衡，仅在收集完全部 66 个响应后读取隐藏正例，再平均各轮分数。
 
 \begin{table}[t]
 \centering\scriptsize
-\caption{Existing RQ2 controls. Lower Work is better; $\dagger$ is descriptive.
-AP and Work are not averaged.}
+\caption{Full-workload RQ2 controls. Lower Work is better; $\dagger$ is
+descriptive. AP and Work are not averaged.}
 \label{tab:rq2-localization}
-\begin{tabular}{@{}lrrl@{}}
+\begin{tabular}{@{}l@{\hspace{4pt}}r@{\hspace{4pt}}r@{\hspace{4pt}}l@{}}
 \toprule
 Metric & \sys & Raw & Other existing views \\
 \midrule
@@ -785,37 +780,40 @@ Trace Work@50$\dagger$ & .195 & .466 & width .396; session .568; native .578 \\
 \end{tabular}
 \end{table}
 
-AgentProcessBench contains 1{,}000 BFCL, GAIA, HotpotQA, and $\tau$-bench
-trajectories with consensus labels for 8{,}509 assistant steps~\cite{agentprocessbench}.
-% AgentProcessBench 包含来自 BFCL、GAIA、HotpotQA 和 tau-bench 的 1,000 条轨迹，并为全部 8,509 个 assistant step 提供共识人工标签。
-The released target-blind risk signal raises equal-family macro AP from 0.556
-to 0.588 (gain 0.0315; 95\% interval [0.0151, 0.0535]). Shuffling assignments
-within raw-action groups while preserving subgroup sizes gives $p=0.00995$,
-isolating semantic-specific concentration. Its 419 recurring groups lie
-between raw action's 259 and the 1{,}000 session or 8{,}509 per-step views,
-which reach higher AP and preclude uniform dominance.
-% 发布的目标盲风险信号下，语义 stack 相对 raw action 显著提升 AP；保持子组大小的组内置换隔离出语义特异性。其 419 个重复分组位于 raw action 与更细的 session/逐步视图之间，因此不声称统一支配。
+\begin{table*}[t]
+\centering\scriptsize
+\caption{Rank-hidden reader deltas (stack minus session) at three groups;
+higher recall/precision and lower work are better.}
+\label{tab:rq2-reader}
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+ & ANet incorrect & ANet redundant & AReward loop & AReward effect & OSWorld boundary & SATraj unsafe & Median \\
+\midrule
+$\Delta$Recall & -.005 & +.008 & +.361 & +.064 & +.357 & +.097 & \textbf{+.081} \\
+$\Delta$Precision & +.010 & +.061 & -.105 & +.159 & -.177 & +.369 & \textbf{+.036} \\
+$\Delta$Work & -.002 & +.002 & +.294 & -.001 & +.377 & +.011 & +.006 \\
+\bottomrule
+\end{tabular}
+\end{table*}
 
-On 536 HINTBench test trajectories, \sys reaches 80\% macro recall at 41.57\%
-work versus 46.29\% raw, 57.93\% native, 59.14\% session, and 100\% independent
-step. Paired intervals exclude zero for the latter three but not raw
-($[-0.2937,0.0086]$), so this supports the complete profile/prefix/scorer
-pipeline rather than hierarchy alone.
-% 在 HINTBench 的全部 536 条测试轨迹上，AgentProf 达到 80% macro recall 需要检查 41.57% 的步骤，优于源原生顺序、session 分组与独立步骤；相对 raw action 的区间跨零，因此该证据归因于完整的 profile、验证集选择的 prefix 策略与 scorer 流水线，而不单独归因于 hierarchy。
-On TraceElephant's 220 failures, \sys reaches 50\% macro decisive-step recall
-at 19.55\% work versus 46.64\% raw and, at 20\% work, recovers 52.57\% versus
-23.79\%. This descriptive early region ends in a large tied tier that requires
-full work at prospective 80\% recall, where the interval crosses zero.
-% 在 TraceElephant 的全部 220 个真实失败执行上，语义 profile 在早期区间显著领先 raw action；但该结果为描述性证据，因为末端大规模同分层使预先设定的 80% recall 点需要完整检查，且配对区间跨零。
+On all 1{,}000 AgentProcessBench trajectories (8{,}509 labeled steps), macro AP
+rises from 0.556 to 0.588 (gain 0.0315; 95\% interval [0.0151, 0.0535]). A
+matched within-raw-action shuffle gives $p=0.00995$; finer session and per-step
+views still preclude uniform dominance.
+% 在 AgentProcessBench 的全部 1,000 条轨迹（8,509 个标注 step）上，macro AP 从 0.556 提高到 0.588；匹配的 raw-action 组内置换给出 p=0.00995，但更细的 session 和逐步视图仍排除统一支配。
 
-Together, the complete workloads answer RQ2 positively: AgentProcessBench
-isolates semantic-specific concentration, HINTBench supports the complete
-pipeline, and TraceElephant shows strong early localization. A secondary
-six-task analysis (34{,}539 task-operation instances) reaches 25\% recall at
-20.00\% work and 16 groups versus fixed-session's 24.95\% and 50; flat needs
-100\% work, while raw reaches 19.93\% and 13 groups. Thus operation stacks
-reduce session fragmentation without claiming universal semantic dominance.
-% 三个完整 workload 共同对 RQ2 给出肯定回答：AgentProcessBench 隔离出语义特异性集中，HINTBench 支持完整流水线，TraceElephant 展示强早期定位；补充的六任务分析在 25% 召回率下以 20.00% 工作量和 16 个分组达到目标，fixed-session 为 24.95% 和 50，flat 需要 100% 工作量，raw 为 19.93% 和 13 个分组，因此 operation stack 降低了 session 碎片化但不声称普遍语义支配。
+On all 536 HINTBench tests, Work@80 is 41.57\% versus 46.29\% raw; only the
+raw interval crosses zero. On all 220 TraceElephant failures, Work@50 is 19.55\%
+versus 46.64\% raw, but a tied tail requires full work at prospective 80\%
+recall, where the interval crosses zero.
+% 在 HINTBench 的全部 536 条测试轨迹上，Work@80 为 41.57%，raw 为 46.29%，只有相对 raw 的区间跨零。在 TraceElephant 的全部 220 个失败上，Work@50 为 19.55%，raw 为 46.64%，但同分尾部使预先设定的 80% recall 需要完整检查且区间跨零。
+
+Together these complete workloads provide positive RQ2 evidence. The reader
+improves recall on 5/6 tasks (median paired delta 8.06 points) and precision on
+4/6 (3.55 points) at three groups. Work is higher on 4/6, so this supports group
+prioritization, not lower work, reader-only causality, human utility, or
+universal dominance.
+% 这些完整 workload 共同为 RQ2 提供正面证据。reader 在三组预算下于 5/6 个任务上提高 recall（中位配对增量 8.06 个百分点），并在 4/6 个任务上提高 precision（3.55 个百分点）。4/6 个任务的 work 更高，因此该结果支持分组优先级决策，而不证明更低 work、reader-only 因果、人类效用或普遍支配。
 
 %% -------------------------------------------------------------------
 \subsection{RQ3: Tag Accuracy}

@@ -245,6 +245,16 @@ contradicts the registered sufficient-explanation hypothesis. It establishes a
 better implementation configuration and a mechanism boundary, not a smaller
 RQ3, a new thesis, or a reason to replace the original story.
 
+Step 0019 tests a different consequence inside unchanged RQ2. A fixed
+rank-hidden Qwen3.6-27B reader selects three of each view's query-aware top five
+groups across six public-data tasks and all five cyclic positions. The complete
+66-presentation result improves selected-positive recall on 5/6 tasks and
+precision on 4/6 relative to fixed-session packets under the predeclared rule.
+This is supporting group-prioritization evidence; higher work on 4/6 tasks and
+the absence of a matched raw-action packet prevent lower-work, human, or
+universal-view promotion. It strengthens the original positive program without
+changing the thesis, RQs, contributions, or two-object model.
+
 ### Next Decisive Evidence
 
 The user has restored the untouched submodule as the canonical story source.
@@ -256,16 +266,15 @@ mechanism is much better than the old heuristic and cap-free induction is better
 than depth four, but neither clears the strongest simple controls. No further
 OSWorld-Human depth, penalty, threshold, or score-term search is admitted.
 
-The Step 0018 whole-paper review preserves the thesis and four RQs but disputes
-the current cumulative positive RQ2 authorization: its three workload outcomes
-use different metrics/points and do not yet isolate downstream decision value.
-The proposed NeMo shared-trace comparison is not directly executable because
-NeMo instruments its own running workflows rather than importing the current
-artifacts. The next candidate is the paused fixed R315 reader comparison over
-existing AgentProf and native/raw packets, subject to a fresh plan review. It
-attempts to strengthen the original positive RQ2 hypothesis rather than weaken
-or replace it. This is an evidence-frontier update, not a narrative evolution
-or change to the thesis, four RQs, or two-object model.
+The Step 0018 whole-paper review preserved the thesis and four RQs but disputed
+the current cumulative positive RQ2 authorization because its three workload
+outcomes used different metrics/points and did not isolate downstream decision
+value. Step 0019 has now completed the selected fixed-reader comparison and
+adds the bounded downstream evidence above. The next action is the targeted
+WRITE and independent outer audit of that evidence, followed by selection of
+the strongest remaining paper-level gap. This is an evidence-frontier update,
+not a narrative evolution or change to the thesis, four RQs, or two-object
+model.
 
 ## Narrative Evolution — Accepted Changes Only
 

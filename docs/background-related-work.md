@@ -17,46 +17,25 @@ strengthen that positive program. A local negative or inconclusive construction
 does not authorize a hierarchy-centered replacement story, a smaller RQ, or a
 weaker hypothesis.
 
-Cycle 0003 completed the fixed-RQ2 HINTBench experiment selected by the prior
-whole-paper REVIEW. The full official snapshot and all declared cells ran, but
-the paired work interval against raw action crossed zero, so the strict result
-is `VALID / INCONCLUSIVE` and that population is closed to retuning. The next
-whole-paper REVIEW compared all four open RQs and selected one new
-highest-paper-value experiment: fixed-RQ2 localization over all 220 official
-TraceElephant real failed executions, with decisive-step targets scorer-only
-and strong same-information baselines. This is a stronger external evidence
-source for the unchanged RQ2, not a new story or a run-level substitute task.
+RQ1 now has a complete scoped real-Codex lineage result, RQ4 has a complete
+current-binary construction-cost result, and RQ3 has positive held-out boundary
+and task-partition evidence. Steps 0017--0018 additionally establish the
+boundary of the built-in Rust inducer: simplifying it and removing the arbitrary
+depth-four cap improves the mechanism substantially, but it remains below the
+strongest simple controls. That OSWorld-Human tuning branch is closed.
 
-Step 0004 has now completed that TraceElephant experiment over all 220 released
-real failures. Independent recalculation confirms the run is valid and complete.
-The fixed semantic construction has strong early concentration but a large
-final tied tier, so its predeclared 80%-recall work comparison is inconclusive.
-The outer audit synthesized this with the earlier positive AgentProcessBench AP
-results and HINTBench work curve and accepted a positive cumulative RQ2 answer.
-Another RQ2 score or benchmark variant is not the current evidence priority.
-
-Step 0007 then completed the selected RQ1 replay by reusing R114's fixed 20
-real Codex tasks, capture/export path, exact-lineage checker, manifest task
-categories, and concurrent controls. The scoped lineage path reaches 100.0%
-precision and 96.569% recall, rejects all 1,629 controls, and current
-`agentpprof 0.2.37` preserves all 1,520 attributed effects and all five
-category weights.
-
-Step 0008 then reused four already supported public sources and current
-backends for RQ3. Target-blind task clustering reaches V-measure 0.5565 on the
-complete nine-session Mind2Web prefix and 0.8151 on 100 ScienceWorld sessions,
-both at full coverage versus 0 for a constant control. The current paper now
-combines this task-partition evidence with Step 0006's session-held-out human
-boundary result. Phase and broad action evidence remain open components of the
-fixed RQ3, but another dataset or metric variant is not automatically the next
-paper priority.
-
-Step 0010 is a whole-paper AAAI-27 review. Its external search must first test
-whether the apparent missing-baseline objection is a reporting gap: the
-completed HINTBench and TraceElephant matrices already include native sequence,
-independent-step, per-session, flat, width-only, raw-action, and oracle controls.
-A simple cumulative synthesis of those existing results has priority over a new
-benchmark or human-dependent study.
+The Step 0018 source-grounded whole-paper review disputes the current cumulative
+positive RQ2 synthesis. AgentProcessBench contains a small semantic-specific AP
+gain, whereas HINTBench versus raw action and TraceElephant's prospective
+Work@80 comparison remain inconclusive. Another score, cutoff, or localization
+benchmark would repeat the same evidence shape. Step 0019 therefore tested a
+different consequence using existing assets: whether one fixed rank-hidden LLM
+reader makes a better three-group prioritization decision from operation-stack
+packets than from execution-local fixed-session packets. The complete result is
+valid and supports the registered recall and precision comparison on six tasks.
+It is bounded downstream-use evidence inside unchanged RQ2, not a human-
+productivity, lower-work, raw-action, or universal-view result and not a new
+story.
 
 ## Verified Closest-Work Families
 
@@ -120,6 +99,11 @@ source execution view.
   recommendations, perturbation tests, and causal attribution. It is evidence
   of AAAI relevance and a competing trace representation, not a Main-Track
   precedent for AgentProf's exact claim.
+- [TraceProbe](https://arxiv.org/abs/2607.06184) normalizes 2,500 coding-agent
+  trajectories from five SWE-bench Verified production settings and uses
+  trajectory structure to localize inspection targets, search loops, and failed
+  work. This July 2026 preprint further prevents novelty claims based on
+  corpus-level trajectory diagnostics alone.
 
 The completed Hodoscope experiment reproduced the official iQuest behavior and
 found that the tested recursive AgentProf construction did not beat the released
@@ -163,8 +147,11 @@ aggregation, not asserted from terminology.
 
 ### Failure And Problem Localization
 
-- [AgentRx](https://github.com/microsoft/AgentRx) releases manually annotated
-  critical failure steps and a diagnosis method across multiple domains.
+- [AgentRx](https://arxiv.org/abs/2602.02475) releases 115 manually annotated
+  failed trajectories across three domains. Its LLM judge consumes a structured
+  constraint-validation log to localize the critical failure step and category.
+  This is direct protocol precedent for a fixed LLM making a diagnostic choice
+  from trajectory-derived evidence, but not a same-input profiler baseline.
 - [TELBench / DRIFT](https://github.com/NJU-LINK/DRIFT) studies harmful error
   spans in deep-research trajectories.
 - [HINTBench](https://arxiv.org/abs/2604.13954) releases raw agent trajectories
@@ -186,6 +173,13 @@ AgentProf cannot claim failure localization in general. RQ2 must instead show
 that one plan-defined target-blind profile concentrates independently defined real
 problems and reduces inspection at matched recall, budget, or analyst decision
 against strong information-equivalent baselines.
+
+For fixed-reader evaluation, [Shi et
+al.](https://aclanthology.org/2025.ijcnlp-long.18/) show position bias across
+list-wise and pairwise LLM judging. A reader experiment must therefore hide the
+existing query-aware rank and ordinal identifiers, use identical presentation
+and budgets across matched views, and retain the original rank as a separate
+control rather than prompt evidence.
 
 ## Cycle 0002 Completed RQ2 Branches
 
@@ -229,13 +223,14 @@ alone.
    replay result on R114's fixed real-task suite. Its scope is the declared
    process/tool lineage and R114-compatible AgentSight 0.2.37 capture path; it
    is not arbitrary causal attribution or automatic task inference.
-2. **RQ2 — real-problem localization.** The cumulative AgentProcessBench,
-   HINTBench, and TraceElephant evidence supplies an evidence-backed positive
-   answer for target-blind problem concentration and useful inspection regions.
-   The strict TraceElephant 80%-recall construction remains inconclusive and
-   bounds only its high-recall tail. Do not reopen AgentProcessBench scoring,
-   HINTBench/TraceElephant tuning, the target-dropping AgentNet key, or completed
-   negative branches without materially new evidence.
+2. **RQ2 — real-problem localization.** AgentProcessBench supplies a small
+   semantic-specific AP gain; HINTBench versus raw action and TraceElephant's
+   prospective Work@80 comparison remain inconclusive. Do not reopen their
+   score, cutoff, or benchmark branches. Step 0019 completes one different
+   downstream decision over all 18 R315 packets: the fixed reader improves
+   selected-positive recall on 5/6 tasks and precision on 4/6 versus the matched
+   fixed-session packet. Flat remains a lower bound and visible order a control;
+   the result does not show lower work or raw-action superiority.
 3. **RQ3 — tag accuracy.** Evaluate the actual prompt/intent attribution path
    and approved fixed mappings on held-out agents and task families, including
    coverage, stability, and downstream attribution sensitivity. Step 0008 now
@@ -249,14 +244,13 @@ alone.
    supports the predecessor shared-cache mechanism. Do not reopen another
    cost/cache variant.
 
-Step 0006 completed the RQ3 human-boundary component, Step 0007 completed the
-selected RQ1 exact-lineage replay, and Step 0008 added independent RQ3 task-
-partition evidence. The current whole-paper review identifies one lower-cost
-candidate before any new experiment: synthesize the already completed RQ2
-native, independent-step, session, flat, raw-action, width-only, matched-
-permutation, and oracle controls under their existing predeclared metrics. Only
-if that complete reuse cannot change the paper-level utility answer should the
-next experiment add a new mechanism or source.
+The current source screen finds direct precedent for the fixed-reader decision
+in AgentRx and AgentDiagnose and accepted evidence that order must be hidden.
+No official tool consumes the R315 packet format, so Step 0019 used one thin
+collection/scoring adapter. Raw action remains a strong paper-level
+counterpoint; because R315 has no matched raw-action packet, the positive Step
+0019 result supports only operation-stack versus execution-local prioritization,
+not universal view dominance.
 
 ## Search Policy And Reopen Conditions
 

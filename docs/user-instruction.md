@@ -188,3 +188,7 @@ submodule 的原始 AgentProf 版本 是啥?
 ---
 
 我们的 agentpprof 论文能发顶会了吗? 还有啥要迭代? 你想想? 别动 submodul,  可以在 docs/paper 里面开始继续迭代实验? 是不是可以 target AAAI? 注意格式. 然后继续按照 research skills 迭代改进, 包括做实验.
+
+---
+
+实验做了吗? 进度如何?

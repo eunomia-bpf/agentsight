@@ -26,6 +26,7 @@ history is archived at
 | `agentpprof/examples/` | public fixture and usage material |
 | `script/hodoscope_representation_eval.py` | thin official-data adapter for the completed matched Hodoscope/flat/turn/recursive experiment; not a core AgentProf subsystem |
 | `script/hintbench_profile_localization_eval.py` | thin official-data adapter, real-AgentProf runner, baseline scorer, and result reporter for the completed HINTBench experiment; not a core AgentProf subsystem |
+| `script/r315_llm_reader_eval.py` | thin rank-hidden packet collector and post-collection scorer for the completed fixed-reader RQ2 experiment; not a core AgentProf subsystem |
 
 ## Implemented Pipeline
 
@@ -138,6 +139,10 @@ configuration. In particular:
 9. the complete HINTBench profile has a favorable inspection-work point estimate
    but does not separate from raw action under its predeclared paired interval;
    it is a scoped boundary within the cumulative three-benchmark RQ2 answer.
+10. the fixed-reader result is limited to one local model and each view's
+    query-aware top-five packet; it adds group-prioritization evidence but does
+    not establish lower work, reader-only causality, human utility, or raw-action
+    superiority.
 
 ## Implementation Policy After The Depth Experiment
 

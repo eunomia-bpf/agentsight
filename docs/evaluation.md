@@ -19,7 +19,7 @@ later explicit user instruction may change the four author-fixed RQs.
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Do not run another RQ1 lineage or grouping variant; WRITE the cumulative positive answer and let REVIEW select the next fixed RQ. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Positive hypothesis unchanged; cumulative authorization contested by the Step 0018 whole-paper review.** AgentProcessBench has a small isolated AP gain, HINTBench is numerically favorable but inconclusive versus raw action, and TraceElephant is strong at a descriptive early point but inconclusive at prospective Work@80. Step 0014 supports recurring-versus-session compactness but raw action remains competitive. The next admitted candidate is the existing fixed R315 reader comparison over the same packets and views; its fresh plan must test one downstream prioritization decision without changing the RQ or combining heterogeneous metrics post hoc. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Positive hypothesis unchanged; Step 0019 adds valid supporting downstream evidence.** AgentProcessBench has a small isolated AP gain, HINTBench is numerically favorable but inconclusive versus raw action, and TraceElephant is strong at a descriptive early point but inconclusive at prospective Work@80. In the complete fixed-reader comparison, operation stack improves selected-positive recall on 5/6 tasks (median paired delta +0.080571) and precision on 4/6 (+0.035501) versus fixed session at a three-group budget. The result does not show lower work or raw-action, human, or universal-view superiority. Whole-paper REVIEW must now judge cumulative RQ2 submission readiness rather than rerun this packet study. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; built-in constructor boundary now measured.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Steps 0017--0018 show that the simplified cap-free Rust inducer is substantially better than the old/fixed-depth implementations but remains below the strongest simple controls. Do not tune OSWorld-Human again; whole-paper REVIEW must judge whether the admitted positive evidence is sufficient or select one independent annotated confirmation. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
@@ -245,6 +245,29 @@ victory, human-productivity result, or downstream intervention. Complete plan,
 preflight, replay, and independent result review are under
 [`loop-001-rq2-r337-reuse-audit`](tmp/build-and-evaluate/step-0014-20260714T105109-0700/01-experiment-gate/loop-001-rq2-r337-reuse-audit/).
 
+Step 0019 adds a distinct downstream-decision result over the same six public-
+data tasks without changing their profiles, labels, or existing rankers. A
+fixed quantized Qwen3.6-27B reader saw each operation-stack and fixed-session
+top-five packet with rank, view, and original group IDs hidden, selected exactly
+three groups, and received all five cyclic group positions. All 66 planned
+presentations completed on their first API attempt. Hidden benchmark positives
+were loaded only after collection, and an independent reviewer exactly
+recomputed every response and task row.
+
+After averaging rotations within each task/view, operation stack improves
+selected-positive operation recall on 5/6 tasks with median paired delta
+`+0.080571` and precision on 4/6 with median delta `+0.035501`. Both
+predeclared primary conditions pass, so the tested hypothesis is `VALID /
+SUPPORTED`. Work fraction is higher on 4/6 tasks with median delta `+0.006302`,
+including two large increases. The admitted value is therefore supporting RQ2
+evidence for group prioritization at a fixed three-group budget, not lower
+inspection work, reader-only causality, human productivity, remediation,
+raw-action superiority, universal view dominance, or a stand-alone whole-RQ
+answer. Plan, complete run, and independent review are under
+[`experiment-001`](tmp/build-and-evaluate/step-0019-20260714T164922-0700/experiment-001/),
+with raw artifacts under
+`.agentsight/experiments/r315-llm-reader-rq2-v2/full/`.
+
 The unexecuted revision-1 plan is superseded because it bundled roughly eleven
 comparator types and several independent research programs. Its history remains
 under
@@ -460,10 +483,14 @@ comparison as the two largest scientific risks. NVIDIA NeMo Agent Toolkit must
 enter Related Work, but its official profiler instruments a running
 NeMo-supported workflow and exports profiler traces; it does not provide the
 same-input importer required for a fair replay of current AgentSight/public
-artifacts. The highest-value feasible experiment candidate is therefore the
-paused fixed R315 reader comparison over existing AgentProf and native/raw
-packets. It requires a fresh single-RQ plan review before execution and may not
-inherit authorization from its paused Step 0017 draft.
+artifacts. Step 0019 has now completed the selected fixed R315 reader
+comparison under a fresh single-RQ plan and independent result review. The
+complete 66-presentation run supports its registered recall and precision
+hypothesis against fixed-session packets, while the work rows and absent
+matched raw-action packet preserve the stated boundary. Do not repeat this
+packet study with a cosmetic prompt, model, cutoff, or seed. Route the admitted
+result through targeted WRITE and the step outer audit; let that review choose
+the strongest remaining paper-level gap.
 
 ## Experiment History Policy
 
