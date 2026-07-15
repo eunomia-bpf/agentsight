@@ -146,7 +146,6 @@ def build(
     changes: dict[str, dict[str, Any]] = {}
     buckets: dict[int, Counter] = defaultdict(Counter)
     file_stats: dict[str, dict[str, Any]] = {}
-    ordered_inputs: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
     source_days = []
     lifetimes = artifacts[-1]["file_lifetimes"]
 
@@ -256,7 +255,6 @@ def build(
                     "exact_hunk": bool(top and top["exact_hunk_match"]),
                 }
                 path_events.append(row)
-                ordered_inputs[(event["session_id"], int(event["prompt_index"]))].append(row)
                 file = file_stats.setdefault(path, new_file_stats(path, lifetime_for_path.get(path)))
                 file["touches"] += 1
                 effect_key = {
@@ -304,7 +302,6 @@ def build(
     window_start = min(row["ts_ms"] for row in path_events)
     window_end = max(row["ts_ms"] for row in path_events)
     files = finalize_files(file_stats, window_start, window_end)
-    ordered_edges = build_ordered_edges(ordered_inputs)
     cochange_edges = build_cochange_edges(changes.values())
     blame_rows = build_blame_rows(repo, head, files)
     tree = build_tree(files)
@@ -332,7 +329,11 @@ def build(
         "summary": {
             "sessions": len(sessions),
             "path_event_rows": len(path_events),
-            "files": len(files),
+            "path_records": len(files),
+            "git_lifetimes": len(lifetimes),
+            "path_records_with_lifetime": sum(
+                file["lifetime_id"] is not None for file in files
+            ),
             "commits": len(commits),
             "changes": len(changes),
             "line_pixels": len(blame_rows),
@@ -363,7 +364,6 @@ def build(
                 changes.values(), key=lambda value: (value["committed_at_ms"], value["id"])
             )
         ],
-        "ordered_edges": ordered_edges,
         "cochange_edges": cochange_edges,
         "line_pixels": blame_rows,
         "survival_cohorts": build_survival_cohorts(lifetimes),
@@ -430,42 +430,6 @@ def finalize_files(
         serial["stable_y"] = int(compact_hash(path + ":y", 8), 16) / 0xFFFFFFFF
         output.append(serial)
     return sorted(output, key=lambda row: row["path"])
-
-
-def build_ordered_edges(
-    grouped: dict[tuple[str, int], list[dict[str, Any]]]
-) -> list[dict[str, Any]]:
-    edges: dict[tuple[str, str], Counter] = defaultdict(Counter)
-    for rows in grouped.values():
-        reads: list[str] = []
-        for row in sorted(rows, key=lambda item: (item["ts_ms"], item["id"])):
-            if row["effect"] == "read":
-                if row["path"] not in reads:
-                    reads.append(row["path"])
-                reads = reads[-8:]
-            elif row["effect"] == "write":
-                for source in reads:
-                    if source != row["path"]:
-                        edge = edges[(source, row["path"])]
-                        edge["count"] += 1
-                        edge[row["vendor"]] += 1
-                reads = []
-    output = []
-    for (source, target), counts in edges.items():
-        output.append(
-            {
-                "source": source,
-                "target": target,
-                "count": counts["count"],
-                "vendors": {
-                    name: count
-                    for name, count in counts.items()
-                    if name != "count"
-                },
-                "semantics": "ordered read-before-write evidence; not causality",
-            }
-        )
-    return sorted(output, key=lambda row: (-row["count"], row["source"], row["target"]))[:400]
 
 
 def build_cochange_edges(changes: Any) -> list[dict[str, Any]]:
@@ -641,14 +605,24 @@ def validate_public_output(output: dict[str, Any]) -> None:
 
 
 def is_public_repo_path(path: str) -> bool:
+    lower = path.lower()
+    parts = path.split("/")
     if (
         not path
         or path.startswith(("/", "~", "$"))
         or "\\" in path
-        or any(character.isspace() or character in '*?[]"`' for character in path)
+        or lower.startswith(("origin/", "refs/", "repos/"))
+        or path == "HEAD"
+        or path.startswith("HEAD.")
+        or "..." in path
+        or any(character.isspace() or character in '*?[]"`#$,:@^!' for character in path)
+        or (
+            len(parts) >= 3
+            and all(part.isalpha() and part[0].isupper() for part in parts)
+        )
     ):
         return False
-    return all(part not in {"", ".", ".."} for part in path.split("/"))
+    return all(part not in {"", ".", "..", ".git"} for part in parts)
 
 
 def main() -> None:

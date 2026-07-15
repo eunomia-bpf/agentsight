@@ -121,22 +121,25 @@ linked here after review. No result placeholder is treated as evidence.
 - Admission and role: Decisive. Join ambiguity is the strongest reject argument
   against every later event-to-outcome claim, so this experiment has higher
   paper decision value than building or evaluating the gallery first.
-- Current status: Terminal result approved after repair and independent result
-  review. The controlled exact-hunk mechanism passed every gate. Mature
-  naturalistic transfer failed support/calibration gates, line lineage was
-  undersupported, and July 14 was right-censored and excluded.
+- Current status: Terminal measurements regenerated after the final shell-path
+  repair; final independent review is pending. The controlled exact-hunk
+  mechanism passed every gate. Mature naturalistic transfer failed
+  support/calibration gates, line lineage was undersupported, and July 14 was
+  right-censored and excluded.
 - Plan: [RQ1 association experiment plan](tmp/build-and-evaluate/step-0002-20260715T035503-0700/experiment-rq1-association-20260715T035503-0700/plan.md).
 - Raw path: `docs/tmp/build-and-evaluate/step-0002-20260715T035503-0700/experiment-rq1-association-20260715T035503-0700/raw/private/` for ignored native data and `raw/public/` for sanitized aggregates.
 - Result boundary: the gallery may display candidate sets, ambiguity, unmatched
   states, ordered process evidence, Git history, and endpoint state. It may not
   claim calibrated real-history association, causality, authorship, accurate
   line survival, cross-vendor transfer, or lifetime/rename superiority.
-- Mature naturalistic sample: 882 eligible event--path pairs; 110 target, 14
-  null, and 758 unadjudicable after reconciliation. Agreement was 98.75% with
-  Cohen's kappa 0.947. After call-ID deduplication and exact-hunk safety repair,
-  proposed accuracy was 0.944, but ECE was 0.240 and the
-  null-specificity Wilson lower bound was 0.785, so selection remained
-  `descriptive_only`.
+- Mature naturalistic sample: all 937 eligible event--path pairs were mapped
+  exactly and labeled; reconciliation produced 110 target, 49 null, and 778
+  unadjudicable pairs. Agreement was 94.984% with Cohen's kappa 0.805. After
+  call-ID deduplication, exact-hunk safety, and conservative shell parsing, the
+  proposed method correctly classified 103/110 targets and 49/49 nulls. Its
+  accuracy was 0.956, ECE was 0.187, and the null-specificity Wilson lower
+  bound was 0.927. Selection remained `descriptive_only` because ECE exceeded
+  0.10 and null support was 49, one short of the frozen minimum of 50.
 - Line stage: 37 predictions over 110 mature target events, 36 correct; the
   0.862 precision lower bound and prediction count both failed the frozen
   line-overlay gate.

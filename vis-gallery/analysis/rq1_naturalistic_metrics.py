@@ -14,6 +14,7 @@ from rq1_metrics import (
     baseline_prediction,
     bootstrap_difference,
     derived_proposed_prediction,
+    find_association,
     gate,
     indexes,
     load_json,
@@ -23,6 +24,53 @@ from rq1_metrics import (
     select_method,
     summarize,
 )
+
+
+def validate_truth_association_coverage(
+    truth_document: dict[str, Any], artifacts: list[dict[str, Any]]
+) -> None:
+    """Require an exact, injective truth-to-current-association universe."""
+    coverage_pairs = load_pairs(truth_document, include_unadjudicable=True)
+    pairs_by_day = defaultdict(list)
+    for pair in coverage_pairs:
+        pairs_by_day[pair.scenario.split(":", 2)[1]].append(pair)
+
+    artifact_days = {artifact["window"]["since"][:10] for artifact in artifacts}
+    if artifact_days != set(pairs_by_day):
+        raise ValueError(
+            f"truth/artifact day mismatch: truth={sorted(pairs_by_day)} "
+            f"artifacts={sorted(artifact_days)}"
+        )
+
+    for artifact in artifacts:
+        day = artifact["window"]["since"][:10]
+        events, associations, _ = indexes(artifact)
+        current_ids = {row["id"] for row in artifact["associations"]}
+        matched_ids = []
+        missing = []
+        for pair in pairs_by_day[day]:
+            association = find_association(pair, events, associations)
+            if association is None:
+                missing.append(pair.case_id)
+            else:
+                matched_ids.append(association["id"])
+        if missing:
+            raise ValueError(
+                f"{day} truth rows do not resolve to current eligible associations: "
+                f"{missing[:5]}"
+            )
+        if len(matched_ids) != len(set(matched_ids)):
+            raise ValueError(f"{day} truth mapping is not injective")
+        unmatched_current = current_ids.difference(matched_ids)
+        if unmatched_current:
+            raise ValueError(
+                f"{day} has {len(unmatched_current)} current associations without truth labels"
+            )
+        if len(matched_ids) != len(current_ids):
+            raise ValueError(
+                f"{day} truth/current support mismatch: "
+                f"{len(matched_ids)} != {len(current_ids)}"
+            )
 
 
 def public_summary(rows: list, truth_document: dict[str, Any]) -> dict[str, Any]:
@@ -60,6 +108,8 @@ def main() -> None:
 
     controlled = load_json(args.controlled_metrics)
     truth_document = load_json(args.truth)
+    artifacts = [load_json(path) for path in args.artifact]
+    validate_truth_association_coverage(truth_document, artifacts)
     truth_pairs = load_pairs(truth_document)
     pairs_by_day = defaultdict(list)
     for pair in truth_pairs:
@@ -79,8 +129,7 @@ def main() -> None:
     scored_by_method = {name: [] for name in methods}
     scored_by_day = {name: defaultdict(list) for name in methods}
     artifact_coverage = []
-    for artifact_path in args.artifact:
-        artifact = load_json(artifact_path)
+    for artifact in artifacts:
         day = artifact["window"]["since"][:10]
         events, associations, changes = indexes(artifact)
         day_pairs = pairs_by_day[day]

@@ -3,7 +3,7 @@
 ## Current state
 
 - Worktree: `/home/yunwei37/workspace/agentsight-evolution-gallery`
-- Branch: `codex/vis-gallery`, based on `origin/master` at `a007540cc`.
+- Branch: `codex/vis-gallery`, based on `origin/master` at `926c81c44`.
 - Existing `agent-session` library parses Claude, Codex, and Gemini native
   histories into prompts, tool events, model responses, tokens, paths, cwd, and
   timestamps.
@@ -36,10 +36,13 @@
 1. Discover and parse Claude, Codex, and Gemini session files with the existing
    vendor-neutral parser.
 2. Canonicalize repository-relative path evidence while retaining pathless and
-   external events. Shell operands are modeled conservatively: copy sources
-   are reads, destinations and output redirections are writes, sed expressions
-   and glob/command fragments are not files, and cwd-relative `..` candidates
-   survive only when exporter normalization keeps them inside the repository.
+   external events. A conservative shell lexer separates compound commands,
+   pipelines, nested `sh -c` payloads, and spaced or unspaced redirections.
+   High-confidence command grammars classify copy sources as reads and
+   destinations as writes while rejecting expressions, Git revisions, API
+   routes, variables, image names, and command fragments as file evidence.
+   Cwd-relative `..` candidates survive only when exporter normalization keeps
+   them inside the repository.
 3. Collect Git commits, diffs, renames, authors, file birth/death intervals,
    current paths, and line lineage through stable non-interactive plumbing.
 4. Produce zero/one/many candidate associations for each eligible event. Keep
@@ -75,11 +78,13 @@ exporter version, join settings, confidence thresholds, and dependency lock.
   public projection from private native-history exports and rejects prompt,
   command, edit-body, content, and absolute-home-path keys.
 
-Rust fixtures cover all three native schemas, path normalization, exact edit
-fingerprints, pathless events, rename/recreation lifetimes, and deleted-path
-gaps. Browser tests exercise all nine navigation families, the shared cursor,
-filters, and representative screenshots. The public real-data atlas contains
-56 deduplicated sessions, 6,040 path-event rows, 918 file lifetimes, 177
-commits, 1,852 Git changes, and 12,000 Git-blame line pixels across three
-observation days spanning June 2 through July 14. July 14 is explicitly
-right-censored and process-only for quantitative association purposes.
+Rust fixtures cover all three native schemas, conservative shell path
+extraction, path normalization, exact edit fingerprints, pathless events,
+rename/recreation lifetimes, and deleted-path gaps. Browser tests exercise all
+nine navigation families, the shared cursor, filters, and representative
+screenshots. The public real-data atlas contains 56 deduplicated sessions,
+4,077 path-event rows, 757 path records, 652 Git lifetimes, 177 commits, 1,852
+Git changes, and 12,000 Git-blame line pixels across three observation days
+spanning June 2 through July 14. A path record is the union of process and Git
+paths; 565 records map to a lifetime. July 14 is explicitly right-censored and
+process-only for quantitative association purposes.

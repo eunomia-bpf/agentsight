@@ -13,6 +13,20 @@ def load(path: Path) -> dict:
         return json.load(source)
 
 
+def adjudicate_null_disagreement(pair: dict) -> dict:
+    if pair["audit_candidates"]:
+        return {
+            "label": "unadjudicable",
+            "target_commit_ids": [],
+            "evidence_code": "candidate_without_content_fingerprint",
+        }
+    return {
+        "label": "null",
+        "target_commit_ids": [],
+        "evidence_code": "exhaustive_path_audit_no_candidate",
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--packet", type=Path, action="append", required=True)
@@ -35,19 +49,10 @@ def main() -> None:
         }
         if labels != {"null", "unadjudicable"}:
             raise ValueError(f"unsupported label disagreement for {pair_id}: {labels}")
-        if pair["audit_candidates"]:
-            raise ValueError(f"cannot apply no-candidate null rule to {pair_id}")
-        annotations.append(
-            {
-                "pair_id": pair_id,
-                "label": "null",
-                "target_commit_ids": [],
-                "evidence_code": "exhaustive_path_audit_no_candidate",
-            }
-        )
+        annotations.append({"pair_id": pair_id, **adjudicate_null_disagreement(pair)})
     output = {
         "schema": "agentsight.rq1.adjudication.v1",
-        "policy": "A successful recorded write with no literal or rename-connected Git change in the independent seven-day audit is a path-level null; this does not assert line-level evidence.",
+        "policy": "A successful recorded write with no literal or rename-connected Git change in the independent seven-day audit is a path-level null. If candidates exist but privacy-safe content evidence cannot distinguish them, the pair remains unadjudicable. Neither rule asserts line-level evidence.",
         "annotations": annotations,
     }
     args.output.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8")

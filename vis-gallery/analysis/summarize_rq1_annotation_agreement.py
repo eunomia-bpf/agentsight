@@ -67,7 +67,7 @@ def main() -> None:
         "annotator_a_labels": dict(sorted(Counter(labels_a).items())),
         "annotator_b_labels": dict(sorted(Counter(labels_b).items())),
         "adjudicated_labels": dict(sorted(Counter(final).items())),
-        "adjudication_policy": "Exhaustive no-change cases are path-level nulls without a line-level claim.",
+        "adjudication_policy": "Exhaustive no-candidate cases are path-level nulls; candidate-bearing disagreements without content evidence remain unadjudicable. Neither rule is a line-level claim.",
         "annotator_types": ["independent AI agent", "independent AI agent"],
     }
     args.output.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8")

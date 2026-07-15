@@ -37,7 +37,20 @@ class PublicGalleryValidationTests(unittest.TestCase):
             validate_public_output(output)
 
     def test_rejects_glob_and_command_fragments_as_paths(self):
-        for path in ["src/*.rs", "cargo run --manifest-path Cargo.toml"]:
+        for path in [
+            "src/*.rs",
+            "cargo run --manifest-path Cargo.toml",
+            "#!/bin/bash",
+            "s#^frontend/##",
+            "HEAD..origin/master",
+            "origin/master:collector/Cargo.toml",
+            "ghcr.io/eunomia-bpf/agentsight:latest",
+            "repos/eunomia-bpf/agentsight/pulls/109/comments",
+            "bpf/$f",
+            "100644,$blob,collector/src/cmd_perf.rs",
+            "CLI/TUI/Web",
+            ".git/rebase-merge/msgnum",
+        ]:
             output = valid_output()
             output["events"][0]["path"] = path
             with self.assertRaisesRegex(ValueError, "non-repository paths"):

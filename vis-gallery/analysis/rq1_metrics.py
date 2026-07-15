@@ -65,7 +65,9 @@ def load_json(path: Path) -> dict[str, Any]:
         return json.load(source)
 
 
-def load_pairs(document: dict[str, Any]) -> list[Pair]:
+def load_pairs(
+    document: dict[str, Any], *, include_unadjudicable: bool = False
+) -> list[Pair]:
     return [
         Pair(
             case_id=row["case_id"],
@@ -78,7 +80,7 @@ def load_pairs(document: dict[str, Any]) -> list[Pair]:
             scenario=row["scenario"],
         )
         for row in document["pairs"]
-        if row.get("adjudicable", True)
+        if include_unadjudicable or row.get("adjudicable", True)
     ]
 
 

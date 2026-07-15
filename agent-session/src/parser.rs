@@ -1252,7 +1252,9 @@ fn command_effect(command: &str) -> String {
 }
 
 fn has_output_redirection(command: &str) -> bool {
-    !output_redirection_targets(&split_shell(command)).is_empty()
+    shell_segments(command)
+        .iter()
+        .any(|parts| !output_redirection_targets(parts).is_empty())
 }
 
 fn any_word(text: &str, words: &[&str]) -> bool {
@@ -1367,29 +1369,130 @@ fn split_shell(command: &str) -> Vec<String> {
     parts
 }
 
+/// Tokenize the small, high-confidence shell subset used for path evidence.
+///
+/// This deliberately does not try to implement Bash. It preserves quoted
+/// words, separates compound commands and redirections (including `x>file`),
+/// and drops comments. Each returned segment is then interpreted according to
+/// its own command rather than assigning the first command's semantics to the
+/// entire line.
+fn shell_segments(command: &str) -> Vec<Vec<String>> {
+    fn flush_word(tokens: &mut Vec<String>, current: &mut String) {
+        if !current.is_empty() {
+            tokens.push(std::mem::take(current));
+        }
+    }
+
+    fn flush_segment(segments: &mut Vec<Vec<String>>, tokens: &mut Vec<String>) {
+        if !tokens.is_empty() {
+            segments.push(std::mem::take(tokens));
+        }
+    }
+
+    let mut segments = Vec::new();
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+    let mut quote = None;
+    let mut escaped = false;
+    let mut chars = command.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if escaped {
+            current.push(ch);
+            escaped = false;
+            continue;
+        }
+        if ch == '\\' {
+            escaped = true;
+            continue;
+        }
+        if quote == Some(ch) {
+            quote = None;
+            continue;
+        }
+        if quote.is_some() {
+            current.push(ch);
+            continue;
+        }
+        if ch == '\'' || ch == '"' {
+            quote = Some(ch);
+            continue;
+        }
+        if ch == '#' && current.is_empty() {
+            for next in chars.by_ref() {
+                if next == '\n' {
+                    flush_segment(&mut segments, &mut tokens);
+                    break;
+                }
+            }
+            continue;
+        }
+        if ch.is_whitespace() {
+            flush_word(&mut tokens, &mut current);
+            if ch == '\n' {
+                flush_segment(&mut segments, &mut tokens);
+            }
+            continue;
+        }
+        if ch == '&' && chars.peek() == Some(&'>') {
+            flush_word(&mut tokens, &mut current);
+            chars.next();
+            let operator = if chars.peek() == Some(&'>') {
+                chars.next();
+                "&>>"
+            } else {
+                "&>"
+            };
+            tokens.push(operator.to_string());
+            continue;
+        }
+        if matches!(ch, ';' | '|' | '(' | ')')
+            || (ch == '&' && !is_redirection_token(tokens.last().map(String::as_str).unwrap_or("")))
+        {
+            flush_word(&mut tokens, &mut current);
+            if (ch == '|' || ch == '&') && chars.peek() == Some(&ch) {
+                chars.next();
+            }
+            flush_segment(&mut segments, &mut tokens);
+            continue;
+        }
+        if ch == '>' || ch == '<' {
+            flush_word(&mut tokens, &mut current);
+            let mut operator = ch.to_string();
+            while chars.peek() == Some(&ch) && operator.len() < 3 {
+                operator.push(chars.next().expect("peeked redirection"));
+            }
+            tokens.push(operator);
+            continue;
+        }
+        current.push(ch);
+    }
+    flush_word(&mut tokens, &mut current);
+    flush_segment(&mut segments, &mut tokens);
+    segments
+}
+
+fn is_redirection_token(token: &str) -> bool {
+    [">", ">>", "&>", "&>>", "<", "<<", "<<<", "<>"].contains(&token)
+}
+
+fn is_output_redirection_token(token: &str) -> bool {
+    [">", ">>", "&>", "&>>"].contains(&token)
+}
+
 fn output_redirection_targets(parts: &[String]) -> Vec<String> {
     let mut targets = Vec::new();
     let mut index = 0;
     while index < parts.len() {
         let token = parts[index].as_str();
-        let exact = [">", ">>", "1>", "1>>", "2>", "2>>", "&>", "&>>"];
-        if exact.contains(&token) {
+        if is_output_redirection_token(token) {
             if let Some(target) = parts.get(index + 1)
+                && !target.starts_with('&')
                 && plausible_path_token(target)
             {
                 targets.push(target.clone());
             }
             index += 2;
             continue;
-        }
-        let attached = ["&>>", "2>>", "1>>", ">>", "&>", "2>", "1>", ">"]
-            .iter()
-            .find_map(|prefix| token.strip_prefix(prefix))
-            .filter(|target| !target.is_empty() && !target.starts_with('&'));
-        if let Some(target) = attached
-            && plausible_path_token(target)
-        {
-            targets.push(target.to_string());
         }
         index += 1;
     }
@@ -1440,10 +1543,8 @@ fn extract_path_groups(
             }
         }
     }
-    for part in split_shell(command) {
-        if plausible_path_token(&part) {
-            groups.insert(path_group(&part, project_root));
-        }
+    for (path, _) in shell_path_references(command, &command_effect(command)) {
+        groups.insert(path_group(&path, project_root));
     }
     groups.into_iter().filter(|v| v != "none").collect()
 }
@@ -1509,34 +1610,57 @@ fn extract_path_references(
 }
 
 fn shell_path_references(command: &str, effect: &str) -> Vec<(String, String)> {
-    let parts = split_shell(command);
-    if parts.is_empty() {
+    shell_path_references_inner(command, effect, 0)
+}
+
+fn shell_path_references_inner(command: &str, effect: &str, depth: usize) -> Vec<(String, String)> {
+    if depth > 2 {
         return Vec::new();
     }
-    let command_name = basename_from_command(command);
-    let command_index = parts
+    shell_segments(command)
         .iter()
-        .position(|part| process_name_from_part(part).as_deref() == Some(command_name.as_str()))
-        .unwrap_or(0);
-    let redirect_targets = output_redirection_targets(&parts);
-    let redirect_set = redirect_targets.iter().collect::<BTreeSet<_>>();
-    let operands = parts
-        .iter()
-        .skip(command_index + 1)
-        .filter(|part| {
-            !redirect_set.contains(part)
-                && ![">", ">>", "1>", "1>>", "2>", "2>>", "&>", "&>>"].contains(&part.as_str())
-                && !part.starts_with('>')
-                && !part.starts_with("1>")
-                && !part.starts_with("2>")
-                && !part.starts_with("&>")
-        })
-        .cloned()
-        .collect::<Vec<_>>();
+        .flat_map(|parts| shell_segment_path_references(parts, effect, depth))
+        .collect()
+}
+
+fn shell_segment_path_references(
+    parts: &[String],
+    effect: &str,
+    depth: usize,
+) -> Vec<(String, String)> {
+    let Some(command_index) = shell_command_index(parts) else {
+        return Vec::new();
+    };
+    let command_name = process_name_from_part(&parts[command_index]).unwrap_or_default();
+    let redirect_targets = output_redirection_targets(parts);
+    let mut operands = Vec::new();
+    let mut index = command_index + 1;
+    while index < parts.len() {
+        if is_redirection_token(&parts[index]) {
+            index += 2;
+            continue;
+        }
+        operands.push(parts[index].clone());
+        index += 1;
+    }
     let mut refs = redirect_targets
         .into_iter()
         .map(|path| (path, "write".to_string()))
         .collect::<Vec<_>>();
+
+    if ["bash", "sh", "zsh"].contains(&command_name.as_str()) {
+        for flag_index in 0..operands.len().saturating_sub(1) {
+            if ["-c", "-lc", "-cl"].contains(&operands[flag_index].as_str()) {
+                refs.extend(shell_path_references_inner(
+                    &operands[flag_index + 1],
+                    effect,
+                    depth + 1,
+                ));
+                break;
+            }
+        }
+        return refs;
+    }
 
     let path_operands = |values: &[String]| {
         values
@@ -1564,23 +1688,150 @@ fn shell_path_references(command: &str, effect: &str) -> Vec<(String, String)> {
                 .map(|path| (path, "write".to_string())),
         ),
         "sed" => refs.extend(sed_path_references(&operands, effect == "write")),
-        _ => {
-            let access = if effect == "read"
-                || [
-                    "rg", "grep", "cat", "head", "tail", "find", "ls", "nl", "wc", "jq",
-                ]
-                .contains(&command_name.as_str())
-            {
-                "read"
-            } else {
-                "reference"
-            };
+        "cat" | "head" | "tail" | "ls" | "nl" | "wc" | "source" | "." => {
             refs.extend(
                 path_operands(&operands)
                     .into_iter()
-                    .map(|path| (path, access.to_string())),
+                    .map(|path| (path, "read".to_string())),
             );
         }
+        "find" => refs.extend(find_path_operands(&operands)),
+        "rg" | "grep" => refs.extend(search_path_operands(&operands)),
+        "jq" => refs.extend(jq_path_operands(&operands)),
+        // Unknown command grammars are deliberately pathless. Exact paths are
+        // evidence, so a false negative is safer than turning a revspec, API
+        // route, image name, loop variable, or expression into a file write.
+        _ => {}
+    }
+    refs
+}
+
+fn shell_command_index(parts: &[String]) -> Option<usize> {
+    let mut index = 0;
+    while index < parts.len() {
+        let part = parts[index].as_str();
+        if ["then", "do", "else"].contains(&part) || is_shell_assignment(part) {
+            index += 1;
+            continue;
+        }
+        if ["sudo", "env", "command", "time", "timeout", "nice", "nohup"].contains(&part) {
+            index += 1;
+            while index < parts.len()
+                && (parts[index].starts_with('-') || is_shell_assignment(&parts[index]))
+            {
+                index += 1;
+            }
+            continue;
+        }
+        return Some(index);
+    }
+    None
+}
+
+fn is_shell_assignment(value: &str) -> bool {
+    value.split_once('=').is_some_and(|(name, _)| {
+        !name.is_empty()
+            && name
+                .chars()
+                .all(|ch| ch == '_' || ch.is_ascii_alphanumeric())
+    })
+}
+
+fn find_path_operands(operands: &[String]) -> Vec<(String, String)> {
+    operands
+        .iter()
+        .take_while(|part| !part.starts_with('-') && !["!", "("].contains(&part.as_str()))
+        .filter(|part| plausible_path_token(part))
+        .cloned()
+        .map(|path| (path, "read".to_string()))
+        .collect()
+}
+
+fn search_path_operands(operands: &[String]) -> Vec<(String, String)> {
+    let mut refs = Vec::new();
+    let mut pattern_seen = operands.iter().any(|part| part == "--files");
+    let mut index = 0;
+    while index < operands.len() {
+        let part = operands[index].as_str();
+        if part == "--" {
+            refs.extend(
+                operands[index + 1..]
+                    .iter()
+                    .filter(|path| plausible_path_token(path))
+                    .cloned()
+                    .map(|path| (path, "read".to_string())),
+            );
+            break;
+        }
+        let option_with_value = [
+            "-e",
+            "--regexp",
+            "-f",
+            "--file",
+            "-g",
+            "--glob",
+            "-t",
+            "--type",
+            "-m",
+            "--max-count",
+            "-A",
+            "-B",
+            "-C",
+            "--context",
+            "--encoding",
+        ];
+        if option_with_value.contains(&part) {
+            if ["-e", "--regexp"].contains(&part) {
+                pattern_seen = true;
+            } else if ["-f", "--file"].contains(&part)
+                && let Some(path) = operands.get(index + 1)
+                && plausible_path_token(path)
+            {
+                refs.push((path.clone(), "read".to_string()));
+            }
+            index += 2;
+            continue;
+        }
+        if part.starts_with('-') {
+            index += 1;
+            continue;
+        }
+        if !pattern_seen {
+            pattern_seen = true;
+        } else if plausible_path_token(part) {
+            refs.push((part.to_string(), "read".to_string()));
+        }
+        index += 1;
+    }
+    refs
+}
+
+fn jq_path_operands(operands: &[String]) -> Vec<(String, String)> {
+    let mut refs = Vec::new();
+    let mut filter_seen = false;
+    let mut index = 0;
+    while index < operands.len() {
+        let part = operands[index].as_str();
+        if ["-f", "--from-file"].contains(&part) {
+            filter_seen = true;
+            if let Some(path) = operands.get(index + 1)
+                && plausible_path_token(path)
+            {
+                refs.push((path.clone(), "read".to_string()));
+            }
+            index += 2;
+            continue;
+        }
+        if part.starts_with('-') {
+            index += 1;
+            continue;
+        }
+        if !filter_seen {
+            filter_seen = true;
+        } else if plausible_path_token(part) {
+            refs.push((part.to_string(), "read".to_string()));
+        }
+        index += 1;
     }
     refs
 }
@@ -1724,7 +1975,7 @@ fn repository_relative_path(project_root: &Path, raw: &str) -> Option<String> {
             std::path::Component::CurDir => {}
             std::path::Component::Normal(part) => {
                 let part = part.to_str()?;
-                if part.is_empty() {
+                if part.is_empty() || part == ".git" {
                     return None;
                 }
                 parts.push(part);
@@ -1931,14 +2182,28 @@ fn content_fingerprint(value: &str) -> String {
 
 fn plausible_path_token(part: &str) -> bool {
     let part = part.trim_matches(['"', '\'']);
+    let lower = part.to_ascii_lowercase();
+    let components = part.split('/').collect::<Vec<_>>();
+    let looks_like_slash_separated_phrase = components.len() >= 3
+        && components.iter().all(|component| {
+            component.chars().all(char::is_alphabetic)
+                && component.chars().next().is_some_and(char::is_uppercase)
+        });
     if part.is_empty()
         || part.starts_with('-')
         || part.starts_with('$')
         || part.starts_with("http://")
         || part.starts_with("https://")
+        || lower.starts_with("origin/")
+        || lower.starts_with("refs/")
+        || lower.starts_with("repos/")
+        || part == "HEAD"
+        || part.starts_with("HEAD.")
+        || part.contains("...")
+        || looks_like_slash_separated_phrase
         || part.len() > 140
         || part.chars().any(char::is_whitespace)
-        || part.chars().any(|c| "{}()=;<>|`*?[]\"".contains(c))
+        || part.chars().any(|c| "{}()=;<>|`*?[]\"#$,:@^!".contains(c))
     {
         return false;
     }
@@ -2577,6 +2842,7 @@ mod tests {
         for command in [
             "cat src/template.rs > src/generated.rs",
             "echo generated >> docs/output.md",
+            "echo generated>docs/output.md",
             "printf generated >docs/output.md",
             "cat <<'EOF' > src/heredoc.rs",
         ] {
@@ -2611,6 +2877,89 @@ mod tests {
             None,
         );
         assert!(command_fragment.path_refs.is_empty());
+
+        let compound = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "Bash",
+            &json!({"command": "cd /tmp && cp src/a.rs src/b.rs | tee logs/copied.txt"}),
+            None,
+        );
+        assert!(
+            compound
+                .path_refs
+                .iter()
+                .any(|reference| { reference.path == "src/a.rs" && reference.access == "read" })
+        );
+        assert!(
+            compound
+                .path_refs
+                .iter()
+                .any(|reference| { reference.path == "src/b.rs" && reference.access == "write" })
+        );
+        assert!(compound.path_refs.iter().any(|reference| {
+            reference.path == "logs/copied.txt" && reference.access == "write"
+        }));
+        assert!(
+            !compound
+                .path_refs
+                .iter()
+                .any(|reference| reference.path == "/tmp")
+        );
+
+        let nested = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "Bash",
+            &json!({"command": "bash -lc 'cp src/a.rs src/b.rs'"}),
+            None,
+        );
+        assert_eq!(
+            nested
+                .path_refs
+                .iter()
+                .map(|reference| (reference.path.as_str(), reference.access.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("src/a.rs", "read"), ("src/b.rs", "write")]
+        );
+
+        let search = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "Bash",
+            &json!({"command": "rg '[/agentsight/usage/,' collector/src/main.rs"}),
+            None,
+        );
+        assert_eq!(search.path_refs.len(), 1);
+        assert_eq!(search.path_refs[0].path, "collector/src/main.rs");
+
+        for command in [
+            "git diff origin/master...HEAD -- collector/src/main.rs",
+            "git show HEAD:collector/src/main.rs",
+            "gh api repos/eunomia-bpf/agentsight/pulls/109/comments",
+            "docker pull ghcr.io/eunomia-bpf/agentsight:latest",
+            "printf '#!/bin/bash'",
+            "for f in bpf/*; do echo $f; done",
+            "echo 100644,$blob,collector/src/main.rs",
+            "echo CLI/TUI/Web",
+        ] {
+            let event = tool_event_from_input(
+                Some("/repo"),
+                Some(42),
+                0,
+                "exec_command",
+                &json!({"cmd": command}),
+                None,
+            );
+            assert!(
+                event.path_refs.is_empty(),
+                "{command}: {:?}",
+                event.path_refs
+            );
+        }
     }
 
     #[test]
@@ -2695,7 +3044,7 @@ mod tests {
             0,
             "Bash",
             &json!({
-                "command": "rg needle ~/.claude/projects $HOME/.codex ~/workspace/other src/lib.rs"
+                "command": "rg needle ~/.claude/projects $HOME/.codex ~/workspace/other .git/HEAD src/lib.rs"
             }),
             None,
         );

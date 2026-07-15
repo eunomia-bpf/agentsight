@@ -1,29 +1,23 @@
 # RQ1 Result Review
 
-Verdict: **APPROVE**
-Reviewed: 2026-07-15T05:34:00-07:00
+Verdict: **PENDING FINAL RE-AUDIT**
+Superseded review: 2026-07-15T05:34:00-07:00
 
-Repair audit: **APPROVE**, independently recomputed after the parser and
-right-censoring repairs on 2026-07-15. Controlled, naturalistic, agreement,
-and lineage outputs matched bit-for-bit; the audit also confirmed that no
-surviving claim depends on the removed duplicate or multi-hunk evidence.
+The earlier repair audit approved the call-ID, exact-hunk, and right-censoring
+repairs. A later independent branch review found that shell pseudo-paths still
+entered the evidence universe and that the old truth file did not cover the
+repaired association set. That approval is therefore superseded, not carried
+forward to the final result.
 
-The repaired run is a valid terminal experiment with one explicitly
-right-censored, excluded cell. It is not completion of the positive three-day
-or cross-vendor claim.
+The final shell grammar, 937-pair truth freeze, public projection, aggregate
+metrics, and claim text are awaiting a fresh independent audit. Until that
+audit completes, this file records no approval of the regenerated result.
 
-The review independently reproduced controlled, mature naturalistic,
-agreement, and lineage outputs. It verified that July 14 contributes no labels,
-metrics, lineage rows, or transfer claims; the endpoint supplied only 4.8006
-hours of future history, versus the frozen 24-hour retrieval and 168-hour
-oracle horizons. It also verified all-schema split, moved/rewritten, and
-pathless diagnostics; Rust/Python ranking parity; tied prebirth/rename ranking;
-and reconciled lineage denominators. A subsequent implementation audit repaired
-Codex call-ID duplication and restricted exact-hunk claims to single-file,
-single-hunk edits; the rerun has 110 targets, 37 predictions, and 36 correct.
+The previous review did verify that July 14 contributes no labels, metrics,
+lineage rows, or transfer claims; that invariant remains required. Its other
+measurements must be independently recomputed against the final artifacts.
 
-Allowed claims are limited to controlled evidence that exact-hunk matching
-improves known-link recovery over nearest-path/no-hunk matching, plus
+Provisional claims remain limited to controlled exact-hunk evidence plus
 descriptive June observations. Candidate sets, ambiguity, unmatched states,
 exact-hunk evidence, and separate process/Git/endpoint layers may be shown.
 

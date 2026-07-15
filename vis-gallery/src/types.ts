@@ -184,7 +184,6 @@ export interface GalleryData {
   tree: TreeNode;
   commits: GitCommit[];
   changes: GitChange[];
-  ordered_edges: GraphEdge[];
   cochange_edges: GraphEdge[];
   line_pixels: LinePixel[];
   survival_cohorts: SurvivalCohort[];

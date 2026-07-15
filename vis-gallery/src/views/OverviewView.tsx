@@ -92,7 +92,7 @@ export default function OverviewView({ data, state, events, onChange }: ViewProp
     <>
       <section className="metric-strip">
         <Metric label="visible evidence" value={formatCompact(events.length)} detail="path-resolvable rows" />
-        <Metric label="active files" value={formatCompact(activePaths.size)} detail={`of ${formatCompact(data.files.length)}`} />
+        <Metric label="active paths" value={formatCompact(activePaths.size)} detail={`of ${formatCompact(data.files.length)} path records`} />
         <Metric label="sessions" value={formatCompact(activeSessions.size)} detail="pseudonymous trajectories" />
         <Metric label="Git commits" value={formatCompact(visibleCommits.length)} detail="separate durable layer" />
         <Metric label="uncertain writes" value={formatCompact(uncertain.length)} detail="zero or many candidates" warning />
@@ -146,7 +146,7 @@ export default function OverviewView({ data, state, events, onChange }: ViewProp
               <div key={name}>
                 <span className={`pattern-dot pattern-${name.toLowerCase().replace(" ", "-")}`} />
                 <strong>{name}</strong>
-                <span>{count} files</span>
+                <span>{count} path records</span>
               </div>
             ))}
           </div>
@@ -154,8 +154,8 @@ export default function OverviewView({ data, state, events, onChange }: ViewProp
 
         <Panel
           eyebrow="Forensic queue"
-          title="Hot files in the visible interval"
-          note="Risk combines observed attention and Git churn; click a file to focus every compatible view."
+          title="Hot paths in the visible interval"
+          note="Risk combines observed attention and Git churn; click a path to focus every compatible view."
           wide
         >
           <div className="rank-table">

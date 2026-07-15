@@ -26,11 +26,13 @@ npm run dev
 ```
 
 Open <http://127.0.0.1:5173>. The checked public dataset is privacy-scanned and
-contains 56 deduplicated sessions, 6,040 path-event rows, 918 file lifetimes,
-177 commits, 1,852 changes, and 12,000 current Git-blame line pixels. The three
-real observation days span 2026-06-02 through 2026-07-14; they are not a
-continuous synthetic workload. July 14 is right-censored and is used only for
-descriptive process views.
+contains 56 deduplicated sessions, 4,077 path-event rows, 757 path records,
+652 Git lifetimes, 177 commits, 1,852 changes, and 12,000 current Git-blame
+line pixels. Of the path records, 565 map to a Git lifetime; event-only paths
+remain explicit rather than being mislabeled as lifetimes. The three real
+observation days span 2026-06-02 through 2026-07-14; they are not a continuous
+synthetic workload. July 14 is right-censored and is used only for descriptive
+process views.
 
 ## Visual families
 

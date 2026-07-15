@@ -34,16 +34,15 @@ visualization and adds longitudinal rhythm, process-QA, and resource views.
 
 We evaluate the load-bearing association assumption before using the views for
 outcome claims. Exact-hunk evidence passes all controlled held-out gates. On two
-mature real-history days, annotators agree on 98.75\% of 882 event--path pairs,
+mature real-history days, annotators agree on 94.98\% of 937 event--path pairs,
 but naturalistic transfer fails prespecified support and calibration gates
-(ECE 0.240); endpoint line linkage is also undersupported. We therefore bound
+(ECE 0.187); endpoint line linkage is also undersupported. We therefore bound
 the system to descriptive process, Git, uncertainty, and endpoint views rather
-than claiming provenance. The public projection contains 56 sessions, 6,040
-path-event rows, 918 file lifetimes, and 177 commits across observations
-spanning six weeks. In seven local headless-browser repetitions, median first
-view visibility is 336~ms and median two-frame scrub response is 110~ms. These
-results establish a working visual instrument and, equally importantly, the
-claim boundary required to use it honestly.
+than claiming provenance. The public projection contains 56 sessions, 4,077
+path-event rows, 757 path records, 652 Git lifetimes, and 177 commits across six
+weeks. In seven local headless-browser repetitions, median first-view visibility
+is 311~ms and median two-frame scrub response is 99~ms. These results establish
+a working visual instrument and the claim boundary required to use it honestly.
 \end{abstract}
 
 \section{Introduction}
@@ -271,14 +270,14 @@ specificity. Removing exact-hunk evidence reproduces that failure. A
 literal-only method with exact hunks matches the proposed method, so the
 supported advantage belongs to exact-hunk evidence, not lifetime/rename logic.
 
-The two mature real days contain 882 eligible event--path pairs. Annotators
-agree on 98.75\% of labels (Cohen's $\kappa=0.947$); reconciliation yields 110
-targets, 14 nulls, and 758 unadjudicable pairs. After call-ID deduplication and
-the single-file/single-hunk safety restriction, the proposed method classifies
-103/110 targets and 14/14 nulls. Top-1 precision is 0.972, positive recall is
-0.936, classification accuracy is 0.944, the null-specificity Wilson lower
-bound is only 0.785, and ECE is 0.240. It therefore fails the frozen gate. The
-selected naturalistic mode is
+The two mature real days contain 937 eligible event--path pairs. Annotators
+agree on 94.98\% of labels (Cohen's $\kappa=0.805$); reconciliation yields 110
+targets, 49 nulls, and 778 unadjudicable pairs. After call-ID deduplication,
+single-file/single-hunk safety, and conservative shell-path parsing, the method
+classifies 103/110 targets and 49/49 nulls. Top-1 precision is 0.972, positive
+recall is 0.936, classification accuracy is 0.956, the null-specificity Wilson
+lower bound is 0.927, and ECE is 0.187. It nevertheless fails the frozen gate:
+null support is 49 rather than 50 and ECE exceeds 0.10. The selected mode is
 \texttt{descriptive\_only}. Mature days contain Gemini sessions but no eligible
 Gemini write--path pairs, so cross-vendor transfer is not established.
 
@@ -294,11 +293,11 @@ transfer are insufficient. This negative boundary prevents stronger but
 unsupported ``agent-authored surviving code'' claims.
 
 \subsection{Artifact Experience on Real History}
-The public atlas combines 56 deduplicated native sessions, 6,040
-path-resolvable event rows, 918 file lifetimes, 177 commits, 1,852 Git changes,
-and 12,000 current Git-blame line pixels. Three real observation days span June
-2 through July 14, 2026; gaps are retained rather than interpolated into a
-continuous workload. The July cell remains process-only.
+The public atlas combines 56 deduplicated native sessions, 4,077 path-resolvable
+event rows, 757 path records, 652 Git lifetimes, 177 commits, 1,852 Git changes,
+and 12,000 current Git-blame line pixels. Of the path records, 565 map to a Git
+lifetime; event-only paths remain distinct. Three observation days span June 2
+through July 14, 2026; gaps are retained. The July cell remains process-only.
 
 The same history appears qualitatively different across perceptual units.
 The matrix makes file bursts and long quiet intervals visible; the stable map
@@ -318,20 +317,20 @@ coordinated atlas) following visualization-evaluation guidance
 \cite{merino2018evaluation}.
 
 \subsection{Local Systems Responsiveness}
-We measure the checked 5.83~MB artifact in Playwright Chromium~1.61 at a
+We measure the checked 4.77~MB artifact in Playwright Chromium~1.61 at a
 1600$\times$1050 viewport. Each of seven repetitions opens a fresh page, visits
 all families, and changes the shared range input. Median first-family visibility
-is 336~ms (p95 379~ms). Median two-animation-frame scrub response is 110~ms
-(p95 120~ms). Median family navigation ranges from 114~ms for strata to 1,291~ms
-for particle animation; the Cytoscape forensic page is 543~ms. The final run
-uses 56.8~MB of reported JavaScript heap. Unit tests, a production TypeScript
+is 311~ms (p95 366~ms). Median two-animation-frame scrub response is 99~ms
+(p95 107~ms). Median family navigation ranges from 112~ms for strata to 522~ms
+for the Cytoscape forensic page; particle animation is 493~ms. The final run
+uses 50.4~MB of reported JavaScript heap. Unit tests, a production TypeScript
 build, and Playwright tests cover every family, filter state, cursor change, and
 representative screenshot.
 
 At this tested scale, the atlas is usable as a local interactive artifact, but
 the slower force-layout and particle families identify the next optimization
 boundary. These headless measurements establish implementation latency, not
-perceptual scalability or human review utility. The 5.83~MB monolithic payload
+perceptual scalability or human review utility. The 4.77~MB monolithic payload
 and 606~KB gzipped JavaScript bundle also motivate lazy family loading and
 chunked data access before substantially larger deployments.
 
@@ -371,11 +370,12 @@ evidence, not strong de-identification. Current Git blame is line-origin
 metadata rather than semantic authorship, and first-parent traversal excludes
 some branch structure.
 
-The naturalistic sample has only 14 adjudicated nulls and no mature Gemini
-write cell. July's right censoring prevents a convenient but invalid expansion.
-RQ1 is therefore a reason to preserve uncertainty, not a validation of the full
-join. Likewise, named visual patterns are exploratory and the browser benchmark
-does not demonstrate review benefit.
+The naturalistic sample has 49 adjudicated nulls---one fewer than the frozen
+minimum---and no mature Gemini write cell. Its confidence is also miscalibrated.
+July's right censoring prevents a convenient but invalid expansion. RQ1 is
+therefore a reason to preserve uncertainty, not a validation of the full join.
+Named visual patterns remain exploratory, and the browser benchmark does not
+demonstrate review benefit.
 
 The deeper value of the atlas is epistemic. Resource profiles make agent work
 accountable in semantic units; visual encodings make structural and temporal
