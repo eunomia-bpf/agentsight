@@ -170,6 +170,7 @@ fn codex_state_session(
             .map(|(start, end)| end.saturating_sub(start))
             .unwrap_or_default(),
         cwd,
+        project_hash: None,
         last_message_at,
         events: Default::default(),
     }
