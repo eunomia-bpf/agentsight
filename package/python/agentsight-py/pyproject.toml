@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentsight-py"
+version = "0.2.51"
+description = "Official Python helper for Eunomia AgentSight snapshot inspection."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+  { name = "Eunomia", email = "contact@eunomia.dev" }
+]
+keywords = ["ebpf", "ai-agent", "observability", "llm", "agentops", "trace"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: System :: Monitoring",
+  "Topic :: Utilities"
+]
+
+[project.urls]
+Homepage = "https://github.com/eunomia-bpf/agentsight"
+Repository = "https://github.com/eunomia-bpf/agentsight"
+Issues = "https://github.com/eunomia-bpf/agentsight/issues"
+Documentation = "https://github.com/eunomia-bpf/agentsight#usage"
+
+[project.scripts]
+agentsight-py = "agentsight_py.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
