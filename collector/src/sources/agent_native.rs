@@ -813,14 +813,11 @@ pub(crate) fn parse_content_for_test(
 }
 
 #[cfg(test)]
-pub(crate) fn write_codex_state_db_for_test(home: &Path, model: &str, tokens: i64, preview: &str) {
+pub(crate) fn write_codex_state_db_for_test(home: &Path) {
     let codex_dir = home.join(".codex");
     fs::create_dir_all(&codex_dir).unwrap();
     let conn = rusqlite::Connection::open(codex_dir.join("state_5.sqlite")).unwrap();
-    let rollout_path = sql_quote(&home.join(".codex/sessions/session.jsonl").to_string_lossy());
-    let model = sql_quote(model);
-    let preview = sql_quote(preview);
-    conn.execute_batch(&format!(
+    conn.execute_batch(
         "CREATE TABLE threads (
             id TEXT PRIMARY KEY,
             rollout_path TEXT,
@@ -834,14 +831,9 @@ pub(crate) fn write_codex_state_db_for_test(home: &Path, model: &str, tokens: i6
         INSERT INTO threads
         (id, rollout_path, model, tokens_used, preview, cwd, created_at_ms, updated_at_ms)
         VALUES
-        ('019f49ca-54e7-7a91-82e7-a52b53cfd456', '{rollout_path}', '{model}', {tokens}, '{preview}', '/work/repo', 1800000, 1900000);"
-    ))
+        ('019f49ca-54e7-7a91-82e7-a52b53cfd456', '/tmp/session.jsonl', 'gpt-web-ci', 33, 'web state prompt', '/work/repo', 1800000, 1900000);",
+    )
     .unwrap();
-}
-
-#[cfg(test)]
-fn sql_quote(value: &str) -> String {
-    value.replace('\'', "''")
 }
 
 #[cfg(test)]
@@ -875,17 +867,17 @@ mod tests {
     #[test]
     fn codex_state_db_produces_indexed_session_metadata() {
         let temp = tempfile::tempdir().unwrap();
-        write_codex_state_db_for_test(temp.path(), "gpt-5.5", 12345, "hello from state");
+        write_codex_state_db_for_test(temp.path());
 
         let sessions = codex_state_sessions_in_home(temp.path(), 5);
 
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].display_id, "codex:019f49.fd456");
-        assert_eq!(sessions[0].model.as_deref(), Some("gpt-5.5"));
-        assert_eq!(sessions[0].usage.total_tokens, 12345);
+        assert_eq!(sessions[0].model.as_deref(), Some("gpt-web-ci"));
+        assert_eq!(sessions[0].usage.total_tokens, 33);
         assert_eq!(
             sessions[0].prompt_preview.as_deref(),
-            Some("hello from state")
+            Some("web state prompt")
         );
         assert_eq!(sessions[0].cwd.as_deref(), Some("/work/repo"));
         assert_eq!(
