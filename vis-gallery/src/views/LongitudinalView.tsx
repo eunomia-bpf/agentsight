@@ -4,11 +4,12 @@ import uPlot from "uplot";
 import { axisStyle, baseChart, colors } from "../chartTheme";
 import EChart from "../components/EChart";
 import Panel from "../components/Panel";
-import { completedSessionsInVisibleInterval, formatCompact } from "../selectors";
+import { completedSessionsInVisibleInterval, formatCompact, projectTimeBuckets } from "../selectors";
 import type { TimeBucket } from "../types";
 import type { ViewProps } from "./viewTypes";
 
 export default function LongitudinalView({ data, state, events }: ViewProps) {
+  const timeBuckets = projectTimeBuckets(events);
   const hours = Array.from({ length: 24 }, (_, index) => index);
   const days = data.source_days.map((day) => day.day);
   const punch = days.flatMap((day, y) => hours.map((hour, x) => ({ value: [x, y, events.filter((event) => event.day === day && new Date(event.ts_ms).getUTCHours() === hour).length] })));
@@ -33,7 +34,7 @@ export default function LongitudinalView({ data, state, events }: ViewProps) {
   const lagOption: EChartsOption = { ...baseChart, grid: { left: 48, right: 18, top: 18, bottom: 42 }, xAxis: { type: "time", ...axisStyle() }, yAxis: { type: "value", ...axisStyle(), name: "minutes" }, series: [{ type: "scatter", symbolSize: 6, itemStyle: { color: "#66d9a3", opacity: .55 }, data: lagRows.map((row) => [row.write.ts_ms, (row.next!.ts_ms - row.write.ts_ms) / 60_000]) }] };
   return <section className="panel-grid">
     <Panel eyebrow="Long-running rhythm" title="Activity punch card" note="Clock-hour rhythm across the three real observation days. Sparse days and right-censored days remain visible rather than interpolated." wide><EChart option={punchOption} className="chart chart--large" /></Panel>
-    <Panel eyebrow="Physiological trace" title="Agent vital signs" note="uPlot renders dense hourly read/write/verify streams. It is a longitudinal shape detector, not a success score." wide><VitalPlot buckets={data.time_buckets} cursorMs={state.cursorMs} /></Panel>
+    <Panel eyebrow="Physiological trace" title="Agent vital signs" note="uPlot reprojects the filtered hourly read/write/verify stream. It is a longitudinal shape detector, not a success score." wide><div data-testid="vital-projection" data-bucket-count={timeBuckets.length}><VitalPlot buckets={timeBuckets} cursorMs={state.cursorMs} /></div></Panel>
     <Panel eyebrow="Resource attribution" title="Vendor → semantic unit flow" note="Flow width counts recorded path events. Vendor is native-history source; semantic unit is observed effect." wide><EChart option={sankeyOption} className="chart chart--large" /></Panel>
     <Panel eyebrow="Process QA" title="Write-to-next-verify lag" note="Each dot is an observed write followed by a verification event in the same session. Missing dots remain missing; order is not proof of coverage." wide><EChart option={lagOption} className="chart chart--large" /></Panel>
     <Panel eyebrow="Session receipt" title="Completed sessions in the visible interval" note="Reported token units are summed only for sessions whose full start-to-end span is visible. Counters may still be cumulative or implausible; no currency conversion is attempted.">

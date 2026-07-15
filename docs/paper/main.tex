@@ -38,10 +38,10 @@ mature real-history days, annotators agree on 98.75\% of 882 event--path pairs,
 but naturalistic transfer fails prespecified support and calibration gates
 (ECE 0.240); endpoint line linkage is also undersupported. We therefore bound
 the system to descriptive process, Git, uncertainty, and endpoint views rather
-than claiming provenance. The public projection contains 56 sessions, 6,401
-path-event rows, 994 file lifetimes, and 177 commits across observations
+than claiming provenance. The public projection contains 56 sessions, 6,040
+path-event rows, 918 file lifetimes, and 177 commits across observations
 spanning six weeks. In seven local headless-browser repetitions, median first
-view visibility is 381~ms and median two-frame scrub response is 105~ms. These
+view visibility is 336~ms and median two-frame scrub response is 110~ms. These
 results establish a working visual instrument and, equally importantly, the
 claim boundary required to use it honestly.
 \end{abstract}
@@ -294,8 +294,8 @@ transfer are insufficient. This negative boundary prevents stronger but
 unsupported ``agent-authored surviving code'' claims.
 
 \subsection{Artifact Experience on Real History}
-The public atlas combines 56 deduplicated native sessions, 6,401
-path-resolvable event rows, 994 file lifetimes, 177 commits, 1,852 Git changes,
+The public atlas combines 56 deduplicated native sessions, 6,040
+path-resolvable event rows, 918 file lifetimes, 177 commits, 1,852 Git changes,
 and 12,000 current Git-blame line pixels. Three real observation days span June
 2 through July 14, 2026; gaps are retained rather than interpolated into a
 continuous workload. The July cell remains process-only.
@@ -318,20 +318,20 @@ coordinated atlas) following visualization-evaluation guidance
 \cite{merino2018evaluation}.
 
 \subsection{Local Systems Responsiveness}
-We measure the checked 6.04~MB artifact in Playwright Chromium~1.61 at a
+We measure the checked 5.83~MB artifact in Playwright Chromium~1.61 at a
 1600$\times$1050 viewport. Each of seven repetitions opens a fresh page, visits
 all families, and changes the shared range input. Median first-family visibility
-is 381~ms (p95 565~ms). Median two-animation-frame scrub response is 105~ms
-(p95 127~ms). Median family navigation ranges from 117~ms for strata to 932~ms
-for particle animation; the Cytoscape forensic page is 632~ms. The final run
-uses 91.7~MB of reported JavaScript heap. Unit tests, a production TypeScript
+is 336~ms (p95 379~ms). Median two-animation-frame scrub response is 110~ms
+(p95 120~ms). Median family navigation ranges from 114~ms for strata to 1,291~ms
+for particle animation; the Cytoscape forensic page is 543~ms. The final run
+uses 56.8~MB of reported JavaScript heap. Unit tests, a production TypeScript
 build, and Playwright tests cover every family, filter state, cursor change, and
 representative screenshot.
 
 At this tested scale, the atlas is usable as a local interactive artifact, but
 the slower force-layout and particle families identify the next optimization
 boundary. These headless measurements establish implementation latency, not
-perceptual scalability or human review utility. The 6.04~MB monolithic payload
+perceptual scalability or human review utility. The 5.83~MB monolithic payload
 and 606~KB gzipped JavaScript bundle also motivate lazy family loading and
 chunked data access before substantially larger deployments.
 

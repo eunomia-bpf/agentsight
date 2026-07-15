@@ -1223,7 +1223,8 @@ fn command_effect(command: &str) -> String {
             || text.contains("https://"))
     {
         "network"
-    } else if ["tee", "cp", "mv", "rm", "mkdir", "touch"].contains(&cmd.as_str())
+    } else if has_output_redirection(command)
+        || ["tee", "cp", "mv", "rm", "mkdir", "touch"].contains(&cmd.as_str())
         || (cmd == "sed" && (text.contains(" -i") || text.contains("--in-place")))
         || (["python", "python3", "node", "npm"].contains(&cmd.as_str())
             && (text.contains('>')
@@ -1248,6 +1249,10 @@ fn command_effect(command: &str) -> String {
         "process"
     }
     .to_string()
+}
+
+fn has_output_redirection(command: &str) -> bool {
+    !output_redirection_targets(&split_shell(command)).is_empty()
 }
 
 fn any_word(text: &str, words: &[&str]) -> bool {
@@ -1362,6 +1367,35 @@ fn split_shell(command: &str) -> Vec<String> {
     parts
 }
 
+fn output_redirection_targets(parts: &[String]) -> Vec<String> {
+    let mut targets = Vec::new();
+    let mut index = 0;
+    while index < parts.len() {
+        let token = parts[index].as_str();
+        let exact = [">", ">>", "1>", "1>>", "2>", "2>>", "&>", "&>>"];
+        if exact.contains(&token) {
+            if let Some(target) = parts.get(index + 1)
+                && plausible_path_token(target)
+            {
+                targets.push(target.clone());
+            }
+            index += 2;
+            continue;
+        }
+        let attached = ["&>>", "2>>", "1>>", ">>", "&>", "2>", "1>", ">"]
+            .iter()
+            .find_map(|prefix| token.strip_prefix(prefix))
+            .filter(|target| !target.is_empty() && !target.starts_with('&'));
+        if let Some(target) = attached
+            && plausible_path_token(target)
+        {
+            targets.push(target.to_string());
+        }
+        index += 1;
+    }
+    targets
+}
+
 fn extract_domains(text: &str) -> Vec<String> {
     let mut domains = BTreeSet::new();
     for part in text.split(|c: char| c.is_whitespace() || ['"', '\'', ')', '('].contains(&c)) {
@@ -1433,8 +1467,15 @@ fn extract_path_references(
     } else {
         "reference"
     };
+    let is_shell =
+        lower_name.contains("bash") || lower_name.contains("exec") || lower_name.contains("shell");
     let mut refs = BTreeMap::<(String, String), String>::new();
-    collect_input_path_references(input, project_root, default_access, 0, &mut refs);
+    // Shell payloads are command languages, not structured path records. A
+    // nested field named `path` may belong to jq, JSON, or a child process and
+    // must not be promoted to file evidence. Parse shell operands below.
+    if !is_shell {
+        collect_input_path_references(input, project_root, default_access, 0, &mut refs);
+    }
 
     for (path, access) in patch_path_references(command) {
         if let Some(path) = repository_relative_path(project_root, &path) {
@@ -1449,12 +1490,10 @@ fn extract_path_references(
         }
     }
 
-    if lower_name.contains("bash") || lower_name.contains("exec") || lower_name.contains("shell") {
-        for part in split_shell(command) {
-            if plausible_path_token(&part)
-                && let Some(path) = repository_relative_path(project_root, &part)
-            {
-                refs.entry((path, default_access.to_string()))
+    if is_shell {
+        for (raw, access) in shell_path_references(command, effect) {
+            if let Some(path) = repository_relative_path(project_root, &raw) {
+                refs.entry((path, access))
                     .or_insert_with(|| "command".to_string());
             }
         }
@@ -1467,6 +1506,129 @@ fn extract_path_references(
             source,
         })
         .collect()
+}
+
+fn shell_path_references(command: &str, effect: &str) -> Vec<(String, String)> {
+    let parts = split_shell(command);
+    if parts.is_empty() {
+        return Vec::new();
+    }
+    let command_name = basename_from_command(command);
+    let command_index = parts
+        .iter()
+        .position(|part| process_name_from_part(part).as_deref() == Some(command_name.as_str()))
+        .unwrap_or(0);
+    let redirect_targets = output_redirection_targets(&parts);
+    let redirect_set = redirect_targets.iter().collect::<BTreeSet<_>>();
+    let operands = parts
+        .iter()
+        .skip(command_index + 1)
+        .filter(|part| {
+            !redirect_set.contains(part)
+                && ![">", ">>", "1>", "1>>", "2>", "2>>", "&>", "&>>"].contains(&part.as_str())
+                && !part.starts_with('>')
+                && !part.starts_with("1>")
+                && !part.starts_with("2>")
+                && !part.starts_with("&>")
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    let mut refs = redirect_targets
+        .into_iter()
+        .map(|path| (path, "write".to_string()))
+        .collect::<Vec<_>>();
+
+    let path_operands = |values: &[String]| {
+        values
+            .iter()
+            .filter(|part| !part.starts_with('-') && plausible_path_token(part))
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    match command_name.as_str() {
+        "cp" => {
+            let paths = path_operands(&operands);
+            if let Some((target, sources)) = paths.split_last() {
+                refs.extend(
+                    sources
+                        .iter()
+                        .cloned()
+                        .map(|path| (path, "read".to_string())),
+                );
+                refs.push((target.clone(), "write".to_string()));
+            }
+        }
+        "mv" | "rm" | "mkdir" | "touch" | "tee" => refs.extend(
+            path_operands(&operands)
+                .into_iter()
+                .map(|path| (path, "write".to_string())),
+        ),
+        "sed" => refs.extend(sed_path_references(&operands, effect == "write")),
+        _ => {
+            let access = if effect == "read"
+                || [
+                    "rg", "grep", "cat", "head", "tail", "find", "ls", "nl", "wc", "jq",
+                ]
+                .contains(&command_name.as_str())
+            {
+                "read"
+            } else {
+                "reference"
+            };
+            refs.extend(
+                path_operands(&operands)
+                    .into_iter()
+                    .map(|path| (path, access.to_string())),
+            );
+        }
+    }
+    refs
+}
+
+fn sed_path_references(operands: &[String], in_place: bool) -> Vec<(String, String)> {
+    let mut refs = Vec::new();
+    let mut script_seen = false;
+    let mut index = 0;
+    while index < operands.len() {
+        let part = &operands[index];
+        if ["-e", "--expression"].contains(&part.as_str()) {
+            script_seen = true;
+            index += 2;
+            continue;
+        }
+        if ["-f", "--file"].contains(&part.as_str()) {
+            script_seen = true;
+            if let Some(path) = operands.get(index + 1)
+                && plausible_path_token(path)
+            {
+                refs.push((path.clone(), "read".to_string()));
+            }
+            index += 2;
+            continue;
+        }
+        if let Some(path) = part.strip_prefix("--file=") {
+            script_seen = true;
+            if plausible_path_token(path) {
+                refs.push((path.to_string(), "read".to_string()));
+            }
+            index += 1;
+            continue;
+        }
+        if part.starts_with('-') {
+            index += 1;
+            continue;
+        }
+        if !script_seen {
+            script_seen = true;
+        } else if plausible_path_token(part) {
+            refs.push((
+                part.clone(),
+                if in_place { "write" } else { "read" }.to_string(),
+            ));
+        }
+        index += 1;
+    }
+    refs
 }
 
 fn collect_input_path_references(
@@ -1529,13 +1691,32 @@ fn repository_relative_path(project_root: &Path, raw: &str) -> Option<String> {
         return None;
     }
     let path = Path::new(raw);
+    let repository_root = containing_git_root(project_root);
     let relative = if path.is_absolute() {
         if project_root.as_os_str().is_empty() {
             return None;
         }
-        path.strip_prefix(project_root).ok()?
+        if let Some(repository_root) = repository_root.as_deref() {
+            let target = lexical_normalize(path)?;
+            if !target.starts_with(repository_root) {
+                return None;
+            }
+            lexical_relative(project_root, &target)?
+        } else {
+            path.strip_prefix(project_root).ok()?.to_path_buf()
+        }
+    } else if path
+        .components()
+        .any(|component| component == std::path::Component::ParentDir)
+    {
+        let repository_root = repository_root?;
+        let target = lexical_normalize(&project_root.join(path))?;
+        if !target.starts_with(&repository_root) {
+            return None;
+        }
+        lexical_relative(project_root, &target)?
     } else {
-        path
+        path.to_path_buf()
     };
     let mut parts = Vec::new();
     for component in relative.components() {
@@ -1548,12 +1729,62 @@ fn repository_relative_path(project_root: &Path, raw: &str) -> Option<String> {
                 }
                 parts.push(part);
             }
-            std::path::Component::ParentDir
-            | std::path::Component::RootDir
-            | std::path::Component::Prefix(_) => return None,
+            std::path::Component::ParentDir => parts.push(".."),
+            std::path::Component::RootDir | std::path::Component::Prefix(_) => return None,
         }
     }
     (!parts.is_empty()).then(|| parts.join("/"))
+}
+
+fn containing_git_root(cwd: &Path) -> Option<PathBuf> {
+    let mut cursor = cwd;
+    loop {
+        if cursor.join(".git").exists() {
+            return Some(cursor.to_path_buf());
+        }
+        cursor = cursor.parent()?;
+    }
+}
+
+fn lexical_normalize(path: &Path) -> Option<PathBuf> {
+    let mut output = PathBuf::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::Prefix(prefix) => output.push(prefix.as_os_str()),
+            std::path::Component::RootDir => output.push(Path::new("/")),
+            std::path::Component::CurDir => {}
+            std::path::Component::Normal(part) => output.push(part),
+            std::path::Component::ParentDir => {
+                if !output.pop() {
+                    return None;
+                }
+            }
+        }
+    }
+    Some(output)
+}
+
+fn lexical_relative(base: &Path, target: &Path) -> Option<PathBuf> {
+    let base = lexical_normalize(base)?;
+    let target = lexical_normalize(target)?;
+    let base_parts = base.components().collect::<Vec<_>>();
+    let target_parts = target.components().collect::<Vec<_>>();
+    let common = base_parts
+        .iter()
+        .zip(&target_parts)
+        .take_while(|(left, right)| left == right)
+        .count();
+    if common == 0 {
+        return None;
+    }
+    let mut relative = PathBuf::new();
+    for _ in common..base_parts.len() {
+        relative.push("..");
+    }
+    for component in &target_parts[common..] {
+        relative.push(component.as_os_str());
+    }
+    Some(relative)
 }
 
 fn patch_path_references(text: &str) -> Vec<(String, &'static str)> {
@@ -1706,7 +1937,8 @@ fn plausible_path_token(part: &str) -> bool {
         || part.starts_with("http://")
         || part.starts_with("https://")
         || part.len() > 140
-        || part.chars().any(|c| "{}()=;<>|`".contains(c))
+        || part.chars().any(char::is_whitespace)
+        || part.chars().any(|c| "{}()=;<>|`*?[]\"".contains(c))
     {
         return false;
     }
@@ -2307,6 +2539,100 @@ mod tests {
             assert_eq!(command_effect(command), "write", "{command}");
         }
         assert_eq!(command_effect("sed -n '1,5p' src/lib.rs"), "read");
+    }
+
+    #[test]
+    fn shell_operands_preserve_read_write_roles_and_redirections() {
+        let cp = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "Bash",
+            &json!({"command": "cp src/a.rs src/b.rs"}),
+            None,
+        );
+        assert!(
+            cp.path_refs
+                .iter()
+                .any(|reference| { reference.path == "src/a.rs" && reference.access == "read" })
+        );
+        assert!(
+            cp.path_refs
+                .iter()
+                .any(|reference| { reference.path == "src/b.rs" && reference.access == "write" })
+        );
+
+        let sed = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "Bash",
+            &json!({"command": "sed -i 's/a/b/' src/lib.rs"}),
+            None,
+        );
+        assert_eq!(sed.path_refs.len(), 1);
+        assert_eq!(sed.path_refs[0].path, "src/lib.rs");
+        assert_eq!(sed.path_refs[0].access, "write");
+
+        for command in [
+            "cat src/template.rs > src/generated.rs",
+            "echo generated >> docs/output.md",
+            "printf generated >docs/output.md",
+            "cat <<'EOF' > src/heredoc.rs",
+        ] {
+            let event = tool_event_from_input(
+                Some("/repo"),
+                Some(42),
+                0,
+                "Bash",
+                &json!({"command": command}),
+                None,
+            );
+            assert_eq!(event.effect, "write", "{command}");
+            assert!(
+                event
+                    .path_refs
+                    .iter()
+                    .any(|reference| reference.access == "write"),
+                "{command}"
+            );
+        }
+
+        let command_fragment = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "exec_command",
+            &json!({
+                "cmd": "bash -lc 'cargo run --manifest-path collector/Cargo.toml -- top'",
+                "path": "cargo run --manifest-path collector/Cargo.toml -- top",
+                "pattern": "*.rs"
+            }),
+            None,
+        );
+        assert!(command_fragment.path_refs.is_empty());
+    }
+
+    #[test]
+    fn subdirectory_paths_remain_resolvable_inside_the_repository() {
+        let root = std::env::temp_dir().join(format!(
+            "agent-session-subdir-path-test-{}",
+            std::process::id()
+        ));
+        let subdir = root.join("nested");
+        std::fs::create_dir_all(root.join(".git")).expect("create git marker");
+        std::fs::create_dir_all(&subdir).expect("create cwd");
+
+        assert_eq!(
+            repository_relative_path(&subdir, "../src/lib.rs").as_deref(),
+            Some("../src/lib.rs")
+        );
+        assert_eq!(
+            repository_relative_path(&subdir, root.join("src/lib.rs").to_str().unwrap()).as_deref(),
+            Some("../src/lib.rs")
+        );
+        assert!(repository_relative_path(&subdir, "/outside/secret.txt").is_none());
+        std::fs::remove_dir_all(root).expect("remove path fixture");
     }
 
     #[test]

@@ -59,9 +59,10 @@ impl UserPrompt {
 
 /// A privacy-safe exact path reference recovered from a native tool input.
 ///
-/// `path` is repository-relative when `scope == "repository"`. External and
-/// unresolved paths are summarized by the existing `path_groups` field rather
-/// than copied here.
+/// `path` is a privacy-safe session-cwd-relative candidate. The longitudinal
+/// exporter resolves it against the actual repository root and drops paths
+/// that escape that root. External and unresolved paths are summarized by the
+/// existing `path_groups` field rather than copied here.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct PathReference {
     pub path: String,

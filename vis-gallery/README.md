@@ -26,7 +26,7 @@ npm run dev
 ```
 
 Open <http://127.0.0.1:5173>. The checked public dataset is privacy-scanned and
-contains 56 deduplicated sessions, 6,401 path-event rows, 994 file lifetimes,
+contains 56 deduplicated sessions, 6,040 path-event rows, 918 file lifetimes,
 177 commits, 1,852 changes, and 12,000 current Git-blame line pixels. The three
 real observation days span 2026-06-02 through 2026-07-14; they are not a
 continuous synthetic workload. July 14 is right-censored and is used only for
@@ -45,8 +45,10 @@ descriptive process views.
 | Storylines | session journeys; Git author ownership flow; visible cast |
 | Longitudinal extras | punch card; uPlot vitals; semantic flow; verification lag; receipt; mature-day ghost |
 
-All views use one draggable/playable time cursor, vendor and association-state
-filters, and shared path/session focus. ECharts handles dense canvas charts,
+All compatible process views share one draggable/playable time cursor, vendor
+and association-state filters, and path/session focus. Durable Git-only and
+frozen endpoint layers remain filter-invariant and are labeled as such rather
+than silently reinterpreted as agent evidence. ECharts handles dense canvas charts,
 Cytoscape.js the evidence networks, uPlot the high-frequency vital trace, and
 custom canvases the SeeSoft and particle fields.
 
@@ -60,7 +62,7 @@ fields and absolute home paths. Native inputs remain ignored.
 ```bash
 cargo run --manifest-path ../agent-session/Cargo.toml \
   --bin agent-session-export -- \
-  --repo .. --head REV --since 2026-06-02 --until 2026-06-03 \
+  --repo .. --head REV --since 2026-06-02T07:00:00Z --until 2026-06-03T07:00:00Z \
   --output /private/day.json
 ```
 

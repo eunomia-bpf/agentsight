@@ -4,12 +4,13 @@ import type { EChartsOption } from "echarts";
 import { baseChart } from "../chartTheme";
 import EChart from "../components/EChart";
 import Panel from "../components/Panel";
-import { topBy } from "../selectors";
+import { projectOrderedEdges, topBy } from "../selectors";
 import type { GraphEdge } from "../types";
 import type { ViewProps } from "./viewTypes";
 
 export default function ForensicView({ data, state, events, onChange }: ViewProps) {
   const visible = new Set(events.map((event) => event.path));
+  const orderedEdges = useMemo(() => projectOrderedEdges(events), [events]);
   const hotspots = topBy(data.files, (file) => file.risk_score, 90);
   const hotspotOption: EChartsOption = {
     ...baseChart,
@@ -28,7 +29,9 @@ export default function ForensicView({ data, state, events, onChange }: ViewProp
       <EvidenceGraph edges={data.cochange_edges} semantics="co-change" selected={state.selectedPath} onSelect={(path) => onChange({ selectedPath: path })} />
     </Panel>
     <Panel eyebrow="Ordered information flow" title="Read-before-write network" note="A directed edge records temporal order inside a session. It is explicitly not a causal edge and not proof that the read informed the write." wide>
-      <EvidenceGraph edges={data.ordered_edges} semantics="ordered" selected={state.selectedPath} onSelect={(path) => onChange({ selectedPath: path })} />
+      <div data-testid="ordered-edge-projection" data-edge-count={orderedEdges.length}>
+        <EvidenceGraph edges={orderedEdges} semantics="ordered" selected={state.selectedPath} onSelect={(path) => onChange({ selectedPath: path })} />
+      </div>
     </Panel>
   </section>;
 }

@@ -28,15 +28,16 @@ test("shared playback cursor and filters remain interactive", async ({ page }) =
   await slider.press("ArrowLeft");
   expect(await slider.inputValue()).not.toBe(before);
   await slider.press("End");
-  const visibleEvidence = page.locator(".metric-strip .metric strong").first();
-  const allVendorCount = await visibleEvidence.textContent();
+  await page.getByTestId("nav-matrix").click();
+  const matrixProjection = page.getByTestId("matrix-projection");
+  const allVendorCount = Number(await matrixProjection.getAttribute("data-event-count"));
   await page.getByRole("button", { name: "codex", exact: true }).click();
   await expect(page.getByRole("button", { name: "codex", exact: true })).toHaveClass(/is-active/);
-  await expect.poll(() => visibleEvidence.textContent()).not.toBe(allVendorCount);
+  await expect.poll(async () => Number(await matrixProjection.getAttribute("data-event-count"))).toBeLessThan(allVendorCount);
   await page.getByTestId("nav-river").click();
   await expect(page.getByText("Agent activity river")).toBeVisible();
-  await page.getByTestId("nav-matrix").click();
-  await expect(page.getByText("File × observation-day matrix")).toBeVisible();
+  await page.getByTestId("nav-longitudinal").click();
+  await expect(page.getByTestId("vital-projection")).toHaveAttribute("data-bucket-count", /[1-9]/);
 });
 
 test("capture representative atlas plates", async ({ page }) => {

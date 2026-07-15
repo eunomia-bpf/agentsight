@@ -121,6 +121,8 @@ pub struct NormalizedEvent {
     pub status: String,
     pub prompt_index: usize,
     pub paths: Vec<String>,
+    #[serde(default)]
+    pub write_paths: Vec<String>,
     pub path_groups: Vec<String>,
     pub edit_summary: Option<EditSummary>,
     pub input_tokens: u64,
@@ -848,12 +850,26 @@ fn normalize_sessions(
             if !(options.since_ms..options.until_ms).contains(&ts_ms) {
                 continue;
             }
-            let paths = tool
+            let normalized_refs = tool
                 .path_refs
                 .iter()
                 .filter_map(|reference| {
-                    cwd.and_then(|cwd| repo_relative_session_path(repo, cwd, &reference.path))
+                    cwd.and_then(|cwd| {
+                        repo_relative_session_path(repo, cwd, &reference.path)
+                            .map(|path| (path, reference.access.as_str()))
+                    })
                 })
+                .collect::<BTreeSet<_>>();
+            let paths = normalized_refs
+                .iter()
+                .map(|(path, _)| path.clone())
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>();
+            let write_paths = normalized_refs
+                .iter()
+                .filter(|(_, access)| *access == "write")
+                .map(|(path, _)| path.clone())
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>();
@@ -878,6 +894,7 @@ fn normalize_sessions(
                 status: tool.status.clone(),
                 prompt_index: tool.prompt_index,
                 paths,
+                write_paths,
                 path_groups: tool.path_groups.clone(),
                 edit_summary: tool.edit_summary.clone(),
                 input_tokens: 0,
@@ -906,6 +923,7 @@ fn normalize_sessions(
                 status: "observed".to_string(),
                 prompt_index: response.prompt_index,
                 paths: Vec::new(),
+                write_paths: Vec::new(),
                 path_groups: Vec::new(),
                 edit_summary: None,
                 input_tokens: response.input_tokens,
@@ -926,7 +944,10 @@ fn repo_relative_session_path(repo: &Path, cwd: &Path, event_path: &str) -> Opti
         match component {
             std::path::Component::CurDir => {}
             std::path::Component::Normal(part) => parts.push(part.to_str()?.to_string()),
-            _ => return None,
+            std::path::Component::ParentDir => {
+                parts.pop()?;
+            }
+            std::path::Component::RootDir | std::path::Component::Prefix(_) => return None,
         }
     }
     (!parts.is_empty()).then(|| parts.join("/"))
@@ -956,7 +977,7 @@ fn associate_events(
         .collect::<HashMap<_, _>>();
     let mut associations = Vec::new();
     for event in events.iter().filter(|event| event.effect == "write") {
-        for path in &event.paths {
+        for path in &event.write_paths {
             let mut candidates = changes
                 .iter()
                 .filter(|change| !change.is_merge)
@@ -1287,6 +1308,7 @@ mod tests {
             status: "ok".to_string(),
             prompt_index: 0,
             paths: vec!["file.txt".to_string()],
+            write_paths: vec!["file.txt".to_string()],
             path_groups: Vec::new(),
             edit_summary: None,
             input_tokens: 0,
@@ -1351,5 +1373,16 @@ mod tests {
         assert_eq!(associations[0].state, "unique_candidate");
         assert_eq!(associations[0].candidates[0].commit_id, "new-commit");
         assert_eq!(associations[0].candidates[0].match_kind, "prebirth");
+    }
+
+    #[test]
+    fn session_paths_can_resolve_from_a_repository_subdirectory() {
+        let repo = Path::new("/repo");
+        let cwd = Path::new("/repo/nested");
+        assert_eq!(
+            repo_relative_session_path(repo, cwd, "../src/lib.rs").as_deref(),
+            Some("src/lib.rs")
+        );
+        assert!(repo_relative_session_path(repo, cwd, "../../outside.txt").is_none());
     }
 }

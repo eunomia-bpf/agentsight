@@ -36,6 +36,13 @@ class PublicGalleryValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "non-repository paths"):
             validate_public_output(output)
 
+    def test_rejects_glob_and_command_fragments_as_paths(self):
+        for path in ["src/*.rs", "cargo run --manifest-path Cargo.toml"]:
+            output = valid_output()
+            output["events"][0]["path"] = path
+            with self.assertRaisesRegex(ValueError, "non-repository paths"):
+                validate_public_output(output)
+
     def test_rejects_association_on_censored_day(self):
         output = valid_output()
         output["events"][0]["association_state"] = "unique_candidate"

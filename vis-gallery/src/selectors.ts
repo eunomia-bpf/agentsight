@@ -1,4 +1,4 @@
-import type { GalleryData, GalleryEvent, GalleryFile, GallerySession, LinePixel, ViewState } from "./types";
+import type { GalleryData, GalleryEvent, GalleryFile, GallerySession, GraphEdge, LinePixel, TimeBucket, ViewState } from "./types";
 
 export function eventVisible(event: GalleryEvent, state: ViewState): boolean {
   return (
@@ -42,6 +42,50 @@ export function completedSessionsInVisibleInterval(
 
 export function linePixelVisible(pixel: LinePixel, cursorMs: number): boolean {
   return pixel.origin_ms <= cursorMs;
+}
+
+export function projectOrderedEdges(events: GalleryEvent[]): GraphEdge[] {
+  const groups = new Map<string, GalleryEvent[]>();
+  events.forEach((event) => {
+    const key = `${event.session_id}:${event.prompt_index}`;
+    groups.set(key, [...(groups.get(key) ?? []), event]);
+  });
+  const edges = new Map<string, GraphEdge>();
+  groups.forEach((rows) => {
+    let reads: string[] = [];
+    [...rows].sort((a, b) => a.ts_ms - b.ts_ms || a.id.localeCompare(b.id)).forEach((row) => {
+      if (row.effect === "read") {
+        if (!reads.includes(row.path)) reads.push(row.path);
+        reads = reads.slice(-8);
+      } else if (row.effect === "write") {
+        reads.forEach((source) => {
+          if (source === row.path) return;
+          const key = `${source}\u0000${row.path}`;
+          const current = edges.get(key) ?? { source, target: row.path, count: 0, vendors: {}, semantics: "ordered read-before-write evidence; not causality" };
+          current.count += 1;
+          current.vendors![row.vendor] = (current.vendors![row.vendor] ?? 0) + 1;
+          edges.set(key, current);
+        });
+        reads = [];
+      }
+    });
+  });
+  return [...edges.values()].sort((a, b) => b.count - a.count || a.source.localeCompare(b.source) || a.target.localeCompare(b.target)).slice(0, 400);
+}
+
+export function projectTimeBuckets(events: GalleryEvent[]): TimeBucket[] {
+  const buckets = new Map<number, TimeBucket>();
+  events.forEach((event) => {
+    const ts_ms = Math.floor(event.ts_ms / 3_600_000) * 3_600_000;
+    const row = buckets.get(ts_ms) ?? { ts_ms };
+    row.events = (row.events ?? 0) + 1;
+    const effect = event.effect as keyof Omit<TimeBucket, "ts_ms">;
+    if (["read", "write", "test", "process", "network", "repo"].includes(effect)) {
+      row[effect] = (row[effect] ?? 0) + 1;
+    }
+    buckets.set(ts_ms, row);
+  });
+  return [...buckets.values()].sort((a, b) => a.ts_ms - b.ts_ms);
 }
 
 export function formatCompact(value: number): string {

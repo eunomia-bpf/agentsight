@@ -8,7 +8,12 @@ import type { ViewProps } from "./viewTypes";
 
 export default function MatrixView({ data, state, events, onChange }: ViewProps) {
   const eventCounts = new Map<string, number>();
+  const eventCountsByPathDay = new Map<string, number>();
   events.forEach((event) => eventCounts.set(event.path, (eventCounts.get(event.path) ?? 0) + 1));
+  events.forEach((event) => {
+    const key = `${event.path}\u0000${event.day}`;
+    eventCountsByPathDay.set(key, (eventCountsByPathDay.get(key) ?? 0) + 1);
+  });
   const files = topBy(
     data.files,
     (file) => (eventCounts.get(file.path) ?? 0) * 5 + file.churn,
@@ -19,7 +24,9 @@ export default function MatrixView({ data, state, events, onChange }: ViewProps)
     days.map((day, x) => {
       const cell = file.daily[day] ?? {};
       const activity =
-        (cell.touches ?? 0) * 4 + (cell.additions ?? 0) + (cell.deletions ?? 0);
+        (eventCountsByPathDay.get(`${file.path}\u0000${day}`) ?? 0) * 4 +
+        (cell.additions ?? 0) +
+        (cell.deletions ?? 0);
       return {
         value: [x, y, Math.log1p(activity)],
         raw: activity,
@@ -138,11 +145,11 @@ export default function MatrixView({ data, state, events, onChange }: ViewProps)
 
   const patterns = topBy(data.files, (file) => file.risk_score, 18);
   return (
-    <section className="panel-grid">
+    <section className="panel-grid" data-testid="matrix-projection" data-event-count={events.length}>
       <Panel
         eyebrow="Evolution Matrix · 2001"
         title="File × observation-day matrix"
-        note="Brightness combines recorded touches and Git churn. Rows stay stable across days, making bursts and pulses comparable."
+        note="Brightness combines filtered recorded touches with filter-invariant Git churn. Rows stay stable across days, making bursts and pulses comparable."
         wide
         badge="log-scaled activity"
       >

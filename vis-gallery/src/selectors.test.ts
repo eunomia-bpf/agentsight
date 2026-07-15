@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { completedSessionsInVisibleInterval, eventVisible, formatCompact, linePixelVisible, topBy } from "./selectors";
+import { completedSessionsInVisibleInterval, eventVisible, formatCompact, linePixelVisible, projectOrderedEdges, projectTimeBuckets, topBy } from "./selectors";
 import type { GalleryEvent, GallerySession, ViewState } from "./types";
 
 const event: GalleryEvent = {
@@ -37,5 +37,24 @@ describe("gallery selectors", () => {
     const pixel = { path: "src/a.rs", line: 1, origin_commit: "abc", origin_ms: 50, author_label: "author-1" };
     expect(linePixelVisible(pixel, 49)).toBe(false);
     expect(linePixelVisible(pixel, 50)).toBe(true);
+  });
+  it("reprojects ordered edges from the filtered event set", () => {
+    const rows = [
+      event,
+      { ...event, id: "2", event_id: "2", ts_ms: 21, action: "write", effect: "write", path: "src/b.rs" },
+      { ...event, id: "3", event_id: "3", ts_ms: 22, vendor: "claude", action: "write", effect: "write", path: "src/c.rs" },
+    ];
+    const all = projectOrderedEdges(rows);
+    const codex = projectOrderedEdges(rows.filter((row) => row.vendor === "codex"));
+    expect(all.map((edge) => edge.target)).toEqual(["src/b.rs"]);
+    expect(codex).toEqual(all);
+    expect(projectOrderedEdges(rows.filter((row) => row.vendor === "claude"))).toEqual([]);
+  });
+  it("reprojects hourly vital signs from visible events", () => {
+    const rows = [event, { ...event, id: "2", ts_ms: 3_600_020, effect: "write" }];
+    expect(projectTimeBuckets(rows)).toEqual([
+      { ts_ms: 0, events: 1, read: 1 },
+      { ts_ms: 3_600_000, events: 1, write: 1 },
+    ]);
   });
 });

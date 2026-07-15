@@ -36,7 +36,10 @@
 1. Discover and parse Claude, Codex, and Gemini session files with the existing
    vendor-neutral parser.
 2. Canonicalize repository-relative path evidence while retaining pathless and
-   external events.
+   external events. Shell operands are modeled conservatively: copy sources
+   are reads, destinations and output redirections are writes, sed expressions
+   and glob/command fragments are not files, and cwd-relative `..` candidates
+   survive only when exporter normalization keeps them inside the repository.
 3. Collect Git commits, diffs, renames, authors, file birth/death intervals,
    current paths, and line lineage through stable non-interactive plumbing.
 4. Produce zero/one/many candidate associations for each eligible event. Keep
@@ -76,7 +79,7 @@ Rust fixtures cover all three native schemas, path normalization, exact edit
 fingerprints, pathless events, rename/recreation lifetimes, and deleted-path
 gaps. Browser tests exercise all nine navigation families, the shared cursor,
 filters, and representative screenshots. The public real-data atlas contains
-56 deduplicated sessions, 6,401 path-event rows, 994 file lifetimes, 177
+56 deduplicated sessions, 6,040 path-event rows, 918 file lifetimes, 177
 commits, 1,852 Git changes, and 12,000 Git-blame line pixels across three
 observation days spanning June 2 through July 14. July 14 is explicitly
 right-censored and process-only for quantitative association purposes.

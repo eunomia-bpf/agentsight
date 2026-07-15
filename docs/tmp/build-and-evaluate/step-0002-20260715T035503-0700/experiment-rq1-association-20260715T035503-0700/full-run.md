@@ -69,6 +69,12 @@ baseline reached 0.736 precision/positive recall and 0.766 classification
 accuracy. Paired intervals favored the proposed method for Brier and candidate-
 set recall.
 
+A final operand-role repair distinguished shell reads from writes (`cp` source
+versus destination), recognized output redirection, and removed command/glob
+fragments from exact paths. Re-exporting the frozen 07:00Z observation windows
+yielded 579 and 376 mature write-path observations. The controlled,
+naturalistic, and lineage results above were unchanged.
+
 Naturalistic transfer did **not** pass the frozen gate: only 14 nulls were
 available, their lower-bound specificity missed 0.85, and controlled confidence
 underestimated correct multi-candidate links (ECE 0.240 > 0.10). The

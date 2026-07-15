@@ -160,7 +160,9 @@ def build(
         day = artifact["window"]["since"][:10]
         unique_session_ids = {session["id"] for session in artifact["sessions"]}
         write_path_observations = sum(
-            len(event["paths"])
+            len(
+                event.get("write_paths", [])
+            )
             for event in artifact["events"]
             if event["effect"] == "write"
         )
@@ -219,8 +221,18 @@ def build(
             bucket["reported_tokens"] += token_value
             if not event["paths"]:
                 continue
+            write_paths = set(event.get("write_paths", []))
             for path in event["paths"]:
-                association = association_index.get((event["id"], path))
+                path_effect = (
+                    "write"
+                    if path in write_paths
+                    else "read" if event["effect"] == "write" else event["effect"]
+                )
+                association = (
+                    association_index.get((event["id"], path))
+                    if path_effect == "write"
+                    else None
+                )
                 state = association["state"] if association else "not_eligible"
                 top = association["candidates"][0] if association and association["candidates"] else None
                 row = {
@@ -233,7 +245,7 @@ def build(
                     "day": day,
                     "action": event["action"],
                     "category": event["category"],
-                    "effect": event["effect"],
+                    "effect": path_effect,
                     "status": event["status"],
                     "prompt_index": event["prompt_index"],
                     "path": path,
@@ -251,9 +263,9 @@ def build(
                     "read": "read_events",
                     "write": "write_events",
                     "test": "verify_events",
-                }.get(event["effect"], "other_events")
+                }.get(path_effect, "other_events")
                 file[effect_key] += 1
-                file["effect_counts"][event["effect"]] += 1
+                file["effect_counts"][path_effect] += 1
                 file["vendors"].add(event["vendor"])
                 file["sessions"].add(event["session_id"])
                 file["first_event_ms"] = min(file["first_event_ms"] or timestamp, timestamp)
@@ -629,7 +641,12 @@ def validate_public_output(output: dict[str, Any]) -> None:
 
 
 def is_public_repo_path(path: str) -> bool:
-    if not path or path.startswith(("/", "~", "$")) or "\\" in path:
+    if (
+        not path
+        or path.startswith(("/", "~", "$"))
+        or "\\" in path
+        or any(character.isspace() or character in '*?[]"`' for character in path)
+    ):
         return False
     return all(part not in {"", ".", ".."} for part in path.split("/"))
 
