@@ -7,7 +7,7 @@ use crate::view::top::sort_agent_rows;
 use std::io::{self, Write};
 use std::time::Duration;
 
-pub(crate) async fn run_live_top_query(
+pub(crate) fn run_live_top_query(
     interval_secs: u64,
     limit: usize,
     count: Option<u32>,
