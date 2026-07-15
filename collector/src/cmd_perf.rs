@@ -56,7 +56,13 @@ pub(crate) fn load_top_output<'a>(
     options: &TopOptions,
 ) -> Result<AgentTopOutput<'a>, Box<dyn std::error::Error + Send + Sync>> {
     let (snapshot, resources) = load_snapshot_and_resources(db)?;
-    Ok(build_session_top(db, &snapshot, &resources, limit.clamp(1, 50), options))
+    Ok(build_session_top(
+        db,
+        &snapshot,
+        &resources,
+        limit.clamp(1, 50),
+        options,
+    ))
 }
 
 fn build_session_top<'a>(
@@ -126,7 +132,6 @@ fn session_agent_rows(
                 failures: 0,
                 files: 0,
                 network: 0,
-                unattributed: 0,
                 trace: "db".to_string(),
                 command: session.agent_type.clone(),
                 workspace: cwd,
@@ -203,7 +208,6 @@ fn saved_session_row(
         failures: audit.process_exit_failure,
         files: audit.unique_files.len(),
         network,
-        unattributed: 0,
         trace: "db".to_string(),
         command: "saved session".to_string(),
         workspace: None,
