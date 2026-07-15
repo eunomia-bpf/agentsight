@@ -10,28 +10,28 @@
 - AgentSight's existing frontend already owns single-run timeline, process tree,
   log, and resource views; the longitudinal gallery remains separate.
 
-## Planned artifact boundary
+## Implemented artifact boundary
 
 - Extend `ToolEvent` without breaking existing consumers: preserve exact
   repository-relative path references and bounded edit/read payload metrics
   where a native schema exposes them; keep `path_groups` as the privacy-safe
   summary.
-- Add an `agent-session` export CLI with explicit repository, time-range,
+- The `agent-session-export` CLI has explicit repository, frozen revision, time-range,
   source, and output arguments. Its canonical longitudinal artifact will carry
   raw normalized events, Git changes and file lifetimes, endpoint state,
   candidate associations, confidence, and preaggregated projections.
-- Export equivalent normalized JSON/JSONL, Perfetto Trace Event JSON, and
-  Gource custom logs. Formats that cannot carry the whole evidence model are
+- It exports canonical longitudinal JSON, normalized event JSONL, Perfetto
+  Trace Event JSON, and Gource custom logs. The compatibility formats are
   labeled lossy baselines.
-- Add a root-level experimental `vis-gallery/` TypeScript application with
+- The root-level experimental `vis-gallery/` TypeScript application uses
   package-locked ECharts, D3, Cytoscape.js, and uPlot dependencies and no
   runtime CDN requirement.
 - Preserve `frontend/` and README Quick Start.
-- Generate private real-data output under ignored artifact paths; commit only
+- Private real-data output remains under ignored artifact paths; only
   sanitized fixtures and screenshots that have been checked for sensitive
   content.
 
-## Planned pipeline
+## Implemented pipeline
 
 1. Discover and parse Claude, Codex, and Gemini session files with the existing
    vendor-neutral parser.
@@ -54,18 +54,25 @@ without forcing a bijection; merge changes are retained in a separate stratum.
 
 ## Privacy and reproducibility
 
-The default artifact excludes prompt bodies, command secrets, absolute home
-paths, and edit contents. It retains hashes, bounded previews only when
-explicitly requested, categorical actions, normalized paths, and aggregate
-sizes. Every experiment records the source time range, repository revision,
+The default artifact excludes prompt bodies, command bodies, edit/read bodies,
+secrets, and absolute home paths. It retains hashes, bounded previews only when
+explicitly requested, categorical actions, repository-relative normalized
+paths, and aggregate sizes. Every experiment records the source time range, repository revision,
 exporter version, join settings, confidence thresholds, and dependency lock.
 
 ## Validation entrypoints
 
-Pending implementation. Rust unit fixtures will cover every supported native
-schema, path normalization, candidate ambiguity, rename chains, file lifetimes,
-and endpoint state. Integration fixtures will compare exporter aggregates with
-Git commands and Hercules where reproducible. Browser tests will load a
-sanitized fixture, exercise every view, scrub/play/filter linked state, and
-capture screenshots. Final validation includes Cargo tests, gallery typecheck/
-build/tests, a real multi-day export, privacy scan, and measured browser render.
+- `cargo test --manifest-path agent-session/Cargo.toml`
+- `cd vis-gallery && npm run build && npm test && npm run test:e2e`
+- `python3 vis-gallery/analysis/build_gallery_data.py ...` creates the checked
+  public projection from private native-history exports and rejects prompt,
+  command, edit-body, content, and absolute-home-path keys.
+
+Rust fixtures cover all three native schemas, path normalization, exact edit
+fingerprints, pathless events, rename/recreation lifetimes, and deleted-path
+gaps. Browser tests exercise all nine navigation families, the shared cursor,
+filters, and representative screenshots. The public real-data atlas contains
+56 deduplicated sessions, 6,535 path-event rows, 1,027 file lifetimes, 177
+commits, 1,852 Git changes, and 12,000 Git-blame line pixels across three
+observation days spanning June 2 through July 14. July 14 is explicitly
+right-censored and process-only for quantitative association purposes.

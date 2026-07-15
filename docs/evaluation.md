@@ -4,7 +4,7 @@
 
 | RQ | Evidence promised | Status |
 |---|---|---|
-| RQ1 Evidence recoverability and association accuracy | Controlled known-link histories; double-annotated naturalistic sample; event-to-Git and Git-lineage accuracy/calibration; source ablation | Open; first implementation gate |
+| RQ1 Evidence recoverability and association accuracy | Controlled known-link histories; double-annotated naturalistic sample; event-to-Git and Git-lineage accuracy/calibration; source ablation | Complete; controlled supported, naturalistic and line transfer inconclusive |
 | RQ2 Recurring process patterns and outcomes | Discovery/held-out split; vendor/model/session strata; event-only predictors versus durable Git and endpoint outcomes | Gated by RQ1 |
 | RQ3 Review utility | Frozen tasks against strong Git-only, native event table, noncoordinated full joined table, and coordinated core views | Gated by RQ1 and participant protocol |
 | RQ4 Long-horizon scalability | Export/render throughput and latency plus scale-matched navigation/crowding tasks | Open after minimum gallery |
@@ -43,9 +43,12 @@ the fixture. Naturalistic adjudication labels only whether evidence supports a
 candidate correspondence; it does not label causality or authorship. The
 primary association unit is an event--normalized-path pair, and the primary Git
 target is a rename-aware file-change entry in a non-merge commit. For an event
-at time `t`, the frozen primary candidate window is `[t - 15 minutes, t + 24
-hours]` on the same continuous file lifetime; 1-hour and 6-hour upper bounds are
-reported only as prespecified sensitivity analyses. Zero candidates, one
+at time `t`, the frozen primary retrieval window is `[t - 15 minutes, t + 24
+hours]` on a compatible continuous file lifetime; 1-hour and 6-hour upper
+bounds are reported only as prespecified sensitivity analyses. Naturalistic
+oracle packets independently include all rename-connected changes from 24
+hours before the sampled day through seven days after it, without method scores
+or ranks. Zero candidates, one
 candidate, multiple candidates, and unadjudicable evidence are separate labels.
 
 Primary association accuracy uses all adjudicated association-eligible event--
@@ -57,7 +60,8 @@ to one Git change; split work permits one event to retain several candidates.
 No maximum-weight matching forces a bijection.
 
 A continuous file lifetime begins at a Git addition, follows detected renames,
-and ends at deletion. Same-path recreation receives a new lifetime identifier.
+and ends at deletion. A pre-birth or post-deletion-gap write may target only the
+next same-path add; same-path recreation receives a new lifetime identifier.
 Path endpoint survival means that this lifetime reaches the selected HEAD. Line
 endpoint survival additionally requires the separately evaluated hunk-to-
 current-line link.
@@ -70,11 +74,12 @@ line granularity. Only validated strata may support RQ2/RQ3 event-to-outcome
 claims; all excluded and ambiguous records remain visible in descriptive views.
 
 Thresholds are fit only on controlled/calibration data and evaluated once on a
-held-out scenario split and the unreconciled naturalistic annotations. A path-
-level candidate stratum is supported only with at least 30 positive and 30
-null adjudicated pairs, a 95% Wilson lower bound of 0.90 for candidate precision
-and 0.85 for unmatched balanced accuracy, and expected calibration error at
-most 0.10. A line overlay additionally requires at least 30 adjudicated linked
+held-out scenario split and naturalistic annotations. A path-level candidate
+stratum is supported only with at least 50 positive and 50 null adjudicated
+pairs, a 95% Wilson lower bound of 0.90 for candidate precision and 0.85 for
+each of positive-target recall and null-target specificity, and expected
+calibration error at most 0.10. A line overlay additionally requires at least
+100 adjudicated linked
 hunks and a 95% Wilson lower bound of 0.95 for the joint event-to-hunk and hunk-
 to-current-line precision. If no stratum passes, RQ2/RQ3 cannot make joined
 event-to-outcome claims and the gallery is bounded to descriptive process,
@@ -106,3 +111,31 @@ Git, mismatch, and endpoint views.
 
 Raw outputs will live under the step-specific experiment directory and be
 linked here after review. No result placeholder is treated as evidence.
+
+## Completed RQ1 experiment
+
+- Selected RQ: RQ1 Evidence Recoverability and Association Accuracy.
+- Tested hypothesis: A calibrated path-level stratum can be recovered from
+  native write events and actual Git history; line-level support is separately
+  gated and may remain inconclusive.
+- Admission and role: Decisive. Join ambiguity is the strongest reject argument
+  against every later event-to-outcome claim, so this experiment has higher
+  paper decision value than building or evaluating the gallery first.
+- Current status: Terminal result approved after repair and independent result
+  review. The controlled exact-hunk mechanism passed every gate. Mature
+  naturalistic transfer failed support/calibration gates, line lineage was
+  undersupported, and July 14 was right-censored and excluded.
+- Plan: [RQ1 association experiment plan](tmp/build-and-evaluate/step-0002-20260715T035503-0700/experiment-rq1-association-20260715T035503-0700/plan.md).
+- Raw path: `docs/tmp/build-and-evaluate/step-0002-20260715T035503-0700/experiment-rq1-association-20260715T035503-0700/raw/private/` for ignored native data and `raw/public/` for sanitized aggregates.
+- Result boundary: the gallery may display candidate sets, ambiguity, unmatched
+  states, ordered process evidence, Git history, and endpoint state. It may not
+  claim calibrated real-history association, causality, authorship, accurate
+  line survival, cross-vendor transfer, or lifetime/rename superiority.
+- Mature naturalistic sample: 882 eligible event--path pairs; 110 target, 14
+  null, and 758 unadjudicable after reconciliation. Agreement was 98.75% with
+  Cohen's kappa 0.947. Proposed accuracy was 0.984, but ECE was 0.209 and the
+  null-specificity Wilson lower bound was 0.785, so selection remained
+  `descriptive_only`.
+- Line stage: 42 predictions over 110 mature target events, 41 correct; the
+  0.877 precision lower bound and prediction count both failed the frozen
+  line-overlay gate.

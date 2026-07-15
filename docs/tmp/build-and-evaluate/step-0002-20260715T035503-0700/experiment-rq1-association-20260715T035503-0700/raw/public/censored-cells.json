@@ -1,0 +1,32 @@
+{
+  "schema": "agentsight.rq1.censored-cells.v1",
+  "cells": [
+    {
+      "day": "2026-07-14",
+      "status": "right_censored_excluded",
+      "endpoint_revision": "25fce75ab1827adf0cc0bfd7d8205c306595841e",
+      "endpoint_time": "2026-07-15T04:48:02-07:00",
+      "available_future_hours": 4.8006,
+      "required_retrieval_hours": 24,
+      "required_oracle_hours": 168,
+      "sessions_by_vendor": {
+        "claude": 22,
+        "codex": 126,
+        "gemini": 4
+      },
+      "eligible_write_pairs_by_vendor": {
+        "codex": 91,
+        "claude": 0,
+        "gemini": 0
+      },
+      "decision": "Retain only as descriptive process data. Exclude all labels, accuracy, calibration, null, lineage, and transfer claims until a post-2026-07-21 endpoint is available."
+    }
+  ],
+  "missing_cells": [
+    {
+      "cell": "naturalistic Gemini write-pair transfer",
+      "status": "missing_not_imputed",
+      "reason": "The mature June days contain Gemini sessions but no eligible Gemini write-path pair; the right-censored July day is not a valid substitute."
+    }
+  ]
+}

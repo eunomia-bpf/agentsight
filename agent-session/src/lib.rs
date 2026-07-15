@@ -9,6 +9,7 @@
 //! database storage, eBPF collection, and OpenTelemetry export belong in
 //! applications that consume this crate.
 
+mod longitudinal;
 mod parser;
 mod process_match;
 mod types;
@@ -26,8 +27,8 @@ pub const SOURCE_SESSION_PROCESS_MATCH: &str = "agent_session.process_match";
 
 // Re-export types
 pub use types::{
-    AgentSession, LlmResponse, SessionCache, SessionCandidate, SessionDirStat, SessionEvents,
-    TokenUsage, ToolEvent, UserPrompt,
+    AgentSession, EditSummary, LlmResponse, PathReference, SessionCache, SessionCandidate,
+    SessionDirStat, SessionEvents, TokenUsage, ToolEvent, UserPrompt,
 };
 
 // Re-export parser functions
@@ -44,4 +45,11 @@ pub use parser::{
 pub use process_match::{
     LiveProcessCandidate, ProcessKey, ProcessTree, SessionProcessInput, SessionProcessMatch,
     SessionProcessMatcher, SessionProcessMatches,
+};
+
+pub use longitudinal::{
+    ArtifactSummary, CandidateAssociation, EventAssociation, ExportError, ExportWindow,
+    FileLifetime, GitChange, GitCommit, HunkFingerprint, LongitudinalArtifact, LongitudinalOptions,
+    NormalizedEvent, RepositorySummary, SessionSummary, build_longitudinal_artifact,
+    write_longitudinal_artifact,
 };

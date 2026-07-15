@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::types::{
-    AgentSession, LlmResponse, SessionCandidate, SessionDirStat, SessionEvents, TokenUsage,
-    ToolEvent, UserPrompt,
+    AgentSession, EditSummary, LlmResponse, PathReference, SessionCandidate, SessionDirStat,
+    SessionEvents, TokenUsage, ToolEvent, UserPrompt,
 };
 use crate::{AGENT_CLAUDE, AGENT_CODEX, AGENT_GEMINI};
 
@@ -260,7 +260,18 @@ fn parse_jsonl(
         }
         if let Some(ts) = obj.get("timestamp").and_then(Value::as_str) {
             acc.last_message_at = Some(ts.to_string());
-            acc.end_timestamp_ms = iso_ms(ts).or(acc.end_timestamp_ms);
+            if let Some(ts_ms) = iso_ms(ts) {
+                let first_timestamp = acc.start_timestamp_ms.is_none();
+                acc.start_timestamp_ms = Some(
+                    acc.start_timestamp_ms
+                        .map_or(ts_ms, |start| start.min(ts_ms)),
+                );
+                acc.end_timestamp_ms = Some(if first_timestamp {
+                    ts_ms
+                } else {
+                    acc.end_timestamp_ms.map_or(ts_ms, |end| end.max(ts_ms))
+                });
+            }
         }
         let typ = obj.get("type").and_then(Value::as_str).unwrap_or("");
         match (agent, typ) {
@@ -439,6 +450,32 @@ fn parse_jsonl(
             (AGENT_CODEX, "event_msg") => {
                 let payload = obj.get("payload").unwrap_or(&Value::Null);
                 let ptype = payload.get("type").and_then(Value::as_str).unwrap_or("");
+                if ptype == "patch_apply_end" {
+                    let call_id = payload
+                        .get("call_id")
+                        .and_then(Value::as_str)
+                        .map(str::to_string);
+                    let mut event = tool_event_from_input(
+                        acc.cwd.as_deref(),
+                        ts_ms_from_event(&obj),
+                        current_prompt_index,
+                        "apply_patch",
+                        payload,
+                        call_id,
+                    );
+                    event.status = if payload
+                        .get("success")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false)
+                    {
+                        "success"
+                    } else {
+                        "fail"
+                    }
+                    .to_string();
+                    acc.add_tool("apply_patch");
+                    events.tools.push(event);
+                }
                 if ptype == "token_count"
                     && let Some(usage) = payload.pointer("/info/total_token_usage")
                 {
@@ -489,6 +526,19 @@ fn parse_jsonl(
                             last.total_tokens = total_tokens;
                             continue;
                         }
+                        if let Some(last_usage) =
+                            events.llm_responses.iter_mut().rev().find(|response| {
+                                response.prompt_index == current_prompt_index
+                                    && response.tag == "usage"
+                            })
+                        {
+                            last_usage.ts_ms = ts_ms_from_event(&obj);
+                            last_usage.input_tokens = input_tokens;
+                            last_usage.output_tokens = output_tokens;
+                            last_usage.cache_tokens = cache_tokens;
+                            last_usage.total_tokens = total_tokens;
+                            continue;
+                        }
                         events.llm_responses.push(LlmResponse {
                             ts_ms: ts_ms_from_event(&obj),
                             prompt_index: current_prompt_index,
@@ -503,7 +553,7 @@ fn parse_jsonl(
                             output_tokens,
                             cache_tokens,
                             total_tokens,
-                            tag: String::new(),
+                            tag: "usage".to_string(),
                         });
                     }
                 }
@@ -545,8 +595,10 @@ fn parse_jsonl(
                 }
             }
             (AGENT_CODEX, "response_item")
-                if obj.pointer("/payload/type").and_then(Value::as_str)
-                    == Some("function_call") =>
+                if matches!(
+                    obj.pointer("/payload/type").and_then(Value::as_str),
+                    Some("function_call" | "custom_tool_call")
+                ) =>
             {
                 let name = obj
                     .pointer("/payload/name")
@@ -573,8 +625,10 @@ fn parse_jsonl(
                 events.tools.push(event);
             }
             (AGENT_CODEX, "response_item")
-                if obj.pointer("/payload/type").and_then(Value::as_str)
-                    == Some("function_call_output") =>
+                if matches!(
+                    obj.pointer("/payload/type").and_then(Value::as_str),
+                    Some("function_call_output" | "custom_tool_call_output")
+                ) =>
             {
                 if let Some(call_id) = obj.pointer("/payload/call_id").and_then(Value::as_str)
                     && let Some(index) = call_index.get(call_id).copied()
@@ -642,6 +696,10 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
     let mut acc = SessionAccumulator::new(AGENT_GEMINI, path, updated);
     let mut events = SessionEvents::default();
     let mut current_prompt_index = 0usize;
+    acc.project_hash = root
+        .get("projectHash")
+        .and_then(Value::as_str)
+        .map(str::to_string);
     if let Some(id) = root.get("sessionId").and_then(Value::as_str) {
         acc.session_id = id.to_string();
         acc.conversation_id = Some(id.to_string());
@@ -708,14 +766,19 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                         {
                             acc.add_file(path);
                         }
-                        events.tools.push(tool_event_from_input(
+                        let tool_input = call.get("args").unwrap_or(call);
+                        let mut event = tool_event_from_input(
                             acc.cwd.as_deref(),
                             ts_ms,
                             current_prompt_index,
                             name,
-                            call,
+                            tool_input,
                             call.get("id").and_then(Value::as_str).map(str::to_string),
-                        ));
+                        );
+                        if let Some(status) = call.get("status").and_then(Value::as_str) {
+                            event.status = status.to_ascii_lowercase();
+                        }
+                        events.tools.push(event);
                     }
                 }
                 let content = msg.get("content").unwrap_or(msg);
@@ -764,6 +827,7 @@ struct SessionAccumulator {
     prompt_preview: Option<String>,
     duration_ms: u64,
     cwd: Option<String>,
+    project_hash: Option<String>,
     last_message_at: Option<String>,
 }
 
@@ -790,6 +854,7 @@ impl SessionAccumulator {
             prompt_preview: None,
             duration_ms: 0,
             cwd: None,
+            project_hash: None,
             last_message_at: None,
         }
     }
@@ -875,6 +940,7 @@ impl SessionAccumulator {
             prompt_preview: self.prompt_preview,
             duration_ms: self.duration_ms,
             cwd: self.cwd,
+            project_hash: self.project_hash,
             last_message_at: self.last_message_at,
             events: SessionEvents::default(),
         })
@@ -1006,13 +1072,27 @@ fn tool_event_from_input(
     } else {
         one_word(name, "tool")
     };
-    let effect = if name == "apply_patch" || command.contains("*** ") {
+    let lower_name = name.to_ascii_lowercase();
+    let effect = if lower_name == "apply_patch"
+        || lower_name.contains("write")
+        || lower_name.contains("edit")
+        || lower_name.contains("replace")
+        || command.contains("*** ")
+    {
         "write".to_string()
+    } else if lower_name.contains("read")
+        || lower_name.contains("glob")
+        || lower_name.contains("grep")
+        || lower_name.contains("search")
+    {
+        "read".to_string()
     } else {
         command_effect(&command)
     };
     let cwd = cwd.unwrap_or("");
     let path_groups = extract_path_groups(Path::new(cwd), name, input, &command);
+    let path_refs = extract_path_references(Path::new(cwd), name, input, &command, &effect);
+    let edit_summary = edit_summary_from_input(name, input, &command, &effect);
     let process_chain = if category == "shell" {
         command_process_chain(&command)
     } else {
@@ -1029,6 +1109,8 @@ fn tool_event_from_input(
         process_chain,
         status: "observed".to_string(),
         path_groups,
+        path_refs,
+        edit_summary,
         domains,
         call_id,
     }
@@ -1314,6 +1396,256 @@ fn extract_path_groups(
         }
     }
     groups.into_iter().filter(|v| v != "none").collect()
+}
+
+fn extract_path_references(
+    project_root: &Path,
+    name: &str,
+    input: &Value,
+    command: &str,
+    effect: &str,
+) -> Vec<PathReference> {
+    let lower_name = name.to_ascii_lowercase();
+    let default_access = if effect == "write" {
+        "write"
+    } else if lower_name.contains("read")
+        || lower_name.contains("search")
+        || lower_name.contains("glob")
+        || lower_name.contains("grep")
+    {
+        "read"
+    } else {
+        "reference"
+    };
+    let mut refs = BTreeMap::<(String, String), String>::new();
+    collect_input_path_references(input, project_root, default_access, 0, &mut refs);
+
+    for (path, access) in patch_path_references(command) {
+        if let Some(path) = repository_relative_path(project_root, &path) {
+            refs.insert((path, access.to_string()), "patch".to_string());
+        }
+    }
+    if let Some(patch) = find_string_field(input, &["patch", "input"], 0) {
+        for (path, access) in patch_path_references(patch) {
+            if let Some(path) = repository_relative_path(project_root, &path) {
+                refs.insert((path, access.to_string()), "patch".to_string());
+            }
+        }
+    }
+
+    if lower_name.contains("bash") || lower_name.contains("exec") || lower_name.contains("shell") {
+        for part in split_shell(command) {
+            if plausible_path_token(&part)
+                && let Some(path) = repository_relative_path(project_root, &part)
+            {
+                refs.entry((path, default_access.to_string()))
+                    .or_insert_with(|| "command".to_string());
+            }
+        }
+    }
+
+    refs.into_iter()
+        .map(|((path, access), source)| PathReference {
+            path,
+            access,
+            source,
+        })
+        .collect()
+}
+
+fn collect_input_path_references(
+    value: &Value,
+    project_root: &Path,
+    access: &str,
+    depth: usize,
+    out: &mut BTreeMap<(String, String), String>,
+) {
+    if depth > 4 {
+        return;
+    }
+    match value {
+        Value::Object(map) => {
+            for (key, value) in map {
+                let lower = key.to_ascii_lowercase();
+                if [
+                    "file_path",
+                    "filepath",
+                    "path",
+                    "notebook_path",
+                    "dir_path",
+                    "directory",
+                ]
+                .contains(&lower.as_str())
+                    && let Some(raw) = value.as_str()
+                    && let Some(path) = repository_relative_path(project_root, raw)
+                {
+                    out.insert((path, access.to_string()), format!("input:{key}"));
+                }
+                if lower == "changes"
+                    && let Some(changes) = value.as_object()
+                {
+                    for raw in changes.keys() {
+                        if let Some(path) = repository_relative_path(project_root, raw) {
+                            out.insert((path, "write".to_string()), "input:changes".to_string());
+                        }
+                    }
+                }
+                collect_input_path_references(value, project_root, access, depth + 1, out);
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                collect_input_path_references(value, project_root, access, depth + 1, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn repository_relative_path(project_root: &Path, raw: &str) -> Option<String> {
+    let raw = raw.trim().trim_matches(['"', '\'']);
+    if raw.is_empty() {
+        return None;
+    }
+    let path = Path::new(raw);
+    let relative = if path.is_absolute() {
+        if project_root.as_os_str().is_empty() {
+            return None;
+        }
+        path.strip_prefix(project_root).ok()?
+    } else {
+        path
+    };
+    let mut parts = Vec::new();
+    for component in relative.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::Normal(part) => {
+                let part = part.to_str()?;
+                if part.is_empty() {
+                    return None;
+                }
+                parts.push(part);
+            }
+            std::path::Component::ParentDir
+            | std::path::Component::RootDir
+            | std::path::Component::Prefix(_) => return None,
+        }
+    }
+    (!parts.is_empty()).then(|| parts.join("/"))
+}
+
+fn patch_path_references(text: &str) -> Vec<(String, &'static str)> {
+    let mut refs = Vec::new();
+    for line in text.lines() {
+        for (prefix, access) in [
+            ("*** Add File: ", "write"),
+            ("*** Update File: ", "write"),
+            ("*** Delete File: ", "write"),
+            ("*** Move to: ", "write"),
+        ] {
+            if let Some(path) = line.trim().strip_prefix(prefix) {
+                refs.push((path.trim().to_string(), access));
+            }
+        }
+    }
+    refs
+}
+
+fn edit_summary_from_input(
+    name: &str,
+    input: &Value,
+    command: &str,
+    effect: &str,
+) -> Option<EditSummary> {
+    if effect != "write" {
+        return None;
+    }
+    let before = find_string_field(input, &["old_string", "oldText", "before"], 0);
+    let after = find_string_field(input, &["new_string", "newText", "content", "after"], 0);
+    if before.is_some() || after.is_some() {
+        return Some(EditSummary {
+            before_bytes: before.map_or(0, |value| value.len() as u64),
+            after_bytes: after.map_or(0, |value| value.len() as u64),
+            removed_lines: before.map_or(0, line_count),
+            added_lines: after.map_or(0, line_count),
+            before_hash: before.map(content_fingerprint),
+            after_hash: after.map(content_fingerprint),
+            payload_kind: if before.is_some() {
+                "replace".to_string()
+            } else {
+                "write".to_string()
+            },
+        });
+    }
+
+    let patch = find_string_field(input, &["patch", "input", "unified_diff"], 0)
+        .filter(|value| value.contains("*** Begin Patch") || value.contains("@@"))
+        .or_else(|| {
+            (command.contains("*** Begin Patch") || command.contains("@@")).then_some(command)
+        });
+    if let Some(patch) = patch {
+        let added = patch
+            .lines()
+            .filter(|line| line.starts_with('+') && !line.starts_with("+++"))
+            .map(|line| &line[1..])
+            .collect::<Vec<_>>();
+        let removed = patch
+            .lines()
+            .filter(|line| line.starts_with('-') && !line.starts_with("---"))
+            .map(|line| &line[1..])
+            .collect::<Vec<_>>();
+        let added_text = added.join("\n");
+        let removed_text = removed.join("\n");
+        return Some(EditSummary {
+            before_bytes: removed_text.len() as u64,
+            after_bytes: added_text.len() as u64,
+            added_lines: added.len() as u64,
+            removed_lines: removed.len() as u64,
+            before_hash: (!removed.is_empty()).then(|| content_fingerprint(&removed_text)),
+            after_hash: (!added.is_empty()).then(|| content_fingerprint(&added_text)),
+            payload_kind: "patch".to_string(),
+        });
+    }
+
+    Some(EditSummary {
+        payload_kind: one_word(name, "write"),
+        ..EditSummary::default()
+    })
+}
+
+fn find_string_field<'a>(value: &'a Value, keys: &[&str], depth: usize) -> Option<&'a str> {
+    if depth > 4 {
+        return None;
+    }
+    match value {
+        Value::Object(map) => {
+            for key in keys {
+                if let Some(value) = map.get(*key).and_then(Value::as_str) {
+                    return Some(value);
+                }
+            }
+            map.values()
+                .find_map(|value| find_string_field(value, keys, depth + 1))
+        }
+        Value::Array(values) => values
+            .iter()
+            .find_map(|value| find_string_field(value, keys, depth + 1)),
+        _ => None,
+    }
+}
+
+fn line_count(value: &str) -> u64 {
+    if value.is_empty() {
+        0
+    } else {
+        value.lines().count() as u64
+    }
+}
+
+fn content_fingerprint(value: &str) -> String {
+    let normalized = value.replace("\r\n", "\n");
+    short_hash(normalized.trim_end_matches('\n'), 24)
 }
 
 fn plausible_path_token(part: &str) -> bool {
@@ -1910,5 +2242,139 @@ mod tests {
             codex_exec_prompt(command).as_deref(),
             Some("agentsight mock prompt collect this exact text")
         );
+    }
+
+    #[test]
+    fn tool_events_preserve_private_body_free_path_and_edit_evidence() {
+        let event = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "Edit",
+            &json!({
+                "file_path": "/repo/src/lib.rs",
+                "old_string": "fn old() {}\n",
+                "new_string": "fn new() {}\n"
+            }),
+            Some("call-1".to_string()),
+        );
+
+        assert_eq!(event.effect, "write");
+        assert_eq!(event.path_refs.len(), 1);
+        assert_eq!(event.path_refs[0].path, "src/lib.rs");
+        assert_eq!(event.path_refs[0].access, "write");
+        let summary = event.edit_summary.expect("edit summary");
+        assert_eq!(summary.payload_kind, "replace");
+        assert_eq!(summary.removed_lines, 1);
+        assert_eq!(summary.added_lines, 1);
+        assert_ne!(summary.before_hash, summary.after_hash);
+
+        let encoded = serde_json::to_string(&summary).expect("serialize summary");
+        assert!(!encoded.contains("fn old"));
+        assert!(!encoded.contains("fn new"));
+    }
+
+    #[test]
+    fn patch_paths_keep_repository_scope_and_drop_external_paths() {
+        let patch = concat!(
+            "*** Begin Patch\n",
+            "*** Update File: src/main.rs\n",
+            "@@\n-old\n+new\n",
+            "*** End Patch"
+        );
+        let event = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "apply_patch",
+            &json!({"input": patch, "path": "/outside/secret.txt"}),
+            None,
+        );
+
+        assert_eq!(event.path_refs.len(), 1);
+        assert_eq!(event.path_refs[0].path, "src/main.rs");
+        assert_eq!(event.edit_summary.expect("patch summary").added_lines, 1);
+    }
+
+    #[test]
+    fn gemini_project_hash_and_relative_paths_survive_normalization() {
+        let content = r#"{
+            "sessionId":"gemini-session",
+            "projectHash":"abc123",
+            "startTime":"2026-07-14T10:00:00Z",
+            "lastUpdated":"2026-07-14T10:01:00Z",
+            "messages":[{
+                "type":"gemini",
+                "timestamp":"2026-07-14T10:00:30Z",
+                "model":"gemini-test",
+                "content":"done",
+                "toolCalls":[{
+                    "id":"tool-1",
+                    "name":"read_file",
+                    "args":{"file_path":"src/lib.rs"},
+                    "status":"success"
+                }]
+            }]
+        }"#;
+        let session = parse_session_content(
+            AGENT_GEMINI,
+            Path::new("/tmp/session-gemini.json"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("gemini session");
+
+        assert_eq!(session.project_hash.as_deref(), Some("abc123"));
+        assert_eq!(session.events.tools[0].effect, "read");
+        assert_eq!(session.events.tools[0].status, "success");
+        assert_eq!(session.events.tools[0].path_refs[0].path, "src/lib.rs");
+    }
+
+    #[test]
+    fn codex_usage_updates_coalesce_within_a_prompt() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-5","cwd":"/repo"}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-14T10:00:00Z","type":"event_msg","payload":{"type":"user_message","message":"work"}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-14T10:00:01Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":10,"output_tokens":2,"total_tokens":12}}}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-14T10:00:02Z","type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":20,"output_tokens":4,"total_tokens":24}}}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            Path::new("/tmp/session-codex.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("codex session");
+
+        assert_eq!(session.events.llm_responses.len(), 1);
+        assert_eq!(session.events.llm_responses[0].total_tokens, 24);
+        assert_eq!(session.events.llm_responses[0].tag, "usage");
+    }
+
+    #[test]
+    fn codex_patch_apply_events_expose_write_paths_without_bodies() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-5","cwd":"/repo"}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-14T10:00:00Z","type":"event_msg","payload":{"type":"user_message","message":"edit"}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-14T10:00:01Z","type":"event_msg","payload":{"type":"patch_apply_end","call_id":"patch-1","success":true,"changes":{"/repo/src/lib.rs":{"type":"update","unified_diff":"@@ -1 +1 @@\n-old\n+new"}}}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            Path::new("/tmp/session-codex.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("codex session");
+
+        let event = &session.events.tools[0];
+        assert_eq!(event.effect, "write");
+        assert_eq!(event.status, "success");
+        assert_eq!(event.path_refs[0].path, "src/lib.rs");
+        assert_eq!(event.edit_summary.as_ref().unwrap().payload_kind, "patch");
     }
 }
