@@ -187,8 +187,8 @@ async fn setup_signal_handler(suppress_terminal_output: bool) {
                agentsight top\n\
                agentsight report\n\
                agentsight report prompts --json\n\n\
-             top works without sudo; interactive top enables eBPF when sudo is already available;\n\
-             record keeps the monitored agent unprivileged while elevating only the probes."
+             top works without sudo from process snapshots and native agent sessions;\n\
+             record/debug trace use eBPF while keeping launched agents unprivileged."
 )]
 struct Cli {
     /// Web UI bind address when a command starts a server.
@@ -628,37 +628,12 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             }
             Some(ReportCommands::List) => run_db_list()?,
         },
-        Commands::Top {
-            db: Some(db),
-            pid,
-            comm,
-            sort,
-            view,
-            interval,
-            limit,
-            count,
-            once,
-            plain,
-        } => {
-            let count = if *once { Some(1) } else { *count };
-            let options = TopOptions {
-                pid: *pid,
-                comm: comm.clone(),
-                sort: sort.clone(),
-                view: view.clone(),
-            };
-            if top_uses_tui(*plain, interactive_terminal_available()) {
-                run_saved_top_tui(db, *interval, *limit, count, &options)?;
-            } else {
-                run_top_query(db, *interval, *limit, count, &options)?;
-            }
-        }
         Commands::Monitor { command } => match command {
             None => run_monitor().await?,
             Some(MonitorCommands::InstallService) => install_monitor_service()?,
         },
         Commands::Top {
-            db: None,
+            db,
             pid,
             comm,
             sort,
@@ -677,10 +652,15 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 view: view.clone(),
             };
             if top_uses_tui(*plain, interactive_terminal_available()) {
-                let binary_extractor = BinaryExtractor::new().await?;
-                run_live_top_tui(&binary_extractor, *interval, *limit, count, &options).await?;
+                if let Some(db) = db {
+                    run_saved_top_tui(db, *interval, *limit, count, &options)?;
+                } else {
+                    run_live_top_tui(*interval, *limit, count, &options)?;
+                }
+            } else if let Some(db) = db {
+                run_top_query(db, *interval, *limit, count, &options)?;
             } else {
-                run_live_top_query(*interval, *limit, count, &options).await?;
+                run_live_top_query(*interval, *limit, count, &options)?;
             }
         }
         // All remaining commands need the binary extractor.

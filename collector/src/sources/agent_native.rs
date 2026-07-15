@@ -5,11 +5,14 @@ use agent_session::{AgentSession, TokenUsage};
 use serde_json::Value;
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, HashSet};
+use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+#[cfg(not(test))]
+use std::fs::File;
 #[cfg(test)]
-use std::fs;
+use std::fs::{self, File};
 
 use crate::model::{
     AGENT_NATIVE_SOURCE, AuditEventRow, LlmCallRow, SessionRow, Snapshot, SnapshotOptions,
@@ -40,6 +43,17 @@ pub(crate) fn snapshot(
     limit: usize,
     max_age: Duration,
 ) -> Snapshot {
+    let filtered = discover_sessions(cache, pid_filter, text_filter, limit, max_age);
+    materialized_view(&filtered).export_snapshot(SnapshotOptions { audit_limit: 0 })
+}
+
+pub(crate) fn discover_sessions(
+    cache: &mut SessionCache,
+    pid_filter: Option<u32>,
+    text_filter: Option<&str>,
+    limit: usize,
+    max_age: Duration,
+) -> Vec<LocalSession> {
     let indexed_codex = codex_state_sessions(limit);
     let mut sessions = if indexed_codex.is_empty() {
         cache.discover_cached(limit, max_age)
@@ -56,11 +70,10 @@ pub(crate) fn snapshot(
     };
     let mut seen = HashSet::new();
     sessions.retain(|session| seen.insert(session.display_id.clone()));
-    let filtered: Vec<LocalSession> = sessions
+    sessions
         .into_iter()
         .filter(|s| matches_filter(s, pid_filter, text_filter))
-        .collect();
-    materialized_view(&filtered).export_snapshot(SnapshotOptions { audit_limit: 0 })
+        .collect()
 }
 
 fn codex_state_sessions(limit: usize) -> Vec<LocalSession> {
@@ -126,10 +139,7 @@ fn codex_state_session(
         .and_then(non_negative_i64_to_u64)
         .or(updated_ms);
     let updated = updated_ms.map(system_time_from_ms).unwrap_or(UNIX_EPOCH);
-    let usage = TokenUsage {
-        total_tokens: tokens_used.max(0),
-        ..Default::default()
-    };
+    let usage = codex_state_usage(tokens_used, &rollout_path);
     let model = model.filter(|value| !value.is_empty());
     let mut model_usage = BTreeMap::new();
     if let Some(model) = model.as_deref() {
@@ -184,6 +194,77 @@ fn user_home_dir() -> Option<PathBuf> {
 
 fn non_negative_i64_to_u64(value: i64) -> Option<u64> {
     u64::try_from(value).ok()
+}
+
+fn codex_state_usage(tokens_used: i64, rollout_path: &str) -> TokenUsage {
+    let total_tokens = plausible_codex_state_tokens(tokens_used);
+    if total_tokens > 0 {
+        return TokenUsage {
+            total_tokens,
+            ..Default::default()
+        };
+    }
+    codex_rollout_tail_usage(Path::new(rollout_path)).unwrap_or_default()
+}
+
+fn plausible_codex_state_tokens(value: i64) -> i64 {
+    const MAX_REPORTED_TOKENS: i64 = 10_000_000;
+    if (1..=MAX_REPORTED_TOKENS).contains(&value) {
+        value
+    } else {
+        0
+    }
+}
+
+fn codex_rollout_tail_usage(path: &Path) -> Option<TokenUsage> {
+    const INITIAL_READ: u64 = 64 * 1024;
+    const MAX_READ: u64 = 8 * 1024 * 1024;
+
+    let mut file = File::open(path).ok()?;
+    let len = file.metadata().ok()?.len();
+    if len == 0 {
+        return None;
+    }
+    let mut read_len = INITIAL_READ.min(len);
+    loop {
+        let start = len.saturating_sub(read_len);
+        file.seek(SeekFrom::Start(start)).ok()?;
+        let mut bytes = vec![0u8; read_len as usize];
+        file.read_exact(&mut bytes).ok()?;
+        let text = String::from_utf8_lossy(&bytes);
+        for line in text.lines().rev() {
+            if !line.contains("\"token_count\"") || !line.contains("\"total_token_usage\"") {
+                continue;
+            }
+            if let Some(usage) = codex_usage_from_token_count_line(line) {
+                return Some(usage);
+            }
+        }
+        if read_len >= len || read_len >= MAX_READ {
+            return None;
+        }
+        read_len = (read_len * 2).min(len).min(MAX_READ);
+    }
+}
+
+fn codex_usage_from_token_count_line(line: &str) -> Option<TokenUsage> {
+    let value: Value = serde_json::from_str(line).ok()?;
+    let usage = value.pointer("/payload/info/total_token_usage")?;
+    let input = usage.get("input_tokens").and_then(Value::as_i64)?.max(0);
+    let output = usage.get("output_tokens").and_then(Value::as_i64)?.max(0);
+    let cache = usage
+        .get("cached_input_tokens")
+        .and_then(Value::as_i64)
+        .unwrap_or_default()
+        .max(0);
+    let input = input.saturating_sub(cache);
+    Some(TokenUsage {
+        input_tokens: input,
+        output_tokens: output,
+        cache_read_tokens: cache,
+        total_tokens: input + output,
+        ..Default::default()
+    })
 }
 
 fn system_time_from_ms(value: u64) -> SystemTime {
@@ -803,6 +884,30 @@ pub(crate) fn parse_content_for_test(
 }
 
 #[cfg(test)]
+pub(crate) fn write_codex_state_db_for_test(home: &Path) {
+    let codex_dir = home.join(".codex");
+    fs::create_dir_all(&codex_dir).unwrap();
+    let conn = rusqlite::Connection::open(codex_dir.join("state_5.sqlite")).unwrap();
+    conn.execute_batch(
+        "CREATE TABLE threads (
+            id TEXT PRIMARY KEY,
+            rollout_path TEXT,
+            model TEXT,
+            tokens_used INTEGER NOT NULL DEFAULT 0,
+            preview TEXT,
+            cwd TEXT,
+            created_at_ms INTEGER,
+            updated_at_ms INTEGER
+        );
+        INSERT INTO threads
+        (id, rollout_path, model, tokens_used, preview, cwd, created_at_ms, updated_at_ms)
+        VALUES
+        ('019f49ca-54e7-7a91-82e7-a52b53cfd456', '/tmp/session.jsonl', 'gpt-web-ci', 33, 'web state prompt', '/work/repo', 1800000, 1900000);",
+    )
+    .unwrap();
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -833,50 +938,17 @@ mod tests {
     #[test]
     fn codex_state_db_produces_indexed_session_metadata() {
         let temp = tempfile::tempdir().unwrap();
-        let codex_dir = temp.path().join(".codex");
-        fs::create_dir_all(&codex_dir).unwrap();
-        let conn = rusqlite::Connection::open(codex_dir.join("state_5.sqlite")).unwrap();
-        conn.execute_batch(
-            "CREATE TABLE threads (
-                id TEXT PRIMARY KEY,
-                rollout_path TEXT,
-                model TEXT,
-                tokens_used INTEGER NOT NULL DEFAULT 0,
-                preview TEXT,
-                cwd TEXT,
-                created_at_ms INTEGER,
-                updated_at_ms INTEGER
-            );",
-        )
-        .unwrap();
-        conn.execute(
-            "INSERT INTO threads
-             (id, rollout_path, model, tokens_used, preview, cwd, created_at_ms, updated_at_ms)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            rusqlite::params![
-                "019f49ca-54e7-7a91-82e7-a52b53cfd456",
-                temp.path()
-                    .join(".codex/sessions/session.jsonl")
-                    .to_string_lossy(),
-                "gpt-5.5",
-                12345i64,
-                "hello from state",
-                "/work/repo",
-                1_800_000i64,
-                1_900_000i64,
-            ],
-        )
-        .unwrap();
+        write_codex_state_db_for_test(temp.path());
 
         let sessions = codex_state_sessions_in_home(temp.path(), 5);
 
         assert_eq!(sessions.len(), 1);
         assert_eq!(sessions[0].display_id, "codex:019f49.fd456");
-        assert_eq!(sessions[0].model.as_deref(), Some("gpt-5.5"));
-        assert_eq!(sessions[0].usage.total_tokens, 12345);
+        assert_eq!(sessions[0].model.as_deref(), Some("gpt-web-ci"));
+        assert_eq!(sessions[0].usage.total_tokens, 33);
         assert_eq!(
             sessions[0].prompt_preview.as_deref(),
-            Some("hello from state")
+            Some("web state prompt")
         );
         assert_eq!(sessions[0].cwd.as_deref(), Some("/work/repo"));
         assert_eq!(
@@ -892,6 +964,28 @@ mod tests {
         fs::write(temp.path().join(".codex/state_5.sqlite"), "not sqlite").unwrap();
 
         assert!(codex_state_sessions_in_home(temp.path(), 5).is_empty());
+    }
+
+    #[test]
+    fn codex_state_db_falls_back_to_rollout_usage_for_large_totals() {
+        let (_temp, path) = create_temp_session_path(agent_session::AGENT_CODEX);
+        fs::write(
+            &path,
+            format!(
+                "{}\n{}",
+                "{\"type\":\"event_msg\",\"payload\":{\"type\":\"noop\"}}\n".repeat(2048),
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":2109758505,"output_tokens":5136738,"cached_input_tokens":2069213696,"total_tokens":2114895243}}}}"#
+            ),
+        )
+        .unwrap();
+        let usage = codex_state_usage(2_114_895_243, &path.to_string_lossy());
+
+        assert_eq!(plausible_codex_state_tokens(33), 33);
+        assert_eq!(plausible_codex_state_tokens(2_114_895_243), 0);
+        assert_eq!(usage.input_tokens, 40_544_809);
+        assert_eq!(usage.output_tokens, 5_136_738);
+        assert_eq!(usage.cache_read_tokens, 2_069_213_696);
+        assert_eq!(usage.total_tokens, 45_681_547);
     }
 
     #[test]

@@ -88,7 +88,6 @@ pub(crate) struct AgentTopRow {
     pub(crate) failures: usize,
     pub(crate) files: usize,
     pub(crate) network: usize,
-    pub(crate) unattributed: usize,
     pub(crate) trace: String,
     pub(crate) command: String,
     pub(crate) workspace: Option<String>,
@@ -154,16 +153,6 @@ impl TopEvidence {
 impl AgentTopRow {
     pub(crate) fn evidence(&self) -> TopEvidence {
         TopEvidence::from_trace(&self.trace)
-    }
-
-    pub(crate) fn add_trace(&mut self, token: &str) {
-        if self.trace.split('+').any(|part| part == token) {
-            return;
-        }
-        if !self.trace.is_empty() {
-            self.trace.push('+');
-        }
-        self.trace.push_str(token);
     }
 
     pub(crate) fn state_label(&self) -> &'static str {
