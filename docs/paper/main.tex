@@ -1,0 +1,536 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\newcommand{\result}[1]{\textcolor{red}{[RESULT: #1]}}
+\newcommand{\figuretodo}[1]{\begin{center}\fbox{\parbox{0.92\linewidth}{\centering\vspace{0.35in}#1\vspace{0.35in}}}\end{center}}
+\newcommand{\sys}{AgentSight}
+
+\title{Process, Outcome, and Survival: Visualizing Long-Horizon Agentic Software Evolution}
+\author{Anonymous Authors}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Software-evolution tools commonly reconstruct development from commits and
+human authors. Long-horizon coding agents weaken that abstraction because they
+can modify a repository across sessions while no persistent participant retains
+the full development rationale. Native transcripts preserve process events,
+Git preserves durable outcomes, and comparison with the current tree yields
+endpoint-survival state, but no layer alone explains how those outcomes arose. Existing transcript
+replay, Git visual analytics, trajectory analysis, and survival studies expose
+parts of this evidence chain. RECAP provides higher-resolution IDE-local
+shadow-repository edit evidence, but native cross-vendor histories require association with actual Git
+outcomes and may contain weaker edit evidence. We treat process events, durable
+Git outcomes, and current survival as complementary layers and preserve
+uncertain or unmatched associations rather than interpreting temporal
+proximity as causality, verification, or authorship. We present the design of a
+longitudinal representation that will normalize vendor-native events, follow
+Git renames, optionally associate edit hunks with current-line Git lineage, and
+drive coordinated views with stable layout and shared time navigation. The
+planned evaluation will first measure event-to-Git association accuracy, then
+test recurring process patterns and review utility within supported confidence
+strata, and finally measure responsiveness and task-based interpretability over
+the tested duration and data-volume ranges.
+\result{Insert the final dataset sizes, join quality, task-study outcomes, and
+performance.}
+\end{abstract}
+
+\section{Introduction}
+Many software-evolution tools reconstruct development from commits and human
+authors. Commits provide durable integration units, and human developers have
+traditionally retained part of the rationale connecting those units.
+
+Long-horizon coding agents separate durable code from persistent rationale.
+They can explore and modify a repository across sessions, yet no participant
+necessarily remembers why the resulting code has its present form. A commit
+does not retain every prior read, failed edit, tool error, or verification
+action, while the current tree omits discarded history. Native agent logs
+retain many such events, but weeks of transcripts are not a usable review
+interface.
+
+Existing approaches reveal parts of this process. RECAP aligns IDE-local
+Copilot conversations with shadow-Git edits~\cite{he2026recap}, Git visual
+analytics summarize durable repository evolution~\cite{kim2021githru},
+trajectory studies analyze and compare coding-agent trajectories and action
+sequences~\cite{majgaonkar2025behaviour,oderinwale2026programs},
+and survival studies measure code longevity~\cite{rahman2026survive,gurov2026clsa}. RECAP provides stronger
+local edit evidence than native transcripts, whereas native histories can
+span vendors and sessions but require uncertain association with actual Git
+changes. None combines cross-vendor native process histories with uncertainty-
+preserving associations to the developer's actual Git commits and a separately
+labeled current-tree endpoint-survival projection.
+
+Our central thesis is that these three evidence layers are complementary.
+Joining them can expose whether a repeatedly referenced path has a candidate
+Git change, whether a subsequent verification action was recorded, and whether
+an associated path or line lineage within a supported confidence stratum
+survives. The representation retains
+unmatched records and confidence, so timestamp proximity never becomes an
+implicit claim of causality, verification, or authorship.
+
+Realizing this thesis raises three challenges. Native schemas expose different
+path and edit detail, which limits association granularity. Git renames,
+rewrites, and refactoring complicate durable path and line lineage. Finally, days of
+events require stable aggregation and interaction without erasing the evidence
+needed for review.
+
+We present the planned longitudinal extension of \sys, built on its existing
+vendor-neutral \texttt{agent-session} parser. The exporter and visualization
+gallery remain planned at the time of writing. The exporter will normalize
+events, associate eligible
+path evidence with rename-aware candidate Git intervals, and record survival
+separately. Exact edit payloads can enter a candidate event-to-hunk association
+followed by Git hunk-to-current-line lineage, while other records remain path-
+level. Coordinated views will draw
+on seven established software-evolution traditions and share stable repository
+coordinates, semantic zoom, brushing, and a playback cursor. The task-facing
+\emph{core views} will be frozen before final runs to support predefined review
+decisions. The remaining \emph{supporting views} will adapt established
+encodings for open-ended exploration.
+
+We will evaluate the representation on real multi-day histories. RQ1 will use controlled
+and double-annotated ground truth to validate association accuracy and evidence
+ablation. Only supported confidence strata enter RQ2 behavioral analysis and
+RQ3 information-matched review tasks. RQ4 separately measures systems
+performance and scale-sensitive interpretability over the longest real history
+tested.
+
+This paper makes three contributions:
+\begin{enumerate}[leftmargin=*]
+  \item an event-resolved longitudinal representation that explicitly joins
+  process events, durable Git outcomes, and current survival without
+  conflating a recorded path reference, a candidate Git association, and Git
+  authorship;
+  \item a decision-oriented coordinated visualization design for joined
+  evidence, grounded in seven established software-evolution traditions; and
+  \item an evaluation plan for evidence recoverability, recurring process
+  patterns, review utility, and interactive scalability on real development
+  histories.
+\end{enumerate}
+
+\section{Background}
+\subsection{Commit-Level Evidence}
+A commit is an intentionally packaged state transition containing parent
+relationships, changed paths, authorship metadata, and a durable diff. A commit
+serves as the integration unit for repository history.
+
+\subsection{Agent Event Histories}
+Native coding-agent histories retain timestamps, tool inputs, model usage, and
+often referenced paths. They are vendor-specific, can contain repeated or
+partial messages, and differ in their event schemas.
+
+\subsection{Software-Evolution Visualizations}
+Visual analytics can make the complementary histories inspectable. Prior work
+includes pixel-oriented line maps~\cite{eick1992seesoft}, file-by-version
+matrices~\cite{lanza2002evolution}, spatial repository
+metaphors~\cite{wettel2008codecity,steinbrueckner2010history,kuhn2010cartography},
+animated commit histories~\cite{ogawa2009codeswarm,caudwell2025gource},
+authored-content persistence flows~\cite{viegas2004historyflow}, code-age
+burndown~\cite{sourced2020hercules}, hotspot and temporal-
+coupling analysis~\cite{tornhill2015crime}, and ownership
+storylines~\cite{girba2005ownership,ogawa2010storylines}.
+
+Together, commit history and agent histories supply complementary evidence,
+while these traditions supply encodings for inspecting it. Kept separate,
+however, the layers leave cross-layer review questions unanswered because the
+established encodings operate on repository versions or change histories and
+developer identities rather than vendor-native agent process events.
+
+\section{Motivation}
+Kept separate, the three evidence layers lose different information. Commit compression can
+hide reads, unsuccessful edits, verification order, and uncommitted work,
+whereas agent histories do not prove a durable repository outcome and exceed
+human review capacity over long horizons. Current-tree survival reveals what remains
+but not the process that produced it. \result{RQ1 will quantify each loss and
+the reliability of the join rather than assuming finer granularity is useful.}
+
+Those losses make a single review question span multiple layers: process order
+comes from events, durable outcome from Git, and persistence from the current
+tree. The design must therefore let reviewers traverse that chain while
+preserving which layer supports each answer.
+
+\section{System Design}
+\label{sec:design}
+\subsection{Design Goals}
+The design follows four testable goals: (G1) preserve evidence fidelity by
+keeping process events, durable Git outcomes, and current survival distinct,
+(G2) expose disagreement and join uncertainty, (G3) support a predefined
+review decision with each core view, and (G4) keep coordinated interaction
+responsive over long histories.
+
+G1 and G2 address the fragmented-evidence motivation and support RQ1. G3
+connects the representation to RQ3 review tasks, while G4 supplies the design
+contract for RQ4. RQ2 tests whether the joined evidence exposes recurrent
+structure rather than defining an additional mechanism goal.
+
+Together, these goals imply the three-stage pipeline below: preserve evidence
+during ingestion, retain uncertainty during association, and coordinate
+projections during review.
+
+\figuretodo{System overview: process events + durable Git outcomes + current
+survival state $\rightarrow$ uncertainty-preserving candidate associations
+$\rightarrow$ shared selections and coordinated views.}
+
+\subsection{End-to-End Walkthrough}
+The exporter will retain every normalized event and attempt a Git association
+only for events with usable repository-relative path evidence. The Git join
+will follow renames and locate candidate change intervals without asserting
+authorship. Current-tree analysis will then classify path survival.
+
+Line-level claims require two stronger links. When an event contains an exact
+edit payload, the exporter will form a candidate event-to-hunk association and
+then follow Git hunk-to-current-line lineage through renames and detectable
+refactorings. Every candidate link will carry confidence, and events without a
+candidate link will remain unmatched. Events without sufficient payload will
+remain path-level associations and never produce line-survival claims.
+
+After constructing the joined representation, the exporter will preaggregate
+time buckets and stable path coordinates. Selections over time, path, session,
+or outcome will propagate to every core view, while event detail remains
+available on demand.
+
+\subsection{Evidence Model}
+The walkthrough depends on a strict evidence contract: the representation
+keeps three evidence layers non-interchangeable. Agent
+events record prompts, model responses, tool actions, referenced paths,
+statuses, and time. We call a recorded test, build, lint, or similar check a
+\emph{verification action}; the term records the action and its status, not that
+the edited code was verified. Each event retains its recorded vendor, model
+label, and native session identifier. These fields identify a source
+configuration, not a person or Git author. Git records commits, rename-aware
+path changes, additions and deletions, Git author metadata, and parent
+relationships, from which the exporter will derive file birth and death
+intervals. Every observation carries evidence-layer identity, and each
+candidate association carries join confidence.
+
+Within this contract, the join will first canonicalize repository-relative paths, follow Git renames,
+and mark as \emph{association-eligible} only events with usable repository-
+relative path evidence. For each eligible event, it will record either one or
+more candidate Git changes, retaining ambiguity when the join cannot select
+one, or no matched Git change. Git changes with no matched event form a
+separate Git-side unmatched state. A separate endpoint-survival projection will
+record whether a Git-recorded path remains in the current tree or a Git-
+recorded line maps to a current-tree line. Throughout, \emph{survival} denotes
+this current-tree endpoint, not a time-to-event estimate. These labels describe
+available evidence, not why a change was omitted or retained, and a recorded
+verification action does not establish code correctness. Temporal proximity
+will not be reported as causality or authorship. The representation will treat
+read-before-edit edges as ordered evidence within a prompt or session and label
+them as such.
+
+A file lifetime will start at Git addition, continue through detected renames,
+and end at deletion. Recreating the same path will start a new lifetime, so path
+name equality alone cannot establish endpoint survival.
+
+\subsection{Decision-Oriented Projections}
+RQ3 will freeze four task-facing core combinations before final runs. A temporal
+summary with event detail will locate edits with no recorded subsequent
+verification action. An association-state matrix with linked detail will
+distinguish eligibility, candidate and unmatched states, confidence, and
+granularity. Playback plus ordered coupling will expose cross-file exploration,
+while hotspot plus endpoint-survival projections will locate frequently changed
+surviving code. The remaining views will support broader exploration.
+
+\subsubsection{Line and Matrix Analysis}
+Reviewers need to locate older or recently changed surviving lines without
+reading entire files. A SeeSoft-style line map~\cite{eick1992seesoft} compresses current lines into
+colored pixels that encode age and Git author. It will overlay agent association
+only where the association-and-lineage chain falls within an RQ1-supported
+confidence stratum; other events will remain path-level markers.
+
+Reviewers also need to find files whose growth or attention changes abruptly.
+A file-by-time evolution matrix~\cite{lanza2002evolution} shows size and event intensity, with candidate
+burst, periodicity, decay, and short-lived patterns labeled only after
+quantitative definitions are fixed. A linked association-state matrix will
+encode eligibility, candidate count, unmatched state, confidence, and supported
+association granularity for task-facing detail.
+
+\subsubsection{Repository Growth and Playback}
+Reviewing exploration order requires a spatial frame that remains stable
+between observations. A deterministic hierarchical layout informed by stable
+software maps~\cite{steinbrueckner2010history,kuhn2010cartography} therefore anchors
+paths across time. Path-referencing process events will animate over the map while a shared cursor
+supports play, pause, scrubbing, speed selection, and interval brushing.
+The playback will assign distinct channels to search, read, edit, verification-
+action, and commit events, thereby preserving both repository context and
+evidence type. Aggregated
+frames bound computation at overview scale, and selection loads event detail.
+
+\subsubsection{Survival, Forensic, and Social Analysis}
+Reviewers need to distinguish activity from durable code. Age strata show how
+much code from each period survives and link surviving layers to commits and to
+agent events only at their RQ1-supported association granularity.
+The projection adapts Git burndown analysis~\cite{sourced2020hercules} while
+keeping endpoint survival distinct from a time-to-event estimate.
+
+Reviewers also need to prioritize risky change and inspect hidden relationships.
+Hotspots combine change frequency with complexity proxies following established
+forensic practice~\cite{tornhill2015crime}. Git co-change and
+ordered read-before-edit networks remain separate because one measures commit
+correlation while the other records process order.
+
+Responsibility questions require a social projection with explicit attribution
+limits. Ownership and storyline views will trace Git authors and associated
+agent sessions grouped by vendor and model through directory clusters without
+presenting inferred association as Git authorship~\cite{girba2005ownership,ogawa2010storylines}.
+
+\subsection{Coordinated Interaction}
+Across these projections, calendar and punch-card summaries locate active
+periods, while vital-sign plots expose
+event rate, token rate, error rate, edit/read balance, and intervals with no
+recorded subsequent verification action.
+Coordinated interaction then propagates the same time interval, path, session,
+and evidence-state selection across every view.
+
+Supporting views answer narrower association and comparison questions. A token-
+flow view will map usage to sessions, actions, and paths, while a paired-run
+comparison will align equivalent intervals or tasks. RQ3 will evaluate the
+frozen core views; supporting views will broaden representational coverage and
+support hypothesis generation.
+
+\section{Implementation}
+\label{sec:implementation}
+The planned implementation will map ingestion to the three evidence layers, joining and
+aggregation to the longitudinal representation, and stable rendering plus
+shared state to coordinated interaction.
+
+\subsection{Session and Repository Ingestion}
+The exporter will extend the existing Rust \texttt{agent-session} library,
+which already normalizes Claude, Codex, and Gemini histories. The exporter will
+collect Git data through stable command-line plumbing and stream it into a
+bounded intermediate format.
+
+\subsection{Joining and Aggregation}
+The join will implement the evidence semantics through path normalization,
+rename tracking, file birth and death intervals, candidate commit intervals, optional event-to-hunk
+association, Git line lineage, and survival classification. Multi-resolution time buckets and path
+aggregates will bound overview work without discarding linked detail. The file-
+lifetime intervals provide the Git-side inputs for the evolution matrix,
+repository-growth playback, and endpoint-survival projections.
+
+\subsection{Layout and Interaction}
+Deterministic repository coordinates will remain stable across playback frames,
+and the browser will use open-source charting, network, and time-series
+libraries selected for compatible licenses and documented capabilities. The
+resulting renderers will consume a shared interaction state that coordinates
+time, path, session, and evidence selections.
+\result{Insert final components, versions, data volumes, aggregation strategy,
+implementation size, and deployment mode.}
+
+These components expose the four evaluation surfaces considered next:
+association correctness, process-pattern recovery, review-task utility, and
+scale.
+
+\section{Evaluation}
+\label{sec:evaluation}
+The planned evaluation is organized around four questions. RQ1 asks what each evidence
+layer omits and how accurately agent events can be associated with durable and
+surviving outcomes. RQ2 asks which recurring process patterns become observable
+at event granularity, whether they replicate across held-out sessions, vendors,
+and recorded model labels, and how they relate to durable Git outcomes and
+endpoint survival.
+RQ3 asks whether coordinated event-plus-history views improve accuracy and
+reduce completion time on realistic process-review tasks. RQ4 asks whether the
+representation remains responsive and supports accurate navigation over the
+tested event, path, and duration ranges.
+
+\subsection{Corpus, Baselines, and Protocol}
+The evaluation uses real multi-day repository histories and preserves the same time
+ranges across conditions. RQ1 compares Git only, events only, joined evidence
+without survival, and the full representation. RQ2 compares commit-only,
+event-only, and joined summaries. RQ3 separates information from interface with
+four conditions: a strong Git-only visualization baseline, an event table, a noncoordinated
+table over the full joined representation, and the coordinated core views. A
+Perfetto trace~\cite{perfetto2026ui} will receive equivalent joined fields when its format permits.
+If the format cannot represent those fields, we will label the Perfetto
+condition an RQ3 event-timeline interface ablation. When measured
+over equivalent inputs, Perfetto also provides an RQ4 trace-scale reference.
+RQ4 compares browser-artifact performance across equivalent raw and aggregated
+data volumes. Gource~\cite{caudwell2025gource} provides an
+animation export where applicable, Hercules~\cite{sourced2020hercules} cross-checks Git-derived metrics,
+and RECAP remains a literature-based comparison unless its artifact
+becomes available. We will run Githru~\cite{kim2021githru} as a strong Git
+visual-analytics baseline when reproducible or document its artifact
+limits and construct the strongest reproducible Git-only visualization baseline.
+We predefine pattern and task criteria before final runs.
+\result{Insert corpus selection, versions, participant protocol, hardware,
+and statistical analysis.}
+
+\subsection{RQ1: Evidence Recoverability and Association Accuracy}
+RQ1 asks what each evidence layer omits and how accurately agent events can be
+associated with durable and surviving outcomes. We will first create independent
+ground truth from controlled histories with known event-to-change links and a
+double-annotated naturalistic sample. Controlled truth denotes observed edit-
+to-commit correspondence; naturalistic annotation denotes evidence-compatible
+candidate correspondence, not causality or authorship. The primary unit is one
+association-eligible event--normalized-path pair, and targets are rename-aware
+file-change entries in non-merge commits. The frozen primary candidate window
+is 15 minutes before through 24 hours after the event on the same continuous
+file lifetime, with shorter prespecified sensitivity windows. Zero, one, and
+multiple candidates remain distinct. Merge changes form a separate stratum;
+squash and split histories do not force a bijection.
+
+We will measure event-to-Git association
+precision, recall, missed and false matches, annotator agreement, and confidence
+calibration at path and hunk granularity among association-eligible events. Git
+hunk-to-current-line lineage accuracy uses exact-edit
+cases as a separate denominator. Pathless, ambiguous, and unmatched records
+are reported separately, and all targets are stratified by rename,
+vendor/schema, and confidence. A source-ablation matrix compares Git only,
+events only, joined evidence without survival, and the full representation.
+Path-normalization yield, ambiguity, and unmatched categories describe system
+coverage but do not substitute for correctness. RQ1 gates RQ2 and RQ3, which
+must report sensitivity across validated confidence strata and ambiguous or
+unmatched records. Thresholds are fit on calibration data and evaluated on held-
+out scenarios. A supported path stratum requires at least 30 positive and 30
+null adjudicated pairs, a 95\% Wilson lower bound of 0.90 for candidate precision
+and 0.85 for unmatched balanced accuracy, and expected calibration error at
+most 0.10. Line overlays additionally require 30 linked hunks and a 0.95 lower
+bound for joint event-to-hunk and hunk-to-current-line precision. If no stratum
+passes, downstream claims remain descriptive rather than event-to-outcome.
+\result{RQ1 remains unanswered; insert datasets, protocol,
+results, threats, and the direct answer.}
+
+\subsection{RQ2: Recurring Process Patterns and Outcomes}
+RQ2 asks which recurring process patterns become observable at event
+granularity, whether they replicate across held-out sessions, vendors, and
+recorded model labels, and how they relate to durable Git outcomes and endpoint
+survival. Process-only predictors include exploration, repeated edit attempts,
+recorded verification order, and ordered read-before-edit coupling, while Git
+change frequency and endpoint survival are separate outcomes. We will define
+candidate predictors from prior taxonomies or a discovery split, then test
+replication on held-out repositories and sessions, reporting results by vendor
+and recorded model label. The protocol will fix the unit of analysis and
+association model before final runs, compare commit-only, event-only, and
+joined conditions, and propagate join-confidence uncertainty.
+\result{RQ2 remains unanswered; insert definitions, splits, model, results,
+threats, and the direct answer.}
+
+\subsection{RQ3: Review Utility}
+RQ3 asks whether coordinated event-plus-history views improve accuracy and
+reduce completion time on realistic process-review tasks after controlling for
+information content. Participants will use four conditions: a strong Git-only
+visualization baseline, a native event table, a noncoordinated table over the
+full joined representation, and the coordinated core views.
+
+Before final runs, we will freeze a task map from review decision to required
+evidence layers, core views, answer key, and metric. The planned map covers
+four task families: (1) locate an edit event with no recorded subsequent
+verification action, using event order and a deterministic answer key;
+(2) classify eligible events with no matched Git change versus events with a
+candidate Git change, using the manually validated join sample and association-
+state matrix/detail view; (3) explain cross-file exploration, using a blinded
+scoring rubric; and (4) find high-Git-change-frequency surviving code, using
+Git as a negative control where events should add no benefit. We will determine
+the final wording following software-visualization evaluation
+guidance~\cite{merino2018evaluation}
+and freeze the core view subset before data collection. We will measure
+accuracy, completion time, confidence calibration, and interaction traces.
+\result{RQ3 remains unanswered; insert the frozen task/view map,
+approved study protocol, population, statistics, outcomes, threats, and the
+direct answer.}
+
+\subsection{RQ4: Long-Horizon Scalability}
+RQ4 asks whether the representation remains responsive and supports accurate
+navigation over the tested duration. The systems track will measure export
+throughput, output size, initial render time, brushing and scrubbing latency,
+and memory across explicit event, path, and duration dimensions. Synthetic expansion
+will be used only for performance. The interpretability track will use semantically
+coherent real histories for scale-matched navigation tasks, path/event recall,
+and visual-crowding ratings. Ablations comparing stable with recomputed layout
+and overview with detail will measure their contributions to navigation
+performance and crowding ratings. We will bound the final duration claim to the longest real history
+tested. \result{RQ4 remains
+unanswered; insert hardware, history sizes, thresholds, measurements, threats,
+and the direct answer.}
+
+\subsection{Limitations}
+Missing logs, clock skew, parallel work, path aliases, and squash or rebase
+workflows constrain event-to-Git association. The join preserves ambiguity and
+unmatched records, but it cannot recover unavailable evidence or an agent's
+private reasoning. Vendor schemas vary in completeness and may omit exact edit
+snapshots. Blame and line lineage can fail under refactoring; we will compare or
+adapt refactoring-sensitive matching where feasible~\cite{gurov2026clsa}, and
+keep unsupported records path-level. Native transcripts can also expose private prompts,
+paths, and code, which constrains collection and artifact release.
+
+Participant tasks may not capture open-ended comprehension, and local
+histories may not generalize to hosted or collaborative agents. The evaluation
+therefore separates join validity from task and deployment generalizability.
+
+\section{Discussion}
+These limits make disagreement among event records, candidate Git changes, and
+endpoint survival a first-class review outcome rather than noise to be cleaned
+away.
+
+Addressing the deployment gap above will require durable
+event and participant identity, clock alignment, and privacy controls that
+local transcripts do not provide.
+
+The RQs form a shared-foundation argument. RQ1 validates the associations used
+by RQ2 and RQ3, RQ2 tests behavioral structure, RQ3 tests review value, and RQ4
+independently bounds the scale over which the representation and interaction
+claims hold. Unreliable joins prohibit event-to-outcome claims, unstable
+patterns remove the behavioral-structure contribution, no task benefit limits
+the artifact to exploration or presentation, and failed scale tests limit the
+supported duration and volume. The final claim must state its task family,
+repository and agent population, confidence stratum, and tested duration.
+
+\section{Related Work}
+\label{sec:related}
+\subsection{Process Capture and Replay}
+At the process layer,
+RECAP aligns Copilot conversations with observed shadow-repository edit history
+for replay~\cite{he2026recap}.
+Our contribution is the cross-vendor, repository-level distinction among recorded
+actions, candidate actual-Git associations, and current survival rather than
+replay itself. Native logs may offer weaker edit evidence than RECAP's
+shadow history, so RQ1 tests rather than assumes association quality.
+
+\subsection{Commit-Centric Evolution Visualization}
+At the durable-outcome layer,
+Software-evolution systems map lines, files, commits, contributors, coupling,
+and survival~\cite{eick1992seesoft,lanza2002evolution,wettel2008codecity,viegas2004historyflow,ogawa2010storylines}.
+Githru is a strong Git visual-analytics baseline~\cite{kim2021githru}. We reuse
+established encodings while testing which long-horizon review questions require
+event evidence in addition to Git.
+
+\subsection{Coding-Agent Trajectories}
+For agent-process patterns,
+Recent trajectory studies normalize and compare coding-agent action
+sequences~\cite{majgaonkar2025behaviour,oderinwale2026programs}.
+Our scope is connecting such process patterns to durable repository outcomes
+across sessions.
+
+\subsection{Survival and Lineage}
+At the survival layer,
+\emph{Will It Survive?}~\cite{rahman2026survive} compares agent- and human-associated code
+survival, while Code Lifespan Survival Analysis provides an AST-aware
+line-matching pipeline for separating deletion from migration and
+rewrite~\cite{gurov2026clsa}.
+We use endpoint survival as a downstream outcome projection over candidate
+event-to-Git associations, while RQ1 evaluates association and line-lineage
+accuracy separately.
+
+\section{Conclusion}
+Long-horizon coding agents make software development more observable because
+their native event streams are recorded, yet less understandable because no
+persistent person necessarily holds the rationale behind the code. This work
+presents an uncertainty-preserving longitudinal representation and coordinated-
+view design, together with an evaluation plan for testing whether process
+events, durable Git outcomes, and endpoint survival support the
+predefined review tasks. \result{State final findings with task family,
+repository/agent
+population, confidence stratum, and tested duration.}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+
+\end{document}

@@ -1,0 +1,206 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\newcommand{\result}[1]{\textcolor{red}{[RESULT: #1]}}
+\newcommand{\figuretodo}[1]{\begin{center}\fbox{\parbox{0.92\linewidth}{\centering\vspace{0.35in}#1\vspace{0.35in}}}\end{center}}
+
+\title{From Commits to Events: Visualizing Long-Horizon Agentic Software Evolution}
+\author{Anonymous Authors}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Coding agents increasingly modify repositories across many sessions and days,
+but their development process disappears between two incompatible records:
+native transcripts contain fine-grained actions that are too large to inspect,
+whereas version control retains durable snapshots but discards exploration and
+failed work. We present an event-resolved representation and coordinated
+visualization suite that joins agent actions with Git evolution and current
+line survival. The suite adapts established software-evolution views---line
+maps, evolution matrices, repository maps, animated histories, survival
+strata, forensic coupling, and ownership storylines---to multi-agent,
+long-horizon histories with stable layout and shared time navigation. We
+evaluate what process evidence commit-only analysis loses, which behavioral
+patterns event granularity reveals, whether the views improve realistic review
+tasks, and how the approach scales from days to months. \result{Insert the
+final dataset sizes, join quality, task-study outcomes, and performance.}
+\end{abstract}
+
+\section{Introduction}
+Software evolution tools traditionally observe commits and attribute them to
+people. This abstraction was practical when a person retained the reasons
+behind a sequence of commits and code review could examine the resulting diff.
+Long-horizon coding agents break both assumptions. They can explore and modify
+a repository across many sessions, yet no persistent participant necessarily
+remembers why the resulting code has its present form. A commit records the
+surviving edit, not the files read before it, abandoned alternatives,
+verification order, repeated tool failures, or work that never reached a
+commit. Native agent logs contain many of these events, but weeks of logs are
+not a usable review interface.
+
+The obvious response is to replay a transcript or place events on a timeline.
+That response is incomplete. A transcript does not establish which changes
+became durable, while an unconstrained replay remains linear and expensive to
+inspect. Our central thesis is that agent events and repository history are
+complementary evidence: the former preserves process and the latter preserves
+outcome. Joining them permits questions that neither source can answer alone,
+such as whether a repeatedly edited file was eventually committed, whether a
+test followed its last edit, and whether agent-associated code survived.
+
+We build this join into AgentSight's vendor-neutral session representation and
+project it into coordinated views derived from three decades of software
+evolution visualization. The goal is not a gallery of visual metaphors. Every
+view supports a decision: locate old or unreviewed lines, identify bursty or
+decaying files, inspect exploration order, measure survival, find hidden
+coupling, or understand how agents and people divided the repository. Stable
+spatial layouts, semantic zoom, brushing, and a shared playback cursor allow
+the same evidence to be inspected at day, session, and event scale.
+
+This paper makes three contributions:
+\begin{enumerate}[leftmargin=*]
+  \item an event-resolved longitudinal representation that explicitly joins
+  agent process evidence, Git evolution, and current line survival without
+  conflating touch, commit, and authorship;
+  \item a coordinated visualization design that adapts seven established
+  software-evolution traditions to long-horizon, multi-agent development; and
+  \item an evaluation of information recoverability, behavioral structure,
+  review utility, and interactive scalability on real development histories.
+\end{enumerate}
+
+\section{Background and Motivation}
+\subsection{Why commits are insufficient}
+A commit is an intentionally packaged state transition. Its compression is a
+feature for integration and a limitation for process reconstruction. Multiple
+reads, unsuccessful edits, test ordering, and uncommitted work can collapse
+into the same diff or disappear completely. The paper will quantify this loss
+rather than assuming that finer granularity is automatically useful.
+
+\subsection{Why event logs are insufficient}
+Native coding-agent histories retain timestamps, tool inputs, model usage, and
+often referenced paths. They are vendor-specific, can contain repeated or
+partial messages, and do not prove a durable repository outcome. Large logs
+also exceed human attention. The representation must preserve uncertainty and
+support progressive aggregation.
+
+\subsection{Software-evolution visualization traditions}
+Prior work includes pixel-oriented line maps, file-by-version matrices,
+spatial repository metaphors, animated commit histories, contribution-survival
+flows, hotspot and temporal-coupling analysis, and ownership storylines.
+\result{Insert verified primary citations and closest-work comparison after
+the mandatory literature review.} These traditions supply mature visual
+encodings, but usually assume commits as observations and humans as authors.
+
+\section{Evidence Model}
+The representation uses three non-interchangeable sources. Agent events record
+prompts, model responses, tool actions, referenced paths, statuses, and time.
+Git records commits, rename-aware path changes, additions and deletions,
+authors, and parent relationships. The current tree and blame record which
+paths and lines survive. Each exported observation carries source identity and
+join confidence.
+
+The join first canonicalizes repository-relative paths, follows Git renames,
+and assigns events to bounded candidate commit intervals. It then distinguishes
+four outcomes: observed and committed, observed but not committed, committed
+without an observed event, and currently surviving. Temporal proximity is not
+reported as semantic causality or cryptographic authorship. Read-before-edit
+edges are ordered evidence within a prompt/session and are labeled accordingly.
+
+\section{Visualization Design}
+\figuretodo{System overview: native sessions + Git history + current blame
+$\rightarrow$ longitudinal representation $\rightarrow$ coordinated views.}
+
+\subsection{Line and matrix views}
+A SeeSoft-style line map compresses current lines into colored pixels encoding
+age, Git author, and agent-touch evidence. A file-by-time evolution matrix
+shows size and event intensity, with candidate burst, periodicity, decay, and
+short-lived patterns labeled only after quantitative definitions are fixed.
+
+\subsection{Stable repository map and playback}
+A deterministic hierarchical layout anchors paths across time. Touch events
+animate over the map while a shared cursor supports play, pause, scrubbing,
+speed selection, and interval brushing. Search, read, edit, verification, and
+commit use distinct channels. Aggregated frames bound work at overview scale;
+selection loads event detail.
+
+\subsection{Survival, forensic, and social views}
+Age strata show how much code from each period survives. Hotspots combine
+change frequency with complexity proxies; Git co-change and ordered
+read-before-edit networks are shown separately. Ownership and storyline views
+trace people and agent families through directory clusters without presenting
+inferred agent association as Git authorship.
+
+\subsection{Longitudinal navigation}
+Calendar and punch-card summaries locate active periods. Vital-sign plots show
+event rate, token rate, error rate, edit/read balance, and verification gaps.
+Token-flow and ghost-comparison views support cost attribution and matched-run
+comparison. All views link through the same time interval and path selection.
+
+\section{Implementation}
+The exporter extends the existing Rust `agent-session` library, which already
+normalizes Claude, Codex, and Gemini histories. Git data is collected through
+stable command-line plumbing and streamed into a bounded intermediate format.
+The browser application reuses established open-source layout, charting,
+network, and time-series libraries after license and capability verification.
+\result{Insert final components, versions, data volumes, aggregation strategy,
+and implementation size.}
+
+\section{Evaluation}
+We organize the evaluation around four questions.
+
+\subsection{RQ1: Recoverability}
+We compare event histories with rename-aware Git changes and current survival
+across real multi-day repositories. Metrics include path-normalization yield,
+event-to-change match coverage, ambiguity, unmatched-event categories, and
+process facts absent from commit-only histories. \result{Insert datasets,
+protocol, results, and threats.}
+
+\subsection{RQ2: Behavioral structure}
+We define candidate exploration, churn, verification, coupling, and survival
+patterns before inspecting final outcomes, then measure recurrence and
+stability across sessions and agents. Commit-only ablations test whether event
+granularity is necessary. \result{Insert definitions and final results.}
+
+\subsection{RQ3: Review utility}
+Participants answer process-review questions using a native event table,
+commit-centric baselines, and the coordinated views. We measure accuracy,
+completion time, confidence calibration, and interaction traces. Tasks include
+locating unverified final edits, identifying abandoned work, explaining a
+cross-file change, and finding high-churn code that survived. \result{Insert
+approved study protocol, population, statistics, and outcomes.}
+
+\subsection{RQ4: Long-horizon scalability}
+We measure export throughput, output size, initial render time, brushing and
+scrubbing latency, and memory across increasing histories. We separately
+evaluate overview aggregation and detail-on-demand. \result{Insert hardware,
+history sizes, thresholds, and measurements.}
+
+\section{Discussion}
+The joined evidence can preserve part of a development process, not an agent's
+private reasoning or a complete causal explanation. Missing logs, clock skew,
+parallel work, path aliases, and squash/rebase workflows limit attribution.
+The design therefore treats mismatch as evidence rather than silently filling
+gaps. If event-resolved views improve only presentation but not review tasks,
+the result would bound the scientific claim even if the gallery remains useful
+as an exploratory artifact.
+
+\section{Related Work}
+The final paper will compare against software evolution visualization,
+repository mining and socio-technical analysis, large-trace visualization,
+coding-agent observability, and trajectory evaluation. \result{Populate only
+from verified primary sources and explicitly identify same-claim work.}
+
+\section{Conclusion}
+Long-horizon coding agents make software development more observable in one
+sense---their native event streams are recorded---and less understandable in
+another: no persistent person necessarily holds the theory behind the code.
+This work tests whether joining those events with durable repository history
+and projecting them through coordinated evolution views can recover a
+practical review interface. \result{State final supported scope and findings.}
+
+\end{document}
