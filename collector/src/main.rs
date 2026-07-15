@@ -187,7 +187,7 @@ async fn setup_signal_handler(suppress_terminal_output: bool) {
                agentsight top\n\
                agentsight report\n\
                agentsight report prompts --json\n\n\
-             top works without sudo and enables eBPF automatically when sudo is already available;\n\
+             top works without sudo; interactive top enables eBPF when sudo is already available;\n\
              record keeps the monitored agent unprivileged while elevating only the probes."
 )]
 struct Cli {
@@ -657,6 +657,32 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             None => run_monitor().await?,
             Some(MonitorCommands::InstallService) => install_monitor_service()?,
         },
+        Commands::Top {
+            db: None,
+            pid,
+            comm,
+            sort,
+            view,
+            interval,
+            limit,
+            count,
+            once,
+            plain,
+        } => {
+            let count = if *once { Some(1) } else { *count };
+            let options = TopOptions {
+                pid: *pid,
+                comm: comm.clone(),
+                sort: sort.clone(),
+                view: view.clone(),
+            };
+            if top_uses_tui(*plain, interactive_terminal_available()) {
+                let binary_extractor = BinaryExtractor::new().await?;
+                run_live_top_tui(&binary_extractor, *interval, *limit, count, &options).await?;
+            } else {
+                run_live_top_query(*interval, *limit, count, &options).await?;
+            }
+        }
         // All remaining commands need the binary extractor.
         _ => {
             let binary_extractor = BinaryExtractor::new().await?;
@@ -763,31 +789,6 @@ async fn run_with_extractor(
                 .map_err(convert_runner_error)?;
             if let Some(ref db) = db_path_for_summary {
                 print_session_summary(db);
-            }
-        }
-        Commands::Top {
-            db: None,
-            pid,
-            comm,
-            sort,
-            view,
-            interval,
-            limit,
-            count,
-            once,
-            plain,
-        } => {
-            let count = if *once { Some(1) } else { *count };
-            let options = TopOptions {
-                pid: *pid,
-                comm: comm.clone(),
-                sort: sort.clone(),
-                view: view.clone(),
-            };
-            if top_uses_tui(*plain, interactive_terminal_available()) {
-                run_live_top_tui(binary_extractor, *interval, *limit, count, &options).await?;
-            } else {
-                run_live_top_query(binary_extractor, *interval, *limit, count, &options).await?;
             }
         }
         Commands::Debug(cmd) => match cmd {
