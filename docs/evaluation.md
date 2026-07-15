@@ -20,7 +20,7 @@ later explicit user instruction may change the four author-fixed RQs.
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Do not run another RQ1 lineage or grouping variant; WRITE the cumulative positive answer and let REVIEW select the next fixed RQ. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Positive hypothesis unchanged; Step 0019 adds valid supporting downstream evidence.** AgentProcessBench has a small isolated AP gain, HINTBench is numerically favorable but inconclusive versus raw action, and TraceElephant is strong at a descriptive early point but inconclusive at prospective Work@80. In the complete fixed-reader comparison, operation stack improves selected-positive recall on 5/6 tasks (median paired delta +0.080571) and precision on 4/6 (+0.035501) versus fixed session at a three-group budget. The result does not show lower work or raw-action, human, or universal-view superiority. Whole-paper REVIEW must now judge cumulative RQ2 submission readiness rather than rerun this packet study. |
-| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; current constructor measured.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0020 changes the failed information-gain objective to cross-session action recurrence on the same development population, reaching 0.6799 boundary F1 and 0.7862 B-cubed F1, above the registered strongest simple controls; the Rust port exactly reproduces every evaluated decision and motif. This is supported post-hoc mechanism development, not fresh cross-family RQ3 confirmation. Do not tune OSWorld-Human again; whole-paper REVIEW must judge whether the admitted positive evidence is sufficient or select one independent annotated confirmation. |
+| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; current constructor diagnosis complete.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0020's post-hoc recurrence development reaches 0.6799 boundary F1 and 0.7862 B-cubed F1 on OSWorld-Human. Step 0021 reuses 405 complete CodeTraceBench targets and finds the unchanged port mixed: boundary F1 0.2685 narrowly clears action-change 0.2675, but B-cubed F1 0.4750 trails phase-change 0.6544; 99.6579% of its decisions equal action-change. This rejects the current cutoff calibration as cross-family confirmation, not the fixed RQ3 hypothesis. The next mechanism step reuses the same trajectories and excludes identity-preserving self-transitions from cross-action cutoff calibration; no benchmark or claim change is admitted. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
 ## Admitted RQ1 Mechanism Evidence
@@ -419,6 +419,29 @@ are under
 with raw evaluator and port-equivalence artifacts under
 `.agentsight/experiments/rq3-recurrence-inducer-v1/full/` and
 `.agentsight/experiments/rq3-recurrence-rust-equivalence-v1/full/`.
+
+Step 0021 then tests that unchanged Rust port on already-completed
+CodeTraceBench artifacts rather than collecting or normalizing a new source.
+The full target-disjoint run covers 405 failed trajectories, 20,866 operations,
+20,461 adjacent pairs, and 2,948 complete official stage intervals across four
+code-agent frameworks. All validity, coverage, leakage, and conservation
+checks pass under independent raw-result reconstruction. Recurrence reaches
+boundary F1 0.2685, barely above action-change 0.2675, while B-cubed F1 0.4750
+trails external phase-change 0.6544. It equals action-change on 20,391/20,461
+pair decisions; all 70 differences occur in Terminus2 and merge
+`install -> other`.
+
+The approved verdict is mixed and does not enter the paper as positive
+cross-family confirmation. It is retained as mechanism-selection evidence:
+the occurrence-weighted NPMI cutoff's high cluster is dominated by identical-
+action repetitions, so the release constructor almost never recognizes
+recurring continuity across an action change. The fixed RQ3 hypothesis and
+paper story remain unchanged. The next experiment may change only this
+calibration principle—same-action pairs stay continuous by identity and
+two-means separates recurrence among actual action changes—then rerun the
+existing OSWorld-Human and CodeTraceBench populations once without a feature,
+threshold, or benchmark sweep. The reviewed step is
+[`step-0021-20260715T023451-0700`](tmp/build-and-evaluate/step-0021-20260715T023451-0700/).
 
 ## Requirements For The Next Experiment
 
