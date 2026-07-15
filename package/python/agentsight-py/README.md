@@ -4,8 +4,8 @@ Official Python helper for [Eunomia AgentSight](https://github.com/eunomia-bpf/a
 
 `agentsight-py` is the PyPI package name because the bare PyPI name
 `agentsight` is owned by an unrelated project. The canonical AgentSight collector
-is still installed with `cargo install agentsight`, and the npm/Web entrypoint is
-published as `agentsight` / `@eunomia-bpf/agentsight`.
+is still installed with `cargo install agentsight`; the scoped npm package is
+published as `@eunomia-bpf/agentsight`.
 
 This package is a small, real Python utility for inspecting AgentSight exported
 snapshots:
