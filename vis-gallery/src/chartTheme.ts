@@ -22,6 +22,7 @@ export const baseChart: EChartsOption = {
     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
   },
   tooltip: {
+    renderMode: "richText",
     backgroundColor: "rgba(8, 12, 21, .96)",
     borderColor: "rgba(122, 150, 190, .3)",
     textStyle: { color: colors.text, fontSize: 12 },

@@ -3,7 +3,7 @@ import type { EChartsOption } from "echarts";
 import { axisStyle, baseChart, stateColor } from "../chartTheme";
 import EChart from "../components/EChart";
 import Panel from "../components/Panel";
-import { topBy } from "../selectors";
+import { linePixelVisible, topBy } from "../selectors";
 import type { LinePixel } from "../types";
 import type { ViewProps } from "./viewTypes";
 
@@ -66,9 +66,10 @@ export default function PixelView({ data, state, events, onChange }: ViewProps) 
     ],
     tooltip: {
       trigger: "item",
+      renderMode: "richText",
       formatter: (params: unknown) => {
         const value = (params as { value: [number, string, number] }).value;
-        return `${value[1]}<br/>${new Date(value[0]).toISOString()}<br/>${value[2] ? "write evidence" : "read evidence"}`;
+        return `${value[1]}\n${new Date(value[0]).toISOString()}\n${value[2] ? "write evidence" : "read evidence"}`;
       },
     },
   }), [laneEvents, laneFiles, state.cursorMs]);
@@ -142,6 +143,7 @@ function SeeSoftCanvas({
       context.fillRect(0, 0, bounds.width, bounds.height);
       const grouped = new Map<string, LinePixel[]>();
       for (const pixel of pixels) {
+        if (!linePixelVisible(pixel, cursorMs)) continue;
         const values = grouped.get(pixel.path) ?? [];
         values.push(pixel);
         grouped.set(pixel.path, values);

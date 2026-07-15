@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { eventVisible, formatCompact, topBy } from "./selectors";
-import type { GalleryEvent, ViewState } from "./types";
+import { completedSessionsInVisibleInterval, eventVisible, formatCompact, linePixelVisible, topBy } from "./selectors";
+import type { GalleryEvent, GallerySession, ViewState } from "./types";
 
 const event: GalleryEvent = {
   id: "1", event_id: "1", session_id: "s", vendor: "codex", model: "m",
@@ -24,4 +24,18 @@ describe("gallery selectors", () => {
     expect(rows.map((row) => row.n)).toEqual([1, 3, 2]);
   });
   it("formats compact values", () => expect(formatCompact(6535)).toMatch(/6[.,]?5K/i));
+  it("counts reported units only after the whole session is visible", () => {
+    const sessions: GallerySession[] = [
+      { id: "s", vendor: "codex", model: "m", started_at_ms: 15, ended_at_ms: 25, tool_events: 1, reported_tokens: 100, days: ["2026-06-02"] },
+      { id: "later", vendor: "codex", model: "m", started_at_ms: 15, ended_at_ms: 35, tool_events: 1, reported_tokens: 200, days: ["2026-06-02"] },
+    ];
+    const rows = [event, { ...event, id: "2", session_id: "later" }];
+    expect(completedSessionsInVisibleInterval(sessions, rows, state).map((row) => row.id)).toEqual(["s"]);
+    expect(completedSessionsInVisibleInterval(sessions, rows, { ...state, cursorMs: 20 })).toEqual([]);
+  });
+  it("does not project endpoint lines before their Git origin", () => {
+    const pixel = { path: "src/a.rs", line: 1, origin_commit: "abc", origin_ms: 50, author_label: "author-1" };
+    expect(linePixelVisible(pixel, 49)).toBe(false);
+    expect(linePixelVisible(pixel, 50)).toBe(true);
+  });
 });

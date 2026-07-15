@@ -26,7 +26,7 @@ npm run dev
 ```
 
 Open <http://127.0.0.1:5173>. The checked public dataset is privacy-scanned and
-contains 56 deduplicated sessions, 6,535 path-event rows, 1,027 file lifetimes,
+contains 56 deduplicated sessions, 6,401 path-event rows, 994 file lifetimes,
 177 commits, 1,852 changes, and 12,000 current Git-blame line pixels. The three
 real observation days span 2026-06-02 through 2026-07-14; they are not a
 continuous synthetic workload. July 14 is right-censored and is used only for
@@ -68,12 +68,20 @@ The exporter also supports `--format events-jsonl`, `--format perfetto`, and
 `--format gource`. Those compatibility projections are lossy and do not carry
 the complete uncertainty/evidence model.
 
+Event-level exact-hunk fingerprints are intentionally available only for a
+single repository file with a single native edit hunk. Multi-file and
+multi-hunk patches retain process/path evidence but are never presented as one
+exact Git-hunk match.
+
 ## Verify
 
 ```bash
 npm run build
 npm test
 npm run test:e2e
+# with `npm run dev -- --port 4173` running in another terminal:
+npm run measure -- http://127.0.0.1:4173 artifacts/browser-metrics.json
+npm run capture -- http://127.0.0.1:4173 artifacts
 ```
 
 Playwright visits every family, changes the shared cursor and filter state, and

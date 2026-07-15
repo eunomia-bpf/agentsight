@@ -3,6 +3,11 @@
 Verdict: **APPROVE**
 Reviewed: 2026-07-15T05:34:00-07:00
 
+Repair audit: **APPROVE**, independently recomputed after the parser and
+right-censoring repairs on 2026-07-15. Controlled, naturalistic, agreement,
+and lineage outputs matched bit-for-bit; the audit also confirmed that no
+surviving claim depends on the removed duplicate or multi-hunk evidence.
+
 The repaired run is a valid terminal experiment with one explicitly
 right-censored, excluded cell. It is not completion of the positive three-day
 or cross-vendor claim.
@@ -13,7 +18,9 @@ metrics, lineage rows, or transfer claims; the endpoint supplied only 4.8006
 hours of future history, versus the frozen 24-hour retrieval and 168-hour
 oracle horizons. It also verified all-schema split, moved/rewritten, and
 pathless diagnostics; Rust/Python ranking parity; tied prebirth/rename ranking;
-and reconciled lineage denominators (110 targets, 42 predictions, 41 correct).
+and reconciled lineage denominators. A subsequent implementation audit repaired
+Codex call-ID duplication and restricted exact-hunk claims to single-file,
+single-hunk edits; the rerun has 110 targets, 37 predictions, and 36 correct.
 
 Allowed claims are limited to controlled evidence that exact-hunk matching
 improves known-link recovery over nearest-path/no-hunk matching, plus

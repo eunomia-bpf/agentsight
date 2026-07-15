@@ -24,13 +24,13 @@ export default function StorylineView({ data, state, events, onChange }: ViewPro
     yAxis: { type: "category", data: groups, axisLabel: { color: colors.muted, width: 142, overflow: "truncate", fontSize: 9 }, axisLine: { show: false }, axisTick: { show: false } },
     dataZoom: [{ type: "inside" }],
     series,
-    tooltip: { trigger: "item", formatter: (params: unknown) => { const row = (params as { data: { session: string; path: string } }).data; return `<strong>${row.session}</strong><br/>${row.path}`; } },
+    tooltip: { trigger: "item", renderMode: "richText", formatter: (params: unknown) => { const row = (params as { data: { session: string; path: string } }).data; return `${row.session}\n${row.path}`; } },
   };
 
   const authors = topBy(data.ownership, (row) => row.churn, 30);
   const ownershipOption: EChartsOption = {
     ...baseChart,
-    tooltip: { trigger: "item" },
+    tooltip: { trigger: "item", renderMode: "richText" },
     series: [{ type: "sankey", nodeAlign: "justify", data: [...new Set(authors.flatMap((row) => [`a:${row.author}`, `g:${row.group}`]))].map((name) => ({ name, itemStyle: { color: name.startsWith("a:") ? "#7b93ad" : "#2c6e73" } })), links: authors.map((row) => ({ source: `a:${row.author}`, target: `g:${row.group}`, value: row.churn })), lineStyle: { color: "gradient", opacity: .24 }, label: { color: colors.text, fontSize: 9, formatter: (params: unknown) => String((params as { name: string }).name).slice(2) } }],
   };
   return <section className="panel-grid">

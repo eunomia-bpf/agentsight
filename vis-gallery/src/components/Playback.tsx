@@ -15,7 +15,16 @@ export default function Playback({ state, min, max, onChange }: Props) {
     <section className="playback" aria-label="shared playback controls">
       <button
         className={`playback__button ${state.playing ? "is-playing" : ""}`}
-        onClick={() => onChange({ playing: !state.playing })}
+        onClick={() => {
+          if (state.playing) {
+            onChange({ playing: false });
+          } else {
+            onChange({
+              cursorMs: state.cursorMs >= state.rangeEndMs ? state.rangeStartMs : state.cursorMs,
+              playing: true,
+            });
+          }
+        }}
         aria-label={state.playing ? "Pause playback" : "Play history"}
       >
         {state.playing ? "Ⅱ" : "▶"}

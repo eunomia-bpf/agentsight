@@ -126,7 +126,7 @@ export default function OverviewView({ data, state, events, onChange }: ViewProp
               >
                 <span>{day.day}</span>
                 <strong>{formatCompact(day.events)}</strong>
-                <small>{day.sessions} sessions · {day.write_event_paths} write-path pairs</small>
+                <small>{day.sessions} deduplicated sessions · {day.write_event_paths} write-path observations</small>
               </button>
             ))}
           </div>

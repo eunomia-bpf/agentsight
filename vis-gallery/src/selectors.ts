@@ -1,4 +1,4 @@
-import type { GalleryData, GalleryEvent, GalleryFile, ViewState } from "./types";
+import type { GalleryData, GalleryEvent, GalleryFile, GallerySession, LinePixel, ViewState } from "./types";
 
 export function eventVisible(event: GalleryEvent, state: ViewState): boolean {
   return (
@@ -21,6 +21,27 @@ export function activeFiles(events: GalleryEvent[], files: GalleryFile[]): Galle
   return files.filter(
     (file) => paths.has(file.path) || paths.has(file.current_path ?? ""),
   );
+}
+
+export function completedSessionsInVisibleInterval(
+  sessions: GallerySession[],
+  events: GalleryEvent[],
+  state: ViewState,
+): GallerySession[] {
+  const activeSessionIds = new Set(events.map((event) => event.session_id));
+  const visibleEnd = Math.min(state.cursorMs, state.rangeEndMs);
+  return sessions.filter(
+    (session) =>
+      activeSessionIds.has(session.id) &&
+      session.started_at_ms !== null &&
+      session.ended_at_ms !== null &&
+      session.started_at_ms >= state.rangeStartMs &&
+      session.ended_at_ms <= visibleEnd,
+  );
+}
+
+export function linePixelVisible(pixel: LinePixel, cursorMs: number): boolean {
+  return pixel.origin_ms <= cursorMs;
 }
 
 export function formatCompact(value: number): string {

@@ -472,18 +472,17 @@ fn apply_lifetime_change(
     committed_at_ms: i64,
 ) -> usize {
     let status = change.status.chars().next().unwrap_or('M');
-    if status == 'R' || status == 'C' {
-        if let Some(old_path) = &change.old_path
-            && let Some(index) = active.remove(old_path)
-        {
-            let lifetime = &mut lifetimes[index].lifetime;
-            if !lifetime.paths.contains(&change.path) {
-                lifetime.paths.push(change.path.clone());
-            }
-            lifetime.current_path = Some(change.path.clone());
-            active.insert(change.path.clone(), index);
-            return index;
+    if (status == 'R' || status == 'C')
+        && let Some(old_path) = &change.old_path
+        && let Some(index) = active.remove(old_path)
+    {
+        let lifetime = &mut lifetimes[index].lifetime;
+        if !lifetime.paths.contains(&change.path) {
+            lifetime.paths.push(change.path.clone());
         }
+        lifetime.current_path = Some(change.path.clone());
+        active.insert(change.path.clone(), index);
+        return index;
     }
     if status == 'D'
         && let Some(index) = active.remove(&change.path)
@@ -724,9 +723,10 @@ fn load_sessions(
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_millis() as i64;
-            if updated_ms < options.since_ms.saturating_sub(AUDIT_BEFORE_MS)
-                || updated_ms >= options.until_ms.saturating_add(AUDIT_AFTER_MS)
-            {
+            // A session may start in the requested window and be resumed weeks
+            // later. Its file mtime then lies after the Git audit horizon, but
+            // the earlier events remain part of the longitudinal trajectory.
+            if !candidate_mtime_may_contain_window(updated_ms, options.since_ms) {
                 continue;
             }
             if !candidate_may_match_repo(candidate.agent, &candidate.path, repo) {
@@ -757,6 +757,10 @@ fn load_sessions(
             .then_with(|| left.session_id.cmp(&right.session_id))
     });
     Ok(sessions)
+}
+
+fn candidate_mtime_may_contain_window(updated_ms: i64, since_ms: i64) -> bool {
+    updated_ms >= since_ms.saturating_sub(AUDIT_BEFORE_MS)
 }
 
 fn candidate_may_match_repo(agent: &str, path: &Path, repo: &Path) -> bool {
@@ -1219,6 +1223,19 @@ mod tests {
         assert_eq!(hunks.len(), 1);
         assert_eq!(hunks[0].before_hash, Some(content_fingerprint("old\n")));
         assert_eq!(hunks[0].after_hash, Some(content_fingerprint("new\n")));
+    }
+
+    #[test]
+    fn resumed_long_running_sessions_are_not_cut_off_by_future_mtime() {
+        let since_ms = 1_000_000;
+        assert!(candidate_mtime_may_contain_window(
+            since_ms + 90 * 24 * 60 * 60 * 1_000,
+            since_ms,
+        ));
+        assert!(!candidate_mtime_may_contain_window(
+            since_ms - AUDIT_BEFORE_MS - 1,
+            since_ms,
+        ));
     }
 
     #[test]

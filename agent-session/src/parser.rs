@@ -473,8 +473,28 @@ fn parse_jsonl(
                         "fail"
                     }
                     .to_string();
-                    acc.add_tool("apply_patch");
-                    events.tools.push(event);
+                    if let Some(index) = event
+                        .call_id
+                        .as_deref()
+                        .and_then(|call_id| call_index.get(call_id))
+                        .copied()
+                    {
+                        if let Some(existing) = events.tools.get_mut(index) {
+                            existing.status = event.status;
+                            if existing.path_refs.is_empty() {
+                                existing.path_refs = event.path_refs;
+                            }
+                            if existing.edit_summary.is_none() {
+                                existing.edit_summary = event.edit_summary;
+                            }
+                        }
+                    } else {
+                        acc.add_tool("apply_patch");
+                        if let Some(call_id) = event.call_id.clone() {
+                            call_index.insert(call_id, events.tools.len());
+                        }
+                        events.tools.push(event);
+                    }
                 }
                 if ptype == "token_count"
                     && let Some(usage) = payload.pointer("/info/total_token_usage")
@@ -1092,7 +1112,7 @@ fn tool_event_from_input(
     let cwd = cwd.unwrap_or("");
     let path_groups = extract_path_groups(Path::new(cwd), name, input, &command);
     let path_refs = extract_path_references(Path::new(cwd), name, input, &command, &effect);
-    let edit_summary = edit_summary_from_input(name, input, &command, &effect);
+    let edit_summary = edit_summary_from_input(name, input, &command, &effect, &path_refs);
     let process_chain = if category == "shell" {
         command_process_chain(&command)
     } else {
@@ -1203,17 +1223,13 @@ fn command_effect(command: &str) -> String {
             || text.contains("https://"))
     {
         "network"
-    } else if [
-        "tee", "cp", "mv", "rm", "mkdir", "touch", "python", "python3", "node", "npm",
-    ]
-    .contains(&cmd.as_str())
-        && (text.contains('>')
-            || text.contains("--write")
-            || text.contains(" rm ")
-            || text.contains(" mkdir ")
-            || text.contains(" touch ")
-            || text.contains(" cp ")
-            || text.contains(" mv "))
+    } else if ["tee", "cp", "mv", "rm", "mkdir", "touch"].contains(&cmd.as_str())
+        || (cmd == "sed" && (text.contains(" -i") || text.contains("--in-place")))
+        || (["python", "python3", "node", "npm"].contains(&cmd.as_str())
+            && (text.contains('>')
+                || text.contains("--write")
+                || text.contains("write_text")
+                || text.contains("writefile")))
     {
         "write"
     } else if [
@@ -1504,7 +1520,12 @@ fn collect_input_path_references(
 
 fn repository_relative_path(project_root: &Path, raw: &str) -> Option<String> {
     let raw = raw.trim().trim_matches(['"', '\'']);
-    if raw.is_empty() {
+    // A shell-relative token beginning with a home/environment expansion is
+    // not relative to the repository, even though `Path` treats it as such.
+    // Never serialize it as a repository path: apart from being semantically
+    // wrong, native histories commonly expose private tool-state locations in
+    // this form (for example `~/.claude/...`).
+    if raw.is_empty() || raw.starts_with('~') || raw.starts_with('$') {
         return None;
     }
     let path = Path::new(raw);
@@ -1557,8 +1578,20 @@ fn edit_summary_from_input(
     input: &Value,
     command: &str,
     effect: &str,
+    path_refs: &[PathReference],
 ) -> Option<EditSummary> {
     if effect != "write" {
+        return None;
+    }
+    let write_paths = path_refs
+        .iter()
+        .filter(|reference| reference.access == "write")
+        .map(|reference| reference.path.as_str())
+        .collect::<BTreeSet<_>>();
+    // An event-level fingerprint can only be compared safely with a Git hunk
+    // when it describes exactly one repository path. Multi-file patches keep
+    // their path observations but deliberately carry no exact-hunk claim.
+    if write_paths.len() != 1 {
         return None;
     }
     let before = find_string_field(input, &["old_string", "oldText", "before"], 0);
@@ -1585,6 +1618,23 @@ fn edit_summary_from_input(
             (command.contains("*** Begin Patch") || command.contains("@@")).then_some(command)
         });
     if let Some(patch) = patch {
+        let hunk_markers = patch.lines().filter(|line| line.starts_with("@@")).count();
+        let file_markers = patch
+            .lines()
+            .filter(|line| {
+                [
+                    "*** Add File: ",
+                    "*** Update File: ",
+                    "*** Delete File: ",
+                    "*** Move to: ",
+                ]
+                .iter()
+                .any(|prefix| line.trim().starts_with(prefix))
+            })
+            .count();
+        if hunk_markers > 1 || file_markers > 1 {
+            return None;
+        }
         let added = patch
             .lines()
             .filter(|line| line.starts_with('+') && !line.starts_with("+++"))
@@ -2245,6 +2295,21 @@ mod tests {
     }
 
     #[test]
+    fn common_shell_mutators_are_classified_as_writes() {
+        for command in [
+            "rm src/old.rs",
+            "mv src/old.rs src/new.rs",
+            "cp src/a.rs src/b.rs",
+            "sed -i 's/a/b/' src/lib.rs",
+            "sed --in-place=.bak 's/a/b/' src/lib.rs",
+            "touch src/new.rs",
+        ] {
+            assert_eq!(command_effect(command), "write", "{command}");
+        }
+        assert_eq!(command_effect("sed -n '1,5p' src/lib.rs"), "read");
+    }
+
+    #[test]
     fn tool_events_preserve_private_body_free_path_and_edit_evidence() {
         let event = tool_event_from_input(
             Some("/repo"),
@@ -2294,6 +2359,66 @@ mod tests {
         assert_eq!(event.path_refs.len(), 1);
         assert_eq!(event.path_refs[0].path, "src/main.rs");
         assert_eq!(event.edit_summary.expect("patch summary").added_lines, 1);
+    }
+
+    #[test]
+    fn repository_paths_reject_home_and_environment_relative_tokens() {
+        let event = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "Bash",
+            &json!({
+                "command": "rg needle ~/.claude/projects $HOME/.codex ~/workspace/other src/lib.rs"
+            }),
+            None,
+        );
+
+        assert_eq!(event.path_refs.len(), 1);
+        assert_eq!(event.path_refs[0].path, "src/lib.rs");
+        assert!(event.path_refs.iter().all(|reference| {
+            !reference.path.starts_with('~') && !reference.path.starts_with('$')
+        }));
+    }
+
+    #[test]
+    fn multi_file_and_multi_hunk_patches_do_not_claim_one_exact_edit() {
+        let multi_file = concat!(
+            "*** Begin Patch\n",
+            "*** Update File: src/a.rs\n",
+            "@@\n-old-a\n+new-a\n",
+            "*** Update File: src/b.rs\n",
+            "@@\n-old-b\n+new-b\n",
+            "*** End Patch"
+        );
+        let event = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "apply_patch",
+            &json!({"input": multi_file}),
+            None,
+        );
+        assert_eq!(event.path_refs.len(), 2);
+        assert!(event.edit_summary.is_none());
+
+        let multi_hunk = concat!(
+            "*** Begin Patch\n",
+            "*** Update File: src/a.rs\n",
+            "@@\n-old-a\n+new-a\n",
+            "@@\n-old-b\n+new-b\n",
+            "*** End Patch"
+        );
+        let event = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "apply_patch",
+            &json!({"input": multi_hunk}),
+            None,
+        );
+        assert_eq!(event.path_refs.len(), 1);
+        assert!(event.edit_summary.is_none());
     }
 
     #[test]
@@ -2376,5 +2501,28 @@ mod tests {
         assert_eq!(event.status, "success");
         assert_eq!(event.path_refs[0].path, "src/lib.rs");
         assert_eq!(event.edit_summary.as_ref().unwrap().payload_kind, "patch");
+    }
+
+    #[test]
+    fn codex_patch_completion_updates_the_existing_tool_call() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-5","cwd":"/repo"}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-14T10:00:00Z","type":"response_item","payload":{"type":"custom_tool_call","name":"apply_patch","call_id":"patch-1","arguments":"{\"input\":\"*** Begin Patch\\n*** Update File: src/lib.rs\\n@@\\n-old\\n+new\\n*** End Patch\"}"}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-14T10:00:01Z","type":"event_msg","payload":{"type":"patch_apply_end","call_id":"patch-1","success":true,"changes":{"/repo/src/lib.rs":{"type":"update","unified_diff":"@@ -1 +1 @@\n-old\n+new"}}}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            Path::new("/tmp/session-codex.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("codex session");
+
+        assert_eq!(session.events.tools.len(), 1);
+        assert_eq!(session.events.tools[0].call_id.as_deref(), Some("patch-1"));
+        assert_eq!(session.events.tools[0].status, "success");
+        assert_eq!(session.events.tools[0].path_refs[0].path, "src/lib.rs");
     }
 }

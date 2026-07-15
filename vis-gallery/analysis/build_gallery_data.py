@@ -158,21 +158,35 @@ def build(
     censored_days = {cell["day"] for cell in censored.get("cells", [])}
     for artifact in artifacts:
         day = artifact["window"]["since"][:10]
+        unique_session_ids = {session["id"] for session in artifact["sessions"]}
+        write_path_observations = sum(
+            len(event["paths"])
+            for event in artifact["events"]
+            if event["effect"] == "write"
+        )
         source_days.append(
             {
                 "day": day,
-                "sessions": artifact["summary"]["session_count"],
+                "sessions": len(unique_session_ids),
                 "events": artifact["summary"]["event_count"],
                 "path_events": artifact["summary"]["path_resolvable_event_count"],
-                "write_event_paths": artifact["summary"]["write_event_path_count"],
+                "write_event_paths": write_path_observations,
                 "quantitative_status": (
                     "right_censored_excluded" if day in censored_days else "mature_descriptive"
                 ),
             }
         )
-        association_index = {
-            (row["event_id"], row["path"]): row for row in artifact["associations"]
-        }
+        # A right-censored day remains useful as process evidence, but its Git
+        # horizon is incomplete. Do not carry even provisional candidate sets
+        # into the public projection or downstream file-level aggregates.
+        association_index = (
+            {}
+            if day in censored_days
+            else {
+                (row["event_id"], row["path"]): row
+                for row in artifact["associations"]
+            }
+        )
         for session in artifact["sessions"]:
             current = sessions.setdefault(
                 session["id"],
@@ -570,6 +584,54 @@ def validate_public_output(output: dict[str, Any]) -> None:
     violations = [token for token in forbidden if token in encoded]
     if violations:
         raise ValueError(f"public gallery output contains forbidden tokens: {violations}")
+
+    bad_paths = sorted(
+        {
+            row["path"]
+            for row in output["events"]
+            if not is_public_repo_path(row["path"])
+        }
+    )
+    if bad_paths:
+        raise ValueError(
+            f"public gallery output contains non-repository paths: {bad_paths[:5]}"
+        )
+
+    censored_days = set(output["meta"]["right_censored_days"])
+    leaked = [
+        row["id"]
+        for row in output["events"]
+        if row["day"] in censored_days
+        and (
+            row["association_state"] != "not_eligible"
+            or row["candidate_count"] != 0
+            or row["evidence_bin"] is not None
+            or row["exact_hunk"]
+        )
+    ]
+    if leaked:
+        raise ValueError(
+            f"right-censored events contain association evidence: {leaked[:5]}"
+        )
+
+    sessions_per_day = Counter(
+        day for session in output["sessions"] for day in session["days"]
+    )
+    mismatched_days = [
+        row["day"]
+        for row in output["source_days"]
+        if row["sessions"] != sessions_per_day[row["day"]]
+    ]
+    if mismatched_days:
+        raise ValueError(
+            f"source-day session counts are not deduplicated: {mismatched_days}"
+        )
+
+
+def is_public_repo_path(path: str) -> bool:
+    if not path or path.startswith(("/", "~", "$")) or "\\" in path:
+        return False
+    return all(part not in {"", ".", ".."} for part in path.split("/"))
 
 
 def main() -> None:

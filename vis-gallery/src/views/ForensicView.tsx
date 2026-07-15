@@ -13,7 +13,7 @@ export default function ForensicView({ data, state, events, onChange }: ViewProp
   const hotspots = topBy(data.files, (file) => file.risk_score, 90);
   const hotspotOption: EChartsOption = {
     ...baseChart,
-    tooltip: { formatter: (params: unknown) => { const row = (params as { data: { path: string; risk: number; churn: number; touches: number } }).data; return `<strong>${row.path}</strong><br/>risk ${row.risk.toFixed(2)}<br/>${row.touches} touches · ${row.churn} Git churn`; } },
+    tooltip: { renderMode: "richText", formatter: (params: unknown) => { const row = (params as { data: { path: string; risk: number; churn: number; touches: number } }).data; return `${row.path}\nrisk ${row.risk.toFixed(2)}\n${row.touches} touches · ${row.churn} Git churn`; } },
     series: [{
       type: "treemap", roam: true, breadcrumb: { show: false },
       data: hotspots.map((file) => ({ name: file.path.split("/").at(-1), path: file.path, value: Math.max(1, file.current_bytes), risk: file.risk_score, churn: file.churn, touches: file.touches, itemStyle: { color: riskColor(file.risk_score), opacity: visible.has(file.path) ? .95 : .35 } })),
@@ -48,10 +48,12 @@ function EvidenceGraph({ edges, semantics, selected, onSelect }: { edges: GraphE
       style: [
         { selector: "node", style: { "background-color": "#4c83a6", label: "data(label)", color: "#b8c8db", "font-size": 7, "text-valign": "bottom", "text-margin-y": 4, width: 9, height: 9 } },
         { selector: "edge", style: { width: "mapData(weight, 1, 20, .3, 3)", "line-color": semantics === "ordered" ? "#d69b62" : "#56718b", "target-arrow-color": "#d69b62", "target-arrow-shape": semantics === "ordered" ? "triangle" : "none", "curve-style": "bezier", opacity: .46 } },
-        { selector: `node[id = ${JSON.stringify(selected ?? "__none__")}]`, style: { "background-color": "#fff1a8", width: 18, height: 18 } },
       ],
       layout: { name: "cose", animate: false, randomize: false, fit: true, padding: 24, nodeRepulsion: () => 90_000 },
     });
+    if (selected) {
+      cy.getElementById(selected).style({ "background-color": "#fff1a8", width: 18, height: 18 });
+    }
     cy.on("tap", "node", (event) => onSelect(String(event.target.id())));
     return () => cy.destroy();
   }, [onSelect, rows, selected, semantics]);

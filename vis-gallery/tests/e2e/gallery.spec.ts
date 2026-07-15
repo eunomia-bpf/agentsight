@@ -17,12 +17,24 @@ test("every family renders real-data panels", async ({ page }) => {
 
 test("shared playback cursor and filters remain interactive", async ({ page }) => {
   const slider = page.getByTestId("playback-slider");
+  const maximum = Number(await slider.getAttribute("max"));
+  const initial = Number(await slider.inputValue());
+  expect(maximum - initial).toBeLessThan(60_000);
+  await page.getByRole("button", { name: "Play history" }).click();
+  await expect.poll(async () => Number(await slider.inputValue())).toBeLessThan(initial);
+  await page.getByRole("button", { name: "Pause playback" }).click();
   const before = await slider.inputValue();
   await slider.focus();
   await slider.press("ArrowLeft");
   expect(await slider.inputValue()).not.toBe(before);
+  await slider.press("End");
+  const visibleEvidence = page.locator(".metric-strip .metric strong").first();
+  const allVendorCount = await visibleEvidence.textContent();
   await page.getByRole("button", { name: "codex", exact: true }).click();
   await expect(page.getByRole("button", { name: "codex", exact: true })).toHaveClass(/is-active/);
+  await expect.poll(() => visibleEvidence.textContent()).not.toBe(allVendorCount);
+  await page.getByTestId("nav-river").click();
+  await expect(page.getByText("Agent activity river")).toBeVisible();
   await page.getByTestId("nav-matrix").click();
   await expect(page.getByText("File × observation-day matrix")).toBeVisible();
 });

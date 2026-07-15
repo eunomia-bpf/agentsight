@@ -229,22 +229,33 @@ fn write_gource(artifact: &agent_session::LongitudinalArtifact, path: &Path) -> 
         else {
             continue;
         };
-        let action = match change.status.as_str() {
-            "A" => "A",
-            "D" => "D",
-            _ => "M",
-        };
-        writeln!(
-            writer,
-            "{}|{}|{}|/{}|#efd265",
-            change.committed_at_ms / 1_000,
-            commit.author_label,
-            action,
-            change.path
-        )
-        .map_err(|error| error.to_string())?;
+        for (action, path) in gource_actions(change) {
+            writeln!(
+                writer,
+                "{}|{}|{}|/{}|#efd265",
+                change.committed_at_ms / 1_000,
+                commit.author_label,
+                action,
+                path
+            )
+            .map_err(|error| error.to_string())?;
+        }
     }
     Ok(())
+}
+
+fn gource_actions(change: &agent_session::GitChange) -> Vec<(&'static str, &str)> {
+    match change.status.chars().next().unwrap_or('M') {
+        'R' => change
+            .old_path
+            .as_deref()
+            .map(|old_path| vec![("D", old_path), ("A", change.path.as_str())])
+            .unwrap_or_else(|| vec![("M", change.path.as_str())]),
+        'C' => vec![("A", change.path.as_str())],
+        'A' => vec![("A", change.path.as_str())],
+        'D' => vec![("D", change.path.as_str())],
+        _ => vec![("M", change.path.as_str())],
+    }
 }
 
 fn parse_timestamp(value: &str) -> Result<i64, String> {
@@ -304,5 +315,26 @@ mod tests {
             ExportFormat::Perfetto
         );
         assert!(ExportFormat::parse("unknown").is_err());
+    }
+
+    #[test]
+    fn gource_rename_deletes_old_path_and_adds_new_path() {
+        let change = agent_session::GitChange {
+            id: "change".to_string(),
+            commit_id: "commit".to_string(),
+            committed_at_ms: 0,
+            status: "R100".to_string(),
+            old_path: Some("src/old.rs".to_string()),
+            path: "src/new.rs".to_string(),
+            additions: 0,
+            deletions: 0,
+            lifetime_id: "file-1".to_string(),
+            is_merge: false,
+            hunks: Vec::new(),
+        };
+        assert_eq!(
+            gource_actions(&change),
+            vec![("D", "src/old.rs"), ("A", "src/new.rs")]
+        );
     }
 }

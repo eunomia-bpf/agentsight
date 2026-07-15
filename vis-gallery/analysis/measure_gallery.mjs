@@ -1,5 +1,5 @@
 import { chromium } from "playwright";
-import { stat, writeFile } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 
 const baseURL = process.argv[2] ?? "http://127.0.0.1:4173";
 const destination = process.argv[3] ?? "artifacts/browser-metrics.json";
@@ -45,11 +45,20 @@ function summary(values) {
 }
 
 const dataset = await stat("public/gallery-data.json");
+const gallery = JSON.parse(await readFile("public/gallery-data.json", "utf8"));
 const result = {
   schema: "agentsight.gallery.browser-metrics.v1",
   measured_at: new Date().toISOString(),
   environment: { browser: "Playwright Chromium 1.61.1", viewport: "1600x1050", repetitions: 7, cold_page_per_repetition: true },
-  workload: { dataset_bytes: dataset.size, sessions: 56, path_event_rows: 6535, file_lifetimes: 1027, commits: 177, git_changes: 1852, line_pixels: 12000 },
+  workload: {
+    dataset_bytes: dataset.size,
+    sessions: gallery.summary.sessions,
+    path_event_rows: gallery.summary.path_event_rows,
+    file_lifetimes: gallery.summary.files,
+    commits: gallery.summary.commits,
+    git_changes: gallery.summary.changes,
+    line_pixels: gallery.summary.line_pixels,
+  },
   first_family_visible: summary(firstRenderMs),
   family_navigation: Object.fromEntries(Object.entries(familyNavigationMs).map(([family, values]) => [family, summary(values)])),
   cursor_scrub_two_frames: summary(scrubResponseMs),

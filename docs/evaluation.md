@@ -133,9 +133,10 @@ linked here after review. No result placeholder is treated as evidence.
   line survival, cross-vendor transfer, or lifetime/rename superiority.
 - Mature naturalistic sample: 882 eligible event--path pairs; 110 target, 14
   null, and 758 unadjudicable after reconciliation. Agreement was 98.75% with
-  Cohen's kappa 0.947. Proposed accuracy was 0.984, but ECE was 0.209 and the
+  Cohen's kappa 0.947. After call-ID deduplication and exact-hunk safety repair,
+  proposed accuracy was 0.944, but ECE was 0.240 and the
   null-specificity Wilson lower bound was 0.785, so selection remained
   `descriptive_only`.
-- Line stage: 42 predictions over 110 mature target events, 41 correct; the
-  0.877 precision lower bound and prediction count both failed the frozen
+- Line stage: 37 predictions over 110 mature target events, 36 correct; the
+  0.862 precision lower bound and prediction count both failed the frozen
   line-overlay gate.

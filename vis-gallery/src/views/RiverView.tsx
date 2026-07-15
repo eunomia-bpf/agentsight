@@ -4,7 +4,7 @@ import EChart from "../components/EChart";
 import Panel from "../components/Panel";
 import type { ViewProps } from "./viewTypes";
 
-export default function RiverView({ data, state }: ViewProps) {
+export default function RiverView({ data, state, events }: ViewProps) {
   const cohorts = data.survival_cohorts;
   const cohortOption: EChartsOption = {
     ...baseChart,
@@ -19,7 +19,6 @@ export default function RiverView({ data, state }: ViewProps) {
   };
 
   const days = data.source_days.map((day) => day.day);
-  const vendors = ["claude", "codex", "gemini"];
   const riverOption: EChartsOption = {
     ...baseChart,
     tooltip: { trigger: "axis" },
@@ -28,8 +27,7 @@ export default function RiverView({ data, state }: ViewProps) {
     series: [{
       type: "themeRiver",
       emphasis: { itemStyle: { shadowBlur: 16, shadowColor: "rgba(0,0,0,.5)" } },
-      data: data.events
-        .filter((event) => event.ts_ms <= state.cursorMs)
+      data: events
         .reduce<Array<[number, number, string]>>((rows, event) => {
           const hour = Math.floor(event.ts_ms / 3_600_000) * 3_600_000;
           const found = rows.find((row) => row[0] === hour && row[2] === event.vendor);

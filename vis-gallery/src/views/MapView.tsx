@@ -22,11 +22,12 @@ export default function MapView({ data, state, events, onChange }: ViewProps) {
   const treemapOption: EChartsOption = {
     ...baseChart,
     tooltip: {
+      renderMode: "richText",
       formatter: (params: unknown) => {
         const value = params as { data?: TreeNode & { touches?: number; pattern?: string } };
         const row = value.data;
         return row?.path
-          ? `<strong>${row.path}</strong><br/>${row.pattern ?? "directory"}<br/>${row.touches ?? 0} recorded touches<br/>${row.value ?? 0} current bytes`
+          ? `${row.path}\n${row.pattern ?? "directory"}\n${row.touches ?? 0} recorded touches\n${row.value ?? 0} current bytes`
           : row?.name ?? "repository";
       },
     },
@@ -59,9 +60,10 @@ export default function MapView({ data, state, events, onChange }: ViewProps) {
     xAxis: { min: 0, max: 1, show: false },
     yAxis: { min: 0, max: 1, show: false },
     tooltip: {
+      renderMode: "richText",
       formatter: (params: unknown) => {
         const row = (params as { data: { path: string; pattern: string; touches: number; risk: number } }).data;
-        return `<strong>${row.path}</strong><br/>${row.pattern}<br/>${row.touches} touches · risk ${row.risk.toFixed(2)}`;
+        return `${row.path}\n${row.pattern}\n${row.touches} touches · risk ${row.risk.toFixed(2)}`;
       },
     },
     series: [

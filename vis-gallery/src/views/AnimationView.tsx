@@ -35,9 +35,10 @@ export default function AnimationView({ data, state, events, onChange }: ViewPro
       },
     ],
     tooltip: {
+      renderMode: "richText",
       formatter: (params: unknown) => {
         const row = (params as { data: { commit: string; value: number[] } }).data;
-        return `<strong>${row.commit.slice(0, 10)}</strong><br/>${row.value[1]} changed lines`;
+        return `${row.commit.slice(0, 10)}\n${row.value[1]} changed lines`;
       },
     },
   }), [commits, data.changes, state.cursorMs, state.rangeEndMs, state.rangeStartMs]);

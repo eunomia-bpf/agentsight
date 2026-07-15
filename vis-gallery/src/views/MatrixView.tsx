@@ -64,9 +64,10 @@ export default function MatrixView({ data, state, events, onChange }: ViewProps)
       inRange: { color: ["#101827", "#174d67", "#2ea6a0", "#f0c66e", "#ff7b72"] },
     },
     tooltip: {
+      renderMode: "richText",
       formatter: (params: unknown) => {
         const row = (params as { data: typeof matrixData[number] }).data;
-        return `<strong>${row.path}</strong><br/>${row.day}<br/>activity ${row.raw}<br/>${row.pattern}`;
+        return `${row.path}\n${row.day}\nactivity ${row.raw}\n${row.pattern}`;
       },
     },
     series: [
@@ -126,9 +127,10 @@ export default function MatrixView({ data, state, events, onChange }: ViewProps)
       inRange: { color: ["#111827", "#254a68", "#e0a458", "#ff6b7a"] },
     },
     tooltip: {
+      renderMode: "richText",
       formatter: (params: unknown) => {
         const row = (params as { data: typeof associationData[number] }).data;
-        return `${row.group}<br/>${row.state.replaceAll("_", " ")}: ${row.value[2]}`;
+        return `${row.group}\n${row.state.replaceAll("_", " ")}: ${row.value[2]}`;
       },
     },
     series: [{ type: "heatmap", data: associationData, label: { show: true, color: "#dbe6f7", fontSize: 9 } }],

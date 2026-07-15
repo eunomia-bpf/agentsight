@@ -15,7 +15,7 @@ Frozen mature endpoint: `25fce75ab1827adf0cc0bfd7d8205c306595841e`
 | mature naturalistic transfer | complete, inconclusive | 2026-06-02 and 2026-06-23; two independent annotators |
 | 2026-07-14 naturalistic cell | right-censored, excluded | endpoint only 4.8 hours after day end; cannot supply 24-hour retrieval or seven-day oracle |
 | naturalistic Gemini write transfer | missing, not imputed | mature days contain Gemini sessions but no eligible Gemini write-path pair |
-| Git-hunk to current-line lineage | complete, inconclusive | 110 mature exact event-to-hunk targets; 42 endpoint line predictions |
+| Git-hunk to current-line lineage | complete, inconclusive | 110 mature targets; 37 endpoint line predictions after exact-hunk safety repair |
 
 Two early fixture-generation attempts failed before producing predictions
 because automatic Git maintenance raced rapid nested-repository commits. A
@@ -44,6 +44,12 @@ pathless tool event for each Claude, Codex, and Gemini schema. Forty diagnostic
 event--path pairs cover the frozen edge families; split operations contribute
 two path units per schema. They do not enlarge primary gate support.
 
+Reproducibility note: the repaired June exports are
+`raw/private/naturalistic/2026-06-*.json`; the independent labels remain in
+`raw/private/naturalistic-mature/truth.json`. The sibling
+`naturalistic-mature/2026-06-*.json` files predate the call-ID and exact-hunk
+safety repairs and must not be used to regenerate the public metrics.
+
 ## Mature naturalistic transfer
 
 The two mature source days contained 882 eligible event--path pairs.
@@ -53,17 +59,19 @@ unadjudicable-versus-null for exhaustive no-change cases. Applying the frozen
 path-level null definition yielded 110 target, 14 null, and 758 unadjudicable
 pairs.
 
-The proposed method correctly classified 108/110 targets and 14/14 nulls:
-precision and positive recall were 0.982 (Wilson lower bound 0.936), null
+After reconciling Codex completions by call ID and suppressing event-level
+fingerprints for multi-file/multi-hunk patches, the proposed method correctly
+classified 103/110 targets and 14/14 nulls. Top-1 precision was 0.972 and
+positive recall was 0.936, while null
 specificity was 1.0 but its lower bound was only 0.785, and classification
-accuracy was 0.984. Disagreement-as-error accuracy was 0.895. The nearest-path
+accuracy was 0.944. Disagreement-as-error accuracy was 0.855. The nearest-path
 baseline reached 0.736 precision/positive recall and 0.766 classification
 accuracy. Paired intervals favored the proposed method for Brier and candidate-
 set recall.
 
 Naturalistic transfer did **not** pass the frozen gate: only 14 nulls were
 available, their lower-bound specificity missed 0.85, and controlled confidence
-underestimated correct multi-candidate links (ECE 0.209 > 0.10). The
+underestimated correct multi-candidate links (ECE 0.240 > 0.10). The
 preregistered selection remains `descriptive_only`. Proposed and literal-only
 accuracy were identical, so the naturalistic run also does not demonstrate a
 lifetime/rename advantage.
@@ -78,11 +86,12 @@ claims from that cell are excluded. A valid rerun requires an endpoint after
 
 For 110 independently agreed mature target events, the endpoint linker required
 a unique current content block and checked Git blame origin independently. It
-emitted 42 line predictions: 41 were correct and one was a blame mismatch
-(precision 0.976, Wilson lower bound 0.877). Sixty targets were not unique at
-the endpoint and eight contained no added hunk. Corrected subgroup denominators
-sum to all 110 targets by day and vendor. The line gate failed support (42 <
-100) and lower-bound precision (0.877 < 0.95); line overlays are inconclusive.
+emitted 37 line predictions: 36 were correct and one was a blame mismatch
+(precision 0.973, Wilson lower bound 0.862). Fifty-seven targets were not unique at
+the endpoint, five contained no added hunk, and eleven lacked a supported
+single-file/single-hunk edit fingerprint. Corrected subgroup denominators
+sum to all 110 targets by day and vendor. The line gate failed support (37 <
+100) and lower-bound precision (0.862 < 0.95); line overlays are inconclusive.
 
 ## Privacy and reproducibility
 

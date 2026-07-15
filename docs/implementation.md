@@ -24,7 +24,7 @@
   Trace Event JSON, and Gource custom logs. The compatibility formats are
   labeled lossy baselines.
 - The root-level experimental `vis-gallery/` TypeScript application uses
-  package-locked ECharts, D3, Cytoscape.js, and uPlot dependencies and no
+  package-locked ECharts, Cytoscape.js, and uPlot dependencies and no
   runtime CDN requirement.
 - Preserve `frontend/` and README Quick Start.
 - Private real-data output remains under ignored artifact paths; only
@@ -52,6 +52,10 @@ preserve it, deletion ends it, and same-path recreation creates a new ID. The
 primary join emits candidates in the preregistered event-relative time window
 without forcing a bijection; merge changes are retained in a separate stratum.
 
+Event-level exact-hunk fingerprints are emitted only for single-file,
+single-hunk native edits. Multi-file and multi-hunk patches remain visible as
+path observations but are ineligible for exact-hunk evidence.
+
 ## Privacy and reproducibility
 
 The default artifact excludes prompt bodies, command bodies, edit/read bodies,
@@ -72,7 +76,7 @@ Rust fixtures cover all three native schemas, path normalization, exact edit
 fingerprints, pathless events, rename/recreation lifetimes, and deleted-path
 gaps. Browser tests exercise all nine navigation families, the shared cursor,
 filters, and representative screenshots. The public real-data atlas contains
-56 deduplicated sessions, 6,535 path-event rows, 1,027 file lifetimes, 177
+56 deduplicated sessions, 6,401 path-event rows, 994 file lifetimes, 177
 commits, 1,852 Git changes, and 12,000 Git-blame line pixels across three
 observation days spanning June 2 through July 14. July 14 is explicitly
 right-censored and process-only for quantitative association purposes.

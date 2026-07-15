@@ -4,7 +4,7 @@ import uPlot from "uplot";
 import { axisStyle, baseChart, colors } from "../chartTheme";
 import EChart from "../components/EChart";
 import Panel from "../components/Panel";
-import { formatCompact } from "../selectors";
+import { completedSessionsInVisibleInterval, formatCompact } from "../selectors";
 import type { TimeBucket } from "../types";
 import type { ViewProps } from "./viewTypes";
 
@@ -25,8 +25,8 @@ export default function LongitudinalView({ data, state, events }: ViewProps) {
     ...baseChart,
     series: [{ type: "sankey", data: [...vendorTotals.map((row) => ({ name: row.vendor })), ...effects.map((row) => ({ name: row.effect }))], links: vendorTotals.flatMap((vendor) => effects.map((effect) => ({ source: vendor.vendor, target: effect.effect, value: events.filter((event) => event.vendor === vendor.vendor && event.effect === effect.effect).length })).filter((row) => row.value > 0)), lineStyle: { color: "gradient", opacity: .35 }, label: { color: colors.text, fontSize: 10 } }],
   };
-  const activeSessions = data.sessions.filter((session) => events.some((event) => event.session_id === session.id));
-  const reportedTokens = activeSessions.reduce((sum, session) => sum + session.reported_tokens, 0);
+  const completedSessions = completedSessionsInVisibleInterval(data.sessions, events, state);
+  const reportedTokens = completedSessions.reduce((sum, session) => sum + session.reported_tokens, 0);
   const writes = events.filter((event) => event.effect === "write");
   const verified = events.filter((event) => event.effect === "test");
   const lagRows = writes.slice(-250).map((write) => ({ write, next: verified.find((event) => event.session_id === write.session_id && event.ts_ms >= write.ts_ms) })).filter((row) => row.next);
@@ -36,8 +36,8 @@ export default function LongitudinalView({ data, state, events }: ViewProps) {
     <Panel eyebrow="Physiological trace" title="Agent vital signs" note="uPlot renders dense hourly read/write/verify streams. It is a longitudinal shape detector, not a success score." wide><VitalPlot buckets={data.time_buckets} cursorMs={state.cursorMs} /></Panel>
     <Panel eyebrow="Resource attribution" title="Vendor → semantic unit flow" note="Flow width counts recorded path events. Vendor is native-history source; semantic unit is observed effect." wide><EChart option={sankeyOption} className="chart chart--large" /></Panel>
     <Panel eyebrow="Process QA" title="Write-to-next-verify lag" note="Each dot is an observed write followed by a verification event in the same session. Missing dots remain missing; order is not proof of coverage." wide><EChart option={lagOption} className="chart chart--large" /></Panel>
-    <Panel eyebrow="Session receipt" title="What the visible interval cost" note="Reported token units are shown verbatim and may be cumulative or implausible. No currency conversion is attempted.">
-      <div className="receipt"><div><span>path observations</span><strong>{formatCompact(events.length)}</strong></div><div><span>writes</span><strong>{formatCompact(writes.length)}</strong></div><div><span>verification events</span><strong>{formatCompact(verified.length)}</strong></div><div><span>reported token units</span><strong>{formatCompact(reportedTokens)}</strong></div><div><span>sessions</span><strong>{activeSessions.length}</strong></div></div>
+    <Panel eyebrow="Session receipt" title="Completed sessions in the visible interval" note="Reported token units are summed only for sessions whose full start-to-end span is visible. Counters may still be cumulative or implausible; no currency conversion is attempted.">
+      <div className="receipt"><div><span>path observations</span><strong>{formatCompact(events.length)}</strong></div><div><span>writes</span><strong>{formatCompact(writes.length)}</strong></div><div><span>verification events</span><strong>{formatCompact(verified.length)}</strong></div><div><span>reported token units</span><strong>{formatCompact(reportedTokens)}</strong></div><div><span>completed sessions</span><strong>{completedSessions.length}</strong></div></div>
     </Panel>
     <Panel eyebrow="Ghost comparison" title="Mature days, side by side" note="A paired silhouette compares event mix only. June 2 and June 23 have mature Git horizons; July 14 is excluded from this comparison.">
       <div className="ghost-days">{days.slice(0, 2).map((day) => { const rows = events.filter((event) => event.day === day); return <div key={day}><strong>{day}</strong>{["read", "write", "test"].map((effect) => <span key={effect}><i style={{ width: `${100 * rows.filter((event) => event.effect === effect).length / Math.max(1, rows.length)}%` }} />{effect}</span>)}</div>; })}</div>

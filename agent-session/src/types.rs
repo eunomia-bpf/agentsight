@@ -246,11 +246,8 @@ impl SessionCache {
 
     fn refresh(&mut self, limit: usize, excluded_agents: &[String]) {
         let mut candidates = discover_session_files();
-        candidates.retain(|candidate| {
-            !excluded_agents
-                .iter()
-                .any(|agent| agent == candidate.agent)
-        });
+        candidates
+            .retain(|candidate| !excluded_agents.iter().any(|agent| agent == candidate.agent));
         candidates.sort_by_key(|candidate| std::cmp::Reverse(candidate.updated));
         let target = limit.clamp(1, 25);
         let mut live_paths = HashSet::new();
