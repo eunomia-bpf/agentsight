@@ -557,6 +557,30 @@ This is a scoped paper-value decision, not a claim that every future sequence
 model is impossible. Reports are under
 [`step-0026-20260715T063827-0700`](tmp/build-and-evaluate/step-0026-20260715T063827-0700/).
 
+Step 0027's whole-paper REVIEW later identified a different information
+contract rather than reopening Step 0026's target-outcome-driven tuning space:
+fit one scalar cutoff from independently grouped reference trajectories while
+keeping the Step 0024 NPMI score and post-cutoff construction unchanged. Step
+0028 admitted that supporting RQ3 hypothesis on the same existing
+OSWorld-Human and CodeTraceBench trajectories. The plan and implementation
+reviews passed, but both permitted REAL PREFLIGHT attempts stopped inside the
+self-authored OSWorld adapter before NPMI construction, cutoff fitting,
+`agentpprof` invocation, prediction persistence, target-label loading, or any
+candidate metric. The raw OSWorld root contains only an empty `preflight/`
+directory; the CodeTrace and equivalence roots do not exist.
+
+Step 0028 is therefore `INVALID / hypothesis not tested / dependency-only`,
+not supported, mixed, contradicted, negative, or scientifically inconclusive.
+The unvalidated calibration product/evaluator code was removed after
+independent result review, while the complete Markdown record remains under
+[`step-0028-20260715T072000-0700`](tmp/build-and-evaluate/step-0028-20260715T072000-0700/).
+Step 0024 remains the current constructor solely on its prior valid evidence.
+The Step 0028 reference-calibration protocol is permanently closed after two
+self-authored harness failures: fixing singleton eligibility, changing a run
+tag, or renaming the protocol cannot be represented as a fresh or third
+attempt. This invalid closure changes no RQ, positive hypothesis, claim, paper
+story, or reader-facing result.
+
 ## Requirements For The Next Experiment
 
 The next experiment follows one bounded literature/source screen and must
@@ -643,7 +667,13 @@ rejects it under the fixed cross-population rule, and restores the Step 0024
 release exactly. Step 0026 finds no benchmark-independent small correction in
 those retained action-only decisions and closes further tuning of them. Do not
 reinterpret either post-hoc result as an untouched answer to all of RQ3. The
-paper story and four RQs remain unchanged.
+paper story and four RQs remain unchanged. Step 0027 subsequently admitted one
+different supervised-reference information contract, but Step 0028 exhausted
+its two REAL PREFLIGHT attempts in the source adapter before constructing a
+candidate or metric. That protocol is closed invalid, its candidate code is
+gone, and it supplies no paper or RQ3 evidence. The next step must select a
+different experiment by paper-level decision value; it may reuse existing
+evidence but may not repair, retag, or rename Step 0028 as another attempt.
 
 The earlier Step 0018 AAAI/cross-domain whole-paper review scored the
 then-current paper 4/10 (weak reject). It preserved the thesis and four RQs but identified
