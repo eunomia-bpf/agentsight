@@ -5,7 +5,7 @@
 
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -1389,6 +1389,7 @@ fn shell_segments(command: &str) -> Vec<Vec<String>> {
         }
     }
 
+    let command = strip_heredoc_bodies(command);
     let mut segments = Vec::new();
     let mut tokens = Vec::new();
     let mut current = String::new();
@@ -1471,6 +1472,73 @@ fn shell_segments(command: &str) -> Vec<Vec<String>> {
     segments
 }
 
+/// Remove heredoc payloads before applying the deliberately small shell
+/// grammar. A heredoc body is data, not a sequence of executed commands, so
+/// promoting path-like text from it would create fabricated file evidence.
+fn strip_heredoc_bodies(command: &str) -> String {
+    fn delimiters(line: &str) -> Vec<String> {
+        let bytes = line.as_bytes();
+        let mut output = Vec::new();
+        let mut index = 0;
+        while index + 1 < bytes.len() {
+            if bytes[index] != b'<' || bytes[index + 1] != b'<' {
+                index += 1;
+                continue;
+            }
+            index += 2;
+            if bytes.get(index) == Some(&b'<') {
+                index += 1;
+                continue;
+            }
+            if bytes.get(index) == Some(&b'-') {
+                index += 1;
+            }
+            while bytes.get(index).is_some_and(u8::is_ascii_whitespace) {
+                index += 1;
+            }
+            let quote = bytes
+                .get(index)
+                .copied()
+                .filter(|value| *value == b'\'' || *value == b'"');
+            if quote.is_some() {
+                index += 1;
+            }
+            let start = index;
+            while let Some(value) = bytes.get(index) {
+                if quote.is_some_and(|quote| *value == quote)
+                    || (quote.is_none()
+                        && (value.is_ascii_whitespace()
+                            || [b';', b'|', b'&', b'>', b'<'].contains(value)))
+                {
+                    break;
+                }
+                index += 1;
+            }
+            if start < index {
+                output.push(line[start..index].to_string());
+            }
+            if quote.is_some() && bytes.get(index) == quote.as_ref() {
+                index += 1;
+            }
+        }
+        output
+    }
+
+    let mut pending = VecDeque::<String>::new();
+    let mut output = Vec::new();
+    for line in command.lines() {
+        if let Some(delimiter) = pending.front() {
+            if line.trim_start_matches('\t').trim_end() == delimiter {
+                pending.pop_front();
+            }
+            continue;
+        }
+        output.push(line);
+        pending.extend(delimiters(line));
+    }
+    output.join("\n")
+}
+
 fn is_redirection_token(token: &str) -> bool {
     [">", ">>", "&>", "&>>", "<", "<<", "<<<", "<>"].contains(&token)
 }
@@ -1487,6 +1555,24 @@ fn output_redirection_targets(parts: &[String]) -> Vec<String> {
         if is_output_redirection_token(token) {
             if let Some(target) = parts.get(index + 1)
                 && !target.starts_with('&')
+                && plausible_path_token(target)
+            {
+                targets.push(target.clone());
+            }
+            index += 2;
+            continue;
+        }
+        index += 1;
+    }
+    targets
+}
+
+fn input_redirection_targets(parts: &[String]) -> Vec<String> {
+    let mut targets = Vec::new();
+    let mut index = 0;
+    while index < parts.len() {
+        if ["<", "<>"].contains(&parts[index].as_str()) {
+            if let Some(target) = parts.get(index + 1)
                 && plausible_path_token(target)
             {
                 targets.push(target.clone());
@@ -1543,7 +1629,11 @@ fn extract_path_groups(
             }
         }
     }
-    for (path, _) in shell_path_references(command, &command_effect(command)) {
+    for (path, _) in shell_path_references_at(
+        command,
+        &command_effect(command),
+        shell_working_directory(input),
+    ) {
         groups.insert(path_group(&path, project_root));
     }
     groups.into_iter().filter(|v| v != "none").collect()
@@ -1592,7 +1682,9 @@ fn extract_path_references(
     }
 
     if is_shell {
-        for (raw, access) in shell_path_references(command, effect) {
+        for (raw, access) in
+            shell_path_references_at(command, effect, shell_working_directory(input))
+        {
             if let Some(path) = repository_relative_path(project_root, &raw) {
                 refs.entry((path, access))
                     .or_insert_with(|| "command".to_string());
@@ -1609,30 +1701,55 @@ fn extract_path_references(
         .collect()
 }
 
-fn shell_path_references(command: &str, effect: &str) -> Vec<(String, String)> {
-    shell_path_references_inner(command, effect, 0)
+fn shell_path_references_at(
+    command: &str,
+    effect: &str,
+    working_directory: Option<&Path>,
+) -> Vec<(String, String)> {
+    shell_path_references_inner(
+        command,
+        effect,
+        0,
+        Some(working_directory.map_or_else(PathBuf::new, Path::to_path_buf)),
+    )
 }
 
-fn shell_path_references_inner(command: &str, effect: &str, depth: usize) -> Vec<(String, String)> {
+fn shell_path_references_inner(
+    command: &str,
+    effect: &str,
+    depth: usize,
+    mut working_directory: Option<PathBuf>,
+) -> Vec<(String, String)> {
     if depth > 2 {
         return Vec::new();
     }
-    shell_segments(command)
-        .iter()
-        .flat_map(|parts| shell_segment_path_references(parts, effect, depth))
-        .collect()
+    let mut refs = Vec::new();
+    for parts in shell_segments(command) {
+        if update_shell_working_directory(&parts, &mut working_directory) {
+            continue;
+        }
+        refs.extend(shell_segment_path_references(
+            &parts,
+            effect,
+            depth,
+            working_directory.as_deref(),
+        ));
+    }
+    refs
 }
 
 fn shell_segment_path_references(
     parts: &[String],
     effect: &str,
     depth: usize,
+    working_directory: Option<&Path>,
 ) -> Vec<(String, String)> {
     let Some(command_index) = shell_command_index(parts) else {
         return Vec::new();
     };
     let command_name = process_name_from_part(&parts[command_index]).unwrap_or_default();
     let redirect_targets = output_redirection_targets(parts);
+    let input_targets = input_redirection_targets(parts);
     let mut operands = Vec::new();
     let mut index = command_index + 1;
     while index < parts.len() {
@@ -1647,6 +1764,11 @@ fn shell_segment_path_references(
         .into_iter()
         .map(|path| (path, "write".to_string()))
         .collect::<Vec<_>>();
+    refs.extend(
+        input_targets
+            .into_iter()
+            .map(|path| (path, "read".to_string())),
+    );
 
     if ["bash", "sh", "zsh"].contains(&command_name.as_str()) {
         for flag_index in 0..operands.len().saturating_sub(1) {
@@ -1655,11 +1777,12 @@ fn shell_segment_path_references(
                     &operands[flag_index + 1],
                     effect,
                     depth + 1,
+                    working_directory.map(Path::to_path_buf),
                 ));
                 break;
             }
         }
-        return refs;
+        return resolve_shell_paths(refs, working_directory);
     }
 
     let path_operands = |values: &[String]| {
@@ -1670,24 +1793,21 @@ fn shell_segment_path_references(
             .collect::<Vec<_>>()
     };
     match command_name.as_str() {
-        "cp" => {
-            let paths = path_operands(&operands);
-            if let Some((target, sources)) = paths.split_last() {
-                refs.extend(
-                    sources
-                        .iter()
-                        .cloned()
-                        .map(|path| (path, "read".to_string())),
-                );
-                refs.push((target.clone(), "write".to_string()));
-            }
-        }
+        "cp" => refs.extend(cp_path_references(&operands)),
         "mv" | "rm" | "mkdir" | "touch" | "tee" => refs.extend(
             path_operands(&operands)
                 .into_iter()
                 .map(|path| (path, "write".to_string())),
         ),
-        "sed" => refs.extend(sed_path_references(&operands, effect == "write")),
+        "sed" => refs.extend(sed_path_references(
+            &operands,
+            operands.iter().any(|operand| {
+                operand == "-i"
+                    || operand.starts_with("-i")
+                    || operand == "--in-place"
+                    || operand.starts_with("--in-place=")
+            }),
+        )),
         "cat" | "head" | "tail" | "ls" | "nl" | "wc" | "source" | "." => {
             refs.extend(
                 path_operands(&operands)
@@ -1703,7 +1823,135 @@ fn shell_segment_path_references(
         // route, image name, loop variable, or expression into a file write.
         _ => {}
     }
+    resolve_shell_paths(refs, working_directory)
+}
+
+fn cp_path_references(operands: &[String]) -> Vec<(String, String)> {
+    let plausible_operand = |value: &str| {
+        plausible_path_token(value)
+            || (!value.is_empty()
+                && !value.starts_with(['-', '$'])
+                && value
+                    .chars()
+                    .all(|ch| ch.is_ascii_alphanumeric() || "._-/".contains(ch)))
+    };
+    let mut paths = Vec::new();
+    let mut target_directory = None;
+    let mut index = 0;
+    while index < operands.len() {
+        let operand = &operands[index];
+        if ["-t", "--target-directory"].contains(&operand.as_str()) {
+            if let Some(target) = operands.get(index + 1)
+                && plausible_operand(target)
+            {
+                target_directory = Some(target.clone());
+            }
+            index += 2;
+            continue;
+        }
+        if let Some(target) = operand.strip_prefix("--target-directory=") {
+            if plausible_operand(target) {
+                target_directory = Some(target.to_string());
+            }
+            index += 1;
+            continue;
+        }
+        if ["-S", "--suffix"].contains(&operand.as_str()) {
+            index += 2;
+            continue;
+        }
+        if !operand.starts_with('-') && plausible_operand(operand) {
+            paths.push(operand.clone());
+        }
+        index += 1;
+    }
+
+    let mut refs = Vec::new();
+    if let Some(target) = target_directory {
+        let preserve_parents = operands.iter().any(|value| value == "--parents");
+        for source in paths {
+            refs.push((source.clone(), "read".to_string()));
+            let relative_target = if preserve_parents {
+                Some(source.trim_start_matches('/'))
+            } else {
+                Path::new(&source)
+                    .file_name()
+                    .and_then(|value| value.to_str())
+            };
+            if let Some(relative_target) = relative_target {
+                refs.push((
+                    Path::new(&target)
+                        .join(relative_target)
+                        .to_string_lossy()
+                        .into_owned(),
+                    "write".to_string(),
+                ));
+            }
+        }
+    } else if let Some((target, sources)) = paths.split_last() {
+        refs.extend(
+            sources
+                .iter()
+                .cloned()
+                .map(|path| (path, "read".to_string())),
+        );
+        refs.push((target.clone(), "write".to_string()));
+    }
     refs
+}
+
+fn resolve_shell_paths(
+    refs: Vec<(String, String)>,
+    working_directory: Option<&Path>,
+) -> Vec<(String, String)> {
+    refs.into_iter()
+        .filter_map(|(path, access)| {
+            shell_path_at_working_directory(&path, working_directory).map(|path| (path, access))
+        })
+        .collect()
+}
+
+fn shell_working_directory(input: &Value) -> Option<&Path> {
+    ["workdir", "cwd"]
+        .iter()
+        .find_map(|key| input.get(*key).and_then(Value::as_str))
+        .map(Path::new)
+}
+
+fn shell_path_at_working_directory(path: &str, working_directory: Option<&Path>) -> Option<String> {
+    if path.starts_with('~') || path.starts_with('$') {
+        return None;
+    }
+    let path = Path::new(path);
+    if path.is_absolute() {
+        return Some(path.to_string_lossy().into_owned());
+    }
+    let working_directory = working_directory?;
+    Some(working_directory.join(path).to_string_lossy().into_owned())
+}
+
+fn update_shell_working_directory(
+    parts: &[String],
+    working_directory: &mut Option<PathBuf>,
+) -> bool {
+    let Some(command_index) = shell_command_index(parts) else {
+        return false;
+    };
+    if process_name_from_part(&parts[command_index]).as_deref() != Some("cd") {
+        return false;
+    }
+    let target = parts[command_index + 1..]
+        .iter()
+        .find(|part| !part.starts_with('-'))
+        .filter(|part| !part.starts_with('$') && !part.is_empty())
+        .map(PathBuf::from);
+    *working_directory = match (working_directory.take(), target) {
+        (_, None) => None,
+        (_, Some(target)) if target.is_absolute() => Some(target),
+        (Some(base), Some(target)) => Some(base.join(target)),
+        (None, Some(_)) => None,
+    };
+    true
 }
 
 fn shell_command_index(parts: &[String]) -> Option<usize> {
@@ -2839,6 +3087,89 @@ mod tests {
         assert_eq!(sed.path_refs[0].path, "src/lib.rs");
         assert_eq!(sed.path_refs[0].access, "write");
 
+        let input_redirect = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "Bash",
+            &json!({"command": "cat < docs/input.md > docs/output.md"}),
+            None,
+        );
+        assert!(
+            input_redirect.path_refs.iter().any(|reference| {
+                reference.path == "docs/input.md" && reference.access == "read"
+            })
+        );
+        assert!(input_redirect.path_refs.iter().any(|reference| {
+            reference.path == "docs/output.md" && reference.access == "write"
+        }));
+
+        for command in [
+            "cp -t generated src/a.rs src/b.rs",
+            "cp --target-directory=generated src/a.rs src/b.rs",
+        ] {
+            let event = tool_event_from_input(
+                Some("/repo"),
+                Some(42),
+                0,
+                "Bash",
+                &json!({"command": command}),
+                None,
+            );
+            assert!(
+                event.path_refs.iter().any(|reference| {
+                    reference.path == "src/a.rs" && reference.access == "read"
+                })
+            );
+            assert!(event.path_refs.iter().any(|reference| {
+                reference.path == "generated/a.rs" && reference.access == "write"
+            }));
+            assert!(event.path_refs.iter().any(|reference| {
+                reference.path == "generated/b.rs" && reference.access == "write"
+            }));
+            assert!(
+                !event.path_refs.iter().any(|reference| {
+                    reference.path == "generated" && reference.access == "write"
+                })
+            );
+        }
+
+        let parents = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "Bash",
+            &json!({"command": "cp --parents -t generated src/a.rs"}),
+            None,
+        );
+        assert!(parents.path_refs.iter().any(|reference| {
+            reference.path == "generated/src/a.rs" && reference.access == "write"
+        }));
+
+        let heredoc = tool_event_from_input(
+            Some("/repo"),
+            Some(42),
+            0,
+            "Bash",
+            &json!({"command": "cat <<'EOF' > src/generated.rs\ncat private/fiction.rs\nEOF\ncat src/real.rs"}),
+            None,
+        );
+        assert!(heredoc.path_refs.iter().any(|reference| {
+            reference.path == "src/generated.rs" && reference.access == "write"
+        }));
+        assert!(
+            heredoc
+                .path_refs
+                .iter()
+                .any(|reference| { reference.path == "src/real.rs" && reference.access == "read" })
+        );
+        assert!(
+            !heredoc
+                .path_refs
+                .iter()
+                .any(|reference| reference.path == "private/fiction.rs")
+        );
+
         for command in [
             "cat src/template.rs > src/generated.rs",
             "echo generated >> docs/output.md",
@@ -2886,27 +3217,7 @@ mod tests {
             &json!({"command": "cd /tmp && cp src/a.rs src/b.rs | tee logs/copied.txt"}),
             None,
         );
-        assert!(
-            compound
-                .path_refs
-                .iter()
-                .any(|reference| { reference.path == "src/a.rs" && reference.access == "read" })
-        );
-        assert!(
-            compound
-                .path_refs
-                .iter()
-                .any(|reference| { reference.path == "src/b.rs" && reference.access == "write" })
-        );
-        assert!(compound.path_refs.iter().any(|reference| {
-            reference.path == "logs/copied.txt" && reference.access == "write"
-        }));
-        assert!(
-            !compound
-                .path_refs
-                .iter()
-                .any(|reference| reference.path == "/tmp")
-        );
+        assert!(compound.path_refs.is_empty());
 
         let nested = tool_event_from_input(
             Some("/repo"),
@@ -2981,6 +3292,60 @@ mod tests {
             Some("../src/lib.rs")
         );
         assert!(repository_relative_path(&subdir, "/outside/secret.txt").is_none());
+
+        let explicit_cd = tool_event_from_input(
+            Some(root.to_str().unwrap()),
+            Some(42),
+            0,
+            "exec_command",
+            &json!({
+                "cmd": "cd collector && cp ../bpf/stdiocap vendor/bpf/stdiocap"
+            }),
+            None,
+        );
+        assert!(
+            explicit_cd.path_refs.iter().any(|reference| {
+                reference.path == "bpf/stdiocap" && reference.access == "read"
+            })
+        );
+        assert!(explicit_cd.path_refs.iter().any(|reference| {
+            reference.path == "collector/vendor/bpf/stdiocap" && reference.access == "write"
+        }));
+
+        let command_workdir = tool_event_from_input(
+            Some(root.to_str().unwrap()),
+            Some(42),
+            0,
+            "exec_command",
+            &json!({
+                "cmd": "cp ../bpf/stdiocap vendor/bpf/stdiocap",
+                "workdir": subdir
+            }),
+            None,
+        );
+        assert!(
+            command_workdir.path_refs.iter().any(|reference| {
+                reference.path == "bpf/stdiocap" && reference.access == "read"
+            })
+        );
+        assert!(command_workdir.path_refs.iter().any(|reference| {
+            reference.path == "nested/vendor/bpf/stdiocap" && reference.access == "write"
+        }));
+
+        for private_path in ["~/.cargo/registry/src", "$HOME/.codex/sessions"] {
+            let event = tool_event_from_input(
+                Some(root.to_str().unwrap()),
+                Some(42),
+                0,
+                "exec_command",
+                &json!({
+                    "cmd": format!("cat {private_path}"),
+                    "workdir": subdir
+                }),
+                None,
+            );
+            assert!(event.path_refs.is_empty(), "{private_path}");
+        }
         std::fs::remove_dir_all(root).expect("remove path fixture");
     }
 

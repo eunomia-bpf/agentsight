@@ -976,7 +976,11 @@ fn associate_events(
         .map(|lifetime| (lifetime.id.as_str(), (lifetime.birth_ms, lifetime.death_ms)))
         .collect::<HashMap<_, _>>();
     let mut associations = Vec::new();
-    for event in events.iter().filter(|event| event.effect == "write") {
+    // Mixed compound commands can retain a primary process/test effect while
+    // still containing segment-local writes (for example `cargo build && cp
+    // ...`). Eligibility is therefore defined by the normalized write-path
+    // evidence, not by the lossy event-level effect label.
+    for event in events.iter().filter(|event| !event.write_paths.is_empty()) {
         for path in &event.write_paths {
             let mut candidates = changes
                 .iter()
@@ -1373,6 +1377,58 @@ mod tests {
         assert_eq!(associations[0].state, "unique_candidate");
         assert_eq!(associations[0].candidates[0].commit_id, "new-commit");
         assert_eq!(associations[0].candidates[0].match_kind, "prebirth");
+    }
+
+    #[test]
+    fn segment_local_write_is_eligible_even_when_primary_effect_is_process() {
+        let event = NormalizedEvent {
+            id: "event".to_string(),
+            session_id: "session".to_string(),
+            vendor: "fixture".to_string(),
+            model: None,
+            ts_ms: 100,
+            kind: "tool".to_string(),
+            action: "exec_command".to_string(),
+            category: "shell".to_string(),
+            effect: "process".to_string(),
+            status: "ok".to_string(),
+            prompt_index: 0,
+            paths: vec!["file.txt".to_string()],
+            write_paths: vec!["file.txt".to_string()],
+            path_groups: Vec::new(),
+            edit_summary: None,
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_tokens: 0,
+        };
+        let change = GitChange {
+            id: "change".to_string(),
+            commit_id: "commit".to_string(),
+            committed_at_ms: 110,
+            status: "M".to_string(),
+            old_path: None,
+            path: "file.txt".to_string(),
+            additions: 1,
+            deletions: 0,
+            lifetime_id: "lifetime".to_string(),
+            is_merge: false,
+            hunks: Vec::new(),
+        };
+        let lifetime = FileLifetime {
+            id: "lifetime".to_string(),
+            paths: vec!["file.txt".to_string()],
+            birth_commit: "birth".to_string(),
+            birth_ms: 0,
+            death_commit: None,
+            death_ms: None,
+            current_path: Some("file.txt".to_string()),
+            current_bytes: Some(4),
+            survives_to_head: true,
+        };
+
+        let associations = associate_events(&[event], &[change], &[lifetime]);
+        assert_eq!(associations.len(), 1);
+        assert_eq!(associations[0].path, "file.txt");
     }
 
     #[test]
