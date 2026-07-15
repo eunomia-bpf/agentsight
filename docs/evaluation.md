@@ -581,6 +581,31 @@ tag, or renaming the protocol cannot be represented as a fresh or third
 attempt. This invalid closure changes no RQ, positive hypothesis, claim, paper
 story, or reader-facing result.
 
+At the user's direct request to improve the algorithm on already-run
+trajectories, Step 0029 tests one target-blind multi-session grammar
+constructor on the same complete OSWorld-Human and CodeTraceBench populations.
+It learns recurring adjacent-symbol replacements from reference sessions and
+applies each learned rule once in creation order to target sessions. The run is
+independently reviewed `APPROVE / VALID / COMPLETE / CONTRADICTED`.
+
+On OSWorld-Human, the grammar candidate reaches B-cubed F1 0.717803 versus
+Step 0024's 0.786170 (delta -0.068367), with 1,492 rather than 2,656 predicted
+groups. On CodeTraceBench, it reaches 0.633931 versus 0.649173 (delta
+-0.015242), with 5,187 rather than 6,897 groups. The candidate is lower on both
+registered complete populations and over-merges relative to the current
+constructor. Independent review reconstructs all metrics and populations,
+replays all 621 OSWorld and 2,453 CodeTrace rules and target applications, and
+confirms exact Rust/Python equivalence and prediction-before-oracle timing.
+
+The Step 0029 candidate product and evaluator code is therefore removed exactly
+and the Step 0024 constructor remains current. The complete negative mechanism
+record remains under
+[`step-0029-20260715T083007-0700`](tmp/build-and-evaluate/step-0029-20260715T083007-0700/)
+and the raw experiment roots. This result does not enter the reader-facing
+paper, change RQ3, narrow its positive hypothesis, or alter the AgentProf story.
+It only establishes that recurring multi-action compression alone is not a
+better proxy for the two retained operation partitions than Step 0024.
+
 ## Requirements For The Next Experiment
 
 The next experiment follows one bounded literature/source screen and must
