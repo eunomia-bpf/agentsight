@@ -29,6 +29,8 @@ struct ObservedCodexPrompt {
     timestamp_ms: u64,
     pid: Option<u32>,
     native_exec: bool,
+    comm: Option<String>,
+    target: Option<String>,
 }
 
 pub(crate) fn snapshot(
@@ -340,60 +342,42 @@ pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<
     let mut seen = HashSet::new();
     let observed_exec_prompts = observed_codex_exec_prompts(audit_rows);
     let mut seen_exec_prompts: Vec<ObservedCodexPrompt> = Vec::new();
+    for observed in observed_exec_prompts {
+        if seen_exec_prompts.iter().any(|seen| {
+            seen.prompt == observed.prompt
+                && timestamps_close(
+                    seen.timestamp_ms,
+                    observed.timestamp_ms,
+                    CODEX_EXEC_DEDUPE_WINDOW_MS,
+                )
+                && (!seen.native_exec || !observed.native_exec)
+        }) {
+            continue;
+        }
+        seen_exec_prompts.push(observed.clone());
+        rows.push(AuditEventRow {
+            id: format!(
+                "audit-codex-exec-prompt-{}-{}",
+                observed.timestamp_ms,
+                observed.pid.unwrap_or(0)
+            ),
+            timestamp_ms: observed.timestamp_ms,
+            audit_type: "llm".to_string(),
+            pid: observed.pid,
+            comm: observed.comm.or_else(|| Some("codex".to_string())),
+            subject: None,
+            action: Some("request".to_string()),
+            target: observed.target,
+            status: Some("observed".to_string()),
+            summary: Some(truncate_text(&observed.prompt, 160)),
+            details: serde_json::json!({
+                "text_content": observed.prompt,
+                "prompt_source": "local",
+            }),
+        });
+    }
     for row in audit_rows {
         if row.audit_type == "process" && row.action.as_deref() == Some("exec") {
-            let Some(prompt) = row
-                .details
-                .get("full_command")
-                .and_then(Value::as_str)
-                .and_then(codex_exec_prompt_from_command)
-            else {
-                continue;
-            };
-            if !observed_exec_prompts.iter().any(|observed| {
-                observed.prompt == prompt
-                    && observed.timestamp_ms == row.timestamp_ms
-                    && observed.pid == row.pid
-            }) {
-                continue;
-            }
-            if seen_exec_prompts.iter().any(|seen| {
-                seen.prompt == prompt
-                    && timestamps_close(
-                        seen.timestamp_ms,
-                        row.timestamp_ms,
-                        CODEX_EXEC_DEDUPE_WINDOW_MS,
-                    )
-                    && (!seen.native_exec || !looks_like_native_codex_exec(row))
-            }) {
-                continue;
-            }
-            seen_exec_prompts.push(ObservedCodexPrompt {
-                prompt: prompt.clone(),
-                timestamp_ms: row.timestamp_ms,
-                pid: row.pid,
-                native_exec: looks_like_native_codex_exec(row),
-            });
-            rows.push(AuditEventRow {
-                id: format!(
-                    "audit-codex-exec-prompt-{}-{}",
-                    row.timestamp_ms,
-                    row.pid.unwrap_or(0)
-                ),
-                timestamp_ms: row.timestamp_ms,
-                audit_type: "llm".to_string(),
-                pid: row.pid,
-                comm: row.comm.clone().or_else(|| Some("codex".to_string())),
-                subject: None,
-                action: Some("request".to_string()),
-                target: row.target.clone(),
-                status: Some("observed".to_string()),
-                summary: Some(truncate_text(&prompt, 160)),
-                details: serde_json::json!({
-                    "text_content": prompt,
-                    "prompt_source": "local",
-                }),
-            });
             continue;
         }
         if row.audit_type != "file" {
@@ -524,6 +508,8 @@ fn observed_codex_exec_prompts(audit_rows: &[AuditEventRow]) -> Vec<ObservedCode
                 timestamp_ms: row.timestamp_ms,
                 pid: row.pid,
                 native_exec: looks_like_native_codex_exec(row),
+                comm: row.comm.clone(),
+                target: row.target.clone(),
             })
         })
         .collect::<Vec<_>>();
@@ -992,7 +978,10 @@ mod tests {
         .map(|(index, (ts, comm, command))| exec_row(&format!("audit-{index}"), ts, comm, command))
         .collect::<Vec<_>>();
 
-        let prompts = observed_session_prompt_rows(&rows)
+        let projected = observed_session_prompt_rows(&rows);
+        assert_eq!(projected[0].comm.as_deref(), Some("node"));
+        assert_eq!(projected[0].target.as_deref(), Some("/usr/bin/node"));
+        let prompts = projected
             .into_iter()
             .map(|row| row.summary)
             .collect::<Vec<_>>();
@@ -1029,6 +1018,8 @@ mod tests {
                 timestamp_ms: current_epoch_ms(),
                 pid: Some(42),
                 native_exec: true,
+                comm: Some("codex".to_string()),
+                target: Some("/usr/bin/codex".to_string()),
             }]
         ));
         assert!(!session_is_in_observed_window(
