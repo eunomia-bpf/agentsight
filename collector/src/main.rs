@@ -187,7 +187,7 @@ async fn setup_signal_handler(suppress_terminal_output: bool) {
                agentsight top\n\
                agentsight report\n\
                agentsight report prompts --json\n\n\
-             top works without sudo and enables eBPF automatically when sudo is already available;\n\
+             top works without sudo; interactive top enables eBPF when sudo is already available;\n\
              record keeps the monitored agent unprivileged while elevating only the probes."
 )]
 struct Cli {
@@ -806,11 +806,8 @@ async fn run_with_extractor(
                 sort: sort.clone(),
                 view: view.clone(),
             };
-            if top_uses_tui(*plain, interactive_terminal_available()) {
-                run_live_top_tui(binary_extractor, *interval, *limit, count, &options).await?;
-            } else {
-                run_live_top_query(*interval, *limit, count, &options).await?;
-            }
+            debug_assert!(top_uses_tui(*plain, interactive_terminal_available()));
+            run_live_top_tui(binary_extractor, *interval, *limit, count, &options).await?;
         }
         Commands::Debug(cmd) => match cmd {
             DebugCommands::Ssl {
