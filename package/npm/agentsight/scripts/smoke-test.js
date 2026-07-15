@@ -29,7 +29,12 @@ fs.writeFileSync(
 );
 const fakeOut = path.join(temp, "collector-args.json");
 const delegated = childProcess.spawnSync(process.execPath, [bin, "monitor", "--help"], {
-  env: { ...process.env, AGENTSIGHT_FAKE_OUT: fakeOut, PATH: `${temp}${path.delimiter}${process.env.PATH || ""}` },
+  env: {
+    ...process.env,
+    AGENTSIGHT_COLLECTOR: "",
+    AGENTSIGHT_FAKE_OUT: fakeOut,
+    PATH: `${temp}${path.delimiter}${process.env.PATH || ""}`,
+  },
   encoding: "utf8",
 });
 if (delegated.status !== 0 || fs.readFileSync(fakeOut, "utf8") !== '["monitor","--help"]') {
