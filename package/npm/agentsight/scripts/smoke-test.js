@@ -38,6 +38,23 @@ if (delegated.status !== 0 || fs.readFileSync(fakeOut, "utf8") !== '["monitor","
   process.exit(delegated.status || 1);
 }
 
+const scopedInstall = path.join(temp, "node_modules", "@eunomia-bpf", "agentsight");
+fs.mkdirSync(path.join(scopedInstall, "bin"), { recursive: true });
+fs.copyFileSync(bin, path.join(scopedInstall, "bin", "agentsight.js"));
+const otherBinDir = path.join(temp, "other-bin");
+fs.mkdirSync(otherBinDir);
+fs.symlinkSync(path.join(scopedInstall, "bin", "agentsight.js"), path.join(otherBinDir, "agentsight"));
+const noCollector = childProcess.spawnSync(process.execPath, [bin, "top", "--plain", "--once"], {
+  env: { ...process.env, PATH: otherBinDir },
+  encoding: "utf8",
+  timeout: 2000,
+});
+if (noCollector.status !== 127 || !noCollector.stderr.includes("AgentSight collector not found")) {
+  console.error(noCollector.stdout);
+  console.error(noCollector.stderr);
+  process.exit(noCollector.status || 1);
+}
+
 const server = serveWeb({ host: "127.0.0.1", port: 0, open: false, snapshot: null });
 setTimeout(() => {
   server.close();

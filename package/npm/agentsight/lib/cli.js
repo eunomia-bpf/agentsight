@@ -262,7 +262,7 @@ function realPath(filePath) {
 }
 
 function isNpmDispatcher(filePath) {
-  return realPath(filePath).replace(/\\/g, "/").endsWith("/npm/agentsight/bin/agentsight.js");
+  return realPath(filePath).replace(/\\/g, "/").endsWith("/agentsight/bin/agentsight.js");
 }
 
 function delegateToCollector(args) {
