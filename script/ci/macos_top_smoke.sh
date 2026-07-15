@@ -79,7 +79,7 @@ HOME="$FIXTURE_HOME" TZ=UTC "$ROOT_DIR/collector/target/debug/agentsight" top --
 cat "$OUT_FILE"
 
 grep -q "AgentSight top" "$OUT_FILE"
-if grep -Eq "eBPF|sudo|kernel probes|Linux-only" "$OUT_FILE"; then
+if grep -Eiq "eBPF|sudo|kernel probes|Linux-only" "$OUT_FILE"; then
     echo "plain top unexpectedly mentioned live backend/probe state" >&2
     exit 1
 fi

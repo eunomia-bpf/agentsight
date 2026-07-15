@@ -668,8 +668,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             count,
             once,
             plain,
-        } if !top_uses_tui(*plain, interactive_terminal_available()) =>
-        {
+        } => {
             let count = if *once { Some(1) } else { *count };
             let options = TopOptions {
                 pid: *pid,
@@ -677,7 +676,12 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 sort: sort.clone(),
                 view: view.clone(),
             };
-            run_live_top_query(*interval, *limit, count, &options).await?;
+            if top_uses_tui(*plain, interactive_terminal_available()) {
+                let binary_extractor = BinaryExtractor::new().await?;
+                run_live_top_tui(&binary_extractor, *interval, *limit, count, &options).await?;
+            } else {
+                run_live_top_query(*interval, *limit, count, &options).await?;
+            }
         }
         // All remaining commands need the binary extractor.
         _ => {
@@ -786,28 +790,6 @@ async fn run_with_extractor(
             if let Some(ref db) = db_path_for_summary {
                 print_session_summary(db);
             }
-        }
-        Commands::Top {
-            db: None,
-            pid,
-            comm,
-            sort,
-            view,
-            interval,
-            limit,
-            count,
-            once,
-            plain,
-        } => {
-            let count = if *once { Some(1) } else { *count };
-            let options = TopOptions {
-                pid: *pid,
-                comm: comm.clone(),
-                sort: sort.clone(),
-                view: view.clone(),
-            };
-            debug_assert!(top_uses_tui(*plain, interactive_terminal_available()));
-            run_live_top_tui(binary_extractor, *interval, *limit, count, &options).await?;
         }
         Commands::Debug(cmd) => match cmd {
             DebugCommands::Ssl {
