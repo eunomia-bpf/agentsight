@@ -20,7 +20,7 @@ later explicit user instruction may change the four author-fixed RQs.
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Do not run another RQ1 lineage or grouping variant; WRITE the cumulative positive answer and let REVIEW select the next fixed RQ. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Positive hypothesis unchanged; Step 0019 adds valid supporting downstream evidence.** AgentProcessBench has a small isolated AP gain, HINTBench is numerically favorable but inconclusive versus raw action, and TraceElephant is strong at a descriptive early point but inconclusive at prospective Work@80. In the complete fixed-reader comparison, operation stack improves selected-positive recall on 5/6 tasks (median paired delta +0.080571) and precision on 4/6 (+0.035501) versus fixed session at a three-group budget. The result does not show lower work or raw-action, human, or universal-view superiority. Whole-paper REVIEW must now judge cumulative RQ2 submission readiness rather than rerun this packet study. |
-| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; the Step 0020 constructor remains current.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0020's post-hoc recurrence development reaches 0.6799 boundary F1 and 0.7862 B-cubed F1 on OSWorld-Human. Step 0021 reuses 405 complete CodeTraceBench targets and diagnoses identity-dominated calibration. Step 0022 tests the minimal repair on the same trajectories: CodeTraceBench B-cubed F1 rises from 0.4750 to 0.6492, but OSWorld-Human falls from 0.7862 to 0.7425. The valid mixed result is a mechanism boundary, so the candidate is not adopted and the paper, current Rust implementation, fixed RQ3 hypothesis, and story remain unchanged. |
+| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; the Step 0020 constructor remains current.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0020's post-hoc recurrence development reaches 0.6799 boundary F1 and 0.7862 B-cubed F1 on OSWorld-Human. Steps 0021–0023 reuse 405 complete CodeTraceBench targets plus the same OSWorld trajectories to diagnose and isolate identity-dominated calibration. The conditioned candidate preserves CodeTraceBench's B-cubed gain from 0.4750 to 0.6492 while reducing the OSWorld regression to 0.7862 versus 0.7846, but remains strictly lower there. The valid mixed result is not adopted; the paper, current Rust implementation, fixed RQ3 hypothesis, and story remain unchanged. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
 ## Admitted RQ1 Mechanism Evidence
@@ -468,6 +468,35 @@ with raw artifacts under
 `.agentsight/experiments/rq3-cross-action-recurrence-v1/full/`,
 `.agentsight/experiments/rq3-cross-action-rust-equivalence-v1/full/`, and
 `.agentsight/experiments/rq3-cross-action-codetracebench-v1/full/`.
+
+Step 0023 directly reuses those same completed trajectories to isolate the two
+Step 0022 components. Same-action pairs retain the Step 0020 global NPMI
+cutoff, while action-changing pairs use the Step 0022 cross-action cutoff. The
+rule adds no trace, benchmark, visible field, NPMI term, clustering method,
+parameter, or algorithm name. On complete OSWorld-Human, B-cubed F1 is 0.7846
+versus current 0.7862 (delta -0.0016) and boundary F1 is 0.6781 versus 0.6799.
+It adds 11 false-positive cross-action boundaries and 11 groups while retaining
+identical TP, FN, and B-cubed precision. On complete CodeTraceBench, it exactly
+retains the Step 0022 component result: B-cubed F1 0.6492 versus current 0.4750
+and boundary F1 0.2871 versus 0.2685, with B-cubed improvement in all four
+frameworks.
+
+Rust and Python agree on all 3,691 OSWorld decisions, 3,978 assignments, 2,667
+segments, 44 motifs, both cutoffs, selected calibration strata, and all 3,978
+units of mass. Independent review classifies the experiment
+`VALID / COMPLETE / MIXED`: the candidate is strictly lower on one population
+and higher on the other, so it fails the fixed exact-Pareto replacement rule.
+Only Step 0023 candidate code was restored, leaving the Step 0020 release
+constructor and paper result unchanged. This establishes that conditioning
+nearly removes Step 0022's OSWorld regression while preserving the cross-family
+gain, but raising the cross-action cutoff above the current cutoff can introduce
+new false boundaries. It does not change RQ3, its positive hypothesis, the
+thesis, or the AgentProf story. Complete reports are under
+[`step-0023-20260715T035513-0700`](tmp/build-and-evaluate/step-0023-20260715T035513-0700/),
+with raw artifacts under
+`.agentsight/experiments/rq3-conditioned-recurrence-v1/full/`,
+`.agentsight/experiments/rq3-conditioned-recurrence-rust-equivalence-v1/full/`,
+and `.agentsight/experiments/rq3-conditioned-recurrence-codetracebench-v1/full/`.
 
 ## Requirements For The Next Experiment
 
