@@ -34,14 +34,14 @@ visualization and adds longitudinal rhythm, process-QA, and resource views.
 
 We evaluate the load-bearing association assumption before using the views for
 outcome claims. Exact-hunk evidence passes all controlled held-out gates. On two
-mature real-history days, annotators agree on 94.98\% of 937 event--path pairs,
+mature real-history days, annotators agree on 95.61\% of 933 event--path pairs,
 but naturalistic transfer fails prespecified support and calibration gates
-(ECE 0.187); endpoint line linkage is also undersupported. We therefore bound
+(ECE 0.192); endpoint line linkage is also undersupported. We therefore bound
 the system to descriptive process, Git, uncertainty, and endpoint views rather
-than claiming provenance. The public projection contains 56 sessions, 4,077
-path-event rows, 757 path records, 652 Git lifetimes, and 177 commits across six
+than claiming provenance. The public projection contains 56 sessions, 3,960
+path-event rows, 858 path records, 652 Git lifetimes, and 177 commits across six
 weeks. In seven local headless-browser repetitions, median first-view visibility
-is 311~ms and median two-frame scrub response is 99~ms. These results establish
+is 234~ms and median two-frame scrub response is 83~ms. These results establish
 a working visual instrument and the claim boundary required to use it honestly.
 \end{abstract}
 
@@ -270,13 +270,13 @@ specificity. Removing exact-hunk evidence reproduces that failure. A
 literal-only method with exact hunks matches the proposed method, so the
 supported advantage belongs to exact-hunk evidence, not lifetime/rename logic.
 
-The two mature real days contain 937 eligible event--path pairs. Annotators
-agree on 94.98\% of labels (Cohen's $\kappa=0.805$); reconciliation yields 110
-targets, 49 nulls, and 778 unadjudicable pairs. After call-ID deduplication,
+The two mature real days contain 933 eligible event--path pairs. Annotators
+agree on 95.61\% of labels (Cohen's $\kappa=0.827$); reconciliation yields 110
+targets, 45 nulls, and 778 unadjudicable pairs. After call-ID deduplication,
 single-file/single-hunk safety, and conservative shell-path parsing, the method
-classifies 103/110 targets and 49/49 nulls. Top-1 precision is 0.972, positive
-recall is 0.936, classification accuracy is 0.956, the null-specificity Wilson
-lower bound is 0.927, and ECE is 0.187. It nevertheless fails the frozen gate:
+classifies 103/110 targets and 45/45 nulls. Top-1 precision is 0.972, positive
+recall is 0.936, classification accuracy is 0.955, the null-specificity Wilson
+lower bound is 0.921, and ECE is 0.192. It nevertheless fails the frozen gate:
 null support is 49 rather than 50 and ECE exceeds 0.10. The selected mode is
 \texttt{descriptive\_only}. Mature days contain Gemini sessions but no eligible
 Gemini write--path pairs, so cross-vendor transfer is not established.
@@ -293,14 +293,15 @@ transfer are insufficient. This negative boundary prevents stronger but
 unsupported ``agent-authored surviving code'' claims.
 
 \subsection{Artifact Experience on Real History}
-The public atlas combines 56 deduplicated native sessions, 4,077 path-resolvable
-event rows, 757 path records, 652 Git lifetimes, 177 commits, 1,852 Git changes,
-and 12,000 current Git-blame line pixels. Of the path records, 565 map to a Git
-lifetime; event-only paths remain distinct. Three observation days span June 2
+The public atlas combines 56 deduplicated native sessions, 3,960 path-resolvable
+event rows, 858 path records, 652 Git lifetimes, 177 commits, 1,852 Git changes,
+and 12,000 current Git-blame line pixels. Of the path records, 693 map to one or
+more Git lifetimes; aliases and literal-path reuse make these units non-bijective,
+while event-only paths remain distinct. Three observation days span June 2
 through July 14, 2026; gaps are retained. The July cell remains process-only.
 
 The same history appears qualitatively different across perceptual units.
-The matrix makes file bursts and long quiet intervals visible; the stable map
+The matrix makes path bursts and long quiet intervals visible; the stable map
 shows that activity moves without moving repository geography; the activity
 river exposes vendor/source volume; lifetime cohorts show survival independently
 of attention; and the two forensic graphs make Git co-change and process order
@@ -317,13 +318,13 @@ coordinated atlas) following visualization-evaluation guidance
 \cite{merino2018evaluation}.
 
 \subsection{Local Systems Responsiveness}
-We measure the checked 4.77~MB artifact in Playwright Chromium~1.61 at a
+We measure the checked 4.82~MB artifact in Playwright Chromium~1.61 at a
 1600$\times$1050 viewport. Each of seven repetitions opens a fresh page, visits
 all families, and changes the shared range input. Median first-family visibility
-is 311~ms (p95 366~ms). Median two-animation-frame scrub response is 99~ms
-(p95 107~ms). Median family navigation ranges from 112~ms for strata to 522~ms
-for the Cytoscape forensic page; particle animation is 493~ms. The final run
-uses 50.4~MB of reported JavaScript heap. Unit tests, a production TypeScript
+is 234~ms (p95 325~ms). Median two-animation-frame scrub response is 83~ms
+(p95 133~ms). Median family navigation ranges from 160~ms for strata to 908~ms
+for the Cytoscape forensic page; particle animation is 422~ms. The final run
+uses 76.6~MB of reported JavaScript heap. Unit tests, a production TypeScript
 build, and Playwright tests cover every family, filter state, cursor change, and
 representative screenshot.
 

@@ -83,8 +83,9 @@ extraction, path normalization, exact edit fingerprints, pathless events,
 rename/recreation lifetimes, and deleted-path gaps. Browser tests exercise all
 nine navigation families, the shared cursor, filters, and representative
 screenshots. The public real-data atlas contains 56 deduplicated sessions,
-4,077 path-event rows, 757 path records, 652 Git lifetimes, 177 commits, 1,852
+3,960 path-event rows, 858 path records, 652 Git lifetimes, 177 commits, 1,852
 Git changes, and 12,000 Git-blame line pixels across three observation days
 spanning June 2 through July 14. A path record is the union of process and Git
-paths; 565 records map to a lifetime. July 14 is explicitly right-censored and
+paths; 693 records map to one or more lifetimes. Alias and literal-path reuse
+mean this record count is not expected to equal the lifetime count. July 14 is explicitly right-censored and
 process-only for quantitative association purposes.

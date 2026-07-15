@@ -25,6 +25,7 @@ export interface SourceDay {
   events: number;
   path_events: number;
   write_event_paths: number;
+  verification_events: number;
   quantitative_status: "mature_descriptive" | "right_censored_excluded";
 }
 
@@ -60,6 +61,16 @@ export interface GalleryEvent {
   exact_hunk: boolean;
 }
 
+export interface VerificationEvent {
+  id: string;
+  session_id: string;
+  vendor: Vendor;
+  ts_ms: number;
+  day: string;
+  action: string;
+  status: string;
+}
+
 export interface TimeBucket {
   ts_ms: number;
   events?: number;
@@ -81,6 +92,7 @@ export interface GalleryFile {
   group: string;
   extension: string;
   lifetime_id: string | null;
+  lifetime_ids: string[];
   birth_ms: number;
   death_ms: number | null;
   survives_to_head: boolean;
@@ -179,6 +191,7 @@ export interface GalleryData {
   summary: Record<string, number>;
   sessions: GallerySession[];
   events: GalleryEvent[];
+  verification_events: VerificationEvent[];
   time_buckets: TimeBucket[];
   files: GalleryFile[];
   tree: TreeNode;

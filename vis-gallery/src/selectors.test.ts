@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { completedSessionsInVisibleInterval, eventVisible, formatCompact, linePixelVisible, projectOrderedEdges, projectTimeBuckets, topBy } from "./selectors";
-import type { GalleryEvent, GallerySession, ViewState } from "./types";
+import { completedSessionsInVisibleInterval, eventVisible, formatCompact, insertObservationGaps, linePixelVisible, projectOrderedEdges, projectTimeBuckets, topBy } from "./selectors";
+import { normalizedRisk } from "./views/ForensicView";
+import type { GalleryEvent, GallerySession, VerificationEvent, ViewState } from "./types";
 
 const event: GalleryEvent = {
   id: "1", event_id: "1", session_id: "s", vendor: "codex", model: "m",
@@ -52,9 +53,29 @@ describe("gallery selectors", () => {
   });
   it("reprojects hourly vital signs from visible events", () => {
     const rows = [event, { ...event, id: "2", ts_ms: 3_600_020, effect: "write" }];
-    expect(projectTimeBuckets(rows)).toEqual([
+    const verifications: VerificationEvent[] = [{ id: "v", session_id: "s", vendor: "codex", ts_ms: 3_600_030, day: "2026-06-02", action: "cargo test", status: "ok" }];
+    expect(projectTimeBuckets(rows, verifications)).toEqual([
       { ts_ms: 0, events: 1, read: 1 },
-      { ts_ms: 3_600_000, events: 1, write: 1 },
+      { ts_ms: 3_600_000, events: 2, write: 1, test: 1 },
     ]);
+  });
+  it("breaks longitudinal lines across unobserved intervals", () => {
+    expect(insertObservationGaps([
+      { ts_ms: 0, read: 2, events: 2 },
+      { ts_ms: 3_600_000, read: 1, events: 1 },
+      { ts_ms: 24 * 3_600_000, write: 1, events: 1 },
+    ])).toEqual([
+      { ts_ms: 0, read: 2, events: 2 },
+      { ts_ms: 3_600_000, read: 1, events: 1 },
+      { ts_ms: 2 * 3_600_000 },
+      { ts_ms: 23 * 3_600_000 },
+      { ts_ms: 24 * 3_600_000, write: 1, events: 1 },
+    ]);
+  });
+  it("normalizes hotspot risk across the observed domain", () => {
+    expect(normalizedRisk(10, 10, 100)).toBe(0);
+    expect(normalizedRisk(100, 10, 100)).toBe(1);
+    expect(normalizedRisk(30, 10, 100)).toBeGreaterThan(0);
+    expect(normalizedRisk(30, 10, 100)).toBeLessThan(1);
   });
 });

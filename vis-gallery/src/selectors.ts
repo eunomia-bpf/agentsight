@@ -1,4 +1,4 @@
-import type { GalleryData, GalleryEvent, GalleryFile, GallerySession, GraphEdge, LinePixel, TimeBucket, ViewState } from "./types";
+import type { GalleryData, GalleryEvent, GalleryFile, GallerySession, GraphEdge, LinePixel, TimeBucket, VerificationEvent, ViewState } from "./types";
 
 export function eventVisible(event: GalleryEvent, state: ViewState): boolean {
   return (
@@ -73,7 +73,10 @@ export function projectOrderedEdges(events: GalleryEvent[]): GraphEdge[] {
   return [...edges.values()].sort((a, b) => b.count - a.count || a.source.localeCompare(b.source) || a.target.localeCompare(b.target)).slice(0, 400);
 }
 
-export function projectTimeBuckets(events: GalleryEvent[]): TimeBucket[] {
+export function projectTimeBuckets(
+  events: GalleryEvent[],
+  verificationEvents: VerificationEvent[] = [],
+): TimeBucket[] {
   const buckets = new Map<number, TimeBucket>();
   events.forEach((event) => {
     const ts_ms = Math.floor(event.ts_ms / 3_600_000) * 3_600_000;
@@ -85,7 +88,29 @@ export function projectTimeBuckets(events: GalleryEvent[]): TimeBucket[] {
     }
     buckets.set(ts_ms, row);
   });
+  verificationEvents.forEach((event) => {
+    const ts_ms = Math.floor(event.ts_ms / 3_600_000) * 3_600_000;
+    const row = buckets.get(ts_ms) ?? { ts_ms };
+    row.events = (row.events ?? 0) + 1;
+    row.test = (row.test ?? 0) + 1;
+    buckets.set(ts_ms, row);
+  });
   return [...buckets.values()].sort((a, b) => a.ts_ms - b.ts_ms);
+}
+
+export function insertObservationGaps(buckets: TimeBucket[]): TimeBucket[] {
+  const output: TimeBucket[] = [];
+  buckets.forEach((bucket, index) => {
+    const previous = buckets[index - 1];
+    if (previous && bucket.ts_ms - previous.ts_ms > 3_600_000) {
+      output.push({ ts_ms: previous.ts_ms + 3_600_000 });
+      if (bucket.ts_ms - previous.ts_ms > 7_200_000) {
+        output.push({ ts_ms: bucket.ts_ms - 3_600_000 });
+      }
+    }
+    output.push(bucket);
+  });
+  return output;
 }
 
 export function formatCompact(value: number): string {

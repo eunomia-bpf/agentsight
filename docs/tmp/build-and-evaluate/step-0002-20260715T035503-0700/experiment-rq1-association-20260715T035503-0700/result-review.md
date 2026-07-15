@@ -9,7 +9,7 @@ entered the evidence universe and that the old truth file did not cover the
 repaired association set. That approval is therefore superseded, not carried
 forward to the final result.
 
-The final shell grammar, 937-pair truth freeze, public projection, aggregate
+The final shell/workdir grammar, 933-pair truth freeze, public projection, aggregate
 metrics, and claim text are awaiting a fresh independent audit. Until that
 audit completes, this file records no approval of the regenerated result.
 

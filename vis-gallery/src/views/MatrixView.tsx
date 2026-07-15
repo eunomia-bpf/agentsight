@@ -148,7 +148,7 @@ export default function MatrixView({ data, state, events, onChange }: ViewProps)
     <section className="panel-grid" data-testid="matrix-projection" data-event-count={events.length}>
       <Panel
         eyebrow="Evolution Matrix · 2001"
-        title="File × observation-day matrix"
+        title="Path × observation-day matrix"
         note="Brightness combines filtered recorded touches with filter-invariant Git churn. Rows stay stable across days, making bursts and pulses comparable."
         wide
         badge="log-scaled activity"

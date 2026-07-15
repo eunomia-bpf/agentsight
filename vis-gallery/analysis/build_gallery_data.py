@@ -141,6 +141,7 @@ def build(
     head = next(iter(heads))
     repository = artifacts[0]["repository"]
     path_events: list[dict[str, Any]] = []
+    verification_events: dict[str, dict[str, Any]] = {}
     sessions: dict[str, dict[str, Any]] = {}
     commits: dict[str, dict[str, Any]] = {}
     changes: dict[str, dict[str, Any]] = {}
@@ -149,21 +150,38 @@ def build(
     source_days = []
     lifetimes = artifacts[-1]["file_lifetimes"]
 
-    lifetime_for_path = {}
+    lifetimes_for_path: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    endpoint_lifetime_for_path: dict[str, dict[str, Any]] = {}
     for lifetime in lifetimes:
         for path in lifetime["paths"]:
-            lifetime_for_path[path] = lifetime
+            lifetimes_for_path[path].append(lifetime)
+        if lifetime["survives_to_head"] and lifetime.get("current_path"):
+            current_path = lifetime["current_path"]
+            if current_path in endpoint_lifetime_for_path:
+                raise ValueError(f"multiple surviving lifetimes for endpoint path {current_path}")
+            endpoint_lifetime_for_path[current_path] = lifetime
+
+    def lifetime_for_record(path: str) -> dict[str, Any] | None:
+        endpoint = endpoint_lifetime_for_path.get(path)
+        if endpoint is not None:
+            return endpoint
+        candidates = lifetimes_for_path.get(path, [])
+        return max(
+            candidates,
+            key=lambda value: (int(value["birth_ms"]), value["id"]),
+            default=None,
+        )
 
     censored_days = {cell["day"] for cell in censored.get("cells", [])}
     for artifact in artifacts:
         day = artifact["window"]["since"][:10]
         unique_session_ids = {session["id"] for session in artifact["sessions"]}
         write_path_observations = sum(
-            len(
-                event.get("write_paths", [])
-            )
+            len(event.get("write_paths", []))
             for event in artifact["events"]
-            if event["effect"] == "write"
+        )
+        verification_observations = sum(
+            event["effect"] == "test" for event in artifact["events"]
         )
         source_days.append(
             {
@@ -172,6 +190,7 @@ def build(
                 "events": artifact["summary"]["event_count"],
                 "path_events": artifact["summary"]["path_resolvable_event_count"],
                 "write_event_paths": write_path_observations,
+                "verification_events": verification_observations,
                 "quantitative_status": (
                     "right_censored_excluded" if day in censored_days else "mature_descriptive"
                 ),
@@ -218,6 +237,16 @@ def build(
             bucket[event["effect"]] += 1
             token_value = int(event["input_tokens"]) + int(event["output_tokens"]) + int(event["cache_tokens"])
             bucket["reported_tokens"] += token_value
+            if event["effect"] == "test":
+                verification_events[event["id"]] = {
+                    "id": event["id"],
+                    "session_id": event["session_id"],
+                    "vendor": event["vendor"],
+                    "ts_ms": timestamp,
+                    "day": day,
+                    "action": event["action"],
+                    "status": event["status"],
+                }
             if not event["paths"]:
                 continue
             write_paths = set(event.get("write_paths", []))
@@ -232,6 +261,14 @@ def build(
                     if path_effect == "write"
                     else None
                 )
+                if (
+                    day not in censored_days
+                    and path_effect == "write"
+                    and association is None
+                ):
+                    raise ValueError(
+                        f"mature write path has no association row: {event['id']} {path}"
+                    )
                 state = association["state"] if association else "not_eligible"
                 top = association["candidates"][0] if association and association["candidates"] else None
                 row = {
@@ -255,7 +292,14 @@ def build(
                     "exact_hunk": bool(top and top["exact_hunk_match"]),
                 }
                 path_events.append(row)
-                file = file_stats.setdefault(path, new_file_stats(path, lifetime_for_path.get(path)))
+                file = file_stats.setdefault(
+                    path,
+                    new_file_stats(
+                        path,
+                        lifetime_for_record(path),
+                        lifetimes_for_path.get(path, []),
+                    ),
+                )
                 file["touches"] += 1
                 effect_key = {
                     "read": "read_events",
@@ -283,7 +327,14 @@ def build(
             bucket["merges"] += 1
     for change in changes.values():
         path = change["path"]
-        file = file_stats.setdefault(path, new_file_stats(path, lifetime_for_path.get(path)))
+        file = file_stats.setdefault(
+            path,
+            new_file_stats(
+                path,
+                lifetime_for_record(path),
+                lifetimes_for_path.get(path, []),
+            ),
+        )
         additions = int(change["additions"])
         deletions = int(change["deletions"])
         file["git_changes"] += 1
@@ -297,6 +348,15 @@ def build(
         bucket["additions"] += additions
         bucket["deletions"] += deletions
 
+    # Seed every frozen endpoint path even if it was untouched in the sampled
+    # native-session windows. The endpoint map must represent the repository
+    # tree, not only paths that happened to receive an event.
+    for path, lifetime in endpoint_lifetime_for_path.items():
+        file_stats.setdefault(
+            path,
+            new_file_stats(path, lifetime, lifetimes_for_path.get(path, [])),
+        )
+
     if not path_events:
         raise ValueError("gallery projection has no path-resolvable events")
     window_start = min(row["ts_ms"] for row in path_events)
@@ -305,6 +365,14 @@ def build(
     cochange_edges = build_cochange_edges(changes.values())
     blame_rows = build_blame_rows(repo, head, files)
     tree = build_tree(files)
+    endpoint_paths = set(endpoint_lifetime_for_path)
+    projected_endpoint_paths = tree_leaf_paths(tree)
+    if projected_endpoint_paths != endpoint_paths:
+        missing = sorted(endpoint_paths - projected_endpoint_paths)
+        extra = sorted(projected_endpoint_paths - endpoint_paths)
+        raise ValueError(
+            f"endpoint tree mismatch: missing={missing[:5]} extra={extra[:5]}"
+        )
     time_buckets = [
         {"ts_ms": timestamp, **dict(counter)}
         for timestamp, counter in sorted(buckets.items())
@@ -332,7 +400,7 @@ def build(
             "path_records": len(files),
             "git_lifetimes": len(lifetimes),
             "path_records_with_lifetime": sum(
-                file["lifetime_id"] is not None for file in files
+                bool(file["lifetime_ids"]) for file in files
             ),
             "commits": len(commits),
             "changes": len(changes),
@@ -340,6 +408,9 @@ def build(
         },
         "sessions": sorted(sessions.values(), key=lambda row: (row["started_at_ms"] or 0, row["id"])),
         "events": sorted(path_events, key=lambda row: (row["ts_ms"], row["id"])),
+        "verification_events": sorted(
+            verification_events.values(), key=lambda row: (row["ts_ms"], row["id"])
+        ),
         "time_buckets": time_buckets,
         "files": files,
         "tree": tree,
@@ -371,13 +442,19 @@ def build(
     }
 
 
-def new_file_stats(path: str, lifetime: dict[str, Any] | None) -> dict[str, Any]:
+def new_file_stats(
+    path: str,
+    lifetime: dict[str, Any] | None,
+    matching_lifetimes: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     lifetime = lifetime or {}
+    matching_lifetimes = matching_lifetimes or []
     return {
         "path": path,
         "group": group_for_path(path),
         "extension": Path(path).suffix.lower() or "(none)",
         "lifetime_id": lifetime.get("id"),
+        "lifetime_ids": sorted(value["id"] for value in matching_lifetimes),
         "birth_ms": lifetime.get("birth_ms", 0),
         "death_ms": lifetime.get("death_ms"),
         "survives_to_head": lifetime.get("survives_to_head", False),
@@ -459,7 +536,11 @@ def build_cochange_edges(changes: Any) -> list[dict[str, Any]]:
 def build_tree(files: list[dict[str, Any]]) -> dict[str, Any]:
     root: dict[str, Any] = {"name": "repository", "children": {}}
     for file in files:
-        if not file["survives_to_head"] or not file.get("current_path"):
+        if (
+            not file["survives_to_head"]
+            or not file.get("current_path")
+            or file["path"] != file["current_path"]
+        ):
             continue
         node = root
         parts = file["current_path"].split("/")
@@ -469,7 +550,7 @@ def build_tree(files: list[dict[str, Any]]) -> dict[str, Any]:
             )
         node["children"][parts[-1]] = {
             "name": parts[-1],
-            "path": file["path"],
+            "path": file["current_path"],
             "value": max(1, int(file["current_bytes"])),
             "touches": file["touches"],
             "risk_score": file["risk_score"],
@@ -490,6 +571,17 @@ def build_tree(files: list[dict[str, Any]]) -> dict[str, Any]:
     return materialize(root)
 
 
+def tree_leaf_paths(tree: dict[str, Any]) -> set[str]:
+    paths = set()
+    stack = [tree]
+    while stack:
+        node = stack.pop()
+        if node.get("path"):
+            paths.add(node["path"])
+        stack.extend(node.get("children", []))
+    return paths
+
+
 def build_blame_rows(
     repo: Path, head: str, files: list[dict[str, Any]], limit: int = 12_000
 ) -> list[dict[str, Any]]:
@@ -498,6 +590,7 @@ def build_blame_rows(
         for file in files
         if file["survives_to_head"]
         and file.get("current_path")
+        and file["path"] == file["current_path"]
         and file["extension"] in SOURCE_EXTENSIONS
         and 0 < file["current_bytes"] <= 250_000
     ]
@@ -588,6 +681,41 @@ def validate_public_output(output: dict[str, Any]) -> None:
     if leaked:
         raise ValueError(
             f"right-censored events contain association evidence: {leaked[:5]}"
+        )
+
+    write_rows = Counter(
+        row["day"] for row in output["events"] if row.get("effect") == "write"
+    )
+    declared_writes = {
+        row["day"]: int(row.get("write_event_paths", 0))
+        for row in output.get("source_days", [])
+    }
+    if write_rows != Counter(declared_writes):
+        raise ValueError(
+            f"write-path count mismatch: rows={dict(write_rows)} declared={declared_writes}"
+        )
+    missing_mature_associations = [
+        (row["id"], row["path"])
+        for row in output["events"]
+        if row.get("effect") == "write"
+        and row["day"] not in censored_days
+        and row.get("association_state") == "not_eligible"
+    ]
+    if missing_mature_associations:
+        raise ValueError(
+            "mature writes are missing association rows: "
+            f"{missing_mature_associations[:5]}"
+        )
+
+    verification_rows = Counter(row["day"] for row in output["verification_events"])
+    declared_verifications = {
+        row["day"]: int(row.get("verification_events", 0))
+        for row in output.get("source_days", [])
+    }
+    if verification_rows != Counter(declared_verifications):
+        raise ValueError(
+            "verification-event count mismatch: "
+            f"rows={dict(verification_rows)} declared={declared_verifications}"
         )
 
     sessions_per_day = Counter(

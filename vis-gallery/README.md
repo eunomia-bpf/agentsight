@@ -26,9 +26,10 @@ npm run dev
 ```
 
 Open <http://127.0.0.1:5173>. The checked public dataset is privacy-scanned and
-contains 56 deduplicated sessions, 4,077 path-event rows, 757 path records,
+contains 56 deduplicated sessions, 3,960 path-event rows, 858 path records,
 652 Git lifetimes, 177 commits, 1,852 changes, and 12,000 current Git-blame
-line pixels. Of the path records, 565 map to a Git lifetime; event-only paths
+line pixels. Of the path records, 693 map to one or more Git lifetimes; aliases
+and reused literal paths may map to the same lifetime, while event-only paths
 remain explicit rather than being mislabeled as lifetimes. The three real
 observation days span 2026-06-02 through 2026-07-14; they are not a continuous
 synthetic workload. July 14 is right-censored and is used only for descriptive
@@ -39,9 +40,9 @@ process views.
 | Family | Implemented views |
 |---|---|
 | SeeSoft / pixels | current-line age pixels; touch/association lanes |
-| Evolution Matrix | file × day evolution; association-state matrix; named signals |
+| Evolution Matrix | path × day evolution; association-state matrix; named signals |
 | CodeCity / cartography | stable treemap; stable constellation; directory cartogram |
-| code_swarm / Gource | agent–file particle field; durable commit pulses; recent wake |
+| code_swarm / Gource | agent–path particle field; durable commit pulses; recent wake |
 | History Flow / strata | activity river; lifetime cohorts; survival ledger; Git sediment |
 | Crime Scene | hotspot map; Git co-change network; ordered read-before-write network |
 | Storylines | session journeys; Git author ownership flow; visible cast |

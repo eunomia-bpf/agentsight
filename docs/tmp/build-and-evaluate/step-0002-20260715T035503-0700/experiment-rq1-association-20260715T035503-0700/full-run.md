@@ -53,34 +53,36 @@ grammar repairs and must not be used to regenerate public metrics.
 
 ## Mature naturalistic transfer
 
-The two mature source days contained 937 eligible event--path pairs. Independent
-annotators agreed on 94.984% of labels (Cohen's kappa 0.805), with identical
+The two mature source days contained 933 eligible event--path pairs. Independent
+annotators agreed on 95.606% of labels (Cohen's kappa 0.827), with identical
 target sets. Applying the frozen path-level null definition and retaining
 candidate-bearing cases without content evidence as unadjudicable yielded 110
-target, 49 null, and 778 unadjudicable pairs. All 47 disagreements were
-reconciled: 46 exhaustive no-candidate paths became null and one candidate-
-bearing case remained unadjudicable.
+target, 45 null, and 778 unadjudicable pairs. All 41 disagreements were
+reconciled as exhaustive no-candidate path-level nulls.
 
 After reconciling Codex completions by call ID and suppressing event-level
 fingerprints for multi-file/multi-hunk patches, the proposed method correctly
-classified 103/110 targets and 49/49 nulls. Top-1 precision was 0.972 and
-positive recall was 0.936; null specificity was 1.0 with a 0.927 Wilson lower
-bound, and classification accuracy was 0.956. ECE was 0.187 and Brier score was
-0.0889. Disagreement-as-error accuracy was 0.667. The nearest-path baseline
-reached 0.736 precision/positive recall and 0.818 classification accuracy.
+classified 103/110 targets and 45/45 nulls. Top-1 precision was 0.972 and
+positive recall was 0.936; null specificity was 1.0 with a 0.921 Wilson lower
+bound, and classification accuracy was 0.955. ECE was 0.192 and Brier score was
+0.0912. Disagreement-as-error accuracy was 0.690. The nearest-path baseline
+reached 0.736 precision/positive recall and 0.813 classification accuracy.
 Paired intervals favored the proposed method for Brier and candidate-set recall.
 
 A final conservative shell grammar separated compound commands, pipelines,
 nested shell payloads, and unspaced redirections; it also rejected revisions,
 API routes, variables, image names, and expression tokens as file paths.
-Re-exporting the frozen 07:00Z observation windows yielded 564 and 373 mature
-write-path observations. Rebase by day/vendor/action/path and nearest timestamp
-carried 870 prior labels, removed 12 obsolete pairs, and exposed 67 new pairs.
-Both independent annotators labeled the 67-pair blinded delta before the full
-937-pair reconciliation. The controlled and lineage results were regenerated.
+The final repair additionally resolves tool-level `workdir`/`cwd`, explicit
+`cd`, segment-local writes, heredoc bodies, input redirection, and `cp -t`
+operands. Re-exporting the frozen 07:00Z observation windows yielded 560 and
+373 mature write-path observations. Relative to the preceding 937-pair freeze,
+semantic rebase carried 926 labels, removed 11 obsolete parser-derived pairs,
+and exposed seven new pairs. Both independent annotators labeled the blinded
+seven-pair delta before the full 933-pair reconciliation. The controlled and
+lineage results were regenerated.
 
-Naturalistic transfer did **not** pass the frozen gate: null support was 49,
-one short of the required 50, and confidence remained miscalibrated (ECE 0.187
+Naturalistic transfer did **not** pass the frozen gate: null support was 45,
+five short of the required 50, and confidence remained miscalibrated (ECE 0.192
 > 0.10). The precision, recall, and specificity lower-bound gates passed. The
 preregistered selection remains `descriptive_only`. Proposed and literal-only
 accuracy were identical, so the naturalistic run also does not demonstrate a

@@ -132,14 +132,14 @@ linked here after review. No result placeholder is treated as evidence.
   states, ordered process evidence, Git history, and endpoint state. It may not
   claim calibrated real-history association, causality, authorship, accurate
   line survival, cross-vendor transfer, or lifetime/rename superiority.
-- Mature naturalistic sample: all 937 eligible event--path pairs were mapped
-  exactly and labeled; reconciliation produced 110 target, 49 null, and 778
-  unadjudicable pairs. Agreement was 94.984% with Cohen's kappa 0.805. After
+- Mature naturalistic sample: all 933 eligible event--path pairs were mapped
+  exactly and labeled; reconciliation produced 110 target, 45 null, and 778
+  unadjudicable pairs. Agreement was 95.606% with Cohen's kappa 0.827. After
   call-ID deduplication, exact-hunk safety, and conservative shell parsing, the
-  proposed method correctly classified 103/110 targets and 49/49 nulls. Its
-  accuracy was 0.956, ECE was 0.187, and the null-specificity Wilson lower
-  bound was 0.927. Selection remained `descriptive_only` because ECE exceeded
-  0.10 and null support was 49, one short of the frozen minimum of 50.
+  proposed method correctly classified 103/110 targets and 45/45 nulls. Its
+  accuracy was 0.955, ECE was 0.192, and the null-specificity Wilson lower
+  bound was 0.921. Selection remained `descriptive_only` because ECE exceeded
+  0.10 and null support was 45, five short of the frozen minimum of 50.
 - Line stage: 37 predictions over 110 mature target events, 36 correct; the
   0.862 precision lower bound and prediction count both failed the frozen
   line-overlay gate.

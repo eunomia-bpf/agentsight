@@ -11,13 +11,21 @@ import type { ViewProps } from "./viewTypes";
 export default function ForensicView({ data, state, events, onChange }: ViewProps) {
   const visible = new Set(events.map((event) => event.path));
   const orderedEdges = useMemo(() => projectOrderedEdges(events), [events]);
-  const hotspots = topBy(data.files, (file) => file.risk_score, 90);
+  const hotspots = topBy(
+    data.files.filter(
+      (file) => file.survives_to_head && file.path === file.current_path,
+    ),
+    (file) => file.risk_score,
+    90,
+  );
+  const minRisk = Math.min(...hotspots.map((file) => file.risk_score));
+  const maxRisk = Math.max(...hotspots.map((file) => file.risk_score));
   const hotspotOption: EChartsOption = {
     ...baseChart,
     tooltip: { renderMode: "richText", formatter: (params: unknown) => { const row = (params as { data: { path: string; risk: number; churn: number; touches: number } }).data; return `${row.path}\nrisk ${row.risk.toFixed(2)}\n${row.touches} touches · ${row.churn} Git churn`; } },
     series: [{
       type: "treemap", roam: true, breadcrumb: { show: false },
-      data: hotspots.map((file) => ({ name: file.path.split("/").at(-1), path: file.path, value: Math.max(1, file.current_bytes), risk: file.risk_score, churn: file.churn, touches: file.touches, itemStyle: { color: riskColor(file.risk_score), opacity: visible.has(file.path) ? .95 : .35 } })),
+      data: hotspots.map((file) => ({ name: file.path.split("/").at(-1), path: file.path, value: Math.max(1, file.current_bytes), risk: file.risk_score, churn: file.churn, touches: file.touches, itemStyle: { color: riskColor(file.risk_score, minRisk, maxRisk), opacity: visible.has(file.path) ? .95 : .35 } })),
       label: { color: "#f2f5fb", fontSize: 9 }, itemStyle: { borderColor: "#080c14", gapWidth: 1 },
     }],
   };
@@ -63,4 +71,14 @@ function EvidenceGraph({ edges, semantics, selected, onSelect }: { edges: GraphE
   return <div ref={ref} className="evidence-graph" />;
 }
 
-function riskColor(risk: number): string { const t = Math.max(0, Math.min(1, risk)); return `hsl(${190 - t * 170} 60% ${31 + t * 20}%)`; }
+export function normalizedRisk(risk: number, minimum: number, maximum: number): number {
+  if (!Number.isFinite(risk) || maximum <= minimum) return 0.5;
+  const low = Math.log1p(Math.max(0, minimum));
+  const high = Math.log1p(Math.max(0, maximum));
+  return Math.max(0, Math.min(1, (Math.log1p(Math.max(0, risk)) - low) / (high - low)));
+}
+
+function riskColor(risk: number, minimum: number, maximum: number): string {
+  const t = normalizedRisk(risk, minimum, maximum);
+  return `hsl(${190 - t * 170} 60% ${31 + t * 20}%)`;
+}

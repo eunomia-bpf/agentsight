@@ -46,13 +46,13 @@ export default function AnimationView({ data, state, events, onChange }: ViewPro
   const recentFiles = topBy(data.files.filter((file) => recent.some((event) => event.path === file.path)), (file) => file.touches, 12);
   return (
     <section className="panel-grid">
-      <Panel eyebrow="code_swarm · 2008" title="Agent–file particle field" note="Particles replay recorded reads and writes around stable file anchors. Trails show recency, not ownership or causality." wide badge="shared cursor">
+      <Panel eyebrow="code_swarm · 2008" title="Agent–path particle field" note="Particles replay recorded reads and writes around stable path anchors. Trails show recency, not ownership or causality." wide badge="shared cursor">
         <ParticleField events={recent} files={data.files} cursorMs={state.cursorMs} onSelect={(path) => onChange({ selectedPath: path })} />
       </Panel>
       <Panel eyebrow="Gource · 2009" title="Durable-change pulse" note="Git commits pulse on their own lane. A nearby process event is not silently converted into a commit attribution." wide>
         <EChart option={commitOption} className="chart chart--large" />
       </Panel>
-      <Panel eyebrow="Recent wake" title="Files still glowing" note="A six-hour tail makes bursts readable without implying that quiet files disappeared.">
+      <Panel eyebrow="Recent wake" title="Paths still glowing" note="A six-hour tail makes bursts readable without implying that quiet paths disappeared.">
         <div className="wake-list">
           {recentFiles.map((file) => {
             const count = recent.filter((event) => event.path === file.path).length;

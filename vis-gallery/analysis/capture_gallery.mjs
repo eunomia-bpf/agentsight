@@ -16,10 +16,15 @@ for (const family of ["pixel", "map", "forensic", "longitudinal"]) {
   await page.getByTestId(`nav-${family}`).click();
   await page.getByTestId(`family-${family}`).locator(".panel").first().waitFor({ state: "visible" });
   await page.waitForTimeout(family === "forensic" ? 2_000 : 700);
+  await page.screenshot({ path: `${destination}/${family}.png`, fullPage: true });
   if (family === "map") {
+    // The full-page capture forces lazy chart/canvas layout to its final size.
+    // Take the paper plate afterward so it cannot catch the sidebar's
+    // intermediate width during the family transition.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(100);
     await page.screenshot({ path: `${destination}/paper-map.png`, fullPage: false });
   }
-  await page.screenshot({ path: `${destination}/${family}.png`, fullPage: true });
 }
 
 await browser.close();

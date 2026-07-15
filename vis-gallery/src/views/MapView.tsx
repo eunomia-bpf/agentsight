@@ -90,9 +90,12 @@ export default function MapView({ data, state, events, onChange }: ViewProps) {
     ],
   };
 
-  const groupRows = [...new Set(data.files.map((file) => file.group))]
+  const endpointFiles = data.files.filter(
+    (file) => file.survives_to_head && file.path === file.current_path,
+  );
+  const groupRows = [...new Set(endpointFiles.map((file) => file.group))]
     .map((group) => {
-      const files = data.files.filter((file) => file.group === group);
+      const files = endpointFiles.filter((file) => file.group === group);
       return {
         group,
         files: files.length,
