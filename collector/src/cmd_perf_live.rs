@@ -200,7 +200,6 @@ fn record_live_ebpf_event(state: &Arc<Mutex<LiveCaptureState>>, event: &Event) {
 }
 
 pub(crate) async fn run_live_top_query(
-    binary_extractor: &BinaryExtractor,
     interval_secs: u64,
     limit: usize,
     count: Option<u32>,
@@ -211,17 +210,12 @@ pub(crate) async fn run_live_top_query(
     let mut iterations = 0u32;
     let should_clear_screen = count != Some(1);
     let mut live_view = LiveView::default();
-    let capture = start_live_ebpf_capture(binary_extractor, options).await;
 
     loop {
         if should_clear_screen {
             clear_screen();
         }
-        let capture_snapshot = capture.as_ref().map(LiveEbpfCapture::snapshot);
-        let mut top = live_view.refresh(capture_snapshot.as_ref(), limit, options)?;
-        if let Some(note) = capture.as_ref().and_then(|capture| capture.start_note()) {
-            top.notes.push(note.to_string());
-        }
+        let mut top = live_view.refresh(None, limit, options)?;
         sort_agent_rows(&mut top.rows, &options.sort);
         top.rows.truncate(limit);
         print_agent_top(&top);
@@ -232,10 +226,6 @@ pub(crate) async fn run_live_top_query(
             break;
         }
         std::thread::sleep(interval);
-    }
-
-    if let Some(capture) = capture {
-        capture.stop();
     }
 
     Ok(())
