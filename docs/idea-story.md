@@ -269,6 +269,15 @@ all four frameworks. The fixed equal-plus-higher rule supports adoption as the
 release constructor. This is a mechanism/frontier update on reused evidence,
 not a new narrative, thesis, contribution, RQ, or untouched confirmation.
 
+Step 0025 records one direct user-requested attempt to improve that same
+algorithm on the same completed trajectories. A sequence-local raw-NPMI
+minimum rule improves CodeTraceBench B-cubed F1 in all four frameworks but
+reduces OSWorld-Human B-cubed F1 and boundary F1 on both populations. The fixed
+cross-population decision therefore rejects it and restores Step 0024 exactly.
+This is a rejected mechanism refinement in the evidence history; it is not an
+accepted narrative change, a smaller hypothesis, or a reason to alter the
+thesis, four RQs, contributions, or original AgentProf story.
+
 Step 0019 tests a different consequence inside unchanged RQ2. A fixed
 rank-hidden Qwen3.6-27B reader selects three of each view's query-aware top five
 groups across six public-data tasks and all five cyclic positions. The complete
@@ -301,9 +310,10 @@ value. Step 0019 has now completed the selected fixed-reader comparison and
 adds the bounded downstream evidence above. The targeted WRITE sync for the
 adopted recurrence implementation is complete. The independent whole-paper
 re-review and outer audit both PASS and do not find broader automatic identity
-fidelity evidence load-bearing, so the recurrence branch stays closed with no
-next constructor experiment. This is an evidence-frontier update, not a
-narrative evolution or change to the thesis, four RQs, or two-object model.
+fidelity evidence load-bearing. Step 0025's one user-requested local refinement
+is mixed and rejected, leaving Step 0024 as the current constructor. This is an
+evidence-frontier update, not a narrative evolution or change to the thesis,
+four RQs, or two-object model.
 
 ## Narrative Evolution — Accepted Changes Only
 

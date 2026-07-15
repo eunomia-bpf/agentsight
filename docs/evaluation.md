@@ -533,6 +533,18 @@ with raw artifacts under
 `.agentsight/experiments/rq3-monotone-recurrence-rust-equivalence-v1/full/`, and
 `.agentsight/experiments/rq3-monotone-recurrence-codetracebench-v1/full/`.
 
+At the user's direct request, Step 0025 reopens only one bounded refinement on
+those same retained trajectories. It keeps Step 0024's threshold decisions but
+retains an action-changing boundary only at a sequence-local raw-NPMI minimum.
+The complete candidate is `VALID / COMPLETE / MIXED`: CodeTraceBench B-cubed
+F1 rises from 0.649173 to 0.671671 across all four frameworks, but
+OSWorld-Human falls from 0.786170 to 0.746958 and boundary F1 falls on both
+populations. The rejected candidate is therefore removed exactly; the Step
+0024 implementation remains the release constructor. This result records a
+mechanism boundary, not a new algorithm, smaller RQ, changed hypothesis, or
+paper-story revision. Complete reports are under
+[`step-0025-20260715T054105-0700`](tmp/build-and-evaluate/step-0025-20260715T054105-0700/).
+
 ## Requirements For The Next Experiment
 
 The next experiment follows one bounded literature/source screen and must
@@ -613,11 +625,11 @@ calibration on existing CodeTraceBench trajectories, and adopt the monotone
 cross-action rule. The final constructor clears the registered OSWorld controls,
 preserves every current OSWorld decision, improves B-cubed on all four
 CodeTraceBench frameworks, and exactly matches the fixed evaluator. This closes
-the bounded recurrence implementation branch: do not tune either reused
-population again or reinterpret the post-hoc result as an untouched answer to
-all of RQ3. Targeted WRITE, whole-paper re-review, and independent outer audit
-are complete and PASS. They do not require broader constructor evidence, so the
-recurrence branch remains closed with no next constructor experiment.
+the bounded recurrence implementation branch. Step 0025 then tests one direct
+user-requested sequence-local refinement on the same retained trajectories,
+rejects it under the fixed cross-population rule, and restores the Step 0024
+release exactly. Do not reinterpret either post-hoc result as an untouched
+answer to all of RQ3. The paper story and four RQs remain unchanged.
 
 The earlier Step 0018 AAAI/cross-domain whole-paper review scored the
 then-current paper 4/10 (weak reject). It preserved the thesis and four RQs but identified
@@ -633,9 +645,9 @@ hypothesis against fixed-session packets, while the work rows and absent
 matched raw-action packet preserve the stated boundary. Do not repeat this
 packet study with a cosmetic prompt, model, cutoff, or seed. Its admitted result
 has already entered the paper; the Step 0024 whole-paper/outer REVIEW direction
-governed the next paper-level decision. Step 0024's final whole-paper re-review
-and outer audit now PASS with no must-fix and authorize no return to
-EXPERIMENT, WRITE, or REVIEW.
+governed the next paper-level decision. Step 0025 changes only the recurrence
+implementation frontier described above; it does not reopen this RQ2 packet
+study or authorize a paper-story change.
 
 ## Experiment History Policy
 
