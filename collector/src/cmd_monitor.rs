@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use crate::output::{AgentTopOutput, AgentTopRow, TopOptions, clear_screen, print_agent_top};
 use crate::sources::proc::{self as procfs, ProcSnapshot};
 use crate::state::{agentsight_state_dir_for_home, ensure_agentsight_state_dir_for_home};
 use crate::view::live_top::{LiveMonitorSample, LiveView};
-use crate::view::top::sort_agent_rows;
 use chrono::{Datelike, Local, NaiveDate};
-use rusqlite::{Connection, OpenFlags, params};
+use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{self, Write};
@@ -179,46 +177,6 @@ pub(crate) fn install_monitor_service() -> Result<(), Box<dyn std::error::Error 
     Ok(())
 }
 
-pub(crate) fn active_monitor_db_path() -> Option<PathBuf> {
-    active_monitor().map(|pid_file| pid_file.db_path)
-}
-
-pub(crate) async fn run_monitor_top_query(
-    interval_secs: u64,
-    limit: usize,
-    count: Option<u32>,
-    options: &TopOptions,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let active = active_monitor().ok_or("monitor is not running")?;
-    let limit = limit.clamp(1, 100);
-    let interval = Duration::from_secs(interval_secs.max(1));
-    let shutdown = crate::shutdown_notify();
-    let mut iterations = 0u32;
-    let should_clear_screen = count != Some(1);
-
-    loop {
-        if should_clear_screen {
-            clear_screen();
-        }
-        let mut top = build_monitor_top(&active.db_path, limit, options)?;
-        sort_agent_rows(&mut top.rows, &options.sort);
-        top.rows.truncate(limit);
-        print_agent_top(&top);
-        io::stdout().flush()?;
-
-        iterations += 1;
-        if count.is_some_and(|max| iterations >= max) || crate::shutdown_requested() {
-            break;
-        }
-        tokio::select! {
-            _ = tokio::time::sleep(interval) => {}
-            _ = shutdown.notified() => break,
-        }
-    }
-
-    Ok(())
-}
-
 fn print_monitor_tick(path: &Path, stats: &MonitorWriteStats) {
     println!(
         "saved {} sessions | {} windows -> {}",
@@ -226,124 +184,6 @@ fn print_monitor_tick(path: &Path, stats: &MonitorWriteStats) {
         stats.windows,
         path.display()
     );
-}
-
-fn build_monitor_top(
-    db_path: &Path,
-    limit: usize,
-    options: &TopOptions,
-) -> Result<AgentTopOutput<'static>, Box<dyn std::error::Error + Send + Sync>> {
-    let rows = load_monitor_top_rows(db_path, options)?;
-    let db_note = format!(
-        "using background monitor data from {}; no live eBPF/probes started",
-        db_path.display()
-    );
-    let mut process_counts = BTreeMap::new();
-    for row in &rows {
-        *process_counts.entry(row.agent.clone()).or_insert(0i64) += row.processes.max(1) as i64;
-    }
-    let mut sections = Vec::new();
-    if !process_counts.is_empty() {
-        let mut sorted = process_counts.into_iter().collect::<Vec<_>>();
-        sorted.sort_by_key(|(_, count)| std::cmp::Reverse(*count));
-        sorted.truncate(limit);
-        sections.push(("Processes", "monitor", sorted));
-    }
-
-    Ok(AgentTopOutput {
-        mode: "monitor",
-        db: None,
-        duration_s: 0.0,
-        view_events: rows.len() as i64,
-        llm_calls: 0,
-        total_tokens: 0,
-        rows,
-        sections,
-        failures: Vec::new(),
-        notes: vec![db_note],
-    })
-}
-
-fn load_monitor_top_rows(
-    db_path: &Path,
-    options: &TopOptions,
-) -> rusqlite::Result<Vec<AgentTopRow>> {
-    let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
-    let network_targets_expr = if monitor_windows_has_network_targets_column(&conn)? {
-        "w.network_targets"
-    } else {
-        "0"
-    };
-    let now_ms = now_epoch_ms();
-    let sql = format!(
-        "SELECT
-            t.session_id, t.display_id, t.agent_type, t.root_pid, t.first_seen_ms,
-            t.command, t.cwd, w.window_start_ms, w.window_end_ms, w.process_count,
-            w.cpu_ms, w.rss_bytes, w.file_targets, {network_targets_expr}
-         FROM monitor_windows w
-         JOIN tracked_sessions t USING(session_id, root_pid, root_starttime_ticks)
-         WHERE w.id IN (
-            SELECT MAX(id)
-            FROM monitor_windows
-            GROUP BY session_id, root_pid, root_starttime_ticks
-         )
-         ORDER BY w.window_end_ms DESC"
-    );
-    let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt.query_map([], |row| {
-        let session_id: String = row.get(0)?;
-        let display_id: String = row.get(1)?;
-        let agent_type: String = row.get(2)?;
-        let root_pid: u32 = row.get::<_, i64>(3)? as u32;
-        let first_seen_ms: u64 = row.get::<_, i64>(4)? as u64;
-        let command: String = row.get(5)?;
-        let cwd: Option<String> = row.get(6)?;
-        let window_start_ms: u64 = row.get::<_, i64>(7)? as u64;
-        let window_end_ms: u64 = row.get::<_, i64>(8)? as u64;
-        let process_count: usize = row.get::<_, i64>(9)? as usize;
-        let cpu_ms: u64 = row.get::<_, i64>(10)? as u64;
-        let rss_bytes: u64 = row.get::<_, i64>(11)? as u64;
-        let file_targets: usize = row.get::<_, i64>(12)? as usize;
-        let network_targets: usize = row.get::<_, i64>(13)? as usize;
-        let window_ms = window_end_ms.saturating_sub(window_start_ms).max(1);
-        let cpu_percent = cpu_ms as f64 / window_ms as f64 * 100.0;
-        Ok(AgentTopRow {
-            session: if display_id.is_empty() {
-                short_monitor_session_id(&session_id)
-            } else {
-                display_id
-            },
-            agent: agent_type,
-            pid: Some(root_pid),
-            model: None,
-            age_s: Some(now_ms.saturating_sub(first_seen_ms) as f64 / 1000.0),
-            cpu_percent,
-            rss_mb: bytes_to_mb(rss_bytes),
-            processes: process_count,
-            tokens: None,
-            tools: 0,
-            execs: 0,
-            failures: 0,
-            files: file_targets,
-            network: network_targets,
-            unattributed: 0,
-            trace: "proc+db".to_string(),
-            command,
-            workspace: cwd,
-            last_message_at: None,
-            tool_breakdown: Vec::new(),
-            file_breakdown: Vec::new(),
-        })
-    })?;
-
-    let mut out = Vec::new();
-    for row in rows {
-        let row = row?;
-        if options.matches(row.pid, Some(&row.agent), Some(&row.command)) {
-            out.push(row);
-        }
-    }
-    Ok(out)
 }
 
 fn build_monitor_sample(live: &LiveMonitorSample, io_state: &mut MonitorIoState) -> MonitorSample {
@@ -787,23 +627,6 @@ fn now_epoch_ms() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|duration| duration.as_millis() as u64)
         .unwrap_or_default()
-}
-
-fn bytes_to_mb(bytes: u64) -> u64 {
-    if bytes == 0 {
-        0
-    } else {
-        bytes.div_ceil(1_048_576)
-    }
-}
-
-fn short_monitor_session_id(session_id: &str) -> String {
-    session_id
-        .rsplit(':')
-        .next()
-        .filter(|value| !value.is_empty())
-        .unwrap_or(session_id)
-        .to_string()
 }
 
 fn systemd_user_dir() -> io::Result<PathBuf> {
@@ -1317,25 +1140,11 @@ mod tests {
             .conn
             .query_row("SELECT COUNT(*) FROM network_samples", [], |row| row.get(0))
             .unwrap();
-        let top = build_monitor_top(
-            store.path(),
-            10,
-            &TopOptions {
-                pid: None,
-                comm: None,
-                sort: "cpu".to_string(),
-                view: "all".to_string(),
-            },
-        )
-        .unwrap();
 
         assert_eq!(stats.sessions, 1);
         assert_eq!(stats.windows, 1);
         assert_eq!((windows, file_targets), (1, 3));
         assert_eq!((process_samples, file_samples, network_samples), (1, 1, 1));
-        assert_eq!(top.rows.len(), 1);
-        assert_eq!(top.rows[0].files, 2);
-        assert_eq!(top.rows[0].network, 1);
     }
 
     #[test]

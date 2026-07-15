@@ -50,9 +50,7 @@ use cli_db::{
 };
 use cmd_debug::{run_raw_process, run_raw_ssl, run_raw_stdio, run_system};
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
-use cmd_monitor::{
-    active_monitor_db_path, install_monitor_service, run_monitor, run_monitor_top_query,
-};
+use cmd_monitor::{install_monitor_service, run_monitor};
 use cmd_perf::run_top_query;
 use cmd_perf_live::run_live_top_query;
 use cmd_perf_tui::{run_live_top_tui, run_saved_top_tui};
@@ -132,10 +130,6 @@ fn interactive_terminal_available() -> bool {
 
 fn top_uses_tui(plain: bool, interactive: bool) -> bool {
     !plain && interactive
-}
-
-fn top_uses_monitor_snapshot(plain: bool, monitor_active: bool) -> bool {
-    plain && monitor_active
 }
 
 fn command_uses_top_tui(cli: &Cli) -> bool {
@@ -659,27 +653,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 run_top_query(db, *interval, *limit, count, &options)?;
             }
         }
-        Commands::Top {
-            db: None,
-            pid,
-            comm,
-            sort,
-            view,
-            interval,
-            limit,
-            count,
-            once,
-            plain,
-        } if top_uses_monitor_snapshot(*plain, active_monitor_db_path().is_some()) => {
-            let count = if *once { Some(1) } else { *count };
-            let options = TopOptions {
-                pid: *pid,
-                comm: comm.clone(),
-                sort: sort.clone(),
-                view: view.clone(),
-            };
-            run_monitor_top_query(*interval, *limit, count, &options).await?;
-        }
         Commands::Monitor { command } => match command {
             None => run_monitor().await?,
             Some(MonitorCommands::InstallService) => install_monitor_service()?,
@@ -984,7 +957,7 @@ async fn run_with_extractor(
 
 #[cfg(test)]
 mod tests {
-    use super::{top_uses_monitor_snapshot, top_uses_tui};
+    use super::top_uses_tui;
 
     #[test]
     fn default_interactive_top_uses_tui() {
@@ -995,12 +968,5 @@ mod tests {
     fn only_plain_or_non_tty_disable_tui() {
         assert!(!top_uses_tui(true, true));
         assert!(!top_uses_tui(false, false));
-    }
-
-    #[test]
-    fn monitor_snapshot_requires_explicit_plain_mode() {
-        assert!(top_uses_monitor_snapshot(true, true));
-        assert!(!top_uses_monitor_snapshot(false, true));
-        assert!(!top_uses_monitor_snapshot(true, false));
     }
 }
