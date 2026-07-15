@@ -25,12 +25,12 @@ npm install
 npm run dev
 ```
 
-Open <http://127.0.0.1:5173>. The checked public dataset is privacy-scanned and
-contains 56 deduplicated sessions, 3,960 path-event rows, 858 path records,
-652 Git lifetimes, 177 commits, 1,852 changes, and 12,000 current Git-blame
-line pixels. Of the path records, 693 map to one or more Git lifetimes; aliases
-and reused literal paths may map to the same lifetime, while event-only paths
-remain explicit rather than being mislabeled as lifetimes. The three real
+Open <http://127.0.0.1:5173>. The checked public dataset is a compact,
+privacy-scanned fixture sampled from the larger projection so CI and reviewers
+can exercise every view without committing multi-megabyte generated artifacts.
+It keeps all evidence layers and multiple vendors represented, but it is not
+the full evaluation corpus. Regenerate full local projections from private
+exports when preparing paper figures or release artifacts. The three real
 observation days span 2026-06-02 through 2026-07-14; they are not a continuous
 synthetic workload. July 14 is right-censored and is used only for descriptive
 process views.
@@ -91,5 +91,6 @@ npm run capture -- http://127.0.0.1:4173 artifacts
 
 Playwright visits every family, changes the shared cursor and filter state, and
 captures ephemeral representative plates under ignored
-`test-results/screenshots/`. Curated, privacy-scanned paper plates live under
-`artifacts/` and are not rewritten by routine CI.
+`test-results/screenshots/`. Curated paper plates should be generated as local
+or release artifacts under ignored `artifacts/`; routine CI does not commit
+those PNGs.
