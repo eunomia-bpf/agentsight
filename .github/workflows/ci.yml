@@ -7,6 +7,7 @@ on:
     branches: [ "master", "main" ]
 
 permissions:
+  actions: write
   contents: write
   packages: write
 
@@ -58,7 +59,16 @@ jobs:
       run: |
         cd frontend
         npm install
+        node scripts/prepare-sample.mjs
         npm run build
+
+    - name: Validate npm package
+      run: |
+        node script/npm/sync-version.mjs
+        node script/npm/prepare-agentsight.mjs
+        cd package/npm/agentsight
+        npm test
+        npm pack --dry-run
 
     - name: Build Rust collector
       run: |
@@ -460,6 +470,12 @@ jobs:
             exit 1
           fi
         done
+
+    - name: Dispatch npm package publish
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ steps.set_version.outputs.tag }}
+      run: gh workflow run npm-publish.yml --ref "$RELEASE_TAG"
 
     - name: Publish agentsight crate to crates.io
       env:
