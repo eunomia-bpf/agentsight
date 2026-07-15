@@ -64,7 +64,7 @@ AgentSight captures critical interactions that application-level tools miss:
 ### Prerequisites
 
 - **Linux kernel**: 4.1+ with eBPF support (5.0+ recommended)
-- **sudo access**: optional for `top`; eBPF probes are enabled automatically when sudo is already available
+- **sudo access**: optional for `top`; interactive top enables eBPF automatically when sudo is already available
 
 For source builds, see [docs/build.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/build.md).
 
@@ -91,7 +91,7 @@ file in the current directory. Start with the live and record commands, then
 use `agentsight report` for structured queries:
 
 ```bash
-agentsight top                               # live ranked view; uses eBPF when sudo is already available
+agentsight top                               # live ranked view; interactive TUI uses eBPF when sudo is already available
 agentsight monitor install-service           # install/start the background monitor service
 agentsight top --db run.db --once            # ranked view of a saved session
 sudo agentsight record -- claude             # record a command
@@ -194,7 +194,7 @@ collector setup and backend integration.
 ## ❓ Frequently Asked Questions
 
 **Q: What permissions does AgentSight need?**
-A: `top` works without sudo by using process snapshots and native agent session files. If you run it with sudo, or your user already has passwordless/cached sudo, it also enables live eBPF process capture. With `record -- <command>`, the monitored agent still runs as your normal user; only the probes are elevated.
+A: `top` works without sudo by using process snapshots and native agent session files. Interactive `top` enables live eBPF process capture when you run it with sudo or your user already has passwordless/cached sudo; plain/non-TTY `top` stays snapshot-only. With `record -- <command>`, the monitored agent still runs as your normal user; only the probes are elevated.
 
 **Q: What's the performance impact?**
 A: Our evaluation reports less than 3% CPU overhead for typical traced agent workloads.
