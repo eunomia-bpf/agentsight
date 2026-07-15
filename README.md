@@ -35,6 +35,11 @@ agentsight top
   <p><em>Live sessions ranked by model, session tokens, health, process family, tool calls, file activity, and network activity</em></p>
 </div>
 
+<div align="center">
+  <img src="docs/flamegraph-example/r221-semantic-flamegraph-top200.svg" alt="AgentSight R221 semantic flamegraph of intent-to-effect stacks" width="1000">
+  <p><em>The R221 semantic flamegraph merges repeated agent behavior into intent-to-effect stacks whose width represents system-effect weight, exposing the prompts, tools, processes, and outcomes that dominate a workload. See the <a href="docs/flamegraph-example/README.md">flamegraph gallery</a> for alternate views, datasets, and interpretation.</em></p>
+</div>
+
 ## 🚀 Why AgentSight?
 
 ### Traditional Observability vs. System-Level Monitoring
