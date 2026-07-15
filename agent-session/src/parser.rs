@@ -447,30 +447,38 @@ fn parse_jsonl(
                     } else {
                         &codex_model
                     };
-                    acc.set_usage(
-                        name,
-                        json_i64(usage, "input_tokens"),
-                        json_i64(usage, "output_tokens"),
-                        0,
-                        0,
-                        json_i64(usage, "total_tokens"),
-                    );
+                    let raw_input = json_i64(usage, "input_tokens").max(0);
+                    let output = json_i64(usage, "output_tokens").max(0);
+                    let cache = json_i64(usage, "cached_input_tokens").max(0);
+                    let input = codex_uncached_input(raw_input, cache);
+                    acc.set_usage(name, input, output, 0, cache, input + output);
                 }
                 if matches!(ptype, "token_count" | "token_usage") {
                     let info = payload
                         .get("info")
                         .or_else(|| payload.get("usage"))
                         .unwrap_or(payload);
-                    let token_usage = info
-                        .get("last_token_usage")
-                        .or_else(|| info.get("total_token_usage"))
-                        .unwrap_or(info);
-                    let input_tokens = json_u64(token_usage, "input_tokens");
+                    let total_usage = info.get("total_token_usage");
+                    let token_usage = info.get("last_token_usage").or(total_usage).unwrap_or(info);
+                    let is_cumulative_usage =
+                        total_usage.is_some() && info.get("last_token_usage").is_none();
+                    let raw_input_tokens = json_u64(token_usage, "input_tokens");
                     let output_tokens = json_u64(token_usage, "output_tokens");
                     let cache_tokens = json_u64(token_usage, "cached_input_tokens");
-                    let total_tokens = json_u64(token_usage, "total_tokens")
+                    let uncached_input_tokens = raw_input_tokens.saturating_sub(cache_tokens);
+                    let input_tokens = if is_cumulative_usage {
+                        uncached_input_tokens
+                    } else {
+                        raw_input_tokens
+                    };
+                    let raw_total_tokens = json_u64(token_usage, "total_tokens")
                         .max(json_u64(info, "total_tokens"))
                         .max(json_u64(info, "tokens"));
+                    let total_tokens = if is_cumulative_usage {
+                        uncached_input_tokens + output_tokens
+                    } else {
+                        raw_total_tokens
+                    };
                     if total_tokens > 0 {
                         if let Some(last) = events.llm_responses.last_mut()
                             && last.total_tokens == 0
@@ -1766,6 +1774,10 @@ fn json_u64(value: &Value, key: &str) -> u64 {
     value.get(key).and_then(Value::as_u64).unwrap_or(0)
 }
 
+fn codex_uncached_input(input: i64, cache: i64) -> i64 {
+    input.saturating_sub(cache)
+}
+
 fn ts_ms_from_event(value: &Value) -> Option<i64> {
     value
         .get("timestamp")
@@ -1851,6 +1863,37 @@ mod tests {
                 .max(usage.input_tokens + usage.output_tokens + usage.cache_tokens);
             assert_eq!(total, tokens);
         }
+    }
+
+    #[test]
+    fn codex_token_count_uses_uncached_cumulative_totals() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-5.6-sol","cwd":"/repo"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"user_message","message":"run tests"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":2109758505,"output_tokens":5136738,"cached_input_tokens":2069213696,"total_tokens":2114895243}}}}"#,
+        );
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+
+        assert_eq!(session.usage.input_tokens, 40_544_809);
+        assert_eq!(session.usage.output_tokens, 5_136_738);
+        assert_eq!(session.usage.cache_read_tokens, 2_069_213_696);
+        assert_eq!(session.usage.total_tokens, 45_681_547);
+
+        let response = &session.events.llm_responses[0];
+        assert_eq!(response.input_tokens, 40_544_809);
+        assert_eq!(response.output_tokens, 5_136_738);
+        assert_eq!(response.cache_tokens, 2_069_213_696);
+        assert_eq!(response.total_tokens, 45_681_547);
+        assert_eq!(codex_uncached_input(99_000_000, 88_000_000), 11_000_000);
     }
 
     #[test]

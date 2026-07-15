@@ -44,9 +44,9 @@ make build-frontend  # 仅编译前端
 
 ## 从源码运行
 
-`make build` 完成后，在仓库根目录运行下面的命令。除 `top` 外，需要加载 eBPF probes
-的命令推荐显式使用 `sudo`；`top` 无需 sudo 也能工作，交互式 TUI 只在 sudo 已可用时
-启用 live eBPF capture，plain/non-TTY 输出保持 snapshot-only。
+`make build` 完成后，在仓库根目录运行下面的命令。需要加载 eBPF probes
+的命令推荐显式使用 `sudo`；`top` 不加载 eBPF probes，而是通过进程快照和原生
+agent session 文件工作，因此无需 sudo。
 
 ```sh
 # 实时查看本机智能体 session
