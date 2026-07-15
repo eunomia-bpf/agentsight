@@ -11,8 +11,6 @@
 \usepackage{array}
 \usepackage{xspace}
 \usepackage{tikz}
-\usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
 \usetikzlibrary{arrows.meta,positioning}
 \frenchspacing
 \pdfinfo{
@@ -74,12 +72,12 @@ precision and 96.6\% recall, rejects all 1{,}629 concurrent-control effects,
 and \sys preserves all 1{,}520 attributed effects during folding.
 % 在固定的 20 个真实 Codex 任务上，范围化源谱达到 100.0\% precision 和 96.6\% recall，拒绝全部 1,629 个并发对照副作用，并在 AgentProf 折叠中保留全部 1,520 个已归因副作用。
 Across real and public trajectories, semantic profiles separate resource use
-by responsible semantic category and concentrate annotated problems.
-Out-of-fold evaluation of a pre-specified supervised boundary predictor on 287
-session-held-out OSWorld-Human task instances yields 0.739 F1 versus 0.645 for
-the strongest simple control and 0.816 operation-weighted B$^3$ partition F1
-versus 0.678.
-% 在真实和公开轨迹上，语义 profile 分离资源责任并集中标注问题；在 287 个 session-held-out OSWorld-Human 任务实例上，预先指定的监督式边界预测器经折外评估达到 0.739 F1，最强简单对照为 0.645，人工分组保持度达到 0.816 的 operation-weighted B$^3$ partition F1，对照为 0.678。
+by responsible semantic category. On its 287-session OSWorld-Human development
+corpus, the released label-free constructor reaches 0.680 boundary F1 and
+0.786 operation-weighted B$^3$ partition F1, versus 0.645 and 0.678 for the
+strongest simple controls; a supervised extra-information comparator reaches
+0.739 and 0.816.
+% 在真实和公开轨迹上，语义 profile 分离资源责任。在包含 287 个 session 的 OSWorld-Human development corpus 上，release 无标签 constructor 的 boundary F1 和 operation-weighted B$^3$ partition F1 分别为 0.680 和 0.786，最强简单对照为 0.645 和 0.678；使用额外监督信息的 comparator 达到 0.739 和 0.816。
 %% S9: Cost result (→¶6)
 \sys processes 27{,}765 operations in 1.17\,s.
 % \sys 在 1.17 秒内处理 27,765 个 operation。
@@ -218,8 +216,9 @@ Two pluggable mechanisms instantiate the model.
 This gives agents the stable tags that traditional profiling gets
 for free from function names.
 % 这为智能体提供了传统 profiling 从函数名免费获得的稳定标签。
-\emph{Stack construction} builds the attribution hierarchy, either from a user-specified field list or by automatically detecting boundaries between distinct work phases.
-% 栈构造构建归因层次，可通过用户指定的字段列表或自动检测不同工作阶段之间的边界。
+\emph{Stack construction} builds the attribution hierarchy from either a
+user-specified field list or an automatic constructor over visible operations.
+% 栈构造使用用户指定的字段列表或基于可见 operation 的自动 constructor 构建归因层次。
 On a fixed suite of 20 real Codex tasks, the existing scoped source-lineage
 path reaches 100.0\% precision and 96.6\% recall while rejecting all 1{,}629
 concurrent-control effects. Current \sys then folds all 1{,}520 attributed
@@ -232,16 +231,16 @@ session-only view leaves 84.4\% mixed.
 % 在 325 个真实 Codex 和 Claude 轨迹（183,714 个系统观测）上，prompt tag 将混合 system-effect 权重从 90.4% 降至 36.7%，而 session-only 视图仍有 84.4% 混合。
 Across three complete public benchmarks totaling 27{,}346 labeled
 steps~\cite{agentprocessbench,hintbench,traceelephant},
-target-blind semantic profiles improve problem concentration over raw action.
+results are workload-specific.
 Average precision (AP) rises from 0.556 to 0.588 on AgentProcessBench, while inspection work falls
 from 46.29\% to 41.57\% at 80\% recall on HINTBench and from 46.64\% to
-19.55\% at 50\% recall on TraceElephant.
-% 在三个完整公开基准共 27,346 个带标签步骤上，目标盲语义 profile 相比 raw action 提高了问题集中度：AgentProcessBench 的 AP 从 0.556 提升到 0.588；HINTBench 在 80% 召回率下的检查工作量从 46.29% 降至 41.57%；TraceElephant 在 50% 召回率下从 46.64% 降至 19.55%。
-On 287 session-held-out OSWorld-Human task instances~\cite{osworldhuman}, a pre-specified supervised
-boundary predictor evaluated out of fold reaches
-0.739 F1 versus 0.645 for the strongest simple control and preserves human
-groups at 0.816 operation-weighted B$^3$ partition F1 versus 0.678.
-% 在 287 个 session-held-out OSWorld-Human 任务实例上，预先指定的监督式边界预测器经折外评估达到 0.739 F1，最强简单对照为 0.645；其人工分组保持度达到 0.816 的 operation-weighted B$^3$ partition F1，对照为 0.678。
+19.55\% at the descriptive 50\%-recall point on TraceElephant.
+% 在三个完整公开基准共 27,346 个带标签步骤上，结果因 workload 而异：AgentProcessBench 的 AP 从 0.556 提升到 0.588；HINTBench 在 80% 召回率下的检查工作量从 46.29% 降至 41.57%；TraceElephant 在描述性的 50% recall 点从 46.64% 降至 19.55%。
+On the 287-session OSWorld-Human development corpus~\cite{osworldhuman}, the
+released label-free recurrence constructor reaches 0.680 boundary F1 and 0.786
+operation-weighted B$^3$ F1, above the strongest simple controls at 0.645 and
+0.678. A supervised extra-information comparator reaches 0.739 and 0.816.
+% 在包含 287 个 session 的 OSWorld-Human development corpus 上，release 无标签 recurrence constructor 的 boundary F1 与 operation-weighted B$^3$ F1 分别达到 0.680 和 0.786，超过最强简单对照的 0.645 和 0.678；使用额外监督信息的 comparator 达到 0.739 和 0.816。
 On the exact union of four public operation workloads, \sys builds a
 27{,}765-operation semantic profile in 1.17\,s with 464.5\,MiB maximum
 resident set size (RSS),
@@ -517,16 +516,16 @@ available fields.
 % 栈构造从可用字段构建归因层次。
 When users supply an ordered list of fields, the projection is direct.
 % 当用户提供有序字段列表时，投影是直接的。
-When no field list is supplied, \sys induces operation stacks automatically.
-It detects boundaries from visible differences between adjacent operations and
-uses them to form variable-depth groups, while a configurable depth cap
-controls stack granularity.
-% 它从相邻 operation 之间的可见差异中检测边界，并使用这些边界形成可变深度的分组。
-% 诱导的栈具有可变深度，可配置的深度上限控制粒度。
-This mode produces coarser groups than hand-specified stacks but
-requires no domain knowledge, making it useful for initial
-exploration, as evaluated in RQ1.
-% 此模式产生比手动指定栈更粗的分组，但不需要领域知识，适用于初始探索，并在 RQ1 中评估。
+When automatic construction is explicitly enabled, \sys induces operation
+stacks without a user-specified field list.
+It learns which adjacent visible actions reliably recur across reference
+sessions. Weak or unseen transitions start a new segment; recurring
+transitions continue the current segment, whose action motif becomes its
+reusable stack frame.
+% 它学习哪些相邻可见 action 会在参考 session 中稳定重复。较弱或未见过的转移开始新的 segment；重复出现的转移延续当前 segment，其 action motif 成为可复用的 stack frame。
+The reference can be a separate label-free operation corpus, so construction
+does not consume the target session's problem annotations.
+% 参考数据可以是独立的无标签 operation 语料，因此构造过程不使用目标 session 的问题标注。
 
 %% ===================================================================
 \section{Implementation}
@@ -565,12 +564,17 @@ while mapping rules derive fields for structured trajectories, for example
 
 \paragraph{Boundary construction.}
 % 边界构建。
-Under a configurable depth bound, the Rust inducer recursively splits adjacent
-visible-field changes using mean resource-weighted normalized information gain.
-It accepts the best cut only above $\ln(n)/(2n)$, emits dominant child values as
-frames, uses query overlap only for exact ties, and excludes scoring or noisy
-fields.
-% 内置 Rust stack inducer 仅考虑相邻 operation 在合格可见字段上发生变化的位置；它对每个 informative 字段计算资源加权类别熵与归一化信息增益，取字段平均值，并仅在最佳增益超过区间大小惩罚时递归分割。选中字段的子区间主导值形成可重建的 field=value frame；query-term overlap 只用于确定性完全同分决胜，scorer label 不参与诱导。该路径不同于用于提出 tagging rule 的可选 Python TF-IDF/K-Means backend。
+The Rust inducer counts adjacent action transitions in reference sessions and
+scores each transition by $\mathrm{NPMI}(a,b)=
+\ln[p(a,b)/(p_L(a)p_R(b))]/-\ln p(a,b)$, with all three probabilities defined
+over the same transition sample space. Occurrence-weighted one-dimensional
+two-means starts at the minimum and maximum scores, assigns distance ties to the
+lower center, and uses the converged midpoint as its cutoff. Unseen transitions
+or scores below that cutoff start a new segment.
+Run-length-compressed action sequences name the resulting recurring motifs.
+The inducer reads only session identity, input order, and action; scoring labels
+and resource weights do not affect construction.
+% Rust inducer 统计参考 session 中的相邻 action 转移，并用 NPMI 评分；所有概率来自同一转移样本空间。按出现次数加权的一维 two-means 从最小和最大分数初始化，将距离相同的点分到较低中心，并用收敛后两个中心的中点作为阈值；未见转移或低于阈值的分数开始新的 segment。经游程压缩的 action 序列命名重复 motif。inducer 只读取 session、输入顺序和 action；评分标签与资源权重不参与构造。
 
 \paragraph{Profile export.}
 % Profile 导出。
@@ -718,26 +722,13 @@ only 7/10 top prompt categories (Spearman $\rho = 0.623$), and
 Thus, multiple weights expose bottlenecks that one metric would miss.
 % 因此，多种权重暴露了单一指标会遗漏的瓶颈。
 
-Without user-specified fields, automatic induction on six annotation tasks
-produces a median of 12 groups, compared with 285 for the per-session view and
-one for the flat view, and yields variable-depth stacks on 4/6 tasks.
-% 在没有用户指定字段时，六个标注任务上的自动诱导产生中位 12 个分组（per-session 为 285，flat 为 1），并在 4/6 个任务上产生可变深度 stack。
-We use independent problem annotations to score each group's problem density.
-AP measures ranking quality, and inspection work measures the operations
-traversed in that ranking.
-% 独立问题标注评估每个分组的密度：AP 测量其排序质量，inspection work 测量该排序中遍历的 operation。
-Automatic induction achieves a median AP of 0.276 versus 0.312 for
-hand-specified stacks, while reducing inspection work to 65.3\% of flat
-summaries without user configuration.
-% 自动诱导的 AP 中位数为 0.276，手动指定 stack 为 0.312；无需用户配置时，检查工作量降至 flat summary 的 65.3%。
-
 Figure~\ref{fig:flamegraph} shows the resulting flame graphs for the \texttt{tokens} and \texttt{files} views, illustrating that changing only the stack fields and weight function produces different aggregates from the same operations.
 % Figure~\ref{fig:flamegraph} 展示了 \texttt{tokens} 和 \texttt{files} 视图的火焰图，说明仅改变栈字段和权重函数即可从同一组 operation 产生不同聚合。
 Together, these results answer RQ1. Scoped source lineage rejects concurrent
 controls, \sys preserves attributed weight across runs, and semantic
-profiling provides multi-resolution, multi-weight, and automatically induced
-attribution views over the resulting operations.
-% 这些结果共同回答 RQ1：范围化源谱拒绝并发对照，AgentProf 在跨运行折叠中保留已归因权重，语义 profiling 在所得 operation 上提供多分辨率、多权重和自动诱导的归因视图。
+profiling provides multi-resolution and multi-weight attribution views over the
+resulting operations. RQ3 separately evaluates automatic group construction.
+% 这些结果共同回答 RQ1：范围化源谱拒绝并发对照，AgentProf 在跨运行折叠中保留已归因权重，语义 profiling 在所得 operation 上提供多分辨率和多权重归因视图；RQ3 单独评估自动分组构造。
 
 
 %% flamegraph figure moved to intro (between ¶4 and ¶5)
@@ -765,9 +756,6 @@ then rotation scores are averaged.
 
 \begin{table}[t]
 \centering\scriptsize
-\caption{Full-workload RQ2 controls. Lower Work is better; $\dagger$ is
-descriptive. AP and Work are not averaged.}
-\label{tab:rq2-localization}
 \begin{tabular}{@{}l@{\hspace{4pt}}r@{\hspace{4pt}}r@{\hspace{4pt}}l@{}}
 \toprule
 Metric & \sys & Raw & Other existing views \\
@@ -778,13 +766,13 @@ Trace Work@80 & 1.00 & .719 & width .677; native/session 1.00 \\
 Trace Work@50$\dagger$ & .195 & .466 & width .396; session .568; native .578 \\
 \bottomrule
 \end{tabular}
+\caption{Full-workload RQ2 controls. Lower Work is better; $\dagger$ is
+descriptive. AP and Work are not averaged.}
+\label{tab:rq2-localization}
 \end{table}
 
 \begin{table*}[t]
 \centering\scriptsize
-\caption{Rank-hidden reader deltas (stack minus session) at three groups;
-higher recall/precision and lower work are better.}
-\label{tab:rq2-reader}
 \begin{tabular}{@{}lrrrrrrr@{}}
 \toprule
  & ANet incorrect & ANet redundant & AReward loop & AReward effect & OSWorld boundary & SATraj unsafe & Median \\
@@ -794,6 +782,9 @@ $\Delta$Precision & +.010 & +.061 & -.105 & +.159 & -.177 & +.369 & \textbf{+.03
 $\Delta$Work & -.002 & +.002 & +.294 & -.001 & +.377 & +.011 & +.006 \\
 \bottomrule
 \end{tabular}
+\caption{Rank-hidden reader deltas (stack minus session) at three groups;
+higher recall/precision and lower work are better.}
+\label{tab:rq2-reader}
 \end{table*}
 
 On all 1{,}000 AgentProcessBench trajectories (8{,}509 labeled steps), macro AP
@@ -846,10 +837,14 @@ and training procedure before evaluation. Each session-blocked fold fits paramet
 only on training sessions, then predicts every held-out session once.
 % 我们评估一个监督式 Bernoulli Naive Bayes 相邻边界预测器。模型家族、用于构造相邻对特征的九个可见 operation 字段、特征构造和训练流程在评估前固定；每个 session-blocked fold 只使用训练 session 拟合参数和选择阈值，并恰好预测每个 held-out session 一次。
 The predicted boundaries define an ordinary group field that \sys projects and
-folds through its released profile-construction path. This test covers supervised boundary
-prediction and field integration, not the built-in Rust stack inducer described
-in Implementation.
-% 预测边界成为普通分组字段，\sys 随后通过发布的 profile-construction 路径投影并折叠该字段；本实验不测试 Implementation 中的内置 Rust stack inducer。
+folds through its released profile-construction path.
+% 预测边界成为普通分组字段，\sys 随后通过发布的 profile-construction 路径投影并折叠该字段。
+We also run the built-in recurrence inducer with the same five session folds:
+each held-out fold uses only the other sessions' visible action transitions as
+its label-free reference. Because the recurrence principle was selected after
+inspecting earlier results on this corpus, we report it as mechanism-development
+evidence rather than independent cross-family confirmation.
+% 我们还用相同的五个 session fold 运行内置 recurrence inducer：每个 held-out fold 仅使用其他 session 的可见 action 转移作为无标签参考。由于 recurrence 原理是在查看该语料的早期结果后选定的，我们将其作为机制开发证据，而非独立的跨 family 验证。
 The three simple controls place a boundary after every operation, whenever the
 visible action field changes, or whenever the visible phase field changes.
 % 简单对照分别在每个 operation 后放置边界，或仅在可见 action 或 phase 字段变化时放置边界。
@@ -860,19 +855,20 @@ predicted--human group overlap captures merging and fragmentation.
 
 \begin{table}[t]
 \centering\small
-\caption{Session-held-out RQ3 boundary fidelity on OSWorld-Human. B$^3$
-measures agreement between predicted and human operation partitions.}
-\label{tab:rq3-boundary}
 \begin{tabular}{@{}lrrrr@{}}
 \toprule
 Method & Prec. & Recall & Boundary F1 & B$^3$ F1 \\
 \midrule
 Supervised predictor & 0.700 & 0.782 & \textbf{0.739} & \textbf{0.816} \\
+Recurrence inducer & 0.592 & 0.799 & 0.680 & 0.786 \\
 Always boundary & 0.476 & 1.000 & 0.645 & 0.678 \\
 Action change & 0.386 & 0.626 & 0.477 & 0.659 \\
 Phase change & 0.441 & 0.268 & 0.334 & 0.665 \\
 \bottomrule
 \end{tabular}
+\caption{Session-held-out RQ3 boundary fidelity on OSWorld-Human. B$^3$
+measures agreement between predicted and human operation partitions.}
+\label{tab:rq3-boundary}
 \end{table}
 
 The supervised predictor reaches 0.739 boundary F1, 0.094 above the strongest
@@ -882,9 +878,16 @@ Its groups reach 0.816 B$^3$ F1 against the human partition, compared with
 0.678 for the strongest control. Equivalently, $(1-\mathrm{B}^3\ \mathrm{F1})$
 falls from 0.322 to 0.184.
 % 其分组相对人工分区达到 0.816 的 B$^3$ F1，而最强对照为 0.678；等价地，1-B$^3$ F1 从 0.322 降至 0.184。
-\sys projects all 3{,}978 operations onto the predicted group field, producing
-2{,}249 stacks while preserving the total weight of all 3{,}978 operations.
-% \sys 将全部 3,978 个 operation 投影到预测分组字段，产生 2,249 个 stack，同时保持全部 operation 的总权重。
+\sys projects all 3{,}978 operations onto the supervised predictor's group
+field, producing 2{,}249 stacks while preserving the total weight of all
+3{,}978 operations.
+% \sys 将全部 3,978 个 operation 投影到 supervised predictor 的分组字段，产生 2,249 个 stack，同时保持全部 operation 的总权重。
+The label-free recurrence inducer reaches 0.680 boundary F1 and 0.786 B$^3$
+F1, exceeding the strongest simple controls on both metrics while remaining
+below the supervised extra-information comparator. The release Rust path
+matches all 3{,}691 evaluated boundary decisions and 2{,}656 segments from the
+fixed evaluator and conserves all 3{,}978 operation weights.
+% 无标签 recurrence inducer 的 boundary F1 为 0.680、B$^3$ F1 为 0.786，两项都超过最强简单对照，但低于使用额外监督信息的 comparator。release Rust 路径与固定 evaluator 的全部 3,691 个边界决策和 2,656 个 segment 完全一致，并守恒全部 3,978 个 operation 权重。
 
 Using the existing target-blind TF-IDF/K-Means backend, we also infer task
 partitions from label-hidden text. On all nine available Mind2Web sessions
@@ -894,9 +897,11 @@ V-measure 0.557 and 0.815 at full coverage, versus 0 for a constant tag. This
 label-permutation-invariant metric tests partitions, not literal tag names.
 % 我们还使用现有目标盲 TF-IDF/K-Means backend 单独测试 task tag 分区。tagger 每个 session 只看到一条 task 文本而看不到原生 task label，并将预测广播到该 session 的 operation。在全部 9 个可用 Mind2Web session（49 个 operation）和 100 个 ScienceWorld session（2,504 个 operation）上，operation-weighted V-measure 分别为 0.557 和 0.815，coverage 均为 100%，constant-tag control 均为 0。由于 V-measure 对标签置换不变，该结果测量 task partition fidelity 而非 cluster 的字面命名。
 
-Together, these experiments provide positive RQ3 evidence across three public
-families: target-blind task partitions and session-held-out operation groups.
-% task partition 与 boundary 实验共同在三个公开轨迹家族上提供正向 RQ3 证据：目标盲 task tag 恢复独立 task 分区，session-held-out boundary 恢复人工 operation group。
+The pre-specified supervised and task-partition experiments provide positive
+RQ3 evidence across three public families: target-blind task partitions and
+session-held-out operation groups. The recurrence row separately validates the
+current implementation choice on its development corpus.
+% 预先指定的 supervised 与 task-partition 实验共同在三个公开轨迹家族上提供正向 RQ3 证据：目标盲 task tag 恢复独立 task 分区，session-held-out boundary 恢复人工 operation group；recurrence 行则单独验证当前 development corpus 上的实现选择。
 
 %% -------------------------------------------------------------------
 \subsection{RQ4: Profiling Cost}
@@ -917,9 +922,6 @@ The measurements run on a 24-core Intel Core Ultra 9 285K machine with
 
 \begin{table}[t]
 \centering\small
-\caption{RQ4 profile-construction cost. Times are three-run medians, and RSS is
-the largest observed semantic-profile peak.}
-\label{tab:rq4-cost}
 \begin{tabular}{@{}lrrrr@{}}
 \toprule
 Workload & Ops & Sem. (s) & Raw (s) & RSS (MiB) \\
@@ -931,6 +933,9 @@ AgentNet & 16{,}741 & 0.71 & 0.58 & 278.4 \\
 Union & 27{,}765 & 1.17 & 0.99 & 464.5 \\
 \bottomrule
 \end{tabular}
+\caption{RQ4 profile-construction cost. Times are three-run medians, and RSS is
+the largest observed semantic-profile peak.}
+\label{tab:rq4-cost}
 \end{table}
 
 Both time curves are monotonic across the five measured input sizes.
@@ -941,16 +946,9 @@ At that largest input, semantic construction adds 180\,ms (18.2\%) and
 6.0\,MiB maximum RSS (1.3\%) over raw action.
 % 在最大输入上，语义构建相比 raw action 增加 180 毫秒（18.2%）和 6.0 MiB 最大 RSS（1.3%）。
 
-On matched inputs from eight real Codex sessions, the predecessor AgentFlame
-used 60 local-model calls and 1.64\,s; cached reconstruction used no calls and
-0.11\,s with 76/76 hits.
-% 在前代 AgentFlame 对八个真实 Codex 会话的一组同输入比较中，首次构建进行 60 次本地模型调用并耗时 1.64 秒；缓存重建获得 76/76 次命中、不再调用模型，并耗时 0.11 秒。
-Thus, shared tag caching avoids repeated field derivation; this predecessor
-result is not timing for the current \texttt{agentpprof} binary.
-% 这组比较支持共享 tag cache 消除重复字段派生调用的机制；它不是当前 \texttt{agentpprof} 二进制的重复性能估计。
 Together, RQ4 shows practical, predictable construction over the tested range
-and that cached derivation avoids repeated model work.
-% 这些结果共同回答 RQ4：在测试范围内，profile 构建开销实用且可预测，缓存派生避免了重复模型工作。
+for the current binary.
+% 这些结果共同回答 RQ4：当前 binary 在测试范围内的 profile 构建开销实用且可预测。
 
 \subsection{Scope and Limitations}
 
@@ -1005,22 +1003,11 @@ execution's fault location.
 % 结论
 
 Agent observability needs profiling, not only debugging. \sys builds semantic
-operation stacks with pluggable intent attribution.
-% 智能体可观测性需要性能分析，不仅仅是调试。\sys 通过语义 operation stack、可插拔意图归因和栈构造为智能体轨迹带来分层归因能力。
-Across 20 real Codex tasks, lineage reaches 100.0\%/96.569\% precision/recall,
-rejects 1{,}629 controls, and preserves 1{,}520 effects.
-% 在 20 个真实 Codex 任务上，范围化源谱达到 100.0\% precision 和 96.569\% recall，拒绝全部 1,629 个并发对照副作用，并将 1,520 个已归因副作用送入 AgentProf 且不损失任何权重。
-Across 325 real trajectories and three public benchmarks, semantic fields
-separate effects and target-blind stacks concentrate problems; on 287 held-out
-OSWorld-Human tasks, a pre-specified predictor reaches 0.739 F1 and 0.816
-operation-weighted B$^3$ F1.
-% 在 325 条真实轨迹上，语义字段将无标签和按会话视图仍混合的副作用分离为不同的责任视图。
-% 在三个公开基准上，目标盲 operation stack 在所评估的 AP 和 recall 工作点上相比 raw action 提高问题集中度。
-% 在 287 个 held-out OSWorld-Human 任务实例上，预先指定的边界预测器达到 0.739 F1 和 0.816 operation-weighted B$^3$ F1。
-\sys profiles 27{,}765 operations in 1.17\,s, complementing run-local debugging
-with cross-trajectory semantic profiles.
-% 在 27,765 个公开 operation 上，\sys 用 1.17 秒构建完整语义 profile。
-% 这些结果共同确立了跨轨迹语义 profiling 对单次运行 debugging 和 tracing 的补充价值。
+operation stacks with source-linked conserved effects and selectable semantic
+responsibility views. Its released label-free constructor exceeds the strongest
+simple boundary and partition controls on its development corpus, while the
+binary profiles 27{,}765 operations in 1.17\,s.
+% 智能体可观测性需要 profiling，而不仅仅是 debugging。\sys 通过带来源关联且权重守恒的 effect 和可选择的语义责任视图构建 operation stack；release 无标签 constructor 在 development corpus 上超过最强简单 boundary 与 partition 对照，binary 在 1.17 秒内 profile 27,765 个 operation。
 
 \bibliography{references}
 

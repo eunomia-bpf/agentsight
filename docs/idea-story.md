@@ -245,6 +245,20 @@ contradicts the registered sufficient-explanation hypothesis. It establishes a
 better implementation configuration and a mechanism boundary, not a smaller
 RQ3, a new thesis, or a reason to replace the original story.
 
+Step 0020 follows the user's explicit instruction to improve the mechanism on
+those same completed trajectories rather than switch benchmarks. Diagnosis
+showed that recursive information gain rewards categorical purity even though a
+human operation commonly contains a heterogeneous action motif. The replacement
+uses one paper-aligned principle: adjacent actions that recur together across
+other sessions continue the same operation, while weak or unseen transitions
+start a new one. Coherent transition-space NPMI and deterministic weighted
+two-means implement that principle without a label-tuned cutoff. On the fixed
+post-hoc population it reaches boundary F1 0.6799 and B-cubed F1 0.7862, above
+the registered strongest simple controls, and the release Rust port exactly
+matches every evaluated boundary, motif, segment, and conserved unit. This is a
+mechanism/frontier update on already observed labels, not a new narrative,
+thesis, contribution, RQ, or untouched cross-family confirmation.
+
 Step 0019 tests a different consequence inside unchanged RQ2. A fixed
 rank-hidden Qwen3.6-27B reader selects three of each view's query-aware top five
 groups across six public-data tasks and all five cyclic positions. The complete
@@ -260,21 +274,25 @@ changing the thesis, RQs, contributions, or two-object model.
 The user has restored the untouched submodule as the canonical story source.
 RQ1 has strong scoped source-lineage and lossless-folding evidence, RQ4 has a
 complete positive construction-cost answer, and Steps 0006/0008 supply positive
-boundary/task-partition evidence within RQ3. Steps 0017--0018 close the bounded
-OSWorld-Human investigation of the built-in inducer: the single-objective
-mechanism is much better than the old heuristic and cap-free induction is better
-than depth four, but neither clears the strongest simple controls. No further
-OSWorld-Human depth, penalty, threshold, or score-term search is admitted.
+boundary/task-partition evidence within RQ3. Step 0020 closes the bounded
+OSWorld-Human mechanism-development investigation by replacing the mismatched
+information-gain objective with recurrence induction and porting it exactly to
+Rust. It clears the registered controls on that already observed population,
+but the result remains post-hoc rather than independent confirmation. No
+further OSWorld-Human depth, field, penalty, threshold, or score-term search is
+admitted.
 
 The Step 0018 whole-paper review preserved the thesis and four RQs but disputed
 the current cumulative positive RQ2 authorization because its three workload
 outcomes used different metrics/points and did not isolate downstream decision
 value. Step 0019 has now completed the selected fixed-reader comparison and
 adds the bounded downstream evidence above. The next action is the targeted
-WRITE and independent outer audit of that evidence, followed by selection of
-the strongest remaining paper-level gap. This is an evidence-frontier update,
-not a narrative evolution or change to the thesis, four RQs, or two-object
-model.
+WRITE sync for the current recurrence implementation and an independent
+whole-paper/outer audit. If that audit still finds automatic identity fidelity
+load-bearing, the next empirical step is unchanged-port confirmation on an
+independent annotated family, not another OSWorld-Human mechanism variant. This
+is an evidence-frontier update, not a narrative evolution or change to the
+thesis, four RQs, or two-object model.
 
 ## Narrative Evolution — Accepted Changes Only
 

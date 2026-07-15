@@ -27,6 +27,8 @@ history is archived at
 | `script/hodoscope_representation_eval.py` | thin official-data adapter for the completed matched Hodoscope/flat/turn/recursive experiment; not a core AgentProf subsystem |
 | `script/hintbench_profile_localization_eval.py` | thin official-data adapter, real-AgentProf runner, baseline scorer, and result reporter for the completed HINTBench experiment; not a core AgentProf subsystem |
 | `script/r315_llm_reader_eval.py` | thin rank-hidden packet collector and post-collection scorer for the completed fixed-reader RQ2 experiment; not a core AgentProf subsystem |
+| `script/rq3_recurrence_stack_induction_eval.py` | fixed five-fold Python development adapter and scorer for the completed recurrence-induction experiment |
+| `script/rq3_recurrence_stack_rust_equivalence.py` | mechanical full-population verifier for Python/Rust boundary, segment, motif, and mass equivalence |
 
 ## Implemented Pipeline
 
@@ -43,23 +45,30 @@ local Codex/Claude sessions, operation JSONL, or supported trace input
   -> pprof, folded, JSON, or SVG output
 ```
 
-The Rust inducer now recursively partitions each contiguous operation interval
-with one target-blind objective. Candidate boundaries occur only where adjacent
-operations differ in an eligible visible field. For every informative field,
-the implementation computes resource-weighted categorical entropy and its
-normalized information gain at the boundary, then averages the field gains.
-It accepts the best boundary only when the mean gain is strictly greater than
-`ln(n)/(2n)` for the interval's `n` operations. Query relevance is only a
-deterministic exact-tie breaker; it does not enter the score. The selected
-field's dominant child values produce reconstructable `field=value` frames.
-The current CLI retains an explicit maximum-depth bound, whose default is four.
+The Rust inducer now constructs operation identities from cross-session action
+recurrence. It counts adjacent action transitions in a reference population,
+computes normalized pointwise mutual information (NPMI) with left and right
+marginals from that same transition sample space, and separates low- from
+high-association transitions with deterministic occurrence-weighted
+one-dimensional two-means. An unseen transition or a score strictly below the
+midpoint of the two centers starts a new segment; otherwise the current segment
+continues. Each resulting frame is the run-length-compressed action
+sequence of its segment, so the same recurring motif receives the same
+cross-session identity.
 
-The previous token-set/Jaccard, semantic-shift, balance, coverage, label-quality,
-small-child, majority, and fixed-score terms and gates are not part of the
-current candidate implementation. TF-IDF/K-Means belongs only to the optional
-Python rule-authoring backend. The built-in time view weights a timestamped
-operation by elapsed time to the next recorded event rather than by an
-independently recorded operation duration.
+Automatic induction requires exactly one nonempty `session` and one nonempty
+`action` value per operation. It uses input order within each session and gives
+each adjacent transition one count; operation weights remain additive profile
+measures and do not alter motif learning. `--induce-reference-operation-file`
+may supply a separate label-free reference corpus. Missing fields, a population
+with no transitions, a degenerate score distribution, or failed two-means
+separation is an explicit error rather than a fallback. The old information-
+gain objective and its depth, query, and session options are not runtime
+alternatives; supplying those legacy knobs with recurrence induction is
+rejected. TF-IDF/K-Means belongs only to the optional Python rule-authoring
+backend. The built-in time view weights a timestamped operation by elapsed time
+to the next recorded event rather than by an independently recorded operation
+duration.
 
 Implemented CLI capabilities include:
 
@@ -68,7 +77,9 @@ Implemented CLI capabilities include:
 - `--op-map` and `--op-map-file` for derived operation fields;
 - `--where` for operation predicates after mapping and before folding;
 - `--stack` and `--stack-rule` for declared stack construction;
-- `--induce-operation-stack` for recursive visible-field stack induction;
+- `--induce-operation-stack` for cross-session recurrence-based operation
+  identity, with optional label-free reference operations from
+  `--induce-reference-operation-file`;
 - `--rank-rule`, `--rank-op-rule`, and `--rank-mode` for JSON group ordering;
 - Chrome/Perfetto Trace Event import and export through operations;
 - pprof-compatible profiles plus folded-stack, JSON, and SVG renderings.
@@ -110,6 +121,9 @@ experiment.
 - Public benchmark outcome labels remain outside target-time construction and
   ranking unless a baseline explicitly uses them as an oracle upper bound.
 - Trace containers are normalized into operations before profiling.
+- Automatic operation-stack induction requires exactly one nonempty `session`
+  and `action` value per operation and returns an explicit error when its
+  recurrence model cannot be learned.
 - AgentSight evidence must first be converted into one of the supported inputs;
   the current CLI has no direct AgentSight-recording reader and does not claim
   verified trigger lineage.
@@ -121,7 +135,9 @@ experiment.
 The implementation is ahead of the admitted scientific evidence in breadth of
 configuration. In particular:
 
-1. operation-stack induction has mixed and recently negative held-out evidence;
+1. recurrence induction clears the registered simple controls on the same
+   post-hoc OSWorld-Human development population, but still lacks an independent
+   cross-family confirmation of phase/action identity;
 2. many mapping and rank rules were developed on datasets later used for
    analysis, so unchanged transfer needs a genuinely untouched family;
 3. profile-group ranking can improve because of visible fields or rank policy
@@ -144,21 +160,22 @@ configuration. In particular:
     not establish lower work, reader-only causality, human utility, or raw-action
     superiority.
 
-## Implementation Policy After The Depth Experiment
+## Implementation Policy After The Recurrence Port
 
-`script/rq3_rust_inducer_fidelity_eval.py` now preserves its old-heuristic
-comparison as the default and adds one registered depth-limit mode. That mode
-requires the same resolved release binary at depths 255 and four, verifies the
-actual reported configurations, and checks every depth-four session against the
-Step 0017 result. It reuses the existing loader, scrubber, replay, metrics,
-controls, and output format; there is no second scorer or algorithm.
+The Step 0017--0018 information-gain results remain frozen experiment artifacts
+and historical baselines; that mechanism is no longer the Rust runtime path.
+Step 0020 changes the objective rather than adding a feature, depth, threshold,
+or score term. On the same already-observed 287-session development population,
+recurrence induction reaches boundary F1 0.6799 and operation-weighted B-cubed
+F1 0.7862, above the strongest registered simple controls at 0.6445 and 0.6784.
+Because the labels had already informed mechanism diagnosis, these numbers are
+post-hoc implementation-development evidence rather than fresh RQ3
+confirmation.
 
-Step 0018 establishes depth 255 as the better tested research configuration on
-the declared population: it improves both metrics, never reaches the cap, and
-stops intrinsically at maximum observed depth 26. It does not establish a
-universal product default or broad accuracy. The production default remains an
-explicit implementation choice and must not be silently described as the
-cap-free evaluated path. Do not add another OSWorld-Human depth, score term,
-threshold, feature, model, dataset, or evaluator. A later experiment, if
-whole-paper REVIEW requires one, must use an independent annotated workload
-rather than tune this population again.
+The release Rust port exactly matches the fixed Python evaluator on all 3,691
+adjacent decisions, 3,978 motif assignments, and 2,656 segments across the five
+existing folds, while conserving all 3,978 profile units. Mutating scorer-only
+fields leaves the complete induction report unchanged. This closes the current
+OSWorld-Human mechanism-development round. Do not add another field, cutoff,
+depth, or objective variant on this population; if the paper requires broader
+algorithm evidence, use the unchanged port on an independent annotated family.

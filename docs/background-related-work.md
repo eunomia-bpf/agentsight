@@ -19,10 +19,13 @@ weaker hypothesis.
 
 RQ1 now has a complete scoped real-Codex lineage result, RQ4 has a complete
 current-binary construction-cost result, and RQ3 has positive held-out boundary
-and task-partition evidence. Steps 0017--0018 additionally establish the
-boundary of the built-in Rust inducer: simplifying it and removing the arbitrary
-depth-four cap improves the mechanism substantially, but it remains below the
-strongest simple controls. That OSWorld-Human tuning branch is closed.
+and task-partition evidence. Steps 0017--0018 established that the former
+information-gain inducer remained below the strongest simple controls. Step
+0020 changes the core objective to cross-session action recurrence on the same
+development population and clears those controls on both boundary and partition
+fidelity; the release Rust path exactly matches the fixed evaluator. This is
+post-hoc mechanism-development evidence rather than independent cross-family
+confirmation. That OSWorld-Human mechanism branch is now closed.
 
 The Step 0018 source-grounded whole-paper review disputes the current cumulative
 positive RQ2 synthesis. AgentProcessBench contains a small semantic-specific AP

@@ -83,12 +83,12 @@ OPERATION STACK QUERY WORKFLOW:
 
      agentpprof --profile-spec agentnet-diagnostic-spec.json
 
-  --induce-operation-stack derives a recursive operation-stack path before
-  folding. The user supplies predicates and optional query terms, not a stack
-  field chain; adjacent operation boundaries are selected by mean normalized
-  information gain over eligible visible fields such as action, effect,
-  process, prompt tags, or an explicitly allowed session field. Evidence fields
-  explain a boundary; they are not stack levels.
+  --induce-operation-stack derives recurring operation identities before
+  folding. Each operation must provide one visible session and action. The
+  inducer learns adjacent-action NPMI across sessions, separates recurring from
+  non-recurring transitions with deterministic two-means, and names each
+  segment from its run-length-compressed action motif. An optional label-free
+  --induce-reference-operation-file supplies a separate recurrence corpus.
 "#;
 
 #[derive(Parser)]
@@ -142,21 +142,24 @@ struct Cli {
     /// Choose how JSON rank rules order stack groups.
     #[arg(long = "rank-mode", value_enum)]
     rank_mode: Option<CliRankMode>,
-    /// Derive a recursive operation-stack path from visible operation fields.
+    /// Derive recurring operation identities from visible session/action transitions.
     #[arg(long = "induce-operation-stack")]
     induce_operation_stack: bool,
     /// Deprecated compatibility alias for --induce-operation-stack.
     #[arg(long = "induce-task-stack")]
     induce_task_stack: bool,
-    /// Allow session/prompt-instance fields to be considered as induction split evidence.
+    /// Legacy information-gain option; rejected by recurrence induction.
     #[arg(long = "induce-allow-session")]
     induce_allow_session: bool,
-    /// Maximum depth for --induce-operation-stack.
+    /// Legacy information-gain option; rejected by recurrence induction.
     #[arg(long = "induce-max-depth")]
     induce_max_depth: Option<usize>,
-    /// Query terms used only to break exact information-gain ties between visible splits.
+    /// Legacy information-gain option; rejected by recurrence induction.
     #[arg(long = "induce-query-term", value_name = "TERM")]
     induce_query_terms: Vec<String>,
+    /// Learn operation recurrence from a separate label-free operation corpus.
+    #[arg(long = "induce-reference-operation-file", value_name = "PATH")]
+    induce_reference_operation_files: Vec<PathBuf>,
     /// Write byte-stable profiles by replacing output timestamps with fixed values.
     #[arg(long = "deterministic-output")]
     deterministic_output: bool,
@@ -312,6 +315,7 @@ struct ProfileSpec {
     induce_allow_session: Option<bool>,
     induce_max_depth: Option<usize>,
     induce_query_terms: Vec<String>,
+    induce_reference_operation_files: Vec<PathBuf>,
     tag_rules: Vec<String>,
     preset: Option<bool>,
     tagger: Option<TaggerKind>,
@@ -348,6 +352,8 @@ struct RawProfileSpec {
     induce_max_depth: Option<usize>,
     #[serde(default)]
     induce_query_terms: Vec<String>,
+    #[serde(default)]
+    induce_reference_operation_files: Vec<PathBuf>,
     #[serde(default)]
     tag_rules: Vec<String>,
     preset: Option<bool>,
@@ -412,16 +418,30 @@ fn command_export(args: Cli) -> Result<()> {
     } else {
         "task"
     };
-    let induce_allow_session =
-        args.induce_allow_session || spec.induce_allow_session.unwrap_or(false);
-    let induce_max_depth = args.induce_max_depth.or(spec.induce_max_depth).unwrap_or(4);
     let induce_query_terms = merge_cli_first(&args.induce_query_terms, &spec.induce_query_terms);
+    let legacy_induction_options_requested = args.induce_allow_session
+        || spec.induce_allow_session.is_some()
+        || args.induce_max_depth.is_some()
+        || spec.induce_max_depth.is_some()
+        || !induce_query_terms.is_empty();
+    if induce_operation_stack && legacy_induction_options_requested {
+        bail!(
+            "recurrence-based --induce-operation-stack does not accept --induce-allow-session, --induce-max-depth, or --induce-query-term"
+        );
+    }
+    let induce_reference_operation_files = merge_spec_first(
+        &spec.induce_reference_operation_files,
+        &args.induce_reference_operation_files,
+    );
+    if !induce_operation_stack && !induce_reference_operation_files.is_empty() {
+        bail!("--induce-reference-operation-file requires --induce-operation-stack");
+    }
     let effective_stack_name = if induce_operation_stack {
         if let Some(stack) = stack
             && stack.trim() != induced_stack_field
         {
             bail!(
-                "--induce-operation-stack derives a recursive operation-stack path; omit --stack or use --stack {induced_stack_field}"
+                "--induce-operation-stack derives recurring operation identities; omit --stack or use --stack {induced_stack_field}"
             );
         }
         profile_options = profile_options.with_stack(parse_stack_spec(induced_stack_field)?);
@@ -462,13 +482,14 @@ fn command_export(args: Cli) -> Result<()> {
         .with_rank_operation_rules(parse_operation_rank_rules(&rank_op_rules)?)
         .with_rank_mode(rank_mode.into());
     if induce_operation_stack {
-        profile_options = profile_options.with_operation_stack_induction(
-            OperationStackInductionConfig::new()
-                .with_derived_field(induced_stack_field)
-                .with_allow_session(induce_allow_session)
-                .with_max_depth(induce_max_depth)
-                .with_query_terms(induce_query_terms.clone()),
-        );
+        let mut induction =
+            OperationStackInductionConfig::new().with_derived_field(induced_stack_field);
+        if !induce_reference_operation_files.is_empty() {
+            let reference_records =
+                read_operation_record_values(&induce_reference_operation_files)?;
+            induction = induction.with_reference_operation_records(&reference_records)?;
+        }
+        profile_options = profile_options.with_operation_stack_induction(induction);
     }
     let operation_files = merge_spec_first(&spec.operation_files, &args.operation_files);
     let session_files = merge_spec_first(&spec.session_files, &args.session_files);
@@ -519,9 +540,7 @@ fn command_export(args: Cli) -> Result<()> {
             "induce_operation_stack": induce_operation_stack,
             "induce_task_stack": induce_operation_stack,
             "induced_stack_field": induced_stack_field,
-            "induce_allow_session": induce_allow_session,
-            "induce_max_depth": induce_max_depth,
-            "induce_query_terms": induce_query_terms.clone(),
+            "induce_reference_operation_files": induce_reference_operation_files,
             "op_maps": op_maps,
             "op_map_files": op_map_files,
             "where_rules": where_rules,
@@ -582,7 +601,7 @@ fn command_export(args: Cli) -> Result<()> {
         write_projection(
             &profile,
             format,
-            &output,
+            output,
             args.include_previews,
             &[],
             args.svg_width,
@@ -600,9 +619,7 @@ fn command_export(args: Cli) -> Result<()> {
             "induce_operation_stack": induce_operation_stack,
             "induce_task_stack": induce_operation_stack,
             "induced_stack_field": induced_stack_field,
-            "induce_allow_session": induce_allow_session,
-            "induce_max_depth": induce_max_depth,
-            "induce_query_terms": induce_query_terms.clone(),
+            "induce_reference_operation_files": induce_reference_operation_files,
             "op_maps": op_maps,
             "op_map_files": op_map_files,
             "where_rules": where_rules,
@@ -715,7 +732,7 @@ fn command_export(args: Cli) -> Result<()> {
         .as_ref()
         .context("missing output path; pass -o/--output or set output in --profile-spec")?;
     let format = infer_output_format(requested_format.into(), output);
-    let profile = build_profile_with_options(&sessions, &project_name, view, &profile_options);
+    let profile = build_profile_with_options(&sessions, &project_name, view, &profile_options)?;
     let stacks = profile_to_stacks(&profile);
     if stacks.is_empty() {
         bail!("selected view {:?} produced no samples", cli_view);
@@ -723,7 +740,7 @@ fn command_export(args: Cli) -> Result<()> {
     write_projection(
         &profile,
         format,
-        &output,
+        output,
         args.include_previews,
         &sessions,
         args.svg_width,
@@ -751,9 +768,7 @@ fn command_export(args: Cli) -> Result<()> {
         "induce_operation_stack": induce_operation_stack,
         "induce_task_stack": induce_operation_stack,
         "induced_stack_field": induced_stack_field,
-        "induce_allow_session": induce_allow_session,
-        "induce_max_depth": induce_max_depth,
-        "induce_query_terms": induce_query_terms.clone(),
+        "induce_reference_operation_files": induce_reference_operation_files,
         "op_maps": op_maps,
         "op_map_files": op_map_files,
         "where_rules": where_rules,
@@ -938,6 +953,11 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
         induce_allow_session: raw.induce_allow_session,
         induce_max_depth: raw.induce_max_depth,
         induce_query_terms: raw.induce_query_terms,
+        induce_reference_operation_files: raw
+            .induce_reference_operation_files
+            .into_iter()
+            .map(|path| resolve_spec_path(base, path))
+            .collect(),
         tag_rules: raw.tag_rules,
         preset: raw.preset,
         tagger: raw.tagger.as_deref().map(parse_spec_tagger).transpose()?,
@@ -1080,6 +1100,8 @@ impl ProfileSpec {
         self.rank_rules.extend(next.rank_rules);
         self.rank_op_rules.extend(next.rank_op_rules);
         self.induce_query_terms.extend(next.induce_query_terms);
+        self.induce_reference_operation_files
+            .extend(next.induce_reference_operation_files);
         self.tag_rules.extend(next.tag_rules);
         self.op_map_files.extend(next.op_map_files);
         self.operation_files.extend(next.operation_files);

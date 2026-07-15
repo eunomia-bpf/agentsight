@@ -49,8 +49,8 @@ project -> task -> phase -> tool -> action -> status
 
 The stack is a query-time profile projection. The same operations can be folded
 using a flat view, a source-native hierarchy, a manually declared semantic
-stack, mapped fields, or an induced recursive stack. Changing stack shape does
-not create another underlying event object.
+stack, mapped fields, or induced recurring-operation identities. Changing
+stack shape does not create another underlying event object.
 
 For every operation with positive value, the profiler emits its selected frame
 path and adds the operation's value to that path. All output formats derive from
@@ -107,78 +107,69 @@ lineage.
 
 ### Induced stacks
 
-`--induce-operation-stack` uses visible boundary evidence to recursively split
-a contiguous operation sequence and writes the resulting path into an
-`operation` field. This is one experimental stack-construction backend. The
-recent negative RQ2 result shows that its flattened leaves are not a generally
-successful failure localizer on AgentRx or TELBench. The backend must not be
-confused with the operation-stack abstraction as a whole.
+`--induce-operation-stack` derives reusable operation identities from one
+simple cross-run principle: adjacent visible actions that recur together across
+sessions are likely to belong to the same operation. This is an experimental
+stack-construction backend over the existing operation/operation-stack model,
+not another research abstraction.
 
-Before Step 0017, the implementation combined information gain, semantic shift,
-query overlap, balance, coverage, label quality, and several penalties with
-fixed coefficients. The current implementation replaces that heuristic mixture
-with one resource-weighted normalized information-gain objective. This is an
-algorithm-detail change: it does not change the thesis, the two core
-abstractions, or the four RQs, and it does not introduce a new named mechanism.
+Every target and reference operation must contain exactly one nonempty
+`session` and `action`. Within each session, record order defines adjacency;
+each transition contributes one occurrence regardless of the operation's
+profile weight. A separate label-free reference corpus may be supplied with
+`--induce-reference-operation-file`; otherwise the selected target corpus is
+also the reference. Missing, multivalued, empty, zero-transition, or degenerate
+inputs are explicit errors rather than triggers for a fallback heuristic.
 
-For a contiguous interval $I$, eligible visible field $f$, and candidate cut
-$b$, let $H_w(f,I)$ be the categorical entropy of $f$ under operation weights.
-The normalized gain for that field is
+For a reference transition population of size `B`, let `c_L(a)` and
+`c_R(b)` count left and right action occurrences and `c(a,b)` count the
+ordered pair. The implementation computes
 
 ```text
-G_f(I,b) = [H_w(f,I)
-            - (W_L/W_I) H_w(f,L)
-            - (W_R/W_I) H_w(f,R)] / H_w(f,I).
+p_L(a) = c_L(a) / B
+p_R(b) = c_R(b) / B
+p(a,b) = c(a,b) / B
+NPMI(a,b) = ln[p(a,b)/(p_L(a)p_R(b))] / -ln[p(a,b)].
 ```
 
-The cut score is the equal mean of $G_f(I,b)$ over eligible fields whose parent
-entropy is positive. Candidate cuts occur only where adjacent operations differ
-in at least one eligible visible field. Eligibility retains the existing
-target-blind field rules: remove declared oracle/label, metadata, noisy,
-session-by-default, near-numeric, constant, and high-cardinality fields. These
-rules define the visible input schema; they do not score or accept a split.
+A deterministic occurrence-weighted one-dimensional two-means partition starts
+from the minimum and maximum finite NPMI values, assigns exact distance ties to
+the lower center, and uses the midpoint of the converged centers as its only
+cutoff. In a target session, an unseen transition or a score strictly below the
+cutoff starts a new group; every other transition continues the current group.
+No depth, field search, hand-weighted score term, complexity penalty, query
+tie-break, label-tuned threshold, or resource-weighted transition count enters
+this decision.
 
-For $n=|I|$ operations, the fixed complexity penalty is
-$P(I)=\ln(n)/(2n)$. The inducer selects the largest mean gain and accepts it iff
-$G(I,b)>P(I)$. There is no separate fixed score threshold, minimum node weight,
-minimum second-child weight, majority-fraction gate, label-quality gate,
-semantic-shift term, balance term, coverage term, or candidate subsampling.
-Both children need only be nonempty. Maximum depth remains an explicit runtime
-bound, fixed at four for the matched experiment.
+Each group receives a run-length-compressed action motif such as
+`action=click-then-type-then-press`. Identical motifs therefore fold to the
+same cross-session operation identity. If distinct raw motifs normalize to the
+same emitted frame spelling, a stable value-derived suffix preserves identity.
+The JSON report exposes every `(session,input-position)` boundary decision and
+every segment's start, end, and motif, so aggregation cannot hide duplicated or
+missing assignments.
 
-The split's primary field is the positive-gain field with the greatest
-$G_f(I,b)$ whose dominant weighted values differ between the two children.
-Each child frame is `field=value` from that dominant value. Every accepted
-split appends exactly one frame even if the same text appeared at an ancestor,
-so the two children always have distinct reconstructable paths. If two distinct
-raw values normalize to the same emitted folded frame, the implementation adds
-a deterministic value-derived suffix; the common case remains `field=value`.
-For a field,
-query relevance is the fraction of supplied lowercase query terms that occur
-as substrings of the lowercase field name or any parent-interval value of that
-field. It breaks only exact per-field gain ties; a cut inherits its selected
-primary field's relevance to break exact mean-gain ties. Earlier cut and then
-lexical field order are the remaining deterministic tie-breaks. Query relevance
-never changes $G$. Recursion ends at the depth limit or when no cut strictly
-exceeds the penalty.
+Legacy information-gain knobs remain parseable only to produce a clear error:
+`--induce-max-depth`, `--induce-query-term`, and
+`--induce-allow-session` cannot affect recurrence. The deprecated
+`--induce-task-stack` flag invokes the same implementation under the legacy
+derived-field name.
 
-This revision is intentionally small: no new named abstraction, learned model,
-or benchmark-specific feature enters the profiler. Its implementation and
-tests must establish oracle-field exclusion, exactly one leaf assignment per
-operation, additive-weight conservation, positive accepted gain, termination,
-and deterministic output. Its paper value must then be tested through the real
-Rust path on complete existing annotated workloads; unit tests and a one-case
-preflight are engineering evidence only.
+Step 0020 developed this objective directly on the already completed
+OSWorld-Human trajectories. Under the existing five session-held-out folds, it
+raises boundary F1 from 0.4720 for the cap-free information-gain implementation
+to 0.6799 and operation-weighted B-cubed F1 from 0.6720 to 0.7862, clearing the
+strongest simple control on both metrics. The result is post-hoc mechanism
+development because the same label population informed failure diagnosis; it
+does not become fresh RQ3 confirmation or prove motif-name semantics or
+cross-family generalization.
 
-The principle behind the design is deliberately stronger than the individual
-formula: stack induction should be a recursive partition of resource-weighted
-operations under one explicit objective, not an accumulation of independently
-tuned heuristics. Information gain and binary segmentation are established
-ingredients; the research question is whether combining them with agent-visible
-operation fields, additive profiling weights, and reconstructable stack frames
-produces a useful profiling hierarchy. The complete proposal, including its
-non-novel precedents, invariants, empirical boundary, and next single-variable
-test, is recorded in Step 0017's `algorithm-note.md`.
+The Rust port was then checked mechanically against the approved Python
+candidate. Independent raw review reproduced exact equality for all 3,691
+boundary decisions, 3,978 motif assignments, 2,656 segments, 44 motifs, and
+3,978 units of profile mass. Focused tests also show that arbitrary changes to
+group, label, oracle, and target fields leave the complete induction report
+unchanged when `session` and `action` are fixed.
 
 ### Learned boundary fields
 
@@ -271,13 +262,14 @@ The current design is not:
 ## Evaluation Consequence
 
 RQ1, RQ2, the human-boundary component of RQ3, and RQ4 have paper-linked
-evidence. Steps 0017--0018 directly test the revised shipped Rust induction
-algorithm on the complete existing OSWorld-Human population because the paper
-evaluates a separate supervised boundary predictor rather than that built-in
-path. The single-objective revision substantially improves both metrics over
-the old Rust heuristic, and removing depth four improves boundary F1 from
-0.4231 to 0.4720 and B-cubed F1 from 0.6165 to 0.6720. Intrinsic stopping ends
-at observed depth 26 without degenerating to always boundary, but the method
-still does not clear the strongest simple controls. This bounds the automatic
-constructor, not RQ3 or the operation-stack model. Further OSWorld-Human depth,
-penalty, threshold, or score-term tuning is not part of the design.
+evidence. Steps 0017--0018 established that the former information-gain runtime
+objective did not match heterogeneous human operation groups. Step 0020 then
+changed that objective, on the same already observed OSWorld-Human population,
+to the cross-session recurrence construction specified above. Recurrence raises
+boundary F1 from 0.4720 to 0.6799 and B-cubed F1 from 0.6720 to 0.7862, clearing
+the registered strongest simple controls on both metrics; the Rust port exactly
+reproduces every evaluated decision and conserved unit. Because those labels
+informed mechanism development, this is implementation-selection evidence, not
+fresh cross-family confirmation of the whole RQ3 hypothesis. Further
+OSWorld-Human field, depth, penalty, threshold, or score-term tuning is not part
+of the design.

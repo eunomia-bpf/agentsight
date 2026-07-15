@@ -20,7 +20,7 @@ later explicit user instruction may change the four author-fixed RQs.
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Do not run another RQ1 lineage or grouping variant; WRITE the cumulative positive answer and let REVIEW select the next fixed RQ. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Positive hypothesis unchanged; Step 0019 adds valid supporting downstream evidence.** AgentProcessBench has a small isolated AP gain, HINTBench is numerically favorable but inconclusive versus raw action, and TraceElephant is strong at a descriptive early point but inconclusive at prospective Work@80. In the complete fixed-reader comparison, operation stack improves selected-positive recall on 5/6 tasks (median paired delta +0.080571) and precision on 4/6 (+0.035501) versus fixed session at a three-group budget. The result does not show lower work or raw-action, human, or universal-view superiority. Whole-paper REVIEW must now judge cumulative RQ2 submission readiness rather than rerun this packet study. |
-| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; built-in constructor boundary now measured.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Steps 0017--0018 show that the simplified cap-free Rust inducer is substantially better than the old/fixed-depth implementations but remains below the strongest simple controls. Do not tune OSWorld-Human again; whole-paper REVIEW must judge whether the admitted positive evidence is sufficient or select one independent annotated confirmation. |
+| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; current constructor measured.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0020 changes the failed information-gain objective to cross-session action recurrence on the same development population, reaching 0.6799 boundary F1 and 0.7862 B-cubed F1, above the registered strongest simple controls; the Rust port exactly reproduces every evaluated decision and motif. This is supported post-hoc mechanism development, not fresh cross-family RQ3 confirmation. Do not tune OSWorld-Human again; whole-paper REVIEW must judge whether the admitted positive evidence is sufficient or select one independent annotated confirmation. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
 ## Admitted RQ1 Mechanism Evidence
@@ -395,6 +395,31 @@ answer. Complete reports are under
 with raw artifacts under
 `.agentsight/experiments/rq3-rust-inducer-depth-v1/`.
 
+Step 0020 changes the mismatched objective rather than adding another depth,
+field, cutoff, or score term. The replacement learns cross-session recurrence
+from adjacent visible `action` transitions: coherent transition-space NPMI and
+deterministic occurrence-weighted one-dimensional two-means separate weak or
+unseen transitions from recurring motifs. On the same fixed five session folds,
+287 sessions, 3,978 operations, and 3,691 adjacent pairs, it reaches boundary
+F1 0.6799 and operation-weighted B-cubed F1 0.7862. These results clear the
+registered strongest simple controls at 0.6445 and 0.6784 and improve over the
+cap-free information-gain mechanism by 0.2080 and 0.1142 respectively.
+
+The candidate uses only `session` to define sequences and `action` to learn
+transition recurrence; human groups and all scorer fields remain outside
+construction. The release Rust port exactly matches the fixed Python evaluator
+on all 3,691 boundary decisions, 3,978 motif assignments, and 2,656 segments,
+conserves all 3,978 units, and produces an identical report after hidden-field
+mutation. Because the same population's labels had already exposed the old
+mechanism's failure and informed this objective change, the result is supported
+post-hoc mechanism-development evidence, not an untouched RQ3 confirmation,
+motif-name validation, or cross-family generalization result. Complete reports
+are under
+[`step-0020-20260715T001404-0700`](tmp/build-and-evaluate/step-0020-20260715T001404-0700/),
+with raw evaluator and port-equivalence artifacts under
+`.agentsight/experiments/rq3-recurrence-inducer-v1/full/` and
+`.agentsight/experiments/rq3-recurrence-rust-equivalence-v1/full/`.
+
 ## Requirements For The Next Experiment
 
 The next experiment follows one bounded literature/source screen and must
@@ -468,13 +493,18 @@ metric, threshold, resample, or human experiment is needed first.
 
 Step 0017 paused the unexecuted RQ2 reader proposal after explicit user
 redirection and completed the higher-value built-in RQ3 mechanism test above.
-Step 0018 then completed the one admitted post-hoc single-variable follow-up.
-Removing the cap improves both metrics and allows the intrinsic objective to
-stop without a runtime limit, but it remains below the strongest simple
-controls and therefore contradicts the registered sufficient-explanation
-hypothesis. This closes the OSWorld-Human mechanism branch: do not select a new
-depth or penalty, add another score term, or reinterpret the local result as the
-answer to RQ3. Route to targeted WRITE and then whole-paper REVIEW.
+Step 0018 removed the active depth cap, but could not repair the information-
+gain objective's mismatch to heterogeneous operation groups. Step 0020 was
+admitted after the user's explicit direction because it changes that core
+objective and reuses the existing trajectories; it is not another depth,
+threshold, score-term, or benchmark variant. The recurrence mechanism now
+clears both registered simple controls, and its Rust port exactly reproduces the
+fixed evaluator. This closes the OSWorld-Human mechanism-development branch:
+do not tune this population again or reinterpret the post-hoc result as an
+untouched answer to all of RQ3. Route the current implementation through
+targeted WRITE and whole-paper REVIEW; if broader constructor evidence remains
+load-bearing, the next empirical step must be unchanged-port confirmation on an
+independent annotated family.
 
 The resulting fresh AAAI/cross-domain whole-paper review scores the current
 paper 4/10 (weak reject). It preserves the thesis and four RQs but identifies

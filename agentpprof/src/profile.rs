@@ -215,24 +215,15 @@ impl OperationStackConfig {
 #[derive(Clone, Debug)]
 pub struct OperationStackInductionConfig {
     derived_field: String,
-    allow_session: bool,
-    max_depth: usize,
-    query_terms: Vec<String>,
+    reference_operations: Option<Vec<Operation>>,
 }
 
 impl OperationStackInductionConfig {
     pub fn new() -> Self {
         Self {
             derived_field: OPERATION_STACK_DERIVED_FIELD.to_string(),
-            allow_session: false,
-            max_depth: 4,
-            query_terms: Vec::new(),
+            reference_operations: None,
         }
-    }
-
-    pub fn with_allow_session(mut self, allow_session: bool) -> Self {
-        self.allow_session = allow_session;
-        self
     }
 
     pub fn with_derived_field(mut self, derived_field: impl Into<String>) -> Self {
@@ -240,18 +231,28 @@ impl OperationStackInductionConfig {
         self
     }
 
-    pub fn with_max_depth(mut self, max_depth: usize) -> Self {
-        self.max_depth = max_depth.max(1);
-        self
-    }
-
-    pub fn with_query_terms(mut self, terms: Vec<String>) -> Self {
-        self.query_terms = terms
-            .into_iter()
-            .map(|term| term.trim().to_ascii_lowercase())
-            .filter(|term| !term.is_empty())
-            .collect();
-        self
+    pub fn with_reference_operation_records(mut self, records: &[Value]) -> Result<Self> {
+        let mut operations = Vec::new();
+        for (index, record) in records.iter().enumerate() {
+            let record: OperationRecord =
+                serde_json::from_value(record.clone()).map_err(|error| {
+                    anyhow::anyhow!(
+                        "invalid induction reference operation record {}: {error}",
+                        index + 1
+                    )
+                })?;
+            operations.push(operation_from_record(record).map_err(|error| {
+                anyhow::anyhow!(
+                    "invalid induction reference operation fields {}: {error}",
+                    index + 1
+                )
+            })?);
+        }
+        if operations.is_empty() {
+            bail!("induction reference operation input produced no samples");
+        }
+        self.reference_operations = Some(operations);
+        Ok(self)
     }
 }
 
@@ -266,67 +267,50 @@ pub struct OperationStackInductionReport {
     policy: &'static str,
     objective: &'static str,
     derived_stack_field: String,
-    allow_session: bool,
-    max_depth: usize,
-    complexity_penalty: &'static str,
+    sequence_field: &'static str,
+    association_field: &'static str,
+    transition_weighting: &'static str,
+    reference_source: &'static str,
+    reference_sessions: usize,
+    reference_operations: usize,
+    reference_transitions: usize,
+    target_sessions: usize,
+    target_operations: usize,
+    cutoff: f64,
+    low_center: f64,
+    high_center: f64,
+    low_occurrences: usize,
+    high_occurrences: usize,
+    two_means_iterations: usize,
+    unseen_target_transitions: usize,
+    predicted_groups: usize,
+    unique_motifs: usize,
     selected_evidence_fields: Vec<String>,
     selected_source_fields: Vec<String>,
     excluded_oracle_fields: Vec<&'static str>,
     excluded_oracle_prefixes: Vec<&'static str>,
     excluded_oracle_suffixes: Vec<&'static str>,
-    stop_reasons: BTreeMap<String, u64>,
-    split_decisions: Vec<OperationStackSplitDecision>,
+    boundary_decisions: Vec<OperationStackBoundaryDecision>,
+    segments: Vec<OperationStackSegment>,
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct OperationStackSplitDecision {
-    path: Vec<String>,
-    boundary_id: String,
-    primary_evidence_field: String,
-    evidence_fields: Vec<String>,
-    source_field: String,
-    node_weight: u64,
-    selected_score: OperationStackSplitScore,
-    candidate_scores: Vec<OperationStackSplitScore>,
+pub struct OperationStackBoundaryDecision {
+    session: String,
+    position: usize,
+    left_action: String,
+    right_action: String,
+    npmi: Option<f64>,
+    unseen_in_reference: bool,
+    boundary: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct OperationStackSplitScore {
-    boundary_id: String,
-    field: String,
-    cut_after: usize,
-    left_label: String,
-    right_label: String,
-    left_weight: u64,
-    right_weight: u64,
-    evidence_fields: Vec<String>,
-    label_evidence: Vec<String>,
-    score: f64,
-    normalized_information_gain: f64,
-    complexity_penalty: f64,
-    accepted_margin: f64,
-    query_relevance: f64,
-    informative_field_count: usize,
-    field_gains: Vec<OperationStackFieldGain>,
-    changed_fields: Vec<String>,
-    groups: BTreeMap<String, u64>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct OperationStackFieldGain {
-    field: String,
-    normalized_information_gain: f64,
-    query_relevance: f64,
-    parent_entropy: f64,
-    left_entropy: f64,
-    right_entropy: f64,
-    left_dominant: String,
-    right_dominant: String,
-}
-
-#[derive(Clone, Debug)]
-struct TaskBoundaryEvidence {
-    changed_fields: Vec<String>,
+pub struct OperationStackSegment {
+    session: String,
+    start: usize,
+    end: usize,
+    motif: String,
 }
 
 #[derive(Clone)]
@@ -775,7 +759,7 @@ pub fn build_profile_with_options(
     project_name: &str,
     view: ProfileView,
     options: &OperationStackConfig,
-) -> Profile {
+) -> Result<Profile> {
     let (name, sample_type, unit) = view_metadata(view);
     let mut profile = Profile::new(name, sample_type, unit)
         .with_rank_rules(options.rank_rules.clone())
@@ -791,7 +775,7 @@ pub fn build_profile_with_options(
             samples.push(sample);
         }
     }
-    let (samples, report) = maybe_induce_operation_stack(samples, options);
+    let (samples, report) = maybe_induce_operation_stack(samples, options)?;
     profile.operation_stack_induction = report;
     for sample in samples {
         let frames = stack_frames(&sample, options);
@@ -799,7 +783,7 @@ pub fn build_profile_with_options(
         profile.record_rank_operation_matches(&stack, &sample, sample.value);
         profile.sample(frames, sample.value);
     }
-    profile
+    Ok(profile)
 }
 
 #[cfg(test)]
@@ -815,7 +799,7 @@ pub fn build_profile_from_operation_files(
     if operations.is_empty() {
         bail!("operation input produced no samples");
     }
-    Ok(build_profile_from_operations(&operations, view, options))
+    build_profile_from_operations(&operations, view, options)
 }
 
 pub fn read_operation_record_values(paths: &[PathBuf]) -> Result<Vec<Value>> {
@@ -850,14 +834,14 @@ pub fn build_profile_from_operation_records(
     if operations.is_empty() {
         bail!("operation input produced no samples");
     }
-    Ok(build_profile_from_operations(&operations, view, options))
+    build_profile_from_operations(&operations, view, options)
 }
 
 fn build_profile_from_operations(
     operations: &[Operation],
     view: ProfileView,
     options: &OperationStackConfig,
-) -> Profile {
+) -> Result<Profile> {
     let (name, sample_type, unit) = view_metadata(view);
     let mut profile = Profile::new(name, sample_type, unit)
         .with_rank_rules(options.rank_rules.clone())
@@ -871,7 +855,7 @@ fn build_profile_from_operations(
         }
         samples.push(sample);
     }
-    let (samples, report) = maybe_induce_operation_stack(samples, options);
+    let (samples, report) = maybe_induce_operation_stack(samples, options)?;
     profile.operation_stack_induction = report;
     for sample in samples {
         let frames = stack_frames(&sample, options);
@@ -879,7 +863,7 @@ fn build_profile_from_operations(
         profile.record_rank_operation_matches(&stack, &sample, sample.value);
         profile.sample(frames, sample.value);
     }
-    profile
+    Ok(profile)
 }
 
 #[cfg(test)]
@@ -1000,12 +984,13 @@ fn apply_operation_field_rules(sample: &Operation, rules: &[OperationStackRule])
     mapped
 }
 
-const OPERATION_STACK_POLICY: &str = "recursive-information-gain-operation-stack-induction";
+const OPERATION_STACK_POLICY: &str =
+    "cross-session-action-transition-npmi-operation-stack-induction";
 const OPERATION_STACK_OBJECTIVE: &str =
-    "mean resource-weighted normalized information gain minus a fixed complexity penalty";
-const OPERATION_STACK_COMPLEXITY_PENALTY: &str =
-    "ln(node_operation_count)/(2*node_operation_count)";
+    "recurring adjacent visible actions define operation continuity across sessions";
 const OPERATION_STACK_DERIVED_FIELD: &str = "operation";
+const OPERATION_STACK_SEQUENCE_FIELD: &str = "session";
+const OPERATION_STACK_ASSOCIATION_FIELD: &str = "action";
 const ORACLE_OR_LABEL_FIELDS: &[&str] = &[
     "annotator",
     "attack",
@@ -1067,543 +1052,342 @@ const ORACLE_OR_LABEL_SUFFIXES: &[&str] = &[
     "_target",
     "_unsafe",
 ];
-const OPERATION_STACK_METADATA_FIELDS: &[&str] = &[
-    "agent",
-    "analysis_task",
-    "benchmark",
-    "dataset",
-    "environment",
-    "experiment",
-    "project",
-    "query_family",
-    "source",
-    "source_operation_file",
-];
-const OPERATION_STACK_NOISY_FIELDS: &[&str] = &[
-    "busted_retry",
-    "input_tokens",
-    "llm_retries",
-    "output_tokens",
-    "target",
-    "turn",
-];
-
 fn maybe_induce_operation_stack(
     samples: Vec<Operation>,
     options: &OperationStackConfig,
-) -> (Vec<Operation>, Option<OperationStackInductionReport>) {
+) -> Result<(Vec<Operation>, Option<OperationStackInductionReport>)> {
     let Some(config) = options.operation_stack_induction.as_ref() else {
-        return (samples, None);
+        return Ok((samples, None));
     };
-    let (samples, report) = induce_operation_stack(samples, config);
-    (samples, Some(report))
+    let (samples, report) = induce_operation_stack(samples, config)?;
+    Ok((samples, Some(report)))
 }
 
 fn induce_operation_stack(
     mut samples: Vec<Operation>,
     config: &OperationStackInductionConfig,
-) -> (Vec<Operation>, OperationStackInductionReport) {
-    let indices = (0..samples.len()).collect::<Vec<_>>();
-    let mut task_paths = vec![Vec::<String>::new(); samples.len()];
-    let mut stop_reasons = BTreeMap::new();
-    let mut split_decisions = Vec::new();
-    induce_operation_stack_recursive(
-        &samples,
-        &indices,
-        config,
-        Vec::new(),
-        0,
-        &mut task_paths,
-        &mut stop_reasons,
-        &mut split_decisions,
-    );
-    for (sample, path) in samples.iter_mut().zip(task_paths) {
-        sample.fields.insert(config.derived_field.clone(), path);
-    }
-    let mut selected_source_fields = BTreeSet::new();
-    for decision in &split_decisions {
-        if decision.selected_score.evidence_fields.is_empty() {
-            selected_source_fields.insert(decision.source_field.clone());
-        } else {
-            selected_source_fields.extend(decision.selected_score.evidence_fields.iter().cloned());
+) -> Result<(Vec<Operation>, OperationStackInductionReport)> {
+    let reference_is_external = config.reference_operations.is_some();
+    let (model, reference_sessions, reference_operations) = {
+        let reference = config.reference_operations.as_deref().unwrap_or(&samples);
+        let reference_groups = recurrence_groups(reference, "induction reference")?;
+        (
+            recurrence_model(reference, &reference_groups)?,
+            reference_groups.len(),
+            reference.len(),
+        )
+    };
+    let target_groups = recurrence_groups(&samples, "induction target")?;
+
+    let mut decisions = Vec::new();
+    let mut pending_segments = Vec::new();
+    for (session, indices) in &target_groups {
+        let mut boundaries = vec![0];
+        for position in 1..indices.len() {
+            let left_action = operation_single_value(
+                &samples[indices[position - 1]],
+                OPERATION_STACK_ASSOCIATION_FIELD,
+                "induction target",
+            )?;
+            let right_action = operation_single_value(
+                &samples[indices[position]],
+                OPERATION_STACK_ASSOCIATION_FIELD,
+                "induction target",
+            )?;
+            let npmi = model
+                .association
+                .get(&(left_action.to_string(), right_action.to_string()))
+                .copied();
+            let boundary = npmi.is_none_or(|score| score < model.cutoff);
+            if boundary {
+                boundaries.push(position);
+            }
+            decisions.push(OperationStackBoundaryDecision {
+                session: session.clone(),
+                position,
+                left_action: left_action.to_string(),
+                right_action: right_action.to_string(),
+                npmi,
+                unseen_in_reference: npmi.is_none(),
+                boundary,
+            });
+        }
+        boundaries.push(indices.len());
+        for pair in boundaries.windows(2) {
+            let start = pair[0];
+            let end = pair[1];
+            let motif = recurrence_motif(&samples, &indices[start..end])?;
+            pending_segments.push((
+                session.clone(),
+                start,
+                end,
+                motif,
+                indices[start..end].to_vec(),
+            ));
         }
     }
-    let selected_evidence_fields = selected_source_fields.into_iter().collect::<Vec<_>>();
+
+    let motif_labels = disambiguate_recurrence_motifs(
+        pending_segments
+            .iter()
+            .map(|(_, _, _, motif, _)| motif.as_str()),
+        &config.derived_field,
+    );
+    let mut segments = Vec::new();
+    let mut unique_motifs = BTreeSet::new();
+    for (session, start, end, raw_motif, indices) in pending_segments {
+        let motif = motif_labels
+            .get(&raw_motif)
+            .cloned()
+            .context("missing disambiguated recurrence motif")?;
+        unique_motifs.insert(motif.clone());
+        for index in indices {
+            samples[index]
+                .fields
+                .insert(config.derived_field.clone(), vec![motif.clone()]);
+        }
+        segments.push(OperationStackSegment {
+            session,
+            start,
+            end,
+            motif,
+        });
+    }
+
+    let selected_evidence_fields = vec![OPERATION_STACK_ASSOCIATION_FIELD.to_string()];
     let report = OperationStackInductionReport {
         policy: OPERATION_STACK_POLICY,
         objective: OPERATION_STACK_OBJECTIVE,
         derived_stack_field: config.derived_field.clone(),
-        allow_session: config.allow_session,
-        max_depth: config.max_depth,
-        complexity_penalty: OPERATION_STACK_COMPLEXITY_PENALTY,
+        sequence_field: OPERATION_STACK_SEQUENCE_FIELD,
+        association_field: OPERATION_STACK_ASSOCIATION_FIELD,
+        transition_weighting: "one count per adjacent occurrence; sample resource weight ignored",
+        reference_source: if reference_is_external {
+            "external-operation-records"
+        } else {
+            "current-selected-corpus"
+        },
+        reference_sessions,
+        reference_operations,
+        reference_transitions: model.transition_count,
+        target_sessions: target_groups.len(),
+        target_operations: samples.len(),
+        cutoff: model.cutoff,
+        low_center: model.low_center,
+        high_center: model.high_center,
+        low_occurrences: model.low_occurrences,
+        high_occurrences: model.high_occurrences,
+        two_means_iterations: model.iterations,
+        unseen_target_transitions: decisions
+            .iter()
+            .filter(|decision| decision.unseen_in_reference)
+            .count(),
+        predicted_groups: segments.len(),
+        unique_motifs: unique_motifs.len(),
         selected_evidence_fields: selected_evidence_fields.clone(),
         selected_source_fields: selected_evidence_fields,
         excluded_oracle_fields: ORACLE_OR_LABEL_FIELDS.to_vec(),
         excluded_oracle_prefixes: ORACLE_OR_LABEL_PREFIXES.to_vec(),
         excluded_oracle_suffixes: ORACLE_OR_LABEL_SUFFIXES.to_vec(),
-        stop_reasons,
-        split_decisions,
+        boundary_decisions: decisions,
+        segments,
     };
-    (samples, report)
+    Ok((samples, report))
 }
 
-#[allow(clippy::too_many_arguments)]
-fn induce_operation_stack_recursive(
-    samples: &[Operation],
-    indices: &[usize],
-    config: &OperationStackInductionConfig,
-    path: Vec<String>,
-    depth: usize,
-    task_paths: &mut [Vec<String>],
-    stop_reasons: &mut BTreeMap<String, u64>,
-    split_decisions: &mut Vec<OperationStackSplitDecision>,
-) {
-    let node_weight = index_weight(samples, indices);
-    if depth >= config.max_depth {
-        assign_task_path(indices, &path, task_paths);
-        increment_stop(stop_reasons, "max_depth");
-        return;
+#[derive(Debug)]
+struct RecurrenceModel {
+    association: BTreeMap<(String, String), f64>,
+    transition_count: usize,
+    cutoff: f64,
+    low_center: f64,
+    high_center: f64,
+    low_occurrences: usize,
+    high_occurrences: usize,
+    iterations: usize,
+}
+
+fn operation_single_value<'a>(
+    operation: &'a Operation,
+    field: &str,
+    source: &str,
+) -> Result<&'a str> {
+    let values = operation.values(field);
+    if values.len() != 1 || values[0].trim().is_empty() {
+        bail!("{source} requires exactly one nonempty {field:?} value per operation");
     }
-    let (selected, candidates) = choose_task_split(samples, indices, config);
-    let Some(selected) = selected else {
-        assign_task_path(indices, &path, task_paths);
-        increment_stop(stop_reasons, "no_material_split");
-        return;
-    };
+    Ok(values[0].as_str())
+}
 
-    let primary_evidence_field = selected.field.clone();
-    let evidence_fields = selected.evidence_fields.clone();
-    let boundary_id = selected.boundary_id.clone();
-    let cut_after = selected.cut_after.min(indices.len().saturating_sub(1));
-    let (left_indices, right_indices) = indices.split_at(cut_after);
-    if left_indices.is_empty() || right_indices.is_empty() {
-        assign_task_path(indices, &path, task_paths);
-        increment_stop(stop_reasons, "empty_boundary_child");
-        return;
+fn recurrence_groups(samples: &[Operation], source: &str) -> Result<BTreeMap<String, Vec<usize>>> {
+    let mut groups = BTreeMap::<String, Vec<usize>>::new();
+    for (index, sample) in samples.iter().enumerate() {
+        let session = operation_single_value(sample, OPERATION_STACK_SEQUENCE_FIELD, source)?;
+        operation_single_value(sample, OPERATION_STACK_ASSOCIATION_FIELD, source)?;
+        groups.entry(session.to_string()).or_default().push(index);
     }
-    let left_label = selected.left_label.clone();
-    let right_label = selected.right_label.clone();
-    split_decisions.push(OperationStackSplitDecision {
-        path: path.clone(),
-        boundary_id,
-        primary_evidence_field: primary_evidence_field.clone(),
-        evidence_fields,
-        source_field: primary_evidence_field.clone(),
-        node_weight,
-        selected_score: selected,
-        candidate_scores: candidates,
-    });
-
-    for (value, child_indices) in [(left_label, left_indices), (right_label, right_indices)] {
-        let mut child_path = path.clone();
-        push_task_path_label(&mut child_path, value);
-        induce_operation_stack_recursive(
-            samples,
-            &child_indices,
-            config,
-            child_path,
-            depth + 1,
-            task_paths,
-            stop_reasons,
-            split_decisions,
-        );
+    if groups.is_empty() {
+        bail!("{source} produced no sessions");
     }
+    Ok(groups)
 }
 
-fn push_task_path_label(path: &mut Vec<String>, value: String) {
-    path.push(value);
-}
-
-fn assign_task_path(indices: &[usize], path: &[String], task_paths: &mut [Vec<String>]) {
-    let path = if path.is_empty() {
-        vec!["all".to_string()]
-    } else {
-        path.to_vec()
-    };
-    for index in indices {
-        task_paths[*index] = path.clone();
-    }
-}
-
-fn increment_stop(stop_reasons: &mut BTreeMap<String, u64>, reason: &str) {
-    *stop_reasons.entry(reason.to_string()).or_default() += 1;
-}
-
-fn choose_task_split(
-    samples: &[Operation],
-    indices: &[usize],
-    config: &OperationStackInductionConfig,
-) -> (
-    Option<OperationStackSplitScore>,
-    Vec<OperationStackSplitScore>,
-) {
-    let candidates = operation_stack_candidate_fields(samples, indices, config);
-    let boundary_cuts = operation_stack_boundary_cuts(samples, indices, &candidates);
-    let mut scores = boundary_cuts
-        .into_iter()
-        .filter_map(|cut_after| {
-            score_task_boundary_split(samples, indices, cut_after, &candidates, config)
-        })
-        .collect::<Vec<_>>();
-    scores.sort_by(compare_operation_stack_split_scores);
-    let selected = scores
-        .first()
-        .filter(|score| score.score > score.complexity_penalty)
-        .cloned();
-    scores.truncate(8);
-    (selected, scores)
-}
-
-fn operation_stack_boundary_cuts(
-    samples: &[Operation],
-    indices: &[usize],
-    candidates: &[String],
-) -> Vec<usize> {
-    if indices.len() <= 1 || candidates.is_empty() {
-        return Vec::new();
-    }
-    let mut cuts = Vec::new();
-    for cut_after in 1..indices.len() {
-        if adjacent_boundary_evidence(samples, indices, cut_after, candidates).is_some() {
-            cuts.push(cut_after);
+fn recurrence_model(
+    reference: &[Operation],
+    groups: &BTreeMap<String, Vec<usize>>,
+) -> Result<RecurrenceModel> {
+    let mut left_counts = BTreeMap::<String, usize>::new();
+    let mut right_counts = BTreeMap::<String, usize>::new();
+    let mut pair_counts = BTreeMap::<(String, String), usize>::new();
+    for indices in groups.values() {
+        for pair in indices.windows(2) {
+            let left = operation_single_value(
+                &reference[pair[0]],
+                OPERATION_STACK_ASSOCIATION_FIELD,
+                "induction reference",
+            )?;
+            let right = operation_single_value(
+                &reference[pair[1]],
+                OPERATION_STACK_ASSOCIATION_FIELD,
+                "induction reference",
+            )?;
+            *left_counts.entry(left.to_string()).or_default() += 1;
+            *right_counts.entry(right.to_string()).or_default() += 1;
+            *pair_counts
+                .entry((left.to_string(), right.to_string()))
+                .or_default() += 1;
         }
     }
-    cuts
+    let transition_count = pair_counts.values().sum::<usize>();
+    if transition_count == 0 {
+        bail!("induction reference requires at least one adjacent transition");
+    }
+    let total = transition_count as f64;
+    let mut association = BTreeMap::new();
+    for ((left, right), count) in &pair_counts {
+        let pair_probability = *count as f64 / total;
+        let left_probability = left_counts[left] as f64 / total;
+        let right_probability = right_counts[right] as f64 / total;
+        let npmi = if pair_probability == 1.0 {
+            1.0
+        } else {
+            (pair_probability / (left_probability * right_probability)).ln()
+                / -pair_probability.ln()
+        };
+        if !npmi.is_finite() {
+            bail!("induction reference produced non-finite NPMI for {left:?}->{right:?}");
+        }
+        association.insert((left.clone(), right.clone()), npmi);
+    }
+    let mut occurrence_scores = Vec::with_capacity(transition_count);
+    for (pair, count) in &pair_counts {
+        occurrence_scores.extend(std::iter::repeat_n(association[pair], *count));
+    }
+    let (low_center, high_center, low_occurrences, high_occurrences, iterations) =
+        deterministic_recurrence_two_means(&occurrence_scores)?;
+    Ok(RecurrenceModel {
+        association,
+        transition_count,
+        cutoff: (low_center + high_center) / 2.0,
+        low_center,
+        high_center,
+        low_occurrences,
+        high_occurrences,
+        iterations,
+    })
 }
 
-fn operation_stack_candidate_fields(
-    samples: &[Operation],
-    indices: &[usize],
-    config: &OperationStackInductionConfig,
-) -> Vec<String> {
-    let mut fields = BTreeSet::new();
-    for index in indices {
-        fields.extend(samples[*index].fields.keys().cloned());
+fn deterministic_recurrence_two_means(scores: &[f64]) -> Result<(f64, f64, usize, usize, usize)> {
+    let mut low =
+        scores.iter().copied().reduce(f64::min).context(
+            "induction reference requires at least two distinct finite transition scores",
+        )?;
+    let mut high =
+        scores.iter().copied().reduce(f64::max).context(
+            "induction reference requires at least two distinct finite transition scores",
+        )?;
+    if !low.is_finite() || !high.is_finite() || low == high {
+        bail!("induction reference requires at least two distinct finite transition scores");
     }
-    fields
+    for iteration in 1..=100 {
+        let mut low_sum = 0.0;
+        let mut high_sum = 0.0;
+        let mut low_count = 0;
+        let mut high_count = 0;
+        for score in scores {
+            if (*score - low).abs() <= (*score - high).abs() {
+                low_sum += *score;
+                low_count += 1;
+            } else {
+                high_sum += *score;
+                high_count += 1;
+            }
+        }
+        if low_count == 0 || high_count == 0 {
+            bail!("induction reference two-means produced an empty cluster");
+        }
+        let next_low = low_sum / low_count as f64;
+        let next_high = high_sum / high_count as f64;
+        if next_low == low && next_high == high {
+            return Ok((next_low, next_high, low_count, high_count, iteration));
+        }
+        low = next_low;
+        high = next_high;
+    }
+    bail!("induction reference two-means did not converge within 100 iterations")
+}
+
+fn recurrence_motif(samples: &[Operation], indices: &[usize]) -> Result<String> {
+    if indices.is_empty() {
+        bail!("cannot name an empty recurrence segment");
+    }
+    let mut actions = Vec::<String>::new();
+    for index in indices {
+        let action = operation_single_value(
+            &samples[*index],
+            OPERATION_STACK_ASSOCIATION_FIELD,
+            "induction target",
+        )?;
+        if actions.last().is_none_or(|previous| previous != action) {
+            actions.push(action.to_string());
+        }
+    }
+    Ok(format!("action={}", actions.join("-then-")))
+}
+
+fn disambiguate_recurrence_motifs<'a>(
+    motifs: impl Iterator<Item = &'a str>,
+    derived_field: &str,
+) -> BTreeMap<String, String> {
+    let motifs = motifs.map(str::to_string).collect::<BTreeSet<_>>();
+    let mut collisions = BTreeMap::<String, BTreeSet<String>>::new();
+    for motif in &motifs {
+        collisions
+            .entry(safe_frame(motif, Some(derived_field)))
+            .or_default()
+            .insert(motif.clone());
+    }
+    motifs
         .into_iter()
-        .filter(|field| {
-            !field.starts_with('_')
-                && !is_operation_stack_oracle_field(field)
-                && !OPERATION_STACK_METADATA_FIELDS.contains(&field.as_str())
-                && !OPERATION_STACK_NOISY_FIELDS.contains(&field.as_str())
-                && (config.allow_session || field != "session")
-                && operation_stack_field_is_candidate(samples, indices, field)
+        .map(|motif| {
+            let normalized = safe_frame(&motif, Some(derived_field));
+            let label = if collisions[&normalized].len() == 1 {
+                motif.clone()
+            } else {
+                format!("{motif}-{:016x}", recurrence_label_hash(&motif))
+            };
+            (motif, label)
         })
         .collect()
 }
 
-fn operation_stack_field_is_candidate(
-    samples: &[Operation],
-    indices: &[usize],
-    field: &str,
-) -> bool {
-    let counts = weighted_value_counts(samples, indices, field);
-    if counts.len() <= 1 || counts.len() > std::cmp::max(40, indices.len() / 2) {
-        return false;
-    }
-    let numeric = indices
-        .iter()
-        .filter(|index| is_numeric_value(&operation_field_value(&samples[**index], field)))
-        .count();
-    (numeric as f64 / indices.len().max(1) as f64) <= 0.8
-}
-
-fn adjacent_boundary_evidence(
-    samples: &[Operation],
-    indices: &[usize],
-    cut_after: usize,
-    candidates: &[String],
-) -> Option<TaskBoundaryEvidence> {
-    if cut_after == 0 || cut_after >= indices.len() || candidates.is_empty() {
-        return None;
-    }
-    let left = &samples[indices[cut_after - 1]];
-    let right = &samples[indices[cut_after]];
-    let changed_fields = candidates
-        .iter()
-        .filter(|field| operation_field_value(left, field) != operation_field_value(right, field))
-        .cloned()
-        .collect::<Vec<_>>();
-    if changed_fields.is_empty() {
-        return None;
-    }
-    Some(TaskBoundaryEvidence { changed_fields })
-}
-
-fn is_operation_stack_oracle_field(field: &str) -> bool {
-    ORACLE_OR_LABEL_FIELDS.contains(&field)
-        || ORACLE_OR_LABEL_PREFIXES
-            .iter()
-            .any(|prefix| field.starts_with(prefix))
-        || ORACLE_OR_LABEL_SUFFIXES
-            .iter()
-            .any(|suffix| field.ends_with(suffix))
-}
-
-fn is_numeric_value(value: &str) -> bool {
-    let mut seen_digit = false;
-    let mut seen_dot = false;
-    for (idx, ch) in value.chars().enumerate() {
-        if idx == 0 && ch == '-' {
-            continue;
-        }
-        if ch == '.' && !seen_dot {
-            seen_dot = true;
-            continue;
-        }
-        if ch.is_ascii_digit() {
-            seen_digit = true;
-            continue;
-        }
-        return false;
-    }
-    seen_digit
-}
-
-fn score_task_boundary_split(
-    samples: &[Operation],
-    indices: &[usize],
-    cut_after: usize,
-    candidates: &[String],
-    config: &OperationStackInductionConfig,
-) -> Option<OperationStackSplitScore> {
-    if cut_after == 0 || cut_after >= indices.len() {
-        return None;
-    }
-    let (left, right) = indices.split_at(cut_after);
-    let boundary = adjacent_boundary_evidence(samples, indices, cut_after, candidates)?;
-    let left_weight = index_weight(samples, left);
-    let right_weight = index_weight(samples, right);
-    let mut field_gains = candidates
-        .iter()
-        .filter_map(|field| {
-            operation_stack_field_gain(samples, indices, left, right, field, &config.query_terms)
-        })
-        .collect::<Vec<_>>();
-    if field_gains.is_empty() {
-        return None;
-    }
-    let score = field_gains
-        .iter()
-        .map(|gain| gain.normalized_information_gain)
-        .sum::<f64>()
-        / field_gains.len() as f64;
-    field_gains.sort_by(compare_operation_stack_field_gains);
-    let primary = field_gains
-        .iter()
-        .find(|gain| {
-            gain.normalized_information_gain > 0.0 && gain.left_dominant != gain.right_dominant
-        })?
-        .clone();
-    let evidence_fields = field_gains
-        .iter()
-        .filter(|gain| gain.normalized_information_gain > 0.0)
-        .map(|gain| gain.field.clone())
-        .collect::<Vec<_>>();
-    let (left_label, right_label) = operation_stack_child_labels(
-        &primary.field,
-        &primary.left_dominant,
-        &primary.right_dominant,
-    );
-    let label_evidence = vec![format!("left:{left_label}"), format!("right:{right_label}")];
-    let groups = BTreeMap::from([
-        (left_label.clone(), left_weight),
-        (right_label.clone(), right_weight),
-    ]);
-    let boundary_id = format!("b{:04}", cut_after);
-    let complexity_penalty = operation_stack_complexity_penalty(indices.len());
-    Some(OperationStackSplitScore {
-        boundary_id,
-        field: primary.field,
-        cut_after,
-        left_label,
-        right_label,
-        left_weight,
-        right_weight,
-        evidence_fields,
-        label_evidence,
-        score,
-        normalized_information_gain: score,
-        complexity_penalty,
-        accepted_margin: score - complexity_penalty,
-        query_relevance: primary.query_relevance,
-        informative_field_count: field_gains.len(),
-        field_gains,
-        changed_fields: boundary.changed_fields,
-        groups,
-    })
-}
-
-fn compare_operation_stack_split_scores(
-    left: &OperationStackSplitScore,
-    right: &OperationStackSplitScore,
-) -> std::cmp::Ordering {
-    right
-        .score
-        .total_cmp(&left.score)
-        .then_with(|| right.query_relevance.total_cmp(&left.query_relevance))
-        .then_with(|| left.cut_after.cmp(&right.cut_after))
-        .then_with(|| left.field.cmp(&right.field))
-}
-
-fn compare_operation_stack_field_gains(
-    left: &OperationStackFieldGain,
-    right: &OperationStackFieldGain,
-) -> std::cmp::Ordering {
-    right
-        .normalized_information_gain
-        .total_cmp(&left.normalized_information_gain)
-        .then_with(|| right.query_relevance.total_cmp(&left.query_relevance))
-        .then_with(|| left.field.cmp(&right.field))
-}
-
-fn operation_stack_complexity_penalty(node_operation_count: usize) -> f64 {
-    let count = node_operation_count.max(1) as f64;
-    count.ln() / (2.0 * count)
-}
-
-fn operation_stack_child_labels(
-    field: &str,
-    left_value: &str,
-    right_value: &str,
-) -> (String, String) {
-    let left = format!("{field}={left_value}");
-    let right = format!("{field}={right_value}");
-    debug_assert_ne!(left, right);
-    let left_frame = safe_frame(&left, None);
-    let right_frame = safe_frame(&right, None);
-    if left_frame != right_frame {
-        return (left, right);
-    }
-
-    let left_hash = stable_operation_stack_label_hash(&left);
-    let right_hash = stable_operation_stack_label_hash(&right);
-    if left_hash != right_hash {
-        return (
-            format!("{left_frame}-{left_hash:016x}"),
-            format!("{right_frame}-{right_hash:016x}"),
-        );
-    }
-    (format!("{left_frame}-left"), format!("{right_frame}-right"))
-}
-
-fn stable_operation_stack_label_hash(text: &str) -> u64 {
+fn recurrence_label_hash(text: &str) -> u64 {
     let mut hash = 0xcbf29ce484222325_u64;
     for byte in text.as_bytes() {
         hash ^= u64::from(*byte);
         hash = hash.wrapping_mul(0x100000001b3);
     }
     hash
-}
-
-fn operation_stack_field_gain(
-    samples: &[Operation],
-    parent: &[usize],
-    left: &[usize],
-    right: &[usize],
-    field: &str,
-    query_terms: &[String],
-) -> Option<OperationStackFieldGain> {
-    let parent_counts = weighted_value_counts(samples, parent, field);
-    if parent_counts.len() <= 1 {
-        return None;
-    }
-    let parent_entropy = entropy(&parent_counts);
-    if parent_entropy <= 0.0 {
-        return None;
-    }
-    let left_counts = weighted_value_counts(samples, left, field);
-    let right_counts = weighted_value_counts(samples, right, field);
-    let left_dominant = dominant_value(&left_counts)?;
-    let right_dominant = dominant_value(&right_counts)?;
-    let left_weight = index_weight(samples, left);
-    let right_weight = index_weight(samples, right);
-    let total = (left_weight + right_weight).max(1) as f64;
-    let child_entropy = (left_weight as f64 / total) * entropy(&left_counts)
-        + (right_weight as f64 / total) * entropy(&right_counts);
-    let normalized_information_gain = ((parent_entropy - child_entropy) / parent_entropy).max(0.0);
-    let query_relevance = query_relevance(field, parent_counts.keys(), query_terms);
-    Some(OperationStackFieldGain {
-        field: field.to_string(),
-        normalized_information_gain,
-        query_relevance,
-        parent_entropy,
-        left_entropy: entropy(&left_counts),
-        right_entropy: entropy(&right_counts),
-        left_dominant,
-        right_dominant,
-    })
-}
-
-fn dominant_value(counts: &BTreeMap<String, u64>) -> Option<String> {
-    counts
-        .iter()
-        .max_by(|left, right| left.1.cmp(right.1).then_with(|| right.0.cmp(left.0)))
-        .map(|(value, _)| value.clone())
-}
-
-fn operation_field_value(sample: &Operation, field: &str) -> String {
-    sample
-        .values(field)
-        .first()
-        .cloned()
-        .unwrap_or_else(|| "unknown".to_string())
-}
-
-fn weighted_value_counts(
-    samples: &[Operation],
-    indices: &[usize],
-    field: &str,
-) -> BTreeMap<String, u64> {
-    let mut counts = BTreeMap::new();
-    for index in indices {
-        *counts
-            .entry(operation_field_value(&samples[*index], field))
-            .or_default() += samples[*index].value.max(1);
-    }
-    counts
-}
-
-fn index_weight(samples: &[Operation], indices: &[usize]) -> u64 {
-    indices
-        .iter()
-        .map(|index| samples[*index].value.max(1))
-        .sum()
-}
-
-fn entropy(counts: &BTreeMap<String, u64>) -> f64 {
-    let total = counts.values().sum::<u64>();
-    if total == 0 {
-        return 0.0;
-    }
-    counts
-        .values()
-        .filter(|count| **count > 0)
-        .map(|count| {
-            let probability = *count as f64 / total as f64;
-            -probability * probability.log2()
-        })
-        .sum()
-}
-
-fn query_relevance<'a>(
-    field: &str,
-    values: impl Iterator<Item = &'a String>,
-    query_terms: &[String],
-) -> f64 {
-    if query_terms.is_empty() {
-        return 0.0;
-    }
-    let haystack = std::iter::once(field.to_ascii_lowercase())
-        .chain(values.map(|value| value.to_ascii_lowercase()))
-        .collect::<Vec<_>>()
-        .join(" ");
-    query_terms
-        .iter()
-        .filter(|term| haystack.contains(term.as_str()))
-        .count() as f64
-        / query_terms.len() as f64
 }
 
 fn operation_matches_filters(sample: &Operation, filters: &[OperationFilterRule]) -> bool {
@@ -2743,7 +2527,8 @@ mod tests {
         );
         let options = OperationStackConfig::for_view(ProfileView::Time);
         let profile =
-            build_profile_with_options(&[session], "agentsight", ProfileView::Time, &options);
+            build_profile_with_options(&[session], "agentsight", ProfileView::Time, &options)
+                .unwrap();
         let stacks = profile_to_stacks(&profile);
         // prompt at 1000ms, tool at 3000ms -> 2 seconds
         assert_eq!(
@@ -2776,7 +2561,8 @@ mod tests {
         );
         let options = OperationStackConfig::for_view(ProfileView::Files);
         let profile =
-            build_profile_with_options(&[session], "agentsight", ProfileView::Files, &options);
+            build_profile_with_options(&[session], "agentsight", ProfileView::Files, &options)
+                .unwrap();
         let stacks = profile_to_stacks(&profile);
 
         assert_eq!(
@@ -2801,7 +2587,8 @@ mod tests {
         let stack = parse_stack_spec("project,agent,op,phase,status").unwrap();
         let options = OperationStackConfig::for_view(ProfileView::Operations).with_stack(stack);
         let profile =
-            build_profile_with_options(&[session], "agentsight", ProfileView::Operations, &options);
+            build_profile_with_options(&[session], "agentsight", ProfileView::Operations, &options)
+                .unwrap();
         let stacks = profile_to_stacks(&profile);
 
         assert_eq!(
@@ -2842,7 +2629,8 @@ mod tests {
             .with_stack(stack)
             .with_rules(rules);
         let profile =
-            build_profile_with_options(&[session], "agentsight", ProfileView::Files, &options);
+            build_profile_with_options(&[session], "agentsight", ProfileView::Files, &options)
+                .unwrap();
         let stacks = profile_to_stacks(&profile);
 
         assert_eq!(
@@ -2856,7 +2644,7 @@ mod tests {
     }
 
     #[test]
-    fn operation_jsonl_input_uses_same_recursive_stack_model() {
+    fn operation_jsonl_input_uses_same_operation_stack_model() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("ops.jsonl");
         fs::write(
@@ -3083,6 +2871,7 @@ mod tests {
             records.push(json!({"value": 1, "fields": {
                 "dataset": "agent-reward-bench",
                 "analysis_task": "agentreward_looping",
+                "session": "s0",
                 "repeat_state": "single",
                 "repeat_signal": "none",
                 "action": "click",
@@ -3099,6 +2888,7 @@ mod tests {
             records.push(json!({"value": 1, "fields": {
                 "dataset": "agent-reward-bench",
                 "analysis_task": "agentreward_looping",
+                "session": "s0",
                 "repeat_state": "same-action-run",
                 "repeat_signal": "loop-like",
                 "action": "click",
@@ -3115,6 +2905,7 @@ mod tests {
             records.push(json!({"value": 1, "fields": {
                 "dataset": "agent-reward-bench",
                 "analysis_task": "agentreward_looping",
+                "session": "s0",
                 "repeat_state": "same-action-run",
                 "repeat_signal": "loop-like",
                 "action": "fill",
@@ -3129,8 +2920,7 @@ mod tests {
         }
 
         let stack = parse_stack_spec("operation").unwrap();
-        let induction = OperationStackInductionConfig::new()
-            .with_query_terms(vec!["loop".to_string(), "repeat".to_string()]);
+        let induction = OperationStackInductionConfig::new();
         let options = OperationStackConfig::for_view(ProfileView::Operations)
             .with_stack(stack)
             .with_operation_stack_induction(induction);
@@ -3154,44 +2944,27 @@ mod tests {
                 && !stack.contains("group_pattern")
         }));
         assert_eq!(stacks.values().sum::<u64>(), 18);
-        assert!(stacks.keys().all(|stack| stack.split(';').count() <= 4));
+        assert_eq!(stacks.len(), 2);
 
         let report = profile
             .operation_stack_induction
             .as_ref()
             .expect("induction report");
         assert_eq!(report.policy, OPERATION_STACK_POLICY);
-        assert!(
-            report
-                .selected_source_fields
-                .iter()
-                .any(|field| matches!(field.as_str(), "repeat_state" | "repeat_signal" | "action"))
-        );
-        assert_eq!(
-            report.complexity_penalty,
-            OPERATION_STACK_COMPLEXITY_PENALTY
-        );
-        assert!(report.split_decisions.iter().all(|decision| {
-            decision.selected_score.normalized_information_gain > 0.0
-                && decision.selected_score.score > decision.selected_score.complexity_penalty
-                && decision.selected_score.accepted_margin > 0.0
-                && decision.selected_score.left_label != decision.selected_score.right_label
-                && !decision.selected_score.changed_fields.is_empty()
-                && !decision.selected_score.field_gains.is_empty()
-                && decision.path.len() < report.max_depth
-        }));
-        assert!(
-            report
-                .stop_reasons
-                .keys()
-                .all(|reason| matches!(reason.as_str(), "max_depth" | "no_material_split"))
-        );
-        assert!(
-            report
-                .selected_source_fields
-                .iter()
-                .all(|field| !is_operation_stack_oracle_field(field))
-        );
+        assert_eq!(report.sequence_field, "session");
+        assert_eq!(report.association_field, "action");
+        assert_eq!(report.selected_source_fields, vec!["action"]);
+        assert_eq!(report.reference_sessions, 1);
+        assert_eq!(report.reference_operations, 18);
+        assert_eq!(report.reference_transitions, 17);
+        assert_eq!(report.target_sessions, 1);
+        assert_eq!(report.target_operations, 18);
+        assert_eq!(report.boundary_decisions.len(), 17);
+        assert_eq!(report.segments.len(), 2);
+        assert_eq!(report.predicted_groups, 2);
+        assert_eq!(report.unique_motifs, 2);
+        assert_eq!(report.segments[0].motif, "action=click");
+        assert_eq!(report.segments[1].motif, "action=fill");
 
         let second =
             build_profile_from_operation_records(&records, ProfileView::Operations, &options)
@@ -3200,14 +2973,39 @@ mod tests {
             serde_json::to_value(report).unwrap(),
             serde_json::to_value(second.operation_stack_induction.as_ref().unwrap()).unwrap()
         );
+
+        let mut hidden_mutation = records.clone();
+        for (index, record) in hidden_mutation.iter_mut().enumerate() {
+            record["fields"]["human_group"] = json!(format!("mutated-{index}"));
+            record["fields"]["label"] = json!(format!("label-{index}"));
+            record["fields"]["oracle_answer"] = json!(index % 2 == 0);
+            record["fields"]["target_positive"] = json!(index % 3 == 0);
+        }
+        let mutated = build_profile_from_operation_records(
+            &hidden_mutation,
+            ProfileView::Operations,
+            &options,
+        )
+        .unwrap();
+        assert_eq!(
+            serde_json::to_value(report).unwrap(),
+            serde_json::to_value(mutated.operation_stack_induction.as_ref().unwrap()).unwrap()
+        );
     }
 
     #[test]
     fn operation_stack_induction_disambiguates_normalized_child_labels() {
-        let records = vec![
-            json!({"value": 1, "fields": {"dataset": "fixture", "action": "A B"}}),
-            json!({"value": 1, "fields": {"dataset": "fixture", "action": "a_b"}}),
-        ];
+        let mut records = Vec::new();
+        for _ in 0..6 {
+            records.push(json!({"value": 1, "fields": {
+                "dataset": "fixture", "session": "s0", "action": "A B"
+            }}));
+        }
+        for _ in 0..6 {
+            records.push(json!({"value": 1, "fields": {
+                "dataset": "fixture", "session": "s0", "action": "a_b"
+            }}));
+        }
         let options = OperationStackConfig::for_view(ProfileView::Operations)
             .with_stack(parse_stack_spec("operation").unwrap())
             .with_operation_stack_induction(OperationStackInductionConfig::new());
@@ -3216,17 +3014,51 @@ mod tests {
                 .unwrap();
         let stacks = profile_to_stacks(&profile);
         assert_eq!(stacks.len(), 2);
-        assert_eq!(stacks.values().sum::<u64>(), 2);
-        let decision = &profile
-            .operation_stack_induction
-            .as_ref()
-            .unwrap()
-            .split_decisions[0]
-            .selected_score;
-        assert_ne!(decision.left_label, decision.right_label);
+        assert_eq!(stacks.values().sum::<u64>(), 12);
+        let segments = &profile.operation_stack_induction.as_ref().unwrap().segments;
+        assert_eq!(segments.len(), 2);
+        assert_ne!(segments[0].motif, segments[1].motif);
         assert_ne!(
-            safe_frame(&decision.left_label, Some("operation")),
-            safe_frame(&decision.right_label, Some("operation"))
+            safe_frame(&segments[0].motif, Some("operation")),
+            safe_frame(&segments[1].motif, Some("operation"))
+        );
+    }
+
+    #[test]
+    fn operation_stack_induction_rejects_missing_and_degenerate_inputs() {
+        let options = OperationStackConfig::for_view(ProfileView::Operations)
+            .with_stack(parse_stack_spec("operation").unwrap())
+            .with_operation_stack_induction(OperationStackInductionConfig::new());
+        let missing_session = vec![
+            json!({"value": 1, "fields": {"action": "click"}}),
+            json!({"value": 1, "fields": {"action": "fill"}}),
+        ];
+        let error = build_profile_from_operation_records(
+            &missing_session,
+            ProfileView::Operations,
+            &options,
+        )
+        .err()
+        .expect("missing session must fail");
+        assert!(
+            error
+                .to_string()
+                .contains("exactly one nonempty \"session\"")
+        );
+
+        let degenerate = vec![
+            json!({"value": 1, "fields": {"session": "s0", "action": "click"}}),
+            json!({"value": 1, "fields": {"session": "s0", "action": "click"}}),
+            json!({"value": 1, "fields": {"session": "s0", "action": "click"}}),
+        ];
+        let error =
+            build_profile_from_operation_records(&degenerate, ProfileView::Operations, &options)
+                .err()
+                .expect("one-score reference must fail");
+        assert!(
+            error
+                .to_string()
+                .contains("at least two distinct finite transition scores")
         );
     }
 

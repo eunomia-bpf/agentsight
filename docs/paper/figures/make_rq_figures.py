@@ -14,6 +14,8 @@ plt.rcParams.update({
     'ytick.labelsize': 7,
     'legend.fontsize': 7,
     'font.family': 'serif',
+    'text.usetex': True,
+    'text.latex.preamble': r'\usepackage{newtxtext}',
     'axes.grid': True,
     'grid.alpha': 0.3,
     'lines.linewidth': 1.2,

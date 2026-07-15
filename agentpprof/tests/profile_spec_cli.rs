@@ -135,15 +135,9 @@ fn cli_induces_operation_stack_without_user_field_order() {
     let binary = env!("CARGO_BIN_EXE_agentpprof");
 
     let mut rows = Vec::new();
-    for _ in 0..6 {
-        rows.push(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"single","repeat_signal":"none","action":"click","looping":"no","problem_value":"negative","status":"failure","step_correct":"false","safety":"safe","human_group":"g0","group_pattern":"g0"}}"#);
-    }
-    for _ in 0..6 {
-        rows.push(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"same-action-run","repeat_signal":"loop-like","action":"click","looping":"yes","problem_value":"positive","status":"failure","step_correct":"true","safety":"unsafe","human_group":"g1","group_pattern":"g1"}}"#);
-    }
-    for _ in 0..6 {
-        rows.push(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"same-action-run","repeat_signal":"loop-like","action":"fill","looping":"yes","problem_value":"positive","status":"failure","step_correct":"true","safety":"unsafe","human_group":"g2","group_pattern":"g2"}}"#);
-    }
+    rows.extend(std::iter::repeat_n(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","session":"s0","repeat_state":"single","repeat_signal":"none","action":"click","looping":"no","problem_value":"negative","status":"failure","step_correct":"false","safety":"safe","human_group":"g0","group_pattern":"g0"}}"#, 6));
+    rows.extend(std::iter::repeat_n(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","session":"s0","repeat_state":"same-action-run","repeat_signal":"loop-like","action":"click","looping":"yes","problem_value":"positive","status":"failure","step_correct":"true","safety":"unsafe","human_group":"g1","group_pattern":"g1"}}"#, 6));
+    rows.extend(std::iter::repeat_n(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","session":"s0","repeat_state":"same-action-run","repeat_signal":"loop-like","action":"fill","looping":"yes","problem_value":"positive","status":"failure","step_correct":"true","safety":"unsafe","human_group":"g2","group_pattern":"g2"}}"#, 6));
     fs::write(&ops_path, rows.join("\n") + "\n").unwrap();
 
     let output = Command::new(binary)
@@ -161,8 +155,6 @@ fn cli_induces_operation_stack_without_user_field_order() {
             "--where",
             "analysis_task=agentreward_looping",
             "--induce-operation-stack",
-            "--induce-query-term",
-            "loop",
             "--deterministic-output",
         ])
         .output()
@@ -211,61 +203,30 @@ fn cli_induces_operation_stack_without_user_field_order() {
     let report = &profile_json["profile"]["operation_stack_induction"];
     assert_eq!(
         report["policy"],
-        "recursive-information-gain-operation-stack-induction"
+        "cross-session-action-transition-npmi-operation-stack-induction"
     );
     assert_eq!(
         report["objective"],
-        "mean resource-weighted normalized information gain minus a fixed complexity penalty"
-    );
-    assert_eq!(
-        report["complexity_penalty"],
-        "ln(node_operation_count)/(2*node_operation_count)"
+        "recurring adjacent visible actions define operation continuity across sessions"
     );
     assert_eq!(report["derived_stack_field"], "operation");
-    assert!(
-        report["split_decisions"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|decision| decision["selected_score"]["cut_after"].as_u64().unwrap() > 0)
-    );
-    assert!(
-        report["split_decisions"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(
-                |decision| decision["selected_score"]["normalized_information_gain"]
-                    .as_f64()
-                    .unwrap()
-                    > 0.0
-                    && decision["selected_score"]["score"].as_f64().unwrap()
-                        > decision["selected_score"]["complexity_penalty"]
-                            .as_f64()
-                            .unwrap()
-                    && decision["selected_score"]["accepted_margin"]
-                        .as_f64()
-                        .unwrap()
-                        > 0.0
-                    && decision["selected_score"]["left_label"]
-                        != decision["selected_score"]["right_label"]
-                    && !decision["selected_score"]["changed_fields"]
-                        .as_array()
-                        .unwrap()
-                        .is_empty()
-            )
-    );
+    assert_eq!(report["sequence_field"], "session");
+    assert_eq!(report["association_field"], "action");
+    assert_eq!(report["reference_sessions"], 1);
+    assert_eq!(report["reference_operations"], 18);
+    assert_eq!(report["reference_transitions"], 17);
+    assert_eq!(report["target_sessions"], 1);
+    assert_eq!(report["target_operations"], 18);
+    assert_eq!(report["predicted_groups"], 2);
+    assert_eq!(report["unique_motifs"], 2);
+    assert_eq!(report["boundary_decisions"].as_array().unwrap().len(), 17);
+    assert_eq!(report["segments"].as_array().unwrap().len(), 2);
     let selected = report["selected_source_fields"].as_array().unwrap();
     assert_eq!(
         selected,
         report["selected_evidence_fields"].as_array().unwrap()
     );
-    assert!(selected.iter().any(|field| {
-        matches!(
-            field.as_str().unwrap(),
-            "repeat_state" | "repeat_signal" | "action"
-        )
-    }));
+    assert_eq!(selected, &[Value::String("action".to_string())]);
     assert!(selected.iter().all(|field| {
         !matches!(
             field.as_str().unwrap(),
@@ -279,27 +240,147 @@ fn cli_induces_operation_stack_without_user_field_order() {
         )
     }));
     assert!(
-        report["split_decisions"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|decision| {
-                decision["selected_score"]["left_label"]
-                    .as_str()
-                    .unwrap()
-                    .contains('=')
-                    && decision["selected_score"]["right_label"]
-                        .as_str()
-                        .unwrap()
-                        .contains('=')
-            })
-    );
-    assert!(
-        report["split_decisions"].as_array().unwrap().iter().all(
-            |decision| decision["boundary_id"].as_str().unwrap().starts_with('b')
-                && decision["primary_evidence_field"].as_str().is_some()
-                && !decision["evidence_fields"].as_array().unwrap().is_empty()
+        report["boundary_decisions"].as_array().unwrap().iter().all(
+            |decision| decision["position"].as_u64().unwrap() > 0
+                && decision["left_action"].as_str().is_some()
+                && decision["right_action"].as_str().is_some()
         )
+    );
+}
+
+#[test]
+fn cli_induces_operation_stack_from_external_reference_corpus() {
+    let tmp = tempfile::tempdir().unwrap();
+    let reference_path = tmp.path().join("reference.jsonl");
+    let target_path = tmp.path().join("target.jsonl");
+    let output_path = tmp.path().join("induced.json");
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+
+    let reference = [
+        ("r0", "click"),
+        ("r0", "click"),
+        ("r0", "click"),
+        ("r0", "fill"),
+        ("r0", "fill"),
+        ("r1", "click"),
+        ("r1", "click"),
+        ("r1", "fill"),
+        ("r1", "fill"),
+    ]
+    .into_iter()
+    .map(|(session, action)| {
+        serde_json::json!({"value": 1, "fields": {"session": session, "action": action}})
+            .to_string()
+    })
+    .collect::<Vec<_>>()
+    .join("\n");
+    fs::write(&reference_path, reference + "\n").unwrap();
+    let target = ["click", "click", "fill", "fill"]
+        .into_iter()
+        .map(|action| {
+            serde_json::json!({"value": 1, "fields": {"session": "t0", "action": action}})
+                .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    fs::write(&target_path, target + "\n").unwrap();
+
+    let output = Command::new(binary)
+        .args([
+            "--operation-file",
+            target_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            output_path.to_str().unwrap(),
+            "--induce-operation-stack",
+            "--induce-reference-operation-file",
+            reference_path.to_str().unwrap(),
+            "--deterministic-output",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "reference induction failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let profile: Value = serde_json::from_str(&fs::read_to_string(&output_path).unwrap()).unwrap();
+    let report = &profile["profile"]["operation_stack_induction"];
+    assert_eq!(report["reference_source"], "external-operation-records");
+    assert_eq!(report["reference_sessions"], 2);
+    assert_eq!(report["reference_operations"], 9);
+    assert_eq!(report["reference_transitions"], 7);
+    assert_eq!(report["target_sessions"], 1);
+    assert_eq!(report["target_operations"], 4);
+    assert_eq!(report["boundary_decisions"].as_array().unwrap().len(), 3);
+    assert_eq!(report["segments"].as_array().unwrap().len(), 2);
+    assert_eq!(report["segments"][0]["motif"], "action=click");
+    assert_eq!(report["segments"][1]["motif"], "action=fill");
+}
+
+#[test]
+fn cli_rejects_legacy_information_gain_knobs_under_recurrence() {
+    let tmp = tempfile::tempdir().unwrap();
+    let ops_path = tmp.path().join("ops.jsonl");
+    let output_path = tmp.path().join("induced.json");
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+    fs::write(
+        &ops_path,
+        [
+            r#"{"value":1,"fields":{"session":"s0","action":"click"}}"#,
+            r#"{"value":1,"fields":{"session":"s0","action":"fill"}}"#,
+        ]
+        .join("\n")
+            + "\n",
+    )
+    .unwrap();
+    let output = Command::new(binary)
+        .args([
+            "--operation-file",
+            ops_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            output_path.to_str().unwrap(),
+            "--induce-operation-stack",
+            "--induce-max-depth",
+            "4",
+        ])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr)
+            .contains("recurrence-based --induce-operation-stack does not accept")
+    );
+
+    let spec_path = tmp.path().join("legacy-false.json");
+    fs::write(
+        &spec_path,
+        serde_json::json!({
+            "output": output_path,
+            "format": "json",
+            "view": "operations",
+            "operation_files": [ops_path],
+            "induce_operation_stack": true,
+            "induce_allow_session": false
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let output = Command::new(binary)
+        .args(["--profile-spec", spec_path.to_str().unwrap()])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr)
+            .contains("recurrence-based --induce-operation-stack does not accept")
     );
 }
 
@@ -311,12 +392,9 @@ fn cli_legacy_task_stack_alias_ignores_hidden_oracle_only_boundaries() {
     let binary = env!("CARGO_BIN_EXE_agentpprof");
 
     let mut rows = Vec::new();
-    for _ in 0..6 {
-        rows.push(r#"{"value":1,"fields":{"dataset":"fixture","analysis_task":"hidden_boundary","action":"click","step_correct":"false","safety":"safe","human_group":"g0","group_pattern":"g0","target_positive":"no"}}"#);
-    }
-    for _ in 0..6 {
-        rows.push(r#"{"value":1,"fields":{"dataset":"fixture","analysis_task":"hidden_boundary","action":"click","step_correct":"true","safety":"unsafe","human_group":"g1","group_pattern":"g1","target_positive":"yes"}}"#);
-    }
+    rows.extend(std::iter::repeat_n(r#"{"value":1,"fields":{"dataset":"fixture","analysis_task":"hidden_boundary","session":"s0","action":"click","step_correct":"false","safety":"safe","human_group":"g0","group_pattern":"g0","target_positive":"no"}}"#, 6));
+    rows.extend(std::iter::repeat_n(r#"{"value":1,"fields":{"dataset":"fixture","analysis_task":"hidden_boundary","session":"s0","action":"click","step_correct":"true","safety":"unsafe","human_group":"g1","group_pattern":"g1","target_positive":"yes"}}"#, 6));
+    rows.extend(std::iter::repeat_n(r#"{"value":1,"fields":{"dataset":"fixture","analysis_task":"hidden_boundary","session":"s0","action":"fill","step_correct":"true","safety":"unsafe","human_group":"g2","group_pattern":"g2","target_positive":"yes"}}"#, 6));
     fs::write(&ops_path, rows.join("\n") + "\n").unwrap();
 
     let output = Command::new(binary)
@@ -330,8 +408,6 @@ fn cli_legacy_task_stack_alias_ignores_hidden_oracle_only_boundaries() {
             "--output",
             output_path.to_str().unwrap(),
             "--induce-task-stack",
-            "--induce-query-term",
-            "correct",
             "--deterministic-output",
         ])
         .output()
@@ -346,17 +422,18 @@ fn cli_legacy_task_stack_alias_ignores_hidden_oracle_only_boundaries() {
     let profile_json: Value =
         serde_json::from_str(&fs::read_to_string(&output_path).unwrap()).unwrap();
     let stacks = profile_json["profile"]["stacks"].as_object().unwrap();
-    assert_eq!(stacks.len(), 1);
-    assert_eq!(stacks["task:all"], 12);
+    assert_eq!(stacks.len(), 2);
+    assert_eq!(stacks["task:action_click"], 12);
+    assert_eq!(stacks["task:action_fill"], 6);
     assert!(profile_json["profile"]["task_stack_induction"].is_null());
     let report = &profile_json["profile"]["operation_stack_induction"];
-    assert!(
-        report["selected_source_fields"]
-            .as_array()
-            .unwrap()
-            .is_empty()
+    assert_eq!(
+        report["selected_source_fields"],
+        serde_json::json!(["action"])
     );
-    assert!(report["split_decisions"].as_array().unwrap().is_empty());
+    assert_eq!(report["segments"].as_array().unwrap().len(), 2);
+    assert_eq!(report["segments"][0]["start"], 0);
+    assert_eq!(report["segments"][0]["end"], 12);
 }
 
 #[test]
@@ -396,7 +473,7 @@ fn cli_legacy_task_stack_alias_rejects_non_task_stack_override() {
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("--induce-operation-stack derives a recursive operation-stack path"),
+        stderr.contains("--induce-operation-stack derives recurring operation identities"),
         "unexpected stderr: {stderr}"
     );
 }
