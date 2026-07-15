@@ -1,0 +1,62 @@
+name: Publish npm Package
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish @eunomia-bpf/agentsight
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Use npm with trusted publishing support
+        run: npm install -g npm@^11.10.0
+
+      - name: Build frontend
+        run: |
+          npm ci --prefix frontend
+          node frontend/scripts/prepare-sample.mjs
+          npm run build --prefix frontend
+
+      - name: Prepare package
+        run: |
+          node script/npm/sync-version.mjs
+          node script/npm/prepare-agentsight.mjs
+
+      - name: Validate package
+        run: |
+          cd package/npm/agentsight
+          npm test
+          npm pack --dry-run
+
+      - name: Publish package
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package/npm/agentsight/package.json').version")"
+          if npm view "@eunomia-bpf/agentsight@${VERSION}" version >/dev/null 2>&1; then
+            echo "@eunomia-bpf/agentsight@${VERSION} already exists; skipping."
+          else
+            cd package/npm/agentsight
+            npm publish --access public
+          fi
