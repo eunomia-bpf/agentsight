@@ -99,6 +99,8 @@ pub struct ArtifactSummary {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionSummary {
     pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conversation_id: Option<String>,
     pub vendor: String,
     pub model: Option<String>,
     pub started_at_ms: Option<i64>,
@@ -118,6 +120,8 @@ pub struct NormalizedEvent {
     pub action: String,
     pub category: String,
     pub effect: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub command_name: String,
     pub status: String,
     pub prompt_index: usize,
     pub paths: Vec<String>,
@@ -827,6 +831,10 @@ fn normalize_sessions(
             session.agent_type,
             short_hash(&session.session_id, 16)
         );
+        let stable_conversation_id = session
+            .conversation_id
+            .as_deref()
+            .map(|id| format!("conversation-{}", short_hash(id, 16)));
         let project_hash_matches = session.project_hash.as_deref()
             == Some(short_hash(repo.to_string_lossy().as_ref(), 64).as_str());
         let cwd = if project_hash_matches {
@@ -836,6 +844,7 @@ fn normalize_sessions(
         };
         summaries.push(SessionSummary {
             id: stable_session_id.clone(),
+            conversation_id: stable_conversation_id,
             vendor: session.agent_type.clone(),
             model: session.model.clone(),
             started_at_ms: session.start_timestamp_ms.map(|value| value as i64),
@@ -891,6 +900,7 @@ fn normalize_sessions(
                 action: tool.tool_name.clone(),
                 category: tool.category.clone(),
                 effect: tool.effect.clone(),
+                command_name: tool.command_name.clone(),
                 status: tool.status.clone(),
                 prompt_index: tool.prompt_index,
                 paths,
@@ -920,6 +930,7 @@ fn normalize_sessions(
                 action: "model_response".to_string(),
                 category: "model".to_string(),
                 effect: "compute".to_string(),
+                command_name: String::new(),
                 status: "observed".to_string(),
                 prompt_index: response.prompt_index,
                 paths: Vec::new(),
@@ -1309,6 +1320,7 @@ mod tests {
             action: "write".to_string(),
             category: "file".to_string(),
             effect: "write".to_string(),
+            command_name: String::new(),
             status: "ok".to_string(),
             prompt_index: 0,
             paths: vec!["file.txt".to_string()],
@@ -1391,6 +1403,7 @@ mod tests {
             action: "exec_command".to_string(),
             category: "shell".to_string(),
             effect: "process".to_string(),
+            command_name: "sh".to_string(),
             status: "ok".to_string(),
             prompt_index: 0,
             paths: vec!["file.txt".to_string()],
