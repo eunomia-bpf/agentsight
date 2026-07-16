@@ -10,63 +10,65 @@ const patternColors = {
   Fossil: "#3f4b5e",
   Steady: "#4d91c6",
 };
+const lifeColors = ["#4ab99a", "#66445a"];
 
-function emptyGraphic(message) {
-  return [{
-    type: "text",
-    left: "center",
-    top: "middle",
-    silent: true,
-    style: { text: message, fill: "#71839a", fontSize: 13 },
-  }];
-}
+const emptyGraphic = (text) => [{
+  type: "text", left: "center", top: "middle", silent: true,
+  style: { text, fill: "#71839a", fontSize: 13 },
+}];
+const chart = (h, rows, empty, option) => ({
+  ...h.base(), graphic: rows.length ? [] : emptyGraphic(empty), ...option,
+});
+const grid = (left = 56, right = 24, top = 42, bottom = 42) => (
+  { left, right, top, bottom }
+);
+const legend = (h, data) => ({ top: 0, data, textStyle: { color: h.colors.muted } });
+const categoryAxis = (h, data, extra = {}) => ({
+  type: "category", data, ...h.axis(), ...extra,
+});
+const valueAxis = (h, name, extra = {}) => ({
+  type: "value", name, ...h.axis(), ...extra,
+});
+const bar = (name, color, rows, value, extra = {}) => ({
+  name, type: "bar", itemStyle: { color },
+  data: rows.map((row) => ({ value: value(row), row })), ...extra,
+});
+const axisTooltip = (formatter) => ({
+  trigger: "axis", axisPointer: { type: "shadow" }, formatter,
+});
 
-function visible(data, cursorMs, h) {
-  return h.visibleEvents(data, cursorMs);
-}
-
-function activePathSet(data, cursorMs, h) {
-  return new Set(visible(data, cursorMs, h).map((event) => event.path));
-}
-
-function recent(data, cursorMs, h) {
-  return visible(data, cursorMs, h)
-    .filter((event) => event.ts_ms >= cursorMs - WAKE_MS && event.ts_ms <= cursorMs)
-    .sort((a, b) => a.ts_ms - b.ts_ms || a.id.localeCompare(b.id));
-}
+const visible = (data, cursorMs, h) => h.visibleEvents(data, cursorMs);
+const activePathSet = (data, cursorMs, h) => (
+  new Set(visible(data, cursorMs, h).map((event) => event.path))
+);
+const recent = (data, cursorMs, h) => visible(data, cursorMs, h)
+  .filter((event) => event.ts_ms >= cursorMs - WAKE_MS && event.ts_ms <= cursorMs)
+  .sort((a, b) => a.ts_ms - b.ts_ms || a.id.localeCompare(b.id));
+const endpointFiles = (data) => data.files.filter(
+  (file) => file.survives_to_head && file.current_path === file.path,
+);
+const endedCount = (row) => (
+  row.dead_files ?? Math.max(0, row.born_files - (row.surviving_files ?? 0))
+);
 
 function decorateTree(node, activePaths) {
   const children = node.children?.map((child) => decorateTree(child, activePaths));
-  const highlighted = node.path
-    ? activePaths.has(node.path)
-    : children?.some((child) => child.__active);
+  const active = node.path ? activePaths.has(node.path) : children?.some((child) => child.__active);
   return {
-    ...node,
-    children,
-    ...(highlighted ? {
+    ...node, children,
+    ...(active && {
       __active: true,
       itemStyle: {
-        color: "#216d7a",
-        borderColor: "#6ee7da",
-        shadowBlur: 8,
+        color: "#216d7a", borderColor: "#6ee7da", shadowBlur: 8,
         shadowColor: "rgba(110,231,218,.35)",
       },
-    } : {}),
+    }),
   };
 }
 
-function endpointFiles(data) {
-  return data.files.filter((file) => (
-    file.survives_to_head && file.current_path === file.path
-  ));
-}
-
 function repositoryTreemap(data, cursorMs, h) {
-  const tree = decorateTree(data.tree, activePathSet(data, cursorMs, h));
-  const rows = tree.children ?? [];
-  return {
-    ...h.base(),
-    graphic: rows.length ? [] : emptyGraphic("No repository paths at the endpoint"),
+  const rows = decorateTree(data.tree, activePathSet(data, cursorMs, h)).children ?? [];
+  return chart(h, rows, "No repository paths at the endpoint", {
     tooltip: {
       renderMode: "richText",
       formatter: ({ data: row = {} }) => row.path
@@ -74,13 +76,9 @@ function repositoryTreemap(data, cursorMs, h) {
         : row.name ?? "repository",
     },
     series: [{
-      type: "treemap",
-      data: rows,
-      roam: true,
-      nodeClick: "zoomToNode",
+      type: "treemap", data: rows, roam: true, nodeClick: "zoomToNode",
       breadcrumb: {
-        show: true,
-        bottom: 3,
+        show: true, bottom: 3,
         itemStyle: { color: "#151d2b", borderColor: "#26344b" },
         emphasis: { itemStyle: { color: "#1d293b" } },
       },
@@ -93,50 +91,34 @@ function repositoryTreemap(data, cursorMs, h) {
         { colorSaturation: [0.3, 0.75], itemStyle: { gapWidth: 1 } },
       ],
     }],
-  };
+  });
 }
 
 function workspaceConstellation(data, cursorMs, h) {
   const activePaths = activePathSet(data, cursorMs, h);
+  const points = data.files.map((file) => {
+    const active = activePaths.has(file.path);
+    const color = patternColors[file.pattern] ?? "#5f7d9e";
+    return {
+      value: [file.stable_x, file.stable_y, file.risk_score],
+      path: file.path, pattern: file.pattern, touches: file.touches, risk: file.risk_score,
+      symbolSize: Math.max(3, Math.min(28, 3 + Math.sqrt(file.current_bytes || file.churn || 1) / 8)),
+      itemStyle: {
+        color, opacity: active ? 0.95 : 0.14,
+        borderColor: active ? "#dffdf8" : "transparent", borderWidth: active ? 1 : 0,
+        shadowBlur: active ? 12 : 0, shadowColor: color,
+      },
+    };
+  });
   return {
-    ...h.base(),
-    grid: { left: 18, right: 18, top: 18, bottom: 18 },
+    ...h.base(), grid: grid(18, 18, 18, 18),
     xAxis: { type: "value", min: 0, max: 1, show: false },
     yAxis: { type: "value", min: 0, max: 1, show: false },
     tooltip: {
       renderMode: "richText",
-      formatter: ({ data: row }) => (
-        `${row.path}\n${row.pattern}\n${row.touches} touches · risk ${row.risk.toFixed(2)}`
-      ),
+      formatter: ({ data: row }) => `${row.path}\n${row.pattern}\n${row.touches} touches · risk ${row.risk.toFixed(2)}`,
     },
-    series: [{
-      name: "repository paths",
-      type: "scatter",
-      data: data.files.map((file) => {
-        const highlighted = activePaths.has(file.path);
-        const color = patternColors[file.pattern] ?? "#5f7d9e";
-        return {
-          value: [file.stable_x, file.stable_y, file.risk_score],
-          path: file.path,
-          pattern: file.pattern,
-          touches: file.touches,
-          risk: file.risk_score,
-          symbolSize: Math.max(
-            3,
-            Math.min(28, 3 + Math.sqrt(file.current_bytes || file.churn || 1) / 8),
-          ),
-          itemStyle: {
-            color,
-            opacity: highlighted ? 0.95 : 0.14,
-            borderColor: highlighted ? "#dffdf8" : "transparent",
-            borderWidth: highlighted ? 1 : 0,
-            shadowBlur: highlighted ? 12 : 0,
-            shadowColor: color,
-          },
-        };
-      }),
-      emphasis: { scale: 1.8 },
-    }],
+    series: [{ name: "repository paths", type: "scatter", data: points, emphasis: { scale: 1.8 } }],
   };
 }
 
@@ -144,83 +126,40 @@ function territoryCartogram(data, cursorMs, h) {
   const activePaths = activePathSet(data, cursorMs, h);
   const groups = new Map();
   endpointFiles(data).forEach((file) => {
-    const row = groups.get(file.group) ?? {
-      group: file.group,
-      files: 0,
-      bytes: 0,
-      active: 0,
-    };
+    const row = groups.get(file.group) ?? { group: file.group, files: 0, bytes: 0, active: 0 };
     row.files += 1;
     row.bytes += file.current_bytes;
     row.active += Number(activePaths.has(file.path));
     groups.set(file.group, row);
   });
   const rows = h.rank([...groups.values()], (row) => row.bytes, 16);
-  return {
-    ...h.base(),
-    graphic: rows.length ? [] : emptyGraphic("No endpoint territories"),
-    grid: { left: 146, right: 48, top: 50, bottom: 42 },
-    legend: {
-      top: 0,
-      textStyle: { color: h.colors.muted },
-      data: ["current bytes", "paths active by cursor"],
-    },
-    tooltip: {
-      trigger: "axis",
-      axisPointer: { type: "shadow" },
-      formatter: (params) => {
-        const row = params[0]?.data?.row ?? params[1]?.data?.row;
-        return row
-          ? `${row.group}\n${row.files} endpoint files\n${h.formatCompact(row.bytes)} current bytes\n${row.active}/${row.files} paths active by cursor`
-          : "";
-      },
-    },
+  const names = ["current bytes", "paths active by cursor"];
+  return chart(h, rows, "No endpoint territories", {
+    grid: grid(146, 48, 50, 42), legend: legend(h, names),
+    tooltip: axisTooltip((params) => {
+      const row = params[0]?.data?.row ?? params[1]?.data?.row;
+      return row ? `${row.group}\n${row.files} endpoint files\n${h.formatCompact(row.bytes)} current bytes\n${row.active}/${row.files} paths active by cursor` : "";
+    }),
     xAxis: [
-      {
-        type: "value",
-        name: "current bytes",
-        ...h.axis(),
-        axisLabel: { color: h.colors.muted, formatter: h.formatCompact },
-      },
-      {
-        type: "value",
-        name: "active paths",
-        min: 0,
-        max: 100,
-        position: "top",
-        ...h.axis(),
-        splitLine: { show: false },
+      valueAxis(h, "current bytes", { axisLabel: { color: h.colors.muted, formatter: h.formatCompact } }),
+      valueAxis(h, "active paths", {
+        min: 0, max: 100, position: "top", splitLine: { show: false },
         axisLabel: { color: h.colors.muted, formatter: "{value}%" },
-      },
+      }),
     ],
-    yAxis: {
-      type: "category",
-      inverse: true,
-      data: rows.map((row) => row.group),
-      ...h.axis(),
-      axisLabel: { color: h.colors.muted, width: 132, overflow: "truncate" },
-    },
+    yAxis: categoryAxis(h, rows.map((row) => row.group), {
+      inverse: true, axisLabel: { color: h.colors.muted, width: 132, overflow: "truncate" },
+    }),
     series: [
-      {
-        name: "current bytes",
-        type: "bar",
-        barMaxWidth: 14,
-        itemStyle: { color: "#315f86", borderRadius: [0, 4, 4, 0] },
-        data: rows.map((row) => ({ value: row.bytes, row })),
-      },
-      {
-        name: "paths active by cursor",
-        type: "bar",
-        xAxisIndex: 1,
-        barMaxWidth: 8,
+      bar(names[0], "#315f86", rows, (row) => row.bytes, {
+        barMaxWidth: 14, itemStyle: { color: "#315f86", borderRadius: [0, 4, 4, 0] },
+      }),
+      bar(names[1], "#5dd9c1", rows, (row) => 100 * row.active / Math.max(1, row.files), {
+        xAxisIndex: 1, barMaxWidth: 8,
         itemStyle: { color: "#5dd9c1", borderRadius: [0, 4, 4, 0] },
-        data: rows.map((row) => ({
-          value: (100 * row.active) / Math.max(1, row.files),
-          row,
-        })),
-      },
+      }),
     ],
-  };
+  });
 }
 
 function agentPathParticles(data, cursorMs, h) {
@@ -229,30 +168,23 @@ function agentPathParticles(data, cursorMs, h) {
     anchors.set(file.path, file);
     if (file.current_path) anchors.set(file.current_path, file);
   });
-  const events = recent(data, cursorMs, h).slice(-1800);
-  const particles = events.flatMap((event) => {
+  const particles = recent(data, cursorMs, h).slice(-1800).flatMap((event) => {
     const file = anchors.get(event.path);
     if (!file) return [];
     const age = Math.max(0, cursorMs - event.ts_ms) / WAKE_MS;
+    const color = h.vendorColor(event.vendor);
     return [{
       value: [file.stable_x, file.stable_y, event.ts_ms],
-      path: event.path,
-      vendor: event.vendor,
-      effect: event.effect,
-      age,
+      path: event.path, vendor: event.vendor, effect: event.effect, age,
       symbolSize: event.effect === "write" ? 9 : 5,
       itemStyle: {
-        color: h.vendorColor(event.vendor),
-        opacity: Math.max(0.06, (1 - age) * 0.78),
-        shadowBlur: Math.max(0, (1 - age) * 14),
-        shadowColor: h.vendorColor(event.vendor),
+        color, opacity: Math.max(0.06, (1 - age) * 0.78),
+        shadowBlur: Math.max(0, (1 - age) * 14), shadowColor: color,
       },
     }];
   });
-  return {
-    ...h.base(),
-    graphic: particles.length ? [] : emptyGraphic("No path events in the trailing six hours"),
-    grid: { left: 18, right: 18, top: 18, bottom: 18 },
+  return chart(h, particles, "No path events in the trailing six hours", {
+    grid: grid(18, 18, 18, 18),
     xAxis: { type: "value", min: 0, max: 1, show: false },
     yAxis: { type: "value", min: 0, max: 1, show: false },
     tooltip: {
@@ -263,124 +195,82 @@ function agentPathParticles(data, cursorMs, h) {
     },
     series: [
       {
-        name: "anchors",
-        type: "scatter",
-        symbolSize: 3,
+        name: "anchors", type: "scatter", symbolSize: 3,
         itemStyle: { color: "#607086", opacity: 0.24 },
-        data: data.files.map((file) => ({
-          value: [file.stable_x, file.stable_y],
-          path: file.path,
-        })),
+        data: data.files.map((file) => ({ value: [file.stable_x, file.stable_y], path: file.path })),
       },
-      {
-        name: "recorded path events",
-        type: "scatter",
-        data: particles,
-        emphasis: { scale: 1.65 },
-      },
+      { name: "recorded path events", type: "scatter", data: particles, emphasis: { scale: 1.65 } },
     ],
-  };
+  });
 }
 
 function durableChangePulse(data, cursorMs, h) {
   const churnByCommit = new Map();
-  data.changes.forEach((change) => {
-    churnByCommit.set(
-      change.commit_id,
-      (churnByCommit.get(change.commit_id) ?? 0) + change.additions + change.deletions,
-    );
+  data.changes.forEach((change) => churnByCommit.set(
+    change.commit_id,
+    (churnByCommit.get(change.commit_id) ?? 0) + change.additions + change.deletions,
+  ));
+  const commits = data.commits.filter((commit) => (
+    commit.committed_at_ms >= data.meta.window_start_ms && commit.committed_at_ms <= cursorMs
+  ));
+  const points = commits.map((commit) => {
+    const churn = churnByCommit.get(commit.id) ?? 0;
+    const color = commit.is_merge ? "#bb8fef" : h.colors.commit;
+    return {
+      value: [commit.committed_at_ms, churn], commit: commit.id, merge: commit.is_merge,
+      symbolSize: Math.min(32, 7 + Math.sqrt(churn)),
+      itemStyle: { color, opacity: 0.8, shadowBlur: 10, shadowColor: color },
+    };
   });
-  const commits = data.commits.filter((commit) => commit.committed_at_ms <= cursorMs);
-  return {
-    ...h.base(),
-    graphic: commits.length ? [] : emptyGraphic("No Git commits by this cursor"),
-    grid: { left: 54, right: 24, top: 24, bottom: 42 },
-    xAxis: {
-      type: "time",
-      min: data.meta.window_start_ms,
-      max: data.meta.window_end_ms,
-      ...h.axis(),
-    },
-    yAxis: { type: "value", name: "changed lines", ...h.axis() },
+  return chart(h, commits, "No Git commits by this cursor", {
+    grid: grid(54, 24, 24, 42),
+    xAxis: valueAxis(h, undefined, {
+      type: "time", min: data.meta.window_start_ms, max: data.meta.window_end_ms,
+    }),
+    yAxis: valueAxis(h, "changed lines"),
     tooltip: {
       renderMode: "richText",
-      formatter: ({ data: row }) => (
-        `${row.commit.slice(0, 10)}\n${h.formatCompact(row.value[1])} changed lines${row.merge ? "\nmerge commit" : ""}`
-      ),
+      formatter: ({ data: row }) => `${row.commit.slice(0, 10)}\n${h.formatCompact(row.value[1])} changed lines${row.merge ? "\nmerge commit" : ""}`,
     },
     series: [{
-      name: "Git commits",
-      type: "scatter",
-      data: commits.map((commit) => {
-        const churn = churnByCommit.get(commit.id) ?? 0;
-        return {
-          value: [commit.committed_at_ms, churn],
-          commit: commit.id,
-          merge: commit.is_merge,
-          symbolSize: Math.min(32, 7 + Math.sqrt(churn)),
-          itemStyle: {
-            color: commit.is_merge ? "#bb8fef" : h.colors.commit,
-            opacity: 0.8,
-            shadowBlur: 10,
-            shadowColor: commit.is_merge ? "#bb8fef" : h.colors.commit,
-          },
-        };
-      }),
+      name: "Git commits", type: "scatter", data: points,
       markLine: {
-        silent: true,
-        symbol: "none",
+        silent: true, symbol: "none",
         label: { color: h.colors.muted, formatter: "cursor" },
-        lineStyle: { color: h.colors.text, opacity: 0.55 },
-        data: [{ xAxis: cursorMs }],
+        lineStyle: { color: h.colors.text, opacity: 0.55 }, data: [{ xAxis: cursorMs }],
       },
     }],
-  };
+  });
 }
 
 function recentWake(data, cursorMs, h) {
-  const events = recent(data, cursorMs, h);
   const byPath = new Map();
-  events.forEach((event) => {
+  recent(data, cursorMs, h).forEach((event) => {
     const row = byPath.get(event.path) ?? { count: 0, latest: event };
     row.count += 1;
     if (event.ts_ms >= row.latest.ts_ms) row.latest = event;
     byPath.set(event.path, row);
   });
   const rows = h.rank(
-    data.files
-      .filter((file) => byPath.has(file.path))
-      .map((file) => ({ file, ...byPath.get(file.path) })),
-    (row) => row.file.touches,
-    12,
+    data.files.filter((file) => byPath.has(file.path)).map((file) => ({ file, ...byPath.get(file.path) })),
+    (row) => row.file.touches, 12,
   );
-  return {
-    ...h.base(),
-    graphic: rows.length ? [] : emptyGraphic("No glowing paths in the trailing six hours"),
-    grid: { left: 190, right: 42, top: 18, bottom: 34 },
-    xAxis: { type: "value", minInterval: 1, name: "events", ...h.axis() },
-    yAxis: {
-      type: "category",
-      inverse: true,
-      data: rows.map((row) => row.file.path),
-      ...h.axis(),
-      axisLabel: { color: h.colors.muted, width: 176, overflow: "truncate" },
-    },
+  return chart(h, rows, "No glowing paths in the trailing six hours", {
+    grid: grid(190, 42, 18, 34),
+    xAxis: valueAxis(h, "events", { minInterval: 1 }),
+    yAxis: categoryAxis(h, rows.map((row) => row.file.path), {
+      inverse: true, axisLabel: { color: h.colors.muted, width: 176, overflow: "truncate" },
+    }),
     tooltip: {
       renderMode: "richText",
-      formatter: ({ data: row }) => (
-        `${row.path}\n${row.value} events in the trailing six hours\nlatest: ${row.vendor} · ${row.effect}`
-      ),
+      formatter: ({ data: row }) => `${row.path}\n${row.value} events in the trailing six hours\nlatest: ${row.vendor} · ${row.effect}`,
     },
     series: [{
-      name: "recent path events",
-      type: "bar",
-      barMaxWidth: 16,
+      name: "recent path events", type: "bar", barMaxWidth: 16,
       label: { show: true, position: "right", color: h.colors.text },
       data: rows.map((row) => ({
-        value: row.count,
-        path: row.file.path,
-        vendor: row.latest.vendor,
-        effect: row.latest.effect,
+        value: row.count, path: row.file.path,
+        vendor: row.latest.vendor, effect: row.latest.effect,
         itemStyle: {
           color: h.vendorColor(row.latest.vendor),
           opacity: Math.max(0.25, 1 - (cursorMs - row.latest.ts_ms) / WAKE_MS),
@@ -388,7 +278,7 @@ function recentWake(data, cursorMs, h) {
         },
       })),
     }],
-  };
+  });
 }
 
 function agentActivityRiver(data, cursorMs, h) {
@@ -400,135 +290,68 @@ function agentActivityRiver(data, cursorMs, h) {
     row[1] += 1;
     buckets.set(key, row);
   });
-  const rows = [...buckets.values()].sort(
-    (a, b) => a[0] - b[0] || a[2].localeCompare(b[2]),
-  );
+  const rows = [...buckets.values()].sort((a, b) => a[0] - b[0] || a[2].localeCompare(b[2]));
   const vendors = [...new Set(rows.map((row) => row[2]))];
-  return {
-    ...h.base(),
+  return chart(h, rows, "No recorded path activity by this cursor", {
     color: vendors.map((vendor) => h.vendorColor(vendor)),
-    graphic: rows.length ? [] : emptyGraphic("No recorded path activity by this cursor"),
-    tooltip: {
-      trigger: "axis",
-      renderMode: "richText",
-      axisPointer: { type: "line" },
-    },
-    legend: { top: 0, data: vendors, textStyle: { color: h.colors.muted } },
+    tooltip: { trigger: "axis", renderMode: "richText", axisPointer: { type: "line" } },
+    legend: legend(h, vendors),
     singleAxis: {
-      type: "time",
-      min: data.meta.window_start_ms,
-      max: data.meta.window_end_ms,
-      top: 44,
-      bottom: 30,
-      ...h.axis(),
+      type: "time", min: data.meta.window_start_ms, max: data.meta.window_end_ms,
+      top: 44, bottom: 30, ...h.axis(),
     },
     series: [{
-      type: "themeRiver",
-      data: rows,
-      emphasis: {
-        itemStyle: { shadowBlur: 16, shadowColor: "rgba(0,0,0,.5)" },
-      },
+      type: "themeRiver", data: rows,
+      emphasis: { itemStyle: { shadowBlur: 16, shadowColor: "rgba(0,0,0,.5)" } },
     }],
-  };
-}
-
-function endedCount(row) {
-  return row.dead_files ?? Math.max(0, row.born_files - (row.surviving_files ?? 0));
+  });
 }
 
 function lifetimeCohorts(data, _cursorMs, h) {
-  const cohorts = data.survival_cohorts;
-  return {
-    ...h.base(),
-    graphic: cohorts.length ? [] : emptyGraphic("No file-lifetime cohorts"),
-    grid: { left: 56, right: 24, top: 42, bottom: 62 },
-    legend: { top: 0, textStyle: { color: h.colors.muted } },
-    tooltip: {
-      trigger: "axis",
-      axisPointer: { type: "shadow" },
-      formatter: (params) => {
-        const row = params[0]?.data?.row;
-        return row
-          ? `${row.cohort}\n${row.born_files} born\n${row.surviving_files ?? 0} survive at endpoint\n${endedCount(row)} ended before endpoint`
-          : "";
-      },
-    },
-    xAxis: {
-      type: "category",
-      data: cohorts.map((row) => row.cohort),
-      ...h.axis(),
+  const rows = data.survival_cohorts;
+  const names = ["survives at endpoint", "ended before endpoint"];
+  return chart(h, rows, "No file-lifetime cohorts", {
+    grid: grid(56, 24, 42, 62), legend: legend(h, names),
+    tooltip: axisTooltip((params) => {
+      const row = params[0]?.data?.row;
+      return row ? `${row.cohort}\n${row.born_files} born\n${row.surviving_files ?? 0} survive at endpoint\n${endedCount(row)} ended before endpoint` : "";
+    }),
+    xAxis: categoryAxis(h, rows.map((row) => row.cohort), {
       axisLabel: { color: h.colors.muted, rotate: 35, fontSize: 9 },
-    },
-    yAxis: { type: "value", name: "file lifetimes", minInterval: 1, ...h.axis() },
-    series: [
-      {
-        name: "survives at endpoint",
-        type: "bar",
-        stack: "life",
-        itemStyle: { color: "#4ab99a" },
-        data: cohorts.map((row) => ({ value: row.surviving_files ?? 0, row })),
-      },
-      {
-        name: "ended before endpoint",
-        type: "bar",
-        stack: "life",
-        itemStyle: { color: "#66445a" },
-        data: cohorts.map((row) => ({ value: endedCount(row), row })),
-      },
-    ],
-  };
+    }),
+    yAxis: valueAxis(h, "file lifetimes", { minInterval: 1 }),
+    series: names.map((name, index) => bar(
+      name, lifeColors[index], rows,
+      index ? endedCount : (row) => row.surviving_files ?? 0,
+      { stack: "life" },
+    )),
+  });
 }
 
 function survivalLedger(data, _cursorMs, h) {
   const rows = data.survival_cohorts.slice(-10).reverse().map((row) => ({
-    ...row,
-    alive: row.surviving_files ?? 0,
-    ended: endedCount(row),
+    ...row, alive: row.surviving_files ?? 0, ended: endedCount(row),
   }));
-  return {
-    ...h.base(),
-    graphic: rows.length ? [] : emptyGraphic("No endpoint survival ledger"),
-    grid: { left: 76, right: 44, top: 42, bottom: 34 },
-    legend: { top: 0, textStyle: { color: h.colors.muted } },
-    tooltip: {
-      trigger: "axis",
-      axisPointer: { type: "shadow" },
-      formatter: (params) => {
-        const row = params[0]?.data?.row;
-        const rate = row ? (100 * row.alive) / Math.max(1, row.born_files) : 0;
-        return row
-          ? `${row.cohort}\n${row.alive} alive · ${row.ended} ended\n${rate.toFixed(1)}% survive at endpoint`
-          : "";
-      },
-    },
-    xAxis: { type: "value", name: "file lifetimes", minInterval: 1, ...h.axis() },
-    yAxis: { type: "category", data: rows.map((row) => row.cohort), ...h.axis() },
-    series: [
-      {
-        name: "alive at endpoint",
-        type: "bar",
-        stack: "life",
-        barMaxWidth: 18,
-        itemStyle: { color: "#4ab99a" },
-        data: rows.map((row) => ({ value: row.alive, row })),
-      },
-      {
-        name: "ended",
-        type: "bar",
-        stack: "life",
-        barMaxWidth: 18,
-        itemStyle: { color: "#66445a" },
-        data: rows.map((row) => ({ value: row.ended, row })),
-      },
-    ],
-  };
+  const names = ["alive at endpoint", "ended"];
+  return chart(h, rows, "No endpoint survival ledger", {
+    grid: grid(76, 44, 42, 34), legend: legend(h, names),
+    tooltip: axisTooltip((params) => {
+      const row = params[0]?.data?.row;
+      const rate = row ? 100 * row.alive / Math.max(1, row.born_files) : 0;
+      return row ? `${row.cohort}\n${row.alive} alive · ${row.ended} ended\n${rate.toFixed(1)}% survive at endpoint` : "";
+    }),
+    xAxis: valueAxis(h, "file lifetimes", { minInterval: 1 }),
+    yAxis: categoryAxis(h, rows.map((row) => row.cohort), { inverse: true }),
+    series: names.map((name, index) => bar(
+      name, lifeColors[index], rows, (row) => row[index ? "ended" : "alive"],
+      { stack: "life", barMaxWidth: 18 },
+    )),
+  });
 }
 
 function gitSediment(data, _cursorMs, h) {
   const rows = data.source_days.map((sourceDay) => {
-    const changes = data.changes.filter(
-      (change) => h.dateDay(change.committed_at_ms) === sourceDay.day,
-    );
+    const changes = data.changes.filter((row) => h.dateDay(row.committed_at_ms) === sourceDay.day);
     return {
       day: sourceDay.day,
       added: changes.reduce((sum, row) => sum + row.additions, 0),
@@ -536,127 +359,39 @@ function gitSediment(data, _cursorMs, h) {
       sourceStatus: sourceDay.quantitative_status,
     };
   });
-  return {
-    ...h.base(),
-    graphic: rows.length ? [] : emptyGraphic("No observed source days"),
-    grid: { left: 94, right: 40, top: 42, bottom: 38 },
-    legend: { top: 0, textStyle: { color: h.colors.muted } },
-    tooltip: {
-      trigger: "axis",
-      axisPointer: { type: "shadow" },
-      formatter: (params) => {
-        const row = params[0]?.data?.row;
-        return row
-          ? `${row.day}\n+${row.added} additions\n−${row.deleted} deletions\nsource day: ${row.sourceStatus}`
-          : "";
-      },
-    },
-    xAxis: {
-      type: "value",
-      name: "changed lines",
-      ...h.axis(),
-      axisLabel: {
-        color: h.colors.muted,
-        formatter: (value) => h.formatCompact(Math.abs(value)),
-      },
-    },
-    yAxis: { type: "category", data: rows.map((row) => row.day), ...h.axis() },
+  const names = ["additions", "deletions"];
+  return chart(h, rows, "No observed source days", {
+    grid: grid(94, 40, 42, 38), legend: legend(h, names),
+    tooltip: axisTooltip((params) => {
+      const row = params[0]?.data?.row;
+      return row ? `${row.day}\n+${row.added} additions\n−${row.deleted} deletions\nsource day: ${row.sourceStatus}` : "";
+    }),
+    xAxis: valueAxis(h, "changed lines", {
+      axisLabel: { color: h.colors.muted, formatter: (value) => h.formatCompact(Math.abs(value)) },
+    }),
+    yAxis: categoryAxis(h, rows.map((row) => row.day), { inverse: true }),
     series: [
-      {
-        name: "additions",
-        type: "bar",
+      bar(names[0], "#4ab99a", rows, (row) => row.added, {
         itemStyle: { color: "#4ab99a", borderRadius: [0, 4, 4, 0] },
-        data: rows.map((row) => ({ value: row.added, row })),
-      },
-      {
-        name: "deletions",
-        type: "bar",
+      }),
+      bar(names[1], "#ff7b72", rows, (row) => -row.deleted, {
         itemStyle: { color: "#ff7b72", borderRadius: [4, 0, 0, 4] },
-        data: rows.map((row) => ({ value: -row.deleted, row })),
-      },
+      }),
     ],
-  };
+  });
 }
 
 export const views = [
-  {
-    id: "repository-treemap",
-    title: "Stable repository treemap",
-    note: "Area is current Git blob size. Cursor playback overlays recorded attention without changing endpoint geometry.",
-    timeMode: "endpoint-overlay",
-    requirements: ["tree", "events"],
-    build: repositoryTreemap,
-  },
-  {
-    id: "workspace-constellation",
-    title: "Stable workspace constellation",
-    note: "Every path has deterministic coordinates. The cursor changes salience, not geography.",
-    timeMode: "endpoint-overlay",
-    requirements: ["files", "events"],
-    build: workspaceConstellation,
-  },
-  {
-    id: "territory-cartogram",
-    title: "Territories under attention",
-    note: "Endpoint repository size and cursor-visible attention remain separate scales.",
-    timeMode: "endpoint-overlay",
-    requirements: ["files", "events"],
-    build: territoryCartogram,
-  },
-  {
-    id: "agent-path-particles",
-    title: "Agent–path particle field",
-    note: "Recorded reads and writes glow around stable path anchors for the trailing six hours; trails are not ownership or causality.",
-    timeMode: "trailing-6h",
-    requirements: ["files", "events"],
-    build: agentPathParticles,
-  },
-  {
-    id: "durable-change-pulse",
-    title: "Durable-change pulse",
-    note: "Git commits accumulate on their own lane through the cursor; nearby process events are not commit attribution.",
-    timeMode: "cumulative",
-    requirements: ["commits", "changes"],
-    build: durableChangePulse,
-  },
-  {
-    id: "recent-wake",
-    title: "Paths still glowing",
-    note: "A six-hour tail makes recent bursts readable without implying that quiet paths disappeared.",
-    timeMode: "trailing-6h",
-    requirements: ["files", "events"],
-    build: recentWake,
-  },
-  {
-    id: "agent-activity-river",
-    title: "Agent activity river",
-    note: "River width is cumulative recorded path activity by native-history vendor, not durable authorship.",
-    timeMode: "cumulative",
-    requirements: ["events"],
-    build: agentActivityRiver,
-  },
-  {
-    id: "lifetime-cohorts",
-    title: "File-lifetime cohorts",
-    note: "Birth and survival come from first-parent Git history and are measured at the frozen endpoint.",
-    timeMode: "static",
-    requirements: ["survival_cohorts"],
-    build: lifetimeCohorts,
-  },
-  {
-    id: "survival-ledger",
-    title: "The repository keeps and forgets",
-    note: "A compact endpoint ledger separates cohort survival from process attention.",
-    timeMode: "static",
-    requirements: ["survival_cohorts"],
-    build: survivalLedger,
-  },
-  {
-    id: "git-sediment",
-    title: "Observed-day Git sediment",
-    note: "Adds and deletes are actual Git changes on observed source days, independent of event-to-Git candidates.",
-    timeMode: "static",
-    requirements: ["source_days", "changes"],
-    build: gitSediment,
-  },
-];
+  ["repository-treemap", "Stable repository treemap", "Area is current Git blob size. Cursor playback overlays recorded attention without changing endpoint geometry.", "endpoint-overlay", ["tree", "events"], repositoryTreemap],
+  ["workspace-constellation", "Stable workspace constellation", "Every path has deterministic coordinates. The cursor changes salience, not geography.", "endpoint-overlay", ["files", "events"], workspaceConstellation],
+  ["territory-cartogram", "Territories under attention", "Endpoint repository size and cursor-visible attention remain separate scales.", "endpoint-overlay", ["files", "events"], territoryCartogram],
+  ["agent-path-particles", "Agent–path particle field", "Recorded reads and writes glow around stable path anchors for the trailing six hours; trails are not ownership or causality.", "trailing-6h", ["files", "events"], agentPathParticles],
+  ["durable-change-pulse", "Durable-change pulse", "Git commits accumulate on their own lane through the cursor; nearby process events are not commit attribution.", "cumulative", ["commits", "changes"], durableChangePulse],
+  ["recent-wake", "Paths still glowing", "A six-hour tail makes recent bursts readable without implying that quiet paths disappeared.", "trailing-6h", ["files", "events"], recentWake],
+  ["agent-activity-river", "Agent activity river", "River width is hourly recorded path activity by native-history vendor through the cursor, not durable authorship.", "cumulative", ["events"], agentActivityRiver],
+  ["lifetime-cohorts", "File-lifetime cohorts", "Birth and survival come from first-parent Git history and are measured at the frozen endpoint.", "static", ["survival_cohorts"], lifetimeCohorts],
+  ["survival-ledger", "The repository keeps and forgets", "A compact endpoint ledger separates cohort survival from process attention.", "static", ["survival_cohorts"], survivalLedger],
+  ["git-sediment", "Observed-day Git sediment", "Adds and deletes are actual Git changes on observed source days, independent of event-to-Git candidates.", "static", ["source_days", "changes"], gitSediment],
+].map(([id, title, note, timeMode, requirements, build]) => (
+  { id, title, note, timeMode, requirements, build }
+));

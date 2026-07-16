@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import { resolve } from "node:path";
 
 export default defineConfig({
+  define: { "process.env.NODE_ENV": JSON.stringify("production") },
   build: {
     target: "es2022",
     outDir: "single/dist",

@@ -7,7 +7,7 @@ import { renderOne } from "../../single/render.mjs";
 
 const outputDirectory = resolve("test-results/single-html");
 const screenshotDirectory = resolve("test-results/screenshots/all-views");
-const fixturePath = resolve("public/gallery-data.json");
+const fixturePath = resolve("tests/fixtures/gallery-data.json");
 const data = JSON.parse(await readFile(fixturePath, "utf8"));
 
 test.beforeAll(async () => {
@@ -29,12 +29,12 @@ test.beforeAll(async () => {
 
 test("opens and checks every one-graph HTML artifact individually", async ({ page }) => {
   for (const view of views) {
-    const consoleErrors: string[] = [];
-    const pageErrors: string[] = [];
-    const onConsole = (message: { type(): string; text(): string }) => {
+    const consoleErrors = [];
+    const pageErrors = [];
+    const onConsole = (message) => {
       if (message.type() === "error") consoleErrors.push(message.text());
     };
-    const onPageError = (error: Error) => pageErrors.push(error.message);
+    const onPageError = (error) => pageErrors.push(error.message);
     page.on("console", onConsole);
     page.on("pageerror", onPageError);
 

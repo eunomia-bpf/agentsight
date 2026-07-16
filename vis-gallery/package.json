@@ -8,30 +8,19 @@
     "agentsight-vis-all": "single/render-all.mjs"
   },
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
-    "build": "tsc -b && vite build",
-    "test": "vitest run",
+    "build": "vite build --config vite.single.config.js",
+    "test": "vitest run single/registry.test.js",
     "test:e2e": "playwright test",
-    "capture": "node analysis/capture_gallery.mjs",
-    "measure": "node analysis/measure_gallery.mjs",
-    "lint": "tsc -b --pretty false",
-    "build:single": "vite build --config vite.single.config.js",
+    "test:project": "python3 -m unittest single/test_project.py",
+    "lint": "node --check single/render.mjs && node --check single/render-all.mjs",
     "render": "node single/render.mjs",
     "render:all": "node single/render-all.mjs"
   },
   "dependencies": {
-    "cytoscape": "3.34.0",
-    "echarts": "6.1.0",
-    "react": "19.2.7",
-    "react-dom": "19.2.7",
-    "uplot": "1.6.32"
+    "echarts": "6.1.0"
   },
   "devDependencies": {
     "@playwright/test": "1.61.1",
-    "@types/react": "19.2.17",
-    "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "6.0.3",
-    "typescript": "7.0.2",
     "vite": "8.1.4",
     "vitest": "4.1.10"
   }

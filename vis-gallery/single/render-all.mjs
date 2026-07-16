@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { mkdir } from "node:fs/promises";
-import { extname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { views } from "./registry.js";
 import { loadProjection, parseArgs, renderOne } from "./render.mjs";

@@ -1,91 +1,74 @@
-# Implementation Status
+# Implementation status
 
-## Current state
+## Current shape
 
-- Worktree: `/home/yunwei37/workspace/agentsight-evolution-gallery`
-- Branch: `codex/vis-gallery`, based on `origin/master` at `926c81c44`.
-- Existing `agent-session` library parses Claude, Codex, and Gemini native
-  histories into prompts, tool events, model responses, tokens, paths, cwd, and
-  timestamps.
-- AgentSight's existing frontend already owns single-run timeline, process tree,
-  log, and resource views; the longitudinal gallery remains separate.
+- `agent-session` parses Claude, Codex, and Gemini native histories and joins
+  repository-relative path events to a frozen Git revision.
+- `agent-session-export` retains privacy-safe sessions, normalized events, Git
+  changes, file lifetimes, and uncertain event-to-Git candidates. Its Perfetto
+  and Gource formats remain lossy compatibility exports.
+- `vis-gallery/` is a command-line single-artifact generator, not a dashboard.
+  Each invocation selects one of 31 views and writes one self-contained HTML,
+  SVG, PNG, GIF, or MP4 file.
+- AgentSight's existing `frontend/` remains the owner of live single-run
+  timeline, process tree, log, and resource views.
 
-## Implemented artifact boundary
+## User path
 
-- Extend `ToolEvent` without breaking existing consumers: preserve exact
-  repository-relative path references and bounded edit/read payload metrics
-  where a native schema exposes them; keep `path_groups` as the privacy-safe
-  summary.
-- The `agent-session-export` CLI has explicit repository, frozen revision, time-range,
-  source, and output arguments. Its canonical longitudinal artifact will carry
-  raw normalized events, Git changes and file lifetimes, endpoint state,
-  candidate associations, confidence, and preaggregated projections.
-- It exports canonical longitudinal JSON, normalized event JSONL, Perfetto
-  Trace Event JSON, and Gource custom logs. The compatibility formats are
-  labeled lossy baselines.
-- The root-level experimental `vis-gallery/` TypeScript application uses
-  package-locked ECharts, Cytoscape.js, and uPlot dependencies and no
-  runtime CDN requirement.
-- Preserve `frontend/` and README Quick Start.
-- Private real-data output remains under ignored artifact paths; only
-  sanitized fixtures and screenshots that have been checked for sensitive
-  content.
+```text
+repository + native session histories
+        |
+        v
+agent-session export in a private temporary directory
+        |
+        v
+per-view projection in the same temporary directory
+        |
+        v
+one requested output file
+```
 
-## Implemented pipeline
+Users provide only repository, time range, view ID, and output path. Temporary
+data is removed when the command exits; it is not a user-visible artifact or
+workflow step. Batch generation performs the repository/session projection
+once and reuses it for every selected output.
 
-1. Discover and parse Claude, Codex, and Gemini session files with the existing
-   vendor-neutral parser.
-2. Canonicalize repository-relative path evidence while retaining pathless and
-   external events. A conservative shell lexer separates compound commands,
-   pipelines, nested `sh -c` payloads, and spaced or unspaced redirections.
-   High-confidence command grammars classify copy sources as reads and
-   destinations as writes while rejecting expressions, Git revisions, API
-   routes, variables, image names, and command fragments as file evidence.
-   Cwd-relative `..` candidates survive only when exporter normalization keeps
-   them inside the repository.
-3. Collect Git commits, diffs, renames, authors, file birth/death intervals,
-   current paths, and line lineage through stable non-interactive plumbing.
-4. Produce zero/one/many candidate associations for each eligible event. Keep
-   event-side and Git-side unmatched records and never infer authorship from
-   time alone.
-5. Build multi-resolution time buckets, stable path coordinates, view
-   projections, and baseline exports from the same canonical artifact.
-6. Serve the artifact locally and coordinate all renderers through one typed
-   time/path/session/evidence selection state.
+The renderer has one runtime dependency, ECharts. A tree-shaken SVG runtime is
+inlined into HTML, SVG is extracted from that renderer, PNG captures the full
+artifact, and GIF/MP4 replay the same cursor function through Playwright and
+FFmpeg. Static views reject animation output rather than repeating identical
+frames.
 
-File-lifetime IDs are structural: an add begins a lifetime, detected renames
-preserve it, deletion ends it, and same-path recreation creates a new ID. The
-primary join emits candidates in the preregistered event-relative time window
-without forcing a bijection; merge changes are retained in a separate stratum.
+## Evidence and privacy
 
-Event-level exact-hunk fingerprints are emitted only for single-file,
-single-hunk native edits. Multi-file and multi-hunk patches remain visible as
-path observations but are ineligible for exact-hunk evidence.
+- Native path/tool events are recorded-process evidence.
+- Commits, changes, file lifetimes, and Git authors are durable-Git evidence.
+- Current blobs and blame origins are frozen-endpoint evidence.
+- Git authors are not agent authors, read-before-write is not causality, and
+  candidate event-to-Git links are not provenance claims.
+- Prompt, command, edit/read body, secret, native session path, absolute home
+  path, and Git author email fields are excluded from the projection.
+- Fresh writes whose forward association window has not matured remain
+  descriptive and carry no candidate evidence.
 
-## Privacy and reproducibility
-
-The default artifact excludes prompt bodies, command bodies, edit/read bodies,
-secrets, and absolute home paths. It retains hashes, bounded previews only when
-explicitly requested, categorical actions, repository-relative normalized
-paths, and aggregate sizes. Every experiment records the source time range, repository revision,
-exporter version, join settings, confidence thresholds, and dependency lock.
+File-lifetime IDs are structural: add begins a lifetime, rename preserves it,
+deletion ends it, and same-path recreation creates a new lifetime.
 
 ## Validation entrypoints
 
-- `cargo test --manifest-path agent-session/Cargo.toml`
-- `cd vis-gallery && npm run build && npm test && npm run test:e2e`
-- `python3 vis-gallery/analysis/build_gallery_data.py ...` creates the checked
-  public projection from private native-history exports and rejects prompt,
-  command, edit-body, content, and absolute-home-path keys.
+```bash
+cargo test --manifest-path agent-session/Cargo.toml
+cd vis-gallery
+npm ci
+npm run lint
+npm run build
+npm test
+npm run test:project
+npm run test:e2e
+```
 
-Rust fixtures cover all three native schemas, conservative shell path
-extraction, path normalization, exact edit fingerprints, pathless events,
-rename/recreation lifetimes, and deleted-path gaps. Browser tests exercise all
-nine navigation families, the shared cursor, filters, and representative
-screenshots. The public real-data atlas contains 56 deduplicated sessions,
-3,960 path-event rows, 858 path records, 652 Git lifetimes, 177 commits, 1,852
-Git changes, and 12,000 Git-blame line pixels across three observation days
-spanning June 2 through July 14. A path record is the union of process and Git
-paths; 693 records map to one or more lifetimes. Alias and literal-path reuse
-mean this record count is not expected to equal the lifetime count. July 14 is explicitly right-censored and
-process-only for quantitative association purposes.
+Registry tests require 31 unique view IDs and SVG-render every view at both
+interval endpoints. Browser tests generate and open all 31 HTML files one by
+one, require a single rendered SVG graph, exercise every dynamic cursor, reject
+console/page errors and overflow, and capture ignored screenshots for visual
+inspection.

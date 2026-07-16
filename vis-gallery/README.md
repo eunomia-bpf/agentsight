@@ -1,96 +1,117 @@
-# AgentSight Evolution Atlas
+# AgentSight single-view visualizations
 
-An experimental, local-first gallery for inspecting how coding-agent activity
-and a repository's durable Git history unfold over long intervals. It adapts
-seven established software-evolution visualization families without replacing
-AgentSight's existing single-run timeline, process tree, log, or flame graph.
+Generate one portable software-evolution graph per file. There is no dashboard,
+server, project file, or user-visible intermediate dataset.
 
-The atlas is an evidence instrument, not a provenance detector. Its three
-layers remain separate:
+```text
+repository + native agent sessions -> selected view -> HTML / SVG / PNG / GIF / MP4
+```
 
-1. recorded process: native Claude, Codex, and Gemini path/tool events;
-2. durable outcome: first-parent Git commits, changes, renames, and lifetimes;
-3. endpoint state: frozen-tree blobs and Git-blame line origins.
+The 31 views cover activity timelines, SeeSoft-style line-age pixels, evolution
+matrices, repository maps, particle playback, strata/survival, forensic
+networks, storylines, and longitudinal rhythms. Every view uses ECharts so its
+interactive HTML, vector SVG, raster PNG, and animation frames share the same
+rendering logic.
 
-Candidate event-to-Git links expose zero/one/many alternatives. Temporal order
-does not establish causality, authorship, or verification. The real-history
-association experiment did not pass calibration/support gates, so the shipped
-atlas is intentionally `descriptive_only`.
-
-## Run
+## Setup
 
 ```bash
 cd vis-gallery
-npm install
-npm run dev
+npm ci
+npx playwright install chromium
+npm run build
 ```
 
-Open <http://127.0.0.1:5173>. The checked public dataset is a compact,
-privacy-scanned fixture sampled from the larger projection so CI and reviewers
-can exercise every view without committing multi-megabyte generated artifacts.
-It keeps all evidence layers and multiple vendors represented, but it is not
-the full evaluation corpus. Regenerate full local projections from private
-exports when preparing paper figures or release artifacts. The three real
-observation days span 2026-06-02 through 2026-07-14; they are not a continuous
-synthetic workload. July 14 is right-censored and is used only for descriptive
-process views.
+Python 3 and the Rust toolchain are needed when reading a repository directly.
+FFmpeg is needed only for GIF and MP4 output.
 
-## Visual families
-
-| Family | Implemented views |
-|---|---|
-| SeeSoft / pixels | current-line age pixels; touch/association lanes |
-| Evolution Matrix | path × day evolution; association-state matrix; named signals |
-| CodeCity / cartography | stable treemap; stable constellation; directory cartogram |
-| code_swarm / Gource | agent–path particle field; durable commit pulses; recent wake |
-| History Flow / strata | activity river; lifetime cohorts; survival ledger; Git sediment |
-| Crime Scene | hotspot map; Git co-change network; ordered read-before-write network |
-| Storylines | session journeys; Git author ownership flow; visible cast |
-| Longitudinal extras | punch card; uPlot vitals; semantic flow; verification lag; receipt; mature-day ghost |
-
-All compatible process views share one draggable/playable time cursor, vendor
-and association-state filters, and path/session focus. Durable Git-only and
-frozen endpoint layers remain filter-invariant and are labeled as such rather
-than silently reinterpreted as agent evidence. ECharts handles dense canvas charts,
-Cytoscape.js the evidence networks, uPlot the high-frequency vital trace, and
-custom canvases the SeeSoft and particle fields.
-
-## Rebuild the public projection
-
-`analysis/build_gallery_data.py` consumes canonical private exports produced by
-`agent-session-export`, a frozen repository revision, RQ1 public metrics, and
-the censored-cell record. Its output validator rejects prompt/command/edit body
-fields and absolute home paths. Native inputs remain ignored.
+## Generate one graph
 
 ```bash
-cargo run --manifest-path ../agent-session/Cargo.toml \
-  --bin agent-session-export -- \
-  --repo .. --head REV --since 2026-06-02T07:00:00Z --until 2026-06-03T07:00:00Z \
-  --output /private/day.json
+npm run render -- \
+  --repo .. --since 30d \
+  --view repository-treemap \
+  --output repository-treemap.html
 ```
 
-The exporter also supports `--format events-jsonl`, `--format perfetto`, and
-`--format gource`. Those compatibility projections are lossy and do not carry
-the complete uncertainty/evidence model.
+The HTML is self-contained and opens directly from disk. It contains exactly
+one graph plus its title, evidence legend, and—when the view has time
+semantics—one playable progress bar. No network request or local server is
+required.
 
-Event-level exact-hunk fingerprints are intentionally available only for a
-single repository file with a single native edit hunk. Multi-file and
-multi-hunk patches retain process/path evidence but are never presented as one
-exact Git-hunk match.
+Change only the output extension to select a format:
+
+```bash
+npm run render -- --repo .. --since 30d --view line-age-pixels --output lines.svg
+npm run render -- --repo .. --since 30d --view hotspot-treemap --output hotspot.png
+npm run render -- --repo .. --since 30d --view session-storylines --output story.gif
+npm run render -- --repo .. --since 30d --view session-storylines --output story.mp4
+```
+
+Static endpoint/history views support HTML, SVG, and PNG. GIF and MP4 are
+accepted only for the 23 time-aware views; generating repeated identical frames
+for a static view is intentionally rejected.
+
+List all view IDs:
+
+```bash
+npm run render -- --list-views
+```
+
+Generate every view from one repository/session scan:
+
+```bash
+npm run render:all -- \
+  --repo .. --since 30d \
+  --output-dir artifacts/30d \
+  --formats html,svg,png
+```
+
+For tests and renderer development, `--input tests/fixtures/gallery-data.json`
+uses the checked privacy-safe compact fixture instead of scanning local session
+history.
+
+## Share and embed
+
+- Attach PNG, SVG, GIF, or MP4 directly to social posts and reports.
+- Embed the self-contained HTML with an `<iframe>` in any report system that
+  accepts local/generated assets.
+- Copy an SVG inline when the host report wants selectable vector labels.
+- Regenerate several sizes with `--width` and `--height`; graph semantics do not
+  change.
+
+Each SVG includes compact provenance metadata. The visible footer also names
+the repository, frozen Git revision, and association mode.
+
+## Evidence boundaries
+
+The renderer keeps three facts separate:
+
+1. recorded process: path/tool events from native Claude, Codex, and Gemini
+   histories;
+2. durable Git: commits, file changes, renames, lifetimes, and Git authors;
+3. frozen endpoint: current tree, bytes, and Git-blame line origins.
+
+A Git author is never relabeled as an agent author. Read-before-write edges are
+temporal order, not causality. Candidate event-to-Git associations remain
+uncertain visual evidence, not authorship or provenance claims.
+
+The ownership view includes Git author display names because they are the
+durable-history identity being visualized; email addresses are excluded. Treat
+reports from private repositories as private unless those names are safe to
+share.
 
 ## Verify
 
 ```bash
+npm run lint
 npm run build
 npm test
+npm run test:project
 npm run test:e2e
-# with `npm run dev -- --port 4173` running in another terminal:
-npm run measure -- http://127.0.0.1:4173 artifacts/browser-metrics.json
-npm run capture -- http://127.0.0.1:4173 artifacts
 ```
 
-Playwright visits every family, changes the shared cursor and filter state, and
-captures ephemeral representative plates under ignored
-`test-results/screenshots/`. Curated paper plates should be generated as local
-or release artifacts under ignored `artifacts/`; routine CI does not commit
-those PNGs.
+The browser test generates and opens all 31 HTML files one by one, checks that
+each contains one rendered SVG graph, exercises every dynamic cursor, rejects
+console/page errors and overflow, and captures ignored local screenshots for
+visual review.

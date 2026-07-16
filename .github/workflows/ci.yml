@@ -37,9 +37,10 @@ jobs:
     - name: Build and unit-test gallery
       working-directory: vis-gallery
       run: |
+        npm run lint
         npm run build
         npm test
-        python3 -m unittest discover -s analysis -p 'test_*.py'
+        npm run test:project
 
     - name: Install Chromium
       working-directory: vis-gallery

@@ -1,54 +1,62 @@
-# Evolution Atlas: Event-Resolved Software Evolution
+# Single-artifact software evolution views
 
 ## Purpose
 
-The atlas is the longitudinal complement to AgentSight's run-centric views and
-agentpprof. agentpprof defines semantic resource-accounting units; the atlas
-defines perceptual units for structure, rhythm, and theory recovery. It asks
-how a repository was explored, changed, retained, and forgotten across sessions
-when no persistent human necessarily witnessed the process.
+The longitudinal views complement AgentSight's run timeline and agentpprof.
+They expose repository structure, development rhythm, durable Git outcomes, and
+long-lived code shape across agent sessions.
 
-## Non-negotiable evidence contract
+The delivery unit is deliberately small: one command produces one graph in one
+self-contained file. There is no shared dashboard or server.
 
-- Recorded path/tool activity is process evidence.
-- Commits, diffs, renames, and file lifetimes are durable Git evidence.
-- Current blobs and blame origins are endpoint evidence.
-- One layer cannot be relabeled as another. Event--Git candidates retain
-  zero/one/many states; ordered read-before-write remains temporal rather than
-  causal; native vendor is not Git author.
-- Same-path delete/recreate creates a new file lifetime.
-- July 14, 2026 is right-censored and excluded from quantitative association,
-  lineage, calibration, and transfer claims.
+```text
+repository + native sessions
+        |
+        v
+privacy-safe event/Git projection (temporary, internal)
+        |
+        v
+one selected view model -> HTML / SVG / PNG / GIF / MP4
+```
 
-## Representation
+The projection is computed once for batch generation and discarded when the
+command exits. It is an implementation detail, not a file users must create,
+store, understand, or pass between commands.
 
-The canonical `agentsight.longitudinal.v1` artifact records normalized sessions
-and events, first-parent Git commits and `-M50%` changes, file lifetimes, and
-candidate associations at a frozen endpoint. The gallery projection adds
-multi-resolution buckets, deterministic path coordinates, Git-blame line
-pixels, survival cohorts, Git co-change edges, ordered process edges, and
-ownership aggregates. It contains no prompt, command, or code bodies.
+## Evidence contract
 
-## Visual grammar
+- Native path/tool activity is recorded process evidence.
+- Commits, changes, renames, lifetimes, and Git authors are durable Git
+  evidence.
+- Current blobs and blame origins are frozen-endpoint evidence.
+- A Git author is never renamed as an agent author.
+- Read-before-write is temporal order, not causality.
+- Candidate event-to-Git matches retain zero/one/many uncertainty and never
+  become authorship claims.
+- Same-path deletion and recreation create separate file lifetimes.
 
-Seven historical families are preserved because each provides a different
-perceptual unit: line, file/version cell, territory, motion, cohort/stratum,
-forensic relationship, and participant journey. Longitudinal extras add clock
-rhythm, vital signs, semantic resource flow, verification lag, receipts, and
-paired mature-day comparison. Every view is bound to a decision or question;
-no 3D view is included because it adds navigation cost without additional
-evidence dimensions in this artifact.
+## Rendering contract
 
-The layout contract is stable: time changes salience, not repository geography.
-The interaction contract is coordinated: cursor, interval, vendor, association
-state, path, and session selections propagate to every compatible view.
+All 31 view specs use one tree-shaken ECharts SVG runtime. Each spec declares
+its input keys and one time mode: `static`, `cursor-marker`, `cumulative`,
+`trailing-6h`, `endpoint-overlay`, or `mixed-day`.
 
-## Validated and unvalidated claims
+- Each HTML mounts exactly one graph.
+- Time-aware HTML adds one playable range control.
+- Static HTML disables the time control and rejects GIF/MP4 export.
+- SVG is extracted from the same HTML renderer and receives compact provenance
+  metadata.
+- PNG is a screenshot of the complete artifact; GIF and MP4 are sequences of
+  the same cursor-driven render function.
+- Output is self-contained and makes no network requests.
 
-The controlled RQ1 fixture supports exact-hunk evidence over nearest-path/no-
-hunk matching. Naturalistic transfer did not pass support/calibration gates,
-and endpoint line linkage was undersupported. Therefore the atlas can support
-descriptive inspection and hypothesis generation, but it cannot claim
-calibrated provenance, authorship, causality, accurate line survival, or
-event-to-outcome effects. Human review utility remains an open evaluation
-question rather than a product claim.
+The repository map and constellation keep stable endpoint geometry while the
+cursor changes salience. Static Git/lifetime views do not pretend to animate.
+
+## Verification
+
+Registry tests require exactly 31 unique views and render every spec at both
+ends of the interval through ECharts SVG SSR. Browser tests then generate and
+open all 31 HTML files individually, require one visible SVG graph, exercise
+dynamic cursors, reject console/page errors and overflow, and capture ignored
+screenshots for visual inspection.

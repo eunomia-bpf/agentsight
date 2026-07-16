@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from build_gallery_data import build_tree, new_file_stats, validate_public_output
+from project import build_tree, new_file_stats, validate_public_output
 
 
 def valid_output():

@@ -132,8 +132,6 @@ def pattern_name(file: dict[str, Any], window_start: int, window_end: int) -> st
 def build(
     artifacts: list[dict[str, Any]],
     repo: Path,
-    rq1: dict[str, Any],
-    censored: dict[str, Any],
 ) -> dict[str, Any]:
     heads = {artifact["repository"]["head"] for artifact in artifacts}
     if len(heads) != 1:
@@ -181,7 +179,7 @@ def build(
             default=None,
         )
 
-    censored_days = {cell["day"] for cell in censored.get("cells", [])}
+    censored_days: set[str] = set()
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1_000)
     for artifact in artifacts:
         retrieval_after_ms = int(artifact["window"].get("retrieval_after_ms", 0))
@@ -372,10 +370,14 @@ def build(
             new_file_stats(path, lifetime, lifetimes_for_path.get(path, [])),
         )
 
-    if not path_events:
-        raise ValueError("gallery projection has no path-resolvable events")
-    window_start = min(row["ts_ms"] for row in path_events)
-    window_end = max(row["ts_ms"] for row in path_events)
+    window_start = min(
+        (row["ts_ms"] for row in path_events),
+        default=min(int(artifact["window"]["since_ms"]) for artifact in artifacts),
+    )
+    window_end = max(
+        (row["ts_ms"] for row in path_events),
+        default=max(int(artifact["window"]["until_ms"]) for artifact in artifacts),
+    )
     files = finalize_files(file_stats, window_start, window_end)
     cochange_edges = build_cochange_edges(changes.values())
     blame_rows = build_blame_rows(repo, head, files)
@@ -402,11 +404,11 @@ def build(
             "window_start_ms": window_start,
             "window_end_ms": window_end,
             "source": "native agent histories joined to the repository's Git history",
-            "association_mode": rq1.get("selection", {}).get("method", "descriptive_only"),
-            "association_caveat": "Candidates are visual evidence, not authorship or certain provenance; natural calibration/support gates did not pass.",
+            "association_mode": "descriptive_only",
+            "association_caveat": "Candidates are uncertain visual evidence, not authorship or certain provenance.",
             "reported_token_caveat": "Native token counters may be cumulative or implausible; charts label them as reported units, not cost.",
             "right_censored_days": sorted(censored_days),
-            "missing_cells": censored.get("missing_cells", []),
+            "missing_cells": [],
         },
         "source_days": source_days,
         "summary": {
@@ -772,16 +774,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--artifact", type=Path, action="append", required=True)
     parser.add_argument("--repo", type=Path, required=True)
-    parser.add_argument("--rq1-metrics", type=Path)
-    parser.add_argument("--censored-cells", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     artifacts = [load(path) for path in args.artifact]
     output = build(
         artifacts,
         args.repo,
-        load(args.rq1_metrics) if args.rq1_metrics else {"selection": {"method": "descriptive_only"}},
-        load(args.censored_cells) if args.censored_cells else {"cells": [], "missing_cells": []},
     )
     validate_public_output(output)
     args.output.parent.mkdir(parents=True, exist_ok=True)
