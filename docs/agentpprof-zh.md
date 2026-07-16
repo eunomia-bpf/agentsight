@@ -114,7 +114,7 @@ PROJECT_ROOT=/path/to/bpf-benchmark docs/flamegraph-example/bpf-benchmark.sh
 R221 是 research snapshot，不由上面两个脚本生成。它的
 [renderer](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/r221_visual_gallery.py)
 从 [top-200 semantic-stack 表](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/out/tag-stats-r189/top-semantic-stacks-r170.csv)
-构造前缀树，累计后代的 system-effect weight，按比例分配横向宽度，并按深度逐层绘制 SVG。OSWorld-Human snapshot 则用常规 `agentpprof` 前缀合并 renderer 处理它的
+构造前缀树，把每条输入栈的 system-effect weight 加到它共享的每个前缀（包括终止前缀），按比例分配横向宽度，并按深度逐层绘制 SVG。OSWorld-Human snapshot 则用常规 `agentpprof` 前缀合并 renderer 处理它的
 [公开 operation 表](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl)。
 
 ## 工作原理
