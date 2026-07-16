@@ -370,14 +370,11 @@ def build(
             new_file_stats(path, lifetime, lifetimes_for_path.get(path, [])),
         )
 
-    window_start = min(
-        (row["ts_ms"] for row in path_events),
-        default=min(int(artifact["window"]["since_ms"]) for artifact in artifacts),
-    )
-    window_end = max(
-        (row["ts_ms"] for row in path_events),
-        default=max(int(artifact["window"]["until_ms"]) for artifact in artifacts),
-    )
+    # Keep the requested observation window, including periods with no native
+    # events. Trimming to the first/last path event would hide agent silence and
+    # discard Git or verification evidence near the window boundaries.
+    window_start = min(int(artifact["window"]["since_ms"]) for artifact in artifacts)
+    window_end = max(int(artifact["window"]["until_ms"]) for artifact in artifacts)
     files = finalize_files(file_stats, window_start, window_end)
     cochange_edges = build_cochange_edges(changes.values())
     blame_rows = build_blame_rows(repo, head, files)

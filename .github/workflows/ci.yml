@@ -42,9 +42,11 @@ jobs:
         npm test
         npm run test:project
 
-    - name: Install Chromium
+    - name: Install Chromium and animation encoder
       working-directory: vis-gallery
-      run: npx playwright install --with-deps chromium
+      run: |
+        npx playwright install --with-deps chromium
+        sudo apt-get install -y --no-install-recommends ffmpeg
 
     - name: Run gallery browser tests
       working-directory: vis-gallery

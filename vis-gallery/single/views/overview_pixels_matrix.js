@@ -127,7 +127,7 @@ const observedDays = {
       },
       yAxis: { type: "value", name: "recorded count", ...h.axis() },
       series: [
-        bars("path events", "events", h.colors.read),
+        bars("path events", "path_events", h.colors.read),
         bars("deduplicated sessions", "sessions", h.colors.verify),
         bars("write-path observations", "write_event_paths", h.colors.write),
       ],
@@ -410,7 +410,8 @@ const namedSignalGrid = {
   requirements: ["files"],
   build(data, _cursorMs, h) {
     const groups = new Map();
-    h.rank(data.files, (file) => file.risk_score, 18).forEach((file) => {
+    const endpointFiles = data.files.filter((file) => file.survives_to_head && file.current_path === file.path);
+    h.rank(endpointFiles, (file) => file.risk_score, 18).forEach((file) => {
       const rows = groups.get(file.pattern) ?? [];
       rows.push(file);
       groups.set(file.pattern, rows);

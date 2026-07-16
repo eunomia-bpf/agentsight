@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { mkdir, readFile, rm } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { mkdir, readFile, readdir, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { views } from "../../single/registry.js";
@@ -7,14 +9,17 @@ import { renderOne } from "../../single/render.mjs";
 
 const outputDirectory = resolve("test-results/single-html");
 const screenshotDirectory = resolve("test-results/screenshots/all-views");
+const formatDirectory = resolve("test-results/single-formats");
 const fixturePath = resolve("tests/fixtures/gallery-data.json");
 const data = JSON.parse(await readFile(fixturePath, "utf8"));
 
 test.beforeAll(async () => {
   await rm(outputDirectory, { recursive: true, force: true });
   await rm(screenshotDirectory, { recursive: true, force: true });
+  await rm(formatDirectory, { recursive: true, force: true });
   await mkdir(outputDirectory, { recursive: true });
   await mkdir(screenshotDirectory, { recursive: true });
+  await mkdir(formatDirectory, { recursive: true });
   for (const view of views) {
     await renderOne(data, view, {
       input: fixturePath,
@@ -25,6 +30,41 @@ test.beforeAll(async () => {
       fps: 2,
     });
   }
+});
+
+test("exports portable formats, rejects static animation, and cleans temporary frames", async ({ page }) => {
+  const dynamic = views.find((view) => view.id === "activity-pulse");
+  const staticView = views.find((view) => view.id === "git-sediment");
+  const options = (output) => ({ input: fixturePath, output, width: 480, height: 300, frames: 2, fps: 2 });
+  const frameDirectories = async () => new Set(
+    (await readdir(tmpdir())).filter((name) => name.startsWith("agentsight-vis-frames-")),
+  );
+  const before = await frameDirectories();
+
+  const svgPath = join(formatDirectory, "activity-pulse.svg");
+  const pngPath = join(formatDirectory, "activity-pulse.png");
+  const gifPath = join(formatDirectory, "activity-pulse.gif");
+  const mp4Path = join(formatDirectory, "activity-pulse.mp4");
+  await renderOne(data, dynamic, options(svgPath));
+  await renderOne(data, dynamic, options(pngPath));
+  await renderOne(data, dynamic, options(gifPath));
+  await renderOne(data, dynamic, options(mp4Path));
+
+  expect(await readFile(svgPath, "utf8")).toContain("<metadata>");
+  for (const path of [pngPath, gifPath, mp4Path]) {
+    expect((await stat(path)).size, `${path} should not be empty`).toBeGreaterThan(100);
+  }
+  await page.goto(pathToFileURL(pngPath).href);
+  const [pngWidth, pngHeight] = await page.locator("img").evaluate((image) => [image.naturalWidth, image.naturalHeight]);
+  expect(pngWidth).toBe(544);
+  expect(pngHeight).toBeGreaterThanOrEqual(490);
+  for (const path of [gifPath, mp4Path]) {
+    expect(spawnSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", path], { encoding: "utf8" }).stdout).toContain("video");
+  }
+
+  await expect(renderOne(data, staticView, options(join(formatDirectory, "git-sediment.gif"))))
+    .rejects.toThrow(/static view/);
+  expect([...await frameDirectories()].filter((name) => !before.has(name))).toEqual([]);
 });
 
 test("opens and checks every one-graph HTML artifact individually", async ({ page }) => {
