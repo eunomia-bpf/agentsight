@@ -226,19 +226,19 @@ codex_native_binary() {
 run_codex_offset_canary() {
     if [[ "$(uname -s)" != "Linux" ]]; then
         if is_enabled "$REQUIRE_EBPF"; then
-            die "Codex offset-table canary requires Linux"
+            die "Codex signature canary requires Linux"
         fi
-        echo "Skipping Codex offset-table canary on non-Linux host"
+        echo "Skipping Codex signature canary on non-Linux host"
         return
     fi
     if ! sudo_available; then
         if is_enabled "$REQUIRE_EBPF"; then
-            die "Codex offset-table canary requires passwordless sudo"
+            die "Codex signature canary requires passwordless sudo"
         fi
-        echo "Skipping Codex offset-table canary because sudo -n is unavailable"
+        echo "Skipping Codex signature canary because sudo -n is unavailable"
         return
     fi
-    have timeout || die "timeout is required for the Codex offset-table canary"
+    have timeout || die "timeout is required for the Codex signature canary"
 
     local native
     local stdout="$WORK_DIR/codex-sslsniff-offset.out"
@@ -257,19 +257,19 @@ run_codex_offset_canary() {
 
     if ! grep -Fq "Codex/aws-lc byte-pattern detected" "$stderr" \
         || ! grep -Fq "Attaching by offset" "$stderr"; then
-        echo "Codex sslsniff output did not prove offset-table attachment" >&2
+        echo "Codex sslsniff output did not prove signature attachment" >&2
         sed -n '1,160p' "$stderr" >&2 || true
         return 1
     fi
     if grep -Fq "binary-path attach failed" "$stderr"; then
-        echo "Codex sslsniff offset-table attachment failed" >&2
+        echo "Codex sslsniff signature attachment failed" >&2
         sed -n '1,160p' "$stderr" >&2 || true
         return 1
     fi
     case "$status" in
         0|124|130) ;;
         *)
-            echo "Codex sslsniff offset-table canary exited with status $status" >&2
+            echo "Codex sslsniff signature canary exited with status $status" >&2
             sed -n '1,160p' "$stderr" >&2 || true
             return 1
             ;;
