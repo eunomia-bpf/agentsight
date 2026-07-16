@@ -147,7 +147,16 @@ def build(
     changes: dict[str, dict[str, Any]] = {}
     buckets: dict[int, Counter] = defaultdict(Counter)
     file_stats: dict[str, dict[str, Any]] = {}
-    source_days = []
+    day_stats: dict[str, dict[str, Any]] = defaultdict(
+        lambda: {
+            "sessions": set(),
+            "events": 0,
+            "path_events": 0,
+            "write_event_paths": 0,
+            "verification_events": 0,
+        }
+    )
+    session_days: dict[str, set[str]] = defaultdict(set)
     lifetimes = artifacts[-1]["file_lifetimes"]
 
     lifetimes_for_path: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -173,40 +182,21 @@ def build(
         )
 
     censored_days = {cell["day"] for cell in censored.get("cells", [])}
+    now_ms = int(datetime.now(timezone.utc).timestamp() * 1_000)
     for artifact in artifacts:
-        day = artifact["window"]["since"][:10]
-        unique_session_ids = {session["id"] for session in artifact["sessions"]}
-        write_path_observations = sum(
-            len(event.get("write_paths", []))
-            for event in artifact["events"]
-        )
-        verification_observations = sum(
-            event["effect"] == "test" for event in artifact["events"]
-        )
-        source_days.append(
-            {
-                "day": day,
-                "sessions": len(unique_session_ids),
-                "events": artifact["summary"]["event_count"],
-                "path_events": artifact["summary"]["path_resolvable_event_count"],
-                "write_event_paths": write_path_observations,
-                "verification_events": verification_observations,
-                "quantitative_status": (
-                    "right_censored_excluded" if day in censored_days else "mature_descriptive"
-                ),
-            }
-        )
-        # A right-censored day remains useful as process evidence, but its Git
-        # horizon is incomplete. Do not carry even provisional candidate sets
-        # into the public projection or downstream file-level aggregates.
-        association_index = (
-            {}
-            if day in censored_days
-            else {
-                (row["event_id"], row["path"]): row
-                for row in artifact["associations"]
-            }
-        )
+        retrieval_after_ms = int(artifact["window"].get("retrieval_after_ms", 0))
+        if int(artifact["window"]["until_ms"]) >= now_ms - retrieval_after_ms:
+            maturity_cutoff = now_ms - retrieval_after_ms
+            censored_days.update(
+                date_label(int(event["ts_ms"]))
+                for event in artifact["events"]
+                if event.get("write_paths") and int(event["ts_ms"]) > maturity_cutoff
+            )
+    for artifact in artifacts:
+        association_index = {
+            (row["event_id"], row["path"]): row
+            for row in artifact["associations"]
+        }
         for session in artifact["sessions"]:
             current = sessions.setdefault(
                 session["id"],
@@ -227,11 +217,16 @@ def build(
             current["ended_at_ms"] = max(ends) if ends else None
             current["tool_events"] = max(current["tool_events"], int(session["tool_events"]))
             current["reported_tokens"] = max(current["reported_tokens"], int(session["total_tokens"]))
-            if day not in current["days"]:
-                current["days"].append(day)
-
         for event in artifact["events"]:
             timestamp = int(event["ts_ms"])
+            day = date_label(timestamp)
+            stats = day_stats[day]
+            stats["sessions"].add(event["session_id"])
+            stats["events"] += 1
+            stats["path_events"] += int(bool(event["paths"]))
+            stats["write_event_paths"] += len(event.get("write_paths", []))
+            stats["verification_events"] += int(event["effect"] == "test")
+            session_days[event["session_id"]].add(day)
             bucket = buckets[hour_floor(timestamp)]
             bucket["events"] += 1
             bucket[event["effect"]] += 1
@@ -258,7 +253,7 @@ def build(
                 )
                 association = (
                     association_index.get((event["id"], path))
-                    if path_effect == "write"
+                    if path_effect == "write" and day not in censored_days
                     else None
                 )
                 if (
@@ -348,6 +343,26 @@ def build(
         bucket["additions"] += additions
         bucket["deletions"] += deletions
 
+    for session_id, session in sessions.items():
+        session["days"] = sorted(session_days.get(session_id, set()))
+
+    source_days = [
+        {
+            "day": day,
+            "sessions": len(values["sessions"]),
+            "events": values["events"],
+            "path_events": values["path_events"],
+            "write_event_paths": values["write_event_paths"],
+            "verification_events": values["verification_events"],
+            "quantitative_status": (
+                "right_censored_excluded"
+                if day in censored_days
+                else "mature_descriptive"
+            ),
+        }
+        for day, values in sorted(day_stats.items())
+    ]
+
     # Seed every frozen endpoint path even if it was untouched in the sampled
     # native-session windows. The endpoint map must represent the repository
     # tree, not only paths that happened to receive an event.
@@ -386,8 +401,8 @@ def build(
             "endpoint_revision": head,
             "window_start_ms": window_start,
             "window_end_ms": window_end,
-            "source": "real Claude, Codex, and Gemini native histories joined to actual AgentSight Git history",
-            "association_mode": rq1["selection"]["method"],
+            "source": "native agent histories joined to the repository's Git history",
+            "association_mode": rq1.get("selection", {}).get("method", "descriptive_only"),
             "association_caveat": "Candidates are visual evidence, not authorship or certain provenance; natural calibration/support gates did not pass.",
             "reported_token_caveat": "Native token counters may be cumulative or implausible; charts label them as reported units, not cost.",
             "right_censored_days": sorted(censored_days),
@@ -757,16 +772,16 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--artifact", type=Path, action="append", required=True)
     parser.add_argument("--repo", type=Path, required=True)
-    parser.add_argument("--rq1-metrics", type=Path, required=True)
-    parser.add_argument("--censored-cells", type=Path, required=True)
+    parser.add_argument("--rq1-metrics", type=Path)
+    parser.add_argument("--censored-cells", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     artifacts = [load(path) for path in args.artifact]
     output = build(
         artifacts,
         args.repo,
-        load(args.rq1_metrics),
-        load(args.censored_cells),
+        load(args.rq1_metrics) if args.rq1_metrics else {"selection": {"method": "descriptive_only"}},
+        load(args.censored_cells) if args.censored_cells else {"cells": [], "missing_cells": []},
     )
     validate_public_output(output)
     args.output.parent.mkdir(parents=True, exist_ok=True)
