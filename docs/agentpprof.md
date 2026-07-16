@@ -88,29 +88,66 @@ time went, and use `files` and `network` for security audits.
 
 ## Example Flamegraphs
 
-The examples below were generated from AgentSight's own development traces (Claude Code). They demonstrate what insights each view provides.
+These examples use the same prefix-merged flamegraph layout with different
+stack sources and weights. The first figure is the R221 research version used
+in the main README; the others show project-native time, token, file, and
+network views plus a public desktop-operation profile.
+
+### R221 Semantic Stack Overview
+
+![R221 semantic flamegraph](flamegraph-example/r221-semantic-flamegraph-top200.svg)
+
+This is the R221 presentation of the 200 heaviest semantic stacks. Width is
+cumulative system-effect weight, not CPU time. Each row adds a frame such as
+project, agent, session, prompt, LLM call, process, or effect. The ragged upper
+outline is intentional: a stack stops when that activity has no more specific
+frame, so different causal paths naturally have different depths.
+
+### AgentSight Development Time
+
+**Question:** Where did wall-clock time go in AgentSight development?
+
+![AgentSight development time flamegraph](flamegraph-example/agentsight-time.svg)
+
+Width represents elapsed seconds. Review leads, followed by git, edit, docs,
+and code prompts. Continuation and inspection prompts form shorter branches,
+which makes this profile visibly less rectangular than a fixed-schema chart.
+
+### BPF Benchmark Development Time
+
+**Question:** Which work categories produced the strongest variable-depth stack shape?
+
+![BPF benchmark development time flamegraph](flamegraph-example/bpf-benchmark-time.svg)
+
+This profile uses real `bpf-benchmark` development sessions and also measures
+elapsed seconds. Its optional LLM, tool, and event frames produce a particularly
+uneven top edge while keeping the review, paper, naming, benchmark, and editing
+regions distinguishable.
+
+### OSWorld-Human Operation Stacks
+
+**Question:** How do public desktop interactions look as operation stacks?
+
+![OSWorld-Human operations flamegraph](flamegraph-example/osworld-human-operations.svg)
+
+This profile prefix-merges 6,010 operations from the public OSWorld-Human
+desktop-interaction traces. Width is operation count. Its deeper branches add
+environment, task, action group, phase, tool, action, and repeat-signal frames,
+so it is the clearest example here of naturally variable stack depth.
 
 ### Tokens View
 
 **Question:** Which activities consumed the most model budget?
 
-![Tokens flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-tokens.svg)
+![Tokens flamegraph](flamegraph-example/agentsight-tokens.svg)
 
 The token distribution shows that code review (`prompt:review`) dominated the model budget, followed by git operations (`prompt:git`), code work (`prompt:code`), editing (`prompt:edit`), and debugging (`prompt:debug`). Through the stack, you can trace which LLM calls each prompt category triggered: `call:llm/usage` for token statistics events, `call:llm/code` and `call:llm/test` for code-related responses, `call:llm/tool` for tool calls, and `call:llm/edit` for modification responses.
-
-### Time View
-
-**Question:** Where did wall-clock time go?
-
-![Time flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-time.svg)
-
-Wall-clock time distribution follows a similar pattern to token consumption: review (`prompt:review`) leads, followed by git, edit, docs, and code prompts. Continuation prompts (`prompt:continue`) appear frequently, reflecting a workflow pattern where complex tasks required multiple follow-up exchanges. The `prompt:inspect` category captures quick look-at-this requests that are common in iterative development.
 
 ### Files View
 
 **Question:** Which parts of the codebase were touched and how?
 
-![Files flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-files.svg)
+![Files flamegraph](flamegraph-example/agentsight-files.svg)
 
 File access patterns show heavy activity in `collector/src/` (the Rust codebase) and `collector/Cargo.toml`, consistent with development work. External paths (`external/tmp`, `external/home`, `external/codex`) appear frequently, reflecting tool invocations that touch temporary files, home directory configs, and Codex session data. The flamegraph distinguishes between read and write effects, revealing the balance of inspection versus modification across both project and external paths.
 
@@ -118,11 +155,37 @@ File access patterns show heavy activity in `collector/src/` (the Rust codebase)
 
 **Question:** Which external services were contacted?
 
-![Network flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-network.svg)
+![Network flamegraph](flamegraph-example/agentsight-network.svg)
 
 Network activity is sparse relative to file operations, confirming that most development work occurred locally. The contacted domains include `anthropic.com` for model inference, `crates.io` for Rust dependencies, `github.com` for version control, and various localhost ports for local development servers. Process chains visible in the upper frames show which tools initiated network requests, enabling attribution of network activity to specific agent actions.
 
-See `docs/flamegraph-example/agentsight.sh` for the generation script with tag rules.
+### How the SVGs are rendered
+
+For the project-native examples, `agentpprof` parses local Codex and Claude
+sessions, applies deterministic semantic tag rules, projects every activity to
+a semicolon-delimited stack with a non-negative weight, and merges identical
+stack prefixes. A frame's inclusive width is the sum of its descendants; its
+vertical position is its stack depth. The renderer then writes a standalone
+SVG, so no JavaScript or flamegraph server is needed to view it.
+
+The checked-in AgentSight and `bpf-benchmark` profiles can be regenerated with:
+
+```bash
+PROJECT_ROOT=/path/to/agentsight docs/flamegraph-example/agentsight.sh
+PROJECT_ROOT=/path/to/bpf-benchmark docs/flamegraph-example/bpf-benchmark.sh
+```
+
+Both scripts contain the exact tag rules and render the `tokens`, `time`,
+`files`, and `network` SVGs plus their folded-stack inputs.
+
+R221 is a research snapshot rather than an output of those two scripts. Its
+[renderer](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/r221_visual_gallery.py)
+builds a prefix tree from the
+[top-200 semantic-stack table](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/out/tag-stats-r189/top-semantic-stacks-r170.csv),
+sums descendant system-effect weights, allocates horizontal space
+proportionally, and draws one SVG row per depth. The OSWorld-Human snapshot
+uses the regular `agentpprof` prefix-merging renderer over its
+[public operation table](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl).
 
 ## Tagging
 
