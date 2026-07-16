@@ -2,16 +2,15 @@ import { expect, test } from "@playwright/test";
 import { spawnSync } from "node:child_process";
 import { mkdir, readFile, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { views } from "../../single/registry.js";
-import { renderOne } from "../../single/render.mjs";
+import { buildEvolutionData, renderOne } from "../../single/render.mjs";
+import { fixtureData as data } from "../fixture-data.mjs";
 
 const outputDirectory = resolve("test-results/single-html");
 const screenshotDirectory = resolve("test-results/screenshots/all-views");
 const formatDirectory = resolve("test-results/single-formats");
-const fixturePath = resolve("tests/fixtures/gallery-data.json");
-const data = JSON.parse(await readFile(fixturePath, "utf8"));
 
 test.beforeAll(async () => {
   await rm(outputDirectory, { recursive: true, force: true });
@@ -22,7 +21,6 @@ test.beforeAll(async () => {
   await mkdir(formatDirectory, { recursive: true });
   for (const view of views) {
     await renderOne(data, view, {
-      input: fixturePath,
       output: join(outputDirectory, `${view.id}.html`),
       width: 1200,
       height: 640,
@@ -35,7 +33,7 @@ test.beforeAll(async () => {
 test("exports portable formats, rejects static animation, and cleans temporary frames", async ({ page }) => {
   const dynamic = views.find((view) => view.id === "activity-pulse");
   const staticView = views.find((view) => view.id === "git-sediment");
-  const options = (output) => ({ input: fixturePath, output, width: 480, height: 300, frames: 2, fps: 2 });
+  const options = (output) => ({ output, width: 480, height: 300, frames: 2, fps: 2 });
   const frameDirectories = async () => new Set(
     (await readdir(tmpdir())).filter((name) => name.startsWith("agentsight-vis-frames-")),
   );
@@ -67,6 +65,20 @@ test("exports portable formats, rejects static animation, and cleans temporary f
   expect([...await frameDirectories()].filter((name) => !before.has(name))).toEqual([]);
 });
 
+test("builds a shareable graph directly from repository and native histories", async ({ page }) => {
+  const evolution = await buildEvolutionData({ repo: resolve(".."), since: "1d", until: "now", head: "HEAD" });
+  expect(evolution.meta.repository).toBe(basename(resolve("..")));
+  expect(evolution.tree.children.length).toBeGreaterThan(0);
+  const output = join(outputDirectory, "direct-repository-treemap.html");
+  await renderOne(evolution, views.find((view) => view.id === "repository-treemap"), {
+    output, width: 720, height: 420, frames: 2, fps: 2,
+  });
+  await page.goto(pathToFileURL(output).href);
+  await page.waitForFunction(() => window.__AGENTSIGHT_READY__ === true);
+  await expect(page.locator("#chart svg")).toHaveCount(1);
+  await expect(page.locator("#provenance")).toContainText("generator: agentsight-vis 0.1");
+});
+
 test("opens and checks every one-graph HTML artifact individually", async ({ page }) => {
   for (const view of views) {
     const consoleErrors = [];
@@ -86,6 +98,7 @@ test("opens and checks every one-graph HTML artifact individually", async ({ pag
     await expect(page.locator("#chart svg")).toHaveCount(1);
     await expect(page.locator("#chart svg")).toBeVisible();
     await expect(page.locator("#view-title")).toHaveText(view.title);
+    await expect(page.locator("#provenance")).toContainText("generator: agentsight-vis 0.1");
 
     const timeline = page.locator("#timeline");
     if (view.timeMode === "static") {

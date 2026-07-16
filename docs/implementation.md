@@ -19,19 +19,23 @@
 repository + native session histories
         |
         v
-agent-session export in a private temporary directory
+in-memory EvolutionData (sessions + Git + associations)
         |
         v
-per-view projection in the same temporary directory
+shared compact projection over stdout/stdin (no file)
+        |
+        v
+selected per-view ViewModel in renderer memory
         |
         v
 one requested output file
 ```
 
-Users provide only repository, time range, view ID, and output path. Temporary
-data is removed when the command exits; it is not a user-visible artifact or
-workflow step. Batch generation performs the repository/session projection
-once and reuses it for every selected output.
+Users provide only repository, time range, view ID, and output path. The Rust
+`agent-session` layer builds the shared evolution data once; its compact
+projection is piped directly into the renderer and is never written as an
+intermediate file.
+Batch generation reuses that in-memory result for every selected output.
 
 The renderer has one runtime dependency, ECharts. A tree-shaken SVG runtime is
 inlined into HTML, SVG is extracted from that renderer, PNG captures the full

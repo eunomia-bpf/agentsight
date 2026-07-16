@@ -37,7 +37,8 @@ npm run render -- \
 The HTML is self-contained and opens directly from disk. It contains exactly
 one graph plus its title, evidence legend, and—when the view has time
 semantics—one playable progress bar. No network request or local server is
-required.
+required. Session/Git data is piped between the internal parser and projector;
+no intermediate JSON file is written or exposed to the user.
 
 Change only the output extension to select a format:
 
@@ -66,10 +67,6 @@ npm run render:all -- \
   --output-dir artifacts/30d \
   --formats html,svg,png
 ```
-
-For tests and renderer development, `--input tests/fixtures/gallery-data.json`
-uses the checked privacy-safe compact fixture instead of scanning local session
-history.
 
 ## Share and embed
 

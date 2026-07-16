@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { views } from "./registry.js";
-import { loadProjection, parseArgs, renderOne } from "./render.mjs";
+import { buildEvolutionData, parseArgs, renderOne } from "./render.mjs";
 
 const supportedFormats = new Set(["html", "svg", "png", "gif", "mp4"]);
 
@@ -12,7 +12,6 @@ function usage() {
 
 Usage:
   agentsight-vis-all --repo PATH --since TIME --output-dir DIR [--formats html,svg,png]
-  agentsight-vis-all --input FILE --output-dir DIR [--formats html,svg,png]
 
 The repository/session scan runs once. Static views skip GIF and MP4 because a
 motion file with identical frames would add size without adding information.
@@ -43,11 +42,9 @@ function parseAll(values) {
 export async function main(values = process.argv.slice(2)) {
   const options = parseAll(values);
   if (options.help) { process.stdout.write(usage()); return; }
-  if (!options.common.input && (!options.common.repo || !options.common.since)) {
-    throw new Error("use --input, or provide --repo and --since");
-  }
+  if (!options.common.repo || !options.common.since) throw new Error("--repo and --since are required");
   await mkdir(options.outputDir, { recursive: true });
-  const data = await loadProjection(options.common);
+  const data = await buildEvolutionData(options.common);
   let rendered = 0;
   for (const spec of views) {
     for (const format of options.formats) {

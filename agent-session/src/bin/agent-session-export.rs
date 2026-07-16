@@ -20,7 +20,7 @@ Options:
   --repo PATH       Git worktree whose native sessions and history are joined
   --since TIME      Inclusive event start (RFC3339 or YYYY-MM-DD in UTC)
   --until TIME      Exclusive event end (RFC3339 or YYYY-MM-DD in UTC)
-  --output FILE     Destination artifact
+  --output FILE|-   Destination file, or canonical JSON on stdout with -
   --format FORMAT   canonical (default), events-jsonl, perfetto, or gource
   --head REV        Freeze Git history and endpoint at this revision (default: HEAD)
   --session FILE    Parse only this native session file; may be repeated
@@ -76,6 +76,9 @@ fn run() -> Result<(), String> {
         print!("{HELP}");
         return Ok(());
     };
+    if args.output == Path::new("-") && args.format != ExportFormat::Canonical {
+        return Err("--output - is supported only for canonical JSON".to_string());
+    }
     let artifact = build_longitudinal_artifact(&LongitudinalOptions {
         repo: args.repo,
         head: args.head,
@@ -85,6 +88,11 @@ fn run() -> Result<(), String> {
     })
     .map_err(|error| error.to_string())?;
     match args.format {
+        ExportFormat::Canonical if args.output == Path::new("-") => {
+            let mut writer = BufWriter::new(std::io::stdout().lock());
+            serde_json::to_writer(&mut writer, &artifact).map_err(|error| error.to_string())?;
+            writer.write_all(b"\n").map_err(|error| error.to_string())?;
+        }
         ExportFormat::Canonical => write_longitudinal_artifact(&artifact, &args.output)
             .map_err(|error| error.to_string())?,
         ExportFormat::EventsJsonl => write_events_jsonl(&artifact, &args.output)?,
@@ -288,7 +296,7 @@ mod tests {
                 "--until",
                 "2026-07-15T00:00:00Z",
                 "--output",
-                "out.json",
+                "-",
                 "--head",
                 "deadbeef",
                 "--session",
@@ -305,6 +313,7 @@ mod tests {
         assert_eq!(args.session_paths.len(), 2);
         assert_eq!(args.head.as_deref(), Some("deadbeef"));
         assert_eq!(args.format, ExportFormat::Canonical);
+        assert_eq!(args.output, PathBuf::from("-"));
         assert!(args.until_ms > args.since_ms);
     }
 

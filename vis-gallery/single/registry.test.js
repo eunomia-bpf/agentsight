@@ -1,11 +1,10 @@
-import { readFileSync } from "node:fs";
 import { init } from "echarts";
 import { describe, expect, test } from "vitest";
+import { fixtureData as data } from "../tests/fixture-data.mjs";
 import { helpers } from "./helpers.js";
 import { registry, views } from "./registry.js";
-import { parseTime } from "./render.mjs";
+import { parseTime, projectForView } from "./render.mjs";
 
-const data = JSON.parse(readFileSync(new URL("../tests/fixtures/gallery-data.json", import.meta.url), "utf8"));
 const knownModes = new Set(["static", "cursor-marker", "cumulative", "trailing-6h", "endpoint-overlay", "mixed-day"]);
 
 describe("single-view registry", () => {
@@ -30,6 +29,9 @@ describe("single-view registry", () => {
       expect(view.note.length).toBeGreaterThan(10);
       expect(knownModes.has(view.timeMode), view.id).toBe(true);
       for (const key of view.requirements) expect(data, `${view.id}: ${key}`).toHaveProperty(key);
+      expect(Object.keys(projectForView(data, view)).sort()).toEqual(
+        [...new Set(["schema", "meta", "summary", ...view.requirements])].sort(),
+      );
     }
   });
 

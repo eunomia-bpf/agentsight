@@ -13,15 +13,15 @@ self-contained file. There is no shared dashboard or server.
 repository + native sessions
         |
         v
-privacy-safe event/Git projection (temporary, internal)
+in-memory EvolutionData (sessions + Git + associations)
         |
         v
 one selected view model -> HTML / SVG / PNG / GIF / MP4
 ```
 
-The projection is computed once for batch generation and discarded when the
-command exits. It is an implementation detail, not a file users must create,
-store, understand, or pass between commands.
+The shared data is computed once for batch generation, projected through a
+stdout/stdin pipe, and discarded when the command exits. No canonical JSON is
+written for users to create, store, understand, or pass between commands.
 
 ## Evidence contract
 

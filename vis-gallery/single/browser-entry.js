@@ -29,6 +29,10 @@ function timeLabel(value) {
   return new Date(value).toISOString().replace("T", " ").replace(".000Z", " UTC");
 }
 
+function dayLabel(value) {
+  return new Date(value).toISOString().slice(0, 10);
+}
+
 function renderAt(cursorMs) {
   state.cursorMs = Math.max(state.startMs, Math.min(state.endMs, Number(cursorMs)));
   const option = state.view.build(state.data, state.cursorMs, helpers);
@@ -69,7 +73,13 @@ function initialize(data, viewId, config = {}) {
   element("view-title").textContent = view.title;
   element("view-note").textContent = view.note;
   element("time-mode").textContent = view.timeMode.replaceAll("-", " ");
-  element("provenance").textContent = `${data.meta.repository} · ${data.meta.endpoint_revision.slice(0, 12)} · ${data.meta.association_mode}`;
+  element("provenance").textContent = [
+    `repository: ${data.meta.repository}`,
+    `revision: ${data.meta.endpoint_revision.slice(0, 12)}`,
+    `window: ${dayLabel(startMs)} → ${dayLabel(endMs)}`,
+    "generator: agentsight-vis 0.1",
+    `association mode: ${data.meta.association_mode.replaceAll("_", " ")}`,
+  ].join(" · ");
   const timeline = element("timeline");
   Object.assign(timeline, { min: String(startMs), max: String(endMs), step: "1" });
   timeline.addEventListener("input", () => {

@@ -18,7 +18,6 @@ function usage() {
 
 Usage:
   agentsight-vis --repo PATH --since TIME [--until TIME] --view ID --output FILE
-  agentsight-vis --input GALLERY.json --view ID --output FILE
   agentsight-vis --list-views
 
 Options:
@@ -26,7 +25,6 @@ Options:
   --since TIME      RFC3339, YYYY-MM-DD, or a relative duration such as 7d
   --until TIME      RFC3339, YYYY-MM-DD, or now (default: now)
   --head REV        Frozen Git revision (default: HEAD)
-  --input FILE      Developer/test shortcut: use an existing privacy-safe projection
   --view ID         One of the registered single-artifact views
   --output FILE     .html, .svg, .png, .gif, or .mp4
   --at TIME         Snapshot cursor (default: end of window)
@@ -48,7 +46,7 @@ export function parseArgs(values) {
     if (value === undefined) throw new Error(`missing value for ${flag}`);
     const key = {
       "--repo": "repo", "--since": "since", "--until": "until", "--head": "head",
-      "--input": "input", "--view": "view", "--output": "output", "--at": "at",
+      "--view": "view", "--output": "output", "--at": "at",
       "--frames": "frames", "--fps": "fps", "--width": "width", "--height": "height",
     }[flag];
     if (!key) throw new Error(`unknown option ${flag}`);
@@ -75,34 +73,30 @@ function iso(value) {
   return new Date(value).toISOString();
 }
 
-function run(command, args, cwd = repositoryRoot) {
-  const result = spawnSync(command, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+function run(command, args, cwd = repositoryRoot, input) {
+  const result = spawnSync(command, args, {
+    cwd, input, encoding: "utf8", maxBuffer: 256 * 1024 * 1024,
+    stdio: [input === undefined ? "ignore" : "pipe", "pipe", "pipe"],
+  });
   if (result.status !== 0) {
     throw new Error(`${command} ${args.join(" ")} failed\n${result.stderr || result.stdout}`);
   }
   return result.stdout;
 }
 
-async function projectionFromRepository(options) {
-  const temporary = await mkdtemp(join(tmpdir(), "agentsight-vis-"));
-  try {
-    const sessionExport = join(temporary, "session-export.json");
-    const projection = join(temporary, "projection.json");
-    const untilMs = parseTime(options.until, Date.now());
-    const sinceMs = parseTime(options.since, untilMs - 7 * 86_400_000, untilMs);
-    if (sinceMs >= untilMs) throw new Error("--since must be before --until");
-    const exporter = join(repositoryRoot, "agent-session", "target", "release", "agent-session-export");
-    const exporterArgs = [
-      "--repo", resolve(options.repo), "--head", options.head, "--since", iso(sinceMs),
-      "--until", iso(untilMs), "--output", sessionExport,
-    ];
-    if (existsSync(exporter)) run(exporter, exporterArgs);
-    else run("cargo", ["run", "--quiet", "--manifest-path", join(repositoryRoot, "agent-session", "Cargo.toml"), "--bin", "agent-session-export", "--", ...exporterArgs]);
-    run("python3", [join(here, "project.py"), "--artifact", sessionExport, "--repo", resolve(options.repo), "--output", projection]);
-    return JSON.parse(await readFile(projection, "utf8"));
-  } finally {
-    await rm(temporary, { recursive: true, force: true });
-  }
+export async function buildEvolutionData(options) {
+  const untilMs = parseTime(options.until, Date.now());
+  const sinceMs = parseTime(options.since, untilMs - 7 * 86_400_000, untilMs);
+  if (sinceMs >= untilMs) throw new Error("--since must be before --until");
+  const exporterArgs = [
+    "--repo", resolve(options.repo), "--head", options.head, "--since", iso(sinceMs),
+    "--until", iso(untilMs), "--output", "-",
+  ];
+  const canonical = run("cargo", [
+    "run", "--quiet", "--manifest-path", join(repositoryRoot, "agent-session", "Cargo.toml"),
+    "--bin", "agent-session-export", "--", ...exporterArgs,
+  ]);
+  return JSON.parse(run("python3", [join(here, "project.py"), "--repo", resolve(options.repo)], repositoryRoot, canonical));
 }
 
 export function projectForView(data, spec) {
@@ -120,11 +114,11 @@ export async function htmlFor(data, spec, options, renderer = "svg") {
   const cursorMs = Math.max(data.meta.window_start_ms, Math.min(data.meta.window_end_ms, parseTime(options.at, data.meta.window_end_ms, data.meta.window_end_ms)));
   const payload = projectForView(data, spec);
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="agentsight-vis 0.1">
 <meta name="agentsight:view" content="${spec.id}"><meta name="agentsight:revision" content="${data.meta.endpoint_revision}"><meta name="agentsight:time-mode" content="${spec.timeMode}">
 <title>${spec.title} · AgentSight</title><style>
-:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#070b12;color:#dce8f7}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 75% 0,rgba(35,106,114,.17),transparent 34%),#070b12}.artifact{width:${options.width + 64}px;min-height:${options.height + 190}px;padding:24px 32px;background:#070b12}.header{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid rgba(135,160,190,.18);padding-bottom:14px}.eyebrow,.mode,.footer{font:10px ui-monospace,monospace;color:#61d7bf;letter-spacing:.12em;text-transform:uppercase}.header h1{font-size:24px;margin:6px 0}.header p{font-size:11px;color:#71839a;margin:0;max-width:900px}.mode{color:#8c9bb0;border:1px solid rgba(135,160,190,.18);padding:7px 9px;border-radius:99px;align-self:flex-start}.visual{width:${options.width}px;height:${options.height}px;margin-top:14px}.timeline{display:grid;grid-template-columns:42px 1fr 190px;gap:12px;align-items:center;border-top:1px solid rgba(135,160,190,.18);padding:14px 0 8px}.timeline button{width:36px;height:36px;border-radius:50%;border:1px solid rgba(97,215,191,.4);background:#10231f;color:#61d7bf;cursor:pointer}.timeline input{width:100%;accent-color:#61d7bf}.timeline output{font:9px ui-monospace,monospace;color:#9bacc0;text-align:right}.legend{display:flex;gap:18px;font:9px ui-monospace,monospace;color:#71839a}.legend i{display:inline-block;width:13px;height:3px;margin-right:5px;vertical-align:middle}.footer{display:flex;justify-content:space-between;margin-top:8px;color:#536176}.footer span:last-child{color:#7c8ba0;text-transform:none;letter-spacing:0}
-</style></head><body><main id="artifact" class="artifact"><header class="header"><div><span class="eyebrow">AgentSight · repository evolution</span><h1 id="view-title"></h1><p id="view-note"></p></div><span id="time-mode" class="mode"></span></header><section id="visual" class="visual"><div id="chart"></div></section><section class="timeline"><button id="play" aria-label="Play history">▶</button><input id="timeline" type="range"><output id="cursor-label"></output></section><section class="legend"><span><i style="background:#62cfe8"></i>recorded process</span><span><i style="background:#efd265"></i>durable Git</span><span><i style="border:1px solid #9aa8b9"></i>frozen endpoint</span></section><footer class="footer"><span>process, Git, and endpoint layers remain distinct</span><span id="provenance"></span></footer></main>
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#070b12;color:#dce8f7}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 75% 0,rgba(35,106,114,.17),transparent 34%),#070b12}.artifact{width:${options.width + 64}px;min-height:${options.height + 190}px;padding:24px 32px;background:#070b12}.header{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid rgba(135,160,190,.18);padding-bottom:14px}.eyebrow,.mode{font:10px ui-monospace,monospace;color:#61d7bf;letter-spacing:.12em;text-transform:uppercase}.header h1{font-size:24px;margin:6px 0}.header p{font-size:11px;color:#71839a;margin:0;max-width:900px}.mode{color:#8c9bb0;border:1px solid rgba(135,160,190,.18);padding:7px 9px;border-radius:99px;align-self:flex-start}.visual{width:${options.width}px;height:${options.height}px;margin-top:14px}.timeline{display:grid;grid-template-columns:42px 1fr 190px;gap:12px;align-items:center;border-top:1px solid rgba(135,160,190,.18);padding:14px 0 8px}.timeline button{width:36px;height:36px;border-radius:50%;border:1px solid rgba(97,215,191,.4);background:#10231f;color:#61d7bf;cursor:pointer}.timeline input{width:100%;accent-color:#61d7bf}.timeline output{font:9px ui-monospace,monospace;color:#9bacc0;text-align:right}.legend{display:flex;gap:18px;font:9px ui-monospace,monospace;color:#71839a}.legend i{display:inline-block;width:13px;height:3px;margin-right:5px;vertical-align:middle}.footer{margin-top:8px;color:#7c8ba0;font:9px ui-monospace,monospace;letter-spacing:0}
+</style></head><body><main id="artifact" class="artifact"><header class="header"><div><span class="eyebrow">AgentSight · repository evolution</span><h1 id="view-title"></h1><p id="view-note"></p></div><span id="time-mode" class="mode"></span></header><section id="visual" class="visual"><div id="chart"></div></section><section class="timeline"><button id="play" aria-label="Play history">▶</button><input id="timeline" type="range"><output id="cursor-label"></output></section><section class="legend"><span><i style="background:#62cfe8"></i>recorded process</span><span><i style="background:#efd265"></i>durable Git</span><span><i style="border:1px solid #9aa8b9"></i>frozen endpoint</span></section><footer id="provenance" class="footer"></footer></main>
 <script>${runtimeSource}</script><script>AgentSightSingle.initialize(${safeJson(payload)},${safeJson(spec.id)},{renderer:${safeJson(renderer)},cursorMs:${cursorMs},width:${options.width},height:${options.height}})</script></body></html>`;
 }
 
@@ -142,7 +136,11 @@ async function openPage(html, options) {
 }
 
 function svgWithMetadata(svg, data, spec, cursorMs) {
-  const value = safeJson({ view: spec.id, repository: data.meta.repository, revision: data.meta.endpoint_revision, cursor_ms: cursorMs, association_mode: data.meta.association_mode }).replaceAll("&", "&amp;");
+  const value = safeJson({
+    view: spec.id, repository: data.meta.repository, revision: data.meta.endpoint_revision,
+    window: [data.meta.window_start_ms, data.meta.window_end_ms], cursor_ms: cursorMs,
+    generator: "agentsight-vis 0.1", association_mode: data.meta.association_mode,
+  }).replaceAll("&", "&amp;");
   const metadata = `<metadata>${value}</metadata>`;
   return `<?xml version="1.0" encoding="UTF-8"?>\n${svg.replace(">", `>${metadata}`)}`;
 }
@@ -188,12 +186,6 @@ export async function renderAnimation(format, html, data, options) {
   }
 }
 
-export async function loadProjection(options) {
-  return options.input
-    ? JSON.parse(await readFile(resolve(options.input), "utf8"))
-    : projectionFromRepository(options);
-}
-
 export async function renderOne(data, spec, options) {
   for (const key of ["width", "height", "frames", "fps"]) {
     if (!Number.isInteger(options[key]) || options[key] <= 0) throw new Error(`--${key} must be a positive integer`);
@@ -219,9 +211,9 @@ export async function main(values = process.argv.slice(2)) {
   if (options.help) { process.stdout.write(usage()); return; }
   if (options.listViews) { process.stdout.write(`${views.map((view) => `${view.id}\t${view.title}`).join("\n")}\n`); return; }
   if (!options.view || !options.output) throw new Error("--view and --output are required\n\n" + usage());
-  if (!options.input && (!options.repo || !options.since)) throw new Error("use --input, or provide --repo and --since");
+  if (!options.repo || !options.since) throw new Error("--repo and --since are required");
   const spec = requireView(options.view);
-  const data = await loadProjection(options);
+  const data = await buildEvolutionData(options);
   await renderOne(data, spec, options);
 }
 

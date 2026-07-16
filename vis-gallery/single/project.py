@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a compact, privacy-safe gallery projection from real exports."""
+"""Build a compact, privacy-safe gallery projection from piped evolution data."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import json
 import math
 import re
 import subprocess
+import sys
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from itertools import combinations
@@ -38,11 +39,6 @@ SOURCE_EXTENSIONS = {
     ".yml",
 }
 BLAME_HEADER = re.compile(r"^([0-9a-f]{40})\s+\d+\s+(\d+)(?:\s+\d+)?$")
-
-
-def load(path: Path) -> dict[str, Any]:
-    with path.open(encoding="utf-8") as source:
-        return json.load(source)
 
 
 def compact_hash(value: str, size: int = 12) -> str:
@@ -769,21 +765,12 @@ def is_public_repo_path(path: str) -> bool:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--artifact", type=Path, action="append", required=True)
     parser.add_argument("--repo", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    artifacts = [load(path) for path in args.artifact]
-    output = build(
-        artifacts,
-        args.repo,
-    )
+    output = build([json.load(sys.stdin)], args.repo)
     validate_public_output(output)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(output, separators=(",", ":"), sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    json.dump(output, sys.stdout, separators=(",", ":"), sort_keys=True)
+    sys.stdout.write("\n")
 
 
 if __name__ == "__main__":
