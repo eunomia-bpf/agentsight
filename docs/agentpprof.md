@@ -88,15 +88,13 @@ time went, and use `files` and `network` for security audits.
 
 ## Example Flamegraphs
 
-The figures below demonstrate what each view shows.
-
 ### Semantic Stack Overview
 
 ![Semantic flamegraph](flamegraph-example/semantic-flamegraph-top200.svg)
 
-The figure shows collapsed prefixes from the top 200 stacks. Width is
-system-effect weight; stacks ending at different frames produce the ragged
-upper edge.
+The figure shows the 200 highest-weight paths. Paths with the same opening
+frames share a rectangle; wider rectangles have greater system-effect weight.
+Paths end at different depths, producing an uneven outline.
 
 ### Tokens View
 
@@ -148,7 +146,7 @@ Network activity is sparse relative to file operations, confirming that most dev
 
 The SVGs merge shared stack prefixes and size each frame by the metric shown in
 the figure header. Stack depth sets the vertical row, so paths ending at
-different frames form an uneven top edge.
+different frames form an uneven outline.
 
 ## Tagging
 
