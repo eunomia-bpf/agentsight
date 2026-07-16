@@ -49,8 +49,9 @@ npm run render -- --repo .. --since 30d --view session-storylines --output story
 npm run render -- --repo .. --since 30d --view session-storylines --output story.mp4
 ```
 
-All 31 views support every output format. Static endpoint/history views become
-a single-frame GIF or MP4; the 23 time-aware views replay the selected interval.
+All 31 views support every output format. Prefer PNG or SVG for static
+endpoint/history views; their GIF/MP4 compatibility output contains one frame.
+The 23 time-aware views replay the selected interval.
 
 List all view IDs:
 

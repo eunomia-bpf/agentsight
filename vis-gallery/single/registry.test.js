@@ -50,4 +50,45 @@ describe("single-view registry", () => {
       }
     }
   });
+
+  test("explains missing native-session evidence instead of drawing blank axes", () => {
+    const empty = {
+      ...data,
+      events: [],
+      verification_events: [],
+      sessions: [],
+      source_days: [],
+      time_buckets: [],
+    };
+    const ids = [
+      "activity-pulse", "observed-days", "hot-paths", "touch-association-lanes",
+      "path-day-matrix", "association-state-matrix", "read-before-write-network",
+      "session-storylines", "trajectory-cast", "activity-punch-card", "agent-vitals",
+      "vendor-semantic-flow", "verification-lag", "session-receipt", "mature-day-comparison",
+    ];
+    for (const id of ids) {
+      const view = registry.get(id);
+      const option = view.build(projectForView(empty, view), data.meta.window_end_ms, helpers);
+      expect(option.graphic?.[0]?.style?.text, id).toMatch(/^No /);
+    }
+  });
+
+  test("bounds dense repository views for readable single-file output", () => {
+    const lineAge = registry.get("line-age-pixels").build(data, data.meta.window_end_ms, helpers);
+    expect(lineAge.yAxis.data.length).toBeLessThanOrEqual(26);
+    expect(lineAge.xAxis.data.length).toBeLessThanOrEqual(160);
+
+    const dense = {
+      ...data,
+      files: Array.from({ length: 1_200 }, (_, index) => ({
+        ...data.files[index % data.files.length],
+        path: `dense/path-${index}.rs`,
+        stable_x: (index % 40) / 40,
+        stable_y: Math.floor(index / 40) / 30,
+      })),
+      events: [],
+    };
+    const constellation = registry.get("workspace-constellation").build(dense, data.meta.window_end_ms, helpers);
+    expect(constellation.series[0].data).toHaveLength(450);
+  });
 });

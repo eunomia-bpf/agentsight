@@ -41,6 +41,22 @@ export function axis() {
   };
 }
 
+export function withEmpty(option, hasData, message) {
+  if (hasData) return { ...option, graphic: option.graphic ?? [] };
+  const {
+    xAxis: _xAxis, yAxis: _yAxis, singleAxis: _singleAxis,
+    series: _series, legend: _legend, visualMap: _visualMap,
+    dataZoom: _dataZoom, ...shell
+  } = option;
+  return {
+    ...shell,
+    graphic: [{
+      type: "text", left: "center", top: "middle", silent: true,
+      style: { text: message, fill: colors.muted, fontSize: 13 },
+    }],
+  };
+}
+
 export function visibleEvents(data, cursorMs) {
   const start = data.meta?.window_start_ms ?? Number.NEGATIVE_INFINITY;
   const end = Math.min(cursorMs, data.meta?.window_end_ms ?? cursorMs);
@@ -125,6 +141,7 @@ export const helpers = {
   colors,
   base,
   axis,
+  withEmpty,
   visibleEvents,
   visibleVerifications,
   rank,

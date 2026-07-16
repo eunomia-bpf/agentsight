@@ -10,11 +10,6 @@ const cartesian = (h, grid, xAxis, yAxis) => ({
 const tooltip = (formatter, trigger = "item") => (
   { ...(trigger ? { trigger } : {}), renderMode: "richText", formatter }
 );
-const emptyText = (text, h) => [{
-  type: "text", left: "center", top: "middle", silent: true,
-  style: { text, fill: h.colors.muted, fontSize: 13 },
-}];
-
 function riskColor(risk, minimum, maximum) {
   if (!Number.isFinite(risk) || maximum <= minimum) return "hsl(95 60% 41%)";
   const low = Math.log1p(Math.max(0, minimum));
@@ -25,24 +20,28 @@ function riskColor(risk, minimum, maximum) {
 }
 
 function graphOption(edges, directed, h) {
-  const rows = edges.slice(0, 180);
+  const candidates = edges.slice(0, 180);
   const weights = new Map();
-  rows.forEach(({ source, target, count }) => {
+  candidates.forEach(({ source, target, count }) => {
     weights.set(source, (weights.get(source) || 0) + count);
     weights.set(target, (weights.get(target) || 0) + count);
   });
-  const nodes = [...weights].map(([path, weight]) => ({
+  const selected = new Set(
+    [...weights].sort((left, right) => right[1] - left[1]).slice(0, 60).map(([path]) => path),
+  );
+  const rows = candidates.filter(({ source, target }) => selected.has(source) && selected.has(target)).slice(0, 100);
+  const nodes = [...weights].filter(([path]) => selected.has(path))
+    .sort((left, right) => right[1] - left[1])
+    .map(([path, weight], index) => ({
     id: path, name: fileName(path), path, value: weight,
     symbolSize: Math.max(7, Math.min(25, 6 + Math.sqrt(weight) * 2.2)),
-  }));
+    label: { show: index < 18 },
+    }));
   const qualifier = directed
     ? "ordered read before write; not causality"
     : "same-commit correlation; not causality";
-  return {
+  return h.withEmpty({
     ...h.base(),
-    graphic: nodes.length ? [] : emptyText(
-      directed ? "No read-before-write sequence by this cursor" : "No Git co-change edges", h,
-    ),
     tooltip: tooltip(({ data: row }) => row.source !== undefined
       ? `${row.source}\n→ ${row.target}\n${row.value} observations\n${qualifier}`
       : `${row.path}\n${row.value} incident edge weight`),
@@ -55,12 +54,12 @@ function graphOption(edges, directed, h) {
       })),
       edgeSymbol: directed ? ["none", "arrow"] : ["none", "none"],
       edgeSymbolSize: directed ? 7 : 0,
-      label: { show: true, position: "right", color: h.colors.text, fontSize: 8 },
+      label: { show: false, position: "right", color: h.colors.text, fontSize: 8 },
       itemStyle: { color: "#4c83a6", borderColor: "#9fc8df", borderWidth: 0.5 },
       lineStyle: { color: directed ? "#d69b62" : "#56718b", curveness: directed ? 0.18 : 0.08, opacity: 0.48 },
       emphasis: { focus: "adjacency", lineStyle: { opacity: 0.9 } },
     }],
-  };
+  }, nodes.length, directed ? "No read-before-write sequence by this cursor" : "No Git co-change edges");
 }
 
 function hourlyBuckets(events, verifications) {
@@ -120,7 +119,7 @@ export const views = [
       const files = h.rank(data.files.filter((file) => file.survives_to_head && file.path === file.current_path), (file) => file.risk_score, 90);
       const risks = files.map((file) => file.risk_score).filter(Number.isFinite);
       const [minimum, maximum] = risks.length ? [Math.min(...risks), Math.max(...risks)] : [0, 1];
-      return {
+      return h.withEmpty({
         ...h.base(),
         tooltip: tooltip(({ data: row }) => `${row.path}\nrisk ${row.risk.toFixed(2)}\n${row.touches} recorded touches · ${row.churn} Git churn`, null),
         series: [{
@@ -128,11 +127,17 @@ export const views = [
           data: files.map((file) => ({
             name: fileName(file.path), path: file.path, value: Math.max(1, file.current_bytes),
             risk: file.risk_score, churn: file.churn, touches: file.touches,
-            itemStyle: { color: riskColor(file.risk_score, minimum, maximum), opacity: active.has(file.path) ? 0.96 : 0.32 },
+            itemStyle: {
+              color: riskColor(file.risk_score, minimum, maximum),
+              opacity: active.has(file.path) ? 0.98 : 0.72,
+              borderColor: active.has(file.path) ? "#dffdf8" : "#080c14",
+              borderWidth: active.has(file.path) ? 1.5 : 0.5,
+            },
           })),
-          label: { color: "#f2f5fb", fontSize: 9 }, itemStyle: { borderColor: "#080c14", gapWidth: 1 },
+          label: { color: "#ffffff", fontSize: 9, textBorderColor: "#07101a", textBorderWidth: 2 },
+          itemStyle: { borderColor: "#080c14", gapWidth: 1 },
         }],
-      };
+      }, files.length, "No endpoint files to rank");
     },
   ),
   view(
@@ -153,9 +158,16 @@ export const views = [
       const active = new Set(events.map((event) => event.session_id));
       const sessions = h.rank(data.sessions.filter((session) => active.has(session.id)), (session) => session.tool_events, 28);
       const groups = [...new Set(events.map((event) => event.group))].slice(0, 22);
-      return {
+      const timestamps = events.map((event) => event.ts_ms);
+      const first = Math.min(...timestamps);
+      const last = Math.max(...timestamps);
+      const padding = Math.max(HOUR, (last - first) * 0.08);
+      const domain = events.length
+        ? [Math.max(data.meta.window_start_ms, first - padding), Math.min(data.meta.window_end_ms, last + padding)]
+        : [data.meta.window_start_ms, data.meta.window_end_ms];
+      return h.withEmpty({
         ...cartesian(h, { left: 155, right: 22, top: 24, bottom: 44 },
-          { type: "time", min: data.meta.window_start_ms, max: data.meta.window_end_ms },
+          { type: "time", min: domain[0], max: domain[1] },
           { bare: true, type: "category", data: groups, axisLabel: { color: h.colors.muted, width: 142, overflow: "truncate", fontSize: 9 }, axisLine: { show: false }, axisTick: { show: false } }),
         dataZoom: [{ type: "inside" }],
         tooltip: tooltip(({ data: row }) => `${row.session}\n${row.path}`),
@@ -167,7 +179,7 @@ export const views = [
             .sort((a, b) => a.ts_ms - b.ts_ms || a.id.localeCompare(b.id))
             .map((event) => ({ value: [event.ts_ms, event.group], session: session.id, path: event.path })),
         })),
-      };
+      }, sessions.length && events.length, "No session path journeys by this cursor");
     },
   ),
   view(
@@ -176,7 +188,7 @@ export const views = [
     "static", ["ownership"], (data, _cursorMs, h) => {
       const rows = h.rank(data.ownership, (row) => row.churn, 30);
       const names = [...new Set(rows.flatMap((row) => [`author:${row.author}`, `group:${row.group}`]))];
-      return sankeyOption(
+      return h.withEmpty(sankeyOption(
         h,
         names.map((name) => ({ name, itemStyle: { color: name.startsWith("author:") ? "#7b93ad" : "#2c6e73" } })),
         rows.map((row) => ({ source: `author:${row.author}`, target: `group:${row.group}`, value: row.churn })),
@@ -184,7 +196,7 @@ export const views = [
           ? `${row.source.slice(7)}\n→ ${row.target.slice(6)}\n${row.value} Git churn`
           : `${row.name.startsWith("author:") ? "Git author" : "directory"}: ${row.name.split(":").slice(1).join(":")}`,
         { nodeAlign: "justify", lineStyle: { color: "gradient", opacity: 0.28 }, label: { color: h.colors.text, fontSize: 9, formatter: ({ name }) => name.split(":").slice(1).join(":") } },
-      );
+      ), rows.length, "No Git authorship changes in this interval");
     },
   ),
   view(
@@ -193,7 +205,7 @@ export const views = [
     "endpoint-overlay", ["sessions", "events"], (data, cursorMs, h) => {
       const active = new Set(h.visibleEvents(data, cursorMs).map((event) => event.session_id));
       const sessions = h.rank(data.sessions.filter((session) => active.has(session.id)), (session) => session.tool_events, 28).reverse();
-      return {
+      return h.withEmpty({
         ...cartesian(h, { left: 190, right: 28, top: 18, bottom: 42 },
           { type: "value", name: "native tool events" },
           { bare: true, type: "category", data: sessions.map((session) => session.id), axisLabel: { color: h.colors.muted, width: 178, overflow: "truncate", fontSize: 9 }, axisLine: { show: false }, axisTick: { show: false } }),
@@ -202,7 +214,7 @@ export const views = [
           value: session.tool_events, session: session.id, vendor: session.vendor,
           itemStyle: { color: h.vendorColor(session.vendor), opacity: 0.82 },
         })) }],
-      };
+      }, sessions.length, "No agent sessions with path activity by this cursor");
     },
   ),
   view(
@@ -216,14 +228,14 @@ export const views = [
       const values = days.flatMap((day, dayIndex) => Array.from({ length: 24 }, (_, hour) => [
         hour, dayIndex, count(events, day, hour) + count(verifications, day, hour),
       ]));
-      return {
+      return h.withEmpty({
         ...cartesian(h, { left: 92, right: 24, top: 24, bottom: 48 },
           { type: "category", data: Array.from({ length: 24 }, (_, hour) => hour), name: "UTC hour" },
           { type: "category", data: days }),
         visualMap: { min: 0, max: Math.max(1, ...values.map((row) => row[2])), show: false, inRange: { color: ["#101827", "#235d78", "#5bd2b7", "#f4c95d"] } },
         tooltip: { position: "top", ...tooltip(({ data: row }) => `${days[row[1]]} ${String(row[0]).padStart(2, "0")}:00 UTC\n${row[2]} observations`, null) },
         series: [{ type: "heatmap", data: values, label: { show: true, color: "#dce8f7", fontSize: 9 } }],
-      };
+      }, values.some((row) => row[2] > 0), "No native agent observations by this cursor");
     },
   ),
   view(
@@ -232,7 +244,7 @@ export const views = [
     "cumulative", ["events", "verification_events"], (data, cursorMs, h) => {
       const rows = hourlyBuckets(h.visibleEvents(data, cursorMs), h.visibleVerifications(data, cursorMs));
       const definitions = [["read", h.colors.read], ["write", h.colors.write], ["verify", h.colors.verify]];
-      return {
+      return h.withEmpty({
         ...cartesian(h, { left: 52, right: 22, top: 26, bottom: 52 }, { type: "time" }, { type: "value", name: "observations / hour" }),
         legend: { bottom: 2, textStyle: { color: h.colors.muted } }, tooltip: { trigger: "axis", renderMode: "richText" },
         series: definitions.map(([key, color], index) => ({
@@ -241,7 +253,7 @@ export const views = [
           data: gapAware(rows, key),
           ...(index ? {} : { markLine: { silent: true, symbol: "none", lineStyle: { color: "#f6f8ff", width: 1, opacity: 0.5 }, data: [{ xAxis: cursorMs, name: "cursor" }] } }),
         })),
-      };
+      }, rows.length, "No hourly agent observations by this cursor");
     },
   ),
   view(
@@ -255,7 +267,7 @@ export const views = [
         source: `vendor:${vendor}`, target: `effect:${effect}`,
         value: events.filter((event) => event.vendor === vendor && event.effect === effect).length,
       }))).filter((row) => row.value);
-      return sankeyOption(
+      return h.withEmpty(sankeyOption(
         h,
         [...vendors.map((vendor) => ({ name: `vendor:${vendor}`, itemStyle: { color: h.vendorColor(vendor) } })),
           ...effects.map((effect) => ({ name: `effect:${effect}`, itemStyle: { color: "#2c6e73" } }))],
@@ -263,7 +275,7 @@ export const views = [
         ({ data: row }) => row.source
           ? `${row.source.slice(7)} agent history\n→ ${row.target.slice(7)}\n${row.value} path observations`
           : row.name.replace(":", ": "),
-      );
+      ), links.length, "No agent path events by this cursor");
     },
   ),
   view(
@@ -276,11 +288,11 @@ export const views = [
           const next = verifications.find((event) => event.session_id === write.session_id && event.ts_ms >= write.ts_ms);
           return next ? [{ value: [write.ts_ms, (next.ts_ms - write.ts_ms) / 60_000], session: write.session_id, path: write.path, verifyAction: next.action }] : [];
         });
-      return {
+      return h.withEmpty({
         ...cartesian(h, { left: 54, right: 18, top: 20, bottom: 46 }, { type: "time" }, { type: "value", name: "minutes" }),
         tooltip: tooltip(({ data: row }) => `${row.path}\n${row.value[1].toFixed(2)} min to next verify\n${row.session}\nverification action: ${row.verifyAction}`),
         series: [{ type: "scatter", symbolSize: 7, itemStyle: { color: h.colors.verify, opacity: 0.65 }, data: points }],
-      };
+      }, points.length, "No write followed by a verification in the same session");
     },
   ),
   view(
@@ -296,7 +308,7 @@ export const views = [
       const values = [events.length, events.filter((event) => event.effect === "write").length, verifications.length,
         completed.reduce((sum, session) => sum + session.reported_tokens, 0), completed.length];
       const labels = ["path observations", "writes", "verification events", "reported token units", "completed sessions"];
-      return {
+      return h.withEmpty({
         ...cartesian(h, { left: 170, right: 78, top: 22, bottom: 38 },
           { type: "log", min: 1, axisLabel: { color: h.colors.muted, formatter: (value) => h.formatCompact(value) } },
           { type: "category", data: labels }),
@@ -305,7 +317,7 @@ export const views = [
           label: { show: true, position: "right", color: h.colors.text, formatter: ({ dataIndex }) => h.formatCompact(values[dataIndex]) },
           data: values.map((value, index) => ({ value: Math.max(1, value), actualValue: value, itemStyle: { color: index === 3 ? "#f4c95d" : "#4c83a6", opacity: 0.8 } })),
         }],
-      };
+      }, values.some(Boolean), "No completed agent-session activity by this cursor");
     },
   ),
   view(
@@ -314,7 +326,7 @@ export const views = [
     "mixed-day", ["source_days", "events", "verification_events"], (data, cursorMs, h) => {
       const rows = matureDayRows(data, h.visibleEvents(data, cursorMs), h.visibleVerifications(data, cursorMs));
       const effects = [["read", h.colors.read], ["write", h.colors.write], ["verify", h.colors.verify]];
-      return {
+      return h.withEmpty({
         ...cartesian(h, { left: 102, right: 24, top: 34, bottom: 56 },
           { type: "value", min: 0, max: 100, name: "% observed mix" },
           { type: "category", data: rows.map((row) => row.day) }),
@@ -330,7 +342,7 @@ export const views = [
             return total ? (100 * row[effect]) / total : 0;
           }),
         })),
-      };
+      }, rows.length, "No mature native observation days to compare");
     },
   ),
 ];

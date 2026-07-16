@@ -61,7 +61,7 @@ const activityPulse = {
       lineStyle: { width: 1.6, color }, itemStyle: { color },
       data: processPoints(key), markLine,
     });
-    return {
+    return h.withEmpty({
       ...h.base(), grid: { left: 58, right: 22, top: 24, bottom: 58 },
       legend: { bottom: 4, itemWidth: 14, textStyle: { color: h.colors.muted } },
       tooltip: { trigger: "axis", renderMode: "richText" },
@@ -76,7 +76,7 @@ const activityPulse = {
           data: buckets.map((row) => [row.ts_ms, row.commits ?? 0]),
         },
       ],
-    };
+    }, buckets.length, "No recorded path activity or Git commits in this interval");
   },
 };
 
@@ -102,7 +102,7 @@ const observedDays = {
       name, type: "bar", barMaxWidth: 34, itemStyle: { color },
       data: days.map((row) => datum(row, row[key])),
     });
-    return {
+    return h.withEmpty({
       ...h.base(), grid: { left: 60, right: 22, top: 24, bottom: 84 },
       legend: { bottom: 4, textStyle: { color: h.colors.muted } },
       tooltip: {
@@ -131,7 +131,7 @@ const observedDays = {
         bars("deduplicated sessions", "sessions", h.colors.verify),
         bars("write-path observations", "write_event_paths", h.colors.write),
       ],
-    };
+    }, days.length, "No native agent observation days in this interval");
   },
 };
 
@@ -147,7 +147,7 @@ const namedSignals = {
     const rows = [...counts.entries()]
       .map(([name, value]) => ({ name, value, itemStyle: { color: patternColor(name, h) } }))
       .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
-    return {
+    return h.withEmpty({
       ...h.base(),
       legend: { type: "scroll", orient: "vertical", right: 12, top: "middle", textStyle: { color: h.colors.muted } },
       tooltip: itemTooltip((params) => `${params.name}\n${h.formatCompact(params.value)} path records\nheuristic label · not a diagnosis`),
@@ -157,7 +157,7 @@ const namedSignals = {
         label: { color: h.colors.text, formatter: "{b}\n{c}" },
         labelLine: { lineStyle: { color: h.colors.line } }, data: rows,
       }],
-    };
+    }, rows.length, "No endpoint path records to classify");
   },
 };
 
@@ -170,7 +170,7 @@ const hotPaths = {
   build(data, cursorMs, h) {
     const activePaths = new Set(h.visibleEvents(data, cursorMs).map((event) => event.path));
     const files = h.rank(data.files.filter((file) => activePaths.has(file.path)), (file) => file.risk_score, 12);
-    return {
+    return h.withEmpty({
       ...h.base(), grid: { left: 245, right: 92, top: 22, bottom: 48 },
       tooltip: itemTooltip(({ data: row }) => `${row.path}\n${row.pattern} heuristic\nrisk score ${row.value.toFixed(2)}\n${h.formatCompact(row.touches)} recorded touches\n${h.formatCompact(row.churn)} Git churn`),
       xAxis: { type: "value", name: "heuristic risk score", ...h.axis() },
@@ -187,14 +187,14 @@ const hotPaths = {
           itemStyle: { color: patternColor(file.pattern, h), opacity: 0.82 },
         })),
       }],
-    };
+    }, files.length, "No recorded path activity by this cursor");
   },
 };
 
 const lineAgePixels = {
   id: "line-age-pixels",
   title: "Current-line age pixels",
-  note: "Each cell is one endpoint line colored by Git blame age at the cursor. Highlighted path labels were observed by the cursor; that does not claim agent authorship.",
+  note: "Each cell is one line or a contiguous line bin colored by Git blame age. Green path labels were observed by the cursor; that does not claim agent authorship.",
   timeMode: "endpoint-overlay",
   requirements: ["line_pixels", "events"],
   build(data, cursorMs, h) {
@@ -206,37 +206,46 @@ const lineAgePixels = {
       lines.push(pixel);
       grouped.set(pixel.path, lines);
     });
-    const columns = h.rank(
+    const rows = h.rank(
       [...grouped.entries()].map(([path, lines]) => ({ path, lines: lines.sort((a, b) => a.line - b.line) })),
-      (row) => row.lines.length, 42,
+      (row) => row.lines.length, 26,
     );
-    const maxRows = Math.max(1, ...columns.map((row) => row.lines.length));
-    const heat = columns.flatMap((column, x) => column.lines.map((line, y) => {
-      const ageDays = Math.max(0, (cursorMs - line.origin_ms) / DAY_MS);
-      return {
-        value: [x, y, Math.max(0, 1 - Math.log1p(ageDays) / Math.log(900))],
-        path: column.path, line: line.line, ageDays,
-        author: line.author_label, commit: line.origin_commit,
-      };
-    }));
-    return {
-      ...h.base(), grid: { left: 62, right: 76, top: 102, bottom: 48 },
-      tooltip: itemTooltip(({ data: row }) => `${row.path}:${row.line}\n${Math.round(row.ageDays)} days old at cursor\norigin ${row.commit}\n${row.author}`),
+    const maxBins = 160;
+    const heat = rows.flatMap((row, y) => {
+      const stride = Math.max(1, Math.ceil(row.lines.length / maxBins));
+      const cells = [];
+      for (let offset = 0; offset < row.lines.length; offset += stride) {
+        const lines = row.lines.slice(offset, offset + stride);
+        const newest = lines.reduce((left, right) => left.origin_ms >= right.origin_ms ? left : right);
+        const ageDays = Math.max(0, (cursorMs - newest.origin_ms) / DAY_MS);
+        cells.push({
+          value: [cells.length, y, Math.max(0, 1 - Math.log1p(ageDays) / Math.log(900))],
+          path: row.path, lineStart: lines[0].line, lineEnd: lines.at(-1).line,
+          ageDays, author: newest.author_label, commit: newest.origin_commit,
+        });
+      }
+      return cells;
+    });
+    const binCount = Math.max(1, ...heat.map((cell) => cell.value[0] + 1));
+    return h.withEmpty({
+      ...h.base(), grid: { left: 245, right: 76, top: 22, bottom: 50 },
+      tooltip: itemTooltip(({ data: row }) => {
+        const range = row.lineStart === row.lineEnd ? `${row.lineStart}` : `${row.lineStart}–${row.lineEnd}`;
+        return `${row.path}:${range}\n${Math.round(row.ageDays)} days old at cursor\nnewest origin ${row.commit}\n${row.author}`;
+      }),
       xAxis: {
-        type: "category", position: "top", data: columns.map((row) => row.path),
-        axisLine: { show: false }, axisTick: { show: false },
-        axisLabel: {
-          interval: 0, rotate: 52, margin: 8, fontFamily: "ui-monospace, monospace", fontSize: 9,
-          formatter: (value) => activePaths.has(value)
-            ? `{active|${shortPath(value, 25)}}` : `{idle|${shortPath(value, 25)}}`,
-          rich: { active: { color: h.colors.verify, fontWeight: 700 }, idle: { color: h.colors.muted } },
-        },
+        type: "category", data: Array.from({ length: binCount }, (_, index) => index),
+        ...h.axis(), name: "normalized line position",
+        axisLabel: { show: false }, axisTick: { show: false },
       },
       yAxis: {
-        type: "category", inverse: true,
-        data: Array.from({ length: maxRows }, (_, index) => index + 1),
-        ...h.axis(), name: "line pixel",
-        axisLabel: { color: h.colors.muted, fontSize: 9, interval: Math.max(0, Math.ceil(maxRows / 10) - 1) },
+        ...pathAxis(rows.map((row) => row.path), h, { width: 225, chars: 38, fontSize: 10 }),
+        axisLabel: {
+          ...mono(h, 10), width: 225, overflow: "truncate",
+          formatter: (value) => activePaths.has(value)
+            ? `{active|${shortPath(value, 38)}}` : `{idle|${shortPath(value, 38)}}`,
+          rich: { active: { color: h.colors.verify, fontWeight: 700 }, idle: { color: h.colors.muted } },
+        },
       },
       visualMap: {
         min: 0, max: 1, dimension: 2, orient: "vertical", right: 4, top: "center",
@@ -248,7 +257,7 @@ const lineAgePixels = {
         itemStyle: { borderColor: "rgba(8,12,20,.26)", borderWidth: 0.25 },
         emphasis: { itemStyle: { borderColor: h.colors.text, borderWidth: 1 } },
       }],
-    };
+    }, heat.length, "No Git blame line origins are visible at this cursor");
   },
 };
 
@@ -267,7 +276,7 @@ const touchAssociationLanes = {
     );
     const lanePaths = new Set(files.map((file) => file.path));
     const laneEvents = events.filter((event) => lanePaths.has(event.path));
-    return {
+    return h.withEmpty({
       ...h.base(), grid: { left: 230, right: 24, top: 22, bottom: 62 },
       xAxis: { type: "time", ...h.axis() },
       yAxis: pathAxis(files.map((file) => file.path), h),
@@ -293,7 +302,7 @@ const touchAssociationLanes = {
         })),
         markLine: cursorMark(cursorMs, h),
       }],
-    };
+    }, laneEvents.length, "No recorded path activity by this cursor");
   },
 };
 
@@ -324,7 +333,7 @@ const pathDayMatrix = {
       };
     }));
     const cursorDay = h.dateDay(cursorMs);
-    return {
+    return h.withEmpty({
       ...h.base(), grid: { left: 235, right: 72, top: 62, bottom: 48 },
       xAxis: {
         type: "category", position: "top", data: days, ...h.axis(),
@@ -349,7 +358,7 @@ const pathDayMatrix = {
           markLine: days.includes(cursorDay) ? cursorMark(cursorDay, h, 0.72) : undefined,
         },
       ],
-    };
+    }, matrix.length && days.length, "No native observation days to compare with Git churn");
   },
 };
 
@@ -376,7 +385,7 @@ const associationStateMatrix = {
       value: [x, y, counts.get(`${group}\u0000${state}`) ?? 0], group, state,
       itemStyle: { color: h.stateColor(state), borderColor: h.colors.line, borderWidth: 1 },
     })));
-    return {
+    return h.withEmpty({
       ...h.base(), grid: { left: 180, right: 26, top: 28, bottom: 82 },
       xAxis: {
         type: "category", data: states.map(humanState),
@@ -398,7 +407,7 @@ const associationStateMatrix = {
         },
         emphasis: { itemStyle: { borderColor: h.colors.text, borderWidth: 1 } },
       }],
-    };
+    }, [...counts.values()].some(Boolean), "No event-to-Git association candidates by this cursor");
   },
 };
 
@@ -420,7 +429,7 @@ const namedSignalGrid = {
       type: "value", name, ...h.axis(),
       axisLabel: { color: h.colors.muted, formatter: (value) => h.formatCompact(Math.expm1(value)) },
     });
-    return {
+    return h.withEmpty({
       ...h.base(), grid: { left: 74, right: 28, top: 28, bottom: 76 },
       legend: { type: "scroll", bottom: 4, textStyle: { color: h.colors.muted } },
       xAxis: logAxis("recorded touches · log scale"),
@@ -442,7 +451,7 @@ const namedSignalGrid = {
           churn: file.churn, risk: file.risk_score,
         })),
       })),
-    };
+    }, endpointFiles.length, "No endpoint path records to compare");
   },
 };
 

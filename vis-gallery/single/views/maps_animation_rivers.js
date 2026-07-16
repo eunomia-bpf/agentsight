@@ -12,13 +12,9 @@ const patternColors = {
 };
 const lifeColors = ["#4ab99a", "#66445a"];
 
-const emptyGraphic = (text) => [{
-  type: "text", left: "center", top: "middle", silent: true,
-  style: { text, fill: "#71839a", fontSize: 13 },
-}];
-const chart = (h, rows, empty, option) => ({
-  ...h.base(), graphic: rows.length ? [] : emptyGraphic(empty), ...option,
-});
+const chart = (h, rows, empty, option) => h.withEmpty(
+  { ...h.base(), ...option }, rows.length, empty,
+);
 const grid = (left = 56, right = 24, top = 42, bottom = 42) => (
   { left, right, top, bottom }
 );
@@ -96,21 +92,24 @@ function repositoryTreemap(data, cursorMs, h) {
 
 function workspaceConstellation(data, cursorMs, h) {
   const activePaths = activePathSet(data, cursorMs, h);
-  const points = data.files.map((file) => {
+  const files = h.rank(data.files, (file) => (
+    (activePaths.has(file.path) ? 1e15 : 0) + file.current_bytes + file.risk_score * 100
+  ), 450);
+  const points = files.map((file) => {
     const active = activePaths.has(file.path);
     const color = patternColors[file.pattern] ?? "#5f7d9e";
     return {
       value: [file.stable_x, file.stable_y, file.risk_score],
       path: file.path, pattern: file.pattern, touches: file.touches, risk: file.risk_score,
-      symbolSize: Math.max(3, Math.min(28, 3 + Math.sqrt(file.current_bytes || file.churn || 1) / 8)),
+      symbolSize: Math.max(3, Math.min(16, 3 + Math.sqrt(file.current_bytes || file.churn || 1) / 20)),
       itemStyle: {
-        color, opacity: active ? 0.95 : 0.14,
+        color, opacity: active ? 0.95 : 0.18,
         borderColor: active ? "#dffdf8" : "transparent", borderWidth: active ? 1 : 0,
         shadowBlur: active ? 12 : 0, shadowColor: color,
       },
     };
   });
-  return {
+  return h.withEmpty({
     ...h.base(), grid: grid(18, 18, 18, 18),
     xAxis: { type: "value", min: 0, max: 1, show: false },
     yAxis: { type: "value", min: 0, max: 1, show: false },
@@ -119,7 +118,7 @@ function workspaceConstellation(data, cursorMs, h) {
       formatter: ({ data: row }) => `${row.path}\n${row.pattern}\n${row.touches} touches · risk ${row.risk.toFixed(2)}`,
     },
     series: [{ name: "repository paths", type: "scatter", data: points, emphasis: { scale: 1.8 } }],
-  };
+  }, points.length, "No repository paths at the endpoint");
 }
 
 function territoryCartogram(data, cursorMs, h) {
@@ -183,6 +182,11 @@ function agentPathParticles(data, cursorMs, h) {
       },
     }];
   });
+  const anchorRows = h.rank(
+    data.files,
+    (file) => file.current_bytes + file.risk_score * 100,
+    450,
+  );
   return chart(h, particles, "No path events in the trailing six hours", {
     grid: grid(18, 18, 18, 18),
     xAxis: { type: "value", min: 0, max: 1, show: false },
@@ -197,7 +201,9 @@ function agentPathParticles(data, cursorMs, h) {
       {
         name: "anchors", type: "scatter", symbolSize: 3,
         itemStyle: { color: "#607086", opacity: 0.24 },
-        data: data.files.map((file) => ({ value: [file.stable_x, file.stable_y], path: file.path })),
+        data: particles.length
+          ? anchorRows.map((file) => ({ value: [file.stable_x, file.stable_y], path: file.path }))
+          : [],
       },
       { name: "recorded path events", type: "scatter", data: particles, emphasis: { scale: 1.65 } },
     ],
