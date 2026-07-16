@@ -2660,6 +2660,15 @@ fn local_session_ids(obj: &Value) -> (Option<String>, Option<String>) {
         &["sessionId", "session_id"],
         &["/payload/session_id", "/payload/sessionId"],
     );
+    if obj.get("isSidechain").and_then(Value::as_bool) == Some(true)
+        && let Some(agent_id) = obj.get("agentId").and_then(Value::as_str)
+    {
+        let child_id = session_id.as_deref().map_or_else(
+            || agent_id.to_string(),
+            |parent| format!("{parent}:{agent_id}"),
+        );
+        return (Some(child_id), session_id);
+    }
     let conversation_id = first_json_string(
         obj,
         &["conversation_id", "conversationId", "thread_id", "threadId"],
@@ -2949,6 +2958,14 @@ mod tests {
         assert_eq!(
             local_session_ids(&json!({"payload": {"model": "gpt"}})),
             (None, None)
+        );
+        assert_eq!(
+            local_session_ids(&json!({
+                "sessionId": "parent",
+                "agentId": "child",
+                "isSidechain": true
+            })),
+            (Some("parent:child".to_string()), Some("parent".to_string()))
         );
     }
 
