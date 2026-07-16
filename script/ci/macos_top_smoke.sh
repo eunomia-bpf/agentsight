@@ -15,6 +15,7 @@ cargo build --manifest-path "$ROOT_DIR/collector/Cargo.toml" --verbose
 
 TMP_ROOT="$(mktemp -d)"
 AGENT_PID=""
+AGENT_STOPPED=0
 SERVER_PID=""
 cleanup() {
     if [[ -n "$AGENT_PID" ]]; then
@@ -73,20 +74,20 @@ curl -fsS "http://127.0.0.1:$MOCK_PORT/health" >/dev/null
 AGENT_PID=$!
 
 for _ in {1..1000}; do
-    if ps -p "$AGENT_PID" >/dev/null 2>&1 && \
-        grep -Rqs '"total_tokens":15' "$AGENT_HOME/.codex/sessions" 2>/dev/null; then
+    if grep -Rqs '"total_tokens":15' "$AGENT_HOME/.codex/sessions" 2>/dev/null && \
+        kill -STOP "$AGENT_PID" 2>/dev/null; then
+        AGENT_STOPPED=1
         break
     fi
     sleep 0.01
 done
 
-if ! ps -p "$AGENT_PID" >/dev/null 2>&1 || \
+if [[ "$AGENT_STOPPED" != 1 ]] || ! ps -p "$AGENT_PID" >/dev/null 2>&1 || \
     ! grep -Rqs '"total_tokens":15' "$AGENT_HOME/.codex/sessions" 2>/dev/null; then
     echo "latest Codex did not record the expected token usage" >&2
     cat "$TMP_ROOT/mock-server.err" >&2 || true
     exit 1
 fi
-kill -STOP "$AGENT_PID"
 pkill -STOP -P "$AGENT_PID" 2>/dev/null || true
 
 HOME="$AGENT_HOME" TZ=UTC "$ROOT_DIR/collector/target/debug/agentsight" top --plain --once -p "$AGENT_PID" --limit 20 >"$OUT_FILE"

@@ -24,6 +24,7 @@ pub(crate) type LocalSession = AgentSession;
 pub(crate) type SessionCache = agent_session::SessionCache;
 const CODEX_EXEC_DEDUPE_WINDOW_MS: u64 = 2_000;
 const CODEX_FALLBACK_TIME_SLOP_MS: u64 = 30_000;
+const CODEX_ROLLOUT_TAIL_BYTES: u64 = 1024 * 1024;
 
 #[derive(Clone, Debug)]
 struct ObservedCodexPrompt {
@@ -181,20 +182,11 @@ fn codex_state_session(
 fn codex_rollout_usage(path: &Path) -> Option<TokenUsage> {
     let mut file = File::open(path).ok()?;
     let len = file.metadata().ok()?.len();
-    let mut window = len.min(64 * 1024);
-    loop {
-        file.seek(SeekFrom::Start(len - window)).ok()?;
-        let mut data = Vec::with_capacity(window as usize);
-        file.read_to_end(&mut data).ok()?;
-        if let Some(usage) = agent_session::codex_total_token_usage(&String::from_utf8_lossy(&data))
-        {
-            return Some(usage);
-        }
-        if window == len {
-            return None;
-        }
-        window = window.saturating_mul(2).min(len);
-    }
+    let window = len.min(CODEX_ROLLOUT_TAIL_BYTES);
+    file.seek(SeekFrom::Start(len - window)).ok()?;
+    let mut data = Vec::with_capacity(window as usize);
+    file.read_to_end(&mut data).ok()?;
+    agent_session::codex_total_token_usage(&String::from_utf8_lossy(&data))
 }
 
 fn user_home_dir() -> Option<PathBuf> {

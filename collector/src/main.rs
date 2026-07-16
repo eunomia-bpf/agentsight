@@ -645,16 +645,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 sort: sort.clone(),
                 view: view.clone(),
             };
-            let binary_extractor = BinaryExtractor::new().await?;
-            let capture = start_live_ebpf_capture(&binary_extractor, &options).await;
+            let capture = start_live_ebpf_capture(&options).await;
             let result = if top_uses_tui(*plain, interactive_terminal_available()) {
-                run_live_top_tui(capture.as_ref(), *interval, *limit, count, &options)
+                run_live_top_tui(Some(&capture), *interval, *limit, count, &options)
             } else {
-                run_live_top_query(capture.as_ref(), *interval, *limit, count, &options)
+                run_live_top_query(Some(&capture), *interval, *limit, count, &options)
             };
-            if let Some(capture) = capture {
-                capture.stop();
-            }
+            capture.stop();
             result?;
         }
         // All remaining commands need the binary extractor.
