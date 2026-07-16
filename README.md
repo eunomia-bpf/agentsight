@@ -35,6 +35,11 @@ agentsight top
   <p><em>Live sessions ranked by model, session tokens, health, process family, tool calls, file activity, and network activity</em></p>
 </div>
 
+<div align="center">
+  <img src="docs/flamegraph-example/r221-semantic-flamegraph-top200.svg" alt="R221 semantic flamegraph of the top 200 agent stacks" width="1000">
+  <p><em>R221 semantic flamegraph: width is cumulative system-effect weight, while the uneven stack height exposes the different prompt, model, process, and effect paths. See the <a href="docs/agentpprof.md#example-flamegraphs">agentpprof guide</a> for the other profiles and the rendering pipeline.</em></p>
+</div>
+
 ## 🚀 Why AgentSight?
 
 ### Traditional Observability vs. System-Level Monitoring
@@ -129,9 +134,9 @@ prompt tag, model, and token kind.
   <p><em>Offline token profile generated from real local bpf-benchmark coding-agent sessions</em></p>
 </div>
 
-See [agentpprof/README.md](agentpprof/README.md) for CLI details and
-[docs/flamegraph](docs/flamegraph-example/README.md) for flamegraph examples, view
-selection, and deterministic tagging rules.
+See [agentpprof/README.md](agentpprof/README.md) for CLI details and the
+[agentpprof profiling guide](docs/agentpprof.md#example-flamegraphs) for
+flamegraph examples, rendering, view selection, and deterministic tagging rules.
 
 ### Web Interface
 

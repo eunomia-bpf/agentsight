@@ -42,29 +42,51 @@ Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**�
 
 ## Flamegraph 示例
 
-以下示例来自 AgentSight 项目自身的开发 trace（Claude Code），展示了每个视图各自能回答什么问题。
+以下示例使用同一种前缀合并 flamegraph 布局，但栈来源和宽度度量不同。第一张是主 README 采用的 R221 research 版本；其余图展示项目自身的时间、token、文件和网络视图，以及公开桌面操作数据形成的 operation stack。
+
+### R221 语义栈总览
+
+![R221 语义 flamegraph](flamegraph-example/r221-semantic-flamegraph-top200.svg)
+
+这是 200 条最重语义栈的 R221 展示版本。宽度表示累计 system-effect weight，而不是 CPU 时间。每向上一层就增加一个 project、agent、session、prompt、LLM call、process 或 effect frame。顶部参差不齐是有意的：某类活动没有更具体的 frame 时，栈就在该层结束，因此不同因果路径自然具有不同深度。
+
+### AgentSight 开发时间
+
+**问题：** AgentSight 开发过程中的 wall-clock 时间花在了哪里？
+
+![AgentSight 开发时间 flamegraph](flamegraph-example/agentsight-time.svg)
+
+宽度表示经过的秒数。review 占比最大，其次是 git、edit、docs 和 code 类 prompt。continuation 与 inspect prompt 形成较短分支，因此图的上沿不会像固定 schema 图表一样齐平。
+
+### BPF Benchmark 开发时间
+
+**问题：** 哪些工作类别形成了最明显的可变深度栈？
+
+![BPF benchmark 开发时间 flamegraph](flamegraph-example/bpf-benchmark-time.svg)
+
+这张图来自真实的 `bpf-benchmark` 开发 session，宽度同样表示经过的秒数。可选的 LLM、tool 和 event frame 形成明显参差的顶部，同时仍能区分 review、paper、naming、benchmark 和 editing 区域。
+
+### OSWorld-Human Operation Stack
+
+**问题：** 公开桌面交互折叠成 operation stack 后是什么形状？
+
+![OSWorld-Human operation flamegraph](flamegraph-example/osworld-human-operations.svg)
+
+这张图对公开 OSWorld-Human 桌面交互 trace 中的 6,010 个 operation 做前缀合并，宽度表示 operation 数量。较深的分支逐层加入 environment、task、action group、phase、tool、action 和 repeat-signal frame，是这里最明显的自然可变栈深度示例。
 
 ### Tokens 视图
 
 **问题：** 哪些活动消耗了最多的模型预算？
 
-![Tokens flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-tokens.svg)
+![Tokens flamegraph](flamegraph-example/agentsight-tokens.svg)
 
 Token 分布显示代码审查（`prompt:review`）主导了模型预算，其次是 git 操作（`prompt:git`）、代码工作（`prompt:code`）、编辑（`prompt:edit`）和调试（`prompt:debug`）。通过堆栈可以追溯每类 prompt 触发了哪些 LLM 调用：`call:llm/usage` 表示 token 统计事件，`call:llm/code` 和 `call:llm/test` 表示代码相关响应，`call:llm/tool` 表示工具调用，`call:llm/edit` 表示修改响应。
-
-### Time 视图
-
-**问题：** Wall-clock 时间花在了哪里？
-
-![Time flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-time.svg)
-
-Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领先，其次是 git、edit、docs 和 code 类 prompt。continuation prompt（`prompt:continue`）频繁出现，说明复杂任务往往需要多轮后续交流才能完成。`prompt:inspect` 捕获了迭代开发中常见的「看一下」类请求。
 
 ### Files 视图
 
 **问题：** 代码库的哪些部分被触及了，以什么方式？
 
-![Files flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-files.svg)
+![Files flamegraph](flamegraph-example/agentsight-files.svg)
 
 文件访问模式显示 `collector/src/`（Rust 代码库）和 `collector/Cargo.toml` 活动频繁，与开发工作一致。外部路径（`external/tmp`、`external/home`、`external/codex`）也频繁出现，反映了工具调用触及临时文件、home 目录配置和 Codex session 数据。Flamegraph 区分读和写两类效果，可以看出在项目路径和外部路径上，检查和修改各占多少。
 
@@ -72,11 +94,28 @@ Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领�
 
 **问题：** 联系了哪些外部服务？
 
-![Network flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-network.svg)
+![Network flamegraph](flamegraph-example/agentsight-network.svg)
 
 网络活动比文件操作少得多，说明大部分开发工作在本地完成。被联系的域名包括 `anthropic.com`（模型推理）、`crates.io`（Rust 依赖）、`github.com`（版本控制）以及各种 localhost 端口（本地开发服务器）。上层 frame 展示了发起请求的进程链，网络活动因此可以归因到具体的 agent 操作。
 
-生成脚本及标签规则见 `docs/flamegraph-example/agentsight.sh`。
+### SVG 是怎么 render 出来的
+
+对于项目自身的示例，`agentpprof` 先解析本地 Codex 和 Claude session，应用确定性的语义标签规则，再把每个活动投影成一条分号分隔、带非负权重的栈，然后合并相同的栈前缀。一个 frame 的 inclusive width 等于所有后代权重之和，纵向位置对应栈深度。renderer 最后直接写出独立 SVG，因此查看时不需要 JavaScript 或 flamegraph server。
+
+仓库中的 AgentSight 与 `bpf-benchmark` 图可以这样重新生成：
+
+```bash
+PROJECT_ROOT=/path/to/agentsight docs/flamegraph-example/agentsight.sh
+PROJECT_ROOT=/path/to/bpf-benchmark docs/flamegraph-example/bpf-benchmark.sh
+```
+
+两个脚本都保存了完整标签规则，并同时生成 `tokens`、`time`、`files`、`network` 四类 SVG 和对应的 folded-stack 输入。
+
+R221 是 research snapshot，不由上面两个脚本生成。它的
+[renderer](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/r221_visual_gallery.py)
+从 [top-200 semantic-stack 表](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/out/tag-stats-r189/top-semantic-stacks-r170.csv)
+构造前缀树，累计后代的 system-effect weight，按比例分配横向宽度，并按深度逐层绘制 SVG。OSWorld-Human snapshot 则用常规 `agentpprof` 前缀合并 renderer 处理它的
+[公开 operation 表](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl)。
 
 ## 工作原理
 
