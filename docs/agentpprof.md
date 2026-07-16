@@ -88,7 +88,15 @@ time went, and use `files` and `network` for security audits.
 
 ## Example Flamegraphs
 
-The examples below were generated from AgentSight's own development traces (Claude Code). They demonstrate what insights each view provides.
+The figures below demonstrate what each view shows.
+
+### Semantic Stack Overview
+
+![Semantic flamegraph](flamegraph-example/semantic-flamegraph-top200.svg)
+
+The figure shows collapsed prefixes from the top 200 stacks. Width is
+system-effect weight; stacks ending at different frames produce the ragged
+upper edge.
 
 ### Tokens View
 
@@ -106,6 +114,20 @@ The token distribution shows that code review (`prompt:review`) dominated the mo
 
 Wall-clock time distribution follows a similar pattern to token consumption: review (`prompt:review`) leads, followed by git, edit, docs, and code prompts. Continuation prompts (`prompt:continue`) appear frequently, reflecting a workflow pattern where complex tasks required multiple follow-up exchanges. The `prompt:inspect` category captures quick look-at-this requests that are common in iterative development.
 
+### BPF Benchmark Time
+
+![BPF benchmark time flamegraph](flamegraph-example/bpf-benchmark-time.svg)
+
+Width is elapsed seconds. LLM and tool frames make the upper outline especially
+uneven.
+
+### OSWorld-Human Operations
+
+![OSWorld-Human operations flamegraph](flamegraph-example/osworld-human-operations.svg)
+
+The figure folds 6,010 operations by shared stack prefix. Width is operation
+count; its frames end at different depths.
+
 ### Files View
 
 **Question:** Which parts of the codebase were touched and how?
@@ -122,7 +144,11 @@ File access patterns show heavy activity in `collector/src/` (the Rust codebase)
 
 Network activity is sparse relative to file operations, confirming that most development work occurred locally. The contacted domains include `anthropic.com` for model inference, `crates.io` for Rust dependencies, `github.com` for version control, and various localhost ports for local development servers. Process chains visible in the upper frames show which tools initiated network requests, enabling attribution of network activity to specific agent actions.
 
-See `docs/flamegraph-example/agentsight.sh` for the generation script with tag rules.
+### Rendering
+
+The SVGs merge shared stack prefixes and size each frame by the metric shown in
+the figure header. Stack depth sets the vertical row, so paths ending at
+different frames form an uneven top edge.
 
 ## Tagging
 
