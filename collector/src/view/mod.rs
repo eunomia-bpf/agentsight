@@ -486,7 +486,26 @@ impl MaterializedView {
 
     fn effective_tokens(&self) -> Vec<&TokenUsageRow> {
         let mut selected: BTreeMap<String, &TokenUsageRow> = BTreeMap::new();
+        let network_usage = self
+            .token_usage
+            .values()
+            .filter(|token| {
+                matches!(
+                    token.source.as_str(),
+                    "response_usage" | "orphan_response_usage"
+                )
+            })
+            .filter_map(|token| Some((token.pid?, token.model.as_deref()?)))
+            .collect::<BTreeSet<_>>();
         for token in self.token_usage.values() {
+            if token.source == "gemini_cli_stdout_stats"
+                && token
+                    .pid
+                    .zip(token.model.as_deref())
+                    .is_some_and(|key| network_usage.contains(&key))
+            {
+                continue;
+            }
             let key = if token.llm_call_id.is_empty() {
                 token.id.clone()
             } else {
@@ -892,6 +911,26 @@ mod tests {
         assert_eq!(rows[0].group, "/repo/saved");
         assert_eq!(rows[0].total_tokens, 24);
         assert_eq!(rows[0].sessions, 1);
+    }
+
+    #[test]
+    fn gemini_stdout_tokens_are_fallback_for_network_usage() {
+        let mut view = MaterializedView::new();
+        view.apply_token_usage(&TokenUsageRow {
+            pid: Some(42),
+            comm: Some("node".to_string()),
+            source: "response_usage".to_string(),
+            ..token_row("token-network", "llm-network", "gemini", 11, 4, 0, 0, 15)
+        });
+        view.apply_token_usage(&TokenUsageRow {
+            pid: Some(42),
+            comm: Some("node".to_string()),
+            source: "gemini_cli_stdout_stats".to_string(),
+            ..token_row("token-stdout", "llm-stdout", "gemini", 11, 4, 0, 0, 15)
+        });
+
+        let snapshot = view.export_snapshot(SnapshotOptions { audit_limit: 0 });
+        assert_eq!(snapshot.summary.total_tokens, 15);
     }
 
     #[test]
