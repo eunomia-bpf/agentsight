@@ -42,13 +42,13 @@ Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**�
 
 ## Flamegraph 示例
 
-以下示例来自 AgentSight 项目自身的开发 trace（Claude Code），展示了每个视图各自能回答什么问题。
+以下图片展示了每个视图呈现的内容。
 
-### R221 语义栈总览
+### 语义栈总览
 
-![R221 语义 flamegraph](flamegraph-example/r221-semantic-flamegraph-top200.svg)
+![语义 flamegraph](flamegraph-example/semantic-flamegraph-top200.svg)
 
-这是 200 条最重语义栈的 research snapshot。宽度表示累计 system-effect weight；不同 frame 处结束的栈形成参差的上沿。
+图中合并了 top 200 stack 的共享前缀。宽度表示 system-effect weight；不同 frame 处结束的栈形成参差的上沿。
 
 ### Tokens 视图
 
@@ -70,13 +70,13 @@ Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领�
 
 ![BPF benchmark 时间 flamegraph](flamegraph-example/bpf-benchmark-time.svg)
 
-这张真实开发图以秒为宽度；可选的 LLM、tool 和 event frame 让上沿尤其参差。
+图中宽度表示秒数；LLM 和 tool frame 让上沿尤其参差。
 
 ### OSWorld-Human 操作
 
 ![OSWorld-Human 操作 flamegraph](flamegraph-example/osworld-human-operations.svg)
 
-这张公开桌面交互图按共享栈前缀折叠 6,010 个 operation。宽度表示 operation 数量，各栈自然结束在不同深度。
+图中按共享栈前缀折叠 6,010 个 operation。宽度表示 operation 数量，各栈结束在不同深度。
 
 ### Files 视图
 
@@ -94,13 +94,9 @@ Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领�
 
 网络活动比文件操作少得多，说明大部分开发工作在本地完成。被联系的域名包括 `anthropic.com`（模型推理）、`crates.io`（Rust 依赖）、`github.com`（版本控制）以及各种 localhost 端口（本地开发服务器）。上层 frame 展示了发起请求的进程链，网络活动因此可以归因到具体的 agent 操作。
 
-生成脚本及标签规则见 `docs/flamegraph-example/agentsight.sh`。
-
 ### Rendering
 
-`agentpprof` 合并共享栈前缀，按累计栈权重确定 frame 宽度，再把不同栈深度放在逐层 SVG 行中。因此，在不同 frame 处结束的路径会形成参差的上沿。
-
-项目图可用 [`agentsight.sh`](flamegraph-example/agentsight.sh) 和 [`bpf-benchmark.sh`](flamegraph-example/bpf-benchmark.sh) 重新生成。R221 使用固定版本的 [renderer](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/r221_visual_gallery.py) 与 [stack table](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/out/tag-stats-r189/top-semantic-stacks-r170.csv)；OSWorld-Human 使用这份 [operation table](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl)。
+这些 SVG 合并共享栈前缀，并按图头显示的度量确定 frame 宽度。栈深度决定纵向行，因此在不同 frame 处结束的路径会形成参差的上沿。
 
 ## 工作原理
 

@@ -88,15 +88,15 @@ time went, and use `files` and `network` for security audits.
 
 ## Example Flamegraphs
 
-The examples below were generated from AgentSight's own development traces (Claude Code). They demonstrate what insights each view provides.
+The figures below demonstrate what each view shows.
 
-### R221 Semantic Stack Overview
+### Semantic Stack Overview
 
-![R221 semantic flamegraph](flamegraph-example/r221-semantic-flamegraph-top200.svg)
+![Semantic flamegraph](flamegraph-example/semantic-flamegraph-top200.svg)
 
-This research snapshot collapses the 200 heaviest semantic stacks. Width is
-cumulative system-effect weight; stacks ending at different frames produce the
-ragged upper edge.
+The figure shows collapsed prefixes from the top 200 stacks. Width is
+system-effect weight; stacks ending at different frames produce the ragged
+upper edge.
 
 ### Tokens View
 
@@ -118,15 +118,15 @@ Wall-clock time distribution follows a similar pattern to token consumption: rev
 
 ![BPF benchmark time flamegraph](flamegraph-example/bpf-benchmark-time.svg)
 
-This real `bpf-benchmark` development profile uses elapsed seconds. Optional
-LLM, tool, and event frames make its upper outline especially uneven.
+Width is elapsed seconds. LLM and tool frames make the upper outline especially
+uneven.
 
 ### OSWorld-Human Operations
 
 ![OSWorld-Human operations flamegraph](flamegraph-example/osworld-human-operations.svg)
 
-This public desktop-interaction profile folds 6,010 operations by shared stack
-prefix. Width is operation count; its frames naturally end at different depths.
+The figure folds 6,010 operations by shared stack prefix. Width is operation
+count; its frames end at different depths.
 
 ### Files View
 
@@ -144,19 +144,11 @@ File access patterns show heavy activity in `collector/src/` (the Rust codebase)
 
 Network activity is sparse relative to file operations, confirming that most development work occurred locally. The contacted domains include `anthropic.com` for model inference, `crates.io` for Rust dependencies, `github.com` for version control, and various localhost ports for local development servers. Process chains visible in the upper frames show which tools initiated network requests, enabling attribution of network activity to specific agent actions.
 
-See `docs/flamegraph-example/agentsight.sh` for the generation script with tag rules.
-
 ### Rendering
 
-`agentpprof` merges shared stack prefixes, sizes each frame by accumulated stack
-weight, and places stack depths on successive SVG rows. Paths ending at
-different frames therefore produce a ragged top edge.
-
-Regenerate the project profiles with [`agentsight.sh`](flamegraph-example/agentsight.sh)
-and [`bpf-benchmark.sh`](flamegraph-example/bpf-benchmark.sh). R221 uses a pinned
-[renderer](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/r221_visual_gallery.py)
-and [stack table](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/out/tag-stats-r189/top-semantic-stacks-r170.csv);
-OSWorld-Human uses this [operation table](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl).
+The SVGs merge shared stack prefixes and size each frame by the metric shown in
+the figure header. Stack depth sets the vertical row, so paths ending at
+different frames form an uneven top edge.
 
 ## Tagging
 
