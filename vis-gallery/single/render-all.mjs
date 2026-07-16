@@ -13,8 +13,8 @@ function usage() {
 Usage:
   agentsight-vis-all --repo PATH --since TIME --output-dir DIR [--formats html,svg,png]
 
-The repository/session scan runs once. Static views skip GIF and MP4 because a
-motion file with identical frames would add size without adding information.
+The repository/session scan runs once. Static views become one-frame GIF/MP4
+files; time-aware views replay the selected interval.
 `;
 }
 
@@ -48,7 +48,6 @@ export async function main(values = process.argv.slice(2)) {
   let rendered = 0;
   for (const spec of views) {
     for (const format of options.formats) {
-      if (["gif", "mp4"].includes(format) && spec.timeMode === "static") continue;
       await renderOne(data, spec, {
         ...options.common,
         output: join(options.outputDir, `${spec.id}.${format}`),

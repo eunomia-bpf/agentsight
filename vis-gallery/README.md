@@ -49,9 +49,8 @@ npm run render -- --repo .. --since 30d --view session-storylines --output story
 npm run render -- --repo .. --since 30d --view session-storylines --output story.mp4
 ```
 
-Static endpoint/history views support HTML, SVG, and PNG. GIF and MP4 are
-accepted only for the 23 time-aware views; generating repeated identical frames
-for a static view is intentionally rejected.
+All 31 views support every output format. Static endpoint/history views become
+a single-frame GIF or MP4; the 23 time-aware views replay the selected interval.
 
 List all view IDs:
 
@@ -65,7 +64,7 @@ Generate every view from one repository/session scan:
 npm run render:all -- \
   --repo .. --since 30d \
   --output-dir artifacts/30d \
-  --formats html,svg,png
+  --formats html,gif
 ```
 
 ## Share and embed

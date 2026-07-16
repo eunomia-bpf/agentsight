@@ -168,7 +168,9 @@ export async function renderAnimation(format, html, data, options) {
       const start = data.meta.window_start_ms;
       const end = data.meta.window_end_ms;
       for (let frame = 0; frame < options.frames; frame += 1) {
-        const cursor = start + (end - start) * frame / Math.max(1, options.frames - 1);
+        const cursor = options.frames === 1
+          ? end
+          : start + (end - start) * frame / (options.frames - 1);
         await page.evaluate((value) => window.AgentSightSingle.renderAt(value), cursor);
         await page.locator("#artifact").screenshot({ path: join(temporary, `frame-${String(frame).padStart(4, "0")}.png`) });
       }
@@ -194,15 +196,15 @@ export async function renderOne(data, spec, options) {
   if (!["html", "svg", "png", "gif", "mp4"].includes(format)) {
     throw new Error(`unsupported output format .${format}; use html, svg, png, gif, or mp4`);
   }
-  if (["gif", "mp4"].includes(format) && spec.timeMode === "static") {
-    throw new Error(`${spec.id} is a static view; use HTML, SVG, or PNG instead of ${format.toUpperCase()}`);
-  }
   options.output = resolve(options.output);
   await mkdir(dirname(options.output), { recursive: true });
   const html = await htmlFor(data, spec, options, "svg");
   if (format === "html") await writeFile(options.output, html);
   else if (["svg", "png"].includes(format)) await renderSnapshot(format, html, data, spec, options);
-  else await renderAnimation(format, html, data, options);
+  else await renderAnimation(format, html, data, {
+    ...options,
+    frames: spec.timeMode === "static" ? 1 : options.frames,
+  });
   process.stderr.write(`rendered ${spec.id} -> ${basename(options.output)}\n`);
 }
 

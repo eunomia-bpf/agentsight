@@ -30,7 +30,7 @@ test.beforeAll(async () => {
   }
 });
 
-test("exports portable formats, rejects static animation, and cleans temporary frames", async ({ page }) => {
+test("exports portable formats, renders static animation once, and cleans temporary frames", async ({ page }) => {
   const dynamic = views.find((view) => view.id === "activity-pulse");
   const staticView = views.find((view) => view.id === "git-sediment");
   const options = (output) => ({ output, width: 480, height: 300, frames: 2, fps: 2 });
@@ -60,8 +60,21 @@ test("exports portable formats, rejects static animation, and cleans temporary f
     expect(spawnSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", path], { encoding: "utf8" }).stdout).toContain("video");
   }
 
-  await expect(renderOne(data, staticView, options(join(formatDirectory, "git-sediment.gif"))))
-    .rejects.toThrow(/static view/);
+  const staticGifPath = join(formatDirectory, "git-sediment.gif");
+  const staticMp4Path = join(formatDirectory, "git-sediment.mp4");
+  await renderOne(data, staticView, options(staticGifPath));
+  await renderOne(data, staticView, options(staticMp4Path));
+  for (const path of [staticGifPath, staticMp4Path]) {
+    expect((await stat(path)).size, `${path} should not be empty`).toBeGreaterThan(100);
+    const probe = spawnSync(
+      "ffprobe",
+      ["-v", "error", "-count_frames", "-show_entries", "stream=codec_type,nb_read_frames", "-of", "json", path],
+      { encoding: "utf8" },
+    );
+    const stream = JSON.parse(probe.stdout).streams[0];
+    expect(stream.codec_type).toBe("video");
+    expect(Number(stream.nb_read_frames)).toBe(1);
+  }
   expect([...await frameDirectories()].filter((name) => !before.has(name))).toEqual([]);
 });
 
