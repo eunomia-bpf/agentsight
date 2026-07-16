@@ -216,6 +216,7 @@ impl OperationStackConfig {
 pub struct OperationStackInductionConfig {
     derived_field: String,
     reference_operations: Option<Vec<Operation>>,
+    calibration_operations: Option<Vec<Operation>>,
 }
 
 impl OperationStackInductionConfig {
@@ -223,6 +224,7 @@ impl OperationStackInductionConfig {
         Self {
             derived_field: OPERATION_STACK_DERIVED_FIELD.to_string(),
             reference_operations: None,
+            calibration_operations: None,
         }
     }
 
@@ -252,6 +254,30 @@ impl OperationStackInductionConfig {
             bail!("induction reference operation input produced no samples");
         }
         self.reference_operations = Some(operations);
+        Ok(self)
+    }
+
+    pub fn with_calibration_operation_records(mut self, records: &[Value]) -> Result<Self> {
+        let mut operations = Vec::new();
+        for (index, record) in records.iter().enumerate() {
+            let record: OperationRecord =
+                serde_json::from_value(record.clone()).map_err(|error| {
+                    anyhow::anyhow!(
+                        "invalid induction calibration operation record {}: {error}",
+                        index + 1
+                    )
+                })?;
+            operations.push(operation_from_record(record).map_err(|error| {
+                anyhow::anyhow!(
+                    "invalid induction calibration operation fields {}: {error}",
+                    index + 1
+                )
+            })?);
+        }
+        if operations.is_empty() {
+            bail!("induction calibration operation input produced no samples");
+        }
+        self.calibration_operations = Some(operations);
         Ok(self)
     }
 }
@@ -307,8 +333,30 @@ pub struct OperationStackInductionReport {
     excluded_oracle_fields: Vec<&'static str>,
     excluded_oracle_prefixes: Vec<&'static str>,
     excluded_oracle_suffixes: Vec<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    supervised_calibration: Option<SupervisedRecurrenceCalibrationReport>,
     boundary_decisions: Vec<OperationStackBoundaryDecision>,
     segments: Vec<OperationStackSegment>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct SupervisedRecurrenceCalibrationReport {
+    policy: &'static str,
+    objective: &'static str,
+    group_field: &'static str,
+    sessions: usize,
+    operations: usize,
+    transitions: usize,
+    groups: usize,
+    observed_transitions: usize,
+    unseen_transitions: usize,
+    distinct_scores: usize,
+    candidate_cutoffs: usize,
+    best_ties: usize,
+    selected_cutoff: f64,
+    selected_precision: f64,
+    selected_recall: f64,
+    selected_f1: f64,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -322,6 +370,10 @@ pub struct OperationStackBoundaryDecision {
     calibration_population: &'static str,
     applied_cutoff: f64,
     current_boundary: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    label_free_applied_cutoff: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    label_free_boundary: Option<bool>,
     boundary: bool,
 }
 
@@ -1011,6 +1063,7 @@ const OPERATION_STACK_OBJECTIVE: &str =
 const OPERATION_STACK_DERIVED_FIELD: &str = "operation";
 const OPERATION_STACK_SEQUENCE_FIELD: &str = "session";
 const OPERATION_STACK_ASSOCIATION_FIELD: &str = "action";
+const OPERATION_STACK_CALIBRATION_GROUP_FIELD: &str = "group";
 const ORACLE_OR_LABEL_FIELDS: &[&str] = &[
     "annotator",
     "attack",
@@ -1098,6 +1151,23 @@ fn induce_operation_stack(
         )
     };
     let target_groups = recurrence_groups(&samples, "induction target")?;
+    let supervised_calibration = if let Some(calibration) = config.calibration_operations.as_deref()
+    {
+        let calibration_groups = recurrence_groups(calibration, "induction calibration")?;
+        if let Some(overlap) = calibration_groups
+            .keys()
+            .find(|session| target_groups.contains_key(*session))
+        {
+            bail!("induction calibration session {overlap:?} overlaps the induction target");
+        }
+        Some(fit_supervised_recurrence_cutoff(
+            calibration,
+            &calibration_groups,
+            &model,
+        )?)
+    } else {
+        None
+    };
 
     let mut decisions = Vec::new();
     let mut pending_segments = Vec::new();
@@ -1119,14 +1189,23 @@ fn induce_operation_stack(
                 .get(&(left_action.to_string(), right_action.to_string()))
                 .copied();
             let current_boundary = npmi.is_none_or(|score| score < model.global.cutoff);
-            let (calibration_population, applied_cutoff) = if left_action == right_action {
-                ("all-transitions", model.global.cutoff)
+            let label_free_applied_cutoff = if left_action == right_action {
+                model.global.cutoff
             } else {
-                (
-                    "monotone-action-changing-transitions",
-                    model.global.cutoff.min(model.cross_action.cutoff),
-                )
+                model.global.cutoff.min(model.cross_action.cutoff)
             };
+            let label_free_boundary = npmi.is_none_or(|score| score < label_free_applied_cutoff);
+            let (calibration_population, applied_cutoff) =
+                if let Some(calibration) = supervised_calibration.as_ref() {
+                    ("reference-group-bcubed", calibration.selected_cutoff)
+                } else if left_action == right_action {
+                    ("all-transitions", model.global.cutoff)
+                } else {
+                    (
+                        "monotone-action-changing-transitions",
+                        label_free_applied_cutoff,
+                    )
+                };
             let boundary = npmi.is_none_or(|score| score < applied_cutoff);
             if boundary {
                 boundaries.push(position);
@@ -1141,6 +1220,10 @@ fn induce_operation_stack(
                 calibration_population,
                 applied_cutoff,
                 current_boundary,
+                label_free_applied_cutoff: supervised_calibration
+                    .as_ref()
+                    .map(|_| label_free_applied_cutoff),
+                label_free_boundary: supervised_calibration.as_ref().map(|_| label_free_boundary),
                 boundary,
             });
         }
@@ -1244,6 +1327,7 @@ fn induce_operation_stack(
         excluded_oracle_fields: ORACLE_OR_LABEL_FIELDS.to_vec(),
         excluded_oracle_prefixes: ORACLE_OR_LABEL_PREFIXES.to_vec(),
         excluded_oracle_suffixes: ORACLE_OR_LABEL_SUFFIXES.to_vec(),
+        supervised_calibration,
         boundary_decisions: decisions,
         segments,
     };
@@ -1374,6 +1458,212 @@ fn recurrence_calibration(scores: &[f64]) -> Result<RecurrenceCalibration> {
         high_occurrences,
         iterations,
     })
+}
+
+#[derive(Clone, Copy, Debug)]
+struct CalibrationPartitionMetrics {
+    precision: f64,
+    recall: f64,
+    f1: f64,
+    oracle_groups: usize,
+}
+
+fn fit_supervised_recurrence_cutoff(
+    calibration: &[Operation],
+    groups: &BTreeMap<String, Vec<usize>>,
+    model: &RecurrenceModel,
+) -> Result<SupervisedRecurrenceCalibrationReport> {
+    let mut observed_scores = Vec::new();
+    let mut unseen_transitions = 0;
+    let mut transitions = 0;
+    for indices in groups.values() {
+        for pair in indices.windows(2) {
+            transitions += 1;
+            let left = operation_single_value(
+                &calibration[pair[0]],
+                OPERATION_STACK_ASSOCIATION_FIELD,
+                "induction calibration",
+            )?;
+            let right = operation_single_value(
+                &calibration[pair[1]],
+                OPERATION_STACK_ASSOCIATION_FIELD,
+                "induction calibration",
+            )?;
+            if let Some(score) = model
+                .association
+                .get(&(left.to_string(), right.to_string()))
+            {
+                observed_scores.push(*score);
+            } else {
+                unseen_transitions += 1;
+            }
+        }
+    }
+    observed_scores.sort_by(f64::total_cmp);
+    observed_scores.dedup_by(|left, right| left.total_cmp(right).is_eq());
+    let first = *observed_scores.first().context(
+        "induction calibration requires at least one transition observed in the score reference",
+    )?;
+    let last = *observed_scores.last().context(
+        "induction calibration requires at least one transition observed in the score reference",
+    )?;
+    let mut candidates = Vec::with_capacity(observed_scores.len() + 1);
+    candidates.push(next_f64_down(first));
+    for pair in observed_scores.windows(2) {
+        let left = pair[0];
+        let right = pair[1];
+        let mut midpoint = (left + right) / 2.0;
+        if midpoint <= left {
+            midpoint = next_f64_up(left);
+        }
+        if !(left < midpoint && midpoint < right) {
+            bail!("cannot construct a finite supervised recurrence cutoff");
+        }
+        candidates.push(midpoint);
+    }
+    candidates.push(next_f64_up(last));
+
+    let mut selected: Option<(f64, CalibrationPartitionMetrics)> = None;
+    let mut best_ties = 0;
+    for cutoff in &candidates {
+        let metrics =
+            recurrence_calibration_partition_metrics(calibration, groups, model, *cutoff)?;
+        match selected {
+            None => {
+                selected = Some((*cutoff, metrics));
+                best_ties = 1;
+            }
+            Some((_, best)) if metrics.f1 > best.f1 => {
+                selected = Some((*cutoff, metrics));
+                best_ties = 1;
+            }
+            Some((best_cutoff, best)) if metrics.f1 == best.f1 => {
+                best_ties += 1;
+                if *cutoff < best_cutoff {
+                    selected = Some((*cutoff, metrics));
+                }
+            }
+            _ => {}
+        }
+    }
+    let (selected_cutoff, selected_metrics) =
+        selected.context("induction calibration produced no cutoff candidate")?;
+    Ok(SupervisedRecurrenceCalibrationReport {
+        policy: "reference-group-bcubed-scalar-calibration",
+        objective: "maximize per-operation B-cubed partition F1 on grouped reference operations",
+        group_field: OPERATION_STACK_CALIBRATION_GROUP_FIELD,
+        sessions: groups.len(),
+        operations: calibration.len(),
+        transitions,
+        groups: selected_metrics.oracle_groups,
+        observed_transitions: transitions - unseen_transitions,
+        unseen_transitions,
+        distinct_scores: observed_scores.len(),
+        candidate_cutoffs: candidates.len(),
+        best_ties,
+        selected_cutoff,
+        selected_precision: selected_metrics.precision,
+        selected_recall: selected_metrics.recall,
+        selected_f1: selected_metrics.f1,
+    })
+}
+
+fn recurrence_calibration_partition_metrics(
+    calibration: &[Operation],
+    groups: &BTreeMap<String, Vec<usize>>,
+    model: &RecurrenceModel,
+    cutoff: f64,
+) -> Result<CalibrationPartitionMetrics> {
+    type PredictedGroup = (String, usize);
+    type OracleGroup = (String, String);
+    let mut predicted_totals = BTreeMap::<PredictedGroup, usize>::new();
+    let mut oracle_totals = BTreeMap::<OracleGroup, usize>::new();
+    let mut overlaps = BTreeMap::<(PredictedGroup, OracleGroup), usize>::new();
+    let mut items = Vec::<(PredictedGroup, OracleGroup)>::new();
+    for (session, indices) in groups {
+        let mut predicted_group = 0;
+        for (position, index) in indices.iter().enumerate() {
+            if position > 0 {
+                let left = operation_single_value(
+                    &calibration[indices[position - 1]],
+                    OPERATION_STACK_ASSOCIATION_FIELD,
+                    "induction calibration",
+                )?;
+                let right = operation_single_value(
+                    &calibration[*index],
+                    OPERATION_STACK_ASSOCIATION_FIELD,
+                    "induction calibration",
+                )?;
+                let boundary = model
+                    .association
+                    .get(&(left.to_string(), right.to_string()))
+                    .is_none_or(|score| *score < cutoff);
+                if boundary {
+                    predicted_group += 1;
+                }
+            }
+            let group = operation_single_value(
+                &calibration[*index],
+                OPERATION_STACK_CALIBRATION_GROUP_FIELD,
+                "induction calibration",
+            )?;
+            let predicted = (session.clone(), predicted_group);
+            let oracle = (session.clone(), group.to_string());
+            *predicted_totals.entry(predicted.clone()).or_default() += 1;
+            *oracle_totals.entry(oracle.clone()).or_default() += 1;
+            *overlaps
+                .entry((predicted.clone(), oracle.clone()))
+                .or_default() += 1;
+            items.push((predicted, oracle));
+        }
+    }
+    let operation_count = items.len();
+    let mut precision_sum = 0.0;
+    let mut recall_sum = 0.0;
+    for (predicted, oracle) in &items {
+        let overlap = overlaps[&(predicted.clone(), oracle.clone())] as f64;
+        precision_sum += overlap / predicted_totals[predicted] as f64;
+        recall_sum += overlap / oracle_totals[oracle] as f64;
+    }
+    let precision = precision_sum / operation_count as f64;
+    let recall = recall_sum / operation_count as f64;
+    let f1 = if precision + recall == 0.0 {
+        0.0
+    } else {
+        2.0 * precision * recall / (precision + recall)
+    };
+    Ok(CalibrationPartitionMetrics {
+        precision,
+        recall,
+        f1,
+        oracle_groups: oracle_totals.len(),
+    })
+}
+
+fn next_f64_up(value: f64) -> f64 {
+    debug_assert!(value.is_finite());
+    if value == -0.0 {
+        return f64::from_bits(1);
+    }
+    let bits = value.to_bits();
+    if value >= 0.0 {
+        f64::from_bits(bits + 1)
+    } else {
+        f64::from_bits(bits - 1)
+    }
+}
+
+fn next_f64_down(value: f64) -> f64 {
+    debug_assert!(value.is_finite());
+    if value == 0.0 {
+        return f64::from_bits((1_u64 << 63) | 1);
+    }
+    let bits = value.to_bits();
+    if value > 0.0 {
+        f64::from_bits(bits - 1)
+    } else {
+        f64::from_bits(bits + 1)
+    }
 }
 
 fn deterministic_recurrence_two_means(scores: &[f64]) -> Result<(f64, f64, usize, usize, usize)> {
@@ -3088,6 +3378,151 @@ mod tests {
             serde_json::to_value(report).unwrap(),
             serde_json::to_value(mutated.operation_stack_induction.as_ref().unwrap()).unwrap()
         );
+    }
+
+    #[test]
+    fn operation_stack_induction_fits_one_grouped_reference_cutoff() {
+        let reference = [("fill", 5), ("click", 4), ("fill", 3), ("click", 2)]
+            .into_iter()
+            .flat_map(|(action, count)| {
+                std::iter::repeat_n(
+                    json!({"value": 1, "fields": {"session": "reference", "action": action}}),
+                    count,
+                )
+            })
+            .collect::<Vec<_>>();
+        let calibration = ["click", "click", "fill", "click"]
+            .into_iter()
+            .enumerate()
+            .map(|(index, action)| {
+                json!({"value": index as u64 + 1, "fields": {
+                    "session": "calibration", "action": action, "group": "one-operation"
+                }})
+            })
+            .collect::<Vec<_>>();
+        let target = ["click", "click", "fill", "click"]
+            .into_iter()
+            .map(|action| json!({"value": 1, "fields": {"session": "target", "action": action}}))
+            .collect::<Vec<_>>();
+        let induction = OperationStackInductionConfig::new()
+            .with_reference_operation_records(&reference)
+            .unwrap()
+            .with_calibration_operation_records(&calibration)
+            .unwrap();
+        let options = OperationStackConfig::for_view(ProfileView::Operations)
+            .with_stack(parse_stack_spec("operation").unwrap())
+            .with_operation_stack_induction(induction);
+        let profile =
+            build_profile_from_operation_records(&target, ProfileView::Operations, &options)
+                .unwrap();
+        let report = profile.operation_stack_induction.unwrap();
+        let unit_calibration = calibration
+            .iter()
+            .cloned()
+            .map(|mut record| {
+                record["value"] = json!(1);
+                record
+            })
+            .collect::<Vec<_>>();
+        let unit_induction = OperationStackInductionConfig::new()
+            .with_reference_operation_records(&reference)
+            .unwrap()
+            .with_calibration_operation_records(&unit_calibration)
+            .unwrap();
+        let unit_options = OperationStackConfig::for_view(ProfileView::Operations)
+            .with_stack(parse_stack_spec("operation").unwrap())
+            .with_operation_stack_induction(unit_induction);
+        let unit_report =
+            build_profile_from_operation_records(&target, ProfileView::Operations, &unit_options)
+                .unwrap()
+                .operation_stack_induction
+                .unwrap();
+        assert_eq!(
+            serde_json::to_value(&report).unwrap(),
+            serde_json::to_value(&unit_report).unwrap()
+        );
+        let calibration = report
+            .supervised_calibration
+            .expect("supervised calibration report");
+
+        assert_eq!(
+            calibration.policy,
+            "reference-group-bcubed-scalar-calibration"
+        );
+        assert_eq!(calibration.sessions, 1);
+        assert_eq!(calibration.operations, 4);
+        assert_eq!(calibration.transitions, 3);
+        assert_eq!(calibration.groups, 1);
+        assert_eq!(calibration.selected_f1, 1.0);
+        assert_eq!(calibration.best_ties, 1);
+        assert!(calibration.candidate_cutoffs >= 2);
+        assert!(
+            report
+                .boundary_decisions
+                .iter()
+                .all(|decision| !decision.boundary)
+        );
+        assert!(
+            report
+                .boundary_decisions
+                .iter()
+                .any(|decision| decision.label_free_boundary == Some(true))
+        );
+        assert!(report.boundary_decisions.iter().all(|decision| {
+            decision.calibration_population == "reference-group-bcubed"
+                && decision.label_free_applied_cutoff.is_some()
+        }));
+        assert_eq!(report.segments.len(), 1);
+    }
+
+    #[test]
+    fn supervised_recurrence_calibration_resolves_exact_ties_to_smallest_cutoff() {
+        let calibration_rows = [("a", "g0"), ("b", "g0"), ("c", "g1"), ("d", "g1")]
+            .into_iter()
+            .map(|(action, group)| {
+                json!({"value": 1, "fields": {
+                    "session": "calibration", "action": action, "group": group
+                }})
+            })
+            .collect::<Vec<_>>();
+        let calibration = OperationStackInductionConfig::new()
+            .with_calibration_operation_records(&calibration_rows)
+            .unwrap()
+            .calibration_operations
+            .unwrap();
+        let groups = recurrence_groups(&calibration, "induction calibration").unwrap();
+        let model = RecurrenceModel {
+            association: BTreeMap::from([
+                (("a".into(), "b".into()), 0.0),
+                (("b".into(), "c".into()), 1.0),
+                (("c".into(), "d".into()), 0.0),
+            ]),
+            transition_count: 3,
+            same_action_transitions: 0,
+            action_change_transitions: 3,
+            global: RecurrenceCalibration {
+                cutoff: 0.5,
+                low_center: 0.0,
+                high_center: 1.0,
+                low_occurrences: 2,
+                high_occurrences: 1,
+                iterations: 1,
+            },
+            cross_action: RecurrenceCalibration {
+                cutoff: 0.5,
+                low_center: 0.0,
+                high_center: 1.0,
+                low_occurrences: 2,
+                high_occurrences: 1,
+                iterations: 1,
+            },
+        };
+        let result = fit_supervised_recurrence_cutoff(&calibration, &groups, &model).unwrap();
+
+        assert_eq!(result.candidate_cutoffs, 3);
+        assert_eq!(result.best_ties, 2);
+        assert_eq!(result.selected_cutoff, next_f64_down(0.0));
+        assert_eq!(result.selected_f1, 2.0 / 3.0);
     }
 
     #[test]

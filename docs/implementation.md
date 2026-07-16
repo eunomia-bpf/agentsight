@@ -29,6 +29,8 @@ history is archived at
 | `script/r315_llm_reader_eval.py` | thin rank-hidden packet collector and post-collection scorer for the completed fixed-reader RQ2 experiment; not a core AgentProf subsystem |
 | `script/rq3_recurrence_stack_induction_eval.py` | fixed five-fold Python development adapter and scorer for the completed recurrence-induction experiment |
 | `script/rq3_recurrence_stack_rust_equivalence.py` | mechanical full-population verifier for Python/Rust boundary, segment, motif, and mass equivalence |
+| `script/rq3_reference_calibrated_existing_traces_eval.py` | completed Step 0030 adapter for one grouped-reference scalar on the retained OSWorld-Human and CodeTraceBench trajectories |
+| `script/rq3_reference_calibrated_rust_equivalence.py` | complete release-binary verifier for the optional calibrated path's cutoffs, decisions, segments, and motifs |
 
 ## Implemented Pipeline
 
@@ -59,6 +61,17 @@ otherwise the current segment continues. Each resulting frame is the
 run-length-compressed action sequence of its segment, so the same recurring
 motif receives the same cross-session identity.
 
+An optional supervised path keeps the same NPMI model but fits one scalar
+cutoff from disjoint grouped historical operations. The CLI accepts those rows
+through `--induce-calibration-operation-file` only when a separate
+`--induce-reference-operation-file` supplies the score-reference corpus. The
+fitter enumerates the finite score intervals and maximizes per-operation
+B-cubed F1 over the reference `group` assignments, giving every operation one
+vote regardless of profile resource value and choosing the smallest cutoff on
+an exact tie. It never accepts target groups or a user-selected numeric
+cutoff. Omitting calibration preserves the label-free constructor and its
+serialized report.
+
 Automatic induction requires exactly one nonempty `session` and one nonempty
 `action` value per operation. It uses input order within each session and gives
 each adjacent transition one count; operation weights remain additive profile
@@ -82,7 +95,8 @@ Implemented CLI capabilities include:
 - `--stack` and `--stack-rule` for declared stack construction;
 - `--induce-operation-stack` for cross-session recurrence-based operation
   identity, with optional label-free reference operations from
-  `--induce-reference-operation-file`;
+  `--induce-reference-operation-file` and optional disjoint grouped calibration
+  operations from `--induce-calibration-operation-file`;
 - `--rank-rule`, `--rank-op-rule`, and `--rank-mode` for JSON group ordering;
 - Chrome/Perfetto Trace Event import and export through operations;
 - pprof-compatible profiles plus folded-stack, JSON, and SVG renderings.
@@ -127,6 +141,9 @@ experiment.
 - Automatic operation-stack induction requires exactly one nonempty `session`
   and `action` value per operation and returns an explicit error when its
   recurrence model cannot be learned.
+- Supervised recurrence calibration additionally requires exactly one nonempty
+  `group` value per calibration operation, a separate score-reference corpus,
+  and calibration session IDs disjoint from the target.
 - AgentSight evidence must first be converted into one of the supported inputs;
   the current CLI has no direct AgentSight-recording reader and does not claim
   verified trigger lineage.

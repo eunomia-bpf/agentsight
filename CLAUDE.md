@@ -126,6 +126,11 @@ agentpprof --project-root . -o agent.pb.gz
   every accepted narrative change there with its reason and comparison against
   the initial and immediately previous narratives. Idea reviewers propose;
   only the root orchestrator records the disposition; WRITE only expresses it.
+- Keep each research experiment to its plan, consolidated plan review, raw
+  results, and result review. Resolve implementation validity inside those
+  reviews; add a separate implementation review, extra evaluator/checker, or
+  equivalence workflow only for a concrete unresolved validity risk. File,
+  checker, and review counts are not research progress.
 
 ## Architecture
 

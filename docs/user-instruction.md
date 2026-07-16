@@ -200,3 +200,7 @@ submodule 的原始 AgentProf 版本 是啥?
 ---
 
 能不能直接在现有的已经泡过的轨迹上面改进一下算法, 而不是做一个新的?
+
+---
+
+自己写的 harness 出错也消耗次数这句话是不是可以删除Experiment plan review 当前最多两轮，而我之前明确说过应允许 3 轮? [research-experiment-design (line 262)](/home/yunwei37/workspace/my-paper-work/academic-writing-skills/skills/research-experiment-design/SKILL.md:262) 默认要求矛盾结果返回一个 redesigned experiment；[iter-review-critique (line 90)](/home/yunwei37/workspace/my-paper-work/academic-writing-skills/skills/iter-review-critique/SKILL.md:90) 又强制每次给出“下一个决定性实验”。 这里面把强制性要求删掉, 净减少信息? 额外 implementation review、多个 evaluator、重复 checker、过多等价性证明，并不是当前 experiment skill 强制要求。Skill 实际只要求一个 plan、合并的 plan review、raw results 和一个 result review。这里应该改执行习惯，而不是继续扩充 skill。 这里面你应该在你的 agent.md 里面加上防止过多的. skill 文本应该最小修改并且少量净减少

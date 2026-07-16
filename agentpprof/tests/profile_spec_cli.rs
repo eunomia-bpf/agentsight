@@ -346,6 +346,258 @@ fn cli_induces_operation_stack_from_external_reference_corpus() {
 }
 
 #[test]
+fn cli_calibrates_recurrence_from_grouped_reference_operations() {
+    let tmp = tempfile::tempdir().unwrap();
+    let reference_path = tmp.path().join("reference.jsonl");
+    let calibration_path = tmp.path().join("calibration.jsonl");
+    let target_path = tmp.path().join("target.jsonl");
+    let output_path = tmp.path().join("induced.json");
+    let spec_path = tmp.path().join("calibrated-profile-spec.json");
+    let spec_output_path = tmp.path().join("induced-from-spec.json");
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+
+    let reference = [("fill", 5), ("click", 4), ("fill", 3), ("click", 2)]
+        .into_iter()
+        .flat_map(|(action, count)| {
+            std::iter::repeat_n(
+                serde_json::json!({"value": 1, "fields": {
+                    "session": "reference", "action": action
+                }})
+                .to_string(),
+                count,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    fs::write(&reference_path, reference + "\n").unwrap();
+    let calibration = ["click", "click", "fill", "click"]
+        .into_iter()
+        .map(|action| {
+            serde_json::json!({"value": 1, "fields": {
+                "session": "calibration", "action": action, "group": "one-operation"
+            }})
+            .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    fs::write(&calibration_path, calibration + "\n").unwrap();
+    let target = ["click", "click", "fill", "click"]
+        .into_iter()
+        .map(|action| {
+            serde_json::json!({"value": 1, "fields": {
+                "session": "target", "action": action
+            }})
+            .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    fs::write(&target_path, target + "\n").unwrap();
+
+    let output = Command::new(binary)
+        .args([
+            "--operation-file",
+            target_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            output_path.to_str().unwrap(),
+            "--induce-operation-stack",
+            "--induce-reference-operation-file",
+            reference_path.to_str().unwrap(),
+            "--induce-calibration-operation-file",
+            calibration_path.to_str().unwrap(),
+            "--deterministic-output",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "supervised recurrence calibration failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let profile: Value = serde_json::from_str(&fs::read_to_string(&output_path).unwrap()).unwrap();
+    let report = &profile["profile"]["operation_stack_induction"];
+    assert_eq!(
+        report["supervised_calibration"]["policy"],
+        "reference-group-bcubed-scalar-calibration"
+    );
+    assert_eq!(report["supervised_calibration"]["selected_f1"], 1.0);
+    assert_eq!(report["segments"].as_array().unwrap().len(), 1);
+    assert!(
+        report["boundary_decisions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|decision| decision["calibration_population"] == "reference-group-bcubed")
+    );
+
+    let spec = serde_json::json!({
+        "operation_files": [target_path],
+        "view": "operations",
+        "format": "json",
+        "output": spec_output_path,
+        "induce_operation_stack": true,
+        "induce_reference_operation_files": [reference_path],
+        "induce_calibration_operation_files": [calibration_path],
+        "deterministic_output": true
+    });
+    fs::write(&spec_path, serde_json::to_vec_pretty(&spec).unwrap()).unwrap();
+    let spec_run = Command::new(binary)
+        .args(["--profile-spec", spec_path.to_str().unwrap()])
+        .output()
+        .unwrap();
+    assert!(
+        spec_run.status.success(),
+        "profile-spec supervised recurrence calibration failed: {}",
+        String::from_utf8_lossy(&spec_run.stderr)
+    );
+    let spec_profile: Value =
+        serde_json::from_str(&fs::read_to_string(&spec_output_path).unwrap()).unwrap();
+    assert_eq!(
+        spec_profile["profile"]["operation_stack_induction"]["supervised_calibration"]["selected_f1"],
+        1.0
+    );
+}
+
+#[test]
+fn cli_rejects_invalid_recurrence_calibration_inputs() {
+    let tmp = tempfile::tempdir().unwrap();
+    let reference_path = tmp.path().join("reference.jsonl");
+    let target_path = tmp.path().join("target.jsonl");
+    let calibration_path = tmp.path().join("calibration.jsonl");
+    let output_path = tmp.path().join("induced.json");
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+    let rows = ["click", "fill", "click"]
+        .into_iter()
+        .map(|action| {
+            serde_json::json!({"value": 1, "fields": {
+                "session": "same", "action": action, "group": "g0"
+            }})
+            .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    fs::write(&target_path, rows.clone() + "\n").unwrap();
+    fs::write(&calibration_path, rows + "\n").unwrap();
+    let reference = [("fill", 5), ("click", 4), ("fill", 3), ("click", 2)]
+        .into_iter()
+        .flat_map(|(action, count)| {
+            std::iter::repeat_n(
+                serde_json::json!({"value": 1, "fields": {
+                    "session": "reference", "action": action
+                }})
+                .to_string(),
+                count,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    fs::write(&reference_path, reference + "\n").unwrap();
+
+    let without_induction = Command::new(binary)
+        .args([
+            "--operation-file",
+            target_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            output_path.to_str().unwrap(),
+            "--induce-calibration-operation-file",
+            calibration_path.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(!without_induction.status.success());
+    assert!(
+        String::from_utf8_lossy(&without_induction.stderr)
+            .contains("requires --induce-operation-stack")
+    );
+
+    let without_reference = Command::new(binary)
+        .args([
+            "--operation-file",
+            target_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            output_path.to_str().unwrap(),
+            "--induce-operation-stack",
+            "--induce-calibration-operation-file",
+            calibration_path.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(!without_reference.status.success());
+    assert!(
+        String::from_utf8_lossy(&without_reference.stderr)
+            .contains("requires --induce-reference-operation-file")
+    );
+
+    let overlap = Command::new(binary)
+        .args([
+            "--operation-file",
+            target_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            output_path.to_str().unwrap(),
+            "--induce-operation-stack",
+            "--induce-reference-operation-file",
+            reference_path.to_str().unwrap(),
+            "--induce-calibration-operation-file",
+            calibration_path.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(!overlap.status.success());
+    assert!(String::from_utf8_lossy(&overlap.stderr).contains("overlaps the induction target"));
+
+    let missing_group_path = tmp.path().join("missing-group.jsonl");
+    let missing_group = ["click", "fill", "click"]
+        .into_iter()
+        .map(|action| {
+            serde_json::json!({"value": 1, "fields": {
+                "session": "calibration-without-group", "action": action
+            }})
+            .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    fs::write(&missing_group_path, missing_group + "\n").unwrap();
+    let missing_group = Command::new(binary)
+        .args([
+            "--operation-file",
+            target_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            output_path.to_str().unwrap(),
+            "--induce-operation-stack",
+            "--induce-reference-operation-file",
+            reference_path.to_str().unwrap(),
+            "--induce-calibration-operation-file",
+            missing_group_path.to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(!missing_group.status.success());
+    assert!(
+        String::from_utf8_lossy(&missing_group.stderr)
+            .contains("requires exactly one nonempty \"group\" value")
+    );
+}
+
+#[test]
 fn cli_rejects_legacy_information_gain_knobs_under_recurrence() {
     let tmp = tempfile::tempdir().unwrap();
     let ops_path = tmp.path().join("ops.jsonl");

@@ -89,6 +89,9 @@ OPERATION STACK QUERY WORKFLOW:
   non-recurring transitions with deterministic two-means, and names each
   segment from its run-length-compressed action motif. An optional label-free
   --induce-reference-operation-file supplies a separate recurrence corpus.
+  When independently grouped history exists, add
+  --induce-calibration-operation-file to select one supervised scalar cutoff
+  by operation-weighted B-cubed partition F1 while keeping the same NPMI score.
 "#;
 
 #[derive(Parser)]
@@ -160,6 +163,9 @@ struct Cli {
     /// Learn operation recurrence from a separate label-free operation corpus.
     #[arg(long = "induce-reference-operation-file", value_name = "PATH")]
     induce_reference_operation_files: Vec<PathBuf>,
+    /// Fit one recurrence cutoff from grouped reference operations.
+    #[arg(long = "induce-calibration-operation-file", value_name = "PATH")]
+    induce_calibration_operation_files: Vec<PathBuf>,
     /// Write byte-stable profiles by replacing output timestamps with fixed values.
     #[arg(long = "deterministic-output")]
     deterministic_output: bool,
@@ -316,6 +322,7 @@ struct ProfileSpec {
     induce_max_depth: Option<usize>,
     induce_query_terms: Vec<String>,
     induce_reference_operation_files: Vec<PathBuf>,
+    induce_calibration_operation_files: Vec<PathBuf>,
     tag_rules: Vec<String>,
     preset: Option<bool>,
     tagger: Option<TaggerKind>,
@@ -354,6 +361,8 @@ struct RawProfileSpec {
     induce_query_terms: Vec<String>,
     #[serde(default)]
     induce_reference_operation_files: Vec<PathBuf>,
+    #[serde(default)]
+    induce_calibration_operation_files: Vec<PathBuf>,
     #[serde(default)]
     tag_rules: Vec<String>,
     preset: Option<bool>,
@@ -433,8 +442,19 @@ fn command_export(args: Cli) -> Result<()> {
         &spec.induce_reference_operation_files,
         &args.induce_reference_operation_files,
     );
+    let induce_calibration_operation_files = merge_spec_first(
+        &spec.induce_calibration_operation_files,
+        &args.induce_calibration_operation_files,
+    );
     if !induce_operation_stack && !induce_reference_operation_files.is_empty() {
         bail!("--induce-reference-operation-file requires --induce-operation-stack");
+    }
+    if !induce_operation_stack && !induce_calibration_operation_files.is_empty() {
+        bail!("--induce-calibration-operation-file requires --induce-operation-stack");
+    }
+    if !induce_calibration_operation_files.is_empty() && induce_reference_operation_files.is_empty()
+    {
+        bail!("--induce-calibration-operation-file requires --induce-reference-operation-file");
     }
     let effective_stack_name = if induce_operation_stack {
         if let Some(stack) = stack
@@ -489,6 +509,11 @@ fn command_export(args: Cli) -> Result<()> {
                 read_operation_record_values(&induce_reference_operation_files)?;
             induction = induction.with_reference_operation_records(&reference_records)?;
         }
+        if !induce_calibration_operation_files.is_empty() {
+            let calibration_records =
+                read_operation_record_values(&induce_calibration_operation_files)?;
+            induction = induction.with_calibration_operation_records(&calibration_records)?;
+        }
         profile_options = profile_options.with_operation_stack_induction(induction);
     }
     let operation_files = merge_spec_first(&spec.operation_files, &args.operation_files);
@@ -541,6 +566,7 @@ fn command_export(args: Cli) -> Result<()> {
             "induce_task_stack": induce_operation_stack,
             "induced_stack_field": induced_stack_field,
             "induce_reference_operation_files": induce_reference_operation_files,
+            "induce_calibration_operation_files": induce_calibration_operation_files,
             "op_maps": op_maps,
             "op_map_files": op_map_files,
             "where_rules": where_rules,
@@ -620,6 +646,7 @@ fn command_export(args: Cli) -> Result<()> {
             "induce_task_stack": induce_operation_stack,
             "induced_stack_field": induced_stack_field,
             "induce_reference_operation_files": induce_reference_operation_files,
+            "induce_calibration_operation_files": induce_calibration_operation_files,
             "op_maps": op_maps,
             "op_map_files": op_map_files,
             "where_rules": where_rules,
@@ -769,6 +796,7 @@ fn command_export(args: Cli) -> Result<()> {
         "induce_task_stack": induce_operation_stack,
         "induced_stack_field": induced_stack_field,
         "induce_reference_operation_files": induce_reference_operation_files,
+        "induce_calibration_operation_files": induce_calibration_operation_files,
         "op_maps": op_maps,
         "op_map_files": op_map_files,
         "where_rules": where_rules,
@@ -958,6 +986,11 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
             .into_iter()
             .map(|path| resolve_spec_path(base, path))
             .collect(),
+        induce_calibration_operation_files: raw
+            .induce_calibration_operation_files
+            .into_iter()
+            .map(|path| resolve_spec_path(base, path))
+            .collect(),
         tag_rules: raw.tag_rules,
         preset: raw.preset,
         tagger: raw.tagger.as_deref().map(parse_spec_tagger).transpose()?,
@@ -1102,6 +1135,8 @@ impl ProfileSpec {
         self.induce_query_terms.extend(next.induce_query_terms);
         self.induce_reference_operation_files
             .extend(next.induce_reference_operation_files);
+        self.induce_calibration_operation_files
+            .extend(next.induce_calibration_operation_files);
         self.tag_rules.extend(next.tag_rules);
         self.op_map_files.extend(next.op_map_files);
         self.operation_files.extend(next.operation_files);

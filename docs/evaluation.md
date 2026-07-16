@@ -20,7 +20,7 @@ later explicit user instruction may change the four author-fixed RQs.
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Retain the cumulative positive paper answer; whole-paper REVIEW selects any next fixed RQ. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Positive hypothesis unchanged; Step 0019 adds valid supporting downstream evidence.** AgentProcessBench has a small isolated AP gain, HINTBench is numerically favorable but inconclusive versus raw action, and TraceElephant is strong at a descriptive early point but inconclusive at prospective Work@80. In the complete fixed-reader comparison, operation stack improves selected-positive recall on 5/6 tasks (median paired delta +0.080571) and precision on 4/6 (+0.035501) versus fixed session at a three-group budget. The result does not show lower work or raw-action, human, or universal-view superiority. The final Step 0024 whole-paper review and outer audit retain this cumulative positive answer and close the packet branch; do not rerun it. |
-| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; the Step 0024 monotone recurrence constructor is current.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. The final recurrence constructor keeps Step 0020's OSWorld result unchanged at 0.6799 boundary F1 and 0.7862 B-cubed F1. On all 405 reused CodeTraceBench targets, it raises boundary F1 from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 across all four frameworks while adding no current-relative boundary. The exact equal-plus-higher result supports release adoption as post-hoc implementation-selection evidence; it does not answer phase/action/literal-name accuracy or all of RQ3. |
+| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; Step 0024 remains the label-free default and Step 0030 adds an optional grouped-reference result.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0024 reaches 0.6799 boundary F1 and 0.7862 B-cubed F1 on OSWorld, and raises CodeTraceBench boundary F1 from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 on all 405 reused targets. Step 0030 fits one scalar on disjoint grouped references and raises B-cubed F1 to 0.8011 on OSWorld and 0.6666 on CodeTraceBench; CodeTrace boundary F1 falls to 0.2362, so this is supporting annotation-budget partition evidence, not all-metric dominance. The cumulative result still does not answer phase/action/literal-name accuracy or all of RQ3. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
 ## Admitted RQ1 Mechanism Evidence
@@ -605,6 +605,48 @@ and the raw experiment roots. This result does not enter the reader-facing
 paper, change RQ3, narrow its positive hypothesis, or alter the AgentProf story.
 It only establishes that recurring multi-action compression alone is not a
 better proxy for the two retained operation partitions than Step 0024.
+
+Step 0030 returns to the existing Step 0024 recurrence score and tests one
+different information budget on the same retained trajectories: independently
+grouped reference operations select a single scalar cutoff by per-operation
+B-cubed F1, while target groups remain unavailable until
+predictions are fixed. The label-free Step 0024 constructor stays the default;
+the candidate is an optional supervised calibration path rather than a new
+algorithm, score, benchmark-specific rule, or target-tuned numeric interface.
+
+The complete result is independently reviewed `VALID / SUPPORTED /
+SUPPORTING / ADDITIONAL RQ EVIDENCE`. On all 287 OSWorld-Human sessions under
+the same five held-out folds, B-cubed F1 rises from 0.786170 to 0.801087 and
+boundary F1 from 0.679922 to 0.733953. On 405 CodeTraceBench failed sessions,
+one cutoff fitted from 483 disjoint solved sessions raises B-cubed F1 from
+0.649173 to 0.666564. Boundary F1 falls from 0.287106 to 0.236176 as predicted
+groups fall from 6,897 to 5,331, so the result supports the predeclared
+partition objective but not universal boundary improvement. All five OSWorld
+cutoffs and the CodeTrace cutoff are unique optima under the fixed smallest-
+cutoff tie rule.
+
+An independent reviewer reimplemented NPMI, cutoff enumeration, weighted
+B-cubed, fold assignment, and stage expansion from the raw inputs and reproduced
+every population, cutoff, prediction, segment, and metric. The release Rust
+port then matches the Python experiment exactly on all 3,691 OSWorld and 20,461
+CodeTrace adjacent-pair decisions, selected cutoffs, label-free decisions,
+segments, motifs, and pooled metrics. The result uses already observed
+development populations and additional group annotations, so it remains
+supporting implementation evidence rather than untouched cross-family
+confirmation or a complete answer to literal task/phase/action tag accuracy.
+Complete reports are under
+[`step-0030-20260715T161256-0700`](tmp/build-and-evaluate/step-0030-20260715T161256-0700/),
+with raw artifacts under
+`.agentsight/experiments/rq3-reference-calibrated-existing-traces-v1/` and
+`.agentsight/experiments/rq3-reference-calibrated-rust-equivalence-v1/`.
+
+Step 0030 also demonstrates that Step 0028's terminal disposition was caused by
+the experiment skill's fixed preflight-attempt counter rather than scientific
+evidence: Step 0028 never executed the hypothesis, whereas the same scientific
+plan completes after ordinary adapter repair without changing its RQ,
+hypothesis, score, information boundary, populations, or interpretation. This
+is recorded as a skill/execution deviation, not as an additional experiment
+result or a reason to alter the paper story.
 
 ## Requirements For The Next Experiment
 

@@ -145,6 +145,20 @@ continues the current group. No depth, field search, hand-weighted score term,
 complexity penalty, query tie-break, label-tuned threshold, or resource-weighted
 transition count enters this decision.
 
+When independently grouped historical operations are available, an optional
+`--induce-calibration-operation-file` replaces only the two-means cutoff with
+one supervised scalar. The score-reference operations remain separate and
+still define the same NPMI table. Calibration operations must provide exactly
+one `session`, `action`, and `group` value, and their sessions must be disjoint
+from the target. The implementation enumerates a cutoff below the minimum
+observed calibration score, every midpoint between adjacent distinct scores,
+and a cutoff above the maximum, then selects the cutoff with the highest
+per-operation B-cubed partition F1; every operation gets one vote regardless of
+its profile resource value, and exact ties choose the smallest cutoff.
+Unseen target transitions remain boundaries. This mode spends additional group
+annotations to calibrate the existing recurrence score; it is not an
+equal-information replacement for the default label-free constructor.
+
 Each group receives a run-length-compressed action motif such as
 `action=click-then-type-then-press`. Identical motifs therefore fold to the
 same cross-session operation identity. If distinct raw motifs normalize to the
@@ -177,6 +191,19 @@ boundary decisions, 3,978 motif assignments, 2,656 segments, 44 motifs, and
 3,978 units of profile mass. Focused tests also show that arbitrary changes to
 group, label, oracle, and target fields leave the complete induction report
 unchanged when `session` and `action` are fixed.
+
+Step 0030 evaluates the optional grouped-reference calibration on the same
+already completed trajectories. Five-fold held-out OSWorld-Human B-cubed F1
+rises from 0.7862 to 0.8011. A cutoff fitted on 483 solved CodeTraceBench
+sessions and applied unchanged to 405 disjoint failed sessions raises B-cubed
+F1 from 0.6492 to 0.6666. CodeTraceBench boundary F1 falls from 0.2871 to
+0.2362, exposing a real fragmentation/merging tradeoff: the supervised mode
+improves the predeclared partition objective, not every boundary metric. A
+complete release-binary replay matches the Python experiment on all 3,691
+OSWorld and 20,461 CodeTrace decisions, cutoffs, segments, motifs, and pooled
+metrics. Because these trajectories already informed mechanism development,
+the result is supporting implementation evidence rather than untouched
+cross-family confirmation.
 
 ### Learned boundary fields
 

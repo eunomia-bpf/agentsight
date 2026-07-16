@@ -579,6 +579,11 @@ Run-length-compressed action sequences name the resulting recurring motifs.
 The inducer reads only session identity, input order, and action; scoring labels
 and resource weights do not affect construction.
 % Rust inducer 统计参考 session 中的相邻 action 转移，并用 NPMI 评分；所有概率来自同一转移样本空间。按出现次数加权的一维 two-means 从最小和最大分数初始化，将距离相同的点分到较低中心，并用收敛后两个中心的中点作为全局阈值；在 action-changing occurrence 上进行同样校准得到 cross-action 阈值。相同 action 使用全局阈值，不同 action 使用两者中较小者，因此 refinement 只能删除而不能新增全局规则边界；未见转移或低于应用阈值的分数开始新的 segment。经游程压缩的 action 序列命名重复 motif。inducer 只读取 session、输入顺序和 action；评分标签与资源权重不参与构造。
+An optional supervised mode keeps the NPMI score but selects one scalar cutoff
+that maximizes per-operation B$^3$ F1 on disjoint reference groups; it
+enumerates score intervals, resolves exact ties toward the smallest cutoff, and
+never reads target groups. Label-free two-means remains the default.
+% 当存在已分组的历史 operation 时，可选监督模式保持同一 NPMI score，并在与目标不重叠的参考分组上选择使每个 operation 等权的 B$^3$ F1 最大的单一阈值。它枚举有限 score interval，在完全平局时选择最小阈值，且不读取目标分组；无标签 two-means 规则仍是默认模式。
 
 \paragraph{Profile export.}
 % Profile 导出。
@@ -849,6 +854,10 @@ its label-free reference. Because the recurrence principle was selected after
 inspecting earlier results on this corpus, we report it as mechanism-development
 evidence rather than independent cross-family confirmation.
 % 我们还用相同的五个 session fold 运行内置 recurrence inducer：每个 held-out fold 仅使用其他 session 的可见 action 转移作为无标签参考。由于 recurrence 原理是在查看该语料的早期结果后选定的，我们将其作为机制开发证据，而非独立的跨 family 验证。
+The optional reference-calibrated mode uses those same training-fold operations
+and their group annotations to fit one scalar; the held-out fold contributes
+only visible actions until predictions are fixed.
+% 可选的 reference-calibrated 模式使用同一训练 fold 的 operation 及其 group 标注拟合一个标量；held-out fold 在预测固定前只提供可见 action。
 The three simple controls place a boundary after every operation, whenever the
 visible action field changes, or whenever the visible phase field changes.
 % 简单对照分别在每个 operation 后放置边界，或仅在可见 action 或 phase 字段变化时放置边界。
@@ -864,7 +873,8 @@ predicted--human group overlap captures merging and fragmentation.
 Method & Prec. & Recall & Boundary F1 & B$^3$ F1 \\
 \midrule
 Supervised predictor & 0.700 & 0.782 & \textbf{0.739} & \textbf{0.816} \\
-Recurrence inducer & 0.592 & 0.799 & 0.680 & 0.786 \\
+Calibrated recurrence & 0.610 & 0.922 & 0.734 & 0.801 \\
+Label-free recurrence & 0.592 & 0.799 & 0.680 & 0.786 \\
 Always boundary & 0.476 & 1.000 & 0.645 & 0.678 \\
 Action change & 0.386 & 0.626 & 0.477 & 0.659 \\
 Phase change & 0.441 & 0.268 & 0.334 & 0.665 \\
@@ -875,37 +885,41 @@ measures agreement between predicted and human operation partitions.}
 \label{tab:rq3-boundary}
 \end{table}
 
-The supervised predictor reaches 0.739 boundary and 0.816 B$^3$ F1, versus
-0.645 and 0.678 for the strongest controls, and leads boundary F1 in every
-fold. \sys projects all 3{,}978 operations into 2{,}249 stacks while preserving
-their total weight.
+The supervised predictor reaches 0.739 boundary and 0.816 B$^3$ F1 versus
+0.645 and 0.678 for the strongest controls, leading every fold. \sys projects
+all 3{,}978 operations into 2{,}249 weight-conserving stacks.
 % 监督 predictor 的 boundary 与 B$^3$ F1 为 0.739 和 0.816，最强对照为 0.645 和 0.678，且每个 fold 的 boundary F1 均领先。\sys 将全部 3,978 个 operation 投影到 2,249 个 stack，并保持总权重。
 Label-free recurrence reaches 0.680 boundary and 0.786 B$^3$ F1, above the
-simple controls and below the supervised comparator. Rust matches all 3{,}691
-evaluator decisions and 2{,}656 segments and conserves all 3{,}978 weights.
+controls and below the supervised predictor; Rust matches all 3{,}691 decisions
+and conserves all 3{,}978 weights.
 % 无标签 recurrence 的 boundary 与 B$^3$ F1 为 0.680 和 0.786，高于简单对照、低于监督 comparator；Rust 匹配全部 3,691 个 evaluator 决策和 2,656 个 segment，并守恒全部 3,978 权重。
+Reference calibration reaches 0.734 boundary and 0.801 B$^3$ F1 under the same
+folds. It measures the value of additional group annotations, not
+equal-information superiority over the label-free default.
+% Reference calibration 在相同的五个 held-out fold 上将 recurrence 提升到 0.734 boundary F1 和 0.801 B$^3$ F1；该增益使用了无标签默认模式不可用的 group 标注，因此衡量的是监督校准的价值，而非同等信息下的优越性。
 
-We select the final calibration post hoc on the observed OSWorld-Human data and
-405 source-valid failed trajectories from the CodeTraceBench verified
-split~\cite{li2026codetracer}. It preserves all 3{,}691 OSWorld decisions.
-Versus the prior global constructor, it removes 5{,}974 CodeTraceBench
-boundaries and adds none, raising boundary F1 from 0.269 to 0.287 and B$^3$ F1
-from 0.475 to 0.649 across all four frameworks. The external phase-change
-baseline has lower boundary F1 (0.225) but slightly higher B$^3$ F1 (0.654),
-winning B$^3$ on two frameworks. This is implementation-selection evidence,
-not independent confirmation of every RQ3 tag type.
+Post-hoc selection on OSWorld-Human and 405 source-valid failed trajectories
+from the CodeTraceBench verified split~\cite{li2026codetracer} preserves every
+OSWorld decision while raising CodeTraceBench boundary F1 from 0.269 to 0.287
+and B$^3$ F1 from 0.475 to 0.649 across all four frameworks. Phase change reaches
+0.225 and 0.654. This selects the default implementation, not every RQ3 tag.
 % 我们在已观察的 OSWorld-Human 数据与 CodeTraceBench verified split 的 405 条 source-valid failed 轨迹上 post-hoc 选择最终校准，并保持全部 3,691 个 OSWorld 决策。相对先前全局 constructor，它删除 5,974 个 CodeTraceBench 边界且不新增，将 boundary F1 从 0.269 提升到 0.287、B$^3$ F1 从 0.475 提升到 0.649，四个 framework 均提升。external phase-change baseline 的 boundary F1 更低（0.225），B$^3$ F1 略高（0.654），并在两个 framework 上胜出。这是 implementation-selection 证据，而不是对 RQ3 所有 tag 类型的独立确认。
 
-The target-blind TF-IDF/K-Means backend also infers label-hidden task
-partitions. On nine Mind2Web (49 operations) and 100 ScienceWorld sessions
-(2{,}504 operations)~\cite{mind2web,scienceworld}, operation-weighted V-measure
-is 0.557 and 0.815 at full coverage versus 0 for a constant tag. V-measure
-tests partitions, not literal tag names.
+Fitting the optional scalar on 483 disjoint solved sessions raises B$^3$ F1 on
+the 405 failed sessions from 0.649 to 0.667 while merging 6{,}897 groups into
+5{,}331; boundary F1 is 0.236. This supports partition fidelity with reference
+annotations, not every boundary metric or literal tag names.
+% 使用 483 条 solved CodeTraceBench session 作为与目标不重叠的分组参考，同一标量校准流程将 405 条 failed session 上的 B$^3$ F1 从 0.649 提升到 0.667。它将 6,897 个无标签 group 合并为 5,331 个，通过提高 partition recall 改善 B$^3$，同时 boundary F1 从 0.287 变为 0.236。因此该可选模式支持有标注预算时的 partition fidelity，而不意味着所有 boundary metric 都提高或验证了字面 tag 名称。
+
+Target-blind TF-IDF/K-Means reaches operation-weighted V-measure 0.557 on nine
+Mind2Web sessions (49 operations) and 0.815 on 100 ScienceWorld sessions
+(2{,}504 operations) at full coverage, versus 0 for a constant
+tag~\cite{mind2web,scienceworld}. It tests partitions, not literal names.
 % 目标盲 TF-IDF/K-Means backend 还从隐藏标签的文本推断 task partition。在 9 个 Mind2Web session（49 个 operation）和 100 个 ScienceWorld session（2,504 个 operation）上，operation-weighted V-measure 为 0.557 和 0.815，coverage 为 100%，constant tag 为 0；V-measure 测试 partition 而非字面 tag 名。
 
 The pre-specified experiments support target-blind task partitions and
-session-held-out operation groups across three public families; recurrence
-separately validates the development-corpus implementation choice.
+session-held-out groups across three public families; recurrence separately
+validates a development-corpus implementation choice.
 % 预先指定实验在三个公开 family 上支持目标盲 task partition 与 session-held-out operation group；recurrence 单独验证 development-corpus 实现选择。
 
 %% -------------------------------------------------------------------
@@ -965,40 +979,32 @@ independent confirmation.
 \section{Related Work}
 % 相关工作
 
-Agent observability tools aggregate execution traces, metadata, and
+Agent observability tools aggregate traces, metadata, and
 metrics~\cite{langsmith,langfuse,phoenix,otel,openinference,agentops,agenttelemetry,agenttraces-trust,datadog-llmobs,laminar-signals};
-LangSmith Insights and Datadog Patterns add cross-trace
-hierarchies~\cite{langsmith-insights,datadog-patterns}. NVIDIA NeMo Agent
-Toolkit instruments supported workflows and aggregates token, latency,
-bottleneck, and concurrency statistics~\cite{nemo-agent-toolkit-profiler}.
-\sys instead profiles heterogeneous offline histories and source-linked effects
-with selectable, conserved, pprof-compatible projections.
+LangSmith and Datadog add cross-trace hierarchies~\cite{langsmith-insights,datadog-patterns},
+and NeMo aggregates token, latency, bottleneck, and concurrency
+statistics~\cite{nemo-agent-toolkit-profiler}. \sys instead provides selectable,
+conserved pprof projections over heterogeneous offline histories and
+source-linked effects.
 % 智能体可观测性工具聚合执行 trace、metadata 和 metric；LangSmith Insights 与 Datadog Patterns 增加跨 trace 层次；NVIDIA NeMo Agent Toolkit instrument 支持的 workflow 并聚合 token、latency、bottleneck 和 concurrency。\sys 则用可选择、守恒、兼容 pprof 的投影 profile 异构离线历史和带源谱连接的 effect。
 
-Traditional profilers aggregate stack samples~\cite{pprof,flamegraphs}, while
-Perfetto queries trace events~\cite{perfetto}. \sys derives semantic fields
-from histories and constructs alternative hierarchies over the same
-source-linked operations.
+Traditional profilers aggregate stacks~\cite{pprof,flamegraphs}, while Perfetto
+queries trace events~\cite{perfetto}; \sys derives alternative semantic
+hierarchies over source-linked operations.
 % 传统 profiler 聚合 stack sample，Perfetto 查询 trace event；\sys 从历史派生语义字段，并在同一组带源谱连接的 operation 上构建可替换层次。
 
-Agent diagnosis localizes failures~\cite{agentrx,telbench,trajad}, performs
-root-cause analysis~\cite{agentfixer}, and develops audit
-taxonomies~\cite{agentatlas}. CodeTracer reconstructs hierarchical
-state-transition traces for localization and replay~\cite{li2026codetracer};
-\sys instead folds recurring responsibility across trajectories into aggregate
-profiles.
+Agent diagnosis localizes failures, explains causes, and develops audit
+taxonomies~\cite{agentrx,telbench,trajad,agentfixer,agentatlas}; CodeTracer
+reconstructs state-transition traces~\cite{li2026codetracer}. \sys instead folds
+recurring responsibility across trajectories.
 % Agent diagnosis 定位故障、执行 root-cause analysis 并构建审计 taxonomy。CodeTracer 重建层次化 state-transition trace 以支持定位与 replay；\sys 则把跨轨迹重复责任折叠为聚合 profile。
 
 %% ===================================================================
 \section{Conclusion}
 % 结论
 
-Agent observability needs profiling, not only debugging. \sys builds semantic
-operation stacks with source-linked conserved effects and selectable views. Its
-label-free constructor beats simple development controls; post-hoc calibration
-improves the prior constructor on 405 reused CodeTraceBench trajectories without
-changing OSWorld, and 27{,}765 operations take 1.17\,s.
-% 智能体可观测性需要 profiling，而不仅仅是 debugging。\sys 构建带来源关联、weight 守恒且视图可选的语义 operation stack；无标签 constructor 胜过简单 development 对照，post-hoc 校准在复用的 405 条 CodeTraceBench 轨迹上改进先前 constructor 且不改变 OSWorld，27,765 个 operation 用时 1.17 秒。
+Agent observability needs profiling, not only debugging.
+% 智能体可观测性需要 profiling，而不仅仅是 debugging。
 
 \bibliography{references}
 
