@@ -70,9 +70,9 @@ sudo ./collector/target/release/agentsight debug ssl --http-parser
 
 Use `top` for the normal live view. Use `record` when you want a durable
 agent-run artifact; it starts SSL, process, system, and web-view collection with
-AgentSight's default filters, and saves a local SQLite session for `report`,
-`top --db`, `report prompts`, and other report queries.
+no default event filters, and saves a local SQLite session for `report`, `top
+--db`, `report prompts`, and other report queries.
 
 Use `debug trace` only when you need low-level control over capture sources or
-filters. It is the advanced replacement for a raw trace command, not the normal
-record/report workflow.
+explicit filters. It is the advanced replacement for a raw trace command, not
+the normal record/report workflow.

@@ -90,7 +90,7 @@ sudo ./collector/target/release/agentsight debug ssl --http-parser
 
 - `record -- <command>` 用于启动并记录一个命令；`record -c/-p` 用于附加到已运行进程
 - **自动开启**：SSL 监控 + 进程监控 + 系统监控 + Web 服务器（端口 7395）
-- **内置过滤规则**：自动过滤掉注册请求（`/v1/rgstr`）、HEAD 请求、空响应体、202 状态码、二进制数据等噪音
+- **默认不丢弃事件**：如需过滤请求、响应或 SSL 片段，使用 `debug trace` 的显式过滤选项
 - 默认**静默模式**（不输出到底层事件流），数据写入实时 view 和本地 SQLite session
 
 典型用法：
@@ -125,7 +125,7 @@ sudo ./agentsight debug trace --ssl true --process false --server --http-filter 
 | Web 服务器 | 默认开启，可用 `--no-server` 关闭 | 需 `--server` |
 | 系统监控 | 默认开启 | 需 `--system` |
 | 控制台输出 | 默认关闭 | 默认开启 |
-| 过滤规则 | 内置预设 | 用户自定义 |
+| 过滤规则 | 默认不过滤 | 用户自定义 |
 | 持久化 | 默认 SQLite | 传 `--db` 时写 SQLite |
 
 简单来说：**实时查看用 `top`，保存复盘用 `record`，深度调试用 `debug trace`**。

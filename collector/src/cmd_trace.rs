@@ -28,9 +28,6 @@ use crate::view::{MaterializedView, SharedMaterializedView, process_select};
 pub(crate) const DEFAULT_SERVER_LISTEN: &str = "127.0.0.1";
 pub(crate) const DEFAULT_RECORD_STDIO_MAX_BYTES: u32 = 65_536;
 
-const DEFAULT_SSL_FILTER: &str = "data=0\\r\\n\\r\\n";
-const DEFAULT_HTTP_FILTER: &str = "request.path_prefix=/v1/rgstr | response.status_code=202 | request.method=HEAD | response.body=";
-
 pub(crate) struct StartedWebServer {
     pub(crate) url: String,
     pub(crate) _handle: tokio::task::JoinHandle<()>,
@@ -89,13 +86,13 @@ impl TraceConfig {
     pub(crate) fn for_record() -> Self {
         Self {
             ssl: true,
-            ssl_filter: vec![DEFAULT_SSL_FILTER.to_string()],
+            ssl_filter: Vec::new(),
             ssl_http: true,
             process: true,
             stdio_max_bytes: DEFAULT_RECORD_STDIO_MAX_BYTES,
             system: true,
             system_interval: 2,
-            http_filter: vec![DEFAULT_HTTP_FILTER.to_string()],
+            http_filter: Vec::new(),
             quiet: true,
             ..Default::default()
         }
