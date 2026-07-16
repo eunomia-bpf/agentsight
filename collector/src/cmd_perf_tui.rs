@@ -561,7 +561,6 @@ mod tests {
         assert_eq!(prompt, None);
     }
 
-
     #[test]
     fn lower_s_remains_sort_shortcut_even_when_recording() {
         assert_eq!(next_sort_key("cpu"), "rss");

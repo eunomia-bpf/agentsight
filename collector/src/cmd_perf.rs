@@ -56,7 +56,13 @@ pub(crate) fn load_top_output<'a>(
     options: &TopOptions,
 ) -> Result<AgentTopOutput<'a>, Box<dyn std::error::Error + Send + Sync>> {
     let (snapshot, resources) = load_snapshot_and_resources(db)?;
-    Ok(build_session_top(db, &snapshot, &resources, limit.clamp(1, 50), options))
+    Ok(build_session_top(
+        db,
+        &snapshot,
+        &resources,
+        limit.clamp(1, 50),
+        options,
+    ))
 }
 
 fn build_session_top<'a>(
