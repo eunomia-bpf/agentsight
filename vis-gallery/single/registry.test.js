@@ -138,4 +138,13 @@ describe("single-view registry", () => {
     const constellation = registry.get("workspace-constellation").build(dense, data.meta.window_end_ms, helpers);
     expect(constellation.series.find((series) => series.name === "files").data).toHaveLength(1_200);
   });
+
+  test("embeds only observed files in event-driven repository maps", () => {
+    for (const id of ["repository-treemap", "workspace-constellation"]) {
+      const projected = projectForView(data, registry.get(id));
+      expect(new Set(projected.files.map((file) => file.path))).toEqual(
+        new Set(data.events.map((event) => event.path)),
+      );
+    }
+  });
 });

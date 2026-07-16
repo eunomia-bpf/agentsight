@@ -117,7 +117,12 @@ export async function buildEvolutionData(options) {
 
 export function projectForView(data, spec) {
   const keys = new Set(["schema", "meta", "summary", ...(spec.requirements ?? [])]);
-  return Object.fromEntries(Object.entries(data).filter(([key]) => keys.has(key)));
+  const projected = Object.fromEntries(Object.entries(data).filter(([key]) => keys.has(key)));
+  if (["repository-treemap", "workspace-constellation"].includes(spec.id)) {
+    const observedPaths = new Set((projected.events ?? []).map((event) => event.path));
+    projected.files = (projected.files ?? []).filter((file) => observedPaths.has(file.path));
+  }
+  return projected;
 }
 
 export function animationBounds(data, spec) {
