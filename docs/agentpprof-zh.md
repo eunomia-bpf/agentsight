@@ -42,13 +42,11 @@ Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**�
 
 ## Flamegraph 示例
 
-以下图片展示了每个视图呈现的内容。
-
 ### 语义栈总览
 
 ![语义 flamegraph](flamegraph-example/semantic-flamegraph-top200.svg)
 
-图中合并了 top 200 stack 的共享前缀。宽度表示 system-effect weight；不同 frame 处结束的栈形成参差的上沿。
+图中合并了 top 200 stack 的共享前缀。宽度表示 system-effect weight；不同 frame 处结束的栈形成参差的轮廓。
 
 ### Tokens 视图
 
@@ -96,7 +94,7 @@ Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领�
 
 ### Rendering
 
-这些 SVG 合并共享栈前缀，并按图头显示的度量确定 frame 宽度。栈深度决定纵向行，因此在不同 frame 处结束的路径会形成参差的上沿。
+这些 SVG 合并共享栈前缀，并按图头显示的度量确定 frame 宽度。栈深度决定纵向行，因此在不同 frame 处结束的路径会形成参差的轮廓。
 
 ## 工作原理
 
