@@ -24,8 +24,8 @@ use session::{
     session_records_from_agent_sessions, write_agent_trace,
 };
 use tagger::{
-    LlamaTagger, RegexTagger, TagDiagnostics, annotate_sessions, annotate_sessions_regex,
-    default_tag_cache_path,
+    LlamaTagger, RegexTagger, TagDiagnostics, annotate_sessions_regex,
+    annotate_sessions_with_declared_tasks, default_tag_cache_path, parse_declared_tag_choices,
 };
 
 const DEFAULT_LLAMA_URL: &str = "http://127.0.0.1:8080";
@@ -179,6 +179,9 @@ struct Cli {
     /// Rules are evaluated in order; first match wins.
     #[arg(long = "tag-rule", value_name = "KIND:TAG=REGEX")]
     tag_rules: Vec<String>,
+    /// Add one category to an optional LLM-assigned task taxonomy while preserving the raw tag.
+    #[arg(long = "task-choice", value_name = "TAG=DESCRIPTION")]
+    task_choices: Vec<String>,
     /// Enable built-in keyword rules (profile, debug, test, review, etc.).
     /// These are generic and may not match your project well. For testing only.
     #[arg(long)]
@@ -1252,6 +1255,9 @@ fn annotate_sessions_with(
 ) -> Result<Option<TagDiagnostics>> {
     match args.tagger.unwrap_or(TaggerKind::Regex) {
         TaggerKind::Regex => {
+            if !args.task_choices.is_empty() {
+                bail!("--task-choice requires --tagger llm");
+            }
             let tagger = RegexTagger::new(&args.tag_rules, args.preset)?;
             let diagnostics = annotate_sessions_regex(sessions, &tagger);
             Ok(Some(diagnostics))
@@ -1268,7 +1274,11 @@ fn annotate_sessions_with(
                 Duration::from_secs(args.timeout),
                 args.max_uncached_tags,
             );
-            annotate_sessions(sessions, &mut tagger)?;
+            if args.no_cache {
+                tagger.disable_cache();
+            }
+            let task_choices = parse_declared_tag_choices(&args.task_choices)?;
+            annotate_sessions_with_declared_tasks(sessions, &mut tagger, &task_choices)?;
             if !args.no_cache {
                 tagger.save()?;
             }
@@ -1297,6 +1307,24 @@ mod tests {
         assert!(help.contains("OPERATION STACK QUERY WORKFLOW"));
         assert!(!help.contains("semantic profiler for local AI coding-agent sessions"));
         assert!(!help.contains("Flamegraphs require semantic tags"));
+    }
+
+    #[test]
+    fn declared_task_taxonomy_requires_llm_tagger() {
+        let args = Cli::parse_from([
+            "agentpprof",
+            "-o",
+            "out.json",
+            "--task-choice",
+            "alfworld=household tasks",
+            "--task-choice",
+            "webshop=shopping tasks",
+        ]);
+        let err = annotate_sessions_with(&mut [], &args)
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("--task-choice requires --tagger llm"));
     }
 
     #[test]
@@ -1674,6 +1702,7 @@ mod tests {
                 },
             ],
             session_tag: "review".to_string(),
+            task_tag: String::new(),
         };
 
         filter_session_by_prompt_tag(&mut session, "test");

@@ -27,6 +27,7 @@ pub struct SessionRecord {
     pub tools: Vec<ToolEvent>,
     pub llm_calls: Vec<LlmEvent>,
     pub session_tag: String,
+    pub task_tag: String,
 }
 
 impl SessionRecord {
@@ -198,6 +199,7 @@ fn record_from_agent_session(session: &AgentSession) -> SessionRecord {
         tools: session.events.tools.clone(),
         llm_calls: session.events.llm_responses.clone(),
         session_tag: String::new(),
+        task_tag: String::new(),
     }
 }
 

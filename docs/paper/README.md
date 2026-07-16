@@ -45,10 +45,10 @@ claims still require reconciliation with complete real experiments. New
 evidence may strengthen those claims, but experiments do not silently replace
 the thesis, story, hypotheses, or RQs.
 
-As of 2026-07-14, a forced build produces nine US-letter pages with all main
+As of 2026-07-16, a forced build produces nine US-letter pages with all main
 content ending on page seven and References beginning on page eight. All fonts
 are embedded Type 1 or TrueType, and the anonymous source contains no author or
-affiliation identity. `ReproducibilityChecklist.tex` is still the unfilled
-official template and must be completed from the final experiment/paper state.
-Page-limit pressure must not be resolved by narrowing the scientific
-contribution.
+affiliation identity. `ReproducibilityChecklist.tex` is filled from the current
+experiment and paper state and compiles separately to a two-page US-letter PDF;
+items not yet supported are marked `partial` or `no` rather than overstated.
+Page-limit pressure must not be resolved by narrowing the scientific contribution.

@@ -553,9 +553,9 @@ the rules through repeated \sys runs while inspecting unmatched operations.
 % 正则规则是生产环境默认：规则格式为 \texttt{KIND:TAG=REGEX}，按顺序求值（首个匹配胜出）；agent 可以通过重复运行 \sys 并检查未匹配 operation 来细化规则。
 A local LLM tagger, such as a quantized 3B-parameter model through
 llama.cpp~\cite{llamacpp},
-generates a single-word tag per prompt with grammar-constrained decoding and
-caching.
-% 本地 LLM tagger（例如通过 llama.cpp~\cite{llamacpp} 运行的量化 3B 参数模型）使用语法约束解码和缓存为每个 prompt 生成单词标签。
+either generates a single-word tag or assigns one label from a user-declared
+set of task labels; both paths use grammar-constrained decoding and caching.
+% 本地 LLM tagger（例如通过 llama.cpp~\cite{llamacpp} 运行的量化 3B 参数模型）既可生成单词标签，也可从用户声明的 task 标签集合中指派一个标签；两条路径均使用语法约束解码和缓存。
 TF-IDF~\cite{salton-buckley-1988} and
 K-Means~\cite{macqueen1967} discover candidate prompt groups without predefined rules,
 while mapping rules derive fields for structured trajectories, for example
@@ -693,8 +693,8 @@ The session tag alone barely helps because trajectories typically contain multip
 A tag-permutation test (1{,}000 shuffles, $p = 0.001$) confirms the separation is not random.
 % 标签置换测试（1,000 次洗牌，$p = 0.001$）确认分离不是随机的。
 The RQ1 experiment measures attribution conditional on the declared prompt
-tags. The independent RQ3 experiment evaluates group-boundary accuracy.
-% 该实验测量给定声明 prompt tag 时的归因；RQ3 当前的独立准确性证据涉及边界标签。
+tags. RQ3 separately evaluates task tags and group-boundary accuracy.
+% 该实验测量给定声明 prompt tag 时的归因；RQ3 单独评估 task tag 和 group-boundary accuracy。
 These results show that prompt-level semantic fields materially refine
 responsibility views beyond tag-free aggregation.
 % 这些结果表明，prompt 级语义字段相比无标签聚合显著细化了责任视图。
@@ -736,8 +736,8 @@ Figure~\ref{fig:flamegraph} shows the resulting flame graphs for the \texttt{tok
 Together, these results answer RQ1. Scoped source lineage rejects concurrent
 controls, \sys preserves attributed weight across runs, and semantic
 profiling provides multi-resolution and multi-weight attribution views over the
-resulting operations. RQ3 separately evaluates automatic group construction.
-% 这些结果共同回答 RQ1：范围化源谱拒绝并发对照，AgentProf 在跨运行折叠中保留已归因权重，语义 profiling 在所得 operation 上提供多分辨率和多权重归因视图；RQ3 单独评估自动分组构造。
+resulting operations. RQ3 separately evaluates tags and group construction.
+% 这些结果共同回答 RQ1：范围化源谱拒绝并发对照，AgentProf 在跨运行折叠中保留已归因权重，语义 profiling 在所得 operation 上提供多分辨率和多权重归因视图；RQ3 单独评估标签和分组构造。
 
 
 %% flamegraph figure moved to intro (between ¶4 and ¶5)
@@ -824,9 +824,9 @@ annotations.
 % RQ3 询问类别型 operation 字段恢复独立标注构造的准确程度。
 RQ3 covers task, phase, and action labels produced by intent attribution or
 mappings, as well as group boundaries used to construct the hierarchy. We
-evaluate task partitions and group boundaries; phase, action, and literal tag
-names remain outside the current evidence.
-% 这些字段包括由意图归因或 mapping 产生的 task、phase 和 action 标签，以及用于构造 profile 层次的分组边界；当前证据测试 task partition 和 group boundary，不测试 phase、action 或 tag 的字面命名。
+evaluate task partitions, task-family labels, and group boundaries;
+literal phase and action labels remain outside the current evidence.
+% 这些字段包括由意图归因或 mapping 产生的 task、phase 和 action 标签，以及用于构造 profile 层次的分组边界；当前证据测试 task partition、task-family 标签和 group boundary，尚不测试字面 phase 与 action 标签。
 
 We hypothesize that pre-specified target-blind taggers or mappings recover
 accurate, stable task, phase, and action labels and group boundaries on unseen
@@ -886,30 +886,18 @@ measures agreement between predicted and human operation partitions.}
 \end{table}
 
 The supervised predictor reaches 0.739 boundary and 0.816 B$^3$ F1 versus
-0.645 and 0.678 for the strongest controls, leading every fold. \sys projects
-all 3{,}978 operations into 2{,}249 weight-conserving stacks.
-% 监督 predictor 的 boundary 与 B$^3$ F1 为 0.739 和 0.816，最强对照为 0.645 和 0.678，且每个 fold 的 boundary F1 均领先。\sys 将全部 3,978 个 operation 投影到 2,249 个 stack，并保持总权重。
-Label-free recurrence reaches 0.680 boundary and 0.786 B$^3$ F1, above the
-controls and below the supervised predictor; Rust matches all 3{,}691 decisions
-and conserves all 3{,}978 weights.
-% 无标签 recurrence 的 boundary 与 B$^3$ F1 为 0.680 和 0.786，高于简单对照、低于监督 comparator；Rust 匹配全部 3,691 个 evaluator 决策和 2,656 个 segment，并守恒全部 3,978 权重。
-Reference calibration reaches 0.734 boundary and 0.801 B$^3$ F1 under the same
-folds. It measures the value of additional group annotations, not
-equal-information superiority over the label-free default.
-% Reference calibration 在相同的五个 held-out fold 上将 recurrence 提升到 0.734 boundary F1 和 0.801 B$^3$ F1；该增益使用了无标签默认模式不可用的 group 标注，因此衡量的是监督校准的价值，而非同等信息下的优越性。
+0.645 and 0.678 for the strongest controls. Label-free recurrence reaches
+0.680 and 0.786; reference calibration reaches 0.734 and 0.801 but consumes
+group annotations unavailable to the default. All projected weights are
+conserved.
+% 监督 predictor 的 boundary 与 B$^3$ F1 为 0.739 和 0.816，最强对照为 0.645 和 0.678；无标签 recurrence 为 0.680 和 0.786；使用额外 group 标注的 reference calibration 为 0.734 和 0.801。所有投影权重均保持守恒。
 
 Post-hoc selection on OSWorld-Human and 405 source-valid failed trajectories
-from the CodeTraceBench verified split~\cite{li2026codetracer} preserves every
-OSWorld decision while raising CodeTraceBench boundary F1 from 0.269 to 0.287
-and B$^3$ F1 from 0.475 to 0.649 across all four frameworks. Phase change reaches
-0.225 and 0.654. This selects the default implementation, not every RQ3 tag.
-% 我们在已观察的 OSWorld-Human 数据与 CodeTraceBench verified split 的 405 条 source-valid failed 轨迹上 post-hoc 选择最终校准，并保持全部 3,691 个 OSWorld 决策。相对先前全局 constructor，它删除 5,974 个 CodeTraceBench 边界且不新增，将 boundary F1 从 0.269 提升到 0.287、B$^3$ F1 从 0.475 提升到 0.649，四个 framework 均提升。external phase-change baseline 的 boundary F1 更低（0.225），B$^3$ F1 略高（0.654），并在两个 framework 上胜出。这是 implementation-selection 证据，而不是对 RQ3 所有 tag 类型的独立确认。
-
-Fitting the optional scalar on 483 disjoint solved sessions raises B$^3$ F1 on
-the 405 failed sessions from 0.649 to 0.667 while merging 6{,}897 groups into
-5{,}331; boundary F1 is 0.236. This supports partition fidelity with reference
-annotations, not every boundary metric or literal tag names.
-% 使用 483 条 solved CodeTraceBench session 作为与目标不重叠的分组参考，同一标量校准流程将 405 条 failed session 上的 B$^3$ F1 从 0.649 提升到 0.667。它将 6,897 个无标签 group 合并为 5,331 个，通过提高 partition recall 改善 B$^3$，同时 boundary F1 从 0.287 变为 0.236。因此该可选模式支持有标注预算时的 partition fidelity，而不意味着所有 boundary metric 都提高或验证了字面 tag 名称。
+from CodeTraceBench~\cite{li2026codetracer} preserves every OSWorld decision
+while raising CodeTraceBench boundary F1 from 0.269 to 0.287 and B$^3$ F1 from
+0.475 to 0.649 across all four frameworks. This selects the default
+implementation, not every RQ3 tag.
+% 在已观察的 OSWorld-Human 与 405 条 CodeTraceBench failed 轨迹上，post-hoc 选择保持全部 OSWorld 决策，并将 CodeTraceBench boundary F1 从 0.269 提高到 0.287、B$^3$ F1 从 0.475 提高到 0.649；这是默认实现选择证据，而不是对 RQ3 所有 tag 的验证。
 
 Target-blind TF-IDF/K-Means reaches operation-weighted V-measure 0.557 on nine
 Mind2Web sessions (49 operations) and 0.815 on 100 ScienceWorld sessions
@@ -917,10 +905,16 @@ Mind2Web sessions (49 operations) and 0.815 on 100 ScienceWorld sessions
 tag~\cite{mind2web,scienceworld}. It tests partitions, not literal names.
 % 目标盲 TF-IDF/K-Means backend 还从隐藏标签的文本推断 task partition。在 9 个 Mind2Web session（49 个 operation）和 100 个 ScienceWorld session（2,504 个 operation）上，operation-weighted V-measure 为 0.557 和 0.815，coverage 为 100%，constant tag 为 0；V-measure 测试 partition 而非字面 tag 名。
 
-The pre-specified experiments support target-blind task partitions and
-session-held-out groups across three public families; recurrence separately
-validates a development-corpus implementation choice.
-% 预先指定实验在三个公开 family 上支持目标盲 task partition 与 session-held-out operation group；recurrence 单独验证 development-corpus 实现选择。
+For task-family labels, the fixed Qwen3.6-27B backend uses only goals and
+declared family descriptions to classify all 1{,}012 AgentBoard goals across
+nine families~\cite{qwen36,agentboard}. It reaches 0.695 macro-F1 and 0.733 accuracy
+versus 0.044 and 0.248 for majority, with identical three-run assignments.
+% 对于 task-family 标签，固定 Qwen3.6-27B backend 仅使用 goal 与已声明 family 描述，将 AgentBoard 发布的全部 1,012 个 goal 指派到九个 family；macro-F1 与 accuracy 分别为 0.695 和 0.733，majority control 为 0.044 和 0.248，三次完整运行的指派完全一致。
+
+Together, the public evaluations support target-blind task partitions,
+assignment among declared task families for the named backend, and
+session-held-out groups.
+% 这些公开评估共同支持目标盲 task partition、指定 backend 在声明的 task family 之间进行指派，以及 session-held-out operation group。
 
 %% -------------------------------------------------------------------
 \subsection{RQ4: Profiling Cost}
@@ -968,11 +962,12 @@ for the current binary.
 The evaluation is offline and excludes capture and live-agent overhead. RQ1 is
 limited to the fixed 20-task suite, declared process/tool scope, and
 R114-compatible AgentSight 0.2.37 path; manifest categories are inputs. RQ3
-establishes task partitions on Mind2Web/ScienceWorld and held-out group
+establishes task partitions on Mind2Web/ScienceWorld, accuracy among nine
+declared AgentBoard task families for one named backend, and held-out group
 boundaries on OSWorld-Human; phase/action need matched annotations and fixed
 mappings. Its 405-trajectory CodeTraceBench calibration is post-hoc, not
 independent confirmation.
-% 评估是离线的，不含 capture 和 live-agent 开销。RQ1 限于固定 20-task suite、声明的 process/tool scope 与 R114-compatible AgentSight 0.2.37 路径，manifest 类别是输入。RQ3 在 Mind2Web/ScienceWorld 上确立 task partition、在 OSWorld-Human 上确立 held-out group boundary；phase/action 仍需匹配标注和固定 mapping。405 条 CodeTraceBench 校准是 post-hoc 而非独立确认。
+% 评估是离线的，不含 capture 和 live-agent 开销。RQ1 限于固定 20-task suite、声明的 process/tool scope 与 R114-compatible AgentSight 0.2.37 路径，manifest 类别是输入。RQ3 在 Mind2Web/ScienceWorld 上确立 task partition、测量一个指定 backend 在九个已声明 AgentBoard task family 间的 accuracy、并在 OSWorld-Human 上确立 held-out group boundary；phase/action 仍需匹配标注和固定 mapping。405 条 CodeTraceBench 校准是 post-hoc 而非独立确认。
 
 
 %% ===================================================================

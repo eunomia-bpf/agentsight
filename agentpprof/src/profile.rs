@@ -1958,6 +1958,9 @@ fn base_sample(
     sample.insert("project", project_name);
     sample.insert("agent", session.source.clone());
     sample.insert("session", session.session_tag.clone());
+    if !session.task_tag.is_empty() {
+        sample.insert("task", session.task_tag.clone());
+    }
     sample.insert("prompt", req.tag.clone());
     sample.insert("prompt_hash", req.text_hash.clone());
     sample.insert("prompt_preview", req.preview.clone());
@@ -2573,6 +2576,7 @@ pub fn session_to_json(session: &SessionRecord, include_previews: bool) -> Value
         "agent_role": session.agent_role,
         "model": session.model,
         "session_tag": session.session_tag,
+        "task_tag": session.task_tag,
         "start_ts_ms": session.start_ts_ms,
         "prompt_count": session.user_requests.len(),
         "tool_count": session.tools.len(),
@@ -2799,6 +2803,7 @@ mod tests {
             tools,
             llm_calls,
             session_tag: session_tag.to_string(),
+            task_tag: String::new(),
         }
     }
 
@@ -2972,6 +2977,35 @@ mod tests {
             stacks.get("project:agentsight;agent:codex;op:llm;phase:answer;status:observed"),
             Some(&1)
         );
+    }
+
+    #[test]
+    fn declared_task_tag_is_additional_to_raw_session_tag() {
+        let mut session = test_session(
+            "agentboard",
+            "shopping",
+            vec![prompt(0, 1000, "h1", "buy a mug", "shopping")],
+            Vec::new(),
+            Vec::new(),
+        );
+        session.task_tag = "webshop".to_string();
+        let stack = parse_stack_spec("session,task,prompt").unwrap();
+        let options = OperationStackConfig::for_view(ProfileView::Operations).with_stack(stack);
+        let profile = build_profile_with_options(
+            &[session.clone()],
+            "agentboard",
+            ProfileView::Operations,
+            &options,
+        )
+        .unwrap();
+
+        assert_eq!(
+            profile_to_stacks(&profile).get("session:shopping;task:webshop;prompt:shopping"),
+            Some(&1)
+        );
+        let json = session_to_json(&session, false);
+        assert_eq!(json["session_tag"], "shopping");
+        assert_eq!(json["task_tag"], "webshop");
     }
 
     #[test]

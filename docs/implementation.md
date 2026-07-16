@@ -19,7 +19,7 @@ history is archived at
 | `agentpprof/src/profile.rs` | operation records, operation-stack configuration, mappings, filters, folding, ranking, and stack induction |
 | `agentpprof/src/session.rs` | local agent-session ingestion |
 | `agentpprof/src/standard_trace.rs` | Chrome/Perfetto Trace Event import and export through operation records |
-| `agentpprof/src/tagger.rs` | optional semantic tagging support |
+| `agentpprof/src/tagger.rs` | optional open-vocabulary and declared-label tagging support |
 | `agentpprof/tests/profile_spec_cli.rs` | CLI/profile-spec/mapping/filter/ranking/induction integration tests |
 | `agentpprof/tests/standard_trace_cli.rs` | trace import/export integration tests |
 | `agentpprof/backend/python/cluster_tagger.py` | optional Python tagging backend |
@@ -90,6 +90,8 @@ Implemented CLI capabilities include:
 
 - `--profile-spec` for repeatable source, view, mapping, filter, stack, ranking,
   tagging, and output choices;
+- repeated `--task-choice TAG=DESCRIPTION` with the LLM tagger for assigning a
+  separate canonical task field while preserving the raw open-vocabulary tag;
 - `--op-map` and `--op-map-file` for derived operation fields;
 - `--where` for operation predicates after mapping and before folding;
 - `--stack` and `--stack-rule` for declared stack construction;
@@ -104,6 +106,19 @@ Implemented CLI capabilities include:
 The exact CLI remains authoritative; use `cargo run --manifest-path
 agentpprof/Cargo.toml -- --help` before copying a command into a paper or
 experiment plan.
+
+Step 0031 adds the declared-label path without replacing the existing tagger.
+Each session retains its raw `session_tag` and receives a separate `task_tag`
+only when at least two `--task-choice` values are supplied. The canonical task
+field flows through session JSON, standard trace, operation construction, and
+stack projection. `--no-cache` now disables cache loading, in-memory hits, and
+writes. A step-level outer audit found that the experimental optional branch
+stored both fields but had reused the task request for the raw tag. The release
+path now preserves the original raw request (`session`, title/CWD/prompt,
+source/model hints) and issues the goal-only declared task request separately;
+the latter is byte-equivalent to the request scored in the complete AgentBoard
+experiment. Sixty-two Rust and CLI tests, including a request-contract test,
+plus Clippy pass after the repair.
 
 ## What Is Not Implemented
 
@@ -156,8 +171,9 @@ The implementation is ahead of the admitted scientific evidence in breadth of
 configuration. In particular:
 
 1. recurrence induction clears the registered simple controls on the same
-   post-hoc OSWorld-Human development population, but still lacks an independent
-   cross-family confirmation of phase/action identity;
+   post-hoc OSWorld-Human development population, and declared task-family
+   accuracy is measured for one named backend on AgentBoard, but phase/action
+   identity still lacks independent cross-family confirmation;
 2. many mapping and rank rules were developed on datasets later used for
    analysis, so unchanged transfer needs a genuinely untouched family;
 3. profile-group ranking can improve because of visible fields or rank policy

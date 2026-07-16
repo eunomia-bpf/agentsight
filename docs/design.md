@@ -295,8 +295,9 @@ The current design is not:
 
 ## Evaluation Consequence
 
-RQ1, RQ2, the human-boundary component of RQ3, and RQ4 have paper-linked
-evidence. Steps 0017--0018 established that the former information-gain runtime
+RQ1, RQ2, the task-partition, task-family, and human-boundary components of
+RQ3, and RQ4 have paper-linked evidence. Steps 0017--0018 established that the
+former information-gain runtime
 objective did not match heterogeneous human operation groups. Steps 0020--0024
 changed that objective to the cross-session recurrence construction specified
 above, diagnosed identity-dominated calibration on existing CodeTraceBench
@@ -308,3 +309,11 @@ unit. Because both label populations informed mechanism development, this is
 implementation-selection evidence, not fresh confirmation of the whole RQ3
 hypothesis. Further field, depth, penalty, threshold, or score-term tuning on
 either reused population is not part of the design.
+
+Step 0031 adds a distinct RQ3 measurement without changing the two-object
+model: the existing local tagger can assign a separate task field from
+user-declared labels. On all 1,012 AgentBoard goals, the fixed Qwen3.6-27B
+backend reaches 0.695 macro-F1 and 0.733 accuracy versus majority 0.044 and
+0.248, with exact three-run stability. This supports task-family labels for the
+named backend; it does not turn tag assignment into a third abstraction or
+establish phase/action labels and unknown-family transfer.

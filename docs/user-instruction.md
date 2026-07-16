@@ -219,3 +219,12 @@ submodule 的原始 AgentProf 版本 是啥?
 去掉深度上限后：0.4720 / 0.6720
 当前跨运行 recurrence：0.6799 / 0.7862
 加独立 grouped-reference scalar calibration：约 0.7340 / 0.8011这些啥意思?
+
+---
+
+OS world 标注了什么? Label-free recurrence 是啥?Grouped-reference calibration 是有额外标注时的可选模式。
+Information gain 的问题不是不够复杂，而是“字段纯度”并不等于“operation 连续性”。 你再详细解释
+
+---
+
+我们的合理的指标应该是什么?

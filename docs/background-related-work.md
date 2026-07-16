@@ -262,10 +262,14 @@ alone.
    CodeTraceBench trajectories, with the complete external phase-change
    tradeoff and post-hoc boundary above. Do not retune either observed
    population. Structured phase mapping alone cannot authorize every tag
-   backend, and a new dataset is not justified merely to fill remaining cells;
-   the completed whole-paper re-review and independent outer audit do not find
-   broader constructor evidence load-bearing, so no next constructor experiment
-   is admitted.
+   backend. Step 0031 now supplies a different literal-label measurement on the
+   complete released [AgentBoard](https://proceedings.neurips.cc/paper_files/paper/2024/hash/877b40688e330a0e2a3fc24084208dfa-Abstract-Datasets_and_Benchmarks_Track.html)
+   goal population: the fixed Qwen3.6-27B path reaches 0.695 macro-F1 and 0.733
+   accuracy across nine declared families, versus majority 0.044 and 0.248,
+   with exact three-run stability. This supports the named backend under a
+   declared label set, not phase/action labels or unknown-family transfer. No
+   next constructor experiment is admitted merely to fill another evidence
+   cell.
 4. **RQ4 — profiling cost.** Step 0005 supplies the paper-level construction
    answer: current `agentpprof 0.2.37` builds the 27,765-operation semantic
    union in 1.17 s median with 464.49 MiB maximum RSS, while R160 separately

@@ -128,7 +128,36 @@ recall 很高且每组很“纯”，但每个真实 operation 被切碎，B-cub
 在跨运行语义上正确，更没有评估第 3 层名字或第 4 层诊断价值。因此这些数字是
 必要的 constructor evidence，不是 AgentProf 整体价值的充分证据。
 
-### 2.5 四组 OSWorld 数字到底表示什么
+### 2.5 OSWorld-Human 到底标注了什么
+
+OSWorld-Human 为每个 OSWorld task 人工维护两种成功参考轨迹：
+
+- `single-action`：完成任务所需的最小、人类可理解的动作序列；
+- `grouped-action`：把**可以从同一个视觉观察中连续正确执行**的相邻动作放在
+  同一组。原论文把这解释为这些动作可能只需要一次 planning、judging 或
+  reflection，而不是每个动作都重新调用一次大模型。
+
+因此，官方 `grouped-action` 的 gold 语义首先是 **same-observation executable
+group**，服务于 computer-use agent 的步骤和时延效率分析。它并没有直接标注：
+
+- 高层 task / phase / action 的语义名称；
+- 两个不同 session 的 group 是否是同一种 recurring operation；
+- 哪个 group 是错误根因、产生了什么 measured effect；
+- 每个 group 应归属多少 token、latency 或其他 profiling resource。
+
+本项目 adapter 只保留 `single-action` 与 `grouped-action` 能够逐动作完全对齐的
+session。每个 single action 成为一个 unit-weight operation；它所属的官方
+group 成为 session-local `human_group`。相邻两个 action 的 `human_group` 不同，
+才形成一个 gold boundary。由此得到的 287 个 session、3,978 个 operation 和
+2,042 个 group，是官方 grouped trajectory 的连续 partition，不是我们另外人工
+编写的 phase/action 标注。adapter 派生的 `phase`、`target`、`group_pattern` 等
+字段都不是官方 gold，不能用来扩大 OSWorld 分数的含义。
+
+这也解释了为什么 OSWorld 可以严谨评估“是否恢复 same-observation grouping”，
+却不能单独证明 AgentProf 已经获得正确的跨运行 operation identity 或可读语义
+tag。后两者必须由另外的独立标注或下游实验回答。
+
+### 2.6 四组 OSWorld 数字到底表示什么
 
 同一完整 OSWorld-Human population 有：
 
@@ -172,7 +201,7 @@ recall 很高且每组很“纯”，但每个真实 operation 被切碎，B-cub
 4. grouped-reference calibration 是有 annotation 时的可选粒度调整，它在该
    population 上小幅提高 partition F1，但更 over-segment，不能冒充免费提升。
 
-### 2.6 怎么判断一个算法真正更好
+### 2.7 怎么判断一个算法真正更好
 
 在同一信息预算下，最低限度要一起看：
 
@@ -190,6 +219,33 @@ mass conservation、determinism、没有读取 target oracle 是实现有效性�
 “算法科学上更好”的分数。相反，一个算法即使 B-cubed 更高，如果只靠更多标签、
 明显过度切分，或不能改善下游 profiling decision，也不能自动成为整篇论文的
 最好算法。
+
+对**当前 OSWorld same-observation partition 子问题**，最简洁、合理的报告方式是：
+
+1. 以 per-operation B-cubed F1 为主指标，因为目标是完整 partition membership，
+   而不是给 group ID 做字符串分类；
+2. 强制并列报告 B-cubed precision/recall、exact-boundary precision/recall/F1，
+   以及 predicted/gold group count，明确区分 merge 与 fragmentation；
+3. 把每个 task/session 等权的 macro 结果或 per-session 分布作为敏感性结果，避免
+   少数长轨迹完全主导 pooled operation 平均；
+4. label-free 与 grouped-reference 模式分开成不同信息预算，不能只因后者
+   `0.8011 > 0.7862` 就宣称算法免费改善。
+
+不应把 boundary accuracy 当主指标，因为非边界通常更多，全部预测 continuity
+也可能得到误导性高 accuracy；不应只报 boundary F1，因为它隐藏了完整 segment
+的 merge/fragmentation；也不应只报 group 数，因为数量相同不代表切点正确。
+
+对**论文声称的完整 operation-stack induction**，OSWorld B-cubed 只能是第一层
+constructor metric，不能成为唯一 headline。完整证据至少还需要：
+
+- 跨 session stable identity 的 label-invariant partition / pairwise P-R-F1；
+- 固定 task/phase/action taxonomy 上的 macro-F1 与 accuracy；
+- RQ1 attribution 和 RQ2 localization 中，在固定 inspection budget 下的实际
+  profiling decision 改善。
+
+这三类结果回答不同问题，不应压缩成一个自定义 composite score。算法选择先比较
+相同输入信息预算，再看各层是否形成一致的 Pareto 改善；一项 proxy 的局部最高分
+不能覆盖其他层没有被测量的事实。
 
 ## 3. 算法 A：递归、资源加权 information gain
 

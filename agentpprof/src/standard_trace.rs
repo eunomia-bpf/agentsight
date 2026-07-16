@@ -762,6 +762,7 @@ mod tests {
                 tag: "review".to_string(),
             }],
             session_tag: String::new(),
+            task_tag: String::new(),
         }
     }
 
