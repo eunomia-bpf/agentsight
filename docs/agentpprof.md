@@ -92,9 +92,9 @@ time went, and use `files` and `network` for security audits.
 
 ![Semantic flamegraph](flamegraph-example/semantic-flamegraph-top200.svg)
 
-The figure shows collapsed prefixes from the top 200 stacks. Width is
-system-effect weight; stacks ending at different frames produce an uneven
-outline.
+The figure shows the 200 highest-weight paths. Paths with the same opening
+frames share a rectangle; wider rectangles have greater system-effect weight.
+Paths end at different depths, producing an uneven outline.
 
 ### Tokens View
 

@@ -46,7 +46,7 @@ Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**�
 
 ![语义 flamegraph](flamegraph-example/semantic-flamegraph-top200.svg)
 
-图中合并了 top 200 stack 的共享前缀。宽度表示 system-effect weight；不同 frame 处结束的栈形成参差的轮廓。
+图中选取权重最高的 200 条路径。几条路径如果开头几层相同，就共用同一个矩形；矩形越宽，system-effect weight 越大。路径结束的深度不同，所以轮廓参差不齐。
 
 ### Tokens 视图
 
