@@ -37,7 +37,7 @@ agentsight top
 
 <div align="center">
   <img src="docs/flamegraph-example/r221-semantic-flamegraph-top200.svg" alt="R221 semantic flamegraph of the top 200 agent stacks" width="1000">
-  <p><em>R221 semantic flamegraph: width is cumulative system-effect weight, while the uneven stack height exposes the different prompt, model, process, and effect paths. See the <a href="docs/agentpprof.md#example-flamegraphs">agentpprof guide</a> for the other profiles and the rendering pipeline.</em></p>
+  <p><em>R221 semantic flamegraph: width is cumulative system-effect weight, while the uneven stack height exposes the different prompt, tool-call, process, and effect paths. See the <a href="docs/agentpprof.md#example-flamegraphs">agentpprof guide</a> for the other profiles and the rendering pipeline.</em></p>
 </div>
 
 ## 🚀 Why AgentSight?

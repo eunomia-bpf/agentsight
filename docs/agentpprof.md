@@ -99,9 +99,10 @@ network views plus a public desktop-operation profile.
 
 This is the R221 presentation of the 200 heaviest semantic stacks. Width is
 cumulative system-effect weight, not CPU time. Each row adds a frame such as
-project, agent, session, prompt, LLM call, process, or effect. The ragged upper
-outline is intentional: a stack stops when that activity has no more specific
-frame, so different causal paths naturally have different depths.
+project, agent, session, prompt, tool call, process, effect, path, or status.
+The ragged upper outline is intentional: a stack stops when that activity has
+no more specific frame, so different causal paths naturally have different
+depths.
 
 ### AgentSight Development Time
 
@@ -109,9 +110,10 @@ frame, so different causal paths naturally have different depths.
 
 ![AgentSight development time flamegraph](flamegraph-example/agentsight-time.svg)
 
-Width represents elapsed seconds. Review leads, followed by git, edit, docs,
-and code prompts. Continuation and inspection prompts form shorter branches,
-which makes this profile visibly less rectangular than a fixed-schema chart.
+Width represents elapsed seconds. Review is the widest prompt region;
+continuation, unmatched, and query branches are also prominent, followed by
+docs, code, edit, and git work. Their different terminal frames make this
+profile visibly less rectangular than a fixed-schema chart.
 
 ### BPF Benchmark Development Time
 
@@ -141,7 +143,10 @@ so it is the clearest example here of naturally variable stack depth.
 
 ![Tokens flamegraph](flamegraph-example/agentsight-tokens.svg)
 
-The token distribution shows that code review (`prompt:review`) dominated the model budget, followed by git operations (`prompt:git`), code work (`prompt:code`), editing (`prompt:edit`), and debugging (`prompt:debug`). Through the stack, you can trace which LLM calls each prompt category triggered: `call:llm/usage` for token statistics events, `call:llm/code` and `call:llm/test` for code-related responses, `call:llm/tool` for tool calls, and `call:llm/edit` for modification responses.
+The token distribution is led by continuation prompts (`prompt:continue`),
+followed by review (`prompt:review`), query (`prompt:query`), and design
+(`prompt:design`). Through each stack, you can trace the LLM-call category and
+token kind that make up that semantic region.
 
 ### Files View
 
@@ -164,9 +169,10 @@ Network activity is sparse relative to file operations, confirming that most dev
 For the project-native examples, `agentpprof` parses local Codex and Claude
 sessions, applies deterministic semantic tag rules, projects every activity to
 a semicolon-delimited stack with a non-negative weight, and merges identical
-stack prefixes. A frame's inclusive width is the sum of its descendants; its
-vertical position is its stack depth. The renderer then writes a standalone
-SVG, so no JavaScript or flamegraph server is needed to view it.
+stack prefixes. A frame's inclusive width is the sum of all input-stack weights
+that share that prefix, including stacks that terminate at that frame; its
+vertical position is its stack depth. The renderer then writes a standalone SVG,
+so no JavaScript or flamegraph server is needed to view it.
 
 The checked-in AgentSight and `bpf-benchmark` profiles can be regenerated with:
 

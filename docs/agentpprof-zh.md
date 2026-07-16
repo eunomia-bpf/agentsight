@@ -48,7 +48,7 @@ Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**�
 
 ![R221 语义 flamegraph](flamegraph-example/r221-semantic-flamegraph-top200.svg)
 
-这是 200 条最重语义栈的 R221 展示版本。宽度表示累计 system-effect weight，而不是 CPU 时间。每向上一层就增加一个 project、agent、session、prompt、LLM call、process 或 effect frame。顶部参差不齐是有意的：某类活动没有更具体的 frame 时，栈就在该层结束，因此不同因果路径自然具有不同深度。
+这是 200 条最重语义栈的 R221 展示版本。宽度表示累计 system-effect weight，而不是 CPU 时间。每向上一层就增加一个 project、agent、session、prompt、tool call、process、effect、path 或 status frame。顶部参差不齐是有意的：某类活动没有更具体的 frame 时，栈就在该层结束，因此不同因果路径自然具有不同深度。
 
 ### AgentSight 开发时间
 
@@ -56,7 +56,7 @@ Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**�
 
 ![AgentSight 开发时间 flamegraph](flamegraph-example/agentsight-time.svg)
 
-宽度表示经过的秒数。review 占比最大，其次是 git、edit、docs 和 code 类 prompt。continuation 与 inspect prompt 形成较短分支，因此图的上沿不会像固定 schema 图表一样齐平。
+宽度表示经过的秒数。review 是最宽的 prompt 区域；continuation、unmatched 和 query 分支也很突出，之后是 docs、code、edit 和 git 工作。不同的终止 frame 让图的上沿不会像固定 schema 图表一样齐平。
 
 ### BPF Benchmark 开发时间
 
@@ -80,7 +80,7 @@ Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**�
 
 ![Tokens flamegraph](flamegraph-example/agentsight-tokens.svg)
 
-Token 分布显示代码审查（`prompt:review`）主导了模型预算，其次是 git 操作（`prompt:git`）、代码工作（`prompt:code`）、编辑（`prompt:edit`）和调试（`prompt:debug`）。通过堆栈可以追溯每类 prompt 触发了哪些 LLM 调用：`call:llm/usage` 表示 token 统计事件，`call:llm/code` 和 `call:llm/test` 表示代码相关响应，`call:llm/tool` 表示工具调用，`call:llm/edit` 表示修改响应。
+Token 分布由 continuation prompt（`prompt:continue`）主导，其次是 review（`prompt:review`）、query（`prompt:query`）和 design（`prompt:design`）。沿着每条栈可以继续追踪构成该语义区域的 LLM-call 类别和 token kind。
 
 ### Files 视图
 
@@ -100,7 +100,7 @@ Token 分布显示代码审查（`prompt:review`）主导了模型预算，其�
 
 ### SVG 是怎么 render 出来的
 
-对于项目自身的示例，`agentpprof` 先解析本地 Codex 和 Claude session，应用确定性的语义标签规则，再把每个活动投影成一条分号分隔、带非负权重的栈，然后合并相同的栈前缀。一个 frame 的 inclusive width 等于所有后代权重之和，纵向位置对应栈深度。renderer 最后直接写出独立 SVG，因此查看时不需要 JavaScript 或 flamegraph server。
+对于项目自身的示例，`agentpprof` 先解析本地 Codex 和 Claude session，应用确定性的语义标签规则，再把每个活动投影成一条分号分隔、带非负权重的栈，然后合并相同的栈前缀。一个 frame 的 inclusive width 等于所有共享该前缀的输入栈权重之和，其中也包括恰好终止在该 frame 的栈；纵向位置对应栈深度。renderer 最后直接写出独立 SVG，因此查看时不需要 JavaScript 或 flamegraph server。
 
 仓库中的 AgentSight 与 `bpf-benchmark` 图可以这样重新生成：
 
