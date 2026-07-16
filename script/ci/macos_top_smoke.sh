@@ -79,10 +79,7 @@ HOME="$FIXTURE_HOME" TZ=UTC "$ROOT_DIR/collector/target/debug/agentsight" top --
 cat "$OUT_FILE"
 
 grep -q "AgentSight top" "$OUT_FILE"
-if grep -Eiq "eBPF|sudo|kernel probes|Linux-only" "$OUT_FILE"; then
-    echo "plain top unexpectedly mentioned live backend/probe state" >&2
-    exit 1
-fi
+grep -q "live kernel probes are Linux-only" "$OUT_FILE"
 grep -q "codex:macos-ci" "$OUT_FILE"
 grep -Eq "codex:macos-ci[[:space:]]+codex[[:space:]]+live" "$OUT_FILE"
 grep -q "session tokens: 15" "$OUT_FILE"

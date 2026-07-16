@@ -46,8 +46,8 @@ make build-frontend  # Frontend only
 
 Navigate to the repository root after `make build`. Commands that load eBPF
 probes should be run with `sudo`, except `top`, which can run without sudo and
-uses live eBPF capture only for the interactive TUI when sudo is already
-available; plain/non-TTY output stays snapshot-only.
+uses live eBPF capture whenever sudo is already available. Without eBPF
+privileges, it falls back to process snapshots and agent-native sessions.
 
 ```sh
 # Live view of local agent sessions
@@ -71,8 +71,8 @@ sudo ./collector/target/release/agentsight debug ssl --http-parser
 
 Use `top` for the normal live view. Use `record` when you want a durable
 agent-run artifact; it starts SSL, process, system, and web-view collection with
-no default event filters, and saves a local SQLite session for `report`, `top
---db`, `report prompts`, and other report queries.
+no default event filters, and saves a local SQLite session for `report`,
+`report prompts`, and other report queries.
 
 Use `debug trace` only when you need low-level control over capture sources or
 explicit filters. It is the advanced replacement for a raw trace command, not

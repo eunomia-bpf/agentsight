@@ -199,7 +199,8 @@ fn record_live_ebpf_event(state: &Arc<Mutex<LiveCaptureState>>, event: &Event) {
     }
 }
 
-pub(crate) async fn run_live_top_query(
+pub(crate) fn run_live_top_query(
+    capture: Option<&LiveEbpfCapture>,
     interval_secs: u64,
     limit: usize,
     count: Option<u32>,
@@ -215,7 +216,11 @@ pub(crate) async fn run_live_top_query(
         if should_clear_screen {
             clear_screen();
         }
-        let mut top = live_view.refresh(None, limit, options)?;
+        let capture_snapshot = capture.map(LiveEbpfCapture::snapshot);
+        let mut top = live_view.refresh(capture_snapshot.as_ref(), limit, options)?;
+        if let Some(note) = capture.and_then(LiveEbpfCapture::start_note) {
+            top.notes.push(note.to_string());
+        }
         sort_agent_rows(&mut top.rows, &options.sort);
         top.rows.truncate(limit);
         print_agent_top(&top);

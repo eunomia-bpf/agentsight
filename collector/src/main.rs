@@ -24,7 +24,6 @@ mod cli_db;
 mod cmd_debug;
 mod cmd_exec;
 mod cmd_monitor;
-mod cmd_perf;
 mod cmd_perf_live;
 mod cmd_perf_tui;
 mod cmd_trace;
@@ -51,9 +50,8 @@ use cli_db::{
 use cmd_debug::{run_raw_process, run_raw_ssl, run_raw_stdio, run_system};
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
 use cmd_monitor::{install_monitor_service, run_monitor};
-use cmd_perf::run_top_query;
-use cmd_perf_live::run_live_top_query;
-use cmd_perf_tui::{run_live_top_tui, run_saved_top_tui};
+use cmd_perf_live::{run_live_top_query, start_live_ebpf_capture};
+use cmd_perf_tui::run_live_top_tui;
 use cmd_trace::{
     OtelConfig, TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled,
 };
@@ -187,7 +185,7 @@ async fn setup_signal_handler(suppress_terminal_output: bool) {
                agentsight top\n\
                agentsight report\n\
                agentsight report prompts --json\n\n\
-             top works without sudo; interactive top enables eBPF when sudo is already available;\n\
+             top uses eBPF when available and falls back without sudo;\n\
              record keeps the monitored agent unprivileged while elevating only the probes."
 )]
 struct Cli {
@@ -200,11 +198,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Show live agent sessions, or a saved session with --db.
+    /// Show live agent sessions.
     Top {
-        /// SQLite database path for saved session mode
-        #[arg(long)]
-        db: Option<String>,
         /// Process PID filter, similar to top -p
         #[arg(short = 'p', long, conflicts_with = "comm")]
         pid: Option<u32>,
@@ -628,37 +623,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             }
             Some(ReportCommands::List) => run_db_list()?,
         },
-        Commands::Top {
-            db: Some(db),
-            pid,
-            comm,
-            sort,
-            view,
-            interval,
-            limit,
-            count,
-            once,
-            plain,
-        } => {
-            let count = if *once { Some(1) } else { *count };
-            let options = TopOptions {
-                pid: *pid,
-                comm: comm.clone(),
-                sort: sort.clone(),
-                view: view.clone(),
-            };
-            if top_uses_tui(*plain, interactive_terminal_available()) {
-                run_saved_top_tui(db, *interval, *limit, count, &options)?;
-            } else {
-                run_top_query(db, *interval, *limit, count, &options)?;
-            }
-        }
         Commands::Monitor { command } => match command {
             None => run_monitor().await?,
             Some(MonitorCommands::InstallService) => install_monitor_service()?,
         },
         Commands::Top {
-            db: None,
             pid,
             comm,
             sort,
@@ -676,12 +645,17 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 sort: sort.clone(),
                 view: view.clone(),
             };
-            if top_uses_tui(*plain, interactive_terminal_available()) {
-                let binary_extractor = BinaryExtractor::new().await?;
-                run_live_top_tui(&binary_extractor, *interval, *limit, count, &options).await?;
+            let binary_extractor = BinaryExtractor::new().await?;
+            let capture = start_live_ebpf_capture(&binary_extractor, &options).await;
+            let result = if top_uses_tui(*plain, interactive_terminal_available()) {
+                run_live_top_tui(capture.as_ref(), *interval, *limit, count, &options)
             } else {
-                run_live_top_query(*interval, *limit, count, &options).await?;
+                run_live_top_query(capture.as_ref(), *interval, *limit, count, &options)
+            };
+            if let Some(capture) = capture {
+                capture.stop();
             }
+            result?;
         }
         // All remaining commands need the binary extractor.
         _ => {
@@ -958,7 +932,7 @@ async fn run_with_extractor(
 
 #[cfg(test)]
 mod tests {
-    use super::top_uses_tui;
+    use super::{Cli, top_uses_tui};
 
     #[test]
     fn default_interactive_top_uses_tui() {
@@ -969,5 +943,12 @@ mod tests {
     fn only_plain_or_non_tty_disable_tui() {
         assert!(!top_uses_tui(true, true));
         assert!(!top_uses_tui(false, false));
+    }
+
+    #[test]
+    fn top_rejects_saved_db_mode() {
+        assert!(
+            <Cli as clap::Parser>::try_parse_from(["agentsight", "top", "--db", "run.db"]).is_err()
+        );
     }
 }

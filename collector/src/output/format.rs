@@ -11,13 +11,6 @@ use crate::event::Event;
 use crate::model::{AuditEventRow, LlmCallRow, TokenSummary};
 use crate::text::{extract_prompt_text, truncate_with_ellipsis as truncate};
 
-#[derive(Debug, Default, Serialize)]
-pub(crate) struct ResourcePeaks {
-    pub(crate) max_cpu_percent: f64,
-    pub(crate) max_rss_mb: u64,
-    pub(crate) samples: usize,
-}
-
 pub(crate) type TopSection = (&'static str, &'static str, Vec<(String, i64)>);
 
 pub(crate) fn sorted_top_counts<T>(counts: BTreeMap<String, T>, limit: usize) -> Vec<(String, T)>
@@ -47,29 +40,6 @@ pub(crate) struct TopOptions {
     pub(crate) comm: Option<String>,
     pub(crate) sort: String,
     pub(crate) view: String,
-}
-
-impl TopOptions {
-    pub(crate) fn matches(
-        &self,
-        pid: Option<u32>,
-        comm: Option<&str>,
-        command: Option<&str>,
-    ) -> bool {
-        if let Some(wanted_pid) = self.pid {
-            return pid == Some(wanted_pid);
-        }
-        if let Some(wanted_comm) = &self.comm {
-            let wanted_comm = wanted_comm.to_ascii_lowercase();
-            return comm
-                .map(|comm| comm.to_ascii_lowercase().contains(&wanted_comm))
-                .unwrap_or(false)
-                || command
-                    .map(|command| command.to_ascii_lowercase().contains(&wanted_comm))
-                    .unwrap_or(false);
-        }
-        true
-    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -280,9 +250,8 @@ impl AgentTopRow {
     }
 }
 
-pub(crate) struct AgentTopOutput<'a> {
-    pub(crate) mode: &'a str,
-    pub(crate) db: Option<&'a str>,
+pub(crate) struct AgentTopOutput {
+    pub(crate) mode: &'static str,
     pub(crate) duration_s: f64,
     pub(crate) view_events: i64,
     pub(crate) llm_calls: i64,
@@ -592,11 +561,10 @@ pub(crate) fn print_llm_prompts(rows: &[LlmCallRow]) {
     }
 }
 
-pub(crate) fn print_agent_top(top: &AgentTopOutput<'_>) {
+pub(crate) fn print_agent_top(top: &AgentTopOutput) {
     let generated_at = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
-    let db = top.db.map(|db| format!(" · {db}")).unwrap_or_default();
     println!(
-        "AgentSight top - {} sessions   {}   {}{db}   {:.0}s   events: {}   LLM: {}   session tokens: {}",
+        "AgentSight top - {} sessions   {}   {}   {:.0}s   events: {}   LLM: {}   session tokens: {}",
         top.rows.len(),
         top.mode,
         generated_at,
