@@ -824,9 +824,9 @@ annotations.
 % RQ3 询问类别型 operation 字段恢复独立标注构造的准确程度。
 RQ3 covers task, phase, and action labels produced by intent attribution or
 mappings, as well as group boundaries used to construct the hierarchy. We
-evaluate task partitions, task-family labels, and group boundaries;
-literal phase and action labels remain outside the current evidence.
-% 这些字段包括由意图归因或 mapping 产生的 task、phase 和 action 标签，以及用于构造 profile 层次的分组边界；当前证据测试 task partition、task-family 标签和 group boundary，尚不测试字面 phase 与 action 标签。
+evaluate task partitions, task-family and action labels, and group boundaries;
+literal phase labels remain outside the current evidence.
+% 这些字段包括由意图归因或 mapping 产生的 task、phase 和 action 标签，以及用于构造 profile 层次的分组边界；当前证据测试 task partition、task-family 与 action 标签以及 group boundary，尚不测试字面 phase 标签。
 
 We hypothesize that pre-specified target-blind taggers or mappings recover
 accurate, stable task, phase, and action labels and group boundaries on unseen
@@ -911,10 +911,20 @@ nine families~\cite{qwen36,agentboard}. It reaches 0.695 macro-F1 and 0.733 accu
 versus 0.044 and 0.248 for majority, with identical three-run assignments.
 % 对于 task-family 标签，固定 Qwen3.6-27B backend 仅使用 goal 与已声明 family 描述，将 AgentBoard 发布的全部 1,012 个 goal 指派到九个 family；macro-F1 与 accuracy 分别为 0.695 和 0.733，majority control 为 0.044 和 0.248，三次完整运行的指派完全一致。
 
+In a standalone action-label evaluation, a fixed Qwen3.6-27B backend reads only
+the current thought/action and eight declared definitions for all 2{,}737
+published annotations from 120 AutoCodeRover, OpenHands, and RepairAgent
+trajectories~\cite{qwen36,bouzenia-pradel-2025-trajectories,traceview-2026}.
+% 在独立的 action-label 评估中，固定 Qwen3.6-27B backend 仅读取当前 thought/action 与八个已声明定义，在 AutoCodeRover、OpenHands 和 RepairAgent 的 120 条轨迹上测试全部 2,737 个公开标注。
+It reaches 0.498 macro-F1 and 0.628 accuracy versus majority at 0.061 and
+0.323; the macro-F1 gain is 0.437 with a whole-trajectory 95\% bootstrap
+interval of [0.380, 0.494], and both complete runs agree exactly.
+% 其 macro-F1 与 accuracy 分别为 0.498 和 0.628，majority 为 0.061 和 0.323；macro-F1 增量为 0.437，整条轨迹 bootstrap 的 95% 区间为 [0.380, 0.494]，两次完整运行结果完全一致。
+
 Together, the public evaluations support target-blind task partitions,
-assignment among declared task families for the named backend, and
+assignment among declared task and action labels for the named backend, and
 session-held-out groups.
-% 这些公开评估共同支持目标盲 task partition、指定 backend 在声明的 task family 之间进行指派，以及 session-held-out operation group。
+% 这些公开评估共同支持目标盲 task partition、指定 backend 在声明的 task 与 action 标签之间进行指派，以及 session-held-out operation group。
 
 %% -------------------------------------------------------------------
 \subsection{RQ4: Profiling Cost}
@@ -963,11 +973,12 @@ The evaluation is offline and excludes capture and live-agent overhead. RQ1 is
 limited to the fixed 20-task suite, declared process/tool scope, and
 R114-compatible AgentSight 0.2.37 path; manifest categories are inputs. RQ3
 establishes task partitions on Mind2Web/ScienceWorld, accuracy among nine
-declared AgentBoard task families for one named backend, and held-out group
-boundaries on OSWorld-Human; phase/action need matched annotations and fixed
-mappings. Its 405-trajectory CodeTraceBench calibration is post-hoc, not
-independent confirmation.
-% 评估是离线的，不含 capture 和 live-agent 开销。RQ1 限于固定 20-task suite、声明的 process/tool scope 与 R114-compatible AgentSight 0.2.37 路径，manifest 类别是输入。RQ3 在 Mind2Web/ScienceWorld 上确立 task partition、测量一个指定 backend 在九个已声明 AgentBoard task family 间的 accuracy、并在 OSWorld-Human 上确立 held-out group boundary；phase/action 仍需匹配标注和固定 mapping。405 条 CodeTraceBench 校准是 post-hoc 而非独立确认。
+declared AgentBoard task families and eight declared software-engineering action
+labels for one named backend, and held-out group boundaries on OSWorld-Human.
+Literal phase labels and unknown label sets remain outside this evidence; the
+405-trajectory CodeTraceBench calibration is post-hoc, not independent
+confirmation.
+% 评估是离线的，不含 capture 和 live-agent 开销。RQ1 限于固定 20-task suite、声明的 process/tool scope 与 R114-compatible AgentSight 0.2.37 路径，manifest 类别是输入。RQ3 在 Mind2Web/ScienceWorld 上确立 task partition，测量一个指定 backend 在九个已声明 AgentBoard task family 与八个已声明软件工程 action 标签间的 accuracy，并在 OSWorld-Human 上确立 held-out group boundary。字面 phase 标签和未知标签集合不在当前证据范围内；405 条 CodeTraceBench 校准是 post-hoc 而非独立确认。
 
 
 %% ===================================================================

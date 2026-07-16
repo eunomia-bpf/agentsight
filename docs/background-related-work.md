@@ -19,7 +19,8 @@ weaker hypothesis.
 
 RQ1 now has a complete scoped real-Codex lineage result, RQ4 has a complete
 current-binary construction-cost result, and RQ3 has positive held-out boundary
-and task-partition evidence. Steps 0017--0018 established that the former
+and task-partition evidence plus direct declared task/action-label measurements.
+Steps 0017--0018 established that the former
 information-gain inducer remained below the strongest simple controls. Steps
 0020--0024 replace that objective with cross-session action recurrence, diagnose
 identity-dominated global calibration on existing CodeTraceBench trajectories,
@@ -86,6 +87,14 @@ source execution view.
 
 ### Semantic Cross-Run Agent Analysis
 
+- [Bouzenia and Pradel's ASE 2025 trajectory
+  study](https://arxiv.org/abs/2506.18824) analyzes 120 real AutoCodeRover,
+  OpenHands, and RepairAgent trajectories and releases a shared action
+  annotation framework. Its categories combine known-tool mappings with manual
+  resolution of remaining actions. Together with the [TraceView companion
+  guide](https://arxiv.org/abs/2606.22110), it supplies Step 0032's published
+  targets and declared operational definitions and prevents novelty claims
+  based only on defining a software-agent action taxonomy.
 - [Hodoscope](https://arxiv.org/abs/2604.11072) summarizes actions into a common
   behavior space, compares cohort distributions, and directs human inspection
   toward distinctive behavior. It prevents any claim that AgentProf first
@@ -266,9 +275,13 @@ alone.
    complete released [AgentBoard](https://proceedings.neurips.cc/paper_files/paper/2024/hash/877b40688e330a0e2a3fc24084208dfa-Abstract-Datasets_and_Benchmarks_Track.html)
    goal population: the fixed Qwen3.6-27B path reaches 0.695 macro-F1 and 0.733
    accuracy across nine declared families, versus majority 0.044 and 0.248,
-   with exact three-run stability. This supports the named backend under a
-   declared label set, not phase/action labels or unknown-family transfer. No
-   next constructor experiment is admitted merely to fill another evidence
+   with exact three-run stability. Step 0032 adds all 2,737 published action
+   labels from 120 ASE software-engineering trajectories: the same fixed backend
+   reaches 0.498 macro-F1 versus 0.061 majority, with a +0.437 whole-trajectory
+   bootstrap effect [0.380, 0.494] and exact two-run stability. These results
+   support the named backend under declared task and action label sets, not
+   literal phase identity, unknown labels, or uniform cross-framework accuracy.
+   No next constructor experiment is admitted merely to fill another evidence
    cell.
 4. **RQ4 — profiling cost.** Step 0005 supplies the paper-level construction
    answer: current `agentpprof 0.2.37` builds the 27,765-operation semantic

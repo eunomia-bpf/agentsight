@@ -20,7 +20,7 @@ later explicit user instruction may change the four author-fixed RQs.
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Retain the cumulative positive paper answer; whole-paper REVIEW selects any next fixed RQ. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Positive hypothesis unchanged; Step 0019 adds valid supporting downstream evidence.** AgentProcessBench has a small isolated AP gain, HINTBench is numerically favorable but inconclusive versus raw action, and TraceElephant is strong at a descriptive early point but inconclusive at prospective Work@80. In the complete fixed-reader comparison, operation stack improves selected-positive recall on 5/6 tasks (median paired delta +0.080571) and precision on 4/6 (+0.035501) versus fixed session at a three-group budget. The result does not show lower work or raw-action, human, or universal-view superiority. The final Step 0024 whole-paper review and outer audit retain this cumulative positive answer and close the packet branch; do not rerun it. |
-| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; Step 0024 remains the label-free default, Step 0030 adds optional grouped-reference evidence, and Step 0031 adds literal task-family accuracy for one named backend.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0024 reaches 0.6799 boundary F1 and 0.7862 B-cubed F1 on OSWorld, and raises CodeTraceBench boundary F1 from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 on all 405 reused targets. Step 0030 fits one scalar on disjoint grouped references and raises B-cubed F1 to 0.8011 on OSWorld and 0.6666 on CodeTraceBench. On all 1,012 AgentBoard goals, Step 0031's fixed Qwen3.6-27B path reaches 0.695 macro-F1 and 0.733 accuracy versus majority 0.044 and 0.248, with exact three-run stability. This directly measures declared task-family labels for that backend, not phase/action labels, unknown families, or all of RQ3. |
+| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; Step 0024 remains the label-free default, Step 0030 adds optional grouped-reference evidence, Step 0031 adds literal task-family accuracy, and Step 0032 adds literal action accuracy for one named backend.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0024 reaches 0.6799 boundary F1 and 0.7862 B-cubed F1 on OSWorld, and raises CodeTraceBench boundary F1 from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 on all 405 reused targets. Step 0030 fits one scalar on disjoint grouped references and raises B-cubed F1 to 0.8011 on OSWorld and 0.6666 on CodeTraceBench. Step 0031's fixed Qwen3.6-27B path reaches 0.695 task-family macro-F1 on all 1,012 AgentBoard goals. Step 0032 uses the complete 2,737-label ASE population and reaches 0.498 action macro-F1 versus 0.061 majority, a +0.437 trajectory-bootstrap effect with 95% interval [+0.380, +0.494], and exact two-run stability. Literal phase identity, unknown label sets, and uniform cross-framework accuracy remain outside current evidence. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
 ## Admitted RQ1 Mechanism Evidence
@@ -662,6 +662,32 @@ or a capacity causal effect. The independent raw recomputation is
 with complete experiment records under
 [`step-0031-20260715T182253-0700`](tmp/build-and-evaluate/step-0031-20260715T182253-0700/).
 
+Step 0032 adds the previously missing direct literal-action measurement without
+changing RQ3 or the paper story. The official ASE 2025 trajectory-study
+artifact supplies 2,737 published action labels over all 120 released
+AutoCodeRover, OpenHands, and RepairAgent trajectories. The fixed Qwen3.6-27B
+closed-taxonomy backend is evaluated standalone through a llama.cpp adapter; it
+reads only the current thought/action and eight declared definitions, and is not
+an integrated AgentProf CLI path. The ASE source obtains categories by mapping
+known tools and manually resolving the remaining actions, while the operational
+prompt definitions come from the TraceView companion guide. Across two complete
+runs the backend reaches `0.498425` macro-F1 and
+`0.627695` accuracy versus majority `0.060981` and `0.322616`; the macro-F1
+effect is `+0.437444` with a whole-trajectory 95% bootstrap interval of
+`[+0.380168, +0.494079]`, and every prediction repeats exactly. Independent
+review reconstructed the full population, metrics, confusion, framework
+results, hashes, and 10,000-replicate bootstrap with zero invalidating finding.
+An outer source audit subsequently found 39 visible action fields exactly equal
+to their `Locate` target; excluding them from the durable predictions leaves
+macro-F1 `0.490445` versus majority `0.061645`, so the positive result persists
+without authorizing a blanket target-separation claim.
+The result is decisive additional RQ3 evidence for one declared eight-action
+taxonomy, not phase identity, open-set transfer, uniform framework accuracy,
+tagger SOTA, or every backend. Complete reports are under
+[`step-0032-20260716T010251-0700`](tmp/build-and-evaluate/step-0032-20260716T010251-0700/),
+with raw artifacts under
+`.agentsight/experiments/rq3-literal-phase-action-source-v1/ase-action-identity/`.
+
 ## Requirements For The Next Experiment
 
 The next experiment follows one bounded literature/source screen and must
@@ -681,6 +707,8 @@ satisfy these project-local controls:
    signal, workload, or protocol when a tested construction fails;
 10. reject optional reviewer robustness that would turn the experiment into a
     second research program.
+11. before literal-taxonomy inference, enumerate exact target-label strings in
+    every model-visible field and record an exclusion or sensitivity result.
 
 ## Next Evidence Selection
 

@@ -324,6 +324,17 @@ same action-only decisions. Step 0024 remains the current constructor. This is
 an evidence-frontier update, not a narrative evolution or change to the thesis,
 four RQs, or two-object model.
 
+Steps 0031--0032 add standalone named-backend measurements for declared task
+families and action labels without changing the constructor or story. Step 0032
+scores all 2,737 publication-derived ASE action labels and retains a positive
+macro-F1 effect after excluding 39 rows whose visible action is exactly the gold
+literal `Locate`. The ASE labels combine automatic known-tool mappings with
+manual resolution of remaining actions; the prompt's operational definitions
+come from the TraceView companion guide. This is additional RQ3 evidence, not
+an integrated AgentProf CLI feature, literal phase evidence, a new abstraction,
+or a narrative evolution. The next experiment is selected for paper-level
+value; it is not automatically another taxonomy cell.
+
 ## Narrative Evolution — Accepted Changes Only
 
 ### E000 — Initial profiling narrative

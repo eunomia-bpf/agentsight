@@ -171,9 +171,11 @@ The implementation is ahead of the admitted scientific evidence in breadth of
 configuration. In particular:
 
 1. recurrence induction clears the registered simple controls on the same
-   post-hoc OSWorld-Human development population, and declared task-family
-   accuracy is measured for one named backend on AgentBoard, but phase/action
-   identity still lacks independent cross-family confirmation;
+   post-hoc OSWorld-Human development population, and declared task-family and
+   action-label accuracy are measured for one named backend on AgentBoard and
+   the ASE trajectory artifact. The action measurement runs through a standalone
+   llama.cpp experiment adapter, not the current AgentProf CLI; literal phase
+   identity and integrated automatic phase/action tagging remain unmeasured;
 2. many mapping and rank rules were developed on datasets later used for
    analysis, so unchanged transfer needs a genuinely untouched family;
 3. profile-group ranking can improve because of visible fields or rank policy

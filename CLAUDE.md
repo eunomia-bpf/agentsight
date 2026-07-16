@@ -131,6 +131,9 @@ agentpprof --project-root . -o agent.pb.gz
   reviews; add a separate implementation review, extra evaluator/checker, or
   equivalence workflow only for a concrete unresolved validity risk. File,
   checker, and review counts are not research progress.
+- Before literal-taxonomy inference, enumerate exact target-label strings in
+  every model-visible field and record exclusion or sensitivity results; a
+  scorer-only label column does not by itself prove semantic target separation.
 
 ## Architecture
 
