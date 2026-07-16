@@ -179,7 +179,7 @@ run_mock_client_record_smoke() {
 
     local db="$WORK_DIR/mock-record.db"
     local prompts="$WORK_DIR/mock-prompts.json"
-    local top="$WORK_DIR/mock-top.out"
+    local summary="$WORK_DIR/mock-summary.out"
     local url="https://127.0.0.1:$MOCK_PORT/v1/chat/completions"
     local prompt_json
     local payload
@@ -207,9 +207,8 @@ run_mock_client_record_smoke() {
     "$AGENTSIGHT_BIN" report prompts --db "$db" --json > "$prompts"
     grep -Fq "$PROMPT" "$prompts"
 
-    "$AGENTSIGHT_BIN" top --db "$db" --once --plain --limit 20 > "$top"
-    grep -Fq "AgentSight top -" "$top"
-    grep -Eq "LLM: [1-9][0-9]*" "$top"
+    "$AGENTSIGHT_BIN" report --db "$db" > "$summary"
+    grep -Eq "[1-9][0-9]* API calls" "$summary"
 
     grep -Fq "$PROMPT" "$MOCK_LOG"
     echo "record/sslsniff mock canary captured prompt into $db"
@@ -224,7 +223,7 @@ codex_native_binary() {
         -quit
 }
 
-run_codex_offset_table_canary() {
+run_codex_offset_canary() {
     if [[ "$(uname -s)" != "Linux" ]]; then
         if is_enabled "$REQUIRE_EBPF"; then
             die "Codex offset-table canary requires Linux"
@@ -256,7 +255,7 @@ run_codex_offset_table_canary() {
     status=$?
     set -e
 
-    if ! grep -Fq "Codex offset table matched" "$stderr" \
+    if ! grep -Fq "Codex/aws-lc byte-pattern detected" "$stderr" \
         || ! grep -Fq "Attaching by offset" "$stderr"; then
         echo "Codex sslsniff output did not prove offset-table attachment" >&2
         sed -n '1,160p' "$stderr" >&2 || true
@@ -276,7 +275,7 @@ run_codex_offset_table_canary() {
             ;;
     esac
 
-    echo "sslsniff Codex offset-table canary matched latest native binary: $native"
+    echo "sslsniff Codex signature canary matched latest native binary: $native"
 }
 
 write_opencode_config() {
@@ -326,7 +325,7 @@ record_real_agent() {
     shift
     local db="$WORK_DIR/$name.db"
     local prompts="$WORK_DIR/$name-prompts.json"
-    local top="$WORK_DIR/$name-top.out"
+    local summary="$WORK_DIR/$name-summary.out"
     local record_log="$WORK_DIR/$name-record.log"
     local opencode_config="$WORK_DIR/$name-opencode-config"
     local agent_work="$WORK_DIR/$name-work"
@@ -382,10 +381,10 @@ record_real_agent() {
         return 1
     fi
 
-    "$AGENTSIGHT_BIN" top --db "$db" --once --plain --limit 20 > "$top"
-    if ! grep -Eq "LLM: [1-9][0-9]*" "$top"; then
-        echo "$name top --db did not report any LLM calls" >&2
-        sed -n '1,120p' "$top" >&2 || true
+    "$AGENTSIGHT_BIN" report --db "$db" > "$summary"
+    if ! grep -Eq "[1-9][0-9]* API calls" "$summary"; then
+        echo "$name report did not show any API calls" >&2
+        sed -n '1,120p' "$summary" >&2 || true
         return 1
     fi
 
@@ -436,7 +435,7 @@ main() {
     install_latest_agent_clis
     start_mock_server
     run_mock_client_record_smoke
-    run_codex_offset_table_canary
+    run_codex_offset_canary
     run_real_agent_mock_canary
 
     echo "canary work dir: $WORK_DIR"

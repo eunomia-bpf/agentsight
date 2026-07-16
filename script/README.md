@@ -27,10 +27,10 @@ preflight request, then launches the latest real Claude Code, Codex, and
 OpenCode CLIs. The curl preflight proves SSL prompt capture against the mock
 server. For every real CLI, the canary requires the mock server to receive the
 canary prompt, the recorded DB to surface it through `report prompts`, and
-`top --db` to show nonzero LLM calls. On Linux CI this requires passwordless
+`report --db` to show nonzero API calls. On Linux CI this requires passwordless
 `sudo` for eBPF; failures are hard failures, not skips. The canary also runs
 `sslsniff --binary-path` against the latest Codex native binary and requires the
-Codex offset table to match and attach by offset.
+Codex/aws-lc signatures to match and attach by offset.
 
 ## SSL Analysis Pipeline
 

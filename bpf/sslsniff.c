@@ -160,7 +160,6 @@ struct boringssl_offsets {
 	bool read_is_ex;
 	bool found;
 	const char *source;
-	const char *version;
 };
 
 static size_t find_pattern(const unsigned char *data, size_t data_len,
@@ -713,10 +712,10 @@ int main(int argc, char **argv) {
 			warn("Failed to probe SSL_write in %s: libbpf error %ld\n",
 				 env.extra_lib, test_err);
 		} else {
-			// Symbol not found - try the Codex release table, then generic
-			// BoringSSL pattern detection for other stripped static clients.
+			// Symbol not found - try validated Codex/aws-lc signatures, then
+			// generic BoringSSL patterns for other stripped static clients.
 			if (verbose)
-				fprintf(stderr, "Symbols not found, trying Codex offset table...\n");
+				fprintf(stderr, "Symbols not found, trying Codex/aws-lc patterns...\n");
 			struct codex_ssl_offsets codex_offsets;
 			struct boringssl_offsets offsets = { .found = false };
 			if (codex_find_ssl_offsets(env.extra_lib, &codex_offsets)) {
@@ -726,26 +725,20 @@ int main(int argc, char **argv) {
 				offsets.write_is_ex = codex_offsets.write_is_ex;
 				offsets.read_is_ex = codex_offsets.read_is_ex;
 				offsets.found = true;
-				offsets.source = "Codex offset table";
-				offsets.version = codex_offsets.version;
+				offsets.source = "Codex/aws-lc byte-pattern";
 			}
 			if (!offsets.found) {
 				if (verbose)
-					fprintf(stderr, "Codex offset table missed, trying BoringSSL pattern detection...\n");
+					fprintf(stderr, "Codex/aws-lc patterns missed, trying BoringSSL patterns...\n");
 				offsets = find_boringssl_offsets(env.extra_lib);
 			}
 			if (offsets.found) {
-				if (offsets.version) {
-					fprintf(stderr, "%s matched %s in %s. Attaching by offset...\n",
-							offsets.source, offsets.version, env.extra_lib);
-				} else {
-					fprintf(stderr, "%s detected in %s. Attaching by offset...\n",
-							offsets.source, env.extra_lib);
-				}
+				fprintf(stderr, "%s detected in %s. Attaching by offset...\n",
+						offsets.source, env.extra_lib);
 				err = attach_openssl_by_offset(obj, env.extra_lib, &offsets);
 			} else if (codex_binary_has_tls_markers(env.extra_lib)) {
 				warn("Failed to attach to %s: this looks like a stripped Codex/aws-lc "
-					 "binary, but its release fingerprint is not in the Codex offset table\n",
+					 "binary, but its SSL entrypoint signatures were not recognized\n",
 					 env.extra_lib);
 			} else {
 				warn("Failed to attach to %s: no SSL symbols or BoringSSL patterns found\n",
