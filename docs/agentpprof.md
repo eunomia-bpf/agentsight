@@ -188,9 +188,10 @@ R221 is a research snapshot rather than an output of those two scripts. Its
 [renderer](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/r221_visual_gallery.py)
 builds a prefix tree from the
 [top-200 semantic-stack table](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/out/tag-stats-r189/top-semantic-stacks-r170.csv),
-sums descendant system-effect weights, allocates horizontal space
-proportionally, and draws one SVG row per depth. The OSWorld-Human snapshot
-uses the regular `agentpprof` prefix-merging renderer over its
+adds every stack's system-effect weight to each prefix it shares (including its
+terminal prefix), allocates horizontal space proportionally, and draws one SVG
+row per depth. The OSWorld-Human snapshot uses the regular `agentpprof`
+prefix-merging renderer over its
 [public operation table](https://github.com/eunomia-bpf/agentsight/blob/f2e878acbd5324806e05a698c34f727fb3d37cd6/docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl).
 
 ## Tagging
