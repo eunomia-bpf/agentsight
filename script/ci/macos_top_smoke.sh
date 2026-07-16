@@ -97,9 +97,9 @@ if grep -Eiq "eBPF|sudo|kernel probes|Linux-only" "$OUT_FILE"; then
     exit 1
 fi
 grep -q "codex:macos-ci" "$OUT_FILE"
-grep -Eq "codex:macos-ci[[:space:]]+codex[[:space:]]+history" "$OUT_FILE"
+grep -Eq "codex:macos-ci[[:space:]]+codex[[:space:]]+live" "$OUT_FILE"
 grep -q "session tokens: 15" "$OUT_FILE"
 grep -q "gpt-macos-ci" "$OUT_FILE"
 grep -q "$SESSION_LAST_MSG" "$OUT_FILE"
 grep -q "macos top token check" "$OUT_FILE"
-grep -q "agent-native once view; no process scan" "$OUT_FILE"
+grep -q "matching session path" "$OUT_FILE"

@@ -660,7 +660,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             } else if let Some(db) = db {
                 run_top_query(db, *interval, *limit, count, &options)?;
             } else {
-                run_live_top_query(*interval, *limit, count, &options, !(*plain && *once))?;
+                run_live_top_query(*interval, *limit, count, &options)?;
             }
         }
         // All remaining commands need the binary extractor.
