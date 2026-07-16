@@ -51,7 +51,9 @@ npm run render -- --repo .. --since 30d --view session-storylines --output story
 
 All 31 views support every output format. Prefer PNG or SVG for static
 endpoint/history views; their GIF/MP4 compatibility output contains one frame.
-The 23 time-aware views replay the selected interval.
+The 23 time-aware GIF/MP4 views sample their observed evidence range, avoiding
+mostly empty frames in sparse sessions. Interactive HTML keeps the complete
+selected interval.
 
 List all view IDs:
 

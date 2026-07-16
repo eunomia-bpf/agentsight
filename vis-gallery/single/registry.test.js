@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { fixtureData as data } from "../tests/fixture-data.mjs";
 import { helpers } from "./helpers.js";
 import { registry, views } from "./registry.js";
-import { parseTime, projectForView } from "./render.mjs";
+import { animationBounds, parseTime, projectForView } from "./render.mjs";
 
 const knownModes = new Set(["static", "cursor-marker", "cumulative", "trailing-6h", "endpoint-overlay", "mixed-day"]);
 
@@ -12,6 +12,18 @@ describe("single-view registry", () => {
     const end = Date.UTC(2026, 6, 15);
     expect(parseTime("7d", 0, end)).toBe(end - 7 * 86_400_000);
     expect(parseTime("HEAD", end, end)).toBe(end);
+  });
+
+  test("samples shareable animations over each view's observed evidence", () => {
+    const view = registry.get("session-storylines");
+    expect(animationBounds(data, view)).toEqual([
+      data.events[0].ts_ms,
+      data.events.at(-1).ts_ms,
+    ]);
+    expect(animationBounds({ ...data, events: [], sessions: [] }, view)).toEqual([
+      data.meta.window_start_ms,
+      data.meta.window_end_ms,
+    ]);
   });
 
   test("contains exactly the 31 preserved visualizations", () => {

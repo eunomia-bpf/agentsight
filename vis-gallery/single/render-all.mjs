@@ -14,7 +14,7 @@ Usage:
   agentsight-vis-all --repo PATH --since TIME --output-dir DIR [--formats html,svg,png]
 
 The repository/session scan runs once. Static views become one-frame GIF/MP4
-files; time-aware views replay the selected interval.
+files; time-aware animations sample each view's observed evidence range.
 `;
 }
 

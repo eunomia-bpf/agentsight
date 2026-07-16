@@ -104,6 +104,39 @@ export function projectForView(data, spec) {
   return Object.fromEntries(Object.entries(data).filter(([key]) => keys.has(key)));
 }
 
+export function animationBounds(data, spec) {
+  const windowStart = data.meta.window_start_ms;
+  const windowEnd = data.meta.window_end_ms;
+  const timestampFields = ["ts_ms", "committed_at_ms", "started_at_ms", "ended_at_ms"];
+  const requirements = new Set(spec.requirements ?? []);
+  const timestampGroups = [
+    ["events", "verification_events"],
+    ["time_buckets"],
+    ["commits", "changes"],
+    ["sessions"],
+  ];
+  let timestamps = [];
+  for (const group of timestampGroups) {
+    timestamps = group.filter((key) => requirements.has(key)).flatMap((key) => {
+      const rows = Array.isArray(data[key]) ? data[key] : [];
+      return rows.flatMap((row) => timestampFields
+        .map((field) => Number(row?.[field]))
+        .filter((value) => Number.isFinite(value) && value >= windowStart && value <= windowEnd));
+    });
+    if (timestamps.length) break;
+  }
+  if (!timestamps.length) return [windowStart, windowEnd];
+  let start = timestamps[0];
+  let end = timestamps[0];
+  for (const timestamp of timestamps.slice(1)) {
+    start = Math.min(start, timestamp);
+    end = Math.max(end, timestamp);
+  }
+  if (start < end) return [start, end];
+  const context = 3_600_000;
+  return [Math.max(windowStart, start - context), Math.min(windowEnd, end + context)];
+}
+
 function safeJson(value) {
   return JSON.stringify(value).replaceAll("<", "\\u003c").replaceAll("\u2028", "\\u2028").replaceAll("\u2029", "\\u2029");
 }
@@ -160,13 +193,15 @@ export async function renderSnapshot(format, html, data, spec, options) {
   }
 }
 
-export async function renderAnimation(format, html, data, options) {
+export async function renderAnimation(format, html, data, spec, options) {
   const temporary = await mkdtemp(join(tmpdir(), "agentsight-vis-frames-"));
   try {
     const { browser, page } = await openPage(html, options);
     try {
-      const start = data.meta.window_start_ms;
-      const end = data.meta.window_end_ms;
+      const [start, end] = animationBounds(data, spec);
+      await page.locator("#timeline").evaluate((node, bounds) => {
+        [node.min, node.max] = bounds.map(String);
+      }, [start, end]);
       for (let frame = 0; frame < options.frames; frame += 1) {
         const cursor = options.frames === 1
           ? end
@@ -201,7 +236,7 @@ export async function renderOne(data, spec, options) {
   const html = await htmlFor(data, spec, options, "svg");
   if (format === "html") await writeFile(options.output, html);
   else if (["svg", "png"].includes(format)) await renderSnapshot(format, html, data, spec, options);
-  else await renderAnimation(format, html, data, {
+  else await renderAnimation(format, html, data, spec, {
     ...options,
     frames: spec.timeMode === "static" ? 1 : options.frames,
   });
