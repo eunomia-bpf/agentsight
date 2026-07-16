@@ -905,12 +905,11 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         write_codex_state_db_for_test(temp.path());
         let rollout = temp.path().join("session.jsonl");
-        let mut content = concat!(
+        let mut content = "{}\n".repeat(CODEX_ROLLOUT_TAIL_BYTES as usize / 3 + 1);
+        content.push_str(concat!(
             r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":19184,"cached_input_tokens":9984,"output_tokens":11,"total_tokens":19195}}}}"#,
             "\n"
-        )
-        .to_string();
-        content.push_str(&"{}\n".repeat(40_000));
+        ));
         fs::write(&rollout, content).unwrap();
         let conn = rusqlite::Connection::open(temp.path().join(".codex/state_5.sqlite")).unwrap();
         conn.execute(
@@ -924,7 +923,7 @@ mod tests {
         assert_eq!(sessions[0].usage.input_tokens, 9_200);
         assert_eq!(sessions[0].usage.cache_read_tokens, 9_984);
         assert_eq!(sessions[0].usage.output_tokens, 11);
-        assert_eq!(sessions[0].usage.total_tokens, 9_211);
+        assert_eq!(sessions[0].usage.total_tokens, 19_195);
     }
 
     #[test]

@@ -653,7 +653,7 @@ fn codex_token_usage(value: &Value) -> TokenUsage {
         output_tokens: output,
         cache_creation_tokens: 0,
         cache_read_tokens: cache,
-        total_tokens: input + output,
+        total_tokens: input + output + cache,
     }
 }
 
@@ -1900,7 +1900,7 @@ mod tests {
         assert_eq!(session.usage.input_tokens, 9_200);
         assert_eq!(session.usage.cache_read_tokens, 9_984);
         assert_eq!(session.usage.output_tokens, 11);
-        assert_eq!(session.usage.total_tokens, 9_211);
+        assert_eq!(session.usage.total_tokens, 19_195);
     }
 
     #[test]

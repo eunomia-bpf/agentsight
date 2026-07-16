@@ -15,12 +15,9 @@ cargo build --manifest-path "$ROOT_DIR/collector/Cargo.toml" --verbose
 
 TMP_ROOT="$(mktemp -d)"
 AGENT_PID=""
-AGENT_STOPPED=0
 SERVER_PID=""
 cleanup() {
     if [[ -n "$AGENT_PID" ]]; then
-        kill -CONT "$AGENT_PID" 2>/dev/null || true
-        pkill -CONT -P "$AGENT_PID" 2>/dev/null || true
         pkill -TERM -P "$AGENT_PID" 2>/dev/null || true
         kill "$AGENT_PID" 2>/dev/null || true
         wait "$AGENT_PID" 2>/dev/null || true
@@ -46,7 +43,7 @@ CODEX_BIN="$TOOLS_DIR/bin/codex"
 "$CODEX_BIN" --version
 
 python3 "$ROOT_DIR/script/e2e/mock_llm_server.py" \
-    --port "$MOCK_PORT" --log "$MOCK_LOG" --quiet \
+    --port "$MOCK_PORT" --log "$MOCK_LOG" --responses-tool-sleep 30 --quiet \
     >"$TMP_ROOT/mock-server.out" 2>"$TMP_ROOT/mock-server.err" &
 SERVER_PID=$!
 for _ in {1..50}; do
@@ -74,21 +71,19 @@ curl -fsS "http://127.0.0.1:$MOCK_PORT/health" >/dev/null
 AGENT_PID=$!
 
 for _ in {1..1000}; do
-    if grep -Rqs '"total_tokens":15' "$AGENT_HOME/.codex/sessions" 2>/dev/null && \
-        kill -STOP "$AGENT_PID" 2>/dev/null; then
-        AGENT_STOPPED=1
+    if ps -p "$AGENT_PID" >/dev/null 2>&1 && \
+        grep -Rqs '"total_tokens":15' "$AGENT_HOME/.codex/sessions" 2>/dev/null; then
         break
     fi
     sleep 0.01
 done
 
-if [[ "$AGENT_STOPPED" != 1 ]] || ! ps -p "$AGENT_PID" >/dev/null 2>&1 || \
+if ! ps -p "$AGENT_PID" >/dev/null 2>&1 || \
     ! grep -Rqs '"total_tokens":15' "$AGENT_HOME/.codex/sessions" 2>/dev/null; then
     echo "latest Codex did not record the expected token usage" >&2
     cat "$TMP_ROOT/mock-server.err" >&2 || true
     exit 1
 fi
-pkill -STOP -P "$AGENT_PID" 2>/dev/null || true
 
 HOME="$AGENT_HOME" TZ=UTC "$ROOT_DIR/collector/target/debug/agentsight" top --plain --once -p "$AGENT_PID" --limit 20 >"$OUT_FILE"
 cat "$OUT_FILE"
@@ -101,4 +96,5 @@ grep -q "gpt-agentsight-" "$OUT_FILE"
 grep -Eq '[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}[[:space:]]+gpt-agentsight-' "$OUT_FILE"
 grep -q "$PROMPT" "$OUT_FILE"
 grep -q "proc evidence uses process snapshots" "$OUT_FILE"
+grep -q "matching session path" "$OUT_FILE"
 grep -q "$PROMPT" "$MOCK_LOG"
