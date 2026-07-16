@@ -242,11 +242,11 @@ function workspaceConstellation(data, cursorMs, h) {
     const seed = hashUnit(group);
     const angle = 2 * Math.PI * (seed + index / Math.max(1, groups.length))
       + 0.08 * Math.log1p(stats.visits);
-    const radius = groups.length === 1 ? 0 : 0.2 + 0.13 * hashUnit(`${group}:radius`);
+    const radius = groups.length === 1 ? 0 : 0.3 + 0.13 * hashUnit(`${group}:radius`);
     return [group, {
       x: 0.5 + radius * Math.cos(angle),
       y: 0.5 + radius * Math.sin(angle),
-      scale: Math.min(0.2, 0.045 + 0.012 * Math.sqrt(stats.count)),
+      scale: Math.min(0.24, 0.1 + 0.022 * Math.sqrt(stats.count)),
       color: groupColor(group),
     }];
   }));
@@ -336,8 +336,11 @@ function workspaceConstellation(data, cursorMs, h) {
     },
   }));
   const labels = [...centers].map(([group, center]) => ({
-    value: [center.x, center.y], group, symbolSize: 1,
-    label: { show: true, formatter: group, color: center.color, fontSize: 10, fontWeight: 600 },
+    name: group, value: [center.x, Math.min(0.96, center.y + center.scale)], group, symbolSize: 1,
+    label: {
+      show: true, formatter: "{b}", position: "top", color: center.color,
+      fontSize: 12, fontWeight: 600, textShadowBlur: 6, textShadowColor: "#070b12",
+    },
     itemStyle: { opacity: 0 },
   }));
   return h.withEmpty({
