@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT_FILE="${1:-$ROOT_DIR/.artifacts/macos-top-output.txt}"
-LIVE_OUT_FILE="${OUT_FILE%.txt}-live.txt"
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
     echo "macos_top_smoke.sh requires macOS" >&2
@@ -76,18 +75,6 @@ if ! "$LSOF_BIN" -nP -Fn -p "$AGENT_PID" 2>/dev/null | grep -Fqx "n$SESSION_REAL
     exit 1
 fi
 
-HOME="$FIXTURE_HOME" TZ=UTC "$ROOT_DIR/collector/target/debug/agentsight" top --plain --count 1 -c codex --limit 20 >"$LIVE_OUT_FILE"
-cat "$LIVE_OUT_FILE"
-
-grep -q "AgentSight top" "$LIVE_OUT_FILE"
-grep -q "codex:macos-ci" "$LIVE_OUT_FILE"
-grep -Eq "codex:macos-ci[[:space:]]+codex[[:space:]]+live" "$LIVE_OUT_FILE"
-grep -q "session tokens: 15" "$LIVE_OUT_FILE"
-grep -q "gpt-macos-ci" "$LIVE_OUT_FILE"
-grep -q "$SESSION_LAST_MSG" "$LIVE_OUT_FILE"
-grep -q "macos top token check" "$LIVE_OUT_FILE"
-grep -q "matching session path" "$LIVE_OUT_FILE"
-
 HOME="$FIXTURE_HOME" TZ=UTC "$ROOT_DIR/collector/target/debug/agentsight" top --plain --once -c codex --limit 20 >"$OUT_FILE"
 cat "$OUT_FILE"
 
@@ -97,9 +84,9 @@ if grep -Eiq "eBPF|sudo|kernel probes|Linux-only" "$OUT_FILE"; then
     exit 1
 fi
 grep -q "codex:macos-ci" "$OUT_FILE"
-grep -Eq "codex:macos-ci[[:space:]]+codex[[:space:]]+history" "$OUT_FILE"
+grep -Eq "codex:macos-ci[[:space:]]+codex[[:space:]]+live" "$OUT_FILE"
 grep -q "session tokens: 15" "$OUT_FILE"
 grep -q "gpt-macos-ci" "$OUT_FILE"
 grep -q "$SESSION_LAST_MSG" "$OUT_FILE"
 grep -q "macos top token check" "$OUT_FILE"
-grep -q "agent-native once view; no process scan" "$OUT_FILE"
+grep -q "matching session path" "$OUT_FILE"

@@ -5,14 +5,11 @@ use agent_session::{AgentSession, TokenUsage};
 use serde_json::Value;
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, HashSet};
-use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-#[cfg(not(test))]
-use std::fs::File;
 #[cfg(test)]
-use std::fs::{self, File};
+use std::fs;
 
 use crate::model::{
     AGENT_NATIVE_SOURCE, AuditEventRow, LlmCallRow, SessionRow, Snapshot, SnapshotOptions,
@@ -139,7 +136,10 @@ fn codex_state_session(
         .and_then(non_negative_i64_to_u64)
         .or(updated_ms);
     let updated = updated_ms.map(system_time_from_ms).unwrap_or(UNIX_EPOCH);
-    let usage = codex_state_usage(tokens_used, &rollout_path);
+    let usage = TokenUsage {
+        total_tokens: tokens_used.max(0),
+        ..Default::default()
+    };
     let model = model.filter(|value| !value.is_empty());
     let mut model_usage = BTreeMap::new();
     if let Some(model) = model.as_deref() {
@@ -195,77 +195,6 @@ fn user_home_dir() -> Option<PathBuf> {
 
 fn non_negative_i64_to_u64(value: i64) -> Option<u64> {
     u64::try_from(value).ok()
-}
-
-fn codex_state_usage(tokens_used: i64, rollout_path: &str) -> TokenUsage {
-    let total_tokens = plausible_codex_state_tokens(tokens_used);
-    if total_tokens > 0 {
-        return TokenUsage {
-            total_tokens,
-            ..Default::default()
-        };
-    }
-    codex_rollout_tail_usage(Path::new(rollout_path)).unwrap_or_default()
-}
-
-fn plausible_codex_state_tokens(value: i64) -> i64 {
-    const MAX_REPORTED_TOKENS: i64 = 10_000_000;
-    if (1..=MAX_REPORTED_TOKENS).contains(&value) {
-        value
-    } else {
-        0
-    }
-}
-
-fn codex_rollout_tail_usage(path: &Path) -> Option<TokenUsage> {
-    const INITIAL_READ: u64 = 64 * 1024;
-    const MAX_READ: u64 = 8 * 1024 * 1024;
-
-    let mut file = File::open(path).ok()?;
-    let len = file.metadata().ok()?.len();
-    if len == 0 {
-        return None;
-    }
-    let mut read_len = INITIAL_READ.min(len);
-    loop {
-        let start = len.saturating_sub(read_len);
-        file.seek(SeekFrom::Start(start)).ok()?;
-        let mut bytes = vec![0u8; read_len as usize];
-        file.read_exact(&mut bytes).ok()?;
-        let text = String::from_utf8_lossy(&bytes);
-        for line in text.lines().rev() {
-            if !line.contains("\"token_count\"") || !line.contains("\"total_token_usage\"") {
-                continue;
-            }
-            if let Some(usage) = codex_usage_from_token_count_line(line) {
-                return Some(usage);
-            }
-        }
-        if read_len >= len || read_len >= MAX_READ {
-            return None;
-        }
-        read_len = (read_len * 2).min(len).min(MAX_READ);
-    }
-}
-
-fn codex_usage_from_token_count_line(line: &str) -> Option<TokenUsage> {
-    let value: Value = serde_json::from_str(line).ok()?;
-    let usage = value.pointer("/payload/info/total_token_usage")?;
-    let input = usage.get("input_tokens").and_then(Value::as_i64)?.max(0);
-    let output = usage.get("output_tokens").and_then(Value::as_i64)?.max(0);
-    let cache = usage
-        .get("cached_input_tokens")
-        .and_then(Value::as_i64)
-        .unwrap_or_default()
-        .max(0);
-    let input = input.saturating_sub(cache);
-    Some(TokenUsage {
-        input_tokens: input,
-        output_tokens: output,
-        cache_read_tokens: cache,
-        total_tokens: input + output,
-        ..Default::default()
-    })
 }
 
 fn system_time_from_ms(value: u64) -> SystemTime {
@@ -965,28 +894,6 @@ mod tests {
         fs::write(temp.path().join(".codex/state_5.sqlite"), "not sqlite").unwrap();
 
         assert!(codex_state_sessions_in_home(temp.path(), 5).is_empty());
-    }
-
-    #[test]
-    fn codex_state_db_falls_back_to_rollout_usage_for_large_totals() {
-        let (_temp, path) = create_temp_session_path(agent_session::AGENT_CODEX);
-        fs::write(
-            &path,
-            format!(
-                "{}\n{}",
-                "{\"type\":\"event_msg\",\"payload\":{\"type\":\"noop\"}}\n".repeat(2048),
-                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":2109758505,"output_tokens":5136738,"cached_input_tokens":2069213696,"total_tokens":2114895243}}}}"#
-            ),
-        )
-        .unwrap();
-        let usage = codex_state_usage(2_114_895_243, &path.to_string_lossy());
-
-        assert_eq!(plausible_codex_state_tokens(33), 33);
-        assert_eq!(plausible_codex_state_tokens(2_114_895_243), 0);
-        assert_eq!(usage.input_tokens, 40_544_809);
-        assert_eq!(usage.output_tokens, 5_136_738);
-        assert_eq!(usage.cache_read_tokens, 2_069_213_696);
-        assert_eq!(usage.total_tokens, 45_681_547);
     }
 
     #[test]

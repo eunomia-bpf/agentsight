@@ -412,6 +412,12 @@ fn starttime_ticks_from_epoch(start_time_s: u64, boot_time_s: u64) -> u64 {
     ((since_boot_s as f64) * ticks_per_second()).round() as u64
 }
 
+pub(crate) fn process_start_timestamp_ms(starttime_ticks: u64) -> Option<u64> {
+    let boot_ms = u64::try_from(crate::time::get_boot_time_secs().saturating_mul(1000)).ok()?;
+    let process_offset_ms = ((starttime_ticks as f64 / ticks_per_second()) * 1000.0).round() as u64;
+    Some(boot_ms.saturating_add(process_offset_ms))
+}
+
 pub(crate) fn process_cpu_ms_delta(proc_info: &ProcInfo, previous: Option<&ProcSnapshot>) -> u64 {
     let Some(previous) = previous else {
         return 0;

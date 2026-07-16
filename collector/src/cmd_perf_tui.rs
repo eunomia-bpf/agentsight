@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+use crate::binary_extractor::BinaryExtractor;
 use crate::cmd_perf::load_top_output;
+use crate::cmd_perf_live::{LiveEbpfCapture, start_live_ebpf_capture};
 use crate::cmd_tui_record::{
     TuiRecordStatus, TuiRecordTask, default_record_command_for_row, parse_tui_record_command,
 };
@@ -20,25 +22,34 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 use std::io;
 use std::time::{Duration, Instant};
 
-pub(crate) fn run_live_top_tui(
+pub(crate) async fn run_live_top_tui(
+    binary_extractor: &BinaryExtractor,
     interval_secs: u64,
     limit: usize,
     count: Option<u32>,
     options: &TopOptions,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let capture = start_live_ebpf_capture(binary_extractor, options).await;
     let mut live_view = LiveView::default();
-    run_top_tui_loop(
+    let result = run_top_tui_loop(
         interval_secs,
         limit,
         count,
         options,
         true,
         |display_limit, options| {
-            live_view
-                .refresh(display_limit, options, true)
-                .map_err(Into::into)
+            let capture_snapshot = capture.as_ref().map(LiveEbpfCapture::snapshot);
+            let mut top = live_view.refresh(capture_snapshot.as_ref(), display_limit, options)?;
+            if let Some(note) = capture.as_ref().and_then(|capture| capture.start_note()) {
+                top.notes.push(note.to_string());
+            }
+            Ok(top)
         },
-    )
+    );
+    if let Some(capture) = capture {
+        capture.stop();
+    }
+    result
 }
 
 pub(crate) fn run_saved_top_tui(
@@ -634,7 +645,8 @@ mod tests {
                 failures: 0,
                 files: 0,
                 network: 0,
-                trace: "agent-native+proc+proc_fd".to_string(),
+                unattributed: 0,
+                trace: "agent-native+proc+ebpf_file".to_string(),
                 command: "codex".to_string(),
                 workspace: None,
                 last_message_at: None,
@@ -646,17 +658,17 @@ mod tests {
             notes: vec![
                 "agent-native sessions are the primary token/tool source".to_string(),
                 "proc evidence uses process snapshots for CPU/RSS/process families".to_string(),
-                "custom diagnostic".to_string(),
+                "live eBPF capture did not start: sudo unavailable".to_string(),
             ],
         };
 
         assert_eq!(
             tui_status_line(&top),
-            "agent-native | /proc | session path linked | tokens 15"
+            "agent-native | /proc | eBPF | session path linked | tokens 15"
         );
         assert_eq!(
             tui_diagnostic_lines(&top, 1),
-            vec!["custom diagnostic".to_string()]
+            vec!["live eBPF capture did not start: sudo unavailable".to_string()]
         );
     }
 }

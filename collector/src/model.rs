@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub type ViewResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -85,7 +85,6 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
-    #[cfg(test)]
     pub(crate) fn empty(source: impl Into<String>) -> Self {
         Self {
             schema_version: 1,
@@ -119,7 +118,6 @@ pub struct SnapshotSummary {
 }
 
 impl SnapshotSummary {
-    #[cfg(test)]
     pub(crate) fn empty(source: impl Into<String>) -> Self {
         Self {
             source: source.into(),
@@ -200,6 +198,18 @@ impl AuditCounters {
             counters.observe(row);
         }
         counters
+    }
+
+    pub(crate) fn by_pid<'a>(
+        rows: impl IntoIterator<Item = &'a AuditEventRow>,
+    ) -> BTreeMap<u32, Self> {
+        let mut by_pid = BTreeMap::new();
+        for row in rows {
+            if let Some(pid) = row.pid {
+                by_pid.entry(pid).or_insert_with(Self::default).observe(row);
+            }
+        }
+        by_pid
     }
 
     fn observe(&mut self, row: &AuditEventRow) {

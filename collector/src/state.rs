@@ -9,6 +9,13 @@ pub(crate) fn agentsight_state_dir_for_home(home: &Path) -> PathBuf {
     home.join(".agentsight")
 }
 
+pub(crate) fn ensure_agentsight_state_dir() -> io::Result<Option<PathBuf>> {
+    let Some(home) = dirs::home_dir() else {
+        return Ok(None);
+    };
+    ensure_agentsight_state_dir_for_home(&home).map(Some)
+}
+
 pub(crate) fn ensure_agentsight_state_dir_for_home(home: &Path) -> io::Result<PathBuf> {
     let dir = agentsight_state_dir_for_home(home);
     fs::create_dir_all(&dir)?;

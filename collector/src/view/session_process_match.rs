@@ -37,6 +37,10 @@ impl SessionProcessMatcher {
     }
 }
 
+pub(crate) fn session_path_from_raw_path(path: &Path) -> Option<PathBuf> {
+    agent_session::session_log_path_from_str(&path.to_string_lossy())
+}
+
 fn session_input(session: &SessionRow) -> Option<agent_session::SessionProcessInput> {
     Some(agent_session::SessionProcessInput {
         id: session.id.clone(),
