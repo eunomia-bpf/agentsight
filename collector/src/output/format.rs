@@ -296,6 +296,8 @@ pub(crate) struct AgentTopOutput<'a> {
 pub(crate) struct SessionSummary {
     pub(crate) source: String,
     pub(crate) duration_s: f64,
+    pub(crate) api_calls: i64,
+    pub(crate) total_tokens: i64,
     pub(crate) first_llm_after_ms: Option<u64>,
     pub(crate) first_tool_after_ms: Option<u64>,
     pub(crate) prompt_chars: SummaryStats,
@@ -461,8 +463,6 @@ pub(crate) fn print_record_shutdown() {
 }
 
 pub(crate) fn print_record_session_summary(db_path: &str, summary: &SessionSummary) {
-    let api_calls: i64 = summary.models.iter().map(|m| m.4).sum();
-    let tokens: i64 = summary.models.iter().map(|m| m.3).sum();
     let execs: usize = summary.processes.values().sum();
     println!();
     println!(
@@ -472,8 +472,8 @@ pub(crate) fn print_record_session_summary(db_path: &str, summary: &SessionSumma
     );
     println!(
         "{} API calls · {} tokens · {} execs · {} files · {} network endpoints",
-        api_calls,
-        format_count(tokens),
+        summary.api_calls,
+        format_count(summary.total_tokens),
         execs,
         summary.files.len(),
         summary.endpoints.len()
@@ -668,8 +668,6 @@ pub(crate) fn print_agent_top(top: &AgentTopOutput<'_>) {
 }
 
 pub(crate) fn print_session_summary(summary: &SessionSummary) {
-    let total_tokens: i64 = summary.models.iter().map(|m| m.3).sum();
-    let total_calls: i64 = summary.models.iter().map(|m| m.4).sum();
     let has_tokens = summary
         .models
         .iter()
@@ -679,11 +677,11 @@ pub(crate) fn print_session_summary(summary: &SessionSummary) {
     if summary.duration_s > 0.0 {
         print!(" · {:.0}s", summary.duration_s);
     }
-    if total_calls > 0 {
-        print!(" · {total_calls} API calls");
+    if summary.api_calls > 0 {
+        print!(" · {} API calls", summary.api_calls);
     }
     if has_tokens {
-        print!(" · {total_tokens} tokens");
+        print!(" · {} tokens", summary.total_tokens);
     }
     println!("\n");
 

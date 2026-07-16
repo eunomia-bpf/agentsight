@@ -220,6 +220,8 @@ impl SessionSummary {
         Ok(Self {
             source: s.source.clone(),
             duration_s: s.duration_s(),
+            api_calls: s.llm_calls,
+            total_tokens: s.total_tokens,
             first_llm_after_ms,
             first_tool_after_ms,
             prompt_chars,
@@ -415,6 +417,8 @@ mod tests {
 
         let summary = sqlite_summary(&db);
         assert_eq!(summary.duration_s, 0.9);
+        assert_eq!(summary.api_calls, 1);
+        assert_eq!(summary.total_tokens, 15);
         assert_eq!(summary.first_llm_after_ms, Some(200));
         assert_eq!(summary.first_tool_after_ms, Some(500));
         assert_eq!(summary.prompt_chars.count, 1);
@@ -433,6 +437,26 @@ mod tests {
                 .endpoints
                 .contains(&"api.anthropic.com/v1/messages(2)".to_string())
         );
+    }
+
+    #[test]
+    fn sqlite_summary_counts_llm_calls_without_token_usage() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("summary-zero-token.db");
+        SqliteStore::open(&db)
+            .unwrap()
+            .connection()
+            .execute(
+                "INSERT INTO llm_calls (id, start_timestamp_ms, status)
+                 VALUES ('llm-zero-token', 1000, 'success')",
+                [],
+            )
+            .unwrap();
+
+        let summary = sqlite_summary(&db);
+        assert_eq!(summary.api_calls, 1);
+        assert_eq!(summary.total_tokens, 0);
+        assert!(summary.models.is_empty());
     }
 
     #[test]
