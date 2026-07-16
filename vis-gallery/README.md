@@ -47,7 +47,7 @@ lifetime:
 npm run render -- \
   --repo /path/to/repository --since repo \
   --view workspace-constellation \
-  --output workspace-evolution.html
+  --output repository-nebula.html
 ```
 
 Dynamic figures advance only on recorded Agent-event timestamps. They do not
@@ -55,6 +55,13 @@ invent activity for intervals without a native session. Git commits never move
 or resize the animated files; a commit inside the observed Agent interval only
 flashes the artifact's outer border. Read/write attention remains visible for
 30 minutes and fades with a five-minute half-life.
+
+Repository Nebula uses every Git-tracked endpoint file as a dim, stable context
+star, while observed files emerge from path-near neighbors on their first real
+Agent event. Direct reads, direct writes, and recorded command-associated path
+effects use different transient marks. The single-view path skips blame,
+co-change, ownership, and per-commit diff mining because this graph does not use
+those fields.
 
 Change only the output extension to select a format:
 
@@ -67,7 +74,7 @@ npm run render -- --repo .. --since 30d --view session-storylines --output story
 
 All 31 views support every output format. Prefer PNG or SVG for static
 endpoint/history views; their GIF/MP4 compatibility output contains one frame.
-The 23 time-aware GIF/MP4 views sample their observed evidence range, avoiding
+The 22 time-aware GIF/MP4 views sample their observed evidence range, avoiding
 mostly empty frames in sparse sessions. Interactive HTML keeps the complete
 selected interval.
 

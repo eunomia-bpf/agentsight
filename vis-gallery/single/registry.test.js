@@ -36,23 +36,95 @@ describe("single-view registry", () => {
     expect(leafCount(first.series[0].data)).toBeLessThan(leafCount(last.series[0].data));
 
     const constellation = registry.get("workspace-constellation");
+    const projected = projectForView(data, constellation);
     const path = data.events[0].path;
     const filePoint = (option) => option.series.find((series) => series.name === "files")
       .data.find((row) => row.path === path);
     const focused = filePoint(constellation.build(
-      projectForView(data, constellation), data.events[0].ts_ms, helpers,
+      projected, data.events[0].ts_ms, helpers,
     ));
     const faded = filePoint(constellation.build(
-      projectForView(data, constellation), data.events[0].ts_ms + 31 * 60_000, helpers,
+      projected, data.events[0].ts_ms + 31 * 60_000, helpers,
     ));
     expect(focused.focus.effect).toBe("read");
     expect(faded.focus).toBeUndefined();
     expect(focused.itemStyle.shadowBlur).toBeGreaterThan(faded.itemStyle.shadowBlur);
+    expect(constellation.build(projected, data.events[0].ts_ms, helpers)
+      .series.find((series) => series.name === "active file cores").data).toHaveLength(1);
+    expect(constellation.build(projected, data.events[0].ts_ms + 31 * 60_000, helpers)
+      .series.find((series) => series.name === "active file cores").data).toHaveLength(0);
 
     const cursors = animationCursors(data, constellation, 6);
-    expect(cursors[0]).toBe(data.events[0].ts_ms);
+    expect(cursors[0]).toBe(data.events[0].ts_ms - 1);
     expect(cursors.at(-1)).toBe(data.verification_events.at(-1).ts_ms);
     expect(cursors.every((cursor) => cursor >= cursors[0] && cursor <= cursors.at(-1))).toBe(true);
+    expect(cursors.some((cursor) => data.commits.some((commit) => commit.committed_at_ms === cursor))).toBe(true);
+    const visual = new Set(constellation.visualMoments(data));
+    const commitOnly = data.commits.find((commit) => !visual.has(commit.committed_at_ms));
+    expect(commitOnly).toBeDefined();
+    expect(constellation.playbackMoments(data)).toContain(commitOnly.committed_at_ms);
+  });
+
+  test("starts the nebula empty and never draws file-to-file edges", () => {
+    const view = registry.get("workspace-constellation");
+    const projected = projectForView(data, view);
+    const before = view.build(projected, data.events[0].ts_ms - 1, helpers);
+    const first = view.build(projected, data.events[0].ts_ms, helpers);
+    const series = (option, name) => option.series.find((row) => row.name === name).data;
+    const endpointCount = data.files.filter((file) => file.survives_to_head && file.current_path === file.path).length;
+
+    expect(series(before, "files")).toHaveLength(0);
+    expect(series(before, "repository context")).toHaveLength(0);
+    expect(series(before, "directory color field")).toHaveLength(0);
+    expect(series(first, "files")).toHaveLength(1);
+    expect(series(first, "repository context")).toHaveLength(endpointCount - 1);
+    expect(series(first, "directory color field").length).toBeGreaterThanOrEqual(3);
+    expect(first.series.every((row) => row.type !== "line" && row.type !== "graph")).toBe(true);
+    expect(first.series.some((row) => row.name === "directory labels")).toBe(false);
+  });
+
+  test("births a path-near file beside the closest previously observed star", () => {
+    const view = registry.get("workspace-constellation");
+    const projected = projectForView(data, view);
+    const second = data.events.find((event) => event.path === "src/lib.rs");
+    const option = view.build(projected, second.ts_ms, helpers);
+    const point = option.series.find((series) => series.name === "files")
+      .data.find((row) => row.path === second.path);
+    const parent = option.series.find((series) => series.name === "files")
+      .data.find((row) => row.path === "src/main.rs");
+
+    expect(point.parent).toBe("src/main.rs");
+    expect(Math.hypot(point.value[0] - parent.value[0], point.value[1] - parent.value[1])).toBeLessThan(0.03);
+  });
+
+  test("renders write ripples explicitly in still GIF frames", () => {
+    const view = registry.get("workspace-constellation");
+    const projected = projectForView(data, view);
+    const write = data.events.find((event) => event.effect === "write");
+    const atWrite = view.build(projected, write.ts_ms, helpers);
+    const afterRipple = view.build(projected, write.ts_ms + 4 * 60_000, helpers);
+    const ripples = (option) => option.series.find((row) => row.name === "recent writes").data;
+
+    expect(ripples(atWrite)).toHaveLength(3);
+    expect(ripples(afterRipple)).toHaveLength(0);
+  });
+
+  test("keeps recorded shell path effects visually distinct without calling them creation", () => {
+    const shellWrite = data.events.find((event) => event.effect === "write");
+    const shellData = {
+      ...data,
+      events: data.events.map((event) => event.id === shellWrite.id
+        ? { ...event, category: "shell", action: "exec_command" }
+        : event),
+    };
+    const view = registry.get("workspace-constellation");
+    const option = view.build(projectForView(shellData, view), shellWrite.ts_ms, helpers);
+    const command = option.series.find((series) => series.name === "command-associated effects").data;
+    const directWrites = option.series.find((series) => series.name === "recent writes").data;
+
+    expect(command.length).toBeGreaterThan(0);
+    expect(command.every((row) => row.symbol === "diamond")).toBe(true);
+    expect(directWrites.every((row) => row.path !== shellWrite.path)).toBe(true);
   });
 
   test("contains exactly the 31 preserved visualizations", () => {
@@ -139,12 +211,34 @@ describe("single-view registry", () => {
     expect(constellation.series.find((series) => series.name === "files").data).toHaveLength(1_200);
   });
 
-  test("embeds only observed files in event-driven repository maps", () => {
-    for (const id of ["repository-treemap", "workspace-constellation"]) {
-      const projected = projectForView(data, registry.get(id));
-      expect(new Set(projected.files.map((file) => file.path))).toEqual(
-        new Set(data.events.map((event) => event.path)),
-      );
-    }
+  test("keeps the treemap observed-only but embeds full tracked context for the nebula", () => {
+    const treemap = projectForView(data, registry.get("repository-treemap"));
+    expect(new Set(treemap.files.map((file) => file.path))).toEqual(
+      new Set(data.events.map((event) => event.path)),
+    );
+
+    const unseen = {
+      ...data.files[0],
+      path: "src/unseen.rs",
+      current_path: "src/unseen.rs",
+      lifetime_id: "life-unseen",
+      lifetime_ids: ["life-unseen"],
+    };
+    const untrackedNoise = {
+      ...data.files[0],
+      path: "target/generated.tmp",
+      current_path: null,
+      survives_to_head: false,
+      lifetime_id: null,
+      lifetime_ids: [],
+    };
+    const expanded = { ...data, files: [...data.files, unseen, untrackedNoise] };
+    const view = registry.get("workspace-constellation");
+    const projected = projectForView(expanded, view);
+    expect(projected.files.some((file) => file.path === unseen.path)).toBe(true);
+    const option = view.build(projected, data.events[0].ts_ms + 16 * 60_000, helpers);
+    const contextPaths = new Set(option.series.find((series) => series.name === "repository context").data.map((row) => row.path));
+    expect(contextPaths.has(unseen.path)).toBe(true);
+    expect(contextPaths.has(untrackedNoise.path)).toBe(false);
   });
 });

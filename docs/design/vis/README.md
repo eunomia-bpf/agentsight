@@ -100,6 +100,7 @@ AgentSight 可以支持调查、复盘、团队 review、policy tuning，但第�
 - [Causal Timeline](causal-timeline.md)：按时间展开语义、工具、进程、文件、网络和结果。
 - [Run Impact Map](run-impact-map.md)：把一次 run 的改动、网络、资源、测试和异常活动聚成 impact summary。
 - [Agent Workspace Map](agent-workspace-map.md)：专门看 repo/workspace 内的探索、读写和 patch 生成过程。
+- [Repository Nebula](repository-nebula.md)：按真实 Agent 文件事件从空画布生长的无边界目录色云单图。
 - [Multi-Agent Causal Map](multi-agent-causal-map.md)：看多个 agent、sub-agent、MCP server、tool worker 的交互和冲突。
 
 ## 不是文件系统中心，而是 run 中心

@@ -46,6 +46,7 @@ pub struct LongitudinalOptions {
     pub since_ms: i64,
     pub until_ms: i64,
     pub session_paths: Vec<PathBuf>,
+    pub include_git_history: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -234,8 +235,11 @@ pub fn build_longitudinal_artifact(
     let audit_since_ms = options.since_ms.saturating_sub(AUDIT_BEFORE_MS);
     let audit_until_ms = options.until_ms.saturating_add(AUDIT_AFTER_MS);
 
-    let (commit_records, mut lifetimes) =
-        collect_git_history(&repo, &head, audit_since_ms, audit_until_ms)?;
+    let (commit_records, mut lifetimes) = if options.include_git_history {
+        collect_git_history(&repo, &head, audit_since_ms, audit_until_ms)?
+    } else {
+        (Vec::new(), Vec::new())
+    };
     let mut commits = Vec::new();
     let mut changes = Vec::new();
     for record in commit_records {
@@ -244,11 +248,13 @@ pub fn build_longitudinal_artifact(
             changes.extend(record.all_changes);
         }
     }
-    let current_sizes = current_blob_sizes(&repo, &head)?;
-    for lifetime in &mut lifetimes {
-        if let Some(path) = &lifetime.current_path {
-            lifetime.current_bytes = current_sizes.get(path).copied();
-            lifetime.survives_to_head = current_sizes.contains_key(path);
+    if options.include_git_history {
+        let current_sizes = current_blob_sizes(&repo, &head)?;
+        for lifetime in &mut lifetimes {
+            if let Some(path) = &lifetime.current_path {
+                lifetime.current_bytes = current_sizes.get(path).copied();
+                lifetime.survives_to_head = current_sizes.contains_key(path);
+            }
         }
     }
 
@@ -744,8 +750,35 @@ fn load_sessions(
             }
         }
     } else {
-        for path in &options.session_paths {
-            let session = parse_session_path(path).ok_or_else(|| {
+        let worker_count = std::thread::available_parallelism()
+            .map(|value| value.get())
+            .unwrap_or(1)
+            .min(4)
+            .min(options.session_paths.len().max(1));
+        let chunk_size = options.session_paths.len().div_ceil(worker_count);
+        let parsed = std::thread::scope(|scope| -> Result<Vec<_>, ExportError> {
+            let handles = options
+                .session_paths
+                .chunks(chunk_size)
+                .map(|chunk| {
+                    scope.spawn(move || {
+                        chunk
+                            .iter()
+                            .map(|path| (path.clone(), parse_session_path(path)))
+                            .collect::<Vec<_>>()
+                    })
+                })
+                .collect::<Vec<_>>();
+            let mut parsed = Vec::new();
+            for handle in handles {
+                parsed.extend(handle.join().map_err(|_| {
+                    ExportError::new("session parser worker terminated unexpectedly")
+                })?);
+            }
+            Ok(parsed)
+        })?;
+        for (path, parsed_session) in parsed {
+            let session = parsed_session.ok_or_else(|| {
                 ExportError::new(format!("cannot parse session {}", path.display()))
             })?;
             if session_matches_repo(&session, repo)

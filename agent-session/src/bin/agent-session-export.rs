@@ -24,6 +24,8 @@ Options:
   --format FORMAT   canonical (default), events-jsonl, perfetto, or gource
   --head REV        Freeze Git history and endpoint at this revision (default: HEAD)
   --session FILE    Parse only this native session file; may be repeated
+  --without-git-history
+                    Export normalized sessions/events without mining per-commit diffs
   -h, --help        Show this help
 
 The default artifact never contains prompt, command, edit/read bodies, secrets,
@@ -62,6 +64,7 @@ struct Args {
     output: PathBuf,
     format: ExportFormat,
     session_paths: Vec<PathBuf>,
+    include_git_history: bool,
 }
 
 fn main() {
@@ -85,6 +88,7 @@ fn run() -> Result<(), String> {
         since_ms: args.since_ms,
         until_ms: args.until_ms,
         session_paths: args.session_paths,
+        include_git_history: args.include_git_history,
     })
     .map_err(|error| error.to_string())?;
     match args.format {
@@ -123,10 +127,15 @@ fn parse_args(values: Vec<String>) -> Result<Option<Args>, String> {
     let mut session_paths = Vec::new();
     let mut head = None;
     let mut format = ExportFormat::Canonical;
+    let mut include_git_history = true;
     let mut index = 0usize;
     while index < values.len() {
         let flag = &values[index];
         index += 1;
+        if flag == "--without-git-history" {
+            include_git_history = false;
+            continue;
+        }
         let value = values
             .get(index)
             .ok_or_else(|| format!("missing value for {flag}"))?;
@@ -150,6 +159,7 @@ fn parse_args(values: Vec<String>) -> Result<Option<Args>, String> {
         output: output.ok_or_else(|| "--output is required".to_string())?,
         format,
         session_paths,
+        include_git_history,
     }))
 }
 
@@ -313,8 +323,32 @@ mod tests {
         assert_eq!(args.session_paths.len(), 2);
         assert_eq!(args.head.as_deref(), Some("deadbeef"));
         assert_eq!(args.format, ExportFormat::Canonical);
+        assert!(args.include_git_history);
         assert_eq!(args.output, PathBuf::from("-"));
         assert!(args.until_ms > args.since_ms);
+    }
+
+    #[test]
+    fn parses_session_only_export_without_git_history() {
+        let args = parse_args(
+            [
+                "--repo",
+                "/repo",
+                "--since",
+                "2026-07-14",
+                "--until",
+                "2026-07-15",
+                "--output",
+                "-",
+                "--without-git-history",
+            ]
+            .into_iter()
+            .map(str::to_string)
+            .collect(),
+        )
+        .expect("parse")
+        .expect("not help");
+        assert!(!args.include_git_history);
     }
 
     #[test]

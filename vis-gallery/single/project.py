@@ -67,6 +67,54 @@ def run_git(repo: Path, *args: str) -> bytes:
     return result.stdout
 
 
+def endpoint_files(repo: Path, head: str) -> dict[str, int]:
+    output = run_git(repo, "ls-tree", "-r", "-z", "--long", head)
+    files = {}
+    for record in output.split(b"\0"):
+        if not record:
+            continue
+        metadata, separator, raw_path = record.partition(b"\t")
+        if not separator:
+            continue
+        fields = metadata.decode("utf-8", errors="replace").split()
+        if len(fields) < 4 or fields[1] != "blob":
+            continue
+        path = raw_path.decode("utf-8", errors="replace")
+        files[path] = int(fields[3]) if fields[3].isdigit() else 0
+    return files
+
+
+def lightweight_commits(repo: Path, head: str, since_ms: int, until_ms: int) -> list[dict[str, Any]]:
+    output = run_git(
+        repo,
+        "log",
+        "--first-parent",
+        "--format=%H%x1f%P%x1f%ct%x1f%an%x1e",
+        head,
+    )
+    rows = []
+    for record in output.split(b"\x1e"):
+        fields = record.strip().split(b"\x1f")
+        if len(fields) < 4:
+            continue
+        timestamp = int(fields[2]) * 1_000
+        if not since_ms <= timestamp <= until_ms:
+            continue
+        commit_id = fields[0].decode("ascii", errors="replace")
+        parents = fields[1].decode("ascii", errors="replace").split()
+        author = fields[3].decode("utf-8", errors="replace").strip()
+        rows.append(
+            {
+                "id": commit_id,
+                "parents": parents,
+                "committed_at_ms": timestamp,
+                "author_label": f"author-{compact_hash(author, 8)}",
+                "is_merge": len(parents) > 1,
+            }
+        )
+    return sorted(rows, key=lambda row: (row["committed_at_ms"], row["id"]))
+
+
 def parse_blame(repo: Path, head: str, path: str) -> list[dict[str, Any]]:
     try:
         output = run_git(
@@ -128,6 +176,7 @@ def pattern_name(file: dict[str, Any], window_start: int, window_end: int) -> st
 def build(
     artifacts: list[dict[str, Any]],
     repo: Path,
+    lean_nebula: bool = False,
 ) -> dict[str, Any]:
     heads = {artifact["repository"]["head"] for artifact in artifacts}
     if len(heads) != 1:
@@ -252,6 +301,8 @@ def build(
                     else None
                 )
                 if (
+                    not lean_nebula
+                    and
                     day not in censored_days
                     and path_effect == "write"
                     and association is None
@@ -358,6 +409,20 @@ def build(
         for day, values in sorted(day_stats.items())
     ]
 
+    if lean_nebula:
+        for path, size in endpoint_files(repo, head).items():
+            file = file_stats.setdefault(path, new_file_stats(path, None, []))
+            file["survives_to_head"] = True
+            file["current_path"] = path
+            file["current_bytes"] = size
+        for commit in lightweight_commits(
+            repo,
+            head,
+            min(int(artifact["window"]["since_ms"]) for artifact in artifacts),
+            max(int(artifact["window"]["until_ms"]) for artifact in artifacts),
+        ):
+            commits[commit["id"]] = commit
+
     # Seed every frozen endpoint path even if it was untouched in the sampled
     # native-session windows. The endpoint map must represent the repository
     # tree, not only paths that happened to receive an event.
@@ -373,10 +438,18 @@ def build(
     window_start = min(int(artifact["window"]["since_ms"]) for artifact in artifacts)
     window_end = max(int(artifact["window"]["until_ms"]) for artifact in artifacts)
     files = finalize_files(file_stats, window_start, window_end)
-    cochange_edges = build_cochange_edges(changes.values())
-    blame_rows = build_blame_rows(repo, head, files)
+    cochange_edges = [] if lean_nebula else build_cochange_edges(changes.values())
+    blame_rows = [] if lean_nebula else build_blame_rows(repo, head, files)
     tree = build_tree(files)
-    endpoint_paths = set(endpoint_lifetime_for_path)
+    endpoint_paths = (
+        {
+            file["path"]
+            for file in files
+            if file["survives_to_head"] and file.get("current_path") == file["path"]
+        }
+        if lean_nebula
+        else set(endpoint_lifetime_for_path)
+    )
     projected_endpoint_paths = tree_leaf_paths(tree)
     if projected_endpoint_paths != endpoint_paths:
         missing = sorted(endpoint_paths - projected_endpoint_paths)
@@ -448,8 +521,8 @@ def build(
         ],
         "cochange_edges": cochange_edges,
         "line_pixels": blame_rows,
-        "survival_cohorts": build_survival_cohorts(lifetimes),
-        "ownership": build_ownership(changes.values(), commits),
+        "survival_cohorts": [] if lean_nebula else build_survival_cohorts(lifetimes),
+        "ownership": [] if lean_nebula else build_ownership(changes.values(), commits),
     }
 
 
@@ -651,7 +724,7 @@ def build_ownership(
     ]
 
 
-def validate_public_output(output: dict[str, Any]) -> None:
+def validate_public_output(output: dict[str, Any], require_associations: bool = True) -> None:
     encoded = json.dumps(output, separators=(",", ":"))
     forbidden = [
         "/home/",
@@ -712,7 +785,7 @@ def validate_public_output(output: dict[str, Any]) -> None:
         and row["day"] not in censored_days
         and row.get("association_state") == "not_eligible"
     ]
-    if missing_mature_associations:
+    if require_associations and missing_mature_associations:
         raise ValueError(
             "mature writes are missing association rows: "
             f"{missing_mature_associations[:5]}"
@@ -767,9 +840,10 @@ def is_public_repo_path(path: str) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, required=True)
+    parser.add_argument("--lean-nebula", action="store_true")
     args = parser.parse_args()
-    output = build([json.load(sys.stdin)], args.repo)
-    validate_public_output(output)
+    output = build([json.load(sys.stdin)], args.repo, lean_nebula=args.lean_nebula)
+    validate_public_output(output, require_associations=not args.lean_nebula)
     json.dump(output, sys.stdout, separators=(",", ":"), sort_keys=True)
     sys.stdout.write("\n")
 

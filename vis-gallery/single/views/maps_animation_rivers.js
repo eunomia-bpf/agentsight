@@ -1,10 +1,10 @@
+import { repositoryNebula } from "./repository_nebula.js";
+
 const HOUR_MS = 3_600_000;
 const WAKE_MS = 6 * HOUR_MS;
 const ATTENTION_MS = 30 * 60_000;
 const ATTENTION_HALF_LIFE_MS = 5 * 60_000;
-const BIRTH_TRAVEL_MS = 30 * 60_000;
 const TREEMAP_PATH_LIMIT = 700;
-const NEBULA_PATH_LIMIT = 2_500;
 
 const patternColors = {
   Supernova: "#ff6b7a",
@@ -203,180 +203,6 @@ function repositoryTreemap(data, cursorMs, h) {
       ],
     }],
   });
-}
-
-function hashUnit(value) {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0) / 0xffffffff;
-}
-
-function groupColor(group) {
-  return `hsl(${Math.round(180 + 210 * hashUnit(group))} 68% 62%)`;
-}
-
-function workspaceConstellation(data, cursorMs, h) {
-  const attention = attentionByPath(data, cursorMs);
-  const state = observedState(data, cursorMs);
-  const filesByPath = new Map(data.files.map((file) => [file.path, file]));
-  const files = h.rank(
-    data.files.filter((file) => state.paths.has(file.path)),
-    (file) => (attention.has(file.path) ? 1e15 : 0)
-      + (state.visits.get(file.path) ?? 0) * 1e9 + file.current_bytes,
-    NEBULA_PATH_LIMIT,
-  );
-  const groupStats = new Map();
-  for (const [path] of state.paths) {
-    const file = filesByPath.get(path);
-    if (!file) continue;
-    const row = groupStats.get(file.group) ?? { count: 0, visits: 0 };
-    row.count += 1;
-    row.visits += state.visits.get(path) ?? 0;
-    groupStats.set(file.group, row);
-  }
-  const groups = [...groupStats].sort(([left], [right]) => left.localeCompare(right));
-  const centers = new Map(groups.map(([group, stats], index) => {
-    const seed = hashUnit(group);
-    const angle = 2 * Math.PI * (seed + index / Math.max(1, groups.length))
-      + 0.08 * Math.log1p(stats.visits);
-    const radius = groups.length === 1 ? 0 : 0.3 + 0.13 * hashUnit(`${group}:radius`);
-    return [group, {
-      x: 0.5 + radius * Math.cos(angle),
-      y: 0.5 + radius * Math.sin(angle),
-      scale: Math.min(0.24, 0.1 + 0.022 * Math.sqrt(stats.count)),
-      color: groupColor(group),
-    }];
-  }));
-  const target = new Map(files.map((file) => {
-    const center = centers.get(file.group) ?? { x: 0.5, y: 0.5, scale: 0.2 };
-    const visits = state.visits.get(file.path) ?? 0;
-    const angle = 2 * Math.PI * file.stable_x + 0.035 * visits;
-    const radius = center.scale * Math.sqrt(file.stable_y) / (1 + 0.025 * visits);
-    return [file.path, [
-      Math.max(0.02, Math.min(0.98, center.x + radius * Math.cos(angle))),
-      Math.max(0.02, Math.min(0.98, center.y + radius * Math.sin(angle))),
-    ]];
-  }));
-
-  const firstSeen = new Set();
-  const recentBySession = new Map();
-  const birthParent = new Map();
-  for (const event of data.events) {
-    if (event.ts_ms > cursorMs) break;
-    const recent = recentBySession.get(event.session_id) ?? [];
-    if (!firstSeen.has(event.path) && event.effect === "write") {
-      const extension = event.path.split(".").at(-1);
-      const parent = [...recent].reverse().find((candidate) => (
-        candidate.path !== event.path
-        && (candidate.group === event.group || candidate.path.split(".").at(-1) === extension)
-      ));
-      if (parent) birthParent.set(event.path, { path: parent.path, ts_ms: event.ts_ms });
-    }
-    firstSeen.add(event.path);
-    recent.push(event);
-    recentBySession.set(event.session_id, recent.filter((row) => row.ts_ms >= event.ts_ms - ATTENTION_MS));
-  }
-
-  const positions = new Map(target);
-  for (const [path, birth] of birthParent) {
-    const age = cursorMs - birth.ts_ms;
-    const from = target.get(birth.path);
-    const to = target.get(path);
-    if (!from || !to || age < 0 || age >= BIRTH_TRAVEL_MS) continue;
-    const progress = 1 - (1 - age / BIRTH_TRAVEL_MS) ** 3;
-    positions.set(path, [
-      from[0] + (to[0] - from[0]) * progress,
-      from[1] + (to[1] - from[1]) * progress,
-    ]);
-  }
-
-  const maxVisits = Math.max(1, ...files.map((file) => state.visits.get(file.path) ?? 0));
-  const points = files.map((file) => {
-    const focus = attention.get(file.path);
-    const visits = state.visits.get(file.path) ?? 0;
-    const depth = Math.max(0, file.path.split("/").length - 1);
-    const brightness = 0.2 + 0.3 / (1 + 0.2 * depth)
-      + 0.5 * Math.log1p(visits) / Math.log1p(maxVisits);
-    const size = Math.max(2.2, Math.min(12, 2.2 + Math.sqrt(file.current_bytes || file.churn || 1) / 28));
-    return {
-      value: [...(positions.get(file.path) ?? [0.5, 0.5]), visits],
-      path: file.path, group: file.group, visits, depth, focus, symbolSize: size,
-      itemStyle: {
-        color: centers.get(file.group)?.color ?? "#67dff1",
-        opacity: Math.min(1, brightness),
-        shadowBlur: 2 + (focus ? 16 * focus.strength : 0),
-        shadowColor: focus ? "#ffffff" : centers.get(file.group)?.color,
-      },
-    };
-  });
-  const pointByPath = new Map(points.map((point) => [point.path, point]));
-  const trailEvents = data.events.filter((event) => (
-    event.ts_ms <= cursorMs && event.ts_ms >= cursorMs - ATTENTION_MS
-  ));
-  const trails = [...new Set(trailEvents.map((event) => event.session_id))].slice(0, 12)
-    .map((session) => ({
-      name: session,
-      type: "line",
-      showSymbol: false,
-      silent: true,
-      animationDurationUpdate: 280,
-      lineStyle: { color: h.vendorColor(data.events.find((row) => row.session_id === session)?.vendor), width: 1, opacity: 0.22 },
-      data: trailEvents.filter((event) => event.session_id === session)
-        .flatMap((event) => pointByPath.has(event.path) ? [{ value: pointByPath.get(event.path).value, path: event.path }] : []),
-    })).filter((series) => series.data.length > 1);
-  const halo = points.filter((point) => point.focus).map((point) => ({
-    ...point, symbolSize: point.symbolSize + (point.focus.effect === "write" ? 12 : 8),
-    itemStyle: {
-      color: point.focus.effect === "write" ? "#ff7b72" : "transparent",
-      borderColor: point.focus.effect === "write" ? "#ffb0aa" : "#f7ffff", borderWidth: 1.2,
-      opacity: 0.3 + 0.7 * point.focus.strength,
-      shadowBlur: 18 * point.focus.strength,
-      shadowColor: point.focus.effect === "write" ? "#ff7b72" : "#ffffff",
-    },
-  }));
-  const readHalo = halo.filter((point) => point.focus.effect !== "write");
-  const writeHalo = halo.filter((point) => point.focus.effect === "write");
-  const labels = [...centers].map(([group, center]) => ({
-    name: group, value: [center.x, Math.min(0.96, center.y + center.scale)], group, symbolSize: 1,
-    label: {
-      show: true, formatter: "{b}", position: "top", color: center.color,
-      fontSize: 12, fontWeight: 600, textShadowBlur: 6, textShadowColor: "#070b12",
-    },
-    itemStyle: { opacity: 0 },
-  }));
-  return h.withEmpty({
-    ...h.base(), grid: grid(8, 8, 8, 8),
-    xAxis: { type: "value", min: 0, max: 1, show: false },
-    yAxis: { type: "value", min: 0, max: 1, show: false },
-    tooltip: {
-      renderMode: "richText",
-      formatter: ({ data: row }) => row.path
-        ? `${row.path}\n${row.group} nebula · depth ${row.depth}\n${row.visits} weighted agent visits${row.focus ? `\n${row.focus.vendor} ${row.focus.effect} · ${Math.round(row.focus.age / 60_000)} min ago` : ""}`
-        : row.group,
-    },
-    series: [
-      {
-        name: "directory color field", type: "scatter", silent: true,
-        animationDurationUpdate: 320,
-        data: points.map((point) => ({
-          ...point, symbolSize: point.symbolSize * 4 + 10,
-          itemStyle: { ...point.itemStyle, opacity: 0.045, shadowBlur: 18, shadowColor: point.itemStyle.color },
-        })),
-      },
-      ...trails,
-      { name: "files", type: "scatter", animationDurationUpdate: 320, data: points, emphasis: { scale: 1.8 } },
-      { name: "recent reads", type: "scatter", silent: true, animationDurationUpdate: 180, data: readHalo },
-      {
-        name: "recent writes", type: "effectScatter", silent: true,
-        rippleEffect: { brushType: "stroke", scale: 3.2, period: 3 },
-        animationDurationUpdate: 180, data: writeHalo,
-      },
-      { name: "directory labels", type: "scatter", silent: true, data: labels },
-    ],
-  }, points.length, "No agent-observed files by this cursor");
 }
 
 function territoryCartogram(data, cursorMs, h) {
@@ -641,7 +467,7 @@ function gitSediment(data, _cursorMs, h) {
 
 export const views = [
   ["repository-treemap", "Agent-observed repository treemap", "Files appear on their first recorded Agent access. Reads and writes glow for 30 minutes with a five-minute half-life; Git does not drive the layout.", "endpoint-overlay", ["files", "events"], repositoryTreemap],
-  ["workspace-constellation", "Repository Nebula", "Files and directory color clouds move as recorded Agent attention accumulates. Hue is directory, size is endpoint bytes, brightness combines depth and visits, and recent attention fades over 30 minutes.", "endpoint-overlay", ["files", "events"], workspaceConstellation],
+  ["workspace-constellation", "Repository Nebula", "The first frame is empty. Git-tracked repository context fades in at low brightness while files emerge on real Agent events from path-near neighbors; recent reads, writes, and command-associated effects pulse and decay without edges.", "endpoint-overlay", ["files", "events"], repositoryNebula],
   ["territory-cartogram", "Territories under attention", "Endpoint repository size and cursor-visible attention remain separate scales.", "endpoint-overlay", ["files", "events"], territoryCartogram],
   ["agent-path-particles", "Agent–path particle field", "Recorded reads and writes glow around stable path anchors for the trailing six hours; trails are not ownership or causality.", "trailing-6h", ["files", "events"], agentPathParticles],
   ["durable-change-pulse", "Durable Git reference", "A frozen Git-only reference. Dynamic Agent views use commit time solely for an outer-border flash.", "static", ["commits", "changes"], durableChangePulse],

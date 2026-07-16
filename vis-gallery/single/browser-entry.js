@@ -1,6 +1,6 @@
 import { init, use } from "echarts/core";
 import {
-  BarChart, EffectScatterChart, GraphChart, HeatmapChart, LineChart, PieChart,
+  BarChart, GraphChart, HeatmapChart, LineChart, PieChart,
   SankeyChart, ScatterChart, ThemeRiverChart, TreemapChart,
 } from "echarts/charts";
 import {
@@ -13,7 +13,7 @@ import { helpers } from "./helpers.js";
 import { requireView, views } from "./registry.js";
 
 use([
-  BarChart, EffectScatterChart, GraphChart, HeatmapChart, LineChart, PieChart, SankeyChart,
+  BarChart, GraphChart, HeatmapChart, LineChart, PieChart, SankeyChart,
   ScatterChart, ThemeRiverChart, TreemapChart, AxisPointerComponent,
   DataZoomComponent, GraphicComponent, GridComponent, LegendComponent,
   MarkLineComponent, SingleAxisComponent, TooltipComponent,
@@ -37,7 +37,12 @@ function renderAt(cursorMs) {
   const requested = Number(cursorMs);
   if (!Number.isFinite(requested)) return state.cursorMs;
   state.cursorMs = Math.max(state.startMs, Math.min(state.endMs, requested));
-  const option = state.view.build(state.data, state.cursorMs, helpers);
+  const commitOnly = state.commitTimes.has(state.cursorMs)
+    && !state.visualMomentSet.has(state.cursorMs);
+  const visualCursorMs = commitOnly
+    ? (state.visualMoments.findLast((value) => value <= state.cursorMs) ?? state.cursorMs)
+    : state.cursorMs;
+  const option = state.view.build(state.data, visualCursorMs, helpers);
   if (state.reducedMotion) {
     option.animation = false;
     for (const series of option.series ?? []) {
@@ -52,6 +57,7 @@ function renderAt(cursorMs) {
   element("cursor-label").textContent = timeLabel(state.cursorMs);
   element("artifact").classList.toggle("commit-flash", state.commitTimes.has(state.cursorMs));
   window.__AGENTSIGHT_CURSOR__ = state.cursorMs;
+  window.__AGENTSIGHT_VISUAL_CURSOR__ = visualCursorMs;
   return state.cursorMs;
 }
 
@@ -61,15 +67,38 @@ function stop() {
   element("play").textContent = "▶";
 }
 
-function sampledMoments(values, startMs, endMs, limit = 120) {
+function sampledMoments(values, startMs, endMs, limit = 120, exponent = 1) {
   const ordered = [...new Set([startMs, ...values, endMs]
     .map(Number)
     .filter((value) => Number.isFinite(value) && value >= startMs && value <= endMs))]
     .sort((left, right) => left - right);
   if (ordered.length <= limit) return ordered;
   return Array.from({ length: limit }, (_, index) => (
-    ordered[Math.round((ordered.length - 1) * index / (limit - 1))]
+    ordered[Math.round((ordered.length - 1) * (index / (limit - 1)) ** exponent)]
   ));
+}
+
+function preserveMoments(sampled, required) {
+  const output = [...sampled];
+  const occupied = new Set();
+  for (const value of required.map(Number).filter(Number.isFinite)) {
+    if (output.includes(value)) continue;
+    let bestIndex = -1;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (let index = 1; index < output.length - 1; index += 1) {
+      if (occupied.has(index)) continue;
+      const distance = Math.abs(output[index] - value);
+      if (distance < bestDistance) {
+        bestIndex = index;
+        bestDistance = distance;
+      }
+    }
+    if (bestIndex >= 0) {
+      output[bestIndex] = value;
+      occupied.add(bestIndex);
+    }
+  }
+  return output.sort((left, right) => left - right);
 }
 
 function togglePlayback() {
@@ -97,14 +126,31 @@ function togglePlayback() {
 
 function initialize(data, viewId, config = {}) {
   const view = requireView(viewId);
+  const visualMoments = view.visualMoments?.(data)
+    ?.map(Number).filter(Number.isFinite).sort((left, right) => left - right) ?? [];
   const moments = view.playbackMoments?.(data)
     ?.map(Number).filter(Number.isFinite).sort((left, right) => left - right) ?? [];
   const startMs = moments[0] ?? data.meta.window_start_ms;
   const endMs = moments.at(-1) ?? data.meta.window_end_ms;
-  const playbackMoments = moments.length ? sampledMoments(moments, startMs, endMs) : null;
+  let playbackMoments = moments.length
+    ? sampledMoments(moments, startMs, endMs, 120, view.id === "workspace-constellation" ? 1.5 : 1)
+    : null;
+  if (playbackMoments && view.id === "workspace-constellation") {
+    const firstWrite = data.events?.find((event) => event.effect === "write")?.ts_ms;
+    const commits = (data.commits ?? [])
+      .map((commit) => Number(commit.committed_at_ms))
+      .filter((value) => value >= startMs && value <= endMs);
+    playbackMoments = preserveMoments(playbackMoments, [
+      data.events?.[0]?.ts_ms,
+      firstWrite,
+      commits[Math.floor(commits.length / 2)],
+    ]);
+  }
   state = {
     data, view, startMs, endMs, cursorMs: config.cursorMs ?? endMs,
     playbackMoments, reducedMotion: Boolean(config.reducedMotion),
+    visualMoments,
+    visualMomentSet: new Set(visualMoments),
     commitTimes: new Set((data.commits ?? []).map((row) => Number(row.committed_at_ms))),
   };
   document.title = `${view.title} · AgentSight`;

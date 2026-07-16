@@ -8,7 +8,7 @@ const rawViews = [
   ...forensicStoryLongitudinal,
 ];
 
-function agentPlaybackMoments(data) {
+function agentVisualMoments(data, nebula = false) {
   const agentTimes = [...(data.events ?? []), ...(data.verification_events ?? [])]
     .map((row) => Number(row.ts_ms))
     .filter(Number.isFinite)
@@ -18,17 +18,44 @@ function agentPlaybackMoments(data) {
   const end = agentTimes.at(-1);
   const attentionDecay = agentTimes.flatMap((value) => [value + 5 * 60_000, value + 30 * 60_000])
     .filter((value) => value <= end);
-  const commits = (data.commits ?? [])
-    .map((row) => Number(row.committed_at_ms))
-    .filter((value) => Number.isFinite(value) && value >= start && value <= end);
-  return [...agentTimes, ...attentionDecay, ...commits].sort((left, right) => left - right);
+  const birthTravel = nebula ? (data.events ?? [])
+    .flatMap((row) => [row.ts_ms + 20_000, row.ts_ms + 60_000, row.ts_ms + 3 * 60_000])
+    .filter((value) => value <= end) : [];
+  const writeRipples = nebula ? (data.events ?? [])
+    .filter((row) => row.effect === "write")
+    .flatMap((row) => [row.ts_ms + 30_000, row.ts_ms + 90_000, row.ts_ms + 3 * 60_000])
+    .filter((value) => value <= end) : [];
+  const contextReveal = nebula
+    ? [start + 5 * 60_000, start + 15 * 60_000].filter((value) => value <= end)
+    : [];
+  return [
+    ...(nebula ? [start - 1] : []), ...agentTimes, ...birthTravel, ...writeRipples,
+    ...contextReveal, ...attentionDecay,
+  ].sort((left, right) => left - right);
 }
 
-export const views = rawViews.map((view) => view.timeMode === "static" ? view : ({
-  ...view,
-  requirements: [...new Set([...view.requirements, "events", "verification_events", "commits"])],
-  playbackMoments: agentPlaybackMoments,
-}));
+function commitFlashMoments(data, visualMoments) {
+  if (!visualMoments.length) return [];
+  const start = visualMoments[0];
+  const end = visualMoments.at(-1);
+  return (data.commits ?? [])
+    .map((row) => Number(row.committed_at_ms))
+    .filter((value) => Number.isFinite(value) && value >= start && value <= end);
+}
+
+export const views = rawViews.map((view) => {
+  if (view.timeMode === "static") return view;
+  const visualMoments = (data) => agentVisualMoments(data, view.id === "workspace-constellation");
+  return {
+    ...view,
+    requirements: [...new Set([...view.requirements, "events", "verification_events", "commits"])],
+    visualMoments,
+    playbackMoments(data) {
+      const visual = visualMoments(data);
+      return [...visual, ...commitFlashMoments(data, visual)].sort((left, right) => left - right);
+    },
+  };
+});
 
 export const registry = new Map(views.map((view) => [view.id, view]));
 

@@ -50,8 +50,12 @@ its input keys and one time mode: `static`, `cursor-marker`, `cumulative`,
   the same cursor-driven render function.
 - Output is self-contained and makes no network requests.
 
-The repository map and constellation keep stable endpoint geometry while the
-cursor changes salience. Static Git/lifetime views do not pretend to animate.
+Every playable view uses recorded Agent operation timestamps as its only state
+clock. Repository geometry may stay stable while reads, writes, and other
+recorded effects change salience and decay. A Git commit may flash the outer
+artifact frame, but it must not create, move, resize, recolor, or delete marks
+inside an Agent playback. Static Git/lifetime views remain explicit snapshots;
+they do not pretend to be Agent-time animations.
 
 ## Verification
 

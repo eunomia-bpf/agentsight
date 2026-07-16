@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readdirSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { homedir, tmpdir } from "node:os";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
@@ -97,7 +98,46 @@ function run(command, args, cwd = repositoryRoot, input) {
   return result.stdout;
 }
 
-export async function buildEvolutionData(options) {
+function filesUnder(root, suffixes) {
+  if (!existsSync(root)) return [];
+  const output = [];
+  const stack = [root];
+  while (stack.length) {
+    const directory = stack.pop();
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) stack.push(path);
+      else if (entry.isFile() && suffixes.some((suffix) => entry.name.endsWith(suffix))) output.push(path);
+    }
+  }
+  return output;
+}
+
+function sessionPathsForRepo(repo, sinceMs) {
+  const home = homedir();
+  const encoded = repo.replaceAll("/", "-");
+  const geminiHash = createHash("sha256").update(repo).digest("hex");
+  const direct = [
+    ...filesUnder(join(home, ".claude", "projects", encoded), [".jsonl"]),
+    ...filesUnder(join(home, ".gemini", "tmp", geminiHash), [".json"]),
+  ];
+  const codexRoot = join(home, ".codex", "sessions");
+  const codexSearch = spawnSync(
+    "rg", ["-l", "-F", "--glob", "*.jsonl", "--", repo, codexRoot],
+    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
+  const codex = [0, 1].includes(codexSearch.status)
+    ? codexSearch.stdout.split("\n").filter(Boolean)
+    : [];
+  const earliestMtime = sinceMs - 24 * 60 * 60 * 1_000;
+  return [...new Set([...direct, ...codex])]
+    .filter((path) => {
+      try { return statSync(path).mtimeMs >= earliestMtime; } catch { return false; }
+    })
+    .sort();
+}
+
+export async function buildEvolutionData(options, spec = null) {
   const repo = resolve(options.repo);
   const untilMs = parseTime(options.until, Date.now());
   const sinceMs = options.since === "repo"
@@ -108,19 +148,45 @@ export async function buildEvolutionData(options) {
     "--repo", repo, "--head", options.head, "--since", iso(sinceMs),
     "--until", iso(untilMs), "--output", "-",
   ];
+  const leanNebula = spec?.id === "workspace-constellation";
+  if (leanNebula) exporterArgs.push("--without-git-history");
+  for (const sessionPath of sessionPathsForRepo(repo, sinceMs)) {
+    exporterArgs.push("--session", sessionPath);
+  }
   const sessionData = run("cargo", [
     "run", "--quiet", "--manifest-path", join(repositoryRoot, "agent-session", "Cargo.toml"),
     "--bin", "agent-session-export", "--", ...exporterArgs,
   ]);
-  return JSON.parse(run("python3", [join(here, "project.py"), "--repo", repo], repositoryRoot, sessionData));
+  const projectArgs = [join(here, "project.py"), "--repo", repo];
+  if (leanNebula) projectArgs.push("--lean-nebula");
+  return JSON.parse(run("python3", projectArgs, repositoryRoot, sessionData));
 }
 
 export function projectForView(data, spec) {
   const keys = new Set(["schema", "meta", "summary", ...(spec.requirements ?? [])]);
   const projected = Object.fromEntries(Object.entries(data).filter(([key]) => keys.has(key)));
-  if (["repository-treemap", "workspace-constellation"].includes(spec.id)) {
+  if (spec.id === "repository-treemap") {
     const observedPaths = new Set((projected.events ?? []).map((event) => event.path));
     projected.files = (projected.files ?? []).filter((file) => observedPaths.has(file.path));
+  }
+  if (spec.id === "workspace-constellation") {
+    projected.files = (projected.files ?? []).map((file) => ({
+      path: file.path,
+      lifetime_id: file.lifetime_id,
+      lifetime_ids: file.lifetime_ids,
+      survives_to_head: file.survives_to_head,
+      current_path: file.current_path,
+    }));
+    projected.events = (projected.events ?? []).map((event) => ({
+      id: event.id,
+      session_id: event.session_id,
+      vendor: event.vendor,
+      ts_ms: event.ts_ms,
+      action: event.action,
+      category: event.category,
+      effect: event.effect,
+      path: event.path,
+    }));
   }
   return projected;
 }
@@ -163,11 +229,34 @@ export function animationBounds(data, spec) {
   return [Math.max(windowStart, start - context), Math.min(windowEnd, end + context)];
 }
 
-function sampleValues(values, count) {
+function sampleValues(values, count, exponent = 1) {
   if (count === 1) return [values.at(-1)];
   return Array.from({ length: count }, (_, index) => (
-    values[Math.round((values.length - 1) * index / (count - 1))]
+    values[Math.round((values.length - 1) * (index / (count - 1)) ** exponent)]
   ));
+}
+
+function preserveMoments(sampled, required) {
+  const output = [...sampled];
+  const occupied = new Set();
+  for (const value of required.map(Number).filter(Number.isFinite)) {
+    if (output.includes(value)) continue;
+    let bestIndex = -1;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (let index = 1; index < output.length - 1; index += 1) {
+      if (occupied.has(index)) continue;
+      const distance = Math.abs(output[index] - value);
+      if (distance < bestDistance) {
+        bestIndex = index;
+        bestDistance = distance;
+      }
+    }
+    if (bestIndex >= 0) {
+      output[bestIndex] = value;
+      occupied.add(bestIndex);
+    }
+  }
+  return output.sort((left, right) => left - right);
 }
 
 export function animationCursors(data, spec, frames) {
@@ -179,7 +268,16 @@ export function animationCursors(data, spec, frames) {
   if (frames === 1) return [end];
   const values = [...new Set([start, ...finiteLandmarks, end])]
     .sort((left, right) => left - right);
-  if (values.length > 1) return sampleValues(values, frames);
+  if (values.length > 1) {
+    const sampled = sampleValues(values, frames, spec.id === "workspace-constellation" ? 1.65 : 1);
+    if (spec.id !== "workspace-constellation") return sampled;
+    const events = data.events ?? [];
+    const firstWrite = events.find((event) => event.effect === "write")?.ts_ms;
+    const commits = (data.commits ?? [])
+      .map((commit) => Number(commit.committed_at_ms))
+      .filter((value) => value >= start && value <= end);
+    return preserveMoments(sampled, [events[0]?.ts_ms, firstWrite, commits[Math.floor(commits.length / 2)]]);
+  }
   return Array.from({ length: frames }, (_, index) => start + (end - start) * index / (frames - 1));
 }
 
@@ -302,7 +400,7 @@ export async function main(values = process.argv.slice(2)) {
   if (!options.view || !options.output) throw new Error("--view and --output are required\n\n" + usage());
   if (!options.repo || !options.since) throw new Error("--repo and --since are required");
   const spec = requireView(options.view);
-  const data = await buildEvolutionData(options);
+  const data = await buildEvolutionData(options, spec);
   await renderOne(data, spec, options);
 }
 

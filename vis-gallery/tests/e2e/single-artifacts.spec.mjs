@@ -92,6 +92,20 @@ test("builds a shareable graph directly from repository and native histories", a
   await expect(page.locator("#provenance")).toContainText("generator: agentsight-vis 0.1");
 });
 
+test("builds the nebula from a lean event plus Git-endpoint scan", async ({ page }) => {
+  const view = views.find((row) => row.id === "workspace-constellation");
+  const evolution = await buildEvolutionData({ repo: resolve(".."), since: "1d", until: "now", head: "HEAD" }, view);
+  expect(evolution.files.length).toBeGreaterThan(0);
+  expect(evolution.changes).toEqual([]);
+  expect(evolution.line_pixels).toEqual([]);
+  const output = join(outputDirectory, "direct-repository-nebula.html");
+  await renderOne(evolution, view, { output, width: 720, height: 420, frames: 8, fps: 4 });
+  await page.goto(pathToFileURL(output).href);
+  await page.waitForFunction(() => window.__AGENTSIGHT_READY__ === true);
+  await expect(page.locator("#chart svg")).toHaveCount(1);
+  await expect(page.locator("#view-title")).toHaveText("Repository Nebula");
+});
+
 test("opens and checks every one-graph HTML artifact individually", async ({ page }) => {
   for (const view of views) {
     const consoleErrors = [];
@@ -121,10 +135,20 @@ test("opens and checks every one-graph HTML artifact individually", async ({ pag
       const moments = view.playbackMoments(data);
       const start = Math.min(...moments);
       const end = Math.max(...moments);
-      await page.evaluate((cursor) => window.AgentSightSingle.renderAt(cursor), data.meta.window_start_ms);
+      await page.evaluate((cursor) => window.AgentSightSingle.renderAt(cursor), start);
       await expect(timeline).toHaveValue(String(start));
       await page.evaluate((cursor) => window.AgentSightSingle.renderAt(cursor), data.meta.window_end_ms);
       await expect(timeline).toHaveValue(String(end));
+      const commit = data.commits.find((row) => moments.includes(row.committed_at_ms));
+      if (commit) {
+        const previousVisual = view.visualMoments(data)
+          .filter((cursor) => cursor <= commit.committed_at_ms).at(-1);
+        await page.evaluate((cursor) => window.AgentSightSingle.renderAt(cursor), commit.committed_at_ms);
+        await expect(page.locator("#artifact")).toHaveClass(/commit-flash/);
+        expect(await page.evaluate(() => window.__AGENTSIGHT_VISUAL_CURSOR__)).toBe(previousVisual);
+        await page.evaluate((cursor) => window.AgentSightSingle.renderAt(cursor), data.events[0].ts_ms);
+        await expect(page.locator("#artifact")).not.toHaveClass(/commit-flash/);
+      }
       if (view.id === "workspace-constellation") {
         await page.locator("#play").click();
         await page.waitForTimeout(120);
