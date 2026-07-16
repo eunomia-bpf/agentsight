@@ -328,13 +328,17 @@ function workspaceConstellation(data, cursorMs, h) {
         .flatMap((event) => pointByPath.has(event.path) ? [{ value: pointByPath.get(event.path).value, path: event.path }] : []),
     })).filter((series) => series.data.length > 1);
   const halo = points.filter((point) => point.focus).map((point) => ({
-    ...point, symbolSize: point.symbolSize + 8,
+    ...point, symbolSize: point.symbolSize + (point.focus.effect === "write" ? 12 : 8),
     itemStyle: {
-      color: "transparent", borderColor: "#f7ffff", borderWidth: 1.2,
+      color: point.focus.effect === "write" ? "#ff7b72" : "transparent",
+      borderColor: point.focus.effect === "write" ? "#ffb0aa" : "#f7ffff", borderWidth: 1.2,
       opacity: 0.3 + 0.7 * point.focus.strength,
-      shadowBlur: 18 * point.focus.strength, shadowColor: "#ffffff",
+      shadowBlur: 18 * point.focus.strength,
+      shadowColor: point.focus.effect === "write" ? "#ff7b72" : "#ffffff",
     },
   }));
+  const readHalo = halo.filter((point) => point.focus.effect !== "write");
+  const writeHalo = halo.filter((point) => point.focus.effect === "write");
   const labels = [...centers].map(([group, center]) => ({
     name: group, value: [center.x, Math.min(0.96, center.y + center.scale)], group, symbolSize: 1,
     label: {
@@ -364,7 +368,12 @@ function workspaceConstellation(data, cursorMs, h) {
       },
       ...trails,
       { name: "files", type: "scatter", animationDurationUpdate: 320, data: points, emphasis: { scale: 1.8 } },
-      { name: "recent agent attention", type: "scatter", silent: true, animationDurationUpdate: 180, data: halo },
+      { name: "recent reads", type: "scatter", silent: true, animationDurationUpdate: 180, data: readHalo },
+      {
+        name: "recent writes", type: "effectScatter", silent: true,
+        rippleEffect: { brushType: "stroke", scale: 3.2, period: 3 },
+        animationDurationUpdate: 180, data: writeHalo,
+      },
       { name: "directory labels", type: "scatter", silent: true, data: labels },
     ],
   }, points.length, "No agent-observed files by this cursor");

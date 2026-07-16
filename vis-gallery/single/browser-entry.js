@@ -1,6 +1,6 @@
 import { init, use } from "echarts/core";
 import {
-  BarChart, GraphChart, HeatmapChart, LineChart, PieChart,
+  BarChart, EffectScatterChart, GraphChart, HeatmapChart, LineChart, PieChart,
   SankeyChart, ScatterChart, ThemeRiverChart, TreemapChart,
 } from "echarts/charts";
 import {
@@ -13,7 +13,7 @@ import { helpers } from "./helpers.js";
 import { requireView, views } from "./registry.js";
 
 use([
-  BarChart, GraphChart, HeatmapChart, LineChart, PieChart, SankeyChart,
+  BarChart, EffectScatterChart, GraphChart, HeatmapChart, LineChart, PieChart, SankeyChart,
   ScatterChart, ThemeRiverChart, TreemapChart, AxisPointerComponent,
   DataZoomComponent, GraphicComponent, GridComponent, LegendComponent,
   MarkLineComponent, SingleAxisComponent, TooltipComponent,
