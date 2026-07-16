@@ -204,3 +204,18 @@ submodule 的原始 AgentProf 版本 是啥?
 ---
 
 自己写的 harness 出错也消耗次数这句话是不是可以删除Experiment plan review 当前最多两轮，而我之前明确说过应允许 3 轮? [research-experiment-design (line 262)](/home/yunwei37/workspace/my-paper-work/academic-writing-skills/skills/research-experiment-design/SKILL.md:262) 默认要求矛盾结果返回一个 redesigned experiment；[iter-review-critique (line 90)](/home/yunwei37/workspace/my-paper-work/academic-writing-skills/skills/iter-review-critique/SKILL.md:90) 又强制每次给出“下一个决定性实验”。 这里面把强制性要求删掉, 净减少信息? 额外 implementation review、多个 evaluator、重复 checker、过多等价性证明，并不是当前 experiment skill 强制要求。Skill 实际只要求一个 plan、合并的 plan review、raw results 和一个 result review。这里应该改执行习惯，而不是继续扩充 skill。 这里面你应该在你的 agent.md 里面加上防止过多的. skill 文本应该最小修改并且少量净减少
+
+---
+
+你现在的符合 AAAI 要求吗
+
+---
+
+我不太理解这两个算法, 你得详细讲讲? 你尝试过的算法代码和不足也都得写成文档放在 Doc 里面记录下来
+
+---
+
+我们真正想要知道什么样的信息? 怎么判断不同的算法好还是差?固定深度版本：boundary F1 0.4231，B³ F1 0.6165
+去掉深度上限后：0.4720 / 0.6720
+当前跨运行 recurrence：0.6799 / 0.7862
+加独立 grouped-reference scalar calibration：约 0.7340 / 0.8011这些啥意思?
