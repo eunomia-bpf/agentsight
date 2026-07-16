@@ -22,7 +22,7 @@ Usage:
 
 Options:
   --repo PATH       Repository whose native sessions and Git history are inspected
-  --since TIME      RFC3339, YYYY-MM-DD, or a relative duration such as 7d
+  --since TIME      RFC3339, YYYY-MM-DD, relative duration, or repo (root commit)
   --until TIME      RFC3339, YYYY-MM-DD, or now (default: now)
   --head REV        Frozen Git revision (default: HEAD)
   --view ID         One of the registered single-artifact views
@@ -69,6 +69,19 @@ export function parseTime(value, fallback, anchor = Date.now()) {
   return parsed;
 }
 
+export function repositoryStartMs(repo, head = "HEAD") {
+  const roots = run("git", ["rev-list", "--first-parent", "--max-parents=0", head], repo)
+    .trim().split(/\s+/).filter(Boolean);
+  if (!roots.length) throw new Error(`cannot find a root commit for ${repo}`);
+  let earliest = Number.POSITIVE_INFINITY;
+  for (const root of roots) {
+    const seconds = Number(run("git", ["show", "-s", "--format=%ct", root], repo).trim());
+    if (!Number.isFinite(seconds)) throw new Error(`invalid root commit timestamp for ${root}`);
+    earliest = Math.min(earliest, seconds * 1_000);
+  }
+  return earliest;
+}
+
 function iso(value) {
   return new Date(value).toISOString();
 }
@@ -85,18 +98,21 @@ function run(command, args, cwd = repositoryRoot, input) {
 }
 
 export async function buildEvolutionData(options) {
+  const repo = resolve(options.repo);
   const untilMs = parseTime(options.until, Date.now());
-  const sinceMs = parseTime(options.since, untilMs - 7 * 86_400_000, untilMs);
+  const sinceMs = options.since === "repo"
+    ? repositoryStartMs(repo, options.head)
+    : parseTime(options.since, untilMs - 7 * 86_400_000, untilMs);
   if (sinceMs >= untilMs) throw new Error("--since must be before --until");
   const exporterArgs = [
-    "--repo", resolve(options.repo), "--head", options.head, "--since", iso(sinceMs),
+    "--repo", repo, "--head", options.head, "--since", iso(sinceMs),
     "--until", iso(untilMs), "--output", "-",
   ];
-  const canonical = run("cargo", [
+  const sessionData = run("cargo", [
     "run", "--quiet", "--manifest-path", join(repositoryRoot, "agent-session", "Cargo.toml"),
     "--bin", "agent-session-export", "--", ...exporterArgs,
   ]);
-  return JSON.parse(run("python3", [join(here, "project.py"), "--repo", resolve(options.repo)], repositoryRoot, canonical));
+  return JSON.parse(run("python3", [join(here, "project.py"), "--repo", repo], repositoryRoot, sessionData));
 }
 
 export function projectForView(data, spec) {
@@ -107,6 +123,11 @@ export function projectForView(data, spec) {
 export function animationBounds(data, spec) {
   const windowStart = data.meta.window_start_ms;
   const windowEnd = data.meta.window_end_ms;
+  if (spec.playbackMoments) {
+    const moments = spec.playbackMoments(projectForView(data, spec))
+      .map(Number).filter(Number.isFinite);
+    return moments.length ? [Math.min(...moments), Math.max(...moments)] : [windowStart, windowEnd];
+  }
   const timestampFields = ["ts_ms", "committed_at_ms", "started_at_ms", "ended_at_ms"];
   const requirements = new Set(spec.requirements ?? []);
   const timestampGroups = [
@@ -137,6 +158,26 @@ export function animationBounds(data, spec) {
   return [Math.max(windowStart, start - context), Math.min(windowEnd, end + context)];
 }
 
+function sampleValues(values, count) {
+  if (count === 1) return [values.at(-1)];
+  return Array.from({ length: count }, (_, index) => (
+    values[Math.round((values.length - 1) * index / (count - 1))]
+  ));
+}
+
+export function animationCursors(data, spec, frames) {
+  const landmarks = spec.playbackMoments?.(projectForView(data, spec)) ?? [];
+  const finiteLandmarks = landmarks.map(Number).filter(Number.isFinite);
+  const [start, end] = finiteLandmarks.length
+    ? [Math.min(...finiteLandmarks), Math.max(...finiteLandmarks)]
+    : animationBounds(data, spec);
+  if (frames === 1) return [end];
+  const values = [...new Set([start, ...finiteLandmarks, end])]
+    .sort((left, right) => left - right);
+  if (values.length > 1) return sampleValues(values, frames);
+  return Array.from({ length: frames }, (_, index) => start + (end - start) * index / (frames - 1));
+}
+
 function safeJson(value) {
   return JSON.stringify(value).replaceAll("<", "\\u003c").replaceAll("\u2028", "\\u2028").replaceAll("\u2029", "\\u2029");
 }
@@ -150,9 +191,9 @@ export async function htmlFor(data, spec, options, renderer = "svg") {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="agentsight-vis 0.1">
 <meta name="agentsight:view" content="${spec.id}"><meta name="agentsight:revision" content="${data.meta.endpoint_revision}"><meta name="agentsight:time-mode" content="${spec.timeMode}">
 <title>${spec.title} · AgentSight</title><style>
-:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#070b12;color:#dce8f7}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 75% 0,rgba(35,106,114,.17),transparent 34%),#070b12}.artifact{width:${options.width + 64}px;min-height:${options.height + 190}px;padding:24px 32px;background:#070b12}.header{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid rgba(135,160,190,.18);padding-bottom:14px}.eyebrow,.mode{font:10px ui-monospace,monospace;color:#61d7bf;letter-spacing:.12em;text-transform:uppercase}.header h1{font-size:24px;margin:6px 0}.header p{font-size:11px;color:#71839a;margin:0;max-width:900px}.mode{color:#8c9bb0;border:1px solid rgba(135,160,190,.18);padding:7px 9px;border-radius:99px;align-self:flex-start}.visual{width:${options.width}px;height:${options.height}px;margin-top:14px}.timeline{display:grid;grid-template-columns:42px 1fr 190px;gap:12px;align-items:center;border-top:1px solid rgba(135,160,190,.18);padding:14px 0 8px}.timeline button{width:36px;height:36px;border-radius:50%;border:1px solid rgba(97,215,191,.4);background:#10231f;color:#61d7bf;cursor:pointer}.timeline input{width:100%;accent-color:#61d7bf}.timeline output{font:9px ui-monospace,monospace;color:#9bacc0;text-align:right}.legend{display:flex;gap:18px;font:9px ui-monospace,monospace;color:#71839a}.legend i{display:inline-block;width:13px;height:3px;margin-right:5px;vertical-align:middle}.footer{margin-top:8px;color:#7c8ba0;font:9px ui-monospace,monospace;letter-spacing:0}
-</style></head><body><main id="artifact" class="artifact"><header class="header"><div><span class="eyebrow">AgentSight · repository evolution</span><h1 id="view-title"></h1><p id="view-note"></p></div><span id="time-mode" class="mode"></span></header><section id="visual" class="visual"><div id="chart"></div></section><section class="timeline"><button id="play" aria-label="Play history">▶</button><input id="timeline" type="range"><output id="cursor-label"></output></section><section class="legend"><span><i style="background:#62cfe8"></i>recorded process</span><span><i style="background:#efd265"></i>durable Git</span><span><i style="border:1px solid #9aa8b9"></i>frozen endpoint</span></section><footer id="provenance" class="footer"></footer></main>
-<script>${runtimeSource}</script><script>AgentSightSingle.initialize(${safeJson(payload)},${safeJson(spec.id)},{renderer:${safeJson(renderer)},cursorMs:${cursorMs},width:${options.width},height:${options.height}})</script></body></html>`;
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#070b12;color:#dce8f7}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 75% 0,rgba(35,106,114,.17),transparent 34%),#070b12}.artifact{width:${options.width + 64}px;min-height:${options.height + 190}px;padding:24px 32px;background:#070b12;transition:box-shadow .12s}.artifact.commit-flash{box-shadow:inset 0 0 0 2px #efd265,0 0 30px rgba(239,210,101,.42)}.header{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid rgba(135,160,190,.18);padding-bottom:14px}.eyebrow,.mode{font:10px ui-monospace,monospace;color:#61d7bf;letter-spacing:.12em;text-transform:uppercase}.header h1{font-size:24px;margin:6px 0}.header p{font-size:11px;color:#71839a;margin:0;max-width:900px}.mode{color:#8c9bb0;border:1px solid rgba(135,160,190,.18);padding:7px 9px;border-radius:99px;align-self:flex-start}.visual{width:${options.width}px;height:${options.height}px;margin-top:14px}.timeline{display:grid;grid-template-columns:42px 1fr 190px;gap:12px;align-items:center;border-top:1px solid rgba(135,160,190,.18);padding:14px 0 8px}.timeline button{width:36px;height:36px;border-radius:50%;border:1px solid rgba(97,215,191,.4);background:#10231f;color:#61d7bf;cursor:pointer}.timeline input{width:100%;accent-color:#61d7bf}.timeline output{font:9px ui-monospace,monospace;color:#9bacc0;text-align:right}.legend{display:flex;gap:18px;font:9px ui-monospace,monospace;color:#71839a}.legend i{display:inline-block;width:13px;height:3px;margin-right:5px;vertical-align:middle}.footer{margin-top:8px;color:#7c8ba0;font:9px ui-monospace,monospace;letter-spacing:0}
+</style></head><body><main id="artifact" class="artifact"><header class="header"><div><span class="eyebrow">AgentSight · repository evolution</span><h1 id="view-title"></h1><p id="view-note"></p></div><span id="time-mode" class="mode"></span></header><section id="visual" class="visual"><div id="chart"></div></section><section class="timeline"><button id="play" aria-label="Play history">▶</button><input id="timeline" type="range"><output id="cursor-label"></output></section><section class="legend"><span><i style="background:#62cfe8"></i>recorded Agent event</span><span><i style="background:#efd265"></i>commit border flash</span><span><i style="border:1px solid #9aa8b9"></i>frozen Git reference</span></section><footer id="provenance" class="footer"></footer></main>
+<script>${runtimeSource}</script><script>AgentSightSingle.initialize(${safeJson(payload)},${safeJson(spec.id)},{renderer:${safeJson(renderer)},cursorMs:${cursorMs},width:${options.width},height:${options.height},reducedMotion:${Boolean(options.reducedMotion)}})</script></body></html>`;
 }
 
 async function openPage(html, options) {
@@ -172,7 +213,7 @@ function svgWithMetadata(svg, data, spec, cursorMs) {
   const value = safeJson({
     view: spec.id, repository: data.meta.repository, revision: data.meta.endpoint_revision,
     window: [data.meta.window_start_ms, data.meta.window_end_ms], cursor_ms: cursorMs,
-    generator: "agentsight-vis 0.1", association_mode: data.meta.association_mode,
+    generator: "agentsight-vis 0.1",
   }).replaceAll("&", "&amp;");
   const metadata = `<metadata>${value}</metadata>`;
   return `<?xml version="1.0" encoding="UTF-8"?>\n${svg.replace(">", `>${metadata}`)}`;
@@ -198,15 +239,18 @@ export async function renderAnimation(format, html, data, spec, options) {
   try {
     const { browser, page } = await openPage(html, options);
     try {
-      const [start, end] = animationBounds(data, spec);
+      const cursors = animationCursors(data, spec, options.frames);
+      const start = cursors[0];
+      const end = cursors.at(-1);
       await page.locator("#timeline").evaluate((node, bounds) => {
         [node.min, node.max] = bounds.map(String);
       }, [start, end]);
       for (let frame = 0; frame < options.frames; frame += 1) {
-        const cursor = options.frames === 1
-          ? end
-          : start + (end - start) * frame / (options.frames - 1);
+        const cursor = cursors[frame];
         await page.evaluate((value) => window.AgentSightSingle.renderAt(value), cursor);
+        await page.evaluate(() => new Promise((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(resolve));
+        }));
         await page.locator("#artifact").screenshot({ path: join(temporary, `frame-${String(frame).padStart(4, "0")}.png`) });
       }
     } finally {
@@ -233,7 +277,10 @@ export async function renderOne(data, spec, options) {
   }
   options.output = resolve(options.output);
   await mkdir(dirname(options.output), { recursive: true });
-  const html = await htmlFor(data, spec, options, "svg");
+  const html = await htmlFor(data, spec, {
+    ...options,
+    reducedMotion: ["gif", "mp4"].includes(format),
+  }, "svg");
   if (format === "html") await writeFile(options.output, html);
   else if (["svg", "png"].includes(format)) await renderSnapshot(format, html, data, spec, options);
   else await renderAnimation(format, html, data, spec, {

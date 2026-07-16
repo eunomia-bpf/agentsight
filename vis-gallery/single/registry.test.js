@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { fixtureData as data } from "../tests/fixture-data.mjs";
 import { helpers } from "./helpers.js";
 import { registry, views } from "./registry.js";
-import { animationBounds, parseTime, projectForView } from "./render.mjs";
+import { animationBounds, animationCursors, parseTime, projectForView } from "./render.mjs";
 
 const knownModes = new Set(["static", "cursor-marker", "cumulative", "trailing-6h", "endpoint-overlay", "mixed-day"]);
 
@@ -18,20 +18,49 @@ describe("single-view registry", () => {
     const view = registry.get("session-storylines");
     expect(animationBounds(data, view)).toEqual([
       data.events[0].ts_ms,
-      data.events.at(-1).ts_ms,
+      data.verification_events.at(-1).ts_ms,
     ]);
-    expect(animationBounds({ ...data, events: [], sessions: [] }, view)).toEqual([
+    expect(animationBounds({ ...data, events: [], verification_events: [], sessions: [] }, view)).toEqual([
       data.meta.window_start_ms,
       data.meta.window_end_ms,
     ]);
+  });
+
+  test("replays observed repository growth while recent attention fades", () => {
+    const treemap = registry.get("repository-treemap");
+    const first = treemap.build(projectForView(data, treemap), data.events[0].ts_ms, helpers);
+    const last = treemap.build(projectForView(data, treemap), data.events.at(-1).ts_ms, helpers);
+    const leafCount = (rows) => rows.reduce((count, row) => (
+      count + (row.children?.length ? leafCount(row.children) : 1)
+    ), 0);
+    expect(leafCount(first.series[0].data)).toBeLessThan(leafCount(last.series[0].data));
+
+    const constellation = registry.get("workspace-constellation");
+    const path = data.events[0].path;
+    const filePoint = (option) => option.series.find((series) => series.name === "files")
+      .data.find((row) => row.path === path);
+    const focused = filePoint(constellation.build(
+      projectForView(data, constellation), data.events[0].ts_ms, helpers,
+    ));
+    const faded = filePoint(constellation.build(
+      projectForView(data, constellation), data.events[0].ts_ms + 31 * 60_000, helpers,
+    ));
+    expect(focused.focus.effect).toBe("read");
+    expect(faded.focus).toBeUndefined();
+    expect(focused.itemStyle.shadowBlur).toBeGreaterThan(faded.itemStyle.shadowBlur);
+
+    const cursors = animationCursors(data, constellation, 6);
+    expect(cursors[0]).toBe(data.events[0].ts_ms);
+    expect(cursors.at(-1)).toBe(data.verification_events.at(-1).ts_ms);
+    expect(cursors.every((cursor) => cursor >= cursors[0] && cursor <= cursors.at(-1))).toBe(true);
   });
 
   test("contains exactly the 31 preserved visualizations", () => {
     expect(views).toHaveLength(31);
     expect(registry.size).toBe(31);
     expect(new Set(views.map((view) => view.id)).size).toBe(31);
-    expect(views.filter((view) => view.timeMode === "static")).toHaveLength(8);
-    expect(views.filter((view) => view.timeMode !== "static")).toHaveLength(23);
+    expect(views.filter((view) => view.timeMode === "static")).toHaveLength(9);
+    expect(views.filter((view) => view.timeMode !== "static")).toHaveLength(22);
   });
 
   test("declares valid, satisfiable data contracts", () => {
@@ -98,9 +127,15 @@ describe("single-view registry", () => {
         stable_x: (index % 40) / 40,
         stable_y: Math.floor(index / 40) / 30,
       })),
-      events: [],
+      events: Array.from({ length: 1_200 }, (_, index) => ({
+        ...data.events[index % data.events.length],
+        id: `dense-event-${index}`,
+        path: `dense/path-${index}.rs`,
+        group: "dense",
+        ts_ms: data.meta.window_start_ms + index,
+      })),
     };
     const constellation = registry.get("workspace-constellation").build(dense, data.meta.window_end_ms, helpers);
-    expect(constellation.series[0].data).toHaveLength(450);
+    expect(constellation.series.find((series) => series.name === "files").data).toHaveLength(1_200);
   });
 });

@@ -118,10 +118,18 @@ test("opens and checks every one-graph HTML artifact individually", async ({ pag
       await expect(timeline).toBeDisabled();
     } else {
       await expect(timeline).toBeEnabled();
+      const moments = view.playbackMoments(data);
+      const start = Math.min(...moments);
+      const end = Math.max(...moments);
       await page.evaluate((cursor) => window.AgentSightSingle.renderAt(cursor), data.meta.window_start_ms);
-      await expect(timeline).toHaveValue(String(data.meta.window_start_ms));
+      await expect(timeline).toHaveValue(String(start));
       await page.evaluate((cursor) => window.AgentSightSingle.renderAt(cursor), data.meta.window_end_ms);
-      await expect(timeline).toHaveValue(String(data.meta.window_end_ms));
+      await expect(timeline).toHaveValue(String(end));
+      if (view.id === "workspace-constellation") {
+        await page.locator("#play").click();
+        await page.waitForTimeout(120);
+        await page.locator("#play").click();
+      }
     }
 
     const overflow = await page.locator("#artifact").evaluate((node) => ({

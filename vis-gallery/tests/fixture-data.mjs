@@ -162,7 +162,7 @@ export const fixtureData = {
     ["session-codex", "codex", 7, 30, 3_100],
     ["session-gemini", "gemini", 26, 36, 2_400],
   ].map(([id, vendor, first, last, reported_tokens]) => ({
-    id, vendor, model: `${vendor}-test`, started_at_ms: start + first * HOUR,
+    id, conversation_id: `conversation-${vendor}`, vendor, model: `${vendor}-test`, started_at_ms: start + first * HOUR,
     ended_at_ms: start + last * HOUR,
     tool_events: events.filter((event) => event.session_id === id).length,
     reported_tokens,

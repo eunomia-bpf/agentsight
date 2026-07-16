@@ -40,6 +40,22 @@ semantics—one playable progress bar. No network request or local server is
 required. Session/Git data is piped between the internal parser and projector;
 no intermediate JSON file is written or exposed to the user.
 
+Use `--since repo` to search native Agent sessions over the repository's whole
+lifetime:
+
+```bash
+npm run render -- \
+  --repo /path/to/repository --since repo \
+  --view workspace-constellation \
+  --output workspace-evolution.html
+```
+
+Dynamic figures advance only on recorded Agent-event timestamps. They do not
+invent activity for intervals without a native session. Git commits never move
+or resize the animated files; a commit inside the observed Agent interval only
+flashes the artifact's outer border. Read/write attention remains visible for
+30 minutes and fades with a five-minute half-life.
+
 Change only the output extension to select a format:
 
 ```bash

@@ -37,7 +37,7 @@ function pathAxis(paths, h, { width = 210, chars = 34, fontSize = 9 } = {}) {
 const activityPulse = {
   id: "activity-pulse",
   title: "Longitudinal activity pulse",
-  note: "Recorded process activity and Git commits share a clock but remain separate evidence layers. The line marks the replay cursor.",
+  note: "Recorded Agent reads and writes follow their real operation timestamps. The line marks the replay cursor; commits are shown only by the artifact border.",
   timeMode: "cursor-marker",
   requirements: ["time_buckets"],
   build(data, cursorMs, h) {
@@ -70,13 +70,8 @@ const activityPulse = {
       series: [
         activityLine("recorded reads", "read", h.colors.read, cursorMark(cursorMs, h)),
         activityLine("recorded writes", "write", h.colors.write),
-        {
-          name: "Git commits", type: "bar", barMaxWidth: 9,
-          itemStyle: { color: h.colors.commit, opacity: 0.74 },
-          data: buckets.map((row) => [row.ts_ms, row.commits ?? 0]),
-        },
       ],
-    }, buckets.length, "No recorded path activity or Git commits in this interval");
+    }, process.length, "No recorded Agent path activity in this interval");
   },
 };
 

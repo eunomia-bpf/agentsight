@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a compact, privacy-safe gallery projection from piped evolution data."""
+"""Build compact data for one repository visualization."""
 
 from __future__ import annotations
 
@@ -196,6 +196,7 @@ def build(
                 session["id"],
                 {
                     "id": session["id"],
+                    "conversation_id": session.get("conversation_id"),
                     "vendor": session["vendor"],
                     "model": session.get("model") or "unknown",
                     "started_at_ms": session.get("started_at_ms"),

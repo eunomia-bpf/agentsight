@@ -1,5 +1,10 @@
 const HOUR_MS = 3_600_000;
 const WAKE_MS = 6 * HOUR_MS;
+const ATTENTION_MS = 30 * 60_000;
+const ATTENTION_HALF_LIFE_MS = 5 * 60_000;
+const BIRTH_TRAVEL_MS = 30 * 60_000;
+const TREEMAP_PATH_LIMIT = 700;
+const NEBULA_PATH_LIMIT = 2_500;
 
 const patternColors = {
   Supernova: "#ff6b7a",
@@ -11,6 +16,12 @@ const patternColors = {
   Steady: "#4d91c6",
 };
 const lifeColors = ["#4ab99a", "#66445a"];
+const actionColors = {
+  read: "#67dff1",
+  write: "#ff7b72",
+  test: "#65d69e",
+  other: "#f4c95d",
+};
 
 const chart = (h, rows, empty, option) => h.withEmpty(
   { ...h.base(), ...option }, rows.length, empty,
@@ -47,28 +58,131 @@ const endedCount = (row) => (
   row.dead_files ?? Math.max(0, row.born_files - (row.surviving_files ?? 0))
 );
 
-function decorateTree(node, activePaths) {
-  const children = node.children?.map((child) => decorateTree(child, activePaths));
-  const active = node.path ? activePaths.has(node.path) : children?.some((child) => child.__active);
-  return {
-    ...node, children,
-    ...(active && {
-      __active: true,
-      itemStyle: {
-        color: "#216d7a", borderColor: "#6ee7da", shadowBlur: 8,
-        shadowColor: "rgba(110,231,218,.35)",
-      },
-    }),
-  };
+function attentionByPath(data, cursorMs) {
+  const attention = new Map();
+  for (const event of data.events ?? []) {
+    const age = cursorMs - event.ts_ms;
+    if (age < 0 || age > ATTENTION_MS) continue;
+    const previous = attention.get(event.path);
+    if (previous && previous.ts_ms > event.ts_ms) continue;
+    attention.set(event.path, {
+      ts_ms: event.ts_ms,
+      effect: event.effect,
+      action: event.action,
+      vendor: event.vendor,
+      age,
+      strength: 2 ** (-age / ATTENTION_HALF_LIFE_MS),
+    });
+  }
+  return attention;
+}
+
+function observedState(data, cursorMs) {
+  const files = new Map(data.files.map((file) => [file.path, file]));
+  const paths = new Map();
+  const visits = new Map();
+  const first = new Map();
+  const last = new Map();
+  for (const event of data.events ?? []) {
+    if (event.ts_ms > cursorMs) break;
+    const weight = event.effect === "write" ? 2 : 1;
+    visits.set(event.path, (visits.get(event.path) ?? 0) + weight);
+    if (!first.has(event.path)) first.set(event.path, event);
+    last.set(event.path, event);
+    const file = files.get(event.path);
+    paths.set(event.path, Math.max(1, Number(file?.current_bytes) || Number(file?.churn) || 1));
+  }
+  return { paths, visits, first, last };
+}
+
+function groupForPath(path) {
+  const parts = path.split("/");
+  if (parts.length === 1) return ["(root)"];
+  return parts.slice(0, Math.min(2, parts.length - 1));
+}
+
+function materializeTree(node) {
+  const children = [...node.children.values()]
+    .map(materializeTree)
+    .sort((left, right) => left.name.localeCompare(right.name));
+  delete node.children;
+  if (children.length) {
+    node.children = children;
+    node.value = children.reduce((sum, child) => sum + (child.value ?? 0), 0);
+    if (children.some((child) => child.__active)) node.__active = true;
+  }
+  if (node.__active && !node.path) {
+    node.itemStyle = { borderColor: "#dffdf8", borderWidth: 1 };
+  }
+  return node;
+}
+
+function growthTree(data, cursorMs, attention) {
+  const { paths: state } = observedState(data, cursorMs);
+  for (const [path] of attention) {
+    if (!state.has(path)) state.set(path, 1);
+  }
+  const files = new Map(data.files.map((file) => [file.path, file]));
+  const ranked = [...state].sort((left, right) => {
+    const leftFocus = attention.has(left[0]) ? 1e15 : 0;
+    const rightFocus = attention.has(right[0]) ? 1e15 : 0;
+    return rightFocus + right[1] - leftFocus - left[1] || left[0].localeCompare(right[0]);
+  });
+  const selected = new Set(ranked.slice(0, TREEMAP_PATH_LIMIT).map(([path]) => path));
+  const rows = ranked.filter(([path]) => selected.has(path)).map(([path, value]) => {
+    const file = files.get(path);
+    const focus = attention.get(path);
+    const color = actionColors[focus?.effect] ?? patternColors[file?.pattern] ?? "#4d91c6";
+    return {
+      path, value, name: path.split("/").at(-1), pattern: file?.pattern,
+      touches: file?.touches ?? 0, measure: "observed working bytes",
+      __active: Boolean(focus), attention: focus,
+      ...(focus && { itemStyle: {
+        color, opacity: 0.35 + 0.65 * focus.strength,
+        borderColor: "#dffdf8", borderWidth: 1,
+        shadowBlur: 12 * focus.strength, shadowColor: color,
+      } }),
+    };
+  });
+  const aggregates = new Map();
+  for (const [path, value] of ranked.slice(TREEMAP_PATH_LIMIT)) {
+    const group = groupForPath(path).join("/");
+    const row = aggregates.get(group) ?? { value: 0, count: 0 };
+    row.value += value;
+    row.count += 1;
+    aggregates.set(group, row);
+  }
+  for (const [group, aggregate] of aggregates) {
+    rows.push({
+      path: null, treePath: `${group}/(other files)`, name: `other ${aggregate.count} files`,
+      value: aggregate.value, aggregate: true, measure: "observed working bytes",
+    });
+  }
+  const root = { name: "repository", children: new Map() };
+  for (const row of rows) {
+    const path = row.treePath ?? row.path;
+    const parts = path.split("/");
+    let node = root;
+    for (const part of parts.slice(0, -1)) {
+      if (!node.children.has(part)) node.children.set(part, { name: part, children: new Map() });
+      node = node.children.get(part);
+    }
+    node.children.set(parts.at(-1), { ...row, children: new Map() });
+  }
+  return materializeTree(root);
 }
 
 function repositoryTreemap(data, cursorMs, h) {
-  const rows = decorateTree(data.tree, activePathSet(data, cursorMs, h)).children ?? [];
+  const attention = attentionByPath(data, cursorMs);
+  const tree = growthTree(data, cursorMs, attention);
+  const rows = tree.children ?? [];
   return chart(h, rows, "No repository paths at the endpoint", {
     tooltip: {
       renderMode: "richText",
       formatter: ({ data: row = {} }) => row.path
-        ? `${row.path}\n${row.pattern ?? "file"}\n${row.touches ?? 0} recorded touches\n${h.formatCompact(row.value ?? 0)} current bytes`
+        ? `${row.path}\n${row.pattern ?? "file"}\n${row.touches ?? 0} recorded touches\n${h.formatCompact(row.value ?? 0)} ${row.measure ?? "current bytes"}${row.attention ? `\n${row.attention.vendor} ${row.attention.effect} · ${Math.round(row.attention.age / 60_000)} min ago` : ""}`
+        : row.aggregate
+          ? `${row.name}\n${h.formatCompact(row.value ?? 0)} ${row.measure}`
         : row.name ?? "repository",
     },
     series: [{
@@ -81,6 +195,7 @@ function repositoryTreemap(data, cursorMs, h) {
       label: { show: true, color: "#e9f1ff", fontSize: 10, overflow: "truncate" },
       upperLabel: { show: true, height: 22, color: "#9fb1c9" },
       itemStyle: { borderColor: "#080c14", borderWidth: 1, gapWidth: 1 },
+      animationDurationUpdate: 220,
       levels: [
         { itemStyle: { borderWidth: 0, gapWidth: 2 } },
         { colorSaturation: [0.25, 0.65], itemStyle: { gapWidth: 2 } },
@@ -90,35 +205,166 @@ function repositoryTreemap(data, cursorMs, h) {
   });
 }
 
+function hashUnit(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) / 0xffffffff;
+}
+
+function groupColor(group) {
+  return `hsl(${Math.round(180 + 210 * hashUnit(group))} 68% 62%)`;
+}
+
 function workspaceConstellation(data, cursorMs, h) {
-  const activePaths = activePathSet(data, cursorMs, h);
-  const files = h.rank(data.files, (file) => (
-    (activePaths.has(file.path) ? 1e15 : 0) + file.current_bytes + file.risk_score * 100
-  ), 450);
+  const attention = attentionByPath(data, cursorMs);
+  const state = observedState(data, cursorMs);
+  const filesByPath = new Map(data.files.map((file) => [file.path, file]));
+  const files = h.rank(
+    data.files.filter((file) => state.paths.has(file.path)),
+    (file) => (attention.has(file.path) ? 1e15 : 0)
+      + (state.visits.get(file.path) ?? 0) * 1e9 + file.current_bytes,
+    NEBULA_PATH_LIMIT,
+  );
+  const groupStats = new Map();
+  for (const [path] of state.paths) {
+    const file = filesByPath.get(path);
+    if (!file) continue;
+    const row = groupStats.get(file.group) ?? { count: 0, visits: 0 };
+    row.count += 1;
+    row.visits += state.visits.get(path) ?? 0;
+    groupStats.set(file.group, row);
+  }
+  const groups = [...groupStats].sort(([left], [right]) => left.localeCompare(right));
+  const centers = new Map(groups.map(([group, stats], index) => {
+    const seed = hashUnit(group);
+    const angle = 2 * Math.PI * (seed + index / Math.max(1, groups.length))
+      + 0.08 * Math.log1p(stats.visits);
+    const radius = groups.length === 1 ? 0 : 0.2 + 0.13 * hashUnit(`${group}:radius`);
+    return [group, {
+      x: 0.5 + radius * Math.cos(angle),
+      y: 0.5 + radius * Math.sin(angle),
+      scale: Math.min(0.2, 0.045 + 0.012 * Math.sqrt(stats.count)),
+      color: groupColor(group),
+    }];
+  }));
+  const target = new Map(files.map((file) => {
+    const center = centers.get(file.group) ?? { x: 0.5, y: 0.5, scale: 0.2 };
+    const visits = state.visits.get(file.path) ?? 0;
+    const angle = 2 * Math.PI * file.stable_x + 0.035 * visits;
+    const radius = center.scale * Math.sqrt(file.stable_y) / (1 + 0.025 * visits);
+    return [file.path, [
+      Math.max(0.02, Math.min(0.98, center.x + radius * Math.cos(angle))),
+      Math.max(0.02, Math.min(0.98, center.y + radius * Math.sin(angle))),
+    ]];
+  }));
+
+  const firstSeen = new Set();
+  const recentBySession = new Map();
+  const birthParent = new Map();
+  for (const event of data.events) {
+    if (event.ts_ms > cursorMs) break;
+    const recent = recentBySession.get(event.session_id) ?? [];
+    if (!firstSeen.has(event.path) && event.effect === "write") {
+      const extension = event.path.split(".").at(-1);
+      const parent = [...recent].reverse().find((candidate) => (
+        candidate.path !== event.path
+        && (candidate.group === event.group || candidate.path.split(".").at(-1) === extension)
+      ));
+      if (parent) birthParent.set(event.path, { path: parent.path, ts_ms: event.ts_ms });
+    }
+    firstSeen.add(event.path);
+    recent.push(event);
+    recentBySession.set(event.session_id, recent.filter((row) => row.ts_ms >= event.ts_ms - ATTENTION_MS));
+  }
+
+  const positions = new Map(target);
+  for (const [path, birth] of birthParent) {
+    const age = cursorMs - birth.ts_ms;
+    const from = target.get(birth.path);
+    const to = target.get(path);
+    if (!from || !to || age < 0 || age >= BIRTH_TRAVEL_MS) continue;
+    const progress = 1 - (1 - age / BIRTH_TRAVEL_MS) ** 3;
+    positions.set(path, [
+      from[0] + (to[0] - from[0]) * progress,
+      from[1] + (to[1] - from[1]) * progress,
+    ]);
+  }
+
+  const maxVisits = Math.max(1, ...files.map((file) => state.visits.get(file.path) ?? 0));
   const points = files.map((file) => {
-    const active = activePaths.has(file.path);
-    const color = patternColors[file.pattern] ?? "#5f7d9e";
+    const focus = attention.get(file.path);
+    const visits = state.visits.get(file.path) ?? 0;
+    const depth = Math.max(0, file.path.split("/").length - 1);
+    const brightness = 0.2 + 0.3 / (1 + 0.2 * depth)
+      + 0.5 * Math.log1p(visits) / Math.log1p(maxVisits);
+    const size = Math.max(2.2, Math.min(12, 2.2 + Math.sqrt(file.current_bytes || file.churn || 1) / 28));
     return {
-      value: [file.stable_x, file.stable_y, file.risk_score],
-      path: file.path, pattern: file.pattern, touches: file.touches, risk: file.risk_score,
-      symbolSize: Math.max(3, Math.min(16, 3 + Math.sqrt(file.current_bytes || file.churn || 1) / 20)),
+      value: [...(positions.get(file.path) ?? [0.5, 0.5]), visits],
+      path: file.path, group: file.group, visits, depth, focus, symbolSize: size,
       itemStyle: {
-        color, opacity: active ? 0.95 : 0.18,
-        borderColor: active ? "#dffdf8" : "transparent", borderWidth: active ? 1 : 0,
-        shadowBlur: active ? 12 : 0, shadowColor: color,
+        color: centers.get(file.group)?.color ?? "#67dff1",
+        opacity: Math.min(1, brightness),
+        shadowBlur: 2 + (focus ? 16 * focus.strength : 0),
+        shadowColor: focus ? "#ffffff" : centers.get(file.group)?.color,
       },
     };
   });
+  const pointByPath = new Map(points.map((point) => [point.path, point]));
+  const trailEvents = data.events.filter((event) => (
+    event.ts_ms <= cursorMs && event.ts_ms >= cursorMs - ATTENTION_MS
+  ));
+  const trails = [...new Set(trailEvents.map((event) => event.session_id))].slice(0, 12)
+    .map((session) => ({
+      name: session,
+      type: "line",
+      showSymbol: false,
+      silent: true,
+      animationDurationUpdate: 280,
+      lineStyle: { color: h.vendorColor(data.events.find((row) => row.session_id === session)?.vendor), width: 1, opacity: 0.22 },
+      data: trailEvents.filter((event) => event.session_id === session)
+        .flatMap((event) => pointByPath.has(event.path) ? [{ value: pointByPath.get(event.path).value, path: event.path }] : []),
+    })).filter((series) => series.data.length > 1);
+  const halo = points.filter((point) => point.focus).map((point) => ({
+    ...point, symbolSize: point.symbolSize + 8,
+    itemStyle: {
+      color: "transparent", borderColor: "#f7ffff", borderWidth: 1.2,
+      opacity: 0.3 + 0.7 * point.focus.strength,
+      shadowBlur: 18 * point.focus.strength, shadowColor: "#ffffff",
+    },
+  }));
+  const labels = [...centers].map(([group, center]) => ({
+    value: [center.x, center.y], group, symbolSize: 1,
+    label: { show: true, formatter: group, color: center.color, fontSize: 10, fontWeight: 600 },
+    itemStyle: { opacity: 0 },
+  }));
   return h.withEmpty({
-    ...h.base(), grid: grid(18, 18, 18, 18),
+    ...h.base(), grid: grid(8, 8, 8, 8),
     xAxis: { type: "value", min: 0, max: 1, show: false },
     yAxis: { type: "value", min: 0, max: 1, show: false },
     tooltip: {
       renderMode: "richText",
-      formatter: ({ data: row }) => `${row.path}\n${row.pattern}\n${row.touches} touches · risk ${row.risk.toFixed(2)}`,
+      formatter: ({ data: row }) => row.path
+        ? `${row.path}\n${row.group} nebula · depth ${row.depth}\n${row.visits} weighted agent visits${row.focus ? `\n${row.focus.vendor} ${row.focus.effect} · ${Math.round(row.focus.age / 60_000)} min ago` : ""}`
+        : row.group,
     },
-    series: [{ name: "repository paths", type: "scatter", data: points, emphasis: { scale: 1.8 } }],
-  }, points.length, "No repository paths at the endpoint");
+    series: [
+      {
+        name: "directory color field", type: "scatter", silent: true,
+        animationDurationUpdate: 320,
+        data: points.map((point) => ({
+          ...point, symbolSize: point.symbolSize * 4 + 10,
+          itemStyle: { ...point.itemStyle, opacity: 0.045, shadowBlur: 18, shadowColor: point.itemStyle.color },
+        })),
+      },
+      ...trails,
+      { name: "files", type: "scatter", animationDurationUpdate: 320, data: points, emphasis: { scale: 1.8 } },
+      { name: "recent agent attention", type: "scatter", silent: true, animationDurationUpdate: 180, data: halo },
+      { name: "directory labels", type: "scatter", silent: true, data: labels },
+    ],
+  }, points.length, "No agent-observed files by this cursor");
 }
 
 function territoryCartogram(data, cursorMs, h) {
@@ -210,14 +456,15 @@ function agentPathParticles(data, cursorMs, h) {
   });
 }
 
-function durableChangePulse(data, cursorMs, h) {
+function durableChangePulse(data, _cursorMs, h) {
   const churnByCommit = new Map();
   data.changes.forEach((change) => churnByCommit.set(
     change.commit_id,
     (churnByCommit.get(change.commit_id) ?? 0) + change.additions + change.deletions,
   ));
   const commits = data.commits.filter((commit) => (
-    commit.committed_at_ms >= data.meta.window_start_ms && commit.committed_at_ms <= cursorMs
+    commit.committed_at_ms >= data.meta.window_start_ms
+    && commit.committed_at_ms <= data.meta.window_end_ms
   ));
   const points = commits.map((commit) => {
     const churn = churnByCommit.get(commit.id) ?? 0;
@@ -228,7 +475,7 @@ function durableChangePulse(data, cursorMs, h) {
       itemStyle: { color, opacity: 0.8, shadowBlur: 10, shadowColor: color },
     };
   });
-  return chart(h, commits, "No Git commits by this cursor", {
+  return chart(h, commits, "No Git commits in this interval", {
     grid: grid(54, 24, 24, 42),
     xAxis: valueAxis(h, undefined, {
       type: "time", min: data.meta.window_start_ms, max: data.meta.window_end_ms,
@@ -238,14 +485,7 @@ function durableChangePulse(data, cursorMs, h) {
       renderMode: "richText",
       formatter: ({ data: row }) => `${row.commit.slice(0, 10)}\n${h.formatCompact(row.value[1])} changed lines${row.merge ? "\nmerge commit" : ""}`,
     },
-    series: [{
-      name: "Git commits", type: "scatter", data: points,
-      markLine: {
-        silent: true, symbol: "none",
-        label: { color: h.colors.muted, formatter: "cursor" },
-        lineStyle: { color: h.colors.text, opacity: 0.55 }, data: [{ xAxis: cursorMs }],
-      },
-    }],
+    series: [{ name: "Git commits", type: "scatter", data: points }],
   });
 }
 
@@ -388,16 +628,16 @@ function gitSediment(data, _cursorMs, h) {
 }
 
 export const views = [
-  ["repository-treemap", "Stable repository treemap", "Area is current Git blob size. Cursor playback overlays recorded attention without changing endpoint geometry.", "endpoint-overlay", ["tree", "events"], repositoryTreemap],
-  ["workspace-constellation", "Stable workspace constellation", "Every path has deterministic coordinates. The cursor changes salience, not geography.", "endpoint-overlay", ["files", "events"], workspaceConstellation],
+  ["repository-treemap", "Agent-observed repository treemap", "Files appear on their first recorded Agent access. Reads and writes glow for 30 minutes with a five-minute half-life; Git does not drive the layout.", "endpoint-overlay", ["files", "events"], repositoryTreemap],
+  ["workspace-constellation", "Repository Nebula", "Files and directory color clouds move as recorded Agent attention accumulates. Hue is directory, size is endpoint bytes, brightness combines depth and visits, and recent attention fades over 30 minutes.", "endpoint-overlay", ["files", "events"], workspaceConstellation],
   ["territory-cartogram", "Territories under attention", "Endpoint repository size and cursor-visible attention remain separate scales.", "endpoint-overlay", ["files", "events"], territoryCartogram],
   ["agent-path-particles", "Agent–path particle field", "Recorded reads and writes glow around stable path anchors for the trailing six hours; trails are not ownership or causality.", "trailing-6h", ["files", "events"], agentPathParticles],
-  ["durable-change-pulse", "Durable-change pulse", "Git commits accumulate on their own lane through the cursor; nearby process events are not commit attribution.", "cumulative", ["commits", "changes"], durableChangePulse],
+  ["durable-change-pulse", "Durable Git reference", "A frozen Git-only reference. Dynamic Agent views use commit time solely for an outer-border flash.", "static", ["commits", "changes"], durableChangePulse],
   ["recent-wake", "Paths still glowing", "A six-hour tail makes recent bursts readable without implying that quiet paths disappeared.", "trailing-6h", ["files", "events"], recentWake],
   ["agent-activity-river", "Agent activity river", "River width is hourly recorded path activity by native-history vendor through the cursor, not durable authorship.", "cumulative", ["events"], agentActivityRiver],
   ["lifetime-cohorts", "File-lifetime cohorts", "Birth and survival come from first-parent Git history and are measured at the frozen endpoint.", "static", ["survival_cohorts"], lifetimeCohorts],
   ["survival-ledger", "The repository keeps and forgets", "A compact endpoint ledger separates cohort survival from process attention.", "static", ["survival_cohorts"], survivalLedger],
   ["git-sediment", "Observed-day Git sediment", "Adds and deletes are actual Git changes on observed source days, independent of event-to-Git candidates.", "static", ["source_days", "changes"], gitSediment],
-].map(([id, title, note, timeMode, requirements, build]) => (
-  { id, title, note, timeMode, requirements, build }
+].map(([id, title, note, timeMode, requirements, build, playbackMoments]) => (
+  { id, title, note, timeMode, requirements, build, ...(playbackMoments && { playbackMoments }) }
 ));
