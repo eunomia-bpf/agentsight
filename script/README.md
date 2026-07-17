@@ -30,7 +30,7 @@ canary prompt, the recorded DB to surface it through `report prompts`, and
 `report --db` to show nonzero API calls. On Linux CI this requires passwordless
 `sudo` for eBPF; failures are hard failures, not skips. The canary also runs
 `sslsniff --binary-path` against the latest Codex native binary and requires the
-Codex/aws-lc signatures to match and attach by offset.
+Codex/rustls `write_vectored` signatures to match and attach by offset.
 
 ## SSL Analysis Pipeline
 
