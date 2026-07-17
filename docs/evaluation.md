@@ -20,8 +20,15 @@ later explicit user instruction may change the four author-fixed RQs.
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed positive answer.** R114 establishes scoped source-lineage correctness under concurrent controls and lossless profile folding. Step 0035 adds a non-circular same-input comparison over the complete pre-existing 405-trajectory CodeTraceBench source-valid target: recurrence improves standard ordinary B-cubed F1 against human stages from 0.541 raw-action-key to 0.649, a +0.108 task-cluster effect with 95% interval [+0.087,+0.129]. Resource-weighted gains remain +0.076 to +0.085 under three shared-response allocations. Phase-only is statistically indistinguishable at 0.654, so the result supports semantic stage-aligned attribution over raw identity, not recurrence dominance over every semantic view. R170/R224/R251 remain descriptive declared-category and multi-weight evidence rather than an independent oracle. Do not reopen another RQ1 benchmark, metric, or constructor variant before WRITE/REVIEW. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed positive answer against matched raw-action organization, with an explicit atomic/local mechanism boundary.** Step 0036 rechecks all 1,756 trajectories and 27,346 operations using standard per-query AP/MAP as the primary metric and exact-budget Recall@20% only as secondary analysis: AgentProf-minus-raw intervals are positive for both measurements on AgentProcessBench, HINTBench, and TraceElephant. Atomic nevertheless wins both AgentProcessBench measurements, while the HINT/Trace atomic comparisons are mixed; HINT grouping also propagates nonzero support to 76.54% of clean operations versus 0.742% atomic. Step 0037 then adaptively preserves every strict local-score ordering and uses semantic recurrence only to break exact local-score ties. On the same observed populations it improves MAP over atomic and semantic-only ranking on all three workloads and over a matched local+raw tie-breaker on HINTBench and TraceElephant; AgentProcessBench is indistinguishable from local+raw. This supports a simple local-first semantic mechanism, not a universal replacement or untouched confirmation. The fixed-reader comparison separately improves selected-positive recall on 5/6 tasks and precision on 4/6 versus session. Collectively the evidence supports problem ranking and group prioritization, not universally lower work, human productivity, or dominance over every atomic/session view. No further score tuning on these populations is admitted. |
-| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; Step 0024 remains the label-free default, Step 0030 adds optional grouped-reference evidence, Step 0031 adds literal task-family accuracy, and Step 0032 adds literal action accuracy for one named backend.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0024 reaches 0.6799 boundary F1 and 0.7862 B-cubed F1 on OSWorld, and raises CodeTraceBench boundary F1 from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 on all 405 reused targets. Step 0030 fits one scalar on disjoint grouped references and raises B-cubed F1 to 0.8011 on OSWorld and 0.6666 on CodeTraceBench. Step 0031's fixed Qwen3.6-27B path reaches 0.695 task-family macro-F1 on all 1,012 AgentBoard goals. Step 0032 uses the complete 2,737-label ASE population and reaches 0.498 action macro-F1 versus 0.061 majority, a +0.437 trajectory-bootstrap effect with 95% interval [+0.380, +0.494], and exact two-run stability. Literal phase identity, unknown label sets, and uniform cross-framework accuracy remain outside current evidence. |
+| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping recovers accurate and stable task/action identities plus phase/group structure and boundaries on unseen agents and task families without materially corrupting attribution. | **Evidence-backed positive answer on the declared public populations, using standard metrics matched to each construct.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0024 reaches 0.6799 exact boundary F1 and 0.7862 ordinary B-cubed F1 on OSWorld, and raises CodeTraceBench boundary F1 from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 on all 405 reused targets. Step 0030 fits one scalar on disjoint grouped references and raises B-cubed F1 to 0.8011 on OSWorld and 0.6666 on CodeTraceBench. Step 0031's fixed Qwen3.6-27B path reaches 0.695 task-family macro-F1 on all 1,012 AgentBoard goals. Step 0032 uses the complete 2,737-label ASE population and reaches 0.498 action macro-F1 versus 0.061 majority, a +0.437 trajectory-bootstrap effect with 95% interval [+0.380, +0.494], and exact two-run stability. Step 0038 confirms that the original RQ3 also evaluated mapping-derived phase structure rather than independent literal phase names. Unknown/open label sets, universal phase-name ontologies, and uniform cross-framework accuracy remain outside the declared population; they are not automatic blockers. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
+
+RQ3's phase-structure component reuses the complete CodeTraceBench measurement
+reported under RQ1: the deterministic phase field reaches 0.654445 ordinary
+B-cubed F1 against 2,948 human stages over all 20,866 operations. RQ3 now
+cross-references that standard partition result and complements it with literal
+task/action identities, task partitions, and independently annotated group
+boundaries. This is evidence reuse, not a fifth RQ3 experiment.
 
 ## Admitted RQ1 Mechanism Evidence
 
@@ -794,7 +801,7 @@ CodeTrace adjacent-pair decisions, selected cutoffs, label-free decisions,
 segments, motifs, and pooled metrics. The result uses already observed
 development populations and additional group annotations, so it remains
 supporting implementation evidence rather than untouched cross-family
-confirmation or a complete answer to literal task/phase/action tag accuracy.
+confirmation or, by itself, a complete answer to literal tag accuracy.
 Complete reports are under
 [`step-0030-20260715T161256-0700`](tmp/build-and-evaluate/step-0030-20260715T161256-0700/),
 with raw artifacts under
@@ -843,7 +850,7 @@ to their `Locate` target; excluding them from the durable predictions leaves
 macro-F1 `0.490445` versus majority `0.061645`, so the positive result persists
 without authorizing a blanket target-separation claim.
 The result is decisive additional RQ3 evidence for one declared eight-action
-taxonomy, not phase identity, open-set transfer, uniform framework accuracy,
+taxonomy, not a universal phase-name ontology, open-set transfer, uniform framework accuracy,
 tagger SOTA, or every backend. Complete reports are under
 [`step-0032-20260716T010251-0700`](tmp/build-and-evaluate/step-0032-20260716T010251-0700/),
 with raw artifacts under
@@ -1056,15 +1063,17 @@ supports the local-first semantic mechanism and closes all further RQ2 score,
 metric, cutoff, or benchmark tuning on these populations.
 
 The Step 0037 full-paper outer audit passes the completed experiment and write
-integration but does not grant submission readiness. RQ3 is the remaining
-paper-level evidence gap: the fixed hypothesis names task, phase, action, and
-boundary identities, while current complete evidence lacks a literal
-phase-tag measurement. The next step selects exactly one RQ3 experiment using
-an existing official annotated public corpus, its complete released
-population, one appropriate standard metric, and a small fair baseline set.
-It may improve the mechanism or adapter but may not change the RQ, thesis,
-story, or contributions. Once RQ3 closes, the paper returns to a genuinely
-unprimed milestone review with primary-source novelty search.
+integration but does not grant submission readiness. Step 0038 subsequently
+audits its proposed literal-phase blocker against the read-only original paper
+and raw 13,265-operation result. The original RQ3 evaluated mapping-derived
+phase structure against native action partitions and transitions; it did not
+require independent literal phase-name classification. The current paper uses
+standard macro-F1/accuracy for literal task/action tags, standard V-measure and
+ordinary B-cubed F1 for partitions, and exact adjacent-boundary F1 for group
+transitions. Another taxonomy experiment is therefore not admitted merely to
+fill a label cell. The next outer action is a genuinely unprimed whole-paper
+review with primary-source novelty search; it may select a new experiment only
+if that result can change a paper-level RQ answer or improve the actual system.
 
 ## Experiment History Policy
 

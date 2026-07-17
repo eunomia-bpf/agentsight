@@ -45,9 +45,9 @@ claims still require reconciliation with complete real experiments. New
 evidence may strengthen those claims, but experiments do not silently replace
 the thesis, story, hypotheses, or RQs.
 
-As of 2026-07-16, a forced build produces nine US-letter pages with all main
-content ending on page seven; References begin at the bottom of page seven and
-are the only content on pages eight and nine. All fonts are embedded Type 1,
+As of 2026-07-17, a forced build produces nine US-letter pages with all main
+content ending on page seven; References begin on page eight and are the only
+content on pages eight and nine. All fonts are embedded Type 1,
 and the anonymous source contains no author or affiliation identity.
 `ReproducibilityChecklist.tex` is filled from the current experiment and paper
 state and compiles separately to a two-page US-letter PDF; items not yet

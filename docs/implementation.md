@@ -177,8 +177,10 @@ configuration. In particular:
    post-hoc OSWorld-Human development population, and declared task-family and
    action-label accuracy are measured for one named backend on AgentBoard and
    the ASE trajectory artifact. The action measurement runs through a standalone
-   llama.cpp experiment adapter, not the current AgentProf CLI; literal phase
-   identity and integrated automatic phase/action tagging remain unmeasured;
+   llama.cpp experiment adapter, not the current AgentProf CLI. The CLI exposes
+   phase as a configurable mapping/operation field and recurrence-derived
+   groups; phase/group structure is evaluated through partitions and boundaries,
+   while the measured task/action backends are not integrated CLI taggers;
 2. many mapping and rank rules were developed on datasets later used for
    analysis, so unchanged transfer needs a genuinely untouched family;
 3. profile-group ranking can improve because of visible fields or rank policy

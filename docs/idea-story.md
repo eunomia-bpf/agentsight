@@ -181,8 +181,9 @@ The paper keeps exactly four explicit RQs:
    redundant work, or task boundaries and reduce inspection versus flat,
    per-session, native, and raw-action views without using target labels.
 3. **RQ3 — How Accurate Are the Tags?** A target-blind fixed tagger or mapping
-   should assign accurate, stable task/phase/action identities and boundaries on
-   unseen agents and task families without materially corrupting attribution.
+   should recover accurate, stable task and action identities plus phase/group
+   structure and boundaries on unseen agents and task families without
+   materially corrupting attribution.
 4. **RQ4 — What Is the Profiling Cost?** Complete profile construction should
    have practical predictable scaling, while cached field derivation makes
    repeated profile queries substantially cheaper than initial construction and
@@ -331,9 +332,21 @@ macro-F1 effect after excluding 39 rows whose visible action is exactly the gold
 literal `Locate`. The ASE labels combine automatic known-tool mappings with
 manual resolution of remaining actions; the prompt's operational definitions
 come from the TraceView companion guide. This is additional RQ3 evidence, not
-an integrated AgentProf CLI feature, literal phase evidence, a new abstraction,
+an integrated AgentProf CLI feature, a universal phase-name result, a new abstraction,
 or a narrative evolution. The next experiment is selected for paper-level
 value; it is not automatically another taxonomy cell.
+
+Step 0038 audits the RQ3 construct against the read-only original paper and its
+13,265-operation raw result. The original protocol compared mapping-derived
+`phase` partitions and transitions with native `action` annotations using
+standard V-measure and boundary F1; it did not test literal phase names. Direct
+recalculation also finds 7/9 datasets above 0.7 V-measure but only 6/9 above
+0.7 on both numeric metrics, so the original stronger sentence is not restored.
+The current evidence instead tests literal task/action identity with standard
+macro-F1 and accuracy, and phase/group structure with standard V-measure,
+ordinary B-cubed F1, and exact boundary F1. This restores the original RQ3
+construct boundary without changing the RQ, hypothesis direction, story, or
+contributions; no new taxonomy experiment is admitted automatically.
 
 ## Narrative Evolution — Accepted Changes Only
 
@@ -562,6 +575,39 @@ not a new narrative.
 **Revisit:** future WRITE passes may improve expression and replace empirical
 values with stronger complete evidence, but they must begin by comparing
 against this exact restored body and may not silently reinvent the story.
+
+### E009 — Restore RQ3 metric-to-construct alignment
+
+**Before:** later evidence-frontier wording interpreted the fixed RQ3 as
+requiring literal task, phase, action, and boundary *names*, although the
+authoritative original evaluated mapping-derived phase structure against native
+action partitions and transitions. A whole-paper audit then promoted the absent
+literal phase-name cell into the next mandatory experiment.
+**After:** RQ3 remains exactly “How Accurate Are the Tags?” and keeps task,
+phase, action, and boundary in the positive program. Named task/action outputs
+are evaluated as literal multiclass identities; mapping-derived phase/group
+outputs are evaluated as partitions and exact boundaries. Standard metrics are
+matched to those distinct constructs, and another phase taxonomy is optional
+only when it can materially improve the paper-level answer.
+**Reason/evidence:** direct reconstruction of the original 9-dataset,
+13,265-operation artifact found that it did not contain independent literal
+phase labels and that its “7/9 on both metrics” sentence over-counted one
+inapplicable boundary result. The current paper already supplies stronger direct
+literal-label and independent-structure measurements with standard metrics.
+**Root disposition:** accept the construct correction; reject both the
+unsupported original phase-identity interpretation and the later automatic
+literal-phase blocker. Do not change the thesis, four RQs, operation/stack
+model, algorithm, result values, or story spine.
+**Initial/previous/chosen comparison:** the Initial Narrative asks whether
+semantic tags are accurate and operationalizes phase structurally; the
+immediately previous wording was more demanding but silently introduced a new
+universal ontology obligation. The chosen wording is equally ambitious, more
+faithful to the original question, and scientifically testable with the
+reported standard metrics.
+**Detail:** [Step 0038 construct and metric audit](tmp/build-and-evaluate/step-0038-20260717T071424-0700/step-report.md).
+**Revisit:** admit a literal phase-name experiment only when an independent
+official corpus is available and the result can change the paper-level RQ3
+answer or improve the actual tagger; dataset availability alone is insufficient.
 
 ## Invariants For Every Future Story Decision
 

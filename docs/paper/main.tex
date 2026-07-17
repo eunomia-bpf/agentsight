@@ -802,14 +802,23 @@ diagnostic evidence---but is not an untouched confirmation.
 % RQ3：标签有多准确？
 
 RQ3 evaluates how accurately and consistently predeclared, target-blind
-taggers and mappings recover independent task, phase, action, and
-group-boundary annotations. Here, a \emph{tag} is an operation field produced by \sys, a
+taggers and mappings recover independent semantic labels and workflow
+structure. Named task and action fields are evaluated as literal multiclass
+predictions; task, phase, and group structure are evaluated as
+permutation-invariant partitions or exact boundaries against benchmark
+annotations. Here, a \emph{tag} is an operation field produced by \sys, a
 \emph{reference annotation} is benchmark-provided truth, and a predicted
 group or boundary is structural output derived from tags. We compare predicted
 task partitions, literal task-family and action tags, and group boundaries with
 their reference annotations, then fold predicted OSWorld groups with their
 original additive weights.
-% RQ3 评估预先声明且不读取目标标注的 tagger 和 mapping 恢复独立 task、phase、action 与 group-boundary 标注的准确性和一致性。tag 是 AgentProf 生成的 operation 字段；reference annotation 是 benchmark 提供的真值；predicted group 或 boundary 是从 tag 派生的结构输出。本节比较预测 task partition、字面 task-family/action tag 和 group boundary 与对应 reference annotation，并使用原始可加权重折叠预测的 OSWorld group。
+% RQ3 评估预先声明且不读取目标标注的 tagger 和 mapping 恢复独立语义标签与工作流结构的准确性和一致性。具名 task/action 字段按字面多分类预测评估；task、phase 与 group 结构则按与 benchmark 标注对应的置换不变 partition 或精确 boundary 评估。tag 是 AgentProf 生成的 operation 字段；reference annotation 是 benchmark 提供的真值；predicted group 或 boundary 是从 tag 派生的结构输出。本节比较预测 task partition、字面 task-family/action tag 和 group boundary 与对应 reference annotation，并使用原始可加权重折叠预测的 OSWorld group。
+
+Table~\ref{tab:rq1-attribution} evaluates the deterministic phase field
+structurally: phase-only grouping reaches 0.654 ordinary B$^3$ F1 against
+2{,}948 human stages over 20{,}866 operations. Below we test literal labels,
+other partitions, and boundaries.
+% Table~\ref{tab:rq1-attribution} 对确定性的 phase 字段进行结构性评估：phase-only grouping 在 20,866 个 operation 上相对 2,948 个人工 stage 达到 0.654 的普通 B$^3$ F1；以下测试字面标签、其他 partition 与 boundary。
 
 We test all 287 OSWorld-Human task-instance sessions~\cite{osworldhuman} with
 complete group annotations, comprising 3{,}978 operations, 3{,}691 adjacent
@@ -897,10 +906,11 @@ interval of [0.380, 0.494], and both complete runs agree exactly.
 % 其 macro-F1 与 accuracy 分别为 0.498 和 0.628，majority 为 0.061 和 0.323；macro-F1 增量为 0.437，整条轨迹 bootstrap 的 95% 区间为 [0.380, 0.494]，两次完整运行结果完全一致。
 
 Thus, on the named public populations, RQ3 establishes target-blind task
-partitions at V-measure 0.557 and 0.815, task-family assignment at 0.695
-macro-F1, action assignment at 0.498 macro-F1, and label-free group boundaries
-at 0.680 boundary F1 and 0.786 B$^3$ F1.
-% 因此，在指定公开 population 上，RQ3 确立了 V-measure 为 0.557/0.815 的 target-blind task partition、macro-F1 为 0.695 的 task-family assignment、macro-F1 为 0.498 的 action assignment，以及 boundary/B$^3$ F1 为 0.680/0.786 的 label-free group boundary。
+partitions at V-measure 0.557 and 0.815, phase structure at 0.654 ordinary
+B$^3$ F1, task-family assignment at 0.695 macro-F1, action assignment at 0.498
+macro-F1, and label-free group boundaries at 0.680 boundary F1 and 0.786
+B$^3$ F1.
+% 因此，在指定公开 population 上，RQ3 确立了 V-measure 为 0.557/0.815 的 target-blind task partition、普通 B$^3$ F1 为 0.654 的 phase structure、macro-F1 为 0.695 的 task-family assignment、macro-F1 为 0.498 的 action assignment，以及 boundary/B$^3$ F1 为 0.680/0.786 的 label-free group boundary。
 
 %% -------------------------------------------------------------------
 \subsection{RQ4: Profiling Cost}
@@ -952,10 +962,11 @@ operation sequences. Its 494.9 million mapped tokens cover operation-bearing
 responses, not every released model call. Because this corpus influenced
 constructor selection, its result is post-hoc support, not independent confirmation.
 
-RQ3 tests Mind2Web/ScienceWorld partitions, a named backend over nine task
-families and eight action tags, and session-held-out OSWorld-Human boundaries;
-these measurements cover the named populations and declared tag sets.
-% 离线 profile-construction evaluation 不含 capture、live-agent overhead、source adaptation 和 field/tag generation。RQ1 覆盖声明进程/工具范围内的 20 个固定任务，以及 released source 能生成官方 operation sequence 的全部 405 条失败 CodeTraceBench 轨迹；其中 4.949 亿 mapped token 覆盖包含 operation 的 response，而不是发布轨迹中的每个模型调用。CodeTraceBench 影响了当前 constructor 的选择，因此它是 post-hoc support 而非 independent confirmation。RQ3 在 Mind2Web/ScienceWorld 上确立 task partition，测量一个指定 backend 在九个声明的 task family 与八个 action tag 上的 accuracy，并在 OSWorld-Human 上确立 session-held-out group boundary；这些测量覆盖指定 population 和声明的 tag set。
+RQ3 tests CodeTraceBench phase structure, Mind2Web/ScienceWorld partitions, a
+named backend over nine task families and eight action tags, and
+session-held-out OSWorld-Human boundaries; these measurements cover the named
+populations and declared tag sets.
+% 离线 profile-construction evaluation 不含 capture、live-agent overhead、source adaptation 和 field/tag generation。RQ1 覆盖声明进程/工具范围内的 20 个固定任务，以及 released source 能生成官方 operation sequence 的全部 405 条失败 CodeTraceBench 轨迹；其中 4.949 亿 mapped token 覆盖包含 operation 的 response，而不是发布轨迹中的每个模型调用。CodeTraceBench 影响了当前 constructor 的选择，因此它是 post-hoc support 而非 independent confirmation。RQ3 测试 CodeTraceBench 的 phase structure、Mind2Web/ScienceWorld 的 task partition、一个指定 backend 在九个声明的 task family 与八个 action tag 上的 accuracy，以及 OSWorld-Human 的 session-held-out group boundary；这些测量覆盖指定 population 和声明的 tag set。
 
 
 %% ===================================================================
@@ -987,8 +998,8 @@ accumulate resources or problems across trajectories.
 \section{Conclusion}
 % 结论
 
-Agent observability needs profiling, not only debugging. \sys realizes this
-principle through cross-run semantic operation-stack profiles.
+Agent observability needs profiling, not only debugging. \sys realizes it via
+cross-run operation stacks.
 % 在真实与公开轨迹上，这些 profile 相比 raw action identity 改善归因、优先呈现独立标注的问题、恢复有用的 task、action 与 group 结构，并在 1.17 秒内构建最大的已评估 profile。
 
 \bibliography{references}
