@@ -18,7 +18,7 @@ later explicit user instruction may change the four author-fixed RQs.
 
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
-| RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Retain the cumulative positive paper answer; whole-paper REVIEW selects any next fixed RQ. |
+| RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Positive integration evidence; independent attribution-improvement evidence remains open.** R114 supplies scoped source-lineage correctness under concurrent controls, and current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 establish declared-category separation, multi-weight views, and association beyond session, but prompt tags define both the grouping key and the reported mixed-category reference. They therefore do not independently decide whether semantic responsibility is more correct than an information-equivalent source-native or labeled-profiler view. Preserve the full positive RQ and obtain that missing comparison; do not narrow the hypothesis. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed positive answer; Step 0033 supplies one standard primary metric across all three complete localization workloads.** Trajectory MAP is 0.789 versus 0.773 raw on AgentProcessBench, 0.453 versus 0.281 on HINTBench, and 0.230 versus 0.121 on TraceElephant; all three paired 95% intervals have positive lower bounds. Pooled operation AP has the same direction while retaining zero-positive trajectories. The fixed-reader comparison separately improves selected-positive recall on 5/6 tasks and precision on 4/6 versus session at three groups. Existing Work curves remain secondary: the result supports problem ranking and group prioritization, not universally lower work, human productivity, or dominance over every atomic/session view. Do not open another RQ2 metric, cutoff, score, or benchmark variant. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; Step 0024 remains the label-free default, Step 0030 adds optional grouped-reference evidence, Step 0031 adds literal task-family accuracy, and Step 0032 adds literal action accuracy for one named backend.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0024 reaches 0.6799 boundary F1 and 0.7862 B-cubed F1 on OSWorld, and raises CodeTraceBench boundary F1 from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 on all 405 reused targets. Step 0030 fits one scalar on disjoint grouped references and raises B-cubed F1 to 0.8011 on OSWorld and 0.6666 on CodeTraceBench. Step 0031's fixed Qwen3.6-27B path reaches 0.695 task-family macro-F1 on all 1,012 AgentBoard goals. Step 0032 uses the complete 2,737-label ASE population and reaches 0.498 action macro-F1 versus 0.061 majority, a +0.437 trajectory-bootstrap effect with 95% interval [+0.380, +0.494], and exact two-run stability. Literal phase identity, unknown label sets, and uniform cross-framework accuracy remain outside current evidence. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
@@ -720,6 +720,47 @@ tagger SOTA, or every backend. Complete reports are under
 with raw artifacts under
 `.agentsight/experiments/rq3-literal-phase-action-source-v1/ase-action-identity/`.
 
+Step 0034 tests one nonredundant improvement to the existing Step 0024
+recurrence constructor on the already-complete trajectories. It keeps the
+action-transition NPMI score and unseen-pair rule unchanged, fits one grouped-
+source cutoff on an occurrence-weighted empirical-CDF scale, and transfers that
+percentile bidirectionally between OSWorld-Human and CodeTraceBench. Current
+label-free recurrence is the main baseline; direct raw-NPMI cutoff transfer is
+the equal-information scale ablation. The approved plan uses operation-weighted
+B-cubed F1 as the primary standard partition metric and exact boundary F1 as a
+secondary standard transition metric.
+
+The complete experiment is independently reviewed `VALID / CONTRADICTED /
+SUPPORTING / MECHANISM OR WORKLOAD BOUNDARY`. CodeTrace-to-OSWorld percentile
+transfer reaches B-cubed F1 `0.677607` versus label-free `0.786170` (delta
+`-0.108562`, paired session-bootstrap 95% interval
+`[-0.138246, -0.078428]`). OSWorld-to-CodeTrace reaches `0.473242` versus
+`0.649173` (delta `-0.175931`, interval
+`[-0.189732, -0.161417]`). The candidate over-merges OSWorld into 1,316 groups
+and over-fragments CodeTrace into 12,941, so the registered cross-domain
+calibration hypothesis is contradicted on both complete target populations.
+
+Percentile transfer still beats direct raw-cutoff transfer on OSWorld by
+`+0.037077` and CodeTrace by `+0.074719`, with wholly positive paired
+intervals. The normalization therefore corrects numerical score-scale mismatch
+but cannot transfer the two domains' desired grouping semantics. The fresh
+reviewer independently reconstructs all 24,844 operation assignments, 24,152
+pair decisions, NPMI/CDF values, source cutoffs, standard metrics, and 20,000
+stored bootstrap draws. The review also confirms that no target group identity
+or boundary reaches prediction, while recording that the OSWorld eligibility
+loader necessarily parses label-bearing rows before returning only actions.
+The source fitter's midpoint representation lies in empty target-percentile
+intervals and changes no decision.
+
+This result closes only cross-domain transfer of one scalar recurrence cutoff.
+It does not alter RQ3, its positive hypothesis, the operation-stack model, the
+paper story, or the profiling thesis. Step 0024 remains the label-free default,
+Step 0030 remains the optional per-domain grouped-reference calibration, and no
+Rust port or reader-facing negative row is admitted. Complete records are under
+[`step-0034-20260716T175204-0700`](tmp/build-and-evaluate/step-0034-20260716T175204-0700/),
+with raw artifacts under
+`.agentsight/experiments/rq3-cross-domain-percentile-calibration-v1/`.
+
 ## Requirements For The Next Experiment
 
 The next experiment follows one bounded literature/source screen and must
@@ -833,6 +874,31 @@ has already entered the paper; the Step 0024 whole-paper/outer REVIEW direction
 governed the next paper-level decision. Step 0025 changes only the recurrence
 implementation frontier described above; it does not reopen this RQ2 packet
 study or authorize a paper-story change.
+
+Step 0034 completes the bidirectional percentile-calibration experiment on the
+existing OSWorld-Human and CodeTraceBench populations. Operation-weighted
+B-cubed precision/recall/F1 is an established hard-partition metric, and exact
+boundary precision/recall/F1 is an ordinary discrete-boundary metric; the
+contradiction is therefore not a metric failure. Percentile normalization
+beats direct raw-cutoff transfer but loses to the current label-free recurrence
+on both complete targets. This closes scalar cross-domain cutoff transfer and
+all further recurrence calibration on these two observed populations.
+
+The Step 0034 milestone review proposed reopening RQ1. Reviewer preference
+alone has no such authority, but the root accepts one directly checkable
+evidence finding: R114 tests source lineage and lossless folding, whereas the
+R170 mixedness result uses declared prompt tags as both grouping input and
+separation reference. The next candidate is therefore one fixed-RQ RQ1
+same-input attribution comparison that first reuses the complete existing real
+trajectories and source-linked effects, keeps target responsibility unavailable
+to construction, and compares against the smallest information-equivalent
+source-native and established labeled-profiler/trace-query alternatives. Its
+primary outcome must be an independently defined responsible category or
+decision, not another conservation, mixedness, cutoff, or presentation metric.
+If the existing artifacts cannot supply that independent target, the bounded
+source screen must choose an official real external asset rather than invent a
+small custom harness. This evidence-status correction does not alter the thesis,
+four RQs, positive RQ1 hypothesis, or reader-facing story.
 
 ## Experiment History Policy
 

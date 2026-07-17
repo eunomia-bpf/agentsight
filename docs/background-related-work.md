@@ -74,6 +74,11 @@ story.
   dynamically selects, filters, and groups metrics across causally related
   component events. It makes independent lineage fidelity, not only mass
   conservation, a required RQ1 comparison.
+- [Activity Mining by Global Trace Segmentation](https://www.vdaalst.com/publications/p586.pdf)
+  and [Flexible Activity Trees](https://arxiv.org/abs/2010.08302) discover
+  higher-level activities and hierarchical abstractions from low-level event
+  logs. They are serious RQ3 mechanism/baseline precedents; always-cut,
+  action-change, and phase-change controls do not represent this family.
 - [Visualizing Distributed Traces in Aggregate](https://arxiv.org/abs/2412.07036)
   groups and visualizes trace collections by services, structure, depth, or
   latency. Cross-run aggregation is not new by itself.
@@ -135,6 +140,13 @@ source execution view.
   reused 405-trajectory implementation-selection population and a closest trace
   representation; AgentProf's claim is cross-trajectory aggregate profiling,
   not first hierarchical state reconstruction.
+- [CHIEF](https://arxiv.org/abs/2602.23701) combines hierarchical agent traces
+  with counterfactual reasoning and reports that hierarchy alone is
+  insufficient for failure attribution. [Signals](https://arxiv.org/abs/2604.00356)
+  uses blinded expert judgments and matched sample budgets to measure whether
+  selected trajectories are developer-informative. Together they motivate a
+  consequential same-input comparison rather than another visualization or
+  grouping-only metric.
 
 The completed Hodoscope experiment reproduced the official iQuest behavior and
 found that the tested recursive AgentProf construction did not beat the released
@@ -161,6 +173,11 @@ thesis. Full evidence remains in
   feedback, error, and extracted attributes. Hierarchical cross-run
   categorization and metric rollups are therefore precedents, not AgentProf's
   novelty.
+- [Laminar Signals](https://laminar.sh/docs/signals/introduction) derives
+  structured trace-linked events and supports querying, clustering, alerting,
+  and backfilling them across trajectories. It is same-problem evidence, while
+  leaving source-linked low-level effects and conventional profiler export as
+  possible AgentProf distinctions that still require a same-input test.
 - [LangSmith Engine](https://docs.langchain.com/langsmith/engine) turns
   recurring trace-supported issues into proposed code or prompt fixes,
   deployable evaluators, offline examples, and optional pull requests. It is a
@@ -175,6 +192,15 @@ These sources make generic observability, semantic grouping, trace taxonomy, and
 fault-detection claims high risk. AgentProf's defensible distinction must be
 tested as cross-layer additive responsibility profiling and decision-relevant
 aggregation, not asserted from terminology.
+
+For partition fidelity, [B-cubed](https://aclanthology.org/C98-1012/) is an
+established per-item external clustering measure; a later formal comparison
+finds it satisfies the stated clustering-quality constraints
+(<https://doi.org/10.1007/s10791-008-9066-8>). Exact boundary
+precision/recall/F1 is the complementary discrete-transition measure used by
+the current RQ3 experiments. These standard metrics should remain primary and
+secondary respectively; adding ARI, NMI, or a custom aggregate would not repair
+an information or construct-validity defect.
 
 ### Failure And Problem Localization
 
@@ -250,10 +276,14 @@ alone.
 
 ## Open Evidence And Search Frontier
 
-1. **RQ1 — resource attribution.** Step 0007 supplies the current end-to-end
-   replay result on R114's fixed real-task suite. Its scope is the declared
-   process/tool lineage and R114-compatible AgentSight 0.2.37 capture path; it
-   is not arbitrary causal attribution or automatic task inference.
+1. **RQ1 — resource attribution.** Step 0007 supplies source-lineage and
+   lossless-folding evidence on R114's fixed real-task suite. Its scope is the
+   declared process/tool lineage and R114-compatible AgentSight 0.2.37 capture
+   path; it is not arbitrary causal attribution or automatic task inference.
+   R170 mixedness is conditional on prompt tags that also define the reference
+   categories, so the next highest-value candidate is a same-input comparison
+   with an independently defined responsibility outcome, reusing the completed
+   real trajectories before seeking a new external asset.
 2. **RQ2 — real-problem localization.** AgentProcessBench supplies a small
    semantic-specific AP gain; HINTBench versus raw action and TraceElephant's
    prospective Work@80 comparison remain inconclusive. Do not reopen their
@@ -282,7 +312,17 @@ alone.
    support the named backend under declared task and action label sets, not
    literal phase identity, unknown labels, or uniform cross-framework accuracy.
    No next constructor experiment is admitted merely to fill another evidence
-   cell.
+   cell. Step 0034's bounded source screen identifies a different calibration
+   question on the already-complete trajectories: AAAI-22 provides precedent
+   for transferring a threshold-related quantity using score-distribution
+   shape, while ACL-23 and EMNLP-24 establish limited-label calibration and
+   rank-scale comparability. The complete bidirectional test finds that an
+   empirical-percentile cutoff beats direct raw-cutoff transfer but remains
+   below the current label-free constructor on both OSWorld-Human and
+   CodeTraceBench. Thus scale mismatch is real, while desired grouping
+   semantics remain domain dependent under this scalar interface. This closes
+   the tested transfer mechanism without claiming novelty for quantiles,
+   reopening target-specific recurrence tuning, or changing RQ3.
 4. **RQ4 — profiling cost.** Step 0005 supplies the paper-level construction
    answer: current `agentpprof 0.2.37` builds the 27,765-operation semantic
    union in 1.17 s median with 464.49 MiB maximum RSS, while R160 separately
