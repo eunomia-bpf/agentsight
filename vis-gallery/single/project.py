@@ -296,6 +296,7 @@ def build(
                     "status": event["status"],
                     "prompt_index": event["prompt_index"],
                     "paths": list(event["paths"]),
+                    "read_paths": list(event.get("read_paths", [])),
                     "write_paths": list(event.get("write_paths", [])),
                     "path_groups": list(event.get("path_groups", [])),
                     "process_chain": list(event.get("process_chain", [])),

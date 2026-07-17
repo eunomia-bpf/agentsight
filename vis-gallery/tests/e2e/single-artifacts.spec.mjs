@@ -96,8 +96,8 @@ test("builds the nebula from a lean event plus Git-endpoint scan", async ({ page
   const view = views.find((row) => row.id === "workspace-constellation");
   const evolution = await buildEvolutionData({ repo: resolve(".."), since: "1d", until: "now", head: "HEAD" }, view);
   expect(evolution.files.length).toBeGreaterThan(0);
-  expect(evolution.changes).toEqual([]);
-  expect(evolution.line_pixels).toEqual([]);
+  expect(evolution.changes).toBeUndefined();
+  expect(evolution.line_pixels).toBeUndefined();
   const output = join(outputDirectory, "direct-repository-nebula.html");
   await renderOne(evolution, view, { output, width: 720, height: 420, frames: 8, fps: 4 });
   await page.goto(pathToFileURL(output).href);

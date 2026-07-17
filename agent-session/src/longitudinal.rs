@@ -129,6 +129,8 @@ pub struct NormalizedEvent {
     pub prompt_index: usize,
     pub paths: Vec<String>,
     #[serde(default)]
+    pub read_paths: Vec<String>,
+    #[serde(default)]
     pub write_paths: Vec<String>,
     pub path_groups: Vec<String>,
     #[serde(default)]
@@ -1289,6 +1291,13 @@ fn normalize_sessions(
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>();
+            let read_paths = normalized_refs
+                .iter()
+                .filter(|(_, access)| *access == "read")
+                .map(|(path, _)| path.clone())
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>();
             let path_groups = if identity_match {
                 tool.path_groups.clone()
             } else {
@@ -1327,6 +1336,7 @@ fn normalize_sessions(
                 status: tool.status.clone(),
                 prompt_index: tool.prompt_index,
                 paths,
+                read_paths,
                 write_paths,
                 path_groups,
                 process_chain: tool.process_chain.clone(),
@@ -1364,6 +1374,7 @@ fn normalize_sessions(
                 status: "observed".to_string(),
                 prompt_index: response.prompt_index,
                 paths: Vec::new(),
+                read_paths: Vec::new(),
                 write_paths: Vec::new(),
                 path_groups: Vec::new(),
                 process_chain: Vec::new(),
@@ -1808,6 +1819,7 @@ mod tests {
             status: "ok".to_string(),
             prompt_index: 0,
             paths: vec!["file.txt".to_string()],
+            read_paths: Vec::new(),
             write_paths: vec!["file.txt".to_string()],
             path_groups: Vec::new(),
             process_chain: Vec::new(),
@@ -1892,6 +1904,7 @@ mod tests {
             status: "ok".to_string(),
             prompt_index: 0,
             paths: vec!["file.txt".to_string()],
+            read_paths: Vec::new(),
             write_paths: vec!["file.txt".to_string()],
             path_groups: Vec::new(),
             process_chain: Vec::new(),

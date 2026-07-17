@@ -171,6 +171,7 @@ fn codex_state_session(
             .unwrap_or_default(),
         cwd,
         project_hash: None,
+        repository_url: None,
         last_message_at,
         events: Default::default(),
     }

@@ -8,7 +8,7 @@
     "agentsight-vis-all": "single/render-all.mjs"
   },
   "scripts": {
-    "build": "vite build --config vite.single.config.js",
+    "build": "vite build --config vite.single.config.js && vite build --config vite.nebula.config.js",
     "test": "vitest run single/registry.test.js",
     "test:e2e": "playwright test",
     "test:project": "python3 -m unittest single/test_project.py",
@@ -17,6 +17,7 @@
     "render:all": "node single/render-all.mjs"
   },
   "dependencies": {
+    "d3-force": "3.0.0",
     "echarts": "6.1.0",
     "playwright": "1.61.1"
   },

@@ -467,7 +467,7 @@ function gitSediment(data, _cursorMs, h) {
 
 export const views = [
   ["repository-treemap", "Agent-observed repository treemap", "Files appear on their first recorded Agent access. Reads and writes glow for 30 minutes with a five-minute half-life; Git does not drive the layout.", "endpoint-overlay", ["files", "events"], repositoryTreemap],
-  ["workspace-constellation", "Repository Nebula", "All discovered Agent events share one real-time replay. Files grow from the center into a Git-scoped galaxy; reads, writes, commands, processes, model responses, and domain references remain visually distinct while commits only flash the frame.", "endpoint-overlay", ["files", "agent_events", "file_lifetimes"], repositoryNebula],
+  ["workspace-constellation", "Repository Nebula", "Only recorded file actions enter this multi-session replay. Files continuously rebalance under path attraction, repulsion, and recent attention; directory families share color while commits only flash the frame.", "endpoint-overlay", ["agent_events"], repositoryNebula],
   ["territory-cartogram", "Territories under attention", "Endpoint repository size and cursor-visible attention remain separate scales.", "endpoint-overlay", ["files", "events"], territoryCartogram],
   ["agent-path-particles", "Agent–path particle field", "Recorded reads and writes glow around stable path anchors for the trailing six hours; trails are not ownership or causality.", "trailing-6h", ["files", "events"], agentPathParticles],
   ["durable-change-pulse", "Durable Git reference", "A frozen Git-only reference. Dynamic Agent views use commit time solely for an outer-border flash.", "static", ["commits", "changes"], durableChangePulse],

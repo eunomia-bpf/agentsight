@@ -54,6 +54,7 @@ Build individual components when iterating:
 
 ```bash
 make build-frontend  # frontend assets
+make build-vis       # embedded Repository Nebula runtime
 make build-bpf       # eBPF programs
 make build-rust      # Rust collector
 ```
@@ -61,7 +62,7 @@ make build-rust      # Rust collector
 `make build-rust` and direct `cargo build` use the existing vendored assets and
 do not refresh them. For packaging outside the Makefile, set
 `AGENTSIGHT_SYNC_VENDOR=1` when building the collector after rebuilding the
-frontend and eBPF loaders.
+frontend, Repository Nebula runtime, and eBPF loaders.
 
 ## Verify
 

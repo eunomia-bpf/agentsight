@@ -10,6 +10,7 @@
 use clap::{Parser, Subcommand};
 use std::collections::VecDeque;
 use std::io::Write;
+use std::path::PathBuf;
 use std::sync::{
     Arc, Mutex, OnceLock,
     atomic::{AtomicBool, Ordering},
@@ -29,6 +30,7 @@ mod cmd_perf_live;
 mod cmd_perf_tui;
 mod cmd_trace;
 mod cmd_tui_record;
+mod cmd_vis;
 mod event;
 mod json;
 mod model;
@@ -57,6 +59,7 @@ use cmd_perf_tui::{run_live_top_tui, run_saved_top_tui};
 use cmd_trace::{
     OtelConfig, TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled,
 };
+use cmd_vis::run_vis;
 use output::TopOptions;
 use output::{print_record_session_db_error, print_report_local_sessions_warning};
 use sources::session_db::{latest_session_db, run_db_list};
@@ -181,11 +184,12 @@ async fn setup_signal_handler(suppress_terminal_output: bool) {
 #[command(
     author,
     version,
-    about = "AgentSight: top/record/report for AI agent runs.\n\n\
+    about = "AgentSight: top/record/report/vis for AI agent runs.\n\n\
              Common flow:\n\
                sudo agentsight record -- claude\n\
                agentsight top\n\
                agentsight report\n\
+               agentsight vis -o repository-nebula.html\n\
                agentsight report prompts --json\n\n\
              top works without sudo from process snapshots and native agent sessions;\n\
              record/debug trace use eBPF while keeping launched agents unprivileged."
@@ -237,6 +241,18 @@ enum Commands {
     Monitor {
         #[command(subcommand)]
         command: Option<MonitorCommands>,
+    },
+    /// Render repository evolution from local Claude, Codex, and Gemini sessions.
+    Vis {
+        /// Git worktree to visualize
+        #[arg(default_value = ".")]
+        path: PathBuf,
+        /// Output path; .html is the self-contained interactive artifact
+        #[arg(short, long, default_value = "repository-nebula.html")]
+        output: PathBuf,
+        /// Search every local session for operations targeting this repository
+        #[arg(long)]
+        global: bool,
     },
     /// Record a command, or attach to an already-running agent by command name or PID.
     /// Examples: sudo agentsight record -- claude     (or)  sudo agentsight record -c claude
@@ -632,6 +648,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             None => run_monitor().await?,
             Some(MonitorCommands::InstallService) => install_monitor_service()?,
         },
+        Commands::Vis {
+            path,
+            output,
+            global,
+        } => run_vis(path, output, *global)?,
         Commands::Top {
             db,
             pid,

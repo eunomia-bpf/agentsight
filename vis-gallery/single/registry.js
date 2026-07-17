@@ -1,6 +1,7 @@
 import { views as overviewPixelsMatrix } from "./views/overview_pixels_matrix.js";
 import { views as mapsAnimationRivers } from "./views/maps_animation_rivers.js";
 import { views as forensicStoryLongitudinal } from "./views/forensic_story_longitudinal.js";
+import { nebulaPlaybackDuration, nebulaVisualMoments } from "./views/repository_nebula.js";
 
 const rawViews = [
   ...overviewPixelsMatrix,
@@ -9,6 +10,7 @@ const rawViews = [
 ];
 
 function agentVisualMoments(data, nebula = false) {
+  if (nebula) return nebulaVisualMoments(data);
   const primaryEvents = nebula && data.agent_events?.length ? data.agent_events : (data.events ?? []);
   const agentTimes = [...primaryEvents, ...(nebula ? [] : (data.verification_events ?? []))]
     .map((row) => Number(row.ts_ms))
@@ -52,6 +54,7 @@ export const views = rawViews.map((view) => {
     ? ["commits"] : ["events", "verification_events", "commits"];
   return {
     ...view,
+    ...(view.id === "workspace-constellation" && { playbackDuration: nebulaPlaybackDuration }),
     requirements: [...new Set([...view.requirements, ...timelineRequirements])],
     visualMoments,
     playbackMoments(data) {

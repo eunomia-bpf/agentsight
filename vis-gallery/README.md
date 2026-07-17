@@ -1,5 +1,17 @@
 # AgentSight single-view visualizations
 
+Repository Nebula 的普通用户入口已经内嵌在 Rust CLI：
+
+```bash
+agentsight vis [PATH] [-o repository-nebula.html] [--global]
+```
+
+只改输出扩展名即可生成 `.html`、`.svg`、`.png`、`.gif` 或 `.mp4`。HTML
+不需要浏览器依赖；其他格式需要 Chromium，GIF/MP4 还需要 FFmpeg。该路径直接调用
+`agent-session` library，不经过 Python、Node 子进程或中间 JSON。
+
+本文后面的命令是保留全部 31 张实验图的开发入口，不是 Nebula 的安装后用法。
+
 Generate one portable software-evolution graph per file. There is no dashboard,
 server, project file, or user-visible intermediate dataset.
 
@@ -67,14 +79,14 @@ Dynamic figures advance only on recorded Agent-event timestamps. They do not
 invent activity for intervals without a native session. Git commits never move
 or resize the animated files; a commit inside the observed Agent interval only
 flashes the artifact's outer border. Read/write attention remains visible for
-30 minutes and fades with a five-minute half-life.
+24 file-event steps and fades with a six-step half-life.
 
-Repository Nebula uses every Git-tracked endpoint file as a dim, stable context
-star, while observed files emerge from path-near neighbors on their first real
-Agent event. Direct reads, direct writes, and recorded command-associated path
-effects use different transient marks. The single-view path skips blame,
-co-change, ownership, and per-commit diff mining because this graph does not use
-those fields.
+Repository Nebula draws stars only for files involved in real Agent file
+actions. Directories are never stars: they provide inherited color and
+invisible path attraction. Files emerge beside path-near observed files and
+continually rebalance under attraction, repulsion, collision, damping, and
+recent attention. Untouched endpoint files, processes, network activity, and
+LLM responses do not enter the graph.
 
 Change only the output extension to select a format:
 

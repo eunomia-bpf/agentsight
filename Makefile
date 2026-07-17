@@ -1,10 +1,13 @@
 SYNC_VENDOR ?= 0
 
 build: SYNC_VENDOR=1
-build: build-frontend build-bpf build-rust
+build: build-frontend build-vis build-bpf build-rust
 
 build-frontend:
 	cd frontend && npm install && npm run build
+
+build-vis:
+	cd vis-gallery && npm install && npm run build
 
 build-bpf:
 	make -C bpf
@@ -16,6 +19,7 @@ clean:
 	make -C bpf clean
 	cd collector && cargo clean
 	cd frontend && rm -rf .next node_modules dist
+	cd vis-gallery && rm -rf node_modules single/dist single/dist-nebula
 
 install:
 	sudo apt update
@@ -39,5 +43,6 @@ test:
 	make -C bpf test
 	cd collector && cargo test
 	cd frontend && npm run build
+	cd vis-gallery && npm run build && npm test
 
-.PHONY: build build-frontend build-bpf build-rust clean install test
+.PHONY: build build-frontend build-vis build-bpf build-rust clean install test

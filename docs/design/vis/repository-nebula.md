@@ -1,6 +1,6 @@
 # Repository Nebula：统一设计
 
-状态：**统一设计基线，待按本文重构实现**。
+状态：**v1 已实现；本文同时记录现行算法和验收边界**。
 
 本文是 Repository Nebula 的单一事实来源。旧实现、README、测试或其他设计文档与本文冲突时，以本文为准。
 
@@ -41,14 +41,13 @@ repository-nebula.mp4    与 GIF 使用同一组事件帧
 
 ### 3.1 目标用户入口
 
-用户不应该知道 `agent-session`、Python projector、ECharts、Playwright 或内部 view ID。v1 的用户入口是 Rust CLI，代码放在一个共享 Rust library 中，同时允许两个等价入口：
+用户不应该知道 `agent-session`、Python projector、ECharts、Playwright 或内部 view ID。v1 的用户入口是 AgentSight Rust CLI：
 
 ```bash
 agentsight vis [PATH] [-o OUTPUT] [--global]
-agentsight-vis [PATH] [-o OUTPUT] [--global]
 ```
 
-`agentsight vis` 是 AgentSight 主二进制中的内嵌入口；`agentsight-vis` 是可单独分发的轻量 Rust binary。二者调用同一个 library，不能复制两套解析、模拟或渲染代码。发行包内嵌生成 HTML 所需的 browser runtime，用户机器不需要安装 npm 或 Python。
+`agentsight vis` 是 AgentSight 主二进制中的内嵌入口，直接调用 `agent-session` library。发行包内嵌生成 HTML 所需的 browser runtime，用户机器不需要安装 npm 或 Python。v1 不再维护第二个同功能 binary，避免复制 CLI、投影和渲染入口。
 
 v1 只保留三个用户参数：
 
@@ -65,7 +64,7 @@ v1 不公开 `--view`、`--since`、`--until`、`--at`、`--frames`、`--fps`、
 - 自动发现属于该 repository/worktree 的全部 Claude、Codex 和 Gemini session。
 - 默认视图就是 Repository Nebula，不要求用户记住 `workspace-constellation`。
 - 默认输出 `repository-nebula.html`。
-- 默认分享画布为 `1200 × 675`，动画为 `12 fps`；用户不需要选择。
+- 默认分享画布为 `1200 × 675`；HTML 自动播放最长 30 秒，GIF/MP4 固定抽取 72 帧并以 8 fps 编码。
 - 运行时持续把简短进度日志打印到 stderr。
 - 不启动服务器，不自动上传，也不生成项目目录或中间数据文件。
 
@@ -132,9 +131,9 @@ HTML 中用户只操作：
 
 发现和解析时间较长时，每处理一批 session 更新进度或定期打印累计数，不能长时间无输出。单个坏 session 以 warning 记录并继续；repository 无可用文件事件时明确报错，不生成看似成功的空图。
 
-### 3.4 当前过渡期入口
+### 3.4 开发期兼容入口
 
-在顶层 `agentsight-vis` 安装入口完成前，当前仓库中的实际命令仍是：
+`vis-gallery` 仍保留原有 31 张图的开发/回归入口，便于继续生成其他软件工程图。它不是 Repository Nebula 的普通用户路径：
 
 ```bash
 cd vis-gallery
@@ -149,7 +148,7 @@ npm run render -- \
   --output repository-nebula.html
 ```
 
-`--global` 和通过输出扩展名选择 HTML/SVG/PNG/GIF/MP4 已经可用。本文前面的 Rust CLI、简化参数和自动时长属于目标接口，在 CLI 重构完成前不能写进用户 README 冒充现有功能。
+Repository Nebula 的普通入口已经是前述 `agentsight vis`；Node/Python 链仅服务其他 Gallery 图和兼容测试。
 
 ## 4. 数据和证据边界
 
@@ -168,9 +167,8 @@ action
 category
 effect
 paths
+read_paths
 write_paths
-source
-confidence
 ```
 
 Git 只补充 repository 文件范围、file lifetime 和候选 durable change。它们不能覆盖 Agent 事件语义。
@@ -224,7 +222,7 @@ v1 的动作集合严格收口为 `read`、`write`、`create`、`rename`、`dele
 
 ### 5.1 Bash 文件动作推导
 
-Bash 不是图中实体，只是文件动作的另一种来源。Rust 侧复用 shell AST 解析库，不用简单的空格切分或正则表达式解释完整命令语言。
+Bash 不是图中实体，只是文件动作的另一种来源。Rust 侧直接复用 `agent-session` 已有的保守 operand、redirection、pipeline 和嵌套 shell 解析，不建立第二套 Bash parser，也不声称解释完整命令语言。
 
 只处理成功完成、cwd 可解析且目标路径能够归一化到 repository 内部的命令。基础规则为：
 
@@ -241,22 +239,24 @@ Bash 不是图中实体，只是文件动作的另一种来源。Rust 侧复用 
 
 变量、command substitution、未展开 glob、动态 `find -exec`、脚本内部副作用或 repository 外路径默认跳过。若同一 Tool event 已经包含直接 Edit/Write 记录，直接记录优先，Bash 推导只补充未覆盖路径并去重。
 
-每个推导动作保留：
+每个推导动作复用已有字段保留来源和访问角色：
 
 ```text
-source = inferred_from_bash
-confidence = exact_command | exact_redirection | durable_candidate
+category = shell
+path_ref.access = read | write
 ```
 
-这些字段只用于 tooltip 和审计，不增加新的视觉符号。图上仍然只显示对应文件的五种动作。
+Nebula 不再增加单独的 confidence/IR 字段；无法保守确定的 effect 直接跳过。图上仍然只显示对应文件的五种动作。
 
 ## 6. Git 的职责
 
 Git 只做三件事：
 
-1. 给 repository-relative 文件去噪，排除 `.git/`、dependency cache、build output、coverage 和临时日志。
-2. 提供 tracked/lifetime/rename 等 durable reference。
+1. 给 repository-relative 文件提供 worktree 边界。
+2. 提供 tracked/lifetime/rename 等 durable reference 和事件关联候选。
 3. 在 commit timestamp 让整个 artifact 的最外层边框短暂闪金色。
+
+Git lifecycle candidate 只能把同一 Agent 文件事件的表现细化为 create/delete/rename；星出现和状态变化仍发生在该 Agent event 的 `ts_ms`，不能挪到 commit 时间。
 
 Git 不得：
 
@@ -274,7 +274,7 @@ Agent 真实触达的 repository-relative untracked 文件可以保留，但 too
 ### 7.1 Agent 事件是唯一状态时钟
 
 ```text
-t0 - 1 ms   空画布
+repository root commit ... t0 前   空画布
 t0          第一条 Agent 文件事件，第一颗星出现
 t1...tn     后续真实 Agent 文件事件
 tn          最后一条文件事件后的平衡状态
@@ -302,13 +302,13 @@ Read 的 `action_gain` 小于 Write/Edit。Create/Delete/Rename 使用独立生�
 
 ### 7.3 播放节奏
 
-- 默认帧率固定为 `12 fps`。
+- HTML 自动播放按最多 12 个视觉采样/秒准备 cursor；GIF/MP4 为固定 72 帧、8 fps。
 - 文件动作数为 `E` 时，默认完整播放时长为 `D = clamp(8 + 0.04 × E, 8, 30)` 秒。
 - 少于 550 个文件动作时，播放时长随动作数从 8 秒增长到最多 30 秒。
 - 超长历史固定最多播放 30 秒，不要求用户选择时长。
-- 总视觉步数为 `S = min(E, round(12 × D))`，最多 360 步。
+- 浏览器模型的总视觉步数为 `S = min(E, 360)`；播放 cursor 再按时长最多抽取 360 个。
 - 当 `E <= S` 时，一个文件动作对应一个或多个过渡帧；当 `E > S` 时，按事件序号把连续动作放入视觉桶，每个动作仍更新累计状态，但同一桶只渲染一次平衡过程。
-- 新文件出生、删除和重命名优先获得独立视觉步；剩余 read/write burst 可以合并。
+- 同一个 Tool event 触达的所有文件必须保留在同一视觉步；超长历史只合并相邻 Tool event，不能拆散一次操作。
 - 长空档压缩，密集 burst 合并，但事件顺序不能改变。
 - session 边界不产生额外视觉动作；当前动作说明显示 vendor、action、path 和真实 timestamp，session id 放在 tooltip 中。
 - 一个视觉桶包含多个动作时，当前动作说明显示聚合摘要，例如 `Codex · 17 actions · 12 read / 4 write / 1 create`。
@@ -357,19 +357,20 @@ F_i =
 
 目录不是节点，不拥有位置、质量或 star。所谓目录引力只是同目录文件之间更强的 pairwise path attraction；不得创建可见或不可见的目录 star 来吸引文件。同色文件通过相互吸引形成可移动星群。
 
-为了避免 O(F²)，每个文件最多保留 6 条不可见的结构引力邻接：
+为了避免 O(F²)，实现只建立局部不可见结构邻接：
 
-1. 最多 4 个同 parent directory、此前已经可见的文件。
-2. 不足 6 个时，从最长公共目录前缀的已见文件中补足。
-3. 仍不足时，连接同 top-level directory 中距离当前星群质心最近的代表文件。
+1. 同 parent directory 的字典序相邻和次相邻文件。
+2. 每个 parent 选一个代表，再连接同 top-level directory 中相邻的代表。
+3. 公共目录前缀越长，代表连接越短、越强。
 4. 不因为 extension 相同单独建立引力关系。
 
 邻接只参与力计算，永远不画成 edge。默认目标距离和强度为：
 
 ```text
-same parent           distance=26 px  strength=0.12
-common directory      distance=44 px  strength=0.07
-same top-level only   distance=70 px  strength=0.04
+same parent neighbor  distance=30 px  strength=0.34
+same parent second    distance=38 px  strength=0.18
+common directory      distance=52 px  strength=0.14
+same top-level only   distance=90 px  strength=0.07
 ```
 
 ### 8.3 斥力、碰撞和阻尼
@@ -384,15 +385,16 @@ v1 默认参数使用 `1200 × 675` 逻辑画布：
 
 ```text
 radius(file)       = clamp(3 + 0.9 * log1p(visits), 3, 8) px
-many-body charge   = -18 - 2 * radius
+many-body charge   = -7 - 0.8 * radius
 collision radius   = radius + 2 px
 collision iterations = 2
 velocityDecay      = 0.32
-center strength    = 0.015
-ticks per visual step = 8
+horizontal center strength = 0.026
+vertical center strength   = 0.036
+ticks per visual step = 8 (<=200 files), 4 (<=500), 2 (<=1000), 1 (>1000)
 ```
 
-每个视觉步应用一个事件桶后重新加热模拟：read 使用 `alpha=0.10`，write 使用 `0.18`，create/rename/delete 使用 `0.35`；随后执行固定 8 ticks。一个桶包含多种动作时取最大 alpha。固定参数和 tick 数保证不同输出格式可复现。
+每个视觉步应用一个事件桶后重新加热模拟：read 使用 `alpha=0.10`，write 使用 `0.18`，create/rename/delete 使用 `0.35`；一个桶包含多种动作时取最大 alpha。tick 数按可见文件规模分档，输入、分档、seed 和事件顺序固定，因此不同输出格式可复现。
 
 ### 8.4 注意力改变局部平衡
 
@@ -513,9 +515,9 @@ PNG/SVG/GIF 没有 hover，因此最小图例和当前动作说明必须随 arti
 
 ## 11. 数据传递架构
 
-### 11.1 当前实现
+### 11.1 已实现的普通用户路径
 
-当前实际调用链是：
+当前 `agentsight vis` 实际调用链是：
 
 ```text
 Claude/Codex/Gemini native sessions
@@ -523,16 +525,10 @@ Claude/Codex/Gemini native sessions
 Git history / endpoint
         |
         v
-agent-session Rust parser
+agent-session Rust library
         |
         v
-LongitudinalArtifact JSON stdout
-        |
-        v
-Python project.py 再聚合
-        |
-        v
-Node projectForView 再裁剪
+薄 Rust Nebula projection
         |
         v
 JSON + browser runtime 内嵌进单 HTML
@@ -541,14 +537,14 @@ JSON + browser runtime 内嵌进单 HTML
 ECharts -> HTML / SVG / PNG / GIF / MP4
 ```
 
-这条链没有服务器或运行时网络请求，但对 Nebula 而言存在重复解释：Rust 事件模型、Python Gallery 模型、Node view 模型和 ECharts series 模型。虽然 Python 输出没有保存为用户中间文件，它事实上仍是一层额外投影。
+HTML 路径没有服务器、运行时网络请求、Python、Node 子进程或用户可见中间数据。`vis-gallery` 的旧链只为其他 31 张图和开发回归保留。
 
-### 11.2 目标实现
+### 11.2 组件边界
 
 Repository Nebula 应收敛为：
 
 ```text
-agentsight vis / agentsight-vis (Rust)
+agentsight vis (Rust)
         |
         v
 agent-session Rust library
@@ -571,7 +567,7 @@ agent-session Rust library
 - Nebula 不再经过完整 `project.py`。
 - Git lifetime 和候选 durable change 由 `agent-session` 直接输出。
 - 不写 canonical evidence artifact，不要求用户管理中间 IR。
-- npm/Vite 只允许作为开发时构建 browser runtime 的工具；发布的 Rust binary 使用 `include_bytes!` 内嵌构建产物，用户机器不需要 Node 或 Python。
+- npm/Vite 只允许作为开发时构建 browser runtime 的工具；发布的 Rust binary 使用 `include_str!` 内嵌构建产物，用户机器不需要 Node 或 Python。
 - HTML 输出不依赖外部程序；SVG/PNG 使用 Rust 启动 headless Chromium，GIF/MP4 再调用 FFmpeg。缺少可选渲染依赖时打印明确安装提示，不影响 HTML 输出。
 - 其他确实需要复杂 Git 聚合的静态图可以继续使用独立聚合逻辑，不能反向增加 Nebula 的复杂度。
 
@@ -584,7 +580,7 @@ agent-session Rust library
 | `agent-session` library | Rust `LongitudinalArtifact`，包含 session、normalized events、Git lifetime 和候选 durable change | Rust 内存 | 否 |
 | 薄 Rust projection | 只含 `meta`、五种文件动作和必要 commit reference 的内部 view struct | Rust 内存 | 否 |
 | JSON serialization | 内嵌 HTML 所需的紧凑 payload 字符串 | Rust 内存 | 否 |
-| 动态力计算 | `Map<path, FileState>`，其中包含 `x/y/vx/vy/mass/visits/lastEventStep` | 浏览器内存 | 否 |
+| 动态力计算 | `Map<path, FileState>`，其中包含 `x/y/vx/vy/visits/lastEventStep` | 浏览器内存 | 否 |
 | HTML 组装 | CSS、内嵌 runtime、紧凑 JSON payload 和初始化调用组成的 HTML 字符串 | Rust 内存 | 否 |
 | HTML 输出 | 完整自包含 HTML | 用户指定输出路径 | **最终文件** |
 
@@ -605,8 +601,6 @@ agent-session Rust library
       vendor,
       action,
       paths,
-      source,
-      confidence,
       durable_change
     }
   ],
@@ -621,23 +615,22 @@ agent-session Rust library
 不同输出格式的磁盘行为如下：
 
 - **HTML**：无临时文件，直接写最终 `.html`。
-- **SVG**：HTML 字符串仅存在内存；Rust 启动 headless Chromium 打开后取出 `<svg>` 字符串，直接写最终 `.svg`，无临时 HTML。
-- **PNG**：HTML 字符串仅存在内存；Rust 启动 headless Chromium，直接截图到最终 `.png`，无临时 HTML。
-- **GIF/MP4**：在 `/tmp/agentsight-vis-frames-*` 创建短生命周期目录，逐 cursor 写 `frame-0000.png` 等帧文件；`ffmpeg` 编码最终 `.gif` 或 `.mp4` 后递归删除整个目录。
+- **SVG/PNG**：Rust 在受 RAII 管理的临时目录写一个短生命周期 HTML，headless Chromium 读取后导出最终文件，函数返回时自动删除临时目录。
+- **GIF/MP4**：同一临时目录再创建 `frame-0000.png` 等 72 个帧文件；`ffmpeg` 编码最终文件后自动删除整个目录。
 
 GIF/MP4 的临时 PNG 是渲染编码缓存，不是数据交换格式。未来可以改成把帧通过 pipe 直接送入 `ffmpeg`，但当前临时目录方案更简单、失败时更容易诊断，且正常退出和异常退出都必须清理。
 
-交互式 HTML 中的力状态在浏览器内存里增量维护。向后拖动时间轴时可以从头确定性重放，并在本次页面生命周期内建立内存 checkpoint cache；checkpoint 默认不嵌入 HTML、不写磁盘，也不成为用户需要理解的格式。
+交互式 HTML 首次打开时确定性预计算最多 360 个轻量 snapshot，并在页面内存中缓存。拖动时间轴通过二分查找选择最近 snapshot；snapshot 不嵌入 HTML、不写磁盘，也不成为用户需要理解的格式。
 
 ## 12. 实现和性能约束
 
 - Agent 文件事件预先按时间排序，播放时增量处理。
 - 路径吸引边只保留目录内或最长公共前缀的局部邻居，不能构造完整 O(F²) 边集。
 - 多体斥力使用 quadtree/Barnes-Hut 实现，优先复用 `d3-force`。
-- 每个事件运行固定数量 ticks，并周期性保存 checkpoint；拖动时间轴不必每次从零重算。
+- 每个视觉桶运行按文件规模分档的固定 ticks，并保存最多 360 个内存 snapshot；拖动时间轴不必从零重算。
 - 背景、文件、活动核心和生命周期效果使用少量共享 series，不为每个文件创建 DOM 节点。
 - 不引入 Cytoscape、uPlot、统一前端、生产 sourcemap 或额外服务器。
-- 目标规模：约 20k repository 文件范围、10k Agent 文件事件仍可生成；实际画面只包含截至 cursor 已 observed 的文件。
+- 当前自动化覆盖 1,200 个 observed 文件；10k Agent 文件动作会先压缩到最多 360 个视觉步。更大文件规模需要单独做内存基准后再承诺。
 
 ## 13. 明确删除的旧设计
 
@@ -691,9 +684,9 @@ GIF/MP4 的临时 PNG 是渲染编码缓存，不是数据交换格式。未来�
 
 ## 15. 实现顺序
 
-1. 在共享 Rust library 中实现简化 CLI，接入 `agentsight vis` 和 `agentsight-vis` 两个入口及五步 stderr 日志。
+1. 在 Rust collector 中实现简化 `agentsight vis` 入口及五步 stderr 日志。
 2. 让 Nebula 直接消费 `agent-session` Rust 类型，移除 Python projection 依赖。
-3. 在 `agent-session` 中补充保守的 Bash AST 文件动作推导和来源标记。
+3. 复用 `agent-session` 已有的保守 Bash 文件 operand/redirection 推导，并补充 Read 路径投影。
 4. 删除 endpoint context、目录节点/云和所有非文件 ambient marker。
 5. 用确定性 `d3-force` 状态替换极坐标固定目标布局。
 6. 实现目录 OKLCH 色系继承和 create/rename 六步颜色过渡。

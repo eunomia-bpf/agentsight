@@ -104,6 +104,7 @@ agentsight report audit --json               # process spawns, file opens, API c
 agentsight report serve                      # open the web UI for the latest session in this directory
 agentsight report export -o snapshot.json    # export for web dashboard
 agentsight report --local                    # summarize native Claude/Codex/Gemini sessions
+agentsight vis -o repository-nebula.html     # shareable repository file-evolution replay
 ```
 
 ### Offline Agent pprof Profiles

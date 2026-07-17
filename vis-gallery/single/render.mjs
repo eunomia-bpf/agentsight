@@ -12,6 +12,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const packageRoot = resolve(here, "..");
 const repositoryRoot = resolve(packageRoot, "..");
 const runtimePath = join(here, "dist", "runtime.iife.js");
+const nebulaRuntimePath = join(here, "dist-nebula", "runtime.iife.js");
 
 function usage() {
   return `Generate one self-contained AgentSight evolution visualization per file.
@@ -134,20 +135,6 @@ export function projectForView(data, spec) {
     projected.files = (projected.files ?? []).filter((file) => observedPaths.has(file.path));
   }
   if (spec.id === "workspace-constellation") {
-    const observedPaths = new Set((projected.agent_events ?? []).flatMap((event) => event.paths ?? []));
-    const durableLifetimeIds = new Set((projected.agent_events ?? []).flatMap((event) => (
-      event.durable_changes ?? []
-    )).map((change) => change.lifetime_id));
-    projected.files = (projected.files ?? []).filter((file) => (
-      (file.survives_to_head && file.current_path === file.path)
-      || observedPaths.has(file.path)
-      || file.lifetime_ids?.some((id) => durableLifetimeIds.has(id))
-    )).map((file) => ({
-      path: file.path,
-      tracked: Boolean(file.lifetime_id || file.lifetime_ids?.length),
-      survives_to_head: file.survives_to_head,
-      current_path: file.current_path,
-    }));
     projected.agent_events = (projected.agent_events ?? []).map((event) => ({
       id: event.id,
       session_id: event.session_id,
@@ -158,24 +145,13 @@ export function projectForView(data, spec) {
       category: event.category,
       effect: event.effect,
       paths: event.paths,
+      read_paths: event.read_paths,
       write_paths: event.write_paths,
-      process_chain: event.process_chain,
-      domains: event.domains,
       durable_changes: (event.durable_changes ?? []).map((change) => ({
         status: change.status,
         path: change.path,
         old_path: change.old_path,
       })),
-    }));
-    projected.file_lifetimes = (projected.file_lifetimes ?? []).filter((lifetime) => (
-      lifetime.paths?.length > 1 || durableLifetimeIds.has(lifetime.id)
-    )).map((lifetime) => ({
-      id: lifetime.id,
-      paths: lifetime.paths,
-      birth_ms: lifetime.birth_ms,
-      death_ms: lifetime.death_ms,
-      current_path: lifetime.current_path,
-      survives_to_head: lifetime.survives_to_head,
     }));
     projected.commits = (projected.commits ?? []).map((commit) => ({
       committed_at_ms: commit.committed_at_ms,
@@ -281,16 +257,20 @@ function safeJson(value) {
 }
 
 export async function htmlFor(data, spec, options, renderer = "svg") {
-  if (!existsSync(runtimePath)) throw new Error(`missing ${runtimePath}; run npm run build`);
-  const runtimeSource = await readFile(runtimePath, "utf8");
+  const selectedRuntime = spec.id === "workspace-constellation" ? nebulaRuntimePath : runtimePath;
+  if (!existsSync(selectedRuntime)) throw new Error(`missing ${selectedRuntime}; run npm run build`);
+  const runtimeSource = await readFile(selectedRuntime, "utf8");
   const cursorMs = Math.max(data.meta.window_start_ms, Math.min(data.meta.window_end_ms, parseTime(options.at, data.meta.window_end_ms, data.meta.window_end_ms)));
   const payload = projectForView(data, spec);
+  const legend = spec.id === "workspace-constellation"
+    ? '<span><i style="background:#f7ffff"></i>read attention</span><span><i style="background:#ff9678"></i>write ripple</span><span><i style="background:#75f0a9"></i>create</span><span><i style="background:#63dfff"></i>rename</span><span><i style="background:#ff647c"></i>delete</span><span><i style="background:#efd265"></i>commit frame</span>'
+    : '<span><i style="background:#62cfe8"></i>recorded Agent event</span><span><i style="background:#efd265"></i>commit border flash</span><span><i style="border:1px solid #9aa8b9"></i>frozen Git reference</span>';
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="agentsight-vis 0.1">
 <meta name="agentsight:view" content="${spec.id}"><meta name="agentsight:revision" content="${data.meta.endpoint_revision}"><meta name="agentsight:time-mode" content="${spec.timeMode}">
 <title>${spec.title} · AgentSight</title><style>
 :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#070b12;color:#dce8f7}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 75% 0,rgba(35,106,114,.17),transparent 34%),#070b12}.artifact{width:${options.width + 64}px;min-height:${options.height + 190}px;padding:24px 32px;background:#070b12;transition:box-shadow .12s}.artifact.commit-flash{box-shadow:inset 0 0 0 2px #efd265,0 0 30px rgba(239,210,101,.42)}.header{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid rgba(135,160,190,.18);padding-bottom:14px}.eyebrow,.mode{font:10px ui-monospace,monospace;color:#61d7bf;letter-spacing:.12em;text-transform:uppercase}.header h1{font-size:24px;margin:6px 0}.header p{font-size:11px;color:#71839a;margin:0;max-width:900px}.mode{color:#8c9bb0;border:1px solid rgba(135,160,190,.18);padding:7px 9px;border-radius:99px;align-self:flex-start}.visual{width:${options.width}px;height:${options.height}px;margin-top:14px}.timeline{display:grid;grid-template-columns:42px 1fr 190px;gap:12px;align-items:center;border-top:1px solid rgba(135,160,190,.18);padding:14px 0 8px}.timeline button{width:36px;height:36px;border-radius:50%;border:1px solid rgba(97,215,191,.4);background:#10231f;color:#61d7bf;cursor:pointer}.timeline input{width:100%;accent-color:#61d7bf}.timeline output{font:9px ui-monospace,monospace;color:#9bacc0;text-align:right}.legend{display:flex;gap:18px;font:9px ui-monospace,monospace;color:#71839a}.legend i{display:inline-block;width:13px;height:3px;margin-right:5px;vertical-align:middle}.footer{margin-top:8px;color:#7c8ba0;font:9px ui-monospace,monospace;letter-spacing:0}
-</style></head><body><main id="artifact" class="artifact"><header class="header"><div><span class="eyebrow">AgentSight · repository evolution</span><h1 id="view-title"></h1><p id="view-note"></p></div><span id="time-mode" class="mode"></span></header><section id="visual" class="visual"><div id="chart"></div></section><section class="timeline"><button id="play" aria-label="Play history">▶</button><input id="timeline" type="range"><output id="cursor-label"></output></section><section class="legend"><span><i style="background:#62cfe8"></i>recorded Agent event</span><span><i style="background:#efd265"></i>commit border flash</span><span><i style="border:1px solid #9aa8b9"></i>frozen Git reference</span></section><footer id="provenance" class="footer"></footer></main>
+   </style></head><body><main id="artifact" class="artifact"><header class="header"><div><span class="eyebrow">AgentSight · repository evolution</span><h1 id="view-title"></h1><p id="view-note"></p></div><span id="time-mode" class="mode"></span></header><section id="visual" class="visual"><div id="chart"></div></section><section class="timeline"><button id="play" aria-label="Play history">▶</button><input id="timeline" type="range"><output id="cursor-label"></output></section><section class="legend">${legend}</section><footer id="provenance" class="footer"></footer></main>
 <script>${runtimeSource}</script><script>AgentSightSingle.initialize(${safeJson(payload)},${safeJson(spec.id)},{renderer:${safeJson(renderer)},cursorMs:${cursorMs},width:${options.width},height:${options.height},reducedMotion:${Boolean(options.reducedMotion)}})</script></body></html>`;
 }
 

@@ -76,3 +76,20 @@ no default event filters, and saves a local SQLite session for `report`, `top
 Use `debug trace` only when you need low-level control over capture sources or
 explicit filters. It is the advanced replacement for a raw trace command, not
 the normal record/report workflow.
+
+## Repository evolution artifact
+
+`vis` turns local Claude, Codex, and Gemini file operations into one portable
+Repository Nebula. Files are stars; directories are represented only by color
+inheritance and invisible path attraction.
+
+```sh
+agentsight vis                       # self-contained repository-nebula.html
+agentsight vis /path/to/repo --global -o repo.gif
+agentsight vis /path/to/repo -o repo.png
+```
+
+The default interval starts at the repository root commit. `--global` searches
+all local sessions but retains only real Tool operations targeting the selected
+repository. HTML needs no external runtime. SVG/PNG/GIF/MP4 export requires a
+local Chromium; GIF/MP4 also requires FFmpeg.

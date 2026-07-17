@@ -31,7 +31,7 @@ describe("single-view registry", () => {
     ]);
   });
 
-  test("replays observed repository growth while recent attention fades", () => {
+  test("replays observed repository growth while attention fades by file-event step", () => {
     const treemap = registry.get("repository-treemap");
     const first = treemap.build(projectForView(data, treemap), data.events[0].ts_ms, helpers);
     const last = treemap.build(projectForView(data, treemap), data.events.at(-1).ts_ms, helpers);
@@ -49,19 +49,18 @@ describe("single-view registry", () => {
       projected, data.events[0].ts_ms, helpers,
     ));
     const faded = filePoint(constellation.build(
-      projected, data.events[0].ts_ms + 31 * 60_000, helpers,
+      projected, data.events[1].ts_ms, helpers,
     ));
-    expect(focused.focus.effect).toBe("read");
-    expect(faded.focus).toBeUndefined();
+    expect(focused.focusType).toBe("read");
+    expect(focused.age).toBe(0);
+    expect(faded.age).toBeGreaterThan(0);
     expect(focused.itemStyle.shadowBlur).toBeGreaterThan(faded.itemStyle.shadowBlur);
     expect(constellation.build(projected, data.events[0].ts_ms, helpers)
-      .series.find((series) => series.name === "active file cores").data).toHaveLength(1);
-    expect(constellation.build(projected, data.events[0].ts_ms + 31 * 60_000, helpers)
-      .series.find((series) => series.name === "active file cores").data).toHaveLength(0);
+      .series.find((series) => series.name === "reads").data).toHaveLength(1);
 
     const cursors = animationCursors(data, constellation, 6);
-    expect(cursors[0]).toBe(data.events[0].ts_ms - 1);
-    expect(cursors.at(-1)).toBe(data.agent_events.at(-1).ts_ms);
+    expect(cursors[0]).toBe(data.meta.window_start_ms);
+    expect(cursors.at(-1)).toBe(data.meta.window_end_ms);
     expect(cursors.every((cursor) => cursor >= cursors[0] && cursor <= cursors.at(-1))).toBe(true);
     expect(cursors.some((cursor) => data.commits.some((commit) => commit.committed_at_ms === cursor))).toBe(true);
     const visual = new Set(constellation.visualMoments(data));
@@ -79,29 +78,26 @@ describe("single-view registry", () => {
     const endpointCount = data.files.filter((file) => file.survives_to_head && file.current_path === file.path).length;
 
     expect(series(before, "files")).toHaveLength(0);
-    expect(series(before, "repository context")).toHaveLength(0);
-    expect(series(before, "directory color field")).toHaveLength(0);
     expect(series(first, "files")).toHaveLength(1);
-    expect(series(first, "repository context")).toHaveLength(endpointCount - 1);
-    expect(series(first, "directory color field").length).toBeGreaterThanOrEqual(3);
+    expect(endpointCount).toBeGreaterThan(1);
+    expect(first.series).toHaveLength(4);
     expect(first.series.every((row) => row.type !== "line" && row.type !== "graph")).toBe(true);
     expect(first.series.some((row) => row.name === "directory labels")).toBe(false);
     expect(series(first, "files")[0].value.slice(0, 2)).toEqual([0.5, 0.5]);
   });
 
-  test("keeps pathless commands, processes, model responses, network, and durable lifecycle visible", () => {
+  test("drops pathless commands, processes, model responses, and network while retaining file lifecycle", () => {
     const view = registry.get("workspace-constellation");
     const projected = projectForView(data, view);
     const at = (name, cursor) => view.build(projected, cursor, helpers)
       .series.find((series) => series.name === name).data;
     const event = (id) => data.agent_events.find((row) => row.id === id);
 
-    expect(at("model heartbeat", event("model-1").ts_ms)).toHaveLength(1);
-    expect(at("ambient commands", event("shell-ambient").ts_ms)).toHaveLength(1);
-    expect(at("process activity", event("shell-ambient").ts_ms).length).toBeGreaterThan(0);
-    expect(at("domain references", event("network-ambient").ts_ms)).toHaveLength(1);
+    const names = view.build(projected, event("network-ambient").ts_ms, helpers)
+      .series.map((series) => series.name);
+    expect(names).toEqual(["files", "reads", "writes", "create / rename / delete"]);
     const durable = data.agent_events.find((row) => row.durable_changes.length);
-    expect(at("durable lifecycle evidence", durable.ts_ms).some((row) => row.lifecycle === "create")).toBe(true);
+    expect(at("create / rename / delete", durable.ts_ms).length).toBeGreaterThan(0);
   });
 
   test("births a path-near file beside the closest previously observed star", () => {
@@ -114,24 +110,42 @@ describe("single-view registry", () => {
     const parent = option.series.find((series) => series.name === "files")
       .data.find((row) => row.path === "src/main.rs");
 
-    expect(point.parent).toBe("src/main.rs");
-    expect(Math.hypot(point.value[0] - parent.value[0], point.value[1] - parent.value[1])).toBeLessThan(0.03);
+    expect(point.bornNear).toBe("src/main.rs");
+    expect(Math.hypot(point.value[0] - parent.value[0], point.value[1] - parent.value[1])).toBeLessThan(0.12);
+  });
+
+  test("keeps every path from one Tool event in the same visual step", () => {
+    const view = registry.get("workspace-constellation");
+    const ts = data.meta.window_start_ms + 1;
+    const oneTool = {
+      meta: data.meta,
+      commits: [],
+      agent_events: [{
+        ...data.agent_events[0], id: "one-tool-two-files", ts_ms: ts,
+        paths: ["src/a.rs", "src/b.rs"],
+        read_paths: ["src/a.rs", "src/b.rs"], write_paths: [], durable_changes: [],
+      }],
+    };
+    const option = view.build(oneTool, ts, helpers);
+    const files = option.series.find((series) => series.name === "files").data;
+
+    expect(files.map((file) => file.path).sort()).toEqual(["src/a.rs", "src/b.rs"]);
+    expect(files.every((file) => file.age === 0)).toBe(true);
   });
 
   test("renders write ripples explicitly in still GIF frames", () => {
     const view = registry.get("workspace-constellation");
     const projected = projectForView(data, view);
-    const write = data.events.find((event) => event.effect === "write");
+    const write = data.events.find((event) => event.effect === "write" && event.path === "src/main.rs");
     const atWrite = view.build(projected, write.ts_ms, helpers);
-    const afterRipple = view.build(projected, write.ts_ms + 4 * 60_000, helpers);
-    const ripples = (option) => option.series.find((row) => row.name === "recent writes").data;
+    const ripples = (option) => option.series.find((row) => row.name === "writes").data;
 
-    expect(ripples(atWrite)).toHaveLength(3);
-    expect(ripples(afterRipple)).toHaveLength(0);
+    expect(ripples(atWrite)).toHaveLength(2);
+    expect(ripples(atWrite).every((row) => row.path === write.path)).toBe(true);
   });
 
-  test("keeps recorded shell path effects visually distinct without calling them creation", () => {
-    const shellWrite = data.events.find((event) => event.effect === "write");
+  test("projects inferred shell writes onto files without creating command nodes", () => {
+    const shellWrite = data.events.find((event) => event.effect === "write" && event.path === "src/main.rs");
     const shellData = {
       ...data,
       agent_events: data.agent_events.map((event) => (
@@ -142,12 +156,13 @@ describe("single-view registry", () => {
     };
     const view = registry.get("workspace-constellation");
     const option = view.build(projectForView(shellData, view), shellWrite.ts_ms, helpers);
-    const command = option.series.find((series) => series.name === "command-associated effects").data;
-    const directWrites = option.series.find((series) => series.name === "recent writes").data;
+    const writes = option.series.find((series) => series.name === "writes").data;
+    const file = option.series.find((series) => series.name === "files").data
+      .find((row) => row.path === shellWrite.path);
 
-    expect(command.length).toBeGreaterThan(0);
-    expect(command.every((row) => row.symbol === "diamond")).toBe(true);
-    expect(directWrites.every((row) => row.path !== shellWrite.path)).toBe(true);
+    expect(writes.some((row) => row.path === shellWrite.path)).toBe(true);
+    expect(file.source).toBe("bash");
+    expect(option.series.some((series) => /command|bash/i.test(series.name))).toBe(false);
   });
 
   test("contains exactly the 31 preserved visualizations", () => {
@@ -233,7 +248,10 @@ describe("single-view registry", () => {
         ...data.agent_events[index % data.agent_events.length],
         id: `dense-source-event-${index}`,
         kind: "tool",
+        category: "filesystem",
+        effect: index % 3 === 0 ? "write" : "read",
         paths: [`dense/path-${index}.rs`],
+        read_paths: index % 3 === 0 ? [] : [`dense/path-${index}.rs`],
         write_paths: index % 3 === 0 ? [`dense/path-${index}.rs`] : [],
         durable_changes: [],
         ts_ms: data.meta.window_start_ms + index,
@@ -243,7 +261,7 @@ describe("single-view registry", () => {
     expect(constellation.series.find((series) => series.name === "files").data).toHaveLength(1_200);
   });
 
-  test("keeps the treemap observed-only but embeds tracked context and observed untracked files for the nebula", () => {
+  test("keeps both treemap and nebula observed-only", () => {
     const treemap = projectForView(data, registry.get("repository-treemap"));
     expect(new Set(treemap.files.map((file) => file.path))).toEqual(
       new Set(data.events.map((event) => event.path)),
@@ -275,11 +293,11 @@ describe("single-view registry", () => {
     };
     const view = registry.get("workspace-constellation");
     const projected = projectForView(expanded, view);
-    expect(projected.files.some((file) => file.path === unseen.path)).toBe(true);
+    expect(projected.files).toBeUndefined();
+    expect(projected.file_lifetimes).toBeUndefined();
     const option = view.build(projected, data.events[0].ts_ms + 16 * 60_000, helpers);
-    const contextPaths = new Set(option.series.find((series) => series.name === "repository context").data.map((row) => row.path));
-    expect(contextPaths.has(unseen.path)).toBe(true);
-    expect(option.series.find((series) => series.name === "files").data
-      .some((row) => row.path === untrackedNoise.path && !row.tracked)).toBe(true);
+    const paths = new Set(option.series.find((series) => series.name === "files").data.map((row) => row.path));
+    expect(paths.has(unseen.path)).toBe(false);
+    expect(paths.has(untrackedNoise.path)).toBe(true);
   });
 });

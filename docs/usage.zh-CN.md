@@ -68,6 +68,21 @@ sudo ./collector/target/release/agentsight debug trace --server -c claude
 sudo ./collector/target/release/agentsight debug ssl --http-parser
 ```
 
+## Repository 演化图
+
+`vis` 把本机 Claude、Codex 和 Gemini 的真实文件操作生成一张可分享的
+Repository Nebula。图中只有文件是星；目录只通过颜色继承和不可见的路径引力表达。
+
+```sh
+agentsight vis                       # 生成自包含 repository-nebula.html
+agentsight vis /path/to/repo --global -o repo.gif
+agentsight vis /path/to/repo -o repo.png
+```
+
+默认时间从 repository 根提交开始。`--global` 会搜索所有本地 session，但仍只保留
+真实命中目标 repository 的 Tool 文件操作。HTML 不依赖外部运行时；SVG/PNG/GIF/MP4
+需要本机 Chromium，GIF/MP4 还需要 FFmpeg。
+
 ## top、record 与 debug trace
 
 日常使用先从 `top` 开始；需要保存一次运行用于复盘时使用 `record`；只有在需要
