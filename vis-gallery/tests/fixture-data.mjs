@@ -114,6 +114,58 @@ const files = definitions.map(([path, group, pattern, current_bytes, touches, ch
   };
 });
 
+const agent_events = [
+  ...events.map((event) => ({
+    id: event.event_id,
+    session_id: event.session_id,
+    vendor: event.vendor,
+    model: event.model,
+    ts_ms: event.ts_ms,
+    kind: "tool",
+    action: event.action,
+    category: event.category,
+    effect: event.effect,
+    status: event.status,
+    prompt_index: event.prompt_index,
+    paths: [event.path],
+    write_paths: event.effect === "write" ? [event.path] : [],
+    path_groups: [],
+    process_chain: [],
+    domains: [],
+    durable_changes: event.path === "src/lib.rs" && event.effect === "write" ? [{
+      status: "A", path: event.path, old_path: null, lifetime_id: "life-2",
+      association_state: "unique_candidate", evidence_bin: "unique_direct_lifetime",
+    }] : [],
+  })),
+  {
+    id: "model-1", session_id: "session-claude", vendor: "claude", model: "claude-test",
+    ts_ms: start + HOUR, kind: "llm_response", action: "model_response", category: "model",
+    effect: "compute", status: "observed", prompt_index: 0, paths: [], write_paths: [],
+    path_groups: [], process_chain: [], domains: [], durable_changes: [],
+  },
+  {
+    id: "shell-ambient", session_id: "session-codex", vendor: "codex", model: "codex-test",
+    ts_ms: start + 6 * HOUR, kind: "tool", action: "Bash", category: "shell",
+    effect: "process", status: "ok", prompt_index: 1, paths: [], write_paths: [],
+    path_groups: [], process_chain: ["cargo", "rustc"], domains: [], durable_changes: [],
+  },
+  {
+    id: "network-ambient", session_id: "session-codex", vendor: "codex", model: "codex-test",
+    ts_ms: start + 7 * HOUR, kind: "tool", action: "WebFetch", category: "network",
+    effect: "network", status: "ok", prompt_index: 1, paths: [], write_paths: [],
+    path_groups: [], process_chain: [], domains: ["example.test"], durable_changes: [],
+  },
+].sort((left, right) => left.ts_ms - right.ts_ms || left.id.localeCompare(right.id));
+
+const file_lifetimes = files.map((file) => ({
+  id: file.lifetime_id,
+  paths: [file.path],
+  birth_ms: file.birth_ms,
+  death_ms: file.death_ms,
+  current_path: file.current_path,
+  survives_to_head: file.survives_to_head,
+}));
+
 const endpointLeaves = files.filter((file) => file.survives_to_head).map((file) => ({
   name: file.path.split("/").at(-1),
   path: file.path,
@@ -124,29 +176,12 @@ const endpointLeaves = files.filter((file) => file.survives_to_head).map((file) 
 }));
 
 export const fixtureData = {
-  schema: "agentsight.gallery.v1",
   meta: {
     repository: "fixture-repository",
-    root_id: "fixture-root",
     endpoint_revision: "0123456789abcdef0123456789abcdef01234567",
     window_start_ms: start,
     window_end_ms: end,
-    source: "generated test fixture",
-    association_mode: "descriptive_only",
-    association_caveat: "Candidates are uncertain visual evidence, not authorship or provenance.",
-    reported_token_caveat: "Counters are reported units.",
-    right_censored_days: [days[2]],
-    missing_cells: [],
-  },
-  summary: {
-    sessions: 3,
-    path_event_rows: events.length,
-    path_records: files.length,
-    git_lifetimes: files.length,
-    path_records_with_lifetime: files.length,
-    commits: changes.length,
-    changes: changes.length,
-    line_pixels: 24,
+    session_scope: "repository_identity",
   },
   source_days: days.map((day, index) => ({
     day,
@@ -169,6 +204,7 @@ export const fixtureData = {
     days: [...new Set(events.filter((event) => event.session_id === id).map((event) => event.day))],
   })),
   events,
+  agent_events,
   verification_events,
   time_buckets: [0, 3, 8, 27, 34, 52, 69].map((hour) => ({
     ts_ms: start + hour * HOUR,
@@ -194,6 +230,7 @@ export const fixtureData = {
     is_merge: false,
   })),
   changes,
+  file_lifetimes,
   cochange_edges: [
     { source: "src/main.rs", target: "src/lib.rs", count: 5, semantics: "same-commit correlation; not causal coupling" },
     { source: "src/lib.rs", target: "tests/smoke.rs", count: 3, semantics: "same-commit correlation; not causal coupling" },

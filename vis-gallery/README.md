@@ -50,6 +50,19 @@ npm run render -- \
   --output repository-nebula.html
 ```
 
+By default, sessions must identify the repository through cwd, a sibling Git
+worktree, project hash, or Git remote. Add `--global` to scan every local
+Claude, Codex, and Gemini history and include only real Tool operations whose
+command/path targets the repository. Prompt text and ordinary mentions are not
+included:
+
+```bash
+npm run render -- \
+  --repo /path/to/repository --since repo --global \
+  --view workspace-constellation \
+  --output repository-nebula-global.html
+```
+
 Dynamic figures advance only on recorded Agent-event timestamps. They do not
 invent activity for intervals without a native session. Git commits never move
 or resize the animated files; a commit inside the observed Agent interval only
@@ -103,7 +116,8 @@ npm run render:all -- \
   change.
 
 Each SVG includes compact provenance metadata. The visible footer also names
-the repository, frozen Git revision, and association mode.
+the repository, frozen Git revision, and whether the session scope is repository
+identity or global Tool operations.
 
 ## Evidence boundaries
 

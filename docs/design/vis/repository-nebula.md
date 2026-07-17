@@ -8,17 +8,17 @@ Repository Nebula 是一个单图、单文件的长期软件演化视图。它�
 
 它不是依赖图、因果图、Git 历史回放或进程拓扑。主画面只有文件星点和无边界目录色云。
 
-## 已实现的五项设计决定
+## 已实现的设计决定
 
-1. **第一帧严格为空。** 播放时间从第一条真实 Agent 文件事件之前开始；此时没有星、没有云、没有文字。
-2. **完整 repository 只作为低亮度上下文，不冒充 Agent 创建。** 第一条 Agent 事件发生后，frozen endpoint 中的文件作为暗淡背景星空渐显；真正被 Agent 触达的文件再按事件时间点亮和运动。
-3. **云上不放任何标签。** 目录只由颜色编码；不画目录名、文件数、边界或 territory。路径和目录仅在悬停文件星点时出现。
-4. **最近注意力是瞬态，不是永久染色。** 每次真实 read/write/file-effect 先让对应星产生强脉冲，再按真实事件年龄衰减回常态；累计访问只能小幅影响常态亮度，不能盖住注意力移动。
-5. **默认只看 Git 管理的软件文件。** 当前或所选历史窗口内曾被 Git tracked 的文件构成主宇宙；ignored、cache、build output、`node_modules` 和从未进入 Git 的临时文件默认不画，避免系统噪声淹没开发过程。
+1. **第一帧严格为空。** 播放从第一条真实 Agent 事件前 1 ms 开始；第一次文件动作发生前可以出现命令、进程或 domain-reference 脉冲，但没有文件星或目录云。
+2. **默认发现所有支持的 Agent，但不默认扫描全局 transcript。** Claude、Codex、Gemini 使用 cwd/worktree/project hash/Git remote 的强身份证据归入 repository；显式 `--global` 才额外扫描其他本地 session，并只纳入真实 `tool_use/function_call` 中命中目标目录的 Tool 操作。prompt、assistant 正文和搜索结果中的普通提及不算。
+3. **完整 repository 只作为低亮度上下文，不冒充 Agent 创建。** 第一次文件动作后，frozen endpoint 文件渐显为暗背景；真正触达的文件再按 Agent 时间点亮和运动。
+4. **云上不放任何标签或边界。** 目录只由稳定颜色编码；路径仅在悬停文件星点时出现。
+5. **最近注意力是瞬态。** read/write/command-associated file effect 按真实事件年龄衰减；累计访问只小幅改变常态亮度。
+6. **Git 只提供软件边界和 durable reference。** 当前 tracked、Git lifetime 中出现过、或被 Agent 真实触达的 repository-relative 路径进入文件集合。Agent-observed untracked 路径保留但明确标记，不因缺少 Git lifetime 被丢弃。
+7. **所有状态变化使用 Agent 时间。** Agent-associated Git add/delete/rename 可以改变生命周期效果，但发生在关联的 Agent event timestamp；commit timestamp 永远只闪最外层金色边框。
 
-第二项用于同时满足两个需求：画面需要包含完整 repository，不能只有二十几个已触达文件；但初始空画布也不能把 endpoint 文件伪装成 Agent 当时创建的文件。
-
-第五项中的“Git 管理”只定义文件集合，不定义播放时间。Git commit 仍然不能驱动星点出生、移动或亮度变化。
+第三项用于同时满足两个需求：画面需要包含完整 repository，不能只有已触达文件；但初始空画布也不能把 endpoint 文件伪装成 Agent 当时创建的文件。
 
 ## 仓库已有研究与本图的相邻项目
 
@@ -47,12 +47,11 @@ Repository Nebula 明确不做：
 
 - 不画文件之间的连线。
 - 不画 session 轨迹折线、依赖边、read→write 边或因果边。
-- 不放进程、命令、网络、token 或模型节点。
+- 不把进程、命令、domain 或模型画成参与文件布局的节点；无路径事件只能产生短暂 ambient marker。
 - 不让 commit 创建、删除、移动或缩放文件。
-- 不把首次看到文件写成“创建文件”。
+- 不把首次看到文件直接写成“创建文件”；只有 Agent-associated durable `A` 才显示候选 create 环。
 - 不根据 endpoint 文件大小伪造历史文件大小。
-- 不解析 shell 文本来猜测 create/delete/rename。
-- 不把 shell 命令中出现的路径直接称为“命令生成文件”。
+- 不从 shell 动词猜测 create/delete/rename，也不把命令路径称为“命令生成文件”。生命周期只来自 Git status 与 Agent event 的候选关联。
 - 不引入第二套可视化事件 IR。
 - 不依赖统一 dashboard 或服务器。
 
@@ -68,13 +67,18 @@ NormalizedEvent {
   ts_ms
   session_id
   vendor
+  kind
   action
+  category
   effect
   paths
+  write_paths
+  process_chain
+  domains
 }
 ```
 
-Repository 只补充 frozen endpoint 文件清单和稳定布局种子：
+Repository 只补充 frozen endpoint、Git lifetime 和稳定布局种子：
 
 ```text
 EndpointFile {
@@ -84,6 +88,8 @@ EndpointFile {
   stable_seed
   git_scope             // tracked now or tracked in selected history
 }
+
+Agent-associated Git status 只作为 event 上的紧凑 `durable_changes` 字段进入视图，不建立第二套事件 IR。
 ```
 
 这只是所选视图的紧凑字段投影，不是新的事件模型，也不写成用户需要管理的中间文件。
@@ -92,12 +98,13 @@ EndpointFile {
 
 ### 全局时钟
 
-所有 session 和 sidechain 的文件事件按真实 `ts_ms` 合并排序：
+当前 scope 中的 session、sidechain 和工具动作按真实 `ts_ms` 合并排序。默认 scope 是 repository identity；`--global` 再加入其他 session 对目标目录的真实 Tool 操作：
 
 ```text
 t0 - 1 ms     空画布
-t0            第一条 Agent 文件事件
-t1...tn        后续所有 session 的真实文件事件
+t0            第一条 Agent 事件（可能没有文件路径）
+tf            第一条 Agent 文件事件，第一颗星从画布中心出生
+t1...tn        后续所有真实 Agent 事件
 tn             最后一条 Agent 文件事件
 ```
 
@@ -119,19 +126,19 @@ commit 不会让星点出生、消失、移动、变大或改变颜色。若动�
 
 ## Git 文件范围
 
-默认文件范围按以下优先级收口：
+文件范围按以下优先级收口：
 
 1. `git ls-files` 中当前 tracked 的文件。
 2. 所选历史窗口内由 Git lifetime 证明曾 tracked、且被 Agent 事件真实触达的文件；这保留后来删除或改名的开发文件。
-3. Agent 触达后在窗口内首次进入 Git 的文件；它可在 Agent 首次触达时出现，但 tooltip 只能写 `first observed`，不能写 `created`。
+3. Agent 真实触达的 repository-relative 路径，即使最终没有 Git lifetime 也保留，并标为 observed untracked；tooltip 只能写 `first observed`，不能写 `created`。
 
 以下文件默认排除：
 
 - `git check-ignore` 命中的文件。
 - `.git/`、dependency cache、build output、coverage、临时日志。
-- 只在命令字符串中出现、没有 file effect 或 Git lifetime 证据的路径。
+- 只在 prompt/assistant 正文中出现、没有真实 Tool 操作的路径。
 
-这不是用 Git 驱动画面，而是用 Git 给软件边界去噪。用户以后可以显式开启 `--include-untracked-observed` 做系统调查，但它不是默认分享图。
+这不是用 Git 驱动画面，而是用 Git 给完整软件边界去噪。Agent-observed untracked 文件不能因为 endpoint 或 lifetime 缺失而被静默丢掉。
 
 ### 第一帧
 
@@ -166,10 +173,10 @@ edges = 0
 
 - 首次 `Read`：语义是 **discovered**。
 - 首次 `Edit` 或其他 write effect：语义是 **first observed write**。
-- 首次 `Write`：仍只写成 **first observed via Write**；除非未来采集到 pre/post existence evidence，否则不声称 created。
+- 首次 `Write`：仍只写成 **first observed via Write**；只有同一 Agent event 关联到 Git `A` 候选时才增加 candidate create 环，仍不声称确定 authorship。
 - 后续访问累计亮度和活动尺度。
 
-只有系统级文件事件明确证明 create/delete/rename 后，才增加真实出生、消失和身份保持动画。当前版本不猜。
+当前版本使用 Agent event 与 Git lifetime/change 的候选关联显示 create/delete/rename 环；状态发生在 Agent event 时间，commit 仍只闪外框。它是 durable candidate，不是 OS 级文件系统证明，也不升级为 authorship。
 
 ## 目录颜色
 
@@ -275,7 +282,7 @@ brightness(t) = clamp(baseline + pulse(t), 0, 1)
 >30 min      注意力效果消失，文件星本身保留
 ```
 
-read、direct write 和 command-associated path effect 使用不同 `action_gain`、核心形状和波纹颜色，但共享同一衰减函数。紫色菱形只表达“记录到的命令与该路径关联”，不声称命令创建了文件。一次纯命令执行若没有路径 effect，不在这张“只有文件”的图中制造假星或假波纹；它应由独立命令/系统时间图承担。
+read、direct write 和 command-associated path effect 使用不同 `action_gain`、核心形状和波纹颜色，但共享同一衰减函数。紫色菱形只表达“记录到的命令与该路径关联”，不声称命令创建了文件。纯命令不制造假文件星，只在中心产生短暂 ambient pulse；进程、模型响应和 domain reference 同样只作为不参与布局的外围/中心瞬态标记。
 
 写入波纹需要显式渲染为若干同心环的年龄状态，不能只依赖浏览器 CSS/ECharts 的实时动画。这样 GIF 和 MP4 的离散帧也能捕捉到传播波。
 
@@ -341,7 +348,7 @@ HTML 只嵌入该图需要的紧凑字段。所有 endpoint 文件可以保留�
 - 同一顶层目录的所有子目录属于同一 hue family。
 - 新星优先出生在路径最相近的已观察文件旁边；无候选时才从目录云心出生。
 - 最近访问的瞬态亮度显著高于累计访问基线，并在 30 分钟后回归基线。
-- ignored、build output 和从未 tracked 的临时文件默认不进入主图。
+- ignored/build output 若从未被 Agent 真实触达则不进入主图；真实触达的 untracked repository-relative 路径保留并明确标记。
 - read ring 在 30 分钟后消失。
 - write ripple 在 GIF 静态帧中存在，并在 3 分钟后消失。
 - command-associated 视觉只表达已有 session path effect，不升级成 create/delete/rename 结论。
@@ -366,15 +373,17 @@ frames 2--7   早期逐步生长
 
 ## 实现与验证
 
-实现直接复用 `agent-session` 的 session/event 抽象，不创建第二套 IR。Nebula 的 lean 构建路径只做三件事：解析与当前 repository 匹配的原生 session、用 `git ls-tree` 取得 frozen endpoint、用 first-parent commit timestamp 生成外框闪烁时刻。它跳过 per-commit diff、blame、ownership、co-change 和 survival 等本图不使用的数据。
+实现直接复用 `agent-session` 的 session/event 抽象，不创建第二套 IR。Nebula 的 lean 构建路径解析 identity-matched session，按需用 `--global` 提取跨 session 的目标目录 Tool 行，再用 `git ls-tree` 和 first-parent lifetime/status 提供 frozen endpoint 与 durable candidate。它跳过 hunk、numstat、blame、ownership、co-change 和 survival 等本图不使用的数据。
 
 已完成的自动验证包括：空白首帧、完整 Git context、首次 observed、路径邻近出生、读写与命令关联脉冲、30 分钟衰减、无 line/graph/label、Git 噪声过滤，以及纯 commit cursor 冻结图内 visual cursor、只切换 artifact 外框 class。浏览器端还逐个打开所有单图产物，检查 console error、布局溢出和 commit flash。
 
-2026-07-16 使用两个真实长期 repository 验证：
+2026-07-16 使用两个真实长期 repository 验证。默认与 `--global` 使用同一时间窗口和 Git endpoint；global 的额外 session 只贡献命中目标目录的 Tool 操作，不贡献无关 LLM 正文：
 
-| Repository | Git context | Agent path events | Sessions | Lightweight commits | 输出 |
-|---|---:|---:|---:|---:|---|
-| AgentCap | 2,589 files | 238 | 8 | 416 | HTML / PNG / SVG / GIF / MP4 |
-| AgentSkill | 6,161 files | 503 | 36 | 246 | HTML / PNG / SVG / GIF / MP4 |
+| Repository / scope | Sessions | Agent events | Tool events | LLM responses | Commits |
+|---|---:|---:|---:|---:|---:|
+| AgentCap / default | 8 | 943 | 337 | 606 | 416 |
+| AgentCap / `--global` | 153 | 2,525 | 1,919 | 606 | 416 |
+| AgentSkill / default | 36 | 2,849 | 991 | 1,858 | 246 |
+| AgentSkill / `--global` | 200 | 10,964 | 9,106 | 1,858 | 246 |
 
-两组产物均逐帧检查了空帧、早期 discovery、目录色云形成、read 白环、direct-write 暖色波纹、command-associated 紫色菱形、30 分钟回落和 commit 金色外框。图内文件状态没有随 commit 改变。
+两组 `--global` 产物均逐帧检查了空帧、早期 discovery、目录色云形成、read 白环、direct-write 暖色波纹、command-associated 紫色菱形、30 分钟回落和 commit 金色外框。图内文件状态没有随 commit 改变。产物 footer 与 SVG metadata 会分别写明 `repository_identity` 或 `global_tool_operations`，分享后仍可判断采样范围。

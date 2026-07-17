@@ -29,6 +29,7 @@ pub fn discover_session_files_in_home(home: &Path) -> Vec<SessionCandidate> {
     let roots = [
         (AGENT_CLAUDE, home.join(".claude/projects")),
         (AGENT_CODEX, home.join(".codex/sessions")),
+        (AGENT_CODEX, home.join(".codex/archived_sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
     ];
     let mut out = Vec::new();
@@ -64,6 +65,7 @@ pub fn count_session_dirs() -> Vec<SessionDirStat> {
     [
         (AGENT_CLAUDE, home.join(".claude/projects")),
         (AGENT_CODEX, home.join(".codex/sessions")),
+        (AGENT_CODEX, home.join(".codex/archived_sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
     ]
     .into_iter()
@@ -238,14 +240,26 @@ fn parse_jsonl(
     let mut events = SessionEvents::default();
     let mut current_prompt_index = 0usize;
     let mut call_index = BTreeMap::<String, usize>::new();
+    let mut codex_identity_set = false;
 
     for line in content.lines() {
         let Ok(obj) = serde_json::from_str::<Value>(line) else {
             continue;
         };
-        let (session_id, conversation_id) = local_session_ids(&obj);
+        let is_codex_meta =
+            agent == AGENT_CODEX && obj.get("type").and_then(Value::as_str) == Some("session_meta");
+        let (session_id, conversation_id) = if agent == AGENT_CODEX {
+            if is_codex_meta && !codex_identity_set {
+                local_session_ids(&obj)
+            } else {
+                (None, None)
+            }
+        } else {
+            local_session_ids(&obj)
+        };
         if let Some(id) = session_id {
             acc.session_id = id;
+            codex_identity_set |= is_codex_meta;
         }
         if let Some(id) = conversation_id {
             acc.conversation_id = Some(id);
@@ -256,6 +270,13 @@ fn parse_jsonl(
                 .and_then(Value::as_str)
                 .or_else(|| obj.pointer("/payload/cwd").and_then(Value::as_str))
                 .filter(|s| !s.is_empty())
+                .map(ToString::to_string);
+        }
+        if acc.repository_url.is_none() {
+            acc.repository_url = obj
+                .pointer("/payload/git/repository_url")
+                .and_then(Value::as_str)
+                .filter(|value| !value.is_empty())
                 .map(ToString::to_string);
         }
         if let Some(ts) = obj.get("timestamp").and_then(Value::as_str) {
@@ -626,7 +647,12 @@ fn parse_jsonl(
                     .unwrap_or("?");
                 acc.add_tool(name);
                 let payload = obj.get("payload").unwrap_or(&Value::Null);
-                let args = parse_tool_args(payload.get("arguments").unwrap_or(&Value::Null));
+                let args = parse_tool_args(
+                    payload
+                        .get("arguments")
+                        .or_else(|| payload.get("input"))
+                        .unwrap_or(&Value::Null),
+                );
                 let call_id = payload
                     .get("call_id")
                     .and_then(Value::as_str)
@@ -847,6 +873,7 @@ struct SessionAccumulator {
     prompt_preview: Option<String>,
     duration_ms: u64,
     cwd: Option<String>,
+    repository_url: Option<String>,
     project_hash: Option<String>,
     last_message_at: Option<String>,
 }
@@ -874,6 +901,7 @@ impl SessionAccumulator {
             prompt_preview: None,
             duration_ms: 0,
             cwd: None,
+            repository_url: None,
             project_hash: None,
             last_message_at: None,
         }
@@ -960,6 +988,7 @@ impl SessionAccumulator {
             prompt_preview: self.prompt_preview,
             duration_ms: self.duration_ms,
             cwd: self.cwd,
+            repository_url: self.repository_url,
             project_hash: self.project_hash,
             last_message_at: self.last_message_at,
             events: SessionEvents::default(),
@@ -2655,6 +2684,16 @@ fn claude_tool_result_ids(content: &Value) -> Vec<String> {
 }
 
 fn local_session_ids(obj: &Value) -> (Option<String>, Option<String>) {
+    if obj.get("type").and_then(Value::as_str) == Some("session_meta")
+        && let Some(id) = obj.pointer("/payload/id").and_then(Value::as_str)
+    {
+        let conversation_id = obj
+            .pointer("/payload/session_id")
+            .or_else(|| obj.pointer("/payload/parent_thread_id"))
+            .and_then(Value::as_str)
+            .unwrap_or(id);
+        return (Some(id.to_string()), Some(conversation_id.to_string()));
+    }
     let session_id = first_json_string(
         obj,
         &["sessionId", "session_id"],
@@ -2967,6 +3006,13 @@ mod tests {
             })),
             (Some("parent:child".to_string()), Some("parent".to_string()))
         );
+        assert_eq!(
+            local_session_ids(&json!({
+                "type": "session_meta",
+                "payload": {"id": "child", "session_id": "parent"}
+            })),
+            (Some("child".to_string()), Some("parent".to_string()))
+        );
     }
 
     #[test]
@@ -3006,6 +3052,34 @@ mod tests {
                 .max(usage.input_tokens + usage.output_tokens + usage.cache_tokens);
             assert_eq!(total, tokens);
         }
+    }
+
+    #[test]
+    fn codex_session_metadata_preserves_repository_identity() {
+        let content = concat!(
+            r#"{"type":"session_meta","payload":{"id":"thread","cwd":"/repo","git":{"repository_url":"git@github.com:org/repo.git"}}}"#,
+            "\n",
+            r#"{"type":"session_meta","payload":{"id":"parent","session_id":"parent","cwd":"/repo"}}"#,
+            "\n",
+            r#"{"type":"turn_context","payload":{"model":"gpt-5","cwd":"/repo"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"user_message","message":"inspect"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"custom_tool_call","session_id":"parent","name":"exec","input":"git -C /repo status"}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        assert_eq!(session.session_id, "thread");
+        assert_eq!(session.events.tools[0].command, "git -C /repo status");
+        assert_eq!(
+            session.repository_url.as_deref(),
+            Some("git@github.com:org/repo.git")
+        );
     }
 
     #[test]

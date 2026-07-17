@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { existsSync, readdirSync, statSync } from "node:fs";
-import { createHash } from "node:crypto";
-import { homedir, tmpdir } from "node:os";
+import { existsSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
@@ -26,6 +25,8 @@ Options:
   --since TIME      RFC3339, YYYY-MM-DD, relative duration, or repo (root commit)
   --until TIME      RFC3339, YYYY-MM-DD, or now (default: now)
   --head REV        Frozen Git revision (default: HEAD)
+  --global          Include Tool operations from every local Agent session
+                    when they target PATH, even if the session belongs elsewhere
   --view ID         One of the registered single-artifact views
   --output FILE     .html, .svg, .png, .gif, or .mp4
   --at TIME         Snapshot cursor (default: end of window)
@@ -43,6 +44,7 @@ export function parseArgs(values) {
     const flag = values[index];
     if (flag === "--help" || flag === "-h") return { help: true };
     if (flag === "--list-views") { options.listViews = true; continue; }
+    if (flag === "--global") { options.global = true; continue; }
     const value = values[++index];
     if (value === undefined) throw new Error(`missing value for ${flag}`);
     const key = {
@@ -98,45 +100,6 @@ function run(command, args, cwd = repositoryRoot, input) {
   return result.stdout;
 }
 
-function filesUnder(root, suffixes) {
-  if (!existsSync(root)) return [];
-  const output = [];
-  const stack = [root];
-  while (stack.length) {
-    const directory = stack.pop();
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const path = join(directory, entry.name);
-      if (entry.isDirectory()) stack.push(path);
-      else if (entry.isFile() && suffixes.some((suffix) => entry.name.endsWith(suffix))) output.push(path);
-    }
-  }
-  return output;
-}
-
-function sessionPathsForRepo(repo, sinceMs) {
-  const home = homedir();
-  const encoded = repo.replaceAll("/", "-");
-  const geminiHash = createHash("sha256").update(repo).digest("hex");
-  const direct = [
-    ...filesUnder(join(home, ".claude", "projects", encoded), [".jsonl"]),
-    ...filesUnder(join(home, ".gemini", "tmp", geminiHash), [".json"]),
-  ];
-  const codexRoot = join(home, ".codex", "sessions");
-  const codexSearch = spawnSync(
-    "rg", ["-l", "-F", "--glob", "*.jsonl", "--", repo, codexRoot],
-    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
-  );
-  const codex = [0, 1].includes(codexSearch.status)
-    ? codexSearch.stdout.split("\n").filter(Boolean)
-    : [];
-  const earliestMtime = sinceMs - 24 * 60 * 60 * 1_000;
-  return [...new Set([...direct, ...codex])]
-    .filter((path) => {
-      try { return statSync(path).mtimeMs >= earliestMtime; } catch { return false; }
-    })
-    .sort();
-}
-
 export async function buildEvolutionData(options, spec = null) {
   const repo = resolve(options.repo);
   const untilMs = parseTime(options.until, Date.now());
@@ -149,10 +112,8 @@ export async function buildEvolutionData(options, spec = null) {
     "--until", iso(untilMs), "--output", "-",
   ];
   const leanNebula = spec?.id === "workspace-constellation";
-  if (leanNebula) exporterArgs.push("--without-git-history");
-  for (const sessionPath of sessionPathsForRepo(repo, sinceMs)) {
-    exporterArgs.push("--session", sessionPath);
-  }
+  if (leanNebula) exporterArgs.push("--git-lifetimes-only");
+  if (options.global) exporterArgs.push("--global");
   const sessionData = run("cargo", [
     "run", "--quiet", "--manifest-path", join(repositoryRoot, "agent-session", "Cargo.toml"),
     "--bin", "agent-session-export", "--", ...exporterArgs,
@@ -163,29 +124,61 @@ export async function buildEvolutionData(options, spec = null) {
 }
 
 export function projectForView(data, spec) {
-  const keys = new Set(["schema", "meta", "summary", ...(spec.requirements ?? [])]);
+  const keys = new Set(["meta", ...(spec.requirements ?? [])]);
   const projected = Object.fromEntries(Object.entries(data).filter(([key]) => keys.has(key)));
+  projected.meta = Object.fromEntries([
+    "repository", "endpoint_revision", "window_start_ms", "window_end_ms", "session_scope",
+  ].map((key) => [key, data.meta[key]]));
   if (spec.id === "repository-treemap") {
     const observedPaths = new Set((projected.events ?? []).map((event) => event.path));
     projected.files = (projected.files ?? []).filter((file) => observedPaths.has(file.path));
   }
   if (spec.id === "workspace-constellation") {
-    projected.files = (projected.files ?? []).map((file) => ({
+    const observedPaths = new Set((projected.agent_events ?? []).flatMap((event) => event.paths ?? []));
+    const durableLifetimeIds = new Set((projected.agent_events ?? []).flatMap((event) => (
+      event.durable_changes ?? []
+    )).map((change) => change.lifetime_id));
+    projected.files = (projected.files ?? []).filter((file) => (
+      (file.survives_to_head && file.current_path === file.path)
+      || observedPaths.has(file.path)
+      || file.lifetime_ids?.some((id) => durableLifetimeIds.has(id))
+    )).map((file) => ({
       path: file.path,
-      lifetime_id: file.lifetime_id,
-      lifetime_ids: file.lifetime_ids,
+      tracked: Boolean(file.lifetime_id || file.lifetime_ids?.length),
       survives_to_head: file.survives_to_head,
       current_path: file.current_path,
     }));
-    projected.events = (projected.events ?? []).map((event) => ({
+    projected.agent_events = (projected.agent_events ?? []).map((event) => ({
       id: event.id,
       session_id: event.session_id,
       vendor: event.vendor,
       ts_ms: event.ts_ms,
+      kind: event.kind,
       action: event.action,
       category: event.category,
       effect: event.effect,
-      path: event.path,
+      paths: event.paths,
+      write_paths: event.write_paths,
+      process_chain: event.process_chain,
+      domains: event.domains,
+      durable_changes: (event.durable_changes ?? []).map((change) => ({
+        status: change.status,
+        path: change.path,
+        old_path: change.old_path,
+      })),
+    }));
+    projected.file_lifetimes = (projected.file_lifetimes ?? []).filter((lifetime) => (
+      lifetime.paths?.length > 1 || durableLifetimeIds.has(lifetime.id)
+    )).map((lifetime) => ({
+      id: lifetime.id,
+      paths: lifetime.paths,
+      birth_ms: lifetime.birth_ms,
+      death_ms: lifetime.death_ms,
+      current_path: lifetime.current_path,
+      survives_to_head: lifetime.survives_to_head,
+    }));
+    projected.commits = (projected.commits ?? []).map((commit) => ({
+      committed_at_ms: commit.committed_at_ms,
     }));
   }
   return projected;
@@ -271,8 +264,10 @@ export function animationCursors(data, spec, frames) {
   if (values.length > 1) {
     const sampled = sampleValues(values, frames, spec.id === "workspace-constellation" ? 1.65 : 1);
     if (spec.id !== "workspace-constellation") return sampled;
-    const events = data.events ?? [];
-    const firstWrite = events.find((event) => event.effect === "write")?.ts_ms;
+    const events = data.agent_events?.length ? data.agent_events : (data.events ?? []);
+    const firstWrite = events.find((event) => (
+      event.effect === "write" || event.write_paths?.length
+    ))?.ts_ms;
     const commits = (data.commits ?? [])
       .map((commit) => Number(commit.committed_at_ms))
       .filter((value) => value >= start && value <= end);
@@ -315,6 +310,7 @@ async function openPage(html, options) {
 function svgWithMetadata(svg, data, spec, cursorMs) {
   const value = safeJson({
     view: spec.id, repository: data.meta.repository, revision: data.meta.endpoint_revision,
+    session_scope: data.meta.session_scope,
     window: [data.meta.window_start_ms, data.meta.window_end_ms], cursor_ms: cursorMs,
     generator: "agentsight-vis 0.1",
   }).replaceAll("&", "&amp;");

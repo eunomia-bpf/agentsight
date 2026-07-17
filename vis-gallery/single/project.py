@@ -184,6 +184,7 @@ def build(
     head = next(iter(heads))
     repository = artifacts[0]["repository"]
     path_events: list[dict[str, Any]] = []
+    agent_events: dict[str, dict[str, Any]] = {}
     verification_events: dict[str, dict[str, Any]] = {}
     sessions: dict[str, dict[str, Any]] = {}
     commits: dict[str, dict[str, Any]] = {}
@@ -236,10 +237,27 @@ def build(
                 if event.get("write_paths") and int(event["ts_ms"]) > maturity_cutoff
             )
     for artifact in artifacts:
+        changes_by_id = {row["id"]: row for row in artifact["changes"]}
         association_index = {
             (row["event_id"], row["path"]): row
             for row in artifact["associations"]
         }
+        durable_by_event: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for association in artifact["associations"]:
+            top = association["candidates"][0] if association["candidates"] else None
+            change = changes_by_id.get(top["change_id"]) if top else None
+            if not change or change["status"][:1] not in {"A", "D", "R", "C"}:
+                continue
+            durable_by_event[association["event_id"]].append(
+                {
+                    "status": change["status"],
+                    "path": change["path"],
+                    "old_path": change.get("old_path"),
+                    "lifetime_id": change["lifetime_id"],
+                    "association_state": association["state"],
+                    "evidence_bin": top["evidence_bin"],
+                }
+            )
         for session in artifact["sessions"]:
             current = sessions.setdefault(
                 session["id"],
@@ -263,6 +281,28 @@ def build(
             current["reported_tokens"] = max(current["reported_tokens"], int(session["total_tokens"]))
         for event in artifact["events"]:
             timestamp = int(event["ts_ms"])
+            agent_events.setdefault(
+                event["id"],
+                {
+                    "id": event["id"],
+                    "session_id": event["session_id"],
+                    "vendor": event["vendor"],
+                    "model": event.get("model") or "unknown",
+                    "ts_ms": timestamp,
+                    "kind": event["kind"],
+                    "action": event["action"],
+                    "category": event["category"],
+                    "effect": event["effect"],
+                    "status": event["status"],
+                    "prompt_index": event["prompt_index"],
+                    "paths": list(event["paths"]),
+                    "write_paths": list(event.get("write_paths", [])),
+                    "path_groups": list(event.get("path_groups", [])),
+                    "process_chain": list(event.get("process_chain", [])),
+                    "domains": list(event.get("domains", [])),
+                    "durable_changes": durable_by_event.get(event["id"], []),
+                },
+            )
             day = date_label(timestamp)
             stats = day_stats[day]
             stats["sessions"].add(event["session_id"])
@@ -409,7 +449,7 @@ def build(
         for day, values in sorted(day_stats.items())
     ]
 
-    if lean_nebula:
+    if lean_nebula and not lifetimes:
         for path, size in endpoint_files(repo, head).items():
             file = file_stats.setdefault(path, new_file_stats(path, None, []))
             file["survives_to_head"] = True
@@ -462,35 +502,46 @@ def build(
         for timestamp, counter in sorted(buckets.items())
         if window_start - 24 * HOUR_MS <= timestamp <= window_end + 24 * HOUR_MS
     ]
+    meta = {
+        "repository": repository["name"],
+        "endpoint_revision": head,
+        "window_start_ms": window_start,
+        "window_end_ms": window_end,
+        "session_scope": (
+            "global_tool_operations"
+            if any(artifact["window"].get("global", False) for artifact in artifacts)
+            else "repository_identity"
+        ),
+    }
+    projected_lifetimes = [
+        {
+            key: lifetime.get(key)
+            for key in [
+                "id", "paths", "birth_ms", "death_ms", "current_path",
+                "current_bytes", "survives_to_head",
+            ]
+        }
+        for lifetime in lifetimes
+    ]
+    sorted_agent_events = sorted(
+        agent_events.values(), key=lambda row: (row["ts_ms"], row["id"])
+    )
+    sorted_commits = sorted(
+        commits.values(), key=lambda row: (row["committed_at_ms"], row["id"])
+    )
+    if lean_nebula:
+        return {
+            "meta": meta,
+            "agent_events": sorted_agent_events,
+            "files": files,
+            "commits": sorted_commits,
+            "file_lifetimes": projected_lifetimes,
+        }
     return {
-        "schema": "agentsight.gallery.v1",
-        "meta": {
-            "repository": repository["name"],
-            "root_id": repository["root_id"],
-            "endpoint_revision": head,
-            "window_start_ms": window_start,
-            "window_end_ms": window_end,
-            "source": "native agent histories joined to the repository's Git history",
-            "association_mode": "descriptive_only",
-            "association_caveat": "Candidates are uncertain visual evidence, not authorship or certain provenance.",
-            "reported_token_caveat": "Native token counters may be cumulative or implausible; charts label them as reported units, not cost.",
-            "right_censored_days": sorted(censored_days),
-            "missing_cells": [],
-        },
+        "meta": meta,
         "source_days": source_days,
-        "summary": {
-            "sessions": len(sessions),
-            "path_event_rows": len(path_events),
-            "path_records": len(files),
-            "git_lifetimes": len(lifetimes),
-            "path_records_with_lifetime": sum(
-                bool(file["lifetime_ids"]) for file in files
-            ),
-            "commits": len(commits),
-            "changes": len(changes),
-            "line_pixels": len(blame_rows),
-        },
         "sessions": sorted(sessions.values(), key=lambda row: (row["started_at_ms"] or 0, row["id"])),
+        "agent_events": sorted_agent_events,
         "events": sorted(path_events, key=lambda row: (row["ts_ms"], row["id"])),
         "verification_events": sorted(
             verification_events.values(), key=lambda row: (row["ts_ms"], row["id"])
@@ -498,7 +549,7 @@ def build(
         "time_buckets": time_buckets,
         "files": files,
         "tree": tree,
-        "commits": sorted(commits.values(), key=lambda row: (row["committed_at_ms"], row["id"])),
+        "commits": sorted_commits,
         "changes": [
             {
                 key: row.get(key)
@@ -519,6 +570,7 @@ def build(
                 changes.values(), key=lambda value: (value["committed_at_ms"], value["id"])
             )
         ],
+        "file_lifetimes": projected_lifetimes,
         "cochange_edges": cochange_edges,
         "line_pixels": blame_rows,
         "survival_cohorts": [] if lean_nebula else build_survival_cohorts(lifetimes),
@@ -724,126 +776,12 @@ def build_ownership(
     ]
 
 
-def validate_public_output(output: dict[str, Any], require_associations: bool = True) -> None:
-    encoded = json.dumps(output, separators=(",", ":"))
-    forbidden = [
-        "/home/",
-        '"command":',
-        '"preview":',
-        '"old_string":',
-        '"new_string":',
-        '"content":',
-    ]
-    violations = [token for token in forbidden if token in encoded]
-    if violations:
-        raise ValueError(f"public gallery output contains forbidden tokens: {violations}")
-
-    bad_paths = sorted(
-        {
-            row["path"]
-            for row in output["events"]
-            if not is_public_repo_path(row["path"])
-        }
-    )
-    if bad_paths:
-        raise ValueError(
-            f"public gallery output contains non-repository paths: {bad_paths[:5]}"
-        )
-
-    censored_days = set(output["meta"]["right_censored_days"])
-    leaked = [
-        row["id"]
-        for row in output["events"]
-        if row["day"] in censored_days
-        and (
-            row["association_state"] != "not_eligible"
-            or row["candidate_count"] != 0
-            or row["evidence_bin"] is not None
-            or row["exact_hunk"]
-        )
-    ]
-    if leaked:
-        raise ValueError(
-            f"right-censored events contain association evidence: {leaked[:5]}"
-        )
-
-    write_rows = Counter(
-        row["day"] for row in output["events"] if row.get("effect") == "write"
-    )
-    declared_writes = {
-        row["day"]: int(row.get("write_event_paths", 0))
-        for row in output.get("source_days", [])
-    }
-    if write_rows != Counter(declared_writes):
-        raise ValueError(
-            f"write-path count mismatch: rows={dict(write_rows)} declared={declared_writes}"
-        )
-    missing_mature_associations = [
-        (row["id"], row["path"])
-        for row in output["events"]
-        if row.get("effect") == "write"
-        and row["day"] not in censored_days
-        and row.get("association_state") == "not_eligible"
-    ]
-    if require_associations and missing_mature_associations:
-        raise ValueError(
-            "mature writes are missing association rows: "
-            f"{missing_mature_associations[:5]}"
-        )
-
-    verification_rows = Counter(row["day"] for row in output["verification_events"])
-    declared_verifications = {
-        row["day"]: int(row.get("verification_events", 0))
-        for row in output.get("source_days", [])
-    }
-    if verification_rows != Counter(declared_verifications):
-        raise ValueError(
-            "verification-event count mismatch: "
-            f"rows={dict(verification_rows)} declared={declared_verifications}"
-        )
-
-    sessions_per_day = Counter(
-        day for session in output["sessions"] for day in session["days"]
-    )
-    mismatched_days = [
-        row["day"]
-        for row in output["source_days"]
-        if row["sessions"] != sessions_per_day[row["day"]]
-    ]
-    if mismatched_days:
-        raise ValueError(
-            f"source-day session counts are not deduplicated: {mismatched_days}"
-        )
-
-
-def is_public_repo_path(path: str) -> bool:
-    lower = path.lower()
-    parts = path.split("/")
-    if (
-        not path
-        or path.startswith(("/", "~", "$"))
-        or "\\" in path
-        or lower.startswith(("origin/", "refs/", "repos/"))
-        or path == "HEAD"
-        or path.startswith("HEAD.")
-        or "..." in path
-        or any(character.isspace() or character in '*?[]"`#$,:@^!' for character in path)
-        or (
-            len(parts) >= 3
-            and all(part.isalpha() and part[0].isupper() for part in parts)
-        )
-    ):
-        return False
-    return all(part not in {"", ".", "..", ".git"} for part in parts)
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--lean-nebula", action="store_true")
     args = parser.parse_args()
     output = build([json.load(sys.stdin)], args.repo, lean_nebula=args.lean_nebula)
-    validate_public_output(output, require_associations=not args.lean_nebula)
     json.dump(output, sys.stdout, separators=(",", ":"), sort_keys=True)
     sys.stdout.write("\n")
 

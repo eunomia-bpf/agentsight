@@ -4,87 +4,58 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from project import build_tree, new_file_stats, validate_public_output
+from project import build, build_tree, new_file_stats
 
 
-def valid_output():
-    return {
-        "meta": {"right_censored_days": ["2026-07-14"]},
-        "sessions": [{"id": "session-1", "days": ["2026-07-14"]}],
-        "source_days": [
-            {
-                "day": "2026-07-14",
-                "sessions": 1,
-                "write_event_paths": 0,
-                "verification_events": 0,
-            }
-        ],
-        "verification_events": [],
-        "events": [
-            {
-                "id": "event-1",
-                "day": "2026-07-14",
-                "path": "src/lib.rs",
-                "effect": "read",
-                "association_state": "not_eligible",
-                "candidate_count": 0,
-                "evidence_bin": None,
-                "exact_hunk": False,
-            }
-        ],
-    }
-
-
-class PublicGalleryValidationTests(unittest.TestCase):
-    def test_accepts_process_only_censored_event(self):
-        validate_public_output(valid_output())
-
-    def test_rejects_home_relative_native_path(self):
-        output = valid_output()
-        output["events"][0]["path"] = "~/.claude/projects/session.jsonl"
-        with self.assertRaisesRegex(ValueError, "non-repository paths"):
-            validate_public_output(output)
-
-    def test_rejects_glob_and_command_fragments_as_paths(self):
-        for path in [
-            "src/*.rs",
-            "cargo run --manifest-path Cargo.toml",
-            "#!/bin/bash",
-            "s#^frontend/##",
-            "HEAD..origin/master",
-            "origin/master:collector/Cargo.toml",
-            "ghcr.io/eunomia-bpf/agentsight:latest",
-            "repos/eunomia-bpf/agentsight/pulls/109/comments",
-            "bpf/$f",
-            "100644,$blob,collector/src/cmd_perf.rs",
-            "CLI/TUI/Web",
-            ".git/rebase-merge/msgnum",
-        ]:
-            output = valid_output()
-            output["events"][0]["path"] = path
-            with self.assertRaisesRegex(ValueError, "non-repository paths"):
-                validate_public_output(output)
-
-    def test_rejects_association_on_censored_day(self):
-        output = valid_output()
-        output["events"][0]["association_state"] = "unique_candidate"
-        output["events"][0]["candidate_count"] = 1
-        with self.assertRaisesRegex(ValueError, "association evidence"):
-            validate_public_output(output)
-
-    def test_rejects_mature_write_without_association(self):
-        output = valid_output()
-        output["meta"]["right_censored_days"] = []
-        output["events"][0]["effect"] = "write"
-        output["source_days"][0]["write_event_paths"] = 1
-        with self.assertRaisesRegex(ValueError, "mature writes"):
-            validate_public_output(output)
-
-    def test_rejects_non_deduplicated_day_count(self):
-        output = valid_output()
-        output["source_days"][0]["sessions"] = 2
-        with self.assertRaisesRegex(ValueError, "not deduplicated"):
-            validate_public_output(output)
+class GalleryProjectionTests(unittest.TestCase):
+    def test_lean_nebula_preserves_every_agent_event_not_only_path_rows(self):
+        artifact = {
+            "repository": {"name": "repo", "head": "deadbeef", "root_id": "root"},
+            "window": {
+                "since_ms": 1, "until_ms": 100, "retrieval_after_ms": 0,
+                "global": True,
+            },
+            "sessions": [{
+                "id": "session", "conversation_id": None, "vendor": "codex", "model": "gpt",
+                "started_at_ms": 1, "ended_at_ms": 99, "tool_events": 2, "total_tokens": 3,
+            }],
+            "events": [
+                {
+                    "id": "pathless", "session_id": "session", "vendor": "codex", "model": "gpt",
+                    "ts_ms": 10, "kind": "tool", "action": "exec_command", "category": "shell",
+                    "effect": "process", "status": "success", "prompt_index": 0, "paths": [],
+                    "write_paths": [], "path_groups": [], "process_chain": ["cargo"], "domains": [],
+                    "input_tokens": 0, "output_tokens": 0, "cache_tokens": 0,
+                },
+                {
+                    "id": "network", "session_id": "session", "vendor": "codex", "model": "gpt",
+                    "ts_ms": 20, "kind": "tool", "action": "web_fetch", "category": "network",
+                    "effect": "network", "status": "success", "prompt_index": 0, "paths": [],
+                    "write_paths": [], "path_groups": [], "process_chain": [], "domains": ["example.test"],
+                    "input_tokens": 0, "output_tokens": 0, "cache_tokens": 0,
+                },
+                {
+                    "id": "model", "session_id": "session", "vendor": "codex", "model": "gpt",
+                    "ts_ms": 30, "kind": "llm_response", "action": "model_response", "category": "model",
+                    "effect": "compute", "status": "observed", "prompt_index": 0, "paths": [],
+                    "write_paths": [], "path_groups": [], "process_chain": [], "domains": [],
+                    "input_tokens": 1, "output_tokens": 2, "cache_tokens": 0,
+                },
+            ],
+            "file_lifetimes": [{
+                "id": "dead", "paths": ["old.txt"], "birth_ms": 0, "death_ms": 1,
+                "current_path": None, "survives_to_head": False,
+            }],
+            "changes": [], "associations": [], "commits": [],
+        }
+        output = build([artifact], Path("/does/not/exist"), lean_nebula=True)
+        self.assertEqual(output["meta"]["session_scope"], "global_tool_operations")
+        self.assertEqual(len(output["agent_events"]), 3)
+        self.assertEqual(
+            set(output), {"meta", "agent_events", "files", "commits", "file_lifetimes"}
+        )
+        self.assertEqual(output["agent_events"][0]["process_chain"], ["cargo"])
+        self.assertEqual(output["agent_events"][1]["domains"], ["example.test"])
 
     def test_endpoint_lifetime_wins_when_literal_path_is_reused(self):
         old = {

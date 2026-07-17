@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-//! Privacy-safe longitudinal export across native agent sessions and Git.
+//! Repository-scoped longitudinal export across native agent sessions and Git.
 
 use chrono::{DateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 use std::fs;
 use std::io::{Read, Write};
@@ -13,8 +13,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::{
-    AgentSession, EditSummary, discover_session_files, parse_session_file, parse_session_path,
-    short_hash,
+    AgentSession, EditSummary, discover_session_files, parse_session_content, parse_session_file,
+    parse_session_path, session_candidate_from_path, short_hash,
 };
 
 const RETRIEVAL_BEFORE_MS: i64 = 15 * 60 * 1_000;
@@ -47,6 +47,8 @@ pub struct LongitudinalOptions {
     pub until_ms: i64,
     pub session_paths: Vec<PathBuf>,
     pub include_git_history: bool,
+    pub include_git_details: bool,
+    pub include_global_events: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,6 +82,8 @@ pub struct ExportWindow {
     pub audit_until_ms: i64,
     pub retrieval_before_ms: i64,
     pub retrieval_after_ms: i64,
+    #[serde(default)]
+    pub global: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -127,6 +131,10 @@ pub struct NormalizedEvent {
     #[serde(default)]
     pub write_paths: Vec<String>,
     pub path_groups: Vec<String>,
+    #[serde(default)]
+    pub process_chain: Vec<String>,
+    #[serde(default)]
+    pub domains: Vec<String>,
     pub edit_summary: Option<EditSummary>,
     pub input_tokens: u64,
     pub output_tokens: u64,
@@ -236,7 +244,13 @@ pub fn build_longitudinal_artifact(
     let audit_until_ms = options.until_ms.saturating_add(AUDIT_AFTER_MS);
 
     let (commit_records, mut lifetimes) = if options.include_git_history {
-        collect_git_history(&repo, &head, audit_since_ms, audit_until_ms)?
+        collect_git_history(
+            &repo,
+            &head,
+            audit_since_ms,
+            audit_until_ms,
+            options.include_git_details,
+        )?
     } else {
         (Vec::new(), Vec::new())
     };
@@ -313,6 +327,7 @@ pub fn build_longitudinal_artifact(
             audit_until_ms,
             retrieval_before_ms: RETRIEVAL_BEFORE_MS,
             retrieval_after_ms: RETRIEVAL_AFTER_MS,
+            global: options.include_global_events,
         },
         summary,
         sessions: session_summaries,
@@ -371,6 +386,7 @@ fn collect_git_history(
     head: &str,
     audit_since_ms: i64,
     audit_until_ms: i64,
+    include_details: bool,
 ) -> Result<(Vec<CommitRecord>, Vec<FileLifetime>), ExportError> {
     let output = git_bytes(
         repo,
@@ -408,7 +424,11 @@ fn collect_git_history(
         let author_label = utf8(fields[3], "commit author")?.trim().to_string();
         let is_merge = parents.len() > 1;
         let statuses = commit_statuses(repo, &id, parents.first().map(String::as_str))?;
-        let numstats = commit_numstats(repo, &id, parents.first().map(String::as_str))?;
+        let numstats = if include_details {
+            commit_numstats(repo, &id, parents.first().map(String::as_str))?
+        } else {
+            HashMap::new()
+        };
         let mut all_changes = Vec::new();
 
         for (index, status) in statuses.into_iter().enumerate() {
@@ -426,17 +446,18 @@ fn collect_git_history(
                 .copied()
                 .unwrap_or((0, 0));
             let change_id = format!("{}:{index}", short_hash(&id, 12));
-            let hunks = if (audit_since_ms..audit_until_ms).contains(&committed_at_ms) {
-                commit_hunks(
-                    repo,
-                    &id,
-                    parents.first().map(String::as_str),
-                    status.old_path.as_deref(),
-                    &status.path,
-                )?
-            } else {
-                Vec::new()
-            };
+            let hunks =
+                if include_details && (audit_since_ms..audit_until_ms).contains(&committed_at_ms) {
+                    commit_hunks(
+                        repo,
+                        &id,
+                        parents.first().map(String::as_str),
+                        status.old_path.as_deref(),
+                        &status.path,
+                    )?
+                } else {
+                    Vec::new()
+                };
             all_changes.push(GitChange {
                 id: change_id,
                 commit_id: id.clone(),
@@ -726,6 +747,10 @@ fn load_sessions(
     repo: &Path,
 ) -> Result<Vec<AgentSession>, ExportError> {
     let mut sessions = Vec::new();
+    let roots = worktree_roots(repo);
+    let remote = git_text(repo, &["config", "--get", "remote.origin.url"])
+        .ok()
+        .map(|value| normalize_repository_url(value.trim()));
     if options.session_paths.is_empty() {
         for candidate in discover_session_files() {
             let updated_ms = candidate
@@ -739,15 +764,35 @@ fn load_sessions(
             if !candidate_mtime_may_contain_window(updated_ms, options.since_ms) {
                 continue;
             }
-            if !candidate_may_match_repo(candidate.agent, &candidate.path, repo) {
+            if !candidate_may_match_repo(
+                candidate.agent,
+                &candidate.path,
+                &roots,
+                remote.as_deref(),
+            ) {
                 continue;
             }
             if let Some(session) = parse_session_file(&candidate)
-                && session_matches_repo(&session, repo)
+                && session_matches_repo(&session, repo, options.include_global_events)
                 && session_overlaps(&session, options.since_ms, options.until_ms)
             {
                 sessions.push(session);
             }
+        }
+        if options.include_global_events {
+            let existing = sessions
+                .iter()
+                .map(|session| session.path.clone())
+                .collect::<BTreeSet<_>>();
+            sessions.extend(
+                behavior_sessions(repo)
+                    .into_iter()
+                    .filter(|session| !existing.contains(&session.path))
+                    .filter(|session| session_matches_repo(session, repo, true))
+                    .filter(|session| {
+                        session_overlaps(session, options.since_ms, options.until_ms)
+                    }),
+            );
         }
     } else {
         let worker_count = std::thread::available_parallelism()
@@ -781,7 +826,7 @@ fn load_sessions(
             let session = parsed_session.ok_or_else(|| {
                 ExportError::new(format!("cannot parse session {}", path.display()))
             })?;
-            if session_matches_repo(&session, repo)
+            if session_matches_repo(&session, repo, options.include_global_events)
                 && session_overlaps(&session, options.since_ms, options.until_ms)
             {
                 sessions.push(session);
@@ -796,51 +841,371 @@ fn load_sessions(
     Ok(sessions)
 }
 
+/// Extract only repository-referencing tool rows from sessions whose cwd is
+/// elsewhere. Ripgrep performs the 38+ GiB transcript scan; the normal parser
+/// then validates the selected native tool records.
+fn behavior_sessions(repo: &Path) -> Vec<AgentSession> {
+    let Some(home) = dirs::home_dir() else {
+        return Vec::new();
+    };
+    let search_roots = [
+        home.join(".claude/projects"),
+        home.join(".codex/sessions"),
+        home.join(".codex/archived_sessions"),
+    ];
+    let terms = worktree_roots(repo)
+        .into_iter()
+        .filter_map(|path| path.file_name()?.to_str().map(regex_literal))
+        .collect::<BTreeSet<_>>();
+    let mut command = Command::new("rg");
+    command.args(["--json", "--no-messages", "--glob", "*.jsonl"]);
+    for term in terms {
+        command.args(["-e", &format!(
+            r#"^\{{[^\n]{{0,2000}}"type":"response_item".*"type":"(function_call|custom_tool_call)".*{term}"#,
+        )]);
+        command.args([
+            "-e",
+            &format!(r#"^\{{[^\n]{{0,2000}}"type":"assistant".*"type":"tool_use".*{term}"#,),
+        ]);
+    }
+    command.args(search_roots.iter().filter(|path| path.exists()));
+    let Ok(output) = command.output() else {
+        return Vec::new();
+    };
+    if !output.status.success() && output.status.code() != Some(1) {
+        return Vec::new();
+    }
+    let mut selected = HashMap::<PathBuf, BTreeMap<u64, String>>::new();
+    for line in String::from_utf8_lossy(&output.stdout).lines() {
+        let Ok(row) = serde_json::from_str::<serde_json::Value>(line) else {
+            continue;
+        };
+        if row.get("type").and_then(|value| value.as_str()) != Some("match") {
+            continue;
+        }
+        let Some(path) = row
+            .pointer("/data/path/text")
+            .and_then(|value| value.as_str())
+        else {
+            continue;
+        };
+        let Some(text) = row
+            .pointer("/data/lines/text")
+            .and_then(|value| value.as_str())
+        else {
+            continue;
+        };
+        let line_number = row
+            .pointer("/data/line_number")
+            .and_then(|value| value.as_u64())
+            .unwrap_or_default();
+        selected
+            .entry(PathBuf::from(path))
+            .or_default()
+            .insert(line_number, text.trim_end().to_string());
+    }
+    selected
+        .into_iter()
+        .filter_map(|(path, lines)| {
+            let candidate = session_candidate_from_path(&path)?;
+            let mut content = session_header(&path);
+            for line in lines.into_values() {
+                content.push_str(&line);
+                content.push('\n');
+            }
+            parse_session_content(candidate.agent, &path, candidate.updated, &content)
+        })
+        .collect()
+}
+
+fn session_header(path: &Path) -> String {
+    let Ok(mut file) = fs::File::open(path) else {
+        return String::new();
+    };
+    let mut prefix = vec![0u8; 256 * 1024];
+    let Ok(count) = file.read(&mut prefix) else {
+        return String::new();
+    };
+    prefix.truncate(count);
+    let mut output = String::new();
+    let mut have_meta = false;
+    let mut have_context = false;
+    for line in String::from_utf8_lossy(&prefix).lines() {
+        let is_meta = !have_meta && line.contains(r#""type":"session_meta""#);
+        let is_context = !have_context && line.contains(r#""type":"turn_context""#);
+        if is_meta || is_context {
+            output.push_str(line);
+            output.push('\n');
+            have_meta |= is_meta;
+            have_context |= is_context;
+        }
+        if have_meta && have_context {
+            break;
+        }
+    }
+    output
+}
+
+fn regex_literal(value: &str) -> String {
+    value.chars().fold(String::new(), |mut output, ch| {
+        if r#"\.^$|?*+()[]{}"#.contains(ch) {
+            output.push('\\');
+        }
+        output.push(ch);
+        output
+    })
+}
+
 fn candidate_mtime_may_contain_window(updated_ms: i64, since_ms: i64) -> bool {
     updated_ms >= since_ms.saturating_sub(AUDIT_BEFORE_MS)
 }
 
-fn candidate_may_match_repo(agent: &str, path: &Path, repo: &Path) -> bool {
-    let repo_text = repo.to_string_lossy();
+fn candidate_may_match_repo(
+    agent: &str,
+    path: &Path,
+    roots: &[PathBuf],
+    repo_remote: Option<&str>,
+) -> bool {
     match agent {
         crate::AGENT_CLAUDE => {
-            let encoded = repo_text.replace('/', "-");
-            path.to_string_lossy().contains(&encoded)
+            let path = path.to_string_lossy();
+            roots
+                .iter()
+                .any(|root| path.contains(&root.to_string_lossy().replace('/', "-")))
         }
-        crate::AGENT_GEMINI => {
-            let project_hash = short_hash(repo_text.as_ref(), 64);
-            path.ancestors().any(|ancestor| {
-                ancestor
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .is_some_and(|name| name == project_hash)
-            })
-        }
-        crate::AGENT_CODEX => {
-            let Ok(mut file) = fs::File::open(path) else {
-                return false;
-            };
-            let mut prefix = vec![0u8; 256 * 1024];
-            let Ok(count) = file.read(&mut prefix) else {
-                return false;
-            };
-            prefix.truncate(count);
-            prefix
-                .windows(repo_text.len())
-                .any(|window| window == repo_text.as_bytes())
-        }
+        // Gemini's complete local history is small enough to validate every
+        // session for cross-repository tool evidence.
+        crate::AGENT_GEMINI => true,
+        crate::AGENT_CODEX => codex_candidate_identity(path).is_some_and(|(cwd, remote)| {
+            cwd.is_some_and(|cwd| roots.iter().any(|root| cwd.starts_with(root)))
+                || remote.is_some_and(|candidate| {
+                    repo_remote
+                        .is_some_and(|repo_url| normalize_repository_url(&candidate) == repo_url)
+                })
+        }),
         _ => false,
     }
 }
 
-fn session_matches_repo(session: &AgentSession, repo: &Path) -> bool {
+fn worktree_roots(repo: &Path) -> Vec<PathBuf> {
+    let mut roots = vec![repo.canonicalize().unwrap_or_else(|_| repo.to_path_buf())];
+    if let Ok(output) = git_text(repo, &["worktree", "list", "--porcelain"]) {
+        roots.extend(output.lines().filter_map(|line| {
+            line.strip_prefix("worktree ")
+                .map(PathBuf::from)
+                .map(|path| path.canonicalize().unwrap_or(path))
+        }));
+    }
+    roots.sort();
+    roots.dedup();
+    roots
+}
+
+fn codex_candidate_identity(path: &Path) -> Option<(Option<PathBuf>, Option<String>)> {
+    let mut file = fs::File::open(path).ok()?;
+    let mut prefix = vec![0u8; 256 * 1024];
+    let count = file.read(&mut prefix).ok()?;
+    prefix.truncate(count);
+    let text = String::from_utf8_lossy(&prefix);
+    for line in text.lines() {
+        let Ok(row) = serde_json::from_str::<serde_json::Value>(line) else {
+            continue;
+        };
+        if row.get("type").and_then(|value| value.as_str()) != Some("session_meta") {
+            continue;
+        }
+        let cwd = row
+            .pointer("/payload/cwd")
+            .and_then(|value| value.as_str())
+            .map(PathBuf::from)
+            .map(|value| value.canonicalize().unwrap_or(value));
+        let remote = row
+            .pointer("/payload/git/repository_url")
+            .and_then(|value| value.as_str())
+            .filter(|value| !value.is_empty())
+            .map(ToString::to_string);
+        return Some((cwd, remote));
+    }
+    None
+}
+
+fn session_matches_repo(session: &AgentSession, repo: &Path, include_global_events: bool) -> bool {
+    mapped_session_cwd(session, repo).is_some()
+        || include_global_events
+            && session
+                .events
+                .tools
+                .iter()
+                .any(|tool| tool_repo_evidence(session.cwd.as_deref(), &tool.command, repo).0)
+}
+
+fn tool_repo_evidence(cwd: Option<&str>, command: &str, repo: &Path) -> (bool, BTreeSet<String>) {
+    let roots = worktree_roots(repo);
+    tool_repo_evidence_with_roots(cwd, command, &roots)
+}
+
+fn tool_repo_evidence_with_roots(
+    cwd: Option<&str>,
+    command: &str,
+    roots: &[PathBuf],
+) -> (bool, BTreeSet<String>) {
+    let cwd = cwd.map(Path::new);
+    let mut matched = false;
+    let mut paths = BTreeSet::new();
+    for raw in command.split(|ch: char| {
+        ch.is_whitespace()
+            || [
+                '"', '\'', ';', '|', '&', '<', '>', '(', ')', '[', ']', '{', '}', ',',
+            ]
+            .contains(&ch)
+    }) {
+        let raw = raw
+            .rsplit_once('=')
+            .map_or(raw, |(_, value)| value)
+            .trim_matches(|ch: char| ch == ':' || ch == '`');
+        if raw.is_empty() || (!raw.contains('/') && !raw.starts_with('.')) {
+            continue;
+        }
+        let path = Path::new(raw);
+        let candidate = if path.is_absolute() {
+            path.to_path_buf()
+        } else if let Some(cwd) = cwd {
+            cwd.join(path)
+        } else {
+            continue;
+        };
+        let candidate = lexical_path(&candidate);
+        for root in roots {
+            if !candidate.starts_with(root) {
+                continue;
+            }
+            matched = true;
+            if let Ok(relative) = candidate.strip_prefix(root)
+                && let Some(path) = clean_relative_path(relative)
+            {
+                paths.insert(path);
+            }
+        }
+    }
+    (matched, paths)
+}
+
+fn lexical_path(path: &Path) -> PathBuf {
+    let mut output = PathBuf::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                output.pop();
+            }
+            _ => output.push(component.as_os_str()),
+        }
+    }
+    output.canonicalize().unwrap_or(output)
+}
+
+fn clean_relative_path(path: &Path) -> Option<String> {
+    let parts = path
+        .components()
+        .filter_map(|component| match component {
+            std::path::Component::Normal(part) => part.to_str().map(ToString::to_string),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let joined = parts.join("/");
+    let looks_like_phrase = parts.len() >= 3
+        && parts.iter().all(|part| {
+            part.chars().next().is_some_and(char::is_uppercase)
+                && part.chars().all(char::is_alphabetic)
+        });
+    (!parts.is_empty()
+        && !matches!(joined.chars().next(), Some('~' | '$'))
+        && joined != "HEAD"
+        && !joined.starts_with("HEAD.")
+        && !joined.contains("...")
+        && !looks_like_phrase
+        && parts.iter().all(|part| part != ".git")
+        && parts.first().is_none_or(|part| {
+            !matches!(
+                part.as_str(),
+                "origin" | "refs" | "heads" | "tags" | "repos"
+            )
+        })
+        && parts.iter().all(|part| {
+            !part.contains(':')
+                && !part.contains('\\')
+                && !part.contains('`')
+                && !matches!(part.as_str(), "AGENTS.md" | "CLAUDE.md")
+                && !part.chars().any(|ch| {
+                    ch.is_whitespace()
+                        || [
+                            '*', '?', '[', ']', '{', '}', '"', '#', '$', ',', ':', '@', '^', '!',
+                        ]
+                        .contains(&ch)
+                })
+        }))
+    .then_some(joined)
+}
+
+fn mapped_session_cwd(session: &AgentSession, repo: &Path) -> Option<PathBuf> {
+    let repo = repo.canonicalize().unwrap_or_else(|_| repo.to_path_buf());
     if let Some(cwd) = session.cwd.as_deref() {
         let cwd = Path::new(cwd);
-        let cwd = cwd.canonicalize().unwrap_or_else(|_| cwd.to_path_buf());
-        return cwd.starts_with(repo);
+        let canonical = cwd.canonicalize().unwrap_or_else(|_| cwd.to_path_buf());
+        if canonical.starts_with(&repo) {
+            return Some(canonical);
+        }
+        if let (Some(session_root), Some(repo_common), Some(session_common)) = (
+            git_path(cwd, &["rev-parse", "--show-toplevel"]),
+            git_path(&repo, &["rev-parse", "--git-common-dir"]),
+            git_path(cwd, &["rev-parse", "--git-common-dir"]),
+        ) && repo_common == session_common
+        {
+            let suffix = canonical
+                .strip_prefix(session_root)
+                .unwrap_or(Path::new(""));
+            return Some(repo.join(suffix));
+        }
     }
-    session.project_hash.as_deref()
-        == Some(short_hash(repo.to_string_lossy().as_ref(), 64).as_str())
+    let project_hash_matches = session.project_hash.as_deref()
+        == Some(short_hash(repo.to_string_lossy().as_ref(), 64).as_str());
+    let remote_matches = session
+        .repository_url
+        .as_deref()
+        .is_some_and(|session_url| {
+            git_text(&repo, &["config", "--get", "remote.origin.url"])
+                .ok()
+                .is_some_and(|repo_url| {
+                    normalize_repository_url(session_url)
+                        == normalize_repository_url(repo_url.trim())
+                })
+        });
+    (project_hash_matches || remote_matches).then_some(repo)
+}
+
+fn git_path(repo: &Path, args: &[&str]) -> Option<PathBuf> {
+    let value = git_text(repo, args).ok()?;
+    let value = PathBuf::from(value.trim());
+    let absolute = if value.is_absolute() {
+        value
+    } else {
+        repo.join(value)
+    };
+    Some(absolute.canonicalize().unwrap_or(absolute))
+}
+
+fn normalize_repository_url(value: &str) -> String {
+    let mut value = value
+        .trim()
+        .trim_end_matches('/')
+        .trim_end_matches(".git")
+        .to_ascii_lowercase();
+    if let Some(rest) = value.strip_prefix("git@")
+        && let Some((host, path)) = rest.split_once(':')
+    {
+        value = format!("https://{host}/{path}");
+    }
+    value
 }
 
 fn session_overlaps(session: &AgentSession, since_ms: i64, until_ms: i64) -> bool {
@@ -856,6 +1221,7 @@ fn normalize_sessions(
 ) -> (Vec<SessionSummary>, Vec<NormalizedEvent>) {
     let mut summaries = Vec::new();
     let mut events = Vec::new();
+    let roots = worktree_roots(repo);
     for session in sessions {
         let stable_session_id = format!(
             "{}-{}",
@@ -866,23 +1232,9 @@ fn normalize_sessions(
             .conversation_id
             .as_deref()
             .map(|id| format!("conversation-{}", short_hash(id, 16)));
-        let project_hash_matches = session.project_hash.as_deref()
-            == Some(short_hash(repo.to_string_lossy().as_ref(), 64).as_str());
-        let cwd = if project_hash_matches {
-            Some(repo)
-        } else {
-            session.cwd.as_deref().map(Path::new)
-        };
-        summaries.push(SessionSummary {
-            id: stable_session_id.clone(),
-            conversation_id: stable_conversation_id,
-            vendor: session.agent_type.clone(),
-            model: session.model.clone(),
-            started_at_ms: session.start_timestamp_ms.map(|value| value as i64),
-            ended_at_ms: session.end_timestamp_ms.map(|value| value as i64),
-            tool_events: session.events.tools.len(),
-            total_tokens: session.usage.total_tokens,
-        });
+        let cwd = mapped_session_cwd(&session, repo);
+        let identity_match = cwd.is_some();
+        let first_event = events.len();
         for (index, tool) in session.events.tools.iter().enumerate() {
             let Some(ts_ms) = tool.ts_ms else {
                 continue;
@@ -890,16 +1242,40 @@ fn normalize_sessions(
             if !(options.since_ms..options.until_ms).contains(&ts_ms) {
                 continue;
             }
-            let normalized_refs = tool
+            let behavior_paths = if identity_match {
+                BTreeSet::new()
+            } else if options.include_global_events {
+                let (matched, paths) =
+                    tool_repo_evidence_with_roots(session.cwd.as_deref(), &tool.command, &roots);
+                if !matched {
+                    continue;
+                }
+                paths
+            } else {
+                continue;
+            };
+            let mut normalized_refs = tool
                 .path_refs
                 .iter()
                 .filter_map(|reference| {
-                    cwd.and_then(|cwd| {
+                    cwd.as_deref().and_then(|cwd| {
                         repo_relative_session_path(repo, cwd, &reference.path)
-                            .map(|path| (path, reference.access.as_str()))
+                            .map(|path| (path, reference.access.clone()))
                     })
                 })
                 .collect::<BTreeSet<_>>();
+            let behavior_access = if tool.effect == "write" {
+                "write"
+            } else if tool.effect == "read" {
+                "read"
+            } else {
+                "reference"
+            };
+            normalized_refs.extend(
+                behavior_paths
+                    .into_iter()
+                    .map(|path| (path, behavior_access.to_string())),
+            );
             let paths = normalized_refs
                 .iter()
                 .map(|(path, _)| path.clone())
@@ -913,6 +1289,23 @@ fn normalize_sessions(
                 .collect::<BTreeSet<_>>()
                 .into_iter()
                 .collect::<Vec<_>>();
+            let path_groups = if identity_match {
+                tool.path_groups.clone()
+            } else {
+                paths
+                    .iter()
+                    .map(|path| {
+                        Path::new(path)
+                            .parent()
+                            .and_then(Path::to_str)
+                            .filter(|value| !value.is_empty())
+                            .unwrap_or("(root)")
+                            .to_string()
+                    })
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect()
+            };
             let id_source = format!(
                 "{}:{}:{}:{}:{}",
                 stable_session_id,
@@ -935,14 +1328,22 @@ fn normalize_sessions(
                 prompt_index: tool.prompt_index,
                 paths,
                 write_paths,
-                path_groups: tool.path_groups.clone(),
+                path_groups,
+                process_chain: tool.process_chain.clone(),
+                domains: tool.domains.clone(),
                 edit_summary: tool.edit_summary.clone(),
                 input_tokens: 0,
                 output_tokens: 0,
                 cache_tokens: 0,
             });
         }
-        for (index, response) in session.events.llm_responses.iter().enumerate() {
+        for (index, response) in session
+            .events
+            .llm_responses
+            .iter()
+            .enumerate()
+            .filter(|_| identity_match)
+        {
             let Some(ts_ms) = response.ts_ms else {
                 continue;
             };
@@ -965,10 +1366,27 @@ fn normalize_sessions(
                 paths: Vec::new(),
                 write_paths: Vec::new(),
                 path_groups: Vec::new(),
+                process_chain: Vec::new(),
+                domains: Vec::new(),
                 edit_summary: None,
                 input_tokens: response.input_tokens,
                 output_tokens: response.output_tokens,
                 cache_tokens: response.cache_tokens,
+            });
+        }
+        if events.len() > first_event {
+            summaries.push(SessionSummary {
+                id: stable_session_id,
+                conversation_id: stable_conversation_id,
+                vendor: session.agent_type,
+                model: session.model,
+                started_at_ms: session.start_timestamp_ms.map(|value| value as i64),
+                ended_at_ms: session.end_timestamp_ms.map(|value| value as i64),
+                tool_events: events[first_event..]
+                    .iter()
+                    .filter(|event| event.kind == "tool")
+                    .count(),
+                total_tokens: session.usage.total_tokens,
             });
         }
     }
@@ -1270,6 +1688,7 @@ fn format_timestamp(timestamp_ms: i64) -> String {
 mod tests {
     use super::*;
     use std::process::Stdio;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     fn git(repo: &Path, args: &[&str]) {
         let status = Command::new("git")
@@ -1280,6 +1699,43 @@ mod tests {
             .status()
             .expect("run git");
         assert!(status.success(), "git {args:?}");
+    }
+
+    #[test]
+    fn tool_evidence_can_match_a_repository_outside_session_cwd() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("agent-session-cross-repo-{unique}"));
+        let repo = root.join("target-repo");
+        let elsewhere = root.join("other-repo");
+        fs::create_dir_all(repo.join("src")).expect("repo");
+        fs::create_dir_all(&elsewhere).expect("cwd");
+        let command = format!("cat {}/src/lib.rs", repo.display());
+        let (matched, paths) = tool_repo_evidence(elsewhere.to_str(), &command, &repo);
+        assert!(matched);
+        assert_eq!(paths, BTreeSet::from(["src/lib.rs".to_string()]));
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn repository_paths_drop_shell_and_prose_fragments() {
+        for path in [
+            "^vis-gallery",
+            "!docs/design.md",
+            "HEAD..origin/main",
+            "docs/tmp/.../raw",
+            "Claude/Codex/Gemini",
+            "repos/example/project",
+            "~/.codex/sessions",
+        ] {
+            assert_eq!(clean_relative_path(Path::new(path)), None, "{path}");
+        }
+        assert_eq!(
+            clean_relative_path(Path::new(".artifacts/sim/home/.codex/session.jsonl")),
+            Some(".artifacts/sim/home/.codex/session.jsonl".to_string())
+        );
     }
 
     #[test]
@@ -1325,7 +1781,7 @@ mod tests {
         git(&root, &["add", "file.txt"]);
         git(&root, &["commit", "-q", "-m", "recreate"]);
 
-        let (_, lifetimes) = collect_git_history(&root, "HEAD", i64::MIN, i64::MAX)
+        let (_, lifetimes) = collect_git_history(&root, "HEAD", i64::MIN, i64::MAX, true)
             .expect("collect fixture history");
         let matching = lifetimes
             .iter()
@@ -1354,6 +1810,8 @@ mod tests {
             paths: vec!["file.txt".to_string()],
             write_paths: vec!["file.txt".to_string()],
             path_groups: Vec::new(),
+            process_chain: Vec::new(),
+            domains: Vec::new(),
             edit_summary: None,
             input_tokens: 0,
             output_tokens: 0,
@@ -1436,6 +1894,8 @@ mod tests {
             paths: vec!["file.txt".to_string()],
             write_paths: vec!["file.txt".to_string()],
             path_groups: Vec::new(),
+            process_chain: Vec::new(),
+            domains: Vec::new(),
             edit_summary: None,
             input_tokens: 0,
             output_tokens: 0,

@@ -136,12 +136,15 @@ function initialize(data, viewId, config = {}) {
     ? sampledMoments(moments, startMs, endMs, 120, view.id === "workspace-constellation" ? 1.5 : 1)
     : null;
   if (playbackMoments && view.id === "workspace-constellation") {
-    const firstWrite = data.events?.find((event) => event.effect === "write")?.ts_ms;
+    const nebulaEvents = data.agent_events?.length ? data.agent_events : data.events;
+    const firstWrite = nebulaEvents?.find((event) => (
+      event.effect === "write" || event.write_paths?.length
+    ))?.ts_ms;
     const commits = (data.commits ?? [])
       .map((commit) => Number(commit.committed_at_ms))
       .filter((value) => value >= startMs && value <= endMs);
     playbackMoments = preserveMoments(playbackMoments, [
-      data.events?.[0]?.ts_ms,
+      nebulaEvents?.[0]?.ts_ms,
       firstWrite,
       commits[Math.floor(commits.length / 2)],
     ]);
@@ -160,6 +163,7 @@ function initialize(data, viewId, config = {}) {
     ? "static reference" : "Agent event time";
   element("provenance").textContent = [
     `repository: ${data.meta.repository}`,
+    `scope: ${data.meta.session_scope === "global_tool_operations" ? "all local sessions targeting repository" : "repository sessions"}`,
     `revision: ${data.meta.endpoint_revision.slice(0, 12)}`,
     `window: ${dayLabel(startMs)} → ${dayLabel(endMs)}`,
     "generator: agentsight-vis 0.1",

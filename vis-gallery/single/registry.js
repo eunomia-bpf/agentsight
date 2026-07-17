@@ -9,7 +9,8 @@ const rawViews = [
 ];
 
 function agentVisualMoments(data, nebula = false) {
-  const agentTimes = [...(data.events ?? []), ...(data.verification_events ?? [])]
+  const primaryEvents = nebula && data.agent_events?.length ? data.agent_events : (data.events ?? []);
+  const agentTimes = [...primaryEvents, ...(nebula ? [] : (data.verification_events ?? []))]
     .map((row) => Number(row.ts_ms))
     .filter(Number.isFinite)
     .sort((left, right) => left - right);
@@ -18,11 +19,12 @@ function agentVisualMoments(data, nebula = false) {
   const end = agentTimes.at(-1);
   const attentionDecay = agentTimes.flatMap((value) => [value + 5 * 60_000, value + 30 * 60_000])
     .filter((value) => value <= end);
-  const birthTravel = nebula ? (data.events ?? [])
+  const birthTravel = nebula ? primaryEvents
+    .filter((row) => row.paths?.length)
     .flatMap((row) => [row.ts_ms + 20_000, row.ts_ms + 60_000, row.ts_ms + 3 * 60_000])
     .filter((value) => value <= end) : [];
-  const writeRipples = nebula ? (data.events ?? [])
-    .filter((row) => row.effect === "write")
+  const writeRipples = nebula ? primaryEvents
+    .filter((row) => row.effect === "write" || row.write_paths?.length)
     .flatMap((row) => [row.ts_ms + 30_000, row.ts_ms + 90_000, row.ts_ms + 3 * 60_000])
     .filter((value) => value <= end) : [];
   const contextReveal = nebula
@@ -46,9 +48,11 @@ function commitFlashMoments(data, visualMoments) {
 export const views = rawViews.map((view) => {
   if (view.timeMode === "static") return view;
   const visualMoments = (data) => agentVisualMoments(data, view.id === "workspace-constellation");
+  const timelineRequirements = view.id === "workspace-constellation"
+    ? ["commits"] : ["events", "verification_events", "commits"];
   return {
     ...view,
-    requirements: [...new Set([...view.requirements, "events", "verification_events", "commits"])],
+    requirements: [...new Set([...view.requirements, ...timelineRequirements])],
     visualMoments,
     playbackMoments(data) {
       const visual = visualMoments(data);

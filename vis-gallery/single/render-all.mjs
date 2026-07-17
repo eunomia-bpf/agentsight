@@ -11,7 +11,7 @@ function usage() {
   return `Generate every AgentSight single-view artifact from one data scan.
 
 Usage:
-  agentsight-vis-all --repo PATH --since TIME --output-dir DIR [--formats html,svg,png]
+  agentsight-vis-all --repo PATH --since TIME --output-dir DIR [--global] [--formats html,svg,png]
 
 The repository/session scan runs once. Static views become one-frame GIF/MP4
 files; time-aware animations sample each view's observed evidence range.
@@ -29,6 +29,8 @@ function parseAll(values) {
       outputDir = values[++index];
     } else if (flag === "--formats") {
       formats = values[++index].split(",").map((value) => value.trim().toLowerCase()).filter(Boolean);
+    } else if (flag === "--global") {
+      forwarded.push(flag);
     } else {
       forwarded.push(flag, values[++index]);
     }

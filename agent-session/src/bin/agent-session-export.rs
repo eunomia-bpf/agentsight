@@ -10,7 +10,7 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::{Path, PathBuf};
 
-const HELP: &str = r#"Export privacy-safe coding-agent events joined with Git history.
+const HELP: &str = r#"Export coding-agent events joined with Git history.
 
 Usage:
   agent-session-export --repo PATH --since RFC3339 --until RFC3339 \
@@ -20,22 +20,25 @@ Options:
   --repo PATH       Git worktree whose native sessions and history are joined
   --since TIME      Inclusive event start (RFC3339 or YYYY-MM-DD in UTC)
   --until TIME      Exclusive event end (RFC3339 or YYYY-MM-DD in UTC)
-  --output FILE|-   Destination file, or canonical JSON on stdout with -
-  --format FORMAT   canonical (default), events-jsonl, perfetto, or gource
+  --output FILE|-   Destination file, or JSON on stdout with -
+  --format FORMAT   json (default), events-jsonl, perfetto, or gource
   --head REV        Freeze Git history and endpoint at this revision (default: HEAD)
   --session FILE    Parse only this native session file; may be repeated
+                    By default discover Claude, Codex, and Gemini sessions
+  --global          Also include Tool events from sessions outside the repository
+                    when their command or path targets this repository
   --without-git-history
                     Export normalized sessions/events without mining per-commit diffs
+  --git-lifetimes-only
+                    Export first-parent add/delete/rename lifetimes without hunk/numstat mining
   -h, --help        Show this help
 
-The default artifact never contains prompt, command, edit/read bodies, secrets,
-absolute home paths, native session paths, or Git author email addresses.
 Perfetto and Gource outputs are explicitly lossy compatibility projections.
 "#;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ExportFormat {
-    Canonical,
+    Json,
     EventsJsonl,
     Perfetto,
     Gource,
@@ -44,12 +47,12 @@ enum ExportFormat {
 impl ExportFormat {
     fn parse(value: &str) -> Result<Self, String> {
         match value {
-            "canonical" => Ok(Self::Canonical),
+            "json" => Ok(Self::Json),
             "events-jsonl" => Ok(Self::EventsJsonl),
             "perfetto" => Ok(Self::Perfetto),
             "gource" => Ok(Self::Gource),
             _ => Err(format!(
-                "unknown format {value}; use canonical, events-jsonl, perfetto, or gource"
+                "unknown format {value}; use json, events-jsonl, perfetto, or gource"
             )),
         }
     }
@@ -65,6 +68,8 @@ struct Args {
     format: ExportFormat,
     session_paths: Vec<PathBuf>,
     include_git_history: bool,
+    include_git_details: bool,
+    include_global_events: bool,
 }
 
 fn main() {
@@ -79,8 +84,8 @@ fn run() -> Result<(), String> {
         print!("{HELP}");
         return Ok(());
     };
-    if args.output == Path::new("-") && args.format != ExportFormat::Canonical {
-        return Err("--output - is supported only for canonical JSON".to_string());
+    if args.output == Path::new("-") && args.format != ExportFormat::Json {
+        return Err("--output - is supported only for JSON".to_string());
     }
     let artifact = build_longitudinal_artifact(&LongitudinalOptions {
         repo: args.repo,
@@ -89,15 +94,17 @@ fn run() -> Result<(), String> {
         until_ms: args.until_ms,
         session_paths: args.session_paths,
         include_git_history: args.include_git_history,
+        include_git_details: args.include_git_details,
+        include_global_events: args.include_global_events,
     })
     .map_err(|error| error.to_string())?;
     match args.format {
-        ExportFormat::Canonical if args.output == Path::new("-") => {
+        ExportFormat::Json if args.output == Path::new("-") => {
             let mut writer = BufWriter::new(std::io::stdout().lock());
             serde_json::to_writer(&mut writer, &artifact).map_err(|error| error.to_string())?;
             writer.write_all(b"\n").map_err(|error| error.to_string())?;
         }
-        ExportFormat::Canonical => write_longitudinal_artifact(&artifact, &args.output)
+        ExportFormat::Json => write_longitudinal_artifact(&artifact, &args.output)
             .map_err(|error| error.to_string())?,
         ExportFormat::EventsJsonl => write_events_jsonl(&artifact, &args.output)?,
         ExportFormat::Perfetto => write_perfetto(&artifact, &args.output)?,
@@ -126,14 +133,26 @@ fn parse_args(values: Vec<String>) -> Result<Option<Args>, String> {
     let mut output = None;
     let mut session_paths = Vec::new();
     let mut head = None;
-    let mut format = ExportFormat::Canonical;
+    let mut format = ExportFormat::Json;
     let mut include_git_history = true;
+    let mut include_git_details = true;
+    let mut include_global_events = false;
     let mut index = 0usize;
     while index < values.len() {
         let flag = &values[index];
         index += 1;
         if flag == "--without-git-history" {
             include_git_history = false;
+            include_git_details = false;
+            continue;
+        }
+        if flag == "--git-lifetimes-only" {
+            include_git_history = true;
+            include_git_details = false;
+            continue;
+        }
+        if flag == "--global" {
+            include_global_events = true;
             continue;
         }
         let value = values
@@ -160,6 +179,8 @@ fn parse_args(values: Vec<String>) -> Result<Option<Args>, String> {
         format,
         session_paths,
         include_git_history,
+        include_git_details,
+        include_global_events,
     }))
 }
 
@@ -322,8 +343,10 @@ mod tests {
         .expect("not help");
         assert_eq!(args.session_paths.len(), 2);
         assert_eq!(args.head.as_deref(), Some("deadbeef"));
-        assert_eq!(args.format, ExportFormat::Canonical);
+        assert_eq!(args.format, ExportFormat::Json);
         assert!(args.include_git_history);
+        assert!(args.include_git_details);
+        assert!(!args.include_global_events);
         assert_eq!(args.output, PathBuf::from("-"));
         assert!(args.until_ms > args.since_ms);
     }
@@ -349,6 +372,33 @@ mod tests {
         .expect("parse")
         .expect("not help");
         assert!(!args.include_git_history);
+        assert!(!args.include_git_details);
+    }
+
+    #[test]
+    fn parses_lifetime_only_git_export() {
+        let args = parse_args(
+            [
+                "--repo",
+                "/repo",
+                "--since",
+                "2026-07-14",
+                "--until",
+                "2026-07-15",
+                "--output",
+                "-",
+                "--git-lifetimes-only",
+                "--global",
+            ]
+            .into_iter()
+            .map(str::to_string)
+            .collect(),
+        )
+        .expect("parse")
+        .expect("not help");
+        assert!(args.include_git_history);
+        assert!(!args.include_git_details);
+        assert!(args.include_global_events);
     }
 
     #[test]

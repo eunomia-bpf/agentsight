@@ -57,9 +57,9 @@ impl UserPrompt {
     }
 }
 
-/// A privacy-safe exact path reference recovered from a native tool input.
+/// An exact repository path reference recovered from a native tool input.
 ///
-/// `path` is a privacy-safe session-cwd-relative candidate. The longitudinal
+/// `path` is a session-cwd-relative candidate. The longitudinal
 /// exporter resolves it against the actual repository root and drops paths
 /// that escape that root. External and unresolved paths are summarized by the
 /// existing `path_groups` field rather than copied here.
@@ -173,6 +173,11 @@ pub struct AgentSession {
     pub prompt_preview: Option<String>,
     pub duration_ms: u64,
     pub cwd: Option<String>,
+    /// Repository identity recorded by the native agent, when available.
+    /// This lets worktree sessions match their repository without relying on
+    /// the worktree directory being a child of the primary checkout.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repository_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_hash: Option<String>,
     pub last_message_at: Option<String>,
