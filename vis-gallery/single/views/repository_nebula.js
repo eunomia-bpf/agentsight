@@ -1,5 +1,5 @@
 import {
-  forceCollide, forceLink, forceManyBody, forceSimulation, forceX, forceY,
+  forceCollide, forceLink, forceManyBody, forceRadial, forceSimulation, forceX, forceY,
 } from "d3-force";
 
 const WIDTH = 1200;
@@ -11,8 +11,13 @@ const TRANSITION_STEPS = 6;
 const GOLDEN_ANGLE_DEGREES = 137.508;
 const RESTING_REFERENCE_FILES = 480;
 const RESTING_MAX_SIZE = 6;
-const RESTING_MIN_SIZE = 1.35;
+const RESTING_MIN_SIZE = 0.85;
 const FOCUSED_MAX_SIZE = 10.5;
+const DIRECTORY_COUNT_EXPONENT = 0.4;
+const DIRECTORY_PSEUDOCOUNT = 8;
+const DIRECTORY_MAX_SHARE = 0.42;
+const IMPORTANCE_MIN_HALF_LIFE = 240;
+const IMPORTANCE_MAX_HALF_LIFE = 2_400;
 
 const modelCache = new WeakMap();
 
@@ -170,7 +175,7 @@ function actionDurationMs(count) {
 }
 
 function buildBuckets(actions) {
-  if (!actions.length) return [];
+  if (!actions.length) return { buckets: [], eventStepCount: 0 };
   const eventGroups = [];
   for (const action of actions) {
     const current = eventGroups.at(-1);
@@ -184,7 +189,10 @@ function buildBuckets(actions) {
     const bucket = Math.min(count - 1, Math.floor(index * count / eventGroups.length));
     buckets[bucket].push(...group);
   });
-  return buckets.filter((bucket) => bucket.length);
+  return {
+    buckets: buckets.filter((bucket) => bucket.length),
+    eventStepCount: eventGroups.length,
+  };
 }
 
 function srgbChannel(value) {
@@ -314,6 +322,13 @@ function createNode(path, action, step, state, lifecycle = null) {
   const node = {
     path, x, y, vx: 0, vy: 0,
     visits: 0,
+    sessions: new Set(),
+    importanceRaw: 0,
+    importanceStep: step,
+    importance: 0,
+    directoryShare: 1,
+    directoryCellScale: 1,
+    baseSize: RESTING_MAX_SIZE,
     birthStep: step,
     deleteStep: null,
     lastStep: step,
@@ -337,6 +352,23 @@ function createNode(path, action, step, state, lifecycle = null) {
 
 function currentColor(node, step) {
   return mixRgb(node.colorFrom, node.colorTo, (step - node.colorStep + 1) / TRANSITION_STEPS);
+}
+
+function decayedImportance(node, step, halfLife) {
+  const age = Math.max(0, step - node.importanceStep);
+  return node.importanceRaw * 2 ** (-age / halfLife);
+}
+
+function recordImportance(node, action, step, state) {
+  const gains = { read: 1, write: 2.5, create: 4, rename: 4, delete: 4 };
+  let gain = gains[action.type] ?? 1;
+  const session = action.session_id;
+  if (session && !node.sessions.has(session)) {
+    node.sessions.add(session);
+    gain += 1.5;
+  }
+  node.importanceRaw = decayedImportance(node, step, state.importanceHalfLife) + gain;
+  node.importanceStep = step;
 }
 
 function applyAction(action, step, state) {
@@ -366,6 +398,7 @@ function applyAction(action, step, state) {
       lastSession: action.session_id,
       lastVendor: action.vendor,
     });
+    recordImportance(node, action, step, state);
     return;
   }
 
@@ -376,6 +409,7 @@ function applyAction(action, step, state) {
   node.lastSession = action.session_id;
   node.lastVendor = action.vendor;
   node.visits += action.type === "read" ? 1 : 2;
+  recordImportance(node, action, step, state);
   if (action.type === "create") {
     node.lifecycleType = "create";
     node.lifecycleStep = step;
@@ -399,16 +433,95 @@ function restingNodeSize(count) {
   return clamp(RESTING_MAX_SIZE * density, RESTING_MIN_SIZE, RESTING_MAX_SIZE);
 }
 
-function focusedNodeSize(count, strength) {
-  const resting = restingNodeSize(count);
+function baseNodeSize(node, count) {
+  const local = clamp(
+    restingNodeSize(count) * node.directoryCellScale,
+    RESTING_MIN_SIZE,
+    RESTING_MAX_SIZE,
+  );
+  return clamp(
+    local * (0.62 + 0.38 * Math.sqrt(node.importance)),
+    RESTING_MIN_SIZE,
+    RESTING_MAX_SIZE,
+  );
+}
+
+function focusedNodeSize(node, strength) {
+  const resting = node.baseSize;
   return resting + (FOCUSED_MAX_SIZE - resting) * clamp(strength, 0, 1);
 }
 
-function nodeRadius(node, step, count) {
-  return focusedNodeSize(count, attention(node, step)) / 2;
+function nodeRadius(node, step) {
+  return focusedNodeSize(node, attention(node, step)) / 2;
 }
 
-function buildLinks(nodes, step) {
+function cappedDirectoryShares(rows) {
+  if (rows.length === 1) return new Map([[rows[0].top, 1]]);
+  const cap = Math.max(DIRECTORY_MAX_SHARE, 1 / rows.length + 0.08);
+  const active = new Set(rows.map((row) => row.top));
+  const byTop = new Map(rows.map((row) => [row.top, row]));
+  const shares = new Map();
+  let remaining = 1;
+  while (active.size) {
+    const weight = [...active].reduce((sum, top) => sum + byTop.get(top).weight, 0);
+    const oversized = [...active].filter((top) => (
+      remaining * byTop.get(top).weight / weight > cap
+    ));
+    if (!oversized.length) {
+      for (const top of active) shares.set(top, remaining * byTop.get(top).weight / weight);
+      break;
+    }
+    for (const top of oversized) {
+      shares.set(top, cap);
+      active.delete(top);
+      remaining -= cap;
+    }
+  }
+  return shares;
+}
+
+function refreshImportanceAndDirectories(state, nodes, step) {
+  for (const node of nodes) {
+    node.importanceRaw = decayedImportance(node, step, state.importanceHalfLife);
+    node.importanceStep = step;
+  }
+  const ranked = nodes.map((node) => node.importanceRaw).sort((left, right) => left - right);
+  const p95 = Math.max(1, ranked[Math.floor((ranked.length - 1) * 0.95)] ?? 1);
+  for (const node of nodes) {
+    node.importance = clamp(Math.log1p(node.importanceRaw) / Math.log1p(p95), 0, 1);
+  }
+
+  const groups = new Map();
+  for (const node of nodes) {
+    const top = topDirectory(node.path);
+    if (!groups.has(top)) groups.set(top, []);
+    groups.get(top).push(node);
+  }
+  const rows = [...groups].map(([top, members]) => {
+    const meanImportance = members.reduce((sum, node) => sum + node.importance, 0) / members.length;
+    return {
+      top,
+      members,
+      weight: (members.length + DIRECTORY_PSEUDOCOUNT) ** DIRECTORY_COUNT_EXPONENT
+        * (0.8 + 0.2 * meanImportance),
+    };
+  });
+  const shares = cappedDirectoryShares(rows);
+  const profiles = new Map();
+  for (const row of rows) {
+    const share = shares.get(row.top) ?? 1 / rows.length;
+    const cellScale = clamp(Math.sqrt(share * nodes.length / row.members.length), 0.52, 1.8);
+    profiles.set(row.top, { share, cellScale, count: row.members.length });
+    for (const node of row.members) {
+      node.directoryShare = share;
+      node.directoryCellScale = cellScale;
+      node.baseSize = baseNodeSize(node, nodes.length);
+    }
+  }
+  return profiles;
+}
+
+function buildLinks(nodes, step, profiles) {
   const byParent = new Map();
   const byTop = new Map();
   for (const node of nodes) {
@@ -436,11 +549,15 @@ function buildLinks(nodes, step) {
     }
   };
   for (const paths of byParent.values()) {
-    addTree(paths, clamp(14 + 0.7 * Math.sqrt(paths.length), 14, 32), 0.14);
+    const scale = paths.reduce((sum, path) => sum + byPath.get(path).directoryCellScale, 0) / paths.length;
+    addTree(paths, clamp((14 + 0.7 * Math.sqrt(paths.length)) * scale, 10, 38), 0.14);
   }
-  for (const paths of byTop.values()) {
+  for (const [top, paths] of byTop) {
     const representatives = [...new Map(paths.sort().map((path) => [parentDirectory(path), path])).values()];
-    addTree(representatives, clamp(34 + Math.sqrt(representatives.length), 34, 68), 0.04);
+    const treeDepth = Math.max(1, Math.ceil(Math.log(Math.max(1, representatives.length)) / Math.log(4)));
+    const share = profiles.get(top)?.share ?? 1 / byTop.size;
+    const targetRadius = 0.42 * Math.sqrt(share * WIDTH * HEIGHT);
+    addTree(representatives, clamp(targetRadius / treeDepth, 24, 68), 0.04);
   }
   return links;
 }
@@ -454,9 +571,15 @@ function actionAlpha(actions) {
 function runForces(state, actions, step) {
   const nodes = [...state.nodes.values()];
   if (!nodes.length) return;
-  const links = buildLinks(nodes, step);
+  const profiles = refreshImportanceAndDirectories(state, nodes, step);
+  if (nodes.length === 1) {
+    Object.assign(nodes[0], { x: WIDTH / 2, y: HEIGHT / 2, vx: 0, vy: 0 });
+    return;
+  }
+  const links = buildLinks(nodes, step, profiles);
   const densityScale = clamp(Math.sqrt(RESTING_REFERENCE_FILES / nodes.length), 0.24, 1);
   const centerStrength = 0.025 + 0.035 * (1 - densityScale);
+  const archiveRadius = Math.min(WIDTH, HEIGHT) * 0.31;
   const simulation = forceSimulation(nodes)
     .stop()
     .randomSource(randomLcg(hash32(`${state.repository}:${step}`)))
@@ -464,12 +587,26 @@ function runForces(state, actions, step) {
     .alpha(actionAlpha(actions))
     .alphaDecay(0)
     .force("charge", forceManyBody().strength((node) => (
-      (-2.2 - 0.55 * nodeRadius(node, step, nodes.length)) * densityScale
+      (-1.3 - 0.65 * nodeRadius(node, step))
+        * (0.55 + 0.75 * node.importance)
+        * clamp(node.directoryCellScale, 0.65, 1.3)
+        * densityScale
     )))
-    .force("collision", forceCollide((node) => nodeRadius(node, step, nodes.length) + 1)
+    .force("collision", forceCollide((node) => nodeRadius(node, step) + 0.8)
       .iterations(nodes.length > 1_000 ? 1 : 2))
-    .force("x", forceX(WIDTH / 2).strength(centerStrength))
-    .force("y", forceY(HEIGHT / 2).strength(centerStrength * 1.35));
+    .force("x", forceX(WIDTH / 2).strength((node) => (
+      centerStrength * (0.2 + 1.8 * node.importance)
+    )))
+    .force("y", forceY(HEIGHT / 2).strength((node) => (
+      centerStrength * 1.35 * (0.2 + 1.8 * node.importance)
+    )))
+    .force("archive", forceRadial(
+      (node) => archiveRadius
+        * (0.68 + 0.42 * hashUnit(`${node.path}:archive`))
+        * (1 - node.importance) ** 0.68,
+      WIDTH / 2,
+      HEIGHT / 2,
+    ).strength((node) => 0.003 + 0.005 * (1 - node.importance)));
   if (links.length) {
     simulation.force("links", forceLink(links)
       .id((node) => node.path)
@@ -479,7 +616,7 @@ function runForces(state, actions, step) {
   const ticks = nodes.length > 1_000 ? 1 : nodes.length > 500 ? 2 : nodes.length > 200 ? 4 : 8;
   simulation.tick(ticks);
   for (const node of nodes) {
-    const margin = Math.max(4, nodeRadius(node, step, nodes.length) + 1);
+    const margin = Math.max(4, nodeRadius(node, step) + 1);
     if (node.x < margin) {
       node.x = margin;
       node.vx = Math.abs(node.vx) * 0.25;
@@ -524,6 +661,10 @@ function snapshot(state, actions, step, actionStep) {
     x: node.x / WIDTH,
     y: node.y / HEIGHT,
     visits: node.visits,
+    sessionCount: node.sessions.size,
+    importance: node.importance,
+    directoryShare: node.directoryShare,
+    baseSize: node.baseSize,
     birthStep: node.birthStep,
     deleteStep: node.deleteStep,
     lastStep: node.lastStep,
@@ -559,7 +700,7 @@ function pruneDeleted(state, step) {
 
 function buildModel(data) {
   const actions = normalizeFileActions(data);
-  const buckets = buildBuckets(actions);
+  const { buckets, eventStepCount } = buildBuckets(actions);
   const repository = data.meta?.repository ?? "repository";
   const state = {
     repository,
@@ -567,6 +708,11 @@ function buildModel(data) {
     parentIndex: new Map(),
     prefixIndex: new Map(),
     topIndex: new Map(),
+    importanceHalfLife: clamp(
+      Math.round(eventStepCount * 0.08),
+      IMPORTANCE_MIN_HALF_LIFE,
+      IMPORTANCE_MAX_HALF_LIFE,
+    ),
     colorForPath: buildPalette(actions, `${repository}:${data.meta?.endpoint_revision ?? "HEAD"}`),
   };
   const snapshots = [];
@@ -655,10 +801,7 @@ export function repositoryNebula(data, cursorMs, h) {
   if (!Number.isFinite(model.firstMs) || cursorMs < model.firstMs) return emptyOption(h);
   const current = snapshotAt(model, cursorMs);
   if (!current) return emptyOption(h);
-  const visitP95 = Math.max(1, ...current.nodes.map((node) => node.visits).sort((a, b) => a - b)
-    .slice(Math.floor(current.nodes.length * 0.95), Math.floor(current.nodes.length * 0.95) + 1));
   const cameraScale = clamp(0.92 + 3 / Math.sqrt(Math.max(1, current.nodes.length)), 0.92, 1.8);
-  const restingSize = restingNodeSize(current.nodes.length);
 
   const points = current.nodes.map((node) => {
     const age = current.actionStep - node.lastStep;
@@ -667,9 +810,12 @@ export function repositoryNebula(data, cursorMs, h) {
         * 2 ** (-age / ATTENTION_HALF_LIFE_STEPS)
       : 0;
     const depth = directoryParts(node.path).length;
-    const visitFactor = Math.log1p(node.visits) / Math.log1p(visitP95);
-    const baseline = clamp(0.58 + 0.14 / (1 + 0.18 * depth) + 0.18 * visitFactor, 0.6, 0.9);
-    const size = restingSize + (FOCUSED_MAX_SIZE - restingSize) * strength;
+    const baseline = clamp(
+      0.22 + 0.58 * Math.sqrt(node.importance) + 0.08 / (1 + 0.18 * depth),
+      0.24,
+      0.9,
+    );
+    const size = node.baseSize + (FOCUSED_MAX_SIZE - node.baseSize) * strength;
     return {
       id: node.path,
       value: [
@@ -680,6 +826,10 @@ export function repositoryNebula(data, cursorMs, h) {
       path: node.path,
       directory: parentDirectory(node.path),
       visits: node.visits,
+      sessionCount: node.sessionCount,
+      importance: node.importance,
+      directoryShare: node.directoryShare,
+      baseSize: node.baseSize,
       depth,
       focusType: node.focusType,
       age,
@@ -696,7 +846,7 @@ export function repositoryNebula(data, cursorMs, h) {
       itemStyle: {
         color: rgbString(node.color),
         opacity: baseline * node.opacity,
-        shadowBlur: 6 + 20 * strength,
+        shadowBlur: 1 + 4 * node.importance + 20 * strength,
         shadowColor: strength > 0
           ? node.focusType === "read" ? "#ffffff" : "#ff9b78"
           : rgbString(node.color, 0.65),
@@ -737,7 +887,8 @@ export function repositoryNebula(data, cursorMs, h) {
   const tooltip = ({ data: row = {} }) => row.path ? [
     row.path,
     `directory color: ${row.directory}`,
-    `${row.visits} recorded file actions · depth ${row.depth}`,
+    `${row.visits} recorded file actions · ${row.sessionCount} sessions · depth ${row.depth}`,
+    `decayed importance: ${Math.round(100 * row.importance)}% · directory share: ${Math.round(100 * row.directoryShare)}%`,
     `first observed: ${row.firstAction} · ${new Date(row.firstTs).toISOString()}`,
     row.bornNear ? `entered near: ${row.bornNear}` : "entered at repository center",
     `latest: ${row.lastVendor} · ${row.source} · session ${row.lastSession}`,

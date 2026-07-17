@@ -272,6 +272,87 @@ describe("single-view registry", () => {
     expect(edgePoints.length / densePoints.length).toBeLessThan(0.1);
   });
 
+  test("separates fading attention from decayed cross-session importance", () => {
+    const start = data.meta.window_start_ms;
+    const agentEvents = [];
+    for (let index = 0; index <= 400; index += 1) {
+      const hot = index > 0 && index <= 240 && index % 8 === 0;
+      const path = index === 0 ? "src/cold.rs"
+        : hot ? "src/hot.rs" : `src/noise/file-${index % 80}.rs`;
+      agentEvents.push({
+        id: `importance-${index}`,
+        ts_ms: start + index,
+        session_id: hot ? `session-${index / 8}` : "background-session",
+        vendor: hot ? "codex" : "claude",
+        kind: "tool",
+        action: "read",
+        category: "filesystem",
+        effect: "read",
+        paths: [path],
+        read_paths: [path],
+        write_paths: [],
+        durable_changes: [],
+      });
+    }
+    const history = {
+      meta: { ...data.meta, window_start_ms: start, window_end_ms: start + 400 },
+      commits: [],
+      agent_events: agentEvents,
+    };
+    const view = registry.get("workspace-constellation");
+    const option = view.build(history, history.meta.window_end_ms, helpers);
+    const points = option.series.find((series) => series.name === "files").data;
+    const hot = points.find((point) => point.path === "src/hot.rs");
+    const cold = points.find((point) => point.path === "src/cold.rs");
+    const centerDistance = (point) => Math.hypot(point.value[0] - 0.5, point.value[1] - 0.5);
+
+    expect(hot.age).toBeGreaterThan(24);
+    expect(hot.strength).toBe(0);
+    expect(hot.sessionCount).toBeGreaterThan(cold.sessionCount);
+    expect(hot.importance).toBeGreaterThan(cold.importance);
+    expect(hot.baseSize).toBeGreaterThan(cold.baseSize);
+    expect(hot.itemStyle.opacity).toBeGreaterThan(cold.itemStyle.opacity);
+    expect(centerDistance(hot)).toBeLessThan(centerDistance(cold));
+  });
+
+  test("compresses directory area instead of mapping it linearly to file count", () => {
+    const start = data.meta.window_start_ms;
+    const paths = [
+      ...Array.from({ length: 300 }, (_, index) => `large/generated-${index}.rs`),
+      ...Array.from({ length: 20 }, (_, index) => `small/core-${index}.rs`),
+    ];
+    const agentEvents = paths.map((path, index) => ({
+      id: `directory-area-${index}`,
+      ts_ms: start + index,
+      session_id: `session-${index % 5}`,
+      vendor: "codex",
+      kind: "tool",
+      action: "read",
+      category: "filesystem",
+      effect: "read",
+      paths: [path],
+      read_paths: [path],
+      write_paths: [],
+      durable_changes: [],
+    }));
+    const history = {
+      meta: { ...data.meta, window_start_ms: start, window_end_ms: start + paths.length },
+      commits: [],
+      agent_events: agentEvents,
+    };
+    const view = registry.get("workspace-constellation");
+    const option = view.build(history, history.meta.window_end_ms, helpers);
+    const points = option.series.find((series) => series.name === "files").data;
+    const large = points.filter((point) => point.path.startsWith("large/"));
+    const small = points.filter((point) => point.path.startsWith("small/"));
+    const mean = (rows, key) => rows.reduce((sum, row) => sum + row[key], 0) / rows.length;
+
+    expect(large[0].directoryShare).toBeLessThanOrEqual(0.59);
+    expect(small[0].directoryShare).toBeGreaterThanOrEqual(0.4);
+    expect(large[0].directoryShare / small[0].directoryShare).toBeLessThan(2);
+    expect(mean(small, "baseSize")).toBeGreaterThan(mean(large, "baseSize"));
+  });
+
   test("keeps both treemap and nebula observed-only", () => {
     const treemap = projectForView(data, registry.get("repository-treemap"));
     expect(new Set(treemap.files.map((file) => file.path))).toEqual(

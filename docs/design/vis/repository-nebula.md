@@ -1,6 +1,6 @@
 # Repository Nebula：统一设计
 
-状态：**v1 已实现；本文同时记录现行算法和验收边界**。
+状态：**v2 已实现；本文同时记录现行算法和验收边界**。
 
 本文是 Repository Nebula 的单一事实来源。旧实现、README、测试或其他设计文档与本文冲突时，以本文为准。
 
@@ -300,7 +300,21 @@ attention(i, k) = action_gain * 2^(-(k - last_event_i) / 6)
 
 Read 的 `action_gain` 小于 Write/Edit。Create/Delete/Rename 使用独立生命周期动画，不复用普通 read/write pulse。
 
-### 7.3 播放节奏
+### 7.3 长期重要性按事件步衰减
+
+瞬态注意力只回答“Agent 刚刚看了哪里”，不能承担“长期哪些文件重要”。每个文件另有一个按 Agent 文件事件步衰减的长期状态：
+
+```text
+importance_raw(i, k) = previous * 2^(-(k - previous_step) / H) + action_gain + session_bonus
+H = clamp(round(total_event_steps * 0.08), 240, 2400)
+importance(i) = clamp(log1p(importance_raw) / log1p(P95(importance_raw)), 0, 1)
+```
+
+动作增量为 `Read=1`、`Write=2.5`、`Create/Rename/Delete=4`；一个此前未触达该文件的 session 首次访问时再加 `1.5`。同一个 session 中的重复动作仍被如实计数，但跨 session 反复使用会获得额外权重，两者不再完全等价。
+
+长期重要性影响常态大小、常态亮度、中心引力和多体质量；它不产生 read/write 光环。最近 24 步的瞬态注意力消失后，长期重要性仍可保留，但会随新的 repository 文件动作逐渐衰减。这里的“重要”严格指 Agent 行为历史中的持续触达，不声称业务重要性、代码质量或 Git authorship。
+
+### 7.4 播放节奏
 
 - HTML 自动播放按最多 12 个视觉采样/秒准备 cursor；GIF/MP4 由 `agentsight vis` 自动按 Agent 动作步分位数抽取固定 72 帧、以 8 fps 编码，禁止另写脚本按 wall-clock 线性截帧。
 - 文件动作数为 `E` 时，默认完整播放时长为 `D = clamp(8 + 0.04 × E, 8, 30)` 秒。
@@ -328,6 +342,7 @@ velocity
 mass
 directory/path features
 recent attention
+decayed long-term importance
 lifecycle state
 ```
 
@@ -337,7 +352,8 @@ lifecycle state
 F_i =
     path_attraction_i
   + directory_attraction_i
-  + attention_gravity_i
+  + importance_centering_i
+  + archive_halo_i
   + weak_centering_i
   - repulsion_i
   - collision_i
@@ -371,6 +387,14 @@ same parent tree      distance=14..32 px  strength=0.14
 same top-level tree   distance=34..68 px  strength=0.04
 ```
 
+目录的视觉份额不与文件数线性对应。每个 top-level directory 先计算凹权重：
+
+```text
+directory_weight = (visible_file_count + 8)^0.4 * (0.8 + 0.2 * mean_importance)
+```
+
+归一化后使用 water-filling 把多目录场景中的单目录份额限制在 `max(0.42, 1 / directory_count + 0.08)`，再把剩余份额分给其他目录。这个份额只调整局部距离、静止星点密度和 top-level 吸引树的目标尺度，不生成目录节点、边界或固定 territory。大目录仍包含更多星，但其面积增长是次线性的；小目录不会被压成不可见的一点。
+
 ### 8.3 斥力、碰撞和阻尼
 
 - 所有可见文件之间存在多体斥力，避免全部塌缩到一点。
@@ -380,18 +404,23 @@ same top-level tree   distance=34..68 px  strength=0.04
 - 越过画布边界时反转并衰减速度，不能只截断坐标；只截断会让向外速度累积并把节点粘成矩形边框。
 - 删除文件的质量和透明度逐步降为零，随后退出力场；其消失会触发周围文件重新平衡。
 
-v1 默认参数使用 `1200 × 675` 逻辑画布：
+v2 默认参数使用 `1200 × 675` 逻辑画布：
 
 ```text
-resting_diameter   = clamp(6 * sqrt(480 / max(480, visible_files)), 1.35, 6) px
+global_resting    = clamp(6 * sqrt(480 / max(480, visible_files)), 0.85, 6) px
+directory_scale   = clamp(sqrt(directory_share * visible_files / directory_files), 0.52, 1.8)
+resting_diameter  = clamp(global_resting * directory_scale * (0.62 + 0.38 * sqrt(importance)), 0.85, 6) px
 focused_diameter  = resting + (10.5 - resting) * attention
-many-body charge  = (-2.2 - 0.55 * radius) * density_scale
-collision radius  = radius + 1 px
+many-body charge  = (-1.3 - 0.65 * radius) * importance_mass * directory_scale * density_scale
+collision radius  = radius + 0.8 px
 collision iterations = 2 (<=1000 files), 1 (>1000)
 velocityDecay     = 0.38
-center strength   = 0.025..0.060，随密度增加
+center strength   = 0.025..0.060，再按长期重要性放大
+archive radius    = 0..约 209 px，随重要性降低并按 path hash 轻微离散
 ticks per visual step = 8 (<=200 files), 4 (<=500), 2 (<=1000), 1 (>1000)
 ```
+
+高重要性文件受到更强的中心引力；低重要性文件受到很弱、带确定性半径扰动的外围力。两者与路径引力、斥力、碰撞和阻尼共同求平衡，因此形成明亮核心与暗淡、密集的历史外围，但不会形成固定同心圆，也不会给文件预设最终坐标。重要性继续变化时，同一文件可以逐渐向内或向外移动。
 
 每个视觉步应用一个事件桶后重新加热模拟：read 使用 `alpha=0.10`，write 使用 `0.18`，create/rename/delete 使用 `0.35`；一个桶包含多种动作时取最大 alpha。tick 数按可见文件规模分档，输入、分档、seed 和事件顺序固定，因此不同输出格式可复现。
 
@@ -485,8 +514,8 @@ H_child     = H_top + signed_hash(directory_path) × 8°
 |---|---|
 | 星点色相 | top-level directory |
 | 同色系微调 | subdirectory |
-| 常态明度 | 路径深度和累计 Agent 访问次数的弱提示 |
-| 常态大小 | 仅由当前可见文件数决定的密度自适应基线；文件越多，静止星越小 |
+| 常态明度 | 按事件步衰减的长期重要性；路径深度只提供很弱的修正 |
+| 常态大小 | 全局文件密度、次线性目录份额和长期重要性的组合 |
 | 瞬态大小 | 仅最近 Read/Write/Create/Rename 使星点短暂放大，随后按事件步回到基线 |
 | 白色短闪/细环 | 最近 Read/Search |
 | 暖色核心和扩散环 | 最近 Edit/Write |
@@ -496,7 +525,7 @@ H_child     = H_top + signed_hash(directory_path) × 8°
 | 白色细边框 | observed untracked |
 | 金色 artifact 外框 | commit reference，仅闪外框 |
 
-最近动作的视觉增量必须明显强于累计访问和路径深度的基线差异。主画面不得出现：
+最近动作的视觉增量必须明显强于长期重要性和路径深度的基线差异。主画面不得出现：
 
 - Bash 菱形。
 - domain 三角形。
@@ -672,6 +701,9 @@ GIF/MP4 的临时 PNG 是渲染编码缓存，不是数据交换格式。未来�
 - 新文件出现会推动邻近文件重新平衡。
 - 删除文件会退出力场并使局部重新平衡。
 - 最近注意力只造成受控的局部扰动。
+- 持续跨 session 被触达的文件在没有瞬态光环时仍更亮、更大、更靠近核心。
+- 久未访问文件逐渐缩小、变暗并在外围形成更密集的历史层。
+- 大目录的视觉份额次线性增长；极端文件数差异不会按原始比例吞掉小目录。
 - 同一输入、cursor 和参数得到确定性相同的布局。
 - 图中没有可见 edge、directory label 或 territory boundary。
 
