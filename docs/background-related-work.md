@@ -1,5 +1,7 @@
 # AgentProf Literature And Novelty Frontier
 
+**Last primary-source verification:** 2026-07-17, Step 0044 whole-paper review.
+
 ## Purpose And Fixed Contract
 
 This file is the concise current literature, novelty, baseline, and source-search
@@ -36,17 +38,19 @@ branch is closed; see the
 [`Step 0024 whole-paper review`](tmp/build-and-evaluate/step-0024-20260715T042557-0700/whole-paper-review.md).
 
 The Step 0018 source-grounded whole-paper review disputed the then-current
-cumulative positive RQ2 synthesis. AgentProcessBench contains a small semantic-specific AP
-gain, whereas HINTBench versus raw action and TraceElephant's prospective
-Work@80 comparison remain inconclusive. Another score, cutoff, or localization
-benchmark would repeat the same evidence shape. Step 0019 therefore tested a
-different consequence using existing assets: whether one fixed rank-hidden LLM
-reader makes a better three-group prioritization decision from operation-stack
-packets than from execution-local fixed-session packets. The complete result is
-valid and supports the registered recall and precision comparison on six tasks.
-It is bounded downstream-use evidence inside unchanged RQ2, not a human-
-productivity, lower-work, raw-action, or universal-view result and not a new
-story.
+cumulative positive RQ2 synthesis because its metrics and information sets were
+not yet aligned. Step 0036 later re-evaluated the complete AgentProcessBench,
+HINTBench, and TraceElephant populations with standard per-query AP/MAP on
+information-matched semantic and raw-action organizations. Semantic grouping
+improves MAP on all three. Step 0037 reuses those populations for a post-hoc
+mechanism analysis: a local-first ranker preserves every strict operation-local
+ordering and uses semantic recurrence only for exact ties; it improves over
+local-only and semantic-only on all three, and over a matched local-plus-raw
+tie-breaker on HINTBench and TraceElephant. These results support problem
+ranking, not automatic human-productivity or lower-work claims. Step 0019
+separately tests a fixed rank-hidden LLM reader on existing assets and supports
+the registered recall and precision comparison on six tasks. It remains bounded
+downstream-use evidence inside unchanged RQ2, not a new story.
 
 ## Verified Closest-Work Families
 
@@ -118,6 +122,15 @@ source execution view.
   official SWE-bench resolved rate on fired subsets. It is the strongest
   current precedent for connecting population-level trajectory structure to a
   downstream agent improvement, although it remains a May 2026 preprint.
+- [WebGraphEval](https://arxiv.org/abs/2510.19205), a NeurIPS 2025 workshop
+  paper, canonicalizes actions from 4,768 WebArena trajectories across six
+  agents, merges recurring behavior into weighted action graphs, and overlays
+  reward propagation and success-weighted transition statistics. It prevents a
+  claim that AgentProf first creates a weighted cross-agent representation of
+  recurring actions or first uses it to expose redundancy, inefficiency, and
+  critical decisions. It does not join low-level system effects, conserve
+  arbitrary additive measures, provide selectable field hierarchies, or export
+  conventional profiler data.
 - [Agent Mentor](https://arxiv.org/abs/2604.10513) analyzes semantic features in
   execution logs, derives corrective system-prompt instructions, and reports
   repeated-run accuracy improvements across three agent configurations. It is
@@ -130,10 +143,23 @@ source execution view.
   of AAAI relevance and a competing trace representation, not a Main-Track
   precedent for AgentProf's exact claim.
 - [TraceProbe](https://arxiv.org/abs/2607.06184) normalizes 2,500 coding-agent
-  trajectories from five SWE-bench Verified production settings and uses
-  trajectory structure to localize inspection targets, search loops, and failed
-  work. This July 2026 preprint further prevents novelty claims based on
-  corpus-level trajectory diagnostics alone.
+  trajectories from five SWE-bench Verified production settings into canonical
+  actions and deterministic effect labels, then reports recurring anti-patterns,
+  reference-scoped divergence, milestones, tokens, duration, failed work, and
+  setting-level process profiles. This July 2026 preprint is the closest current
+  academic terminology/capability neighbor: it prevents novelty claims based on
+  canonical agent actions, cross-run process profiles, or resource-aware
+  trajectory comparison alone. It remains coding-specific and does not join
+  system effects across observability layers, expose query-time semantic stacks,
+  conserve arbitrary additive measures, or emit pprof-compatible profiles.
+- [Process-Centric Analysis of Agentic Software Systems](https://doi.org/10.1145/3798271),
+  published at OOPSLA 2026, encodes temporal and semantic relations in
+  Graphectory graphs over 4,000 SWE-agent and OpenHands trajectories, derives
+  process-centric metrics and strategies, and uses them for online monitoring
+  and intervention. It is the closest archival process-centric comparison.
+  AgentProf's residual distinction is the conjunction of source-linked agent
+  and operating-system effects, conservation of arbitrary additive measures,
+  and query-selected pprof operation stacks over one heterogeneous corpus.
 - [CodeTracer / CodeTraceBench](https://arxiv.org/abs/2604.11641) reconstructs
   hierarchical state-transition traces and supports failure localization and
   replay with author-annotated stages. It is both the source for Step 0024's
@@ -158,6 +184,14 @@ thesis. Full evidence remains in
 
 - [OpenTelemetry GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai)
   define GenAI spans, events, and metrics.
+- [OpenTelemetry Profiles](https://opentelemetry.io/docs/specs/otel/profiles/)
+  entered public alpha in 2026. Its pprof-superset format can link profile
+  samples to trace/span IDs and correlate profiles with logs, metrics, and
+  traces through shared resource context. Therefore neither pprof compatibility
+  nor profile--trace linkage is independently novel. The remaining distinction
+  is deriving an agent-level semantic responsibility hierarchy over joined
+  effects and completed heterogeneous histories, rather than linking code-stack
+  samples to request context.
 - [OpenInference](https://arize-ai.github.io/openinference/spec/) defines AI
   workload semantics over OpenTelemetry.
 - [Phoenix](https://arize.com/docs/phoenix) combines tracing, evaluation,
@@ -263,7 +297,8 @@ A third variant would be target retuning rather than stronger external evidence.
 | Fielded observations can be grouped into hierarchical views. | Very high | Profilers, OLAP/trace query systems, pprof labels, and semantic clustering already do this. |
 | Agent observability needs profiling, not only debugging. | Medium | The fixed broad position remains valuable if demonstrated on recurring measured behavior and real decisions. |
 | A conserved cross-layer record can attribute additive resources to semantic responsibility across runs. | Medium/high | Potential systems contribution; requires independent lineage and attribution truth. |
-| A plan-defined semantic profile concentrates real problems and reduces analyst inspection. | High | AgentProcessBench establishes significant target-blind AP concentration; HINTBench and TraceElephant add favorable inspection regions on independent public workloads. High-recall tail efficiency remains mechanism-dependent. |
+| A plan-defined semantic profile concentrates independently annotated real problems. | High | Standard per-query AP/MAP improves over matched raw-action organization on all three complete public workloads; the post-hoc local-first analysis isolates additional semantic value on HINTBench and TraceElephant. Hodoscope, Datadog Patterns, LangSmith Insights, WebGraphEval, TraceGraph, and TraceProbe make generic cross-run problem discovery non-novel. |
+| Semantic profiling reduces human inspection or improves repair outcomes. | Very high | The fixed-reader result is bounded supporting evidence, while Hodoscope and TraceGraph provide stronger published inspection/intervention precedents. AgentProf should not imply this consequence without a direct matched test; the larger profiling thesis does not depend on claiming it prematurely. |
 
 Two additional close neighbors sharpen this boundary. *Agentic AI Process
 Observability* applies process and causal discovery across agent execution logs
@@ -284,14 +319,20 @@ alone.
    categories, so the next highest-value candidate is a same-input comparison
    with an independently defined responsibility outcome, reusing the completed
    real trajectories before seeking a new external asset.
-2. **RQ2 — real-problem localization.** AgentProcessBench supplies a small
-   semantic-specific AP gain; HINTBench versus raw action and TraceElephant's
-   prospective Work@80 comparison remain inconclusive. Do not reopen their
-   score, cutoff, or benchmark branches. Step 0019 completes one different
-   downstream decision over all 18 R315 packets: the fixed reader improves
-   selected-positive recall on 5/6 tasks and precision on 4/6 versus the matched
-   fixed-session packet. Flat remains a lower bound and visible order a control;
-   the result does not show lower work or raw-action superiority.
+2. **RQ2 — real-problem localization.** Step 0036 establishes positive standard
+   MAP differences over matched raw-action organization on all three complete
+   public populations. Step 0037's post-hoc local-first analysis preserves
+   operation-local evidence and shows that semantic recurrence is useful as a
+   tie refinement, but it is not untouched confirmation. Do not reopen the same
+   score, cutoff, or observed benchmark branches. Step 0019 completes one
+   different downstream decision over all 18 R315 packets: the fixed reader
+   improves selected-positive recall on 5/6 tasks and precision on 4/6 versus
+   the matched fixed-session packet. Flat remains a lower bound and visible
+   order a control; the result does not establish human productivity or
+   universally lower work. The remaining paper-level question is whether the
+   current standard-MAP and fixed-reader evidence is sufficient against modern
+   product and academic cross-trace analysis, not whether another custom metric
+   can be tuned on the same targets.
 3. **RQ3 — tag accuracy.** Evaluate the actual prompt/intent attribution path
    and approved fixed mappings on held-out agents and task families, including
    coverage, stability, and downstream attribution sensitivity. Step 0008 now

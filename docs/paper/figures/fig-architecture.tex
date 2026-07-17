@@ -21,18 +21,18 @@
 
 % Field derivation
 \node[box, right=0.55cm of ops, fill=orange!15] (fields) {Field\\Derivation};
-\node[font=\footnotesize, below=0.05cm of fields, text=gray] (backends) {rules / model / mapping};
+\node[font=\small, below=0.05cm of fields] (backends) {rules / model / mapping};
 
 % Stack construction and folding
 \node[box, right=0.55cm of fields] (stack) {Stack Construction\\+ Folding};
 
 % Output
 \node[box, right=0.55cm of stack, fill=green!12] (out) {Profiles};
-\node[font=\footnotesize, below=0.05cm of out, text=gray] {pprof / SVG / JSON};
+\node[font=\small, below=0.05cm of out] {pprof / SVG / JSON};
 
 % Arrows
-\draw[arr] (local) -- node[above, font=\scriptsize] {parse} (ops);
-\draw[arr] (public) -- node[below, font=\scriptsize] {read} (ops);
+\draw[arr] (local) -- node[above, font=\small, text=black] {parse} (ops);
+\draw[arr] (public) -- node[below, font=\small, text=black] {read} (ops);
 \draw[arr] (ops) -- (fields);
 \draw[arr] (fields) -- (stack);
 \draw[arr] (stack) -- (out);

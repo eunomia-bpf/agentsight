@@ -63,7 +63,7 @@ exp 不能更改 RQ, 只能更改结论的 claim
 不创建、不切换 branch；
 遵守目标仓库自己的发布规则；
 commit/push 成败绝不参与 EXPERIMENT、WRITE、REVIEW 的通过判断，也不阻塞研究循环；
-不做逐节点 Git 状态审计、hash 绑定或冻结协议。只有顶层状态机和实验, 或者 literarure survay 可以 git, 写作/review不能改任何 
+不做逐节点 Git 状态审计、hash 绑定或冻结协议。只有顶层状态机和实验, 或者 literarure survay 可以 git, 写作/review不能改任何
 
 ---
 
@@ -232,3 +232,7 @@ Information gain 的问题不是不够复杂，而是“字段纯度”并不等
 ---
 
 你这个 metrics 是标准 metrics 吗? 是不是应该要标准的 metroics
+
+---
+
+token-weighted B³ 是场景化变体，不应出现在论文中；普通 B³ 才是标准主指标。Recall@20% 和固定 top-3 reader 是实验协议，不是通用 metric，也不应出现在论文中。论文的主指标必须采用已有论文或官方 benchmark 定义的标准指标，并引用定义它们的论文；这些自定义加权、预算 cutoff 和 model-reader 协议最多只能作为内部诊断，不能替代论文主指标。
