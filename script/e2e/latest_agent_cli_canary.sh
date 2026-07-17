@@ -255,8 +255,8 @@ run_codex_offset_canary() {
     status=$?
     set -e
 
-    if ! grep -Fq "Codex/aws-lc byte-pattern detected" "$stderr" \
-        || ! grep -Fq "Attaching by offset" "$stderr"; then
+    if ! grep -Fq "Codex/rustls write_vectored byte-pattern detected" "$stderr" \
+        || ! grep -Eq "Attaching [1-9][0-9]* offsets" "$stderr"; then
         echo "Codex sslsniff output did not prove signature attachment" >&2
         sed -n '1,160p' "$stderr" >&2 || true
         return 1
@@ -276,6 +276,25 @@ run_codex_offset_canary() {
     esac
 
     echo "sslsniff Codex signature canary matched latest native binary: $native"
+}
+
+assert_codex_ssl_prompt() {
+    local db="$1"
+
+    python3 - "$db" "$PROMPT" <<'PY'
+import sqlite3
+import sys
+
+db, prompt = sys.argv[1:]
+match = sqlite3.connect(db).execute(
+    "SELECT 1 FROM llm_calls WHERE view_source = 'live_view' "
+    "AND path = '/v1/responses' AND instr(request_body_json, ?) > 0",
+    (prompt,),
+).fetchone()
+if not match:
+    raise SystemExit("Codex prompt was not reconstructed from SSL /v1/responses traffic")
+print("Codex SSL /v1/responses request contains the exact canary prompt")
+PY
 }
 
 write_opencode_config() {
@@ -370,6 +389,10 @@ record_real_agent() {
     if ! grep -Fq "$PROMPT" "$recent_mock_requests"; then
         echo "$name mock LLM requests did not contain the canary prompt" >&2
         sed -n '1,40p' "$recent_mock_requests" >&2 || true
+        return 1
+    fi
+    if [[ "$name" == "codex" ]] && ! assert_codex_ssl_prompt "$db"; then
+        sed -n '1,240p' "$record_log" >&2 || true
         return 1
     fi
 

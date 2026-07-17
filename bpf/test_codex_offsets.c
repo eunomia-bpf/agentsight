@@ -21,59 +21,57 @@ static void check(bool condition, const char *name)
 	}
 }
 
+static void add_writev_signature(uint8_t *data, size_t offset,
+				 uint8_t first_branch, uint8_t second_branch)
+{
+	memcpy(data + offset, codex_rustls_writev_prefix,
+	       sizeof(codex_rustls_writev_prefix));
+	data[offset + 18] = first_branch;
+	memcpy(data + offset + 19, codex_rustls_writev_iov,
+	       sizeof(codex_rustls_writev_iov));
+	data[offset + 27] = second_branch;
+	memcpy(data + offset + 28, codex_rustls_writev_copy,
+	       sizeof(codex_rustls_writev_copy));
+}
+
 static char *write_fixture(bool valid)
 {
 	char template[] = "/tmp/agentsight-codex-offsets-test.XXXXXX";
-	size_t handshake = 128;
-	size_t read = handshake + CODEX_AWSLC_READ_HANDSHAKE_DELTA;
-	size_t write_offset = read + CODEX_AWSLC_WRITE_READ_DELTA;
-	size_t size = write_offset + sizeof(codex_awslc_write_ex) + 16;
-	uint8_t *data = calloc(1, size);
+	uint8_t data[2048] = {};
 	int fd = mkstemp(template);
 
-	if (fd < 0 || !data)
-		goto error;
-	memcpy(data + handshake, codex_awslc_handshake,
-	       sizeof(codex_awslc_handshake));
-	memcpy(data + read, codex_awslc_read_ex, sizeof(codex_awslc_read_ex));
-	memcpy(data + write_offset, codex_awslc_write_ex,
-	       sizeof(codex_awslc_write_ex));
-	if (!valid)
-		data[read] ^= 0xff;
-	if (write(fd, data, size) != (ssize_t)size)
-		goto error;
-	close(fd);
-	free(data);
-	return strdup(template);
-
-error:
-	if (fd >= 0) {
+	if (fd < 0)
+		return NULL;
+	memcpy(data + 32, "codex-cli rustls", sizeof("codex-cli rustls"));
+	add_writev_signature(data, 256, 0x24, 0x23);
+	if (valid)
+		add_writev_signature(data, 1024, 0x23, 0x22);
+	else
+		data[256 + 28] ^= 0xff;
+	if (write(fd, data, sizeof(data)) != sizeof(data)) {
 		close(fd);
 		unlink(template);
+		return NULL;
 	}
-	free(data);
-	return NULL;
+	close(fd);
+	return strdup(template);
 }
 
 static void test_signature_detection(void)
 {
-	struct codex_ssl_offsets offsets;
+	struct codex_rustls_offsets offsets;
 	char *path = write_fixture(true);
 
-	check(path != NULL, "created aws-lc signature fixture");
+	check(path != NULL, "created rustls signature fixture");
 	if (!path)
 		return;
-	check(codex_find_ssl_offsets(path, &offsets),
-	      "finds validated Codex/aws-lc signatures");
-	check(offsets.ssl_do_handshake == 128,
-	      "reports SSL_do_handshake offset");
-	check(offsets.ssl_read == 128 + CODEX_AWSLC_READ_HANDSHAKE_DELTA,
-	      "reports SSL_read_ex offset");
-	check(offsets.ssl_write == 128 + CODEX_AWSLC_READ_HANDSHAKE_DELTA
-				       + CODEX_AWSLC_WRITE_READ_DELTA,
-	      "reports SSL_write_ex offset");
-	check(offsets.write_is_ex && offsets.read_is_ex,
-	      "uses *_ex uprobes");
+	check(codex_find_rustls_offsets(path, &offsets),
+	      "finds Codex/rustls write_vectored signatures");
+	check(offsets.count == 2, "reports every rustls monomorphization");
+	check(offsets.write_vectored[0] == 256
+	      && offsets.write_vectored[1] == 1024,
+	      "reports write_vectored offsets");
+	check(codex_binary_has_tls_markers(path), "requires Codex and rustls markers");
 	unlink(path);
 	free(path);
 
@@ -81,7 +79,7 @@ static void test_signature_detection(void)
 	check(path != NULL, "created invalid signature fixture");
 	if (!path)
 		return;
-	check(!codex_find_ssl_offsets(path, &offsets),
+	check(!codex_find_rustls_offsets(path, &offsets),
 	      "rejects a partial signature match");
 	unlink(path);
 	free(path);
@@ -99,8 +97,8 @@ static void test_marker_detection(void)
 	check(write(fd, contents, sizeof(contents)) == sizeof(contents),
 	      "wrote marker fixture");
 	close(fd);
-	check(codex_binary_has_tls_markers(template),
-	      "detects Codex TLS stack markers");
+	check(!codex_binary_has_tls_markers(template),
+	      "rejects TLS markers without a Codex marker");
 	unlink(template);
 }
 

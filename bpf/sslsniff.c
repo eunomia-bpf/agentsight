@@ -143,6 +143,8 @@ static const struct argp_option opts[] = {
 };
 
 static bool verbose = false;
+static struct bpf_link *codex_rustls_links[CODEX_MAX_RUSTLS_WRITEV_OFFSETS];
+static size_t codex_rustls_link_count;
 
 /*
  * BoringSSL function offset detection for stripped binaries.
@@ -424,6 +426,32 @@ int attach_nss(struct sslsniff_bpf *skel, const char *lib) {
 	ATTACH_UPROBE_CHECKED(skel, lib, PR_Recv, probe_SSL_rw_enter);
 	ATTACH_URETPROBE_CHECKED(skel, lib, PR_Recv, probe_SSL_read_exit);
 
+	return 0;
+}
+
+static void destroy_codex_rustls_links(void)
+{
+	for (size_t i = 0; i < codex_rustls_link_count; i++)
+		bpf_link__destroy(codex_rustls_links[i]);
+	codex_rustls_link_count = 0;
+}
+
+static int attach_codex_rustls(struct sslsniff_bpf *skel, const char *binary,
+			       const struct codex_rustls_offsets *offsets)
+{
+	for (size_t i = 0; i < offsets->count; i++) {
+		LIBBPF_OPTS(bpf_uprobe_opts, opts, .retprobe = false);
+		struct bpf_link *link = bpf_program__attach_uprobe_opts(
+			skel->progs.probe_rustls_write_vectored, env.pid, binary,
+			offsets->write_vectored[i], &opts);
+		long err = link ? libbpf_get_error(link) : -(errno ? errno : EIO);
+
+		if (err) {
+			destroy_codex_rustls_links();
+			return (int)err;
+		}
+		codex_rustls_links[codex_rustls_link_count++] = link;
+	}
 	return 0;
 }
 
@@ -712,37 +740,30 @@ int main(int argc, char **argv) {
 			warn("Failed to probe SSL_write in %s: libbpf error %ld\n",
 				 env.extra_lib, test_err);
 		} else {
-			// Symbol not found - try validated Codex/aws-lc signatures, then
-			// generic BoringSSL patterns for other stripped static clients.
-			if (verbose)
-				fprintf(stderr, "Symbols not found, trying Codex/aws-lc patterns...\n");
-			struct codex_ssl_offsets codex_offsets;
-			struct boringssl_offsets offsets = { .found = false };
-			if (codex_find_ssl_offsets(env.extra_lib, &codex_offsets)) {
-				offsets.ssl_write = codex_offsets.ssl_write;
-				offsets.ssl_read = codex_offsets.ssl_read;
-				offsets.ssl_do_handshake = codex_offsets.ssl_do_handshake;
-				offsets.write_is_ex = codex_offsets.write_is_ex;
-				offsets.read_is_ex = codex_offsets.read_is_ex;
-				offsets.found = true;
-				offsets.source = "Codex/aws-lc byte-pattern";
-			}
-			if (!offsets.found) {
-				if (verbose)
-					fprintf(stderr, "Codex/aws-lc patterns missed, trying BoringSSL patterns...\n");
-				offsets = find_boringssl_offsets(env.extra_lib);
-			}
-			if (offsets.found) {
-				fprintf(stderr, "%s detected in %s. Attaching by offset...\n",
-						offsets.source, env.extra_lib);
-				err = attach_openssl_by_offset(obj, env.extra_lib, &offsets);
-			} else if (codex_binary_has_tls_markers(env.extra_lib)) {
-				warn("Failed to attach to %s: this looks like a stripped Codex/aws-lc "
-					 "binary, but its SSL entrypoint signatures were not recognized\n",
-					 env.extra_lib);
+			// Codex API traffic uses rustls; other stripped static clients
+			// use the existing generic BoringSSL detector.
+			struct codex_rustls_offsets codex_offsets;
+			bool is_codex = codex_binary_has_tls_markers(env.extra_lib);
+			if (is_codex
+			    && codex_find_rustls_offsets(env.extra_lib, &codex_offsets)) {
+				fprintf(stderr,
+					"Codex/rustls write_vectored byte-pattern detected in %s. "
+					"Attaching %zu offsets...\n",
+					env.extra_lib, codex_offsets.count);
+				err = attach_codex_rustls(obj, env.extra_lib, &codex_offsets);
 			} else {
-				warn("Failed to attach to %s: no SSL symbols or BoringSSL patterns found\n",
-					 env.extra_lib);
+				struct boringssl_offsets offsets = find_boringssl_offsets(env.extra_lib);
+				if (offsets.found) {
+					fprintf(stderr, "%s detected in %s. Attaching by offset...\n",
+							offsets.source, env.extra_lib);
+					err = attach_openssl_by_offset(obj, env.extra_lib, &offsets);
+				} else if (is_codex) {
+					warn("Failed to attach to %s: Codex/rustls plaintext write "
+					     "signatures were not recognized\n", env.extra_lib);
+				} else {
+					warn("Failed to attach to %s: no SSL symbols or BoringSSL patterns found\n",
+					     env.extra_lib);
+				}
 			}
 		}
 
@@ -776,6 +797,7 @@ int main(int argc, char **argv) {
 	}
 
 cleanup:
+	destroy_codex_rustls_links();
 	if (event_buf) {
 		free(event_buf);
 		event_buf = NULL;

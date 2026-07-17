@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
-// Codex/aws-lc SSL entrypoint detection for stripped release binaries.
+// Codex/rustls plaintext write detection for stripped release binaries.
 #ifndef __CODEX_OFFSETS_H
 #define __CODEX_OFFSETS_H
 
@@ -13,37 +13,27 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-struct codex_ssl_offsets {
-	size_t ssl_write;
-	size_t ssl_read;
-	size_t ssl_do_handshake;
-	bool write_is_ex;
-	bool read_is_ex;
-	bool found;
+#define CODEX_MAX_RUSTLS_WRITEV_OFFSETS 32
+
+struct codex_rustls_offsets {
+	size_t write_vectored[CODEX_MAX_RUSTLS_WRITEV_OFFSETS];
+	size_t count;
 };
 
-/* Derived from official Codex Linux symbols and validated against the
- * 0.144.1, 0.144.4, and 0.144.5 release binaries. */
-static const uint8_t codex_awslc_write_ex[] = {
-	0x55, 0x48, 0x89, 0xe5, 0x53, 0x50, 0x49, 0x89,
-	0xc8, 0x31, 0xdb, 0x31, 0xc9, 0xe8, 0xbe, 0xfd,
-	0xff, 0xff, 0x85, 0xc0, 0x0f, 0x4e, 0xc3, 0x48,
-	0x83, 0xc4, 0x08, 0x5b, 0x5d, 0xc3,
+/* rustls 0.23 PlaintextSink::write_vectored. Branch displacements differ
+ * between compiler releases, so validate the stable blocks around them. */
+static const uint8_t codex_rustls_writev_prefix[] = {
+	0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41,
+	0x54, 0x53, 0x48, 0x83, 0xec, 0x68, 0x48, 0x85,
+	0xd2, 0x74,
 };
-static const uint8_t codex_awslc_read_ex[] = {
-	0x55, 0x48, 0x89, 0xe5, 0xe8, 0xc7, 0xfb, 0xff,
-	0xff, 0x31, 0xc9, 0x85, 0xc0, 0x0f, 0x4e, 0xc1,
-	0x5d, 0xc3,
+static const uint8_t codex_rustls_writev_iov[] = {
+	0x49, 0x89, 0xfe, 0x48, 0x83, 0xfa, 0x01, 0x75,
 };
-static const uint8_t codex_awslc_handshake[] = {
-	0x55, 0x48, 0x89, 0xe5, 0x41, 0x57, 0x41, 0x56,
-	0x53, 0x48, 0x83, 0xec, 0x28, 0x41, 0xbe, 0xff,
-	0xff, 0xff, 0xff, 0x48, 0x85, 0xff, 0x0f, 0x84,
-	0xdd, 0x00, 0x00, 0x00, 0x48, 0x89, 0xfb,
+static const uint8_t codex_rustls_writev_copy[] = {
+	0xf3, 0x0f, 0x6f, 0x06, 0xf3, 0x0f, 0x7f, 0x44,
+	0x24, 0x10,
 };
-
-#define CODEX_AWSLC_WRITE_READ_DELTA 592
-#define CODEX_AWSLC_READ_HANDSHAKE_DELTA 1680
 
 static size_t codex_find_pattern(const uint8_t *data, size_t data_len,
 				 const uint8_t *pattern, size_t pattern_len)
@@ -63,12 +53,12 @@ static size_t codex_find_pattern(const uint8_t *data, size_t data_len,
 	return (size_t)-1;
 }
 
-static bool codex_find_ssl_offsets(const char *binary_path,
-				   struct codex_ssl_offsets *out)
+static bool codex_find_rustls_offsets(const char *binary_path,
+				      struct codex_rustls_offsets *out)
 {
 	struct stat st;
 	uint8_t *data;
-	size_t write_off;
+	size_t search = 0;
 	int fd;
 
 	memset(out, 0, sizeof(*out));
@@ -85,31 +75,32 @@ static bool codex_find_ssl_offsets(const char *binary_path,
 		return false;
 	}
 
-	write_off = codex_find_pattern(data, (size_t)st.st_size,
-				       codex_awslc_write_ex,
-				       sizeof(codex_awslc_write_ex));
-	if (write_off != (size_t)-1
-	    && write_off >= CODEX_AWSLC_WRITE_READ_DELTA
-			    + CODEX_AWSLC_READ_HANDSHAKE_DELTA) {
-		size_t read_off = write_off - CODEX_AWSLC_WRITE_READ_DELTA;
-		size_t handshake_off = read_off - CODEX_AWSLC_READ_HANDSHAKE_DELTA;
-
-		if (memcmp(data + read_off, codex_awslc_read_ex,
-			   sizeof(codex_awslc_read_ex)) == 0
-		    && memcmp(data + handshake_off, codex_awslc_handshake,
-			      sizeof(codex_awslc_handshake)) == 0) {
-			out->ssl_write = write_off;
-			out->ssl_read = read_off;
-			out->ssl_do_handshake = handshake_off;
-			out->write_is_ex = true;
-			out->read_is_ex = true;
-			out->found = true;
+	while (search + sizeof(codex_rustls_writev_prefix) <= (size_t)st.st_size) {
+		size_t relative = codex_find_pattern(
+			data + search, (size_t)st.st_size - search,
+			codex_rustls_writev_prefix,
+			sizeof(codex_rustls_writev_prefix));
+		if (relative == (size_t)-1)
+			break;
+		size_t offset = search + relative;
+		if (offset + 28 + sizeof(codex_rustls_writev_copy)
+				<= (size_t)st.st_size
+		    && memcmp(data + offset + 19, codex_rustls_writev_iov,
+			      sizeof(codex_rustls_writev_iov)) == 0
+		    && memcmp(data + offset + 28, codex_rustls_writev_copy,
+			      sizeof(codex_rustls_writev_copy)) == 0) {
+			if (out->count == CODEX_MAX_RUSTLS_WRITEV_OFFSETS) {
+				out->count = 0;
+				break;
+			}
+			out->write_vectored[out->count++] = offset;
 		}
+		search = offset + 1;
 	}
 
 	munmap(data, (size_t)st.st_size);
 	close(fd);
-	return out->found;
+	return out->count > 0;
 }
 
 static bool codex_buf_contains(const uint8_t *buf, size_t len,
@@ -124,10 +115,9 @@ static bool codex_buf_contains(const uint8_t *buf, size_t len,
 
 static bool codex_binary_has_tls_markers(const char *binary_path)
 {
-	static const char *markers[] = {
-		"codex-cli", "@openai/codex", "rustls", "aws-lc", "aws_lc",
-	};
 	uint8_t buf[8192 + 32];
+	bool has_codex = false;
+	bool has_rustls = false;
 	size_t carry = 0;
 	int fd = open(binary_path, O_RDONLY);
 
@@ -144,11 +134,12 @@ static bool codex_binary_has_tls_markers(const char *binary_path)
 		if (n == 0)
 			break;
 		size_t len = carry + (size_t)n;
-		for (size_t i = 0; i < sizeof(markers) / sizeof(markers[0]); i++) {
-			if (codex_buf_contains(buf, len, markers[i])) {
-				close(fd);
-				return true;
-			}
+		has_codex |= codex_buf_contains(buf, len, "codex-cli")
+			     || codex_buf_contains(buf, len, "@openai/codex");
+		has_rustls |= codex_buf_contains(buf, len, "rustls");
+		if (has_codex && has_rustls) {
+			close(fd);
+			return true;
 		}
 		carry = len < 32 ? len : 32;
 		memmove(buf, buf + len - carry, carry);
