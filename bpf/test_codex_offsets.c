@@ -44,10 +44,13 @@ static char *write_fixture(bool valid)
 		return NULL;
 	memcpy(data + 32, "codex-cli rustls", sizeof("codex-cli rustls"));
 	add_writev_signature(data, 256, 0x24, 0x23);
-	if (valid)
+	if (valid) {
 		add_writev_signature(data, 1024, 0x23, 0x22);
-	else
+		memcpy(data + 1536, codex_rustls_write_prefix,
+		       sizeof(codex_rustls_write_prefix));
+	} else {
 		data[256 + 28] ^= 0xff;
+	}
 	if (write(fd, data, sizeof(data)) != sizeof(data)) {
 		close(fd);
 		unlink(template);
@@ -67,10 +70,11 @@ static void test_signature_detection(void)
 		return;
 	check(codex_find_rustls_offsets(path, &offsets),
 	      "finds Codex/rustls write_vectored signatures");
-	check(offsets.count == 2, "reports every rustls monomorphization");
-	check(offsets.write_vectored[0] == 256
-	      && offsets.write_vectored[1] == 1024,
-	      "reports write_vectored offsets");
+	check(offsets.count == 3, "reports every rustls write entrypoint");
+	check(offsets.entries[0].offset == 256 && offsets.entries[0].vectored
+	      && offsets.entries[1].offset == 1024 && offsets.entries[1].vectored
+	      && offsets.entries[2].offset == 1536 && !offsets.entries[2].vectored,
+	      "classifies direct and vectored writes");
 	check(codex_binary_has_tls_markers(path), "requires Codex and rustls markers");
 	unlink(path);
 	free(path);

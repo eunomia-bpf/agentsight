@@ -255,7 +255,7 @@ run_codex_offset_canary() {
     status=$?
     set -e
 
-    if ! grep -Fq "Codex/rustls write_vectored byte-pattern detected" "$stderr" \
+    if ! grep -Fq "Codex/rustls plaintext write patterns detected" "$stderr" \
         || ! grep -Eq "Attaching [1-9][0-9]* offsets" "$stderr"; then
         echo "Codex sslsniff output did not prove signature attachment" >&2
         sed -n '1,160p' "$stderr" >&2 || true
@@ -287,9 +287,10 @@ import sys
 
 db, prompt = sys.argv[1:]
 match = sqlite3.connect(db).execute(
-    "SELECT 1 FROM llm_calls WHERE view_source = 'live_view' "
-    "AND path = '/v1/responses' AND instr(request_body_json, ?) > 0",
-    (prompt,),
+    "SELECT 1 FROM llm_calls WHERE path = '/v1/responses' "
+    "AND instr(request_body_json, ?) > 0 AND EXISTS (SELECT 1 FROM audit_events "
+    "WHERE audit_type = 'llm' AND action = 'request' AND instr(details_json, ?) > 0)",
+    (prompt, prompt),
 ).fetchone()
 if not match:
     raise SystemExit("Codex prompt was not reconstructed from SSL /v1/responses traffic")

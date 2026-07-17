@@ -13,11 +13,23 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define CODEX_MAX_RUSTLS_WRITEV_OFFSETS 32
+#define CODEX_MAX_RUSTLS_OFFSETS 64
+
+struct codex_rustls_offset {
+	size_t offset;
+	bool vectored;
+};
 
 struct codex_rustls_offsets {
-	size_t write_vectored[CODEX_MAX_RUSTLS_WRITEV_OFFSETS];
+	struct codex_rustls_offset entries[CODEX_MAX_RUSTLS_OFFSETS];
 	size_t count;
+};
+
+static const uint8_t codex_rustls_write_prefix[] = {
+	0x41, 0x56, 0x53, 0x48, 0x83, 0xec, 0x48, 0x49,
+	0x89, 0xfe, 0x48, 0x89, 0x74, 0x24, 0x10, 0x48,
+	0x89, 0x54, 0x24, 0x18, 0x48, 0xc7, 0x44, 0x24,
+	0x08, 0x00, 0x00, 0x00,
 };
 
 /* rustls 0.23 PlaintextSink::write_vectored. Branch displacements differ
@@ -51,6 +63,18 @@ static size_t codex_find_pattern(const uint8_t *data, size_t data_len,
 		offset++;
 	}
 	return (size_t)-1;
+}
+
+static bool codex_add_rustls_offset(struct codex_rustls_offsets *out,
+				     size_t offset, bool vectored)
+{
+	if (out->count == CODEX_MAX_RUSTLS_OFFSETS)
+		return false;
+	out->entries[out->count++] = (struct codex_rustls_offset) {
+		.offset = offset,
+		.vectored = vectored,
+	};
+	return true;
 }
 
 static bool codex_find_rustls_offsets(const char *binary_path,
@@ -89,13 +113,22 @@ static bool codex_find_rustls_offsets(const char *binary_path,
 			      sizeof(codex_rustls_writev_iov)) == 0
 		    && memcmp(data + offset + 28, codex_rustls_writev_copy,
 			      sizeof(codex_rustls_writev_copy)) == 0) {
-			if (out->count == CODEX_MAX_RUSTLS_WRITEV_OFFSETS) {
-				out->count = 0;
+			if (!codex_add_rustls_offset(out, offset, true))
 				break;
-			}
-			out->write_vectored[out->count++] = offset;
 		}
 		search = offset + 1;
+	}
+	search = 0;
+	while (search + sizeof(codex_rustls_write_prefix) <= (size_t)st.st_size) {
+		size_t relative = codex_find_pattern(
+			data + search, (size_t)st.st_size - search,
+			codex_rustls_write_prefix, sizeof(codex_rustls_write_prefix));
+		if (relative == (size_t)-1)
+			break;
+		search += relative;
+		if (!codex_add_rustls_offset(out, search, false))
+			break;
+		search++;
 	}
 
 	munmap(data, (size_t)st.st_size);

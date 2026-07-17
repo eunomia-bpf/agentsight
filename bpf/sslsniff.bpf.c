@@ -74,6 +74,47 @@ static __always_inline bool trace_allowed(u32 uid, u32 pid)
     return true;
 }
 
+static __always_inline void submit_rustls_write(struct probe_SSL_data_t *data,
+                                                 u32 pid, u32 tid, u32 uid,
+                                                 u64 total, u32 copied)
+{
+    data->timestamp_ns = bpf_ktime_get_ns();
+    data->delta_ns = 0;
+    data->pid = pid;
+    data->tid = tid;
+    data->uid = uid;
+    data->len = total > (__u32)-1 ? (__u32)-1 : (__u32)total;
+    data->buf_size = copied;
+    data->buf_filled = copied > 0;
+    data->rw = 1;
+    data->is_handshake = false;
+    bpf_get_current_comm(&data->comm, sizeof(data->comm));
+    bpf_ringbuf_submit(data, 0);
+}
+
+SEC("uprobe/rustls_write")
+int BPF_UPROBE(probe_rustls_write, void *conn, const void *buf, size_t len)
+{
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    u32 pid = pid_tgid >> 32;
+    u32 tid = (u32)pid_tgid;
+    u32 uid = bpf_get_current_uid_gid();
+    u32 copied = len > RUSTLS_MAX_CAPTURE_SIZE
+        ? RUSTLS_MAX_CAPTURE_SIZE : (u32)len;
+
+    if (!trace_allowed(uid, pid) || !buf || len == 0)
+        return 0;
+    struct probe_SSL_data_t *data = bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
+    if (!data)
+        return 0;
+    if (bpf_probe_read_user(data->buf, copied, buf)) {
+        bpf_ringbuf_discard(data, 0);
+        return 0;
+    }
+    submit_rustls_write(data, pid, tid, uid, len, copied);
+    return 0;
+}
+
 SEC("uprobe/rustls_write_vectored")
 int BPF_UPROBE(probe_rustls_write_vectored, void *conn,
                const struct rustls_iovec *iovecs, size_t iovcnt)
@@ -125,18 +166,7 @@ int BPF_UPROBE(probe_rustls_write_vectored, void *conn,
 
     if (iovcnt > MAX_RUSTLS_IOVECS && total <= copied)
         total = (__u64)copied + 1;
-    data->timestamp_ns = bpf_ktime_get_ns();
-    data->delta_ns = 0;
-    data->pid = pid;
-    data->tid = tid;
-    data->uid = uid;
-    data->len = total > (__u32)-1 ? (__u32)-1 : (__u32)total;
-    data->buf_size = copied;
-    data->buf_filled = copied > 0;
-    data->rw = 1;
-    data->is_handshake = false;
-    bpf_get_current_comm(&data->comm, sizeof(data->comm));
-    bpf_ringbuf_submit(data, 0);
+    submit_rustls_write(data, pid, tid, uid, total, copied);
     return 0;
 }
 
