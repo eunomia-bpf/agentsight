@@ -390,7 +390,7 @@ impl WebSocketState {
         let body = String::from_utf8(payload).ok()?;
         let json: serde_json::Value = serde_json::from_str(&body).ok()?;
         if json.get("type").and_then(|v| v.as_str()) != Some("response.create") {
-            return Some(Vec::new());
+            return None;
         }
         Some(vec![create_websocket_request_event(
             event,
