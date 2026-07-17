@@ -18,8 +18,8 @@ later explicit user instruction may change the four author-fixed RQs.
 
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
-| RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Positive integration evidence; independent attribution-improvement evidence remains open.** R114 supplies scoped source-lineage correctness under concurrent controls, and current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 establish declared-category separation, multi-weight views, and association beyond session, but prompt tags define both the grouping key and the reported mixed-category reference. They therefore do not independently decide whether semantic responsibility is more correct than an information-equivalent source-native or labeled-profiler view. Preserve the full positive RQ and obtain that missing comparison; do not narrow the hypothesis. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed positive answer; Step 0033 supplies one standard primary metric across all three complete localization workloads.** Trajectory MAP is 0.789 versus 0.773 raw on AgentProcessBench, 0.453 versus 0.281 on HINTBench, and 0.230 versus 0.121 on TraceElephant; all three paired 95% intervals have positive lower bounds. Pooled operation AP has the same direction while retaining zero-positive trajectories. The fixed-reader comparison separately improves selected-positive recall on 5/6 tasks and precision on 4/6 versus session at three groups. Existing Work curves remain secondary: the result supports problem ranking and group prioritization, not universally lower work, human productivity, or dominance over every atomic/session view. Do not open another RQ2 metric, cutoff, score, or benchmark variant. |
+| RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed positive answer.** R114 establishes scoped source-lineage correctness under concurrent controls and lossless profile folding. Step 0035 adds a non-circular same-input comparison over the complete pre-existing 405-trajectory CodeTraceBench source-valid target: recurrence improves standard ordinary B-cubed F1 against human stages from 0.541 raw-action-key to 0.649, a +0.108 task-cluster effect with 95% interval [+0.087,+0.129]. Resource-weighted gains remain +0.076 to +0.085 under three shared-response allocations. Phase-only is statistically indistinguishable at 0.654, so the result supports semantic stage-aligned attribution over raw identity, not recurrence dominance over every semantic view. R170/R224/R251 remain descriptive declared-category and multi-weight evidence rather than an independent oracle. Do not reopen another RQ1 benchmark, metric, or constructor variant before WRITE/REVIEW. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed positive answer against matched raw-action organization, with an explicit atomic/local mechanism boundary.** Step 0036 rechecks all 1,756 trajectories and 27,346 operations using standard per-query AP/MAP as the primary metric and exact-budget Recall@20% only as secondary analysis: AgentProf-minus-raw intervals are positive for both measurements on AgentProcessBench, HINTBench, and TraceElephant. Atomic nevertheless wins both AgentProcessBench measurements, while the HINT/Trace atomic comparisons are mixed; HINT grouping also propagates nonzero support to 76.54% of clean operations versus 0.742% atomic. Step 0037 then adaptively preserves every strict local-score ordering and uses semantic recurrence only to break exact local-score ties. On the same observed populations it improves MAP over atomic and semantic-only ranking on all three workloads and over a matched local+raw tie-breaker on HINTBench and TraceElephant; AgentProcessBench is indistinguishable from local+raw. This supports a simple local-first semantic mechanism, not a universal replacement or untouched confirmation. The fixed-reader comparison separately improves selected-positive recall on 5/6 tasks and precision on 4/6 versus session. Collectively the evidence supports problem ranking and group prioritization, not universally lower work, human productivity, or dominance over every atomic/session view. No further score tuning on these populations is admitted. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; Step 0024 remains the label-free default, Step 0030 adds optional grouped-reference evidence, Step 0031 adds literal task-family accuracy, and Step 0032 adds literal action accuracy for one named backend.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0024 reaches 0.6799 boundary F1 and 0.7862 B-cubed F1 on OSWorld, and raises CodeTraceBench boundary F1 from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 on all 405 reused targets. Step 0030 fits one scalar on disjoint grouped references and raises B-cubed F1 to 0.8011 on OSWorld and 0.6666 on CodeTraceBench. Step 0031's fixed Qwen3.6-27B path reaches 0.695 task-family macro-F1 on all 1,012 AgentBoard goals. Step 0032 uses the complete 2,737-label ASE population and reaches 0.498 action macro-F1 versus 0.061 majority, a +0.437 trajectory-bootstrap effect with 95% interval [+0.380, +0.494], and exact two-run stability. Literal phase identity, unknown label sets, and uniform cross-framework accuracy remain outside current evidence. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
@@ -98,6 +98,47 @@ are under
 [`loop-001-rq1-r114-current-profile`](tmp/build-and-evaluate/step-0007-20260714T054617-0700/01-experiment-gate/loop-001-rq1-r114-current-profile/),
 with machine artifacts under
 `.agentsight/experiments/rq1-r114-current-profile-v1/`.
+
+## Admitted RQ1 Independent Stage And Token Evidence
+
+Step 0035 reuses the complete pre-existing source-valid CodeTraceBench target
+and the unchanged Step 0024 assignments. All 405 failed trajectories, 20,866
+operations, 2,948 official human stage intervals, and 251 benchmark tasks are
+scored; no new agent execution, label, partition, threshold, or algorithm is
+introduced. Ordinary operation-level B-cubed is the standard primary partition
+metric. Recurrence reaches precision 0.828579, recall 0.533630, and F1 0.649173,
+versus 0.891296, 0.388437, and 0.541070 for the matched contiguous
+source-native raw-action-key view. The `+0.108103` F1 effect has a paired
+task-cluster-bootstrap 95% interval of `[+0.087091,+0.129132]`; all 10,000
+resamples and all four framework effects are positive.
+
+The source adapter maps 17,148 operation-producing provider responses and
+494,862,929 prompt-plus-completion tokens. Token mass is conserved exactly.
+For the 1,426 responses shared by 5,144 operations, token-weighted B-cubed
+recurrence-minus-raw effects remain positive under equal, all-to-first, and
+all-to-last allocation: `+0.084574`, `+0.075910`, and `+0.075671`. This
+published weighted-B-cubed extension is a resource-sensitive secondary result,
+not a community-standard token-attribution metric or a replacement for the
+ordinary primary result. The mapped mass excludes provider calls that do not
+produce an official operation and abandoned earlier SWE-agent attempts; it is
+not every released trajectory's complete LLM cost.
+
+Phase-only reaches 0.654445 ordinary B-cubed F1. A descriptive paired
+task-cluster bootstrap for recurrence minus phase spans zero at
+`[-0.017778,+0.008234]`, so neither view reliably dominates the other in this
+experiment. This is a mechanism boundary, not a contradiction: Step 0035
+supports semantic stage-aligned attribution over raw action identity, while the
+separate OSWorld-Human RQ3 experiment supplies recurrence's stronger advantage
+over phase-only. Because CodeTraceBench previously participated in selecting
+the current constructor, this is post-hoc supporting evidence rather than
+untouched independent algorithm confirmation.
+
+The independent full-result reviewer reconstructed every join, metric,
+allocation, and bootstrap result without calling the scorer and returned
+`PASS`. Complete records are under
+[`step-0035-20260716T191253-0700`](tmp/build-and-evaluate/step-0035-20260716T191253-0700/),
+with machine artifacts under
+`.agentsight/experiments/rq1-codetracebench-token-attribution-v1/`.
 
 ## Admitted RQ2 Evidence And Boundaries
 
@@ -277,28 +318,116 @@ independently annotated problem operations are relevant items. Non-interpolated
 AP is computed with scikit-learn and averaged across queries. AgentProcessBench
 contributes 614 target-bearing queries, HINTBench 400, and TraceElephant 220.
 
-AgentProf trajectory MAP is `0.788919` versus `0.773170` raw action on
-AgentProcessBench, `0.452852` versus `0.281491` on HINTBench, and `0.230168`
-versus `0.121270` on TraceElephant. The paired 10,000-draw intervals are
-`[+0.004727,+0.027081]`, `[+0.154534,+0.188739]`, and
-`[+0.078010,+0.141302]`. AgentProcessBench resamples all 200 released tasks
+The then-retained consolidation reported AgentProf trajectory MAP of
+`0.788919` versus `0.773170` raw action on AgentProcessBench, `0.452852` versus
+`0.281491` on HINTBench, and `0.230168` versus `0.121270` on TraceElephant. The
+paired 10,000-draw intervals were `[+0.004727,+0.027081]`,
+`[+0.154534,+0.188739]`, and `[+0.078010,+0.141302]`. AgentProcessBench
+resamples all 200 released tasks
 within family; HINTBench resamples target-bearing records within 44
 environments; TraceElephant resamples traces within five cells. Pooled
 operation AP retains the 386 AgentProcessBench and 136 HINTBench zero-positive
 trajectories and has the same AgentProf-over-raw direction. Counting HINTBench's
 three unmappable official targets as unretrieved also preserves the result.
 
-Independent review reconstructed all populations, fixed scores, 1,234 query
-rows, pooled AP values, target coverage, and bootstrap intervals with no
-invalidating finding. The registered three-positive-sign rule therefore yields
-`VALID / COMPLETE / SUPPORTED`. The result provides a common standard RQ2
-ranking answer while preserving the controls: atomic ranking remains stronger
-on AgentProcessBench and weaker on HINTBench and TraceElephant, and the earlier
-Work curves remain secondary inspection diagnostics. It does not claim human
-debugging time or universal view dominance. Complete reports are under
+That review reconstructed the planned populations, 1,234 query rows, target
+coverage, and bootstrap intervals and initially returned `VALID / COMPLETE /
+SUPPORTED`. Step 0036 subsequently discovered that mathematically zero HINT
+Wilson lower bounds had been represented by floating residues and superseded
+the Step 0033 HINT values after exact-zero canonicalization. The authoritative
+current HINT MAP values are `0.452373` versus `0.281237`, with interval
+`[+0.153772,+0.188223]`; Step 0036 and its fresh independent reconstruction are
+the cited result. Step 0033 remains useful as the historical standard-MAP
+consolidation, not as the current numerical authority. It does not claim human
+debugging time or universal view dominance. Complete historical reports are under
 [`step-0033-20260716T165119-0700`](tmp/build-and-evaluate/step-0033-20260716T165119-0700/),
 with local raw artifacts under
 `.agentsight/experiments/rq2-standard-map-existing-trajectories-v1/full/`.
+
+Step 0036 then tests the strongest remaining whole-paper objection without a
+new trajectory, model, localizer, profile, field order, or paper RQ: whether
+the same-signal AgentProf-versus-raw MAP gain survives an exact fixed operation
+budget and whether it merely spreads signal relative to direct atomic scoring.
+The complete matrix covers AgentProcessBench (1,000 trajectories / 8,509
+operations), HINTBench (536 / 12,877), and TraceElephant (220 / 5,960), with
+all 1,234 target-bearing queries and all 522 clean trajectories retained.
+
+The final independently reconstructed result is `VALID / SUPPORTED`, with
+boundary research value. AgentProf MAP / expected Recall@20% is
+`0.788919 / 0.562766` versus raw `0.773170 / 0.544346` on
+AgentProcessBench, `0.452373 / 0.574109` versus
+`0.281237 / 0.486033` on HINTBench, and
+`0.230168 / 0.457529` versus `0.121270 / 0.348270` on
+TraceElephant. The six AgentProf-minus-raw intervals are wholly positive:
+MAP `[+0.004565,+0.027106]`, `[+0.153772,+0.188223]`, and
+`[+0.077026,+0.141857]`; Recall@20%
+`[+0.005274,+0.032305]`, `[+0.068632,+0.107685]`, and
+`[+0.054357,+0.164569]`.
+
+Atomic scoring is the important counterpoint. It reaches
+`0.863171 / 0.651185` on AgentProcessBench and decisively beats AgentProf on
+both metrics. AgentProf beats atomic on HINT MAP but not conclusively on
+Recall@20%; it beats atomic on TraceElephant Recall@20% but not conclusively on
+MAP. HINT AgentProf and raw grouping both give nonzero support to all 136 clean
+trajectories and 76.54% of their operations, versus 9.56% and 0.742% for
+atomic. Thus the reviewed claim is the consistent matched raw-action advantage,
+not universal semantic-propagation superiority. The external signals remain
+bounded: AgentProcessBench median StepAcc is 0.6678, HINT no-type localization
+F1 is 0.4974, and TraceElephant step accuracy is 0.1636.
+
+Two superseded attempts and both numerical defects remain recorded rather than
+hidden. The final HINT pooled AP values are AgentProf 0.249439, raw 0.180366,
+atomic 0.266199, and session 0.103928; all 24 validation candidates retain the
+same selected order after zero correction. Complete plans, invalid-attempt
+audit, final step report, and independent review are under
+[`step-0036-20260717T041400-0700`](tmp/build-and-evaluate/step-0036-20260717T041400-0700/),
+with authoritative raw results under
+`.agentsight/experiments/rq2-same-signal-diagnostic-decomposition-v1/full/`.
+
+The earlier RQ2 score freeze was correct before this atomic/propagation
+boundary was isolated. The user's later explicit request to improve the
+current algorithm on already-run trajectories authorized one adaptive
+mechanism candidate, not an open-ended score search. Step 0037 preserves every
+strict operation-local ordering and lets the existing semantic recurrence
+score refine only exact local-score ties. A matched local+raw candidate uses
+the identical composition rule and differs only in its secondary key. No new
+metric, cutoff, weight, model, hierarchy, benchmark, or trajectory is added.
+
+The independently reconstructed full result covers the same 1,756
+trajectories, 27,346 operations, 1,234 target-bearing queries, and 522 clean
+trajectories. Standard per-query AP and workload MAP remain primary;
+tie-averaged Recall@20% remains a secondary fixed-budget analysis rather than
+an official benchmark metric. Local+semantic MAP is `0.895972`, `0.544906`,
+and `0.321905` on AgentProcessBench, HINTBench, and TraceElephant. Relative to
+atomic/local-only ranking, the paired MAP gains are `+0.032801`
+`[+0.024421,+0.042081]`, `+0.134348`
+`[+0.121196,+0.147153]`, and `+0.113192`
+`[+0.086972,+0.141692]`. Relative to incumbent semantic-only ranking, the
+gains are `+0.107052` `[+0.088462,+0.126437]`, `+0.092534`
+`[+0.077050,+0.109587]`, and `+0.091736`
+`[+0.058967,+0.126763]`.
+
+The decisive matched secondary-key comparison establishes the workload
+boundary. Local+semantic minus local+raw MAP is `+0.002900`
+`[-0.000497,+0.006852]` on AgentProcessBench, `+0.038945`
+`[+0.029118,+0.048908]` on HINTBench, and `+0.072552`
+`[+0.049844,+0.097053]` on TraceElephant. The registered all-workload
+intersection is therefore `INCONCLUSIVE`, not supported, although no
+comparison is contradicted. Candidate support equals atomic support by
+construction; this is an algorithm property, not a performance metric or
+specificity result. The admitted conclusion is that preserving local evidence
+and using semantic recurrence only for exact local-score ties improves over
+atomic and incumbent semantic-only ranking on all three observed populations,
+and beats raw-action tie refinement on HINTBench and TraceElephant while
+AgentProcessBench does not distinguish the two refinements. Because the
+candidate was chosen after Step 0036 target-dependent inspection, it is
+post-hoc mechanism evidence, not untouched generalization. The candidate is
+closed as a universal replacement, and no further score tuning on these same
+populations is admitted. The approved plan, complete execution history, and
+independent result review are under
+[`step-0037-20260717T052237-0700`](tmp/build-and-evaluate/step-0037-20260717T052237-0700/),
+with authoritative local raw results under
+`.agentsight/experiments/rq2-local-first-semantic-ranking-v1/full/`.
 
 The unexecuted revision-1 plan is superseded because it bundled roughly eleven
 comparator types and several independent research programs. Its history remains
@@ -899,6 +1028,43 @@ If the existing artifacts cannot supply that independent target, the bounded
 source screen must choose an official real external asset rather than invent a
 small custom harness. This evidence-status correction does not alter the thesis,
 four RQs, positive RQ1 hypothesis, or reader-facing story.
+
+Step 0035 completes that selected RQ1 comparison on the full pre-existing
+CodeTraceBench source-valid target. The standard ordinary B-cubed hypothesis is
+supported, the paired task-cluster interval is wholly positive, and the
+resource-weighted direction is stable under all three predeclared
+multi-operation token allocations. Independent review passes the result and
+routes directly to WRITE. Phase-only and recurrence are statistically
+indistinguishable on this stage target, so WRITE must claim semantic
+stage-aligned attribution over raw action identity and rely on the separate
+OSWorld result for recurrence's algorithm-specific advantage. Do not run
+another RQ1 benchmark, metric, allocation, or recurrence variant before the
+complete paper REVIEW chooses a genuinely different paper-level need.
+
+Step 0036 answers the resulting RQ2 same-signal objection over all 1,756
+existing trajectories and 27,346 operations. Standard per-query AP/MAP and the
+secondary exact-budget Recall@20% both favor semantic organization over matched
+raw action on AgentProcessBench, HINTBench, and TraceElephant, while the atomic
+comparison exposes that grouping must not override stronger operation-local
+evidence. Step 0037 performs the one explicitly authorized adaptive follow-up:
+preserve every strict local ordering and use semantic recurrence only to refine
+exact ties. It improves MAP over local-only and semantic-only ranking on all
+three observed populations and over matched local-plus-raw refinement on HINT
+and Trace; AgentProcessBench does not distinguish the two refinements. The
+registered universal hypothesis is therefore inconclusive, but the result
+supports the local-first semantic mechanism and closes all further RQ2 score,
+metric, cutoff, or benchmark tuning on these populations.
+
+The Step 0037 full-paper outer audit passes the completed experiment and write
+integration but does not grant submission readiness. RQ3 is the remaining
+paper-level evidence gap: the fixed hypothesis names task, phase, action, and
+boundary identities, while current complete evidence lacks a literal
+phase-tag measurement. The next step selects exactly one RQ3 experiment using
+an existing official annotated public corpus, its complete released
+population, one appropriate standard metric, and a small fair baseline set.
+It may improve the mechanism or adapter but may not change the RQ, thesis,
+story, or contributions. Once RQ3 closes, the paper returns to a genuinely
+unprimed milestone review with primary-source novelty search.
 
 ## Experiment History Policy
 

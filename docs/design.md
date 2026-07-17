@@ -247,14 +247,22 @@ across recurring phases need not reward the same projection. Only the sparse
 condition has current evidence; the additive-regression condition remains
 untested.
 
-The complete HINTBench experiment adds a target-blind transfer boundary rather
-than a new abstraction. A fixed action/environment/phase/status profile had a
-favorable inspection-work point estimate but did not separate from raw action
-under the predeclared paired interval. The next mechanism therefore keeps the
-same two-object model. Later AgentProcessBench and TraceElephant results supply
-the cumulative positive RQ2 answer at their evaluated AP and recall operating
-points; HINTBench remains one scoped transfer boundary rather than a reason to
-change the model or RQ.
+The final same-signal RQ2 consolidation keeps the two-object model and makes the
+ranking boundary explicit. Under standard per-trajectory AP/MAP, the incumbent
+semantic organization beats matched raw-action grouping on complete
+AgentProcessBench, HINTBench, and TraceElephant populations, but direct local
+evidence is stronger on AgentProcessBench. One adaptive, parameter-free
+follow-up therefore preserves every strict local ordering and uses semantic
+recurrence only to refine exact local-score ties. On the same observed
+populations it improves MAP over local-only and semantic-only ranking on all
+three workloads and over an identically composed local-plus-raw refinement on
+HINTBench and TraceElephant; AgentProcessBench does not distinguish the two
+secondary keys. The design consequence is the simple principle that grouping
+may refine otherwise-equal local evidence but should not override stronger
+local evidence. Because the candidate was selected on these populations and
+its registered all-workload comparison is inconclusive, it is mechanism
+evidence rather than a universal replacement or a new ranking subsystem. No
+further score tuning on these populations is part of the design.
 
 ## Archived Proposal Mechanisms
 

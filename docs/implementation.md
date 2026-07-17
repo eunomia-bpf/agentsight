@@ -27,6 +27,9 @@ history is archived at
 | `script/hodoscope_representation_eval.py` | thin official-data adapter for the completed matched Hodoscope/flat/turn/recursive experiment; not a core AgentProf subsystem |
 | `script/hintbench_profile_localization_eval.py` | thin official-data adapter, real-AgentProf runner, baseline scorer, and result reporter for the completed HINTBench experiment; not a core AgentProf subsystem |
 | `script/r315_llm_reader_eval.py` | thin rank-hidden packet collector and post-collection scorer for the completed fixed-reader RQ2 experiment; not a core AgentProf subsystem |
+| `script/rq1_codetracebench_token_attribution_eval.py` | complete CodeTraceBench ordinary and resource-weighted B-cubed attribution evaluator; not a core AgentProf subsystem |
+| `script/rq2_same_signal_diagnostic_decomposition.py` | complete three-workload standard-MAP, fixed-budget, atomic/raw/session decomposition over retained diagnostic signals; not a core AgentProf subsystem |
+| `script/rq2_local_first_semantic_ranking.py` | adaptive evaluation-only local-first semantic tie-refinement and matched local-plus-raw comparison; not the release ranking path |
 | `script/rq3_recurrence_stack_induction_eval.py` | fixed five-fold Python development adapter and scorer for the completed recurrence-induction experiment |
 | `script/rq3_recurrence_stack_rust_equivalence.py` | mechanical full-population verifier for Python/Rust boundary, segment, motif, and mass equivalence |
 | `script/rq3_reference_calibrated_existing_traces_eval.py` | completed Step 0030 adapter for one grouped-reference scalar on the retained OSWorld-Human and CodeTraceBench trajectories |
@@ -190,9 +193,14 @@ configuration. In particular:
 8. imported zero values are currently normalized to one; existing admitted
    experiments use positive integer weights, but zero-valued measures require
    an artifact correction before use.
-9. the complete HINTBench profile has a favorable inspection-work point estimate
-   but does not separate from raw action under its predeclared paired interval;
-   it is a scoped boundary within the cumulative three-benchmark RQ2 answer.
+9. the final same-signal RQ2 consolidation improves standard MAP over matched
+   raw-action organization on all three complete workloads, but direct local
+   evidence remains stronger on AgentProcessBench. The adaptive local-first
+   semantic refinement improves over local-only and semantic-only ranking on
+   all three observed populations and over matched local-plus-raw refinement on
+   HINTBench and TraceElephant; AgentProcessBench does not distinguish the two
+   refinements. It is evaluation-only post-hoc mechanism evidence, not the Rust
+   release ranking path or an untouched universal replacement.
 10. the fixed-reader result is limited to one local model and each view's
     query-aware top-five packet; it adds group-prioritization evidence but does
     not establish lower work, reader-only causality, human utility, or raw-action
