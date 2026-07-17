@@ -9,6 +9,10 @@ const ATTENTION_STEPS = 24;
 const ATTENTION_HALF_LIFE_STEPS = 6;
 const TRANSITION_STEPS = 6;
 const GOLDEN_ANGLE_DEGREES = 137.508;
+const RESTING_REFERENCE_FILES = 480;
+const RESTING_MAX_SIZE = 6;
+const RESTING_MIN_SIZE = 1.35;
+const FOCUSED_MAX_SIZE = 10.5;
 
 const modelCache = new WeakMap();
 
@@ -52,16 +56,6 @@ function parentDirectory(path) {
 function topDirectory(path) {
   const parts = pathParts(path);
   return parts.length > 1 ? parts[0] : "(root)";
-}
-
-function commonDirectoryDepth(left, right) {
-  const leftParts = directoryParts(left);
-  const rightParts = directoryParts(right);
-  let depth = 0;
-  while (depth < leftParts.length && depth < rightParts.length && leftParts[depth] === rightParts[depth]) {
-    depth += 1;
-  }
-  return depth;
 }
 
 function eventPaths(event) {
@@ -186,6 +180,7 @@ function buildBuckets(actions) {
   const count = Math.min(eventGroups.length, MAX_VISUAL_STEPS);
   const buckets = Array.from({ length: count }, () => []);
   eventGroups.forEach((group, index) => {
+    for (const action of group) action.eventStep = index;
     const bucket = Math.min(count - 1, Math.floor(index * count / eventGroups.length));
     buckets[bucket].push(...group);
   });
@@ -399,8 +394,18 @@ function attention(node, step) {
   return gain * 2 ** (-age / ATTENTION_HALF_LIFE_STEPS);
 }
 
-function nodeRadius(node) {
-  return clamp(3 + 0.9 * Math.log1p(node.visits), 3, 8);
+function restingNodeSize(count) {
+  const density = Math.sqrt(RESTING_REFERENCE_FILES / Math.max(RESTING_REFERENCE_FILES, count));
+  return clamp(RESTING_MAX_SIZE * density, RESTING_MIN_SIZE, RESTING_MAX_SIZE);
+}
+
+function focusedNodeSize(count, strength) {
+  const resting = restingNodeSize(count);
+  return resting + (FOCUSED_MAX_SIZE - resting) * clamp(strength, 0, 1);
+}
+
+function nodeRadius(node, step, count) {
+  return focusedNodeSize(count, attention(node, step)) / 2;
 }
 
 function buildLinks(nodes, step) {
@@ -424,21 +429,18 @@ function buildLinks(nodes, step) {
     links.push({ source, target, distance, strength: strength * activity });
     linked.add(key);
   };
-  for (const paths of byParent.values()) {
+  const addTree = (paths, distance, strength) => {
     const ordered = [...paths].sort();
     for (let index = 1; index < ordered.length; index += 1) {
-      add(ordered[index - 1], ordered[index], 30, 0.34);
-      if (index > 1) add(ordered[index - 2], ordered[index], 38, 0.18);
+      add(ordered[Math.floor((index - 1) / 4)], ordered[index], distance, strength);
     }
+  };
+  for (const paths of byParent.values()) {
+    addTree(paths, clamp(14 + 0.7 * Math.sqrt(paths.length), 14, 32), 0.14);
   }
   for (const paths of byTop.values()) {
     const representatives = [...new Map(paths.sort().map((path) => [parentDirectory(path), path])).values()];
-    for (let index = 1; index < representatives.length; index += 1) {
-      const left = representatives[index - 1];
-      const right = representatives[index];
-      const depth = commonDirectoryDepth(left, right);
-      add(left, right, depth > 0 ? 52 : 90, depth > 0 ? 0.14 : 0.07);
-    }
+    addTree(representatives, clamp(34 + Math.sqrt(representatives.length), 34, 68), 0.04);
   }
   return links;
 }
@@ -453,16 +455,21 @@ function runForces(state, actions, step) {
   const nodes = [...state.nodes.values()];
   if (!nodes.length) return;
   const links = buildLinks(nodes, step);
+  const densityScale = clamp(Math.sqrt(RESTING_REFERENCE_FILES / nodes.length), 0.24, 1);
+  const centerStrength = 0.025 + 0.035 * (1 - densityScale);
   const simulation = forceSimulation(nodes)
     .stop()
     .randomSource(randomLcg(hash32(`${state.repository}:${step}`)))
-    .velocityDecay(0.32)
+    .velocityDecay(0.38)
     .alpha(actionAlpha(actions))
     .alphaDecay(0)
-    .force("charge", forceManyBody().strength((node) => -7 - 0.8 * nodeRadius(node)))
-    .force("collision", forceCollide((node) => nodeRadius(node) + 2).iterations(2))
-    .force("x", forceX(WIDTH / 2).strength(0.026))
-    .force("y", forceY(HEIGHT / 2).strength(0.036));
+    .force("charge", forceManyBody().strength((node) => (
+      (-2.2 - 0.55 * nodeRadius(node, step, nodes.length)) * densityScale
+    )))
+    .force("collision", forceCollide((node) => nodeRadius(node, step, nodes.length) + 1)
+      .iterations(nodes.length > 1_000 ? 1 : 2))
+    .force("x", forceX(WIDTH / 2).strength(centerStrength))
+    .force("y", forceY(HEIGHT / 2).strength(centerStrength * 1.35));
   if (links.length) {
     simulation.force("links", forceLink(links)
       .id((node) => node.path)
@@ -472,8 +479,21 @@ function runForces(state, actions, step) {
   const ticks = nodes.length > 1_000 ? 1 : nodes.length > 500 ? 2 : nodes.length > 200 ? 4 : 8;
   simulation.tick(ticks);
   for (const node of nodes) {
-    node.x = clamp(node.x, 18, WIDTH - 18);
-    node.y = clamp(node.y, 18, HEIGHT - 18);
+    const margin = Math.max(4, nodeRadius(node, step, nodes.length) + 1);
+    if (node.x < margin) {
+      node.x = margin;
+      node.vx = Math.abs(node.vx) * 0.25;
+    } else if (node.x > WIDTH - margin) {
+      node.x = WIDTH - margin;
+      node.vx = -Math.abs(node.vx) * 0.25;
+    }
+    if (node.y < margin) {
+      node.y = margin;
+      node.vy = Math.abs(node.vy) * 0.25;
+    } else if (node.y > HEIGHT - margin) {
+      node.y = HEIGHT - margin;
+      node.vy = -Math.abs(node.vy) * 0.25;
+    }
   }
 }
 
@@ -498,8 +518,8 @@ function summarizeActions(actions) {
   return `${vendors.join("+")} · ${actions.length} actions · ${summary}`;
 }
 
-function snapshot(state, actions, step) {
-  const nodes = [...state.nodes.values()].filter((node) => nodeOpacity(node, step) > 0.001).map((node) => ({
+function snapshot(state, actions, step, actionStep) {
+  const nodes = [...state.nodes.values()].filter((node) => nodeOpacity(node, actionStep) > 0.001).map((node) => ({
     path: node.path,
     x: node.x / WIDTH,
     y: node.y / HEIGHT,
@@ -516,11 +536,12 @@ function snapshot(state, actions, step) {
     bornNear: node.bornNear,
     lifecycleType: node.lifecycleType,
     lifecycleStep: node.lifecycleStep,
-    color: currentColor(node, step),
-    opacity: nodeOpacity(node, step),
+    color: currentColor(node, actionStep),
+    opacity: nodeOpacity(node, actionStep),
   }));
   return {
     step,
+    actionStep,
     ts_ms: actions.at(-1).ts_ms,
     actions,
     summary: summarizeActions(actions),
@@ -550,10 +571,11 @@ function buildModel(data) {
   };
   const snapshots = [];
   buckets.forEach((bucket, step) => {
-    pruneDeleted(state, step);
-    for (const action of bucket) applyAction(action, step, state);
-    runForces(state, bucket, step);
-    snapshots.push(snapshot(state, bucket, step));
+    const actionStep = bucket.at(-1).eventStep;
+    pruneDeleted(state, actionStep);
+    for (const action of bucket) applyAction(action, action.eventStep, state);
+    runForces(state, bucket, actionStep);
+    snapshots.push(snapshot(state, bucket, step, actionStep));
   });
   return {
     actions,
@@ -635,10 +657,11 @@ export function repositoryNebula(data, cursorMs, h) {
   if (!current) return emptyOption(h);
   const visitP95 = Math.max(1, ...current.nodes.map((node) => node.visits).sort((a, b) => a - b)
     .slice(Math.floor(current.nodes.length * 0.95), Math.floor(current.nodes.length * 0.95) + 1));
-  const cameraScale = clamp(1.05 + 4 / Math.sqrt(Math.max(1, current.nodes.length)), 1.05, 2.3);
+  const cameraScale = clamp(0.92 + 3 / Math.sqrt(Math.max(1, current.nodes.length)), 0.92, 1.8);
+  const restingSize = restingNodeSize(current.nodes.length);
 
   const points = current.nodes.map((node) => {
-    const age = current.step - node.lastStep;
+    const age = current.actionStep - node.lastStep;
     const strength = age <= ATTENTION_STEPS
       ? ({ read: 0.35, write: 0.75, create: 1, rename: 0.8 }[node.focusType] ?? 0)
         * 2 ** (-age / ATTENTION_HALF_LIFE_STEPS)
@@ -646,7 +669,7 @@ export function repositoryNebula(data, cursorMs, h) {
     const depth = directoryParts(node.path).length;
     const visitFactor = Math.log1p(node.visits) / Math.log1p(visitP95);
     const baseline = clamp(0.58 + 0.14 / (1 + 0.18 * depth) + 0.18 * visitFactor, 0.6, 0.9);
-    const size = clamp(5.2 + 1.2 * Math.log1p(node.visits), 5.2, 12);
+    const size = restingSize + (FOCUSED_MAX_SIZE - restingSize) * strength;
     return {
       id: node.path,
       value: [
@@ -696,9 +719,9 @@ export function repositoryNebula(data, cursorMs, h) {
     }));
 
   const lifecycle = points.filter((point) => (
-    point.lifecycleStep !== null && current.step - point.lifecycleStep <= TRANSITION_STEPS
+    point.lifecycleStep !== null && current.actionStep - point.lifecycleStep <= TRANSITION_STEPS
   )).map((point) => {
-    const age = current.step - point.lifecycleStep;
+    const age = current.actionStep - point.lifecycleStep;
     const progress = clamp(age / TRANSITION_STEPS, 0, 1);
     const color = point.lifecycleType === "create" ? "#75f0a9"
       : point.lifecycleType === "rename" ? "#63dfff" : "#ff647c";

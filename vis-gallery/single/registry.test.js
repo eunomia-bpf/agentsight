@@ -258,7 +258,18 @@ describe("single-view registry", () => {
       })),
     };
     const constellation = registry.get("workspace-constellation").build(dense, data.meta.window_end_ms, helpers);
-    expect(constellation.series.find((series) => series.name === "files").data).toHaveLength(1_200);
+    const densePoints = constellation.series.find((series) => series.name === "files").data;
+    expect(densePoints).toHaveLength(1_200);
+    const resting = densePoints.find((point) => point.path === "dense/path-0.rs");
+    const focused = densePoints.find((point) => point.path === "dense/path-1199.rs");
+    expect(resting.age).toBeGreaterThan(24);
+    expect(resting.symbolSize).toBeLessThan(5);
+    expect(focused.symbolSize).toBeGreaterThan(resting.symbolSize);
+    const edgePoints = densePoints.filter((point) => (
+      point.value[0] <= 0.021 || point.value[0] >= 0.979
+      || point.value[1] <= 0.021 || point.value[1] >= 0.979
+    ));
+    expect(edgePoints.length / densePoints.length).toBeLessThan(0.1);
   });
 
   test("keeps both treemap and nebula observed-only", () => {

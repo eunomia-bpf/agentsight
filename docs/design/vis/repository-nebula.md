@@ -302,7 +302,7 @@ Read 的 `action_gain` 小于 Write/Edit。Create/Delete/Rename 使用独立生�
 
 ### 7.3 播放节奏
 
-- HTML 自动播放按最多 12 个视觉采样/秒准备 cursor；GIF/MP4 为固定 72 帧、8 fps。
+- HTML 自动播放按最多 12 个视觉采样/秒准备 cursor；GIF/MP4 由 `agentsight vis` 自动按 Agent 动作步分位数抽取固定 72 帧、以 8 fps 编码，禁止另写脚本按 wall-clock 线性截帧。
 - 文件动作数为 `E` 时，默认完整播放时长为 `D = clamp(8 + 0.04 × E, 8, 30)` 秒。
 - 少于 550 个文件动作时，播放时长随动作数从 8 秒增长到最多 30 秒。
 - 超长历史固定最多播放 30 秒，不要求用户选择时长。
@@ -359,18 +359,16 @@ F_i =
 
 为了避免 O(F²)，实现只建立局部不可见结构邻接：
 
-1. 同 parent directory 的字典序相邻和次相邻文件。
-2. 每个 parent 选一个代表，再连接同 top-level directory 中相邻的代表。
-3. 公共目录前缀越长，代表连接越短、越强。
+1. 同 parent directory 的文件按稳定顺序组成低度数四叉吸引树，避免超大目录形成无法装入画布的长链。
+2. 每个 parent 选一个代表；同 top-level directory 的代表再组成低度数四叉吸引树。
+3. parent 内连接比 top-level 代表连接更短、更强。
 4. 不因为 extension 相同单独建立引力关系。
 
 邻接只参与力计算，永远不画成 edge。默认目标距离和强度为：
 
 ```text
-same parent neighbor  distance=30 px  strength=0.34
-same parent second    distance=38 px  strength=0.18
-common directory      distance=52 px  strength=0.14
-same top-level only   distance=90 px  strength=0.07
+same parent tree      distance=14..32 px  strength=0.14
+same top-level tree   distance=34..68 px  strength=0.04
 ```
 
 ### 8.3 斥力、碰撞和阻尼
@@ -378,19 +376,20 @@ same top-level only   distance=90 px  strength=0.07
 - 所有可见文件之间存在多体斥力，避免全部塌缩到一点。
 - 近距离使用 collision force，保证星点和活动光环不会重叠。
 - 使用速度阻尼抑制永久振荡。
-- 使用很弱的全局 centering 防止整个系统漂出画布，但不能把目录固定到预设扇区。
+- centering 随文件密度增强，防止大规模系统漂出画布，但不能把目录固定到预设扇区。
+- 越过画布边界时反转并衰减速度，不能只截断坐标；只截断会让向外速度累积并把节点粘成矩形边框。
 - 删除文件的质量和透明度逐步降为零，随后退出力场；其消失会触发周围文件重新平衡。
 
 v1 默认参数使用 `1200 × 675` 逻辑画布：
 
 ```text
-radius(file)       = clamp(3 + 0.9 * log1p(visits), 3, 8) px
-many-body charge   = -7 - 0.8 * radius
-collision radius   = radius + 2 px
-collision iterations = 2
-velocityDecay      = 0.32
-horizontal center strength = 0.026
-vertical center strength   = 0.036
+resting_diameter   = clamp(6 * sqrt(480 / max(480, visible_files)), 1.35, 6) px
+focused_diameter  = resting + (10.5 - resting) * attention
+many-body charge  = (-2.2 - 0.55 * radius) * density_scale
+collision radius  = radius + 1 px
+collision iterations = 2 (<=1000 files), 1 (>1000)
+velocityDecay     = 0.38
+center strength   = 0.025..0.060，随密度增加
 ticks per visual step = 8 (<=200 files), 4 (<=500), 2 (<=1000), 1 (>1000)
 ```
 
@@ -487,7 +486,8 @@ H_child     = H_top + signed_hash(directory_path) × 8°
 | 星点色相 | top-level directory |
 | 同色系微调 | subdirectory |
 | 常态明度 | 路径深度和累计 Agent 访问次数的弱提示 |
-| 常态大小 | 累计 observed activity 的 `log1p` 尺度 |
+| 常态大小 | 仅由当前可见文件数决定的密度自适应基线；文件越多，静止星越小 |
+| 瞬态大小 | 仅最近 Read/Write/Create/Rename 使星点短暂放大，随后按事件步回到基线 |
 | 白色短闪/细环 | 最近 Read/Search |
 | 暖色核心和扩散环 | 最近 Edit/Write |
 | 绿色出生动画 | 明确或候选 create |
@@ -616,7 +616,7 @@ agent-session Rust library
 
 - **HTML**：无临时文件，直接写最终 `.html`。
 - **SVG/PNG**：Rust 在受 RAII 管理的临时目录写一个短生命周期 HTML，headless Chromium 读取后导出最终文件，函数返回时自动删除临时目录。
-- **GIF/MP4**：同一临时目录再创建 `frame-0000.png` 等 72 个帧文件；`ffmpeg` 编码最终文件后自动删除整个目录。
+- **GIF/MP4**：`agentsight vis -o result.gif|mp4` 自动在同一临时目录创建 `frame-0000.png` 等 72 个帧文件；首帧是空仓库，末帧是完整终态，中间按 Agent 动作步而非真实时间间隔均匀覆盖，并保留代表性 commit 闪框；`ffmpeg` 编码最终文件后自动删除整个目录。用户和测试不得以外部手工截帧替代此链路。
 
 GIF/MP4 的临时 PNG 是渲染编码缓存，不是数据交换格式。未来可以改成把帧通过 pipe 直接送入 `ffmpeg`，但当前临时目录方案更简单、失败时更容易诊断，且正常退出和异常退出都必须清理。
 

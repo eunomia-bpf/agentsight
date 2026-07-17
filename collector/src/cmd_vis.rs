@@ -9,6 +9,7 @@ use std::process::Command;
 
 const WIDTH: usize = 1200;
 const HEIGHT: usize = 675;
+const MAX_VISUAL_STEPS: usize = 360;
 const RUNTIME: &str = include_str!("../vendor/vis/repository-nebula.iife.js");
 
 pub fn run_vis(
@@ -115,7 +116,7 @@ fn render_media(
             fs::create_dir(&frames)?;
             let cursors = animation_cursors(payload, 72);
             eprintln!(
-                "[agentsight-vis] rendering   {} frames with {}",
+                "[agentsight-vis] rendering   {} action-step frames (empty start -> endpoint) with {}",
                 cursors.len(),
                 browser.display()
             );
@@ -126,6 +127,13 @@ fn render_media(
                     *cursor,
                     &frames.join(format!("frame-{index:04}.png")),
                 )?;
+                if (index + 1) % 12 == 0 || index + 1 == cursors.len() {
+                    eprintln!(
+                        "[agentsight-vis] frames      {}/{}",
+                        index + 1,
+                        cursors.len()
+                    );
+                }
             }
             encode_animation(&frames, output, format)?;
         }
@@ -240,25 +248,74 @@ fn animation_cursors(payload: &Value, frames: usize) -> Vec<i64> {
         .as_i64()
         .unwrap_or_default();
     let end = payload["meta"]["window_end_ms"].as_i64().unwrap_or(start);
-    let mut landmarks = payload["agent_events"]
+    if frames <= 1 {
+        return vec![end];
+    }
+    let mut events = payload["agent_events"]
         .as_array()
         .into_iter()
         .flatten()
-        .filter_map(|event| event["ts_ms"].as_i64())
-        .filter(|value| *value >= start && *value <= end)
-        .collect::<BTreeSet<_>>();
-    landmarks.insert(start);
-    landmarks.insert(end);
-    let values = landmarks.into_iter().collect::<Vec<_>>();
+        .filter_map(|event| {
+            event["ts_ms"].as_i64().map(|timestamp| {
+                (
+                    timestamp,
+                    event["id"].as_str().unwrap_or_default().to_string(),
+                )
+            })
+        })
+        .filter(|(timestamp, _)| *timestamp >= start && *timestamp <= end)
+        .collect::<Vec<_>>();
+    events.sort_unstable();
+
+    let step_count = events.len().min(MAX_VISUAL_STEPS);
+    let mut visual_steps = vec![start; step_count];
+    for (index, (timestamp, _)) in events.iter().enumerate() {
+        let bucket = (index * step_count / events.len()).min(step_count.saturating_sub(1));
+        visual_steps[bucket] = *timestamp;
+    }
+    let values = [vec![start], visual_steps, vec![end]]
+        .concat()
+        .into_iter()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
     if values.len() <= frames {
         return values;
     }
-    (0..frames)
+    let mut sampled = (0..frames)
         .map(|index| {
-            let progress = index as f64 / (frames - 1) as f64;
-            values[((values.len() - 1) as f64 * progress.powf(1.65)).round() as usize]
+            let progress = index as f64 / (frames.saturating_sub(1)) as f64;
+            values[((values.len() - 1) as f64 * progress).round() as usize]
         })
-        .collect()
+        .collect::<Vec<_>>();
+
+    let commits = payload["commits"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|commit| commit["committed_at_ms"].as_i64())
+        .filter(|timestamp| *timestamp >= start && *timestamp <= end)
+        .collect::<Vec<_>>();
+    let representative_commits = [
+        commits.first().copied(),
+        commits.get(commits.len() / 2).copied(),
+        commits.last().copied(),
+    ];
+    let mut occupied = HashSet::new();
+    for required in representative_commits.into_iter().flatten() {
+        if sampled.contains(&required) {
+            continue;
+        }
+        let replacement = (1..sampled.len().saturating_sub(1))
+            .filter(|index| !occupied.contains(index))
+            .min_by_key(|index| sampled[*index].abs_diff(required));
+        if let Some(index) = replacement {
+            sampled[index] = required;
+            occupied.insert(index);
+        }
+    }
+    sampled.sort_unstable();
+    sampled
 }
 
 fn encode_animation(
@@ -482,5 +539,47 @@ mod tests {
         .unwrap();
         assert!(html.contains("\\u003c/script>"));
         assert!(!html.contains("\"</script>\""));
+    }
+
+    #[test]
+    fn animation_cursors_cover_the_full_window_by_agent_action_step() {
+        let events = (0..1_000)
+            .map(|index| json!({ "id": format!("event-{index:04}"), "ts_ms": 1_000 + index }))
+            .collect::<Vec<_>>();
+        let payload = json!({
+            "meta": { "window_start_ms": 100, "window_end_ms": 3_000 },
+            "agent_events": events,
+            "commits": [
+                { "committed_at_ms": 500 },
+                { "committed_at_ms": 1_500 },
+                { "committed_at_ms": 2_500 },
+            ],
+        });
+        let cursors = animation_cursors(&payload, 72);
+
+        assert_eq!(cursors.len(), 72);
+        assert_eq!(cursors.first(), Some(&100));
+        assert_eq!(cursors.last(), Some(&3_000));
+        assert!(cursors.windows(2).all(|pair| pair[0] <= pair[1]));
+        assert!(cursors.contains(&500));
+        assert!(cursors.contains(&1_500));
+        assert!(cursors.contains(&2_500));
+        assert!(
+            cursors
+                .iter()
+                .filter(|cursor| **cursor >= 1_000 && **cursor < 2_000)
+                .count()
+                > 60
+        );
+    }
+
+    #[test]
+    fn one_frame_animation_is_the_complete_endpoint() {
+        let payload = json!({
+            "meta": { "window_start_ms": 100, "window_end_ms": 3_000 },
+            "agent_events": [],
+            "commits": [],
+        });
+        assert_eq!(animation_cursors(&payload, 1), vec![3_000]);
     }
 }
