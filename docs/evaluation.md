@@ -19,7 +19,7 @@ later explicit user instruction may change the four author-fixed RQs.
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed paper-level answer.** R114 supplies scoped source-lineage correctness under concurrent controls; current AgentProf preserves every selected row and the mass of all five known task categories. R170/R224/R251 supply cross-run semantic separation, multi-weight, and beyond-session evidence. Retain the cumulative positive paper answer; whole-paper REVIEW selects any next fixed RQ. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Positive hypothesis unchanged; Step 0019 adds valid supporting downstream evidence.** AgentProcessBench has a small isolated AP gain, HINTBench is numerically favorable but inconclusive versus raw action, and TraceElephant is strong at a descriptive early point but inconclusive at prospective Work@80. In the complete fixed-reader comparison, operation stack improves selected-positive recall on 5/6 tasks (median paired delta +0.080571) and precision on 4/6 (+0.035501) versus fixed session at a three-group budget. The result does not show lower work or raw-action, human, or universal-view superiority. The final Step 0024 whole-paper review and outer audit retain this cumulative positive answer and close the packet branch; do not rerun it. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed positive answer; Step 0033 supplies one standard primary metric across all three complete localization workloads.** Trajectory MAP is 0.789 versus 0.773 raw on AgentProcessBench, 0.453 versus 0.281 on HINTBench, and 0.230 versus 0.121 on TraceElephant; all three paired 95% intervals have positive lower bounds. Pooled operation AP has the same direction while retaining zero-positive trajectories. The fixed-reader comparison separately improves selected-positive recall on 5/6 tasks and precision on 4/6 versus session at three groups. Existing Work curves remain secondary: the result supports problem ranking and group prioritization, not universally lower work, human productivity, or dominance over every atomic/session view. Do not open another RQ2 metric, cutoff, score, or benchmark variant. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping assigns accurate and stable task, phase, action, and boundary identities on unseen agents and task families without materially corrupting attribution. | **Positive partial answer; Step 0024 remains the label-free default, Step 0030 adds optional grouped-reference evidence, Step 0031 adds literal task-family accuracy, and Step 0032 adds literal action accuracy for one named backend.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0024 reaches 0.6799 boundary F1 and 0.7862 B-cubed F1 on OSWorld, and raises CodeTraceBench boundary F1 from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 on all 405 reused targets. Step 0030 fits one scalar on disjoint grouped references and raises B-cubed F1 to 0.8011 on OSWorld and 0.6666 on CodeTraceBench. Step 0031's fixed Qwen3.6-27B path reaches 0.695 task-family macro-F1 on all 1,012 AgentBoard goals. Step 0032 uses the complete 2,737-label ASE population and reaches 0.498 action macro-F1 versus 0.061 majority, a +0.437 trajectory-bootstrap effect with 95% interval [+0.380, +0.494], and exact two-run stability. Literal phase identity, unknown label sets, and uniform cross-framework accuracy remain outside current evidence. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
@@ -267,6 +267,38 @@ answer. Plan, complete run, and independent review are under
 [`experiment-001`](tmp/build-and-evaluate/step-0019-20260714T164922-0700/experiment-001/),
 with raw artifacts under
 `.agentsight/experiments/r315-llm-reader-rq2-v2/full/`.
+
+Step 0033 resolves the remaining mixed-metric presentation problem without a
+new benchmark, model call, profiler run, score, cutoff, or ranking method. It
+reconstructs the fixed operation scores from all three completed public
+localization workloads and applies one standard definition: each
+target-bearing trajectory is a query, its operations are ranked items, and its
+independently annotated problem operations are relevant items. Non-interpolated
+AP is computed with scikit-learn and averaged across queries. AgentProcessBench
+contributes 614 target-bearing queries, HINTBench 400, and TraceElephant 220.
+
+AgentProf trajectory MAP is `0.788919` versus `0.773170` raw action on
+AgentProcessBench, `0.452852` versus `0.281491` on HINTBench, and `0.230168`
+versus `0.121270` on TraceElephant. The paired 10,000-draw intervals are
+`[+0.004727,+0.027081]`, `[+0.154534,+0.188739]`, and
+`[+0.078010,+0.141302]`. AgentProcessBench resamples all 200 released tasks
+within family; HINTBench resamples target-bearing records within 44
+environments; TraceElephant resamples traces within five cells. Pooled
+operation AP retains the 386 AgentProcessBench and 136 HINTBench zero-positive
+trajectories and has the same AgentProf-over-raw direction. Counting HINTBench's
+three unmappable official targets as unretrieved also preserves the result.
+
+Independent review reconstructed all populations, fixed scores, 1,234 query
+rows, pooled AP values, target coverage, and bootstrap intervals with no
+invalidating finding. The registered three-positive-sign rule therefore yields
+`VALID / COMPLETE / SUPPORTED`. The result provides a common standard RQ2
+ranking answer while preserving the controls: atomic ranking remains stronger
+on AgentProcessBench and weaker on HINTBench and TraceElephant, and the earlier
+Work curves remain secondary inspection diagnostics. It does not claim human
+debugging time or universal view dominance. Complete reports are under
+[`step-0033-20260716T165119-0700`](tmp/build-and-evaluate/step-0033-20260716T165119-0700/),
+with local raw artifacts under
+`.agentsight/experiments/rq2-standard-map-existing-trajectories-v1/full/`.
 
 The unexecuted revision-1 plan is superseded because it bundled roughly eleven
 comparator types and several independent research programs. Its history remains

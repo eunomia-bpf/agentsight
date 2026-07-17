@@ -228,3 +228,7 @@ Information gain 的问题不是不够复杂，而是“字段纯度”并不等
 ---
 
 我们的合理的指标应该是什么?
+
+---
+
+你这个 metrics 是标准 metrics 吗? 是不是应该要标准的 metroics

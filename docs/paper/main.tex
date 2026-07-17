@@ -228,11 +228,10 @@ effects during folding.
 On 325 real Codex and Claude trajectories, prompt tags reduce mixed
 system-effect weight from 90.4\% to 36.7\%; a session view leaves 84.4\% mixed.
 % 在 325 个真实 Codex 和 Claude 轨迹上，prompt tag 将混合 system-effect weight 从 90.4\% 降至 36.7\%，session view 仍有 84.4\% 混合。
-Across three complete public benchmarks with 27{,}346 labeled
-steps~\cite{agentprocessbench,hintbench,traceelephant}, AP rises from 0.556 to
-0.588 on AgentProcessBench; inspection work falls from 46.29\% to 41.57\% on
-HINTBench and from 46.64\% to 19.55\% at TraceElephant's descriptive point.
-% 在三个完整公开基准的 27,346 个带标签步骤上，AgentProcessBench 的 AP 从 0.556 提升到 0.588；HINTBench 的检查工作量从 46.29\% 降至 41.57\%，TraceElephant 描述点从 46.64\% 降至 19.55\%。
+Across all 27{,}346 operations in three complete public workloads,
+target-bearing-trajectory MAP (614/400/220 queries) rises from 0.773 to 0.789,
+0.281 to 0.453, and 0.121 to 0.230, respectively~\cite{agentprocessbench,hintbench,traceelephant}.
+% 三个完整公开 workload 的全部 27,346 个 operation 均参与评分；在 614/400/220 条含目标 query 上，trajectory MAP 分别从 0.773 提升到 0.789、从 0.281 提升到 0.453、从 0.121 提升到 0.230。
 On 287 OSWorld-Human development sessions~\cite{osworldhuman}, label-free
 recurrence reaches 0.680 boundary and 0.786 B$^3$ F1 versus simple controls at
 0.645 and 0.678; a supervised comparator reaches 0.739 and 0.816.
@@ -750,33 +749,32 @@ RQ2 asks whether target-blind profiles place independently annotated problems
 in groups a developer can inspect early. We run complete AgentProcessBench,
 HINTBench, and TraceElephant workloads~\cite{agentprocessbench,hintbench,traceelephant}.
 HINTBench development labels select one of 24 fixed field orders; all reported
-test targets remain hidden from construction and ranking, then the final scorer
-computes inspection work or macro AP. AgentProcessBench ranks the mean of 20
-released judge votes; HINTBench and TraceElephant rank released localization
-signals by the best 95\% Wilson lower bound over profile prefixes~\cite{wilson1927}.
-Raw action changes only the grouping field.
-% RQ2 测试目标盲 profile 是否把独立标注问题放入开发者可提前检查的分组。我们运行完整的 AgentProcessBench、HINTBench 和 TraceElephant workload。HINTBench 开发标签从 24 个固定 field order 中选择一个；所有报告的测试目标均不参与构造和排序，最终 scorer 再计算 inspection work 或 macro AP。AgentProcessBench 按 20 个发布 judge vote 的均值排序；HINTBench 和 TraceElephant 按 profile prefix 上发布定位信号的最佳 95% Wilson 下界排序。Raw action 仅改变分组字段。
+test targets remain hidden until scoring. For each target-bearing trajectory,
+operations are ranked items and annotated problems are relevant; we report
+mean non-interpolated AP (MAP) plus inspection-work curves. AgentProcessBench
+ranks mean released judge votes; HINTBench and TraceElephant rank released
+localization signals by the best 95\% Wilson lower bound over profile
+prefixes~\cite{wilson1927}. Raw action changes only the grouping field.
+% RQ2 测试目标盲 profile 是否把独立标注问题放入开发者可提前检查的分组。我们运行完整的 AgentProcessBench、HINTBench 和 TraceElephant workload。HINTBench 开发标签从 24 个固定 field order 中选择一个；所有测试目标在评分前保持隐藏。对每条含目标 trajectory，operation 是排序项、标注问题是 relevant item；我们报告平均非插值 AP（MAP）和 inspection-work curve。AgentProcessBench 按发布 judge vote 的均值排序；HINTBench 和 TraceElephant 按 profile prefix 上发布定位信号的最佳 95% Wilson 下界排序。Raw action 仅改变分组字段。
 
 A fixed quantized Qwen3.6-27B reader~\cite{qwen36} selects three of each view's
-query-aware top five groups on six tasks. Rank, view, and IDs are hidden; all
-positions are balanced; hidden positives are read only after all 66 responses,
-then rotation scores are averaged.
-% 固定的量化 Qwen3.6-27B reader 在六个任务上从每个视图 query-aware 的前五组中选择三组。Rank、view 和 ID 被隐藏；所有位置保持平衡，仅在收集完全部 66 个响应后读取隐藏正例，再平均各轮分数。
+top five groups on six tasks. Rank, view, and IDs are hidden; cyclic positions
+are balanced; positives are read only after all 66 responses.
+% 固定的量化 Qwen3.6-27B reader 在六个任务上从每个视图的前五组中选择三组。Rank、view 和 ID 被隐藏，循环位置保持平衡，且仅在收集完全部 66 个响应后读取正例。
 
 \begin{table}[t]
 \centering\scriptsize
-\begin{tabular}{@{}l@{\hspace{4pt}}r@{\hspace{4pt}}r@{\hspace{4pt}}l@{}}
+\begin{tabular}{@{}lrrrr@{}}
 \toprule
-Metric & \sys & Raw & Other existing views \\
+Workload & Queries & \sys & Raw & $\Delta$ [95\% CI] \\
 \midrule
-AgentProcess AP & .588 & .556 & flat .325; session .599; step .777 \\
-HINT Work@80 & .416 & .463 & native .579; session .591; step 1.00 \\
-Trace Work@80 & 1.00 & .719 & width .677; native/session 1.00 \\
-Trace Work@50$\dagger$ & .195 & .466 & width .396; session .568; native .578 \\
+AgentProcess & 614 & .789 & .773 & +.016 [.005,.027] \\
+HINT & 400 & .453 & .281 & +.171 [.155,.189] \\
+TraceElephant & 220 & .230 & .121 & +.109 [.078,.141] \\
 \bottomrule
 \end{tabular}
-\caption{Full-workload RQ2 controls. Lower Work is better; $\dagger$ is
-descriptive. AP and Work are not averaged.}
+\caption{MAP over target-bearing queries after scoring every operation in each
+complete workload. Higher is better; intervals are paired by released strata.}
 \label{tab:rq2-localization}
 \end{table}
 
@@ -796,24 +794,24 @@ higher recall/precision and lower work are better.}
 \label{tab:rq2-reader}
 \end{table*}
 
-On all 1{,}000 AgentProcessBench trajectories (8{,}509 labeled steps), macro AP
-rises from 0.556 to 0.588 (gain 0.0315; 95\% interval [0.0151, 0.0535]). A
-matched within-raw-action shuffle gives $p=0.00995$; finer session and per-step
-views still preclude uniform dominance.
-% 在 AgentProcessBench 的全部 1,000 条轨迹（8,509 个标注 step）上，macro AP 从 0.556 提高到 0.588；匹配的 raw-action 组内置换给出 p=0.00995，但更细的 session 和逐步视图仍排除统一支配。
+AgentProf improves target-bearing-query MAP over raw action on all three
+complete workloads (Table~\ref{tab:rq2-localization}). Pooled AP over every
+operation has the same direction: 0.692/0.669, 0.250/0.180, and 0.078/0.053.
+Atomic scores win on AgentProcessBench (0.863 MAP) but not HINT (0.411) or
+TraceElephant (0.209), bounding the result to matched raw action rather than
+universal view dominance.
+% AgentProf 在三个完整 workload 的含目标 query 上均提高了相对 raw action 的 MAP。覆盖每个 operation 的 pooled AP 方向相同：0.692/0.669、0.250/0.180、0.078/0.053。逐 operation score 在 AgentProcessBench 上更高（0.863 MAP），但在 HINT（0.411）和 TraceElephant（0.209）上并非如此，因此结论限于匹配的 raw-action 比较，而非所有视图上的普遍支配。
 
-On all 536 HINTBench tests, Work@80 is 41.57\% versus 46.29\% raw; only the
-raw interval crosses zero. On all 220 TraceElephant failures, Work@50 is 19.55\%
-versus 46.64\% raw, but a tied tail requires full work at prospective 80\%
-recall, where the interval crosses zero.
-% 在 HINTBench 的全部 536 条测试轨迹上，Work@80 为 41.57%，raw 为 46.29%，只有相对 raw 的区间跨零。在 TraceElephant 的全部 220 个失败上，Work@50 为 19.55%，raw 为 46.64%，但同分尾部使预先设定的 80% recall 需要完整检查且区间跨零。
+On all 536 HINTBench tests, Work@80 is 41.57\% versus 46.29\% raw. On all 220
+TraceElephant failures, Work@50 is 19.55\% versus 46.64\% raw, but a tied tail
+requires full work at prospective 80\% recall; both raw comparisons cross zero.
+% 在 HINTBench 的全部 536 条测试轨迹上，Work@80 为 41.57%，raw 为 46.29%。在 TraceElephant 的全部 220 个失败上，Work@50 为 19.55%，raw 为 46.64%，但同分尾部使预先设定的 80% recall 需要完整检查；两个 raw 比较的区间都跨零。
 
-Together these complete workloads provide positive RQ2 evidence. The reader
-improves recall on 5/6 tasks (median paired delta 8.06 points) and precision on
-4/6 (3.55 points) at three groups. Work is higher on 4/6, so this supports group
-prioritization, not lower work, reader-only causality, human utility, or
-universal dominance.
-% 这些完整 workload 共同为 RQ2 提供正面证据。reader 在三组预算下于 5/6 个任务上提高 recall（中位配对增量 8.06 个百分点），并在 4/6 个任务上提高 precision（3.55 个百分点）。4/6 个任务的 work 更高，因此该结果支持分组优先级决策，而不证明更低 work、reader-only 因果、人类效用或普遍支配。
+Together these results provide positive RQ2 evidence. At three groups, the
+reader improves recall on 5/6 tasks (median +8.06 points) and precision on 4/6
+(+3.55), but raises work on 4/6; this supports group prioritization, not lower
+work, reader-only causality, human utility, or universal dominance.
+% 这些结果共同为 RQ2 提供正面证据。在三组预算下，reader 于 5/6 个任务上提高 recall（中位 +8.06 个百分点），于 4/6 个任务上提高 precision（+3.55），但在 4/6 个任务上增加 work；因此该结果支持分组优先级决策，而不证明更低 work、reader-only 因果、人类效用或普遍支配。
 
 %% -------------------------------------------------------------------
 \subsection{RQ3: Tag Accuracy}
@@ -969,15 +967,13 @@ for the current binary.
 
 \subsection{Scope and Limitations}
 
-The evaluation is offline and excludes capture and live-agent overhead. RQ1 is
-limited to the fixed 20-task suite, declared process/tool scope, and
-R114-compatible AgentSight 0.2.37 path; manifest categories are inputs. RQ3
-establishes task partitions on Mind2Web/ScienceWorld, accuracy among nine
-declared AgentBoard task families and eight declared software-engineering action
-labels for one named backend, and held-out group boundaries on OSWorld-Human.
-Literal phase labels and unknown label sets remain outside this evidence; the
-405-trajectory CodeTraceBench calibration is post-hoc, not independent
-confirmation.
+The offline evaluation excludes capture and live-agent overhead. RQ1 covers 20
+fixed tasks, declared process/tool scope, and R114-compatible AgentSight 0.2.37;
+manifest categories are inputs. RQ3 tests partitions on Mind2Web/ScienceWorld,
+a named backend's accuracy over nine task families and eight action labels, and
+held-out OSWorld-Human group boundaries. Literal phase labels and unknown label
+sets remain outside this evidence; the 405-trajectory CodeTraceBench calibration
+is post-hoc, not independent confirmation.
 % 评估是离线的，不含 capture 和 live-agent 开销。RQ1 限于固定 20-task suite、声明的 process/tool scope 与 R114-compatible AgentSight 0.2.37 路径，manifest 类别是输入。RQ3 在 Mind2Web/ScienceWorld 上确立 task partition，测量一个指定 backend 在九个已声明 AgentBoard task family 与八个已声明软件工程 action 标签间的 accuracy，并在 OSWorld-Human 上确立 held-out group boundary。字面 phase 标签和未知标签集合不在当前证据范围内；405 条 CodeTraceBench 校准是 post-hoc 而非独立确认。
 
 
@@ -985,24 +981,16 @@ confirmation.
 \section{Related Work}
 % 相关工作
 
-Agent observability tools aggregate traces, metadata, and
-metrics~\cite{langsmith,langfuse,phoenix,otel,openinference,agentops,agenttelemetry,agenttraces-trust,datadog-llmobs,laminar-signals};
-LangSmith and Datadog add cross-trace hierarchies~\cite{langsmith-insights,datadog-patterns},
-and NeMo aggregates token, latency, bottleneck, and concurrency
-statistics~\cite{nemo-agent-toolkit-profiler}. \sys instead provides selectable,
-conserved pprof projections over heterogeneous offline histories and
-source-linked effects.
+Existing systems aggregate traces, build cross-trace hierarchies, or summarize
+performance~\cite{langsmith-insights,nemo-agent-toolkit-profiler}. \sys adds
+selectable, conserved pprof projections across heterogeneous histories with
+source links.
 % 智能体可观测性工具聚合执行 trace、metadata 和 metric；LangSmith Insights 与 Datadog Patterns 增加跨 trace 层次；NVIDIA NeMo Agent Toolkit instrument 支持的 workflow 并聚合 token、latency、bottleneck 和 concurrency。\sys 则用可选择、守恒、兼容 pprof 的投影 profile 异构离线历史和带源谱连接的 effect。
-
-Traditional profilers aggregate stacks~\cite{pprof,flamegraphs}, while Perfetto
-queries trace events~\cite{perfetto}; \sys derives alternative semantic
-hierarchies over source-linked operations.
+Profilers aggregate stacks or query events~\cite{pprof,perfetto}; diagnosis work
+localizes failures or reconstructs states~\cite{agentrx,li2026codetracer}. \sys
+instead derives semantic hierarchies and folds recurring responsibility across
+trajectories.
 % 传统 profiler 聚合 stack sample，Perfetto 查询 trace event；\sys 从历史派生语义字段，并在同一组带源谱连接的 operation 上构建可替换层次。
-
-Agent diagnosis localizes failures, explains causes, and develops audit
-taxonomies~\cite{agentrx,telbench,trajad,agentfixer,agentatlas}; CodeTracer
-reconstructs state-transition traces~\cite{li2026codetracer}. \sys instead folds
-recurring responsibility across trajectories.
 % Agent diagnosis 定位故障、执行 root-cause analysis 并构建审计 taxonomy。CodeTracer 重建层次化 state-transition trace 以支持定位与 replay；\sys 则把跨轨迹重复责任折叠为聚合 profile。
 
 %% ===================================================================
