@@ -11,6 +11,7 @@
 
 mod parser;
 mod process_match;
+mod repository;
 mod types;
 
 // Re-export constants
@@ -27,7 +28,7 @@ pub const SOURCE_SESSION_PROCESS_MATCH: &str = "agent_session.process_match";
 // Re-export types
 pub use types::{
     AgentSession, LlmResponse, SessionCache, SessionCandidate, SessionDirStat, SessionEvents,
-    TokenUsage, ToolEvent, UserPrompt,
+    TokenUsage, ToolEvent, ToolPath, UserPrompt,
 };
 
 // Re-export parser functions
@@ -44,4 +45,8 @@ pub use parser::{
 pub use process_match::{
     LiveProcessCandidate, ProcessKey, ProcessTree, SessionProcessInput, SessionProcessMatch,
     SessionProcessMatcher, SessionProcessMatches,
+};
+
+pub use repository::{
+    FileAction, RepositoryEvent, RepositoryTrace, RepositoryTraceOptions, build_repository_trace,
 };

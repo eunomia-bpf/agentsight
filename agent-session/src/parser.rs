@@ -5,14 +5,14 @@
 
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::types::{
     AgentSession, LlmResponse, SessionCandidate, SessionDirStat, SessionEvents, TokenUsage,
-    ToolEvent, UserPrompt,
+    ToolEvent, ToolPath, UserPrompt,
 };
 use crate::{AGENT_CLAUDE, AGENT_CODEX, AGENT_GEMINI};
 
@@ -29,6 +29,7 @@ pub fn discover_session_files_in_home(home: &Path) -> Vec<SessionCandidate> {
     let roots = [
         (AGENT_CLAUDE, home.join(".claude/projects")),
         (AGENT_CODEX, home.join(".codex/sessions")),
+        (AGENT_CODEX, home.join(".codex/archived_sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
     ];
     let mut out = Vec::new();
@@ -64,6 +65,7 @@ pub fn count_session_dirs() -> Vec<SessionDirStat> {
     [
         (AGENT_CLAUDE, home.join(".claude/projects")),
         (AGENT_CODEX, home.join(".codex/sessions")),
+        (AGENT_CODEX, home.join(".codex/archived_sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
     ]
     .into_iter()
@@ -551,8 +553,10 @@ fn parse_jsonl(
                 }
             }
             (AGENT_CODEX, "response_item")
-                if obj.pointer("/payload/type").and_then(Value::as_str)
-                    == Some("function_call") =>
+                if matches!(
+                    obj.pointer("/payload/type").and_then(Value::as_str),
+                    Some("function_call" | "custom_tool_call")
+                ) =>
             {
                 let name = obj
                     .pointer("/payload/name")
@@ -560,7 +564,12 @@ fn parse_jsonl(
                     .unwrap_or("?");
                 acc.add_tool(name);
                 let payload = obj.get("payload").unwrap_or(&Value::Null);
-                let args = parse_tool_args(payload.get("arguments").unwrap_or(&Value::Null));
+                let args = parse_tool_args(
+                    payload
+                        .get("arguments")
+                        .or_else(|| payload.get("input"))
+                        .unwrap_or(&Value::Null),
+                );
                 let call_id = payload
                     .get("call_id")
                     .and_then(Value::as_str)
@@ -579,8 +588,10 @@ fn parse_jsonl(
                 events.tools.push(event);
             }
             (AGENT_CODEX, "response_item")
-                if obj.pointer("/payload/type").and_then(Value::as_str)
-                    == Some("function_call_output") =>
+                if matches!(
+                    obj.pointer("/payload/type").and_then(Value::as_str),
+                    Some("function_call_output" | "custom_tool_call_output")
+                ) =>
             {
                 if let Some(call_id) = obj.pointer("/payload/call_id").and_then(Value::as_str)
                     && let Some(index) = call_index.get(call_id).copied()
@@ -1033,6 +1044,7 @@ fn tool_event_from_input(
     };
     let cwd = cwd.unwrap_or("");
     let path_groups = extract_path_groups(Path::new(cwd), name, input, &command);
+    let paths = extract_tool_paths(name, input, &command, &effect);
     let process_chain = if category == "shell" {
         command_process_chain(&command)
     } else {
@@ -1049,9 +1061,349 @@ fn tool_event_from_input(
         process_chain,
         status: "observed".to_string(),
         path_groups,
+        paths,
         domains,
         call_id,
     }
+}
+
+fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) -> Vec<ToolPath> {
+    let lower = name.to_ascii_lowercase();
+    let is_shell = lower.contains("bash") || lower.contains("exec") || lower.contains("shell");
+    let default_access = if lower.contains("read")
+        || lower.contains("grep")
+        || lower.contains("glob")
+        || lower.contains("search")
+    {
+        "read"
+    } else if lower.contains("write") {
+        "create"
+    } else if lower.contains("edit") || lower.contains("replace") {
+        "write"
+    } else if effect == "read" {
+        "read"
+    } else {
+        "write"
+    };
+    let mut rows = BTreeMap::<String, String>::new();
+    if !is_shell {
+        collect_path_fields(input, default_access, &mut rows);
+    }
+
+    let embedded_patch = embedded_json_string(command, "*** Begin Patch");
+    let patch = input
+        .get("patch")
+        .or_else(|| input.get("input"))
+        .or_else(|| input.get("text"))
+        .and_then(Value::as_str)
+        .filter(|value| value.contains("*** Begin Patch") && value.lines().count() > 1)
+        .or(embedded_patch.as_deref())
+        .or_else(|| {
+            (command.contains("*** Begin Patch") && command.lines().count() > 1).then_some(command)
+        });
+    let mut has_patch = false;
+    if let Some(patch) = patch {
+        let mut rename_from = None;
+        for line in patch.lines() {
+            let marker = line.trim();
+            for (prefix, access) in [
+                ("*** Add File: ", "create"),
+                ("*** Update File: ", "write"),
+                ("*** Delete File: ", "delete"),
+                ("*** Move to: ", "rename"),
+            ] {
+                if let Some(path) = marker.strip_prefix(prefix) {
+                    let path = clean_path_token(path);
+                    if !path.is_empty() {
+                        has_patch = true;
+                        if access == "write" {
+                            rename_from = Some(path.clone());
+                        }
+                        rows.insert(path, access.to_string());
+                    }
+                }
+            }
+        }
+        if rows.values().any(|access| access == "rename")
+            && let Some(path) = rename_from
+        {
+            rows.insert(path, "rename_from".to_string());
+        }
+    }
+
+    if is_shell && !has_patch {
+        for (path, access) in shell_file_actions(command, input, 0) {
+            rows.insert(path, access);
+        }
+        for nested in embedded_json_objects(command, "tools.exec_command(") {
+            let nested_command = command_from_tool_input(&nested);
+            for (path, access) in shell_file_actions(&nested_command, &nested, 0) {
+                rows.insert(path, access);
+            }
+        }
+    }
+    rows.into_iter()
+        .map(|(path, access)| ToolPath { path, access })
+        .collect()
+}
+
+fn embedded_json_string(text: &str, needle: &str) -> Option<String> {
+    let needle = text.find(needle)?;
+    let start = text[..needle].rfind('"')?;
+    let mut escaped = false;
+    for (offset, ch) in text[start + 1..].char_indices() {
+        if escaped {
+            escaped = false;
+        } else if ch == '\\' {
+            escaped = true;
+        } else if ch == '"' {
+            return serde_json::from_str(&text[start..start + offset + 2]).ok();
+        }
+    }
+    None
+}
+
+fn embedded_json_objects(text: &str, marker: &str) -> Vec<Value> {
+    let mut rows = Vec::new();
+    let mut offset = 0;
+    while let Some(found) = text[offset..].find(marker) {
+        let start = offset + found + marker.len();
+        let Some(open) = text[start..].find('{').map(|value| start + value) else {
+            break;
+        };
+        let mut depth = 0;
+        let mut quote = false;
+        let mut escaped = false;
+        let mut end = None;
+        for (index, ch) in text[open..].char_indices() {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' && quote {
+                escaped = true;
+            } else if ch == '"' {
+                quote = !quote;
+            } else if !quote && ch == '{' {
+                depth += 1;
+            } else if !quote && ch == '}' {
+                depth -= 1;
+                if depth == 0 {
+                    end = Some(open + index + 1);
+                    break;
+                }
+            }
+        }
+        let Some(end) = end else { break };
+        if let Ok(value) = serde_json::from_str(&text[open..end]) {
+            rows.push(value);
+        }
+        offset = end;
+    }
+    rows
+}
+
+fn shell_file_actions(command: &str, input: &Value, depth: usize) -> Vec<(String, String)> {
+    if depth > 2 {
+        return Vec::new();
+    }
+    let mut cwd = ["workdir", "cwd"]
+        .iter()
+        .find_map(|key| input.get(*key).and_then(Value::as_str))
+        .map(PathBuf::from);
+    let mut rows = Vec::new();
+    for parts in shell_segments(command) {
+        let Some(command_index) = shell_command_index(&parts) else {
+            continue;
+        };
+        let name = process_name_from_part(&parts[command_index]).unwrap_or_default();
+        let operands = &parts[command_index + 1..];
+        if name == "cd" {
+            if let Some(path) = operands.iter().find(|value| !value.starts_with('-')) {
+                let path = PathBuf::from(path);
+                cwd = Some(if path.is_absolute() {
+                    path
+                } else {
+                    cwd.take().unwrap_or_default().join(path)
+                });
+            }
+            continue;
+        }
+        let mut actions = shell_segment_actions(&name, operands, input, depth);
+        for (path, _) in &mut actions {
+            if !path.starts_with(['~', '$'])
+                && !Path::new(path).is_absolute()
+                && let Some(base) = &cwd
+            {
+                *path = base.join(&*path).to_string_lossy().into_owned();
+            }
+            *path = clean_path_token(path);
+        }
+        rows.extend(actions.into_iter().filter(|(path, _)| !path.is_empty()));
+    }
+    rows
+}
+
+fn shell_segment_actions(
+    name: &str,
+    operands: &[String],
+    input: &Value,
+    depth: usize,
+) -> Vec<(String, String)> {
+    let mut rows = Vec::new();
+    let mut values = Vec::new();
+    let mut index = 0;
+    while index < operands.len() {
+        if is_redirection_token(&operands[index]) {
+            if let Some(path) = operands.get(index + 1)
+                && plausible_path_token(path)
+            {
+                let access = if [">", ">>", "&>", "&>>"].contains(&operands[index].as_str()) {
+                    "write"
+                } else if ["<", "<>"].contains(&operands[index].as_str()) {
+                    "read"
+                } else {
+                    index += 2;
+                    continue;
+                };
+                rows.push((path.clone(), access.into()));
+            }
+            index += 2;
+            continue;
+        }
+        values.push(operands[index].clone());
+        index += 1;
+    }
+    let paths = |items: &[String]| {
+        items
+            .iter()
+            .filter(|value| !value.starts_with('-') && plausible_path_token(value))
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    match name {
+        "bash" | "sh" | "zsh" => {
+            for index in 0..values.len().saturating_sub(1) {
+                if ["-c", "-lc", "-cl"].contains(&values[index].as_str()) {
+                    rows.extend(shell_file_actions(&values[index + 1], input, depth + 1));
+                    break;
+                }
+            }
+        }
+        "cp" => {
+            let paths = paths(&values);
+            if let Some((target, sources)) = paths.split_last() {
+                rows.extend(sources.iter().cloned().map(|path| (path, "read".into())));
+                rows.push((target.clone(), "create".into()));
+            }
+        }
+        "mv" => {
+            let paths = paths(&values);
+            if let Some((target, sources)) = paths.split_last() {
+                rows.extend(
+                    sources
+                        .iter()
+                        .cloned()
+                        .map(|path| (path, "rename_from".into())),
+                );
+                rows.push((target.clone(), "rename".into()));
+            }
+        }
+        "rm" => rows.extend(
+            paths(&values)
+                .into_iter()
+                .map(|path| (path, "delete".into())),
+        ),
+        "touch" | "install" => rows.extend(
+            paths(&values)
+                .into_iter()
+                .map(|path| (path, "create".into())),
+        ),
+        "tee" => rows.extend(
+            paths(&values)
+                .into_iter()
+                .map(|path| (path, "write".into())),
+        ),
+        "cat" | "head" | "tail" | "nl" | "wc" | "source" | "." => {
+            rows.extend(paths(&values).into_iter().map(|path| (path, "read".into())))
+        }
+        "sed" => {
+            let in_place = values.iter().any(|value| {
+                value == "-i" || value.starts_with("-i") || value.starts_with("--in-place")
+            });
+            let mut script_seen = false;
+            for value in &values {
+                if value.starts_with('-') {
+                    continue;
+                }
+                if !script_seen {
+                    script_seen = true;
+                } else if plausible_path_token(value) {
+                    rows.push((
+                        value.clone(),
+                        if in_place { "write" } else { "read" }.into(),
+                    ));
+                }
+            }
+        }
+        "find" => rows.extend(
+            values
+                .iter()
+                .take_while(|value| !value.starts_with('-') && value.as_str() != "!")
+                .filter(|value| plausible_path_token(value))
+                .cloned()
+                .map(|path| (path, "read".into())),
+        ),
+        "rg" | "grep" | "jq" => {
+            let mut expression_seen = values.iter().any(|value| value == "--files");
+            for value in &values {
+                if value.starts_with('-') {
+                    continue;
+                }
+                if !expression_seen {
+                    expression_seen = true;
+                } else if plausible_path_token(value) {
+                    rows.push((value.clone(), "read".into()));
+                }
+            }
+        }
+        _ => {}
+    }
+    rows
+}
+
+fn collect_path_fields(value: &Value, access: &str, out: &mut BTreeMap<String, String>) {
+    match value {
+        Value::Object(object) => {
+            for (key, value) in object {
+                let key = key.to_ascii_lowercase();
+                if matches!(
+                    key.as_str(),
+                    "path" | "file_path" | "filepath" | "notebook_path" | "old_path" | "new_path"
+                ) && let Some(path) = value.as_str()
+                {
+                    let path = clean_path_token(path);
+                    if !path.is_empty() {
+                        out.insert(path, access.to_string());
+                    }
+                } else if value.is_object() || value.is_array() {
+                    collect_path_fields(value, access, out);
+                }
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                collect_path_fields(value, access, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn clean_path_token(value: &str) -> String {
+    value
+        .trim()
+        .trim_matches(['"', '\'', '`', ',', ':'])
+        .trim_start_matches("file://")
+        .to_string()
 }
 
 fn command_from_tool_input(input: &Value) -> String {
@@ -1253,6 +1605,174 @@ fn process_name_from_part(part: &str) -> Option<String> {
     Some(file_name.to_string())
 }
 
+/// Tokenize only the high-confidence shell subset needed for file evidence.
+/// Heredoc bodies are data, so they are removed before splitting commands.
+fn shell_segments(command: &str) -> Vec<Vec<String>> {
+    fn flush_word(tokens: &mut Vec<String>, current: &mut String) {
+        if !current.is_empty() {
+            tokens.push(std::mem::take(current));
+        }
+    }
+    fn flush_segment(segments: &mut Vec<Vec<String>>, tokens: &mut Vec<String>) {
+        if !tokens.is_empty() {
+            segments.push(std::mem::take(tokens));
+        }
+    }
+
+    let command = strip_heredoc_bodies(command);
+    let mut segments = Vec::new();
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+    let mut quote = None;
+    let mut escaped = false;
+    let mut chars = command.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if escaped {
+            current.push(ch);
+            escaped = false;
+        } else if ch == '\\' {
+            escaped = true;
+        } else if quote == Some(ch) {
+            quote = None;
+        } else if quote.is_some() {
+            current.push(ch);
+        } else if ch == '\'' || ch == '"' {
+            quote = Some(ch);
+        } else if ch == '#' && current.is_empty() {
+            for next in chars.by_ref() {
+                if next == '\n' {
+                    flush_segment(&mut segments, &mut tokens);
+                    break;
+                }
+            }
+        } else if ch.is_whitespace() {
+            flush_word(&mut tokens, &mut current);
+            if ch == '\n' {
+                flush_segment(&mut segments, &mut tokens);
+            }
+        } else if ch == '&' && chars.peek() == Some(&'>') {
+            flush_word(&mut tokens, &mut current);
+            chars.next();
+            let operator = if chars.peek() == Some(&'>') {
+                chars.next();
+                "&>>"
+            } else {
+                "&>"
+            };
+            tokens.push(operator.into());
+        } else if matches!(ch, ';' | '|' | '(' | ')') || ch == '&' {
+            flush_word(&mut tokens, &mut current);
+            if (ch == '|' || ch == '&') && chars.peek() == Some(&ch) {
+                chars.next();
+            }
+            flush_segment(&mut segments, &mut tokens);
+        } else if ch == '>' || ch == '<' {
+            flush_word(&mut tokens, &mut current);
+            let mut operator = ch.to_string();
+            while chars.peek() == Some(&ch) && operator.len() < 3 {
+                operator.push(chars.next().expect("peeked redirection"));
+            }
+            tokens.push(operator);
+        } else {
+            current.push(ch);
+        }
+    }
+    flush_word(&mut tokens, &mut current);
+    flush_segment(&mut segments, &mut tokens);
+    segments
+}
+
+fn strip_heredoc_bodies(command: &str) -> String {
+    fn delimiters(line: &str) -> Vec<String> {
+        let bytes = line.as_bytes();
+        let mut output = Vec::new();
+        let mut index = 0;
+        while index + 1 < bytes.len() {
+            if bytes[index] != b'<' || bytes[index + 1] != b'<' {
+                index += 1;
+                continue;
+            }
+            index += 2;
+            if bytes.get(index) == Some(&b'<') {
+                index += 1;
+                continue;
+            }
+            if bytes.get(index) == Some(&b'-') {
+                index += 1;
+            }
+            while bytes.get(index).is_some_and(u8::is_ascii_whitespace) {
+                index += 1;
+            }
+            let quote = bytes
+                .get(index)
+                .copied()
+                .filter(|value| *value == b'\'' || *value == b'"');
+            if quote.is_some() {
+                index += 1;
+            }
+            let start = index;
+            while let Some(value) = bytes.get(index) {
+                if quote.is_some_and(|quote| *value == quote)
+                    || (quote.is_none()
+                        && (value.is_ascii_whitespace() || b";|&><".contains(value)))
+                {
+                    break;
+                }
+                index += 1;
+            }
+            if start < index {
+                output.push(line[start..index].to_string());
+            }
+        }
+        output
+    }
+
+    let mut pending = VecDeque::<String>::new();
+    let mut output = Vec::new();
+    for line in command.lines() {
+        if let Some(delimiter) = pending.front() {
+            if line.trim_start_matches('\t').trim_end() == delimiter {
+                pending.pop_front();
+            }
+            continue;
+        }
+        output.push(line);
+        pending.extend(delimiters(line));
+    }
+    output.join("\n")
+}
+
+fn is_redirection_token(token: &str) -> bool {
+    [">", ">>", "&>", "&>>", "<", "<<", "<<<", "<>"].contains(&token)
+}
+
+fn shell_command_index(parts: &[String]) -> Option<usize> {
+    let mut index = 0;
+    while index < parts.len() {
+        let part = parts[index].as_str();
+        if ["then", "do", "else"].contains(&part)
+            || part.split_once('=').is_some_and(|(name, _)| {
+                !name.is_empty()
+                    && name
+                        .chars()
+                        .all(|ch| ch == '_' || ch.is_ascii_alphanumeric())
+            })
+        {
+            index += 1;
+            continue;
+        }
+        if ["sudo", "env", "command", "time", "timeout", "nice", "nohup"].contains(&part) {
+            index += 1;
+            while index < parts.len() && parts[index].starts_with('-') {
+                index += 1;
+            }
+            continue;
+        }
+        return Some(index);
+    }
+    None
+}
+
 fn split_shell(command: &str) -> Vec<String> {
     let mut parts = Vec::new();
     let mut current = String::new();
@@ -1338,13 +1858,34 @@ fn extract_path_groups(
 
 fn plausible_path_token(part: &str) -> bool {
     let part = part.trim_matches(['"', '\'']);
+    let lower = part.to_ascii_lowercase();
+    let components = part.split('/').collect::<Vec<_>>();
+    let looks_like_sed_expression = part.starts_with("s/")
+        && part.rsplit('/').next().is_some_and(|flags| {
+            flags.is_empty() || flags.chars().all(|flag| "gimpe".contains(flag))
+        });
+    let looks_like_slash_separated_phrase = components.len() >= 3
+        && components.iter().all(|component| {
+            component.chars().all(char::is_alphabetic)
+                && component.chars().next().is_some_and(char::is_uppercase)
+        });
     if part.is_empty()
         || part.starts_with('-')
         || part.starts_with('$')
+        || part.starts_with('~')
         || part.starts_with("http://")
         || part.starts_with("https://")
+        || lower.starts_with("origin/")
+        || lower.starts_with("refs/")
+        || lower.starts_with("repos/")
+        || part == "HEAD"
+        || part.starts_with("HEAD.")
+        || part.contains("...")
+        || looks_like_slash_separated_phrase
+        || looks_like_sed_expression
         || part.len() > 140
-        || part.chars().any(|c| "{}()=;<>|`".contains(c))
+        || part.chars().any(char::is_whitespace)
+        || part.chars().any(|c| "{}()=;<>|`*?[]\"#$,:@^!".contains(c))
     {
         return false;
     }
@@ -1916,6 +2457,56 @@ mod tests {
         assert_eq!(
             codex_exec_prompt(command).as_deref(),
             Some("agentsight mock prompt collect this exact text")
+        );
+    }
+
+    #[test]
+    fn file_actions_ignore_patch_and_heredoc_bodies() {
+        let patch = tool_event_from_input(
+            Some("/repo"),
+            Some(1),
+            0,
+            "exec",
+            &json!({"text": r#"const patch = "*** Begin Patch\n*** Update File: src/lib.rs\n+#!/bin/sh\n+docs/not-a-file.md\n*** End Patch"; tools.apply_patch(patch)"#}),
+            None,
+        );
+        assert_eq!(
+            patch.paths,
+            vec![ToolPath {
+                path: "src/lib.rs".into(),
+                access: "write".into(),
+            }]
+        );
+
+        let heredoc = tool_event_from_input(
+            Some("/repo"),
+            Some(1),
+            0,
+            "exec_command",
+            &json!({"cmd": "cat <<'EOF'\n#!/bin/sh\nsrc/not-a-file.rs\nEOF\ncat src/real.rs"}),
+            None,
+        );
+        assert_eq!(heredoc.paths.len(), 1);
+        assert_eq!(heredoc.paths[0].path, "src/real.rs");
+    }
+
+    #[test]
+    fn codex_exec_wrapper_projects_nested_shell_actions() {
+        let event = tool_event_from_input(
+            Some("/repo"),
+            Some(1),
+            0,
+            "exec",
+            &json!({"text": r#"const r = await tools.exec_command({"cmd":"cat src/lib.rs && sed -i 's/a/b/' src/main.rs","workdir":"/repo"});"#}),
+            None,
+        );
+        assert_eq!(
+            event
+                .paths
+                .iter()
+                .map(|path| (path.path.as_str(), path.access.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("/repo/src/lib.rs", "read"), ("/repo/src/main.rs", "write")]
         );
     }
 }

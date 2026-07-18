@@ -57,6 +57,15 @@ impl UserPrompt {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToolPath {
+    /// Path as recorded by the native agent. Consumers resolve relative paths
+    /// against the session cwd and must reject paths outside their scope.
+    pub path: String,
+    /// One of read, write, create, delete, rename_from, or rename.
+    pub access: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolEvent {
     pub ts_ms: Option<i64>,
@@ -69,6 +78,8 @@ pub struct ToolEvent {
     pub process_chain: Vec<String>,
     pub status: String,
     pub path_groups: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub paths: Vec<ToolPath>,
     pub domains: Vec<String>,
     pub call_id: Option<String>,
 }
