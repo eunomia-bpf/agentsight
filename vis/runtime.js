@@ -1,0 +1,221 @@
+import { init, use } from "echarts/core";
+import { ScatterChart } from "echarts/charts";
+import { GraphicComponent, GridComponent, TooltipComponent } from "echarts/components";
+import { CanvasRenderer, SVGRenderer } from "echarts/renderers";
+import {
+  BufferTarget, CanvasSource, Mp4OutputFormat, Output, QUALITY_HIGH,
+} from "mediabunny";
+import {
+  nebulaPlaybackDuration, nebulaVisualMoments, repositoryNebula,
+} from "./repository-nebula.js";
+
+use([ScatterChart, GraphicComponent, GridComponent, TooltipComponent, CanvasRenderer, SVGRenderer]);
+
+const $ = (id) => document.getElementById(id);
+const palette = { text: "#dce8f7", muted: "#71839a", line: "rgba(135,160,190,.18)" };
+const helper = { base: () => ({
+  backgroundColor: "transparent", animation: false,
+  textStyle: { color: palette.text, fontFamily: "Inter,system-ui,sans-serif" },
+  tooltip: { trigger: "item", renderMode: "richText", backgroundColor: "#0b121c",
+    borderColor: "rgba(135,160,190,.28)", textStyle: { color: palette.text, fontSize: 11 } },
+}) };
+
+let chart;
+let data;
+let cursor;
+let moments = [];
+let frameTimes = [];
+let playing = 0;
+const exportMode = new URLSearchParams(location.search).has("still");
+
+const timeLabel = (value) => new Date(value).toISOString().replace("T", " ").replace(".000Z", " UTC");
+const dayLabel = (value) => new Date(value).toISOString().slice(0, 10);
+
+function optionAt(value, step) {
+  if (Number.isInteger(step)) data.meta.render_layout_step = step;
+  else delete data.meta.render_layout_step;
+  const option = repositoryNebula(data, value, helper);
+  option.animation = false;
+  if (exportMode) option.tooltip = { show: false };
+  for (const series of option.series ?? []) Object.assign(series, {
+    animation: false, animationDuration: 0, animationDurationUpdate: 0,
+  });
+  return option;
+}
+
+function render(value, step) {
+  cursor = Math.max(data.meta.window_start_ms, Math.min(data.meta.window_end_ms, Number(value)));
+  chart.setOption(optionAt(cursor, step), { notMerge: true, lazyUpdate: false, silent: true });
+  chart.getZr().flush();
+  $("timeline").value = String(cursor);
+  $("cursor-label").textContent = timeLabel(cursor);
+  $("artifact").classList.toggle("commit-flash", data.commits.some((row) => row.committed_at_ms === cursor));
+  return cursor;
+}
+
+function stop() {
+  cancelAnimationFrame(playing);
+  playing = 0;
+  $("play").textContent = "▶";
+}
+
+function toggle() {
+  if (playing) return stop();
+  if (cursor >= frameTimes.at(-1)) render(frameTimes[0], 0);
+  const startIndex = Math.max(0, frameTimes.findIndex((value) => value >= cursor));
+  const started = performance.now();
+  const duration = nebulaPlaybackDuration(data);
+  $("play").textContent = "Ⅱ";
+  const tick = (now) => {
+    const unit = Math.min(1, (now - started) / duration);
+    const index = Math.min(frameTimes.length - 1,
+      startIndex + Math.floor(unit * (frameTimes.length - startIndex)));
+    render(frameTimes[index], index);
+    if (unit === 1) return stop();
+    playing = requestAnimationFrame(tick);
+  };
+  playing = requestAnimationFrame(tick);
+}
+
+function initialize(payload) {
+  data = payload;
+  moments = nebulaVisualMoments(data);
+  frameTimes = moments.length > 2 ? moments.slice(1, -1) : [data.meta.window_end_ms];
+  chart = init($("chart"), null, { renderer: "canvas", width: 1200, height: 675 });
+  $("view-title").textContent = "Repository Nebula";
+  $("view-note").textContent = "Files are stars. Directories are color and path attraction, never nodes.";
+  $("provenance").textContent = [
+    `repository: ${data.meta.repository}`,
+    `scope: ${data.meta.session_scope === "global_tool_operations" ? "all local sessions targeting repository" : "repository sessions"}`,
+    `revision: ${data.meta.endpoint_revision.slice(0, 12)}`,
+    `window: ${dayLabel(data.meta.window_start_ms)} → ${dayLabel(data.meta.window_end_ms)}`,
+    "generator: agentsight vis",
+  ].join(" · ");
+  Object.assign($("timeline"), {
+    min: String(data.meta.window_start_ms), max: String(data.meta.window_end_ms), step: "1",
+  });
+  $("timeline").addEventListener("input", () => { stop(); render(Number($("timeline").value)); });
+  $("play").addEventListener("click", toggle);
+  render(data.meta.window_end_ms, frameTimes.length - 1);
+  window.__AGENTSIGHT_READY__ = true;
+  window.__AGENTSIGHT_FRAME_COUNT__ = frameTimes.length;
+}
+
+function composeFrame() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1264;
+  canvas.height = 936;
+  const context = canvas.getContext("2d");
+  const artifact = $("artifact").getBoundingClientRect();
+  context.fillStyle = "#070b12";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  const scaleX = canvas.width / artifact.width;
+  const scaleY = canvas.height / artifact.height;
+  for (const layer of $("chart").querySelectorAll("canvas")) {
+    const style = getComputedStyle(layer);
+    if (style.display === "none" || style.visibility === "hidden") continue;
+    const box = layer.getBoundingClientRect();
+    context.save();
+    context.globalAlpha = Number.parseFloat(style.opacity) || 1;
+    context.drawImage(layer,
+      (box.x - artifact.x) * scaleX, (box.y - artifact.y) * scaleY,
+      box.width * scaleX, box.height * scaleY);
+    context.restore();
+  }
+  context.strokeStyle = palette.line;
+  context.beginPath(); context.moveTo(32, 113); context.lineTo(1232, 113); context.stroke();
+  context.fillStyle = "#61d7bf"; context.font = "10px monospace";
+  context.fillText("AGENTSIGHT · REPOSITORY EVOLUTION", 32, 39);
+  context.fillStyle = palette.text; context.font = "24px system-ui";
+  context.fillText("Repository Nebula", 32, 72);
+  context.fillStyle = palette.muted; context.font = "11px system-ui";
+  context.fillText("Files are stars. Directories are color and path attraction, never nodes.", 32, 96);
+  context.strokeStyle = "rgba(135,160,190,.22)";
+  context.beginPath(); context.roundRect(1096, 24, 136, 28, 14); context.stroke();
+  context.fillStyle = "#8c9bb0"; context.font = "10px monospace";
+  context.fillText("AGENT EVENT TIME", 1108, 42);
+  context.strokeStyle = palette.line;
+  context.beginPath(); context.moveTo(32, 803); context.lineTo(1232, 803); context.stroke();
+  const progress = (cursor - data.meta.window_start_ms)
+    / Math.max(1, data.meta.window_end_ms - data.meta.window_start_ms);
+  context.fillStyle = "#10231f"; context.strokeStyle = "rgba(97,215,191,.4)";
+  context.beginPath(); context.arc(50, 836, 18, 0, 2 * Math.PI); context.fill(); context.stroke();
+  context.fillStyle = "#61d7bf"; context.beginPath();
+  context.moveTo(45, 830); context.lineTo(45, 842); context.lineTo(56, 836); context.closePath(); context.fill();
+  context.fillStyle = "#16242b"; context.fillRect(89, 834, 935, 4);
+  context.fillStyle = "#61d7bf"; context.fillRect(89, 834, 935 * progress, 4);
+  context.fillStyle = "#9bacc0"; context.font = "9px monospace";
+  context.fillText(timeLabel(cursor), 1103, 839);
+  const legends = [["#f7ffff", "read attention"], ["#ff9678", "write ripple"],
+    ["#75f0a9", "create"], ["#63dfff", "rename"], ["#ff647c", "delete"], ["#efd265", "commit frame"]];
+  let legendX = 32;
+  context.font = "9px monospace";
+  for (const [color, label] of legends) {
+    context.fillStyle = color; context.fillRect(legendX, 867, 13, 3);
+    context.fillStyle = palette.muted; context.fillText(label, legendX + 18, 872);
+    legendX += 36 + context.measureText(label).width;
+  }
+  context.fillStyle = palette.muted;
+  context.fillText($("provenance").textContent, 32, 891);
+  return canvas;
+}
+
+let encoder;
+
+async function beginMp4() {
+  const canvas = composeFrame();
+  const target = new BufferTarget();
+  const output = new Output({ format: new Mp4OutputFormat({ fastStart: "in-memory" }), target });
+  const source = new CanvasSource(canvas, { codec: "avc", bitrate: QUALITY_HIGH });
+  output.addVideoTrack(source, { frameRate: 8 });
+  await output.start();
+  encoder = { canvas, target, output, source, index: 0 };
+  return frameTimes.length;
+}
+
+async function encodeMp4Chunk(count = 12) {
+  const end = Math.min(frameTimes.length, encoder.index + count);
+  for (; encoder.index < end; encoder.index += 1) {
+    render(frameTimes[encoder.index], encoder.index);
+    const frame = composeFrame();
+    encoder.canvas.getContext("2d").drawImage(frame, 0, 0);
+    await encoder.source.add(encoder.index / 8, 1 / 8, { keyFrame: encoder.index % 64 === 0 });
+  }
+  return [encoder.index, frameTimes.length];
+}
+
+function base64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let value = "";
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    value += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  }
+  return btoa(value);
+}
+
+async function finishMp4() {
+  await encoder.output.finalize();
+  const value = base64(encoder.target.buffer);
+  encoder = null;
+  return value;
+}
+
+function pngBase64() {
+  return composeFrame().toDataURL("image/png").split(",", 2)[1];
+}
+
+async function svg() {
+  const host = document.createElement("div");
+  Object.assign(host.style, { position: "fixed", left: "-10000px", width: "1200px", height: "675px" });
+  document.body.append(host);
+  const svgChart = init(host, null, { renderer: "svg", width: 1200, height: 675 });
+  svgChart.setOption(optionAt(cursor, frameTimes.length - 1), { notMerge: true, lazyUpdate: false });
+  svgChart.getZr().flush();
+  const value = host.querySelector("svg").outerHTML;
+  svgChart.dispose(); host.remove();
+  return value;
+}
+
+globalThis.AgentSightVis = {
+  initialize, render, beginMp4, encodeMp4Chunk, finishMp4, pngBase64, svg, composeFrame,
+};

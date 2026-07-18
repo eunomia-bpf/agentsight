@@ -10,6 +10,7 @@
 use clap::{Parser, Subcommand};
 use std::collections::VecDeque;
 use std::io::Write;
+use std::path::PathBuf;
 use std::sync::{
     Arc, Mutex, OnceLock,
     atomic::{AtomicBool, Ordering},
@@ -28,6 +29,7 @@ mod cmd_perf_live;
 mod cmd_perf_tui;
 mod cmd_trace;
 mod cmd_tui_record;
+mod cmd_vis;
 mod event;
 mod json;
 mod model;
@@ -143,6 +145,10 @@ fn command_uses_top_tui(cli: &Cli) -> bool {
 fn init_logging(suppress_terminal_output: bool) {
     let mut builder = env_logger::Builder::from_default_env();
     builder.filter_level(log::LevelFilter::Warn);
+    builder.filter_module(
+        "headless_chrome::browser::transport",
+        log::LevelFilter::Error,
+    );
     if suppress_terminal_output {
         builder.target(env_logger::Target::Pipe(Box::new(TuiDiagnosticWriter)));
     }
@@ -198,6 +204,18 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Render repository file evolution from local agent sessions.
+    Vis {
+        /// Git worktree to visualize.
+        #[arg(default_value = ".")]
+        path: PathBuf,
+        /// Output path; repeat for HTML, SVG, PNG, GIF, and MP4.
+        #[arg(short = 'o', long = "output", default_value = "repository-nebula.html")]
+        outputs: Vec<PathBuf>,
+        /// Scan every local session and retain operations targeting this repository.
+        #[arg(long)]
+        global: bool,
+    },
     /// Show live agent sessions.
     Top {
         /// Process PID filter, similar to top -p
@@ -574,6 +592,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     setup_signal_handler(suppress_terminal_output).await;
 
     match &cli.command {
+        Commands::Vis {
+            path,
+            outputs,
+            global,
+        } => cmd_vis::run_vis(path, outputs, *global)?,
         Commands::Report { db, local, sub } => match sub {
             None | Some(ReportCommands::Summary { .. }) => {
                 let (db_ref, local_ref) = match sub {
