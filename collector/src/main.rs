@@ -588,8 +588,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let suppress_terminal_output = command_uses_top_tui(&cli);
     init_logging(suppress_terminal_output);
 
-    // Setup signal handler for graceful shutdown
-    setup_signal_handler(suppress_terminal_output).await;
+    // Long-running monitors coordinate graceful shutdown. `vis` is a synchronous
+    // batch export, so retaining the OS default makes Ctrl-C interrupt Chromium too.
+    if !matches!(&cli.command, Commands::Vis { .. }) {
+        setup_signal_handler(suppress_terminal_output).await;
+    }
 
     match &cli.command {
         Commands::Vis {

@@ -2,7 +2,7 @@
 
 Repository Nebula 回放编码 Agent 对 Git 仓库文件的真实操作时间，而不是 commit
 时间。图中只有文件星点；目录只影响颜色和力场，不产生节点、边界或标签。commit
-不会移动文件，只在时间游标命中时让最外框闪烁。
+不会移动文件；某一动作帧覆盖到 commit 时，只让最外框闪烁。
 
 ## 用户入口
 
@@ -16,7 +16,7 @@ agentsight vis [PATH] --global \
 ```
 
 重复 `-o` 会共享一次 session 扫描和一次布局计算。HTML 是可离线分享的单文件，
-内含播放按钮和进度条；SVG 是最终图的矢量版本；PNG 是最终帧；GIF 和 MP4
+内含播放按钮和进度条；SVG 是星图图层的矢量版本；PNG 是最终帧；GIF 和 MP4
 包含相同数量、相同顺序的布局帧。
 
 ## 观测边界
@@ -26,6 +26,8 @@ agentsight vis [PATH] --global \
 访问类型。可视化不会复制 prompt、代码正文、网络内容，也不构造额外的通用 IR。
 
 路径按 session cwd 解析，并且必须落在目标 Git 仓库或同一仓库的 worktree 中。
+Gemini session 用其 `projectHash = sha256(cwd)` 恢复 cwd；有明确失败结果的工具调用
+不进入文件生命周期。
 读操作只保留 Git 历史、索引或当前工作区认识的文件；写操作允许新文件在首次
 commit 前出现。`.git`、`node_modules`、`target` 和 `.cache` 不进入星域。
 `--global` 会搜索全部本地 session，但同样只保留实际指向目标仓库的路径操作。

@@ -7,7 +7,7 @@ build-frontend:
 	cd frontend && npm install && npm run build
 
 build-vis:
-	cd vis && npm install && npm run build
+	cd vis && npm ci && npm run build
 	cp vis/dist/repository-nebula.iife.js collector/vendor/vis/
 
 build-bpf:
@@ -40,9 +40,13 @@ install:
 		source ~/.cargo/env; \
 	}
 
-test:
+test: test-vis
 	make -C bpf test
 	cd collector && cargo test
 	cd frontend && npm run build
 
-.PHONY: build build-frontend build-vis build-bpf build-rust clean install test
+test-vis:
+	cd vis && npm ci && npm run build
+	cmp vis/dist/repository-nebula.iife.js collector/vendor/vis/repository-nebula.iife.js
+
+.PHONY: build build-frontend build-vis build-bpf build-rust clean install test test-vis

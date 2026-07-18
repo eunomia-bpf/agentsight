@@ -145,16 +145,23 @@ fn render_media(
         let mp4_path = temporary.path().join("repository-nebula.mp4");
         fs::write(&mp4_path, &mp4)?;
         write_copies(&mp4, outputs, "mp4")?;
-        for output in outputs.iter().filter(|path| extension(path) == "gif") {
+        if outputs.iter().any(|path| extension(path) == "gif") {
             eprintln!("[agentsight vis] gif         converting shared MP4");
+            let gif_path = temporary.path().join("repository-nebula.gif");
             let status = Command::new("ffmpeg").args([
                 "-y", "-hide_banner", "-loglevel", "error", "-i",
             ]).arg(&mp4_path).args([
                 "-vf", "fps=8,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=sierra2_4a",
-            ]).arg(output).status()?;
+            ]).arg(&gif_path).status().map_err(|error| {
+                std::io::Error::new(
+                    error.kind(),
+                    format!("GIF export needs FFmpeg (`ffmpeg`): {error}"),
+                )
+            })?;
             if !status.success() {
                 return Err("ffmpeg GIF conversion failed".into());
             }
+            write_copies(&fs::read(gif_path)?, outputs, "gif")?;
         }
     }
     Ok(())

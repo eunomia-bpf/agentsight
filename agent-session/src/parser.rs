@@ -1076,14 +1076,16 @@ fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) ->
         || lower.contains("search")
     {
         "read"
-    } else if lower.contains("write") {
-        "create"
-    } else if lower.contains("edit") || lower.contains("replace") {
+    } else if lower.contains("write")
+        || lower.contains("edit")
+        || lower.contains("replace")
+        || lower.contains("patch")
+    {
         "write"
-    } else if effect == "read" {
-        "read"
+    } else if is_shell {
+        if effect == "read" { "read" } else { "write" }
     } else {
-        "write"
+        return Vec::new();
     };
     let mut rows = BTreeMap::<String, String>::new();
     if !is_shell {
@@ -1103,7 +1105,7 @@ fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) ->
         });
     let mut has_patch = false;
     if let Some(patch) = patch {
-        let mut rename_from = None;
+        let mut pending_update = None;
         for line in patch.lines() {
             let marker = line.trim();
             for (prefix, access) in [
@@ -1117,17 +1119,16 @@ fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) ->
                     if !path.is_empty() {
                         has_patch = true;
                         if access == "write" {
-                            rename_from = Some(path.clone());
+                            pending_update = Some(path.clone());
+                        } else if access == "rename"
+                            && let Some(source) = pending_update.take()
+                        {
+                            rows.insert(source, "rename_from".to_string());
                         }
                         rows.insert(path, access.to_string());
                     }
                 }
             }
-        }
-        if rows.values().any(|access| access == "rename")
-            && let Some(path) = rename_from
-        {
-            rows.insert(path, "rename_from".to_string());
         }
     }
 
@@ -2508,5 +2509,72 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![("/repo/src/lib.rs", "read"), ("/repo/src/main.rs", "write")]
         );
+    }
+
+    #[test]
+    fn file_actions_are_conservative_for_unknown_and_write_tools() {
+        let unknown = tool_event_from_input(
+            Some("/repo"),
+            Some(1),
+            0,
+            "mcp_resource",
+            &json!({"path": "src/not-a-file.rs"}),
+            None,
+        );
+        assert!(unknown.paths.is_empty());
+
+        let write = tool_event_from_input(
+            Some("/repo"),
+            Some(1),
+            0,
+            "Write",
+            &json!({"file_path": "src/existing.rs", "content": "changed"}),
+            None,
+        );
+        assert_eq!(write.paths[0].access, "write");
+    }
+
+    #[test]
+    fn patch_move_keeps_the_immediately_preceding_source() {
+        let event = tool_event_from_input(
+            Some("/repo"),
+            Some(1),
+            0,
+            "apply_patch",
+            &json!({"patch": "*** Begin Patch\n*** Update File: src/a.rs\n*** Move to: src/b.rs\n*** Update File: src/c.rs\n*** End Patch"}),
+            None,
+        );
+        assert!(event.paths.contains(&ToolPath {
+            path: "src/a.rs".into(),
+            access: "rename_from".into(),
+        }));
+        assert!(event.paths.contains(&ToolPath {
+            path: "src/b.rs".into(),
+            access: "rename".into(),
+        }));
+        assert!(event.paths.contains(&ToolPath {
+            path: "src/c.rs".into(),
+            access: "write".into(),
+        }));
+    }
+
+    #[test]
+    fn tool_outputs_mark_failed_file_actions() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"cwd":"/repo"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c1","arguments":"{\"cmd\":\"rm src/lib.rs\"}"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call_output","call_id":"c1","output":"Process exited with code 1"}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            Path::new("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        assert_eq!(session.events.tools[0].status, "fail");
+        assert_eq!(session.events.tools[0].paths[0].access, "delete");
     }
 }

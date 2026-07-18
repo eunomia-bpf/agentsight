@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 export default defineConfig({
   define: { "process.env.NODE_ENV": JSON.stringify("production") },
   build: {
-    minify: "oxc",
+    minify: "esbuild",
     sourcemap: false,
     lib: {
       entry: resolve(import.meta.dirname, "runtime.js"),

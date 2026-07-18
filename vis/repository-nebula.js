@@ -24,6 +24,10 @@ function clamp(value, minimum, maximum) {
   return Math.max(minimum, Math.min(maximum, value));
 }
 
+function compareText(left, right) {
+  return left < right ? -1 : (left > right ? 1 : 0);
+}
+
 function hash32(value) {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
@@ -67,131 +71,37 @@ function layoutDirectory(path) {
   return directories.slice(0, Math.min(2, directories.length)).join("/") || "(root)";
 }
 
-function eventPaths(event) {
-  return [...new Set(event.paths ?? (event.path ? [event.path] : []))].filter(Boolean);
-}
-
-function allAgentEvents(data) {
-  const source = data.agent_events?.length ? data.agent_events : (data.events ?? []).map((event) => ({
-    ...event,
-    kind: event.kind ?? "tool",
-    paths: eventPaths(event),
-    read_paths: event.effect === "read" ? eventPaths(event) : [],
-    write_paths: event.effect === "write" ? eventPaths(event) : [],
-    durable_changes: [],
-  }));
-  return [...source].sort((left, right) => (
-    Number(left.ts_ms) - Number(right.ts_ms) || String(left.id).localeCompare(String(right.id))
-  ));
-}
-
-function inferredReadPaths(event) {
-  if (Array.isArray(event.read_paths)) return event.read_paths;
-  if (event.effect === "read" || /read|search|glob|grep/i.test(event.action ?? "")) {
-    const writes = new Set(event.write_paths ?? []);
-    return eventPaths(event).filter((path) => !writes.has(path));
-  }
-  return [];
-}
-
 function normalizeFileActions(data) {
   const actions = [];
-  for (const event of allAgentEvents(data)) {
-    if (event.kind && event.kind !== "tool") continue;
-    if (Array.isArray(event.actions)) {
-      const renamed = event.actions.find((item) => item.access === "rename");
-      const oldPath = event.actions.find((item) => item.access === "rename_from")?.path;
-      for (const [index, item] of event.actions.entries()) {
-        if (!item.path || item.access === "rename_from") continue;
-        const type = item.access === "rename" && oldPath ? "rename" : item.access;
-        actions.push({
-          id: `${event.id}:${type}:${index}:${item.path}`,
-          eventId: event.id,
-          ts_ms: Number(event.ts_ms),
-          session_id: event.session_id,
-          vendor: event.vendor,
-          type,
-          path: item.path,
-          oldPath: item === renamed ? oldPath : undefined,
-          source: event.source ?? "agent-session",
-        });
-      }
-      continue;
-    }
-    const handled = new Set();
-    const lifecycle = [...(event.durable_changes ?? [])].sort((left, right) => (
-      String(left.path).localeCompare(String(right.path))
-    ));
-    for (const [index, change] of lifecycle.entries()) {
-      const status = String(change.status ?? "")[0];
-      if (!status || !change.path) continue;
-      let type;
-      if (status === "A" || status === "C") type = "create";
-      if (status === "D") type = "delete";
-      if (status === "R" && change.old_path) type = "rename";
-      if (!type) continue;
-      handled.add(change.path);
-      if (change.old_path) handled.add(change.old_path);
+  const events = [...(data.events ?? [])].sort((left, right) => (
+    Number(left.ts_ms) - Number(right.ts_ms) || compareText(String(left.id), String(right.id))
+  ));
+  for (const event of events) {
+    const renamed = event.actions.find((item) => item.access === "rename");
+    const oldPath = event.actions.find((item) => item.access === "rename_from")?.path;
+    for (const [index, item] of event.actions.entries()) {
+      if (!item.path || item.access === "rename_from") continue;
+      const type = item.access === "rename" && oldPath ? "rename" : item.access;
       actions.push({
-        id: `${event.id}:durable:${index}:${change.path}`,
+        id: `${event.id}:${type}:${index}:${item.path}`,
         eventId: event.id,
         ts_ms: Number(event.ts_ms),
         session_id: event.session_id,
         vendor: event.vendor,
         type,
-        path: change.path,
-        oldPath: change.old_path,
-        source: event.category === "shell" ? "bash+git" : "tool+git",
-      });
-    }
-
-    const writePaths = new Set(event.write_paths ?? []);
-    if (!writePaths.size && event.effect === "write") {
-      for (const path of eventPaths(event)) writePaths.add(path);
-    }
-    let ordinal = 0;
-    for (const path of [...writePaths].sort()) {
-      if (handled.has(path)) continue;
-      actions.push({
-        id: `${event.id}:write:${ordinal++}:${path}`,
-        eventId: event.id,
-        ts_ms: Number(event.ts_ms),
-        session_id: event.session_id,
-        vendor: event.vendor,
-        type: "write",
-        path,
-        source: event.category === "shell" ? "bash" : "tool",
-      });
-    }
-    ordinal = 0;
-    for (const path of [...new Set(inferredReadPaths(event))].sort()) {
-      if (handled.has(path) || writePaths.has(path)) continue;
-      actions.push({
-        id: `${event.id}:read:${ordinal++}:${path}`,
-        eventId: event.id,
-        ts_ms: Number(event.ts_ms),
-        session_id: event.session_id,
-        vendor: event.vendor,
-        type: "read",
-        path,
-        source: event.category === "shell" ? "bash" : "tool",
+        path: item.path,
+        oldPath: item === renamed ? oldPath : undefined,
+        source: "agent-session",
       });
     }
   }
   const priority = { rename: 0, delete: 1, create: 2, write: 3, read: 4 };
   return actions.filter((action) => action.path && Number.isFinite(action.ts_ms)).sort((left, right) => (
     left.ts_ms - right.ts_ms
-    || left.eventId.localeCompare(right.eventId)
+    || compareText(left.eventId, right.eventId)
     || priority[left.type] - priority[right.type]
-    || left.path.localeCompare(right.path)
+    || compareText(left.path, right.path)
   ));
-}
-
-export function gitScopedNebulaFiles(data) {
-  const paths = new Set(normalizeFileActions(data).flatMap((action) => (
-    action.oldPath ? [action.oldPath, action.path] : [action.path]
-  )));
-  return [...paths].sort().map((path) => ({ path, observed: true }));
 }
 
 function actionDurationMs(count) {
@@ -1059,9 +969,3 @@ export function repositoryNebula(data, cursorMs, h) {
     ],
   };
 }
-
-export const nebulaDurations = {
-  attentionHalfLives: ATTENTION_HALF_LIVES,
-  transitionSteps: TRANSITION_STEPS,
-  maxVisualSteps: MAX_VISUAL_STEPS,
-};

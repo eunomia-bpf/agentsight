@@ -3,7 +3,7 @@ import { ScatterChart } from "echarts/charts";
 import { GraphicComponent, GridComponent, TooltipComponent } from "echarts/components";
 import { CanvasRenderer, SVGRenderer } from "echarts/renderers";
 import {
-  BufferTarget, CanvasSource, Mp4OutputFormat, Output, QUALITY_HIGH,
+  BufferTarget, CanvasSource, Mp4OutputFormat, Output, QUALITY_HIGH, canEncodeVideo,
 } from "mediabunny";
 import {
   nebulaPlaybackDuration, nebulaVisualMoments, repositoryNebula,
@@ -43,13 +43,21 @@ function optionAt(value, step) {
   return option;
 }
 
+function isCommitFrame(value, step) {
+  const found = frameTimes.findIndex((time) => time >= value);
+  const index = Number.isInteger(step) ? step : (found < 0 ? frameTimes.length - 1 : found);
+  const start = index > 0 ? frameTimes[index - 1] : data.meta.window_start_ms;
+  const end = frameTimes[index] ?? value;
+  return data.commits.some((row) => row.committed_at_ms > start && row.committed_at_ms <= end);
+}
+
 function render(value, step) {
   cursor = Math.max(data.meta.window_start_ms, Math.min(data.meta.window_end_ms, Number(value)));
   chart.setOption(optionAt(cursor, step), { notMerge: true, lazyUpdate: false, silent: true });
   chart.getZr().flush();
   $("timeline").value = String(cursor);
   $("cursor-label").textContent = timeLabel(cursor);
-  $("artifact").classList.toggle("commit-flash", data.commits.some((row) => row.committed_at_ms === cursor));
+  $("artifact").classList.toggle("commit-flash", isCommitFrame(cursor, step));
   return cursor;
 }
 
@@ -109,6 +117,15 @@ function composeFrame() {
   const artifact = $("artifact").getBoundingClientRect();
   context.fillStyle = "#070b12";
   context.fillRect(0, 0, canvas.width, canvas.height);
+  if ($("artifact").classList.contains("commit-flash")) {
+    context.save();
+    context.strokeStyle = "#efd265";
+    context.lineWidth = 2;
+    context.shadowBlur = 24;
+    context.shadowColor = "rgba(239,210,101,.72)";
+    context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+    context.restore();
+  }
   const scaleX = canvas.width / artifact.width;
   const scaleY = canvas.height / artifact.height;
   for (const layer of $("chart").querySelectorAll("canvas")) {
@@ -163,6 +180,9 @@ function composeFrame() {
 let encoder;
 
 async function beginMp4() {
+  if (!await canEncodeVideo("avc", { width: 1264, height: 936, bitrate: QUALITY_HIGH })) {
+    throw new Error("This Chromium build has no H.264 WebCodecs encoder; use a Chrome/Chromium build with AVC encoding support.");
+  }
   const canvas = composeFrame();
   const target = new BufferTarget();
   const output = new Output({ format: new Mp4OutputFormat({ fastStart: "in-memory" }), target });
