@@ -20,13 +20,9 @@ const IMPORTANCE_MAX_HALF_LIFE = 2_400;
 
 const modelCache = new WeakMap();
 
-function clamp(value, minimum, maximum) {
-  return Math.max(minimum, Math.min(maximum, value));
-}
+function clamp(value, minimum, maximum) { return Math.max(minimum, Math.min(maximum, value)); }
 
-function compareText(left, right) {
-  return String(left).localeCompare(String(right));
-}
+function compareText(left, right) { return String(left).localeCompare(String(right)); }
 
 function hash32(value) {
   let hash = 2166136261;
@@ -37,9 +33,7 @@ function hash32(value) {
   return hash >>> 0;
 }
 
-function hashUnit(value) {
-  return hash32(value) / 0xffffffff;
-}
+function hashUnit(value) { return hash32(value) / 0xffffffff; }
 
 function randomLcg(seed) {
   let state = seed >>> 0;
@@ -49,17 +43,11 @@ function randomLcg(seed) {
   };
 }
 
-function pathParts(path) {
-  return String(path ?? "").split("/").filter(Boolean);
-}
+function pathParts(path) { return String(path ?? "").split("/").filter(Boolean); }
 
-function directoryParts(path) {
-  return pathParts(path).slice(0, -1);
-}
+function directoryParts(path) { return pathParts(path).slice(0, -1); }
 
-function parentDirectory(path) {
-  return directoryParts(path).join("/") || "(root)";
-}
+function parentDirectory(path) { return directoryParts(path).join("/") || "(root)"; }
 
 function topDirectory(path) {
   const parts = pathParts(path);
@@ -77,12 +65,9 @@ function normalizeFileActions(data) {
     Number(left.ts_ms) - Number(right.ts_ms) || compareText(String(left.id), String(right.id))
   ));
   for (const event of events) {
-    const legacySources = event.actions.filter((item) => item.access === "rename_from");
-    let renameIndex = 0;
     for (const [index, item] of event.actions.entries()) {
       if (!item.path || item.access === "rename_from") continue;
-      const oldPath = item.previous_path ?? legacySources[renameIndex]?.path;
-      if (item.access === "rename") renameIndex += 1;
+      const oldPath = item.previous_path;
       const type = item.access === "rename" && oldPath ? "rename" : item.access;
       actions.push({
         id: `${event.id}:${type}:${index}:${item.path}`,
@@ -93,7 +78,6 @@ function normalizeFileActions(data) {
         type,
         path: item.path,
         oldPath,
-        source: "agent-session",
       });
     }
   }
@@ -271,7 +255,6 @@ function createNode(path, action, step, state, lifecycle = null) {
     focusType: action.type,
     firstAction: action.type,
     firstTs: action.ts_ms,
-    source: action.source,
     lastSession: action.session_id,
     lastVendor: action.vendor,
     bornNear: parent?.path,
@@ -330,7 +313,6 @@ function applyAction(action, step, state) {
       focusType: "rename",
       lifecycleType: "rename",
       lifecycleStep: step,
-      source: action.source,
       lastSession: action.session_id,
       lastVendor: action.vendor,
     });
@@ -341,7 +323,6 @@ function applyAction(action, step, state) {
   const node = createNode(action.path, action, step, state, action.type === "create" ? "create" : null);
   node.lastStep = step;
   node.focusType = action.type;
-  node.source = action.source;
   node.lastSession = action.session_id;
   node.lastVendor = action.vendor;
   node.visits += action.type === "read" ? 1 : 2;
@@ -683,7 +664,6 @@ function snapshot(state, actions, step, actionStep) {
     focusType: node.focusType,
     firstAction: node.firstAction,
     firstTs: node.firstTs,
-    source: node.source,
     lastSession: node.lastSession,
     lastVendor: node.lastVendor,
     bornNear: node.bornNear,
@@ -870,7 +850,6 @@ export function repositoryNebula(data, cursorMs, h) {
       strength,
       firstAction: node.firstAction,
       firstTs: node.firstTs,
-      source: node.source,
       lastSession: node.lastSession,
       lastVendor: node.lastVendor,
       bornNear: node.bornNear,
@@ -919,7 +898,7 @@ export function repositoryNebula(data, cursorMs, h) {
     `decayed importance: ${Math.round(100 * row.importance)}% · directory share: ${Math.round(100 * row.directoryShare)}%`,
     `first observed: ${row.firstAction} · ${new Date(row.firstTs).toISOString()}`,
     row.bornNear ? `entered near: ${row.bornNear}` : "entered at repository center",
-    `latest: ${row.lastVendor} · ${row.source} · session ${row.lastSession}`,
+    `latest: ${row.lastVendor} · agent-session · session ${row.lastSession}`,
   ].join("\n") : "";
 
   return {

@@ -342,6 +342,7 @@ fn behavior_sessions(roots: &[PathBuf]) -> io::Result<Vec<(AgentSession, usize)>
         home.join(".claude/projects"),
         home.join(".codex/sessions"),
         home.join(".codex/archived_sessions"),
+        home.join(".gemini/tmp"),
     ];
     let mut command = Command::new("rg");
     command.args([
@@ -350,6 +351,8 @@ fn behavior_sessions(roots: &[PathBuf]) -> io::Result<Vec<(AgentSession, usize)>
         "--fixed-strings",
         "--glob",
         "*.jsonl",
+        "--glob",
+        "*.json",
     ]);
     for term in roots.iter().filter_map(|root| root.to_str()) {
         command.args(["-e", term]);
@@ -383,7 +386,7 @@ fn behavior_sessions(roots: &[PathBuf]) -> io::Result<Vec<(AgentSession, usize)>
         let tool_call = (json_type(text, "assistant") && text.contains(r#""tool_use""#))
             || (json_type(text, "response_item")
                 && (json_type(text, "function_call") || json_type(text, "custom_tool_call")));
-        if !tool_call {
+        if !tool_call && !path.contains("/.gemini/") {
             continue;
         }
         selected.insert(path.into());

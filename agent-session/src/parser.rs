@@ -29,7 +29,6 @@ pub fn discover_session_files_in_home(home: &Path) -> Vec<SessionCandidate> {
     let roots = [
         (AGENT_CLAUDE, home.join(".claude/projects")),
         (AGENT_CODEX, home.join(".codex/sessions")),
-        (AGENT_CODEX, home.join(".codex/archived_sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
     ];
     let mut out = Vec::new();
@@ -65,7 +64,6 @@ pub fn count_session_dirs() -> Vec<SessionDirStat> {
     [
         (AGENT_CLAUDE, home.join(".claude/projects")),
         (AGENT_CODEX, home.join(".codex/sessions")),
-        (AGENT_CODEX, home.join(".codex/archived_sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
     ]
     .into_iter()
@@ -418,17 +416,23 @@ fn parse_jsonl(
             }
             (AGENT_CLAUDE, "user") => {
                 let content = obj.pointer("/message/content").unwrap_or(&Value::Null);
-                if claude_is_tool_result(content) || is_claude_tool_result(&obj) {
-                    let is_error = obj
-                        .get("toolUseResult")
-                        .and_then(|v| v.get("is_error"))
+                if is_claude_tool_result(&obj) {
+                    let fallback = obj
+                        .pointer("/toolUseResult/is_error")
                         .and_then(Value::as_bool)
                         .unwrap_or(false);
-                    for id in claude_tool_result_ids(content) {
-                        if let Some(index) = call_index.get(&id).copied()
+                    for result in content.as_array().into_iter().flatten() {
+                        let Some(id) = result.get("tool_use_id").and_then(Value::as_str) else {
+                            continue;
+                        };
+                        if let Some(index) = call_index.get(id).copied()
                             && let Some(tool) = events.tools.get_mut(index)
                         {
-                            tool.status = if is_error { "fail" } else { "ok" }.to_string();
+                            let failed = result
+                                .get("is_error")
+                                .and_then(Value::as_bool)
+                                .unwrap_or(fallback);
+                            tool.status = if failed { "fail" } else { "ok" }.to_string();
                         }
                     }
                 } else if let Some(text) = local_message_preview(content) {
@@ -739,14 +743,21 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                         {
                             acc.add_file(path);
                         }
-                        events.tools.push(tool_event_from_input(
+                        let mut event = tool_event_from_input(
                             acc.cwd.as_deref(),
                             ts_ms,
                             current_prompt_index,
                             name,
                             call,
                             call.get("id").and_then(Value::as_str).map(str::to_string),
-                        ));
+                        );
+                        event.status = match call.get("status").and_then(Value::as_str) {
+                            Some("success") => "ok",
+                            Some("error") => "fail",
+                            _ => "observed",
+                        }
+                        .into();
+                        events.tools.push(event);
                     }
                 }
                 let content = msg.get("content").unwrap_or(msg);
@@ -2108,28 +2119,6 @@ fn content_to_text(value: &Value) -> String {
     }
 }
 
-fn claude_is_tool_result(content: &Value) -> bool {
-    content.as_array().is_some_and(|items| {
-        !items.is_empty()
-            && items
-                .iter()
-                .all(|item| item.get("type").and_then(Value::as_str) == Some("tool_result"))
-    })
-}
-
-fn claude_tool_result_ids(content: &Value) -> Vec<String> {
-    content
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|item| {
-            item.get("tool_use_id")
-                .and_then(Value::as_str)
-                .map(str::to_string)
-        })
-        .collect()
-}
-
 fn local_session_ids(obj: &Value) -> (Option<String>, Option<String>) {
     let session_id = first_json_string(
         obj,
@@ -2632,5 +2621,27 @@ mod tests {
         .expect("session");
         assert_eq!(session.events.tools[0].status, "fail");
         assert_eq!(session.events.tools[0].paths[0].access, "delete");
+
+        let claude = concat!(
+            r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t0","name":"Read","input":{"file_path":"src/main.rs"}},{"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"src/lib.rs"}}]}}"#,
+            "\n",
+            r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t0","is_error":false,"content":"ok"},{"type":"tool_result","tool_use_id":"t1","is_error":true,"content":"failed"}]}}"#,
+        );
+        let gemini = r#"{"messages":[{"type":"gemini","timestamp":"2026-01-01T00:00:00Z","toolCalls":[{"id":"t1","name":"write_file","args":{"file_path":"src/lib.rs"},"status":"error"}]}]}"#;
+        for (agent, content, expected) in [
+            (AGENT_CLAUDE, claude, &["ok", "fail"][..]),
+            (AGENT_GEMINI, gemini, &["fail"][..]),
+        ] {
+            let session =
+                parse_session_content(agent, Path::new("/tmp/session.jsonl"), UNIX_EPOCH, content)
+                    .unwrap();
+            let statuses = session
+                .events
+                .tools
+                .iter()
+                .map(|row| row.status.as_str())
+                .collect::<Vec<_>>();
+            assert_eq!(statuses, expected);
+        }
     }
 }

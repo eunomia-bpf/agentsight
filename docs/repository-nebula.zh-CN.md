@@ -1,6 +1,6 @@
 # Repository Nebula：算法与输出约定
 
-Repository Nebula 回放编码 Agent 对 Git 仓库文件的真实操作时间，而不是 commit
+Repository Nebula 回放 Agent session 中可证明的 Git 仓库文件动作时间，而不是 commit
 时间。图中只有文件星点；目录只影响颜色和力场，不产生节点、边界或标签。commit
 不会移动文件；某一动作帧覆盖到 commit 时，只让最外框闪烁。
 
@@ -30,16 +30,26 @@ Gemini session 用其 `projectHash = sha256(cwd)` 恢复 cwd；有明确失败�
 不进入文件生命周期。
 读操作只保留 Git 历史、索引或当前工作区认识的文件；写操作允许新文件在首次
 commit 前出现。`.git`、`node_modules`、`target` 和 `.cache` 不进入星域。
-`--global` 会搜索全部本地 session，但同样只保留实际指向目标仓库的路径操作。
+`--global` 会搜索 Claude/Codex JSONL（含 Codex 归档）和 Gemini JSON；即使 session
+原本属于其他项目，只要绝对路径指向目标仓库也会收录。若外部 session 只留下相对
+路径且没有可恢复的 cwd，则无法证明其所属仓库，因而不会猜测或收录。
+
+这里的 shell 动作是从 Agent 记录的高置信度命令参数推导，并不等价于 eBPF 或文件
+系统审计：脚本内部自行产生的文件变化可能不可见。这一边界也是不把 Bash、网络和
+LLM 伪装成文件节点的原因。
 
 ## 时间与帧
 
-动作按 `(timestamp, session-id, event ordinal)` 稳定排序。同一 Tool 事件中的多个
+动作按 `(timestamp, session-id, event ordinal)` 排序。同一 Tool 事件中的多个
 文件动作属于同一个动作步。短历史每个动作步产生一个布局快照；超长历史在布局前
 按顺序合并为最多 360 个桶。导出器不会再对这些布局快照抽帧：360 个快照会得到
 360 帧 MP4 和 360 帧 GIF。默认 8 FPS，因此最长回放为 45 秒。
 
 仓库根 commit 只定义时间轴起点。没有 Agent 动作的区间不生成虚构活动。
+
+为保持与基线逐帧一致，路径的最终排序沿用浏览器 `localeCompare()`；ASCII 路径在
+固定 Chromium 环境中可复现，Unicode 路径的跨 ICU/locale 位序不作保证。未来若
+更换为 code-point 排序，必须作为带 golden snapshots 的显式视觉迁移。
 
 ## 文件生命周期
 
