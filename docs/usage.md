@@ -87,9 +87,10 @@ inheritance and invisible path attraction.
 agentsight vis                       # self-contained repository-nebula.html
 agentsight vis /path/to/repo --global -o repo.gif
 agentsight vis /path/to/repo -o repo.png
+agentsight vis /path/to/repo --global -o repo.html -o repo.png -o repo.gif -o repo.mp4
 ```
 
 The default interval starts at the repository root commit. `--global` searches
 all local sessions but retains only real Tool operations targeting the selected
-repository. HTML needs no external runtime. SVG/PNG/GIF/MP4 export requires a
-local Chromium; GIF/MP4 also requires FFmpeg.
+repository. HTML, SVG, and PNG need no external renderer. GIF and MP4 stream
+the same in-memory frames to FFmpeg and therefore require a local `ffmpeg`.

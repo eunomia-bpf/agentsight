@@ -43,6 +43,7 @@ mod state;
 mod text;
 mod time;
 mod view;
+mod vis_scene;
 
 use analyzers::{print_global_http_filter_metrics, print_global_ssl_filter_metrics};
 use binary_extractor::BinaryExtractor;
@@ -247,9 +248,9 @@ enum Commands {
         /// Git worktree to visualize
         #[arg(default_value = ".")]
         path: PathBuf,
-        /// Output path; .html is the self-contained interactive artifact
+        /// Output path; repeat for HTML, SVG, PNG, GIF, and MP4 from one layout pass
         #[arg(short, long, default_value = "repository-nebula.html")]
-        output: PathBuf,
+        output: Vec<PathBuf>,
         /// Search every local session for operations targeting this repository
         #[arg(long)]
         global: bool,

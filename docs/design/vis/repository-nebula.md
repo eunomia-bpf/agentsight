@@ -1,6 +1,6 @@
 # Repository Nebula：统一设计
 
-状态：**v3 已实现；本文同时记录现行算法和验收边界**。
+状态：**v4 已实现；本文同时记录现行算法和验收边界**。
 
 本文是 Repository Nebula 的单一事实来源。旧实现、README、测试或其他设计文档与本文冲突时，以本文为准。
 
@@ -40,7 +40,7 @@ Git 文件层级 + Agent 文件操作序列
 
 ## 3. 交付边界
 
-一个命令只生成一个图文件：
+一次布局计算可以生成一个或多个图文件，但每个文件仍然只有 Repository Nebula 一张图：
 
 ```text
 repository-nebula.html   自包含、可播放、无网络请求
@@ -56,7 +56,7 @@ repository-nebula.mp4    与 GIF 使用同一组事件帧
 - HTML 内嵌运行时代码和该图需要的数据，不依赖服务器、数据库或 API。
 - HTML 只有播放/暂停、一个时间进度条、最小图例和当前动作说明。
 - 不提供侧边栏、目录列表、cast list、dashboard 导航或多图联动。
-- PNG、SVG、GIF 和 MP4 必须由同一个确定性渲染函数生成，不能各自实现一套语义。
+- PNG、SVG、GIF 和 MP4 必须消费同一个确定性 `SceneTimeline`，不能各自实现一套布局语义。
 - 生成物可以独立分享，也可以通过 `iframe`、图片或附件嵌入其他 Agent 生成的 report。
 
 ### 3.1 目标用户入口
@@ -64,15 +64,15 @@ repository-nebula.mp4    与 GIF 使用同一组事件帧
 用户不应该知道 `agent-session`、Python projector、ECharts、Playwright 或内部 view ID。v1 的用户入口是 AgentSight Rust CLI：
 
 ```bash
-agentsight vis [PATH] [-o OUTPUT] [--global]
+agentsight vis [PATH] [-o OUTPUT]... [--global]
 ```
 
-`agentsight vis` 是 AgentSight 主二进制中的内嵌入口，直接调用 `agent-session` library。发行包内嵌生成 HTML 所需的 browser runtime，用户机器不需要安装 npm 或 Python。v1 不再维护第二个同功能 binary，避免复制 CLI、投影和渲染入口。
+`agentsight vis` 是 AgentSight 主二进制中的内嵌入口，直接调用 `agent-session` library。HTML 使用内嵌 Canvas 播放器，PNG/SVG 由 Rust 直接生成；用户机器不需要 Chromium、npm 或 Python。GIF/MP4 只额外需要 FFmpeg。
 
 v1 只保留三个用户参数：
 
 - `PATH`：可选 repository 路径，默认当前目录并向上寻找 Git root。
-- `-o/--output`：可选输出路径，默认 `repository-nebula.html`；扩展名决定格式。
+- `-o/--output`：可重复的输出路径，默认 `repository-nebula.html`；每个扩展名决定一种格式，所有输出共享一次 session 扫描和布局。
 - `--global`：可选，扫描所有本地 Agent session，但仍只保留实际命中 repository 的文件事件。
 
 v1 不公开 `--view`、`--since`、`--until`、`--at`、`--frames`、`--fps`、`--width`、`--height` 或 `--format`。默认视图、完整 repository 时间、分享尺寸、帧率和播放时长都由固定算法决定，避免用户在理解图之前先配置渲染器。
@@ -84,7 +84,7 @@ v1 不公开 `--view`、`--since`、`--until`、`--at`、`--frames`、`--fps`、
 - 自动发现属于该 repository/worktree 的全部 Claude、Codex 和 Gemini session。
 - 默认视图就是 Repository Nebula，不要求用户记住 `workspace-constellation`。
 - 默认输出 `repository-nebula.html`。
-- 默认分享画布为 `1200 × 675`；HTML 自动播放最长 30 秒，GIF/MP4 对每个布局快照输出一帧，不再二次抽帧，并以 8 fps 编码。
+- 默认逻辑画布为 `1200 × 675`、完整 artifact 为 `1264 × 865`；HTML、GIF 和 MP4 都使用 12 fps 的最多 360 个状态，完整长历史为 30 秒，不再二次抽帧。
 - 运行时持续把简短进度日志打印到 stderr。
 - 不启动服务器，不自动上传，也不生成项目目录或中间数据文件。
 
@@ -106,6 +106,10 @@ agentsight vis /path/to/repo --global -o repo.gif
 # 生成完整历史结束状态的静态快照
 agentsight vis /path/to/repo -o repo.png
 agentsight vis /path/to/repo -o repo.svg
+
+# 一次扫描和布局，同时生成全部分享格式
+agentsight vis /path/to/repo --global \
+  -o repo.html -o repo.svg -o repo.png -o repo.gif -o repo.mp4
 ```
 
 输出格式完全由扩展名决定，不再要求额外 `--format`：
@@ -125,7 +129,7 @@ agentsight vis /path/to/repo -o repo.svg
 - 支持本地资产的报告系统可以使用 `<iframe src="repository-nebula.html">` 嵌入交互版本。
 - 社交媒体直接上传 PNG、GIF 或 MP4。
 - SVG 可以内联进技术报告或网页，保留矢量质量。
-- 同一命令重复生成不同扩展名时，必须使用相同的数据筛选、时间语义和力布局参数。
+- 同一命令可以重复 `-o` 生成不同扩展名；它们必须使用相同的数据筛选、时间语义、场景状态和力布局参数。
 
 HTML 中用户只操作：
 
@@ -276,7 +280,7 @@ Git 只做三件事：
 2. 提供 tracked/lifetime/rename 等 durable reference 和事件关联候选。
 3. 在 commit timestamp 让整个 artifact 的最外层边框短暂闪金色。
 
-Git lifecycle candidate 只能把同一 Agent 文件事件的表现细化为 create/delete/rename；星出现和状态变化仍发生在该 Agent event 的 `ts_ms`，不能挪到 commit 时间。
+只有 `unique_candidate` Git lifecycle 关联才能把同一 Agent 文件事件的表现细化为 create/delete/rename；`ambiguous_candidates` 不升级动作语义。星出现和状态变化仍发生在该 Agent event 的 `ts_ms`，不能挪到 commit 时间。
 
 Git 不得：
 
@@ -306,17 +310,16 @@ tn          最后一条文件事件后的平衡状态
 
 历史可能跨越数月，而分享动画只有数秒。不能再用“五分钟半衰期、三十分钟消失”驱动压缩动画，否则一次高亮可能不到一帧。
 
-注意力窗口随历史压缩比例自适应。令 `E` 为 Agent 文件事件步数，`S=min(E,360)` 为布局快照数：
+注意力窗口随历史压缩比例自适应。令 `E` 为 Agent Tool 文件事件步数，`S=min(E,359)` 为非空布局快照数；再在最前面加入一个空仓库状态：
 
 ```text
 B = max(1, ceil(E / S))
-attention(i, k) = action_gain * 2^(-(k - last_event_i) / B)
-window = 4B
+attention(i, f) = action_gain * 2^(-(f - last_frame_i) / 1.35)
+visible while attention >= 0.045
 ```
 
-- `k` 是当前 Agent 文件事件序号，不是 wall-clock 分钟。
-- 一个布局快照平均覆盖的事件数 `B` 构成一个视觉半衰期。
-- 超过四个半衰期后瞬态注意力消失，因此高亮大约跨四个连续布局/GIF 帧衰减。
+- `f` 是当前事件等量视觉桶序号，不是 wall-clock 分钟；每个桶平均覆盖 `B` 个真实 Tool event。
+- 1.35 个视觉帧构成一个半衰期；低于显式阈值后不再绘制光环，因此高亮大约跨四个连续布局/GIF 帧衰减。
 - 同一个 Tool event 触达多个文件时，这些文件在同一个事件步更新。
 - tooltip 和时间轴仍显示真实时间，事件步只用于可观看的视觉衰减。
 
@@ -338,11 +341,9 @@ importance(i) = clamp(log1p(importance_raw) / log1p(P95(importance_raw)), 0, 1)
 
 ### 7.4 播放节奏
 
-- HTML 自动播放按最多 12 个视觉状态/秒准备 cursor；GIF/MP4 由 `agentsight vis` 对浏览器模型生成的每个布局快照各输出一帧、以 8 fps 编码，禁止在布局快照之上再次抽样。
-- 文件动作数为 `E` 时，默认完整播放时长为 `D = clamp(8 + 0.04 × E, 8, 30)` 秒。
-- 少于 550 个文件动作时，播放时长随动作数从 8 秒增长到最多 30 秒。
-- 超长历史的 HTML 自动播放固定最多 30 秒；GIF/MP4 时长由 `S / 8 fps` 决定，360 个布局快照对应约 45 秒，不要求用户选择时长。
-- 浏览器模型的总视觉步数为 `S = min(E, 360)`；播放 cursor 再按时长最多抽取 360 个。
+- HTML、GIF 和 MP4 对 `1 + min(E,359)` 个布局状态各输出一帧并统一使用 12 fps，禁止在布局快照之上再次抽样。
+- 超长历史固定 360 帧，对应 30 秒；短历史时长自然等于 `frame_count / 12` 秒。
+- 第一帧严格为空，用来表达“从尚未观测到文件开始”；其余帧按事件序号等量分桶。
 - 当 `E <= S` 时，一个文件动作对应一个或多个过渡帧；当 `E > S` 时，按事件序号把连续动作放入视觉桶，每个动作仍更新累计状态，但同一桶只渲染一次平衡过程。
 - 同一个 Tool event 触达的所有文件必须保留在同一视觉步；超长历史只合并相邻 Tool event，不能拆散一次操作。
 - 长空档压缩，密集 burst 合并，但事件顺序不能改变。
@@ -402,23 +403,16 @@ F_directory =
 3. 同一 top-level directory。
 4. 同一 extension 只能作为很弱的同分因素，不能主导布局。
 
-目录不是节点，不拥有独立的 star。每次力计算只从当前成员位置即时求出目录质心、重要性和软包络，再把目录层的平移力等量施加给所有成员；这些计算态不进入输出数据，也不渲染为点、边界或固定 territory。同色文件因此形成可整体移动的星群，而不是由隐藏锚点固定。
+目录不是节点，不拥有独立的 star。实现把每颗文件保存为“top-level directory 质心 + 文件局部坐标”；目录质心移动时，其全部文件随之整体平移，热点文件不能脱离目录成为跨目录离群点。质心是内部计算状态，不渲染成点、标签、边界或 territory。
 
-为了避免 O(F²)，实现只建立局部不可见结构邻接：
+文件局部力不建立完整图边，而是每个微步直接计算两级即时质心：
 
-1. 同 parent directory 的文件按稳定顺序组成低度数四叉吸引树，避免超大目录形成无法装入画布的长链。
-2. 每个 parent 选一个代表；同 top-level directory 的代表再组成低度数四叉吸引树。
-3. parent 内连接比 top-level 代表连接更短、更强。
-4. 不因为 extension 相同单独建立引力关系。
+1. 同 parent directory 质心，局部吸引系数 `0.015`。
+2. 路径前两段组成的局部子星群质心，吸引系数 `0.005`。
+3. 文件长期重要性产生指向本 top-level directory 局部核心的弱吸引。
+4. 不因为 extension 相同建立引力。
 
-力布局还把路径的前两段作为局部子星群，例如 `docs/design` 与 `docs/blog`。子星群之间具有软排斥，并被拉回所属 top-level directory 的即时质心；因此同一大目录可以呈现多个不规则路径岛屿，而不是一个均匀圆盘，也不会与其他 top-level directory 任意穿插。
-
-邻接只参与力计算，永远不画成 edge。默认目标距离和强度为：
-
-```text
-same parent tree      distance=14..32 px  strength=0.14
-same top-level tree   distance=34..68 px  strength=0.04
-```
+因此 `docs/design` 与 `docs/blog` 可以形成同色但可辨认的局部岛屿；不可见质心只参与计算，永远不画成 edge。
 
 目录的视觉份额不与文件数线性对应。每个 top-level directory 先计算凹权重：
 
@@ -430,34 +424,36 @@ directory_weight = (visible_file_count + 8)^0.4 * (0.8 + 0.2 * mean_importance)
 
 ### 8.3 斥力、碰撞和阻尼
 
-- 所有可见文件之间存在多体斥力，避免全部塌缩到一点。
-- 近距离使用 collision force，保证星点和活动光环不会重叠。
-- 不同 top-level directory 的软包络相互排斥；目录质心距离小于两个包络半径之和时，整个目录的成员获得同方向平移速度，避免颜色星域穿插。
+- 文件斥力使用每个 top-level directory 内部的 `10 px` 空间网格，只检查相邻九格，避免 O(F²)。
+- 近距离碰撞按两颗星的常态半径和 `1.2 px` 间距分离；光环不参与质量和碰撞。
+- 不同 top-level directory 的软包络进行目录层两两排斥；整个目录只更新一个平移速度，避免颜色星域穿插。
 - 使用速度阻尼抑制永久振荡。
 - 目录长期重要性由 `0.7 × mean_importance + 0.3 × peak_importance` 得到；它控制整个目录质心的中心力，单个热点只能提高目录整体中心性，不能脱离目录独自飞向全局中心。
-- 越过画布边界时反转并衰减速度，不能只截断坐标；只截断会让向外速度累积并把节点粘成矩形边框。
 - 删除文件的质量和透明度逐步降为零，随后退出力场；其消失会触发周围文件重新平衡。
 
-v3 默认参数使用 `1200 × 675` 逻辑画布：
+每个 top-level directory 还有一个由 repository seed 和 golden-angle 次序得到的宽屏“家园位置”。目录重要性越高，其动态目标越靠近画布中心；重要性降低时则缓慢回到家园区域。这个位置不是固定 territory：目录排斥、成员变化、长期重要性和阻尼持续改变质心，但它避免所有目录永久塌缩在画面中央。
+
+v4 默认参数使用 `1200 × 675` 逻辑画布：
 
 ```text
 global_resting    = clamp(6 * sqrt(480 / max(480, visible_files)), 0.85, 6) px
 directory_scale   = clamp(sqrt(directory_share * visible_files / directory_files), 0.52, 1.8)
 resting_diameter  = clamp(global_resting * directory_scale * (0.62 + 0.38 * sqrt(importance)), 0.85, 6) px
 focused_diameter  = resting + (10.5 - resting) * attention
-many-body charge  = (-1.3 - 0.65 * radius) * importance_mass * directory_scale * density_scale
-collision radius  = radius + 0.8 px
-collision iterations = 2 (<=1000 files), 1 (>1000)
-velocityDecay     = 0.38
+collision gap     = 1.2 px
+file max speed    = 2.4 px / microstep
+file damping      = 0.72
 directory radius = clamp(0.34 * sqrt(directory_share * canvas_area / π), 24, 140) px
-directory center = alpha * (0.008 + 0.016 * directory_importance)
-local core pull  = alpha * (0.0015 + 0.03 * file_importance)
-ticks per visual step = 8 (<=200 files), 4 (<=500), 2 (<=1000), 1 (>1000)
+directory max speed = 3 px / microstep
+directory damping = 0.78
+directory center weight = clamp(0.08 + 0.68 * directory_importance, 0.08, 0.76)
+local core pull  = 0.0012 + 0.011 * file_importance
+microsteps per visual frame = 4 (<=600 files), 3 (<=2000), 2 (>2000)
 ```
 
 高重要性文件受到指向本目录质心的局部核心力；低重要性文件在斥力和路径引力下形成更密集的目录外围。目录的重要性再决定整个星群离全局中心的距离。两层力与碰撞、包络和阻尼共同求平衡，不形成固定同心圆，也不给目录或文件预设最终坐标。
 
-每个视觉步应用一个事件桶后重新加热模拟：read 使用 `alpha=0.10`，write 使用 `0.18`，create/rename/delete 使用 `0.35`；一个桶包含多种动作时取最大 alpha。tick 数按可见文件规模分档，输入、分档、seed 和事件顺序固定，因此不同输出格式可复现。
+力状态跨视觉帧持续保存，不在每一步重新创建 simulation，也不改变随机 seed。输入、事件分桶、家园位置、微步数和速度上限固定，因此不同输出格式可复现，并且相邻帧位移有上界。
 
 ### 8.4 短期注意力不改变布局
 
@@ -472,7 +468,7 @@ Delete     质量逐渐退出系统
 
 短期 attention 不修改结构连接、目录质心、斥力或碰撞质量。一次 Read/Write 不得让星群抖动；只有它累积进长期 importance 后，才会缓慢改变文件在目录内的位置和目录整体中心性。
 
-Read 的显式白环还要做视觉限流：每个布局快照只为当前 `strength` 最高的四个文件画紧凑细环，环直径固定为星点直径加 6 px，不随 `age` 向外扩张。其余同桶 Read 仍更新文件光晕、长期状态和顶部动作计数，但不各自生成扩散圆。这样保留“注意力到了哪里”的瞬时提示，同时避免长历史压缩后上百个白环遮住目录颜色和文件分布。
+Read 的显式白环还要做视觉限流：每个布局快照只为当前 `strength` 最高的四个文件画紧凑细环，不随 `age` 无限向外扩张。Write 环和 create/rename/delete 生命周期环也分别最多显示 12 个。其余同桶动作仍更新文件光晕和长期状态，但不各自生成大环。
 
 视觉增量为：
 
@@ -502,16 +498,9 @@ Create 在 6 个视觉步内把 opacity 和质量从 0 提升到 1。Delete 在 
 
 ### 8.6 确定性和库复用
 
-优先复用 tree-shaken `d3-force` 模块：
+普通用户路径使用 Rust 中的持续增量力状态和空间网格，不再依赖 `d3-force`、ECharts 或 Chromium。固定 repository seed、事件顺序、视觉桶、参数和每帧微步数；同一输入和 frame 必须得到相同坐标。一次计算得到的 `SceneTimeline` 同时供 HTML、SVG、PNG、GIF 和 MP4 使用。
 
-- `forceSimulation`
-- `forceManyBody`
-- `forceCollide`
-- 自定义很薄的 path/directory attraction force
-
-固定初始 seed、事件顺序、参数和每事件 tick 数。同一输入和 cursor 必须得到相同坐标，确保 HTML、SVG、PNG、GIF 和 MP4 一致。
-
-禁止继续使用当前的“目录扇区 + golden-angle 半径 + 预设终点”算法。
+`vis-gallery` 中的 ECharts/D3 仍可服务其他独立图，但不能再成为 Repository Nebula 媒体导出的隐藏运行时。
 
 ## 9. 目录颜色继承
 
@@ -553,8 +542,8 @@ H_child     = H_top + signed_hash(directory_path) × 8°
 | 瞬态大小 | 仅最近 Read/Write/Create/Rename 使星点短暂放大，随后按事件步回到基线 |
 | 白色短闪/细环 | 最近 Read/Search |
 | 暖色核心和扩散环 | 最近 Edit/Write |
-| 绿色出生动画 | 明确或候选 create |
-| 红色衰减 | 明确或候选 delete |
+| 绿色出生动画 | 直接记录或唯一 Git lifecycle 关联的 create |
+| 红色衰减 | 直接记录或唯一 Git lifecycle 关联的 delete |
 | 青色连续移动 | rename/move |
 | 白色细边框 | observed untracked |
 | 金色 artifact 外框 | commit reference，仅闪外框 |
@@ -591,20 +580,22 @@ Git history / endpoint
 agent-session Rust library
         |
         v
-薄 Rust Nebula projection
+五种文件动作的薄 Rust projection
         |
         v
-JSON + browser runtime 内嵌进单 HTML
+一次性增量布局 -> SceneTimeline（只在内存）
         |
-        v
-ECharts -> HTML / SVG / PNG / GIF / MP4
+        +--> 压缩数据 + Canvas 播放器 -> HTML
+        +--> Rust SVG serializer       -> SVG
+        +--> tiny-skia RGBA            -> PNG
+                                      \-> FFmpeg stdin -> GIF / MP4
 ```
 
-HTML 路径没有服务器、运行时网络请求、Python、Node 子进程或用户可见中间数据。`vis-gallery` 的旧链只为其他 31 张图和开发回归保留。
+HTML、SVG 和 PNG 路径没有服务器、运行时网络请求、Python、Node、Chromium 或用户可见中间数据。GIF/MP4 只启动 FFmpeg 编码器。`vis-gallery` 的旧链只为其他独立图和开发回归保留。
 
 ### 11.2 组件边界
 
-Repository Nebula 应收敛为：
+Repository Nebula 已收敛为：
 
 ```text
 agentsight vis (Rust)
@@ -616,22 +607,25 @@ agent-session Rust library
 薄 Rust view projection
         |
         v
-内嵌 browser runtime：d3-force state + ECharts renderer
+持续 Rust layout state -> SceneTimeline
         |
-        v
-单 HTML / SVG / PNG / GIF / MP4
+        +--> Canvas HTML
+        +--> SVG
+        +--> tiny-skia PNG
+        \--> RGBA pipe -> FFmpeg GIF/MP4
 ```
 
 原则是：
 
 - `agent-session` 是唯一事件语义来源，并由 Rust 直接调用，不经过子进程 JSON 管道。
-- 薄 Rust projection 只筛选五种文件动作和最小 Git reference，然后序列化进最终 HTML。
-- 内嵌 JS 只维护动态力状态、交互播放和 ECharts option，不重新解释命令或事件语义。
+- 薄 Rust projection 只筛选五种文件动作和唯一 Git lifecycle reference。
+- Rust layout 一次计算全部状态；HTML 的 JS 只解压、插值、绘制 Canvas 和处理 tooltip，不重新解释事件或运行力布局。
 - Nebula 不再经过完整 `project.py`。
 - Git lifetime 和候选 durable change 由 `agent-session` 直接输出。
 - 不写 canonical evidence artifact，不要求用户管理中间 IR。
-- npm/Vite 只允许作为开发时构建 browser runtime 的工具；发布的 Rust binary 使用 `include_str!` 内嵌构建产物，用户机器不需要 Node 或 Python。
-- HTML 输出不依赖外部程序；SVG/PNG 使用 Rust 启动 headless Chromium，GIF/MP4 再调用 FFmpeg。缺少可选渲染依赖时打印明确安装提示，不影响 HTML 输出。
+- 普通入口不内嵌 ECharts bundle，不启动 Playwright/Chromium；用户机器不需要 Node、Python 或浏览器。
+- HTML/SVG/PNG 不依赖外部程序；GIF/MP4 缺少 FFmpeg 时打印明确错误，不影响前三种格式。
+- 重复 `-o` 只扫描 session、关联 Git 和计算布局一次；PNG/SVG 使用最终 `SceneFrame`，GIF/MP4 广播同一批 RGBA 帧。
 - 其他确实需要复杂 Git 聚合的静态图可以继续使用独立聚合逻辑，不能反向增加 Nebula 的复杂度。
 
 ### 11.3 每一步的数据形态和落盘规则
@@ -641,13 +635,13 @@ agent-session Rust library
 | 步骤 | 产生的数据 | 存放位置 | 是否落盘 |
 |---|---|---|---:|
 | `agent-session` library | Rust `LongitudinalArtifact`，包含 session、normalized events、Git lifetime 和候选 durable change | Rust 内存 | 否 |
-| 薄 Rust projection | 只含 `meta`、五种文件动作和必要 commit reference 的内部 view struct | Rust 内存 | 否 |
-| JSON serialization | 内嵌 HTML 所需的紧凑 payload 字符串 | Rust 内存 | 否 |
-| 动态力计算 | `Map<path, FileState>`，其中包含 `x/y/vx/vy/visits/lastEventStep` | 浏览器内存 | 否 |
-| HTML 组装 | CSS、内嵌 runtime、紧凑 JSON payload 和初始化调用组成的 HTML 字符串 | Rust 内存 | 否 |
+| 薄 Rust projection | 五种 `FileAction` 和必要 commit timestamp | Rust 内存 | 否 |
+| 动态力计算 | top-level `Cluster`、文件局部坐标、速度和重要性 | Rust 内存 | 否 |
+| 场景快照 | 最多 360 个 `SceneFrame`，包含量化前的位置和视觉状态 | Rust 内存 | 否 |
+| HTML 组装 | gzip+base64 紧凑帧数据、CSS 和原生 Canvas 播放器 | Rust 内存 | 否 |
 | HTML 输出 | 完整自包含 HTML | 用户指定输出路径 | **最终文件** |
 
-薄投影的概念形态如下，它不是新的公共 schema，也不单独写成文件：
+`SceneTimeline` 是渲染器内部结构，不是公共 schema，也不单独写成文件。HTML 中只嵌入它的量化压缩形式：文件路径使用字典索引，坐标为 `u16`，透明度、大小、重要性和效果强度为 `u8`。
 
 ```text
 {
@@ -673,29 +667,25 @@ agent-session Rust library
 
 文件节点不需要作为第二份输入重复保存；它们可以从首次出现的文件事件增量建立。Git lifetime 只在 rename/delete/create 候选需要时随对应事件保留最小字段。
 
-浏览器 runtime bundle 是项目构建时产生并通过 `include_bytes!` 嵌入 Rust binary 的代码资产，不是每次生成 Nebula 时产生的数据临时文件。生成 HTML 时 Rust 直接把它写入最终 HTML。
-
 不同输出格式的磁盘行为如下：
 
 - **HTML**：无临时文件，直接写最终 `.html`。
-- **SVG/PNG**：Rust 在受 RAII 管理的临时目录写一个短生命周期 HTML，headless Chromium 读取后导出最终文件，函数返回时自动删除临时目录。
-- **GIF/MP4**：`agentsight vis -o result.gif|mp4` 自动在同一临时目录为每个布局快照创建一个 `frame-NNNN.png`；布局序号直接传给浏览器，即使多个快照拥有同一毫秒时间戳也不会合并。导出不插入或替换 commit 帧，不在最多 360 个布局快照上再次抽帧；`ffmpeg` 编码后自动删除整个临时目录。
+- **SVG**：最终 `SceneFrame` 直接序列化成矢量元素。
+- **PNG**：最终 `SceneFrame` 由 `tiny-skia` 直接栅格化并编码；不启动 FFmpeg。
+- **GIF/MP4**：每个 `SceneFrame` 只栅格化一次为 RGBA，按顺序广播到一个或多个 FFmpeg stdin；不生成临时 HTML 或 PNG。
 
-媒体导出最多并行启动四个 Chromium worker；每个截图超过 30 秒即回收并自动重试，最多三次。并发只改变渲染吞吐，帧文件仍按布局序号命名并由 FFmpeg 顺序编码，因此不能改变事件顺序、布局 seed 或动画语义。
-
-GIF/MP4 的临时 PNG 是渲染编码缓存，不是数据交换格式。未来可以改成把帧通过 pipe 直接送入 `ffmpeg`，但当前临时目录方案更简单、失败时更容易诊断，且正常退出和异常退出都必须清理。
-
-交互式 HTML 首次打开时确定性预计算最多 360 个轻量 snapshot，并在页面内存中缓存。拖动时间轴通过二分查找选择最近 snapshot；snapshot 不嵌入 HTML、不写磁盘，也不成为用户需要理解的格式。
+交互式 HTML 打开时只解压已经算好的 scene 数据。拖动时间轴直接索引 frame；播放时在相邻 frame 间插值以获得流畅运动，但不会生成新的语义状态。
 
 ## 12. 实现和性能约束
 
 - Agent 文件事件预先按时间排序，播放时增量处理。
-- 路径吸引边只保留目录内或最长公共前缀的局部邻居，不能构造完整 O(F²) 边集。
-- 多体斥力使用 quadtree/Barnes-Hut 实现，优先复用 `d3-force`。
-- 每个视觉桶运行按文件规模分档的固定 ticks，并保存最多 360 个内存 snapshot；拖动时间轴不必从零重算。
-- 背景、文件、活动核心和生命周期效果使用少量共享 series，不为每个文件创建 DOM 节点。
+- 路径吸引使用 parent 和路径前两段的即时质心，不构造完整 O(F²) 边集。
+- 文件碰撞使用目录内空间网格；目录数量通常远小于文件数，目录层允许 O(D²) 软包络排斥。
+- 每个视觉桶运行按文件规模分档的固定微步，并保存最多 360 个内存 `SceneFrame`；拖动时间轴不从零重算。
+- HTML 使用单 Canvas，不为每个文件创建 DOM/SVG 节点；媒体使用同一 Rust primitive renderer。
+- GIF/MP4 不落盘帧文件，不做 PNG 编码/解码往返。
 - 不引入 Cytoscape、uPlot、统一前端、生产 sourcemap 或额外服务器。
-- 当前自动化覆盖 1,200 个 observed 文件；10k Agent 文件动作会先压缩到最多 360 个视觉步。更大文件规模需要单独做内存基准后再承诺。
+- 当前真实 ActPlane 验证覆盖 603 个 session、约 5.1 万个文件动作、3,600 余个可见文件和完整 360 帧；更大规模仍需继续做 session 扫描内存基准。
 
 ## 13. 明确删除的旧设计
 
@@ -749,19 +739,15 @@ GIF/MP4 的临时 PNG 是渲染编码缓存，不是数据交换格式。未来�
 ### 视觉和交付
 
 - 用户无需 hover 即可从最小图例和当前动作说明区分 Read、Write、Create、Delete、Rename 和 Commit。
-- 一次只生成一个图；HTML 只有一个 chart 和一个进度条。
+- 每个输出文件只有一个图；一次命令可通过重复 `-o` 共享计算并生成多个格式。
 - HTML 无网络请求；SVG、PNG、GIF、MP4 与 HTML 使用同一语义和坐标。
 - 产物可以直接打开，也可以嵌入其他 Agent 生成的 report。
 
-## 15. 实现顺序
+## 15. v4 实现状态
 
-1. 在 Rust collector 中实现简化 `agentsight vis` 入口及五步 stderr 日志。
-2. 让 Nebula 直接消费 `agent-session` Rust 类型，移除 Python projection 依赖。
-3. 复用 `agent-session` 已有的保守 Bash 文件 operand/redirection 推导，并补充 Read 路径投影。
-4. 删除 endpoint context、目录节点/云和所有非文件 ambient marker。
-5. 用确定性 `d3-force` 状态替换极坐标固定目标布局。
-6. 实现目录 OKLCH 色系继承和 create/rename 六步颜色过渡。
-7. 将注意力从真实分钟改为事件步衰减，并实现最多 30 秒、360 视觉步的自动播放算法。
-8. 加入当前动作说明和完整最小图例。
-9. 重新生成真实多 session HTML、PNG、SVG 和 GIF，逐帧视觉检查。
-10. 更新 README、测试和示例，使它们只引用本文语义。
+1. Rust collector 直接消费 `agent-session`，不经过 Python 或持久化中间 IR。
+2. 持续增量布局、目录整体移动、空间网格碰撞和最多 360 个 `SceneFrame` 已实现。
+3. HTML 使用原生 Canvas；SVG/PNG 由 Rust 直接生成，普通入口不再携带 ECharts/Chromium runtime。
+4. GIF/MP4 对同一批 RGBA 帧流式编码，不生成临时 PNG。
+5. 重复 `-o` 共享一次 session 扫描、Git 关联、布局和帧栅格化。
+6. ActPlane 全局历史已验证 360/360 帧、30 秒 GIF/MP4、离线 HTML 解压和最终静态图。

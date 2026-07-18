@@ -10,37 +10,9 @@ fn main() {
 
     sync_bpf(&manifest_dir, repo_root, sync_vendor);
     sync_frontend(&manifest_dir, repo_root, sync_vendor);
-    sync_vis_runtime(&manifest_dir, repo_root, sync_vendor);
 
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=AGENTSIGHT_SYNC_VENDOR");
-}
-
-fn sync_vis_runtime(manifest_dir: &Path, repo_root: &Path, sync_vendor: bool) {
-    let source = repo_root.join("vis-gallery/single/dist-nebula/runtime.iife.js");
-    let vendor = manifest_dir.join("vendor/vis/repository-nebula.iife.js");
-    if sync_vendor {
-        if !source.exists() {
-            panic!(
-                "missing Repository Nebula runtime {}. Run `npm run build` in ../vis-gallery.",
-                source.display()
-            );
-        }
-        copy_file(&source, &vendor).unwrap_or_else(|err| {
-            panic!(
-                "failed to vendor {} into {}: {err}",
-                source.display(),
-                vendor.display()
-            )
-        });
-    }
-    if !vendor.exists() {
-        panic!(
-            "missing bundled Repository Nebula runtime {}. Run `AGENTSIGHT_SYNC_VENDOR=1 cargo build`.",
-            vendor.display()
-        );
-    }
-    println!("cargo:rerun-if-changed={}", vendor.display());
 }
 
 fn env_flag(name: &str) -> bool {

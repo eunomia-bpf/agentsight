@@ -1,7 +1,7 @@
 SYNC_VENDOR ?= 0
 
 build: SYNC_VENDOR=1
-build: build-frontend build-vis build-bpf build-rust
+build: build-frontend build-bpf build-rust
 
 build-frontend:
 	cd frontend && npm install && npm run build

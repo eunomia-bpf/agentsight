@@ -1,32 +1,20 @@
-use agent_session::{LongitudinalOptions, build_longitudinal_artifact};
+use crate::vis_scene::{
+    ActionKind, AnimationFormat, FileAction, SceneInput, build_timeline, encode_animations,
+    html_document, render_pixmap, svg_document,
+};
+use agent_session::{LongitudinalArtifact, LongitudinalOptions, build_longitudinal_artifact};
 use chrono::Utc;
-use serde_json::{Value, json};
-use std::collections::{HashMap, HashSet};
-use std::env;
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::{Duration, Instant};
-
-const WIDTH: usize = 1200;
-const HEIGHT: usize = 675;
-const MAX_VISUAL_STEPS: usize = 360;
-const RUNTIME: &str = include_str!("../vendor/vis/repository-nebula.iife.js");
+use std::process::Command;
 
 pub fn run_vis(
     requested_path: &Path,
-    output: &Path,
+    outputs: &[PathBuf],
     global: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let format = output
-        .extension()
-        .and_then(|value| value.to_str())
-        .unwrap_or("")
-        .to_ascii_lowercase();
-    if !matches!(format.as_str(), "html" | "svg" | "png" | "gif" | "mp4") {
-        return Err("output extension must be .html, .svg, .png, .gif, or .mp4".into());
-    }
+    let requested = requested_outputs(outputs)?;
     eprintln!(
         "[agentsight-vis 1/5] repository  {}",
         requested_path.display()
@@ -55,326 +43,254 @@ pub fn run_vis(
         artifact.events.len()
     );
 
-    let payload = nebula_payload(&artifact);
-    let file_event_count = payload["agent_events"].as_array().map_or(0, Vec::len);
+    let scene_input = scene_input(&artifact);
+    drop(artifact);
+    let file_action_count = scene_input.actions.len();
+    let timeline = build_timeline(scene_input);
     eprintln!(
-        "[agentsight-vis 4/5] projection  {file_event_count} file-action events · no directory nodes"
+        "[agentsight-vis 4/5] projection  {file_action_count} file actions · {} coherent layout frames · no directory nodes",
+        timeline.frame_count()
     );
-    let html = html_document(&payload)?;
-    if let Some(parent) = output
-        .parent()
-        .filter(|value| !value.as_os_str().is_empty())
-    {
-        fs::create_dir_all(parent)?;
-    }
-    if format == "html" {
-        fs::write(output, html)?;
-    } else {
-        render_media(&html, &payload, output, &format)?;
-    }
-    eprintln!(
-        "[agentsight-vis 5/5] output      {} · {} KiB",
-        output.display(),
-        fs::metadata(output)?.len().div_ceil(1024)
-    );
-    Ok(())
-}
 
-fn render_media(
-    html: &str,
-    payload: &Value,
-    output: &Path,
-    format: &str,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let temporary = tempfile::tempdir()?;
-    let page = temporary.path().join("repository-nebula.html");
-    fs::write(&page, html)?;
-    let browser = browser_binary()?;
-    let end = payload["meta"]["window_end_ms"]
-        .as_i64()
-        .unwrap_or_default();
-    match format {
-        "png" => browser_screenshot(&browser, &page, end, None, output)?,
-        "svg" => {
-            let dom = browser_dom(&browser, &page, end)?;
-            let chart = dom
-                .find("<div id=\"chart\"")
-                .and_then(|offset| dom[offset..].find("<svg").map(|inner| offset + inner))
-                .ok_or("rendered page did not contain the chart SVG")?;
-            let end = dom[chart..]
-                .find("</svg>")
-                .map(|offset| chart + offset + "</svg>".len())
-                .ok_or("rendered chart SVG was incomplete")?;
-            fs::write(
-                output,
-                format!(
-                    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n{}",
-                    &dom[chart..end]
-                ),
-            )?;
-        }
-        "gif" | "mp4" => {
-            let frames = temporary.path().join("frames");
-            fs::create_dir(&frames)?;
-            let cursors = animation_cursors(payload);
-            eprintln!(
-                "[agentsight-vis] rendering   {} layout snapshots (one frame each) with {}",
-                cursors.len(),
-                browser.display()
-            );
-            let workers = std::thread::available_parallelism()
-                .map_or(1, usize::from)
-                .min(4)
-                .min(cursors.len());
-            let next = AtomicUsize::new(0);
-            let completed = AtomicUsize::new(0);
-            std::thread::scope(
-                |scope| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-                    let mut handles = Vec::with_capacity(workers);
-                    for _ in 0..workers {
-                        handles.push(scope.spawn(
-                            || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-                                loop {
-                                    let index = next.fetch_add(1, Ordering::Relaxed);
-                                    let Some(cursor) = cursors.get(index) else {
-                                        break;
-                                    };
-                                    browser_screenshot(
-                                        &browser,
-                                        &page,
-                                        *cursor,
-                                        Some(index),
-                                        &frames.join(format!("frame-{index:04}.png")),
-                                    )?;
-                                    let done = completed.fetch_add(1, Ordering::Relaxed) + 1;
-                                    if done % 12 == 0 || done == cursors.len() {
-                                        eprintln!(
-                                            "[agentsight-vis] frames      {done}/{}",
-                                            cursors.len()
-                                        );
-                                    }
-                                }
-                                Ok(())
-                            },
-                        ));
-                    }
-                    for handle in handles {
-                        handle
-                            .join()
-                            .map_err(|_| "Chromium render worker panicked")??;
-                    }
-                    Ok(())
-                },
-            )?;
-            encode_animation(&frames, output, format)?;
-        }
-        _ => unreachable!(),
-    }
-    Ok(())
-}
-
-fn browser_binary() -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
-    if let Some(path) = env::var_os("CHROME")
-        .map(PathBuf::from)
-        .filter(|path| path.is_file())
-    {
-        return Ok(path);
-    }
-    if let Some(home) = dirs::home_dir() {
-        let cache = home.join(".cache/ms-playwright");
-        let mut versions = fs::read_dir(cache)
-            .into_iter()
-            .flatten()
-            .filter_map(Result::ok)
-            .map(|entry| entry.path())
-            .collect::<Vec<_>>();
-        versions.sort();
-        for version in versions.into_iter().rev() {
-            for suffix in [
-                "chrome-linux64/chrome",
-                "chrome-linux/chrome",
-                "chrome-headless-shell-linux64/headless_shell",
-            ] {
-                let candidate = version.join(suffix);
-                if candidate.is_file() {
-                    return Ok(candidate);
-                }
-            }
-        }
-    }
-    for name in [
-        "chromium",
-        "chromium-browser",
-        "google-chrome",
-        "google-chrome-stable",
-    ] {
-        if Command::new(name)
-            .arg("--version")
-            .output()
-            .is_ok_and(|output| output.status.success())
+    for output in &requested {
+        if let Some(parent) = output
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
         {
-            return Ok(PathBuf::from(name));
+            fs::create_dir_all(parent)?;
         }
     }
-    Err("PNG/SVG/GIF/MP4 export needs Chromium; HTML export has no browser dependency".into())
-}
-
-fn browser_url(page: &Path, cursor: i64, layout_step: Option<usize>) -> String {
-    let step = layout_step.map_or_else(String::new, |value| format!("&step={value}"));
-    format!("file://{}?cursor={cursor}{step}&still=1", page.display())
-}
-
-fn browser_args(page: &Path, cursor: i64, layout_step: Option<usize>) -> Vec<String> {
-    vec![
-        "--headless".into(),
-        "--no-sandbox".into(),
-        "--disable-gpu".into(),
-        "--hide-scrollbars".into(),
-        "--run-all-compositor-stages-before-draw".into(),
-        "--virtual-time-budget=1600".into(),
-        "--force-device-scale-factor=1".into(),
-        format!("--window-size={},{}", WIDTH + 64, HEIGHT + 260),
-        browser_url(page, cursor, layout_step),
-    ]
-}
-
-fn browser_screenshot(
-    browser: &Path,
-    page: &Path,
-    cursor: i64,
-    layout_step: Option<usize>,
-    output: &Path,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    for attempt in 1..=3 {
-        let mut args = browser_args(page, cursor, layout_step);
-        args.insert(args.len() - 1, format!("--screenshot={}", output.display()));
-        let _ = fs::remove_file(output);
-        let mut child = Command::new(browser)
-            .args(args)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()?;
-        let started = Instant::now();
-        loop {
-            if let Some(status) = child.try_wait()? {
-                if status.success() && output.is_file() {
-                    return Ok(());
-                }
-                break;
-            }
-            if started.elapsed() >= Duration::from_secs(30) {
-                let _ = child.kill();
-                let _ = child.wait();
-                break;
-            }
-            std::thread::sleep(Duration::from_millis(100));
-        }
-        if attempt < 3 {
-            eprintln!(
-                "[agentsight-vis] retry       frame {} ({attempt}/3)",
-                layout_step.unwrap_or_default()
-            );
+    if requested.iter().any(|path| extension(path) == "html") {
+        let html = html_document(&timeline)?;
+        for output in requested.iter().filter(|path| extension(path) == "html") {
+            fs::write(output, &html)?;
         }
     }
-    Err(format!(
-        "Chromium screenshot failed after 3 attempts: {}",
-        output.display()
-    )
-    .into())
-}
-
-fn browser_dom(
-    browser: &Path,
-    page: &Path,
-    cursor: i64,
-) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let mut args = browser_args(page, cursor, None);
-    args.insert(args.len() - 1, "--dump-dom".into());
-    let result = Command::new(browser).args(args).output()?;
-    if !result.status.success() {
-        return Err(format!(
-            "Chromium SVG render failed: {}",
-            String::from_utf8_lossy(&result.stderr).trim()
-        )
-        .into());
+    if requested.iter().any(|path| extension(path) == "svg") {
+        let svg = svg_document(&timeline);
+        for output in requested.iter().filter(|path| extension(path) == "svg") {
+            fs::write(output, &svg)?;
+        }
     }
-    Ok(String::from_utf8(result.stdout)?)
-}
-
-fn animation_cursors(payload: &Value) -> Vec<i64> {
-    let start = payload["meta"]["window_start_ms"]
-        .as_i64()
-        .unwrap_or_default();
-    let end = payload["meta"]["window_end_ms"].as_i64().unwrap_or(start);
-    let mut events = payload["agent_events"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|event| {
-            event["ts_ms"].as_i64().map(|timestamp| {
-                (
-                    timestamp,
-                    event["id"].as_str().unwrap_or_default().to_string(),
-                )
-            })
+    if requested.iter().any(|path| extension(path) == "png") {
+        let final_index = timeline.frame_count() - 1;
+        let pixmap = render_pixmap(&timeline, timeline.final_frame(), final_index);
+        for output in requested.iter().filter(|path| extension(path) == "png") {
+            pixmap.save_png(output)?;
+        }
+    }
+    let animations = requested
+        .iter()
+        .filter_map(|path| match extension(path).as_str() {
+            "gif" => Some((path.clone(), AnimationFormat::Gif)),
+            "mp4" => Some((path.clone(), AnimationFormat::Mp4)),
+            _ => None,
         })
-        .filter(|(timestamp, _)| *timestamp >= start && *timestamp <= end)
         .collect::<Vec<_>>();
-    events.sort_unstable();
-    if events.is_empty() {
-        return vec![end];
+    if !animations.is_empty() {
+        eprintln!(
+            "[agentsight-vis] rendering   {} frames once → {} animation output{}",
+            timeline.frame_count(),
+            animations.len(),
+            if animations.len() == 1 { "" } else { "s" }
+        );
+        encode_animations(&timeline, &animations)?;
     }
 
-    let step_count = events.len().min(MAX_VISUAL_STEPS);
-    let mut visual_steps = vec![start; step_count];
-    for (index, (timestamp, _)) in events.iter().enumerate() {
-        let bucket = (index * step_count / events.len()).min(step_count.saturating_sub(1));
-        visual_steps[bucket] = *timestamp;
-    }
-    visual_steps
-}
-
-fn encode_animation(
-    frames: &Path,
-    output: &Path,
-    format: &str,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let input = frames.join("frame-%04d.png");
-    let mut command = Command::new("ffmpeg");
-    command
-        .args([
-            "-y",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-framerate",
-            "8",
-            "-i",
-        ])
-        .arg(input);
-    if format == "gif" {
-        command.args(["-vf", "fps=8,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=sierra2_4a"]);
-    } else {
-        command.args([
-            "-c:v",
-            "libx264",
-            "-vf",
-            "pad=ceil(iw/2)*2:ceil(ih/2)*2",
-            "-pix_fmt",
-            "yuv420p",
-            "-movflags",
-            "+faststart",
-        ]);
-    }
-    let result = command.arg(output).output()?;
-    if !result.status.success() {
-        return Err(format!(
-            "ffmpeg failed: {}",
-            String::from_utf8_lossy(&result.stderr).trim()
-        )
-        .into());
+    for output in &requested {
+        eprintln!(
+            "[agentsight-vis 5/5] output      {} · {} KiB",
+            output.display(),
+            fs::metadata(output)?.len().div_ceil(1024)
+        );
     }
     Ok(())
+}
+
+fn requested_outputs(
+    outputs: &[PathBuf],
+) -> Result<Vec<PathBuf>, Box<dyn std::error::Error + Send + Sync>> {
+    let mut requested = Vec::new();
+    let mut seen = HashSet::new();
+    for output in outputs {
+        let format = extension(output);
+        if !matches!(format.as_str(), "html" | "svg" | "png" | "gif" | "mp4") {
+            return Err(format!(
+                "unsupported output {}; extension must be .html, .svg, .png, .gif, or .mp4",
+                output.display()
+            )
+            .into());
+        }
+        if seen.insert(output.clone()) {
+            requested.push(output.clone());
+        }
+    }
+    if requested.is_empty() {
+        return Err("at least one --output is required".into());
+    }
+    Ok(requested)
+}
+
+fn extension(path: &Path) -> String {
+    path.extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+}
+
+#[derive(Clone)]
+struct DurableChange {
+    status: char,
+    path: String,
+    old_path: Option<String>,
+}
+
+fn scene_input(artifact: &LongitudinalArtifact) -> SceneInput {
+    let changes = artifact
+        .changes
+        .iter()
+        .map(|change| (change.id.as_str(), change))
+        .collect::<HashMap<_, _>>();
+    let mut durable_by_event: HashMap<&str, Vec<DurableChange>> = HashMap::new();
+    let mut seen = HashSet::new();
+    for association in &artifact.associations {
+        if association.state != "unique_candidate" {
+            continue;
+        }
+        let Some(candidate) = association.candidates.first() else {
+            continue;
+        };
+        let Some(change) = changes.get(candidate.change_id.as_str()) else {
+            continue;
+        };
+        let Some(status) = change
+            .status
+            .chars()
+            .next()
+            .filter(|status| matches!(status, 'A' | 'C' | 'D' | 'R'))
+        else {
+            continue;
+        };
+        let key = (
+            association.event_id.as_str(),
+            status,
+            change.path.as_str(),
+            change.old_path.as_deref(),
+        );
+        if seen.insert(key) {
+            durable_by_event
+                .entry(association.event_id.as_str())
+                .or_default()
+                .push(DurableChange {
+                    status,
+                    path: change.path.clone(),
+                    old_path: change.old_path.clone(),
+                });
+        }
+    }
+
+    let mut actions = Vec::new();
+    for event in artifact.events.iter().filter(|event| event.kind == "tool") {
+        let mut handled = BTreeSet::new();
+        let mut lifecycle = durable_by_event
+            .get(event.id.as_str())
+            .cloned()
+            .unwrap_or_default();
+        lifecycle.sort_by(|left, right| left.path.cmp(&right.path));
+        for change in lifecycle {
+            let kind = match change.status {
+                'A' | 'C' => ActionKind::Create,
+                'D' => ActionKind::Delete,
+                'R' if change.old_path.is_some() => ActionKind::Rename,
+                _ => continue,
+            };
+            handled.insert(change.path.clone());
+            if let Some(old_path) = &change.old_path {
+                handled.insert(old_path.clone());
+            }
+            actions.push(FileAction {
+                event_id: event.id.clone(),
+                session_id: event.session_id.clone(),
+                vendor: event.vendor.clone(),
+                timestamp_ms: event.ts_ms,
+                kind,
+                path: change.path,
+                old_path: change.old_path,
+            });
+        }
+
+        let mut writes = event.write_paths.iter().cloned().collect::<BTreeSet<_>>();
+        if writes.is_empty() && event.effect == "write" {
+            writes.extend(event.paths.iter().cloned());
+        }
+        for path in &writes {
+            if handled.contains(path) {
+                continue;
+            }
+            actions.push(FileAction {
+                event_id: event.id.clone(),
+                session_id: event.session_id.clone(),
+                vendor: event.vendor.clone(),
+                timestamp_ms: event.ts_ms,
+                kind: ActionKind::Write,
+                path: path.clone(),
+                old_path: None,
+            });
+        }
+
+        let mut reads = event.read_paths.iter().cloned().collect::<BTreeSet<_>>();
+        if reads.is_empty()
+            && (event.effect == "read"
+                || ["read", "search", "glob", "grep"]
+                    .iter()
+                    .any(|needle| event.action.to_ascii_lowercase().contains(needle)))
+        {
+            reads.extend(
+                event
+                    .paths
+                    .iter()
+                    .filter(|path| !writes.contains(*path))
+                    .cloned(),
+            );
+        }
+        for path in reads {
+            if handled.contains(&path) || writes.contains(&path) {
+                continue;
+            }
+            actions.push(FileAction {
+                event_id: event.id.clone(),
+                session_id: event.session_id.clone(),
+                vendor: event.vendor.clone(),
+                timestamp_ms: event.ts_ms,
+                kind: ActionKind::Read,
+                path,
+                old_path: None,
+            });
+        }
+    }
+    SceneInput {
+        repository: artifact.repository.name.clone(),
+        revision: artifact.repository.head.clone(),
+        window_start_ms: artifact.window.since_ms,
+        window_end_ms: artifact.window.until_ms,
+        session_scope: if artifact.window.global {
+            "global_tool_operations"
+        } else {
+            "repository_identity"
+        }
+        .to_string(),
+        session_count: artifact.sessions.len(),
+        actions,
+        commit_times: artifact
+            .commits
+            .iter()
+            .filter(|commit| {
+                commit.committed_at_ms >= artifact.window.since_ms
+                    && commit.committed_at_ms <= artifact.window.until_ms
+            })
+            .map(|commit| commit.committed_at_ms)
+            .collect(),
+    }
 }
 
 fn repository_root(path: &Path) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
@@ -414,192 +330,25 @@ fn git(repo: &Path, args: &[&str]) -> Result<String, Box<dyn std::error::Error +
     Ok(String::from_utf8(output.stdout)?)
 }
 
-fn nebula_payload(artifact: &agent_session::LongitudinalArtifact) -> Value {
-    let changes = artifact
-        .changes
-        .iter()
-        .map(|change| (change.id.as_str(), change))
-        .collect::<HashMap<_, _>>();
-    let mut durable_by_event: HashMap<&str, Vec<Value>> = HashMap::new();
-    let mut seen = HashSet::new();
-    for association in &artifact.associations {
-        let Some(candidate) = association.candidates.first() else {
-            continue;
-        };
-        let Some(change) = changes.get(candidate.change_id.as_str()) else {
-            continue;
-        };
-        if !matches!(change.status.chars().next(), Some('A' | 'C' | 'D' | 'R')) {
-            continue;
-        }
-        let key = (
-            association.event_id.as_str(),
-            change.status.as_str(),
-            change.path.as_str(),
-            change.old_path.as_deref(),
-        );
-        if !seen.insert(key) {
-            continue;
-        }
-        durable_by_event
-            .entry(association.event_id.as_str())
-            .or_default()
-            .push(json!({
-                "status": change.status,
-                "path": change.path,
-                "old_path": change.old_path,
-            }));
-    }
-
-    let events = artifact
-        .events
-        .iter()
-        .filter_map(|event| {
-            let durable = durable_by_event
-                .get(event.id.as_str())
-                .cloned()
-                .unwrap_or_default();
-            let has_file_action = !event.read_paths.is_empty()
-                || !event.write_paths.is_empty()
-                || (!event.paths.is_empty() && matches!(event.effect.as_str(), "read" | "write"))
-                || !durable.is_empty();
-            if event.kind != "tool" || !has_file_action {
-                return None;
-            }
-            Some(json!({
-                "id": event.id,
-                "session_id": event.session_id,
-                "vendor": event.vendor,
-                "ts_ms": event.ts_ms,
-                "kind": event.kind,
-                "action": event.action,
-                "category": event.category,
-                "effect": event.effect,
-                "paths": event.paths,
-                "read_paths": event.read_paths,
-                "write_paths": event.write_paths,
-                "durable_changes": durable,
-            }))
-        })
-        .collect::<Vec<_>>();
-    let commits = artifact
-        .commits
-        .iter()
-        .filter(|commit| {
-            commit.committed_at_ms >= artifact.window.since_ms
-                && commit.committed_at_ms <= artifact.window.until_ms
-        })
-        .map(|commit| json!({ "committed_at_ms": commit.committed_at_ms }))
-        .collect::<Vec<_>>();
-    json!({
-        "meta": {
-            "repository": artifact.repository.name,
-            "endpoint_revision": artifact.repository.head,
-            "window_start_ms": artifact.window.since_ms,
-            "window_end_ms": artifact.window.until_ms,
-            "session_scope": if artifact.window.global {
-                "global_tool_operations"
-            } else {
-                "repository_identity"
-            },
-        },
-        "agent_events": events,
-        "commits": commits,
-    })
-}
-
-fn html_document(payload: &Value) -> Result<String, serde_json::Error> {
-    let payload = serde_json::to_string(payload)?
-        .replace('<', "\\u003c")
-        .replace('\u{2028}', "\\u2028")
-        .replace('\u{2029}', "\\u2029");
-    Ok(format!(
-        r#"<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="agentsight-vis 0.1"><title>Repository Nebula · AgentSight</title><style>
-:root{{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#070b12;color:#dce8f7}}*{{box-sizing:border-box}}body{{margin:0;background:#070b12}}.artifact{{width:{artifact_width}px;min-height:{artifact_height}px;padding:24px 32px;background:#070b12;transition:box-shadow .12s}}.artifact.commit-flash{{box-shadow:inset 0 0 0 2px #efd265,0 0 30px rgba(239,210,101,.42)}}.header{{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid rgba(135,160,190,.18);padding-bottom:14px}}.eyebrow,.mode{{font:10px ui-monospace,monospace;color:#61d7bf;letter-spacing:.12em;text-transform:uppercase}}.header h1{{font-size:24px;margin:6px 0}}.header p{{font-size:11px;color:#71839a;margin:0}}.mode{{color:#8c9bb0;border:1px solid rgba(135,160,190,.18);padding:7px 9px;border-radius:99px;align-self:flex-start}}.visual{{width:{width}px;height:{height}px;margin-top:14px}}.timeline{{display:grid;grid-template-columns:42px 1fr 190px;gap:12px;align-items:center;border-top:1px solid rgba(135,160,190,.18);padding:14px 0 8px}}.timeline button{{width:36px;height:36px;border-radius:50%;border:1px solid rgba(97,215,191,.4);background:#10231f;color:#61d7bf;cursor:pointer}}.timeline input{{width:100%;accent-color:#61d7bf}}.timeline output{{font:9px ui-monospace,monospace;color:#9bacc0;text-align:right}}.legend{{display:flex;gap:18px;font:9px ui-monospace,monospace;color:#71839a}}.legend i{{display:inline-block;width:13px;height:3px;margin-right:5px;vertical-align:middle}}.footer{{margin-top:8px;color:#7c8ba0;font:9px ui-monospace,monospace}}
-</style></head><body><main id="artifact" class="artifact"><header class="header"><div><span class="eyebrow">AgentSight · repository evolution</span><h1 id="view-title"></h1><p id="view-note"></p></div><span id="time-mode" class="mode"></span></header><section class="visual"><div id="chart"></div></section><section class="timeline"><button id="play" aria-label="Play history">▶</button><input id="timeline" type="range"><output id="cursor-label"></output></section><section class="legend"><span><i style="background:#f7ffff"></i>read attention</span><span><i style="background:#ff9678"></i>write ripple</span><span><i style="background:#75f0a9"></i>create</span><span><i style="background:#63dfff"></i>rename</span><span><i style="background:#ff647c"></i>delete</span><span><i style="background:#efd265"></i>commit frame</span></section><footer id="provenance" class="footer"></footer></main>
-<script>{runtime}</script><script>const q=new URLSearchParams(location.search);const requested=Number(q.get("cursor"));const payload={payload};if(q.has("step"))payload.meta.render_layout_step=Number(q.get("step"));AgentSightSingle.initialize(payload,"workspace-constellation",{{renderer:"svg",cursorMs:Number.isFinite(requested)&&requested>0?requested:{until},width:{width},height:{height},reducedMotion:q.get("still")==="1"}})</script></body></html>"#,
-        artifact_width = WIDTH + 64,
-        artifact_height = HEIGHT + 190,
-        width = WIDTH,
-        height = HEIGHT,
-        runtime = RUNTIME,
-        payload = payload,
-        until = payload_window_end(&payload),
-    ))
-}
-
-fn payload_window_end(payload: &str) -> i64 {
-    serde_json::from_str::<Value>(payload)
-        .ok()
-        .and_then(|value| value["meta"]["window_end_ms"].as_i64())
-        .unwrap_or_default()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn embedded_runtime_is_present() {
-        assert!(RUNTIME.contains("AgentSightSingle"));
-        assert!(RUNTIME.len() > 100_000);
-    }
-
-    #[test]
-    fn html_escapes_script_terminators() {
-        let html = html_document(&json!({
-            "meta": { "window_end_ms": 1 },
-            "value": "</script>",
-        }))
+    fn repeated_outputs_are_deduplicated_and_formats_are_inferred() {
+        let values = requested_outputs(&[
+            "out/demo.html".into(),
+            "out/demo.gif".into(),
+            "out/demo.html".into(),
+        ])
         .unwrap();
-        assert!(html.contains("\\u003c/script>"));
-        assert!(!html.contains("\"</script>\""));
+        assert_eq!(values.len(), 2);
+        assert_eq!(extension(&values[0]), "html");
+        assert_eq!(extension(&values[1]), "gif");
     }
 
     #[test]
-    fn animation_cursors_match_every_layout_snapshot_without_sampling() {
-        let events = (0..1_000)
-            .map(|index| json!({ "id": format!("event-{index:04}"), "ts_ms": 1_000 + index }))
-            .collect::<Vec<_>>();
-        let payload = json!({
-            "meta": { "window_start_ms": 100, "window_end_ms": 3_000 },
-            "agent_events": events,
-            "commits": [
-                { "committed_at_ms": 500 },
-                { "committed_at_ms": 1_500 },
-                { "committed_at_ms": 2_500 },
-            ],
-        });
-        let cursors = animation_cursors(&payload);
-
-        assert_eq!(cursors.len(), MAX_VISUAL_STEPS);
-        assert_eq!(cursors.first(), Some(&1_002));
-        assert_eq!(cursors.last(), Some(&1_999));
-        assert!(cursors.windows(2).all(|pair| pair[0] <= pair[1]));
-        assert!(!cursors.contains(&500));
-        assert!(!cursors.contains(&2_500));
-    }
-
-    #[test]
-    fn duplicate_timestamps_still_keep_distinct_layout_frames() {
-        let payload = json!({
-            "meta": { "window_start_ms": 100, "window_end_ms": 3_000 },
-            "agent_events": [
-                { "id": "one", "ts_ms": 1_000 },
-                { "id": "two", "ts_ms": 1_000 },
-            ],
-        });
-        assert_eq!(animation_cursors(&payload), vec![1_000, 1_000]);
-    }
-
-    #[test]
-    fn empty_animation_uses_one_endpoint_frame() {
-        let payload = json!({
-            "meta": { "window_start_ms": 100, "window_end_ms": 3_000 },
-            "agent_events": [],
-            "commits": [],
-        });
-        assert_eq!(animation_cursors(&payload), vec![3_000]);
+    fn unsupported_output_extension_is_rejected() {
+        assert!(requested_outputs(&["demo.json".into()]).is_err());
     }
 }
