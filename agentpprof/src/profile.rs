@@ -1039,6 +1039,7 @@ mod tests {
             process_chain: vec!["cargo".to_string()],
             status: status.to_string(),
             path_groups: paths.into_iter().map(str::to_string).collect(),
+            paths: Vec::new(),
             domains: Vec::new(),
             call_id: Some("call-1".to_string()),
         }
