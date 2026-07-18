@@ -133,6 +133,85 @@ describe("single-view registry", () => {
     expect(files.every((file) => file.age === 0)).toBe(true);
   });
 
+  test("renders duplicate-timestamp layout snapshots by exact step", () => {
+    const view = registry.get("workspace-constellation");
+    const ts = data.meta.window_start_ms + 1;
+    const events = ["src/first.rs", "src/second.rs"].map((path, index) => ({
+      ...data.agent_events[0],
+      id: `same-time-${index}`,
+      ts_ms: ts,
+      paths: [path],
+      read_paths: [path],
+      write_paths: [],
+      durable_changes: [],
+    }));
+    const atStep = (layoutStep) => view.build({
+      meta: { ...data.meta, render_layout_step: layoutStep },
+      commits: [],
+      agent_events: events,
+    }, ts, helpers).series.find((series) => series.name === "files").data;
+
+    expect(atStep(0).map((point) => point.path)).toEqual(["src/first.rs"]);
+    expect(atStep(1).map((point) => point.path).sort()).toEqual(["src/first.rs", "src/second.rs"]);
+  });
+
+  test("keeps attention visible for four adaptive layout half-lives", () => {
+    const view = registry.get("workspace-constellation");
+    const start = data.meta.window_start_ms;
+    const agentEvents = Array.from({ length: 720 }, (_, index) => {
+      const path = index === 1 ? "src/target.rs" : "src/noise.rs";
+      return {
+        ...data.agent_events[0],
+        id: `adaptive-attention-${index}`,
+        ts_ms: start + index,
+        paths: [path],
+        read_paths: [path],
+        write_paths: [],
+        durable_changes: [],
+      };
+    });
+    const history = {
+      meta: { ...data.meta, render_layout_step: 0 },
+      commits: [],
+      agent_events: agentEvents,
+    };
+    const targetIsVisible = (step) => {
+      history.meta.render_layout_step = step;
+      return view.build(history, start + 2 * step + 1, helpers)
+        .series.find((series) => series.name === "reads").data
+        .some((point) => point.path === "src/target.rs");
+    };
+
+    expect(targetIsVisible(0)).toBe(true);
+    expect(targetIsVisible(4)).toBe(true);
+    expect(targetIsVisible(5)).toBe(false);
+  });
+
+  test("caps read pulses and keeps their radius compact", () => {
+    const view = registry.get("workspace-constellation");
+    const start = data.meta.window_start_ms;
+    const agentEvents = Array.from({ length: 10 }, (_, index) => ({
+      ...data.agent_events[0],
+      id: `read-pulse-${index}`,
+      ts_ms: start + index,
+      paths: [`src/read-${index}.rs`],
+      read_paths: [`src/read-${index}.rs`],
+      write_paths: [],
+      durable_changes: [],
+    }));
+    const option = view.build({
+      meta: { ...data.meta, window_start_ms: start, window_end_ms: start + 9 },
+      commits: [],
+      agent_events: agentEvents,
+    }, start + 9, helpers);
+    const files = new Map(option.series.find((series) => series.name === "files").data
+      .map((point) => [point.path, point]));
+    const reads = option.series.find((series) => series.name === "reads").data;
+
+    expect(reads).toHaveLength(4);
+    expect(reads.every((point) => point.symbolSize === files.get(point.path).symbolSize + 6)).toBe(true);
+  });
+
   test("renders write ripples explicitly in still GIF frames", () => {
     const view = registry.get("workspace-constellation");
     const projected = projectForView(data, view);
@@ -351,6 +430,62 @@ describe("single-view registry", () => {
     expect(small[0].directoryShare).toBeGreaterThanOrEqual(0.4);
     expect(large[0].directoryShare / small[0].directoryShare).toBeLessThan(2);
     expect(mean(small, "baseSize")).toBeGreaterThan(mean(large, "baseSize"));
+  });
+
+  test("moves an important directory as a group without ejecting its hot file", () => {
+    const start = data.meta.window_start_ms;
+    const actions = [];
+    const add = (path, session) => actions.push({
+      id: `group-${actions.length}`,
+      ts_ms: start + actions.length,
+      session_id: session,
+      vendor: "codex",
+      kind: "tool",
+      action: "read",
+      category: "filesystem",
+      effect: "read",
+      paths: [path],
+      read_paths: [path],
+      write_paths: [],
+      durable_changes: [],
+    });
+    for (let index = 0; index < 25; index += 1) {
+      add(`alpha/file-${index}.rs`, "seed");
+      add(`beta/file-${index}.rs`, "seed");
+    }
+    for (let index = 0; index < 60; index += 1) add("alpha/hot.rs", `hot-${index}`);
+    for (let index = 0; index < 40; index += 1) {
+      add(`${index % 2 ? "alpha" : "beta"}/file-${index % 25}.rs`, "cooldown");
+    }
+    const history = {
+      meta: { ...data.meta, window_start_ms: start, window_end_ms: start + actions.length },
+      commits: [],
+      agent_events: actions,
+    };
+    const view = registry.get("workspace-constellation");
+    const points = view.build(history, history.meta.window_end_ms, helpers)
+      .series.find((series) => series.name === "files").data;
+    const alpha = points.filter((point) => point.path.startsWith("alpha/"));
+    const beta = points.filter((point) => point.path.startsWith("beta/"));
+    const centroid = (rows) => rows.reduce((sum, point) => [
+      sum[0] + point.value[0] / rows.length,
+      sum[1] + point.value[1] / rows.length,
+    ], [0, 0]);
+    const alphaCenter = centroid(alpha);
+    const betaCenter = centroid(beta);
+    const distance = (point, center) => Math.hypot(point.value[0] - center[0], point.value[1] - center[1]);
+    const centerDistance = (center) => Math.hypot(center[0] - 0.5, center[1] - 0.5);
+    const hot = alpha.find((point) => point.path === "alpha/hot.rs");
+    const mixed = [
+      ...alpha.filter((point) => distance(point, betaCenter) < distance(point, alphaCenter)),
+      ...beta.filter((point) => distance(point, alphaCenter) < distance(point, betaCenter)),
+    ];
+    const alphaDistances = alpha.map((point) => distance(point, alphaCenter)).sort((a, b) => a - b);
+
+    expect(mixed.length / points.length).toBeLessThan(0.1);
+    expect(centerDistance(alphaCenter)).toBeLessThan(centerDistance(betaCenter));
+    expect(distance(hot, alphaCenter)).toBeLessThan(alphaDistances[Math.floor(alphaDistances.length / 2)]);
+    expect(distance(hot, alphaCenter)).toBeLessThan(distance(hot, betaCenter));
   });
 
   test("keeps both treemap and nebula observed-only", () => {

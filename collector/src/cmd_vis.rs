@@ -1,11 +1,13 @@
 use agent_session::{LongitudinalOptions, build_longitudinal_artifact};
 use chrono::Utc;
 use serde_json::{Value, json};
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::{Duration, Instant};
 
 const WIDTH: usize = 1200;
 const HEIGHT: usize = 675;
@@ -92,7 +94,7 @@ fn render_media(
         .as_i64()
         .unwrap_or_default();
     match format {
-        "png" => browser_screenshot(&browser, &page, end, output)?,
+        "png" => browser_screenshot(&browser, &page, end, None, output)?,
         "svg" => {
             let dom = browser_dom(&browser, &page, end)?;
             let chart = dom
@@ -114,27 +116,56 @@ fn render_media(
         "gif" | "mp4" => {
             let frames = temporary.path().join("frames");
             fs::create_dir(&frames)?;
-            let cursors = animation_cursors(payload, 72);
+            let cursors = animation_cursors(payload);
             eprintln!(
-                "[agentsight-vis] rendering   {} action-step frames (empty start -> endpoint) with {}",
+                "[agentsight-vis] rendering   {} layout snapshots (one frame each) with {}",
                 cursors.len(),
                 browser.display()
             );
-            for (index, cursor) in cursors.iter().enumerate() {
-                browser_screenshot(
-                    &browser,
-                    &page,
-                    *cursor,
-                    &frames.join(format!("frame-{index:04}.png")),
-                )?;
-                if (index + 1) % 12 == 0 || index + 1 == cursors.len() {
-                    eprintln!(
-                        "[agentsight-vis] frames      {}/{}",
-                        index + 1,
-                        cursors.len()
-                    );
-                }
-            }
+            let workers = std::thread::available_parallelism()
+                .map_or(1, usize::from)
+                .min(4)
+                .min(cursors.len());
+            let next = AtomicUsize::new(0);
+            let completed = AtomicUsize::new(0);
+            std::thread::scope(
+                |scope| -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                    let mut handles = Vec::with_capacity(workers);
+                    for _ in 0..workers {
+                        handles.push(scope.spawn(
+                            || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                                loop {
+                                    let index = next.fetch_add(1, Ordering::Relaxed);
+                                    let Some(cursor) = cursors.get(index) else {
+                                        break;
+                                    };
+                                    browser_screenshot(
+                                        &browser,
+                                        &page,
+                                        *cursor,
+                                        Some(index),
+                                        &frames.join(format!("frame-{index:04}.png")),
+                                    )?;
+                                    let done = completed.fetch_add(1, Ordering::Relaxed) + 1;
+                                    if done % 12 == 0 || done == cursors.len() {
+                                        eprintln!(
+                                            "[agentsight-vis] frames      {done}/{}",
+                                            cursors.len()
+                                        );
+                                    }
+                                }
+                                Ok(())
+                            },
+                        ));
+                    }
+                    for handle in handles {
+                        handle
+                            .join()
+                            .map_err(|_| "Chromium render worker panicked")??;
+                    }
+                    Ok(())
+                },
+            )?;
             encode_animation(&frames, output, format)?;
         }
         _ => unreachable!(),
@@ -188,11 +219,12 @@ fn browser_binary() -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>>
     Err("PNG/SVG/GIF/MP4 export needs Chromium; HTML export has no browser dependency".into())
 }
 
-fn browser_url(page: &Path, cursor: i64) -> String {
-    format!("file://{}?cursor={cursor}&still=1", page.display())
+fn browser_url(page: &Path, cursor: i64, layout_step: Option<usize>) -> String {
+    let step = layout_step.map_or_else(String::new, |value| format!("&step={value}"));
+    format!("file://{}?cursor={cursor}{step}&still=1", page.display())
 }
 
-fn browser_args(page: &Path, cursor: i64) -> Vec<String> {
+fn browser_args(page: &Path, cursor: i64, layout_step: Option<usize>) -> Vec<String> {
     vec![
         "--headless".into(),
         "--no-sandbox".into(),
@@ -202,7 +234,7 @@ fn browser_args(page: &Path, cursor: i64) -> Vec<String> {
         "--virtual-time-budget=1600".into(),
         "--force-device-scale-factor=1".into(),
         format!("--window-size={},{}", WIDTH + 64, HEIGHT + 260),
-        browser_url(page, cursor),
+        browser_url(page, cursor, layout_step),
     ]
 }
 
@@ -210,19 +242,45 @@ fn browser_screenshot(
     browser: &Path,
     page: &Path,
     cursor: i64,
+    layout_step: Option<usize>,
     output: &Path,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut args = browser_args(page, cursor);
-    args.insert(args.len() - 1, format!("--screenshot={}", output.display()));
-    let result = Command::new(browser).args(args).output()?;
-    if !result.status.success() || !output.is_file() {
-        return Err(format!(
-            "Chromium screenshot failed: {}",
-            String::from_utf8_lossy(&result.stderr).trim()
-        )
-        .into());
+    for attempt in 1..=3 {
+        let mut args = browser_args(page, cursor, layout_step);
+        args.insert(args.len() - 1, format!("--screenshot={}", output.display()));
+        let _ = fs::remove_file(output);
+        let mut child = Command::new(browser)
+            .args(args)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()?;
+        let started = Instant::now();
+        loop {
+            if let Some(status) = child.try_wait()? {
+                if status.success() && output.is_file() {
+                    return Ok(());
+                }
+                break;
+            }
+            if started.elapsed() >= Duration::from_secs(30) {
+                let _ = child.kill();
+                let _ = child.wait();
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        if attempt < 3 {
+            eprintln!(
+                "[agentsight-vis] retry       frame {} ({attempt}/3)",
+                layout_step.unwrap_or_default()
+            );
+        }
     }
-    Ok(())
+    Err(format!(
+        "Chromium screenshot failed after 3 attempts: {}",
+        output.display()
+    )
+    .into())
 }
 
 fn browser_dom(
@@ -230,7 +288,7 @@ fn browser_dom(
     page: &Path,
     cursor: i64,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    let mut args = browser_args(page, cursor);
+    let mut args = browser_args(page, cursor, None);
     args.insert(args.len() - 1, "--dump-dom".into());
     let result = Command::new(browser).args(args).output()?;
     if !result.status.success() {
@@ -243,14 +301,11 @@ fn browser_dom(
     Ok(String::from_utf8(result.stdout)?)
 }
 
-fn animation_cursors(payload: &Value, frames: usize) -> Vec<i64> {
+fn animation_cursors(payload: &Value) -> Vec<i64> {
     let start = payload["meta"]["window_start_ms"]
         .as_i64()
         .unwrap_or_default();
     let end = payload["meta"]["window_end_ms"].as_i64().unwrap_or(start);
-    if frames <= 1 {
-        return vec![end];
-    }
     let mut events = payload["agent_events"]
         .as_array()
         .into_iter()
@@ -266,6 +321,9 @@ fn animation_cursors(payload: &Value, frames: usize) -> Vec<i64> {
         .filter(|(timestamp, _)| *timestamp >= start && *timestamp <= end)
         .collect::<Vec<_>>();
     events.sort_unstable();
+    if events.is_empty() {
+        return vec![end];
+    }
 
     let step_count = events.len().min(MAX_VISUAL_STEPS);
     let mut visual_steps = vec![start; step_count];
@@ -273,49 +331,7 @@ fn animation_cursors(payload: &Value, frames: usize) -> Vec<i64> {
         let bucket = (index * step_count / events.len()).min(step_count.saturating_sub(1));
         visual_steps[bucket] = *timestamp;
     }
-    let values = [vec![start], visual_steps, vec![end]]
-        .concat()
-        .into_iter()
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect::<Vec<_>>();
-    if values.len() <= frames {
-        return values;
-    }
-    let mut sampled = (0..frames)
-        .map(|index| {
-            let progress = index as f64 / (frames.saturating_sub(1)) as f64;
-            values[((values.len() - 1) as f64 * progress).round() as usize]
-        })
-        .collect::<Vec<_>>();
-
-    let commits = payload["commits"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|commit| commit["committed_at_ms"].as_i64())
-        .filter(|timestamp| *timestamp >= start && *timestamp <= end)
-        .collect::<Vec<_>>();
-    let representative_commits = [
-        commits.first().copied(),
-        commits.get(commits.len() / 2).copied(),
-        commits.last().copied(),
-    ];
-    let mut occupied = HashSet::new();
-    for required in representative_commits.into_iter().flatten() {
-        if sampled.contains(&required) {
-            continue;
-        }
-        let replacement = (1..sampled.len().saturating_sub(1))
-            .filter(|index| !occupied.contains(index))
-            .min_by_key(|index| sampled[*index].abs_diff(required));
-        if let Some(index) = replacement {
-            sampled[index] = required;
-            occupied.insert(index);
-        }
-    }
-    sampled.sort_unstable();
-    sampled
+    visual_steps
 }
 
 fn encode_animation(
@@ -502,7 +518,7 @@ fn html_document(payload: &Value) -> Result<String, serde_json::Error> {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="agentsight-vis 0.1"><title>Repository Nebula · AgentSight</title><style>
 :root{{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#070b12;color:#dce8f7}}*{{box-sizing:border-box}}body{{margin:0;background:#070b12}}.artifact{{width:{artifact_width}px;min-height:{artifact_height}px;padding:24px 32px;background:#070b12;transition:box-shadow .12s}}.artifact.commit-flash{{box-shadow:inset 0 0 0 2px #efd265,0 0 30px rgba(239,210,101,.42)}}.header{{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid rgba(135,160,190,.18);padding-bottom:14px}}.eyebrow,.mode{{font:10px ui-monospace,monospace;color:#61d7bf;letter-spacing:.12em;text-transform:uppercase}}.header h1{{font-size:24px;margin:6px 0}}.header p{{font-size:11px;color:#71839a;margin:0}}.mode{{color:#8c9bb0;border:1px solid rgba(135,160,190,.18);padding:7px 9px;border-radius:99px;align-self:flex-start}}.visual{{width:{width}px;height:{height}px;margin-top:14px}}.timeline{{display:grid;grid-template-columns:42px 1fr 190px;gap:12px;align-items:center;border-top:1px solid rgba(135,160,190,.18);padding:14px 0 8px}}.timeline button{{width:36px;height:36px;border-radius:50%;border:1px solid rgba(97,215,191,.4);background:#10231f;color:#61d7bf;cursor:pointer}}.timeline input{{width:100%;accent-color:#61d7bf}}.timeline output{{font:9px ui-monospace,monospace;color:#9bacc0;text-align:right}}.legend{{display:flex;gap:18px;font:9px ui-monospace,monospace;color:#71839a}}.legend i{{display:inline-block;width:13px;height:3px;margin-right:5px;vertical-align:middle}}.footer{{margin-top:8px;color:#7c8ba0;font:9px ui-monospace,monospace}}
 </style></head><body><main id="artifact" class="artifact"><header class="header"><div><span class="eyebrow">AgentSight · repository evolution</span><h1 id="view-title"></h1><p id="view-note"></p></div><span id="time-mode" class="mode"></span></header><section class="visual"><div id="chart"></div></section><section class="timeline"><button id="play" aria-label="Play history">▶</button><input id="timeline" type="range"><output id="cursor-label"></output></section><section class="legend"><span><i style="background:#f7ffff"></i>read attention</span><span><i style="background:#ff9678"></i>write ripple</span><span><i style="background:#75f0a9"></i>create</span><span><i style="background:#63dfff"></i>rename</span><span><i style="background:#ff647c"></i>delete</span><span><i style="background:#efd265"></i>commit frame</span></section><footer id="provenance" class="footer"></footer></main>
-<script>{runtime}</script><script>const q=new URLSearchParams(location.search);const requested=Number(q.get("cursor"));AgentSightSingle.initialize({payload},"workspace-constellation",{{renderer:"svg",cursorMs:Number.isFinite(requested)&&requested>0?requested:{until},width:{width},height:{height},reducedMotion:q.get("still")==="1"}})</script></body></html>"#,
+<script>{runtime}</script><script>const q=new URLSearchParams(location.search);const requested=Number(q.get("cursor"));const payload={payload};if(q.has("step"))payload.meta.render_layout_step=Number(q.get("step"));AgentSightSingle.initialize(payload,"workspace-constellation",{{renderer:"svg",cursorMs:Number.isFinite(requested)&&requested>0?requested:{until},width:{width},height:{height},reducedMotion:q.get("still")==="1"}})</script></body></html>"#,
         artifact_width = WIDTH + 64,
         artifact_height = HEIGHT + 190,
         width = WIDTH,
@@ -542,7 +558,7 @@ mod tests {
     }
 
     #[test]
-    fn animation_cursors_cover_the_full_window_by_agent_action_step() {
+    fn animation_cursors_match_every_layout_snapshot_without_sampling() {
         let events = (0..1_000)
             .map(|index| json!({ "id": format!("event-{index:04}"), "ts_ms": 1_000 + index }))
             .collect::<Vec<_>>();
@@ -555,31 +571,35 @@ mod tests {
                 { "committed_at_ms": 2_500 },
             ],
         });
-        let cursors = animation_cursors(&payload, 72);
+        let cursors = animation_cursors(&payload);
 
-        assert_eq!(cursors.len(), 72);
-        assert_eq!(cursors.first(), Some(&100));
-        assert_eq!(cursors.last(), Some(&3_000));
+        assert_eq!(cursors.len(), MAX_VISUAL_STEPS);
+        assert_eq!(cursors.first(), Some(&1_002));
+        assert_eq!(cursors.last(), Some(&1_999));
         assert!(cursors.windows(2).all(|pair| pair[0] <= pair[1]));
-        assert!(cursors.contains(&500));
-        assert!(cursors.contains(&1_500));
-        assert!(cursors.contains(&2_500));
-        assert!(
-            cursors
-                .iter()
-                .filter(|cursor| **cursor >= 1_000 && **cursor < 2_000)
-                .count()
-                > 60
-        );
+        assert!(!cursors.contains(&500));
+        assert!(!cursors.contains(&2_500));
     }
 
     #[test]
-    fn one_frame_animation_is_the_complete_endpoint() {
+    fn duplicate_timestamps_still_keep_distinct_layout_frames() {
+        let payload = json!({
+            "meta": { "window_start_ms": 100, "window_end_ms": 3_000 },
+            "agent_events": [
+                { "id": "one", "ts_ms": 1_000 },
+                { "id": "two", "ts_ms": 1_000 },
+            ],
+        });
+        assert_eq!(animation_cursors(&payload), vec![1_000, 1_000]);
+    }
+
+    #[test]
+    fn empty_animation_uses_one_endpoint_frame() {
         let payload = json!({
             "meta": { "window_start_ms": 100, "window_end_ms": 3_000 },
             "agent_events": [],
             "commits": [],
         });
-        assert_eq!(animation_cursors(&payload, 1), vec![3_000]);
+        assert_eq!(animation_cursors(&payload), vec![3_000]);
     }
 }

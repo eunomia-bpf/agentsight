@@ -1,12 +1,11 @@
 import {
-  forceCollide, forceLink, forceManyBody, forceRadial, forceSimulation, forceX, forceY,
+  forceCollide, forceLink, forceManyBody, forceSimulation,
 } from "d3-force";
 
 const WIDTH = 1200;
 const HEIGHT = 675;
 const MAX_VISUAL_STEPS = 360;
-const ATTENTION_STEPS = 24;
-const ATTENTION_HALF_LIFE_STEPS = 6;
+const ATTENTION_HALF_LIVES = 4;
 const TRANSITION_STEPS = 6;
 const GOLDEN_ANGLE_DEGREES = 137.508;
 const RESTING_REFERENCE_FILES = 480;
@@ -61,6 +60,11 @@ function parentDirectory(path) {
 function topDirectory(path) {
   const parts = pathParts(path);
   return parts.length > 1 ? parts[0] : "(root)";
+}
+
+function layoutDirectory(path) {
+  const directories = directoryParts(path);
+  return directories.slice(0, Math.min(2, directories.length)).join("/") || "(root)";
 }
 
 function eventPaths(event) {
@@ -421,13 +425,6 @@ function applyAction(action, step, state) {
   }
 }
 
-function attention(node, step) {
-  const age = step - node.lastStep;
-  if (age < 0 || age > ATTENTION_STEPS || node.focusType === "delete") return 0;
-  const gain = { read: 0.35, write: 0.75, create: 1, rename: 0.8 }[node.focusType] ?? 0;
-  return gain * 2 ** (-age / ATTENTION_HALF_LIFE_STEPS);
-}
-
 function restingNodeSize(count) {
   const density = Math.sqrt(RESTING_REFERENCE_FILES / Math.max(RESTING_REFERENCE_FILES, count));
   return clamp(RESTING_MAX_SIZE * density, RESTING_MIN_SIZE, RESTING_MAX_SIZE);
@@ -451,8 +448,8 @@ function focusedNodeSize(node, strength) {
   return resting + (FOCUSED_MAX_SIZE - resting) * clamp(strength, 0, 1);
 }
 
-function nodeRadius(node, step) {
-  return focusedNodeSize(node, attention(node, step)) / 2;
+function nodeRadius(node) {
+  return node.baseSize / 2;
 }
 
 function cappedDirectoryShares(rows) {
@@ -502,6 +499,7 @@ function refreshImportanceAndDirectories(state, nodes, step) {
     return {
       top,
       members,
+      meanImportance,
       weight: (members.length + DIRECTORY_PSEUDOCOUNT) ** DIRECTORY_COUNT_EXPONENT
         * (0.8 + 0.2 * meanImportance),
     };
@@ -511,7 +509,14 @@ function refreshImportanceAndDirectories(state, nodes, step) {
   for (const row of rows) {
     const share = shares.get(row.top) ?? 1 / rows.length;
     const cellScale = clamp(Math.sqrt(share * nodes.length / row.members.length), 0.52, 1.8);
-    profiles.set(row.top, { share, cellScale, count: row.members.length });
+    const peakImportance = Math.max(...row.members.map((node) => node.importance));
+    profiles.set(row.top, {
+      share,
+      cellScale,
+      members: row.members,
+      importance: 0.7 * row.meanImportance + 0.3 * peakImportance,
+      radius: clamp(0.34 * Math.sqrt(share * WIDTH * HEIGHT / Math.PI), 24, 140),
+    });
     for (const node of row.members) {
       node.directoryShare = share;
       node.directoryCellScale = cellScale;
@@ -521,7 +526,7 @@ function refreshImportanceAndDirectories(state, nodes, step) {
   return profiles;
 }
 
-function buildLinks(nodes, step, profiles) {
+function buildLinks(nodes, profiles) {
   const byParent = new Map();
   const byTop = new Map();
   for (const node of nodes) {
@@ -538,8 +543,7 @@ function buildLinks(nodes, step, profiles) {
     const source = byPath.get(sourcePath);
     const target = byPath.get(targetPath);
     if (!source || !target) return;
-    const activity = 1 + 0.35 * attention(source, step) + 0.35 * attention(target, step);
-    links.push({ source, target, distance, strength: strength * activity });
+    links.push({ source, target, distance, strength });
     linked.add(key);
   };
   const addTree = (paths, distance, strength) => {
@@ -562,6 +566,96 @@ function buildLinks(nodes, step, profiles) {
   return links;
 }
 
+function directoryForce(profiles) {
+  const groups = [...profiles.entries()].map(([top, profile]) => ({ top, ...profile }));
+  const byTop = new Map(groups.map((group) => [group.top, group]));
+  const membersByCluster = new Map();
+  for (const group of groups) {
+    for (const node of group.members) {
+      const key = layoutDirectory(node.path);
+      if (!membersByCluster.has(key)) membersByCluster.set(key, []);
+      membersByCluster.get(key).push(node);
+    }
+  }
+  const clusters = [...membersByCluster.entries()].map(([key, members]) => {
+    const top = topDirectory(members[0].path);
+    const parent = byTop.get(top);
+    const share = parent.share * members.length / parent.members.length;
+    return {
+      key,
+      top,
+      members,
+      share,
+      radius: clamp(0.34 * Math.sqrt(share * WIDTH * HEIGHT / Math.PI), 12, parent.radius * 0.85),
+    };
+  });
+  const updateCenter = (group) => {
+    group.x = group.members.reduce((sum, node) => sum + node.x, 0) / group.members.length;
+    group.y = group.members.reduce((sum, node) => sum + node.y, 0) / group.members.length;
+  };
+  const translate = (group, x, y) => {
+    for (const node of group.members) {
+      node.vx += x;
+      node.vy += y;
+    }
+  };
+  const repel = (items, alpha, scaleFor, strengthFor) => {
+    for (let left = 0; left < items.length; left += 1) {
+      for (let right = left + 1; right < items.length; right += 1) {
+        const a = items[left];
+        const b = items[right];
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        let distance = Math.hypot(dx, dy);
+        if (distance < 0.001) {
+          const angle = hashUnit(`${a.key ?? a.top}:${b.key ?? b.top}:separate`) * 2 * Math.PI;
+          dx = Math.cos(angle);
+          dy = Math.sin(angle);
+          distance = 1;
+        }
+        const minimum = scaleFor(a, b) * (a.radius + b.radius) + 3;
+        if (distance >= minimum) continue;
+        const impulse = (minimum - distance) * alpha * strengthFor(a, b);
+        const totalShare = a.share + b.share;
+        translate(a, -dx / distance * impulse * b.share / totalShare, -dy / distance * impulse * b.share / totalShare);
+        translate(b, dx / distance * impulse * a.share / totalShare, dy / distance * impulse * a.share / totalShare);
+      }
+    }
+  };
+  const force = (alpha) => {
+    for (const group of groups) updateCenter(group);
+    for (const cluster of clusters) updateCenter(cluster);
+    repel(groups, alpha, () => 0.78, () => 0.05);
+    repel(clusters, alpha,
+      (a, b) => a.top === b.top ? 0.68 : 0.82,
+      (a, b) => a.top === b.top ? 0.018 : 0.03);
+    for (const group of groups) {
+      const centerPull = alpha * (0.008 + 0.016 * group.importance);
+      translate(group, (WIDTH / 2 - group.x) * centerPull, (HEIGHT / 2 - group.y) * centerPull);
+    }
+    for (const cluster of clusters) {
+      const parent = byTop.get(cluster.top);
+      translate(cluster, (parent.x - cluster.x) * alpha * 0.014, (parent.y - cluster.y) * alpha * 0.014);
+      for (const node of cluster.members) {
+        const dx = cluster.x - node.x;
+        const dy = cluster.y - node.y;
+        const distance = Math.hypot(dx, dy);
+        const localPull = alpha * (0.0015 + 0.03 * node.importance);
+        node.vx += dx * localPull;
+        node.vy += dy * localPull;
+        const envelope = cluster.radius * (0.8 + 0.3 * hashUnit(`${node.path}:envelope`));
+        if (distance > envelope) {
+          const envelopePull = (distance - envelope) / distance * alpha * 0.04;
+          node.vx += dx * envelopePull;
+          node.vy += dy * envelopePull;
+        }
+      }
+    }
+  };
+  force.initialize = () => {};
+  return force;
+}
+
 function actionAlpha(actions) {
   if (actions.some((action) => ["create", "rename", "delete"].includes(action.type))) return 0.35;
   if (actions.some((action) => action.type === "write")) return 0.18;
@@ -576,10 +670,8 @@ function runForces(state, actions, step) {
     Object.assign(nodes[0], { x: WIDTH / 2, y: HEIGHT / 2, vx: 0, vy: 0 });
     return;
   }
-  const links = buildLinks(nodes, step, profiles);
+  const links = buildLinks(nodes, profiles);
   const densityScale = clamp(Math.sqrt(RESTING_REFERENCE_FILES / nodes.length), 0.24, 1);
-  const centerStrength = 0.025 + 0.035 * (1 - densityScale);
-  const archiveRadius = Math.min(WIDTH, HEIGHT) * 0.31;
   const simulation = forceSimulation(nodes)
     .stop()
     .randomSource(randomLcg(hash32(`${state.repository}:${step}`)))
@@ -587,26 +679,14 @@ function runForces(state, actions, step) {
     .alpha(actionAlpha(actions))
     .alphaDecay(0)
     .force("charge", forceManyBody().strength((node) => (
-      (-1.3 - 0.65 * nodeRadius(node, step))
+      (-1.3 - 0.65 * nodeRadius(node))
         * (0.55 + 0.75 * node.importance)
         * clamp(node.directoryCellScale, 0.65, 1.3)
         * densityScale
     )))
-    .force("collision", forceCollide((node) => nodeRadius(node, step) + 0.8)
+    .force("collision", forceCollide((node) => nodeRadius(node) + 0.8)
       .iterations(nodes.length > 1_000 ? 1 : 2))
-    .force("x", forceX(WIDTH / 2).strength((node) => (
-      centerStrength * (0.2 + 1.8 * node.importance)
-    )))
-    .force("y", forceY(HEIGHT / 2).strength((node) => (
-      centerStrength * 1.35 * (0.2 + 1.8 * node.importance)
-    )))
-    .force("archive", forceRadial(
-      (node) => archiveRadius
-        * (0.68 + 0.42 * hashUnit(`${node.path}:archive`))
-        * (1 - node.importance) ** 0.68,
-      WIDTH / 2,
-      HEIGHT / 2,
-    ).strength((node) => 0.003 + 0.005 * (1 - node.importance)));
+    .force("directories", directoryForce(profiles));
   if (links.length) {
     simulation.force("links", forceLink(links)
       .id((node) => node.path)
@@ -616,7 +696,7 @@ function runForces(state, actions, step) {
   const ticks = nodes.length > 1_000 ? 1 : nodes.length > 500 ? 2 : nodes.length > 200 ? 4 : 8;
   simulation.tick(ticks);
   for (const node of nodes) {
-    const margin = Math.max(4, nodeRadius(node, step) + 1);
+    const margin = Math.max(4, nodeRadius(node) + 1);
     if (node.x < margin) {
       node.x = margin;
       node.vx = Math.abs(node.vx) * 0.25;
@@ -701,6 +781,7 @@ function pruneDeleted(state, step) {
 function buildModel(data) {
   const actions = normalizeFileActions(data);
   const { buckets, eventStepCount } = buildBuckets(actions);
+  const attentionHalfLife = Math.max(1, Math.ceil(eventStepCount / Math.max(1, buckets.length)));
   const repository = data.meta?.repository ?? "repository";
   const state = {
     repository,
@@ -726,6 +807,8 @@ function buildModel(data) {
   return {
     actions,
     snapshots,
+    attentionHalfLife,
+    attentionSteps: attentionHalfLife * ATTENTION_HALF_LIVES,
     firstMs: actions[0]?.ts_ms ?? Number.POSITIVE_INFINITY,
     lastMs: actions.at(-1)?.ts_ms ?? Number.NEGATIVE_INFINITY,
     durationMs: actionDurationMs(actions.length),
@@ -796,18 +879,37 @@ function ring(point, size, color, opacity, symbol = "circle") {
   };
 }
 
+function readAttention(points) {
+  const active = points.filter((point) => (
+    point.focusType === "read" && point.strength > 0
+  ));
+  return active.sort((a, b) => b.strength - a.strength).slice(0, 4)
+    .map((point) => ring(
+      point,
+      point.symbolSize + 6,
+      "#f7ffff",
+      0.12 + 0.58 * point.strength,
+    ));
+}
+
 export function repositoryNebula(data, cursorMs, h) {
   const model = modelFor(data);
-  if (!Number.isFinite(model.firstMs) || cursorMs < model.firstMs) return emptyOption(h);
-  const current = snapshotAt(model, cursorMs);
+  const layoutStep = Number(data.meta?.render_layout_step);
+  const hasLayoutStep = Number.isInteger(layoutStep);
+  if (!Number.isFinite(model.firstMs) || (!hasLayoutStep && cursorMs < model.firstMs)) {
+    return emptyOption(h);
+  }
+  const current = hasLayoutStep
+    ? model.snapshots[clamp(layoutStep, 0, model.snapshots.length - 1)]
+    : snapshotAt(model, cursorMs);
   if (!current) return emptyOption(h);
   const cameraScale = clamp(0.92 + 3 / Math.sqrt(Math.max(1, current.nodes.length)), 0.92, 1.8);
 
   const points = current.nodes.map((node) => {
     const age = current.actionStep - node.lastStep;
-    const strength = age <= ATTENTION_STEPS
+    const strength = age <= model.attentionSteps
       ? ({ read: 0.35, write: 0.75, create: 1, rename: 0.8 }[node.focusType] ?? 0)
-        * 2 ** (-age / ATTENTION_HALF_LIFE_STEPS)
+        * 2 ** (-age / model.attentionHalfLife)
       : 0;
     const depth = directoryParts(node.path).length;
     const baseline = clamp(
@@ -815,7 +917,7 @@ export function repositoryNebula(data, cursorMs, h) {
       0.24,
       0.9,
     );
-    const size = node.baseSize + (FOCUSED_MAX_SIZE - node.baseSize) * strength;
+    const size = focusedNodeSize(node, strength);
     return {
       id: node.path,
       value: [
@@ -854,15 +956,9 @@ export function repositoryNebula(data, cursorMs, h) {
     };
   });
 
-  const reads = points.filter((point) => point.focusType === "read" && point.age <= ATTENTION_STEPS)
-    .map((point) => ring(
-      point,
-      point.symbolSize + 7 + 0.35 * point.age,
-      "#f7ffff",
-      0.12 + 0.72 * point.strength,
-    ));
+  const reads = readAttention(points);
 
-  const writes = points.filter((point) => point.focusType === "write" && point.age <= ATTENTION_STEPS)
+  const writes = points.filter((point) => point.focusType === "write" && point.age <= model.attentionSteps)
     .flatMap((point) => [0, 0.34].map((offset) => {
       const progress = clamp(point.age / 14 + offset, 0, 1);
       return ring(point, point.symbolSize + 8 + 34 * progress, "#ff9678", (1 - progress) * 0.78);
@@ -945,8 +1041,7 @@ export function repositoryNebula(data, cursorMs, h) {
 }
 
 export const nebulaDurations = {
-  attentionSteps: ATTENTION_STEPS,
-  attentionHalfLifeSteps: ATTENTION_HALF_LIFE_STEPS,
+  attentionHalfLives: ATTENTION_HALF_LIVES,
   transitionSteps: TRANSITION_STEPS,
   maxVisualSteps: MAX_VISUAL_STEPS,
 };

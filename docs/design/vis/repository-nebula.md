@@ -1,6 +1,6 @@
 # Repository Nebula：统一设计
 
-状态：**v2 已实现；本文同时记录现行算法和验收边界**。
+状态：**v3 已实现；本文同时记录现行算法和验收边界**。
 
 本文是 Repository Nebula 的单一事实来源。旧实现、README、测试或其他设计文档与本文冲突时，以本文为准。
 
@@ -11,6 +11,26 @@ Repository Nebula 只回答一个问题：
 > Claude、Codex、Gemini 等 Agent 在多个 session 中，如何把注意力移动到不同文件，并让 repository 的文件空间逐步生长、修改、移动和消失？
 
 它不是依赖图、进程图、网络图、LLM trace、Git 历史播放器或统一 dashboard。主画面的唯一实体是文件。
+
+### 1.1 算法性质与科学边界
+
+Repository Nebula 本质上是一个**带已知目录层级约束的动态图布局**，而不是任意的星云特效，也不是从像素中猜目录的无监督聚类。Git 路径提供层级先验，Agent 的真实文件操作序列提供状态时钟；算法把两者确定性地映射成每一步的文件状态和二维位置：
+
+```text
+Git 文件层级 + Agent 文件操作序列
+            -> 每个事件步的文件集合、视觉状态和二维布局
+```
+
+表示法要同时满足四个可检验目标：
+
+1. **层级保真**：同目录和长公共路径前缀的文件保持局部邻近，跨顶层目录的颜色混杂受控。
+2. **时间连续**：相邻事件步保留人的心智地图，新增、删除和重要性变化只引发渐进重排。
+3. **事件响应**：Read/Write/Create/Rename/Delete 立即产生对应视觉变化，且不会把热点文件弹成跨目录离群点。
+4. **长期可读**：长期反复触达的文件与目录逐渐突出，久未访问者缩小、暗淡和压密，同时保留路径归属。
+
+这些目标分别用目录混杂率、路径邻域保持率、相邻帧归一化位移、事件响应延迟、删除退出步数和确定性重放哈希评价。合成仓库可以验证单项不变量，真实多 session 仓库用于检查规模和组合行为。
+
+当前参数是工程启发式，已经具备明确输入、状态方程、确定性输出和自动化不变量测试，但尚未经过用户研究或跨仓库定量标定。因此现阶段可称为“可复现、可证伪的可视化原型”，不能声称已经证明了文件的业务重要性、Agent 的因果推理或最优的软件聚类。
 
 ## 2. 用户看到的故事
 
@@ -64,7 +84,7 @@ v1 不公开 `--view`、`--since`、`--until`、`--at`、`--frames`、`--fps`、
 - 自动发现属于该 repository/worktree 的全部 Claude、Codex 和 Gemini session。
 - 默认视图就是 Repository Nebula，不要求用户记住 `workspace-constellation`。
 - 默认输出 `repository-nebula.html`。
-- 默认分享画布为 `1200 × 675`；HTML 自动播放最长 30 秒，GIF/MP4 固定抽取 72 帧并以 8 fps 编码。
+- 默认分享画布为 `1200 × 675`；HTML 自动播放最长 30 秒，GIF/MP4 对每个布局快照输出一帧，不再二次抽帧，并以 8 fps 编码。
 - 运行时持续把简短进度日志打印到 stderr。
 - 不启动服务器，不自动上传，也不生成项目目录或中间数据文件。
 
@@ -286,15 +306,17 @@ tn          最后一条文件事件后的平衡状态
 
 历史可能跨越数月，而分享动画只有数秒。不能再用“五分钟半衰期、三十分钟消失”驱动压缩动画，否则一次高亮可能不到一帧。
 
-默认使用最近 24 个 Agent 文件事件作为注意力窗口：
+注意力窗口随历史压缩比例自适应。令 `E` 为 Agent 文件事件步数，`S=min(E,360)` 为布局快照数：
 
 ```text
-attention(i, k) = action_gain * 2^(-(k - last_event_i) / 6)
+B = max(1, ceil(E / S))
+attention(i, k) = action_gain * 2^(-(k - last_event_i) / B)
+window = 4B
 ```
 
 - `k` 是当前 Agent 文件事件序号，不是 wall-clock 分钟。
-- 6 个事件步为一个视觉半衰期。
-- 超过 24 个事件步后瞬态注意力消失，累计文件状态保留。
+- 一个布局快照平均覆盖的事件数 `B` 构成一个视觉半衰期。
+- 超过四个半衰期后瞬态注意力消失，因此高亮大约跨四个连续布局/GIF 帧衰减。
 - 同一个 Tool event 触达多个文件时，这些文件在同一个事件步更新。
 - tooltip 和时间轴仍显示真实时间，事件步只用于可观看的视觉衰减。
 
@@ -312,14 +334,14 @@ importance(i) = clamp(log1p(importance_raw) / log1p(P95(importance_raw)), 0, 1)
 
 动作增量为 `Read=1`、`Write=2.5`、`Create/Rename/Delete=4`；一个此前未触达该文件的 session 首次访问时再加 `1.5`。同一个 session 中的重复动作仍被如实计数，但跨 session 反复使用会获得额外权重，两者不再完全等价。
 
-长期重要性影响常态大小、常态亮度、中心引力和多体质量；它不产生 read/write 光环。最近 24 步的瞬态注意力消失后，长期重要性仍可保留，但会随新的 repository 文件动作逐渐衰减。这里的“重要”严格指 Agent 行为历史中的持续触达，不声称业务重要性、代码质量或 Git authorship。
+长期重要性影响常态大小、常态亮度、中心引力和多体质量；它不产生 read/write 光环。四个自适应视觉半衰期结束后，长期重要性仍可保留，但会随新的 repository 文件动作逐渐衰减。这里的“重要”严格指 Agent 行为历史中的持续触达，不声称业务重要性、代码质量或 Git authorship。
 
 ### 7.4 播放节奏
 
-- HTML 自动播放按最多 12 个视觉采样/秒准备 cursor；GIF/MP4 由 `agentsight vis` 自动按 Agent 动作步分位数抽取固定 72 帧、以 8 fps 编码，禁止另写脚本按 wall-clock 线性截帧。
+- HTML 自动播放按最多 12 个视觉状态/秒准备 cursor；GIF/MP4 由 `agentsight vis` 对浏览器模型生成的每个布局快照各输出一帧、以 8 fps 编码，禁止在布局快照之上再次抽样。
 - 文件动作数为 `E` 时，默认完整播放时长为 `D = clamp(8 + 0.04 × E, 8, 30)` 秒。
 - 少于 550 个文件动作时，播放时长随动作数从 8 秒增长到最多 30 秒。
-- 超长历史固定最多播放 30 秒，不要求用户选择时长。
+- 超长历史的 HTML 自动播放固定最多 30 秒；GIF/MP4 时长由 `S / 8 fps` 决定，360 个布局快照对应约 45 秒，不要求用户选择时长。
 - 浏览器模型的总视觉步数为 `S = min(E, 360)`；播放 cursor 再按时长最多抽取 360 个。
 - 当 `E <= S` 时，一个文件动作对应一个或多个过渡帧；当 `E > S` 时，按事件序号把连续动作放入视觉桶，每个动作仍更新累计状态，但同一桶只渲染一次平衡过程。
 - 同一个 Tool event 触达的所有文件必须保留在同一视觉步；超长历史只合并相邻 Tool event，不能拆散一次操作。
@@ -352,15 +374,24 @@ lifecycle state
 F_i =
     path_attraction_i
   + directory_attraction_i
-  + importance_centering_i
-  + archive_halo_i
-  + weak_centering_i
+  + local_importance_core_i
+  + directory_envelope_i
   - repulsion_i
   - collision_i
   - damping_i
 ```
 
-位置是当前文件集合、路径关系和注意力共同形成的暂时平衡。新增、删除、重命名和近期访问都会改变局部乃至整体布局。
+目录整体还受到目录层的二维力：
+
+```text
+F_directory =
+    importance_centering
+  - directory_repulsion
+  - soft_envelope_collision
+  - damping
+```
+
+位置是当前文件集合、路径关系和缓慢变化的长期重要性共同形成的暂时平衡。新增、删除、重命名和长期重要性变化会改变局部乃至整体布局；短期 attention 不参与位置计算。
 
 ### 8.2 路径和目录引力
 
@@ -371,7 +402,7 @@ F_i =
 3. 同一 top-level directory。
 4. 同一 extension 只能作为很弱的同分因素，不能主导布局。
 
-目录不是节点，不拥有位置、质量或 star。所谓目录引力只是同目录文件之间更强的 pairwise path attraction；不得创建可见或不可见的目录 star 来吸引文件。同色文件通过相互吸引形成可移动星群。
+目录不是节点，不拥有独立的 star。每次力计算只从当前成员位置即时求出目录质心、重要性和软包络，再把目录层的平移力等量施加给所有成员；这些计算态不进入输出数据，也不渲染为点、边界或固定 territory。同色文件因此形成可整体移动的星群，而不是由隐藏锚点固定。
 
 为了避免 O(F²)，实现只建立局部不可见结构邻接：
 
@@ -379,6 +410,8 @@ F_i =
 2. 每个 parent 选一个代表；同 top-level directory 的代表再组成低度数四叉吸引树。
 3. parent 内连接比 top-level 代表连接更短、更强。
 4. 不因为 extension 相同单独建立引力关系。
+
+力布局还把路径的前两段作为局部子星群，例如 `docs/design` 与 `docs/blog`。子星群之间具有软排斥，并被拉回所属 top-level directory 的即时质心；因此同一大目录可以呈现多个不规则路径岛屿，而不是一个均匀圆盘，也不会与其他 top-level directory 任意穿插。
 
 邻接只参与力计算，永远不画成 edge。默认目标距离和强度为：
 
@@ -399,12 +432,13 @@ directory_weight = (visible_file_count + 8)^0.4 * (0.8 + 0.2 * mean_importance)
 
 - 所有可见文件之间存在多体斥力，避免全部塌缩到一点。
 - 近距离使用 collision force，保证星点和活动光环不会重叠。
+- 不同 top-level directory 的软包络相互排斥；目录质心距离小于两个包络半径之和时，整个目录的成员获得同方向平移速度，避免颜色星域穿插。
 - 使用速度阻尼抑制永久振荡。
-- centering 随文件密度增强，防止大规模系统漂出画布，但不能把目录固定到预设扇区。
+- 目录长期重要性由 `0.7 × mean_importance + 0.3 × peak_importance` 得到；它控制整个目录质心的中心力，单个热点只能提高目录整体中心性，不能脱离目录独自飞向全局中心。
 - 越过画布边界时反转并衰减速度，不能只截断坐标；只截断会让向外速度累积并把节点粘成矩形边框。
 - 删除文件的质量和透明度逐步降为零，随后退出力场；其消失会触发周围文件重新平衡。
 
-v2 默认参数使用 `1200 × 675` 逻辑画布：
+v3 默认参数使用 `1200 × 675` 逻辑画布：
 
 ```text
 global_resting    = clamp(6 * sqrt(480 / max(480, visible_files)), 0.85, 6) px
@@ -415,18 +449,19 @@ many-body charge  = (-1.3 - 0.65 * radius) * importance_mass * directory_scale *
 collision radius  = radius + 0.8 px
 collision iterations = 2 (<=1000 files), 1 (>1000)
 velocityDecay     = 0.38
-center strength   = 0.025..0.060，再按长期重要性放大
-archive radius    = 0..约 209 px，随重要性降低并按 path hash 轻微离散
+directory radius = clamp(0.34 * sqrt(directory_share * canvas_area / π), 24, 140) px
+directory center = alpha * (0.008 + 0.016 * directory_importance)
+local core pull  = alpha * (0.0015 + 0.03 * file_importance)
 ticks per visual step = 8 (<=200 files), 4 (<=500), 2 (<=1000), 1 (>1000)
 ```
 
-高重要性文件受到更强的中心引力；低重要性文件受到很弱、带确定性半径扰动的外围力。两者与路径引力、斥力、碰撞和阻尼共同求平衡，因此形成明亮核心与暗淡、密集的历史外围，但不会形成固定同心圆，也不会给文件预设最终坐标。重要性继续变化时，同一文件可以逐渐向内或向外移动。
+高重要性文件受到指向本目录质心的局部核心力；低重要性文件在斥力和路径引力下形成更密集的目录外围。目录的重要性再决定整个星群离全局中心的距离。两层力与碰撞、包络和阻尼共同求平衡，不形成固定同心圆，也不给目录或文件预设最终坐标。
 
 每个视觉步应用一个事件桶后重新加热模拟：read 使用 `alpha=0.10`，write 使用 `0.18`，create/rename/delete 使用 `0.35`；一个桶包含多种动作时取最大 alpha。tick 数按可见文件规模分档，输入、分档、seed 和事件顺序固定，因此不同输出格式可复现。
 
-### 8.4 注意力改变局部平衡
+### 8.4 短期注意力不改变布局
 
-最近触达的文件临时增加视觉亮度和有效引力质量：
+最近触达的文件只临时增加视觉亮度和显示大小：
 
 ```text
 Read       小幅、短暂增加
@@ -435,9 +470,11 @@ Create     新质量进入系统
 Delete     质量逐渐退出系统
 ```
 
-注意力力必须弱于结构引力和碰撞力。它应使局部星域轻微聚拢和呼吸，不能让一次 Read 把整张图剧烈拉动。
+短期 attention 不修改结构连接、目录质心、斥力或碰撞质量。一次 Read/Write 不得让星群抖动；只有它累积进长期 importance 后，才会缓慢改变文件在目录内的位置和目录整体中心性。
 
-v1 不让注意力吸引无关文件。注意力只增强已有结构邻接：
+Read 的显式白环还要做视觉限流：每个布局快照只为当前 `strength` 最高的四个文件画紧凑细环，环直径固定为星点直径加 6 px，不随 `age` 向外扩张。其余同桶 Read 仍更新文件光晕、长期状态和顶部动作计数，但不各自生成扩散圆。这样保留“注意力到了哪里”的瞬时提示，同时避免长历史压缩后上百个白环遮住目录颜色和文件分布。
+
+视觉增量为：
 
 ```text
 attention_gain(read)   = 0.35
@@ -445,8 +482,6 @@ attention_gain(write)  = 0.75
 attention_gain(create) = 1.00
 attention_gain(rename) = 0.80
 
-effective_link_strength =
-  structural_strength * (1 + 0.35 * attention_left + 0.35 * attention_right)
 ```
 
 Create 在 6 个视觉步内把 opacity 和质量从 0 提升到 1。Delete 在 6 个视觉步内把 opacity 和质量降到 0，然后删除节点和邻接。Rename 保留同一个节点的坐标和速度，更新路径邻接，并在 6 个视觉步内完成位置再平衡和目录颜色过渡。
@@ -472,7 +507,6 @@ Create 在 6 个视觉步内把 opacity 和质量从 0 提升到 1。Delete 在 
 - `forceSimulation`
 - `forceManyBody`
 - `forceCollide`
-- `forceCenter`
 - 自定义很薄的 path/directory attraction force
 
 固定初始 seed、事件顺序、参数和每事件 tick 数。同一输入和 cursor 必须得到相同坐标，确保 HTML、SVG、PNG、GIF 和 MP4 一致。
@@ -645,7 +679,9 @@ agent-session Rust library
 
 - **HTML**：无临时文件，直接写最终 `.html`。
 - **SVG/PNG**：Rust 在受 RAII 管理的临时目录写一个短生命周期 HTML，headless Chromium 读取后导出最终文件，函数返回时自动删除临时目录。
-- **GIF/MP4**：`agentsight vis -o result.gif|mp4` 自动在同一临时目录创建 `frame-0000.png` 等 72 个帧文件；首帧是空仓库，末帧是完整终态，中间按 Agent 动作步而非真实时间间隔均匀覆盖，并保留代表性 commit 闪框；`ffmpeg` 编码最终文件后自动删除整个目录。用户和测试不得以外部手工截帧替代此链路。
+- **GIF/MP4**：`agentsight vis -o result.gif|mp4` 自动在同一临时目录为每个布局快照创建一个 `frame-NNNN.png`；布局序号直接传给浏览器，即使多个快照拥有同一毫秒时间戳也不会合并。导出不插入或替换 commit 帧，不在最多 360 个布局快照上再次抽帧；`ffmpeg` 编码后自动删除整个临时目录。
+
+媒体导出最多并行启动四个 Chromium worker；每个截图超过 30 秒即回收并自动重试，最多三次。并发只改变渲染吞吐，帧文件仍按布局序号命名并由 FFmpeg 顺序编码，因此不能改变事件顺序、布局 seed 或动画语义。
 
 GIF/MP4 的临时 PNG 是渲染编码缓存，不是数据交换格式。未来可以改成把帧通过 pipe 直接送入 `ffmpeg`，但当前临时目录方案更简单、失败时更容易诊断，且正常退出和异常退出都必须清理。
 
@@ -698,9 +734,12 @@ GIF/MP4 的临时 PNG 是渲染编码缓存，不是数据交换格式。未来�
 
 - 图中没有预设最终坐标和固定目录扇区。
 - 图中只有文件 star；目录没有节点、star、标签、边界或独立云层。
+- 不同 top-level directory 形成不穿插的软星群；包络只参与力计算，不可见。
+- 高重要文件留在本目录核心；它提高整个目录的中心性，不成为跨目录离群点。
 - 新文件出现会推动邻近文件重新平衡。
 - 删除文件会退出力场并使局部重新平衡。
 - 最近注意力只造成受控的局部扰动。
+- 同一视觉桶包含大量 Read 时，显式白环不超过四个且不会随年龄扩张成主视觉。
 - 持续跨 session 被触达的文件在没有瞬态光环时仍更亮、更大、更靠近核心。
 - 久未访问文件逐渐缩小、变暗并在外围形成更密集的历史层。
 - 大目录的视觉份额次线性增长；极端文件数差异不会按原始比例吞掉小目录。
