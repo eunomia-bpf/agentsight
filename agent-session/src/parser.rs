@@ -1087,7 +1087,7 @@ fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) ->
     } else {
         return Vec::new();
     };
-    let mut rows = BTreeMap::<String, String>::new();
+    let mut rows = BTreeMap::<String, (String, Option<String>)>::new();
     if !is_shell {
         collect_path_fields(input, default_access, &mut rows);
     }
@@ -1123,9 +1123,11 @@ fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) ->
                         } else if access == "rename"
                             && let Some(source) = pending_update.take()
                         {
-                            rows.insert(source, "rename_from".to_string());
+                            rows.remove(&source);
+                            rows.insert(path.clone(), ("rename".to_string(), Some(source)));
+                            continue;
                         }
-                        rows.insert(path, access.to_string());
+                        rows.insert(path, (access.to_string(), None));
                     }
                 }
             }
@@ -1133,18 +1135,22 @@ fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) ->
     }
 
     if is_shell && !has_patch {
-        for (path, access) in shell_file_actions(command, input, 0) {
-            rows.insert(path, access);
+        for (path, access, previous_path) in shell_file_actions(command, input, 0) {
+            rows.insert(path, (access, previous_path));
         }
         for nested in embedded_json_objects(command, "tools.exec_command(") {
             let nested_command = command_from_tool_input(&nested);
-            for (path, access) in shell_file_actions(&nested_command, &nested, 0) {
-                rows.insert(path, access);
+            for (path, access, previous_path) in shell_file_actions(&nested_command, &nested, 0) {
+                rows.insert(path, (access, previous_path));
             }
         }
     }
     rows.into_iter()
-        .map(|(path, access)| ToolPath { path, access })
+        .map(|(path, (access, previous_path))| ToolPath {
+            path,
+            access,
+            previous_path,
+        })
         .collect()
 }
 
@@ -1202,7 +1208,11 @@ fn embedded_json_objects(text: &str, marker: &str) -> Vec<Value> {
     rows
 }
 
-fn shell_file_actions(command: &str, input: &Value, depth: usize) -> Vec<(String, String)> {
+fn shell_file_actions(
+    command: &str,
+    input: &Value,
+    depth: usize,
+) -> Vec<(String, String, Option<String>)> {
     if depth > 2 {
         return Vec::new();
     }
@@ -1229,7 +1239,7 @@ fn shell_file_actions(command: &str, input: &Value, depth: usize) -> Vec<(String
             continue;
         }
         let mut actions = shell_segment_actions(&name, operands, input, depth);
-        for (path, _) in &mut actions {
+        for (path, _, previous_path) in &mut actions {
             if !path.starts_with(['~', '$'])
                 && !Path::new(path).is_absolute()
                 && let Some(base) = &cwd
@@ -1237,8 +1247,17 @@ fn shell_file_actions(command: &str, input: &Value, depth: usize) -> Vec<(String
                 *path = base.join(&*path).to_string_lossy().into_owned();
             }
             *path = clean_path_token(path);
+            if let Some(previous) = previous_path {
+                if !previous.starts_with(['~', '$'])
+                    && !Path::new(previous).is_absolute()
+                    && let Some(base) = &cwd
+                {
+                    *previous = base.join(&*previous).to_string_lossy().into_owned();
+                }
+                *previous = clean_path_token(previous);
+            }
         }
-        rows.extend(actions.into_iter().filter(|(path, _)| !path.is_empty()));
+        rows.extend(actions.into_iter().filter(|(path, _, _)| !path.is_empty()));
     }
     rows
 }
@@ -1248,7 +1267,7 @@ fn shell_segment_actions(
     operands: &[String],
     input: &Value,
     depth: usize,
-) -> Vec<(String, String)> {
+) -> Vec<(String, String, Option<String>)> {
     let mut rows = Vec::new();
     let mut values = Vec::new();
     let mut index = 0;
@@ -1265,7 +1284,7 @@ fn shell_segment_actions(
                     index += 2;
                     continue;
                 };
-                rows.push((path.clone(), access.into()));
+                rows.push((path.clone(), access.into(), None));
             }
             index += 2;
             continue;
@@ -1292,40 +1311,45 @@ fn shell_segment_actions(
         "cp" => {
             let paths = paths(&values);
             if let Some((target, sources)) = paths.split_last() {
-                rows.extend(sources.iter().cloned().map(|path| (path, "read".into())));
-                rows.push((target.clone(), "create".into()));
+                for source in sources {
+                    rows.push((source.clone(), "read".into(), None));
+                    let destination = destination_path(target, source, sources.len() > 1);
+                    rows.push((destination, "create".into(), None));
+                }
             }
         }
         "mv" => {
             let paths = paths(&values);
             if let Some((target, sources)) = paths.split_last() {
-                rows.extend(
-                    sources
-                        .iter()
-                        .cloned()
-                        .map(|path| (path, "rename_from".into())),
-                );
-                rows.push((target.clone(), "rename".into()));
+                for source in sources {
+                    rows.push((
+                        destination_path(target, source, sources.len() > 1),
+                        "rename".into(),
+                        Some(source.clone()),
+                    ));
+                }
             }
         }
         "rm" => rows.extend(
             paths(&values)
                 .into_iter()
-                .map(|path| (path, "delete".into())),
+                .map(|path| (path, "delete".into(), None)),
         ),
         "touch" | "install" => rows.extend(
             paths(&values)
                 .into_iter()
-                .map(|path| (path, "create".into())),
+                .map(|path| (path, "create".into(), None)),
         ),
         "tee" => rows.extend(
             paths(&values)
                 .into_iter()
-                .map(|path| (path, "write".into())),
+                .map(|path| (path, "write".into(), None)),
         ),
-        "cat" | "head" | "tail" | "nl" | "wc" | "source" | "." => {
-            rows.extend(paths(&values).into_iter().map(|path| (path, "read".into())))
-        }
+        "cat" | "head" | "tail" | "nl" | "wc" | "source" | "." => rows.extend(
+            paths(&values)
+                .into_iter()
+                .map(|path| (path, "read".into(), None)),
+        ),
         "sed" => {
             let in_place = values.iter().any(|value| {
                 value == "-i" || value.starts_with("-i") || value.starts_with("--in-place")
@@ -1341,6 +1365,7 @@ fn shell_segment_actions(
                     rows.push((
                         value.clone(),
                         if in_place { "write" } else { "read" }.into(),
+                        None,
                     ));
                 }
             }
@@ -1351,7 +1376,7 @@ fn shell_segment_actions(
                 .take_while(|value| !value.starts_with('-') && value.as_str() != "!")
                 .filter(|value| plausible_path_token(value))
                 .cloned()
-                .map(|path| (path, "read".into())),
+                .map(|path| (path, "read".into(), None)),
         ),
         "rg" | "grep" | "jq" => {
             let mut expression_seen = values.iter().any(|value| value == "--files");
@@ -1362,7 +1387,7 @@ fn shell_segment_actions(
                 if !expression_seen {
                     expression_seen = true;
                 } else if plausible_path_token(value) {
-                    rows.push((value.clone(), "read".into()));
+                    rows.push((value.clone(), "read".into(), None));
                 }
             }
         }
@@ -1371,7 +1396,22 @@ fn shell_segment_actions(
     rows
 }
 
-fn collect_path_fields(value: &Value, access: &str, out: &mut BTreeMap<String, String>) {
+fn destination_path(target: &str, source: &str, multiple: bool) -> String {
+    if multiple || target.ends_with('/') {
+        Path::new(target)
+            .join(Path::new(source).file_name().unwrap_or_default())
+            .to_string_lossy()
+            .into_owned()
+    } else {
+        target.to_string()
+    }
+}
+
+fn collect_path_fields(
+    value: &Value,
+    access: &str,
+    out: &mut BTreeMap<String, (String, Option<String>)>,
+) {
     match value {
         Value::Object(object) => {
             for (key, value) in object {
@@ -1383,7 +1423,7 @@ fn collect_path_fields(value: &Value, access: &str, out: &mut BTreeMap<String, S
                 {
                     let path = clean_path_token(path);
                     if !path.is_empty() {
-                        out.insert(path, access.to_string());
+                        out.insert(path, (access.to_string(), None));
                     }
                 } else if value.is_object() || value.is_array() {
                     collect_path_fields(value, access, out);
@@ -2476,6 +2516,7 @@ mod tests {
             vec![ToolPath {
                 path: "src/lib.rs".into(),
                 access: "write".into(),
+                previous_path: None,
             }]
         );
 
@@ -2545,17 +2586,32 @@ mod tests {
             None,
         );
         assert!(event.paths.contains(&ToolPath {
-            path: "src/a.rs".into(),
-            access: "rename_from".into(),
-        }));
-        assert!(event.paths.contains(&ToolPath {
             path: "src/b.rs".into(),
             access: "rename".into(),
+            previous_path: Some("src/a.rs".into()),
         }));
         assert!(event.paths.contains(&ToolPath {
             path: "src/c.rs".into(),
             access: "write".into(),
+            previous_path: None,
         }));
+
+        let event = tool_event_from_input(
+            Some("/repo"),
+            Some(1),
+            0,
+            "apply_patch",
+            &json!({"patch": "*** Begin Patch\n*** Update File: a.rs\n*** Move to: x.rs\n*** Update File: b.rs\n*** Move to: y.rs\n*** End Patch"}),
+            None,
+        );
+        assert_eq!(
+            event
+                .paths
+                .iter()
+                .map(|row| (row.path.as_str(), row.previous_path.as_deref()))
+                .collect::<Vec<_>>(),
+            vec![("x.rs", Some("a.rs")), ("y.rs", Some("b.rs"))]
+        );
     }
 
     #[test]

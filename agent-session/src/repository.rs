@@ -45,6 +45,8 @@ pub struct RepositoryEvent {
 pub struct FileAction {
     pub path: String,
     pub access: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_path: Option<String>,
 }
 
 pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<RepositoryTrace> {
@@ -227,6 +229,10 @@ fn append_session(
                     .then_some(FileAction {
                         path,
                         access: item.access.clone(),
+                        previous_path: item
+                            .previous_path
+                            .as_deref()
+                            .and_then(|value| resolve_path(value, cwd.as_deref(), roots)),
                     })
             })
             .collect::<BTreeSet<_>>();

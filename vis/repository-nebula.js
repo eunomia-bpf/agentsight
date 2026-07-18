@@ -25,7 +25,7 @@ function clamp(value, minimum, maximum) {
 }
 
 function compareText(left, right) {
-  return left < right ? -1 : (left > right ? 1 : 0);
+  return String(left).localeCompare(String(right));
 }
 
 function hash32(value) {
@@ -77,10 +77,12 @@ function normalizeFileActions(data) {
     Number(left.ts_ms) - Number(right.ts_ms) || compareText(String(left.id), String(right.id))
   ));
   for (const event of events) {
-    const renamed = event.actions.find((item) => item.access === "rename");
-    const oldPath = event.actions.find((item) => item.access === "rename_from")?.path;
+    const legacySources = event.actions.filter((item) => item.access === "rename_from");
+    let renameIndex = 0;
     for (const [index, item] of event.actions.entries()) {
       if (!item.path || item.access === "rename_from") continue;
+      const oldPath = item.previous_path ?? legacySources[renameIndex]?.path;
+      if (item.access === "rename") renameIndex += 1;
       const type = item.access === "rename" && oldPath ? "rename" : item.access;
       actions.push({
         id: `${event.id}:${type}:${index}:${item.path}`,
@@ -90,7 +92,7 @@ function normalizeFileActions(data) {
         vendor: event.vendor,
         type,
         path: item.path,
-        oldPath: item === renamed ? oldPath : undefined,
+        oldPath,
         source: "agent-session",
       });
     }

@@ -64,6 +64,10 @@ pub struct ToolPath {
     pub path: String,
     /// One of read, write, create, delete, rename_from, or rename.
     pub access: String,
+    /// Source path for a rename. Kept on the destination so one tool event can
+    /// carry several independent rename pairs without positional guessing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
