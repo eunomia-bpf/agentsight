@@ -109,10 +109,10 @@ function initialize(payload) {
   window.__AGENTSIGHT_FRAME_COUNT__ = frameTimes.length;
 }
 
-function composeFrame() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 1264;
-  canvas.height = 936;
+function composeFrame(canvas = document.createElement("canvas")) {
+  if (canvas.width !== 1264 || canvas.height !== 936) {
+    Object.assign(canvas, { width: 1264, height: 936 });
+  }
   const context = canvas.getContext("2d");
   const artifact = $("artifact").getBoundingClientRect();
   context.fillStyle = "#070b12";
@@ -197,8 +197,7 @@ async function encodeMp4Chunk(count = 12) {
   const end = Math.min(frameTimes.length, encoder.index + count);
   for (; encoder.index < end; encoder.index += 1) {
     render(frameTimes[encoder.index], encoder.index);
-    const frame = composeFrame();
-    encoder.canvas.getContext("2d").drawImage(frame, 0, 0);
+    composeFrame(encoder.canvas);
     await encoder.source.add(encoder.index / 8, 1 / 8, { keyFrame: encoder.index % 64 === 0 });
   }
   return [encoder.index, frameTimes.length];
