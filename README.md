@@ -36,7 +36,7 @@ agentsight top
 </div>
 
 <div align="center">
-  <img src="docs/flamegraph-example/semantic-flamegraph-top200.svg" alt="Semantic flamegraph of the top 200 agent stacks" width="1000">
+  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/semantic-flamegraph-top200.svg" alt="Semantic flamegraph of the top 200 agent stacks" width="1000">
   <p><em>Width is system-effect weight; the uneven stack height shows prompt, tool-call, process, and effect paths ending at different depths. See the <a href="docs/agentpprof.md#example-flamegraphs">agentpprof guide</a> for the other profiles and how widths and stack depths are drawn.</em></p>
 </div>
 
