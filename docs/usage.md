@@ -77,3 +77,21 @@ no default event filters, and saves a local SQLite session for `report`,
 Use `debug trace` only when you need low-level control over capture sources or
 explicit filters. It is the advanced replacement for a raw trace command, not
 the normal record/report workflow.
+
+## Share Repository Evolution
+
+`vis` reads local Claude, Codex, and Gemini sessions without sudo and produces
+one self-contained Repository Nebula artifact per output file:
+
+```sh
+agentsight vis . --global \
+  -o output/repository-nebula.html \
+  -o output/repository-nebula.png \
+  -o output/repository-nebula.gif \
+  -o output/repository-nebula.mp4
+```
+
+HTML works without external assets. PNG, SVG, and MP4 require Chromium; GIF
+additionally requires FFmpeg. Repeated `-o` values reuse one session scan and layout.
+See [the Chinese algorithm specification](repository-nebula.zh-CN.md) for the
+event boundary, force model, frame count, and export invariants.
