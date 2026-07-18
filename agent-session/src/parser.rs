@@ -111,6 +111,19 @@ pub fn parse_session_path(path: &Path) -> Option<AgentSession> {
     parse_session_file(&session_candidate_from_path(path)?)
 }
 
+pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
+    content.lines().rev().find_map(|line| {
+        let obj: Value = serde_json::from_str(line).ok()?;
+        let payload = obj.get("payload")?;
+        if payload.get("type").and_then(Value::as_str) != Some("token_count") {
+            return None;
+        }
+        payload
+            .pointer("/info/total_token_usage")
+            .map(codex_token_usage)
+    })
+}
+
 /// Parse session content given raw content string.
 pub fn parse_session_content(
     agent: &str,
@@ -447,13 +460,14 @@ fn parse_jsonl(
                     } else {
                         &codex_model
                     };
+                    let usage = codex_token_usage(usage);
                     acc.set_usage(
                         name,
-                        json_i64(usage, "input_tokens"),
-                        json_i64(usage, "output_tokens"),
+                        usage.input_tokens,
+                        usage.output_tokens,
                         0,
-                        0,
-                        json_i64(usage, "total_tokens"),
+                        usage.cache_read_tokens,
+                        usage.total_tokens,
                     );
                 }
                 if matches!(ptype, "token_count" | "token_usage") {
@@ -627,6 +641,20 @@ fn parse_jsonl(
         acc.model_usage = claude_message_models;
     }
     acc.finish_with_events(events)
+}
+
+fn codex_token_usage(value: &Value) -> TokenUsage {
+    let input = json_i64(value, "input_tokens").max(0);
+    let output = json_i64(value, "output_tokens").max(0);
+    let cache = json_i64(value, "cached_input_tokens").max(0);
+    let input = input.saturating_sub(cache);
+    TokenUsage {
+        input_tokens: input,
+        output_tokens: output,
+        cache_creation_tokens: 0,
+        cache_read_tokens: cache,
+        total_tokens: input + output + cache,
+    }
 }
 
 fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<AgentSession> {
@@ -1851,6 +1879,28 @@ mod tests {
                 .max(usage.input_tokens + usage.output_tokens + usage.cache_tokens);
             assert_eq!(total, tokens);
         }
+    }
+
+    #[test]
+    fn codex_cumulative_usage_separates_cached_input() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-5.6-sol"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":19184,"cached_input_tokens":9984,"output_tokens":11,"total_tokens":19195}}}}"#,
+        );
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+
+        assert_eq!(session.usage.input_tokens, 9_200);
+        assert_eq!(session.usage.cache_read_tokens, 9_984);
+        assert_eq!(session.usage.output_tokens, 11);
+        assert_eq!(session.usage.total_tokens, 19_195);
     }
 
     #[test]

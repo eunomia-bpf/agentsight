@@ -179,7 +179,7 @@ run_mock_client_record_smoke() {
 
     local db="$WORK_DIR/mock-record.db"
     local prompts="$WORK_DIR/mock-prompts.json"
-    local top="$WORK_DIR/mock-top.out"
+    local summary="$WORK_DIR/mock-summary.out"
     local url="https://127.0.0.1:$MOCK_PORT/v1/chat/completions"
     local prompt_json
     local payload
@@ -207,9 +207,8 @@ run_mock_client_record_smoke() {
     "$AGENTSIGHT_BIN" report prompts --db "$db" --json > "$prompts"
     grep -Fq "$PROMPT" "$prompts"
 
-    "$AGENTSIGHT_BIN" top --db "$db" --once --plain --limit 20 > "$top"
-    grep -Fq "AgentSight top -" "$top"
-    grep -Eq "LLM: [1-9][0-9]*" "$top"
+    "$AGENTSIGHT_BIN" report --db "$db" > "$summary"
+    grep -Eq "[1-9][0-9]* API calls" "$summary"
 
     grep -Fq "$PROMPT" "$MOCK_LOG"
     echo "record/sslsniff mock canary captured prompt into $db"
@@ -224,22 +223,22 @@ codex_native_binary() {
         -quit
 }
 
-run_codex_offset_table_canary() {
+run_codex_offset_canary() {
     if [[ "$(uname -s)" != "Linux" ]]; then
         if is_enabled "$REQUIRE_EBPF"; then
-            die "Codex offset-table canary requires Linux"
+            die "Codex signature canary requires Linux"
         fi
-        echo "Skipping Codex offset-table canary on non-Linux host"
+        echo "Skipping Codex signature canary on non-Linux host"
         return
     fi
     if ! sudo_available; then
         if is_enabled "$REQUIRE_EBPF"; then
-            die "Codex offset-table canary requires passwordless sudo"
+            die "Codex signature canary requires passwordless sudo"
         fi
-        echo "Skipping Codex offset-table canary because sudo -n is unavailable"
+        echo "Skipping Codex signature canary because sudo -n is unavailable"
         return
     fi
-    have timeout || die "timeout is required for the Codex offset-table canary"
+    have timeout || die "timeout is required for the Codex signature canary"
 
     local native
     local stdout="$WORK_DIR/codex-sslsniff-offset.out"
@@ -256,27 +255,47 @@ run_codex_offset_table_canary() {
     status=$?
     set -e
 
-    if ! grep -Fq "Codex offset table matched" "$stderr" \
-        || ! grep -Fq "Attaching by offset" "$stderr"; then
-        echo "Codex sslsniff output did not prove offset-table attachment" >&2
+    if ! grep -Fq "Codex/rustls plaintext write patterns detected" "$stderr" \
+        || ! grep -Eq "Attaching [1-9][0-9]* offsets" "$stderr"; then
+        echo "Codex sslsniff output did not prove signature attachment" >&2
         sed -n '1,160p' "$stderr" >&2 || true
         return 1
     fi
     if grep -Fq "binary-path attach failed" "$stderr"; then
-        echo "Codex sslsniff offset-table attachment failed" >&2
+        echo "Codex sslsniff signature attachment failed" >&2
         sed -n '1,160p' "$stderr" >&2 || true
         return 1
     fi
     case "$status" in
         0|124|130) ;;
         *)
-            echo "Codex sslsniff offset-table canary exited with status $status" >&2
+            echo "Codex sslsniff signature canary exited with status $status" >&2
             sed -n '1,160p' "$stderr" >&2 || true
             return 1
             ;;
     esac
 
-    echo "sslsniff Codex offset-table canary matched latest native binary: $native"
+    echo "sslsniff Codex signature canary matched latest native binary: $native"
+}
+
+assert_codex_ssl_prompt() {
+    local db="$1"
+
+    python3 - "$db" "$PROMPT" <<'PY'
+import sqlite3
+import sys
+
+db, prompt = sys.argv[1:]
+match = sqlite3.connect(db).execute(
+    "SELECT 1 FROM llm_calls WHERE path = '/v1/responses' "
+    "AND instr(request_body_json, ?) > 0 AND EXISTS (SELECT 1 FROM audit_events "
+    "WHERE audit_type = 'llm' AND action = 'request' AND instr(details_json, ?) > 0)",
+    (prompt, prompt),
+).fetchone()
+if not match:
+    raise SystemExit("Codex prompt was not reconstructed from SSL /v1/responses traffic")
+print("Codex SSL /v1/responses request contains the exact canary prompt")
+PY
 }
 
 write_opencode_config() {
@@ -326,7 +345,7 @@ record_real_agent() {
     shift
     local db="$WORK_DIR/$name.db"
     local prompts="$WORK_DIR/$name-prompts.json"
-    local top="$WORK_DIR/$name-top.out"
+    local summary="$WORK_DIR/$name-summary.out"
     local record_log="$WORK_DIR/$name-record.log"
     local opencode_config="$WORK_DIR/$name-opencode-config"
     local agent_work="$WORK_DIR/$name-work"
@@ -373,6 +392,10 @@ record_real_agent() {
         sed -n '1,40p' "$recent_mock_requests" >&2 || true
         return 1
     fi
+    if [[ "$name" == "codex" ]] && ! assert_codex_ssl_prompt "$db"; then
+        sed -n '1,240p' "$record_log" >&2 || true
+        return 1
+    fi
 
     "$AGENTSIGHT_BIN" report prompts --db "$db" --json > "$prompts"
     if ! grep -Fq "$PROMPT" "$prompts"; then
@@ -382,10 +405,10 @@ record_real_agent() {
         return 1
     fi
 
-    "$AGENTSIGHT_BIN" top --db "$db" --once --plain --limit 20 > "$top"
-    if ! grep -Eq "LLM: [1-9][0-9]*" "$top"; then
-        echo "$name top --db did not report any LLM calls" >&2
-        sed -n '1,120p' "$top" >&2 || true
+    "$AGENTSIGHT_BIN" report --db "$db" > "$summary"
+    if ! grep -Eq "[1-9][0-9]* API calls" "$summary"; then
+        echo "$name report did not show any API calls" >&2
+        sed -n '1,120p' "$summary" >&2 || true
         return 1
     fi
 
@@ -436,7 +459,7 @@ main() {
     install_latest_agent_clis
     start_mock_server
     run_mock_client_record_smoke
-    run_codex_offset_table_canary
+    run_codex_offset_canary
     run_real_agent_mock_canary
 
     echo "canary work dir: $WORK_DIR"

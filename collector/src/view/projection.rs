@@ -940,7 +940,7 @@ fn llm_call_status(end_timestamp_ms: Option<u64>, status_code: Option<u16>) -> S
 }
 
 fn call_kind_from_path(path: &str) -> Option<&'static str> {
-    if path.contains("/v1/responses") {
+    if path.contains("/v1/responses") || path.contains("/codex/responses") {
         Some("responses")
     } else if path.contains("/v1/messages") {
         Some("messages")

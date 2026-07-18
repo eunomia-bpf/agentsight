@@ -84,7 +84,7 @@ impl LiveView {
         capture: Option<&LiveCaptureSnapshot>,
         limit: usize,
         options: &TopOptions,
-    ) -> io::Result<AgentTopOutput<'static>> {
+    ) -> io::Result<AgentTopOutput> {
         let sample = LiveSample::collect()?;
         let session_snapshot = agent_native_sessions::snapshot(
             &mut self.session_cache,
@@ -183,13 +183,13 @@ impl LiveView {
         })
     }
 
-    fn build_top<'a>(
+    fn build_top(
         &mut self,
         sample: &LiveSample,
         capture: Option<&LiveCaptureSnapshot>,
         session_snapshot: &Snapshot,
         options: &TopOptions,
-    ) -> AgentTopOutput<'a> {
+    ) -> AgentTopOutput {
         let children = sample.children_by_ppid();
         let mut live_rows = live_process_rows(sample, self.previous.as_ref(), options, &children);
         sort_agent_rows(&mut live_rows, "cpu");
@@ -369,12 +369,12 @@ impl LiveView {
         if rows.is_empty() {
             if options.pid.is_some() || options.comm.is_some() {
                 notes.push(
-                    "no active process or agent-native session matched the filter; try another -p/-c value or inspect a saved session with --db"
+                    "no active process or agent-native session matched the filter; try another -p/-c value or inspect saved sessions with report"
                         .to_string(),
                 );
             } else {
                 notes.push(
-                    "no active known agent process or agent-native Claude/Codex/Gemini session found; use -c/-p, run an agent, or pass --db"
+                    "no active known agent process or agent-native Claude/Codex/Gemini session found; use -c/-p, run an agent, or inspect saved sessions with report"
                         .to_string(),
                 );
             }
@@ -418,7 +418,6 @@ impl LiveView {
 
         AgentTopOutput {
             mode: "live sessions",
-            db: None,
             duration_s: 0.0,
             view_events: local_summary.view_events
                 + capture_summary

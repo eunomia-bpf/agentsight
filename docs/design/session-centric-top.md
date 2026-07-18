@@ -95,8 +95,7 @@ For `top`, capture should eventually work as:
 2. Resolve the real executable for SSL uprobes, following symlinks and wrappers.
 3. Start capture in a temporary live mode if no active AgentSight capture exists.
 4. Persist only bounded live state unless the user asked to record.
-5. Promote to durable SQLite only for `record`, explicit `--db`, or generated
-   reports.
+5. Promote to durable SQLite only for `record` or generated reports.
 
 Open implementation issue: attaching eBPF from `top` requires the same
 privilege flow as `record`, but the terminal experience must stay top-like.
@@ -143,11 +142,10 @@ SQLite is the durable evidence store used by:
 
 - `agentsight record`
 - `agentsight report`
-- explicit `--db`
+- explicit `agentsight report --db`
 - exported dashboards and CI artifacts
 
-`agentsight top --db run.db` is a static or polling saved-session view. It is
-useful, but it is not the default mental model for `top`.
+Saved-session inspection belongs to `agentsight report`; `top` is live-only.
 
 ## Session Attachment Rules
 
@@ -157,8 +155,7 @@ Attach evidence to sessions in this order:
 2. Agent-native session file that is actively being written while a matching
    agent process is alive.
 3. Process family root matching the agent type.
-4. Saved SQLite session metadata.
-5. Unattributed background bucket.
+4. Unattributed background bucket.
 
 When multiple sessions of the same agent exist:
 
@@ -180,7 +177,6 @@ Recommended policy:
   it materializes a report artifact, that artifact is explicit.
 - `top`: should not create an unbounded durable DB just because it was opened.
   Live capture state should be temporary unless the user requests recording.
-- `top --db`: reads a saved DB.
 - `top --record` or a future equivalent can explicitly persist a live top
   capture.
 

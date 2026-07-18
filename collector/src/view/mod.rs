@@ -486,8 +486,42 @@ impl MaterializedView {
 
     fn effective_tokens(&self) -> Vec<&TokenUsageRow> {
         let mut selected: BTreeMap<String, &TokenUsageRow> = BTreeMap::new();
+        let mut gemini_totals = BTreeMap::new();
         for token in self.token_usage.values() {
-            let key = if token.llm_call_id.is_empty() {
+            let Some(key) = token.pid.zip(token.model.as_deref()) else {
+                continue;
+            };
+            let totals = gemini_totals.entry(key).or_insert((0, 0));
+            match token.source.as_str() {
+                "response_usage" | "orphan_response_usage" => totals.0 += token.total_tokens,
+                "gemini_cli_stdout_stats" => totals.1 = totals.1.max(token.total_tokens),
+                _ => {}
+            }
+        }
+        for token in self.token_usage.values() {
+            if let Some((network, stdout)) = token
+                .pid
+                .zip(token.model.as_deref())
+                .and_then(|key| gemini_totals.get(&key))
+            {
+                let network_source = matches!(
+                    token.source.as_str(),
+                    "response_usage" | "orphan_response_usage"
+                );
+                if (token.source == "gemini_cli_stdout_stats" && network >= stdout)
+                    || (network_source && stdout > network)
+                    || (token.source == "gemini_cli_stdout_stats" && token.total_tokens < *stdout)
+                {
+                    continue;
+                }
+            }
+            let key = if token.source == "gemini_cli_stdout_stats" {
+                token
+                    .pid
+                    .zip(token.model.as_deref())
+                    .map(|(pid, model)| format!("gemini-stdout\0{pid}\0{model}"))
+                    .unwrap_or_else(|| token.id.clone())
+            } else if token.llm_call_id.is_empty() {
                 token.id.clone()
             } else {
                 token.llm_call_id.clone()
@@ -892,6 +926,51 @@ mod tests {
         assert_eq!(rows[0].group, "/repo/saved");
         assert_eq!(rows[0].total_tokens, 24);
         assert_eq!(rows[0].sessions, 1);
+    }
+
+    #[test]
+    fn gemini_stdout_tokens_are_fallback_for_network_usage() {
+        let mut view = MaterializedView::new();
+        view.apply_token_usage(&TokenUsageRow {
+            pid: Some(42),
+            comm: Some("node".to_string()),
+            source: "response_usage".to_string(),
+            ..token_row("token-network", "llm-network", "gemini", 11, 4, 0, 0, 15)
+        });
+        view.apply_token_usage(&TokenUsageRow {
+            pid: Some(42),
+            comm: Some("node".to_string()),
+            source: "gemini_cli_stdout_stats".to_string(),
+            ..token_row("token-stdout", "llm-stdout", "gemini", 11, 4, 0, 0, 15)
+        });
+
+        let snapshot = view.export_snapshot(SnapshotOptions { audit_limit: 0 });
+        assert_eq!(snapshot.summary.total_tokens, 15);
+    }
+
+    #[test]
+    fn gemini_stdout_tokens_cover_partial_network_capture() {
+        let mut view = MaterializedView::new();
+        for (id, total) in [("one", 7), ("two", 8)] {
+            view.apply_token_usage(&TokenUsageRow {
+                pid: Some(42),
+                source: "response_usage".to_string(),
+                ..token_row(id, id, "gemini", total, 0, 0, 0, total)
+            });
+        }
+        view.apply_token_usage(&TokenUsageRow {
+            pid: Some(42),
+            source: "gemini_cli_stdout_stats".to_string(),
+            ..token_row("old-stdout", "old-stdout", "gemini", 15, 0, 0, 0, 15)
+        });
+        view.apply_token_usage(&TokenUsageRow {
+            pid: Some(42),
+            source: "gemini_cli_stdout_stats".to_string(),
+            ..token_row("stdout", "stdout", "gemini", 30, 0, 0, 0, 30)
+        });
+
+        let snapshot = view.export_snapshot(SnapshotOptions { audit_limit: 0 });
+        assert_eq!(snapshot.summary.total_tokens, 30);
     }
 
     #[test]

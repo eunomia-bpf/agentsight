@@ -69,7 +69,7 @@ AgentSight captures critical interactions that application-level tools miss:
 ### Prerequisites
 
 - **Linux kernel**: 4.1+ with eBPF support (5.0+ recommended)
-- **sudo access**: optional for `top`; interactive top enables eBPF automatically when sudo is already available
+- **sudo access**: optional for `top`; eBPF is enabled automatically when sudo is already available
 
 For source builds, see [docs/build.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/build.md).
 
@@ -96,11 +96,11 @@ file in the current directory. Start with the live and record commands, then
 use `agentsight report` for structured queries:
 
 ```bash
-agentsight top                               # live ranked view; interactive TUI uses eBPF when sudo is already available
+agentsight top                               # live ranked view; uses eBPF when sudo is already available
 agentsight monitor install-service           # install/start the background monitor service
-agentsight top --db run.db --once            # ranked view of a saved session
+agentsight report --db run.db                 # summary of a specific saved run
 sudo agentsight record -- claude             # record a command
-agentsight report                            # high-level run summary (default)
+agentsight report                            # high-level latest-run summary (default)
 agentsight report list                       # recorded sessions in this directory
 agentsight report prompts --json             # full LLM request/response JSON
 agentsight report token                      # token usage from latest DB, or local agent sessions
@@ -199,13 +199,13 @@ collector setup and backend integration.
 ## ❓ Frequently Asked Questions
 
 **Q: What permissions does AgentSight need?**
-A: `top` works without sudo by using process snapshots and native agent session files. Interactive `top` enables live eBPF process capture when you run it with sudo or your user already has passwordless/cached sudo; plain/non-TTY `top` stays snapshot-only. With `record -- <command>`, the monitored agent still runs as your normal user; only the probes are elevated.
+A: `top` uses live eBPF process capture when you run it with sudo or your user already has passwordless/cached sudo. Without eBPF privileges, it falls back to process snapshots and native agent session files. With `record -- <command>`, the monitored agent still runs as your normal user; only the probes are elevated.
 
 **Q: What's the performance impact?**
 A: Our evaluation reports less than 3% CPU overhead for typical traced agent workloads.
 
 **Q: Where does captured data go?**
-A: `record` stores sessions as `agentsight-*.db` files in the current directory by default, and `report` reads the latest matching file from that directory unless you pass `--db`. When no default DB exists, report commands warn and fall back to local Claude/Codex/Gemini agent sessions where available. `monitor` stores its weekly background DBs under `~/.agentsight/monitor`, and `top` is read-only unless you explicitly pass `--db` to inspect a saved session. Use `agentsight report`, `agentsight report list`, `agentsight report audit --json`, and `agentsight report token` to inspect prior runs. Captured data can include prompts, responses, paths, headers, and network targets, so treat logs and DBs as sensitive.
+A: `record` stores sessions as `agentsight-*.db` files in the current directory by default, and `report` reads the latest matching file from that directory unless you pass `--db`. When no default DB exists, report commands warn and fall back to local Claude/Codex/Gemini agent sessions where available. `monitor` stores its weekly background DBs under `~/.agentsight/monitor`, while `top` only shows live sessions. Use `agentsight report`, `agentsight report list`, `agentsight report audit --json`, and `agentsight report token` to inspect prior runs. Captured data can include prompts, responses, paths, headers, and network targets, so treat logs and DBs as sensitive.
 
 **Q: Why doesn't AgentSight capture traffic from Claude Code, Node.js, or Gemini CLI?**
 A: These applications statically link their SSL library (BoringSSL for Claude/Bun, OpenSSL for **all** Node.js — both NVM and system installs) into their own binary instead of using system `libssl.so`, so there's nothing for sslsniff to hook by default. AgentSight handles this for you: `record -- <command>` always discovers the binary, and `record -c node` now auto-discovers the Node binary too. For Claude attach mode, pass `--binary-path`. See the "Zero-Config: record" and "Monitoring Node.js AI Tools" sections.

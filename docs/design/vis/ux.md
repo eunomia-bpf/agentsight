@@ -312,7 +312,6 @@ Examples:
 
 ```bash
 agentsight top
-agentsight top --db run.db
 agentsight top -p 1234
 agentsight top -c claude
 agentsight top --sort tokens

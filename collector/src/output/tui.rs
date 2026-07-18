@@ -24,7 +24,7 @@ pub(crate) enum TopRecordOverlay {
 
 pub(crate) fn draw_live_top_tui(
     frame: &mut Frame<'_>,
-    top: &AgentTopOutput<'_>,
+    top: &AgentTopOutput,
     selected: usize,
     options: &TopOptions,
     paused: bool,
@@ -80,7 +80,7 @@ pub(crate) fn next_view_key(current: &str) -> String {
 fn render_top_summary(
     frame: &mut Frame<'_>,
     area: Rect,
-    top: &AgentTopOutput<'_>,
+    top: &AgentTopOutput,
     options: &TopOptions,
     paused: bool,
     interval_secs: u64,
@@ -125,12 +125,7 @@ fn render_top_summary(
     frame.render_widget(Paragraph::new(lines).block(block), area);
 }
 
-fn render_session_table(
-    frame: &mut Frame<'_>,
-    area: Rect,
-    top: &AgentTopOutput<'_>,
-    selected: usize,
-) {
+fn render_session_table(frame: &mut Frame<'_>, area: Rect, top: &AgentTopOutput, selected: usize) {
     let header = Row::new(vec![
         Cell::from("AGENT"),
         Cell::from("STATE"),
@@ -190,7 +185,7 @@ fn render_session_table(
 fn render_session_detail(
     frame: &mut Frame<'_>,
     area: Rect,
-    top: &AgentTopOutput<'_>,
+    top: &AgentTopOutput,
     selected: usize,
     options: &TopOptions,
 ) {
@@ -200,7 +195,7 @@ fn render_session_detail(
     } else {
         vec![
             Line::from("No active agent session matched this view."),
-            Line::from("Run an agent, pass -c/-p, or inspect a saved session with top --db."),
+            Line::from("Run an agent, pass -c/-p, or inspect saved sessions with report."),
         ]
     };
     let block = Block::default().title(title).borders(Borders::ALL);
@@ -213,7 +208,7 @@ fn render_session_detail(
 fn render_top_footer(
     frame: &mut Frame<'_>,
     area: Rect,
-    top: &AgentTopOutput<'_>,
+    top: &AgentTopOutput,
     record_status: Option<&str>,
 ) {
     let stop_hint = if record_status.is_some() {
@@ -250,7 +245,7 @@ fn render_top_footer(
     );
 }
 
-pub(crate) fn tui_status_line(top: &AgentTopOutput<'_>) -> String {
+pub(crate) fn tui_status_line(top: &AgentTopOutput) -> String {
     let mut parts = Vec::new();
     if top.rows.iter().any(|row| row.evidence().agent_native) {
         parts.push("agent-native".to_string());
@@ -285,7 +280,7 @@ pub(crate) fn tui_status_line(top: &AgentTopOutput<'_>) -> String {
     }
 }
 
-pub(crate) fn tui_diagnostic_lines(top: &AgentTopOutput<'_>, limit: usize) -> Vec<String> {
+pub(crate) fn tui_diagnostic_lines(top: &AgentTopOutput, limit: usize) -> Vec<String> {
     if limit == 0 {
         return Vec::new();
     }
@@ -396,7 +391,7 @@ fn render_record_overlay(frame: &mut Frame<'_>, overlay: &TopRecordOverlay) {
     );
 }
 
-fn render_top_diagnostics(frame: &mut Frame<'_>, top: &AgentTopOutput<'_>) {
+fn render_top_diagnostics(frame: &mut Frame<'_>, top: &AgentTopOutput) {
     let area = centered_rect(76, 48, frame.area());
     frame.render_widget(Clear, area);
     let messages = tui_diagnostic_lines(top, 8);
@@ -428,7 +423,7 @@ fn render_top_diagnostics(frame: &mut Frame<'_>, top: &AgentTopOutput<'_>) {
 
 fn session_detail_lines(
     row: &AgentTopRow,
-    top: &AgentTopOutput<'_>,
+    top: &AgentTopOutput,
     options: &TopOptions,
 ) -> Vec<Line<'static>> {
     let view = normalize_view_key(&options.view);
@@ -698,7 +693,7 @@ fn row_style(row: &AgentTopRow) -> Style {
     }
 }
 
-fn evidence_summary(top: &AgentTopOutput<'_>) -> String {
+fn evidence_summary(top: &AgentTopOutput) -> String {
     let local = top
         .rows
         .iter()

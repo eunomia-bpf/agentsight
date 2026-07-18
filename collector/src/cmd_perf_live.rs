@@ -49,6 +49,14 @@ pub(crate) struct LiveEbpfCapture {
     start_note: Option<String>,
 }
 
+fn idle_live_capture(note: impl Into<String>) -> LiveEbpfCapture {
+    LiveEbpfCapture {
+        state: Arc::new(Mutex::new(LiveCaptureState::default())),
+        handle: tokio::spawn(async {}),
+        start_note: Some(note.into()),
+    }
+}
+
 impl LiveEbpfCapture {
     pub(crate) fn stop(self) {
         self.handle.abort();
@@ -69,18 +77,15 @@ impl LiveEbpfCapture {
     }
 }
 
-pub(crate) async fn start_live_ebpf_capture(
-    binary_extractor: &BinaryExtractor,
-    options: &TopOptions,
-) -> Option<LiveEbpfCapture> {
+pub(crate) async fn start_live_ebpf_capture(options: &TopOptions) -> LiveEbpfCapture {
     let start_note = match prepare_live_ebpf_privileges() {
         Ok(note) => note,
-        Err(note) => {
-            return Some(LiveEbpfCapture {
-                state: Arc::new(Mutex::new(LiveCaptureState::default())),
-                handle: tokio::spawn(async {}),
-                start_note: Some(note),
-            });
+        Err(note) => return idle_live_capture(note),
+    };
+    let binary_extractor = match BinaryExtractor::new().await {
+        Ok(extractor) => extractor,
+        Err(err) => {
+            return idle_live_capture(format!("live eBPF capture did not start: {err}"));
         }
     };
 
@@ -97,13 +102,7 @@ pub(crate) async fn start_live_ebpf_capture(
 
     let seed_snapshot = match procfs::ProcSnapshot::collect() {
         Ok(snapshot) => snapshot,
-        Err(err) => {
-            return Some(LiveEbpfCapture {
-                state: Arc::new(Mutex::new(LiveCaptureState::default())),
-                handle: tokio::spawn(async {}),
-                start_note: Some(format!("live eBPF capture did not start: {err}")),
-            });
-        }
+        Err(err) => return idle_live_capture(format!("live eBPF capture did not start: {err}")),
     };
     let seeds = process_select::process_seeds(
         &seed_snapshot,
@@ -122,24 +121,18 @@ pub(crate) async fn start_live_ebpf_capture(
 
     let stream = match runner.run().await {
         Ok(stream) => stream,
-        Err(err) => {
-            return Some(LiveEbpfCapture {
-                state,
-                handle: tokio::spawn(async {}),
-                start_note: Some(format!("live eBPF capture did not start: {err}")),
-            });
-        }
+        Err(err) => return idle_live_capture(format!("live eBPF capture did not start: {err}")),
     };
 
     let handle = tokio::spawn(async move {
         consume_live_ebpf_stream(stream, state_for_task).await;
     });
 
-    Some(LiveEbpfCapture {
+    LiveEbpfCapture {
         state,
         handle,
         start_note,
-    })
+    }
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -199,7 +192,8 @@ fn record_live_ebpf_event(state: &Arc<Mutex<LiveCaptureState>>, event: &Event) {
     }
 }
 
-pub(crate) async fn run_live_top_query(
+pub(crate) fn run_live_top_query(
+    capture: Option<&LiveEbpfCapture>,
     interval_secs: u64,
     limit: usize,
     count: Option<u32>,
@@ -215,7 +209,11 @@ pub(crate) async fn run_live_top_query(
         if should_clear_screen {
             clear_screen();
         }
-        let mut top = live_view.refresh(None, limit, options)?;
+        let capture_snapshot = capture.map(LiveEbpfCapture::snapshot);
+        let mut top = live_view.refresh(capture_snapshot.as_ref(), limit, options)?;
+        if let Some(note) = capture.and_then(LiveEbpfCapture::start_note) {
+            top.notes.push(note.to_string());
+        }
         sort_agent_rows(&mut top.rows, &options.sort);
         top.rows.truncate(limit);
         print_agent_top(&top);

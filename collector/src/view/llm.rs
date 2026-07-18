@@ -49,6 +49,7 @@ pub fn is_llm_path(path: &str) -> bool {
     path.contains("/chat/completions")
         || path.contains("/v1/messages")
         || path.contains("/v1/responses")
+        || path.contains("/codex/responses")
         || path.ends_with("/v1/completions")
         || path.contains(":generateContent")
         || path.contains(":streamGenerateContent")

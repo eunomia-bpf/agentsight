@@ -188,18 +188,9 @@ pub(crate) struct AuditCounters {
     pub(crate) file_events: usize,
     pub(crate) network_events: usize,
     pub(crate) unique_files: BTreeSet<String>,
-    pub(crate) pids: BTreeSet<u32>,
 }
 
 impl AuditCounters {
-    pub(crate) fn from_rows<'a>(rows: impl IntoIterator<Item = &'a AuditEventRow>) -> Self {
-        let mut counters = Self::default();
-        for row in rows {
-            counters.observe(row);
-        }
-        counters
-    }
-
     pub(crate) fn by_pid<'a>(
         rows: impl IntoIterator<Item = &'a AuditEventRow>,
     ) -> BTreeMap<u32, Self> {
@@ -213,9 +204,6 @@ impl AuditCounters {
     }
 
     fn observe(&mut self, row: &AuditEventRow) {
-        if let Some(pid) = row.pid {
-            self.pids.insert(pid);
-        }
         match row.audit_type.as_str() {
             "process" if row.action.as_deref() == Some("exec") => self.process_execs += 1,
             "process" if row.action.as_deref() == Some("exit") => {

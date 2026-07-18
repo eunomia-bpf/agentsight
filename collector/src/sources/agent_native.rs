@@ -5,6 +5,8 @@ use agent_session::{AgentSession, TokenUsage};
 use serde_json::Value;
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, HashSet};
+use std::fs::File;
+use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -22,6 +24,7 @@ pub(crate) type LocalSession = AgentSession;
 pub(crate) type SessionCache = agent_session::SessionCache;
 const CODEX_EXEC_DEDUPE_WINDOW_MS: u64 = 2_000;
 const CODEX_FALLBACK_TIME_SLOP_MS: u64 = 30_000;
+const CODEX_ROLLOUT_TAIL_BYTES: u64 = 1024 * 1024;
 
 #[derive(Clone, Debug)]
 struct ObservedCodexPrompt {
@@ -136,10 +139,11 @@ fn codex_state_session(
         .and_then(non_negative_i64_to_u64)
         .or(updated_ms);
     let updated = updated_ms.map(system_time_from_ms).unwrap_or(UNIX_EPOCH);
-    let usage = TokenUsage {
+    let path = PathBuf::from(rollout_path);
+    let usage = codex_rollout_usage(&path).unwrap_or(TokenUsage {
         total_tokens: tokens_used.max(0),
         ..Default::default()
-    };
+    });
     let model = model.filter(|value| !value.is_empty());
     let mut model_usage = BTreeMap::new();
     if let Some(model) = model.as_deref() {
@@ -155,7 +159,7 @@ fn codex_state_session(
         session_id: id.clone(),
         conversation_id: Some(id.clone()),
         display_id: format!("{}:{}", agent_session::AGENT_CODEX, short_session_id(&id)),
-        path: PathBuf::from(rollout_path),
+        path,
         updated,
         start_timestamp_ms: created_ms,
         end_timestamp_ms: updated_ms,
@@ -173,6 +177,16 @@ fn codex_state_session(
         last_message_at,
         events: Default::default(),
     }
+}
+
+fn codex_rollout_usage(path: &Path) -> Option<TokenUsage> {
+    let mut file = File::open(path).ok()?;
+    let len = file.metadata().ok()?.len();
+    let window = len.min(CODEX_ROLLOUT_TAIL_BYTES);
+    file.seek(SeekFrom::Start(len - window)).ok()?;
+    let mut data = Vec::with_capacity(window as usize);
+    file.read_to_end(&mut data).ok()?;
+    agent_session::codex_total_token_usage(&String::from_utf8_lossy(&data))
 }
 
 fn user_home_dir() -> Option<PathBuf> {
@@ -884,6 +898,32 @@ mod tests {
             sessions[0].last_message_at.as_deref(),
             Some("1970-01-01T00:31:40.000Z")
         );
+    }
+
+    #[test]
+    fn codex_state_db_uses_rollout_token_usage() {
+        let temp = tempfile::tempdir().unwrap();
+        write_codex_state_db_for_test(temp.path());
+        let rollout = temp.path().join("session.jsonl");
+        let mut content = "{}\n".repeat(CODEX_ROLLOUT_TAIL_BYTES as usize / 3 + 1);
+        content.push_str(concat!(
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":19184,"cached_input_tokens":9984,"output_tokens":11,"total_tokens":19195}}}}"#,
+            "\n"
+        ));
+        fs::write(&rollout, content).unwrap();
+        let conn = rusqlite::Connection::open(temp.path().join(".codex/state_5.sqlite")).unwrap();
+        conn.execute(
+            "UPDATE threads SET rollout_path = ?1, tokens_used = 999999999",
+            [rollout.to_string_lossy().as_ref()],
+        )
+        .unwrap();
+
+        let sessions = codex_state_sessions_in_home(temp.path(), 5);
+
+        assert_eq!(sessions[0].usage.input_tokens, 9_200);
+        assert_eq!(sessions[0].usage.cache_read_tokens, 9_984);
+        assert_eq!(sessions[0].usage.output_tokens, 11);
+        assert_eq!(sessions[0].usage.total_tokens, 19_195);
     }
 
     #[test]

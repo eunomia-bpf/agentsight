@@ -21,50 +21,37 @@ static void check(bool condition, const char *name)
 	}
 }
 
-static void hash_to_hex(const uint8_t hash[32], char out[65])
+static void add_writev_signature(uint8_t *data, size_t offset,
+				 uint8_t first_branch, uint8_t second_branch)
 {
-	static const char digits[] = "0123456789abcdef";
-
-	for (int i = 0; i < 32; i++) {
-		out[i * 2] = digits[hash[i] >> 4];
-		out[i * 2 + 1] = digits[hash[i] & 0xf];
-	}
-	out[64] = '\0';
+	memcpy(data + offset, codex_rustls_writev_prefix,
+	       sizeof(codex_rustls_writev_prefix));
+	data[offset + 18] = first_branch;
+	memcpy(data + offset + 19, codex_rustls_writev_iov,
+	       sizeof(codex_rustls_writev_iov));
+	data[offset + 27] = second_branch;
+	memcpy(data + offset + 28, codex_rustls_writev_copy,
+	       sizeof(codex_rustls_writev_copy));
 }
 
-static const struct codex_offset_entry *find_table_entry(const char *version)
-{
-	for (size_t i = 0; i < sizeof(codex_offset_table) / sizeof(codex_offset_table[0]); i++) {
-		if (strcmp(codex_offset_table[i].version, version) == 0)
-			return &codex_offset_table[i];
-	}
-	return NULL;
-}
-
-static void test_sha256_abc(void)
-{
-	struct codex_sha256_ctx ctx;
-	uint8_t hash[32];
-	char hex[65];
-
-	codex_sha256_init(&ctx);
-	codex_sha256_update(&ctx, (const uint8_t *)"abc", 3);
-	codex_sha256_final(&ctx, hash);
-	hash_to_hex(hash, hex);
-	check(strcmp(hex,
-		     "ba7816bf8f01cfea414140de5dae2223"
-		     "b00361a396177a9cb410ff61f20015ad") == 0,
-	      "sha256 implementation matches known abc digest");
-}
-
-static char *write_temp_file(const char *contents)
+static char *write_fixture(bool valid)
 {
 	char template[] = "/tmp/agentsight-codex-offsets-test.XXXXXX";
+	uint8_t data[2048] = {};
 	int fd = mkstemp(template);
 
 	if (fd < 0)
 		return NULL;
-	if (write(fd, contents, strlen(contents)) < 0) {
+	memcpy(data + 32, "codex-cli rustls", sizeof("codex-cli rustls"));
+	add_writev_signature(data, 256, 0x24, 0x23);
+	if (valid) {
+		add_writev_signature(data, 1024, 0x23, 0x22);
+		memcpy(data + 1536, codex_rustls_write_prefix,
+		       sizeof(codex_rustls_write_prefix));
+	} else {
+		data[256 + 28] ^= 0xff;
+	}
+	if (write(fd, data, sizeof(data)) != sizeof(data)) {
 		close(fd);
 		unlink(template);
 		return NULL;
@@ -73,151 +60,57 @@ static char *write_temp_file(const char *contents)
 	return strdup(template);
 }
 
+static void test_signature_detection(void)
+{
+	struct codex_rustls_offsets offsets;
+	char *path = write_fixture(true);
+
+	check(path != NULL, "created rustls signature fixture");
+	if (!path)
+		return;
+	check(codex_find_rustls_offsets(path, &offsets),
+	      "finds Codex/rustls write_vectored signatures");
+	check(offsets.count == 3, "reports every rustls write entrypoint");
+	check(offsets.entries[0].offset == 256 && offsets.entries[0].vectored
+	      && offsets.entries[1].offset == 1024 && offsets.entries[1].vectored
+	      && offsets.entries[2].offset == 1536 && !offsets.entries[2].vectored,
+	      "classifies direct and vectored writes");
+	check(codex_binary_has_tls_markers(path), "requires Codex and rustls markers");
+	unlink(path);
+	free(path);
+
+	path = write_fixture(false);
+	check(path != NULL, "created invalid signature fixture");
+	if (!path)
+		return;
+	check(!codex_find_rustls_offsets(path, &offsets),
+	      "rejects a partial signature match");
+	unlink(path);
+	free(path);
+}
+
 static void test_marker_detection(void)
 {
-	char *path = write_temp_file("prefix rustls aws-lc suffix");
+	char template[] = "/tmp/agentsight-codex-marker-test.XXXXXX";
+	const char contents[] = "prefix rustls aws-lc suffix";
+	int fd = mkstemp(template);
 
-	check(path != NULL, "created marker temp file");
-	if (!path)
+	check(fd >= 0, "created marker fixture");
+	if (fd < 0)
 		return;
-	check(codex_binary_has_tls_markers(path),
-	      "detects Codex TLS stack marker strings");
-	unlink(path);
-	free(path);
-}
-
-static void test_nonmatching_binary_misses_table(void)
-{
-	struct codex_ssl_offsets offsets;
-	char *path = write_temp_file("not a codex release binary");
-
-	check(path != NULL, "created nonmatching temp file");
-	if (!path)
-		return;
-	check(!codex_find_ssl_offsets(path, &offsets),
-	      "nonmatching binary does not hit Codex offset table");
-	unlink(path);
-	free(path);
-}
-
-static void test_codex_01425_table_entry(void)
-{
-	const struct codex_offset_entry *entry = find_table_entry("0.142.5");
-	static const uint8_t expected_sha[32] = {
-		0xf0, 0xaa, 0xc9, 0x54, 0x9a, 0x69, 0x82, 0xa2,
-		0xd2, 0x9d, 0xb2, 0x03, 0x6b, 0xe7, 0x7e, 0xfe,
-		0x30, 0xed, 0x01, 0xb4, 0xcf, 0x8a, 0x91, 0x21,
-		0x94, 0x53, 0xb1, 0x79, 0x59, 0x41, 0x9b, 0x5f,
-	};
-
-	check(entry != NULL && strcmp(entry->version, "0.142.5") == 0,
-	      "Codex 0.142.5 table entry is present");
-	if (!entry)
-		return;
-	check(entry->file_size == 285929520ULL,
-	      "Codex 0.142.5 table entry records file size");
-	check(entry->ssl_write == 218231264ULL,
-	      "Codex 0.142.5 table entry records SSL_write_ex offset");
-	check(entry->ssl_read == 218230672ULL,
-	      "Codex 0.142.5 table entry records SSL_read_ex offset");
-	check(entry->ssl_do_handshake == 218228992ULL,
-	      "Codex 0.142.5 table entry records SSL_do_handshake offset");
-	check(entry->write_is_ex && entry->read_is_ex,
-	      "Codex 0.142.5 table entry uses *_ex uprobes");
-	check(memcmp(entry->head_sha256, expected_sha, sizeof(expected_sha)) == 0,
-	      "Codex 0.142.5 table entry records head SHA-256");
-}
-
-static void test_codex_01441_table_entry(void)
-{
-	const struct codex_offset_entry *entry = find_table_entry("0.144.1");
-	static const uint8_t expected_sha[32] = {
-		0xba, 0x88, 0x2b, 0x3d, 0xb6, 0x9c, 0x15, 0x31,
-		0xf3, 0xd1, 0x96, 0x97, 0x1a, 0x6c, 0x59, 0xba,
-		0x27, 0xbb, 0xb4, 0xc1, 0x1f, 0x3d, 0xc2, 0x7d,
-		0xf8, 0x4c, 0xcb, 0xce, 0xd9, 0x85, 0xb6, 0x8a,
-	};
-
-	check(entry != NULL && strcmp(entry->version, "0.144.1") == 0,
-	      "Codex 0.144.1 table entry is present");
-	if (!entry)
-		return;
-	check(entry->file_size == 298520624ULL,
-	      "Codex 0.144.1 table entry records file size");
-	check(entry->ssl_write == 229089760ULL,
-	      "Codex 0.144.1 table entry records SSL_write_ex offset");
-	check(entry->ssl_read == 229089168ULL,
-	      "Codex 0.144.1 table entry records SSL_read_ex offset");
-	check(entry->ssl_do_handshake == 229087488ULL,
-	      "Codex 0.144.1 table entry records SSL_do_handshake offset");
-	check(entry->write_is_ex && entry->read_is_ex,
-	      "Codex 0.144.1 table entry uses *_ex uprobes");
-	check(memcmp(entry->head_sha256, expected_sha, sizeof(expected_sha)) == 0,
-	      "Codex 0.144.1 table entry records head SHA-256");
-}
-
-static void test_codex_01444_table_entry(void)
-{
-	const struct codex_offset_entry *entry = find_table_entry("0.144.4");
-	static const uint8_t expected_sha[32] = {
-		0xfa, 0x92, 0x07, 0xb8, 0x78, 0x0b, 0xf4, 0x2c,
-		0x94, 0xff, 0x4a, 0xa0, 0x53, 0x23, 0x44, 0x89,
-		0x01, 0xdd, 0x56, 0x90, 0x59, 0x62, 0x0c, 0xae,
-		0x0e, 0xf9, 0x15, 0xde, 0x93, 0xc1, 0xdf, 0x64,
-	};
-
-	check(entry != NULL && strcmp(entry->version, "0.144.4") == 0,
-	      "Codex 0.144.4 table entry is present");
-	if (!entry)
-		return;
-	check(entry->file_size == 298553392ULL,
-	      "Codex 0.144.4 table entry records file size");
-	check(entry->ssl_write == 229118432ULL,
-	      "Codex 0.144.4 table entry records SSL_write_ex offset");
-	check(entry->ssl_read == 229117840ULL,
-	      "Codex 0.144.4 table entry records SSL_read_ex offset");
-	check(entry->ssl_do_handshake == 229116160ULL,
-	      "Codex 0.144.4 table entry records SSL_do_handshake offset");
-	check(entry->write_is_ex && entry->read_is_ex,
-	      "Codex 0.144.4 table entry uses *_ex uprobes");
-	check(memcmp(entry->head_sha256, expected_sha, sizeof(expected_sha)) == 0,
-	      "Codex 0.144.4 table entry records head SHA-256");
-}
-
-static void test_codex_01425_fixture_if_available(void)
-{
-	const char *path = getenv("AGENTSIGHT_CODEX_01425_BIN");
-	struct codex_ssl_offsets offsets;
-
-	if (!path || !path[0]) {
-		printf("[SKIP] AGENTSIGHT_CODEX_01425_BIN not set\n");
-		return;
-	}
-
-	check(codex_find_ssl_offsets(path, &offsets),
-	      "Codex 0.142.5 fixture hits offset table");
-	check(strcmp(offsets.version, "0.142.5") == 0,
-	      "Codex 0.142.5 fixture reports version");
-	check(offsets.ssl_write == 218231264ULL,
-	      "Codex 0.142.5 fixture reports SSL_write_ex offset");
-	check(offsets.ssl_read == 218230672ULL,
-	      "Codex 0.142.5 fixture reports SSL_read_ex offset");
-	check(offsets.ssl_do_handshake == 218228992ULL,
-	      "Codex 0.142.5 fixture reports SSL_do_handshake offset");
-	check(offsets.write_is_ex && offsets.read_is_ex,
-	      "Codex 0.142.5 fixture reports *_ex uprobes");
+	check(write(fd, contents, sizeof(contents)) == sizeof(contents),
+	      "wrote marker fixture");
+	close(fd);
+	check(!codex_binary_has_tls_markers(template),
+	      "rejects TLS markers without a Codex marker");
+	unlink(template);
 }
 
 int main(void)
 {
 	printf("===== Codex offset tests =====\n");
-	test_sha256_abc();
+	test_signature_detection();
 	test_marker_detection();
-	test_nonmatching_binary_misses_table();
-	test_codex_01444_table_entry();
-	test_codex_01441_table_entry();
-	test_codex_01425_table_entry();
-	test_codex_01425_fixture_if_available();
 	printf("Tests passed: %d\n", tests_run - tests_failed);
 	printf("Tests failed: %d\n", tests_failed);
 	return tests_failed == 0 ? 0 : 1;

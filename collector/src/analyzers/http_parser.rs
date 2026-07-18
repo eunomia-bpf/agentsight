@@ -6,13 +6,14 @@ use super::{Analyzer, AnalyzerError};
 use crate::event::Event;
 use crate::runners::EventStream;
 use async_trait::async_trait;
+use flate2::{Decompress, FlushDecompress};
 use futures::{stream, stream::StreamExt};
 use hpack::Decoder as HpackDecoder;
 use std::collections::HashMap;
 
 const MAX_HTTP2_STREAMS: usize = 1024;
 const MAX_HTTP2_PENDING_HEADERS: usize = 1024;
-const MAX_HTTP2_BODY_BYTES: usize = 1024 * 1024;
+const MAX_HTTP_BODY_BYTES: usize = 1024 * 1024;
 const MAX_HTTP2_HEADER_BLOCK_BYTES: usize = 64 * 1024;
 
 /// HTTP Parser Analyzer that parses SSL traffic into HTTP requests/responses
@@ -20,6 +21,7 @@ pub struct HTTPParser {
     /// Flag to include raw data in parsed events (default: true)
     include_raw_data: bool,
     http2: HTTP2State,
+    websocket: WebSocketState,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,6 +57,17 @@ struct HTTP2State {
     response_decoder: HpackDecoder<'static>,
     streams: HashMap<(u64, u32), HTTP2StreamState>,
     pending_headers: HashMap<(u64, u32), PendingHTTP2Headers>,
+}
+
+#[derive(Default)]
+struct WebSocketState {
+    connections: HashMap<u32, WebSocketConnection>,
+}
+
+struct WebSocketConnection {
+    path: String,
+    headers: HashMap<String, String>,
+    inflater: Decompress,
 }
 
 impl Default for HTTP2State {
@@ -97,6 +110,7 @@ impl HTTPParser {
         HTTPParser {
             include_raw_data: true,
             http2: HTTP2State::default(),
+            websocket: WebSocketState::default(),
         }
     }
 
@@ -284,6 +298,7 @@ impl HTTPParser {
     /// Handle SSL events (HTTP request/response data)
     fn handle_ssl_event(
         http2: &mut HTTP2State,
+        websocket: &mut WebSocketState,
         event: Event,
         include_raw_data: bool,
     ) -> Vec<Event> {
@@ -298,6 +313,7 @@ impl HTTPParser {
         if Self::is_http_data(data_str)
             && let Some(parsed_message) = Self::parse_http_message(data_str)
         {
+            websocket.observe_handshake(&event, &parsed_message);
             let tid = ssl_data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
             return vec![Self::create_http_event(
                 tid,
@@ -307,7 +323,14 @@ impl HTTPParser {
             )];
         }
 
-        let data_bytes = ssl_json_string_to_bytes(data_str);
+        let data_bytes = ssl_data
+            .get("data_hex")
+            .and_then(|v| v.as_str())
+            .and_then(|v| hex::decode(v).ok())
+            .unwrap_or_else(|| ssl_json_string_to_bytes(data_str));
+        if let Some(events) = websocket.handle_event(&event, &data_bytes, include_raw_data) {
+            return events;
+        }
         if let Some(events) = http2.handle_event(&event, &data_bytes, include_raw_data) {
             return events;
         }
@@ -315,6 +338,141 @@ impl HTTPParser {
         // If not parseable as HTTP, pass through original event
         vec![event]
     }
+}
+
+impl WebSocketState {
+    fn observe_handshake(&mut self, event: &Event, message: &HTTPMessage) {
+        if message.message_type != HTTPMessageType::Request
+            || !message
+                .headers
+                .get("upgrade")
+                .is_some_and(|v| v.eq_ignore_ascii_case("websocket"))
+        {
+            return;
+        }
+        let Some(path) = message.path.as_ref() else {
+            return;
+        };
+        if !path.contains("/v1/responses") && !path.contains("/codex/responses") {
+            return;
+        }
+        self.connections.insert(
+            event.pid,
+            WebSocketConnection {
+                path: path.clone(),
+                headers: message.headers.clone(),
+                inflater: Decompress::new(false),
+            },
+        );
+    }
+
+    fn handle_event(
+        &mut self,
+        event: &Event,
+        bytes: &[u8],
+        include_raw_data: bool,
+    ) -> Option<Vec<Event>> {
+        let connection = self.connections.get_mut(&event.pid)?;
+        let (compressed, mut payload) = parse_masked_websocket_frame(bytes)?;
+        if compressed {
+            payload.extend_from_slice(&[0, 0, 0xff, 0xff]);
+            let mut decoded = Vec::with_capacity(MAX_HTTP_BODY_BYTES);
+            let input_before = connection.inflater.total_in();
+            connection
+                .inflater
+                .decompress_vec(&payload, &mut decoded, FlushDecompress::Sync)
+                .ok()?;
+            if connection.inflater.total_in() - input_before != payload.len() as u64 {
+                return None;
+            }
+            payload = decoded;
+        }
+        let body = String::from_utf8(payload).ok()?;
+        let json: serde_json::Value = serde_json::from_str(&body).ok()?;
+        if json.get("type").and_then(|v| v.as_str()) != Some("response.create") {
+            return None;
+        }
+        Some(vec![create_websocket_request_event(
+            event,
+            &connection.path,
+            &connection.headers,
+            body,
+            include_raw_data,
+        )])
+    }
+}
+
+fn parse_masked_websocket_frame(bytes: &[u8]) -> Option<(bool, Vec<u8>)> {
+    if bytes.len() < 2
+        || bytes[0] & 0x80 == 0
+        || bytes[0] & 0x30 != 0
+        || !matches!(bytes[0] & 0x0f, 1 | 2)
+        || bytes[1] & 0x80 == 0
+    {
+        return None;
+    }
+    let mut offset = 2;
+    let mut payload_len = (bytes[1] & 0x7f) as usize;
+    if payload_len == 126 {
+        payload_len = usize::from(u16::from_be_bytes(
+            bytes.get(offset..offset + 2)?.try_into().ok()?,
+        ));
+        offset += 2;
+    } else if payload_len == 127 {
+        payload_len = usize::try_from(u64::from_be_bytes(
+            bytes.get(offset..offset + 8)?.try_into().ok()?,
+        ))
+        .ok()?;
+        offset += 8;
+    }
+    let mask: [u8; 4] = bytes.get(offset..offset + 4)?.try_into().ok()?;
+    offset += 4;
+    let payload = bytes.get(offset..offset.checked_add(payload_len)?)?;
+    if offset + payload_len != bytes.len() {
+        return None;
+    }
+    Some((
+        bytes[0] & 0x40 != 0,
+        payload
+            .iter()
+            .enumerate()
+            .map(|(i, byte)| byte ^ mask[i % 4])
+            .collect(),
+    ))
+}
+
+fn create_websocket_request_event(
+    original_event: &Event,
+    path: &str,
+    headers: &HashMap<String, String>,
+    body: String,
+    include_raw_data: bool,
+) -> Event {
+    let tid = original_event
+        .data
+        .get("tid")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    HTTPEvent {
+        tid,
+        message_type: "request".to_string(),
+        first_line: format!("POST {path} WebSocket"),
+        method: Some("POST".to_string()),
+        path: Some(path.to_string()),
+        protocol: Some("WebSocket".to_string()),
+        status_code: None,
+        status_text: None,
+        headers: headers.clone(),
+        content_length: Some(body.len()),
+        has_body: true,
+        is_chunked: false,
+        body_hex: Some(hex::encode(body.as_bytes())),
+        total_size: headers_size(headers) + body.len(),
+        original_source: "ssl.websocket".to_string(),
+        raw_data: include_raw_data.then(|| body.clone()),
+        body: Some(body),
+    }
+    .to_event(original_event)
 }
 
 impl HTTP2State {
@@ -350,7 +508,7 @@ impl HTTP2State {
                     let state = self.streams.entry(key).or_default();
                     match direction {
                         HTTP2Direction::Request => {
-                            extend_capped(&mut state.request_body, payload, MAX_HTTP2_BODY_BYTES);
+                            extend_capped(&mut state.request_body, payload, MAX_HTTP_BODY_BYTES);
                             if frame.flags & 0x1 != 0 && !state.request_emitted {
                                 events.push(create_http2_request_event(
                                     tid,
@@ -363,7 +521,7 @@ impl HTTP2State {
                             }
                         }
                         HTTP2Direction::Response => {
-                            extend_capped(&mut state.response_body, payload, MAX_HTTP2_BODY_BYTES);
+                            extend_capped(&mut state.response_body, payload, MAX_HTTP_BODY_BYTES);
                             if (frame.flags & 0x1 != 0
                                 || looks_like_complete_json(&state.response_body))
                                 && !state.response_emitted
@@ -716,10 +874,11 @@ impl Analyzer for HTTPParser {
     async fn process(&mut self, stream: EventStream) -> Result<EventStream, AnalyzerError> {
         let include_raw_data = self.include_raw_data;
         let mut http2 = std::mem::take(&mut self.http2);
+        let mut websocket = std::mem::take(&mut self.websocket);
 
         let processed_stream = stream.flat_map(move |event| {
             let events = if event.source == "ssl" {
-                Self::handle_ssl_event(&mut http2, event, include_raw_data)
+                Self::handle_ssl_event(&mut http2, &mut websocket, event, include_raw_data)
             } else {
                 vec![event]
             };
@@ -752,8 +911,8 @@ mod tests {
     use super::*;
     use crate::analyzers::{HTTPDecompressor, SSEProcessor};
     use crate::view::MaterializedView;
-    use flate2::Compression;
     use flate2::write::GzEncoder;
+    use flate2::{Compress, Compression, FlushCompress};
     use futures::StreamExt;
     use hpack::Encoder as HpackEncoder;
     use serde_json::json;
@@ -769,6 +928,7 @@ mod tests {
                 "tid": 7,
                 "function": function,
                 "data": bytes_to_ssl_json_string(&bytes),
+                "data_hex": hex::encode(&bytes),
             }),
         )
     }
@@ -792,6 +952,86 @@ mod tests {
         ];
         out.extend_from_slice(payload);
         out
+    }
+
+    fn compressed_websocket_frame(compressor: &mut Compress, payload: &[u8]) -> Vec<u8> {
+        let mut compressed = Vec::with_capacity(payload.len() * 2 + 64);
+        compressor
+            .compress_vec(payload, &mut compressed, FlushCompress::Sync)
+            .unwrap();
+        assert!(compressed.ends_with(&[0, 0, 0xff, 0xff]));
+        compressed.truncate(compressed.len() - 4);
+
+        let mut frame = vec![0xc1];
+        if compressed.len() <= 125 {
+            frame.push(0x80 | compressed.len() as u8);
+        } else {
+            frame.push(0x80 | 126);
+            frame.extend_from_slice(&(compressed.len() as u16).to_be_bytes());
+        }
+        let mask = [0x12, 0x34, 0x56, 0x78];
+        frame.extend_from_slice(&mask);
+        frame.extend(
+            compressed
+                .iter()
+                .enumerate()
+                .map(|(i, byte)| byte ^ mask[i % 4]),
+        );
+        frame
+    }
+
+    #[tokio::test]
+    async fn parses_compressed_websocket_responses_with_context_takeover() {
+        let handshake = b"GET /backend-api/codex/responses HTTP/1.1\r\n\
+Host: chatgpt.com\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\
+sec-websocket-extensions: permessage-deflate\r\n\r\n"
+            .to_vec();
+        let shared = "shared context ".repeat(400);
+        let first = json!({
+            "type": "response.create",
+            "model": "gpt-test",
+            "input": [{"role": "developer", "content": shared}],
+        })
+        .to_string();
+        let prompt = "agentsight websocket exact prompt 7f31";
+        let second = json!({
+            "type": "response.create",
+            "model": "gpt-test",
+            "input": [{"role": "user", "content": format!("{shared}{prompt}")}],
+        })
+        .to_string();
+        let mut compressor = Compress::new(Compression::fast(), false);
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event(1, "WRITE/SEND", handshake),
+            ssl_event(
+                2,
+                "WRITE/SEND",
+                compressed_websocket_frame(&mut compressor, first.as_bytes()),
+            ),
+            ssl_event(
+                3,
+                "WRITE/SEND",
+                compressed_websocket_frame(&mut compressor, second.as_bytes()),
+            ),
+        ]));
+        let mut parser = HTTPParser::new().disable_raw_data();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+
+        assert_eq!(output.len(), 3);
+        assert_eq!(output[2].data["path"], "/backend-api/codex/responses");
+        assert!(output[2].data["body"].as_str().unwrap().contains(prompt));
+        let mut view = MaterializedView::new();
+        for event in output {
+            view.ingest_event(&event).unwrap();
+        }
+        let calls = view.llm_call_rows(10);
+        assert_eq!(calls.len(), 2);
+        assert_eq!(calls[0].call_kind.as_deref(), Some("responses"));
+        assert!(
+            calls
+                .iter()
+                .any(|call| call.request.to_string().contains(prompt))
+        );
     }
 
     #[tokio::test]

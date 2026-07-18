@@ -55,6 +55,16 @@ def first_prompt(value: Any) -> str:
     return " ".join(first_prompt(item) for item in value.values())
 
 
+def contains_type(value: Any, expected: str) -> bool:
+    if isinstance(value, list):
+        return any(contains_type(item, expected) for item in value)
+    if not isinstance(value, dict):
+        return False
+    return value.get("type") == expected or any(
+        contains_type(item, expected) for item in value.values()
+    )
+
+
 class MockLlmHandler(BaseHTTPRequestHandler):
     server_version = "AgentSightMockLLM/1.0"
     protocol_version = "HTTP/1.1"
@@ -164,6 +174,43 @@ class MockLlmHandler(BaseHTTPRequestHandler):
         model = payload.get("model", "gpt-agentsight-mock")
         content = "agentsight mock response"
         if payload.get("stream"):
+            tool_sleep = self.server.responses_tool_sleep  # type: ignore[attr-defined]
+            if tool_sleep and contains_type(payload, "function_call_output"):
+                time.sleep(tool_sleep)
+            if tool_sleep and not contains_type(payload, "function_call_output"):
+                arguments = json.dumps(
+                    {"cmd": f"sleep {tool_sleep}", "yield_time_ms": 250}
+                )
+                item = {
+                    "id": "fc_agentsight",
+                    "type": "function_call",
+                    "status": "completed",
+                    "call_id": "call_agentsight",
+                    "name": "exec_command",
+                    "arguments": arguments,
+                }
+                response = {
+                    "id": "resp_agentsight",
+                    "model": model,
+                    "status": "completed",
+                    "output": [item],
+                    "usage": {"input_tokens": 11, "output_tokens": 4, "total_tokens": 15},
+                }
+                self.respond_sse(
+                    [
+                        {"type": "response.created", "response": response},
+                        {"type": "response.output_item.added", "output_index": 0, "item": item},
+                        {
+                            "type": "response.function_call_arguments.done",
+                            "item_id": item["id"],
+                            "output_index": 0,
+                            "arguments": arguments,
+                        },
+                        {"type": "response.output_item.done", "output_index": 0, "item": item},
+                        {"type": "response.completed", "response": response},
+                    ]
+                )
+                return
             self.respond_sse(
                 [
                     {"type": "response.created", "response": {"id": "resp_agentsight", "model": model}},
@@ -243,6 +290,7 @@ def main() -> int:
     parser.add_argument("--log", required=True, type=Path)
     parser.add_argument("--tls-cert", type=Path)
     parser.add_argument("--tls-key", type=Path)
+    parser.add_argument("--responses-tool-sleep", type=int, default=0)
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
 
@@ -252,6 +300,7 @@ def main() -> int:
     server = ThreadingHTTPServer((args.host, args.port), MockLlmHandler)
     server.request_log_path = args.log  # type: ignore[attr-defined]
     server.quiet = args.quiet  # type: ignore[attr-defined]
+    server.responses_tool_sleep = max(args.responses_tool_sleep, 0)  # type: ignore[attr-defined]
 
     if args.tls_cert or args.tls_key:
         if not args.tls_cert or not args.tls_key:

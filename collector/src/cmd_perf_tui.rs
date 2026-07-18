@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use crate::binary_extractor::BinaryExtractor;
-use crate::cmd_perf::load_top_output;
-use crate::cmd_perf_live::{LiveEbpfCapture, start_live_ebpf_capture};
+use crate::cmd_perf_live::LiveEbpfCapture;
 use crate::cmd_tui_record::{
     TuiRecordStatus, TuiRecordTask, default_record_command_for_row, parse_tui_record_command,
 };
@@ -22,50 +20,27 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 use std::io;
 use std::time::{Duration, Instant};
 
-pub(crate) async fn run_live_top_tui(
-    binary_extractor: &BinaryExtractor,
+pub(crate) fn run_live_top_tui(
+    capture: Option<&LiveEbpfCapture>,
     interval_secs: u64,
     limit: usize,
     count: Option<u32>,
     options: &TopOptions,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let capture = start_live_ebpf_capture(binary_extractor, options).await;
     let mut live_view = LiveView::default();
-    let result = run_top_tui_loop(
-        interval_secs,
-        limit,
-        count,
-        options,
-        true,
-        |display_limit, options| {
-            let capture_snapshot = capture.as_ref().map(LiveEbpfCapture::snapshot);
-            let mut top = live_view.refresh(capture_snapshot.as_ref(), display_limit, options)?;
-            if let Some(note) = capture.as_ref().and_then(|capture| capture.start_note()) {
-                top.notes.push(note.to_string());
-            }
-            Ok(top)
-        },
-    );
-    if let Some(capture) = capture {
-        capture.stop();
-    }
-    result
-}
-
-pub(crate) fn run_saved_top_tui(
-    db: &str,
-    interval_secs: u64,
-    limit: usize,
-    count: Option<u32>,
-    options: &TopOptions,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     run_top_tui_loop(
         interval_secs,
         limit,
         count,
         options,
-        false,
-        |display_limit, options| load_top_output(db, display_limit, options),
+        |display_limit, options| {
+            let capture_snapshot = capture.map(LiveEbpfCapture::snapshot);
+            let mut top = live_view.refresh(capture_snapshot.as_ref(), display_limit, options)?;
+            if let Some(note) = capture.and_then(LiveEbpfCapture::start_note) {
+                top.notes.push(note.to_string());
+            }
+            Ok(top)
+        },
     )
 }
 
@@ -90,19 +65,18 @@ impl Drop for LiveTopTerminalGuard {
     }
 }
 
-fn run_top_tui_loop<'a, F>(
+fn run_top_tui_loop<F>(
     interval_secs: u64,
     limit: usize,
     count: Option<u32>,
     options: &TopOptions,
-    allow_record: bool,
     mut refresh: F,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 where
     F: FnMut(
         usize,
         &TopOptions,
-    ) -> Result<AgentTopOutput<'a>, Box<dyn std::error::Error + Send + Sync>>,
+    ) -> Result<AgentTopOutput, Box<dyn std::error::Error + Send + Sync>>,
 {
     let mut options = options.clone();
     let mut display_limit = limit.clamp(1, 100);
@@ -112,7 +86,7 @@ where
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
-    let mut current_top: Option<AgentTopOutput<'a>> = None;
+    let mut current_top: Option<AgentTopOutput> = None;
     let mut selected = 0usize;
     let mut paused = false;
     let mut show_help = false;
@@ -219,7 +193,6 @@ where
             KeyCode::Char('r') => force_refresh = true,
             KeyCode::Char('R') => {
                 match open_record_prompt_for_selection(
-                    allow_record,
                     current_top.as_ref(),
                     selected,
                     record_task.as_ref().is_some_and(|task| !task.is_finished()),
@@ -320,16 +293,10 @@ enum RecordOpenAction {
 }
 
 fn open_record_prompt_for_selection(
-    allow_record: bool,
-    current_top: Option<&AgentTopOutput<'_>>,
+    current_top: Option<&AgentTopOutput>,
     selected: usize,
     record_running: bool,
 ) -> RecordOpenAction {
-    if !allow_record {
-        return RecordOpenAction::Diagnostic(
-            "record from top is only available for live sessions".to_string(),
-        );
-    }
     if record_running {
         return RecordOpenAction::Open(RecordPrompt::StopConfirm);
     }
@@ -521,7 +488,6 @@ mod tests {
     fn record_r_with_selected_pid_opens_prompt_with_default_command() {
         let top = AgentTopOutput {
             mode: "live sessions",
-            db: None,
             duration_s: 0.0,
             view_events: 0,
             llm_calls: 0,
@@ -535,7 +501,7 @@ mod tests {
             notes: Vec::new(),
         };
 
-        let action = open_record_prompt_for_selection(true, Some(&top), 0, false);
+        let action = open_record_prompt_for_selection(Some(&top), 0, false);
 
         let RecordOpenAction::Open(prompt) = action else {
             panic!("expected record prompt");
@@ -598,7 +564,7 @@ mod tests {
     }
     #[test]
     fn record_r_when_task_running_opens_running_dialog() {
-        let action = open_record_prompt_for_selection(true, None, 0, true);
+        let action = open_record_prompt_for_selection(None, 0, true);
 
         let RecordOpenAction::Open(prompt) = action else {
             panic!("expected running prompt");
@@ -625,7 +591,6 @@ mod tests {
     fn tui_status_compacts_source_notes() {
         let top = AgentTopOutput {
             mode: "live sessions",
-            db: None,
             duration_s: 0.0,
             view_events: 0,
             llm_calls: 0,
