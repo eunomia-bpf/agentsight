@@ -81,8 +81,9 @@ agentsight vis /path/to/repo --global -o repo.html -o repo.png -o repo.gif -o re
 ```
 
 默认时间从 repository 根提交开始。`--global` 会搜索所有本地 session，但仍只保留
-真实命中目标 repository 的 Tool 文件操作。HTML、SVG 和 PNG 不依赖外部渲染器；
-GIF/MP4 复用同一组内存帧并流式写给 FFmpeg，因此需要本机安装 `ffmpeg`。
+真实命中目标 repository 的 Tool 文件操作。HTML 不依赖外部运行时；SVG/PNG/GIF/MP4
+需要本机 Chromium，GIF/MP4 还需要 FFmpeg。重复传入 `-o` 时只扫描一次 session、
+构建一次原始 D3/ECharts 视觉模型，并只遍历一次动画帧。
 
 ## top、record 与 debug trace
 

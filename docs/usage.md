@@ -92,5 +92,6 @@ agentsight vis /path/to/repo --global -o repo.html -o repo.png -o repo.gif -o re
 
 The default interval starts at the repository root commit. `--global` searches
 all local sessions but retains only real Tool operations targeting the selected
-repository. HTML, SVG, and PNG need no external renderer. GIF and MP4 stream
-the same in-memory frames to FFmpeg and therefore require a local `ffmpeg`.
+repository. HTML needs no external runtime. SVG/PNG/GIF/MP4 export requires a
+local Chromium; GIF/MP4 also requires FFmpeg. Repeated `-o` values share one
+session scan, one original D3/ECharts visual model, and one animation frame pass.

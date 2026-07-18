@@ -43,7 +43,6 @@ mod state;
 mod text;
 mod time;
 mod view;
-mod vis_scene;
 
 use analyzers::{print_global_http_filter_metrics, print_global_ssl_filter_metrics};
 use binary_extractor::BinaryExtractor;
@@ -149,6 +148,9 @@ fn command_uses_top_tui(cli: &Cli) -> bool {
 fn init_logging(suppress_terminal_output: bool) {
     let mut builder = env_logger::Builder::from_default_env();
     builder.filter_level(log::LevelFilter::Warn);
+    // Browser transport shutdown is expected after a completed one-page media export;
+    // rendering failures are returned through cmd_vis instead of relying on crate logs.
+    builder.filter_module("headless_chrome", log::LevelFilter::Off);
     if suppress_terminal_output {
         builder.target(env_logger::Target::Pipe(Box::new(TuiDiagnosticWriter)));
     }
@@ -248,7 +250,7 @@ enum Commands {
         /// Git worktree to visualize
         #[arg(default_value = ".")]
         path: PathBuf,
-        /// Output path; repeat for HTML, SVG, PNG, GIF, and MP4 from one layout pass
+        /// Output path; repeat to reuse one visual model for HTML, SVG, PNG, GIF, and MP4
         #[arg(short, long, default_value = "repository-nebula.html")]
         output: Vec<PathBuf>,
         /// Search every local session for operations targeting this repository
