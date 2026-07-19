@@ -38,6 +38,13 @@ function series(option, id) {
   return option.series.find((row) => row.id === id).data;
 }
 
+function directoryLegendLabels(option) {
+  const legend = option.graphic.find((group) => group.children.some((row) => (
+    row.style?.text === "DIRECTORIES"
+  )));
+  return legend.children.filter((row) => row.style?.x === 28).map((row) => row.style.text);
+}
+
 test("one Tool action produces one visual moment without a total cap", () => {
   const events = Array.from({ length: 500 }, (_, step) => event(step));
   assert.equal(nebulaVisualMoments(data(events)).length, events.length + 2);
@@ -132,6 +139,27 @@ test("directory arguments pulse descendants without creating directory stars", (
     row.style?.text?.includes("directory scope 0.10×")
   )));
   assert.ok(option.graphic[1].children.some((row) => row.style?.text === "DIRECTORIES"));
+});
+
+test("directory legend gradually promotes the currently active directory", () => {
+  const value = data([
+    event(0, [{ access: "create", path: "zeta/main.rs" }]),
+    event(1, [{ access: "create", path: "alpha/main.rs" }]),
+    event(2, [{ access: "read", path: "alpha/main.rs" }]),
+    event(3, [{ access: "read", path: "zeta/main.rs" }]),
+  ]);
+  value.meta.render_layout_step = 1;
+  assert.deepEqual(directoryLegendLabels(repositoryNebula(value, 1_001, helper)), [
+    "zeta", "alpha",
+  ]);
+  value.meta.render_layout_step = 2;
+  assert.deepEqual(directoryLegendLabels(repositoryNebula(value, 1_002, helper)), [
+    "alpha", "zeta",
+  ]);
+  value.meta.render_layout_step = 3;
+  assert.deepEqual(directoryLegendLabels(repositoryNebula(value, 1_003, helper)), [
+    "alpha", "zeta",
+  ]);
 });
 
 test("directory rename preserves file identities and moves the whole subtree", () => {

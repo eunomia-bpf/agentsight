@@ -14,6 +14,7 @@ const FOCUSED_MAX_SIZE = 10.5;
 const DIRECTORY_COUNT_EXPONENT = 0.4;
 const DIRECTORY_PSEUDOCOUNT = 8;
 const DIRECTORY_MAX_SHARE = 0.42;
+const DIRECTORY_RANK_HYSTERESIS = 0.15;
 const IMPORTANCE_MIN_HALF_LIFE = 240;
 const IMPORTANCE_MAX_HALF_LIFE = 2_400;
 const OPERATION_WEIGHTS = { read: 1, write: 2, create: 2.5, rename: 2.5, delete: 2 };
@@ -531,6 +532,12 @@ function cappedDirectoryShares(rows) {
   return shares;
 }
 
+function directoryRadius(share, memberCount, maximum) {
+  const shareRadius = 0.34 * Math.sqrt(share * WIDTH * HEIGHT / Math.PI);
+  const contentRadius = 7 + 4 * Math.sqrt(memberCount);
+  return clamp(Math.min(shareRadius, contentRadius), 8, Math.max(8, maximum));
+}
+
 function refreshImportanceAndDirectories(state, nodes, step) {
   for (const node of nodes) {
     node.importanceRaw = decayedImportance(node, step, state.importanceHalfLife);
@@ -569,7 +576,7 @@ function refreshImportanceAndDirectories(state, nodes, step) {
       cellScale,
       members: row.members,
       importance: 0.7 * row.meanImportance + 0.3 * peakImportance,
-      radius: clamp(0.34 * Math.sqrt(share * WIDTH * HEIGHT / Math.PI), 24, 140),
+      radius: directoryRadius(share, row.members.length, 140),
     });
     for (const node of row.members) {
       node.directoryShare = share;
@@ -642,6 +649,41 @@ function recordDirectoryTransition(event, state) {
   state.lastDirectories.set(event.session_id, current);
 }
 
+function updateDirectoryRanking(event, state, step) {
+  const scoreAt = (top) => {
+    const row = state.directoryActivity.get(top);
+    if (!row) return 0;
+    return row.score * 2 ** (-(step - row.step) / state.directoryRankHalfLife);
+  };
+  const gains = new Map();
+  for (const action of event.actions) {
+    const top = topDirectory(action.scope ? scopeDisplayPath(action.path) : action.path);
+    gains.set(top, (gains.get(top) ?? 0)
+      + (OPERATION_WEIGHTS[action.type] ?? 1) * action.evidenceScale);
+  }
+  for (const [top, gain] of gains) {
+    state.directoryActivity.set(top, { score: scoreAt(top) + gain, step });
+    if (!state.directoryOrder.includes(top)) state.directoryOrder.push(top);
+  }
+
+  // One adjacent promotion per action keeps rank changes visually traceable.
+  let swapAt = -1;
+  let largestLead = 0;
+  for (let index = 1; index < state.directoryOrder.length; index += 1) {
+    const previous = scoreAt(state.directoryOrder[index - 1]);
+    const challenger = scoreAt(state.directoryOrder[index]);
+    const lead = challenger - previous * (1 + DIRECTORY_RANK_HYSTERESIS);
+    if (lead > largestLead) {
+      largestLead = lead;
+      swapAt = index;
+    }
+  }
+  if (swapAt > 0) {
+    [state.directoryOrder[swapAt - 1], state.directoryOrder[swapAt]] =
+      [state.directoryOrder[swapAt], state.directoryOrder[swapAt - 1]];
+  }
+}
+
 function transitionAffinities(transitions) {
   const degree = new Map();
   for (const [key, weight] of transitions) {
@@ -684,7 +726,7 @@ function directoryForce(profiles, transitions) {
       top,
       members,
       share,
-      radius: clamp(0.34 * Math.sqrt(share * WIDTH * HEIGHT / Math.PI), 12, parent.radius * 0.85),
+      radius: directoryRadius(share, members.length, parent.radius * 0.85),
     };
   });
   const updateCenter = (group) => {
@@ -723,12 +765,12 @@ function directoryForce(profiles, transitions) {
   const force = (alpha) => {
     for (const group of groups) updateCenter(group);
     for (const cluster of clusters) updateCenter(cluster);
-    repel(groups, alpha, () => 0.78, () => 0.05);
+    repel(groups, alpha, () => 0.68, () => 0.04);
     repel(clusters, alpha,
       (a, b) => a.top === b.top ? 0.68 : 0.82,
       (a, b) => a.top === b.top ? 0.018 : 0.03);
     for (const group of groups) {
-      const centerPull = alpha * (0.008 + 0.016 * group.importance);
+      const centerPull = alpha * (0.018 + 0.016 * group.importance);
       translate(group, (WIDTH / 2 - group.x) * centerPull, (HEIGHT / 2 - group.y) * centerPull);
     }
     for (const affinity of affinities) {
@@ -750,15 +792,12 @@ function directoryForce(profiles, transitions) {
         const dx = cluster.x - node.x;
         const dy = cluster.y - node.y;
         const distance = Math.hypot(dx, dy);
-        const localPull = alpha * (0.0015 + 0.03 * node.importance);
+        const normalizedDistance = distance / Math.max(1, cluster.radius);
+        const localPull = alpha * (
+          0.004 + 0.024 * node.importance + 0.012 * normalizedDistance * normalizedDistance
+        );
         node.vx += dx * localPull;
         node.vy += dy * localPull;
-        const envelope = cluster.radius * (0.8 + 0.3 * hashUnit(`${node.path}:envelope`));
-        if (distance > envelope) {
-          const envelopePull = (distance - envelope) / distance * alpha * 0.04;
-          node.vx += dx * envelopePull;
-          node.vy += dy * envelopePull;
-        }
       }
     }
   };
@@ -932,6 +971,7 @@ function snapshot(state, event) {
     evidence: summarizeEvidence(event, state.scopeCount),
     scopeCount: state.scopeCount,
     focus: state.visibleFocus,
+    directoryOrder: [...state.directoryOrder],
     nodes,
   };
 }
@@ -983,6 +1023,9 @@ function resetModel(model) {
     colorForPath: model.colorForPath,
     directoryTransitions: new Map(),
     lastDirectories: new Map(),
+    directoryActivity: new Map(),
+    directoryOrder: [],
+    directoryRankHalfLife: model.importanceHalfLife,
     focus: null,
     visibleFocus: null,
     currentSession: null,
@@ -1010,6 +1053,7 @@ function advanceTo(model, requestedStep) {
     recordDirectoryTransition(event, state);
     state.scopeCount = 0;
     for (const action of event.actions) state.scopeCount += applyAction(action, step, state);
+    updateDirectoryRanking(event, state, step);
     state.pendingLayoutWeight += event.actions.reduce(
       (sum, action) => sum + (OPERATION_WEIGHTS[action.type] ?? 1) * action.evidenceScale, 0,
     );
@@ -1127,13 +1171,9 @@ function directoryLegend(points, current, model) {
   const active = new Set(current.actions.map((action) => (
     topDirectory(action.scope ? scopeDisplayPath(action.path) : action.path)
   )));
-  const visible = model.topOrder.filter((top) => counts.has(top));
-  let shown = visible.slice(0, 8);
-  const missingActive = visible.filter((top) => active.has(top) && !shown.includes(top));
-  if (missingActive.length) {
-    shown = [...shown.slice(0, Math.max(0, 8 - missingActive.length)), ...missingActive.slice(0, 8)]
-      .sort((left, right) => model.topOrder.indexOf(left) - model.topOrder.indexOf(right));
-  }
+  const visible = [...new Set([...current.directoryOrder, ...model.topOrder])]
+    .filter((top) => counts.has(top));
+  const shown = visible.slice(0, 8);
   const rows = shown.map((top) => ({
     top,
     count: counts.get(top),
