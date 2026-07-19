@@ -17,6 +17,9 @@ const DIRECTORY_MAX_SHARE = 0.42;
 const IMPORTANCE_MIN_HALF_LIFE = 240;
 const IMPORTANCE_MAX_HALF_LIFE = 2_400;
 const OPERATION_WEIGHTS = { read: 1, write: 2, create: 2.5, rename: 2.5, delete: 2 };
+const SHELL_EVIDENCE = 0.42;
+const SEARCH_EVIDENCE = 0.68;
+const DIRECTORY_SCOPE_EVIDENCE = 0.10;
 
 const modelCache = new WeakMap();
 
@@ -59,6 +62,22 @@ function layoutDirectory(path) {
   return directories.slice(0, Math.min(2, directories.length)).join("/") || "(root)";
 }
 
+function scopeDisplayPath(path) {
+  const value = String(path ?? "").replace(/^\/+|\/+$/g, "");
+  return !value || value === "." ? "_scope" : `${value}/_scope`;
+}
+
+function actionEvidence(event, item) {
+  if (item.scope) return { scale: DIRECTORY_SCOPE_EVIDENCE, kind: "directory scope" };
+  if (event.category === "shell" || /^(bash|shell)$/i.test(event.tool_name ?? "")) {
+    return { scale: SHELL_EVIDENCE, kind: "shell-inferred" };
+  }
+  if (/^(grep|rg|glob|search)$/i.test(event.command_name || event.tool_name || "")) {
+    return { scale: SEARCH_EVIDENCE, kind: "search tool" };
+  }
+  return { scale: 1, kind: "direct tool" };
+}
+
 function normalizeEvents(data) {
   const events = [...(data.events ?? [])].sort((left, right) => (
     Number(left.ts_ms) - Number(right.ts_ms) || compareText(String(left.id), String(right.id))
@@ -70,6 +89,7 @@ function normalizeEvents(data) {
       if (!item.path || item.access === "rename_from") continue;
       const oldPath = item.previous_path;
       const type = item.access === "rename" && oldPath ? "rename" : item.access;
+      const evidence = actionEvidence(event, item);
       actions.push({
         id: `${event.id}:${type}:${index}:${item.path}`,
         eventId: event.id,
@@ -80,6 +100,9 @@ function normalizeEvents(data) {
         type,
         path: item.path,
         oldPath,
+        scope: Boolean(item.scope),
+        evidenceScale: evidence.scale,
+        evidenceKind: evidence.kind,
       });
     }
     actions.sort((left, right) => (
@@ -100,18 +123,18 @@ function normalizeEvents(data) {
   });
 }
 
-function actionDurationMs(count) {
-  return clamp(8_000 + 40 * count, 8_000, 30_000);
-}
-
 function directoryDistribution(event, directoryFor = layoutDirectory) {
   const weights = new Map();
   for (const action of event.actions) {
-    const directory = directoryFor(action.path);
-    weights.set(directory, (weights.get(directory) ?? 0) + (OPERATION_WEIGHTS[action.type] ?? 1));
+    const path = action.scope ? scopeDisplayPath(action.path) : action.path;
+    const directory = directoryFor(path);
+    const weight = (OPERATION_WEIGHTS[action.type] ?? 1) * action.evidenceScale;
+    weights.set(directory, (weights.get(directory) ?? 0) + weight);
   }
   const total = [...weights.values()].reduce((sum, value) => sum + value, 0);
-  return new Map([...weights].map(([directory, weight]) => [directory, weight / total]));
+  return total > 0
+    ? new Map([...weights].map(([directory, weight]) => [directory, weight / total]))
+    : new Map();
 }
 
 function attentionHalfLifeFor(events) {
@@ -283,6 +306,9 @@ function createNode(path, action, step, state, lifecycle = null) {
     deleteStep: null,
     lastStep: step,
     focusType: action.type,
+    focusScale: action.evidenceScale,
+    scopeStep: null,
+    scopeScale: 0,
     firstAction: action.type,
     firstTs: action.ts_ms,
     lastSession: action.session_id,
@@ -293,6 +319,7 @@ function createNode(path, action, step, state, lifecycle = null) {
     colorStep: step,
     lifecycleType: lifecycle,
     lifecycleStep: lifecycle ? step : null,
+    lifecycleScale: action.evidenceScale,
   };
   state.nodes.set(path, node);
   indexNode(state, node);
@@ -316,11 +343,78 @@ function recordImportance(node, action, step, state) {
     node.sessions.add(session);
     gain += 1.5;
   }
-  node.importanceRaw = decayedImportance(node, step, state.importanceHalfLife) + gain;
+  node.importanceRaw = decayedImportance(node, step, state.importanceHalfLife)
+    + gain * action.evidenceScale;
   node.importanceStep = step;
 }
 
+function scopeMembers(path, state) {
+  const prefix = String(path ?? "").replace(/^\/+|\/+$/g, "");
+  if (!prefix || prefix === ".") return [...state.nodes.values()];
+  return [...(state.prefixIndex.get(prefix) ?? [])]
+    .map((candidate) => state.nodes.get(candidate))
+    .filter(Boolean);
+}
+
+function applyScopeAction(action, step, state) {
+  const source = action.type === "rename" && action.oldPath ? action.oldPath : action.path;
+  const members = scopeMembers(source, state);
+  if (action.type === "rename" && action.oldPath) {
+    const moving = new Set(members);
+    for (const node of members) unindexNode(state, node);
+    for (const node of members) state.nodes.delete(node.path);
+    for (const node of members) {
+      const suffix = action.oldPath === "."
+        ? node.path
+        : node.path.slice(action.oldPath.length).replace(/^\//, "");
+      const nextPath = [action.path.replace(/\/$/, ""), suffix].filter(Boolean).join("/");
+      const replaced = state.nodes.get(nextPath);
+      if (replaced && !moving.has(replaced)) {
+        unindexNode(state, replaced);
+        state.nodes.delete(replaced.path);
+      }
+      const oldColor = currentColor(node, step);
+      node.path = nextPath;
+      node.colorFrom = oldColor;
+      node.colorTo = state.colorForPath(nextPath);
+      node.colorStep = step;
+      node.deleteStep = null;
+      Object.assign(node, {
+        lastStep: step, focusType: "rename", focusScale: action.evidenceScale,
+        lifecycleType: "rename", lifecycleStep: step, lifecycleScale: action.evidenceScale,
+        lastSession: action.session_id, lastVendor: action.vendor,
+      });
+      node.visits += 1;
+      recordImportance(node, action, step, state);
+      state.nodes.set(nextPath, node);
+      indexNode(state, node);
+    }
+    return members.length;
+  }
+  if (action.type === "delete") {
+    for (const node of members) {
+      Object.assign(node, {
+        lastStep: step, focusType: "delete", focusScale: action.evidenceScale,
+        lifecycleType: "delete", lifecycleStep: step, lifecycleScale: action.evidenceScale,
+        deleteStep: step, lastSession: action.session_id, lastVendor: action.vendor,
+      });
+      node.visits += 1;
+      recordImportance(node, action, step, state);
+    }
+    return members.length;
+  }
+  const total = members.reduce((sum, node) => sum + Math.sqrt(0.05 + node.importance), 0);
+  for (const node of members) {
+    node.scopeStep = step;
+    node.scopeScale = total > 0
+      ? action.evidenceScale * Math.sqrt(0.05 + node.importance) / total
+      : 0;
+  }
+  return members.length;
+}
+
 function applyAction(action, step, state) {
+  if (action.scope) return applyScopeAction(action, step, state);
   if (action.type === "rename") {
     let node = action.oldPath ? state.nodes.get(action.oldPath) : null;
     if (node) {
@@ -346,13 +440,15 @@ function applyAction(action, step, state) {
       visits: node.visits + 2,
       lastStep: step,
       focusType: "rename",
+      focusScale: action.evidenceScale,
       lifecycleType: "rename",
       lifecycleStep: step,
+      lifecycleScale: action.evidenceScale,
       lastSession: action.session_id,
       lastVendor: action.vendor,
     });
     recordImportance(node, action, step, state);
-    return;
+    return 0;
   }
 
   const node = createNode(action.path, action, step, state, action.type === "create" ? "create" : null);
@@ -364,6 +460,7 @@ function applyAction(action, step, state) {
   }
   node.lastStep = step;
   node.focusType = action.type;
+  node.focusScale = action.evidenceScale;
   node.lastSession = action.session_id;
   node.lastVendor = action.vendor;
   node.visits += action.type === "read" ? 1 : 2;
@@ -371,12 +468,15 @@ function applyAction(action, step, state) {
   if (action.type === "create") {
     node.lifecycleType = "create";
     node.lifecycleStep = step;
+    node.lifecycleScale = action.evidenceScale;
   }
   if (action.type === "delete") {
     node.lifecycleType = "delete";
     node.lifecycleStep = step;
+    node.lifecycleScale = action.evidenceScale;
     node.deleteStep = step;
   }
+  return 0;
 }
 
 function restingNodeSize(count) {
@@ -740,7 +840,7 @@ function summarizeEvent(event) {
   const vendors = [...new Set(actions.map((action) => action.vendor))];
   if (actions.length === 1) {
     const action = actions[0];
-    return `${action.vendor} · ${action.type} · ${action.oldPath ? `${action.oldPath} → ` : ""}${action.path}`;
+    return `${action.vendor} · ${tool} · ${action.type}${action.scope ? " scope" : ""} · ${action.oldPath ? `${action.oldPath} → ` : ""}${action.path}`;
   }
   const summary = ["read", "write", "create", "rename", "delete"]
     .filter((type) => counts.has(type))
@@ -749,25 +849,47 @@ function summarizeEvent(event) {
   return `${vendors.join("+")} · ${actions.length} actions · ${summary}`;
 }
 
+function summarizeEvidence(event, scopeCount) {
+  const tool = event.command_name || event.tool_name || event.category;
+  const kinds = [...new Map(event.actions.map((action) => [
+    action.evidenceKind, action.evidenceScale,
+  ])).entries()];
+  if (!kinds.length) return `${tool} · no repository file effect`;
+  const evidence = kinds.map(([kind, scale]) => `${kind} ${scale.toFixed(2)}×`).join(" + ");
+  const scope = scopeCount ? ` · ${scopeCount} files in scope` : "";
+  return `${tool} · ${evidence}${scope}`;
+}
+
 function updateFocus(state, event) {
   if (!event.actions.length) {
     return state.focus ? { ...state.focus, active: false } : null;
   }
-  const points = event.actions.map((action) => ({
-    node: state.nodes.get(action.path),
-    weight: OPERATION_WEIGHTS[action.type] ?? 1,
-  })).filter((row) => row.node);
+  const points = event.actions.flatMap((action) => {
+    const nodes = action.scope
+      ? scopeMembers(action.path, state)
+      : [state.nodes.get(action.path)].filter(Boolean);
+    const mass = (OPERATION_WEIGHTS[action.type] ?? 1) * action.evidenceScale;
+    const total = nodes.reduce((sum, node) => sum + Math.sqrt(0.05 + node.importance), 0);
+    return nodes.map((node) => ({
+      node,
+      weight: total > 0 ? mass * Math.sqrt(0.05 + node.importance) / total : 0,
+      scale: action.evidenceScale,
+    }));
+  }).filter((row) => row.node && row.weight > 0);
   if (!points.length) return state.focus ? { ...state.focus, active: false } : null;
   const total = points.reduce((sum, row) => sum + row.weight, 0);
   const x = points.reduce((sum, row) => sum + row.weight * row.node.x, 0) / total;
   const y = points.reduce((sum, row) => sum + row.weight * row.node.y, 0) / total;
+  const scale = Math.max(...points.map((row) => row.scale));
   const previous = state.focus?.session === event.session_id ? state.focus : null;
+  const blend = 0.7 * scale;
   state.focus = {
-    x: previous ? 0.3 * previous.x + 0.7 * x : x,
-    y: previous ? 0.3 * previous.y + 0.7 * y : y,
+    x: previous ? (1 - blend) * previous.x + blend * x : x,
+    y: previous ? (1 - blend) * previous.y + blend * y : y,
     lastStep: event.eventStep,
     session: event.session_id,
     vendor: event.vendor,
+    scale,
   };
   return { ...state.focus, active: true };
 }
@@ -787,6 +909,9 @@ function snapshot(state, event) {
     deleteStep: node.deleteStep,
     lastStep: node.lastStep,
     focusType: node.focusType,
+    focusScale: node.focusScale,
+    scopeStep: node.scopeStep,
+    scopeScale: node.scopeScale,
     firstAction: node.firstAction,
     firstTs: node.firstTs,
     lastSession: node.lastSession,
@@ -794,6 +919,7 @@ function snapshot(state, event) {
     bornNear: node.bornNear,
     lifecycleType: node.lifecycleType,
     lifecycleStep: node.lifecycleStep,
+    lifecycleScale: node.lifecycleScale,
     color: currentColor(node, actionStep),
     opacity: nodeOpacity(node, actionStep),
   }));
@@ -803,6 +929,8 @@ function snapshot(state, event) {
     ts_ms: event.ts_ms,
     actions: event.actions,
     summary: summarizeEvent(event),
+    evidence: summarizeEvidence(event, state.scopeCount),
+    scopeCount: state.scopeCount,
     focus: state.visibleFocus,
     nodes,
   };
@@ -832,11 +960,13 @@ function buildModel(data) {
       IMPORTANCE_MAX_HALF_LIFE,
     ),
     colorForPath: buildPalette(actions, repository),
+    topOrder: [...new Set(actions.flatMap((action) => (
+      [topDirectory(action.path), ...(action.oldPath ? [topDirectory(action.oldPath)] : [])]
+    )))].sort(compareText),
     attentionHalfLife,
     attentionSteps: attentionHalfLife * ATTENTION_HALF_LIVES,
     firstMs: events[0]?.ts_ms ?? Number.POSITIVE_INFINITY,
     lastMs: events.at(-1)?.ts_ms ?? Number.NEGATIVE_INFINITY,
-    durationMs: actionDurationMs(events.length),
   };
   resetModel(model);
   return model;
@@ -857,6 +987,7 @@ function resetModel(model) {
     visibleFocus: null,
     currentSession: null,
     pendingLayoutWeight: 0,
+    scopeCount: 0,
     refreshedStep: -1,
   };
   model.currentStep = -1;
@@ -877,9 +1008,10 @@ function advanceTo(model, requestedStep) {
     }
     pruneDeleted(state, step);
     recordDirectoryTransition(event, state);
-    for (const action of event.actions) applyAction(action, step, state);
+    state.scopeCount = 0;
+    for (const action of event.actions) state.scopeCount += applyAction(action, step, state);
     state.pendingLayoutWeight += event.actions.reduce(
-      (sum, action) => sum + (OPERATION_WEIGHTS[action.type] ?? 1), 0,
+      (sum, action) => sum + (OPERATION_WEIGHTS[action.type] ?? 1) * action.evidenceScale, 0,
     );
     const structural = event.actions.some((action) => (
       action.type === "create" || action.type === "rename" || action.type === "delete"
@@ -935,10 +1067,6 @@ export function nebulaVisualMoments(data) {
     .filter(Number.isFinite);
 }
 
-export function nebulaPlaybackDuration(data) {
-  return modelFor(data).durationMs;
-}
-
 function emptyOption(h) {
   return {
     ...h.base(),
@@ -947,6 +1075,7 @@ function emptyOption(h) {
     yAxis: { type: "value", min: 0, max: 1, show: false },
     series: [
       { id: "files", name: "files", type: "scatter", data: [] },
+      { id: "scope-rings", name: "directory scope", type: "scatter", data: [] },
       { id: "read-rings", name: "reads", type: "scatter", data: [] },
       { id: "write-ripples", name: "writes", type: "scatter", data: [] },
       { id: "lifecycle", name: "lifecycle", type: "scatter", data: [] },
@@ -980,6 +1109,86 @@ function readAttention(points) {
     ));
 }
 
+function scopeAttention(points) {
+  return points.filter((point) => point.scopeStrength > 0).map((point) => ring(
+    point,
+    point.symbolSize + 3,
+    "#b7cce2",
+    0.025 + 0.65 * point.scopeStrength,
+  ));
+}
+
+function directoryLegend(points, current, model) {
+  const counts = new Map();
+  for (const point of points) {
+    const top = topDirectory(point.path);
+    counts.set(top, (counts.get(top) ?? 0) + 1);
+  }
+  const active = new Set(current.actions.map((action) => (
+    topDirectory(action.scope ? scopeDisplayPath(action.path) : action.path)
+  )));
+  const visible = model.topOrder.filter((top) => counts.has(top));
+  let shown = visible.slice(0, 8);
+  const missingActive = visible.filter((top) => active.has(top) && !shown.includes(top));
+  if (missingActive.length) {
+    shown = [...shown.slice(0, Math.max(0, 8 - missingActive.length)), ...missingActive.slice(0, 8)]
+      .sort((left, right) => model.topOrder.indexOf(left) - model.topOrder.indexOf(right));
+  }
+  const rows = shown.map((top) => ({
+    top,
+    count: counts.get(top),
+    active: active.has(top),
+    color: rgbString(model.colorForPath(top === "(root)" ? "_legend" : `${top}/_legend`)),
+  }));
+  const more = Math.max(0, visible.length - rows.length);
+  const height = 54 + 20 * rows.length + (more ? 16 : 0);
+  const children = [
+    {
+      type: "rect", shape: { x: 0, y: 0, width: 236, height, r: 8 },
+      style: { fill: "rgba(5,10,18,.78)", stroke: "rgba(120,155,190,.18)", lineWidth: 1 },
+    },
+    {
+      type: "text", style: {
+        x: 12, y: 11, text: "DIRECTORIES", fill: "#91a6bd",
+        font: "10px ui-monospace,monospace",
+      },
+    },
+  ];
+  rows.forEach((row, index) => {
+    const y = 31 + 20 * index;
+    children.push({
+      type: "circle", shape: { cx: 15, cy: y + 4, r: row.active ? 5 : 4 },
+      style: {
+        fill: row.color, stroke: row.active ? "#ffffff" : "transparent",
+        lineWidth: row.active ? 1.3 : 0, shadowBlur: row.active ? 8 : 0, shadowColor: row.color,
+      },
+    }, {
+      type: "text", style: {
+        x: 28, y, text: row.top, width: 154, overflow: "truncate",
+        fill: row.active ? "#f4f8ff" : "#b4c2d2", font: "10px ui-monospace,monospace",
+      },
+    }, {
+      type: "text", style: {
+        x: 222, y, text: String(row.count), textAlign: "right",
+        fill: "#71849a", font: "9px ui-monospace,monospace",
+      },
+    });
+  });
+  if (more) children.push({
+    type: "text", style: {
+      x: 12, y: 31 + 20 * rows.length, text: `+ ${more} more`,
+      fill: "#607287", font: "9px ui-monospace,monospace",
+    },
+  });
+  children.push({
+    type: "text", style: {
+      x: 12, y: height - 16, text: "color = directory · glow = attention",
+      fill: "#607287", font: "8px ui-monospace,monospace",
+    },
+  });
+  return { type: "group", right: 12, top: 12, silent: true, z: 100, children };
+}
+
 export function repositoryNebula(data, cursorMs, h) {
   const model = modelFor(data);
   const layoutStep = Number(data.meta?.render_layout_step);
@@ -997,7 +1206,13 @@ export function repositoryNebula(data, cursorMs, h) {
     const age = current.actionStep - node.lastStep;
     const strength = age <= model.attentionSteps
       ? ({ read: 0.35, write: 0.75, create: 1, rename: 0.8 }[node.focusType] ?? 0)
+        * (node.focusScale ?? 1)
         * 2 ** (-age / model.attentionHalfLife)
+      : 0;
+    const scopeAge = node.scopeStep === null ? Number.POSITIVE_INFINITY
+      : current.actionStep - node.scopeStep;
+    const scopeStrength = scopeAge <= model.attentionSteps
+      ? (node.scopeScale ?? 0) * 2 ** (-scopeAge / model.attentionHalfLife)
       : 0;
     const depth = directoryParts(node.path).length;
     const baseline = clamp(
@@ -1024,6 +1239,8 @@ export function repositoryNebula(data, cursorMs, h) {
       focusType: node.focusType,
       age,
       strength,
+      scopeAge,
+      scopeStrength,
       firstAction: node.firstAction,
       firstTs: node.firstTs,
       lastSession: node.lastSession,
@@ -1031,6 +1248,7 @@ export function repositoryNebula(data, cursorMs, h) {
       bornNear: node.bornNear,
       lifecycleType: node.lifecycleType,
       lifecycleStep: node.lifecycleStep,
+      lifecycleScale: node.lifecycleScale,
       symbolSize: size,
       itemStyle: {
         color: rgbString(node.color),
@@ -1043,18 +1261,24 @@ export function repositoryNebula(data, cursorMs, h) {
     };
   });
 
+  const scopes = scopeAttention(points);
   const reads = readAttention(points);
 
   const writes = points.filter((point) => point.focusType === "write" && point.age <= model.attentionSteps)
     .flatMap((point) => [0, 0.34].map((offset) => {
       const progress = clamp(point.age / Math.max(1, model.attentionSteps) + offset, 0, 1);
-      return ring(point, point.symbolSize + 8 + 34 * progress, "#ff9678", (1 - progress) * 0.78);
+      return ring(
+        point,
+        point.symbolSize + 8 + 34 * progress,
+        "#ff9678",
+        (1 - progress) * 0.78 * clamp(point.strength / 0.75, 0, 1),
+      );
     }));
 
   const focus = current.focus ? (() => {
     const age = current.actionStep - current.focus.lastStep;
     const strength = age <= model.attentionSteps
-      ? 2 ** (-age / model.attentionHalfLife)
+      ? (current.focus.scale ?? 1) * 2 ** (-age / model.attentionHalfLife)
       : 0;
     if (strength <= 0) return [];
     const x = current.focus.x / WIDTH;
@@ -1078,7 +1302,7 @@ export function repositoryNebula(data, cursorMs, h) {
       point,
       point.symbolSize + 12 + 28 * progress,
       color,
-      (1 - progress) * 0.9,
+      (1 - progress) * 0.9 * (point.lifecycleScale ?? 1),
       point.lifecycleType === "rename" ? "diamond" : "circle",
     );
   });
@@ -1103,7 +1327,7 @@ export function repositoryNebula(data, cursorMs, h) {
       type: "group", left: 12, top: 12, silent: true, z: 100,
       children: [
         {
-          type: "rect", shape: { x: 0, y: 0, width: 560, height: 48, r: 8 },
+          type: "rect", shape: { x: 0, y: 0, width: 560, height: 64, r: 8 },
           style: { fill: "rgba(5,10,18,.78)", stroke: "rgba(120,155,190,.18)", lineWidth: 1 },
         },
         {
@@ -1114,18 +1338,28 @@ export function repositoryNebula(data, cursorMs, h) {
         },
         {
           type: "text", style: {
-            x: 14, y: 30,
+            x: 14, y: 30, text: current.evidence,
+            fill: "#91a6bd", font: "9px ui-monospace,monospace", width: 530, overflow: "truncate",
+          },
+        },
+        {
+          type: "text", style: {
+            x: 14, y: 47,
             text: `${new Date(current.ts_ms).toISOString()} · step ${current.step + 1}/${model.events.length} · ${points.length} files`,
             fill: "#74869c", font: "9px ui-monospace,monospace",
           },
         },
       ],
-    }],
+    }, directoryLegend(points, current, model)],
     series: [
       {
         id: "files", name: "files", type: "scatter", z: 3,
         animationDurationUpdate: 260, animationEasingUpdate: "cubicOut", data: points,
         emphasis: { scale: 1.7 },
+      },
+      {
+        id: "scope-rings", name: "directory scope", type: "scatter", silent: true, z: 4,
+        animationDurationUpdate: 180, data: scopes,
       },
       {
         id: "read-rings", name: "reads", type: "scatter", silent: true, z: 5,

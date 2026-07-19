@@ -53,6 +53,12 @@ pub struct FileAction {
     pub access: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub previous_path: Option<String>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub scope: bool,
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<RepositoryTrace> {
@@ -67,6 +73,7 @@ pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<Re
         .collect::<Vec<_>>();
     candidates.sort_by(|left, right| left.path.cmp(&right.path));
     let (mut events, source_event_count) = scan_sessions(&candidates, &roots, options.global)?;
+    annotate_directory_scopes(&repo, &mut events)?;
     events.sort_by(|left, right| (left.ts_ms, &left.id).cmp(&(right.ts_ms, &right.id)));
     let session_count = events
         .iter()
@@ -257,6 +264,7 @@ fn append_session(
                             .previous_path
                             .as_deref()
                             .and_then(|value| resolve_path(value, cwd.as_deref(), roots)),
+                        scope: false,
                     })
                 })
                 .collect::<BTreeSet<_>>()
@@ -280,6 +288,43 @@ fn append_session(
     if used {
         batch.1 += source_count;
     }
+}
+
+fn annotate_directory_scopes(repo: &Path, events: &mut [RepositoryEvent]) -> io::Result<()> {
+    let mut paths = git_lines(repo, &["ls-files"])?;
+    paths.extend(events.iter().flat_map(|event| {
+        event.actions.iter().flat_map(|action| {
+            std::iter::once(action.path.clone()).chain(action.previous_path.clone())
+        })
+    }));
+    let mut directories = directory_prefixes(&paths);
+    for path in &paths {
+        if repo.join(path).is_dir() {
+            directories.insert(path.trim_end_matches('/').to_string());
+        }
+    }
+    for action in events.iter_mut().flat_map(|event| &mut event.actions) {
+        action.scope = directories.contains(action.path.trim_end_matches('/'))
+            || action
+                .previous_path
+                .as_deref()
+                .is_some_and(|path| directories.contains(path.trim_end_matches('/')));
+    }
+    Ok(())
+}
+
+fn directory_prefixes(paths: &[String]) -> HashSet<String> {
+    let mut directories = HashSet::new();
+    for path in paths {
+        let parts = path
+            .split('/')
+            .filter(|part| !part.is_empty())
+            .collect::<Vec<_>>();
+        for depth in 1..parts.len() {
+            directories.insert(parts[..depth].join("/"));
+        }
+    }
+    directories
 }
 
 fn candidate_may_match_repo(
@@ -514,7 +559,7 @@ fn relative_to_roots(path: &Path, roots: &[PathBuf]) -> Option<String> {
             .ok()
             .and_then(|relative| {
                 let value = relative.to_string_lossy().replace('\\', "/");
-                (!value.is_empty()).then_some(value)
+                Some(if value.is_empty() { ".".into() } else { value })
             })
     })
 }
@@ -617,6 +662,10 @@ mod tests {
             Some("lib.rs".into())
         );
         assert_eq!(
+            resolve_path(".", Some(Path::new("/repo")), &roots),
+            Some(".".into())
+        );
+        assert_eq!(
             resolve_path("../../secret", Some(Path::new("/repo")), &roots),
             None
         );
@@ -626,6 +675,20 @@ mod tests {
     fn ignored_dependencies_do_not_become_stars() {
         assert!(ignored_path("frontend/node_modules/a.js"));
         assert!(!ignored_path("collector/src/main.rs"));
+    }
+
+    #[test]
+    fn path_prefixes_identify_directories_without_turning_files_into_scopes() {
+        let paths = vec![
+            "src/main.rs".into(),
+            "src/model/lib.rs".into(),
+            "README.md".into(),
+        ];
+        let directories = directory_prefixes(&paths);
+        assert!(directories.contains("src"));
+        assert!(directories.contains("src/model"));
+        assert!(!directories.contains("src/main.rs"));
+        assert!(!directories.contains("README.md"));
     }
 
     #[test]

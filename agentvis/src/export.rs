@@ -131,18 +131,38 @@ fn render_media(
         fs::write(&mp4_path, &mp4)?;
         write_copies(&mp4, outputs, "mp4")?;
         if outputs.iter().any(|path| extension(path) == "gif") {
+            eprintln!("[agentvis] gif         building bounded-memory palette");
+            let palette_path = temporary.path().join("repository-nebula-palette.png");
+            let palette = Command::new("ffmpeg")
+                .args(["-y", "-hide_banner", "-loglevel", "error", "-i"])
+                .arg(&mp4_path)
+                .args(["-vf", "fps=8,palettegen=max_colors=128", "-frames:v", "1"])
+                .arg(&palette_path)
+                .status()
+                .map_err(|error| {
+                    std::io::Error::new(
+                        error.kind(),
+                        format!("GIF export needs FFmpeg (`ffmpeg`): {error}"),
+                    )
+                })?;
+            if !palette.success() {
+                return Err("ffmpeg GIF palette generation failed".into());
+            }
             eprintln!("[agentvis] gif         converting shared MP4");
             let gif_path = temporary.path().join("repository-nebula.gif");
-            let status = Command::new("ffmpeg").args([
-                "-y", "-hide_banner", "-loglevel", "error", "-i",
-            ]).arg(&mp4_path).args([
-                "-vf", "fps=8,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=sierra2_4a",
-            ]).arg(&gif_path).status().map_err(|error| {
-                std::io::Error::new(
-                    error.kind(),
-                    format!("GIF export needs FFmpeg (`ffmpeg`): {error}"),
-                )
-            })?;
+            let status = Command::new("ffmpeg")
+                .args(["-y", "-hide_banner", "-loglevel", "error", "-i"])
+                .arg(&mp4_path)
+                .arg("-i")
+                .arg(&palette_path)
+                .args([
+                    "-lavfi",
+                    "fps=8[x];[x][1:v]paletteuse=dither=sierra2_4a",
+                    "-loop",
+                    "0",
+                ])
+                .arg(&gif_path)
+                .status()?;
             if !status.success() {
                 return Err("ffmpeg GIF conversion failed".into());
             }
@@ -266,7 +286,7 @@ impl BrowserRenderer {
         let mut done = 0;
         while done < total {
             let progress = serde_json::from_str::<Vec<u64>>(
-                &self.string("AgentVis.encodeMp4Chunk(12).then(JSON.stringify)", true)?,
+                &self.string("AgentVis.encodeMp4Chunk(48).then(JSON.stringify)", true)?,
             )?;
             done = progress.first().copied().unwrap_or(done);
             eprintln!("[agentvis] frames      {done}/{total}");

@@ -98,3 +98,53 @@ test("file actions expose one moving Agent focus without trajectory edges", () =
   assert.notDeepEqual(first[0].value, second[0].value);
   assert.ok(!repositoryNebula(value, 1_001, helper).series.some((row) => row.type === "lines"));
 });
+
+test("shell-inferred file effects are visibly weaker than direct Tool actions", () => {
+  const direct = data([event(0, [{ access: "read", path: "src/main.rs" }], {
+    tool_name: "Read", category: "file",
+  })]);
+  const shell = data([event(0, [{ access: "read", path: "src/main.rs" }], {
+    tool_name: "Bash", category: "shell", command_name: "grep",
+  })]);
+  direct.meta.render_layout_step = 0;
+  shell.meta.render_layout_step = 0;
+  const directPoint = series(repositoryNebula(direct, 1_000, helper), "files")[0];
+  const shellPoint = series(repositoryNebula(shell, 1_000, helper), "files")[0];
+  assert.ok(directPoint.symbolSize > shellPoint.symbolSize);
+});
+
+test("directory arguments pulse descendants without creating directory stars", () => {
+  const value = data([
+    event(0, [{ access: "create", path: "src/main.rs" }]),
+    event(1, [{ access: "create", path: "src/lib.rs" }]),
+    event(2, [{ access: "create", path: "docs/readme.md" }]),
+    event(3, [{ access: "read", path: "src", scope: true }], {
+      tool_name: "Bash", category: "shell", command_name: "grep",
+    }),
+  ]);
+  value.meta.render_layout_step = 3;
+  const option = repositoryNebula(value, 1_003, helper);
+  assert.deepEqual(series(option, "files").map((row) => row.path).sort(), [
+    "docs/readme.md", "src/lib.rs", "src/main.rs",
+  ]);
+  assert.equal(series(option, "scope-rings").length, 2);
+  assert.ok(option.graphic[0].children.some((row) => (
+    row.style?.text?.includes("directory scope 0.10×")
+  )));
+  assert.ok(option.graphic[1].children.some((row) => row.style?.text === "DIRECTORIES"));
+});
+
+test("directory rename preserves file identities and moves the whole subtree", () => {
+  const value = data([
+    event(0, [{ access: "create", path: "old/a.rs" }]),
+    event(1, [{ access: "create", path: "old/sub/b.rs" }]),
+    event(2, [{ access: "rename", path: "new", previous_path: "old", scope: true }], {
+      tool_name: "Bash", category: "shell", command_name: "mv",
+    }),
+  ]);
+  value.meta.render_layout_step = 2;
+  assert.deepEqual(
+    series(repositoryNebula(value, 1_002, helper), "files").map((row) => row.path).sort(),
+    ["new/a.rs", "new/sub/b.rs"],
+  );
+});

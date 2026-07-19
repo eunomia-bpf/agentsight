@@ -6,12 +6,13 @@ import {
   BufferTarget, CanvasSource, Mp4OutputFormat, Output, QUALITY_HIGH, canEncodeVideo,
 } from "mediabunny";
 import {
-  nebulaPlaybackDuration, nebulaVisualMoments, repositoryNebula,
+  nebulaVisualMoments, repositoryNebula,
 } from "./repository-nebula.js";
 
 use([ScatterChart, GraphicComponent, GridComponent, TooltipComponent, CanvasRenderer, SVGRenderer]);
 
 const $ = (id) => document.getElementById(id);
+const PLAYBACK_FRAME_MS = 125;
 const palette = { text: "#dce8f7", muted: "#71839a", line: "rgba(135,160,190,.18)" };
 const helper = { base: () => ({
   backgroundColor: "transparent", animation: false,
@@ -74,17 +75,20 @@ function stop() {
 
 function toggle() {
   if (playing) return stop();
+  if (frameTimes.length < 2) return;
   if (frameIndex >= frameTimes.length - 1) render(frameTimes[0], 0);
-  const startIndex = frameIndex;
-  const started = performance.now();
-  const duration = nebulaPlaybackDuration(data);
+  let nextIndex = frameIndex + 1;
+  let nextAt = performance.now() + PLAYBACK_FRAME_MS;
   $("play").textContent = "Ⅱ";
   const tick = (now) => {
-    const unit = Math.min(1, (now - started) / duration);
-    const index = Math.min(frameTimes.length - 1,
-      startIndex + Math.floor(unit * (frameTimes.length - startIndex)));
-    render(frameTimes[index], index);
-    if (unit === 1) return stop();
+    if (now < nextAt) {
+      playing = requestAnimationFrame(tick);
+      return;
+    }
+    render(frameTimes[nextIndex], nextIndex);
+    nextIndex += 1;
+    nextAt += PLAYBACK_FRAME_MS;
+    if (nextIndex >= frameTimes.length) return stop();
     playing = requestAnimationFrame(tick);
   };
   playing = requestAnimationFrame(tick);

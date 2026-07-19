@@ -221,6 +221,19 @@ first-observed 节点，只有命令文本推测而没有明确路径证据的 r
 观察：脚本内部自行产生的文件变化可能不可见。存在 AgentSight 文件观察时，它只补充
 同一个 `FileAction` 的路径和 evidence。Bash、网络和 LLM 本身都不伪装成文件节点。
 
+渲染时按“路径证据离真实文件动作有多近”调节视觉强度，而不增加另一套事件类型：
+
+- 原生 Read/Write/Edit 等直接文件工具为 `1.00×`；
+- 原生 Grep/Glob/Search 等搜索工具为 `0.68×`；
+- 从 Bash 命令参数推导出的文件动作统一为 `0.42×`，包括 grep、sed、cp、mv、rm 等；
+- 命令参数指向目录时为 `0.10×` 的目录范围提示。
+
+目录范围提示不会创建目录星点，也不把目录伪装成普通 read。它把总计 `0.10×` 的注意力
+按 `sqrt(importance + 0.05)` 分配给当时可见的后代文件，因此大目录不会因为文件多而
+产生更强的总闪光。目录 rename/delete 则作用于当时可见的全部后代文件：rename 保留
+每个文件的身份、速度和相对结构后整体切换路径，delete 让全部后代进入退出阶段。
+仓库根目录参数 `.` 使用同一规则作用于全部可见文件。
+
 ## 时间与帧
 
 动作按 `(ts_ms, session-id, event ordinal)` 排序。同一 Tool 事件中的多个
@@ -228,6 +241,11 @@ first-observed 节点，只有命令文本推测而没有明确路径证据的 r
 action 也保留一个状态不变的快照，使进度条与 session 操作一一对应。HTML、GIF 和
 MP4 使用全部快照，不合并、不抽帧、不设置快照总数上限。播放速度只改变观看速度，
 不改变动作与帧的对应关系。
+
+HTML 和媒体默认都以 `8 action/s` 播放。HTML 的每次浏览器刷新最多推进一个 action；
+渲染跟不上时只会降低实际播放速度，不能按墙钟进度跨越中间 action。长轨迹不再压缩到
+8--30 秒，ACTplane 的 68,222 个 action 因而是约 2 小时 22 分的完整回放；用户仍可用
+整数步进度条直接跳到任意 action。
 
 时间轴从第一个 Agent action 开始，到最后一个 Agent action 结束。进度条按动作序号
 推进；墙钟时间只在详情中显示，不把 session 间长时间空档扩成空白帧。跨 session
@@ -272,6 +290,11 @@ action 时间轴。
 
 rename 或从父节点附近出生时，颜色在 6 个动作步内从旧颜色过渡到目标目录颜色。
 
+右上角动态图例按稳定的顶层目录顺序显示最多 8 种当前可见颜色、文件数和当前动作触达
+状态；当前目录使用白色描边和同色辉光，更多目录显示为 `+ N more`。图例顺序和目录
+颜色不随动作重排，只有文件数和当前高亮变化。动作卡同时显示 Tool、证据来源、强度和
+目录范围命中的文件数，使 GIF/MP4 脱离交互环境后仍能解释“颜色是什么、为什么会亮”。
+
 ## 长期重要性与短期注意力
 
 长期重要性与短期注意力相互独立。
@@ -308,7 +331,7 @@ importance(f,t) = clamp(log1p(I_raw(f,t)) / log1p(P95_scale), 0, 1)
 
 ```text
 H_attention = max(1, median(R))
-attention(age) = A_operation × 2^(-age/H_attention)
+attention(age) = A_operation × evidence_scale × 2^(-age/H_attention)
 cutoff_age = floor(H_attention × log2(1/epsilon_attention))
 ```
 
@@ -481,7 +504,9 @@ ACTplane 全轨迹是性能验收 workload：不设置快照上限，坚持一�
 交互 HTML 使用 ECharts Canvas renderer。SVG 使用同一份 ECharts option 按需
 渲染，因此坐标、大小、颜色和内容相同；抗锯齿可能与 Canvas 有细微差别。
 PNG 直接来自合成 Canvas。MP4 通过浏览器 WebCodecs 和 Mediabunny 从这批 Canvas
-帧编码；GIF 由同一个 MP4 转换，不重新计算布局。
+帧编码；GIF 由同一个 MP4 转换，不重新计算布局。GIF 使用两遍 FFmpeg：第一遍只统计
+全片颜色并生成 palette，第二遍用固定 palette 流式编码；不能使用
+`split → palettegen → paletteuse` 单图，因为后一路会在长轨迹上无界缓存原始帧。
 
 长历史仍逐 action 输出全部帧。生成器边计算边编码并持续打印进度，不在内存中保存
 全部位图；用户只请求 HTML 时不会启动媒体编码。输出体积和耗时随 action 数增长，
