@@ -7,6 +7,26 @@ Repository Nebula 回放 Agent session 中可证明的 Git 仓库文件动作时
 本文只定义目标数据契约、算法和用户体验，不记录当前实现进度；实现状态在代码和测试
 中维护，不能反向改变本文约定。
 
+## 产品与架构边界
+
+Repository Nebula 的最终交付物是一个可以独立保存、打开、嵌入和转发的单图 artifact，
+而不是必须常驻运行的大前端。一个 HTML 只包含这一张图及其播放、暂停、进度条和必要
+图例，不包含 Overview、侧边栏、跨图导航、账户系统或服务端状态。静态场景可直接导出
+SVG/PNG，完整回放可导出 GIF/MP4；所有格式必须来自同一次动作投影和布局计算。
+
+代码按三个明确职责分层：
+
+1. `agent-session` 只发现并解析 Claude、Codex、Gemini 等原生 session，输出中立的
+   session、Tool action、时间、状态和路径事实；它不知道 Git 仓库、星域布局或媒体格式；
+2. 独立 Rust 库与 CLI `agentvis` 负责仓库/worktree 归属、文件动作投影、Git 里程碑、
+   布局调度和 HTML/SVG/PNG/GIF/MP4 导出；其他 Agent report 可以直接调用库或嵌入产物；
+3. AgentSight 只复用并发布 `agentvis`：`agentsight vis` 委托同一库执行，可以额外传入
+   已有的系统文件观察，但不维护另一份可视化实现。
+
+可视化链路不增加隐私审计、脱敏审批或所谓 canonical evidence artifact。输入只取布局
+所需的结构化事实，输出不包含 prompt、代码正文或网络正文。若调用方需要自己的隐私
+策略，应在把 session 交给 `agentvis` 前完成；`agentvis` 不复制一套策略层。
+
 ## 设计目标与核心场景
 
 - 用全部 Agent session action 驱动时间轴，回放跨 session 的仓库长期演化。
@@ -50,6 +70,11 @@ Repository Nebula 回放 Agent session 中可证明的 Git 仓库文件动作时
 4. **工作方法是否合理**：是否出现文档低回读、垃圾测试空转、重复探索、验证滞后，
    以及这些现象是否与某个 skill/harness 边界相关。
 
+本质上，它把 Agent 的有序行动轨迹与这些行动造成的真实仓库文件效应关联起来，并把
+多 session、跨数日的局部动作组织成长期软件演化过程。时间维度回答“先做什么、后来
+如何修正”，空间维度回答“注意力从哪个模块移到哪个模块、哪些文件总在相邻步骤被
+触达”；两者必须同时存在，单纯的访问热度或最终目录快照不能表达 Agent 如何工作。
+
 文件行动轨迹先提供可由 session action 和真实读写直接证明的部分。意图、尝试、失败
 原因、避坑和反思保留为后续语义层需求；加入时必须引用原 session 证据，不能从文件
 移动模式自动猜测。
@@ -61,6 +86,14 @@ Repository Nebula 回放 Agent session 中可证明的 Git 仓库文件动作时
 ## 用户入口
 
 ```bash
+agentvis [PATH] --global \
+  -o output/repository-nebula.html \
+  -o output/repository-nebula.svg \
+  -o output/repository-nebula.png \
+  -o output/repository-nebula.gif \
+  -o output/repository-nebula.mp4
+
+# AgentSight 中的等价入口；输出语义与独立 CLI 相同
 agentsight vis [PATH] --global \
   -o output/repository-nebula.html \
   -o output/repository-nebula.svg \
@@ -71,12 +104,15 @@ agentsight vis [PATH] --global \
 
 重复 `-o` 会共享一次 session 扫描和一次布局计算。HTML 是可离线分享的单文件，
 内含播放按钮和进度条；SVG 是星图图层的矢量版本；PNG 是最终帧；GIF 和 MP4
-包含相同数量、相同顺序的布局帧。
+包含相同数量、相同顺序的布局帧。常用入口只保留仓库路径、`--global` 和可重复的
+`-o`；播放速度、画布尺寸等表现参数使用稳定默认值，不能为了暴露实现细节不断增加
+CLI flag。
 
 ## 统一数据流
 
-可视化复用 `agent-session` 已有的 `RepositoryEvent` 和 `FileAction` 投影，只给现有类型
-补充布局所需的 Tool 元数据和可选证据字段，不再定义新的通用事件抽象：
+`agent-session` 输出中立的 session 与 Tool action；`agentvis` 在内存中把它们投影为
+仓库专用的 `RepositoryTrace`、`RepositoryEvent` 和 `FileAction`。这些类型属于
+`agentvis`，不能反向放进 `agent-session`，也不再定义另一套通用事件抽象：
 
 ```text
 RepositoryTrace = {
@@ -107,20 +143,23 @@ Evidence = {
   count?, first_ms?, last_ms?
 }
 
-Claude/Codex/Gemini sessions ─┐
-                              ├─ agent-session RepositoryTrace
-AgentSight optional file observations ─┘     │
-                                             ▼
-                                  JS 状态更新与动态布局
-                                             │
-                                             ▼
-                                      layout snapshots
-                                   ┌─────────┼─────────┐
-                                   ▼         ▼         ▼
-                                 HTML     SVG/PNG   GIF/MP4
+Claude/Codex/Gemini sessions
+            │
+            ▼
+ agent-session neutral actions ────────┐
+                                       ├─ agentvis RepositoryTrace（内存）
+ AgentSight optional file observations ┘              │
+                                                      ▼
+                                           状态更新与动态布局
+                                                      │
+                                                      ▼
+                                               layout snapshots
+                                            ┌─────────┼─────────┐
+                                            ▼         ▼         ▼
+                                          HTML     SVG/PNG   GIF/MP4
 ```
 
-`RepositoryTrace` 是 `agent-session` 已有的仓库外壳；`initial_files` 是观测开始时
+`RepositoryTrace` 是 `agentvis` 的仓库投影外壳；`initial_files` 是观测开始时
 保存的 manifest，`observation_completeness` 记录 action、路径和 system observation
 的已知缺口。下文的 action 指一个与 Agent Tool 事件一一对应的 `RepositoryEvent`；即使
 `actions=[]` 也保留该 event，以维持 session 操作与布局快照的一一对应。
@@ -141,6 +180,10 @@ previous_path)` 与原生 Tool 路径去重。重复项合并次数、字节和 
 布局输入通过内存直接传给 JS；HTML 内嵌动作和布局数据，其他格式消费同一批快照。
 生成过程不落地临时 JSON/IR 文件。帧较多时同时流式写入 HTML 帧数据和媒体编码器，
 以性能和增量编码处理长历史，而不是删除或合并 action。
+
+Rust 负责 session 扫描、仓库投影、稳定排序、生命周期校验、输出编排和进度日志；图形
+运行时只负责状态推进、力场求解与绘制。若以后把力场迁到 Rust，必须先证明逐帧坐标和
+视觉效果与现有基线等价，不能借架构重构顺便改变画面。
 
 ## 观测边界
 
@@ -398,6 +441,32 @@ test-only churn 区间从一次失败的 test/build/lint 开始；后续只允�
 以及仓库、路径和动作步的固定哈希种子。优化前后必须比较快照数、文件生命周期、目录
 颜色、坐标容差和媒体帧数，而不是只比较最终 PNG。
 
+### 正确性不变量
+
+- trace 起点取第一个 Agent action，不取最早 commit；commit 数量和时间不能改变文件
+  allowlist、颜色、初始节点或布局种子；
+- 删除后的文件再次 create/write 时必须清除退出状态并重新进入力场，不能保持半透明或
+  在旧的 delete step 自动消失；
+- rename 保持文件身份、累计访问和速度，但切换路径、目录归属与目标颜色；
+- 失败 Tool action 保留一帧，未被系统观察证明的参数路径不改变文件；
+- 同一个实际文件 burst 被 native action 和 system observation 同时看到时只计一次；
+- GIF、MP4 和 HTML 进度条使用完全相同的 action 顺序，任何格式都不能独自抽帧；
+- 重构 Rust/JS 边界、替换编码器或做性能优化时，不能无意改变已有画面的颜色、波纹、
+  星点大小、布局运动和节奏。
+
+### 实现规模与性能预算
+
+核心实现（`agentvis` 的仓库投影、导出编排和图形运行时，不含 vendored 第三方库、测试
+fixture 与生成产物）控制在 3000 行以内。优先复用 `agent-session`、`d3-force`、ECharts、
+Mediabunny、WebCodecs 和 FFmpeg，不自建同类解析器、力求解器、Canvas 抽象或媒体容器。
+一个命令只扫描一次 session、只计算一次布局，所有请求格式复用同一场景和帧流。
+
+ACTplane 全轨迹是性能验收 workload：不设置快照上限，坚持一个 Tool action 对应一帧，
+在目标开发机上从已发现 session 生成所请求的 HTML/PNG/GIF/MP4 应在 60 秒内完成。
+性能不达标时先减少 Chromium 启动、重复布局和位图复制，再调整编码流水线；不得通过
+丢 action、合并帧或改变视觉算法达标。基准报告必须记录 action 数、文件动作数、可见
+文件数、媒体帧数、各阶段耗时和输出大小。
+
 ## 渲染和编码
 
 交互 HTML 使用 ECharts Canvas renderer。SVG 使用同一份 ECharts option 按需
@@ -412,6 +481,10 @@ PNG 直接来自合成 Canvas。MP4 通过浏览器 WebCodecs 和 Mediabunny 从
 命令行必须打印 session 扫描、文件动作、帧进度、GIF 转换、输出大小和总耗时。
 任何优化都不得改变动作排序、固定种子、目录颜色、力参数或快照数量；视觉回归保存
 golden scene 并逐帧比较，媒体文件还必须用 `ffprobe` 证明帧数相同。
+
+每次发布前必须解码并检查全部输出帧：自动检查空白帧、尺寸、帧数、非有限坐标、节点
+瞬移和删除/重建生命周期；人工逐帧查看导出的 contact sheet 或逐帧播放器，确认没有
+异常跳跃、截断、闪黑和视觉倒退。不能只打开最终 PNG 或只抽查首尾帧。
 
 ## 科研脉络与验证
 
