@@ -11,3 +11,5 @@ pub use export::{CompactRate, run_vis};
 pub use repository::{
     FileAction, RepositoryEvent, RepositoryTrace, RepositoryTraceOptions, build_repository_trace,
 };
+
+pub const DEFAULT_OUTPUT: &str = "output/agent-nebula.gif";

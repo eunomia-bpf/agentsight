@@ -84,6 +84,14 @@ the normal record/report workflow.
 one self-contained Agent Nebula artifact per output file:
 
 ```sh
+cd your-repository
+agentsight vis
+```
+
+The default artifact is `output/agent-nebula.gif`. Specify `-o` only when you
+want another path or format:
+
+```sh
 agentsight vis . --global \
   --compact-rate 30s \
   -o output/agent-nebula.html \

@@ -209,7 +209,7 @@ enum Commands {
         #[arg(default_value = ".")]
         path: PathBuf,
         /// Output path; repeat for HTML, SVG, PNG, GIF, and MP4.
-        #[arg(short = 'o', long = "output", default_value = "repository-nebula.html")]
+        #[arg(short = 'o', long = "output", default_value = agentvis::DEFAULT_OUTPUT)]
         outputs: Vec<PathBuf>,
         /// Scan every local session and retain operations targeting this repository.
         #[arg(long)]

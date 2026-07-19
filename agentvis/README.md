@@ -9,6 +9,14 @@ The generated visualization is branded **Agent Nebula**: files are stars,
 repository path areas are stable colors, and Agent actions drive the timeline.
 
 ```bash
+cd your-repository
+agentvis
+```
+
+The default artifact is `output/agent-nebula.gif`. Use `-o` to choose another
+path or to request additional formats:
+
+```bash
 agentvis . --global \
   --compact-rate 30s \
   -o output/agent-nebula.html \
