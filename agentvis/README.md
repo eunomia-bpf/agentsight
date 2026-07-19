@@ -5,13 +5,16 @@ repository-evolution artifacts. It consumes the neutral session model from
 `agent-session`; repository scoping, Git milestones, layout, and media export
 stay in this crate.
 
+The generated visualization is branded **Agent Nebula**: files are stars,
+repository path areas are stable colors, and Agent actions drive the timeline.
+
 ```bash
 agentvis . --global \
   --compact-rate 30s \
-  -o output/repository-nebula.html \
-  -o output/repository-nebula.png \
-  -o output/repository-nebula.gif \
-  -o output/repository-nebula.mp4
+  -o output/agent-nebula.html \
+  -o output/agent-nebula.png \
+  -o output/agent-nebula.gif \
+  -o output/agent-nebula.mp4
 ```
 
 HTML output is a self-contained interactive file. SVG and PNG are still
@@ -29,3 +32,12 @@ searches sessions rooted elsewhere and retains their absolute-path operations
 inside this repository. Each retained Tool action stays on the timeline; an
 action with no proven repository file effect produces an unchanged layout
 frame instead of disappearing.
+
+## Example
+
+The committed ACTplane example uses the default 30-second action-uniform
+compaction: [PNG](examples/actplane-agent-nebula.png),
+[GIF](examples/actplane-agent-nebula.gif), and
+[MP4](examples/actplane-agent-nebula.mp4).
+
+![Agent Nebula visualizing ACTplane](examples/actplane-agent-nebula.png)

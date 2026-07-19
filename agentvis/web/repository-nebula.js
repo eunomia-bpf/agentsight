@@ -51,16 +51,20 @@ function pathParts(path) { return String(path ?? "").split("/").filter(Boolean);
 
 function directoryParts(path) { return pathParts(path).slice(0, -1); }
 
-function parentDirectory(path) { return directoryParts(path).join("/") || "(root)"; }
-
-function topDirectory(path) {
+function parentDirectory(path) {
   const parts = pathParts(path);
-  return parts.length > 1 ? parts[0] : "(root)";
+  return parts.length > 1 ? parts.slice(0, -1).join("/") : (parts[0] ?? "(root)");
+}
+
+function rootArea(path) {
+  const parts = pathParts(path);
+  return parts[0] ?? "(root)";
 }
 
 function layoutDirectory(path) {
   const directories = directoryParts(path);
-  return directories.slice(0, Math.min(2, directories.length)).join("/") || "(root)";
+  return directories.slice(0, Math.min(2, directories.length)).join("/")
+    || pathParts(path)[0] || "(root)";
 }
 
 function scopeDisplayPath(path) {
@@ -205,7 +209,7 @@ function mixRgb(left, right, progress) {
 
 function buildPalette(actions, repository) {
   const tops = [...new Set(actions.flatMap((action) => (
-    [topDirectory(action.path), ...(action.oldPath ? [topDirectory(action.oldPath)] : [])]
+    [rootArea(action.path), ...(action.oldPath ? [rootArea(action.oldPath)] : [])]
   )))].sort();
   const seedHue = hashUnit(repository) * 360;
   const baseHue = new Map(tops.map((top, rank) => [
@@ -213,7 +217,7 @@ function buildPalette(actions, repository) {
   ]));
   return (path) => {
     const directories = directoryParts(path);
-    const top = topDirectory(path);
+    const top = rootArea(path);
     const depth = Math.max(0, directories.length - 1);
     const parent = directories.join("/") || "(root)";
     const hue = (baseHue.get(top) ?? seedHue) + (hashUnit(parent) * 2 - 1) * 8;
@@ -239,7 +243,7 @@ function removeIndex(index, key, path) {
 
 function indexNode(state, node) {
   addIndex(state.parentIndex, parentDirectory(node.path), node.path);
-  addIndex(state.topIndex, topDirectory(node.path), node.path);
+  addIndex(state.topIndex, rootArea(node.path), node.path);
   const directories = directoryParts(node.path);
   for (let depth = 1; depth <= directories.length; depth += 1) {
     addIndex(state.prefixIndex, directories.slice(0, depth).join("/"), node.path);
@@ -248,7 +252,7 @@ function indexNode(state, node) {
 
 function unindexNode(state, node) {
   removeIndex(state.parentIndex, parentDirectory(node.path), node.path);
-  removeIndex(state.topIndex, topDirectory(node.path), node.path);
+  removeIndex(state.topIndex, rootArea(node.path), node.path);
   const directories = directoryParts(node.path);
   for (let depth = 1; depth <= directories.length; depth += 1) {
     removeIndex(state.prefixIndex, directories.slice(0, depth).join("/"), node.path);
@@ -267,7 +271,7 @@ function birthParent(path, state) {
     const candidate = lastLivePath(state.prefixIndex.get(directories.slice(0, depth).join("/")), state, path);
     if (candidate) return state.nodes.get(candidate);
   }
-  const top = lastLivePath(state.topIndex.get(topDirectory(path)), state, path);
+  const top = lastLivePath(state.topIndex.get(rootArea(path)), state, path);
   return top ? state.nodes.get(top) : null;
 }
 
@@ -277,7 +281,7 @@ function initialPosition(path, parent, state) {
   if (parent) {
     return [parent.x + 13 * Math.cos(angle), parent.y + 13 * Math.sin(angle)];
   }
-  const rows = state.topIndex.get(topDirectory(path)) ?? [];
+  const rows = state.topIndex.get(rootArea(path)) ?? [];
   const peers = rows.map((candidate) => state.nodes.get(candidate)).filter(Boolean);
   if (peers.length) {
     const x = peers.reduce((sum, node) => sum + node.x, 0) / peers.length;
@@ -551,7 +555,7 @@ function refreshImportanceAndDirectories(state, nodes, step) {
 
   const groups = new Map();
   for (const node of nodes) {
-    const top = topDirectory(node.path);
+    const top = rootArea(node.path);
     if (!groups.has(top)) groups.set(top, []);
     groups.get(top).push(node);
   }
@@ -592,7 +596,7 @@ function buildLinks(nodes, profiles) {
   const byTop = new Map();
   for (const node of nodes) {
     addIndex(byParent, parentDirectory(node.path), node.path);
-    addIndex(byTop, topDirectory(node.path), node.path);
+    addIndex(byTop, rootArea(node.path), node.path);
   }
   const byPath = new Map(nodes.map((node) => [node.path, node]));
   const links = [];
@@ -632,7 +636,7 @@ function recordDirectoryTransition(event, state) {
     state.lastDirectories.delete(event.session_id);
     return;
   }
-  const current = directoryDistribution(event, topDirectory);
+  const current = directoryDistribution(event, rootArea);
   const previous = state.lastDirectories.get(event.session_id);
   if (previous) {
     for (const [source, sourceWeight] of previous) {
@@ -657,7 +661,7 @@ function updateDirectoryRanking(event, state, step) {
   };
   const gains = new Map();
   for (const action of event.actions) {
-    const top = topDirectory(action.scope ? scopeDisplayPath(action.path) : action.path);
+    const top = rootArea(action.scope ? scopeDisplayPath(action.path) : action.path);
     gains.set(top, (gains.get(top) ?? 0)
       + (OPERATION_WEIGHTS[action.type] ?? 1) * action.evidenceScale);
   }
@@ -718,7 +722,7 @@ function directoryForce(profiles, transitions) {
     }
   }
   const clusters = [...membersByCluster.entries()].map(([key, members]) => {
-    const top = topDirectory(members[0].path);
+    const top = rootArea(members[0].path);
     const parent = byTop.get(top);
     const share = parent.share * members.length / parent.members.length;
     return {
@@ -1001,7 +1005,7 @@ function buildModel(data) {
     ),
     colorForPath: buildPalette(actions, repository),
     topOrder: [...new Set(actions.flatMap((action) => (
-      [topDirectory(action.path), ...(action.oldPath ? [topDirectory(action.oldPath)] : [])]
+      [rootArea(action.path), ...(action.oldPath ? [rootArea(action.oldPath)] : [])]
     )))].sort(compareText),
     attentionHalfLife,
     attentionSteps: attentionHalfLife * ATTENTION_HALF_LIVES,
@@ -1165,20 +1169,21 @@ function scopeAttention(points) {
 function directoryLegend(points, current, model) {
   const counts = new Map();
   for (const point of points) {
-    const top = topDirectory(point.path);
+    const top = rootArea(point.path);
     counts.set(top, (counts.get(top) ?? 0) + 1);
   }
   const active = new Set(current.actions.map((action) => (
-    topDirectory(action.scope ? scopeDisplayPath(action.path) : action.path)
+    rootArea(action.scope ? scopeDisplayPath(action.path) : action.path)
   )));
   const visible = [...new Set([...current.directoryOrder, ...model.topOrder])]
-    .filter((top) => counts.has(top));
+    .filter((top) => top !== "(root)" && counts.has(top));
   const shown = visible.slice(0, 8);
   const rows = shown.map((top) => ({
     top,
+    label: top,
     count: counts.get(top),
     active: active.has(top),
-    color: rgbString(model.colorForPath(top === "(root)" ? "_legend" : `${top}/_legend`)),
+    color: rgbString(model.colorForPath(`${top}/_legend`)),
   }));
   const more = Math.max(0, visible.length - rows.length);
   const height = 54 + 20 * rows.length + (more ? 16 : 0);
@@ -1189,8 +1194,8 @@ function directoryLegend(points, current, model) {
     },
     {
       type: "text", style: {
-        x: 12, y: 11, text: "DIRECTORIES", fill: "#91a6bd",
-        font: "10px ui-monospace,monospace",
+        x: 12, y: 11, text: "REPOSITORY AREAS", fill: "#91a6bd",
+        font: "11px ui-monospace,monospace",
       },
     },
   ];
@@ -1204,26 +1209,26 @@ function directoryLegend(points, current, model) {
       },
     }, {
       type: "text", style: {
-        x: 28, y, text: row.top, width: 154, overflow: "truncate",
-        fill: row.active ? "#f4f8ff" : "#b4c2d2", font: "10px ui-monospace,monospace",
+        x: 28, y, text: row.label, width: 154, overflow: "truncate",
+        fill: row.active ? "#f4f8ff" : "#b4c2d2", font: "11px ui-monospace,monospace",
       },
     }, {
       type: "text", style: {
         x: 222, y, text: String(row.count), textAlign: "right",
-        fill: "#71849a", font: "9px ui-monospace,monospace",
+        fill: "#71849a", font: "10px ui-monospace,monospace",
       },
     });
   });
   if (more) children.push({
     type: "text", style: {
       x: 12, y: 31 + 20 * rows.length, text: `+ ${more} more`,
-      fill: "#607287", font: "9px ui-monospace,monospace",
+      fill: "#607287", font: "10px ui-monospace,monospace",
     },
   });
   children.push({
     type: "text", style: {
-      x: 12, y: height - 16, text: "color = directory · glow = attention",
-      fill: "#607287", font: "8px ui-monospace,monospace",
+      x: 12, y: height - 16, text: "color = path area · glow = attention",
+      fill: "#607287", font: "9px ui-monospace,monospace",
     },
   });
   return { type: "group", right: 12, top: 12, silent: true, z: 100, children };
@@ -1349,7 +1354,7 @@ export function repositoryNebula(data, cursorMs, h) {
 
   const tooltip = ({ data: row = {} }) => row.path ? [
     row.path,
-    `directory color: ${row.directory}`,
+    `path area: ${row.directory}`,
     `${row.visits} recorded file actions · ${row.sessionCount} sessions · depth ${row.depth}`,
     `decayed importance: ${Math.round(100 * row.importance)}% · directory share: ${Math.round(100 * row.directoryShare)}%`,
     `first observed: ${row.firstAction} · ${new Date(row.firstTs).toISOString()}`,
@@ -1373,20 +1378,20 @@ export function repositoryNebula(data, cursorMs, h) {
         {
           type: "text", style: {
             x: 14, y: 12, text: current.summary,
-            fill: "#dce8f7", font: "12px ui-monospace,monospace", width: 530, overflow: "truncate",
+            fill: "#dce8f7", font: "14px ui-monospace,monospace", width: 530, overflow: "truncate",
           },
         },
         {
           type: "text", style: {
             x: 14, y: 30, text: current.evidence,
-            fill: "#91a6bd", font: "9px ui-monospace,monospace", width: 530, overflow: "truncate",
+            fill: "#91a6bd", font: "11px ui-monospace,monospace", width: 530, overflow: "truncate",
           },
         },
         {
           type: "text", style: {
             x: 14, y: 47,
             text: `${new Date(current.ts_ms).toISOString()} · step ${current.step + 1}/${model.events.length} · ${points.length} files`,
-            fill: "#74869c", font: "9px ui-monospace,monospace",
+            fill: "#74869c", font: "10px ui-monospace,monospace",
           },
         },
       ],

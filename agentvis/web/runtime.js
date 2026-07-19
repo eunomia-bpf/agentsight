@@ -18,7 +18,7 @@ const helper = { base: () => ({
   backgroundColor: "transparent", animation: false,
   textStyle: { color: palette.text, fontFamily: "Inter,system-ui,sans-serif" },
   tooltip: { trigger: "item", renderMode: "richText", backgroundColor: "#0b121c",
-    borderColor: "rgba(135,160,190,.28)", textStyle: { color: palette.text, fontSize: 11 } },
+    borderColor: "rgba(135,160,190,.28)", textStyle: { color: palette.text, fontSize: 12 } },
 }) };
 
 let chart;
@@ -99,8 +99,8 @@ function initialize(payload) {
   moments = nebulaVisualMoments(data);
   frameTimes = moments.length > 2 ? moments.slice(1, -1) : [data.meta.window_end_ms];
   chart = init($("chart"), null, { renderer: "canvas", width: 1200, height: 675 });
-  $("view-title").textContent = "Repository Nebula";
-  $("view-note").textContent = "Files are stars. Directories are color and path attraction, never nodes.";
+  $("view-title").textContent = "Agent Nebula";
+  $("view-note").textContent = "Files are stars. Root entries define color; paths define attraction.";
   $("provenance").textContent = [
     `repository: ${data.meta.repository}`,
     `scope: ${data.meta.session_scope === "global_tool_operations" ? "all local sessions targeting repository" : "repository sessions"}`,
@@ -154,15 +154,15 @@ function composeFrame(canvas = document.createElement("canvas")) {
   }
   context.strokeStyle = palette.line;
   context.beginPath(); context.moveTo(32, 113); context.lineTo(1232, 113); context.stroke();
-  context.fillStyle = "#61d7bf"; context.font = "10px monospace";
+  context.fillStyle = "#61d7bf"; context.font = "11px monospace";
   context.fillText("AGENTVIS · REPOSITORY EVOLUTION", 32, 39);
-  context.fillStyle = palette.text; context.font = "24px system-ui";
-  context.fillText("Repository Nebula", 32, 72);
-  context.fillStyle = palette.muted; context.font = "11px system-ui";
-  context.fillText("Files are stars. Directories are color and path attraction, never nodes.", 32, 96);
+  context.fillStyle = palette.text; context.font = "28px system-ui";
+  context.fillText("Agent Nebula", 32, 72);
+  context.fillStyle = palette.muted; context.font = "12px system-ui";
+  context.fillText("Files are stars. Root entries define color; paths define attraction.", 32, 96);
   context.strokeStyle = "rgba(135,160,190,.22)";
   context.beginPath(); context.roundRect(1096, 24, 136, 28, 14); context.stroke();
-  context.fillStyle = "#8c9bb0"; context.font = "10px monospace";
+  context.fillStyle = "#8c9bb0"; context.font = "11px monospace";
   context.fillText("AGENT EVENT TIME", 1108, 42);
   context.strokeStyle = palette.line;
   context.beginPath(); context.moveTo(32, 803); context.lineTo(1232, 803); context.stroke();
@@ -173,12 +173,12 @@ function composeFrame(canvas = document.createElement("canvas")) {
   context.moveTo(45, 830); context.lineTo(45, 842); context.lineTo(56, 836); context.closePath(); context.fill();
   context.fillStyle = "#16242b"; context.fillRect(89, 834, 935, 4);
   context.fillStyle = "#61d7bf"; context.fillRect(89, 834, 935 * progress, 4);
-  context.fillStyle = "#9bacc0"; context.font = "9px monospace";
+  context.fillStyle = "#9bacc0"; context.font = "10px monospace";
   context.fillText(timeLabel(cursor), 1103, 839);
   const legends = [["#f7ffff", "read attention"], ["#ff9678", "write ripple"],
     ["#75f0a9", "create"], ["#63dfff", "rename"], ["#ff647c", "delete"], ["#efd265", "commit frame"]];
   let legendX = 32;
-  context.font = "9px monospace";
+  context.font = "10px monospace";
   for (const [color, label] of legends) {
     context.fillStyle = color; context.fillRect(legendX, 867, 13, 3);
     context.fillStyle = palette.muted; context.fillText(label, legendX + 18, 872);

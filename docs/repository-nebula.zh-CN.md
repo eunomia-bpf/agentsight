@@ -1,7 +1,8 @@
-# Repository Nebula：目标设计与算法约定
+# Agent Nebula：目标设计与算法约定
 
-Repository Nebula 回放 Agent session 中可证明的 Git 仓库文件动作时间，而不是 commit
-时间。图中只有文件星点；目录只影响颜色和力场，不产生节点、边界或标签。commit
+Agent Nebula 回放 Agent session 中可证明的 Git 仓库文件动作时间，而不是 commit
+时间。图中只有文件星点；根级 entry 决定色系，目录路径影响力场，但都不产生额外节点、
+边界或标签。commit
 不会移动文件；某一动作帧覆盖到 commit 时，只让最外框闪烁。
 
 本文只定义目标数据契约、算法和用户体验，不记录当前实现进度；实现状态在代码和测试
@@ -9,7 +10,7 @@ Repository Nebula 回放 Agent session 中可证明的 Git 仓库文件动作时
 
 ## 产品与架构边界
 
-Repository Nebula 的最终交付物是一个可以独立保存、打开、嵌入和转发的单图 artifact，
+Agent Nebula 的最终交付物是一个可以独立保存、打开、嵌入和转发的单图 artifact，
 而不是必须常驻运行的大前端。一个 HTML 只包含这一张图及其播放、暂停、进度条和必要
 图例，不包含 Overview、侧边栏、跨图导航、账户系统或服务端状态。静态场景可直接导出
 SVG/PNG，完整回放可导出 GIF/MP4；所有格式必须来自同一次动作投影和布局计算。
@@ -97,20 +98,20 @@ SVG/PNG，完整回放可导出 GIF/MP4；所有格式必须来自同一次动�
 ```bash
 agentvis [PATH] --global \
   --compact-rate 30s \
-  -o output/repository-nebula.html \
-  -o output/repository-nebula.svg \
-  -o output/repository-nebula.png \
-  -o output/repository-nebula.gif \
-  -o output/repository-nebula.mp4
+  -o output/agent-nebula.html \
+  -o output/agent-nebula.svg \
+  -o output/agent-nebula.png \
+  -o output/agent-nebula.gif \
+  -o output/agent-nebula.mp4
 
 # AgentSight 中的等价入口；输出语义与独立 CLI 相同
 agentsight vis [PATH] --global \
   --compact-rate 30s \
-  -o output/repository-nebula.html \
-  -o output/repository-nebula.svg \
-  -o output/repository-nebula.png \
-  -o output/repository-nebula.gif \
-  -o output/repository-nebula.mp4
+  -o output/agent-nebula.html \
+  -o output/agent-nebula.svg \
+  -o output/agent-nebula.png \
+  -o output/agent-nebula.gif \
+  -o output/agent-nebula.mp4
 ```
 
 重复 `-o` 会共享一次 session 扫描和一次布局计算。HTML 是可离线分享的单文件，
@@ -284,7 +285,7 @@ snapshots 的显式视觉迁移。
 - delete 使用红色退出环，经过 6 个动作步渐隐后从力场删除。
 - 目录永远不是星点。
 
-新文件依次寻找最近的可见对象：同一父目录、最长公共目录前缀、同一顶层目录，
+新文件依次寻找最近的可见对象：同一父目录、最长公共目录前缀、同一根级区域，
 都不存在时才从仓库中心附近出生。出生角度由路径哈希决定，不使用系统随机数。
 
 只有完整观测确实从空 worktree 建立前开始时，动画才从零文件逐个生长。仓库早于观测
@@ -296,14 +297,17 @@ action 时间轴。
 
 ## 颜色
 
-顶层目录按排序后的目录名分配 OKLCH 色相，相邻目录以黄金角 `137.508°` 分离。
+仓库根目录下的每个 entry 都定义一个根级颜色区域：`src/`、`docs/` 等目录各有一种
+颜色，`README.md`、`Cargo.toml` 等根级文件也各有一种颜色。根级 entry 按稳定路径
+排序后分配 OKLCH 色相，相邻区域以黄金角 `137.508°` 分离。
 稳定仓库身份和目录路径共同决定初始色相，不使用 Git revision。子目录在父目录色相
 附近做稳定的小幅变化，并随深度提高亮度、降低色度；因此目录相近的文件颜色相近，
 但没有可见目录边界。
 
 rename 或从父节点附近出生时，颜色在 6 个动作步内从旧颜色过渡到目标目录颜色。
 
-右上角动态图例显示最多 8 种当前可见颜色、文件数和当前动作触达状态；当前目录使用
+右上角动态图例以 `REPOSITORY AREAS` 显示最多 8 种当前可见颜色、文件数和当前动作
+触达状态；根级文件直接使用文件名，不生成也不显示虚构的 `(root)` 目录；当前区域使用
 白色描边和同色辉光，更多目录显示为 `+ N more`。目录活跃分沿 action 序列复用长期
 重要性的 `H_importance` 衰减，当前 action 按“操作权重 × 证据强度”增加对应目录的分数。排名
 只允许每个 action 发生一次相邻交换，而且挑战者必须比上一名高出 15%；反向交换也要
@@ -358,15 +362,15 @@ read、write、create、rename 的初始强度分别为 `0.35/0.75/1.0/0.8`，�
 消失，也不使用固定的“最近 24 步”窗口。delete 不使用 `A_operation`，只使用退出环；
 进入 delete 渐隐期的节点不施加 shape anchor。
 
-## 目录份额与节点大小
+## 根级区域份额与节点大小
 
-顶层目录的原始权重为：
+根级区域的原始权重为：
 
 ```text
 weight = (file_count + 8)^0.4 × (0.8 + 0.2 × mean_importance)
 ```
 
-顶层目录数 `D>0` 时，份额上限为 `min(1, max(0.42, 1/D + 0.08))`；`D=0` 时不计算
+根级区域数 `D>0` 时，份额上限为 `min(1, max(0.42, 1/D + 0.08))`；`D=0` 时不计算
 份额。小目录有伪计数保护，避免文件数差异直接造成面积悬殊。文件静态直径随总文件数
 缩放到 `0.85–6 px`，
 再乘目录单元尺度和重要性；被访问时最多放大到 `10.5 px`。
@@ -377,11 +381,11 @@ weight = (file_count + 8)^0.4 × (0.8 + 0.2 × mean_importance)
 动作步的固定哈希种子。每个快照按以下顺序执行：
 
 1. 应用 create/read/write/rename/delete 动作并更新重要性；
-2. 按顶层目录计算受限面积份额，并按前两级目录建立隐形簇；
-3. 同父目录文件按稳定路径顺序组成不可见的 4 叉路径树弹簧，同顶层目录的父目录代表
+2. 按根级区域计算受限面积份额，并按前两级目录建立隐形簇；根级文件各自成为一个区域；
+3. 同父目录文件按稳定路径顺序组成不可见的 4 叉路径树弹簧，同根级区域的父目录代表
    再组成较弱的 4 叉路径树；这里的路径树不是 Barnes–Hut 的空间四叉树；
 4. 文件执行 Barnes–Hut 多体斥力和圆形碰撞；
-5. 顶层目录簇互斥，子目录簇以随距离连续增强的引力靠近所属顶层目录中心；小目录的
+5. 根级区域簇互斥，子目录簇以随距离连续增强的引力靠近所属根级区域中心；小区域的
    排斥半径随目录份额缩小，不设置会让许多单文件目录排成外环的统一硬壳；
 6. 相邻 action 经常连续触达的目录中心产生饱和的弱引力；
 7. 重要文件提高所属目录簇的整体质量，目录整体随重要性向画布中心移动；
@@ -522,6 +526,8 @@ ACTplane 全轨迹是性能验收 workload：HTML 不设置快照上限；默认
 
 交互 HTML 使用 ECharts Canvas renderer。SVG 使用同一份 ECharts option 按需
 渲染，因此坐标、大小、颜色和内容相同；抗锯齿可能与 Canvas 有细微差别。
+默认 1264×936 画布使用 28px 标题、14px 动作摘要、11px 区域图例和 10px 时间/底部
+说明；HTML CSS 与 PNG/GIF/MP4 合成画布必须同步这些字号，不能只放大其中一条路径。
 PNG 直接来自合成 Canvas。MP4 通过浏览器 WebCodecs 和 Mediabunny 编码 compact plan
 选择的 Canvas 帧；GIF 由同一个 MP4 转换，不重新计算布局。GIF 使用两遍 FFmpeg：第一遍只统计
 全片颜色并生成 palette，第二遍用固定 palette 流式编码；不能使用
@@ -544,7 +550,7 @@ golden scene 并逐帧比较，媒体文件还必须用 `ffprobe` 证明帧数�
 ### 软件演化可视化
 
 Evolution Matrix、Githru 等工作展示了如何通过稳定空间表示软件历史，
-但主要以版本或 commit 为时间单位。Repository Nebula 把最小时间单位改为 Agent
+但主要以版本或 commit 为时间单位。Agent Nebula 把最小时间单位改为 Agent
 action：commit 之前的 read/write/create/rename/delete 顺序、注意力移动和跨 session
 演化都成为可观察对象。
 

@@ -40,7 +40,7 @@ function series(option, id) {
 
 function directoryLegendLabels(option) {
   const legend = option.graphic.find((group) => group.children.some((row) => (
-    row.style?.text === "DIRECTORIES"
+    row.style?.text === "REPOSITORY AREAS"
   )));
   return legend.children.filter((row) => row.style?.x === 28).map((row) => row.style.text);
 }
@@ -138,7 +138,19 @@ test("directory arguments pulse descendants without creating directory stars", (
   assert.ok(option.graphic[0].children.some((row) => (
     row.style?.text?.includes("directory scope 0.10×")
   )));
-  assert.ok(option.graphic[1].children.some((row) => row.style?.text === "DIRECTORIES"));
+  assert.ok(option.graphic[1].children.some((row) => row.style?.text === "REPOSITORY AREAS"));
+});
+
+test("root-level files are separate colored areas instead of a fake root directory", () => {
+  const value = data([event(0, [
+    { access: "create", path: "README.md" },
+    { access: "create", path: "Cargo.toml" },
+  ])]);
+  value.meta.render_layout_step = 0;
+  const option = repositoryNebula(value, 1_000, helper);
+  assert.deepEqual(directoryLegendLabels(option).sort(), ["Cargo.toml", "README.md"]);
+  const colors = series(option, "files").map((row) => row.itemStyle.color);
+  assert.notEqual(colors[0], colors[1]);
 });
 
 test("directory legend gradually promotes the currently active directory", () => {
