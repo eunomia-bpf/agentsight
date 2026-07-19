@@ -4,7 +4,6 @@ import {
 
 const WIDTH = 1200;
 const HEIGHT = 675;
-const MAX_VISUAL_STEPS = 360;
 const ATTENTION_HALF_LIVES = 4;
 const TRANSITION_STEPS = 6;
 const GOLDEN_ANGLE_DEGREES = 137.508;
@@ -17,6 +16,7 @@ const DIRECTORY_PSEUDOCOUNT = 8;
 const DIRECTORY_MAX_SHARE = 0.42;
 const IMPORTANCE_MIN_HALF_LIFE = 240;
 const IMPORTANCE_MAX_HALF_LIFE = 2_400;
+const OPERATION_WEIGHTS = { read: 1, write: 2, create: 2.5, rename: 2.5, delete: 2 };
 
 const modelCache = new WeakMap();
 
@@ -59,13 +59,14 @@ function layoutDirectory(path) {
   return directories.slice(0, Math.min(2, directories.length)).join("/") || "(root)";
 }
 
-function normalizeFileActions(data) {
-  const actions = [];
+function normalizeEvents(data) {
   const events = [...(data.events ?? [])].sort((left, right) => (
     Number(left.ts_ms) - Number(right.ts_ms) || compareText(String(left.id), String(right.id))
   ));
-  for (const event of events) {
-    for (const [index, item] of event.actions.entries()) {
+  const priority = { rename: 0, delete: 1, create: 2, write: 3, read: 4 };
+  return events.filter((event) => Number.isFinite(Number(event.ts_ms))).map((event, eventStep) => {
+    const actions = [];
+    for (const [index, item] of (event.actions ?? []).entries()) {
       if (!item.path || item.access === "rename_from") continue;
       const oldPath = item.previous_path;
       const type = item.access === "rename" && oldPath ? "rename" : item.access;
@@ -75,44 +76,73 @@ function normalizeFileActions(data) {
         ts_ms: Number(event.ts_ms),
         session_id: event.session_id,
         vendor: event.vendor,
+        eventStep,
         type,
         path: item.path,
         oldPath,
       });
     }
-  }
-  const priority = { rename: 0, delete: 1, create: 2, write: 3, read: 4 };
-  return actions.filter((action) => action.path && Number.isFinite(action.ts_ms)).sort((left, right) => (
-    left.ts_ms - right.ts_ms
-    || compareText(left.eventId, right.eventId)
-    || priority[left.type] - priority[right.type]
-    || compareText(left.path, right.path)
-  ));
+    actions.sort((left, right) => (
+      priority[left.type] - priority[right.type] || compareText(left.path, right.path)
+    ));
+    return {
+      id: String(event.id),
+      ts_ms: Number(event.ts_ms),
+      session_id: String(event.session_id ?? "session"),
+      vendor: String(event.vendor ?? "agent"),
+      tool_name: String(event.tool_name ?? "Tool"),
+      category: String(event.category ?? "tool"),
+      command_name: String(event.command_name ?? ""),
+      status: String(event.status ?? "observed"),
+      eventStep,
+      actions,
+    };
+  });
 }
 
 function actionDurationMs(count) {
   return clamp(8_000 + 40 * count, 8_000, 30_000);
 }
 
-function buildBuckets(actions) {
-  if (!actions.length) return { buckets: [], eventStepCount: 0 };
-  const eventGroups = [];
-  for (const action of actions) {
-    const current = eventGroups.at(-1);
-    if (current?.[0]?.eventId === action.eventId) current.push(action);
-    else eventGroups.push([action]);
+function directoryDistribution(event, directoryFor = layoutDirectory) {
+  const weights = new Map();
+  for (const action of event.actions) {
+    const directory = directoryFor(action.path);
+    weights.set(directory, (weights.get(directory) ?? 0) + (OPERATION_WEIGHTS[action.type] ?? 1));
   }
-  const count = Math.min(eventGroups.length, MAX_VISUAL_STEPS);
-  const buckets = Array.from({ length: count }, () => []);
-  eventGroups.forEach((group, index) => {
-    for (const action of group) action.eventStep = index;
-    const bucket = Math.min(count - 1, Math.floor(index * count / eventGroups.length));
-    buckets[bucket].push(...group);
-  });
-  return {
-    buckets: buckets.filter((bucket) => bucket.length),
-    eventStepCount: eventGroups.length,
+  const total = [...weights.values()].reduce((sum, value) => sum + value, 0);
+  return new Map([...weights].map(([directory, weight]) => [directory, weight / total]));
+}
+
+function attentionHalfLifeFor(events) {
+  const active = new Map();
+  const runs = [];
+  const close = (session) => {
+    const row = active.get(session);
+    if (row) runs.push(row.length);
+    active.delete(session);
   };
+  for (const event of events) {
+    if (!event.actions.length) {
+      close(event.session_id);
+      continue;
+    }
+    const selected = [...directoryDistribution(event)]
+      .sort((left, right) => right[1] - left[1] || compareText(left[0], right[0]))[0][0];
+    const previous = active.get(event.session_id);
+    if (previous?.directory === selected) previous.length += 1;
+    else {
+      close(event.session_id);
+      active.set(event.session_id, { directory: selected, length: 1 });
+    }
+  }
+  for (const session of [...active.keys()]) close(session);
+  if (!runs.length) return 1;
+  runs.sort((left, right) => left - right);
+  const middle = Math.floor(runs.length / 2);
+  return Math.max(1, Math.round(runs.length % 2
+    ? runs[middle]
+    : (runs[middle - 1] + runs[middle]) / 2));
 }
 
 function srgbChannel(value) {
@@ -294,6 +324,11 @@ function applyAction(action, step, state) {
   if (action.type === "rename") {
     let node = action.oldPath ? state.nodes.get(action.oldPath) : null;
     if (node) {
+      const replaced = state.nodes.get(action.path);
+      if (replaced && replaced !== node) {
+        unindexNode(state, replaced);
+        state.nodes.delete(replaced.path);
+      }
       const oldColor = currentColor(node, step);
       unindexNode(state, node);
       state.nodes.delete(node.path);
@@ -321,6 +356,12 @@ function applyAction(action, step, state) {
   }
 
   const node = createNode(action.path, action, step, state, action.type === "create" ? "create" : null);
+  if (action.type !== "delete" && node.deleteStep !== null) {
+    node.deleteStep = null;
+    node.birthStep = step;
+    node.lifecycleType = "create";
+    node.lifecycleStep = step;
+  }
   node.lastStep = step;
   node.focusType = action.type;
   node.lastSession = action.session_id;
@@ -479,9 +520,53 @@ function buildLinks(nodes, profiles) {
   return links;
 }
 
-function directoryForce(profiles) {
+function recordDirectoryTransition(event, state) {
+  if (!event.actions.length) {
+    state.lastDirectories.delete(event.session_id);
+    return;
+  }
+  const current = directoryDistribution(event, topDirectory);
+  const previous = state.lastDirectories.get(event.session_id);
+  if (previous) {
+    for (const [source, sourceWeight] of previous) {
+      for (const [target, targetWeight] of current) {
+        if (source === target) continue;
+        const key = `${source}\0${target}`;
+        state.directoryTransitions.set(
+          key,
+          (state.directoryTransitions.get(key) ?? 0) + sourceWeight * targetWeight,
+        );
+      }
+    }
+  }
+  state.lastDirectories.set(event.session_id, current);
+}
+
+function transitionAffinities(transitions) {
+  const degree = new Map();
+  for (const [key, weight] of transitions) {
+    const [source, target] = key.split("\0");
+    degree.set(source, (degree.get(source) ?? 0) + weight);
+    degree.set(target, (degree.get(target) ?? 0) + weight);
+  }
+  const pairs = new Map();
+  for (const [key, weight] of transitions) {
+    const [source, target] = key.split("\0");
+    const pair = [source, target].sort();
+    const pairKey = pair.join("\0");
+    if (!pairs.has(pairKey)) pairs.set(pairKey, { source: pair[0], target: pair[1], weight: 0 });
+    pairs.get(pairKey).weight += weight;
+  }
+  return [...pairs.values()].map((row) => {
+    const scale = Math.sqrt((degree.get(row.source) ?? 0) * (degree.get(row.target) ?? 0));
+    return { ...row, strength: scale > 0 ? 1 - Math.exp(-row.weight / scale) : 0 };
+  }).filter((row) => row.strength > 0);
+}
+
+function directoryForce(profiles, transitions) {
   const groups = [...profiles.entries()].map(([top, profile]) => ({ top, ...profile }));
   const byTop = new Map(groups.map((group) => [group.top, group]));
+  const affinities = transitionAffinities(transitions);
   const membersByCluster = new Map();
   for (const group of groups) {
     for (const node of group.members) {
@@ -546,6 +631,18 @@ function directoryForce(profiles) {
       const centerPull = alpha * (0.008 + 0.016 * group.importance);
       translate(group, (WIDTH / 2 - group.x) * centerPull, (HEIGHT / 2 - group.y) * centerPull);
     }
+    for (const affinity of affinities) {
+      const source = byTop.get(affinity.source);
+      const target = byTop.get(affinity.target);
+      if (!source || !target) continue;
+      const dx = target.x - source.x;
+      const dy = target.y - source.y;
+      const impulse = alpha * 0.006 * affinity.strength;
+      translate(source, dx * impulse * target.share / (source.share + target.share),
+        dy * impulse * target.share / (source.share + target.share));
+      translate(target, -dx * impulse * source.share / (source.share + target.share),
+        -dy * impulse * source.share / (source.share + target.share));
+    }
     for (const cluster of clusters) {
       const parent = byTop.get(cluster.top);
       translate(cluster, (parent.x - cluster.x) * alpha * 0.014, (parent.y - cluster.y) * alpha * 0.014);
@@ -579,6 +676,7 @@ function runForces(state, actions, step) {
   const nodes = [...state.nodes.values()];
   if (!nodes.length) return;
   const profiles = refreshImportanceAndDirectories(state, nodes, step);
+  state.refreshedStep = step;
   if (nodes.length === 1) {
     Object.assign(nodes[0], { x: WIDTH / 2, y: HEIGHT / 2, vx: 0, vy: 0 });
     return;
@@ -599,7 +697,7 @@ function runForces(state, actions, step) {
     )))
     .force("collision", forceCollide((node) => nodeRadius(node) + 0.8)
       .iterations(nodes.length > 1_000 ? 1 : 2))
-    .force("directories", directoryForce(profiles));
+    .force("directories", directoryForce(profiles, state.directoryTransitions));
   if (links.length) {
     simulation.force("links", forceLink(links)
       .id((node) => node.path)
@@ -633,7 +731,10 @@ function nodeOpacity(node, step) {
   return born * (1 - clamp((step - node.deleteStep + 1) / TRANSITION_STEPS, 0, 1));
 }
 
-function summarizeActions(actions) {
+function summarizeEvent(event) {
+  const { actions } = event;
+  const tool = event.command_name || event.tool_name || event.category;
+  if (!actions.length) return `${event.vendor} · ${tool} · ${event.status} · no repository file action`;
   const counts = new Map();
   for (const action of actions) counts.set(action.type, (counts.get(action.type) ?? 0) + 1);
   const vendors = [...new Set(actions.map((action) => action.vendor))];
@@ -648,7 +749,31 @@ function summarizeActions(actions) {
   return `${vendors.join("+")} · ${actions.length} actions · ${summary}`;
 }
 
-function snapshot(state, actions, step, actionStep) {
+function updateFocus(state, event) {
+  if (!event.actions.length) {
+    return state.focus ? { ...state.focus, active: false } : null;
+  }
+  const points = event.actions.map((action) => ({
+    node: state.nodes.get(action.path),
+    weight: OPERATION_WEIGHTS[action.type] ?? 1,
+  })).filter((row) => row.node);
+  if (!points.length) return state.focus ? { ...state.focus, active: false } : null;
+  const total = points.reduce((sum, row) => sum + row.weight, 0);
+  const x = points.reduce((sum, row) => sum + row.weight * row.node.x, 0) / total;
+  const y = points.reduce((sum, row) => sum + row.weight * row.node.y, 0) / total;
+  const previous = state.focus?.session === event.session_id ? state.focus : null;
+  state.focus = {
+    x: previous ? 0.3 * previous.x + 0.7 * x : x,
+    y: previous ? 0.3 * previous.y + 0.7 * y : y,
+    lastStep: event.eventStep,
+    session: event.session_id,
+    vendor: event.vendor,
+  };
+  return { ...state.focus, active: true };
+}
+
+function snapshot(state, event) {
+  const actionStep = event.eventStep;
   const nodes = [...state.nodes.values()].filter((node) => nodeOpacity(node, actionStep) > 0.001).map((node) => ({
     path: node.path,
     x: node.x / WIDTH,
@@ -673,11 +798,12 @@ function snapshot(state, actions, step, actionStep) {
     opacity: nodeOpacity(node, actionStep),
   }));
   return {
-    step,
+    step: actionStep,
     actionStep,
-    ts_ms: actions.at(-1).ts_ms,
-    actions,
-    summary: summarizeActions(actions),
+    ts_ms: event.ts_ms,
+    actions: event.actions,
+    summary: summarizeEvent(event),
+    focus: state.visibleFocus,
     nodes,
   };
 }
@@ -691,40 +817,89 @@ function pruneDeleted(state, step) {
 }
 
 function buildModel(data) {
-  const actions = normalizeFileActions(data);
-  const { buckets, eventStepCount } = buildBuckets(actions);
-  const attentionHalfLife = Math.max(1, Math.ceil(eventStepCount / Math.max(1, buckets.length)));
+  const events = normalizeEvents(data);
+  const actions = events.flatMap((event) => event.actions);
+  const eventStepCount = events.length;
+  const attentionHalfLife = attentionHalfLifeFor(events);
   const repository = data.meta?.repository ?? "repository";
-  const state = {
+  const model = {
     repository,
-    nodes: new Map(),
-    parentIndex: new Map(),
-    prefixIndex: new Map(),
-    topIndex: new Map(),
+    events,
+    actions,
     importanceHalfLife: clamp(
       Math.round(eventStepCount * 0.08),
       IMPORTANCE_MIN_HALF_LIFE,
       IMPORTANCE_MAX_HALF_LIFE,
     ),
-    colorForPath: buildPalette(actions, `${repository}:${data.meta?.endpoint_revision ?? "HEAD"}`),
-  };
-  const snapshots = [];
-  buckets.forEach((bucket, step) => {
-    const actionStep = bucket.at(-1).eventStep;
-    pruneDeleted(state, actionStep);
-    for (const action of bucket) applyAction(action, action.eventStep, state);
-    runForces(state, bucket, actionStep);
-    snapshots.push(snapshot(state, bucket, step, actionStep));
-  });
-  return {
-    actions,
-    snapshots,
+    colorForPath: buildPalette(actions, repository),
     attentionHalfLife,
     attentionSteps: attentionHalfLife * ATTENTION_HALF_LIVES,
-    firstMs: actions[0]?.ts_ms ?? Number.POSITIVE_INFINITY,
-    lastMs: actions.at(-1)?.ts_ms ?? Number.NEGATIVE_INFINITY,
-    durationMs: actionDurationMs(actions.length),
+    firstMs: events[0]?.ts_ms ?? Number.POSITIVE_INFINITY,
+    lastMs: events.at(-1)?.ts_ms ?? Number.NEGATIVE_INFINITY,
+    durationMs: actionDurationMs(events.length),
   };
+  resetModel(model);
+  return model;
+}
+
+function resetModel(model) {
+  model.state = {
+    repository: model.repository,
+    nodes: new Map(),
+    parentIndex: new Map(),
+    prefixIndex: new Map(),
+    topIndex: new Map(),
+    importanceHalfLife: model.importanceHalfLife,
+    colorForPath: model.colorForPath,
+    directoryTransitions: new Map(),
+    lastDirectories: new Map(),
+    focus: null,
+    visibleFocus: null,
+    currentSession: null,
+    pendingLayoutWeight: 0,
+    refreshedStep: -1,
+  };
+  model.currentStep = -1;
+  model.current = null;
+}
+
+function advanceTo(model, requestedStep) {
+  if (!model.events.length) return null;
+  const target = clamp(Math.floor(requestedStep), 0, model.events.length - 1);
+  if (target < model.currentStep) resetModel(model);
+  for (let step = model.currentStep + 1; step <= target; step += 1) {
+    const event = model.events[step];
+    const { state } = model;
+    if (state.currentSession !== event.session_id) {
+      for (const node of state.nodes.values()) node.focusType = null;
+      state.focus = null;
+      state.currentSession = event.session_id;
+    }
+    pruneDeleted(state, step);
+    recordDirectoryTransition(event, state);
+    for (const action of event.actions) applyAction(action, step, state);
+    state.pendingLayoutWeight += event.actions.reduce(
+      (sum, action) => sum + (OPERATION_WEIGHTS[action.type] ?? 1), 0,
+    );
+    const structural = event.actions.some((action) => (
+      action.type === "create" || action.type === "rename" || action.type === "delete"
+    ));
+    const threshold = Math.max(1, Math.sqrt(state.nodes.size));
+    if (event.actions.length && (
+      structural || state.pendingLayoutWeight >= threshold || step === model.events.length - 1
+    )) {
+      runForces(state, event.actions, step);
+      state.pendingLayoutWeight = 0;
+    }
+    state.visibleFocus = updateFocus(state, event);
+    model.currentStep = step;
+  }
+  if (model.state.nodes.size && model.state.refreshedStep !== target) {
+    refreshImportanceAndDirectories(model.state, [...model.state.nodes.values()], target);
+    model.state.refreshedStep = target;
+  }
+  model.current = snapshot(model.state, model.events[target]);
+  return model.current;
 }
 
 function modelFor(data) {
@@ -734,29 +909,29 @@ function modelFor(data) {
 
 function snapshotAt(model, cursorMs) {
   let left = 0;
-  let right = model.snapshots.length - 1;
-  let found = null;
+  let right = model.events.length - 1;
+  let found = -1;
   while (left <= right) {
     const middle = Math.floor((left + right) / 2);
-    const row = model.snapshots[middle];
+    const row = model.events[middle];
     if (row.ts_ms <= cursorMs) {
-      found = row;
+      found = middle;
       left = middle + 1;
     } else {
       right = middle - 1;
     }
   }
-  return found;
+  return found >= 0 ? advanceTo(model, found) : null;
 }
 
 export function nebulaVisualMoments(data) {
   const model = modelFor(data);
   const windowStart = Number(data.meta?.window_start_ms);
   const windowEnd = Number(data.meta?.window_end_ms);
-  if (!model.snapshots.length) {
+  if (!model.events.length) {
     return [windowStart, windowEnd].filter(Number.isFinite);
   }
-  return [windowStart, ...model.snapshots.map((row) => row.ts_ms), windowEnd]
+  return [windowStart, ...model.events.map((row) => row.ts_ms), windowEnd]
     .filter(Number.isFinite);
 }
 
@@ -775,6 +950,7 @@ function emptyOption(h) {
       { id: "read-rings", name: "reads", type: "scatter", data: [] },
       { id: "write-ripples", name: "writes", type: "scatter", data: [] },
       { id: "lifecycle", name: "lifecycle", type: "scatter", data: [] },
+      { id: "trajectory-focus", name: "agent focus", type: "scatter", data: [] },
     ],
   };
 }
@@ -812,7 +988,7 @@ export function repositoryNebula(data, cursorMs, h) {
     return emptyOption(h);
   }
   const current = hasLayoutStep
-    ? model.snapshots[clamp(layoutStep, 0, model.snapshots.length - 1)]
+    ? advanceTo(model, clamp(layoutStep, 0, model.events.length - 1))
     : snapshotAt(model, cursorMs);
   if (!current) return emptyOption(h);
   const cameraScale = clamp(0.92 + 3 / Math.sqrt(Math.max(1, current.nodes.length)), 0.92, 1.8);
@@ -871,9 +1047,25 @@ export function repositoryNebula(data, cursorMs, h) {
 
   const writes = points.filter((point) => point.focusType === "write" && point.age <= model.attentionSteps)
     .flatMap((point) => [0, 0.34].map((offset) => {
-      const progress = clamp(point.age / 14 + offset, 0, 1);
+      const progress = clamp(point.age / Math.max(1, model.attentionSteps) + offset, 0, 1);
       return ring(point, point.symbolSize + 8 + 34 * progress, "#ff9678", (1 - progress) * 0.78);
     }));
+
+  const focus = current.focus ? (() => {
+    const age = current.actionStep - current.focus.lastStep;
+    const strength = age <= model.attentionSteps
+      ? 2 ** (-age / model.attentionHalfLife)
+      : 0;
+    if (strength <= 0) return [];
+    const x = current.focus.x / WIDTH;
+    const y = current.focus.y / HEIGHT;
+    return [ring({
+      value: [
+        clamp(0.5 + (x - 0.5) * cameraScale, 0.02, 0.98),
+        clamp(0.5 + (y - 0.5) * cameraScale, 0.02, 0.98),
+      ],
+    }, 14 + 10 * strength, "#dcecff", 0.08 + 0.24 * strength)];
+  })() : [];
 
   const lifecycle = points.filter((point) => (
     point.lifecycleStep !== null && current.actionStep - point.lifecycleStep <= TRANSITION_STEPS
@@ -923,7 +1115,7 @@ export function repositoryNebula(data, cursorMs, h) {
         {
           type: "text", style: {
             x: 14, y: 30,
-            text: `${new Date(current.ts_ms).toISOString()} · step ${current.step + 1}/${model.snapshots.length} · ${points.length} files`,
+            text: `${new Date(current.ts_ms).toISOString()} · step ${current.step + 1}/${model.events.length} · ${points.length} files`,
             fill: "#74869c", font: "9px ui-monospace,monospace",
           },
         },
@@ -946,6 +1138,10 @@ export function repositoryNebula(data, cursorMs, h) {
       {
         id: "lifecycle", name: "create / rename / delete", type: "scatter", silent: true, z: 7,
         animationDurationUpdate: 180, data: lifecycle,
+      },
+      {
+        id: "trajectory-focus", name: "agent focus", type: "scatter", silent: true, z: 4,
+        animationDurationUpdate: 180, data: focus,
       },
     ],
   };

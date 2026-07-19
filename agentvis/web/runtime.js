@@ -23,6 +23,7 @@ const helper = { base: () => ({
 let chart;
 let data;
 let cursor;
+let frameIndex = 0;
 let moments = [];
 let frameTimes = [];
 let playing = 0;
@@ -46,18 +47,22 @@ function optionAt(value, step) {
 function isCommitFrame(value, step) {
   const found = frameTimes.findIndex((time) => time >= value);
   const index = Number.isInteger(step) ? step : (found < 0 ? frameTimes.length - 1 : found);
-  const start = index > 0 ? frameTimes[index - 1] : data.meta.window_start_ms;
+  const start = index > 0 ? frameTimes[index - 1] : data.meta.window_start_ms - 1;
   const end = frameTimes[index] ?? value;
   return data.commits.some((row) => row.committed_at_ms > start && row.committed_at_ms <= end);
 }
 
 function render(value, step) {
-  cursor = Math.max(data.meta.window_start_ms, Math.min(data.meta.window_end_ms, Number(value)));
-  chart.setOption(optionAt(cursor, step), { notMerge: true, lazyUpdate: false, silent: true });
+  const requested = Number.isInteger(step)
+    ? step
+    : frameTimes.findLastIndex((time) => time <= Number(value));
+  frameIndex = Math.max(0, Math.min(frameTimes.length - 1, requested));
+  cursor = frameTimes[frameIndex];
+  chart.setOption(optionAt(cursor, frameIndex), { notMerge: true, lazyUpdate: false, silent: true });
   chart.getZr().flush();
-  $("timeline").value = String(cursor);
+  $("timeline").value = String(frameIndex);
   $("cursor-label").textContent = timeLabel(cursor);
-  $("artifact").classList.toggle("commit-flash", isCommitFrame(cursor, step));
+  $("artifact").classList.toggle("commit-flash", isCommitFrame(cursor, frameIndex));
   return cursor;
 }
 
@@ -69,8 +74,8 @@ function stop() {
 
 function toggle() {
   if (playing) return stop();
-  if (cursor >= frameTimes.at(-1)) render(frameTimes[0], 0);
-  const startIndex = Math.max(0, frameTimes.findIndex((value) => value >= cursor));
+  if (frameIndex >= frameTimes.length - 1) render(frameTimes[0], 0);
+  const startIndex = frameIndex;
   const started = performance.now();
   const duration = nebulaPlaybackDuration(data);
   $("play").textContent = "Ⅱ";
@@ -100,11 +105,15 @@ function initialize(payload) {
     "generator: agentvis",
   ].join(" · ");
   Object.assign($("timeline"), {
-    min: String(data.meta.window_start_ms), max: String(data.meta.window_end_ms), step: "1",
+    min: "0", max: String(frameTimes.length - 1), step: "1",
   });
-  $("timeline").addEventListener("input", () => { stop(); render(Number($("timeline").value)); });
+  $("timeline").addEventListener("input", () => {
+    stop();
+    const index = Number($("timeline").value);
+    render(frameTimes[index], index);
+  });
   $("play").addEventListener("click", toggle);
-  render(data.meta.window_end_ms, frameTimes.length - 1);
+  render(frameTimes[0], 0);
   window.__AGENTVIS_READY__ = true;
   window.__AGENTVIS_FRAME_COUNT__ = frameTimes.length;
 }
@@ -153,8 +162,7 @@ function composeFrame(canvas = document.createElement("canvas")) {
   context.fillText("AGENT EVENT TIME", 1108, 42);
   context.strokeStyle = palette.line;
   context.beginPath(); context.moveTo(32, 803); context.lineTo(1232, 803); context.stroke();
-  const progress = (cursor - data.meta.window_start_ms)
-    / Math.max(1, data.meta.window_end_ms - data.meta.window_start_ms);
+  const progress = frameIndex / Math.max(1, frameTimes.length - 1);
   context.fillStyle = "#10231f"; context.strokeStyle = "rgba(97,215,191,.4)";
   context.beginPath(); context.arc(50, 836, 18, 0, 2 * Math.PI); context.fill(); context.stroke();
   context.fillStyle = "#61d7bf"; context.beginPath();
@@ -183,6 +191,7 @@ async function beginMp4() {
   if (!await canEncodeVideo("avc", { width: 1264, height: 936, bitrate: QUALITY_HIGH })) {
     throw new Error("This Chromium build has no H.264 WebCodecs encoder; use a Chrome/Chromium build with AVC encoding support.");
   }
+  render(frameTimes[0], 0);
   const canvas = composeFrame();
   const target = new BufferTarget();
   const output = new Output({ format: new Mp4OutputFormat({ fastStart: "in-memory" }), target });
@@ -220,6 +229,7 @@ async function finishMp4() {
 }
 
 function pngBase64() {
+  render(frameTimes.at(-1), frameTimes.length - 1);
   return composeFrame().toDataURL("image/png").split(",", 2)[1];
 }
 

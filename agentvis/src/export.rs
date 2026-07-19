@@ -1,6 +1,5 @@
 use crate::{RepositoryTraceOptions, build_repository_trace};
 use base64::{Engine, engine::general_purpose::STANDARD};
-use chrono::Utc;
 use headless_chrome::{Browser, LaunchOptions, protocol::cdp::Emulation};
 use serde_json::json;
 use std::collections::HashSet;
@@ -34,10 +33,11 @@ pub fn run_vis(
         global,
     })?;
     eprintln!(
-        "[agentvis 3/5] actions     {} sessions · {} source events · {} file events · {:.1}s",
+        "[agentvis 3/5] actions     {} sessions · {} source events · {} tool actions · {} file actions · {:.1}s",
         trace.session_count,
         trace.source_event_count,
         trace.events.len(),
+        trace.file_action_count,
         scan.elapsed().as_secs_f32()
     );
     let payload = json!({
@@ -45,7 +45,7 @@ pub fn run_vis(
             "repository": trace.repository,
             "endpoint_revision": trace.revision,
             "window_start_ms": trace.start_ms,
-            "window_end_ms": Utc::now().timestamp_millis(),
+            "window_end_ms": trace.end_ms,
             "session_scope": if trace.global { "global_tool_operations" } else { "repository_identity" },
         },
         "events": trace.events,
@@ -122,21 +122,6 @@ fn render_media(
     let page = temporary.path().join("repository-nebula.html");
     fs::write(&page, html)?;
     let renderer = BrowserRenderer::open(&page)?;
-    if outputs.iter().any(|path| extension(path) == "png") {
-        write_copies(
-            &renderer.bytes("AgentVis.pngBase64()", false)?,
-            outputs,
-            "png",
-        )?;
-    }
-    if outputs.iter().any(|path| extension(path) == "svg") {
-        let svg = renderer.string("AgentVis.svg()", true)?;
-        write_copies(
-            format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n{svg}").as_bytes(),
-            outputs,
-            "svg",
-        )?;
-    }
     if outputs
         .iter()
         .any(|path| matches!(extension(path).as_str(), "gif" | "mp4"))
@@ -163,6 +148,21 @@ fn render_media(
             }
             write_copies(&fs::read(gif_path)?, outputs, "gif")?;
         }
+    }
+    if outputs.iter().any(|path| extension(path) == "png") {
+        write_copies(
+            &renderer.bytes("AgentVis.pngBase64()", false)?,
+            outputs,
+            "png",
+        )?;
+    }
+    if outputs.iter().any(|path| extension(path) == "svg") {
+        let svg = renderer.string("AgentVis.svg()", true)?;
+        write_copies(
+            format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n{svg}").as_bytes(),
+            outputs,
+            "svg",
+        )?;
     }
     Ok(())
 }

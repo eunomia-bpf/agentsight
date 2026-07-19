@@ -9,7 +9,7 @@ use agent_session::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::io::{self, BufRead, BufReader, Read};
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -25,9 +25,11 @@ pub struct RepositoryTrace {
     pub repository: String,
     pub revision: String,
     pub start_ms: i64,
+    pub end_ms: i64,
     pub global: bool,
     pub session_count: usize,
     pub source_event_count: usize,
+    pub file_action_count: usize,
     pub events: Vec<RepositoryEvent>,
     pub commits_ms: Vec<i64>,
 }
@@ -38,6 +40,10 @@ pub struct RepositoryEvent {
     pub session_id: String,
     pub vendor: String,
     pub ts_ms: i64,
+    pub tool_name: String,
+    pub category: String,
+    pub command_name: String,
+    pub status: String,
     pub actions: Vec<FileAction>,
 }
 
@@ -52,7 +58,6 @@ pub struct FileAction {
 pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<RepositoryTrace> {
     let repo = repository_root(&options.repo)?;
     let roots = worktree_roots(&repo);
-    let known = known_git_paths(&repo)?;
     let remote = git_text(&repo, &["remote", "get-url", "origin"])
         .ok()
         .map(|value| normalize_repository_url(&value));
@@ -61,23 +66,22 @@ pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<Re
         .filter(|candidate| candidate_may_match_repo(candidate, &roots, remote.as_deref()))
         .collect::<Vec<_>>();
     candidates.sort_by(|left, right| left.path.cmp(&right.path));
-    let (mut events, source_event_count) =
-        scan_sessions(&candidates, &roots, &known, options.global)?;
+    let (mut events, source_event_count) = scan_sessions(&candidates, &roots, options.global)?;
     events.sort_by(|left, right| (left.ts_ms, &left.id).cmp(&(right.ts_ms, &right.id)));
     let session_count = events
         .iter()
         .map(|event| &event.session_id)
         .collect::<HashSet<_>>()
         .len();
-    let commits_ms = git_lines(&repo, &["log", "--all", "--format=%ct"])?
+    let mut commits_ms = git_lines(&repo, &["log", "--all", "--format=%ct"])?
         .into_iter()
         .filter_map(|value| value.parse::<i64>().ok().map(|seconds| seconds * 1_000))
         .collect::<Vec<_>>();
-    let start_ms = commits_ms
-        .iter()
-        .copied()
-        .min()
-        .unwrap_or_else(|| events.first().map_or(0, |event| event.ts_ms));
+    commits_ms.sort_unstable();
+    commits_ms.dedup();
+    let start_ms = events.first().map_or(0, |event| event.ts_ms);
+    let end_ms = events.last().map_or(start_ms, |event| event.ts_ms);
+    let file_action_count = events.iter().map(|event| event.actions.len()).sum();
     Ok(RepositoryTrace {
         repository: repo
             .file_name()
@@ -86,9 +90,11 @@ pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<Re
             .into(),
         revision: git_text(&repo, &["rev-parse", "HEAD"])?.trim().into(),
         start_ms,
+        end_ms,
         global: options.global,
         session_count,
         source_event_count,
+        file_action_count,
         events,
         commits_ms,
     })
@@ -97,28 +103,49 @@ pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<Re
 fn scan_sessions(
     candidates: &[SessionCandidate],
     roots: &[PathBuf],
-    known: &HashSet<String>,
     global: bool,
 ) -> io::Result<(Vec<RepositoryEvent>, usize)> {
     let mut result = (Vec::new(), 0usize);
-    for candidate in candidates {
-        let Some((session, source_count)) = repository_session(candidate) else {
-            continue;
-        };
-        append_session(&session, source_count, roots, known, true, &mut result);
+    for (session, source_count) in parse_candidates(candidates) {
+        append_session(&session, source_count, roots, true, &mut result);
     }
     if global {
         let direct = candidates
             .iter()
-            .map(|row| &row.path)
+            .map(|row| row.path.clone())
             .collect::<HashSet<_>>();
-        for (session, source_count) in behavior_sessions(roots)? {
-            if !direct.contains(&session.path) {
-                append_session(&session, source_count, roots, known, false, &mut result);
-            }
+        for (session, source_count) in behavior_sessions(roots, &direct)? {
+            append_session(&session, source_count, roots, false, &mut result);
         }
     }
     Ok(result)
+}
+
+fn parse_candidates(candidates: &[SessionCandidate]) -> Vec<(AgentSession, usize)> {
+    if candidates.is_empty() {
+        return Vec::new();
+    }
+    let workers = std::thread::available_parallelism()
+        .map_or(1, usize::from)
+        .min(candidates.len());
+    let chunk_size = candidates.len().div_ceil(workers);
+    std::thread::scope(|scope| {
+        let handles = candidates
+            .chunks(chunk_size)
+            .map(|chunk| {
+                scope.spawn(move || {
+                    chunk
+                        .iter()
+                        .filter_map(repository_session)
+                        .collect::<Vec<_>>()
+                })
+            })
+            .collect::<Vec<_>>();
+        handles
+            .into_iter()
+            .flat_map(|handle| handle.join().unwrap_or_default())
+            .collect()
+    })
 }
 
 fn repository_session(candidate: &SessionCandidate) -> Option<(AgentSession, usize)> {
@@ -178,7 +205,6 @@ fn append_session(
     session: &AgentSession,
     source_count: usize,
     roots: &[PathBuf],
-    known: &HashSet<String>,
     repository_session: bool,
     batch: &mut (Vec<RepositoryEvent>, usize),
 ) {
@@ -216,17 +242,15 @@ fn append_session(
     );
     let mut used = false;
     for (ordinal, tool) in session.events.tools.iter().enumerate() {
-        if tool.status == "fail" {
-            continue;
-        }
         let Some(ts_ms) = tool.ts_ms else { continue };
-        let actions = tool
-            .paths
-            .iter()
-            .filter_map(|item| {
-                let path = resolve_path(&item.path, cwd.as_deref(), roots)?;
-                (!ignored_path(&path) && (item.access != "read" || known.contains(&path)))
-                    .then_some(FileAction {
+        let actions = if tool.status == "fail" {
+            BTreeSet::new()
+        } else {
+            tool.paths
+                .iter()
+                .filter_map(|item| {
+                    let path = resolve_path(&item.path, cwd.as_deref(), roots)?;
+                    (!ignored_path(&path)).then_some(FileAction {
                         path,
                         access: item.access.clone(),
                         previous_path: item
@@ -234,9 +258,10 @@ fn append_session(
                             .as_deref()
                             .and_then(|value| resolve_path(value, cwd.as_deref(), roots)),
                     })
-            })
-            .collect::<BTreeSet<_>>();
-        if actions.is_empty() {
+                })
+                .collect::<BTreeSet<_>>()
+        };
+        if !repository_session && actions.is_empty() {
             continue;
         }
         used = true;
@@ -245,6 +270,10 @@ fn append_session(
             session_id: session_id.clone(),
             vendor: session.agent_type.clone(),
             ts_ms,
+            tool_name: tool.tool_name.clone(),
+            category: tool.category.clone(),
+            command_name: tool.command_name.clone(),
+            status: tool.status.clone(),
             actions: actions.into_iter().collect(),
         });
     }
@@ -334,7 +363,10 @@ fn normalize_repository_url(value: &str) -> String {
         })
 }
 
-fn behavior_sessions(roots: &[PathBuf]) -> io::Result<Vec<(AgentSession, usize)>> {
+fn behavior_sessions(
+    roots: &[PathBuf],
+    excluded: &HashSet<PathBuf>,
+) -> io::Result<Vec<(AgentSession, usize)>> {
     let Some(home) = dirs::home_dir() else {
         return Ok(Vec::new());
     };
@@ -348,6 +380,8 @@ fn behavior_sessions(roots: &[PathBuf]) -> io::Result<Vec<(AgentSession, usize)>
     command.args([
         "--json",
         "--no-messages",
+        "--no-config",
+        "--mmap",
         "--fixed-strings",
         "--glob",
         "*.jsonl",
@@ -368,7 +402,7 @@ fn behavior_sessions(roots: &[PathBuf]) -> io::Result<Vec<(AgentSession, usize)>
         .stdout
         .take()
         .ok_or_else(|| io::Error::other("ripgrep session scan returned no stdout"))?;
-    let mut selected = HashSet::<PathBuf>::new();
+    let mut selected = HashMap::<PathBuf, Vec<String>>::new();
     for line in BufReader::new(stdout).lines() {
         let line = line?;
         let Ok(row) = serde_json::from_str::<serde_json::Value>(&line) else {
@@ -389,7 +423,7 @@ fn behavior_sessions(roots: &[PathBuf]) -> io::Result<Vec<(AgentSession, usize)>
         if !tool_call && !path.contains("/.gemini/") {
             continue;
         }
-        selected.insert(path.into());
+        selected.entry(path.into()).or_default().push(text.into());
     }
     let status = child.wait()?;
     if !status.success() && status.code() != Some(1) {
@@ -399,9 +433,21 @@ fn behavior_sessions(roots: &[PathBuf]) -> io::Result<Vec<(AgentSession, usize)>
     }
     Ok(selected
         .into_iter()
-        .filter_map(|path| {
+        .filter(|(path, _)| !excluded.contains(path))
+        .filter_map(|(path, lines)| {
             let candidate = session_candidate_from_path(&path)?;
-            repository_session(&candidate)
+            if candidate.agent == AGENT_GEMINI {
+                return repository_session(&candidate);
+            }
+            let content = lines.concat();
+            let session = parse_session_content(
+                candidate.agent,
+                &candidate.path,
+                candidate.updated,
+                &content,
+            )?;
+            let count = session.events.tools.len();
+            Some((session, count))
         })
         .collect())
 }
@@ -446,29 +492,6 @@ fn worktree_roots(repo: &Path) -> Vec<PathBuf> {
     });
     roots.dedup();
     roots
-}
-
-fn known_git_paths(repo: &Path) -> io::Result<HashSet<String>> {
-    let mut paths = HashSet::new();
-    git_for_each_line(
-        repo,
-        &["log", "--all", "--format=", "--name-only"],
-        |line| {
-            if !line.is_empty() {
-                paths.insert(line.to_string());
-            }
-        },
-    )?;
-    git_for_each_line(
-        repo,
-        &["ls-files", "--cached", "--others", "--exclude-standard"],
-        |line| {
-            if !line.is_empty() {
-                paths.insert(line.to_string());
-            }
-        },
-    )?;
-    Ok(paths)
 }
 
 fn resolve_path(raw: &str, cwd: Option<&Path>, roots: &[PathBuf]) -> Option<String> {
@@ -534,34 +557,57 @@ fn git_text(repo: &Path, args: &[&str]) -> io::Result<String> {
     String::from_utf8(output.stdout).map_err(io::Error::other)
 }
 
-fn git_for_each_line(repo: &Path, args: &[&str], mut visit: impl FnMut(&str)) -> io::Result<()> {
-    let mut child = Command::new("git")
-        .args(args)
-        .current_dir(repo)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| io::Error::other("git returned no stdout"))?;
-    for line in BufReader::new(stdout).lines() {
-        visit(line?.trim());
-    }
-    let output = child.wait_with_output()?;
-    if !output.status.success() {
-        return Err(io::Error::other(format!(
-            "git {} failed: {}",
-            args.join(" "),
-            String::from_utf8_lossy(&output.stderr).trim()
-        )));
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use agent_session::{SessionEvents, TokenUsage, ToolEvent, ToolPath};
+    use std::collections::BTreeMap;
+    use std::time::SystemTime;
+
+    fn tool(ts_ms: i64, status: &str, paths: Vec<ToolPath>) -> ToolEvent {
+        ToolEvent {
+            ts_ms: Some(ts_ms),
+            prompt_index: 0,
+            tool_name: "Tool".into(),
+            category: "file".into(),
+            command: String::new(),
+            command_name: String::new(),
+            effect: String::new(),
+            process_chain: Vec::new(),
+            status: status.into(),
+            path_groups: Vec::new(),
+            paths,
+            domains: Vec::new(),
+            call_id: None,
+        }
+    }
+
+    fn session(tools: Vec<ToolEvent>) -> AgentSession {
+        AgentSession {
+            agent_type: AGENT_CODEX.into(),
+            session_id: "session".into(),
+            conversation_id: None,
+            display_id: "session".into(),
+            path: "/sessions/session.jsonl".into(),
+            updated: SystemTime::UNIX_EPOCH,
+            start_timestamp_ms: None,
+            end_timestamp_ms: None,
+            model: None,
+            usage: TokenUsage::default(),
+            model_usage: BTreeMap::new(),
+            tools: BTreeMap::new(),
+            files: BTreeMap::new(),
+            prompt_preview: None,
+            duration_ms: 0,
+            cwd: Some("/repo".into()),
+            last_message_at: None,
+            events: SessionEvents {
+                prompts: Vec::new(),
+                tools,
+                llm_responses: Vec::new(),
+            },
+        }
+    }
 
     #[test]
     fn lexical_paths_cannot_escape_a_worktree() {
@@ -614,5 +660,57 @@ mod tests {
             relative_to_roots(Path::new("/repo/.worktrees/feature/src/lib.rs"), &roots),
             Some("src/lib.rs".into())
         );
+    }
+
+    #[test]
+    fn repository_sessions_keep_every_timed_tool_action() {
+        let value = session(vec![
+            tool(
+                1,
+                "fail",
+                vec![ToolPath {
+                    path: "src/failed.rs".into(),
+                    access: "write".into(),
+                    previous_path: None,
+                }],
+            ),
+            tool(2, "ok", Vec::new()),
+            tool(
+                3,
+                "ok",
+                vec![ToolPath {
+                    path: "src/read.rs".into(),
+                    access: "read".into(),
+                    previous_path: None,
+                }],
+            ),
+        ]);
+        let mut batch = (Vec::new(), 0);
+        append_session(&value, 7, &["/repo".into()], true, &mut batch);
+        assert_eq!(batch.0.len(), 3);
+        assert!(batch.0[0].actions.is_empty());
+        assert!(batch.0[1].actions.is_empty());
+        assert_eq!(batch.0[2].actions[0].path, "src/read.rs");
+        assert_eq!(batch.1, 7);
+    }
+
+    #[test]
+    fn external_sessions_keep_only_proven_repository_actions() {
+        let value = session(vec![
+            tool(1, "ok", Vec::new()),
+            tool(
+                2,
+                "ok",
+                vec![ToolPath {
+                    path: "src/read.rs".into(),
+                    access: "read".into(),
+                    previous_path: None,
+                }],
+            ),
+        ]);
+        let mut batch = (Vec::new(), 0);
+        append_session(&value, 2, &["/repo".into()], false, &mut batch);
+        assert_eq!(batch.0.len(), 1);
+        assert_eq!(batch.0[0].ts_ms, 2);
     }
 }

@@ -16,3 +16,10 @@ agentvis . --global \
 HTML output is a self-contained interactive file. SVG and PNG are still
 artifacts; GIF and MP4 replay the same layout frames. AgentSight exposes the
 same implementation through `agentsight vis`.
+
+By default, discovery includes every Claude, Codex, and Gemini session whose
+cwd, project identity, or Git remote belongs to the worktree. `--global` also
+searches sessions rooted elsewhere and retains their absolute-path operations
+inside this repository. Each retained Tool action stays on the timeline; an
+action with no proven repository file effect produces an unchanged layout
+frame instead of disappearing.
