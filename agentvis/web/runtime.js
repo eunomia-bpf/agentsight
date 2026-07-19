@@ -97,7 +97,7 @@ function initialize(payload) {
     `scope: ${data.meta.session_scope === "global_tool_operations" ? "all local sessions targeting repository" : "repository sessions"}`,
     `revision: ${data.meta.endpoint_revision.slice(0, 12)}`,
     `window: ${dayLabel(data.meta.window_start_ms)} → ${dayLabel(data.meta.window_end_ms)}`,
-    "generator: agentsight vis",
+    "generator: agentvis",
   ].join(" · ");
   Object.assign($("timeline"), {
     min: String(data.meta.window_start_ms), max: String(data.meta.window_end_ms), step: "1",
@@ -105,8 +105,8 @@ function initialize(payload) {
   $("timeline").addEventListener("input", () => { stop(); render(Number($("timeline").value)); });
   $("play").addEventListener("click", toggle);
   render(data.meta.window_end_ms, frameTimes.length - 1);
-  window.__AGENTSIGHT_READY__ = true;
-  window.__AGENTSIGHT_FRAME_COUNT__ = frameTimes.length;
+  window.__AGENTVIS_READY__ = true;
+  window.__AGENTVIS_FRAME_COUNT__ = frameTimes.length;
 }
 
 function composeFrame(canvas = document.createElement("canvas")) {
@@ -142,7 +142,7 @@ function composeFrame(canvas = document.createElement("canvas")) {
   context.strokeStyle = palette.line;
   context.beginPath(); context.moveTo(32, 113); context.lineTo(1232, 113); context.stroke();
   context.fillStyle = "#61d7bf"; context.font = "10px monospace";
-  context.fillText("AGENTSIGHT · REPOSITORY EVOLUTION", 32, 39);
+  context.fillText("AGENTVIS · REPOSITORY EVOLUTION", 32, 39);
   context.fillStyle = palette.text; context.font = "24px system-ui";
   context.fillText("Repository Nebula", 32, 72);
   context.fillStyle = palette.muted; context.font = "11px system-ui";
@@ -235,6 +235,6 @@ async function svg() {
   return value;
 }
 
-globalThis.AgentSightVis = {
+globalThis.AgentVis = {
   initialize, render, beginMp4, encodeMp4Chunk, finishMp4, pngBase64, svg, composeFrame,
 };

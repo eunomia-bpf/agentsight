@@ -29,7 +29,6 @@ mod cmd_perf_live;
 mod cmd_perf_tui;
 mod cmd_trace;
 mod cmd_tui_record;
-mod cmd_vis;
 mod event;
 mod json;
 mod model;
@@ -599,7 +598,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             path,
             outputs,
             global,
-        } => cmd_vis::run_vis(path, outputs, *global)?,
+        } => agentvis::run_vis(path, outputs, *global)?,
         Commands::Report { db, local, sub } => match sub {
             None | Some(ReportCommands::Summary { .. }) => {
                 let (db_ref, local_ref) = match sub {

@@ -11,7 +11,6 @@
 
 mod parser;
 mod process_match;
-mod repository;
 mod types;
 
 // Re-export constants
@@ -45,8 +44,4 @@ pub use parser::{
 pub use process_match::{
     LiveProcessCandidate, ProcessKey, ProcessTree, SessionProcessInput, SessionProcessMatch,
     SessionProcessMatcher, SessionProcessMatches,
-};
-
-pub use repository::{
-    FileAction, RepositoryEvent, RepositoryTrace, RepositoryTraceOptions, build_repository_trace,
 };

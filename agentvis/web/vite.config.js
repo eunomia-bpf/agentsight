@@ -8,7 +8,7 @@ export default defineConfig({
     sourcemap: false,
     lib: {
       entry: resolve(import.meta.dirname, "runtime.js"),
-      name: "AgentSightVis",
+      name: "AgentVis",
       formats: ["iife"],
       fileName: () => "repository-nebula.iife.js",
     },

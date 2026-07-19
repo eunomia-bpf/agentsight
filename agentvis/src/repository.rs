@@ -3,7 +3,7 @@
 
 //! Repository-scoped file actions from native coding-agent sessions.
 
-use crate::{
+use agent_session::{
     AGENT_CLAUDE, AGENT_CODEX, AGENT_GEMINI, AgentSession, SessionCandidate,
     discover_session_files, parse_session_content, session_candidate_from_path,
 };
