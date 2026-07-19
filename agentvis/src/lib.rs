@@ -7,7 +7,7 @@
 mod export;
 mod repository;
 
-pub use export::run_vis;
+pub use export::{CompactRate, run_vis};
 pub use repository::{
     FileAction, RepositoryEvent, RepositoryTrace, RepositoryTraceOptions, build_repository_trace,
 };

@@ -214,6 +214,9 @@ enum Commands {
         /// Scan every local session and retain operations targeting this repository.
         #[arg(long)]
         global: bool,
+        /// Compact GIF/MP4 uniformly by action to this duration, or use `full`.
+        #[arg(long, default_value = "30s")]
+        compact_rate: agentvis::CompactRate,
     },
     /// Show live agent sessions.
     Top {
@@ -598,7 +601,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             path,
             outputs,
             global,
-        } => agentvis::run_vis(path, outputs, *global)?,
+            compact_rate,
+        } => agentvis::run_vis(path, outputs, *global, *compact_rate)?,
         Commands::Report { db, local, sub } => match sub {
             None | Some(ReportCommands::Summary { .. }) => {
                 let (db_ref, local_ref) = match sub {

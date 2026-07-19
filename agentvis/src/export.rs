@@ -8,17 +8,89 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 const WIDTH: u32 = 1264;
 const HEIGHT: u32 = 936;
+const COMPACT_FPS: f64 = 30.0;
+const FULL_FPS: f64 = 8.0;
 const RUNTIME: &str = include_str!("../vendor/vis/repository-nebula.iife.js");
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CompactRate {
+    DurationSeconds(f64),
+    Full,
+}
+
+impl FromStr for CompactRate {
+    type Err = String;
+
+    fn from_str(raw: &str) -> Result<Self, Self::Err> {
+        let value = raw.trim().to_ascii_lowercase();
+        if value == "full" {
+            return Ok(Self::Full);
+        }
+        let (number, multiplier) = value
+            .strip_suffix('s')
+            .map(|number| (number, 1.0))
+            .or_else(|| value.strip_suffix('m').map(|number| (number, 60.0)))
+            .or_else(|| value.strip_suffix('h').map(|number| (number, 3_600.0)))
+            .unwrap_or((&value, 1.0));
+        let seconds = number
+            .parse::<f64>()
+            .map_err(|_| "compact rate must be a duration such as 30s, 2m, or full".to_string())?
+            * multiplier;
+        if !seconds.is_finite() || seconds < 1.0 {
+            return Err("compact rate duration must be at least one second".into());
+        }
+        Ok(Self::DurationSeconds(seconds))
+    }
+}
+
+#[derive(Debug)]
+struct MediaPlan {
+    indices: Vec<usize>,
+    frame_rate: f64,
+    duration_seconds: f64,
+    compact: bool,
+}
+
+fn media_plan(action_count: usize, rate: CompactRate) -> MediaPlan {
+    let count = action_count.max(1);
+    match rate {
+        CompactRate::Full => MediaPlan {
+            indices: (0..count).collect(),
+            frame_rate: FULL_FPS,
+            duration_seconds: count as f64 / FULL_FPS,
+            compact: false,
+        },
+        CompactRate::DurationSeconds(seconds) => {
+            let frame_count =
+                count.min((seconds * COMPACT_FPS).round().max(count.min(2) as f64) as usize);
+            let indices = if frame_count == 1 {
+                vec![0]
+            } else {
+                (0..frame_count)
+                    .map(|frame| frame * (count - 1) / (frame_count - 1))
+                    .collect()
+            };
+            MediaPlan {
+                indices,
+                frame_rate: frame_count as f64 / seconds,
+                duration_seconds: seconds,
+                compact: frame_count < count,
+            }
+        }
+    }
+}
 
 pub fn run_vis(
     repo: &Path,
     outputs: &[PathBuf],
     global: bool,
+    compact_rate: CompactRate,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let started = Instant::now();
     let outputs = requested_outputs(outputs)?;
@@ -40,6 +112,7 @@ pub fn run_vis(
         trace.file_action_count,
         scan.elapsed().as_secs_f32()
     );
+    let action_count = trace.events.len();
     let payload = json!({
         "meta": {
             "repository": trace.repository,
@@ -67,7 +140,7 @@ pub fn run_vis(
         .collect::<Vec<_>>();
     if !media.is_empty() {
         eprintln!("[agentvis 4/5] render      preparing deterministic layout and media");
-        render_media(&html, &media)?;
+        render_media(&html, &media, media_plan(action_count, compact_rate))?;
     }
     for output in &outputs {
         eprintln!(
@@ -117,6 +190,7 @@ fn extension(path: &Path) -> String {
 fn render_media(
     html: &str,
     outputs: &[PathBuf],
+    plan: MediaPlan,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let temporary = tempfile::tempdir()?;
     let page = temporary.path().join("repository-nebula.html");
@@ -126,7 +200,18 @@ fn render_media(
         .iter()
         .any(|path| matches!(extension(path).as_str(), "gif" | "mp4"))
     {
-        let mp4 = renderer.mp4()?;
+        eprintln!(
+            "[agentvis] compact     {} media frames · {:.2} fps · {:.1}s{}",
+            plan.indices.len(),
+            plan.frame_rate,
+            plan.duration_seconds,
+            if plan.compact {
+                " · uniform by action"
+            } else {
+                " · full"
+            }
+        );
+        let mp4 = renderer.mp4(&plan)?;
         let mp4_path = temporary.path().join("repository-nebula.mp4");
         fs::write(&mp4_path, &mp4)?;
         write_copies(&mp4, outputs, "mp4")?;
@@ -136,7 +221,7 @@ fn render_media(
             let palette = Command::new("ffmpeg")
                 .args(["-y", "-hide_banner", "-loglevel", "error", "-i"])
                 .arg(&mp4_path)
-                .args(["-vf", "fps=8,palettegen=max_colors=128", "-frames:v", "1"])
+                .args(["-vf", "palettegen=max_colors=128", "-frames:v", "1"])
                 .arg(&palette_path)
                 .status()
                 .map_err(|error| {
@@ -157,7 +242,7 @@ fn render_media(
                 .arg(&palette_path)
                 .args([
                     "-lavfi",
-                    "fps=8[x];[x][1:v]paletteuse=dither=sierra2_4a",
+                    "[0:v][1:v]paletteuse=dither=sierra2_4a",
                     "-loop",
                     "0",
                 ])
@@ -275,10 +360,14 @@ impl BrowserRenderer {
         Ok(STANDARD.decode(self.string(script, await_promise)?)?)
     }
 
-    fn mp4(&self) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+    fn mp4(&self, plan: &MediaPlan) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+        let media = serde_json::to_string(&json!({
+            "indices": plan.indices,
+            "frameRate": plan.frame_rate,
+        }))?;
         let total = self
             .tab
-            .evaluate("AgentVis.beginMp4()", true)?
+            .evaluate(&format!("AgentVis.beginMp4({media})"), true)?
             .value
             .and_then(|value| value.as_u64())
             .ok_or("MP4 encoder returned no frame count")?;
@@ -363,6 +452,29 @@ mod tests {
             requested_outputs(&["x.html".into(), "x.gif".into(), "x.html".into()]).unwrap();
         assert_eq!(outputs.len(), 2);
         assert!(requested_outputs(&["x.pdf".into()]).is_err());
+    }
+
+    #[test]
+    fn compact_rate_accepts_durations_and_full() {
+        assert_eq!("30s".parse(), Ok(CompactRate::DurationSeconds(30.0)));
+        assert_eq!("2m".parse(), Ok(CompactRate::DurationSeconds(120.0)));
+        assert_eq!("full".parse(), Ok(CompactRate::Full));
+        assert!("0s".parse::<CompactRate>().is_err());
+    }
+
+    #[test]
+    fn compact_media_frames_are_uniform_by_action() {
+        let plan = media_plan(68_222, CompactRate::DurationSeconds(30.0));
+        assert_eq!(plan.indices.len(), 900);
+        assert_eq!(plan.indices.first(), Some(&0));
+        assert_eq!(plan.indices.last(), Some(&68_221));
+        let gaps = plan
+            .indices
+            .windows(2)
+            .map(|pair| pair[1] - pair[0])
+            .collect::<Vec<_>>();
+        assert!(gaps.iter().max().unwrap() - gaps.iter().min().unwrap() <= 1);
+        assert_eq!(media_plan(337, CompactRate::Full).indices.len(), 337);
     }
 
     #[test]

@@ -85,6 +85,7 @@ one self-contained Repository Nebula artifact per output file:
 
 ```sh
 agentsight vis . --global \
+  --compact-rate 30s \
   -o output/repository-nebula.html \
   -o output/repository-nebula.png \
   -o output/repository-nebula.gif \
@@ -93,5 +94,8 @@ agentsight vis . --global \
 
 HTML works without external assets. PNG, SVG, and MP4 require Chromium; GIF
 additionally requires FFmpeg. Repeated `-o` values reuse one session scan and layout.
+GIF/MP4 default to a 30-second compact replay whose frames are spaced uniformly
+by action index; use `--compact-rate full` for one media frame per action. HTML
+always keeps the full action timeline.
 See [the Chinese algorithm specification](repository-nebula.zh-CN.md) for the
 event boundary, force model, frame count, and export invariants.

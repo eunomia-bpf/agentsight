@@ -20,9 +20,12 @@ struct Cli {
     /// Scan every local session and retain operations targeting this repository.
     #[arg(long)]
     global: bool,
+    /// Compact GIF/MP4 uniformly by action to this duration, or use `full`.
+    #[arg(long, default_value = "30s")]
+    compact_rate: agentvis::CompactRate,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let cli = Cli::parse();
-    agentvis::run_vis(&cli.path, &cli.outputs, cli.global)
+    agentvis::run_vis(&cli.path, &cli.outputs, cli.global, cli.compact_rate)
 }

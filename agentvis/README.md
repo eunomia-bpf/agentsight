@@ -7,6 +7,7 @@ stay in this crate.
 
 ```bash
 agentvis . --global \
+  --compact-rate 30s \
   -o output/repository-nebula.html \
   -o output/repository-nebula.png \
   -o output/repository-nebula.gif \
@@ -16,6 +17,11 @@ agentvis . --global \
 HTML output is a self-contained interactive file. SVG and PNG are still
 artifacts; GIF and MP4 replay the same layout frames. AgentSight exposes the
 same implementation through `agentsight vis`.
+
+GIF/MP4 default to `--compact-rate 30s`: media frames are selected at uniform
+action intervals and encoded at 30 fps. Use `--compact-rate full` to encode
+every action frame. HTML always retains every action and ignores media
+compaction.
 
 By default, discovery includes every Claude, Codex, and Gemini session whose
 cwd, project identity, or Git remote belongs to the worktree. `--global` also

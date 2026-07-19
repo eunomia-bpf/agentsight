@@ -96,6 +96,7 @@ SVG/PNG，完整回放可导出 GIF/MP4；所有格式必须来自同一次动�
 
 ```bash
 agentvis [PATH] --global \
+  --compact-rate 30s \
   -o output/repository-nebula.html \
   -o output/repository-nebula.svg \
   -o output/repository-nebula.png \
@@ -104,6 +105,7 @@ agentvis [PATH] --global \
 
 # AgentSight 中的等价入口；输出语义与独立 CLI 相同
 agentsight vis [PATH] --global \
+  --compact-rate 30s \
   -o output/repository-nebula.html \
   -o output/repository-nebula.svg \
   -o output/repository-nebula.png \
@@ -113,9 +115,9 @@ agentsight vis [PATH] --global \
 
 重复 `-o` 会共享一次 session 扫描和一次布局计算。HTML 是可离线分享的单文件，
 内含播放按钮和进度条；SVG 是星图图层的矢量版本；PNG 是最终帧；GIF 和 MP4
-包含相同数量、相同顺序的布局帧。常用入口只保留仓库路径、`--global` 和可重复的
-`-o`；播放速度、画布尺寸等表现参数使用稳定默认值，不能为了暴露实现细节不断增加
-CLI flag。
+消费同一条按 action 排序的布局轨迹。`--compact-rate` 是唯一的媒体节奏参数：默认
+`30s`，也接受 `2m`、`1h` 等时长或 `full`。HTML 不受它影响，始终保留全部 action；
+`full` 让 GIF/MP4 每个 action 输出一帧。画布尺寸等实现细节不增加 CLI flag。
 
 ## 统一数据流
 
@@ -238,14 +240,25 @@ first-observed 节点，只有命令文本推测而没有明确路径证据的 r
 
 动作按 `(ts_ms, session-id, event ordinal)` 排序。同一 Tool 事件中的多个
 文件动作属于同一个动作步。每个 Agent action 产生一个布局快照；没有仓库文件动作的
-action 也保留一个状态不变的快照，使进度条与 session 操作一一对应。HTML、GIF 和
-MP4 使用全部快照，不合并、不抽帧、不设置快照总数上限。播放速度只改变观看速度，
-不改变动作与帧的对应关系。
+action 也保留一个状态不变的快照，使 HTML 进度条与 session 操作一一对应。HTML 不合并、
+不抽帧、不设置快照总数上限；GIF/MP4 只按显式 `--compact-rate` 选择均匀 action 帧，
+不允许存在另一套隐式上限。
 
-HTML 和媒体默认都以 `8 action/s` 播放。HTML 的每次浏览器刷新最多推进一个 action；
+HTML 默认以 `8 action/s` 播放。HTML 的每次浏览器刷新最多推进一个 action；
 渲染跟不上时只会降低实际播放速度，不能按墙钟进度跨越中间 action。长轨迹不再压缩到
-8--30 秒，ACTplane 的 68,222 个 action 因而是约 2 小时 22 分的完整回放；用户仍可用
-整数步进度条直接跳到任意 action。
+8--30 秒，ACTplane 的 68,222 个 action 因而是约 2 小时 22 分的完整 HTML 回放；用户
+仍可用整数步进度条直接跳到任意 action。
+
+GIF/MP4 默认使用 `--compact-rate 30s`。目标媒体帧数为 `duration × 30 fps`，第 `j` 帧
+选择的 action 序号为：
+
+```text
+index(j) = floor(j × (action_count - 1) / (media_frame_count - 1))
+```
+
+因此首尾 action 必定保留，相邻媒体帧跨越的 action 数最多相差 1，不按墙钟时间、
+session 空档或 commit 压缩。求取任一媒体帧之前仍按顺序推进所有中间 action 的状态和
+力场，只减少输出快照；这就是显式 compact，不是隐式跳帧。`full` 使用全部 action 帧。
 
 时间轴从第一个 Agent action 开始，到最后一个 Agent action 结束。进度条按动作序号
 推进；墙钟时间只在详情中显示，不把 session 间长时间空档扩成空白帧。跨 session
@@ -482,7 +495,8 @@ test-only churn 区间从一次失败的 test/build/lint 开始；后续只允�
 - rename 保持文件身份、累计访问和速度，但切换路径、目录归属与目标颜色；
 - 失败 Tool action 保留一帧，未被系统观察证明的参数路径不改变文件；
 - 同一个实际文件 burst 被 native action 和 system observation 同时看到时只计一次；
-- GIF、MP4 和 HTML 进度条使用完全相同的 action 顺序，任何格式都不能独自抽帧；
+- GIF、MP4 和 HTML 使用完全相同的 action 顺序；媒体只能按显式 compact plan 均匀
+  选择 action，首尾必保留、相邻 action 跨度最多相差 1；
 - 重构 Rust/JS 边界、替换编码器或做性能优化时，不能无意改变已有画面的颜色、波纹、
   星点大小、布局运动和节奏。
 
@@ -493,18 +507,18 @@ fixture 与生成产物）控制在 3000 行以内。优先复用 `agent-session
 Mediabunny、WebCodecs 和 FFmpeg，不自建同类解析器、力求解器、Canvas 抽象或媒体容器。
 一个命令只扫描一次 session、只计算一次布局，所有请求格式复用同一场景和帧流。
 
-ACTplane 全轨迹是性能验收 workload：不设置快照上限，坚持一个 Tool action 对应一帧，
-在目标开发机上从已发现 session 生成所请求的 HTML/PNG/GIF/MP4 应在 60 秒内完成。
-性能不达标时先减少 Chromium 启动、重复布局和位图复制，再调整编码流水线；不得通过
-丢 action、合并帧或改变视觉算法达标。基准报告必须记录 action 数、文件动作数、可见
-文件数、媒体帧数、各阶段耗时和输出大小。
+ACTplane 全轨迹是性能验收 workload：HTML 不设置快照上限；默认 `--compact-rate 30s`
+的 GIF/MP4 组合在目标开发机上应在 90 秒内完成。`full` 是独立的完整帧压力测试，
+不拿 60 秒目标作为隐式抽帧理由。性能不达标时先减少 Chromium 启动、重复布局和位图
+复制，再调整编码流水线。基准报告必须记录 action 数、compact plan、文件动作数、
+可见文件数、媒体帧数、各阶段耗时和输出大小。
 
 ## 渲染和编码
 
 交互 HTML 使用 ECharts Canvas renderer。SVG 使用同一份 ECharts option 按需
 渲染，因此坐标、大小、颜色和内容相同；抗锯齿可能与 Canvas 有细微差别。
-PNG 直接来自合成 Canvas。MP4 通过浏览器 WebCodecs 和 Mediabunny 从这批 Canvas
-帧编码；GIF 由同一个 MP4 转换，不重新计算布局。GIF 使用两遍 FFmpeg：第一遍只统计
+PNG 直接来自合成 Canvas。MP4 通过浏览器 WebCodecs 和 Mediabunny 编码 compact plan
+选择的 Canvas 帧；GIF 由同一个 MP4 转换，不重新计算布局。GIF 使用两遍 FFmpeg：第一遍只统计
 全片颜色并生成 palette，第二遍用固定 palette 流式编码；不能使用
 `split → palettegen → paletteuse` 单图，因为后一路会在长轨迹上无界缓存原始帧。
 

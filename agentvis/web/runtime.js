@@ -191,7 +191,7 @@ function composeFrame(canvas = document.createElement("canvas")) {
 
 let encoder;
 
-async function beginMp4() {
+async function beginMp4(plan = {}) {
   if (!await canEncodeVideo("avc", { width: 1264, height: 936, bitrate: QUALITY_HIGH })) {
     throw new Error("This Chromium build has no H.264 WebCodecs encoder; use a Chrome/Chromium build with AVC encoding support.");
   }
@@ -200,20 +200,28 @@ async function beginMp4() {
   const target = new BufferTarget();
   const output = new Output({ format: new Mp4OutputFormat({ fastStart: "in-memory" }), target });
   const source = new CanvasSource(canvas, { codec: "avc", bitrate: QUALITY_HIGH });
-  output.addVideoTrack(source, { frameRate: 8 });
+  const frameRate = Number(plan.frameRate) || 8;
+  const indices = Array.isArray(plan.indices) && plan.indices.length
+    ? plan.indices : frameTimes.map((_, index) => index);
+  output.addVideoTrack(source, { frameRate });
   await output.start();
-  encoder = { canvas, target, output, source, index: 0 };
-  return frameTimes.length;
+  encoder = { canvas, target, output, source, index: 0, indices, frameRate };
+  return indices.length;
 }
 
 async function encodeMp4Chunk(count = 12) {
-  const end = Math.min(frameTimes.length, encoder.index + count);
+  const end = Math.min(encoder.indices.length, encoder.index + count);
   for (; encoder.index < end; encoder.index += 1) {
-    render(frameTimes[encoder.index], encoder.index);
+    const layoutIndex = encoder.indices[encoder.index];
+    render(frameTimes[layoutIndex], layoutIndex);
     composeFrame(encoder.canvas);
-    await encoder.source.add(encoder.index / 8, 1 / 8, { keyFrame: encoder.index % 64 === 0 });
+    await encoder.source.add(
+      encoder.index / encoder.frameRate,
+      1 / encoder.frameRate,
+      { keyFrame: encoder.index % 64 === 0 },
+    );
   }
-  return [encoder.index, frameTimes.length];
+  return [encoder.index, encoder.indices.length];
 }
 
 function base64(buffer) {
