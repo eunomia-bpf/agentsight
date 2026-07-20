@@ -39,6 +39,7 @@ history is archived at
 | `script/rq3_stateful_native_turn_task_stack_eval.py` | Step 0054 source-native turn reconstruction, legal variable-depth task-stack inference, and standard score-only evaluation; not a core AgentProf subsystem or release constructor |
 | `script/rq3_stateful_visible_path_identity_eval.py` | Step 0055 score-only audit of exact profiler-visible task-label paths versus hidden occurrence identity and recurrence; not a model backend or core AgentProf subsystem |
 | `script/rq3_global_task_semantic_segmentation_eval.py` | Steps 0057--0058 whole-trajectory task-semantic adapter, persistent task-occurrence scorer, fixed-model identity check, and failed-output renderer; not a model backend, release constructor, or paper figure source |
+| `script/rq3_well_nested_task_stack_eval.py` | Step 0059 literal `stay`/single-leaf `push`/single-leaf `pop` online task-stack evaluator and standard scorer; not a model backend, release constructor, or paper figure source |
 
 ## Implemented Pipeline
 
@@ -233,10 +234,9 @@ configuration. In particular:
 13. the final causal exact-leaf evaluator applies 6,731 identity-preserving
     stays and improves exact-visible-path B-cubed F1 from 0.5671 to 0.6499, but
     does not clear recurrence at 0.6627; its paired adoption interval crosses
-    zero. The fixed online Qwen2.5-3B development branch is closed and remains
-    outside the Rust CLI. The next positive constructor must use globally
-    contextual task/subtask inference rather than another local prompt,
-    threshold, field, depth, or contraction variant.
+    zero. The unrestricted path-editor branch is closed and remains outside the
+    Rust CLI. A later user-directed experiment separately tests a literal
+    well-nested online controller rather than reopening its arbitrary edits.
 14. the completed whole-trajectory global adapter covers all 405 preselected
     reconstructable failed trajectories but emits exactly one interval for
     every trajectory with both tested checkpoints. Qwen2.5-3B produces variable
@@ -249,7 +249,19 @@ configuration. In particular:
     every session has one segment. This adapter is not integrated into the Rust
     CLI. The next distinct constructor should maintain a live task stack and
     classify each next semantic operation as keep, push, or pop rather than
-    repeat a global prompt or model variant.
+    repeat a global prompt or model variant. Step 0059 performs that distinct
+    live-stack test.
+15. the Step 0059 live controller permits only `stay`, one-leaf `push`, and
+    one-leaf `pop` and retains exact active-leaf identity. Under a common
+    maximal-contiguous-occurrence scorer, it raises B-cubed F1 modestly from
+    0.6543 to 0.6574 relative to Step 0056 but remains below
+    recurrence at 0.6627, with a candidate-minus-recurrence paired interval
+    crossing zero. The fixed 3B policy applies 5,343 pushes and only 128 pops,
+    leaves 334 of 405 sessions without any depth decrease, and reaches depth
+    122. The well-nested data structure is not rejected, but this transition
+    policy is not integrated into the Rust CLI and does not establish automatic
+    recovery of task completion, ancestor semantics, or the lower semantic
+    suffix.
 
 ## Implementation Policy After The Recurrence Port
 

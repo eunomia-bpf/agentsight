@@ -277,6 +277,24 @@ it rejects the fixed one-shot global constructor without changing RQ3, the
 intended hierarchy, or the paper. Complete records are under
 `docs/tmp/build-and-evaluate/step-0058-20260720T135248-0700/experiment-001/`.
 
+Step 0059 returns to the user's literal online state machine while changing
+only the transition language: `stay`, `push` exactly one concrete nested task,
+or `pop` exactly one active leaf. It retains exact active-leaf identity, removes
+`replace` and arbitrary ancestor targets, and sets no depth cap. The complete
+405-trajectory, 17,148-turn, 20,866-operation run is valid. Ordinary B-cubed
+precision/recall/F1 is 0.708301/0.613398/0.657442, versus 0.654342 for the
+Step 0056 contiguous task occurrence and 0.662740 for recurrence. Candidate minus
+recurrence has a 251-task paired 95% interval of
+[-0.020053,+0.010075], so the registered result is inconclusive and not
+adopted. The policy applies 5,343 pushes but only 128 pops; 334 sessions never
+decrease depth and the maximum reaches 122. This establishes only that the
+controller maintains a mechanically valid well-nested state; the fixed 3B
+transition policy does not reliably recognize task completion or validate the
+semantic representation. The negative development result
+does not enter the paper or alter RQ3, its positive hypothesis, or the intended
+hierarchy. Complete records are under
+`docs/tmp/build-and-evaluate/step-0059-20260720T150243-0700/experiment-001/`.
+
 ## Admitted RQ2 Evidence And Boundaries
 
 The first complete AgentProcessBench experiment provides supporting RQ2
@@ -1201,9 +1219,9 @@ require independent literal phase-name classification. The current paper uses
 standard macro-F1/accuracy for literal task/action tags, standard V-measure and
 ordinary B-cubed F1 for partitions, and exact adjacent-boundary F1 for group
 transitions. Another taxonomy experiment is therefore not admitted merely to
-fill a label cell. The next outer action is a genuinely unprimed whole-paper
-review with primary-source novelty search; it may select a new experiment only
-if that result can change a paper-level RQ answer or improve the actual system.
+fill a label cell. At Step 0038, the then-current route was a genuinely
+unprimed whole-paper review with primary-source novelty search; subsequent
+completed steps supersede that historical next-state pointer.
 
 ## Experiment History Policy
 

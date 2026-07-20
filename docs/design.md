@@ -91,10 +91,19 @@ and boundary scores. Because the checkpoints differ in more than parameter
 count, this is not a capacity-controlled comparison; it establishes that the
 fixed global interface is insufficient with both tested checkpoints. This
 closed branch will not spend another run on global-prompt or model variants.
-The next distinct mechanism target is an online persistent task stack that
-classifies the next semantic operation as keep, push, or pop, while allowing
-the phase/action/object/result suffix to change without replacing the active
-task occurrence.
+The requested literal well-nested follow-up then restricts the online policy to
+`stay`, `push` one leaf, or `pop` one leaf, while allowing the
+phase/action/object/result suffix to change without replacing the active task
+occurrence. It is mechanically valid and modestly raises B-cubed F1 over the
+exact-leaf unrestricted editor from 0.6543 to 0.6574 under the common
+contiguous-occurrence scorer, but recurrence remains
+0.6627 and the paired interval crosses zero. Across 17,148 turns the fixed 3B
+policy applies 5,343 pushes and only 128 pops, reaching depth 122. A well-nested
+stack therefore remains the intended data structure, but stack legality alone
+does not supply task-completion judgment. The candidate is not the current
+automatic constructor. A future positive mechanism must improve the evidence
+or policy for opening and completing responsibilities rather than add a depth
+cap, threshold, contraction, or more path-edit operations.
 Phase/action/object/result remain a transient evidence suffix below the task
 path, and agent/model/session/tool/status remain metadata.
 
