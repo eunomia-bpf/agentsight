@@ -256,7 +256,8 @@ aggregate cost by width or node size, while Pivot Tracing~\cite{pivottracing}
 dynamically selects and groups measurements across causally related events.
 % 火焰图~\cite{flamegraphs}和 pprof~\cite{pprof} 调用图以宽度或节点大小表示聚合开销，而 Pivot Tracing~\cite{pivottracing} 跨有因果关系的事件动态选择和分组测量。
 These tools start from stable code identifiers and runtime stacks, although
-pprof can also promote \texttt{tagroot}/\texttt{tagleaf} values to pseudo-frames.
+pprof can also promote \texttt{tagroot}/\texttt{tagleaf} values to
+pseudo-frames~\cite{pprof}.
 % 这些工具通常从稳定的代码标识符和运行时栈开始；pprof 也可以聚合标签，并将 \texttt{tagroot}/\texttt{tagleaf} 值提升为伪帧。
 Agent profiles must instead derive stable semantic fields and connect them to
 downstream effects.
@@ -285,7 +286,7 @@ different prompts or tools can express the same intent.
 Second, agent trajectories lack a runtime call hierarchy for semantic attribution.
 % 第二个挑战是智能体轨迹没有能够自动提供语义归因的运行时调用层次。
 In CPU profiling, the stack attributes \texttt{malloc}'s cost simultaneously
-to \texttt{parse}, \texttt{process}, and \texttt{main}.
+to \texttt{parse}, \texttt{process}, and \texttt{main}~\cite{pprof,flamegraphs}.
 % 在 CPU 分析中，调用栈决定了每个层级的归因：\texttt{malloc} 的开销同时属于 \texttt{parse}、\texttt{process} 和 \texttt{main}。
 A prompt sequence may contain one or several tasks within a larger workflow,
 yet no runtime mechanism marks its boundaries or attribution granularity.
@@ -863,8 +864,9 @@ baseline, and produces identical assignments across three runs.
 
 For action tags, a standalone backend-level adapter runs the fixed Qwen3.6-27B
 closed-label configuration using only the current thought/action and eight
-definitions. The adapter classifies all 2{,}737 published annotations from 120
-AutoCodeRover, OpenHands, and RepairAgent trajectories~\cite{qwen36,bouzenia-pradel-2025-trajectories,traceview-2026}.
+action definitions operationalized by TraceView~\cite{qwen36,traceview-2026}.
+The adapter classifies all 2{,}737 published annotations from 120 AutoCodeRover,
+OpenHands, and RepairAgent trajectories~\cite{bouzenia-pradel-2025-trajectories}.
 % 在独立的 action-label backend 评估中，standalone adapter 使用固定 Qwen3.6-27B closed-label 配置，仅读取当前 thought/action 与八个已声明定义，在 AutoCodeRover、OpenHands 和 RepairAgent 的 120 条轨迹上测试全部 2,737 个公开标注；它不是已集成的 AgentProf CLI 路径。
 The model reaches 0.498 macro-F1 and 0.628 accuracy, compared with 0.061
 macro-F1 and 0.323 accuracy for the majority-class baseline. Its 0.437 macro-F1 gain has a whole-trajectory 95\% bootstrap
