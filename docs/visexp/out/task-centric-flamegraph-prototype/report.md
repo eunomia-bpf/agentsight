@@ -3,7 +3,7 @@
 This artifact replaces the system-field stack with a concrete-task stack:
 
 ```text
-task -> subtask -> phase -> semantic action -> observed outcome
+task -> subtask -> phase/strategy -> semantic action -> operation object -> result
 ```
 
 - task: `Order a loaner laptop and provide a reason`
@@ -25,7 +25,7 @@ task -> subtask -> phase -> semantic action -> observed outcome
 
 ## Construction boundary
 
-The concrete task is selected by the trace session identifier. A declared `phase -> subtask` map turns source phases into readable task decomposition. The remaining frames use visible `phase`, `action`, `repeat_state`, and `step_error` fields. Agent/model identity is an interactive filter, not a stack level. Opaque DOM target IDs and oracle/diagnostic labels are excluded.
+The concrete task is selected by the trace session identifier. Declared `phase -> subtask` and `phase -> operation object` maps turn source phases into readable task decomposition and object classes. The remaining frames use visible `phase`, `action`, `repeat_state`, and `step_error` fields. Agent/model identity is an interactive filter, not a stack level. Opaque DOM target IDs and oracle/diagnostic labels are excluded.
 
 **Limit:** The phase-to-subtask map is declared in the generator. This artifact tests the task-centric visual shape; it does not count as evidence that task/subtask labels were inferred automatically.
 

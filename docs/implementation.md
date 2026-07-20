@@ -229,6 +229,13 @@ configuration. In particular:
     constructor remains below recurrence at 0.6627. Adjacent repeated-frame
     contraction is a diagnostic only; the Rust folded/pprof paths preserve
     every frame.
+13. the final causal exact-leaf evaluator applies 6,731 identity-preserving
+    stays and improves exact-visible-path B-cubed F1 from 0.5671 to 0.6499, but
+    does not clear recurrence at 0.6627; its paired adoption interval crosses
+    zero. The fixed online Qwen2.5-3B development branch is closed and remains
+    outside the Rust CLI. The next positive constructor must use globally
+    contextual task/subtask inference rather than another local prompt,
+    threshold, field, depth, or contraction variant.
 
 ## Implementation Policy After The Recurrence Port
 

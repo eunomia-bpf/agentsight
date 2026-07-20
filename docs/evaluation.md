@@ -230,6 +230,23 @@ stage occurrences, not cross-run path equality, ancestor topology, or the lower
 semantic suffix. Complete records are under
 `docs/tmp/build-and-evaluate/step-0055-20260720T103701-0700/experiment-001/`.
 
+Step 0056 causally enforces the simplest task-identity invariant: a proposed
+`push` or `replace` whose byte-exact label equals the active visible leaf is
+applied as `stay`, with every other model input and transition unchanged. The
+complete 405-trajectory replay applies the invariant 6,731 times and raises
+exact-visible-path ordinary B-cubed F1 from 0.567111 to 0.649878. The paired
+causal-minus-Step0055 interval is [+0.066264,+0.100842], so redundant identity
+churn explains a substantial part of the original constructor error. The
+candidate does not clear the registered adoption comparison: recurrence is
+0.662740 and causal-minus-recurrence is -0.013075 with 95% interval
+[-0.027838,+0.002471]. Only three pure pops remain, maximum depth is 28, and
+1,278 proposals use exact phase-like persistent labels. The fixed online
+Qwen2.5-3B branch is therefore closed without further prompt, threshold, depth,
+field, or model tuning. This does not weaken RQ3 or the intended hierarchy; it
+routes the next mechanism toward globally contextual task/subtask construction
+with a transient phase/action/object/result suffix. Complete records are under
+`docs/tmp/build-and-evaluate/step-0056-20260720T110619-0700/experiment-001/`.
+
 ## Admitted RQ2 Evidence And Boundaries
 
 The first complete AgentProcessBench experiment provides supporting RQ2

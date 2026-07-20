@@ -77,12 +77,15 @@ The completed source-native stateful prototype establishes a narrower design
 boundary. Updating an unbounded stack once per native turn is mechanically
 valid and improves substantially over treating low-level operations or native
 turns as singleton task nodes, but a free transition policy repeatedly creates
-new frame instances for an unchanged task label. That prototype is not the
-current automatic constructor. The next mechanism must preserve the identity
-of a continuing concrete goal before it tries to infer deeper topology; adding
-more runtime fields, phase labels, or display layers cannot repair task
-identity. Phase/action/object/result remain a transient evidence suffix below
-the task path, and agent/model/session/tool/status remain metadata.
+new frame instances for an unchanged task label. Enforcing byte-exact active-
+leaf identity continuity removes much of that error, raising ordinary B-cubed
+F1 from 0.5671 to 0.6499, but it still almost never pops and retains excessive
+depth and phase-like persistent frames. That fixed online Qwen2.5-3B branch is
+not the current automatic constructor. The next mechanism must infer the task
+path with global trajectory context rather than another local transition rule.
+Adding more runtime fields, phase labels, thresholds, or display layers cannot
+repair task topology. Phase/action/object/result remain a transient evidence
+suffix below the task path, and agent/model/session/tool/status remain metadata.
 
 The profiling identity of a constructed task stack is its complete ordered
 visible label sequence. Internal frame-instance IDs may preserve controller

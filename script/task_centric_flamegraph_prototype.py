@@ -6,7 +6,7 @@ accuracy result.  It deliberately starts from one concrete benchmark task and
 uses a small, declared phase-to-subtask map so the stack answers a user-facing
 question:
 
-    task -> subtask -> phase -> semantic action -> observed outcome
+    task -> subtask -> phase -> semantic action -> operation object -> result
 
 The source operation count and token widths are read from the tracked R300
 operation file.  Agent/model identity remains a filter in the interactive HTML
@@ -55,6 +55,14 @@ ACTION_LABELS = {
     "report_infeasible": "Report infeasible",
 }
 
+PHASE_TO_OBJECT = {
+    "observe": "Current page",
+    "navigate": "Catalog navigation",
+    "input": "Request form fields",
+    "browser-action": "Product options",
+    "finish": "Task response",
+}
+
 FRAME_COLORS = {
     "Task": "#23395d",
     "Subtask:Understand the request": "#6c5ce7",
@@ -63,10 +71,11 @@ FRAME_COLORS = {
     "Subtask:Complete or report": "#8e5bd9",
     "Phase": "#72a7e8",
     "Action": "#a8c7ee",
-    "Outcome:Progress": "#43b581",
-    "Outcome:Repeated": "#f3a712",
-    "Outcome:Repeated 3+ times": "#ef7c2f",
-    "Outcome:Action error": "#d64550",
+    "Object": "#c8d9f0",
+    "Result:Progress": "#43b581",
+    "Result:Repeated": "#f3a712",
+    "Result:Repeated 3+ times": "#ef7c2f",
+    "Result:Action error": "#d64550",
 }
 
 
@@ -135,6 +144,7 @@ def read_samples(source: Path) -> list[Sample]:
             subtask = PHASE_TO_SUBTASK.get(phase_raw, "Other work")
             phase_label = PHASE_LABELS.get(phase_raw, phase_raw.replace("-", " ").title())
             action_label = ACTION_LABELS.get(action_raw, action_raw.replace("_", " ").title())
+            object_label = PHASE_TO_OBJECT.get(phase_raw, "Task evidence")
             outcome = outcome_for(fields)
             try:
                 tokens = int(fields.get("input_tokens", 0)) + int(fields.get("output_tokens", 0))
@@ -147,7 +157,8 @@ def read_samples(source: Path) -> list[Sample]:
                         frame("Subtask", subtask),
                         frame("Phase", phase_label),
                         frame("Action", action_label),
-                        frame("Outcome", outcome),
+                        frame("Object", object_label),
+                        frame("Result", outcome),
                     ),
                     operations=max(1, int(record.get("value", 1))),
                     tokens=max(0, tokens),
@@ -192,14 +203,16 @@ def color_for(value: str) -> str:
         return FRAME_COLORS["Phase"]
     if kind == "Action":
         return FRAME_COLORS["Action"]
-    if kind == "Outcome":
-        return FRAME_COLORS.get(f"Outcome:{label}", "#7f8c8d")
+    if kind == "Object":
+        return FRAME_COLORS["Object"]
+    if kind == "Result":
+        return FRAME_COLORS.get(f"Result:{label}", "#7f8c8d")
     return "#7f8c8d"
 
 
 def text_color(value: str) -> str:
     kind, _ = frame_parts(value)
-    return "#10233f" if kind == "Action" else "#ffffff"
+    return "#10233f" if kind in {"Action", "Object"} else "#ffffff"
 
 
 def compact_number(value: int, metric: str) -> str:
@@ -229,7 +242,7 @@ def write_static_svg(path: Path, samples: list[Sample], metric: str) -> None:
     plot_width = width - plot_x - 28
     top = 126
     frame_height = 42
-    max_depth = 5
+    max_depth = 6
     height = top + max_depth * frame_height + 38
     unit_label = "observed operations" if metric == "operations" else "reported input + output tokens"
 
@@ -249,15 +262,15 @@ def write_static_svg(path: Path, samples: list[Sample], metric: str) -> None:
         "</style>",
         '<rect width="100%" height="100%" fill="#f7f9fc"/>',
         '<text class="title" x="28" y="34">Task-centric semantic flamegraph</text>',
-        f'<text class="subtitle" x="28" y="57">Concrete task → subtask → phase → semantic action → observed outcome · width = {html.escape(unit_label)}</text>',
+        f'<text class="subtitle" x="28" y="57">Concrete task → subtask → phase/strategy → semantic action → operation object → result · width = {html.escape(unit_label)}</text>',
         f'<text class="subtitle" x="28" y="78">{len(samples)} trace rows · {len(set(sample.agent for sample in samples))} agent attempts · hover a frame for its full task path</text>',
     ]
 
     legend = [
-        ("Progress", FRAME_COLORS["Outcome:Progress"]),
-        ("Repeated", FRAME_COLORS["Outcome:Repeated"]),
-        ("Repeated 3+ times", FRAME_COLORS["Outcome:Repeated 3+ times"]),
-        ("Action error", FRAME_COLORS["Outcome:Action error"]),
+        ("Progress", FRAME_COLORS["Result:Progress"]),
+        ("Repeated", FRAME_COLORS["Result:Repeated"]),
+        ("Repeated 3+ times", FRAME_COLORS["Result:Repeated 3+ times"]),
+        ("Action error", FRAME_COLORS["Result:Action error"]),
     ]
     legend_x = 930
     for label, fill in legend:
@@ -265,7 +278,7 @@ def write_static_svg(path: Path, samples: list[Sample], metric: str) -> None:
         chunks.append(f'<text class="legend" x="{legend_x + 18}" y="78">{html.escape(label)}</text>')
         legend_x += 26 + len(label) * 7
 
-    layers = ["Outcome", "Action", "Phase", "Subtask", "Task"]
+    layers = ["Result", "Object", "Action", "Phase / strategy", "Subtask", "Task"]
     for index, label in enumerate(layers):
         y = top + index * frame_height + 25
         chunks.append(f'<text class="layer" x="28" y="{y}">{label}</text>')
@@ -356,7 +369,7 @@ label{font-size:12px;color:var(--muted);font-weight:700} select,input[type=searc
 <body>
 <main class="shell">
   <div class="header">
-    <div><div class="eyebrow">AgentProf · task view prototype</div><h1>Order a loaner laptop and provide a reason</h1><div class="subtitle">The stack follows the user's concrete task, then narrows through subtask, phase, semantic action, and observed outcome. Agent and model are filters, not stack frames.</div></div>
+    <div><div class="eyebrow">AgentProf · task view prototype</div><h1>Order a loaner laptop and provide a reason</h1><div class="subtitle">The stack follows the user's concrete task, then narrows through subtask, phase/strategy, semantic action, operation object, and result. Agent and model are filters, not stack frames.</div></div>
     <div class="badge">Real AgentReward trace · 4 attempts</div>
   </div>
   <section class="panel">
@@ -368,33 +381,33 @@ label{font-size:12px;color:var(--muted);font-weight:700} select,input[type=searc
     </div>
     <div class="stats"><div class="stat"><strong id="ops">–</strong><span>operations</span></div><div class="stat"><strong id="tokens">–</strong><span>input + output tokens</span></div><div class="stat"><strong id="attempts">–</strong><span>visible attempts</span></div><div class="stat"><strong id="repeats">–</strong><span>repeat share</span></div></div>
     <div id="breadcrumbs" class="breadcrumbs"><b>Zoom:</b> full task</div>
-    <div class="chart-wrap"><svg id="chart" viewBox="0 0 1600 270" role="img" aria-label="Task-centric semantic flamegraph"></svg></div>
+    <div class="chart-wrap"><svg id="chart" viewBox="0 0 1600 316" role="img" aria-label="Task-centric semantic flamegraph"></svg></div>
     <div class="legend"><span><i class="swatch" style="background:#43b581"></i>Progress</span><span><i class="swatch" style="background:#f3a712"></i>Repeated</span><span><i class="swatch" style="background:#ef7c2f"></i>Repeated 3+ times</span><span><i class="swatch" style="background:#d64550"></i>Action error</span><span>Width is the selected metric; click any frame to zoom.</span></div>
   </section>
   <section class="insights">
     <article class="panel insight"><h3>The task failed without many low-level errors</h3><p>All four recorded attempts failed, but only <strong>2 of 204</strong> operations report an action error. The flame shape points to strategy/repetition, not merely tool breakage.</p></article>
     <article class="panel insight"><h3>Repetition clusters late in the task</h3><p><strong>20 of 26</strong> finish operations and <strong>14 of 30</strong> input operations are repeated, compared with 20 of 120 navigation operations.</p></article>
-    <article class="panel insight"><h3>Task semantics stay primary</h3><p>Model identity is available through the attempt filter. It does not displace task, subtask, phase, action, or outcome from the causal reading path.</p></article>
+    <article class="panel insight"><h3>Task semantics stay primary</h3><p>Model identity is available through the attempt filter. It does not displace task, subtask, phase/strategy, action, object, or result from the responsibility path.</p></article>
   </section>
-  <section class="panel provenance"><strong>Construction:</strong> session identifies the concrete task; a declared phase→subtask map supplies readable task decomposition; phase, action, repeat state, step error, and tokens come from the trace. No oracle/diagnostic label is used to build the stack. This artifact demonstrates the visualization shape, not automatic semantic-induction accuracy.<br><code>source: docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl</code></section>
+  <section class="panel provenance"><strong>Construction:</strong> session identifies the concrete task; declared phase→subtask and phase→operation-object maps supply readable task decomposition and object classes; phase, action, repeat state, step error, and tokens come from the trace. No oracle/diagnostic label is used to build the stack. This artifact demonstrates the visualization shape, not automatic semantic-induction accuracy.<br><code>source: docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl</code></section>
 </main>
 <div id="tip" class="tip"></div>
 <script>
 const samples=__SAMPLES__;
-const colors={"Task":"#23395d","Subtask:Understand the request":"#6c5ce7","Subtask:Locate catalog and item":"#2f80ed","Subtask:Configure the request":"#00a6a6","Subtask:Complete or report":"#8e5bd9","Phase":"#72a7e8","Action":"#a8c7ee","Outcome:Progress":"#43b581","Outcome:Repeated":"#f3a712","Outcome:Repeated 3+ times":"#ef7c2f","Outcome:Action error":"#d64550"};
+const colors={"Task":"#23395d","Subtask:Understand the request":"#6c5ce7","Subtask:Locate catalog and item":"#2f80ed","Subtask:Configure the request":"#00a6a6","Subtask:Complete or report":"#8e5bd9","Phase":"#72a7e8","Action":"#a8c7ee","Object":"#c8d9f0","Result:Progress":"#43b581","Result:Repeated":"#f3a712","Result:Repeated 3+ times":"#ef7c2f","Result:Action error":"#d64550"};
 let metric="operations",zoomPath=[];
 const $=id=>document.getElementById(id),svg=$("chart"),tip=$("tip");
 const parts=s=>{const p=s.split(" · ");return [p.shift(),p.join(" · ")]};
 const color=s=>{const [k,l]=parts(s);return colors[k+":"+l]||colors[k]||"#7f8c8d"};
-const textColor=s=>parts(s)[0]==="Action"?"#10233f":"#fff";
+const textColor=s=>["Action","Object"].includes(parts(s)[0])?"#10233f":"#fff";
 const fmt=(v,m)=>m==="operations"?v.toLocaleString()+" ops":v>=1e6?(v/1e6).toFixed(2)+"M tok":v>=1e3?(v/1e3).toFixed(1)+"K tok":v.toLocaleString()+" tok";
 function visibleSamples(){const a=$("agent").value,issues=$("issues").checked;return samples.filter(s=>(a==="all"||s.agent===a)&&(!issues||s.repeat||s.stack.at(-1).includes("Action error")));}
 function tree(rows){const root={frame:"root",operations:0,tokens:0,children:new Map(),path:[]};for(const s of rows){root.operations+=s.operations;root.tokens+=s.tokens;let n=root;for(const f of s.stack){if(!n.children.has(f))n.children.set(f,{frame:f,operations:0,tokens:0,children:new Map(),path:[...n.path,f]});n=n.children.get(f);n.operations+=s.operations;n.tokens+=s.tokens;}}return root;}
 function locate(root,path){let n=root;for(const f of path){n=n.children.get(f);if(!n)return root;}return n;}
 function el(name,attrs={}){const n=document.createElementNS("http://www.w3.org/2000/svg",name);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);return n;}
-function render(){const rows=visibleSamples(),root=tree(rows),focus=locate(root,zoomPath);if(focus===root&&zoomPath.length)zoomPath=[];const total=Math.max(1,focus[metric]),plotX=145,plotW=1425,top=20,h=46,maxDepth=focus.frame==="root"?5:Math.max(1,5-zoomPath.length+1);svg.replaceChildren();
+function render(){const rows=visibleSamples(),root=tree(rows),focus=locate(root,zoomPath);if(focus===root&&zoomPath.length)zoomPath=[];const total=Math.max(1,focus[metric]),plotX=145,plotW=1425,top=20,h=46,maxDepth=focus.frame==="root"?6:Math.max(1,6-zoomPath.length+1);svg.replaceChildren();
   const bg=el("rect",{x:0,y:0,width:1600,height:270,fill:"#fff"});svg.append(bg);
-  const levels=focus.frame==="root"?["Outcome","Action","Phase","Subtask","Task"]:[...Array(maxDepth)].map((_,i)=>i===maxDepth-1?parts(focus.frame)[0]:"");levels.forEach((l,i)=>{const t=el("text",{x:18,y:top+i*h+27,class:"layer"});t.textContent=l;svg.append(t)});
+  const levels=focus.frame==="root"?["Result","Object","Action","Phase / strategy","Subtask","Task"]:[...Array(maxDepth)].map((_,i)=>i===maxDepth-1?parts(focus.frame)[0]:"");levels.forEach((l,i)=>{const t=el("text",{x:18,y:top+i*h+27,class:"layer"});t.textContent=l;svg.append(t)});
   const nodes=[];function draw(n,x,d){const v=n[metric],w=v/total*plotW;if(w<.7)return;const y=top+(maxDepth-d)*h,[kind,label]=parts(n.frame),g=el("g",{class:"frame"});g.dataset.label=n.frame.toLowerCase();const r=el("rect",{x:x.toFixed(2),y,width:w.toFixed(2),height:h-4,rx:7,fill:color(n.frame)});g.append(r);if(w>32){const max=Math.max(3,Math.floor((w-16)/7)),shown=label.length>max?label.slice(0,max-1)+"…":label,t=el("text",{x:x+8,y:y+18,class:"frame-label",fill:textColor(n.frame)});t.textContent=shown;g.append(t);const value=fmt(v,metric);if(w>value.length*6+18){const q=el("text",{x:x+8,y:y+34,class:"frame-value",fill:textColor(n.frame)});q.textContent=value+" · "+(100*v/total).toFixed(1)+"%";g.append(q)}}
     g.addEventListener("click",()=>{zoomPath=n.path;$("reset").disabled=false;render()});g.addEventListener("mousemove",e=>{tip.style.display="block";tip.style.left=Math.min(innerWidth-460,e.clientX+14)+"px";tip.style.top=(e.clientY+14)+"px";tip.innerHTML="<b>"+n.path.map(x=>parts(x)[1]).join(" → ")+"</b><span class=muted>"+fmt(n[metric],metric)+" · "+(100*n[metric]/total).toFixed(1)+"% of current view<br>"+n.operations.toLocaleString()+" operations · "+n.tokens.toLocaleString()+" tokens</span>"});g.addEventListener("mouseleave",()=>tip.style.display="none");svg.append(g);nodes.push(g);let cx=x;[...n.children.values()].sort((a,b)=>b[metric]-a[metric]||a.frame.localeCompare(b.frame)).forEach(c=>{draw(c,cx,d+1);cx+=c[metric]/total*plotW});}
   if(focus.frame==="root"){let x=plotX;[...focus.children.values()].forEach(n=>{draw(n,x,1);x+=n[metric]/total*plotW})}else draw(focus,plotX,1);
@@ -432,8 +445,8 @@ def summarize(samples: list[Sample], source: Path) -> dict[str, Any]:
         "source": str(source.relative_to(ROOT)),
         "source_task_id": SESSION,
         "task": TASK_LABEL,
-        "stack_contract": ["task", "subtask", "phase", "semantic_action", "observed_outcome"],
-        "stack_source_fields": ["session", "phase", "action", "repeat_state", "step_error"],
+        "stack_contract": ["task", "subtask", "phase_or_strategy", "semantic_action", "operation_object", "result"],
+        "stack_source_fields": ["session", "declared phase-to-subtask map", "phase", "action", "declared phase-to-object map", "repeat_state", "step_error"],
         "metric_source_fields": ["value", "input_tokens", "output_tokens"],
         "excluded_from_stack": ["agent", "model", "tool", "target", "status", "oracle/diagnostic labels"],
         "operations": sum(sample.operations for sample in samples),
@@ -461,7 +474,7 @@ def write_report(path: Path, summary: dict[str, Any]) -> None:
         "This artifact replaces the system-field stack with a concrete-task stack:",
         "",
         "```text",
-        "task -> subtask -> phase -> semantic action -> observed outcome",
+        "task -> subtask -> phase/strategy -> semantic action -> operation object -> result",
         "```",
         "",
         f"- task: `{summary['task']}`",
@@ -483,7 +496,7 @@ def write_report(path: Path, summary: dict[str, Any]) -> None:
             "",
             "## Construction boundary",
             "",
-            "The concrete task is selected by the trace session identifier. A declared `phase -> subtask` map turns source phases into readable task decomposition. The remaining frames use visible `phase`, `action`, `repeat_state`, and `step_error` fields. Agent/model identity is an interactive filter, not a stack level. Opaque DOM target IDs and oracle/diagnostic labels are excluded.",
+            "The concrete task is selected by the trace session identifier. Declared `phase -> subtask` and `phase -> operation object` maps turn source phases into readable task decomposition and object classes. The remaining frames use visible `phase`, `action`, `repeat_state`, and `step_error` fields. Agent/model identity is an interactive filter, not a stack level. Opaque DOM target IDs and oracle/diagnostic labels are excluded.",
             "",
             f"**Limit:** {summary['interpretation_limit']}",
             "",
