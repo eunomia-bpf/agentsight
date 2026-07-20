@@ -35,6 +35,8 @@ history is archived at
 | `script/rq3_recurrence_stack_rust_equivalence.py` | mechanical full-population verifier for Python/Rust boundary, segment, motif, and mass equivalence |
 | `script/rq3_reference_calibrated_existing_traces_eval.py` | completed Step 0030 adapter for one grouped-reference scalar on the retained OSWorld-Human and CodeTraceBench trajectories |
 | `script/rq3_reference_calibrated_rust_equivalence.py` | complete release-binary verifier for the optional calibrated path's cutoffs, decisions, segments, and motifs |
+| `script/rq3_source_native_task_progress_boundary_eval.py` | Step 0053 source-native reconstruction and fixed adjacent-boundary development evaluator; not a core AgentProf subsystem |
+| `script/rq3_stateful_native_turn_task_stack_eval.py` | Step 0054 source-native turn reconstruction, legal variable-depth task-stack inference, and standard score-only evaluation; not a core AgentProf subsystem or release constructor |
 
 ## Implemented Pipeline
 
@@ -212,6 +214,15 @@ configuration. In particular:
     query-aware top-five packet; it adds group-prioritization evidence but does
     not establish lower work, reader-only causality, human utility, or raw-action
     superiority.
+11. the completed source-native stateful development backend produces legal
+    variable-depth paths and improves over the prior operation-level stack, but
+    it creates a fresh frame on 74.55% of native turns and reaches ordinary
+    B-cubed F1 0.4909 versus 0.6627 for the current recurrence constructor when
+    scored by hidden active-frame instance. Repeated labels frequently receive
+    new hidden identities. Profiler-visible label-path identity requires a
+    separate score-only construct audit. This backend is not integrated into
+    the Rust CLI and does not establish automatic recovery of the task-semantic
+    hierarchy.
 
 ## Implementation Policy After The Recurrence Port
 

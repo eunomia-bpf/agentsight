@@ -192,6 +192,29 @@ grammar, cutoff, system-field rearrangement, or post-hoc contraction is not an
 independent answer. Complete records are under
 `docs/tmp/build-and-evaluate/step-0053-20260720T074853-0700/experiment-001/`.
 
+Step 0054 then tests the distinct stateful mechanism on the same complete
+population: one legal variable-depth task-stack transition per source-native
+turn, an immutable concrete-task root, persistent task-goal frames, and no
+human-stage input during inference. The 17,148-turn/20,866-operation run is
+complete and valid. It improves ordinary B-cubed F1 from 0.247572 for the prior
+operation-level stack and 0.361145 for the native-turn singleton control to
+0.490861, but remains below multi-resolution recurrence at 0.662740. The paired
+task-cluster candidate-minus-recurrence interval is
+[-0.206653,-0.136663]. The policy creates 13,041 groups and a new frame on
+74.55% of turns; 6,246 fresh frames repeat the previous leaf label, including
+2,732 replacements that leave the complete visible label path unchanged while
+changing only hidden frame identity. The fixed Qwen2.5-3B policy is therefore
+not adopted as a hidden-instance workflow-stage constructor. This registered
+score does not yet reject the same fixed output as a profiler-visible semantic
+path: a flamegraph folds equal visible label paths, whereas the registered
+candidate key is the hidden frame instance. A reviewed score-only construct
+audit must separate those identities before any new model run. CodeTrace stage
+occurrences can test the session-local partition, but cannot authorize
+cross-run semantic equivalence or full ancestor topology. The result does not
+authorize replacing the intended task-semantic path with system fields or
+changing the thesis, RQ3, or its positive hypothesis. Complete records are under
+`docs/tmp/build-and-evaluate/step-0054-20260720T090317-0700/experiment-001/`.
+
 ## Admitted RQ2 Evidence And Boundaries
 
 The first complete AgentProcessBench experiment provides supporting RQ2

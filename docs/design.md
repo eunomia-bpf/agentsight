@@ -73,6 +73,17 @@ manually declared semantic stack, mapped fields, or induced recurring-operation
 identities. Changing stack shape does not create another underlying event
 object.
 
+The completed source-native stateful prototype establishes a narrower design
+boundary. Updating an unbounded stack once per native turn is mechanically
+valid and improves substantially over treating low-level operations or native
+turns as singleton task nodes, but a free transition policy repeatedly creates
+new frame instances for an unchanged task label. That prototype is not the
+current automatic constructor. The next mechanism must preserve the identity
+of a continuing concrete goal before it tries to infer deeper topology; adding
+more runtime fields, phase labels, or display layers cannot repair task
+identity. Phase/action/object/result remain a transient evidence suffix below
+the task path, and agent/model/session/tool/status remain metadata.
+
 For every operation with positive value, the profiler emits its selected frame
 path and adds the operation's value to that path. All output formats derive from
 the same folded paths.

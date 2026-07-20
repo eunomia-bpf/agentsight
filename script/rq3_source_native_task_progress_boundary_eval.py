@@ -242,6 +242,7 @@ def mini_evidence(
         output.append(
             {
                 "step": int(row["step_id"]),
+                "turn_id": f"message-{index}",
                 "source_ref": row["source_ref"],
                 "intent": intent,
                 "progress": "",
@@ -282,6 +283,7 @@ def sweagent_evidence(
         output.append(
             {
                 "step": int(row["step_id"]),
+                "turn_id": f"trajectory-{index}",
                 "source_ref": row["source_ref"],
                 "intent": str(item.get("thought") or item.get("response") or ""),
                 "progress": "",
@@ -341,9 +343,11 @@ def openhands_event_evidence(
             if args.get("task_list")
             else ""
         )
+        turn_id = str(model_response.get("id") or f"event-{event.get('id')}")
         output.append(
             {
                 "step": int(row["step_id"]),
+                "turn_id": turn_id,
                 "source_ref": row["source_ref"],
                 "intent": intent,
                 "progress": progress,
@@ -426,6 +430,7 @@ def openhands_history_evidence(
         output.append(
             {
                 "step": int(row["step_id"]),
+                "turn_id": f"message-{key[0]}",
                 "source_ref": row["source_ref"],
                 **item,
             }
@@ -488,6 +493,7 @@ def terminus_evidence(
         output.append(
             {
                 "step": int(row["step_id"]),
+                "turn_id": f"episode-{episode}",
                 "source_ref": row["source_ref"],
                 "intent": str(payload.get("analysis") or ""),
                 "progress": str(payload.get("plan") or ""),
