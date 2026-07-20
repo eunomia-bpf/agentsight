@@ -38,7 +38,7 @@ history is archived at
 | `script/rq3_source_native_task_progress_boundary_eval.py` | Step 0053 source-native reconstruction and fixed adjacent-boundary development evaluator; not a core AgentProf subsystem |
 | `script/rq3_stateful_native_turn_task_stack_eval.py` | Step 0054 source-native turn reconstruction, legal variable-depth task-stack inference, and standard score-only evaluation; not a core AgentProf subsystem or release constructor |
 | `script/rq3_stateful_visible_path_identity_eval.py` | Step 0055 score-only audit of exact profiler-visible task-label paths versus hidden occurrence identity and recurrence; not a model backend or core AgentProf subsystem |
-| `script/rq3_global_task_semantic_segmentation_eval.py` | Step 0057 whole-trajectory task-semantic segmentation adapter, standard scorer, and failed-output diagnostic; not a model backend, release constructor, or paper figure source |
+| `script/rq3_global_task_semantic_segmentation_eval.py` | Steps 0057--0058 whole-trajectory task-semantic adapter, persistent task-occurrence scorer, fixed-model identity check, and failed-output renderer; not a model backend, release constructor, or paper figure source |
 
 ## Implemented Pipeline
 
@@ -237,14 +237,19 @@ configuration. In particular:
     outside the Rust CLI. The next positive constructor must use globally
     contextual task/subtask inference rather than another local prompt,
     threshold, field, depth, or contraction variant.
-14. the completed whole-trajectory global Qwen2.5-3B development adapter covers
-    all 405 preselected reconstructable failed trajectories but emits exactly
-    one interval for every trajectory.
-    Its variable zero-to-39-frame text paths are therefore summaries rather
-    than task-progress stacks; ordinary B-cubed F1 is 0.2958 and boundary F1 is
-    zero. This adapter is not integrated into the Rust CLI. The next experiment
-    tests separating source-only interval induction from semantic path labeling
-    instead of asking the same small-model call to solve both.
+14. the completed whole-trajectory global adapter covers all 405 preselected
+    reconstructable failed trajectories but emits exactly one interval for
+    every trajectory with both tested checkpoints. Qwen2.5-3B produces variable
+    zero-to-39-frame summary paths; the fixed Qwen3.6-27B sufficiency test
+    produces depth-zero-or-one paths. Both reach ordinary B-cubed F1 0.2958 and
+    boundary F1 zero because neither emits a task-progress boundary. The 27B
+    evaluator now scores maximal contiguous equal task/subtask paths as the
+    persistent task occurrence and records the full
+    phase/action/object/result suffix, but that distinction cannot help when
+    every session has one segment. This adapter is not integrated into the Rust
+    CLI. The next distinct constructor should maintain a live task stack and
+    classify each next semantic operation as keep, push, or pop rather than
+    repeat a global prompt or model variant.
 
 ## Implementation Policy After The Recurrence Port
 

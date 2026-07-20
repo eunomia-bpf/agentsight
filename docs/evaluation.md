@@ -256,9 +256,26 @@ candidate-minus-recurrence task-cluster interval is
 [-0.381647,-0.350845]. Variable generated path depth, which ranges from zero
 to 39, does not compensate for the absence of any task-progress boundary and
 is not treated as validated hierarchy. This negative development result is not
-inserted into the paper; it motivates testing interval induction and semantic
-path labeling as separate responsibilities. Complete records are under
+inserted into the paper; it motivated one fixed stronger-checkpoint sufficiency
+test before changing the mechanism. Complete records are under
 `docs/tmp/build-and-evaluate/step-0057-20260720T123108-0700/experiment-001/`.
+
+Step 0058 tests whether the identical global interface is sufficient with the
+already-held Qwen3.6-27B checkpoint. The full run again completes all 405
+trajectories, 17,148 turns, and 20,866 operations, but every response contains
+exactly one segment and one persistent task occurrence. Ordinary B-cubed
+precision/recall/F1 is again 0.173563/1.000000/0.295788; boundary and exact-span
+F1 remain zero; and the candidate-minus-recurrence 95% task-cluster interval is
+again [-0.381647,-0.350845]. Independent raw-result recomputation matches every
+score and bootstrap draw. Its qualitative review also fails the full-stack
+contract: 93 roots preserve terminal-state text, and the representative
+275-operation trajectory assigns one initial-package-setup stack across later
+Nginx/SSL configuration, deployment work, repeated SSH diagnosis, and a
+degraded conclusion. The candidate is contradicted and not adopted. This is a
+checkpoint-specific sufficiency test, not a parameter-capacity causal result;
+it rejects the fixed one-shot global constructor without changing RQ3, the
+intended hierarchy, or the paper. Complete records are under
+`docs/tmp/build-and-evaluate/step-0058-20260720T135248-0700/experiment-001/`.
 
 ## Admitted RQ2 Evidence And Boundaries
 

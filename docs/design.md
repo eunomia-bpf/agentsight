@@ -84,10 +84,17 @@ depth and phase-like persistent frames. That fixed online Qwen2.5-3B branch is
 not the current automatic constructor. A subsequent whole-trajectory
 Qwen2.5-3B constructor also fails: all 405 trajectories collapse to one
 interval, yielding B-cubed F1 0.2958 and boundary F1 zero despite variable
-serialized path depth. This closed branch will not spend another run on prompt
-variants. The next experiment will test separating source-only interval
-induction from semantic path labeling rather than asking one small-model call
-to infer both.
+serialized path depth. A fixed stronger-model sufficiency test then repeats the
+same interface with the already-held Qwen3.6-27B checkpoint. It again emits one
+interval for every one of the 405 trajectories, with exactly the same B-cubed
+and boundary scores. Because the checkpoints differ in more than parameter
+count, this is not a capacity-controlled comparison; it establishes that the
+fixed global interface is insufficient with both tested checkpoints. This
+closed branch will not spend another run on global-prompt or model variants.
+The next distinct mechanism target is an online persistent task stack that
+classifies the next semantic operation as keep, push, or pop, while allowing
+the phase/action/object/result suffix to change without replacing the active
+task occurrence.
 Phase/action/object/result remain a transient evidence suffix below the task
 path, and agent/model/session/tool/status remain metadata.
 

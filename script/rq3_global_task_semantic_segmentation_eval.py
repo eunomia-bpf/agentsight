@@ -31,7 +31,7 @@ import rq3_stateful_native_turn_task_stack_eval as stateful  # noqa: E402
 
 
 base = source.base
-ALGORITHM_VERSION = "global-task-semantic-segmentation-v2"
+ALGORITHM_VERSION = "global-task-semantic-segmentation-v3"
 SCHEMA = "agentsight.rq3-global-task-semantic-segmentation"
 EXPECTED_SESSIONS = 405
 EXPECTED_OPERATIONS = 20_866
@@ -187,6 +187,9 @@ def parse_args() -> argparse.Namespace:
     infer.add_argument("--source-cache-dir", type=Path, required=True)
     infer.add_argument("--turn-assignments", type=Path, required=True)
     infer.add_argument("--llama-url", required=True)
+    infer.add_argument("--model-name", required=True)
+    infer.add_argument("--model-path", type=Path, required=True)
+    infer.add_argument("--model-sha256", required=True)
     infer.add_argument("--workers", type=int, default=1)
     infer.add_argument("--timeout-seconds", type=int, default=1_200)
     infer.add_argument("--out", type=Path, required=True)
@@ -267,7 +270,7 @@ def prompt_for(material: dict[str, Any], turns: list[dict[str, Any]]) -> str:
     )
 
 
-def server_properties(llama_url: str, timeout_seconds: int) -> dict[str, int]:
+def server_properties(llama_url: str, timeout_seconds: int) -> dict[str, Any]:
     response = requests.get(llama_url.rstrip("/") + "/props", timeout=timeout_seconds)
     response.raise_for_status()
     payload = response.json()
@@ -275,6 +278,8 @@ def server_properties(llama_url: str, timeout_seconds: int) -> dict[str, int]:
     return {
         "slots": int(payload["total_slots"]),
         "context_tokens": int(defaults["n_ctx"]),
+        "model_path": str(payload["model_path"]),
+        "model_alias": str(payload["model_alias"]),
     }
 
 
@@ -344,11 +349,16 @@ def parse_segments(raw: str, turn_count: int) -> list[dict[str, Any]]:
     return parsed
 
 
-def request_hash(prompt: str, grammar: str) -> str:
+def request_hash(
+    prompt: str,
+    grammar: str,
+    model_name: str,
+    model_sha256: str,
+) -> str:
     contract = {
         "algorithm": ALGORITHM_VERSION,
-        "model": base.MODEL,
-        "model_sha256": base.MODEL_SHA256,
+        "model": model_name,
+        "model_sha256": model_sha256,
         "seed": SEED,
         "temperature": 0,
         "system": SYSTEM_PROMPT,
@@ -362,6 +372,7 @@ def request_hash(prompt: str, grammar: str) -> str:
 
 def call_model(
     llama_url: str,
+    model_name: str,
     prompt: str,
     grammar: str,
     max_tokens: int,
@@ -371,7 +382,7 @@ def call_model(
     response = requests.post(
         llama_url.rstrip("/") + "/v1/chat/completions",
         json={
-            "model": base.MODEL,
+            "model": model_name,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
@@ -522,6 +533,8 @@ def infer_one(
     session: str,
     prepared: dict[str, Any],
     llama_url: str,
+    model_name: str,
+    model_sha256: str,
     timeout_seconds: int,
     cache_dir: Path,
     context_tokens: int,
@@ -539,20 +552,22 @@ def infer_one(
         context_tokens - projected_tokens - CONTEXT_MARGIN,
     )
     grammar = output_grammar(len(turns))
-    digest = request_hash(prompt, grammar)
+    digest = request_hash(prompt, grammar, model_name, model_sha256)
     path = cache_dir / cache_name(session)
     if path.is_file():
         result = json.loads(path.read_text(encoding="utf-8"))
         require(result.get("algorithm_version") == ALGORITHM_VERSION, "cache algorithm")
         require(result.get("session") == session, "cache session")
         require(result.get("archive_sha256") == material["archive_sha256"], "cache archive")
+        require(result.get("model") == model_name, "cache model")
+        require(result.get("model_sha256") == model_sha256, "cache model sha256")
         require(result.get("request_sha256") == digest, "cache request drift")
         segments = parse_segments(str(result["raw_response"]), len(turns))
         require(result["segments"] == segments, "cache parsed segments")
         return result
 
     raw, response, elapsed = call_model(
-        llama_url, prompt, grammar, completion_budget, timeout_seconds
+        llama_url, model_name, prompt, grammar, completion_budget, timeout_seconds
     )
     segments = parse_segments(raw, len(turns))
     usage = response.get("usage") or {}
@@ -573,8 +588,8 @@ def infer_one(
         "task_source": material["task_source"],
         "task": material["task"],
         "root_label": root_label(str(material["task"])),
-        "model": base.MODEL,
-        "model_sha256": base.MODEL_SHA256,
+        "model": model_name,
+        "model_sha256": model_sha256,
         "seed": SEED,
         "input_turns": len(turns),
         "input_operations": len(material["operations"]),
@@ -596,7 +611,14 @@ def predictions_for(result: dict[str, Any], prepared: dict[str, Any]) -> list[di
     session = str(result["session"])
     root = str(result["root_label"])
     rows: list[dict[str, Any]] = []
+    previous_task_path: tuple[str, ...] | None = None
+    task_occurrence_index = -1
     for segment_index, segment in enumerate(result["segments"]):
+        task_path = (root, *(str(label) for label in segment["subtasks"]))
+        if task_path != previous_task_path:
+            task_occurrence_index += 1
+            previous_task_path = task_path
+        task_occurrence = f"{session}:task-occurrence-{task_occurrence_index:04d}"
         stack = [
             {"kind": "task", "label": root},
             *({"kind": "subtask", "label": label} for label in segment["subtasks"]),
@@ -618,8 +640,12 @@ def predictions_for(result: dict[str, Any], prepared: dict[str, Any]) -> list[di
                         "turn_index": turn_index,
                         "source_turn_id": turn["source_turn_id"],
                         "source_ref": operation["source_ref"],
+                        "model": result["model"],
                         "segment_index": segment_index,
                         "segment_instance": instance,
+                        "task_occurrence_index": task_occurrence_index,
+                        "task_occurrence_instance": task_occurrence,
+                        "task_path": list(task_path),
                         "task_root": root,
                         "subtasks": list(segment["subtasks"]),
                         "phase": segment["phase"],
@@ -692,13 +718,21 @@ def run_inference(args: argparse.Namespace) -> None:
     target_path = absolute(args.target_operations)
     source_cache_dir = absolute(args.source_cache_dir)
     turn_assignment_path = absolute(args.turn_assignments)
+    model_path = absolute(args.model_path)
     out_dir = absolute(args.out)
     require(target_path.is_file(), f"missing target operations: {target_path}")
     require(source_cache_dir.is_dir(), f"missing source cache: {source_cache_dir}")
     require(turn_assignment_path.is_file(), f"missing turn assignments: {turn_assignment_path}")
+    require(model_path.is_file(), f"missing model: {model_path}")
+    require(bool(str(args.model_name).strip()), "empty model name")
+    require(bool(re.fullmatch(r"[0-9a-f]{64}", args.model_sha256)), "invalid model sha256")
     props = server_properties(args.llama_url, args.timeout_seconds)
     require(props["slots"] == 1, "llama server must expose exactly one slot")
     require(props["context_tokens"] == CONTEXT_TOKENS, "llama server context is not 32768")
+    require(
+        Path(props["model_path"]).resolve() == model_path.resolve(),
+        "llama server model path does not match the registered model",
+    )
 
     grouped = base.load_visible_operations(target_path)
     require(len(grouped) == EXPECTED_SESSIONS, "unexpected source population")
@@ -722,6 +756,8 @@ def run_inference(args: argparse.Namespace) -> None:
             session,
             prepared[session],
             args.llama_url,
+            args.model_name,
+            args.model_sha256,
             args.timeout_seconds,
             cache_dir,
             props["context_tokens"],
@@ -745,6 +781,16 @@ def run_inference(args: argparse.Namespace) -> None:
             if isinstance(value, int):
                 usage[key] += value
     segment_counts = [len(result["segments"]) for result in results.values()]
+    task_occurrence_counts = [
+        len(
+            {
+                row["task_occurrence_instance"]
+                for row in predictions
+                if row["session"] == session
+            }
+        )
+        for session in selected
+    ]
     subtask_depths = [
         len(segment["subtasks"])
         for result in results.values()
@@ -755,8 +801,8 @@ def run_inference(args: argparse.Namespace) -> None:
         "algorithm_version": ALGORITHM_VERSION,
         "mode": args.mode,
         "status": "complete",
-        "model": base.MODEL,
-        "model_sha256": base.MODEL_SHA256,
+        "model": args.model_name,
+        "model_sha256": args.model_sha256,
         "seed": SEED,
         "server": props,
         "sessions": len(selected),
@@ -769,6 +815,12 @@ def run_inference(args: argparse.Namespace) -> None:
             "minimum_per_session": min(segment_counts),
             "maximum_per_session": max(segment_counts),
             "mean_per_session": sum(segment_counts) / len(segment_counts),
+        },
+        "task_occurrences": {
+            "total": sum(task_occurrence_counts),
+            "minimum_per_session": min(task_occurrence_counts),
+            "maximum_per_session": max(task_occurrence_counts),
+            "mean_per_session": sum(task_occurrence_counts) / len(task_occurrence_counts),
         },
         "subtask_depth": {
             "minimum": min(subtask_depths),
@@ -855,7 +907,7 @@ def score_rows(
                 "task_name": tasks[session],
                 "step_id": key[1],
                 "official_stage": official[key],
-                "candidate": str(prediction["segment_instance"]),
+                "candidate": str(prediction["task_occurrence_instance"]),
                 "candidate_path": json.dumps(prediction["semantic_stack"], ensure_ascii=False),
                 "multires_recurrence": baselines[key]["multires_recurrence"],
                 "causal_qwen": causal[key],
@@ -998,6 +1050,7 @@ def write_representative_flamegraph(
     frame_height = 38
     height = top + max_depth * frame_height + 44
     title = str(session_rows[0]["task_root"])
+    model = str(session_rows[0]["model"])
     svg = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
@@ -1005,7 +1058,7 @@ def write_representative_flamegraph(
         '<rect width="100%" height="100%" fill="#f7f9fc"/>',
         '<text class="title" x="28" y="34">Automatic task-semantic flamegraph · complete real trajectory</text>',
         f'<text class="subtitle" x="28" y="60">{html.escape(title)}</text>',
-        f'<text class="subtitle" x="28" y="84">{len(session_rows)} operations · global Qwen2.5-3B decomposition · variable subtask depth · width = operation count</text>',
+        f'<text class="subtitle" x="28" y="84">{len(session_rows)} operations · {html.escape(model)} global decomposition · variable subtask depth · width = operation count</text>',
         '<text class="subtitle" x="28" y="104">Agent/model/session/tool/command/path/status are metadata or source evidence, not responsibility frames.</text>',
     ]
 
@@ -1055,6 +1108,9 @@ def write_representative_flamegraph(
         "session": session,
         "operations": len(session_rows),
         "segments": len({row["segment_instance"] for row in session_rows}),
+        "task_occurrences": len(
+            {row["task_occurrence_instance"] for row in session_rows}
+        ),
         "maximum_stack_depth": max_depth,
         "folded": relative(folded),
         "svg": relative(svg_path),
@@ -1120,7 +1176,7 @@ def run_score(args: argparse.Namespace) -> None:
     interpretation = (
         "diagnostic-preflight"
         if mode == "preflight"
-        else "supported-and-adopted"
+        else "supported-pending-semantic-review"
         if supported
         else "contradicted-not-adopted"
         if contradicted
@@ -1167,11 +1223,11 @@ def run_score(args: argparse.Namespace) -> None:
             "exact_reserved_system_word_check_passed": True,
             "system_fields_excluded_from_leading_schema": True,
             "qualitative_responsibility_frame_contract": (
-                "failed"
+                "pending-independent-review-with-command-primitive-warning"
                 if inference["semantic_output_diagnostics"][
                     "command_primitive_shaped_semantic_action"
                 ]
-                else "no-command-primitive-detected"
+                else "pending-independent-review"
             ),
             "task_progress_partition_contract": (
                 "failed-no-internal-boundary"
@@ -1184,11 +1240,12 @@ def run_score(args: argparse.Namespace) -> None:
         },
         "figure": figure,
         "claim_boundary": (
-            "CodeTraceBench's flat human stages test the emitted contiguous segment "
-            "partition. They do not quantitatively validate nested ancestor topology "
-            "or open-vocabulary label meaning. A rendered stack is diagnostic output, "
-            "not positive representation evidence unless an independent semantic "
-            "review separately accepts its responsibility frames."
+            "CodeTraceBench's flat human stages test the persistent task-occurrence "
+            "partition induced by contiguous equal task/subtask paths. They do not "
+            "quantitatively validate nested ancestor topology, open-vocabulary label "
+            "meaning, or the phase/action/object/result suffix. A rendered full stack "
+            "is diagnostic output, not positive representation evidence unless the "
+            "registered independent semantic review accepts its responsibility frames."
         ),
     }
     if mode == "full":
