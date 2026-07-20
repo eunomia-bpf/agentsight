@@ -4,7 +4,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { AgentFlameReport, AgentFlameWeightedStack } from '@/types/agentflame';
+import { AgentFlameGraph } from '@/components/AgentFlameGraph';
+import type { AgentFlameReport } from '@/types/agentflame';
 import type { AgentSightSnapshot, SnapshotAuditEvent, SnapshotToolCall } from '@/types/event';
 import { fetchAgentFlameArtifactText, fetchAgentFlameReport } from '@/utils/agentflame';
 import {
@@ -23,8 +24,6 @@ interface AgentFlameViewProps {
 }
 
 const ARTIFACTS = [
-  { key: 'system_flamegraph', label: 'System flamegraph' },
-  { key: 'token_flamegraph', label: 'Token flamegraph' },
   { key: 'session_system', label: 'Session system' },
   { key: 'prompt_system', label: 'Prompt system' },
   { key: 'session_token', label: 'Session token' },
@@ -35,21 +34,28 @@ const ARTIFACTS = [
   { key: 'timeline', label: 'Timeline' },
 ] as const;
 
+const FLAMEGRAPH_ARTIFACTS = [
+  {
+    key: 'system_flamegraph',
+    label: 'Activity',
+    headline: 'Where did observed activity accumulate?',
+    question: 'Find the prompts and stack paths containing the most observed activity.',
+  },
+  {
+    key: 'token_flamegraph',
+    label: 'Tokens',
+    headline: 'Where did token usage accumulate?',
+    question: 'Find the prompts, models, and calls containing the most token usage.',
+  },
+] as const;
+
 function formatNumber(value: number | null | undefined): string {
   return new Intl.NumberFormat().format(value ?? 0);
-}
-
-function formatPct(value: number | null | undefined): string {
-  return `${(value ?? 0).toFixed(1)}%`;
 }
 
 function artifactUrl(basePath: string, relative: string): string {
   const encoded = relative.split('/').map(encodeURIComponent).join('/');
   return `${basePath}/api/v1/agentflame/artifacts/${encoded}`;
-}
-
-function stackLabel(stack: string): string {
-  return stack.split(';').join(' / ');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -255,22 +261,6 @@ function BarList({ rows }: { rows: Array<{ tag: string; count: number }> }) {
   );
 }
 
-function StackList({ rows }: { rows: AgentFlameWeightedStack[] }) {
-  return (
-    <div className="space-y-2">
-      {rows.slice(0, 8).map(row => (
-        <div key={row.stack} className="rounded-md border border-gray-100 bg-gray-50 p-2">
-          <div className="flex items-center justify-between gap-3 text-xs text-gray-500">
-            <span>{formatNumber(row.weight)}</span>
-            <span>{row.stack.split(';').length} frames</span>
-          </div>
-          <code className="mt-1 block break-all text-xs text-gray-700">{stackLabel(row.stack)}</code>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function toDisplayMapRows(rows: Record<string, string>[]): AgentFlameDisplayMapRow[] {
   return rows
     .filter(row => row.dimension && row.raw_tag && row.active_display_tag)
@@ -401,7 +391,8 @@ function DisplayModePanel({
 export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameViewProps) {
   const [report, setReport] = useState<AgentFlameReport | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedArtifact, setSelectedArtifact] = useState<string>('system_flamegraph');
+  const [selectedArtifact, setSelectedArtifact] = useState<string>('session_system');
+  const [selectedFlamegraph, setSelectedFlamegraph] = useState<string>('system_flamegraph');
   const [displayMode, setDisplayMode] = useState<AgentFlameDisplayMode>('display');
   const [displayRows, setDisplayRows] = useState<AgentFlameDisplayMapRow[] | null>(null);
   const [drilldownRows, setDrilldownRows] = useState<AgentFlameDrilldownRow[] | null>(null);
@@ -458,6 +449,13 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
     return ARTIFACTS.filter(item => Boolean(report.artifacts[item.key]));
   }, [report]);
 
+  const flamegraphChoices = useMemo(() => {
+    if (!report) return [];
+    return FLAMEGRAPH_ARTIFACTS
+      .filter(item => Boolean(report.artifacts[item.key]))
+      .map(item => ({ ...item, path: report.artifacts[item.key] }));
+  }, [report]);
+
   const activeArtifact = useMemo(() => {
     if (!report || artifactChoices.length === 0) return null;
     const choice = artifactChoices.find(item => item.key === selectedArtifact) ?? artifactChoices[0];
@@ -504,8 +502,6 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
   const summary = report.summary;
   const promptCount = report.sessions.reduce((sum, session) => sum + session.prompt_count, 0);
   const dashboard = report.artifacts.dashboard;
-  const mixing = summary.semantic_mixing.nonsemantic;
-
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-md p-4">
@@ -515,7 +511,7 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
               <span>{report.project.name}</span>
               <span>{new Date(report.generated_at).toLocaleString()}</span>
-              <span>{report.inputs.tag_llm_calls ? 'LLM-call tags enabled' : 'LLM calls inherit prompt tags'}</span>
+              <span>Local aggregate profile</span>
             </div>
           </div>
           {dashboard && (
@@ -531,20 +527,27 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <AgentFlameGraph
+        basePath={basePath}
+        choices={flamegraphChoices}
+        selectedKey={selectedFlamegraph}
+        onSelect={setSelectedFlamegraph}
+      />
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Sessions" value={formatNumber(summary.session_count)} />
         <StatCard label="Prompts" value={formatNumber(promptCount)} />
         <StatCard label="Tool events" value={formatNumber(summary.raw_tool_events)} />
-        <StatCard label="LLM events" value={formatNumber(summary.raw_llm_events)} />
-        <StatCard label="System stacks" value={formatNumber(summary.system.unique_stacks)} hint={`${summary.system.compression_ratio}x reuse`} />
-        <StatCard label="Token stacks" value={formatNumber(summary.token.unique_stacks)} hint={`${formatNumber(summary.token.total_weight)} tokens`} />
-        <StatCard label="Tag LLM calls" value={formatNumber(report.llm_tagger.llm_calls)} hint={`${formatNumber(report.llm_tagger.cache_hits)} cache hits`} />
-        <StatCard label="Mixed baseline" value={formatPct(mixing.mixed_weight_pct)} hint={`${formatNumber(mixing.mixed_buckets)} buckets`} />
+        <StatCard label="Token total" value={formatNumber(summary.token.total_weight)} />
       </div>
 
       {correlation && (
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <details className="rounded-lg border border-gray-200 bg-white shadow-sm">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-700">
+            Captured evidence by prompt ({formatNumber(correlation.matchedAuditEvents)} events)
+          </summary>
+          <div className="border-t border-gray-100 p-4">
+            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Snapshot correlation</h3>
               <div className="mt-1 text-sm text-gray-500">
@@ -588,16 +591,24 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
               No snapshot events matched the AgentFlame session ids in this report.
             </p>
           )}
-        </div>
+          </div>
+        </details>
       )}
 
       {displayModeResult?.modes && (
-        <DisplayModePanel
-          result={displayModeResult.modes[displayMode]}
-          selectedMode={displayMode}
-          onModeChange={setDisplayMode}
-          membershipMatches={displayModeResult.membershipMatches}
-        />
+        <details className="rounded-lg border border-gray-200 bg-white shadow-sm">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-700">
+            Label detail and pending mappings
+          </summary>
+          <div className="border-t border-gray-100 p-4">
+            <DisplayModePanel
+              result={displayModeResult.modes[displayMode]}
+              selectedMode={displayMode}
+              onModeChange={setDisplayMode}
+              membershipMatches={displayModeResult.membershipMatches}
+            />
+          </div>
+        </details>
       )}
 
       {displayModeError && (
@@ -606,9 +617,16 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Artifacts</h3>
+      {artifactChoices.length > 0 && <details className="rounded-lg border border-gray-200 bg-white shadow-sm">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-700">
+          Supporting charts ({artifactChoices.length})
+        </summary>
+        <div className="border-t border-gray-100 p-4">
+          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Supporting views</h3>
+            <p className="mt-1 text-sm text-gray-500">Use these charts after the flamegraph identifies a branch worth explaining.</p>
+          </div>
           <div className="flex flex-wrap gap-2">
             {artifactChoices.map(choice => (
               <button
@@ -625,7 +643,7 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
             ))}
           </div>
         </div>
-        {activeArtifact && (
+          {activeArtifact && (
           <div className="overflow-x-auto rounded-md border border-gray-200 bg-gray-50">
             <img
               src={artifactUrl(basePath, activeArtifact.path)}
@@ -633,26 +651,19 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
               className="min-w-[900px] max-w-none"
             />
           </div>
-        )}
+          )}
+        </div>
+      </details>}
+
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <h3 className="mb-4 text-lg font-semibold text-gray-900">Top prompt tags</h3>
+        <BarList rows={summary.top_prompt_tags} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <h3 className="mb-4 text-lg font-semibold text-gray-900">Top prompt tags</h3>
-          <BarList rows={summary.top_prompt_tags} />
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <h3 className="mb-4 text-lg font-semibold text-gray-900">Top system stacks</h3>
-          <StackList rows={summary.system.top} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <h3 className="mb-4 text-lg font-semibold text-gray-900">Commands and effects</h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <h3 className="mb-4 text-lg font-semibold text-gray-900">Commands and effects</h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-3 py-2">Agent</th>
@@ -671,33 +682,7 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <h3 className="mb-4 text-lg font-semibold text-gray-900">Baseline mixing</h3>
-          <div className="space-y-3">
-            {mixing.examples.slice(0, 6).map(row => (
-              <div key={`${row.baseline_stack}-${row.weight}`} className="rounded-md border border-gray-100 bg-gray-50 p-3">
-                <div className="mb-2 flex items-center justify-between text-xs text-gray-500">
-                  <span>{formatNumber(row.weight)} events</span>
-                  <span>{row.semantic_variant_count} semantic regions</span>
-                </div>
-                <code className="block break-all text-xs text-gray-700">{stackLabel(row.baseline_stack)}</code>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {row.top_semantic_variants.slice(0, 4).map(variant => (
-                    <span key={variant.semantic} className="rounded bg-blue-50 px-2 py-1 text-xs text-blue-700">
-                      {variant.semantic.split('/').join(' / ')} = {variant.weight}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-            {mixing.examples.length === 0 && (
-              <p className="text-sm text-gray-500">No mixed nonsemantic buckets in this report.</p>
-            )}
-          </div>
+          </table>
         </div>
       </div>
 
