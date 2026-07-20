@@ -554,13 +554,10 @@ fn resolve_path(raw: &str, cwd: Option<&Path>, roots: &[PathBuf]) -> Option<Stri
 fn relative_to_roots(path: &Path, roots: &[PathBuf]) -> Option<String> {
     let normalized = lexical(path);
     roots.iter().find_map(|root| {
-        normalized
-            .strip_prefix(lexical(root))
-            .ok()
-            .and_then(|relative| {
-                let value = relative.to_string_lossy().replace('\\', "/");
-                Some(if value.is_empty() { ".".into() } else { value })
-            })
+        normalized.strip_prefix(lexical(root)).ok().map(|relative| {
+            let value = relative.to_string_lossy().replace('\\', "/");
+            if value.is_empty() { ".".into() } else { value }
+        })
     })
 }
 

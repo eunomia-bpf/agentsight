@@ -106,6 +106,10 @@ cd your-repository
 agentsight vis
 ```
 
+GIF export requires local Chromium and FFmpeg. Use
+`agentsight vis -o output/agent-nebula.html` for a self-contained HTML artifact
+that needs neither dependency to generate.
+
 ### Querying Past Sessions
 
 Every `record` session is automatically saved to an `agentsight-*.db` SQLite

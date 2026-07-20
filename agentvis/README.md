@@ -44,8 +44,8 @@ frame instead of disappearing.
 ## Example
 
 The committed ACTplane example uses the default 30-second action-uniform
-compaction: [PNG](examples/actplane-agent-nebula.png),
-[GIF](examples/actplane-agent-nebula.gif), and
-[MP4](examples/actplane-agent-nebula.mp4).
+compaction: [PNG](https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.png),
+[GIF](https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.gif), and
+[MP4](https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.mp4).
 
-![Agent Nebula visualizing ACTplane](examples/actplane-agent-nebula.png)
+![Agent Nebula visualizing ACTplane](https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.png)
