@@ -207,13 +207,28 @@ changing only hidden frame identity. The fixed Qwen2.5-3B policy is therefore
 not adopted as a hidden-instance workflow-stage constructor. This registered
 score does not yet reject the same fixed output as a profiler-visible semantic
 path: a flamegraph folds equal visible label paths, whereas the registered
-candidate key is the hidden frame instance. A reviewed score-only construct
-audit must separate those identities before any new model run. CodeTrace stage
+candidate key is the hidden frame instance. The reviewed Step 0055 score-only
+construct audit immediately below separates those identities before the next
+model run. CodeTrace stage
 occurrences can test the session-local partition, but cannot authorize
 cross-run semantic equivalence or full ancestor topology. The result does not
 authorize replacing the intended task-semantic path with system fields or
 changing the thesis, RQ3, or its positive hypothesis. Complete records are under
 `docs/tmp/build-and-evaluate/step-0054-20260720T090317-0700/experiment-001/`.
+
+Step 0055 corrects the output construct without replaying inference. The exact
+complete ordered visible task-label path—the sequence AgentProf actually folds
+and renders—reaches ordinary B-cubed F1 0.567111 versus 0.490861 for hidden
+frame-instance identity. The paired 251-task effect is +0.076239 with 95%
+interval [+0.060647,+0.092940]. Exact visible paths therefore replace hidden
+IDs as the evaluated profiler output. The fixed online Qwen constructor remains
+unadopted: exact visible path trails multi-resolution recurrence at 0.662740,
+with paired interval [-0.123890,-0.068765]. Adjacent-identical-label contraction
+reaches 0.631815 only as a secondary pathology diagnostic; standard flamegraph
+folding retains repeated frames. CodeTrace still validates only session-local
+stage occurrences, not cross-run path equality, ancestor topology, or the lower
+semantic suffix. Complete records are under
+`docs/tmp/build-and-evaluate/step-0055-20260720T103701-0700/experiment-001/`.
 
 ## Admitted RQ2 Evidence And Boundaries
 

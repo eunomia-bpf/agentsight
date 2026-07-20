@@ -37,6 +37,7 @@ history is archived at
 | `script/rq3_reference_calibrated_rust_equivalence.py` | complete release-binary verifier for the optional calibrated path's cutoffs, decisions, segments, and motifs |
 | `script/rq3_source_native_task_progress_boundary_eval.py` | Step 0053 source-native reconstruction and fixed adjacent-boundary development evaluator; not a core AgentProf subsystem |
 | `script/rq3_stateful_native_turn_task_stack_eval.py` | Step 0054 source-native turn reconstruction, legal variable-depth task-stack inference, and standard score-only evaluation; not a core AgentProf subsystem or release constructor |
+| `script/rq3_stateful_visible_path_identity_eval.py` | Step 0055 score-only audit of exact profiler-visible task-label paths versus hidden occurrence identity and recurrence; not a model backend or core AgentProf subsystem |
 
 ## Implemented Pipeline
 
@@ -219,10 +220,15 @@ configuration. In particular:
     it creates a fresh frame on 74.55% of native turns and reaches ordinary
     B-cubed F1 0.4909 versus 0.6627 for the current recurrence constructor when
     scored by hidden active-frame instance. Repeated labels frequently receive
-    new hidden identities. Profiler-visible label-path identity requires a
-    separate score-only construct audit. This backend is not integrated into
-    the Rust CLI and does not establish automatic recovery of the task-semantic
-    hierarchy.
+    new hidden identities. Step 0055 evaluates profiler-visible label-path
+    identity separately. This backend is not integrated into the Rust CLI and
+    does not establish automatic recovery of the task-semantic hierarchy.
+12. the completed score-only audit establishes exact ordered visible label path
+    as the evaluated profile identity and raises ordinary B-cubed F1 from
+    0.4909 to 0.5671 relative to hidden frame IDs, but the fixed online
+    constructor remains below recurrence at 0.6627. Adjacent repeated-frame
+    contraction is a diagnostic only; the Rust folded/pprof paths preserve
+    every frame.
 
 ## Implementation Policy After The Recurrence Port
 

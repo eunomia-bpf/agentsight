@@ -84,6 +84,15 @@ more runtime fields, phase labels, or display layers cannot repair task
 identity. Phase/action/object/result remain a transient evidence suffix below
 the task path, and agent/model/session/tool/status remain metadata.
 
+The profiling identity of a constructed task stack is its complete ordered
+visible label sequence. Internal frame-instance IDs may preserve controller
+lineage, but they are not emitted semantic frames and do not prevent equal
+visible paths from folding. Repeated adjacent labels remain distinct depths in
+the ordinary folded representation; removing them is a constructor
+normalization experiment, not standard flamegraph behavior. Session can
+namespace an occurrence-level accuracy evaluation without becoming a stack
+frame or authorizing cross-run semantic equality.
+
 For every operation with positive value, the profiler emits its selected frame
 path and adds the operation's value to that path. All output formats derive from
 the same folded paths.
