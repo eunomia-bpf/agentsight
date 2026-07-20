@@ -161,6 +161,37 @@ OSWorld-Human has no non-redundant action detail and reproduces the coarse
 reconstructed Step 0049 record is under
 `docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-001/`.
 
+## Task-Semantic Construction Boundary
+
+The desired primary stack is not an ordering of system fields. It is
+`concrete task -> nested subtask -> phase/strategy -> semantic action ->
+operation object -> result`. Agent, model, session, tool, command, path, and
+status are metadata, filters, visual encodings, measures, or source-linked
+detail. A profile grouped mainly by those fields remains a classified execution
+log and is not called a task-semantic flamegraph.
+
+Step 0053 tests the most direct missing observable without changing that goal:
+it reconstructs source-native intent, plan/progress, action, and uniquely
+attributable result for all 405 CodeTraceBench trajectories, then asks a fixed
+Qwen2.5-3B adjacent-pair policy for one flat `continue`/`boundary` decision.
+The complete 20,866-operation run is valid, target-hidden, and uses ordinary
+B-cubed as its primary metric. It produces 1,010 groups for 2,948 official
+stages and strongly under-segments: B-cubed precision/recall/F1 is
+0.253830/0.948235/0.400462 versus 0.782026/0.575029/0.662740 for the current
+multi-resolution recurrence. Candidate-minus-incumbent has a paired task-
+cluster 95% interval of [-0.286562,-0.236752]. Boundary recall is 0.040897.
+
+This candidate is development history, not a negative paper result and not a
+change to the fixed positive RQ3 hypothesis. It is not adopted or rendered as
+a positive task-semantic figure. The narrow mechanism finding is that the fixed
+memoryless adjacent comparison does not use the exposed source-native evidence
+to maintain enough active-subtask state for workflow-boundary placement. This
+experiment does not test whether source-native evidence is generally sufficient
+or necessary. The next paper-level decision must come from the outer loop; another local prompt,
+grammar, cutoff, system-field rearrangement, or post-hoc contraction is not an
+independent answer. Complete records are under
+`docs/tmp/build-and-evaluate/step-0053-20260720T074853-0700/experiment-001/`.
+
 ## Admitted RQ2 Evidence And Boundaries
 
 The first complete AgentProcessBench experiment provides supporting RQ2

@@ -841,6 +841,55 @@ prompt；若继续 task-semantic 方向，需要新的、可观察的 task-conti
 docs/tmp/build-and-evaluate/step-0052-20260720T064136-0700/experiment-001/
 ```
 
+### 5.8 Memoryless 相邻策略无法利用 source-native task progress 恢复边界
+
+Step 0053 不再用 root task、系统字段或前一个 observation 代替任务状态。它直接回到
+五种 CodeTraceBench 原始轨迹格式，用每个 operation 的既有 `source_ref` 重建 agent
+自己写下的 intent、plan/progress、实际 action 和能够唯一归因的 result。MiniSWE 按
+assistant message index 对齐，SWE-agent 按 trajectory element 对齐，OpenHands native
+按 event id/cause 对齐，OpenHands maximal history 按 tool-call id 对齐，Terminus2 按同一
+response episode 内的 normalized command 对齐；缺失、重复或 action 不一致都会使运行
+无效，不能用 operation count positional zip 回退。
+
+固定 Qwen2.5-3B-Instruct Q4_K_M 随后只比较每一对相邻的 completed operations，并输出
+`continue` 或 `boundary`。它能看到 concrete task、native intent、native progress、
+source action 和 uniquely attributable result，但看不到 agent/model/session/status、
+phase/action-kind、人工 stage 或任何 label inventory。该接口刻意只测试一个 flat
+workflow-stage boundary operator，不声称生成递归 stack 或语义名称。
+
+完整运行覆盖 405 条轨迹、251 个任务、20,866 个 operations 和 20,461 个相邻 pair。
+Intent、progress 和 result 分别覆盖 15,304、10,418 和 13,143 个 operations。模型产生
+605 个 boundary 和 19,856 个 continue，即 1,010 个预测段，对应 2,948 个人工 stage。
+这次不再逐 operation 过分切分，而是明显欠切分：
+
+- ordinary B-cubed precision/recall/F1 为
+  `0.253830/0.948235/0.400462`，低于 multi-resolution recurrence 的
+  `0.782026/0.575029/0.662740`；
+- exact adjacent-boundary precision/recall/F1 为
+  `0.171901/0.040897/0.066074`，只恢复 104/2,543 个真实 boundary；
+- exact-span F1 为 `0.012633`，只精确匹配 25/2,948 个 stage；
+- candidate-minus-multires 的 10,000 次 paired task-cluster bootstrap 95% 区间为
+  `[-0.286562,-0.236752]`，四个 framework 的 B-cubed 都更低。
+
+因此注册假设被否定，candidate 不进入发布或正面论文，也不能用来画一张冒充
+task-semantic 的正面火焰图。这个结果比“3B 不够好”更窄也更有用：在已经暴露真实
+源生任务证据的固定接口中，memoryless adjacent-pair policy 仍没有维护 active subtask 的状态，
+所以会把多个人工 workflow stages 合并成一个大段。它否定的是这个局部 boundary
+operator，不是否定 source-native evidence、variable-depth task stack、RQ3 或论文
+thesis。
+
+研究目标保持不变。主 stack 必须表示
+`具体任务 → 嵌套子任务 → 阶段/策略 → 语义动作 → 操作对象 → 结果`；agent、model、
+session、tool、command、path 和 status 只能作为元数据、筛选、颜色、宽度或叶端证据。
+下一次如果继续，必须引入能真正维护或暴露 active task/subtask state 的机制；不能再
+把另一版相邻 prompt、cutoff、post-hoc contraction 或系统字段重排当成任务语义。
+
+完整 approved plan、REAL PREFLIGHT、full run、标准评分与独立结果复算位于：
+
+```text
+docs/tmp/build-and-evaluate/step-0053-20260720T074853-0700/experiment-001/
+```
+
 ## 6. 两个算法最本质的差别
 
 | 问题 | Information gain | Cross-run recurrence |
@@ -911,6 +960,7 @@ RQ 和 operation/operation-stack 模型不变。
 | Task-rooted plan 与 numeric-index confound | `docs/tmp/build-and-evaluate/step-0050-20260720T022249-0700/experiment-001/` |
 | Index-free semantic transition interface | `docs/tmp/build-and-evaluate/step-0051-20260720T052839-0700/experiment-001/` |
 | Decoupled responsibility continuation | `docs/tmp/build-and-evaluate/step-0052-20260720T064136-0700/experiment-001/` |
+| Source-native task-progress boundaries | `docs/tmp/build-and-evaluate/step-0053-20260720T074853-0700/experiment-001/` |
 
 历史与当前源代码共同构成可审计记录：失败实现不留在 release runtime，但不从
 Git 或 experiment reports 中删除；当前实现不冒充先前算法，也不把开发结果扩大

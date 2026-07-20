@@ -154,6 +154,15 @@ projections over the same evidence. Mappings, tags, rankers, importers,
 differential comparison, pprof output, and visualizations remain supporting
 mechanisms.
 
+For the paper's task-semantic projection, the intended responsibility path is
+`concrete task -> nested subtask -> phase/strategy -> semantic action ->
+operation object -> result`. Agent, model, session, tool, command, path, and
+status do not become semantic responsibility merely by occupying stack frames;
+they remain metadata, filters, visual encodings, measures, or source-linked
+evidence. This clarification preserves the original profiling thesis while
+preventing a system-field classification tree from being presented as the
+agent's task decomposition.
+
 ### Positive Research Program
 
 AgentProf transfers the profiling method from code execution to agent behavior:
