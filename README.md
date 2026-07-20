@@ -11,9 +11,10 @@ AI agents can run commands, rewrite files, spawn processes, and contact remote s
 
 AgentSight is a local-first `top`/`strace`-like observability tool for AI agents. It connects prompts, model calls, and tool decisions to their real effects on your machine.
 
-- **See what the agent is doing now.** Monitor active sessions, processes, resource usage, model calls, tool calls, file activity, and network activity.
-- **Debug failed or slow runs.** Reconstruct the timeline of commands, child processes, errors, exit status, and duration.
-- **Audit what changed and where data went.** Inspect file changes, network destinations, prompts, responses, models, and token usage.
+- **See what the agent is doing now.** Monitor active sessions, processes, resource, model and tool calls, file and network activity.
+- **Understand failures and improve agent behavior.** Connect prompts and skills to errors, then turn them into better instructions and skills.
+- **Find where time, tokens, and resources go.** Spot slow steps, retry loops, repeated model or tool calls, token-heavy sessions, and resource-hungry processes.
+- **Audit data movement and security-sensitive effects.** See which services received requests, which files changed, and whether agents stayed and give safety/security suggestions.
 - **Use it with your existing agents.** Run AgentSight around Claude Code, Codex, Gemini CLI, OpenCode, OpenClaw, or any command—without an SDK, proxy, or vendor integration.
 
 No SDK, no proxy, no vendor integration. AgentSight observes with eBPF and TLS traffic tracing, so it works even when the agent is a
