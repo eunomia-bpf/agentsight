@@ -794,6 +794,53 @@ feature soup、深度限制或事后 contraction。
 docs/tmp/build-and-evaluate/step-0051-20260720T052839-0700/experiment-001/
 ```
 
+### 5.7 两阶段 continuation/label factorization 修复 degeneration，但仍错位
+
+Step 0052 继续复用相同 405 个 task-rooted plans、20,866 个 operations、Qwen2.5-3B、
+标准 scorer 和 recurrence comparators。它不再让 `continue` 与所有 exact labels 在
+同一个 grammar 里竞争。对每个后续 operation，第一阶段只根据 public task、causal
+evidence 和 active responsibility 输出 `continue` 或 `change`；只有 `change` 后的
+第二阶段才注入 unordered responsibility inventory 并选择 exact label。选出的 label
+仍成为后续状态，所以这是 same-operation factorization，不是 causal independence。
+
+完整 source-only 推理有效。20,313 个 continuation calls 产生 3,954 次 change 和
+16,359 次 learned continue；五个 one-item plans 另有 148 次 forced continue。
+预测 instance 从 Step0051 的 20,465 降为 4,359，boundary rate 从 `0.980402` 降到
+`0.193246`。这证明两阶段接口消除了 near-all-switch degeneration。
+
+标准 gold score 也实质改善，但未达到 adoption comparator：
+
+- exact unlabeled span F1 `0.020802`，高于 Step0051 joint interface 的 `0.008201`，
+  paired task-cluster interval `[+0.007819,+0.017686]`；
+- ordinary B-cubed F1 `0.622385`，高于 joint 的 `0.264371`，但仍低于 current
+  recurrence `0.649173` 和 multi-resolution recurrence `0.662740`；
+- exact span 相对 current 的 interval 为 `[-0.059199,-0.036636]`，相对 multires
+  为 `[-0.045914,-0.026248]`；四个 framework 的 exact-span F1 都更低；
+- boundary precision/recall/F1 为 `0.126201/0.196225/0.153609`，漏掉 2,044 个
+  human boundaries 并增加 3,455 个 false boundaries。
+
+因此注册假设被否定，candidate 不进入发布或正面论文。它解决的是 transition-form
+degeneration，不是 human-stage placement。
+
+这次还澄清了 prompt isolation 的精确定义。Continuation call 没有注入 alternative-
+label inventory，但 public task/evidence 自然包含其他 retained responsibility exact
+string 的情况有 1,138/20,313 (`5.60%`)；因此不能把比较解释成 label visibility 的
+单因素消融。Operation-triplet `A→B→A` 为 1,605，collapsed stage-sequence
+`A→B→A` 为 2,808。3,954 次 change 中，3,348 次返回此前用过的 responsibility，
+606 次首次进入新 responsibility。这说明 fixed plan 的大部分 change 是在少数
+responsibility types 间复访，而不是逐步发现完整层次。
+
+Step 0052 仍只评分 flat stage partition，没有验证 nested subtask、phase/strategy、
+semantic action、object、result 或生成 label 的正确性。它不支持继续微调同一局部
+prompt；若继续 task-semantic 方向，需要新的、可观察的 task-continuity 信息，而非
+增加系统字段、阈值、depth cap 或 post-hoc contraction。
+
+完整 plan、三次串行审查、preflight、full run、独立复算与修正位于：
+
+```text
+docs/tmp/build-and-evaluate/step-0052-20260720T064136-0700/experiment-001/
+```
+
 ## 6. 两个算法最本质的差别
 
 | 问题 | Information gain | Cross-run recurrence |
@@ -863,6 +910,7 @@ RQ 和 operation/operation-stack 模型不变。
 | Qwen 3B semantic-stack 与 contraction | `docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-003/` 和 `experiment-004/` |
 | Task-rooted plan 与 numeric-index confound | `docs/tmp/build-and-evaluate/step-0050-20260720T022249-0700/experiment-001/` |
 | Index-free semantic transition interface | `docs/tmp/build-and-evaluate/step-0051-20260720T052839-0700/experiment-001/` |
+| Decoupled responsibility continuation | `docs/tmp/build-and-evaluate/step-0052-20260720T064136-0700/experiment-001/` |
 
 历史与当前源代码共同构成可审计记录：失败实现不留在 release runtime，但不从
 Git 或 experiment reports 中删除；当前实现不冒充先前算法，也不把开发结果扩大
