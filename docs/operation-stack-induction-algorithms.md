@@ -748,6 +748,52 @@ subtask、strategy、semantic action、object 或 result 的完整 hierarchy。
 docs/tmp/build-and-evaluate/step-0050-20260720T022249-0700/experiment-001/
 ```
 
+### 5.6 Index-free semantic transition 仍退化为 near-singleton
+
+Step 0051 完整执行了 5.5 注册的最小后续机制。它逐字复用 Step0050 的 405 个
+task-rooted responsibility plans、20,866 个 causal operation evidence、Qwen2.5-3B、
+recurrence comparators 和标准 scorer，只把 numeric-index 选择替换为显式
+`stay` 或 `switch` 到一个 exact responsibility string。模型不见也不输出 numeric
+index 或 temporal-instance id；相同 label 的一次连续访问仍是独立 stage instance。
+
+这个接口没有恢复 temporal continuity。20,866 次决定中有 20,465 次是 `switch`，
+只有 401 次 `stay`；去掉每条轨迹必须建立初始状态的第一次选择后，相邻边界率仍为
+`0.980402`。Preflight 中观察到的 exact-label 交替因而不是四条轨迹的偶然现象，而是
+完整 population 上的 policy degeneration。
+
+完整标准评分为：
+
+- exact unlabeled span F1 `0.008201`，低于 numeric predecessor 的 `0.011574`、
+  current recurrence 的 `0.068055` 和 multi-resolution recurrence 的 `0.056435`；
+- ordinary B-cubed F1 `0.264371`，其 precision `0.992830`、recall `0.152488`，
+  符合 near-singleton partition；
+- exact adjacent-boundary F1 `0.221740`，recall `0.985450` 但 precision 只有
+  `0.124925`，产生 17,554 个 false boundaries。
+
+Candidate-minus-current 的 task-cluster bootstrap 95% 区间是
+`[-0.071057,-0.050050]`，candidate-minus-multires 是
+`[-0.057653,-0.039826]`，candidate-minus-numeric 是
+`[-0.006583,-0.000418]`。因此注册假设被明确否定，接口不进入发布实现或论文结果。
+
+这个结果不能解释成“numeric tokens 是唯一原因”，因为 Step0051 同时改变了表示和
+transition form。它能支持的机制判断是：把 continuation 判断和 exact-label 选择塞进
+同一个竞争 grammar branch，会让当前 3B policy 几乎总选 `switch`；去掉 ordinal
+tokens、保留 semantic text 和保证合法输出仍不足以恢复 human workflow-stage spans。
+这是否来自 grammar branch 的生成偏置、模型的局部语义判断，或两者共同作用，当前
+实验没有进一步拆分。
+
+该失败仍不否定用户定义的主结构：
+`具体任务 → 嵌套子任务 → 阶段/策略 → 语义动作 → 操作对象 → 结果`。它只淘汰一个
+flat-stage transition interface。若继续，最小的新机制应先独立判断当前 operation
+是否延续 active responsibility，只有判定发生变化后才选择 label；不应增加系统字段、
+feature soup、深度限制或事后 contraction。
+
+完整 plan、三次串行审查、preflight、full run 和标准 score 位于：
+
+```text
+docs/tmp/build-and-evaluate/step-0051-20260720T052839-0700/experiment-001/
+```
+
 ## 6. 两个算法最本质的差别
 
 | 问题 | Information gain | Cross-run recurrence |
@@ -816,6 +862,7 @@ RQ 和 operation/operation-stack 模型不变。
 | Multi-resolution recurrence 与完整 replay | `docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-001/` |
 | Qwen 3B semantic-stack 与 contraction | `docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-003/` 和 `experiment-004/` |
 | Task-rooted plan 与 numeric-index confound | `docs/tmp/build-and-evaluate/step-0050-20260720T022249-0700/experiment-001/` |
+| Index-free semantic transition interface | `docs/tmp/build-and-evaluate/step-0051-20260720T052839-0700/experiment-001/` |
 
 历史与当前源代码共同构成可审计记录：失败实现不留在 release runtime，但不从
 Git 或 experiment reports 中删除；当前实现不冒充先前算法，也不把开发结果扩大
