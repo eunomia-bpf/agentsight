@@ -707,6 +707,47 @@ docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-003/
 docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-004/
 ```
 
+### 5.5 Task-rooted responsibility plan 与 numeric-index confound
+
+Step 0050 测试了一个比自由生成 stack 更稳定的中间机制。Qwen 先只根据具体任务
+生成一次可复用 responsibility plan；随后每个 operation 只在固定 plan 中选择一个
+active responsibility。相同选择的连续 run 是一个 workflow-stage instance，离开后
+再次返回同一 responsibility type 会创建新的 temporal instance。这个设计复用完整
+CodeTraceBench 405 条轨迹、20,866 个 operation 和 2,948 个人工 stage，不改变 thesis、
+四个 RQ 或 task-semantic 目标。
+
+完整推理有效，但固定 numeric-index aligner 的主假设被否定。Exact unlabeled span F1
+为 `0.011574`，虽然略高于几乎逐 operation 切换的 matched plan-free Qwen
+(`0.008542`)，但显著低于 multi-resolution recurrence (`0.056435`)；配对
+task-cluster bootstrap 的 candidate-minus-multires 95% 区间为
+`[-0.054570,-0.035973]`。修正 temporal-instance scorer 后，普通 B-cubed F1 为
+`0.585237`，仍低于 recurrence 的 `0.662740`。
+
+失败原因不是一般性的“语义 plan 不工作”，而是输出接口没有隔离语义判断和数字
+顺序偏置：397/405 条轨迹第一次输出 `plan_index=1`；index 0 只覆盖
+180/20,866 个 operation；5,114 次切换中有 4,384 次 (`85.73%`) 恰好是 index
+加一。最长轨迹先输出 `1,2,3,4,5`，随后把 271/275 个 operation 全部归到最后的
+`test deployment`。因此当前结果只否定 numeric-index causal aligner，不能否定
+task-derived responsibility、variable-depth hierarchy 或完整 semantic-stack 方向。
+
+这次还暴露并修正了一个 scorer 区分：`responsibility_type` 是可跨时间复用的语义
+类型；`stage_instance` 是一次连续访问。普通 B-cubed 和 span score 必须比较后者，
+不能把非连续访问按同一 plan index 合并。旧 scorer attempt 保留在 raw artifact
+中，修正不改变 prediction、主 span score、boundary score、bootstrap 或 verdict。
+
+下一次最小机制不是增加 feature、threshold 或 benchmark，而是复用已经生成的 405
+个 plans 和全部 operation evidence，把 transition 改为显式 `stay` 或
+`switch` 到一个 exact responsibility string。模型只看当前/候选 responsibility
+文本，不见也不输出 numeric index 或 instance number。这个实验只检验 ordinal
+confound 是否解释当前 stage-alignment 失败；即使成功，也不能单独验证 nested
+subtask、strategy、semantic action、object 或 result 的完整 hierarchy。
+
+完整 plan、preflight、run、scorer correction 与独立复算位于：
+
+```text
+docs/tmp/build-and-evaluate/step-0050-20260720T022249-0700/experiment-001/
+```
+
 ## 6. 两个算法最本质的差别
 
 | 问题 | Information gain | Cross-run recurrence |
@@ -774,6 +815,7 @@ RQ 和 operation/operation-stack 模型不变。
 | Grouped-reference calibration 与完整 replay | `docs/tmp/build-and-evaluate/step-0030-20260715T161256-0700/` |
 | Multi-resolution recurrence 与完整 replay | `docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-001/` |
 | Qwen 3B semantic-stack 与 contraction | `docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-003/` 和 `experiment-004/` |
+| Task-rooted plan 与 numeric-index confound | `docs/tmp/build-and-evaluate/step-0050-20260720T022249-0700/experiment-001/` |
 
 历史与当前源代码共同构成可审计记录：失败实现不留在 release runtime，但不从
 Git 或 experiment reports 中删除；当前实现不冒充先前算法，也不把开发结果扩大

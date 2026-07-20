@@ -1010,18 +1010,27 @@ def score_rows(
     )
     for session in sorted(grouped):
         previous = None
+        previous_candidate_index = None
+        candidate_instance = -1
         for row in grouped[session]:
             key = (session, int(row["step_id"]))
             require(key in predictions, f"missing prediction: {key}")
             require(key in baselines, f"missing baseline: {key}")
             prediction = predictions[key]
+            candidate_index = int(prediction["candidate_index"])
+            if candidate_index != previous_candidate_index:
+                candidate_instance += 1
+                previous_candidate_index = candidate_index
             operation = {
                 "session": session,
                 "framework": frameworks[session],
                 "task_name": tasks[session],
                 "step_id": int(row["step_id"]),
                 "official_stage": official[key],
-                "candidate": f"{session}:candidate-{int(prediction['candidate_index']):04d}",
+                "candidate": f"{session}:candidate-run-{candidate_instance:04d}",
+                "candidate_responsibility": (
+                    f"{session}:candidate-plan-{candidate_index:04d}"
+                ),
                 "plan_free_qwen": f"{session}:flat-{int(prediction['flat_index']):04d}",
                 **baselines[key],
             }
@@ -1181,7 +1190,7 @@ def write_folded_and_svg(
     for line in lines:
         stack, value = line.rsplit(" ", 1)
         counts[tuple(stack.split(";"))] += int(value)
-    width, frame_height, left, top = 1800, 34, 24, 90
+    width, frame_height, left, top = 1800, 34, 24, 110
     total = sum(counts.values())
     prefixes: Counter[tuple[str, ...]] = Counter()
     for stack, value in counts.items():
@@ -1193,12 +1202,13 @@ def write_folded_and_svg(
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
         '<rect width="100%" height="100%" fill="#f7f9fc"/>',
         '<style>text{font-family:Inter,system-ui,sans-serif}.t{font-size:20px;font-weight:700;fill:#17253d}.s{font-size:12px;fill:#60708a}.f{font-size:11px;fill:#fff;font-weight:600}</style>',
-        '<text class="t" x="24" y="30">Qualitative candidate task-plan flamegraph</text>',
-        '<text class="s" x="24" y="52">candidate task plan plus qualitative evidence frames; width = operations; generated names are not gold-validated</text>',
+        '<text class="t" x="24" y="30">FAILED numeric-index mechanism diagnostic</text>',
+        '<text class="s" x="24" y="52">not a recovered task-semantic hierarchy; width = operations; generated names are not gold-validated</text>',
+        '<text class="s" x="24" y="70" fill="#b42318">registered exact-span test contradicted this candidate; lower frames remain runtime-derived evidence</text>',
     ]
     if semantic_violations:
         chunks.append(
-            f'<text class="s" x="24" y="70" fill="#b42318">warning: {semantic_violations} operation frames use a candidate label that copied a system detail</text>'
+            f'<text class="s" x="24" y="86" fill="#b42318">registered lexical rule matched the candidate label on {semantic_violations} operations; this is not a human semantic-error judgment</text>'
         )
     colors = ["#23395d", "#5b5bd6", "#2f80ed", "#00a6a6", "#778da9", "#43b581"]
     def render(prefix: tuple[str, ...], x: float) -> None:
@@ -1273,11 +1283,12 @@ def report_markdown(summary: dict[str, Any]) -> str:
         lines.extend(
             [
                 "",
-                "## Generated-Label Audit",
+                "## Registered Lexical-Rule Audit",
                 "",
-                f"- candidate system-label violations: {label_audit.get('candidate_system_label_violations', 'unavailable')}",
-                f"- plan-free system-label violations: {label_audit.get('plan_free_system_label_violations', 'unavailable')}",
+                f"- candidate lexical-rule hits: {label_audit.get('candidate_system_label_violations', 'unavailable')}",
+                f"- plan-free lexical-rule hits: {label_audit.get('plan_free_system_label_violations', 'unavailable')}",
                 f"- exact duplicate candidate plan items removed: {label_audit.get('exact_duplicate_plan_items_removed', 'unavailable')}",
+                "- these deterministic lexical hits are diagnostics, not human-validated semantic error rates",
             ]
         )
     lines.extend(
