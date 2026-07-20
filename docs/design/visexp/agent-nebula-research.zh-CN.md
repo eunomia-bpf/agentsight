@@ -1,18 +1,61 @@
-# Agent Nebula 研究计划：长期 Coding Agent 的仓库级执行溯源
+# Agent Nebula 研究计划：长期 Agent 的工作空间演化与行动轨迹
 
 ## 1. 研究对象
 
-Agent Nebula 研究的不是“怎样把仓库画得更漂亮”，而是一个新的软件过程观测问题：
+Agent Nebula 研究的不是“怎样把仓库画得更漂亮”，也不只研究 Coding Agent。软件开发、
+auto research、论文写作和实验迭代都属于同一种长期 Agent 工作：Agent 跨多个 session
+持续改变一个 workspace，最终形成代码、论文、实验结果、数据和文档等数字产物。
 
-> 当 Coding Agent 跨多个 session 连续工作数小时或数天，最终 diff、commit 历史和线性
-> Tool 日志都不足以让后来者恢复软件是怎样形成的。我们能否把 Agent 的有序行动与真实
-> 文件效应组织成仓库级执行溯源，使人能够核对过程、恢复上下文，并诊断 skill/harness
-> 造成的低效？
+> 长期运行的 Agent 如何跨多个 session 持续改变一个 workspace，并最终形成代码、论文、
+> 实验结果、数据和文档等数字产物？我们能否重建这些产物的形成过程，使后来者能够核对
+> Agent 做了什么、如何做、在哪里失败和修正，并诊断 skill/harness 造成的低效？
 
-这里的核心对象是 action-time repository provenance：以 Agent action 的真实顺序为时间，
-以具有生命周期的文件为实体，以目录层级和相邻动作关系为空间约束，以 session、Tool
-action 和可选的系统文件观察为证据。Git commit 只作为里程碑，不定义时间轴，也不参与
-布局。
+这里的核心对象是 action-time workspace evolution：以 Agent action 的真实顺序为时间，
+以具有生命周期的数字产物为实体，以 workspace 层级和相邻动作关系为空间约束，以
+session、Tool action 和可选的系统文件观察为证据。Git repository 是一种常见 workspace，
+Git commit 只作为可选里程碑，不定义时间轴，也不参与布局。
+
+核心单位不是单次 session，因为一次长期工作会跨越许多上下文；不只是 Git repository，
+因为研究过程还会形成仓库外或未提交的论文、数据和结果；也不是最终 patch，因为最终结果
+会丢掉探索、失败、回退和验证过程。真正持续存在的研究对象是 workspace 及其中数字产物
+的演化，Agent trajectory 是作用在这些产物上的时空路径。
+
+### 1.1 核心用户场景
+
+用户会给一个 Agent 设置简单目标和 idea，让它在一个 workspace 中自主迭代数小时或
+2–3 天，之后才回来检查。用户希望快速理解 Agent 大致做了什么、改进了哪些产物以及
+怎样完成迭代，例如：
+
+- 是先测试还是先写代码，失败之后是否改变了做法；
+- 主要修改了什么模块，注意力和热点怎样随时间移动；
+- 在论文、代码、实验、数据和文档上分别投入了多少工作；
+- 写代码的意图、尝试过的方法、失败原因、踩过的坑以及后来的反思是什么；
+- skill 是否要求 Agent 记录大量几乎不再阅读的文档；
+- harness 是否让 Agent 长时间迭代无意义的测试用例，而没有推进真正的实现或研究目标。
+
+真实文件动作能够证明“发生了什么”；意图、失败原因和反思则必须来自 Agent session 中
+可追溯的语义记录，不能从系统事件硬猜。语义解释是可附加的信息层，不改变底层 action
+时间轴和 artifact 生命周期。
+
+### 1.2 文件地图与 Agent 轨迹的分工
+
+Agent Nebula 中的星点表示文件，但文件不只意味着源代码：它也可以是测试、配置、论文、
+研究笔记、数据集、实验输入、日志、指标、图表、结果和临时产物。目录或其他 workspace
+层级由稳定色系表达，不需要额外伪装成文件节点。
+
+文件地图回答“什么产物发生了变化”，Agent trajectory 回答“Agent 如何让它发生变化”。
+后者既包括 read/write/create/rename/delete 的先后次序，也包括与文件效应关联的搜索、
+执行和验证动作。二者共同表现模块形成、热点迁移、反复返工、遗忘区域和结构漂移。
+
+中心研究主张是：
+
+> Long-horizon agents should be understood through the process by which they
+> transform persistent workspaces, rather than only through final outputs or
+> isolated session traces.
+
+即：长期 Agent 的关键观测对象不是一次对话或最终结果，而是它跨 session 改造持久工作
+空间、形成数字产物的完整过程。Coding 是第一批最容易严格评测的 workload，而不是系统
+抽象的边界。
 
 ## 2. 新颖性边界
 
@@ -33,11 +76,11 @@ action 和可选的系统文件观察为证据。Git commit 只作为里程碑�
 
 现有细粒度开发历史主要面向人类 IDE 操作；现有 Agent 轨迹工具主要以一次任务的
 Thought–Action–Result、线性时间轴或抽象行为图为中心。Agent Nebula 聚焦两者之间尚未
-充分解决的交叉点：
+充分解决、且不限于代码的交叉点：
 
-- **长期与跨 session：** 观察一个仓库在多个 Agent、多个 session、数日运行中的连续
+- **长期与跨 session：** 观察一个 workspace 在多个 Agent、多个 session、数日运行中的连续
   演化，而不把每次 run 隔离成单独故事；
-- **仓库状态与行动轨迹合一：** 同一模型同时表达文件的 create/read/write/rename/delete
+- **工作空间状态与行动轨迹合一：** 同一模型同时表达文件的 create/read/write/rename/delete
   生命周期，以及 Agent 注意力在目录和文件之间移动的顺序；
 - **声明与文件效应可关联：** Agent 原生 Tool action 表达调用意图，系统文件观察在可用时
   表达真实效应；二者绑定到同一 action，而不是建立两套互不相干的时间线；
@@ -48,8 +91,8 @@ Thought–Action–Result、线性时间轴或抽象行为图为中心。Agent N
 
 因此，建议的中心表述是：
 
-> Agent Nebula is a repository-centered execution-provenance model and visual
-> instrument for reconstructing and diagnosing long-running coding-agent work.
+> Agent Nebula is a workspace-centered visual instrument for reconstructing and
+> diagnosing how long-running agents create and revise digital artifacts.
 
 “星云”是这个模型的一种交互表示，不是全部贡献。
 
@@ -57,7 +100,7 @@ Thought–Action–Result、线性时间轴或抽象行为图为中心。Agent N
 
 ### 主张 C1：过程恢复
 
-action-time、生命周期感知、仓库中心的表示，相比原始 session 日志、普通 Tool 时间轴、
+action-time、生命周期感知、workspace 中心的表示，相比原始 session 日志、普通 Tool 时间轴、
 静态热点图和 commit 历史，能让用户更快、更准确地恢复长期 Agent 工作过程，并定位支持
 答案的原始证据。
 
@@ -128,10 +171,11 @@ action 构成瞬时路径，视觉上只保留短尾迹或移动光环。用于�
 1. 原始 session/Tool 日志；
 2. 可缩放的线性 Tool 时间轴；
 3. 静态文件热点图或最终 treemap；
-4. Agent Nebula 动态仓库轨迹。
+4. Agent Nebula 动态工作空间轨迹。
 
-任务不问审美偏好，而问有客观答案的问题：主要修改模块、首次测试与首次实现的顺序、
-热点迁移、重复探索、删除后重建、文档回读、测试空转，以及支持判断的 action 证据。
+任务不问审美偏好，而问有客观答案的问题：主要修改模块或产物类别、首次测试与首次实现
+的顺序、论文/代码/实验投入、热点迁移、重复探索、删除后重建、文档回读、测试空转，以及
+支持判断的 action 证据。
 指标包括正确率、完成时间、证据定位时间、漏报/误报、信心校准和 NASA-TLX 等主观负荷。
 
 ### E2：布局消融与压力测试
@@ -171,13 +215,14 @@ action 构成瞬时路径，视觉上只保留短尾迹或移动光环。用于�
 
 ## 7. 数据集与防泄漏原则
 
-数据集应包含不同 Agent、harness、语言、仓库规模、任务类型和运行时长，并保留失败 run，
-不能只收集成功案例。最小可发表单元不是 event 数，而是具有完整任务上下文、可复核证据
-和结果判定的 run/session group。
+数据集应包含不同 Agent、harness、workspace 类型、语言、规模、任务类型和运行时长，并
+保留失败 run，不能只收集成功案例。软件仓库可以作为第一阶段受控 workload；auto
+research、论文与实验 workspace 用于检验表示是否真的超越 coding。最小可发表单元不是
+event 数，而是具有完整任务上下文、可复核证据和结果判定的 run/session group。
 
-训练或调参、阈值选择、诊断评估必须按 repo 或 task group 划分。相同 issue、fork、模板
-仓库或同一长运行的切片不能跨训练与测试集合。发布数据时可用路径哈希或受控重放，但论文
-内部的 ground truth 必须能回到原始 action 核验。
+训练或调参、阈值选择、诊断评估必须按 workspace 或 task group 划分。相同 issue、fork、
+模板 workspace 或同一长运行的切片不能跨训练与测试集合。发布数据时可用路径哈希或受控
+重放，但论文内部的 ground truth 必须能回到原始 action 核验。
 
 ## 8. 最近工作与直接威胁
 
@@ -195,14 +240,31 @@ action 构成瞬时路径，视觉上只保留短尾迹或移动光环。用于�
 
 ## 9. 投稿路线
 
-最现实的首篇论文是软件工程路线：以仓库级执行溯源、长期 Agent 行为数据和过程理解/
-harness 诊断实验为主，目标可考虑 ICSE、FSE 或 MSR。动态布局是方法贡献之一，但不要求
-仅靠一个新颖图形拿下整篇论文。
+扩大到 workspace 后，会议选择应由最终证据最强的贡献决定，而不是预先把项目限定为
+软件工程工具：
 
-如果 E2 产生清晰、可泛化的布局模型和强用户研究，可再形成 VIS/CHI 路线，重点研究动态
-层级图中的结构真实性、轨迹可读性和 mental-map 权衡。若未来把 AgentSight 的跨层系统
-捕获、声明—效应差异、低开销长期采集和生产规模做成核心，才适合讨论系统会议；仅有
-可视化不足以支撑 OSDI/SOSP 式系统主张。
+1. **CHI：首选完整故事。** 如果核心是人如何理解、接管和监督数日运行的 Agent，需要
+   formative study、真实长期任务、对照界面和严格用户实验。CHI 能容纳 coding、auto
+   research、论文与实验等多种 workspace，也是“从最终结果转向过程理解”最自然的社区。
+2. **IEEE VIS：首选可视分析故事。** 如果核心产出是新的动态 workspace 表示、时空布局、
+   mental-map 权衡和分析任务模型，应以表示/交互、analytics/decisions 或 empirical VIS
+   的标准评价，而不把论文写成 Agent 产品介绍。
+3. **IUI：近期且高度匹配的 AI×HCI 路线。** 如果贡献同时包含可计算的行为指标和供人
+   检查 Agent 的智能界面，IUI 要求的 computational 与 human-centric 两面正好匹配；
+   仍需用户研究或计算实验支撑主张。
+4. **MSR：行为数据与测量路线。** 如果主贡献变成跨 Agent、harness 和 workspace 的长期
+   trajectory 数据集、过程指标与实证发现，MSR 比单纯可视化会议更合适。可视化在这条
+   路线上是分析仪器，不是主要新意。
+5. **ICSE/FSE/ASE：软件工程子集路线。** 如果实验主要落在代码仓库，贡献集中于开发过程
+   恢复、软件理解或自动化开发诊断，可以投稿；但需要明确把 auto research 作为泛化场景，
+   不能一边声称通用 workspace、一边只评测 coding。
+6. **UIST：有条件候选。** 只有在交互技术本身足够新、可复用且经过强交互实验时才优先；
+   单纯一张动态星云或一个回放页面不够。
+
+当前建议以 **CHI 作为完整研究故事的第一目标，IEEE VIS 作为算法与可视分析强时的并列
+目标，IUI 作为更聚焦且近期的落点**。MSR 可承接独立的数据/测量论文。若未来把 AgentSight
+的跨层系统捕获、声明—效应差异、低开销长期采集和生产规模做成核心，才适合讨论系统
+会议；仅有可视化不足以支撑 OSDI/SOSP 式系统主张。
 
 ## 10. Go/No-Go 门槛
 
