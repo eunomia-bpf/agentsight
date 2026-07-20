@@ -10,6 +10,7 @@
 use clap::{Parser, Subcommand};
 use std::collections::VecDeque;
 use std::io::Write;
+use std::path::PathBuf;
 use std::sync::{
     Arc, Mutex, OnceLock,
     atomic::{AtomicBool, Ordering},
@@ -143,6 +144,10 @@ fn command_uses_top_tui(cli: &Cli) -> bool {
 fn init_logging(suppress_terminal_output: bool) {
     let mut builder = env_logger::Builder::from_default_env();
     builder.filter_level(log::LevelFilter::Warn);
+    builder.filter_module(
+        "headless_chrome::browser::transport",
+        log::LevelFilter::Error,
+    );
     if suppress_terminal_output {
         builder.target(env_logger::Target::Pipe(Box::new(TuiDiagnosticWriter)));
     }
@@ -198,6 +203,21 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Render repository file evolution from local agent sessions.
+    Vis {
+        /// Git worktree to visualize.
+        #[arg(default_value = ".")]
+        path: PathBuf,
+        /// Output path; repeat for HTML, SVG, PNG, GIF, and MP4.
+        #[arg(short = 'o', long = "output", default_value = agentvis::DEFAULT_OUTPUT)]
+        outputs: Vec<PathBuf>,
+        /// Scan every local session and retain operations targeting this repository.
+        #[arg(long)]
+        global: bool,
+        /// Compact GIF/MP4 uniformly by action to this duration, or use `full`.
+        #[arg(long, default_value = "30s")]
+        compact_rate: agentvis::CompactRate,
+    },
     /// Show live agent sessions.
     Top {
         /// Process PID filter, similar to top -p
@@ -570,10 +590,19 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let suppress_terminal_output = command_uses_top_tui(&cli);
     init_logging(suppress_terminal_output);
 
-    // Setup signal handler for graceful shutdown
-    setup_signal_handler(suppress_terminal_output).await;
+    // Long-running monitors coordinate graceful shutdown. `vis` is a synchronous
+    // batch export, so retaining the OS default makes Ctrl-C interrupt Chromium too.
+    if !matches!(&cli.command, Commands::Vis { .. }) {
+        setup_signal_handler(suppress_terminal_output).await;
+    }
 
     match &cli.command {
+        Commands::Vis {
+            path,
+            outputs,
+            global,
+            compact_rate,
+        } => agentvis::run_vis(path, outputs, *global, *compact_rate)?,
         Commands::Report { db, local, sub } => match sub {
             None | Some(ReportCommands::Summary { .. }) => {
                 let (db_ref, local_ref) = match sub {

@@ -27,8 +27,14 @@ closed-source CLI. **✨ Zero SDK Required**
 ```bash
 cargo install agentsight
 # or: wget https://github.com/eunomia-bpf/agentsight/releases/latest/download/agentsight && chmod +x agentsight
+agentsight vis
 agentsight top
 ```
+
+<div align="center">
+  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/agentsight-agent-nebula.gif" alt="Agent Nebula replay of Agent development across the AgentSight repository" width="1000">
+  <p><em>Agent Nebula replays how coding agents read, write, create, rename, and delete files across this repository</em></p>
+</div>
 
 <div align="center">
   <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/top-mode-demo.png" alt="AgentSight top live session view" width="1000">
@@ -88,6 +94,21 @@ Docker is useful for container, CI, or isolated Linux environments, but it still
 #### Build from Source
 
 Build requirements and source build commands live in [docs/build.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/build.md).
+
+### Replay a Repository Session
+
+Run `agentsight vis` inside a Git worktree. It scans matching local Claude,
+Codex, and Gemini sessions without sudo, then writes an animated replay to
+`output/agent-nebula.gif`:
+
+```bash
+cd your-repository
+agentsight vis
+```
+
+GIF export requires local Chromium and FFmpeg. Use
+`agentsight vis -o output/agent-nebula.html` for a self-contained HTML artifact
+that needs neither dependency to generate.
 
 ### Querying Past Sessions
 

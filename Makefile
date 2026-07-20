@@ -1,21 +1,28 @@
 SYNC_VENDOR ?= 0
 
 build: SYNC_VENDOR=1
-build: build-frontend build-bpf build-rust
+build: build-frontend build-vis build-bpf build-rust
 
 build-frontend:
 	cd frontend && npm install && npm run build
+
+build-vis:
+	cd agentvis/web && npm ci && npm run build
+	cp agentvis/web/dist/repository-nebula.iife.js agentvis/vendor/vis/
 
 build-bpf:
 	make -C bpf
 
 build-rust:
+	cd agentvis && cargo build --release
 	cd collector && AGENTSIGHT_SYNC_VENDOR=$(SYNC_VENDOR) cargo build --release
 
 clean:
 	make -C bpf clean
+	cd agentvis && cargo clean
 	cd collector && cargo clean
 	cd frontend && rm -rf .next node_modules dist
+	cd agentvis/web && rm -rf node_modules dist
 
 install:
 	sudo apt update
@@ -35,9 +42,14 @@ install:
 		source ~/.cargo/env; \
 	}
 
-test:
+test: test-vis
 	make -C bpf test
+	cd agentvis && cargo test
 	cd collector && cargo test
 	cd frontend && npm run build
 
-.PHONY: build build-frontend build-bpf build-rust clean install test
+test-vis:
+	cd agentvis/web && npm ci && npm run build
+	cmp agentvis/web/dist/repository-nebula.iife.js agentvis/vendor/vis/repository-nebula.iife.js
+
+.PHONY: build build-frontend build-vis build-bpf build-rust clean install test test-vis

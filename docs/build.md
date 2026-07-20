@@ -54,6 +54,7 @@ Build individual components when iterating:
 
 ```bash
 make build-frontend  # frontend assets
+make build-vis       # self-contained Agent Nebula runtime
 make build-bpf       # eBPF programs
 make build-rust      # Rust collector
 ```

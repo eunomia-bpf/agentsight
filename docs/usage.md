@@ -77,3 +77,33 @@ no default event filters, and saves a local SQLite session for `report`,
 Use `debug trace` only when you need low-level control over capture sources or
 explicit filters. It is the advanced replacement for a raw trace command, not
 the normal record/report workflow.
+
+## Share Agent Nebula
+
+`vis` reads local Claude, Codex, and Gemini sessions without sudo and produces
+one self-contained Agent Nebula artifact per output file:
+
+```sh
+cd your-repository
+agentsight vis
+```
+
+The default artifact is `output/agent-nebula.gif`. Specify `-o` only when you
+want another path or format:
+
+```sh
+agentsight vis . --global \
+  --compact-rate 30s \
+  -o output/agent-nebula.html \
+  -o output/agent-nebula.png \
+  -o output/agent-nebula.gif \
+  -o output/agent-nebula.mp4
+```
+
+HTML works without external assets. PNG, SVG, and MP4 require Chromium; GIF
+additionally requires FFmpeg. Repeated `-o` values reuse one session scan and layout.
+GIF/MP4 default to a 30-second compact replay whose frames are spaced uniformly
+by action index; use `--compact-rate full` for one media frame per action. HTML
+always keeps the full action timeline.
+See [the Chinese algorithm specification](repository-nebula.zh-CN.md) for the
+event boundary, force model, frame count, and export invariants.
