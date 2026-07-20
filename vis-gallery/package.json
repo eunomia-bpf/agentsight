@@ -1,0 +1,29 @@
+{
+  "name": "agentsight-evolution-gallery",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "agentsight-vis": "single/render.mjs",
+    "agentsight-vis-all": "single/render-all.mjs"
+  },
+  "scripts": {
+    "build": "vite build --config vite.single.config.js && vite build --config vite.nebula.config.js",
+    "test": "vitest run single/registry.test.js",
+    "test:e2e": "playwright test",
+    "test:project": "python3 -m unittest single/test_project.py",
+    "lint": "node --check single/render.mjs && node --check single/render-all.mjs",
+    "render": "node single/render.mjs",
+    "render:all": "node single/render-all.mjs"
+  },
+  "dependencies": {
+    "d3-force": "3.0.0",
+    "echarts": "6.1.0",
+    "playwright": "1.61.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "vite": "8.1.4",
+    "vitest": "4.1.10"
+  }
+}
