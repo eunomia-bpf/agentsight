@@ -236,3 +236,15 @@ Information gain 的问题不是不够复杂，而是“字段纯度”并不等
 ---
 
 token-weighted B³ 是场景化变体，不应出现在论文中；普通 B³ 才是标准主指标。Recall@20% 和固定 top-3 reader 是实验协议，不是通用 metric，也不应出现在论文中。论文的主指标必须采用已有论文或官方 benchmark 定义的标准指标，并引用定义它们的论文；这些自定义加权、预算 cutoff 和 model-reader 协议最多只能作为内部诊断，不能替代论文主指标。
+
+---
+
+看看 claude 的 claude --resume df98b0b9-b883-41ad-a193-92cd8fe62eca 这个会话的聊天记录, 接下来告诉我要做啥. 另外能不能去搜索搜索更多 related work? 看看别人怎么说的?
+
+---
+
+看看有没有更好的 eval 方式?
+
+---
+
+继续迭代, 然后要让不同模型, 比如说 grok 来完整审稿

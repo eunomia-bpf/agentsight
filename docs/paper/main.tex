@@ -137,12 +137,12 @@ attribution hierarchy that does not depend on a runtime stack.
 %% ¶4: Existing solutions
 Existing agent observability lacks this profiling abstraction.
 Tools provide rich tracing, metadata aggregation, and population
-dashboards~\cite{langsmith,langfuse,phoenix,otel,datadog-llmobs,laminar-signals},
+dashboards~\cite{langsmith,langfuse,otel,datadog-llmobs},
 and some derive hierarchical categories across traces and aggregate latency, cost,
 or evaluation metrics~\cite{langsmith-insights,datadog-patterns}, while recent
 research canonicalizes actions into process profiles or cross-run graphs for
-monitoring and recovery~\cite{traceprobe2026,graphectory2026,webgrapheval2025,
-hodoscope2026,tracegraph2026}. These systems establish
+monitoring and recovery~\cite{traceprobe2026,graphectory2026,hodoscope2026,
+tracegraph2026}. These systems establish
 semantic grouping, metric rollups, and cross-run analysis. They do not combine
 source-linked agent and system effects, conservation of arbitrary additive
 measures, and selectable query-time operation stacks over the same histories.
@@ -251,9 +251,9 @@ Traditional profilers sample execution, attach each sample to its call stack,
 and fold identical stacks~\cite{pprof,flamegraphs}.
 % 在传统软件中，profiling 管线如下工作：profiler 周期性采样执行状态，将每个样本附加到当前调用栈，合并具有相同栈的样本。
 Flame graphs~\cite{flamegraphs} and pprof~\cite{pprof} call graphs visualize
-aggregate cost by width or node size, while Perfetto~\cite{perfetto} queries
-trace events and derives new ones.
-% 火焰图~\cite{flamegraphs}和 pprof~\cite{pprof} 调用图可视化其结果，宽度或节点大小代表聚合开销。
+aggregate cost by width or node size, while Pivot Tracing~\cite{pivottracing}
+dynamically selects and groups measurements across causally related events.
+% 火焰图~\cite{flamegraphs}和 pprof~\cite{pprof} 调用图以宽度或节点大小表示聚合开销，而 Pivot Tracing~\cite{pivottracing} 跨有因果关系的事件动态选择和分组测量。
 These tools start from stable code identifiers and runtime stacks, although
 pprof can also promote \texttt{tagroot}/\texttt{tagleaf} values to pseudo-frames.
 % 这些工具通常从稳定的代码标识符和运行时栈开始；pprof 也可以聚合标签，并将 \texttt{tagroot}/\texttt{tagleaf} 值提升为伪帧。
@@ -264,9 +264,9 @@ downstream effects.
 \subsection{Challenges for Agent Profiling}
 % 智能体 Profiling 的挑战
 
-Existing tools~\cite{langsmith,langfuse,phoenix,otel} record agent events as
+Existing tools~\cite{langsmith,langfuse,otel} record agent events as
 per-execution span trees for single-run debugging.
-% 现有工具~\cite{langsmith,langfuse,phoenix,otel}将智能体事件记录为按执行划分的 span 树，有效调试单次运行。
+% 现有工具~\cite{langsmith,langfuse,otel}将智能体事件记录为按执行划分的 span 树，有效调试单次运行。
 AgentSight~\cite{agentsight} bridges intent and system-effect layers by
 correlating extended Berkeley Packet Filter (eBPF) system events with intercepted LLM
 traffic, but the resulting recordings still lack aggregate profiling.
@@ -673,8 +673,9 @@ same 325 trajectories share only 7/10 top prompt categories (Spearman
 $\rho = 0.623$), while \texttt{network}-tagged prompts rank 8th by time but 93rd by
 tokens.
 % 同一 325 个轨迹的 \texttt{time} 和 \texttt{tokens} 视图仅共享 7/10 个顶级 prompt 类别（Spearman $\rho = 0.623$），且 \texttt{network} 标签 prompt 按时间排第 8、按 token 排第 93。
-Thus, multiple weights expose bottlenecks that one metric would miss.
-% 因此，多种权重暴露了单一指标会遗漏的瓶颈。
+Recorded span-time and count weights expose distinct bottlenecks; span time is
+elapsed, not active CPU time, and may include idle or user wait.
+% 因此，记录的 span-time 和计数权重暴露了单一指标会遗漏的差异；span time 是经过时间而非活跃 CPU 时间，可能包含空闲或用户等待。
 Together, RQ1 tests effect lineage through scoped controls, conservation through
 exact totals, and human-partition agreement through ordinary B$^3$; selectable
 stacks and weights expose different views over the same operations. RQ3
@@ -696,19 +697,19 @@ contains 536. A separate 80-trajectory validation snapshot selects one of 24
 field orders before all 536 tests are scored.
 
 Within each workload, \sys and raw-action grouping use identical operations
-and the same benchmark-provided judge votes or localizer hits. The two methods
-differ only in grouping. AgentProcessBench
+and precomputed benchmark judge/localizer predictions, differing only in
+grouping. Predictions, group scores, profiles, fields, and scoring rules are
+fixed before human/scorer target labels are loaded. AgentProcessBench
 averages judge votes within each group. For HINTBench and TraceElephant, every
 root-to-frame stack prefix receives the 95\% Wilson lower bound~\cite{wilson1927}
 of its member hits, and an operation inherits the maximum score among prefixes
 containing it, with ties preserved.
 
-We choose profiles, fields, and scoring rules before revealing independent test
-targets. Each query is one trajectory containing an annotated target. We report
+Each query is one trajectory containing an annotated target. We report
 non-interpolated per-query AP, evaluating ties at their shared score threshold,
 and arithmetic-mean MAP across the 614, 400, and 220 target-bearing
 queries, respectively~\cite{robertson2008ap}.
-% RQ2 在完整的 AgentProcessBench、HINTBench 和 TraceElephant workload 上测试 target-blind profile 是否更早排列独立标注的问题。HINTBench 使用独立的 80-trajectory validation snapshot 从 24 个 field order 中选定一个，再评分全部 536 个 test。每个 workload 的 AgentProf 与 raw-action grouping 使用相同 operation 及 benchmark 提供的 judge vote 或 localizer hit，仅 grouping 不同。AgentProcessBench 在组内平均 judge vote；HINTBench 与 TraceElephant 为每个从根到 frame 的 stack prefix 计算成员 hit 的 95% Wilson lower bound，每个 operation 继承包含它的 prefix 中的最大分数并保留并列。profile、field 与 scoring rule 在打开独立 test target 前固定；每条含标注目标的 trajectory 是一个 query，评测每 query 的非插值 average precision（AP）及跨 query 的 mean average precision（MAP）。
+% RQ2 在完整的 AgentProcessBench、HINTBench 和 TraceElephant workload 上测试 target-blind profile 是否更早排列独立标注的问题。HINTBench 使用独立的 80-trajectory validation snapshot 从 24 个 field order 中选定一个，再评分全部 536 个 test。每个 workload 的 AgentProf 与 raw-action grouping 使用相同 operation 及预先计算的 benchmark judge/localizer prediction；这些 prediction、group score、profile、field 与 scoring rule 均在人类或 scorer target label 载入前固定，两种方法仅 grouping 不同。AgentProcessBench 在组内平均 judge vote；HINTBench 与 TraceElephant 为每个从根到 frame 的 stack prefix 计算成员 hit 的 95% Wilson lower bound，每个 operation 继承包含它的 prefix 中的最大分数并保留并列。每条含标注目标的 trajectory 是一个 query，评测每 query 的非插值 average precision（AP）及跨 query 的 mean average precision（MAP）。
 
 The post-hoc local-only column ranks operations by the benchmark-provided
 diagnostic score. Local+semantic and local+raw preserve every
@@ -839,13 +840,13 @@ Every operation receives a prediction in both datasets, whereas a constant tag
 yields V-measure 0. Here, V-measure tests partitions, not literal names.
 % 对目标盲 TF-IDF/K-Means backend，在 9 个 Mind2Web session（49 个 operation）和 100 个 ScienceWorld session（2,504 个 operation）上，operation assignment 的标准 V-measure 为 0.557 和 0.815，coverage 为 100%，constant tag 为 0；V-measure 测试 partition 而非字面 tag 名。
 
-For task-family tags, \sys's declared-task field interface uses a fixed
-Qwen3.6-27B llama.cpp backend to classify all 1{,}012 AgentBoard goals into
+For task-family tags, a fixed evaluation-only Qwen3.6-27B llama.cpp backend
+(distinct from the 3B CLI backend) classifies all 1{,}012 AgentBoard goals into
 nine families using only goals and declared family
 descriptions~\cite{qwen36,agentboard}. It reaches 0.695 macro-F1 and 0.733
 accuracy versus a majority-class baseline at 0.044 and 0.248, with identical
 assignments across three runs.
-% 对于 task-family 标签，AgentProf 的 declared-task 字段接口使用固定 Qwen3.6-27B llama.cpp backend，仅根据 goal 与已声明 family 描述将 AgentBoard 发布的全部 1,012 个 goal 指派到九个 family；macro-F1 与 accuracy 分别为 0.695 和 0.733，majority control 为 0.044 和 0.248，三次完整运行的指派完全一致。
+% 对于 task-family 标签，一个与上述 3B CLI backend 不同、固定且仅供评测的 Qwen3.6-27B llama.cpp backend 通过 AgentProf 的 declared-task 字段接口，仅根据 goal 与已声明 family 描述将 AgentBoard 发布的全部 1,012 个 goal 指派到九个 family；macro-F1 与 accuracy 分别为 0.695 和 0.733，majority control 为 0.044 和 0.248，三次完整运行的指派完全一致。
 
 For action tags, a standalone backend-level adapter applies the fixed
 Qwen3.6-27B closed-label configuration to only the current thought/action and
@@ -961,9 +962,9 @@ additive measures and supporting selectable query-time field stacks.
 % Agent observability 平台收集 span、metadata 与 evaluation signal，并提供单次运行或群体 dashboard；部分系统派生跨 trace 类别，NeMo Agent Toolkit profiler 聚合 instrumented workflow 的 token、latency、bottleneck 与 concurrency。范围化的 AgentSight-to-\sys 路径将系统副作用连接到负责的 agent action；\sys 将其跨异构历史的可加度量折叠为可选 pprof profile。
 
 \textbf{Cross-run agent analysis.}
-TraceProbe supplies resource-aware process profiles, WebGraphEval weighted
-cross-run graphs, and Graphectory per-trajectory process graphs with aggregated
-phase patterns~\cite{traceprobe2026,webgrapheval2025,graphectory2026}.
+TraceProbe supplies resource-aware process profiles, while Graphectory builds
+per-trajectory process graphs with aggregated phase patterns~\cite{traceprobe2026,
+graphectory2026}.
 Hodoscope compares
 behavior distributions to direct human review, while TraceGraph builds shared
 decision landscapes that guide recovery~\cite{hodoscope2026,tracegraph2026}.
@@ -973,11 +974,13 @@ source-linked heterogeneous effects, conservation of user-selected additive
 measures, and multiple operation-stack projections over the same histories.
 
 \textbf{Profiling and diagnosis.}
-pprof and flame graphs fold runtime stacks, whereas Perfetto queries trace
-events~\cite{pprof,flamegraphs,perfetto}. AgentRx diagnoses failures,
+pprof and flame graphs fold runtime stacks, whereas Pivot Tracing dynamically
+selects and groups measurements across causally related events~\cite{pprof,
+flamegraphs,pivottracing}. AgentRx diagnoses failures,
 CodeTracer reconstructs per-run states, and localization benchmarks score
-faulty steps or agents~\cite{agentrx,li2026codetracer,agentprocessbench,
-hintbench,traceelephant}. \sys applies the profiler's population-level principle
+faulty steps, agents, or expert-supported perspectives~\cite{agentrx,
+li2026codetracer,agentprocessbench,hintbench,traceelephant,mpbench2026}.
+\sys applies the profiler's population-level principle
 to agents by treating completed trajectories as samples and using query-time
 operation stacks to fold recurring semantic responsibility without code
 identity or runtime nesting.

@@ -1,6 +1,6 @@
 # AgentProf Literature And Novelty Frontier
 
-**Last primary-source verification:** 2026-07-17, Step 0044 whole-paper review.
+**Last primary-source verification:** 2026-07-19, Step 0048 literature refresh.
 
 ## Purpose And Fixed Contract
 
@@ -160,6 +160,18 @@ source execution view.
   AgentProf's residual distinction is the conjunction of source-linked agent
   and operating-system effects, conservation of arbitrary additive measures,
   and query-selected pprof operation stacks over one heterogeneous corpus.
+- [AgentLens](https://arxiv.org/abs/2605.12925) evaluates 2,614 OpenHands
+  trajectories and labels exploration, implementation, verification, and
+  orchestration from trajectory history rather than tool identity alone. Its
+  1,815-trajectory subset shows that successful outcomes can hide recurrent
+  process defects. This is a strong context-sensitive RQ3 and downstream-process
+  precedent, but its promised dataset/SDK repository was still unavailable on
+  2026-07-19.
+- [ProcBench](https://arxiv.org/abs/2605.20251) evaluates process defects and
+  control preservation on 200 annotated AndroidBench, TerminalBench, and
+  SWE-bench Verified trajectories. It further establishes process-level
+  evaluation beyond final success, while using an annotation ontology and
+  calibrated scorecards rather than conserved population profiles.
 - [CodeTracer / CodeTraceBench](https://arxiv.org/abs/2604.11641) reconstructs
   hierarchical state-transition traces and supports failure localization and
   replay with author-annotated stages. It is both the source for Step 0024's
@@ -243,6 +255,20 @@ an information or construct-validity defect.
   constraint-validation log to localize the critical failure step and category.
   This is direct protocol precedent for a fixed LLM making a diagnostic choice
   from trajectory-derived evidence, but not a same-input profiler baseline.
+- [MP-Bench](https://arxiv.org/abs/2603.25001) releases 289 failed multi-agent
+  executions from 121 configurations with three independent expert annotations
+  per instance. Only 16.2% of annotated failure steps have three-expert
+  consensus, and the paper evaluates graded responsibility rankings with
+  standard nDCG@5 and nDCG@full under linear and exponential gains. This is the
+  strongest current RQ2 protocol for ambiguous failure responsibility. Its
+  public artifact contains annotations and upstream-log links, but no reusable
+  target-blind prediction output; gold-derived group scoring would not be a new
+  end-to-end localization experiment.
+- [AgentLocate](https://arxiv.org/abs/2607.07989) jointly identifies a
+  responsible agent and earliest decisive step and evaluates agent-level and
+  tolerance-aware step localization on Who\&When and Aegis-Bench. It is a
+  direct localization competitor and possible future fixed-signal input, but
+  no official runnable artifact was found in the bounded 2026-07-19 search.
 - [TELBench / DRIFT](https://github.com/NJU-LINK/DRIFT) studies harmful error
   spans in deep-research trajectories.
 - [HINTBench](https://arxiv.org/abs/2604.13954) releases raw agent trajectories
@@ -297,7 +323,7 @@ A third variant would be target retuning rather than stronger external evidence.
 | Fielded observations can be grouped into hierarchical views. | Very high | Profilers, OLAP/trace query systems, pprof labels, and semantic clustering already do this. |
 | Agent observability needs profiling, not only debugging. | Medium | The fixed broad position remains valuable if demonstrated on recurring measured behavior and real decisions. |
 | A conserved cross-layer record can attribute additive resources to semantic responsibility across runs. | Medium/high | Potential systems contribution; requires independent lineage and attribution truth. |
-| A plan-defined semantic profile concentrates independently annotated real problems. | High | Standard per-query AP/MAP improves over matched raw-action organization on all three complete public workloads; the post-hoc local-first analysis isolates additional semantic value on HINTBench and TraceElephant. Hodoscope, Datadog Patterns, LangSmith Insights, WebGraphEval, TraceGraph, and TraceProbe make generic cross-run problem discovery non-novel. |
+| A plan-defined semantic profile concentrates independently annotated real problems. | High | Standard per-query AP/MAP improves over matched raw-action organization on all three complete public workloads; the post-hoc local-first analysis isolates additional semantic value on HINTBench and TraceElephant. Hodoscope, Datadog Patterns, LangSmith Insights, WebGraphEval, TraceGraph, TraceProbe, MP-Bench, and AgentLocate make generic cross-run discovery or failure localization non-novel. AgentProf's distinct question is whether a conserved selectable responsibility view improves matched organization of the same evidence. |
 | Semantic profiling reduces human inspection or improves repair outcomes. | Very high | The fixed-reader result is bounded supporting evidence, while Hodoscope and TraceGraph provide stronger published inspection/intervention precedents. AgentProf should not imply this consequence without a direct matched test; the larger profiling thesis does not depend on claiming it prematurely. |
 
 Two additional close neighbors sharpen this boundary. *Agentic AI Process
@@ -331,8 +357,13 @@ alone.
    order a control; the result does not establish human productivity or
    universally lower work. The remaining paper-level question is whether the
    current standard-MAP and fixed-reader evidence is sufficient against modern
-   product and academic cross-trace analysis, not whether another custom metric
-   can be tuned on the same targets.
+   product and academic cross-trace analysis; another custom metric on the same
+   targets is not useful. MP-Bench supplies a stronger multi-perspective
+   protocol: graded expert consensus with nDCG@5/full. Reopen RQ2 for that
+   protocol only when a published target-blind localizer output or simple fixed
+   external scorer can be applied to all 289 logs. Using expert annotations to
+   score or rank semantic groups would leak the evaluation target and is not an
+   admitted experiment.
 3. **RQ3 — tag accuracy.** Evaluate the actual prompt/intent attribution path
    and approved fixed mappings on held-out agents and task families, including
    coverage, stability, and downstream attribution sensitivity. Step 0008 now
