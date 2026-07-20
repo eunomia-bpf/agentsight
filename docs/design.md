@@ -81,11 +81,15 @@ new frame instances for an unchanged task label. Enforcing byte-exact active-
 leaf identity continuity removes much of that error, raising ordinary B-cubed
 F1 from 0.5671 to 0.6499, but it still almost never pops and retains excessive
 depth and phase-like persistent frames. That fixed online Qwen2.5-3B branch is
-not the current automatic constructor. The next mechanism must infer the task
-path with global trajectory context rather than another local transition rule.
-Adding more runtime fields, phase labels, thresholds, or display layers cannot
-repair task topology. Phase/action/object/result remain a transient evidence
-suffix below the task path, and agent/model/session/tool/status remain metadata.
+not the current automatic constructor. A subsequent whole-trajectory
+Qwen2.5-3B constructor also fails: all 405 trajectories collapse to one
+interval, yielding B-cubed F1 0.2958 and boundary F1 zero despite variable
+serialized path depth. This closed branch will not spend another run on prompt
+variants. The next experiment will test separating source-only interval
+induction from semantic path labeling rather than asking one small-model call
+to infer both.
+Phase/action/object/result remain a transient evidence suffix below the task
+path, and agent/model/session/tool/status remain metadata.
 
 The profiling identity of a constructed task stack is its complete ordered
 visible label sequence. Internal frame-instance IDs may preserve controller

@@ -38,6 +38,7 @@ history is archived at
 | `script/rq3_source_native_task_progress_boundary_eval.py` | Step 0053 source-native reconstruction and fixed adjacent-boundary development evaluator; not a core AgentProf subsystem |
 | `script/rq3_stateful_native_turn_task_stack_eval.py` | Step 0054 source-native turn reconstruction, legal variable-depth task-stack inference, and standard score-only evaluation; not a core AgentProf subsystem or release constructor |
 | `script/rq3_stateful_visible_path_identity_eval.py` | Step 0055 score-only audit of exact profiler-visible task-label paths versus hidden occurrence identity and recurrence; not a model backend or core AgentProf subsystem |
+| `script/rq3_global_task_semantic_segmentation_eval.py` | Step 0057 whole-trajectory task-semantic segmentation adapter, standard scorer, and failed-output diagnostic; not a model backend, release constructor, or paper figure source |
 
 ## Implemented Pipeline
 
@@ -236,6 +237,14 @@ configuration. In particular:
     outside the Rust CLI. The next positive constructor must use globally
     contextual task/subtask inference rather than another local prompt,
     threshold, field, depth, or contraction variant.
+14. the completed whole-trajectory global Qwen2.5-3B development adapter covers
+    all 405 preselected reconstructable failed trajectories but emits exactly
+    one interval for every trajectory.
+    Its variable zero-to-39-frame text paths are therefore summaries rather
+    than task-progress stacks; ordinary B-cubed F1 is 0.2958 and boundary F1 is
+    zero. This adapter is not integrated into the Rust CLI. The next experiment
+    tests separating source-only interval induction from semantic path labeling
+    instead of asking the same small-model call to solve both.
 
 ## Implementation Policy After The Recurrence Port
 

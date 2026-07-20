@@ -1,7 +1,7 @@
 # AgentProf Literature And Novelty Frontier
 
-**Last primary-source verification:** 2026-07-20, Step 0049 task-hierarchy and
-closest-work attack.
+**Last primary-source verification:** 2026-07-20, Step 0057 task-semantic
+trajectory ground-truth and closest-work search.
 
 ## Purpose And Fixed Contract
 
@@ -129,7 +129,8 @@ source execution view.
   behavior space, compares cohort distributions, and directs human inspection
   toward distinctive behavior. It prevents any claim that AgentProf first
   enables semantic cross-run comparison or behavior discovery.
-- [GUIDE](https://arxiv.org/abs/2604.04399) partitions a completed GUI-agent
+- [GUIDE](https://arxiv.org/abs/2604.04399), an April 2026 arXiv preprint,
+  partitions a completed GUI-agent
   trajectory into coherent subtasks, diagnoses each subtask, and aggregates the
   results into a task-level judgment. Its evaluation spans 932 industrial
   e-commerce trajectories, 1,302 AgentRewardBench trajectories, and 480
@@ -137,7 +138,27 @@ source execution view.
   `task -> subtask -> diagnosis -> result`; that decomposition is not
   independently novel. The open opportunity is to attach conserved resources
   and source-linked effects to typed task responsibility paths and aggregate
-  them across runs, which GUIDE does not study.
+  them across runs, which GUIDE does not study. Its segmentation-quality
+  validation asks another multimodal model to rate all 3.3k generated subtasks
+  and reports 99.4% usable descriptions. One human annotator also labeled a
+  200-subtask sample as usable or problematic, with Cohen's kappa 0.89 against
+  binarized model scores. This supports human usability of sampled segments; it
+  is not human temporal-boundary or nested-tree gold. GUIDE is nevertheless the
+  direct conceptual baseline for any full-trajectory LLM segmentation claim.
+- [Agent-as-a-Judge and the DevAI benchmark](https://proceedings.mlr.press/v267/zhuge25a.html)
+  provide 55 realistic AI-development tasks with 365 manually authored
+  hierarchical requirements and an
+  [official runnable artifact](https://github.com/metauto-ai/agent-as-a-judge).
+  These requirements are strong external task-hierarchy and goal-label assets,
+  but they are specifications rather than human-aligned temporal labels over an
+  execution. They can test requirement naming/coverage or downstream diagnosis,
+  not operation-boundary fidelity by themselves.
+- [AgenticRAGTracer](https://aclanthology.org/2026.findings-acl.66/) provides
+  1,305 multi-hop retrieval problems with intermediate hop-level questions and
+  an [official code/data repository](https://github.com/YqjMartin/AgenticRAGTracer).
+  It is an accepted protocol for comparing execution against explicit logical
+  task structure, but its generated retrieval chains are narrower than
+  open-ended software-agent task stacks.
 - [AgentDiagnose](https://aclanthology.org/2025.emnlp-demos.15/) embeds
   trajectory actions and exposes semantic and state-transition visualizations.
   Its automatic competency metrics correlate with human judgments, and its

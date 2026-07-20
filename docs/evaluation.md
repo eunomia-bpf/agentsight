@@ -247,6 +247,19 @@ routes the next mechanism toward globally contextual task/subtask construction
 with a transient phase/action/object/result suffix. Complete records are under
 `docs/tmp/build-and-evaluate/step-0056-20260720T110619-0700/experiment-001/`.
 
+Step 0057 tests one whole-completed-trajectory semantic constructor with the
+same fixed small model. The complete 405-trajectory run is executable and
+source-only during inference, but all 405 responses collapse to one segment per
+trajectory. Ordinary B-cubed precision/recall/F1 is
+0.173563/1.000000/0.295788, while boundary and exact-span F1 are zero. The
+candidate-minus-recurrence task-cluster interval is
+[-0.381647,-0.350845]. Variable generated path depth, which ranges from zero
+to 39, does not compensate for the absence of any task-progress boundary and
+is not treated as validated hierarchy. This negative development result is not
+inserted into the paper; it motivates testing interval induction and semantic
+path labeling as separate responsibilities. Complete records are under
+`docs/tmp/build-and-evaluate/step-0057-20260720T123108-0700/experiment-001/`.
+
 ## Admitted RQ2 Evidence And Boundaries
 
 The first complete AgentProcessBench experiment provides supporting RQ2
