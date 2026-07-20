@@ -18,9 +18,9 @@ later explicit user instruction may change the four author-fixed RQs.
 
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
-| RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed positive answer.** R114 establishes scoped source-lineage correctness under concurrent controls and lossless profile folding. Step 0035 adds a non-circular same-input comparison over the complete pre-existing 405-trajectory CodeTraceBench source-valid target: recurrence improves standard ordinary B-cubed F1 against human stages from 0.541 raw-action-key to 0.649, a +0.108 task-cluster effect with 95% interval [+0.087,+0.129]. Resource-weighted gains remain +0.076 to +0.085 under three shared-response allocations. Phase-only is statistically indistinguishable at 0.654, so the result supports semantic stage-aligned attribution over raw identity, not recurrence dominance over every semantic view. R170/R224/R251 remain descriptive declared-category and multi-weight evidence rather than an independent oracle. Do not reopen another RQ1 benchmark, metric, or constructor variant before WRITE/REVIEW. |
+| RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed positive answer.** R114 establishes scoped source-lineage correctness under concurrent controls and lossless profile folding. Step 0035 establishes the complete same-input coarse recurrence comparison on 405 CodeTraceBench trajectories: ordinary B-cubed F1 is 0.649 versus 0.541 for raw-action grouping. Step 0049 adds detailed visible-action continuity and reaches 0.663; its +0.014 gain over coarse has a task-cluster 95% interval of [+0.009,+0.018] and is positive in all four frameworks. Phase-only is 0.654, so the result supports semantic stage-aligned attribution over raw action, not one view's dominance over every decision. R170/R224/R251 remain descriptive declared-category and multi-weight evidence rather than an independent oracle. Do not reopen another RQ1 benchmark, metric, or constructor variant before WRITE/REVIEW. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed positive answer against matched raw-action organization, with an explicit atomic/local mechanism boundary.** Step 0036 rechecks all 1,756 trajectories and 27,346 operations using standard per-query AP/MAP as the primary metric and exact-budget Recall@20% only as secondary analysis: AgentProf-minus-raw intervals are positive for both measurements on AgentProcessBench, HINTBench, and TraceElephant. Atomic nevertheless wins both AgentProcessBench measurements, while the HINT/Trace atomic comparisons are mixed; HINT grouping also propagates nonzero support to 76.54% of clean operations versus 0.742% atomic. Step 0037 then adaptively preserves every strict local-score ordering and uses semantic recurrence only to break exact local-score ties. On the same observed populations it improves MAP over atomic and semantic-only ranking on all three workloads and over a matched local+raw tie-breaker on HINTBench and TraceElephant; AgentProcessBench is indistinguishable from local+raw. This supports a simple local-first semantic mechanism, not a universal replacement or untouched confirmation. The fixed-reader comparison separately improves selected-positive recall on 5/6 tasks and precision on 4/6 versus session. Collectively the evidence supports problem ranking and group prioritization, not universally lower work, human productivity, or dominance over every atomic/session view. No further score tuning on these populations is admitted. |
-| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping recovers accurate and stable task/action identities plus phase/group structure and boundaries on unseen agents and task families without materially corrupting attribution. | **Evidence-backed positive answer on the declared public populations, using standard metrics matched to each construct.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0024 reaches 0.6799 exact boundary F1 and 0.7862 ordinary B-cubed F1 on OSWorld, and raises CodeTraceBench boundary F1 from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 on all 405 reused targets. Step 0030 fits one scalar on disjoint grouped references and raises B-cubed F1 to 0.8011 on OSWorld and 0.6666 on CodeTraceBench. Step 0031's fixed Qwen3.6-27B path reaches 0.695 task-family macro-F1 on all 1,012 AgentBoard goals. Step 0032 uses the complete 2,737-label ASE population and reaches 0.498 action macro-F1 versus 0.061 majority, a +0.437 trajectory-bootstrap effect with 95% interval [+0.380, +0.494], and exact two-run stability. Step 0038 confirms that the original RQ3 also evaluated mapping-derived phase structure rather than independent literal phase names. Unknown/open label sets, universal phase-name ontologies, and uniform cross-framework accuracy remain outside the declared population; they are not automatic blockers. |
+| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping recovers accurate and stable task/action identities plus phase/group structure and boundaries on unseen agents and task families without materially corrupting attribution. | **Evidence-backed positive answer on the declared public populations, using standard metrics matched to each construct.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0024 supplies the coarse recurrence predecessor: 0.6799 exact boundary F1 and 0.7862 ordinary B-cubed F1 on OSWorld, and 0.2871 / 0.6492 on CodeTraceBench. Step 0049's current multi-resolution constructor falls back exactly on OSWorld and reaches 0.2656 / 0.6627 on CodeTraceBench. Step 0030 separately fits one scalar on disjoint grouped references and reaches B-cubed F1 0.8011 on OSWorld and 0.6666 on CodeTraceBench. Step 0031's fixed Qwen3.6-27B path reaches 0.695 task-family macro-F1 on all 1,012 AgentBoard goals. Step 0032 uses the complete 2,737-label ASE population and reaches 0.498 action macro-F1 versus 0.061 majority, a +0.437 trajectory-bootstrap effect with 95% interval [+0.380, +0.494], and exact two-run stability. Step 0038 confirms that the original RQ3 also evaluated mapping-derived phase structure rather than independent literal phase names. Unknown/open label sets, universal phase-name ontologies, and uniform cross-framework accuracy remain outside the declared population; they are not automatic blockers. |
 | RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
 
 RQ3's phase-structure component reuses the complete CodeTraceBench measurement
@@ -106,14 +106,14 @@ are under
 with machine artifacts under
 `.agentsight/experiments/rq1-r114-current-profile-v1/`.
 
-## Admitted RQ1 Independent Stage And Token Evidence
+## Admitted RQ1 Stage Evidence
 
 Step 0035 reuses the complete pre-existing source-valid CodeTraceBench target
 and the unchanged Step 0024 assignments. All 405 failed trajectories, 20,866
 operations, 2,948 official human stage intervals, and 251 benchmark tasks are
 scored; no new agent execution, label, partition, threshold, or algorithm is
 introduced. Ordinary operation-level B-cubed is the standard primary partition
-metric. Recurrence reaches precision 0.828579, recall 0.533630, and F1 0.649173,
+metric. The coarse recurrence predecessor reaches precision 0.828579, recall 0.533630, and F1 0.649173,
 versus 0.891296, 0.388437, and 0.541070 for the matched contiguous
 source-native raw-action-key view. The `+0.108103` F1 effect has a paired
 task-cluster-bootstrap 95% interval of `[+0.087091,+0.129132]`; all 10,000
@@ -131,13 +131,14 @@ produce an official operation and abandoned earlier SWE-agent attempts; it is
 not every released trajectory's complete LLM cost.
 
 Phase-only reaches 0.654445 ordinary B-cubed F1. A descriptive paired
-task-cluster bootstrap for recurrence minus phase spans zero at
+task-cluster bootstrap for the coarse predecessor minus phase spans zero at
 `[-0.017778,+0.008234]`, so neither view reliably dominates the other in this
-experiment. This is a mechanism boundary, not a contradiction: Step 0035
-supports semantic stage-aligned attribution over raw action identity, while the
-separate OSWorld-Human RQ3 experiment supplies recurrence's stronger advantage
-over phase-only. Because CodeTraceBench previously participated in selecting
-the current constructor, this is post-hoc supporting evidence rather than
+experiment. Step 0049's current multi-resolution point estimate is 0.662740;
+its registered interval is against coarse recurrence, not phase-only. This is a
+mechanism boundary, not a contradiction: the complete experiment supports
+semantic stage-aligned attribution over raw action without claiming that one
+semantic view dominates every decision. Because CodeTraceBench participated in
+constructor selection, this is post-hoc supporting evidence rather than
 untouched independent algorithm confirmation.
 
 The independent full-result reviewer reconstructed every join, metric,
@@ -146,6 +147,19 @@ allocation, and bootstrap result without calling the scorer and returned
 [`step-0035-20260716T191253-0700`](tmp/build-and-evaluate/step-0035-20260716T191253-0700/),
 with machine artifacts under
 `.agentsight/experiments/rq1-codetracebench-token-attribution-v1/`.
+
+Step 0049 reuses those complete fixed trajectories and adds one visible input:
+the raw action detail already present before stages are opened. The current
+multi-resolution constructor applies the identical recurrence model at coarse
+`action` and detailed `(action, action_detail)` resolutions; detailed continuity
+may remove but never add a coarse boundary, and missing detail falls back to
+coarse. It reaches precision 0.782026, recall 0.575029, and ordinary B-cubed F1
+0.662740. The +0.013567 gain over coarse has a task-cluster bootstrap 95%
+interval of [+0.008712,+0.018043] and is positive in all four frameworks.
+OSWorld-Human has no non-redundant action detail and reproduces the coarse
+0.679922 boundary / 0.786170 B-cubed F1 result exactly. The independently
+reconstructed Step 0049 record is under
+`docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-001/`.
 
 ## Admitted RQ2 Evidence And Boundaries
 

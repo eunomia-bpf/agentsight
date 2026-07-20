@@ -50,19 +50,19 @@ Agent observability needs profiling, not only debugging.
 % 智能体可观测性需要 profiling，而不仅仅是 debugging。
 \sys realizes this insight through a \emph{semantic operation stack model}
 with uniform weighted \emph{operations}, query-time \emph{operation stacks},
-pluggable field and stack construction, label-free recurrence over visible
-action transitions, and pprof-compatible output.
-% \sys 通过语义 operation stack 模型实现这一洞见：统一加权 operation、查询时 operation stack、可插拔字段与栈构造、可见 action transition 上的无标签 recurrence，以及 pprof 兼容输出。
+pluggable field and stack construction, label-free recurrence at coarse and
+detailed visible-action resolutions, and pprof-compatible output.
+% \sys 通过语义 operation stack 模型实现这一洞见：统一加权 operation、查询时 operation stack、可插拔字段与栈构造、粗粒度与细粒度可见 action 上的无标签 recurrence，以及 pprof 兼容输出。
 We evaluate \sys on a 20-task real Codex capture suite, 405 human-staged
 CodeTraceBench trajectories, three complete public localization benchmarks,
 287 OSWorld-Human sessions, and four public cost workloads.
 % 我们在 20 个真实 Codex 任务、405 条带人工 stage 的 CodeTraceBench 轨迹、三个完整公开 localization benchmark、287 个 OSWorld-Human session 和四个公开成本 workload 上评估 \sys。
-Within the declared process/tool scope, AgentSight capture and joining reach
-100.0\% precision and 96.6\% recall, reject 1{,}629/1{,}629 concurrent-control
-effects. Label-free recurrence raises ordinary B$^3$ F1 against human stages
-from 0.541 to 0.649, and semantic grouping improves MAP over raw action in all
+Within the declared process/tool scope, the AgentSight capture-and-join path
+reaches 100.0\% precision and 96.6\% recall and rejects 1{,}629/1{,}629
+concurrent-control effects. Multi-resolution recurrence raises ordinary B$^3$ F1 against human stages
+from 0.541 to 0.663, and semantic grouping improves MAP over raw action in all
 three localization benchmarks.
-% 范围化的 AgentSight-to-\sys 路径以 100.0% precision 和 96.6% recall 连接副作用并拒绝全部 1,629 个对照；相对人工 stage partition 的标准 B$^3$ F1 从 0.541 提升至 0.649，semantic grouping 还在三个 localization benchmark 上均提高相对 raw action 的 MAP。
+% 范围化的 AgentSight-to-\sys 路径以 100.0% precision 和 96.6% recall 连接副作用并拒绝全部 1,629 个对照；multi-resolution recurrence 将相对人工 stage partition 的标准 B$^3$ F1 从 0.541 提升至 0.663，semantic grouping 还在三个 localization benchmark 上均提高相对 raw action 的 MAP。
 Evaluated task-family and action backends reach 0.695 and 0.498 macro-F1,
 label-free recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1 on
 OSWorld-Human, and \sys constructs a 27{,}765-operation profile in 1.17\,s.
@@ -151,8 +151,8 @@ measures, and selectable query-time operation stacks over the same histories.
 %% ¶5: Model
 Agent observability needs profiling, not only debugging.
 % 智能体可观测性需要 profiling，而不仅仅是 debugging。
-Profiling transfers by projecting resources onto stable semantic tags in an
-attribution hierarchy.
+Profiling applies to agents when a profiler projects resource measures onto
+stable semantic tags in an attribution hierarchy.
 % 当资源被投影到负责的语义实体、赋予稳定标签并分层归因时，profiling 方法论可以迁移。
 Our \emph{semantic operation stack model} provides this structure through
 operations and operation stacks.
@@ -176,19 +176,20 @@ natural-language fields via regex rules, a local LLM tagger, or unsupervised
 clustering, replacing function-name identity.
 % 意图归因通过正则规则、本地 LLM 标注器或无监督聚类从自然语言字段派生稳定、低基数的标签，提供传统 profiling 从函数名获得的语义身份。
 \emph{Stack construction} uses either selected fields or label-free recurrence
-over visible cross-session action transitions to replace runtime nesting.
-% 栈构造使用用户指定的字段列表，或学习 reference session 间重复可见 action transition 的无标签 recurrence constructor，在没有运行时调用嵌套时提供层次。
+at coarse and detailed visible-action resolutions to replace runtime nesting.
+% 栈构造使用用户指定的字段列表，或在粗粒度与细粒度可见 action 上学习 reference session 间重复 transition 的无标签 recurrence constructor，在没有运行时调用嵌套时提供层次。
 
 %% ¶7: Results
-On 20 real Codex tasks, scoped AgentSight~\cite{agentsight} capture and joining
-reach 100.0\% precision and 96.6\% recall.
+Within the declared process/tool scope, AgentSight~\cite{agentsight} capture
+and joining on 20 real Codex tasks reach 100.0\% precision and 96.6\% recall
+and reject all 1{,}629 concurrent-control effects.
 % 在 20 个真实 Codex 任务上，范围化的 AgentSight capture 与 process/tool join 达到 100.0\% precision 和 96.6\% recall 并拒绝全部 1,629 个对照；adapter 转换后，\sys 在折叠中保留全部 1,520 个已连接副作用。
 Across all 405 reconstructable failed CodeTraceBench trajectories~\cite{li2026codetracer},
-label-free recurrence raises ordinary B$^3$ F1 against human stages from 0.541
-to 0.649 over raw action.
-% 在 released source 能生成官方 operation sequence 的全部 405 条失败 CodeTraceBench 轨迹上，recurrence 相比 matched raw action identity 将与人工 stage 的标准 B$^3$ F1 从 0.541 提升至 0.649，增益为 0.108，95\% 区间为 [0.087, 0.129]。
-Across three complete public workloads, MAP over target-bearing trajectories
-rises from 0.773 to 0.789, 0.281 to 0.452, and 0.121 to 0.230,
+multi-resolution recurrence raises ordinary B$^3$ F1 against human stages from
+0.541 to 0.663 over raw action.
+% 在 released source 能生成官方 operation sequence 的全部 405 条失败 CodeTraceBench 轨迹上，multi-resolution recurrence 相比 matched raw action identity 将与人工 stage 的标准 B$^3$ F1 从 0.541 提升至 0.663。
+Across three complete public workloads, semantic grouping raises MAP over raw
+action from 0.773 to 0.789, 0.281 to 0.452, and 0.121 to 0.230,
 respectively~\cite{agentprocessbench,hintbench,traceelephant}.
 % 三个完整公开 workload 的全部 27,346 个 operation 均参与评分；在 614/400/220 条含目标 query 上，trajectory MAP 分别从 0.773 提升到 0.789、从 0.281 提升到 0.452、从 0.121 提升到 0.230。
 On 287 OSWorld-Human development sessions~\cite{osworldhuman}, label-free
@@ -244,8 +245,8 @@ many trajectories.
 \subsection{System Profiling}
 % 系统 Profiling
 
-Profiling aggregates measurements to attribute resources to responsible
-entities rather than debugging a single execution.
+Unlike single-execution debugging, profiling aggregates measurements to
+attribute resources to responsible entities.
 % Profiling 通过聚合将资源消耗归因到负责实体，区别于单次执行调试和 tracing。
 Traditional profilers sample execution, attach each sample to its call stack,
 and fold identical stacks~\cite{pprof,flamegraphs}.
@@ -296,7 +297,7 @@ evaluates constructed groups and boundaries.
 \subsection{Design Requirements for Agent Profiling}
 % 智能体 Profiling 的设计需求
 
-Traditional profiling relies on three mechanisms supplied automatically by the call stack.
+Traditional profiling relies on three mechanisms that the call stack supplies automatically.
 % 传统 profiling 依赖调用栈自动提供的三种机制。
 Agent profiling requires all three without a call stack:
 % 智能体 profiling 需要这三种机制，但必须在没有调用栈的情况下实现：
@@ -321,20 +322,6 @@ nesting, the profiler must construct attribution hierarchies from the data.
 % 设计
 \label{sec:design}
 
-The design maps D1--D3 to ingestion, tags, and operation stacks.
-% 三个需求（跨层资源投影、稳定标签和分层归因）驱动了设计。
-For D1, source-specific ingestion links each system effect to its intent, and
-operations preserve inherited semantic fields for projection and folding.
-% Source-specific ingestion 与 operation 表示共同满足 D1：ingestion 将系统副作用连接到负责的意图后，operation 保留该连接及继承的语义字段，\sys 随后投影并折叠这些字段。
-For D2, intent attribution derives stable tags from natural-language fields.
-% Attribution and Stack Construction 中的意图归因通过从自然语言字段派生稳定标签满足 D2。
-For D3, \emph{operation stacks} replace runtime stacks with query-time field
-projections, supporting multiple attribution granularities over the same data.
-% Operation stack 通过以查询时字段投影替代运行时调用栈，在多个粒度层级归因资源来满足 D3，使同一数据支持多种视图而无需重建输入。
-
-The profiling pipeline has four stages: (1)~parse raw trajectories into operations, (2)~enrich operations via intent attribution or mapping rules, (3)~project each operation onto a stack frame sequence chosen at query time, and (4)~fold operations with identical stacks, summing their weights.
-% 分析管线有四个阶段：(1) 将原始轨迹解析为 operation，(2) 通过意图归因或映射规则丰富 operation，(3) 将每个 operation 投影到查询时选择的栈帧序列上，(4) 折叠具有相同栈的 operation 并求和权重。
-
 \begin{figure*}[t]
 \centering
 \input{figures/fig-architecture.tex}
@@ -347,6 +334,21 @@ operation JSONL converge on uniform operations, followed by field derivation,
 stack construction and folding, and profile export.}
 \label{fig:architecture}
 \end{figure*}
+
+The design maps D1--D3 to ingestion, tags, and operation stacks.
+% 三个需求（跨层资源投影、稳定标签和分层归因）驱动了设计。
+For D1, source-specific capture and adapters preserve each system effect's link
+to its responsible intent, and operations carry the inherited semantic fields
+into projection and folding.
+% Source-specific ingestion 与 operation 表示共同满足 D1：ingestion 将系统副作用连接到负责的意图后，operation 保留该连接及继承的语义字段，\sys 随后投影并折叠这些字段。
+For D2, intent attribution derives stable tags from natural-language fields.
+% Attribution and Stack Construction 中的意图归因通过从自然语言字段派生稳定标签满足 D2。
+For D3, \emph{operation stacks} replace runtime stacks with query-time field
+projections, supporting multiple attribution granularities over the same data.
+% Operation stack 通过以查询时字段投影替代运行时调用栈，在多个粒度层级归因资源来满足 D3，使同一数据支持多种视图而无需重建输入。
+
+The profiling pipeline has four stages: (1)~parse raw trajectories into operations, (2)~enrich operations via intent attribution or mapping rules, (3)~project each operation onto a stack frame sequence chosen at query time, and (4)~fold operations with identical stacks, summing their weights.
+% 分析管线有四个阶段：(1) 将原始轨迹解析为 operation，(2) 通过意图归因或映射规则丰富 operation，(3) 将每个 operation 投影到查询时选择的栈帧序列上，(4) 折叠具有相同栈的 operation 并求和权重。
 
 \subsection{Semantic Operation Stack Model}
 % 语义 Operation Stack 模型
@@ -368,8 +370,8 @@ GUI clicks, and process events. Populated fields distinguish these operation
 types.
 % 提示词、LLM 调用、工具调用、文件读取、GUI 点击和进程事件都是具有相同 schema 的 operation，仅通过哪些字段有值来区分。
 When a tool invocation triggers system effects, ingestion propagates its
-semantic fields to the resulting operations, allowing downstream resource
-weights to fold under the responsible intent.
+semantic fields to the resulting operations, so \sys can fold downstream
+resource weights under the responsible intent.
 % 当工具调用触发系统副作用时，输入处理将其语义字段传播到生成的 operation，使下游资源权重能够折叠到负责的意图之下。
 
 %% ¶2: Operation Stacks
@@ -393,7 +395,7 @@ The same operations can therefore support a flat task summary, a per-session
 tree, a semantic phase/action hierarchy, or a trajectory organized by the
 dataset's own annotations. Field selection changes attribution but not the data.
 % 因此同一组 operation 可归因为扁平任务摘要、固定会话树、语义阶段/操作层次或使用数据集自身标注的轨迹，改变字段即改变归因方式而无需改变数据。
-Sessions and spans are optional fields, not hierarchy levels. The same data
+Sessions and spans are optional fields, not fixed hierarchy levels. The same data
 supports debugging views with \texttt{session} and aggregate profiling views
 without that field.
 % 会话和 span 是可选的 operation 字段而非固定层次级别，因此同一数据既支持调试视图（包含 \texttt{session}）也支持聚合 profiling 视图（排除它）。
@@ -405,8 +407,8 @@ $\sigma(o)=\langle o.f_1, \ldots, o.f_k \rangle$, and $w(o)\geq0$ supplies its
 weight.
 % 一个视图是三元组 $(\varphi, \sigma, w)$：谓词 $\varphi$ 选择参与的 operation，栈函数 $\sigma = [f_1, \ldots, f_k]$ 将每个 operation 映射到其帧序列，权重函数 $w$ 赋予非负度量。
 Users choose the stack function independently of the predicate and weight
-function. Four built-in resource
-choices define $\varphi$ and $w$ for common questions: (1)~\texttt{tokens} weights LLM
+function. For common resource questions, four built-in choices instantiate
+$\varphi$ and $w$: (1)~\texttt{tokens} weights LLM
 calls by token count, (2)~\texttt{time} weights timed operations by duration,
 (3)~\texttt{files} weights file operations by event count, and
 (4)~\texttt{network} weights network operations by event count.
@@ -440,14 +442,17 @@ independent of how a tag was obtained.
 With an ordered field list, stack construction directly projects the available
 fields.
 % 当用户提供有序字段列表时，投影是直接的。
-When users enable automatic construction, \sys induces operation stacks
-without a user-specified field list through \emph{label-free recurrence}.
-Visible actions are action-field values available before target annotations
-are read. The constructor uses adjacent visible-action recurrence across
-reference sessions, so weak or unseen transitions start segments and recurring
-transitions continue them. Each segment's run-length-compressed action sequence
-becomes a reusable stack-frame value.
-% 它学习哪些相邻可见 action 会在参考 session 中稳定重复。较弱或未见过的转移开始新的 segment；重复出现的转移延续当前 segment，其经游程压缩的 action 序列成为可复用的 stack-frame value。
+When users enable automatic construction, label-free recurrence lets \sys
+induce operation stacks without a user-specified field list.
+Visible actions are source-field values available before target annotations
+are read. The constructor learns adjacent recurrence across reference sessions
+at a coarse action resolution and, when complete detail is available, at the
+compound $(\mathit{action},\mathit{action\_detail})$ resolution. A transition
+continues the segment when either resolution supports continuity. Weak or
+unseen transitions at both resolutions start a segment. Each segment's
+run-length-compressed coarse-action sequence becomes a reusable stack-frame
+value.
+% 可见 action 是读取 target annotation 前即可获得的源字段。构造器在粗 action 和完整 detail 可用时的复合 $(action, action\_detail)$ 两种分辨率上学习 reference session 的相邻 recurrence；任一分辨率支持 continuity 即延续 segment，两个分辨率都弱或未见时才开始新 segment。每个 segment 的粗 action 游程压缩序列成为可复用 stack-frame value。
 The derived group and stack-frame values are ordinary operation fields, so the stack
 function can compose them with task, phase, action, or session fields at query
 time.
@@ -461,18 +466,18 @@ does not use the target session's problem annotations.
 % 实现
 \label{sec:impl}
 
-\sys is an approximately 9.8K-line offline Rust command-line interface that
+\sys is an offline Rust command-line interface that
 implements the semantic operation stack model (Figure~\ref{fig:architecture}).
-% \sys 将 operation 和 stack 模型实现为离线 Rust CLI（约 9.8K 行代码，Figure~\ref{fig:architecture}）。
+% \sys 将 operation 和 stack 模型实现为离线 Rust CLI（Figure~\ref{fig:architecture}）。
 
 \paragraph{Input reconstruction.}
 % 输入重建。
-\sys reads Codex and Claude Code local JSON Lines (JSONL) histories and
-operation JSONL.
+\sys reads local Codex and Claude Code histories in JSON Lines (JSONL) format
+and also accepts operation JSONL.
 For native histories, it reconstructs prompts, LLM calls, and tool invocations.
 Because the current CLI does not read AgentSight~\cite{agentsight} recordings
-directly, those recordings pass through a source-specific adapter. For
-AgentSight recordings, the declared process/tool scope contains the captured
+directly, a source-specific adapter converts those recordings to operation
+JSONL. For AgentSight recordings, the declared process/tool scope contains the captured
 target agent process and its launched tool command, excluding concurrent
 control activity. AgentSight joins system effects within this scope, and the
 adapter emits operations carrying those links.
@@ -481,7 +486,7 @@ adapter emits operations carrying those links.
 
 \paragraph{Field derivation.}
 % 字段派生。
-Production uses first-match regex rules of the form
+The production field-derivation path uses first-match regex rules of the form
 \texttt{KIND:TAG=REGEX}, which developers refine by rerunning \sys and
 inspecting unmatched operations.
 % 正则规则是生产环境默认：规则格式为 \texttt{KIND:TAG=REGEX}，按顺序求值（首个匹配胜出）；开发者可以通过重复运行 \sys 并检查未匹配 operation 来细化规则。
@@ -509,14 +514,17 @@ initializes at the minimum and maximum scores, assigns distance ties to the
 lower center, and uses the converged midpoint as a global cutoff. The inducer
 applies the same procedure to action-changing transitions for a second cutoff.
 Same-action pairs use the global cutoff, whereas different-action pairs use the
-smaller cutoff, so the second cutoff can remove but not add a boundary from the
-global rule. Unseen or below-cutoff transitions start segments whose
-run-length-compressed action sequences become stack-frame values. The inducer
-reads only session identity, input order, and action, not target annotations or
-resource weights.
-% Rust inducer 统计参考 session 中的相邻 action 转移，并用 NPMI 评分；所有概率来自同一转移样本空间。按出现次数加权的一维 k-means（k=2）从最小和最大分数初始化，将距离相同的点分到较低中心，并用收敛后两个中心的中点作为全局阈值；在 action-changing occurrence 上进行同样校准得到 cross-action 阈值。相同 action 使用全局阈值，不同 action 使用两者中较小者，因此 refinement 只能删除而不能新增全局规则边界；未见转移或低于应用阈值的分数开始新的 segment。经游程压缩的 action 序列成为 stack-frame value。inducer 只读取 session、输入顺序和 action；评分标签与资源权重不参与构造。
+smaller cutoff, which can remove a boundary produced by the global rule but
+cannot add one. When every reference and target operation also has a nonempty
+\texttt{action\_detail}, the inducer fits the same recurrence model to the
+compound signature. Detailed continuity may remove a coarse boundary but can
+never add one. Missing, unseen, or weak detail falls back exactly to the coarse
+decision. Segment names remain coarse run-length-compressed action sequences.
+The inducer reads only session identity, input order, action, and optional
+action detail, not target annotations or resource weights.
+% Rust inducer 统计参考 session 中的相邻 action 转移，并用 NPMI 评分；所有概率来自同一转移样本空间。按出现次数加权的一维 k-means（k=2）从最小和最大分数初始化，将距离相同的点分到较低中心，并用收敛后两个中心的中点作为全局阈值；在 action-changing occurrence 上进行同样校准得到 cross-action 阈值。相同 action 使用全局阈值，不同 action 使用两者中较小者。reference 与 target 均有完整 action_detail 时，构造器对复合 signature 使用相同 recurrence 模型；detail continuity 只能删除粗边界而不能新增，缺失、未见或弱 detail 精确回退到粗决策。segment 名称仍只使用粗 action。评分标签与资源权重不参与构造。
 
-An optional reference-calibrated recurrence mode keeps the NPMI score but
+An optional reference-calibrated recurrence mode uses the same NPMI score but
 selects one scalar cutoff that maximizes per-operation B$^3$ F1 on disjoint
 reference groups. The mode enumerates score intervals, resolves exact ties
 toward the smallest cutoff, and never reads target groups. Label-free
@@ -585,39 +593,43 @@ file-access distributions across trajectories and prompt categories.}
 \end{figure*}
 
 We first test whether the capture-and-join path assigns system effects within
-the declared process/tool scope while rejecting concurrent controls. AgentSight
-0.2.37 captures 20 real Codex tasks, each paired with one concurrent control,
-and an adapter converts joined effects to operation JSONL for
-\texttt{agentpprof 0.2.37}.
+the declared process/tool scope while rejecting concurrent controls. We use
+AgentSight 0.2.37 to capture 20 real Codex task executions, each paired with one
+concurrent control, and an adapter to convert joined effects into operation
+JSONL for \texttt{agentpprof 0.2.37}.
 % 我们首先测试捕获与连接路径能否在声明的进程/工具范围内归因系统副作用并拒绝并发对照。评估包含 20 个真实 Codex 任务，每个任务配有一个并发负对照。AgentSight 0.2.37 捕获每一对运行并在该范围内连接副作用；adapter 将连接结果转换为 operation JSONL，再由 \texttt{agentpprof 0.2.37} 折叠。
 
-All task and control runs completed. The path recovers 1{,}520/1{,}574 in-scope
+The controlled suite establishes scoped capture-and-join accuracy and lossless
+folding with predeclared rather than inferred task categories. All task and
+control runs completed. The path recovers 1{,}520/1{,}574 in-scope
 effects with no false positives (100.0\% precision, 96.569\% recall), rejects
 all 1{,}629 control effects, and emits 1{,}520 samples in 152 stacks while
 preserving the input and all five predeclared task-category totals.
 % 20 个任务及其对照全部完成。连接路径恢复 1,574 个范围内副作用中的 1,520 个，0 个 false positive（precision 100.0\%、recall 96.569\%），且 1,629 个对照副作用均未连接。AgentProf 在 152 个 stack 中输出 1,520 个 sample，并精确保留输入总量及全部五个预先声明任务类别总量。
 
-This establishes scoped capture-and-join accuracy and lossless folding with
-predeclared rather than inferred task categories.
 % 该结果确立了套件声明进程/工具范围内的捕获与连接精确率和召回率，以及 AgentProf 的无损折叠；任务类别来自预先声明的配置，而非自动任务推断。
 
 We next test whether the current operation stack partitions operations into
-independently annotated responsibility units more faithfully than raw operation
-identity. We use all 405 failed CodeTraceBench trajectories whose released
+independently annotated responsibility units more faithfully than raw-action
+grouping. We use all 405 failed CodeTraceBench trajectories whose released
 sources yield the official operation sequence. The population contains
 20{,}866 operations and 2{,}948 human-verified contiguous stage intervals
 across OpenHands, mini-SWE-agent, SWE-agent, and
 Terminus2~\cite{li2026codetracer}.
 % 接着，我们测试当前 operation stack 是否比 raw operation identity 更准确地将 operation 划分到独立标注的责任单元。我们使用 released source 能生成官方 operation sequence 的全部 405 条失败 CodeTraceBench 轨迹：来自 OpenHands、mini-SWE-agent、SWE-agent 和 Terminus2 的 20,866 个 operation 和 2,948 个人工验证的连续 stage interval。
-The RQ3 recurrence constructor reads neither target stages nor resource weights.
-Matched controls start a new group when the raw-action field changes, group by
+The recurrence constructor reads neither target stages nor resource weights.
+It learns from target-disjoint reference sessions and uses visible action kind
+and raw-action detail as its coarse and detailed resolutions, respectively.
+Matched control methods use raw-action changes as boundaries, group by
 the named phase or action-kind source field, place each session in one group,
 or make every operation a singleton. Every method receives the same operations
 and stages.
 % 我们使用与 RQ3 相同的 recurrence constructor；它不读取目标 stage 或资源权重。匹配的 raw-action grouping 在源 action 字段改变时开始新组；phase-only 与 action-kind grouping 使用同名源字段；session grouping 将每个 session 作为一组；per-operation grouping 将每个 operation 作为单元素组。所有方法接收相同的 operation、stage 和 provider-reported token 测量。
 
-We use ordinary operation-level B$^3$ precision, recall, and F1 as the primary
-metric for partition agreement~\cite{bagga-baldwin-1998-entity-based}.
+Every method partitions the same weighted operations, and folding conserves
+their additive weights. We therefore use ordinary operation-level B$^3$
+precision, recall, and F1~\cite{bagga-baldwin-1998-entity-based} to test whether
+weights reach the intended responsibility units.
 % 我们使用普通 operation-level B$^3$ precision、recall 和 F1 作为标准 partition 指标。
 
 \begin{table}[tb]
@@ -627,7 +639,8 @@ metric for partition agreement~\cite{bagga-baldwin-1998-entity-based}.
 \toprule
 Method & B$^3$ P & B$^3$ R & B$^3$ F1 \\
 \midrule
-Label-free recurrence & 0.829 & 0.534 & 0.649 \\
+Multi-resolution recurrence & 0.782 & 0.575 & \textbf{0.663} \\
+Coarse recurrence & 0.829 & 0.534 & 0.649 \\
 Raw-action grouping & 0.891 & 0.388 & 0.541 \\
 Phase only & 0.686 & 0.626 & 0.654 \\
 Action kind & 0.948 & 0.315 & 0.473 \\
@@ -640,46 +653,43 @@ Ordinary B$^3$ is the standard partition-agreement metric.}
 \label{tab:rq1-attribution}
 \end{table}
 
-Table~\ref{tab:rq1-attribution} shows that recurrence raises ordinary B$^3$ F1
-over raw action identity from 0.541 to 0.649. The 0.108 gain has a task-clustered
-paired-bootstrap 95\% interval of [0.087, 0.129] and is positive in all four
-agent frameworks.
-% Table~\ref{tab:rq1-attribution} 显示，recurrence 相比 raw action identity 将普通 B$^3$ F1 从 0.541 提升至 0.649。增益为 0.108，paired task-cluster-bootstrap 95\% 置信区间为 [0.087, 0.129]，且在四个 agent framework 中均为正。
+Multi-resolution recurrence improves agreement with human responsibility
+partitions over raw-action grouping, raising ordinary B$^3$ F1 from 0.541 to
+0.663 (Table~\ref{tab:rq1-attribution}). Relative to the
+coarse constructor, its gain is 0.014 with a task-clustered paired-bootstrap
+95\% interval of [0.009, 0.018], and the effect is positive in all four agent
+frameworks.
+% Table~\ref{tab:rq1-attribution} 显示，multi-resolution recurrence 相比 raw action identity 将普通 B$^3$ F1 从 0.541 提升至 0.663；相对粗 constructor 的增益为 0.014，task-clustered paired-bootstrap 95\% 区间为 [0.009, 0.018]，且四个 agent framework 中均为正。
 
-Phase-only reaches 0.654 ordinary B$^3$ F1, close to recurrence's 0.649.
-This experiment therefore supports semantic responsibility partitioning over
-raw action identity, but not recurrence alone or one universally dominant
-semantic profile. RQ3 separately tests recurrence against phase-only boundaries
-on OSWorld-Human, where recurrence has a larger advantage. Because this
-population influenced constructor selection, the result is post-hoc support
-rather than independent confirmation.
-% Phase-only 达到 0.654 普通 B$^3$ F1，接近 recurrence 的 0.649。因此，本实验支持 semantic responsibility partitioning 相比 raw action identity 的价值，而不是 recurrence 本身或某个普遍占优的 semantic view。RQ3 在 OSWorld-Human boundary 上单独测试 recurrence constructor 相对 phase-only 的优势。由于该 CodeTraceBench population 曾参与选择当前 constructor，我们将此结果视为 post-hoc supporting evidence，而非 untouched cross-family confirmation。
+Phase-only reaches 0.654 ordinary B$^3$ F1, compared with 0.663 for
+multi-resolution recurrence. The multi-resolution result supports recurrent semantic responsibility
+partitioning over raw-action grouping on this population. Because CodeTraceBench influenced
+constructor selection, this is post-hoc mechanism evidence rather than
+independent confirmation or a claim that one profile dominates every decision.
+RQ3 separately tests the detail-free fallback on OSWorld-Human.
+% Phase-only 的普通 B$^3$ F1 为 0.654，低于 multi-resolution recurrence 的 0.663。该结果支持此 population 上 recurring semantic responsibility partition 相对 raw action identity 的优势；由于 CodeTraceBench 参与了 constructor 选择，它属于 post-hoc mechanism evidence，而不是独立确认或一个 profile 支配所有 decision 的结论。RQ3 另行测试 OSWorld-Human 上的 detail-free fallback。
 
 As a separate use case, five declared field hierarchies project the same
-13{,}265 operations from WebLINX, WebShop, APIBank, AgentTrek, SWE-agent,
-Mind2Web, ToolBench, AndroidControl, and GUI Odyssey. The profiles contain
-9~dataset, 57~phase, 226~semantic, 455~action, or 3{,}757~per-session groups.
-The semantic hierarchy adds task, operation type, tool, and status to dataset
-and phase, so across these nine datasets the five depths compare budgets by
-task, repeated actions across sessions, and individual-session details.
-Separate adapters map all 15 annotated families listed above into the same
-operation model without type-specific objects.
+13{,}265 operations from nine datasets into 9~dataset, 57~phase, 226~semantic,
+455~action, or 3{,}757~per-session groups. They expose task budgets, recurring
+actions, or session detail without changing the operation corpus. Adapters map
+all 15 annotated families into this common model without type-specific objects.
 % 作为独立用例，五种声明字段层次投影来自九个数据集的同一批 13,265 个 operation，分别形成 9 个 dataset、57 个 phase、226 个 semantic、455 个 action 或 3,757 个 per-session group。semantic hierarchy 在 dataset 与 phase 之上加入 task、operation type、tool 和 status；五种深度比较按任务统计的预算、跨 session 的重复 action 及单个 session 的细节。这个五深度 sweep 覆盖九个数据集；另有 adapter 将上文全部 15 个标注 family 映射为相同 operation model，无需特定类型对象。
 
 Changing only the selection predicate, stack fields, and weight function
 produces the \texttt{tokens}, \texttt{time}, and \texttt{files} profiles in
-Figure~\ref{fig:flamegraph}. The \texttt{time} and \texttt{tokens} views of the
-same 325 trajectories share only 7/10 top prompt categories (Spearman
-$\rho = 0.623$), while \texttt{network}-tagged prompts rank 8th by time but 93rd by
-tokens.
-% 同一 325 个轨迹的 \texttt{time} 和 \texttt{tokens} 视图仅共享 7/10 个顶级 prompt 类别（Spearman $\rho = 0.623$），且 \texttt{network} 标签 prompt 按时间排第 8、按 token 排第 93。
-Recorded span-time and count weights expose distinct bottlenecks; span time is
-elapsed, not active CPU time, and may include idle or user wait.
+Figure~\ref{fig:flamegraph}. Separately, prompt-span duration and system-effect-count
+rankings share 7 of their top 10 prompt categories (Spearman $\rho = 0.623$), with
+\texttt{network}-tagged prompts ranked 8th and 93rd, respectively.
+% 同一采集 population 的独立 prompt-span 分析中，duration-weighted 与 system-effect-count 排名仅共享 7/10 个顶级 prompt 类别（Spearman $\rho = 0.623$），且 \texttt{network} 标签 prompt 按 duration 排第 8、按 effect count 排第 93。
+Prompt-span duration measures elapsed rather than active CPU time and may include
+idle or user wait.
 % 因此，记录的 span-time 和计数权重暴露了单一指标会遗漏的差异；span time 是经过时间而非活跃 CPU 时间，可能包含空闲或用户等待。
-Together, RQ1 tests effect lineage through scoped controls, conservation through
-exact totals, and human-partition agreement through ordinary B$^3$; selectable
-stacks and weights expose different views over the same operations. RQ3
-separately evaluates field, group, and boundary construction.
+Together, RQ1 shows that scoped capture and joining identify effects with the
+reported precision and recall, lossless folding preserves joined effects,
+semantic responsibility partitions improve ordinary B$^3$ over raw action, and
+selectable stacks and weights expose different views over the same operations.
+RQ3 separately evaluates field, group, and boundary construction.
 % 这些结果共同回答 RQ1：捕获与连接路径拒绝并发对照，AgentProf 保留已归因权重，人工 stage interval 上的标准 partition agreement 表明 semantic attribution 相比 raw action identity 有所改善；可选择的 stack depth 和 weight 从相同 operation 暴露不同的责任与瓶颈视图。RQ3 单独评估 tag 和 group construction accuracy。
 
 
@@ -696,20 +706,22 @@ Of HINTBench's reported 629 trajectories, the released test snapshot used here
 contains 536. A separate 80-trajectory validation snapshot selects one of 24
 field orders before all 536 tests are scored.
 
-Within each workload, \sys and raw-action grouping use identical operations
-and precomputed benchmark judge/localizer predictions, differing only in
-grouping. Predictions, group scores, profiles, fields, and scoring rules are
-fixed before human/scorer target labels are loaded. AgentProcessBench
-averages judge votes within each group. For HINTBench and TraceElephant, every
-root-to-frame stack prefix receives the 95\% Wilson lower bound~\cite{wilson1927}
-of its member hits, and an operation inherits the maximum score among prefixes
-containing it, with ties preserved.
+Within each workload, we give \sys and raw-action grouping identical operations
+and precomputed benchmark judge/localizer predictions, so they differ only in
+grouping. We fix predictions, group scores, profiles, and scoring rules before
+loading the corresponding test target labels. We select HINTBench's field order
+on the separate validation snapshot described above. AgentProcessBench averages
+judge votes within each group. For HINTBench and TraceElephant, we assign every
+root-to-frame stack prefix the 95\% Wilson lower bound~\cite{wilson1927} of the
+fraction of its members with a positive frozen benchmark prediction. Each
+operation inherits the maximum score among prefixes containing it, with ties
+preserved.
 
 Each query is one trajectory containing an annotated target. We report
 non-interpolated per-query AP, evaluating ties at their shared score threshold,
 and arithmetic-mean MAP across the 614, 400, and 220 target-bearing
 queries, respectively~\cite{robertson2008ap}.
-% RQ2 在完整的 AgentProcessBench、HINTBench 和 TraceElephant workload 上测试 target-blind profile 是否更早排列独立标注的问题。HINTBench 使用独立的 80-trajectory validation snapshot 从 24 个 field order 中选定一个，再评分全部 536 个 test。每个 workload 的 AgentProf 与 raw-action grouping 使用相同 operation 及预先计算的 benchmark judge/localizer prediction；这些 prediction、group score、profile、field 与 scoring rule 均在人类或 scorer target label 载入前固定，两种方法仅 grouping 不同。AgentProcessBench 在组内平均 judge vote；HINTBench 与 TraceElephant 为每个从根到 frame 的 stack prefix 计算成员 hit 的 95% Wilson lower bound，每个 operation 继承包含它的 prefix 中的最大分数并保留并列。每条含标注目标的 trajectory 是一个 query，评测每 query 的非插值 average precision（AP）及跨 query 的 mean average precision（MAP）。
+% RQ2 在完整的 AgentProcessBench、HINTBench 和 TraceElephant workload 上测试 target-blind profile 是否更早排列独立标注的问题。HINTBench 使用独立的 80-trajectory validation snapshot 从 24 个 field order 中选定一个，再评分全部 536 个 test。每个 workload 的 AgentProf 与 raw-action grouping 使用相同 operation 及预先计算的 benchmark judge/localizer prediction；这些 prediction、group score、profile 与 scoring rule 均在对应 test target label 载入前固定，HINTBench field order 仅由上述独立 validation snapshot 选择。AgentProcessBench 在组内平均 judge vote；HINTBench 与 TraceElephant 为每个从根到 frame 的 stack prefix 计算成员 frozen benchmark positive prediction 比例的 95% Wilson lower bound，每个 operation 继承包含它的 prefix 中的最大分数并保留并列。每条含标注目标的 trajectory 是一个 query，评测每 query 的非插值 average precision（AP）及跨 query 的 mean average precision（MAP）。
 
 The post-hoc local-only column ranks operations by the benchmark-provided
 diagnostic score. Local+semantic and local+raw preserve every
@@ -741,24 +753,22 @@ complete workloads (Table~\ref{tab:rq2-localization}). The gains are +.016
 resamples of trajectory clusters within benchmark-defined strata.
 % AgentProf 在三个完整 workload 的含目标 query 上均提高了相对 matched raw-action organization 的标准主要指标 MAP，因此 RQ2 的答案为肯定。
 
-In this post-hoc mechanism analysis, local+semantic MAP is .896/.545/.322,
-above local-only and semantic-only on all three workloads. Relative to the
-identically composed local-plus-raw tie-breaker, it gains +.039 [.029,.049] on
-HINTBench and +.073 [.050,.097] on TraceElephant. AgentProcessBench does not
-distinguish the two refinements (+.003 [-.0005,.0069]).
+The adaptive local-first results support semantic grouping as a tie-breaking
+refinement of, rather than a replacement for, operation-local diagnostic
+scores, but do not constitute untouched confirmation. In this
+post-hoc mechanism analysis, local+semantic MAP is .896/.545/.322, above
+local-only and semantic-only on all three workloads. Relative to the identically
+composed local-plus-raw tie-breaker, it gains +.039 [.029,.049] on HINTBench and
++.073 [.050,.097] on TraceElephant. AgentProcessBench does not distinguish the
+two refinements (+.003 [-.0005,.0069]).
 % 随后的 post-hoc 机制分析复用相同 population：local-first ranking 保留所有严格的 operation-local score 顺序，只在 local score 完全相同时使用 semantic recurrence 排序。其 MAP 为 .896/.545/.322，高于 local-only 的 .863/.411/.209 和 semantic-only 的 .789/.452/.230；相对组成完全相同的 local-plus-raw tie-breaker，它在 HINTBench 和 TraceElephant 上分别提高 +.039 [.029,.049] 与 +.073 [.050,.097]，AgentProcessBench 对两种 refinement 无法区分（+.003 [-.0005,.0069]）。该自适应分析支持“semantic recurrence 细化而不覆盖 local diagnostic evidence”这一简单机制，但不作为未受影响的确认性证据。
-
-Semantic grouping improves MAP over matched raw-action grouping on all three
-complete workloads. The adaptive local-first results support semantic
-recurrence as a tie-breaking refinement, not a replacement, of operation-local
-diagnostic scores, but are not untouched confirmation.
 % Semantic grouping 在三个完整 workload 上相对 matched raw-action grouping 提高 MAP。自适应 local-first 结果支持将 semantic recurrence 用作 operation-local diagnostic score 的 tie-breaking refinement，而不是其替代品，但不构成 untouched confirmation。
 
 %% -------------------------------------------------------------------
 \subsection{RQ3: Tag Accuracy}
 % RQ3：标签有多准确？
 
-RQ3 evaluates predeclared field derivation against independent annotations
+RQ3 evaluates fields produced by predeclared derivation methods against independent annotations
 under each protocol's stated input boundary. Literal task and action fields use
 accuracy and macro-F1 (the unweighted mean of per-class F1)~\cite{lewis2004rcv1}.
 Partition-valued task,
@@ -773,15 +783,16 @@ to this field, from which \sys derives structural groups and boundaries. \sys
 folds predicted OSWorld groups with their original additive weights.
 % RQ3 按各 protocol 明确声明的输入边界，评估预先声明的 field derivation 是否恢复独立标注。具名 task/action 字段使用标准 macro-F1 与 accuracy；task、phase 与 group partition 使用 V-measure 或普通 B$^3$；相邻 group boundary 使用精确 precision、recall 与 F1。tag 是 AgentProf 可插拔字段接口消费的 operation 字段；backend 可以通过 CLI 或 standalone adapter 运行，再把输出映射到该字段。predicted group 或 boundary 是从 tag 派生的结构输出，并使用原始可加权重折叠预测的 OSWorld group。
 
-Table~\ref{tab:rq1-attribution} evaluates the deterministic phase field
-structurally: phase-only grouping reaches 0.654 ordinary B$^3$ F1 against
-2{,}948 human stages over 20{,}866 operations. Below we test literal labels,
-other partitions, and boundaries.
-% Table~\ref{tab:rq1-attribution} 对确定性的 phase 字段进行结构性评估：phase-only grouping 在 20,866 个 operation 上相对 2,948 个人工 stage 达到 0.654 的普通 B$^3$ F1；以下测试字面标签、其他 partition 与 boundary。
+For the structural-field component of RQ3, we reuse the CodeTraceBench partition
+result reported under RQ1 in Table~\ref{tab:rq1-attribution}. Across 20{,}866
+operations and 2{,}948 human stages, multi-resolution recurrence reaches 0.663
+ordinary B$^3$ F1 and deterministic phase-only grouping reaches 0.654. Below we
+test literal labels, other partitions, and boundaries.
+% Table~\ref{tab:rq1-attribution} 在 20,866 个 operation 上相对 2,948 个人工 stage 评估两种结构字段：multi-resolution recurrence 的普通 B$^3$ F1 为 0.663，确定性的 phase-only grouping 为 0.654；以下测试字面标签、其他 partition 与 boundary。
 
 We test all 287 OSWorld-Human task-instance sessions~\cite{osworldhuman} with
-complete group annotations: 3{,}978 operations, 3{,}691 adjacent pairs, and
-2{,}042 groups.
+complete group annotations. This population contains 3{,}978 operations,
+3{,}691 adjacent pairs, and 2{,}042 groups.
 % 我们首先测试所有具有完整人工分组标注的 OSWorld-Human session：287 个 task-instance session 中的 3,978 个 operation，共 3,691 个相邻对和 2,042 个人工独立标注的动作组。
 For the supervised Bernoulli Naive Bayes predictor~\cite{mccallum-nigam-1998},
 we fix the model family, nine input fields, adjacent-pair features, and training
@@ -790,10 +801,12 @@ threshold on training sessions and predicts every held-out session once.
 % 我们评估一个监督式 Bernoulli Naive Bayes 相邻边界预测器。模型家族、用于构造相邻对特征的九个可见 operation 字段、特征构造和训练流程在评估前固定；每个 session-held-out cross-validation fold 只使用训练 session 拟合参数和选择阈值，并恰好预测每个 held-out session 一次。
 Predicted boundaries become an ordinary group field that \sys projects and
 folds. With the same five folds, label-free recurrence uses only the other
-sessions' visible action transitions. Because we designed the recurrence rule
-after inspecting earlier results on this corpus, these results are development
-evidence rather than independent cross-family confirmation.
-% 我们还用相同的五个 session fold 运行内置 recurrence inducer：每个 held-out fold 仅使用其他 session 的可见 action 转移作为无标签参考。由于 recurrence 原理是在查看该语料的早期结果后选定的，我们将其作为机制开发证据，而非独立的跨 family 验证。
+sessions' visible action transitions. OSWorld-Human supplies no non-redundant
+action detail, so the multi-resolution constructor exactly falls back to its
+coarse arm. Because we designed the recurrence rule after inspecting earlier
+results on this corpus, these results are development evidence rather than
+independent cross-family confirmation.
+% 我们还用相同的五个 session fold 运行内置 recurrence inducer：每个 held-out fold 仅使用其他 session 的可见 action 转移作为无标签参考。OSWorld-Human 不提供非冗余 action detail，因此 multi-resolution constructor 精确回退到粗粒度分支。由于 recurrence 原理是在查看该语料的早期结果后选定的，我们将其作为机制开发证据，而非独立的跨 family 验证。
 Optional reference-calibrated recurrence uses training operations and group
 annotations to fit one NPMI cutoff, while held-out folds contribute only visible
 actions until predictions are fixed.
@@ -840,25 +853,24 @@ Every operation receives a prediction in both datasets, whereas a constant tag
 yields V-measure 0. Here, V-measure tests partitions, not literal names.
 % 对目标盲 TF-IDF/K-Means backend，在 9 个 Mind2Web session（49 个 operation）和 100 个 ScienceWorld session（2,504 个 operation）上，operation assignment 的标准 V-measure 为 0.557 和 0.815，coverage 为 100%，constant tag 为 0；V-measure 测试 partition 而非字面 tag 名。
 
-For task-family tags, a fixed evaluation-only Qwen3.6-27B llama.cpp backend
-(distinct from the 3B CLI backend) classifies all 1{,}012 AgentBoard goals into
-nine families using only goals and declared family
-descriptions~\cite{qwen36,agentboard}. It reaches 0.695 macro-F1 and 0.733
-accuracy versus a majority-class baseline at 0.044 and 0.248, with identical
-assignments across three runs.
+For task-family tags, we use a fixed evaluation-only Qwen3.6-27B llama.cpp
+backend distinct from the 3B CLI backend. Using only goals and declared family
+descriptions, it classifies all 1{,}012 AgentBoard goals into nine
+families~\cite{qwen36,agentboard}. The backend reaches 0.695 macro-F1 and 0.733
+accuracy, compared with 0.044 macro-F1 and 0.248 accuracy for the majority-class
+baseline, and produces identical assignments across three runs.
 % 对于 task-family 标签，一个与上述 3B CLI backend 不同、固定且仅供评测的 Qwen3.6-27B llama.cpp backend 通过 AgentProf 的 declared-task 字段接口，仅根据 goal 与已声明 family 描述将 AgentBoard 发布的全部 1,012 个 goal 指派到九个 family；macro-F1 与 accuracy 分别为 0.695 和 0.733，majority control 为 0.044 和 0.248，三次完整运行的指派完全一致。
 
-For action tags, a standalone backend-level adapter applies the fixed
-Qwen3.6-27B closed-label configuration to only the current thought/action and
-eight definitions for all 2{,}737 published annotations from 120
-AutoCodeRover, OpenHands, and RepairAgent
-trajectories~\cite{qwen36,bouzenia-pradel-2025-trajectories,traceview-2026}.
+For action tags, a standalone backend-level adapter runs the fixed Qwen3.6-27B
+closed-label configuration using only the current thought/action and eight
+definitions. The adapter classifies all 2{,}737 published annotations from 120
+AutoCodeRover, OpenHands, and RepairAgent trajectories~\cite{qwen36,bouzenia-pradel-2025-trajectories,traceview-2026}.
 % 在独立的 action-label backend 评估中，standalone adapter 使用固定 Qwen3.6-27B closed-label 配置，仅读取当前 thought/action 与八个已声明定义，在 AutoCodeRover、OpenHands 和 RepairAgent 的 120 条轨迹上测试全部 2,737 个公开标注；它不是已集成的 AgentProf CLI 路径。
-The model reaches 0.498 macro-F1 and 0.628 accuracy versus a majority-class baseline at 0.061
-and 0.323. Its 0.437 macro-F1 gain has a whole-trajectory 95\% bootstrap
+The model reaches 0.498 macro-F1 and 0.628 accuracy, compared with 0.061
+macro-F1 and 0.323 accuracy for the majority-class baseline. Its 0.437 macro-F1 gain has a whole-trajectory 95\% bootstrap
 interval of [0.380, 0.494], and both complete runs agree exactly.
 % 其 macro-F1 与 accuracy 分别为 0.498 和 0.628，majority 为 0.061 和 0.323；macro-F1 增量为 0.437，整条轨迹 bootstrap 的 95% 区间为 [0.380, 0.494]，两次完整运行结果完全一致。
-Thirty-nine AutoCodeRover inputs literally contain the target word
+Thirty-nine AutoCodeRover inputs contain the target word
 \texttt{Locate}. Excluding them leaves 0.490 macro-F1 and 0.622 accuracy, so the
 positive comparison to majority is unchanged.
 % 39 个 AutoCodeRover 可见输入字面包含目标词 \texttt{Locate}；排除它们后 macro-F1 与 accuracy 仍为 0.490 和 0.622，因此相对 majority 的正向比较不变。
@@ -884,7 +896,7 @@ Measurements use \texttt{agentpprof 0.2.37} on a 24-core Intel Core Ultra 9
 285K with 125\,GiB RAM and Linux 6.15.11.
 % RQ4 测量 operation-input profile construction：解析带固定字段的 operation JSONL、构造 stack、折叠权重并序列化 profile；不含 capture、source adaptation 和 field/tag generation。我们在四个完整公开 workload 及其 union 上各运行三次，并比较固定 semantic hierarchy 与相同输入的 raw action。
 
-\begin{table}[tb]
+\begin{table}[h]
 \centering\small
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lrrrr@{}}
@@ -907,41 +919,20 @@ Both time curves are monotonic across the five input sizes. The semantic curve
 has a descriptive slope of 0.0422\,ms per operation ($R^2=0.9997$), reaching
 23{,}731 operations/s on the union.
 % 两条时间曲线在五个自然输入规模上均单调增长。语义曲线的描述性斜率为每个 operation 0.0422 毫秒（R 方为 0.9997），在并集上达到每秒 23,731 个 operation。
-RQ4 therefore finds that, for 27{,}765 operations, semantic construction
-completes in 1.17 seconds using 464.5\,MiB, takes 180\,ms (18.2\%) more time,
-and uses 6.0\,MiB (1.3\%) more peak RSS than raw-action grouping.
+For the 27{,}765-operation union, semantic construction completes in 1.17
+seconds, reaches 464.5\,MiB peak RSS, and incurs 180\,ms (18.2\%) more time and
+6.0\,MiB (1.3\%) more peak RSS than raw-action grouping.
 % 因此，RQ4 表明当前 binary 在测试范围内具有实用的构建开销：最大的 27,765-operation profile 在 1.17 秒内完成，使用 464.5 MiB，相对 raw action 增加 18.2% 时间和 1.3% 内存。
-
-\paragraph{Evidence synthesis.}
-The four RQs validate different links in one profiling chain. RQ1 tests scoped
-effect lineage and conservation before measuring partition agreement, while
-RQ2 tests independently annotated problem ranking and semantic refinement of
-operation-local evidence. RQ3 tests the pluggable field interface through
-literal task/action labels and structural partitions and boundaries, and RQ4
-tests fixed-input profile construction. Together,
-they connect cross-layer operations and selectable operation stacks to the
-attribution, localization, semantic-field, and cost questions that motivate
-agent profiling.
 
 \subsection{Scope and Limitations}
 
-RQ1 covers 20 fixed tasks under declared process/tool scope and all 405 failed
-CodeTraceBench trajectories~\cite{li2026codetracer} reconstructable as official
-operation sequences. Because this corpus influenced constructor selection, its
-result is post-hoc support, not independent confirmation.
-
-RQ2 evaluates all target-bearing queries in the three named released
-populations. Its local-first mechanism analysis is adaptive to those same
-populations and does not replace the primary semantic-versus-raw comparison.
-
-RQ3 tests CodeTraceBench phase structure, Mind2Web/ScienceWorld partitions, a
-named backend over nine task families and eight action tags, and
-session-held-out OSWorld-Human boundaries. These measurements cover the named
-populations and declared tag sets.
-
-RQ4 covers parsing fixed-field operation input, stack construction, folding,
-and serialization. Capture, source adaptation, field/tag generation, and live
-agent overhead remain outside that construction-cost measurement.
+Results apply to the named populations, tag sets, and declared process/tool
+scope. CodeTraceBench influenced constructor selection, so its
+405-trajectory result~\cite{li2026codetracer} is post-hoc support. RQ2's
+local-first analysis is likewise adaptive and does not replace the primary
+semantic-versus-raw comparison. RQ4 measures fixed-input parsing, stack
+construction, folding, and serialization, excluding capture, source adaptation,
+field/tag generation, and live-agent overhead.
 % 离线 profile-construction evaluation 不含 capture、live-agent overhead、source adaptation 和 field/tag generation。RQ1 覆盖声明进程/工具范围内的 20 个固定任务，以及 released source 能生成官方 operation sequence 的全部 405 条失败 CodeTraceBench 轨迹；CodeTraceBench 影响了当前 constructor 的选择，因此它是 post-hoc support 而非 independent confirmation。RQ3 测试 CodeTraceBench 的 phase structure、Mind2Web/ScienceWorld 的 task partition、一个指定 backend 在九个声明的 task family 与八个 action tag 上的 accuracy，以及 OSWorld-Human 的 session-held-out group boundary；这些测量覆盖指定 population 和声明的 tag set。
 
 
@@ -954,10 +945,10 @@ Platforms aggregate spans, metadata, and evaluations~\cite{langsmith,langfuse,
 otel,datadog-llmobs}. Datadog Patterns and LangSmith Insights derive
 cross-trace hierarchies and roll up metrics, NeMo profiles instrumented
 workflows, and OpenTelemetry Profiles links profiles to traces~\cite{datadog-patterns,
-langsmith-insights,nemo-agent-toolkit-profiler,otel-profiles}. These establish
-grouping, rollups, profile naming and compatibility, and trace linkage. \sys's
-residual capability is their conjunction in one operation corpus: joining agent
-actions to process, file, and network effects while conserving arbitrary
+langsmith-insights,nemo-agent-toolkit-profiler,otel-profiles}. These systems establish
+grouping, rollups, profile naming and compatibility, and trace linkage. \sys
+combines these capabilities in one operation corpus by joining agent actions to
+process, file, and network effects while conserving arbitrary
 additive measures and supporting selectable query-time field stacks.
 % Agent observability 平台收集 span、metadata 与 evaluation signal，并提供单次运行或群体 dashboard；部分系统派生跨 trace 类别，NeMo Agent Toolkit profiler 聚合 instrumented workflow 的 token、latency、bottleneck 与 concurrency。范围化的 AgentSight-to-\sys 路径将系统副作用连接到负责的 agent action；\sys 将其跨异构历史的可加度量折叠为可选 pprof profile。
 
@@ -992,12 +983,11 @@ identity or runtime nesting.
 
 Agent observability needs profiling, not only debugging. \sys represents
 heterogeneous agent actions and system effects as weighted operations and folds
-selectable query-time operation stacks across runs. On complete real and public
-workloads, its profiles preserve linked
-effects, improve human-stage partition agreement and problem-localization MAP
-over raw action, and recover OSWorld-Human groups at 0.680 boundary F1 and
-0.786 B$^3$ F1. A 27{,}765-operation profile builds in 1.17 seconds, making
-population-level profiling a practical complement to per-run debugging.
+selectable query-time operation stacks across runs. Its profiles preserve linked
+effects, improve stage-partition agreement and localization MAP over raw action,
+and recover OSWorld-Human groups at 0.680 boundary F1 and 0.786 B$^3$ F1. \sys
+builds a 27{,}765-operation profile in 1.17 seconds, making population profiling
+practical alongside per-run debugging.
 % 在真实与公开轨迹上，这些 profile 相比 raw action identity 改善归因、优先呈现独立标注的问题、恢复有用的 task、action 与 group 结构，并在 1.17 秒内构建最大的已评估 profile。
 
 \bibliography{references}

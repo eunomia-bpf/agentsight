@@ -248,3 +248,38 @@ token-weighted B³ 是场景化变体，不应出现在论文中；普通 B³ �
 ---
 
 继续迭代, 然后要让不同模型, 比如说 grok 来完整审稿
+
+---
+
+是不是算法太复杂了? 我们是不是有一个更简单的做法, 比如说保存当前 stack, 让 llm 去看下一个 prompt, 决定这是一个新的子任务, 应该 append 进去, 还是不属于当前 stack 顶端的任务, 应该pop 一个, 还是不 append 也不 pop? 你觉得这样是不是更好? 然后 stack 也应该是更加语义相关的, 比如说 "write a paper" 是一个 operation, write abstract 是一个 operation
+
+---
+
+你可以用 llm / llama.cpp qwen 3b来做?
+
+---
+
+depth 应该是可变的吧
+
+---
+
+深度应该是可以参差很大吧?
+
+---
+
+目前最重要的科学观察是：Qwen 3B 虽然能合法维护可变 depth，但几乎每一步都创建新 leaf，new-frame rate = 1.0，所以很可能严重过度分段。这说明简单 stack 状态机本身没坏，具体 3B transition policy 可能不够好。现在还没有打开 stage 标注或算 B³；要等 20,866 个 operation 全部固定后才评分。是不是 prompt 不好? 如果后面你丢弃一些比如说叶子节点呢? 不要限制深度?
+
+---
+
+为什么设计 semantic operation 现在来看清晰吗
+
+---
+
+Semantic flame graph 的主 stack 必须以具体任务责任结构为中心，而不是按
+`agent → session → prompt → tool → command → path → status` 等系统字段堆叠。
+目标结构是 `具体任务 → 子任务 → 阶段/策略 → 语义动作 → 操作对象 → 结果`；
+命令、文件和调用只是底层证据。Agent、模型、工具、session 和 status 更适合作为
+颜色、筛选器或侧边详情，事件数、时间和 token 作为宽度。图和 profiler 应能回答
+一个任务的主要消耗、反复尝试、结果有效性、失败/放弃的子任务，以及不同 agent 的
+任务分解策略。仅能显示 shell/read 等运行行为的字段图不能作为论文级
+task-semantic flame graph。

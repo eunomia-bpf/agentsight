@@ -14,6 +14,7 @@ import argparse
 from collections import Counter, defaultdict
 import json
 from pathlib import Path
+import random
 import subprocess
 from typing import Any, Iterable
 
@@ -40,16 +41,24 @@ EXPECTED_ACTION_KINDS = {
 }
 METHODS = (
     "recurrence",
+    "current_recurrence",
+    "raw_action_key_change",
     "phase_change",
     "action_change",
     "always_boundary",
     "session_one_block",
 )
 ALTERNATIVES = METHODS[1:]
-DEFAULT_STEP23_SUMMARY = (
+DEFAULT_CURRENT_SUMMARY = (
     ROOT
-    / ".agentsight/experiments/rq3-conditioned-recurrence-codetracebench-v1/full/summary.json"
+    / ".agentsight/experiments/rq3-monotone-recurrence-codetracebench-v1/full/summary.json"
 )
+DEFAULT_CURRENT_ASSIGNMENTS = (
+    ROOT
+    / ".agentsight/experiments/rq3-monotone-recurrence-codetracebench-v1/full/operation-assignments.jsonl"
+)
+BOOTSTRAP_RESAMPLES = 10_000
+BOOTSTRAP_SEED = 20260719
 
 
 def parse_args() -> argparse.Namespace:
@@ -102,7 +111,13 @@ def load_visible_operations(path: Path) -> dict[str, list[dict[str, Any]]]:
             fields = record.get("fields")
             require(isinstance(fields, dict), f"{path}:{line_number}: missing fields")
             require(record.get("value") == 1, f"{path}:{line_number}: non-unit value")
-            for field in ("traj_id", "step_id", "action_kind", "phase"):
+            for field in (
+                "traj_id",
+                "step_id",
+                "action_kind",
+                "raw_action_key",
+                "phase",
+            ):
                 require(fields.get(field) not in (None, ""), f"{path}:{line_number}: {field}")
             step_id = int(fields["step_id"])
             require(step_id > 0, f"{path}:{line_number}: non-positive step_id")
@@ -111,6 +126,7 @@ def load_visible_operations(path: Path) -> dict[str, list[dict[str, Any]]]:
                     "session": str(fields["traj_id"]),
                     "step_id": step_id,
                     "action": str(fields["action_kind"]),
+                    "action_detail": str(fields["raw_action_key"]),
                     "phase": str(fields["phase"]),
                 }
             )
@@ -131,7 +147,11 @@ def minimal_rows(
         for row in grouped[session]:
             output.append(
                 {
-                    "fields": {"action": row["action"], "session": session},
+                    "fields": {
+                        "action": row["action"],
+                        "action_detail": row["action_detail"],
+                        "session": session,
+                    },
                     "value": 1,
                 }
             )
@@ -200,7 +220,16 @@ def recurrence_predictions(
     )
     require(report.get("sequence_field") == "session", "unexpected sequence field")
     require(report.get("association_field") == "action", "unexpected action field")
-    require(report.get("selected_source_fields") == ["action"], "extra source field")
+    require(
+        report.get("selected_source_fields") == ["action", "action_detail"],
+        "unexpected recurrence source fields",
+    )
+    detail_report = report.get("detail_recurrence")
+    require(isinstance(detail_report, dict), "missing detail recurrence report")
+    require(
+        detail_report.get("association_field") == "action_detail",
+        "unexpected detail association field",
+    )
     expected_pairs = sum(len(targets[session]) - 1 for session in selected)
     raw_decisions = report.get("boundary_decisions") or []
     require(len(raw_decisions) == expected_pairs, "recurrence decision coverage mismatch")
@@ -209,8 +238,8 @@ def recurrence_predictions(
         key = (str(row["session"]), int(row["position"]))
         require(key not in decisions, f"duplicate recurrence decision: {key}")
         require(
-            not bool(row["boundary"]) or bool(row["current_boundary"]),
-            f"monotone recurrence added a current-relative boundary: {key}",
+            not bool(row["boundary"]) or bool(row["coarse_boundary"]),
+            f"detail recurrence added a coarse-relative boundary: {key}",
         )
         decisions[key] = bool(row["boundary"])
     expected_keys = {
@@ -243,14 +272,16 @@ def load_stages_after_prediction(
     manifest_path: Path,
     targets: dict[str, list[dict[str, Any]]],
     selected: list[str],
-) -> tuple[dict[tuple[str, int], str], dict[str, str]]:
+) -> tuple[dict[tuple[str, int], str], dict[str, str], dict[str, str]]:
     """The only function allowed to read scorer-only official stages."""
     table = pq.read_table(
-        manifest_path, columns=["traj_id", "agent", "solved", "step_count", "stages"]
+        manifest_path,
+        columns=["traj_id", "agent", "task_name", "solved", "step_count", "stages"],
     )
     wanted = set(selected)
     stage_by_step: dict[tuple[str, int], str] = {}
     framework_by_session: dict[str, str] = {}
+    task_by_session: dict[str, str] = {}
     seen: set[str] = set()
     for row in table.to_pylist():
         session = str(row["traj_id"])
@@ -273,8 +304,9 @@ def load_stages_after_prediction(
             cursor = end + 1
         require(cursor == len(targets[session]) + 1, f"{session}: incomplete stages")
         framework_by_session[session] = str(row["agent"])
+        task_by_session[session] = str(row["task_name"])
     require(seen == wanted, "verified manifest target coverage mismatch")
-    return stage_by_step, framework_by_session
+    return stage_by_step, framework_by_session, task_by_session
 
 
 def score_rows(
@@ -284,12 +316,17 @@ def score_rows(
     motifs: dict[tuple[str, int], str],
     official: dict[tuple[str, int], str],
     frameworks: dict[str, str],
+    tasks: dict[str, str],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     pairs = []
     operations = []
     for session in selected:
         rows = targets[session]
-        group_numbers = {method: 0 for method in METHODS}
+        group_numbers = {
+            method: 0
+            for method in METHODS
+            if method not in {"current_recurrence"}
+        }
         for index, row in enumerate(rows):
             step_id = int(row["step_id"])
             key = (session, step_id)
@@ -300,6 +337,8 @@ def score_rows(
                     "recurrence": recurrence[pair_key],
                     "phase_change": previous["phase"] != row["phase"],
                     "action_change": previous["action"] != row["action"],
+                    "raw_action_key_change": previous["action_detail"]
+                    != row["action_detail"],
                     "always_boundary": True,
                     "session_one_block": False,
                 }
@@ -324,13 +363,15 @@ def score_rows(
             operation = {
                 "session": session,
                 "framework": frameworks[session],
+                "task_name": tasks[session],
                 "step_id": step_id,
                 "action": row["action"],
+                "action_detail": row["action_detail"],
                 "phase": row["phase"],
                 "official_stage": official[key],
                 "recurrence_motif": motifs[key],
             }
-            for method in METHODS:
+            for method in group_numbers:
                 operation[method] = f"{session}:{method}-{group_numbers[method]:04d}"
             operations.append(operation)
     return pairs, operations
@@ -380,6 +421,107 @@ def bcubed(rows: list[dict[str, Any]], method: str) -> dict[str, Any]:
         "precision": precision,
         "recall": recall,
         "f1": f1,
+    }
+
+
+def attach_current_recurrence(
+    pair_rows: list[dict[str, Any]],
+    operation_rows: list[dict[str, Any]],
+    path: Path,
+) -> None:
+    current: dict[tuple[str, int], str] = {}
+    with path.open(encoding="utf-8") as source:
+        for line_number, line in enumerate(source, 1):
+            row = json.loads(line)
+            key = (str(row["session"]), int(row["step_id"]))
+            require(key not in current, f"duplicate current assignment at line {line_number}")
+            current[key] = str(row["recurrence"])
+
+    expected = {(str(row["session"]), int(row["step_id"])) for row in operation_rows}
+    require(expected <= set(current), "current recurrence baseline lacks selected operations")
+    for row in operation_rows:
+        key = (str(row["session"]), int(row["step_id"]))
+        row["current_recurrence"] = current[key]
+    for row in pair_rows:
+        session = str(row["session"])
+        left = current[(session, int(row["left_step_id"]))]
+        right = current[(session, int(row["right_step_id"]))]
+        row["current_recurrence"] = left != right
+
+
+def percentile(values: list[float], probability: float) -> float:
+    require(bool(values), "percentile requires values")
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * probability
+    lower = int(position)
+    upper = min(lower + 1, len(ordered) - 1)
+    fraction = position - lower
+    return ordered[lower] * (1.0 - fraction) + ordered[upper] * fraction
+
+
+def task_cluster_bootstrap(
+    rows: list[dict[str, Any]], out_dir: Path
+) -> dict[str, Any]:
+    rows_by_session: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        rows_by_session[str(row["session"])].append(row)
+
+    task_sessions: dict[str, list[str]] = defaultdict(list)
+    sufficient: dict[tuple[str, str], tuple[float, float, int]] = {}
+    for session, session_rows in rows_by_session.items():
+        tasks = {str(row["task_name"]) for row in session_rows}
+        require(len(tasks) == 1, f"session has multiple task names: {session}")
+        task = next(iter(tasks))
+        task_sessions[task].append(session)
+        for method in ("recurrence", "current_recurrence"):
+            metric = bcubed(session_rows, method)
+            count = len(session_rows)
+            sufficient[(session, method)] = (
+                metric["precision"] * count,
+                metric["recall"] * count,
+                count,
+            )
+
+    tasks = sorted(task_sessions)
+    require(len(tasks) == 251, f"expected 251 task clusters, got {len(tasks)}")
+
+    def f1_for(draw: list[str], method: str) -> float:
+        precision_sum = 0.0
+        recall_sum = 0.0
+        operations = 0
+        for task in draw:
+            for session in task_sessions[task]:
+                precision, recall, count = sufficient[(session, method)]
+                precision_sum += precision
+                recall_sum += recall
+                operations += count
+        precision = precision_sum / operations
+        recall = recall_sum / operations
+        return (
+            2.0 * precision * recall / (precision + recall)
+            if precision + recall
+            else 0.0
+        )
+
+    generator = random.Random(BOOTSTRAP_SEED)
+    deltas = []
+    for _ in range(BOOTSTRAP_RESAMPLES):
+        draw = generator.choices(tasks, k=len(tasks))
+        deltas.append(f1_for(draw, "recurrence") - f1_for(draw, "current_recurrence"))
+    write_jsonl(
+        out_dir / "task-bootstrap-deltas.jsonl",
+        [{"resample": index, "delta": delta} for index, delta in enumerate(deltas)],
+    )
+    return {
+        "unit": "task_name",
+        "clusters": len(tasks),
+        "resamples": BOOTSTRAP_RESAMPLES,
+        "seed": BOOTSTRAP_SEED,
+        "mean_delta": sum(deltas) / len(deltas),
+        "median_delta": percentile(deltas, 0.5),
+        "ci95": [percentile(deltas, 0.025), percentile(deltas, 0.975)],
+        "positive_fraction": sum(delta > 0.0 for delta in deltas) / len(deltas),
+        "raw_deltas": relative(out_dir / "task-bootstrap-deltas.jsonl"),
     }
 
 
@@ -448,7 +590,7 @@ def markdown_report(summary: dict[str, Any]) -> str:
             "",
             summary["interpretation"],
             "",
-            "The official stage ranges were loaded only after the release Rust path wrote its predictions. The Rust inputs contain only unit weight and `session`/`action`; target IDs are absent from the reference corpus.",
+            "The official stage ranges were loaded only after the release Rust path wrote its predictions. The Rust inputs contain only unit weight, `session`, coarse `action`, and source-visible `action_detail`; target IDs are absent from the reference corpus.",
             "",
         ]
     )
@@ -463,7 +605,14 @@ def main() -> None:
     reference_path = absolute(args.reference_operations)
     target_path = absolute(args.target_operations)
     manifest_path = absolute(args.verified_manifest)
-    for path in (binary, reference_path, target_path, manifest_path):
+    for path in (
+        binary,
+        reference_path,
+        target_path,
+        manifest_path,
+        DEFAULT_CURRENT_SUMMARY,
+        DEFAULT_CURRENT_ASSIGNMENTS,
+    ):
         require(path.is_file(), f"missing input: {relative(path)}")
 
     version = subprocess.run(
@@ -517,7 +666,7 @@ def main() -> None:
     require(
         all(
             set(row) == {"fields", "value"}
-            and set(row["fields"]) == {"session", "action"}
+            and set(row["fields"]) == {"session", "action", "action_detail"}
             and row["value"] == 1
             for row in reference_rows + target_rows
         ),
@@ -529,11 +678,14 @@ def main() -> None:
     )
 
     # Scoring phase. Official stages become readable only after prediction.
-    official, frameworks = load_stages_after_prediction(
+    official, frameworks, tasks = load_stages_after_prediction(
         manifest_path, targets, selected
     )
     pair_rows, operation_rows = score_rows(
-        targets, selected, recurrence, motifs, official, frameworks
+        targets, selected, recurrence, motifs, official, frameworks, tasks
+    )
+    attach_current_recurrence(
+        pair_rows, operation_rows, DEFAULT_CURRENT_ASSIGNMENTS
     )
     metrics = aggregate(pair_rows, operation_rows)
     by_framework = {
@@ -545,8 +697,9 @@ def main() -> None:
     }
     historical = None
     local_relation = None
+    bootstrap = None
     if args.mode == "full":
-        historical = json.loads(DEFAULT_STEP23_SUMMARY.read_text(encoding="utf-8"))
+        historical = json.loads(DEFAULT_CURRENT_SUMMARY.read_text(encoding="utf-8"))
         require(
             historical["population"]
             == {
@@ -561,9 +714,17 @@ def main() -> None:
             },
             "historical CodeTraceBench population changed",
         )
-        local_relation = population_relation(
-            metrics, historical["current_recurrence_baseline"]
-        )
+        for field in ("precision", "recall", "f1"):
+            require(
+                abs(
+                    float(metrics["current_recurrence"]["partition"][field])
+                    - float(historical["metrics"]["recurrence"]["partition"][field])
+                )
+                <= 1e-12,
+                f"current recurrence baseline reproduction failed: {field}",
+            )
+        local_relation = population_relation(metrics, historical["metrics"]["recurrence"])
+        bootstrap = task_cluster_bootstrap(operation_rows, out_dir)
     official_stage_count = len(set(official.values()))
     expected_target_operations = sum(len(targets[session]) for session in selected)
     expected_target_pairs = expected_target_operations - len(selected)
@@ -595,12 +756,28 @@ def main() -> None:
             "metrics are diagnostics only."
         )
     else:
-        tested_hypothesis = local_relation["population_relation"]
-        verdict = local_relation
+        delta = float(local_relation["partition_f1_delta_vs_current"])
+        ci95 = bootstrap["ci95"]
+        if delta > 0.0 and float(ci95[0]) > 0.0:
+            codetrace_verdict = "supported"
+        elif delta > 0.0:
+            codetrace_verdict = "promising_but_not_established"
+        else:
+            codetrace_verdict = "contradicted"
+        tested_hypothesis = f"codetrace_{codetrace_verdict}"
+        verdict = {
+            **local_relation,
+            "codetrace_verdict": codetrace_verdict,
+            "experiment_verdict": "pending_osworld_fallback_and_independent_review",
+            "task_cluster_bootstrap_ci95": ci95,
+        }
         interpretation = (
-            "The monotone candidate is "
-            f"{local_relation['population_relation']} than the current recurrence path "
-            "on CodeTraceBench B-cubed F1; the fixed verdict requires OSWorld-Human too."
+            "The multi-resolution candidate is "
+            f"{local_relation['population_relation']} than the current release recurrence "
+            "on complete CodeTraceBench ordinary B-cubed F1. Its registered mechanism "
+            f"verdict for this population is {codetrace_verdict}. The experiment verdict "
+            "remains pending the Rust-level OSWorld fallback check, all validity checks, "
+            "and independent result review."
         )
     summary = {
         "schema": "agentsight.rq3-codetracebench-stage-fidelity.v1",
@@ -642,10 +819,9 @@ def main() -> None:
         "per_framework": by_framework,
         "verdict": verdict,
         "current_recurrence_baseline": (
-            historical["current_recurrence_baseline"] if historical else None
+            historical["metrics"]["recurrence"] if historical else None
         ),
-        "step22_component": historical["step22_component"] if historical else None,
-        "step23_component": historical["metrics"]["recurrence"] if historical else None,
+        "task_cluster_bootstrap": bootstrap,
         "recurrence": {
             key: recurrence_report[key]
             for key in (
@@ -669,8 +845,10 @@ def main() -> None:
                 "cross_action_applied_cutoff",
                 "removed_current_boundaries",
                 "added_current_boundaries",
+                "selected_source_fields",
             )
-        },
+        }
+        | {"detail_recurrence": recurrence_report["detail_recurrence"]},
         "validity": {
             "full_population_scored": args.mode == "full"
             and (
@@ -678,8 +856,9 @@ def main() -> None:
                 and expected_target_operations == EXPECTED_TARGET_OPERATIONS
             ),
             "reference_target_session_disjoint": True,
-            "rust_inputs_only_unit_session_action": True,
-            "phase_raw_action_and_stages_excluded_from_rust": True,
+            "rust_inputs_only_unit_session_action_and_action_detail": True,
+            "action_detail_is_preexisting_source_visible_raw_action_key": True,
+            "phase_and_stages_excluded_from_rust": True,
             "official_stages_loaded_after_prediction": True,
             "official_stage_coverage_exact": len(official) == expected_target_operations,
             "every_pair_scored_once": len(pair_rows) == expected_target_pairs,
@@ -688,10 +867,22 @@ def main() -> None:
             "all_target_weight_conserved": status["samples"]
             == expected_target_operations,
             "algorithm_or_threshold_search": False,
-            "candidate_boundary_subset_of_current": recurrence_report[
-                "added_current_boundaries"
-            ]
+            "candidate_boundary_subset_of_coarse_release": recurrence_report[
+                "detail_recurrence"
+            ]["added_coarse_boundaries"]
             == 0,
+            "current_release_baseline_reproduced": all(
+                abs(
+                    float(metrics["current_recurrence"]["partition"][field])
+                    - float(
+                        historical["metrics"]["recurrence"]["partition"][field]
+                    )
+                )
+                <= 1e-12
+                for field in ("precision", "recall", "f1")
+            )
+            if historical
+            else True,
         },
         "raw": {
             "profile": relative(out_dir / "profile.json"),

@@ -28,6 +28,7 @@ history is archived at
 | `script/hintbench_profile_localization_eval.py` | thin official-data adapter, real-AgentProf runner, baseline scorer, and result reporter for the completed HINTBench experiment; not a core AgentProf subsystem |
 | `script/r315_llm_reader_eval.py` | thin rank-hidden packet collector and post-collection scorer for the completed fixed-reader RQ2 experiment; not a core AgentProf subsystem |
 | `script/rq1_codetracebench_token_attribution_eval.py` | complete CodeTraceBench ordinary and resource-weighted B-cubed attribution evaluator; not a core AgentProf subsystem |
+| `script/rq3_codetracebench_stage_fidelity_eval.py` | complete CodeTraceBench coarse and multi-resolution recurrence evaluator over fixed trajectories; not a core AgentProf subsystem |
 | `script/rq2_same_signal_diagnostic_decomposition.py` | complete three-workload standard-MAP, fixed-budget, atomic/raw/session decomposition over retained diagnostic signals; not a core AgentProf subsystem |
 | `script/rq2_local_first_semantic_ranking.py` | adaptive evaluation-only local-first semantic tie-refinement and matched local-plus-raw comparison; not the release ranking path |
 | `script/rq3_recurrence_stack_induction_eval.py` | fixed five-fold Python development adapter and scorer for the completed recurrence-induction experiment |
@@ -60,7 +61,11 @@ action-changing occurrences. Same-action decisions use the global midpoint;
 action-changing decisions use `min(global, cross-action)`. This parameter-free
 constraint can remove a global-rule boundary but cannot add one. An unseen
 transition or a score strictly below its applied midpoint starts a new segment;
-otherwise the current segment continues. Each resulting frame is the
+otherwise the current segment continues. When every reference and target
+operation has a nonempty `action_detail`, the inducer fits the identical model
+to `(action, action_detail)` transitions. Detailed continuity may remove a
+coarse boundary but cannot add one; missing, unseen, or weak detail falls back
+exactly to the coarse decision. Each resulting frame is the
 run-length-compressed action sequence of its segment, so the same recurring
 motif receives the same cross-session identity.
 
@@ -212,14 +217,17 @@ configuration. In particular:
 
 The Step 0017--0018 information-gain results remain frozen experiment artifacts
 and historical baselines; that mechanism is no longer the Rust runtime path.
-Step 0024 retains the Step 0020 recurrence objective and adds only the monotone
-cross-action calibration above. On the already-observed 287-session OSWorld
-population, all decisions and the 0.6799 boundary / 0.7862 B-cubed F1 results
-remain unchanged. On all 405 existing CodeTraceBench targets, boundary F1 rises
-from 0.2685 to 0.2871 and B-cubed F1 from 0.4750 to 0.6492 while removing 5,974
-global-rule boundaries and adding none. Both populations had already informed
-mechanism diagnosis, so these numbers authorize the release implementation but
-remain post-hoc rather than fresh RQ3 confirmation.
+Step 0024 retains the Step 0020 coarse recurrence objective and adds only the
+monotone cross-action calibration above. Step 0049 adds the detailed
+visible-action continuity arm. On the already-observed 287-session OSWorld
+population, absent non-redundant detail causes exact coarse fallback at 0.6799
+boundary / 0.7862 B-cubed F1. On all 405 existing CodeTraceBench targets,
+multi-resolution recurrence reaches 0.2656 boundary F1 and 0.6627 B-cubed F1,
+versus 0.2871 / 0.6492 for coarse recurrence. Its +0.0136 B-cubed gain over
+coarse has a task-cluster 95% interval of [+0.0087,+0.0180] and is positive in
+all four frameworks. Both populations had already informed mechanism
+diagnosis, so these numbers authorize the release implementation but remain
+post-hoc rather than fresh RQ3 confirmation.
 
 The release Rust port exactly matches the fixed Python evaluator on all 3,691
 adjacent decisions, 3,978 motif assignments, and 2,656 segments across the five

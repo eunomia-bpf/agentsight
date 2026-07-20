@@ -302,15 +302,18 @@ changing the thesis, RQs, contributions, or two-object model.
 The user has restored the untouched submodule as the canonical story source.
 RQ1 has strong scoped source-lineage and lossless-folding evidence, RQ4 has a
 complete positive construction-cost answer, and Steps 0006/0008 supply positive
-boundary/task-partition evidence within RQ3. Steps 0020--0024 close the bounded
+boundary/task-partition evidence within RQ3. Steps 0020--0024 and Step 0049
+close the bounded
 recurrence implementation investigation by replacing the mismatched
 information-gain objective, isolating its calibration failure on existing
-CodeTraceBench trajectories, and adopting the monotone cross-action rule. The
-final constructor preserves the complete OSWorld result and improves the
-complete CodeTraceBench partition result without adding a current-relative
-boundary. The result remains post-hoc implementation selection rather than
-independent confirmation. No further OSWorld-Human or CodeTraceBench depth,
-field, penalty, threshold, or score-term search is admitted.
+CodeTraceBench trajectories, adopting the monotone cross-action rule, and then
+applying the same recurrence principle at coarse and detailed visible-action
+resolution. The final constructor preserves the complete OSWorld result and
+improves the complete CodeTraceBench partition result without adding a
+coarse-relative boundary. The result remains post-hoc implementation selection
+rather than independent confirmation. No further OSWorld-Human or
+CodeTraceBench depth, field, penalty, threshold, or score-term search is
+admitted by default.
 
 The Step 0018 whole-paper review preserved the thesis and four RQs but disputed
 the current cumulative positive RQ2 authorization because its three workload
@@ -321,9 +324,11 @@ adopted recurrence implementation is complete. The independent whole-paper
 re-review and outer audit both PASS and do not find broader automatic identity
 fidelity evidence load-bearing. Step 0025's one user-requested local refinement
 is mixed and rejected, and Step 0026 finds no common small correction in those
-same action-only decisions. Step 0024 remains the current constructor. This is
-an evidence-frontier update, not a narrative evolution or change to the thesis,
-four RQs, or two-object model.
+same action-only decisions. At that point Step 0024 remained the current
+constructor. This was an evidence-frontier update, not a narrative evolution or
+change to the thesis, four RQs, or two-object model. Step 0049 later supersedes
+only that constructor implementation with the supported multi-resolution
+recurrence described below.
 
 Steps 0031--0032 add standalone named-backend measurements for declared task
 families and action labels without changing the constructor or story. Step 0032
@@ -347,6 +352,27 @@ macro-F1 and accuracy, and phase/group structure with standard V-measure,
 ordinary B-cubed F1, and exact boundary F1. This restores the original RQ3
 construct boundary without changing the RQ, hypothesis direction, story, or
 contributions; no new taxonomy experiment is admitted automatically.
+
+Step 0049 improves the adopted recurrence constructor without changing its
+principle or the paper story. The release candidate now treats either coarse
+visible action recurrence or detailed `(action, action_detail)` recurrence as
+continuity; the detailed arm can remove a coarse boundary but cannot add one,
+and detail-free inputs exactly fall back. On all 405 CodeTraceBench trajectories,
+ordinary B-cubed F1 increases from 0.6492 to 0.6627 with a paired task-cluster
+95% interval of `[+0.0087,+0.0180]` and positive effects in all four frameworks.
+The modified Rust path remains exactly identical on every OSWorld-Human fold.
+Independent raw-result review therefore adopts the multi-resolution constructor
+as the release candidate. This is positive mechanism evidence within unchanged
+RQ3 and supports the existing paper story; it is not a new abstraction,
+contribution, RQ, or thesis.
+
+The same step separately completes the user-proposed Qwen 3B variable-depth
+semantic-stack trial. Although its legal stack depth reaches six, the fixed
+policy creates a new frame on 99.96% of operations. An immutable task root plus
+the predeclared minimum multi-operation-support contraction remains far below
+the adopted recurrence on ordinary B-cubed. This closes only that tested
+mechanism branch. The negative result remains in timestamped provenance and
+does not enter the positive paper, weaken RQ3, or authorize a story change.
 
 ## Narrative Evolution — Accepted Changes Only
 

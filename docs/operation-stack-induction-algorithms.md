@@ -1,8 +1,10 @@
 # Operation-Stack Induction：算法、实现与实验演进
 
-**更新时间：** 2026-07-15
+**更新时间：** 2026-07-19
 
-**状态：** 研究与实现记录；当前发布实现是跨运行 recurrence，递归 information gain 仅保留在 Git 历史和实验报告中
+**状态：** 研究与实现记录；当前发布候选是 multi-resolution 跨运行
+recurrence，递归 information gain 与 Qwen 3B semantic-stack 方案仅保留在 Git
+历史和实验报告中
 
 **所属问题：** RQ3（tag accuracy）中的 operation partition / boundary 子问题
 
@@ -538,6 +540,7 @@ equal-information comparison。
 | OSWorld，reference-calibrated recurrence | 0.733953 | 0.801087 | 可选 annotated-reference 模式 |
 | CodeTrace，早期 global recurrence | 未作为当前 headline | 0.475008 | 被 Step 0024 修复 |
 | CodeTrace，monotone recurrence | 0.287106 | 0.649173 | 当前默认机制 |
+| CodeTrace，multi-resolution recurrence | 0.265571 | 0.662740 | 当前发布候选 |
 | CodeTrace，reference-calibrated recurrence | 0.236176 | 0.666564 | partition 改善但 boundary tradeoff |
 
 OSWorld 上 label-free recurrence 相对非约束 information gain 提升约 `+0.208`
@@ -575,6 +578,41 @@ group 合并到 5,331 个：B-cubed recall 的收益超过 precision 损失，�
 8. **现有正结果主要是 development / reference-calibrated evidence。** 它支持
    bounded RQ3 mechanism claim，不等于完整 RQ3 已回答，更不等于最终诊断价值已
    证明。
+
+### 4.10 Multi-resolution recurrence：当前发布候选
+
+Step 0049 在不增加 score、cutoff 或新抽象的情况下加入第二个可见分辨率。粗状态
+只包含 `action`；细状态包含完整的 `(action, action_detail)`。两个分辨率都使用
+同一套 cross-session NPMI、deterministic two-means 和 signature-change
+`min(global, change)` 规则。最终原则只有一句：
+
+```text
+continuity = coarse_continuity OR detail_continuity
+boundary   = coarse_boundary AND NOT detail_continuity
+```
+
+因此细分辨率只能把一个粗边界恢复为 continuity，绝不新增粗算法没有的边界。
+`action_detail` 缺失、不完整、reference 中未见或关联不足时都精确回退到粗算法；
+visible motif 名称仍只由粗 `action` 构成。概念上这不是 feature soup，而是同一个
+recurrence 原理在两种观察分辨率上的单调合取。
+
+完整 CodeTraceBench population 上，它把 879 个粗边界恢复为 continuity，预测
+group 从 6,897 降到 6,018，普通 B-cubed F1 从 `0.649173` 提高到 `0.662740`。
+相对粗版本的 paired task-cluster bootstrap 95% 区间为
+`[+0.008712,+0.018043]`，四个 framework 的 B-cubed F1 都提高。Boundary F1 从
+`0.287106` 降到 `0.265571`，说明改善来自减少 fragmentation，而不是所有 boundary
+指标一致提升。
+
+OSWorld-Human 输入没有非冗余 `action_detail`。修改后的 Rust constructor 在五个
+完整 fold 上与发布粗算法逐 decision、segment、motif、profile byte 完全一致，因而
+保留 `0.679922` boundary F1 和 `0.786170` B-cubed F1。这是实测 fallback，不是
+第二个性能增益。
+
+完整 plan、preflight、raw run 与两次独立 review 位于：
+
+```text
+docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-001/
+```
 
 ## 5. 已尝试但未保留的 recurrence 变体
 
@@ -619,6 +657,56 @@ benchmark-specific fallback，会变成事后选择粒度，而不是发现一�
 因此下一步若继续改算法，需要新的可观察 discriminator，或者独立 evidence；不应
 再把同一 pair score 换一种局部排列当成新原则。
 
+### 5.4 Qwen 3B variable-depth semantic task stack
+
+Step 0049 也完整测试了用户提出的另一条原则：由本地 Qwen2.5-3B-Instruct 逐步
+维护当前 semantic task stack。每个 operation 只能执行四类等价 transition：
+保持、push 一个子任务、pop 任意多个已结束任务、或 pop 后 push 一个 sibling。
+GBNF 保证输出是合法非空 JSON；总深度没有上限。模型只看到公开 task identity、
+当前 stack、前一个 observation 和当前 action，不读取人工 stage。
+
+真实 preflight 和完整 405-trajectory / 20,866-operation 推理都通过执行校验，raw
+stack 深度自然达到 1--6。但 `new_frame_rate = 0.999569`：3B policy 几乎给每个
+operation 创建一个新 leaf。为检验“短暂 leaf 可丢弃”这一简单修复，实验在打开
+stage 前加入不可删除的 task root，并只保留 active-path support 至少为两个
+operation 的生成 frame。这个规则不限制深度，也不调参；它把 20,857 个 raw leaf
+收缩为 1,690 个 effective leaf。
+
+完整标准评分表明，raw stack 是严重 over-segmentation（B-cubed F1 `0.247572`），
+收缩后又变成高 recall、低 precision 的 under-segmentation（precision `0.290890`、
+recall `0.853010`、F1 `0.433835`、boundary F1 `0.109949`）。相对当前
+multi-resolution recurrence 的 task-cluster bootstrap 95% 区间为
+`[-0.246012,-0.210910]`，四个 framework 都下降。
+
+这个结果只否定“固定 3B transition policy + 最小 temporal-support contraction”是
+更好的 CodeTrace partition；它不否定 variable-depth semantic stack、论文 RQ3
+或 thesis。失败机制很清楚：合法 stack discipline 不能替代正确的 transition
+policy，而 frame 是否存活两个 operation 也不足以确定 human operation continuity。
+因此该方案保留在研究历史，不进入 release 或论文结果。
+
+这次实验还澄清了目标语义。主 stack 不应只是把系统字段换一个排列顺序，而应表示
+`具体任务 → 子任务 → 阶段/策略 → 语义动作 → 操作对象 → 结果`。Agent、model、
+session、tool 和 status 是颜色、筛选或详情维度；command、file 和 call 是叶端证据；
+事件数、时间和 token 是可加宽度。由此，正确的 semantic operation 必须回答哪个
+子任务消耗资源、哪里反复尝试、是否产生有效结果、哪些子任务失败或被放弃，以及
+不同 agent 如何分解同一类任务。当前 Qwen policy 只自由生成一个未分型 frame，
+因此即便 label 比 raw command 更可读，也没有强制恢复上述责任层次。
+
+为了把这个区别变成可检查的观察，Experiment 004 从固定预测中绘制了一条 95-operation
+轨迹的四栏时间加权 flame graph：raw Qwen active stack、support contraction、
+multi-resolution recurrence 与评分时才打开的 human stage。图显示 variable depth
+确实达到六个生成层，但大量 singleton leaf 与过宽的早期祖先同时存在；contraction
+删除前者却不能恢复 human stage。生成脚本与图位于
+`script/plot_qwen_semantic_stack_flamegraph.py` 和 Experiment 004 的 `figures/`。
+
+完整 plan、cache audit、full inference、score 和 Grok raw-result reconstruction
+位于：
+
+```text
+docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-003/
+docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-004/
+```
+
 ## 6. 两个算法最本质的差别
 
 | 问题 | Information gain | Cross-run recurrence |
@@ -630,7 +718,7 @@ benchmark-specific fallback，会变成事后选择粒度，而不是发现一�
 | 是否需要其他运行 | 不需要 | 需要 reference sessions；也可用当前选中 corpus 做 reference |
 | 主要自由度 | eligible fields、penalty、depth | action representation、reference、cutoff policy |
 | 主要失败模式 | purity 与 operation continuity 错配 | pair recurrence 与真实 context/granularity 错配 |
-| 当前状态 | 历史实现，已被完整结果替换 | 当前发布实现；calibration 为可选模式 |
+| 当前状态 | 历史实现，已被完整结果替换 | multi-resolution 为当前发布候选；calibration 为可选模式 |
 
 一句话概括：
 
@@ -641,9 +729,10 @@ benchmark-specific fallback，会变成事后选择粒度，而不是发现一�
 ## 7. 当前研究结论与下一证据边界
 
 当前选择 recurrence，不是因为 information gain 不够“复杂”，而是因为完整实验
-表明后者优化了错误的 proxy。当前实现应保持简单：NPMI、一个 label-free cutoff
-规则、连续分段、motif identity；可选 grouped-reference 模式只拟合同一个 scalar
-cutoff。
+表明后者优化了错误的 proxy。当前发布候选保持同一个简单原则：在 coarse 与
+detail 两个可见分辨率分别判断 recurrence，任一分辨率支持 continuity 就不切；
+随后连续分段并生成 coarse motif identity。可选 grouped-reference 模式只拟合同
+一个 scalar cutoff。
 
 已有结果支持：
 
@@ -651,6 +740,8 @@ cutoff。
   OSWorld 的人类 operation partition；
 - monotone cross-action 规则能在不新增原边界的前提下修复 CodeTrace 的一类
   fragmentation；
+- multi-resolution recurrence 能在不新增粗边界、且对 detail-free 输入精确回退
+  的前提下进一步减少 CodeTrace fragmentation；
 - 独立 grouped reference 可以在两个现有 population 上提高 B-cubed partition
   fidelity。
 
@@ -681,6 +772,8 @@ RQ 和 operation/operation-stack 模型不变。
 | 被拒绝的 local-minimum 变体 | `docs/tmp/build-and-evaluate/step-0025-20260715T054105-0700/` |
 | Pair/context aliasing 诊断 | `docs/tmp/build-and-evaluate/step-0026-20260715T063827-0700/` |
 | Grouped-reference calibration 与完整 replay | `docs/tmp/build-and-evaluate/step-0030-20260715T161256-0700/` |
+| Multi-resolution recurrence 与完整 replay | `docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-001/` |
+| Qwen 3B semantic-stack 与 contraction | `docs/tmp/build-and-evaluate/step-0049-20260719T195559-0700/experiment-003/` 和 `experiment-004/` |
 
 历史与当前源代码共同构成可审计记录：失败实现不留在 release runtime，但不从
 Git 或 experiment reports 中删除；当前实现不冒充先前算法，也不把开发结果扩大

@@ -5,7 +5,7 @@
 **Agent observability needs profiling, not only debugging.** AgentProf converts
 heterogeneous agent histories, operation files, and supported trace containers
 into weighted profile projections that existing profiler tooling can read.
-Operations and operation stacks implement this thesis. Cross-run recurrence,
+Operations and operation stacks implement this thesis. Multi-resolution cross-run recurrence,
 measure choice, and alternative hierarchies explain and test the model; they do
 not replace the thesis.
 
@@ -139,7 +139,11 @@ cutoff. The same partition over action-changing reference occurrences supplies
 a cross-action cutoff. Same-action target pairs use the global cutoff;
 action-changing pairs use the smaller of the global and cross-action cutoffs.
 Thus the refinement can only merge a boundary produced by the global rule and
-can never add one. In a target session, an unseen transition or a score
+can never add one. When every reference and target operation also has a
+nonempty `action_detail`, the constructor fits the same recurrence model to the
+compound `(action, action_detail)` signature. Detailed continuity may remove a
+coarse boundary but can never add one; missing, unseen, or weak detail falls
+back exactly to the coarse decision. In a target session, an unseen transition or a score
 strictly below its applied cutoff starts a new group; every other transition
 continues the current group. No depth, field search, hand-weighted score term,
 complexity penalty, query tie-break, label-tuned threshold, or resource-weighted
@@ -173,17 +177,18 @@ Legacy information-gain knobs remain parseable only to produce a clear error:
 `--induce-task-stack` flag invokes the same implementation under the legacy
 derived-field name.
 
-Steps 0020--0024 developed this objective directly on the already completed
-OSWorld-Human and CodeTraceBench trajectories. The final monotone calibration
-keeps all 3,691 OSWorld decisions and its 0.6799 boundary F1 and 0.7862
-operation-weighted B-cubed F1 unchanged. On 405 CodeTraceBench targets, it
-removes 5,974 global-rule boundaries, adds none, raises boundary F1 from 0.2685
-to 0.2871, and raises B-cubed F1 from 0.4750 to 0.6492 across all four agent
-frameworks. Under the fixed two-population rule, equal plus higher supports the
-replacement. Both populations had already informed mechanism diagnosis, so
-the result remains post-hoc implementation-selection evidence rather than
-fresh confirmation of all RQ3, motif-name semantics, or cross-family
-generalization.
+Steps 0020--0024 developed the coarse recurrence objective directly on the
+already completed OSWorld-Human and CodeTraceBench trajectories. That monotone
+coarse predecessor reaches 0.6799 boundary F1 and 0.7862 ordinary B-cubed F1
+on OSWorld-Human and 0.2871 / 0.6492 on CodeTraceBench. Step 0049 adds only the
+detailed visible-action continuity arm above. OSWorld-Human has no
+non-redundant detail and therefore falls back exactly to the coarse result. On
+all 405 CodeTraceBench targets, multi-resolution recurrence reaches 0.2656
+boundary F1 and 0.6627 ordinary B-cubed F1; the +0.0136 gain over coarse has a
+task-cluster bootstrap 95% interval of [+0.0087,+0.0180] and is positive in all
+four frameworks. Both populations had already informed mechanism diagnosis,
+so these remain post-hoc implementation-selection results rather than fresh
+confirmation of all RQ3, motif-name semantics, or cross-family generalization.
 
 The Rust port was then checked mechanically against the approved Python
 candidate. Independent raw review reproduced exact equality for all 3,691
@@ -307,13 +312,13 @@ RQ1, RQ2, the task-partition, task-family, and human-boundary components of
 RQ3, and RQ4 have paper-linked evidence. Steps 0017--0018 established that the
 former information-gain runtime
 objective did not match heterogeneous human operation groups. Steps 0020--0024
-changed that objective to the cross-session recurrence construction specified
-above, diagnosed identity-dominated calibration on existing CodeTraceBench
-trajectories, and adopted the monotone cutoff composition. The final rule keeps
-OSWorld boundary F1 0.6799 and B-cubed F1 0.7862 unchanged while raising
-CodeTraceBench B-cubed F1 from 0.4750 to 0.6492 across all four frameworks; the
-Rust port exactly reproduces every evaluated OSWorld decision and conserved
-unit. Because both label populations informed mechanism development, this is
+changed that objective to coarse cross-session recurrence, and Step 0049 added
+the detailed visible-action continuity arm specified above. The current rule
+keeps OSWorld boundary F1 0.6799 and B-cubed F1 0.7862 unchanged through exact
+coarse fallback, while reaching 0.6627 B-cubed F1 on CodeTraceBench versus
+0.6492 for coarse recurrence and 0.5411 for raw-action grouping. The Rust port
+reproduces the evaluated decisions and conserves every unit. Because both label
+populations informed mechanism development, this is
 implementation-selection evidence, not fresh confirmation of the whole RQ3
 hypothesis. Further field, depth, penalty, threshold, or score-term tuning on
 either reused population is not part of the design.

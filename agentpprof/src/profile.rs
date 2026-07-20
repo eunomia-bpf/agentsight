@@ -335,8 +335,36 @@ pub struct OperationStackInductionReport {
     excluded_oracle_suffixes: Vec<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     supervised_calibration: Option<SupervisedRecurrenceCalibrationReport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    detail_recurrence: Option<OperationStackDetailRecurrenceReport>,
     boundary_decisions: Vec<OperationStackBoundaryDecision>,
     segments: Vec<OperationStackSegment>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct OperationStackDetailRecurrenceReport {
+    association_field: &'static str,
+    signature: &'static str,
+    reference_transitions: usize,
+    same_signature_reference_transitions: usize,
+    signature_change_reference_transitions: usize,
+    global_cutoff: f64,
+    global_low_center: f64,
+    global_high_center: f64,
+    global_low_occurrences: usize,
+    global_high_occurrences: usize,
+    global_two_means_iterations: usize,
+    signature_change_cutoff: f64,
+    signature_change_applied_cutoff: f64,
+    signature_change_low_center: f64,
+    signature_change_high_center: f64,
+    signature_change_low_occurrences: usize,
+    signature_change_high_occurrences: usize,
+    signature_change_two_means_iterations: usize,
+    seen_target_transitions: usize,
+    unseen_target_transitions: usize,
+    rescued_coarse_boundaries: usize,
+    added_coarse_boundaries: usize,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -374,6 +402,24 @@ pub struct OperationStackBoundaryDecision {
     label_free_applied_cutoff: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     label_free_boundary: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    left_action_detail: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    right_action_detail: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    detail_npmi: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    detail_unseen_in_reference: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    detail_calibration_population: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    detail_applied_cutoff: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    detail_continuity: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    coarse_boundary: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    detail_rescued_coarse_boundary: Option<bool>,
     boundary: bool,
 }
 
@@ -1063,6 +1109,7 @@ const OPERATION_STACK_OBJECTIVE: &str =
 const OPERATION_STACK_DERIVED_FIELD: &str = "operation";
 const OPERATION_STACK_SEQUENCE_FIELD: &str = "session";
 const OPERATION_STACK_ASSOCIATION_FIELD: &str = "action";
+const OPERATION_STACK_DETAIL_FIELD: &str = "action_detail";
 const OPERATION_STACK_CALIBRATION_GROUP_FIELD: &str = "group";
 const ORACLE_OR_LABEL_FIELDS: &[&str] = &[
     "annotator",
@@ -1141,15 +1188,11 @@ fn induce_operation_stack(
     config: &OperationStackInductionConfig,
 ) -> Result<(Vec<Operation>, OperationStackInductionReport)> {
     let reference_is_external = config.reference_operations.is_some();
-    let (model, reference_sessions, reference_operations) = {
-        let reference = config.reference_operations.as_deref().unwrap_or(&samples);
-        let reference_groups = recurrence_groups(reference, "induction reference")?;
-        (
-            recurrence_model(reference, &reference_groups)?,
-            reference_groups.len(),
-            reference.len(),
-        )
-    };
+    let reference = config.reference_operations.as_deref().unwrap_or(&samples);
+    let reference_groups = recurrence_groups(reference, "induction reference")?;
+    let model = recurrence_model(reference, &reference_groups, None)?;
+    let reference_sessions = reference_groups.len();
+    let reference_operations = reference.len();
     let target_groups = recurrence_groups(&samples, "induction target")?;
     let supervised_calibration = if let Some(calibration) = config.calibration_operations.as_deref()
     {
@@ -1168,6 +1211,18 @@ fn induce_operation_stack(
     } else {
         None
     };
+    let detail_enabled = supervised_calibration.is_none()
+        && recurrence_uniform_detail(reference, "induction reference")?
+        && recurrence_uniform_detail(&samples, "induction target")?;
+    let detail_model = detail_enabled
+        .then(|| {
+            recurrence_model(
+                reference,
+                &reference_groups,
+                Some(OPERATION_STACK_DETAIL_FIELD),
+            )
+        })
+        .transpose()?;
 
     let mut decisions = Vec::new();
     let mut pending_segments = Vec::new();
@@ -1184,16 +1239,17 @@ fn induce_operation_stack(
                 OPERATION_STACK_ASSOCIATION_FIELD,
                 "induction target",
             )?;
+            let left_state =
+                recurrence_state(&samples[indices[position - 1]], None, "induction target")?;
+            let right_state =
+                recurrence_state(&samples[indices[position]], None, "induction target")?;
             let npmi = model
                 .association
-                .get(&(left_action.to_string(), right_action.to_string()))
+                .get(&(left_state.clone(), right_state.clone()))
                 .copied();
             let current_boundary = npmi.is_none_or(|score| score < model.global.cutoff);
-            let label_free_applied_cutoff = if left_action == right_action {
-                model.global.cutoff
-            } else {
-                model.global.cutoff.min(model.cross_action.cutoff)
-            };
+            let label_free_applied_cutoff =
+                recurrence_applied_cutoff(&model, &left_state, &right_state);
             let label_free_boundary = npmi.is_none_or(|score| score < label_free_applied_cutoff);
             let (calibration_population, applied_cutoff) =
                 if let Some(calibration) = supervised_calibration.as_ref() {
@@ -1206,7 +1262,56 @@ fn induce_operation_stack(
                         label_free_applied_cutoff,
                     )
                 };
-            let boundary = npmi.is_none_or(|score| score < applied_cutoff);
+            let coarse_boundary = npmi.is_none_or(|score| score < applied_cutoff);
+            let (
+                left_action_detail,
+                right_action_detail,
+                detail_npmi,
+                detail_unseen_in_reference,
+                detail_calibration_population,
+                detail_applied_cutoff,
+                detail_continuity,
+            ) = if let Some(detail_model) = detail_model.as_ref() {
+                let left_detail_state = recurrence_state(
+                    &samples[indices[position - 1]],
+                    Some(OPERATION_STACK_DETAIL_FIELD),
+                    "induction target",
+                )?;
+                let right_detail_state = recurrence_state(
+                    &samples[indices[position]],
+                    Some(OPERATION_STACK_DETAIL_FIELD),
+                    "induction target",
+                )?;
+                let score = detail_model
+                    .association
+                    .get(&(left_detail_state.clone(), right_detail_state.clone()))
+                    .copied();
+                let cutoff = recurrence_applied_cutoff(
+                    detail_model,
+                    &left_detail_state,
+                    &right_detail_state,
+                );
+                let continuity = score.is_some_and(|value| value >= cutoff);
+                let population = if left_detail_state == right_detail_state {
+                    "all-detail-transitions"
+                } else {
+                    "monotone-detail-changing-transitions"
+                };
+                (
+                    left_detail_state.detail,
+                    right_detail_state.detail,
+                    score,
+                    Some(score.is_none()),
+                    Some(population),
+                    Some(cutoff),
+                    Some(continuity),
+                )
+            } else {
+                (None, None, None, None, None, None, None)
+            };
+            let boundary = coarse_boundary && !detail_continuity.unwrap_or(false);
+            let detail_rescued_coarse_boundary =
+                detail_enabled.then_some(coarse_boundary && !boundary);
             if boundary {
                 boundaries.push(position);
             }
@@ -1224,6 +1329,15 @@ fn induce_operation_stack(
                     .as_ref()
                     .map(|_| label_free_applied_cutoff),
                 label_free_boundary: supervised_calibration.as_ref().map(|_| label_free_boundary),
+                left_action_detail,
+                right_action_detail,
+                detail_npmi,
+                detail_unseen_in_reference,
+                detail_calibration_population,
+                detail_applied_cutoff,
+                detail_continuity,
+                coarse_boundary: detail_enabled.then_some(coarse_boundary),
+                detail_rescued_coarse_boundary,
                 boundary,
             });
         }
@@ -1269,7 +1383,61 @@ fn induce_operation_stack(
         });
     }
 
-    let selected_evidence_fields = vec![OPERATION_STACK_ASSOCIATION_FIELD.to_string()];
+    if decisions
+        .iter()
+        .any(|decision| decision.coarse_boundary == Some(false) && decision.boundary)
+    {
+        bail!("detail recurrence added a coarse-relative boundary");
+    }
+    let mut selected_evidence_fields = vec![OPERATION_STACK_ASSOCIATION_FIELD.to_string()];
+    if detail_enabled {
+        selected_evidence_fields.push(OPERATION_STACK_DETAIL_FIELD.to_string());
+    }
+    let detail_recurrence = detail_model.as_ref().map(|detail_model| {
+        let seen_target_transitions = decisions
+            .iter()
+            .filter(|decision| decision.detail_unseen_in_reference == Some(false))
+            .count();
+        let unseen_target_transitions = decisions
+            .iter()
+            .filter(|decision| decision.detail_unseen_in_reference == Some(true))
+            .count();
+        let rescued_coarse_boundaries = decisions
+            .iter()
+            .filter(|decision| decision.detail_rescued_coarse_boundary == Some(true))
+            .count();
+        let added_coarse_boundaries = decisions
+            .iter()
+            .filter(|decision| decision.coarse_boundary == Some(false) && decision.boundary)
+            .count();
+        OperationStackDetailRecurrenceReport {
+            association_field: OPERATION_STACK_DETAIL_FIELD,
+            signature: "ordered (action, action_detail) pair",
+            reference_transitions: detail_model.transition_count,
+            same_signature_reference_transitions: detail_model.same_action_transitions,
+            signature_change_reference_transitions: detail_model.action_change_transitions,
+            global_cutoff: detail_model.global.cutoff,
+            global_low_center: detail_model.global.low_center,
+            global_high_center: detail_model.global.high_center,
+            global_low_occurrences: detail_model.global.low_occurrences,
+            global_high_occurrences: detail_model.global.high_occurrences,
+            global_two_means_iterations: detail_model.global.iterations,
+            signature_change_cutoff: detail_model.cross_action.cutoff,
+            signature_change_applied_cutoff: detail_model
+                .global
+                .cutoff
+                .min(detail_model.cross_action.cutoff),
+            signature_change_low_center: detail_model.cross_action.low_center,
+            signature_change_high_center: detail_model.cross_action.high_center,
+            signature_change_low_occurrences: detail_model.cross_action.low_occurrences,
+            signature_change_high_occurrences: detail_model.cross_action.high_occurrences,
+            signature_change_two_means_iterations: detail_model.cross_action.iterations,
+            seen_target_transitions,
+            unseen_target_transitions,
+            rescued_coarse_boundaries,
+            added_coarse_boundaries,
+        }
+    });
     let report = OperationStackInductionReport {
         policy: OPERATION_STACK_POLICY,
         objective: OPERATION_STACK_OBJECTIVE,
@@ -1328,6 +1496,7 @@ fn induce_operation_stack(
         excluded_oracle_prefixes: ORACLE_OR_LABEL_PREFIXES.to_vec(),
         excluded_oracle_suffixes: ORACLE_OR_LABEL_SUFFIXES.to_vec(),
         supervised_calibration,
+        detail_recurrence,
         boundary_decisions: decisions,
         segments,
     };
@@ -1336,12 +1505,18 @@ fn induce_operation_stack(
 
 #[derive(Debug)]
 struct RecurrenceModel {
-    association: BTreeMap<(String, String), f64>,
+    association: BTreeMap<(RecurrenceState, RecurrenceState), f64>,
     transition_count: usize,
     same_action_transitions: usize,
     action_change_transitions: usize,
     global: RecurrenceCalibration,
     cross_action: RecurrenceCalibration,
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct RecurrenceState {
+    action: String,
+    detail: Option<String>,
 }
 
 #[derive(Debug)]
@@ -1366,6 +1541,50 @@ fn operation_single_value<'a>(
     Ok(values[0].as_str())
 }
 
+fn recurrence_uniform_detail(samples: &[Operation], source: &str) -> Result<bool> {
+    let mut present = 0;
+    for operation in samples {
+        let values = operation.values(OPERATION_STACK_DETAIL_FIELD);
+        match values {
+            [] => {}
+            [value] if !value.trim().is_empty() => present += 1,
+            _ => {
+                bail!(
+                    "{source} requires at most one nonempty {:?} value per operation",
+                    OPERATION_STACK_DETAIL_FIELD
+                )
+            }
+        }
+    }
+    Ok(present == samples.len())
+}
+
+fn recurrence_state(
+    operation: &Operation,
+    detail_field: Option<&str>,
+    source: &str,
+) -> Result<RecurrenceState> {
+    Ok(RecurrenceState {
+        action: operation_single_value(operation, OPERATION_STACK_ASSOCIATION_FIELD, source)?
+            .to_string(),
+        detail: detail_field
+            .map(|field| operation_single_value(operation, field, source).map(str::to_string))
+            .transpose()?,
+    })
+}
+
+fn recurrence_applied_cutoff(
+    model: &RecurrenceModel,
+    left: &RecurrenceState,
+    right: &RecurrenceState,
+) -> f64 {
+    if left == right {
+        model.global.cutoff
+    } else {
+        model.global.cutoff.min(model.cross_action.cutoff)
+    }
+}
+
 fn recurrence_groups(samples: &[Operation], source: &str) -> Result<BTreeMap<String, Vec<usize>>> {
     let mut groups = BTreeMap::<String, Vec<usize>>::new();
     for (index, sample) in samples.iter().enumerate() {
@@ -1382,27 +1601,18 @@ fn recurrence_groups(samples: &[Operation], source: &str) -> Result<BTreeMap<Str
 fn recurrence_model(
     reference: &[Operation],
     groups: &BTreeMap<String, Vec<usize>>,
+    detail_field: Option<&str>,
 ) -> Result<RecurrenceModel> {
-    let mut left_counts = BTreeMap::<String, usize>::new();
-    let mut right_counts = BTreeMap::<String, usize>::new();
-    let mut pair_counts = BTreeMap::<(String, String), usize>::new();
+    let mut left_counts = BTreeMap::<RecurrenceState, usize>::new();
+    let mut right_counts = BTreeMap::<RecurrenceState, usize>::new();
+    let mut pair_counts = BTreeMap::<(RecurrenceState, RecurrenceState), usize>::new();
     for indices in groups.values() {
         for pair in indices.windows(2) {
-            let left = operation_single_value(
-                &reference[pair[0]],
-                OPERATION_STACK_ASSOCIATION_FIELD,
-                "induction reference",
-            )?;
-            let right = operation_single_value(
-                &reference[pair[1]],
-                OPERATION_STACK_ASSOCIATION_FIELD,
-                "induction reference",
-            )?;
-            *left_counts.entry(left.to_string()).or_default() += 1;
-            *right_counts.entry(right.to_string()).or_default() += 1;
-            *pair_counts
-                .entry((left.to_string(), right.to_string()))
-                .or_default() += 1;
+            let left = recurrence_state(&reference[pair[0]], detail_field, "induction reference")?;
+            let right = recurrence_state(&reference[pair[1]], detail_field, "induction reference")?;
+            *left_counts.entry(left.clone()).or_default() += 1;
+            *right_counts.entry(right.clone()).or_default() += 1;
+            *pair_counts.entry((left, right)).or_default() += 1;
         }
     }
     let transition_count = pair_counts.values().sum::<usize>();
@@ -1479,20 +1689,9 @@ fn fit_supervised_recurrence_cutoff(
     for indices in groups.values() {
         for pair in indices.windows(2) {
             transitions += 1;
-            let left = operation_single_value(
-                &calibration[pair[0]],
-                OPERATION_STACK_ASSOCIATION_FIELD,
-                "induction calibration",
-            )?;
-            let right = operation_single_value(
-                &calibration[pair[1]],
-                OPERATION_STACK_ASSOCIATION_FIELD,
-                "induction calibration",
-            )?;
-            if let Some(score) = model
-                .association
-                .get(&(left.to_string(), right.to_string()))
-            {
+            let left = recurrence_state(&calibration[pair[0]], None, "induction calibration")?;
+            let right = recurrence_state(&calibration[pair[1]], None, "induction calibration")?;
+            if let Some(score) = model.association.get(&(left, right)) {
                 observed_scores.push(*score);
             } else {
                 unseen_transitions += 1;
@@ -1584,19 +1783,15 @@ fn recurrence_calibration_partition_metrics(
         let mut predicted_group = 0;
         for (position, index) in indices.iter().enumerate() {
             if position > 0 {
-                let left = operation_single_value(
+                let left = recurrence_state(
                     &calibration[indices[position - 1]],
-                    OPERATION_STACK_ASSOCIATION_FIELD,
+                    None,
                     "induction calibration",
                 )?;
-                let right = operation_single_value(
-                    &calibration[*index],
-                    OPERATION_STACK_ASSOCIATION_FIELD,
-                    "induction calibration",
-                )?;
+                let right = recurrence_state(&calibration[*index], None, "induction calibration")?;
                 let boundary = model
                     .association
-                    .get(&(left.to_string(), right.to_string()))
+                    .get(&(left, right))
                     .is_none_or(|score| *score < cutoff);
                 if boundary {
                     predicted_group += 1;
@@ -3525,11 +3720,15 @@ mod tests {
             .calibration_operations
             .unwrap();
         let groups = recurrence_groups(&calibration, "induction calibration").unwrap();
+        let state = |action: &str| RecurrenceState {
+            action: action.to_string(),
+            detail: None,
+        };
         let model = RecurrenceModel {
             association: BTreeMap::from([
-                (("a".into(), "b".into()), 0.0),
-                (("b".into(), "c".into()), 1.0),
-                (("c".into(), "d".into()), 0.0),
+                ((state("a"), state("b")), 0.0),
+                ((state("b"), state("c")), 1.0),
+                ((state("c"), state("d")), 0.0),
             ]),
             transition_count: 3,
             same_action_transitions: 0,
@@ -3636,6 +3835,71 @@ mod tests {
         assert_eq!(report.added_current_boundaries, 0);
         assert_eq!(report.segments.len(), 1);
         assert_eq!(report.segments[0].motif, "action=fill-then-click");
+    }
+
+    #[test]
+    fn operation_stack_induction_uses_recurrent_detail_only_to_rescue_continuity() {
+        let mut reference = Vec::new();
+        let mut session_id = 0;
+        for ((left_action, left_detail), (right_action, right_detail), count) in [
+            (("a", "x"), ("b", "y"), 10),
+            (("a", "z"), ("c", "u"), 20),
+            (("a", "z"), ("c", "v"), 20),
+            (("d", "p"), ("b", "w"), 20),
+            (("d", "q"), ("b", "w"), 20),
+            (("e", "m"), ("f", "n"), 10),
+        ] {
+            for _ in 0..count {
+                let session = format!("reference-{session_id:03}");
+                session_id += 1;
+                reference.push(json!({"value": 1, "fields": {
+                    "session": session,
+                    "action": left_action,
+                    "action_detail": left_detail
+                }}));
+                reference.push(json!({"value": 1, "fields": {
+                    "session": session,
+                    "action": right_action,
+                    "action_detail": right_detail
+                }}));
+            }
+        }
+        let target = vec![
+            json!({"value": 1, "fields": {
+                "session": "target", "action": "a", "action_detail": "x"
+            }}),
+            json!({"value": 1, "fields": {
+                "session": "target", "action": "b", "action_detail": "y"
+            }}),
+        ];
+        let induction = OperationStackInductionConfig::new()
+            .with_reference_operation_records(&reference)
+            .unwrap();
+        let options = OperationStackConfig::for_view(ProfileView::Operations)
+            .with_stack(parse_stack_spec("operation").unwrap())
+            .with_operation_stack_induction(induction);
+        let profile =
+            build_profile_from_operation_records(&target, ProfileView::Operations, &options)
+                .unwrap();
+        let report = profile.operation_stack_induction.as_ref().unwrap();
+        let detail = report.detail_recurrence.as_ref().expect("detail report");
+        let decision = &report.boundary_decisions[0];
+
+        assert_eq!(
+            report.selected_source_fields,
+            vec!["action", "action_detail"]
+        );
+        assert_eq!(detail.association_field, "action_detail");
+        assert_eq!(detail.rescued_coarse_boundaries, 1);
+        assert_eq!(detail.added_coarse_boundaries, 0);
+        assert_eq!(decision.left_action_detail.as_deref(), Some("x"));
+        assert_eq!(decision.right_action_detail.as_deref(), Some("y"));
+        assert_eq!(decision.coarse_boundary, Some(true));
+        assert_eq!(decision.detail_continuity, Some(true));
+        assert_eq!(decision.detail_rescued_coarse_boundary, Some(true));
+        assert!(!decision.boundary);
+        assert_eq!(report.segments.len(), 1);
+        assert_eq!(report.segments[0].motif, "action=a-then-b");
     }
 
     #[test]

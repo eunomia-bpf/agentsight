@@ -83,6 +83,19 @@ downstream-use evidence inside unchanged RQ2, not a new story.
   higher-level activities and hierarchical abstractions from low-level event
   logs. They are serious RQ3 mechanism/baseline precedents; always-cut,
   action-change, and phase-change controls do not represent this family.
+- [Grosz and Sidner's discourse model](https://aclanthology.org/J86-3001/)
+  represents the dynamically active, open-ended purposes of discourse as a
+  stack of focus spaces: a subordinate purpose pushes, while returning to a
+  dominating purpose can pop one or more spaces. This is the closest conceptual
+  precedent for an incrementally maintained semantic task stack. Push/pop and
+  variable-depth intention stacks are therefore not independently novel; the
+  AgentProf opportunity is to infer such a stack from real agent histories with
+  a small local model, attach conserved operation weights and effects to its
+  active path, and fold recurring paths across runs.
+- [Hierarchical event abstraction](https://doi.org/10.1109/ICPM53251.2021.9576868)
+  formalizes multiple activity-instance levels over event logs. It reinforces
+  that hierarchy construction is an established problem while leaving a direct
+  semantic task-stack backend and its agent-profiling consequences open.
 - [Visualizing Distributed Traces in Aggregate](https://arxiv.org/abs/2412.07036)
   groups and visualizes trace collections by services, structure, depth, or
   latency. Cross-run aggregation is not new by itself.
