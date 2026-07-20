@@ -1,6 +1,8 @@
 # Experiment 004 — Complete CodeTraceBench Run
 
-**Timestamp:** 2026-07-19T22:42:00-0700  
+**Execution completion:** after plan approval and implementation review; exact
+wall-clock time not recoverable  
+**Report persisted:** 2026-07-19T23:14:48-07:00  
 **Status:** COMPLETE; registered hypothesis contradicted  
 **Paper action:** none pending independent result review
 
@@ -57,4 +59,3 @@ CodeTraceBench. It does not answer the full RQ3, invalidate variable-depth
 operation stacks, or challenge the paper thesis and four RQs. The result must
 remain in research provenance and must not replace the already supported
 multi-resolution recurrence mechanism or appear as a negative paper result.
-

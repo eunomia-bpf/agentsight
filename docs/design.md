@@ -41,16 +41,37 @@ evidence for changing existing positive-weight results.
 
 ### Operation Stack
 
-An operation stack is an ordered recursive path derived from operation fields:
+An operation stack is an ordered recursive path derived from operation fields.
+For example, the following runtime-field projection is supported and remains a
+useful baseline:
 
 ```text
 project -> task -> phase -> tool -> action -> status
 ```
 
-The stack is a query-time profile projection. The same operations can be folded
-using a flat view, a source-native hierarchy, a manually declared semantic
-stack, mapped fields, or induced recurring-operation identities. Changing
-stack shape does not create another underlying event object.
+This path is not the paper-level task-semantic main stack. The main semantic
+responsibility target is:
+
+```text
+concrete task -> subtask (possibly nested) -> phase/strategy
+              -> semantic action -> operation object -> result
+```
+
+Subtask nesting can be uneven and has no fixed depth. Agent, model, session,
+tool, status, command, and path remain filters, colors, detail attributes, or
+bottom-level evidence rather than consuming the main responsibility path.
+Events, time, tokens, and source-linked effects are additive widths. A valid
+task-semantic profile should expose where a task spends resources, repeats or
+abandons work, produces evidence, and succeeds or fails, including differences
+in task decomposition across agents.
+
+The current artifact already supports the generic projection mechanism, while
+automatic recovery of the full task-semantic path remains the next positive
+mechanism target. Paper prose changes only after positive evidence. The same
+operations can still be folded using a flat view, a source-native hierarchy, a
+manually declared semantic stack, mapped fields, or induced recurring-operation
+identities. Changing stack shape does not create another underlying event
+object.
 
 For every operation with positive value, the profiler emits its selected frame
 path and adds the operation's value to that path. All output formats derive from

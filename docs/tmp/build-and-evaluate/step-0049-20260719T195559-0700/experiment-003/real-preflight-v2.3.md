@@ -1,6 +1,7 @@
 # Experiment 003 — Real Preflight v2.3
 
-**Timestamp:** 2026-07-19T22:19:00-0700  
+**Execution timestamp:** exact wall-clock time not recoverable  
+**Report persisted:** 2026-07-19T23:00:40-07:00  
 **Status:** PASS; full execution may continue  
 **Tested component:** constrained single-frame transition policy only  
 **Official stage labels opened:** no
@@ -31,10 +32,12 @@ fine-grained to serve directly as semantic operations.
 
 ## Decision
 
-Continue the approved Experiment 004 plan: preserve the uncapped raw stack,
+This v2.3 preflight belongs to the approved Experiment 004 execution contract,
+not to a successful continuation of Experiment 003. Experiment 003 closed after
+its second full-run attempt stopped at 22:47:57. After Experiment 004 was
+proposed, reviewed, and approved, this preflight preserved the uncapped raw stack,
 add an immutable task root, and contract generated frame instances that do not
 span at least two operations. This changes neither the model outputs nor the
 research question; it defines which generated frames have enough temporal
 support to count as operations. Materialize the contracted partition before
 opening official stages, then perform the registered complete-population score.
-

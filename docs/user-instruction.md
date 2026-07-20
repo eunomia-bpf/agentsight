@@ -275,11 +275,35 @@ depth 应该是可变的吧
 
 ---
 
-Semantic flame graph 的主 stack 必须以具体任务责任结构为中心，而不是按
-`agent → session → prompt → tool → command → path → status` 等系统字段堆叠。
-目标结构是 `具体任务 → 子任务 → 阶段/策略 → 语义动作 → 操作对象 → 结果`；
-命令、文件和调用只是底层证据。Agent、模型、工具、session 和 status 更适合作为
-颜色、筛选器或侧边详情，事件数、时间和 token 作为宽度。图和 profiler 应能回答
-一个任务的主要消耗、反复尝试、结果有效性、失败/放弃的子任务，以及不同 agent 的
-任务分解策略。仅能显示 shell/read 等运行行为的字段图不能作为论文级
-task-semantic flame graph。
+对。你说得对，当前图最大的偏差就是：它按“系统字段”堆栈，而不是按“具体任务”堆栈。
+现在的：
+agent → session → prompt → tool → command → path → status
+更像运行日志的分组方式。它能看资源分布，但不能回答论文真正关心的问题：Agent 为了完成一个任务，如何拆解、推进、反复和失败。
+更合理的主栈应该是：
+具体任务 → 子任务 → 阶段/策略 → 语义动作 → 操作对象 → 结果
+例如：
+审查 semantic flamegraph 论文证据
+└── 核验“能表达任务结构”的 claim
+    └── 收集证据
+        └── 检查实验结果
+            └── results_summary.md
+                └── 结论：证据不足
+另一条可能是：
+审查 semantic flamegraph 论文证据
+└── 核验实现与论文是否一致
+    └── 检查实现
+        └── 定位 stack 构造逻辑
+            └── semantic_tag_flamegraph.py
+                └── 结论：当前按系统字段分层
+这样火焰图才能分析：
+一个任务主要消耗在哪个子任务；
+Agent 是否在某个阶段反复尝试；
+高 Token 路径是否产生了有效结论；
+哪些子任务失败、被放弃或没有证据；
+不同 Agent 采用的任务分解策略有什么区别。
+而 agent/model/tool/status 不应该占据主要 stack 层级，更适合作为：
+颜色：Agent、成功/失败、语义动作；
+筛选器：模型、session、工具；
+宽度指标：事件数、时间、Token；
+侧边详情：原始命令、文件、调用证据。
+所以之前从图里得到的“shell 很多、读取很多”只是运行行为结论，还不是论文级的任务结论。下一版应把“任务—子任务—结果”作为主结构，命令和文件仅作为底层证据。否则它更接近分类调用图，还不能真正称为 task-semantic flamegraph。

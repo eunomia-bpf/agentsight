@@ -1,6 +1,7 @@
 # AgentProf Literature And Novelty Frontier
 
-**Last primary-source verification:** 2026-07-19, Step 0048 literature refresh.
+**Last primary-source verification:** 2026-07-20, Step 0049 task-hierarchy and
+closest-work attack.
 
 ## Purpose And Fixed Contract
 
@@ -78,6 +79,13 @@ downstream-use evidence inside unchanged RQ2, not a new story.
   dynamically selects, filters, and groups metrics across causally related
   component events. It makes independent lineage fidelity, not only mass
   conservation, a required RQ1 comparison.
+- [Magpie](https://www.usenix.org/conference/osdi-04/using-magpie-request-extraction-and-workload-modelling)
+  correlates kernel, middleware, and application events into per-request
+  control-flow and resource models, then canonicalizes those models across
+  executions. It is the strongest systems ancestor for cross-layer joining plus
+  recurring weighted behavior. AgentProf must differentiate the task-semantic,
+  agent-specific, selectable population profile rather than imply that
+  cross-layer resource attribution or canonicalization begins here.
 - [Activity Mining by Global Trace Segmentation](https://www.vdaalst.com/publications/p586.pdf)
   and [Flexible Activity Trees](https://arxiv.org/abs/2010.08302) discover
   higher-level activities and hierarchical abstractions from low-level event
@@ -121,6 +129,15 @@ source execution view.
   behavior space, compares cohort distributions, and directs human inspection
   toward distinctive behavior. It prevents any claim that AgentProf first
   enables semantic cross-run comparison or behavior discovery.
+- [GUIDE](https://arxiv.org/abs/2604.04399) partitions a completed GUI-agent
+  trajectory into coherent subtasks, diagnoses each subtask, and aggregates the
+  results into a task-level judgment. Its evaluation spans 932 industrial
+  e-commerce trajectories, 1,302 AgentRewardBench trajectories, and 480
+  AndroidBench trajectories. It is the closest direct precedent for
+  `task -> subtask -> diagnosis -> result`; that decomposition is not
+  independently novel. The open opportunity is to attach conserved resources
+  and source-linked effects to typed task responsibility paths and aggregate
+  them across runs, which GUIDE does not study.
 - [AgentDiagnose](https://aclanthology.org/2025.emnlp-demos.15/) embeds
   trajectory actions and exposes semantic and state-transition visualizations.
   Its automatic competency metrics correlate with human judgments, and its
@@ -258,6 +275,12 @@ finds it satisfies the stated clustering-quality constraints
 (<https://doi.org/10.1007/s10791-008-9066-8>). Exact boundary
 precision/recall/F1 is the complementary discrete-transition measure used by
 the current RQ3 experiments. These standard metrics should remain primary and
+apply only to one flat partition. A nested ordered task tree instead requires a
+tree metric: PARSEVAL-style labeled and unlabeled constituent precision,
+recall, and F1 compare predicted and reference spans, while
+[Zhang--Shasha tree-edit distance](https://doi.org/10.1137/0218082) is a
+standard secondary whole-tree distance. A flat B-cubed score must not be
+reported as fidelity of the complete task hierarchy.
 secondary respectively; adding ARI, NMI, or a custom aggregate would not repair
 an information or construct-validity defect.
 
