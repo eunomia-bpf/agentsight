@@ -30,8 +30,8 @@ agentsight top
 ```
 
 <div align="center">
-  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/agentsight-agent-nebula.gif" alt="Agent Nebula replay of Agent development across the AgentSight repository" width="1000">
-  <p><em>Agent Nebula replays how coding agents read, write, create, rename, and delete files across this repository</em></p>
+  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.gif" alt="Agent Nebula replay of Agent development across the ACTplane repository" width="1000">
+  <p><em>Agent Nebula replays how coding agents read, write, create, rename, and delete files across the ACTplane repository</em></p>
 </div>
 
 <div align="center">
