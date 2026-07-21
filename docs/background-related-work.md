@@ -1,7 +1,7 @@
 # AgentProf Literature And Novelty Frontier
 
-**Last primary-source verification:** 2026-07-20, Step 0057 task-semantic
-trajectory ground-truth and closest-work search.
+**Last primary-source verification:** 2026-07-20, Step 0061 full-paper
+task-structure, closest-work, benchmark, and baseline search.
 
 ## Purpose And Fixed Contract
 
@@ -465,6 +465,30 @@ collection/scoring adapter. Raw action remains a strong paper-level
 counterpoint; because R315 has no matched raw-action packet, the positive Step
 0019 result supports only operation-stack versus execution-local prioritization,
 not universal view dominance.
+
+## Step 0061 Task-Structure Frontier
+
+The full-paper source search adds four especially relevant primary references:
+
+- [BPOP](https://arxiv.org/abs/2602.02806) infers latent dependency partial
+  orders from linear agent traces and evaluates against trace-only and
+  process-mining baselines. It is a serious structure baseline, although a DAG
+  is not automatically AgentProf's task-responsibility stack.
+- [Same Signal, Different Semantics](https://arxiv.org/abs/2605.18332) finds
+  cross-framework sign reversals for several behavior signals over 64,380
+  SWE-bench runs. It strengthens the case for task/control context rather than
+  global low-level action recurrence as the semantic key.
+- [WorkArena++](https://proceedings.neurips.cc/paper_files/paper/2024/hash/0b82662b6c32e887bb252a74d8cb2d5e-Abstract-Datasets_and_Benchmarks_Track.html)
+  provides 682 compositional knowledge-work tasks and oracle traces assembled
+  from atomic subtasks.
+- [ToolSandbox](https://github.com/apple/ToolSandbox/blob/main/README.md)
+  supplies state-grounded milestone DAGs and topologically constrained
+  milestone-to-trajectory matching.
+
+These references do not authorize a new graph abstraction or a smaller thesis.
+They motivate and bound the selected task-semantic experiment: persistent task
+frames arise from intent, planning, delegation, progress, and completion
+events; low-level operations inherit those frames and remain evidence.
 
 ## Search Policy And Reopen Conditions
 

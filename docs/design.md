@@ -169,6 +169,25 @@ used as stack fields when the input supplies them. These preserve the available
 execution view for comparison and drilldown; they do not prove complete native
 lineage.
 
+### Task-semantic construction frontier
+
+The next unadopted constructor follows one plain rule: task structure comes
+from intent-bearing task, plan, delegation, progress, and completion events;
+ordinary model, tool, command, file, process, and network operations inherit
+the active task path and supply the measured evidence. Only the former may open,
+resume, or close a persistent task frame. Agent, model, session, tool type,
+command, path, and status remain tags, filters, colors, measures, or details.
+
+This information boundary is materially different from asking a model to
+invent or complete a frame before and after every operation. It preserves the
+existing operation/operation-stack model and the variable-depth target while
+preventing data-plane field changes from manufacturing a task hierarchy. It is
+selected for an RQ3 evaluation with an independent public task/subtask
+reference, not yet implemented or adopted. The constructor must also emit
+stable comparable task/subtask identities across runs and score those identities
+without reading the scoring reference. Complete local Codex traces may test
+coverage and scale, but cannot self-score structural correctness.
+
 ### Induced stacks
 
 `--induce-operation-stack` derives reusable operation identities from one
