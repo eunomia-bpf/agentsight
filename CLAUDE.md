@@ -137,9 +137,10 @@ agentpprof --project-root . -o agent.pb.gz
 
 ## AgentPProf Product Boundary
 
-- AgentPProf's user-facing output is a standard pprof profile. Do not create,
-  extend, or couple AgentPProf to a custom frontend, dashboard, or bespoke
-  visualization runtime.
+- AgentPProf has exactly one product artifact per run: one standard pprof
+  `.pb`/`.pb.gz` profile. Do not create, extend, or couple AgentPProf to a
+  custom frontend, dashboard, bespoke visualization runtime, or alternative
+  user-facing folded-stack, SVG, PNG, HTML, or JSON output.
 - Encode task hierarchy, semantic operations, additive measurements, evidence
   labels, and good-versus-bad differences in pprof samples, labels, and stack
   frames. Reuse existing pprof-compatible tools for flamegraphs, search,
@@ -169,7 +170,7 @@ eBPF Programs (kernel) → JSON stdout → Rust Runners → Analyzer Chain → O
 - **`collector/src/main.rs`** — CLI entry point. Main subcommands: `top`, `monitor`, `record`, `report` (`summary`, `token`, `audit`, `prompts`, `export`, `list`), and `debug` (`ssl`, `process`, `stdio`, `trace`, `system`).
 - **`collector/src/server/`** — Hyper-based embedded web server serving frontend assets and `/api/events`
 - **`agent-session/`** — Shared Rust parser for native Codex/Claude session histories used by local-history reports and `agentpprof`
-- **`agentpprof/`** — Independent no-sudo Rust CLI that reads local Codex/Claude session logs through `agent-session` and exports semantic pprof, folded-stack, SVG, and JSON profiles. It is a local-history profiler, not the eBPF live-capture path.
+- **`agentpprof/`** — Independent no-sudo Rust CLI that reads local Codex/Claude session logs through `agent-session` and emits one standard semantic pprof profile. It must not grow a separate visualization or alternative product-output path. It is a local-history profiler, not the eBPF live-capture path.
 - **`frontend/`** — Next.js/React/TypeScript visualization with timeline, process tree, and log views
 
 ### Data Flow

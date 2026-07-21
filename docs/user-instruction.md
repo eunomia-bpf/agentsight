@@ -318,4 +318,4 @@ Agent 是否在某个阶段反复尝试；
 
 ---
 
-AgentPProf 禁止增加或依赖自定义前端。它的产品输出只需要一个标准 pprof；任务层级、语义 operation、资源权重、证据标签和 good/bad 差异都编码进 pprof 的 sample、label 和 stack frame。火焰图、搜索、focus、下钻、比较和其他可视化全部复用现有 pprof-compatible 工具。这是 hard rule。
+AgentPProf 禁止增加或依赖自定义前端。每次运行唯一的产品 artifact 是一个标准 `.pb`/`.pb.gz` pprof profile；禁止把 folded stack、SVG、PNG、HTML、JSON、dashboard 或 Web UI 发展成另一条用户输出路径。任务层级、语义 operation、资源权重、证据标签和 good/bad 差异都编码进 pprof 的 sample、label 和 stack frame。火焰图、搜索、focus、下钻、比较和其他可视化全部复用现有 pprof-compatible 工具。这是 hard rule。实验所需的 Markdown 报告和 raw evaluation data 只是研究记录，不是 AgentPProf 产品输出。
