@@ -262,6 +262,16 @@ configuration. In particular:
     policy is not integrated into the Rust CLI and does not establish automatic
     recovery of task completion, ancestor semantics, or the lower semantic
     suffix.
+16. Step 0060's evaluation-only result-grounded controller separates OPEN from
+    CLOSE and stores an observable completion condition per child. Its
+    authoritative r7 run projects only `{label, done_when}` to CLOSE and has
+    zero internal instance or sequence-ID leakage. Nevertheless, the fixed
+    Qwen2.5-3B policy returns `complete` for 4,893/4,907 real ToolSandbox CLOSE
+    calls and 13,590/13,604 real CodeTrace CLOSE calls, reaches maximum depth
+    three, and oversegments CodeTrace to 8,861 groups. It is not integrated
+    into the Rust CLI. The earlier r6 candidate artifacts are invalid because
+    raw child instances exposed model/persona/session identity; only the r6
+    Step 0059 baseline caches are valid and were replay-validated for r7 reuse.
 
 ## Implementation Policy After The Recurrence Port
 

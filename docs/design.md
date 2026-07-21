@@ -394,3 +394,18 @@ backend reaches 0.695 macro-F1 and 0.733 accuracy versus majority 0.044 and
 0.248, with exact three-run stability. This supports task-family labels for the
 named backend; it does not turn tag assignment into a third abstraction or
 establish phase/action labels and unknown-family transfer.
+
+Step 0060 tests the missing completion primitive directly without changing the
+fixed task-centric representation. Each persistent child stores only a task
+label and observable completion condition; OPEN sees intent evidence, CLOSE
+sees the resulting outcome, and system identity fields remain metadata. On the
+complete released ToolSandbox/TED population the fixed 3B policy improves
+completion-boundary F1 over Step 0059 but does not reliably clear recurrence or
+the strong first-turn control. Its 4,893/4,907 real CLOSE decisions are
+`complete`, most children last one turn, and generated labels still copy tools.
+On complete CodeTrace it oversegments and falls significantly below recurrence
+and Step 0059 in ordinary B-cubed F1. The design consequence is simple: making
+completion explicit in this combined OPEN/CLOSE controller is insufficient;
+the tested fixed Qwen2.5-3B literal yes/no policy is not adopted as a
+task-stack constructor. Recurrence remains current; no threshold, depth rule,
+lexical cleanup, or prompt variant is added.

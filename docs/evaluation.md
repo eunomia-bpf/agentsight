@@ -1223,6 +1223,24 @@ fill a label cell. At Step 0038, the then-current route was a genuinely
 unprimed whole-paper review with primary-source novelty search; subsequent
 completed steps supersede that historical next-state pointer.
 
+Step 0060 completes one non-equivalent RQ3 mechanism test on two full
+populations. On 3,551 released ToolSandbox trajectories and 3,867 external TED
+positive-progress boundaries, result-grounded OPEN/CLOSE reaches exact
+turn-boundary P/R/F1 `0.5943/0.7520/0.6639`, versus Step 0059 `0.2819`,
+recurrence `0.6273`, and first-turn only `0.6393`. Paired 37-scenario intervals
+are wholly positive only against Step 0059; intervals against recurrence and
+first-turn cross zero. On all 405 CodeTrace sessions and 20,866 operations it
+reaches ordinary B-cubed F1 `0.6184`, significantly below Step 0059 `0.6574`
+and recurrence `0.6627`. The valid r7 run has zero internal identity leakage,
+but 99.715% of real ToolSandbox CLOSE decisions and 99.897% of real CodeTrace
+CLOSE decisions are `complete`. This is supporting mechanism-boundary evidence,
+not a paper-level RQ3 answer. The constructor is not adopted, recurrence stays
+current, and the paper remains unchanged. The earlier r6 candidate full run is
+invalid because child CLOSE saw an internal sequence-bearing instance ID.
+The authoritative next state is the user-requested full-paper REVIEW with
+primary-source search and different reviewer models; historical next-action
+pointers above do not supersede this live direction.
+
 ## Experiment History Policy
 
 Detailed plans, reviews, commands, results, and failures live in timestamped
