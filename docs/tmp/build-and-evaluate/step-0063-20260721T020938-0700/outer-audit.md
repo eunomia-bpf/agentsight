@@ -36,6 +36,12 @@ for the ordinary path. Re-review passed `cargo test --all-targets` (68 tests),
 `cargo clippy --all-targets -- -D warnings`, format/diff checks, and real Go
 pprof readback for positive, negative, and zero differences.
 
+After commit `7ad6119ce` was pushed, Grok 4.5 performed an external complete
+review of the exact commit and returned PASS with no must-fix. Its remaining P2
+advice matches this audit: broad coverage is not localization accuracy, and the
+scalar feature scores are not a failure detector. The auditable verdict is in
+`external-grok-review.md`.
+
 ## Research memory update
 
 The durable product conclusion is that AgentPProf should remain a pprof
