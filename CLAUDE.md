@@ -135,6 +135,19 @@ agentpprof --project-root . -o agent.pb.gz
   every model-visible field and record exclusion or sensitivity results; a
   scorer-only label column does not by itself prove semantic target separation.
 
+## AgentPProf Product Boundary
+
+- AgentPProf's user-facing output is a standard pprof profile. Do not create,
+  extend, or couple AgentPProf to a custom frontend, dashboard, or bespoke
+  visualization runtime.
+- Encode task hierarchy, semantic operations, additive measurements, evidence
+  labels, and good-versus-bad differences in pprof samples, labels, and stack
+  frames. Reuse existing pprof-compatible tools for flamegraphs, search,
+  focus, drilldown, comparison, and visualization.
+- Research runs may retain Markdown plans/reports and raw evaluation data for
+  auditability, but those are experiment records, not additional AgentPProf
+  product outputs. Product work must converge back to the pprof artifact.
+
 ## Architecture
 
 ```

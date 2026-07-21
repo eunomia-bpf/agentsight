@@ -17,7 +17,7 @@ use profile::{
     build_profile_from_operation_records, build_profile_with_options, infer_output_format,
     parse_operation_filters, parse_operation_rank_rules, parse_stack_rank_rules, parse_stack_rules,
     parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks, read_operation_record_values,
-    write_projection,
+    write_pprof_difference, write_projection,
 };
 use session::{
     SessionRecord, default_claude_root, discover_agent_sessions, load_agent_trace_files,
@@ -209,6 +209,10 @@ struct Cli {
     /// Read already-normalized operation JSONL instead of local Codex/Claude sessions.
     #[arg(long = "operation-file")]
     operation_files: Vec<PathBuf>,
+    /// Subtract these normalized operation records from --operation-file and
+    /// write one signed candidate-minus-base pprof profile.
+    #[arg(long = "diff-base-operation-file", value_name = "PATH")]
+    diff_base_operation_files: Vec<PathBuf>,
     /// Copy non-AgentSight Chrome trace args into imported operation fields.
     #[arg(long = "include-standard-trace-args")]
     include_standard_trace_args: bool,
@@ -333,6 +337,7 @@ struct ProfileSpec {
     include_standard_trace_args: Option<bool>,
     op_map_files: Vec<PathBuf>,
     operation_files: Vec<PathBuf>,
+    diff_base_operation_files: Vec<PathBuf>,
     session_files: Vec<PathBuf>,
     trace_files: Vec<PathBuf>,
     standard_trace_files: Vec<PathBuf>,
@@ -376,6 +381,8 @@ struct RawProfileSpec {
     op_map_files: Vec<PathBuf>,
     #[serde(default)]
     operation_files: Vec<PathBuf>,
+    #[serde(default)]
+    diff_base_operation_files: Vec<PathBuf>,
     #[serde(default)]
     session_files: Vec<PathBuf>,
     #[serde(default)]
@@ -520,6 +527,10 @@ fn command_export(args: Cli) -> Result<()> {
         profile_options = profile_options.with_operation_stack_induction(induction);
     }
     let operation_files = merge_spec_first(&spec.operation_files, &args.operation_files);
+    let diff_base_operation_files = merge_spec_first(
+        &spec.diff_base_operation_files,
+        &args.diff_base_operation_files,
+    );
     let session_files = merge_spec_first(&spec.session_files, &args.session_files);
     let trace_files = merge_spec_first(&spec.trace_files, &args.trace_files);
     let standard_trace_files =
@@ -527,6 +538,7 @@ fn command_export(args: Cli) -> Result<()> {
     validate_input_modes(
         &args,
         &operation_files,
+        &diff_base_operation_files,
         &session_files,
         &trace_files,
         &standard_trace_files,
@@ -591,6 +603,11 @@ fn command_export(args: Cli) -> Result<()> {
     }
     if !operation_files.is_empty() {
         let operation_records = read_operation_record_values(&operation_files)?;
+        if !diff_base_operation_files.is_empty() && induce_operation_stack {
+            bail!(
+                "--diff-base-operation-file cannot be combined with --induce-operation-stack; provide explicit shared stack fields for both inputs"
+            );
+        }
         let standard_trace_events = if let Some(trace_path) = args.export_standard_trace.as_ref() {
             Some(standard_trace::write_chrome_trace_from_operation_records(
                 trace_path,
@@ -627,15 +644,49 @@ fn command_export(args: Cli) -> Result<()> {
         if stacks.is_empty() {
             bail!("operation input produced no folded stacks");
         }
-        write_projection(
-            &profile,
-            format,
-            output,
-            args.include_previews,
-            &[],
-            args.svg_width,
-            deterministic_output,
-        )?;
+        let difference = if diff_base_operation_files.is_empty() {
+            write_projection(
+                &profile,
+                format,
+                output,
+                args.include_previews,
+                &[],
+                args.svg_width,
+                deterministic_output,
+            )?;
+            None
+        } else {
+            if format != OutputFormat::Pprof {
+                bail!(
+                    "--diff-base-operation-file only writes standard pprof; use a .pb or .pb.gz output and omit non-pprof --format values"
+                );
+            }
+            let base_records = read_operation_record_values(&diff_base_operation_files)?;
+            let base_profile =
+                build_profile_from_operation_records(&base_records, view, &profile_options)?;
+            let base_stacks = profile_to_stacks(&base_profile);
+            Some(write_pprof_difference(
+                &profile,
+                &stacks,
+                &base_stacks,
+                output,
+                deterministic_output,
+            )?)
+        };
+        let positive_difference = difference.as_ref().map(|samples| {
+            samples
+                .values()
+                .filter(|value| **value > 0)
+                .map(|value| *value as u64)
+                .sum::<u64>()
+        });
+        let negative_difference = difference.as_ref().map(|samples| {
+            samples
+                .values()
+                .filter(|value| **value < 0)
+                .map(|value| value.unsigned_abs())
+                .sum::<u64>()
+        });
         let result = json!({
             "status": "ok",
             "output": output,
@@ -659,6 +710,8 @@ fn command_export(args: Cli) -> Result<()> {
             "deterministic_output": deterministic_output,
             "stack_rules": stack_rules,
             "operation_files": operation_files,
+            "diff_base_operation_files": diff_base_operation_files,
+            "comparison": difference.as_ref().map(|_| "candidate-minus-base"),
             "operations": operation_records.len(),
             "standard_trace_output": args.export_standard_trace,
             "standard_trace_format": if args.export_standard_trace.is_some() {
@@ -669,6 +722,9 @@ fn command_export(args: Cli) -> Result<()> {
             "standard_trace_events": standard_trace_events,
             "samples": stacks.values().sum::<u64>(),
             "unique_stacks": stacks.len(),
+            "difference_unique_stacks": difference.as_ref().map(|samples| samples.len()),
+            "positive_difference": positive_difference,
+            "negative_difference": negative_difference,
             "warnings": [],
         });
         println!("{}", serde_json::to_string_pretty(&result)?);
@@ -903,10 +959,21 @@ fn load_effective_op_map_rules(
 fn validate_input_modes(
     args: &Cli,
     operation_files: &[PathBuf],
+    diff_base_operation_files: &[PathBuf],
     session_files: &[PathBuf],
     trace_files: &[PathBuf],
     standard_trace_files: &[PathBuf],
 ) -> Result<()> {
+    if !diff_base_operation_files.is_empty() && operation_files.is_empty() {
+        bail!("--diff-base-operation-file requires --operation-file");
+    }
+    if !diff_base_operation_files.is_empty()
+        && (args.export_trace.is_some() || args.export_standard_trace.is_some())
+    {
+        bail!(
+            "--diff-base-operation-file cannot be combined with trace export; it writes one signed pprof comparison"
+        );
+    }
     if !operation_files.is_empty() && !trace_files.is_empty() {
         bail!("--trace-file cannot be used with --operation-file");
     }
@@ -1006,6 +1073,11 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
             .collect(),
         operation_files: raw
             .operation_files
+            .into_iter()
+            .map(|path| resolve_spec_path(base, path))
+            .collect(),
+        diff_base_operation_files: raw
+            .diff_base_operation_files
             .into_iter()
             .map(|path| resolve_spec_path(base, path))
             .collect(),
@@ -1143,6 +1215,8 @@ impl ProfileSpec {
         self.tag_rules.extend(next.tag_rules);
         self.op_map_files.extend(next.op_map_files);
         self.operation_files.extend(next.operation_files);
+        self.diff_base_operation_files
+            .extend(next.diff_base_operation_files);
         self.session_files.extend(next.session_files);
         self.trace_files.extend(next.trace_files);
         self.standard_trace_files.extend(next.standard_trace_files);
@@ -1366,6 +1440,7 @@ mod tests {
   "view": "operations",
   "project_name": "external-agent-traces",
   "operation_files": ["inputs/agentnet.jsonl"],
+  "diff_base_operation_files": ["inputs/agentnet-good.jsonl"],
   "session_files": ["sessions/codex.jsonl"],
   "trace_files": ["traces/agent-trace.json"],
   "standard_trace_files": ["traces/chrome-trace.json"],
@@ -1396,6 +1471,10 @@ mod tests {
         assert_eq!(
             spec.operation_files,
             vec![dir.path().join("inputs").join("agentnet.jsonl")]
+        );
+        assert_eq!(
+            spec.diff_base_operation_files,
+            vec![dir.path().join("inputs").join("agentnet-good.jsonl")]
         );
         assert_eq!(
             spec.session_files,

@@ -307,3 +307,15 @@ Agent 是否在某个阶段反复尝试；
 宽度指标：事件数、时间、Token；
 侧边详情：原始命令、文件、调用证据。
 所以之前从图里得到的“shell 很多、读取很多”只是运行行为结论，还不是论文级的任务结论。下一版应把“任务—子任务—结果”作为主结构，命令和文件仅作为底层证据。否则它更接近分类调用图，还不能真正称为 task-semantic flamegraph。
+
+---
+
+先着重考虑解决用户问题，不止是做 research。不要做额外的前端。
+
+---
+
+差分火焰图既要有一个真实 good/bad trace 的详细 case study，也要在真实 benchmark 上完成大范围评测，不能只停在一个例子或 smoke run。
+
+---
+
+AgentPProf 禁止增加或依赖自定义前端。它的产品输出只需要一个标准 pprof；任务层级、语义 operation、资源权重、证据标签和 good/bad 差异都编码进 pprof 的 sample、label 和 stack frame。火焰图、搜索、focus、下钻、比较和其他可视化全部复用现有 pprof-compatible 工具。这是 hard rule。

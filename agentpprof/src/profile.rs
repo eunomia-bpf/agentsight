@@ -17,6 +17,7 @@ use crate::session::{
 };
 
 pub type Counter = BTreeMap<String, u64>;
+pub type SignedCounter = BTreeMap<String, i64>;
 pub type OpId = usize;
 type Frame = (String, String);
 
@@ -2449,6 +2450,34 @@ pub fn write_projection(
     }
 }
 
+pub fn write_pprof_difference(
+    projection: &Profile,
+    candidate: &Counter,
+    base: &Counter,
+    output: &Path,
+    deterministic_output: bool,
+) -> Result<SignedCounter> {
+    ensure_parent_dir(output)?;
+    let mut difference = SignedCounter::new();
+    for stack in candidate.keys().chain(base.keys()) {
+        let candidate_weight = i128::from(candidate.get(stack).copied().unwrap_or(0));
+        let base_weight = i128::from(base.get(stack).copied().unwrap_or(0));
+        let value = (candidate_weight - base_weight)
+            .clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64;
+        if value != 0 {
+            difference.insert(stack.clone(), value);
+        }
+    }
+    write_pprof_samples(
+        projection,
+        difference.iter().map(|(stack, weight)| (stack, *weight)),
+        output,
+        deterministic_output,
+        Some("candidate-minus-base"),
+    )?;
+    Ok(difference)
+}
+
 fn ensure_parent_dir(path: &Path) -> Result<()> {
     if let Some(parent) = path.parent()
         && !parent.as_os_str().is_empty()
@@ -2464,6 +2493,27 @@ fn write_pprof_projection(
     output: &Path,
     deterministic_output: bool,
 ) -> Result<()> {
+    write_pprof_samples(
+        projection,
+        stacks
+            .iter()
+            .map(|(stack, weight)| (stack, i64::try_from(*weight).unwrap_or(i64::MAX))),
+        output,
+        deterministic_output,
+        None,
+    )
+}
+
+fn write_pprof_samples<'a, I>(
+    projection: &Profile,
+    stacks: I,
+    output: &Path,
+    deterministic_output: bool,
+    comparison: Option<&str>,
+) -> Result<()>
+where
+    I: IntoIterator<Item = (&'a String, i64)>,
+{
     let mut strings = StringInterner::with_pprof_root();
     let sample_type = PprofValueType {
         type_: strings.intern(projection.sample_type),
@@ -2471,6 +2521,8 @@ fn write_pprof_projection(
     };
     let label_view = strings.intern("view");
     let label_view_value = strings.intern(projection.view);
+    let comparison_label =
+        comparison.map(|value| (strings.intern("comparison"), strings.intern(value)));
     let filename = strings.intern("agentpprof");
     let mut functions = Vec::new();
     let mut locations = Vec::new();
@@ -2503,13 +2555,17 @@ fn write_pprof_projection(
             };
             location_ids.push(id);
         }
+        let mut labels = vec![PprofLabel {
+            key: label_view,
+            str_value: label_view_value,
+        }];
+        if let Some((key, str_value)) = comparison_label {
+            labels.push(PprofLabel { key, str_value });
+        }
         samples.push(PprofSample {
             location_id: location_ids,
-            value: vec![i64::try_from(*weight).unwrap_or(i64::MAX)],
-            label: vec![PprofLabel {
-                key: label_view,
-                str_value: label_view_value,
-            }],
+            value: vec![weight],
+            label: labels,
         });
     }
 
@@ -3997,6 +4053,71 @@ mod tests {
         let profile = PprofProfile::decode(&decoded[..]).unwrap();
         assert_eq!(profile.sample.len(), 1);
         assert_eq!(profile.sample[0].value, vec![7]);
+    }
+
+    #[test]
+    fn pprof_difference_preserves_positive_and_negative_samples() {
+        use flate2::read::GzDecoder;
+        use std::io::Read;
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("difference.pb.gz");
+        let projection = Profile::new("operations", "operations", "count");
+        let candidate = BTreeMap::from([
+            ("task:checkout;action:retry;result:error".to_string(), 3),
+            ("task:checkout;action:finish;result:done".to_string(), 1),
+        ]);
+        let base = BTreeMap::from([
+            ("task:checkout;action:retry;result:error".to_string(), 1),
+            ("task:checkout;action:finish;result:done".to_string(), 4),
+        ]);
+
+        let difference =
+            write_pprof_difference(&projection, &candidate, &base, &path, true).unwrap();
+        assert_eq!(difference["task:checkout;action:retry;result:error"], 2);
+        assert_eq!(difference["task:checkout;action:finish;result:done"], -3);
+
+        let bytes = fs::read(path).unwrap();
+        let mut decoder = GzDecoder::new(&bytes[..]);
+        let mut decoded = Vec::new();
+        decoder.read_to_end(&mut decoded).unwrap();
+        let profile = PprofProfile::decode(&decoded[..]).unwrap();
+        let mut values = profile
+            .sample
+            .iter()
+            .map(|sample| sample.value[0])
+            .collect::<Vec<_>>();
+        values.sort_unstable();
+        assert_eq!(values, vec![-3, 2]);
+        assert!(profile.sample.iter().all(|sample| {
+            sample.label.iter().any(|label| {
+                profile.string_table[label.key as usize] == "comparison"
+                    && profile.string_table[label.str_value as usize] == "candidate-minus-base"
+            })
+        }));
+    }
+
+    #[test]
+    fn pprof_difference_emits_valid_empty_profile_for_identical_inputs() {
+        use flate2::read::GzDecoder;
+        use std::io::Read;
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("no-difference.pb.gz");
+        let projection = Profile::new("operations", "operations", "count");
+        let stacks = BTreeMap::from([("task:checkout;result:done".to_string(), 1)]);
+
+        let difference =
+            write_pprof_difference(&projection, &stacks, &stacks, &path, true).unwrap();
+        assert!(difference.is_empty());
+
+        let bytes = fs::read(path).unwrap();
+        let mut decoder = GzDecoder::new(&bytes[..]);
+        let mut decoded = Vec::new();
+        decoder.read_to_end(&mut decoded).unwrap();
+        let profile = PprofProfile::decode(&decoded[..]).unwrap();
+        assert!(profile.sample.is_empty());
+        assert_eq!(profile.sample_type.len(), 1);
     }
 
     #[test]

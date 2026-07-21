@@ -11,15 +11,16 @@ profiles. It has two core profiling abstractions:
   fields, but they are not separate profiler objects.
 
 For local history, `agentpprof` reads Codex and Claude Code JSONL sessions,
-derives operation fields through deterministic tags and mappings, and writes
-outputs that can be inspected with standard pprof or flamegraph tooling. For
+derives operation fields through deterministic tags and mappings, and writes a
+standard pprof profile that can be inspected with existing pprof tooling. For
 third-party trajectory datasets, pass normalized operation JSONL through
 `--operation-file`.
 
 The profiles are not CPU profiles. They are projections over agent activity:
 token usage, operation counts, file effects, network effects, or elapsed
-session time. SVG flamegraphs are one output; pprof, folded stacks, and JSON
-groups use the same operation-stack query.
+session time. AgentPProf's product artifact is the pprof profile; visualization,
+search, focus, comparison, and drilldown belong to existing pprof-compatible
+tools rather than a custom AgentPProf frontend.
 
 ## Install
 
@@ -76,6 +77,30 @@ go tool pprof -top tokens.pb.gz
 go tool pprof -http=:0 tokens.pb.gz
 ```
 
+### Differential pprof
+
+For two executions of the same task, pass the trace under investigation as the
+candidate and the reference execution as the base:
+
+```bash
+agentpprof \
+  --operation-file bad-trace.jsonl \
+  --diff-base-operation-file good-trace.jsonl \
+  --view tokens \
+  --stack 'task,subtask,strategy,action,object,result' \
+  --deterministic-output \
+  -o bad-minus-good.pb.gz
+
+go tool pprof -top bad-minus-good.pb.gz
+go tool pprof -http=:0 bad-minus-good.pb.gz
+```
+
+The output is one signed `candidate-minus-base` pprof: positive samples are
+paths with more weight in the candidate, and negative samples are paths with
+more weight in the base. Both inputs use the same explicit stack fields and
+weighting view. The command intentionally rejects folded, JSON, and SVG output
+for comparisons; existing pprof tools provide the visualization surface.
+
 ## Views
 
 Use `--view` to choose the projection:
@@ -100,7 +125,7 @@ The view is independent from `--stack`. For example, the same operations can be
 weighted by tokens and folded by prompt tags, or weighted by operation count and
 folded by dataset/task/phase/action fields.
 
-## Other Formats
+## Legacy Diagnostic Exports
 
 The default format is pprof protobuf, gzipped when the output path ends in
 `.gz`. The output extension also selects common formats:
@@ -111,7 +136,9 @@ agentpprof -o tokens.svg --view tokens
 agentpprof -o files.json --view files
 ```
 
-Folded stacks are compatible with common flamegraph tooling. SVG output is a
+These exports predate the pprof-only product boundary and remain for artifact
+compatibility; they are not a visualization surface to extend. Folded stacks
+are compatible with common flamegraph tooling. SVG output is a
 single quick-look stack chart built from the folded stacks; use folded output
 with standard tools such as inferno or flamegraph.pl when you need canonical
 merged-prefix flamegraphs. JSON output includes redacted session summaries and
