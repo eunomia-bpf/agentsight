@@ -56,3 +56,18 @@ Scoring and marks continue to use the stable complete path, and algorithm,
 material, inference, and cache identity are v3-bound. Focused tests pass 11/11,
 including an actual AgentPProf and stock-pprof replay. The reviewer returned
 PASS with no remaining must-fix.
+
+## Round 5 — PASS for v4 exact no-op totalization
+
+Independent code review confirmed that v4 totalizes only
+`left_path == right_path == active_path` as
+`degenerate_current_split_stop`. Equal new-child and earlier-ancestor paths
+still fail closed. The raw Agent SPLIT remains in the durable call record;
+model STOP, raw SPLIT, effective SPLIT, and degenerate-current counts are
+reported separately. The exception adds no boundary or mark and changes no
+assignment, score, pprof sample, or mass.
+
+The algorithm/cache identity is v4-bound, canonical coverage and strict
+recursive shrinkage remain intact, `git diff --check` is clean, and focused
+tests pass 13/13. The reviewer returned PASS with no remaining must-fix before
+the next source-only preflight.

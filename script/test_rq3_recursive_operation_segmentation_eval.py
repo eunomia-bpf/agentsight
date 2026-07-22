@@ -39,11 +39,13 @@ class RecursiveOperationSegmentationTest(unittest.TestCase):
                 '{"decision":"split","split_before":"9","left":"inspect code","right":"test fix"}',
                 ["2"],
             )
-        with self.assertRaisesRegex(RuntimeError, "collide"):
+        self.assertEqual(
             recursive.parse_decision(
                 '{"decision":"split","split_before":"2","left":"inspect code","right":"Inspect   Code"}',
                 ["2"],
-            )
+            )["left"],
+            "inspect code",
+        )
 
     def test_resolve_child_implements_stay_pop_and_push(self) -> None:
         active = ["repair software", "inspect implementation", "trace state"]
@@ -59,6 +61,22 @@ class RecursiveOperationSegmentationTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(RuntimeError, "duplicate operation"):
             recursive.resolve_child(["repair software", "repair software"], "validate fix")
+
+    def test_split_resolution_only_totalizes_both_current(self) -> None:
+        active = ["repair software", "inspect implementation"]
+        same_current = recursive.resolve_split(
+            active,
+            "inspect implementation",
+            " Inspect   Implementation ",
+        )
+        self.assertEqual(
+            same_current["controller_resolution"],
+            "degenerate_current_split_stop",
+        )
+        with self.assertRaisesRegex(RuntimeError, "identical noncurrent"):
+            recursive.resolve_split(active, "repair software", " Repair   Software ")
+        with self.assertRaisesRegex(RuntimeError, "identical noncurrent"):
+            recursive.resolve_split(active, "validate fix", " Validate   Fix ")
 
     def test_current_continuation_does_not_push_duplicate_frame(self) -> None:
         turns = [{"turn_id": str(index)} for index in range(1, 6)]
@@ -129,12 +147,30 @@ class RecursiveOperationSegmentationTest(unittest.TestCase):
             return {
                 "decision": "split",
                 "split_before": "2",
-                "left": "repair software behavior",
-                "right": " Repair   Software Behavior ",
+                "left": "inspect implementation",
+                "right": " Inspect   Implementation ",
             }
 
-        with self.assertRaisesRegex(RuntimeError, "resolved child paths collide"):
+        with self.assertRaisesRegex(RuntimeError, "identical noncurrent resolved paths"):
             recursive.decompose_turns(turns, "repair software behavior", decide)
+
+    def test_degenerate_current_split_is_audited_stop(self) -> None:
+        turns = [{"turn_id": "1"}, {"turn_id": "2"}]
+        decision = {
+            "decision": "split",
+            "split_before": "2",
+            "left": "repair software behavior",
+            "right": "repair software behavior",
+        }
+
+        def decide(start: int, end: int, ancestors: list[str], current: str) -> dict[str, str]:
+            return decision
+
+        leaves = recursive.decompose_turns(turns, "repair software behavior", decide)
+        self.assertEqual(decision["controller_resolution"], "degenerate_current_split_stop")
+        self.assertEqual(len(leaves), 1)
+        self.assertEqual(leaves[0]["labels"], ["repair software behavior"])
+        self.assertEqual(leaves[0]["terminal_reasons"], ["degenerate_current_split_stop"])
 
     def test_nested_pop_coalesces_adjacent_identical_paths_and_marks(self) -> None:
         turns = [{"turn_id": str(index)} for index in range(1, 7)]
@@ -158,10 +194,10 @@ class RecursiveOperationSegmentationTest(unittest.TestCase):
 
         leaves = recursive.decompose_turns(turns, "repair software behavior", decide)
         self.assertEqual(
-            leaves,
+            [(row["start"], row["end"], row["labels"]) for row in leaves],
             [
-                {"start": 0, "end": 2, "labels": ["repair software behavior", "inspect implementation"]},
-                {"start": 2, "end": 6, "labels": ["repair software behavior"]},
+                (0, 2, ["repair software behavior", "inspect implementation"]),
+                (2, 6, ["repair software behavior"]),
             ],
         )
         operations = [

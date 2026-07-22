@@ -139,3 +139,18 @@ adjacent equal paths caused by nested pop do not create redundant leaves or
 marks. Non-adjacent or unequal paths never merge, and raw recursive decisions
 remain auditable. Algorithm/cache identity advances to v3; metrics, workload,
 RQ, thesis, and paper authorization remain unchanged.
+
+## Node 0066-E9 — exact no-op totalization
+
+The v3 source-only replay next returned a raw split whose two children both
+resolved to the unchanged active root path. Independent review found that a
+general equal-sibling fallback would erase meaningful invalid outputs. The v4
+revision therefore totalizes only the exact no-op condition
+`left_path == right_path == active_path` as an audited
+`degenerate_current_split_stop`. It preserves the raw split, emits no new
+boundary or mark, and reports model STOP, raw SPLIT, effective SPLIT, and this
+degenerate case separately. Equal new-child or earlier-ancestor paths remain
+errors. Algorithm/cache identity advances to v4; workload, metrics, RQ, thesis,
+paper authorization, and the requirement for actual stock-pprof profiles are
+unchanged. Focused tests pass 13/13; independent v4 plan and code/document
+re-reviews both returned PASS.

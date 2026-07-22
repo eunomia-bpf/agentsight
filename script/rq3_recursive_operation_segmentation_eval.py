@@ -33,7 +33,7 @@ import rq3_stateful_native_turn_task_stack_eval as stateful  # noqa: E402
 
 
 base = source.base
-ALGORITHM_VERSION = "recursive-operation-segmentation-v3"
+ALGORITHM_VERSION = "recursive-operation-segmentation-v4"
 SCHEMA = "agentsight.rq3-recursive-operation-segmentation"
 EXPECTED_SESSIONS = 405
 EXPECTED_OPERATIONS = 20_866
@@ -232,7 +232,6 @@ def parse_decision(
     require(split_before in valid_turn_ids, "split boundary outside interval")
     left = canonical_label(value["left"], "left operation")
     right = canonical_label(value["right"], "right operation")
-    require(left != right, "child operations collide")
     return {"decision": "split", "split_before": split_before, "left": left, "right": right}
 
 
@@ -348,6 +347,26 @@ def resolve_child(active_path: list[str], child: str) -> list[str]:
     return [*normalized, label]
 
 
+def resolve_split(active_path: list[str], left: str, right: str) -> dict[str, Any]:
+    normalized = [canonical_label(value, "active operation") for value in active_path]
+    require(len(set(normalized)) == len(normalized), "active path contains duplicate operation")
+    left_path = resolve_child(normalized, left)
+    right_path = resolve_child(normalized, right)
+    if left_path == right_path:
+        if left_path == normalized:
+            return {
+                "controller_resolution": "degenerate_current_split_stop",
+                "left_path": left_path,
+                "right_path": right_path,
+            }
+        raise RuntimeError("identical noncurrent resolved paths")
+    return {
+        "controller_resolution": "effective_split",
+        "left_path": left_path,
+        "right_path": right_path,
+    }
+
+
 def decompose_turns(
     turns: list[dict[str, Any]],
     root: str,
@@ -356,14 +375,25 @@ def decompose_turns(
     require(bool(turns), "empty turn sequence")
     leaves: list[dict[str, Any]] = []
 
+    def emit(start: int, end: int, labels: list[str], terminal_reason: str) -> None:
+        leaves.append(
+            {
+                "start": start,
+                "end": end,
+                "labels": labels,
+                "terminal_reason": terminal_reason,
+            }
+        )
+
     def visit(start: int, end: int, ancestors: list[str], current: str) -> None:
         require(0 <= start < end <= len(turns), "invalid recursive interval")
         if end - start == 1:
-            leaves.append({"start": start, "end": end, "labels": [*ancestors, current]})
+            emit(start, end, [*ancestors, current], "one_turn_base_case")
             return
         decision = decide(start, end, ancestors, current)
         if decision["decision"] == "stop":
-            leaves.append({"start": start, "end": end, "labels": [*ancestors, current]})
+            decision["controller_resolution"] = "model_stop"
+            emit(start, end, [*ancestors, current], "model_stop")
             return
         valid = {
             str(turns[index]["turn_id"]): index for index in range(start + 1, end)
@@ -373,9 +403,13 @@ def decompose_turns(
         boundary = valid[split_before]
         active_path = [*ancestors, current]
         require(len(set(active_path)) == len(active_path), "recursive active path collision")
-        left_path = resolve_child(active_path, decision["left"])
-        right_path = resolve_child(active_path, decision["right"])
-        require(left_path != right_path, "resolved child paths collide")
+        resolution = resolve_split(active_path, decision["left"], decision["right"])
+        decision.update(resolution)
+        if resolution["controller_resolution"] == "degenerate_current_split_stop":
+            emit(start, end, active_path, "degenerate_current_split_stop")
+            return
+        left_path = resolution["left_path"]
+        right_path = resolution["right_path"]
 
         def descend(child_start: int, child_end: int, resolved_path: list[str]) -> None:
             require(bool(resolved_path), "resolved child path is empty")
@@ -402,8 +436,13 @@ def decompose_turns(
                     "start": int(leaf["start"]),
                     "end": int(leaf["end"]),
                     "labels": list(leaf["labels"]),
+                    "terminal_reasons": [str(leaf["terminal_reason"])],
                 }
             )
+        if canonical[-1]["end"] == leaf["end"] and canonical[-1]["labels"] == leaf["labels"]:
+            reason = str(leaf["terminal_reason"])
+            if reason not in canonical[-1]["terminal_reasons"]:
+                canonical[-1]["terminal_reasons"].append(reason)
     require(canonical[0]["start"] == 0 and canonical[-1]["end"] == len(turns), "canonical leaf coverage ends")
     for left, right in zip(canonical, canonical[1:]):
         require(left["end"] == right["start"], "canonical leaf coverage gap")
@@ -864,8 +903,19 @@ def run_infer(args: argparse.Namespace) -> None:
     calls = [call for session in selected for call in results[session]["calls"]]
     depths = [len(leaf["labels"]) for leaf in leaves]
     leaf_lengths = [int(leaf["end"]) - int(leaf["start"]) for leaf in leaves]
-    split_calls = [call for call in calls if call.get("decision", {}).get("decision") == "split"]
-    stop_calls = [call for call in calls if call.get("decision", {}).get("decision") == "stop"]
+    raw_split_calls = [call for call in calls if call.get("decision", {}).get("decision") == "split"]
+    model_stop_calls = [call for call in calls if call.get("decision", {}).get("decision") == "stop"]
+    effective_split_calls = [
+        call
+        for call in raw_split_calls
+        if call.get("decision", {}).get("controller_resolution") == "effective_split"
+    ]
+    degenerate_current_stops = [
+        call
+        for call in raw_split_calls
+        if call.get("decision", {}).get("controller_resolution")
+        == "degenerate_current_split_stop"
+    ]
     usage: Counter[str] = Counter()
     for call in calls:
         for key, value in (call.get("usage") or {}).items():
@@ -895,8 +945,10 @@ def run_infer(args: argparse.Namespace) -> None:
         "selected_sessions": selected,
         "recursive_calls": len(calls) - len(selected),
         "root_calls": len(selected),
-        "split_calls": len(split_calls),
-        "stop_calls": len(stop_calls),
+        "raw_split_calls": len(raw_split_calls),
+        "effective_split_calls": len(effective_split_calls),
+        "model_stop_calls": len(model_stop_calls),
+        "degenerate_current_split_stop_calls": len(degenerate_current_stops),
         "sessions_with_internal_split": sum(len(results[session]["leaves"]) > 1 for session in selected),
         "leaves": {
             "total": len(leaves),

@@ -60,3 +60,19 @@ differ, intervals still strictly shrink, and only explicit STOP/base case ends
 recursion. Exact adjacent equal resolved paths emit one canonical segment/mark,
 while all raw decisions remain cached for audit. The algorithm/cache identity
 advances to v3 and v1/v2 responses are ineligible for reuse.
+
+## Attempt 4 — identical current paths reveal a controller no-op
+
+The direct v3 source-only replay advanced further through the same mini-SWE
+trajectory. It produced root stay/push and nested stay/pop decisions, then a
+raw split whose left and right labels both resolved to the unchanged root
+operation. No manifest, official stage, score, or outcome had been opened.
+
+Independent review rejected a broad "equal siblings become STOP" rule because
+equal new children and equal earlier ancestors have different semantics. The
+minimal v4 controller rule recognizes only
+`left_path == right_path == active_path` as
+`degenerate_current_split_stop`. The raw decision is preserved and counted;
+it creates no boundary or additional mark and is not reported as a model STOP.
+All other equal resolved siblings still fail closed. The algorithm/cache
+identity advances to v4, so no v1--v3 response is eligible for reuse.

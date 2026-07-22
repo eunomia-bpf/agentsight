@@ -118,3 +118,28 @@ or when the canonical full path changes, coalescing only exact adjacent equal
 paths. Raw decisions remain auditable. This is deterministic representation
 canonicalization—not semantic contraction—and changes neither assignments,
 B-cubed, boundaries, pprof mass, nor any user-visible stack.
+
+## Round 10 — REVISE for identical resolved siblings
+
+The next source-only v3 replay returned a raw `SPLIT` whose two names both
+resolved to the unchanged current root path. Treating every pair of identical
+resolved siblings as an error makes the controller partial on a semantically
+auditable no-op; treating every identical pair as STOP would be too broad.
+
+Independent review allowed exactly one normalization:
+`left_path == right_path == active_path` becomes the separately reported
+`degenerate_current_split_stop`. The raw `SPLIT` remains cached, and the
+controller emits the current path with no boundary or additional mark. If the
+same resolved siblings are a new child or an earlier ancestor, inference still
+fails closed. The algorithm/cache identity must advance to v4, and focused
+tests must prove both the allowed and rejected cases plus unchanged assignment,
+mark, metric, and pprof mass contracts. Re-review is required before preflight.
+
+## Round 11 — PASS for exact v4 totalization
+
+After the plan, fail-closed policy, preflight record, step report, tests, and
+cache identity were made consistent, independent re-review returned PASS. The
+exception is limited to `left_path == right_path == active_path`; equal new or
+earlier paths remain errors. The raw split, separate controller resolution,
+and four disjoint decision counts keep the event auditable without changing
+assignments, marks, metric mass, workload, RQ, thesis, or paper authorization.

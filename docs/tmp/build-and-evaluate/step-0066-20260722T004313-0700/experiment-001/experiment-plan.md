@@ -1,7 +1,7 @@
 # Experiment Plan: recursive operation segmentation
 
 Timestamp: 2026-07-22T00:43:13-07:00
-Status: approved after nine serial independent review rounds
+Status: approved after eleven serial independent review rounds
 
 ## Research question and tested hypothesis
 
@@ -65,8 +65,14 @@ DECOMPOSE(interval, ancestors, current_operation)
         emit ancestors + current_operation for the entire interval
 
     SPLIT:
-        DESCEND(left interval, left_operation)
-        DESCEND(right interval, right_operation)
+        resolution = RESOLVE_SPLIT(active_path,
+                                   left_operation,
+                                   right_operation)
+        if resolution is DEGENERATE_CURRENT_SPLIT_STOP:
+            emit active_path for the entire interval
+        else:
+            DESCEND(left interval, resolution.left_path)
+            DESCEND(right interval, resolution.right_path)
 
     RESOLVE(child_operation, active_path):
         if child_operation == active_path[i]:
@@ -79,6 +85,15 @@ DECOMPOSE(interval, ancestors, current_operation)
         recursively DECOMPOSE(child interval,
                               resolved_path[:-1],
                               resolved_path[-1])
+
+    RESOLVE_SPLIT(active_path, left_operation, right_operation):
+        left_path  = RESOLVE(left_operation,  active_path)
+        right_path = RESOLVE(right_operation, active_path)
+        if left_path == right_path == active_path:
+            return DEGENERATE_CURRENT_SPLIT_STOP
+        if left_path == right_path:
+            fail closed
+        return the two distinct resolved paths
 ```
 
 `split_before_turn_id` must address an existing non-first turn in the current
@@ -92,13 +107,20 @@ status, error string, or field change alone is not a semantic split. The active
 path contains unique canonical operation IDs. Each child is resolved against
 that path: matching the current operation means stay, matching an earlier frame
 means pop to that frame and discard the deeper suffix, and a name absent from
-the path pushes one new frame. The two resolved full paths must differ. Thus
+the path pushes one new frame. The two resolved full paths must differ, except
+for the single audited no-op case in which both sides resolve exactly to the
+unchanged active path. Thus
 the same rule implements the user's original stay/pop/push task-stack actions
 without duplicate frames or invented synonyms. Stay and pop are not STOP and
-remain recursive for every multi-turn interval. Only an explicit Agent `STOP`
-stops a multi-turn interval. Any other invalid `SPLIT` is an inference error
-and does not emit marks. The semantic STOP/SPLIT judgment is the sole
-fragmentation guard; there is no tuned length threshold or replace operation.
+remain recursive for every multi-turn interval. An explicit Agent `STOP`, the
+one-turn base case, or an audited `degenerate_current_split_stop` terminates an
+interval. The last case preserves the raw Agent `SPLIT` but recognizes that
+both proposed sides leave the path unchanged; it emits no boundary or extra
+mark and is counted separately from a model STOP. Equal resolved siblings that
+both name a new child or an earlier ancestor still fail closed. Any other
+invalid `SPLIT` is an inference error and does not emit marks. The semantic
+STOP/SPLIT judgment is the sole fragmentation guard; there is no tuned length
+threshold or replace operation.
 
 After recursion, each turn has one canonical full semantic operation-ID path.
 The materializer emits the first mark and then a mark only when that full path
@@ -173,7 +195,8 @@ executed in this experiment because the other full outputs already exist.
 - Secondary standard diagnostic: exact adjacent-boundary precision, recall,
   and F1.
 - Additional diagnostics: predicted group count, session leaf-count
-  distribution, recursion call count, STOP/SPLIT count, leaf turn-length
+  distribution, recursion call count, separate model-STOP, raw-SPLIT,
+  effective-SPLIT, and degenerate-current-SPLIT counts, leaf turn-length
   distribution, semantic depth distribution, sessions with internal splits,
   and exact mark/pprof coverage.
 - No token-weighted B-cubed, Recall@budget, top-k reader score, custom weighted
@@ -298,8 +321,12 @@ evidence only and must not be presented as standalone paper case studies.
   call.
 - Unknown, first, or out-of-interval split IDs; malformed/empty names;
   duplicate IDs inside an active path; left/right raw-name or resolved-full-
-  path collisions; malformed JSON; timeouts; server errors; and context
-  overflow are inference errors. They never silently become `STOP`.
+  path collisions other than the exact
+  `left_path == right_path == active_path` audited exception; malformed JSON;
+  timeouts; server errors; and context overflow are inference errors. They
+  never silently become `STOP`. Identical new-child or earlier-ancestor paths
+  remain errors; the sole identical-current exception is recorded as
+  `degenerate_current_split_stop`, not as model STOP.
 - Preflight may repair implementation or grammar wiring without changing the
   semantic prompt. A failed request may be rerun unchanged. Any unresolved
   session leaves the full run incomplete.
