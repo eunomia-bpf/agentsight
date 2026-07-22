@@ -225,6 +225,64 @@ ignored.
 Use `script/agent_trace_datasets.py` to sample known labeled datasets into this
 format without committing raw external data.
 
+### Agent-marked operation boundaries
+
+An Agent or another segmentation backend can identify semantic transitions by
+source operation ID without relabeling every row. Pass one JSON mark file:
+
+```json
+{
+  "sequence_field": "session_id",
+  "id_field": "operation_id",
+  "operation_names": {
+    "review": "Review research evidence",
+    "validate": "Validate experiment evidence"
+  },
+  "marks": [
+    {
+      "sequence": "session-1",
+      "start_operation_id": "op-0001",
+      "operation_ids": ["review"]
+    },
+    {
+      "sequence": "session-1",
+      "start_operation_id": "op-0042",
+      "operation_ids": ["review", "validate"]
+    }
+  ]
+}
+```
+
+```bash
+agentpprof \
+  --operation-file operations.jsonl \
+  --operation-mark-file operation-marks.json \
+  --view operations \
+  -o marked.pb.gz
+```
+
+A mark is a stable-ID boundary produced by an Agent or another segmentation
+backend; it is not a product human-annotation workflow. Every
+operation inherits the latest full operation-ID path in its sequence; unequal
+path lengths produce variable-depth stacks, and the shared name pool lets equal
+semantic IDs aggregate across sessions. With no explicit `--stack`, this mode
+uses `operation`; an explicit stack must contain that field.
+
+The input fails closed when a sequence or ID field is missing or multivalued,
+IDs repeat within a sequence, the first source operation is unmarked, marks are
+unknown or out of order, a path is empty, or a semantic ID is absent from the
+name pool. Display names, source sequences, and source IDs must also remain unique after pprof
+normalization. The configured source sequence and operation ID are preserved as
+the pprof `source_session` and `evidence_id` labels.
+
+This first interface is intentionally limited to normalized `--operation-file`
+input with `--view operations`; it does not yet mark expanded local-session
+token/file/network/time samples or combine mark files with signed differences.
+Operation marks and `--induce-operation-stack` are mutually exclusive because
+both derive the `operation` field. Regex mappings may normalize fields or help
+an Agent retrieve candidate source IDs, but neither mappings nor
+`--stack-rule operation:...` override a marked semantic path.
+
 ```bash
 agentpprof -o external.pb.gz --view operations \
   --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \

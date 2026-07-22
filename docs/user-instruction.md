@@ -319,3 +319,19 @@ Agent 是否在某个阶段反复尝试；
 ---
 
 AgentPProf 禁止增加或依赖自定义前端。每次运行唯一的产品 artifact 是一个标准 `.pb`/`.pb.gz` pprof profile；禁止把 folded stack、SVG、PNG、HTML、JSON、dashboard 或 Web UI 发展成另一条用户输出路径。任务层级、语义 operation、资源权重、证据标签和 good/bad 差异都编码进 pprof 的 sample、label 和 stack frame。火焰图、搜索、focus、下钻、比较和其他可视化全部复用现有 pprof-compatible 工具。这是 hard rule。实验所需的 Markdown 报告和 raw evaluation data 只是研究记录，不是 AgentPProf 产品输出。
+
+---
+
+recursive operaion segamentation 现在是怎么实现的? 应该在什么上面做? 我们之前设计的还没有完全对应吧? 接下来应该怎么设计对应这样的算法? 能不能实现框架, 然后几种不同的方案来实现? 重新跑 eval? 默认可以是 LLM Agent assist annotation? 做一下尝试
+
+用户能从图里看出任务如何拆解、哪里反复、哪些路径耗费高但没有结论”——目前是部分达到，不是端到端解决, 你要想办法先解决用户问题, 让这个工具有用, 而不仅仅是实验数据看起来好? 做一下尝试, 你得找出几个例子和火焰图, 火焰图要有深度变化而且比较深, 就类似从原先的 tool / session / user request / llm call / tool call 这样开始折叠和切分, 举一些例子, 讲解给我真实解决了用户什么问题, 也要有 case study
+
+---
+
+系统应该设计成接受人工标记的 ID 来进行切分对吧? 你也要维护一个对应的标记池子? 去做实现?
+
+---
+
+case study 至少 2 个；每一个 case study 都必须以许多完整 session
+组成的集合为主要分析单位。单条 trace 只能作为集合结论的证据下钻，不能把一个
+session 或一个 good/bad pair 包装成完整 case study。

@@ -146,8 +146,224 @@ fn recurrence_induction_and_calibration_write_pprof() {
     );
     let status = assert_pprof(&output, &output_path);
     assert_eq!(status["stack"], "operation");
+    assert_eq!(status["induced_stack_field"], "operation");
     assert_eq!(status["induce_operation_stack"], true);
     assert_eq!(status["samples"], 4);
+}
+
+#[test]
+fn agent_operation_marks_create_shared_variable_depth_operation_stacks() {
+    let tmp = tempfile::tempdir().unwrap();
+    let ops_path = tmp.path().join("ops.jsonl");
+    let marks_path = tmp.path().join("operation-marks.json");
+    let output_path = tmp.path().join("marked.pb.gz");
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+    fs::write(
+        &ops_path,
+        [
+            r#"{"value":2,"fields":{"session_id":"s1","operation_id":"a","action":"read"}}"#,
+            r#"{"value":3,"fields":{"session_id":"s1","operation_id":"b","action":"read"}}"#,
+            r#"{"value":5,"fields":{"session_id":"s1","operation_id":"c","action":"test"}}"#,
+            r#"{"value":7,"fields":{"session_id":"s2","operation_id":"a","action":"read"}}"#,
+            r#"{"value":11,"fields":{"session_id":"s2","operation_id":"b","action":"edit"}}"#,
+        ]
+        .join("\n")
+            + "\n",
+    )
+    .unwrap();
+    fs::write(
+        &marks_path,
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "sequence_field": "session_id",
+            "id_field": "operation_id",
+            "operation_names": {
+                "review": "Review evidence",
+                "fix": "Fix implementation",
+                "test": "Test the fix"
+            },
+            "marks": [
+                {"sequence":"s1","start_operation_id":"a","operation_ids":["review"]},
+                {"sequence":"s1","start_operation_id":"c","operation_ids":["fix","test"]},
+                {"sequence":"s2","start_operation_id":"a","operation_ids":["review"]},
+                {"sequence":"s2","start_operation_id":"b","operation_ids":["fix"]}
+            ]
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let output = run(
+        binary,
+        &[
+            "--operation-file",
+            ops_path.to_str().unwrap(),
+            "--operation-mark-file",
+            marks_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--deterministic-output",
+            "--output",
+            output_path.to_str().unwrap(),
+        ],
+    );
+    let status = assert_pprof(&output, &output_path);
+    assert_eq!(status["stack"], "operation");
+    assert_eq!(status["induced_stack_field"], "operation");
+    assert_eq!(status["samples"], 28);
+    assert_eq!(status["unique_stacks"], 3);
+    assert_eq!(status["operation_mark_file"], marks_path.to_str().unwrap());
+}
+
+#[test]
+fn operation_marks_fail_closed_and_do_not_mix_with_induction() {
+    let tmp = tempfile::tempdir().unwrap();
+    let ops_path = tmp.path().join("ops.jsonl");
+    let marks_path = tmp.path().join("operation-marks.json");
+    let output_path = tmp.path().join("out.pb.gz");
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+    fs::write(
+        &ops_path,
+        [
+            r#"{"value":1,"fields":{"session":"s","id":"one","action":"read"}}"#,
+            r#"{"value":1,"fields":{"session":"s","id":"two","action":"write"}}"#,
+        ]
+        .join("\n")
+            + "\n",
+    )
+    .unwrap();
+    fs::write(
+        &marks_path,
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "sequence_field": "session",
+            "id_field": "id",
+            "operation_names": {"review": "Review evidence"},
+            "marks": [
+                {"sequence":"s","start_operation_id":"two","operation_ids":["review"]}
+            ]
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let missing_first = run(
+        binary,
+        &[
+            "--operation-file",
+            ops_path.to_str().unwrap(),
+            "--operation-mark-file",
+            marks_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--output",
+            output_path.to_str().unwrap(),
+        ],
+    );
+    assert!(!missing_first.status.success());
+    assert!(
+        String::from_utf8_lossy(&missing_first.stderr)
+            .contains("must start at first source operation ID")
+    );
+
+    let mixed = run(
+        binary,
+        &[
+            "--operation-file",
+            ops_path.to_str().unwrap(),
+            "--operation-mark-file",
+            marks_path.to_str().unwrap(),
+            "--induce-operation-stack",
+            "--output",
+            output_path.to_str().unwrap(),
+        ],
+    );
+    assert!(!mixed.status.success());
+    assert!(
+        String::from_utf8_lossy(&mixed.stderr)
+            .contains("cannot be combined with --induce-operation-stack")
+    );
+
+    let wrong_view = run(
+        binary,
+        &[
+            "--operation-file",
+            ops_path.to_str().unwrap(),
+            "--operation-mark-file",
+            marks_path.to_str().unwrap(),
+            "--view",
+            "tokens",
+            "--output",
+            output_path.to_str().unwrap(),
+        ],
+    );
+    assert!(!wrong_view.status.success());
+    assert!(
+        String::from_utf8_lossy(&wrong_view.stderr)
+            .contains("currently requires --view operations")
+    );
+
+    let diff = run(
+        binary,
+        &[
+            "--operation-file",
+            ops_path.to_str().unwrap(),
+            "--diff-base-operation-file",
+            ops_path.to_str().unwrap(),
+            "--operation-mark-file",
+            marks_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--output",
+            output_path.to_str().unwrap(),
+        ],
+    );
+    assert!(!diff.status.success());
+    assert!(
+        String::from_utf8_lossy(&diff.stderr)
+            .contains("cannot currently be combined with --diff-base-operation-file")
+    );
+}
+
+#[test]
+fn profile_spec_resolves_relative_operation_mark_file() {
+    let tmp = tempfile::tempdir().unwrap();
+    let ops_path = tmp.path().join("ops.jsonl");
+    let marks_path = tmp.path().join("marks.json");
+    let spec_path = tmp.path().join("profile.json");
+    let output_path = tmp.path().join("marked.pb.gz");
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+    fs::write(
+        &ops_path,
+        "{\"value\":1,\"fields\":{\"session\":\"s\",\"id\":\"one\"}}\n",
+    )
+    .unwrap();
+    fs::write(
+        &marks_path,
+        r#"{
+            "sequence_field":"session",
+            "id_field":"id",
+            "operation_names":{"review":"Review evidence"},
+            "marks":[{"sequence":"s","start_operation_id":"one","operation_ids":["review"]}]
+        }"#,
+    )
+    .unwrap();
+    fs::write(
+        &spec_path,
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "output": "marked.pb.gz",
+            "view": "operations",
+            "operation_files": ["ops.jsonl"],
+            "operation_mark_file": "marks.json",
+            "deterministic_output": true
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let output = run(binary, &["--profile-spec", spec_path.to_str().unwrap()]);
+    let status = assert_pprof(&output, &output_path);
+    assert_eq!(status["stack"], "operation");
+    assert_eq!(status["samples"], 1);
+    assert_eq!(status["operation_mark_file"], marks_path.to_str().unwrap());
 }
 
 #[test]

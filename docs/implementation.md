@@ -49,6 +49,7 @@ The maintained Rust path implements:
 local Codex/Claude sessions, operation JSONL, or supported trace input
   -> operation records with string fields and weights
   -> inline/file-backed field mappings
+  -> optional stable-ID operation marks
   -> field predicates
   -> declared or induced operation stack
   -> weighted folding
@@ -108,6 +109,9 @@ Implemented CLI capabilities include:
 - `--op-map` and `--op-map-file` for derived operation fields;
 - `--where` for operation predicates after mapping and before folding;
 - `--stack` and `--stack-rule` for declared stack construction;
+- `--operation-mark-file` for sparse Agent- or algorithm-produced semantic
+  paths addressed by replay-stable source operation IDs and one shared
+  operation-name pool;
 - `--induce-operation-stack` for cross-session recurrence-based operation
   identity, with optional label-free reference operations from
   `--induce-reference-operation-file` and optional disjoint grouped calibration
@@ -169,6 +173,21 @@ experiment.
   second artifact.
 - The only successful product output is one `.pb` or `.pb.gz` pprof. Existing
   pprof-compatible tools provide visualization and interaction.
+- Operation-mark input declares its sequence and source-ID fields, requires one
+  unique source ID per operation within a sequence and a mark at the first
+  operation, and rejects unknown, duplicate, out-of-order, empty, or
+  pool-inconsistent paths. The path is applied before filtering so queries
+  inherit boundaries from the complete selected source sequence.
+- The current CLI admits marks only for normalized operation JSONL under the
+  operation-count view. It aliases the configured sequence and source ID to
+  pprof `source_session` and `evidence_id`, validates post-normalization name
+  and ID uniqueness (including source-sequence labels), and makes the marked path authoritative over
+  operation-targeting stack rules. Marked local-session expanded views and
+  marked signed differences are rejected rather than approximated.
+- Operation marks and recurrence induction cannot run together because both
+  derive the `operation` field. A mark is an addressable boundary and does not
+  imply a product human-annotation workflow; regexes may parse or retrieve candidates but are not
+  the semantic boundary decision.
 - Automatic operation-stack induction requires exactly one nonempty `session`
   and `action` value per operation and returns an explicit error when its
   recurrence model cannot be learned.

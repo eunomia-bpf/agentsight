@@ -534,9 +534,10 @@ $k$-means remains the default.
 
 \paragraph{Profile export.}
 % Profile 导出。
-Output formats are pprof protobuf for \texttt{go tool pprof -http}, folded
-stacks for \texttt{flamegraph.pl}, standalone SVG flame graphs, and JSON.
-% 输出格式包括 pprof protobuf（兼容 \texttt{go tool pprof -http}）、折叠栈文本（兼容 \texttt{flamegraph.pl}）、独立 SVG 火焰图和 JSON 摘要。
+\sys emits one pprof protobuf profile for existing tools such as
+\texttt{go tool pprof}; it does not add a visualization frontend or a second
+export format.
+% \sys 只输出一个供 \texttt{go tool pprof} 等现有工具读取的 pprof protobuf profile；它不增加可视化前端或第二种导出格式。
 
 %% ===================================================================
 \section{Evaluation}
@@ -764,6 +765,95 @@ composed local-plus-raw tie-breaker, it gains +.039 [.029,.049] on HINTBench and
 two refinements (+.003 [-.0005,.0069]).
 % 随后的 post-hoc 机制分析复用相同 population：local-first ranking 保留所有严格的 operation-local score 顺序，只在 local score 完全相同时使用 semantic recurrence 排序。其 MAP 为 .896/.545/.322，高于 local-only 的 .863/.411/.209 和 semantic-only 的 .789/.452/.230；相对组成完全相同的 local-plus-raw tie-breaker，它在 HINTBench 和 TraceElephant 上分别提高 +.039 [.029,.049] 与 +.073 [.050,.097]，AgentProcessBench 对两种 refinement 无法区分（+.003 [-.0005,.0069]）。该自适应分析支持“semantic recurrence 细化而不覆盖 local diagnostic evidence”这一简单机制，但不作为未受影响的确认性证据。
 % Semantic grouping 在三个完整 workload 上相对 matched raw-action grouping 提高 MAP。自适应 local-first 结果支持将 semantic recurrence 用作 operation-local diagnostic score 的 tie-breaking refinement，而不是其替代品，但不构成 untouched confirmation。
+
+\subsection{Case Study 1: Auditing Repeated Reviews}
+% 案例研究 1：审计重复的 review。
+
+We next ask whether a semantic profile can answer concrete user questions that
+are not visible in a flat tool/action log. After confirming only that the
+profile was readable and conserved its input, we fixed four questions before
+running focused pprof queries: (1) where each review spent its effort, (2) how
+work changed after an initial finding, (3) whether expensive paths culminated
+in a review conclusion, and (4) which operations recurred across reviews versus
+exposed task-specific exceptions.
+% 我们进一步测试 semantic profile 能否回答 flat tool/action log 无法直接回答的具体用户问题。在仅确认 profile 可读取且输入守恒后，我们在运行 focused pprof query 前固定四个问题：每个 review 的工作花在哪里、初次 finding 后工作如何变化、高成本路径是否最终形成 review 结论，以及哪些 operation 跨 review 重复或暴露任务特有异常。
+
+This collection contains four complete real AgentCap Codex sessions reviewing R024
+evaluator-backed replay, R025 checker ablation, R035 gateway mismatch analysis,
+and R081 top-conference evidence. One Agent read all indexed operation summaries
+and emitted 64 sparse start-ID marks plus a shared pool of 29 operation names;
+regexes did not select semantic boundaries. \sys inherited each mark until the
+next mark in the same session and folded all 326 operations into 62 stacks of
+depth three to five. The resulting 7{,}410-byte pprof is the only profiler
+output; all queries below use stock \texttt{go tool pprof}.
+% 该集合包含四条完整的真实 AgentCap Codex review session，分别审查 R024 evaluator-backed replay、R025 checker ablation、R035 gateway mismatch analysis 与 R081 top-conference evidence。一个 Agent 读取全部带索引的 operation summary，输出 64 个稀疏 start-ID mark 和包含 29 个 operation 名称的共享池；regex 不决定语义边界。\sys 在同一 session 内将每个 mark 继承到下一个 mark，并把全部 326 个 operation 折叠为 62 条深度为三至五的 stack。唯一 profiler 输出是 7,410-byte pprof，以下查询均使用原生 \texttt{go tool pprof}。
+
+The profile attributes 125/326 operations (38.3\%) to verifying requested
+fixes. That recurring operation decomposes into re-establishing review scope
+(30 operations), validating fixed artifacts (21), inspecting the proposed fix
+(15), auditing fixed documentation (14), running focused tests (14), and
+smaller task-specific branches. Across all four reviews, experiment-evidence
+validation accounts for 55 operations, including 22 spent recomputing reported
+results, nine running focused tests, seven diagnosing a test-environment
+failure, and four verifying result provenance.
+% Profile 将 125/326 个 operation（38.3\%）归因到修复复审；这一重复 operation 又分解为重新建立 review scope（30）、验证修复 artifact（21）、检查 proposed fix（15）、审查修复文档（14）、运行 focused test（14）及更小的任务特有分支。四个 review 中的实验依据验证共包含 55 个 operation，其中 22 个用于重算结果、9 个用于 focused test、7 个用于诊断测试环境故障、4 个用于验证结果 provenance。
+
+Shared names preserve comparison without erasing exceptions. R024 contains a
+ten-operation evaluator-deviation branch split into action-matching semantics
+(seven) and a banking fallback (three). R035 contains nine operations that
+locate stale documentation, three of them under the blocking-finding path.
+R081 separately spends five operations inspecting and five validating its
+reference corpus. Every session eventually reports a conclusion: only eight
+operations belong to the terminal report nodes, while six earlier operations
+explicitly identify blocking findings. Thus this case does not exhibit an
+entire high-cost session with no conclusion; instead, the profile separates the
+large evidence-gathering paths from the small conclusion-bearing paths and
+shows which work recurs during repair.
+% 共享名称在支持比较的同时保留异常：R024 的十个 evaluator-deviation operation 分成 action-matching semantics（7）和 banking fallback（3）；R035 有九个定位 stale documentation 的 operation，其中三个位于 blocking-finding 路径；R081 另有五个检查和五个验证 reference corpus 的 operation。四条 session 最终都报告结论：terminal report node 仅含 8 个 operation，另有 6 个较早的 operation 明确识别 blocking finding。因此，本案例没有出现整条高成本 session 完全无结论的情况；它展示的是如何把大规模证据收集路径与很小的结论路径分开，并找出修复期间重复的工作。
+
+This is a product case, not an independent nested-accuracy result: the Agent
+assigned the boundaries and shared names that the case queries. RQ3 evaluates
+independently annotated fields, partitions, and boundaries.
+% 这是产品案例而不是独立的嵌套准确率结果：案例查询使用的边界与共享名称由 Agent 指派；RQ3 另行评估具有独立标注的 field、partition 与 boundary。
+
+\subsection{Case Study 2: Differential Profiling at Scale}
+% 案例研究 2：大规模差分 profiling。
+
+We next aggregate the complete mixed-outcome population from
+AgentRewardBench~\cite{agentrewardbench}, rather than presenting one favorable
+trace pair. The collection contains 440 real trajectories over 125 tasks with
+both successful and unsuccessful runs, producing 338 complete bad--good pairs:
+24 pair occurrences from AssistantBench, 102 from VisualWebArena, 144 from
+WebArena, and 68 from WorkArena. Because tasks can contain multiple runs, the
+202 successful and 238 unsuccessful sessions are reused across pairs; the
+profile is therefore pair-occurrence weighted. All 338 bad members and all 338
+good members are folded into one signed operation-count pprof. Individual pair
+profiles are used only to descend from a collection-level path to source
+evidence.
+% 我们进一步聚合 AgentRewardBench 的完整 mixed-outcome population，而不是展示一个有利的 trace pair。该集合包含 125 个同时具有成功和失败运行的任务、440 条真实轨迹与 338 个完整 bad--good pair，其中 AssistantBench、VisualWebArena、WebArena 和 WorkArena 分别贡献 24、102、144 和 68 个 pair occurrence。由于同一任务可以包含多个运行，202 条成功 session 和 238 条失败 session 会跨 pair 复用，因此 profile 按 pair occurrence 加权。全部 338 个 bad member 与 338 个 good member 被折叠进一个 signed operation-count pprof；单个 pair profile 仅用于从集合级路径下钻到原始证据。
+
+The aggregate contains 7{,}366 bad-side and 3{,}780 good-side operation
+occurrences. Positive values denote bad-only or bad-side excess paths; negative
+values denote good-only or good-side excess paths. The largest bad-side result
+paths are continuing progress (+1{,}825) and exact repeated action-state work
+(+1{,}261). The latter decomposes into click (+639), no-op (+356), and scroll
+(+277) paths. Concrete bad-side error families remain separately searchable:
+clicking an invisible element (+148), click timeout (+129), stopped execution
+(+92), filling a non-input element (+57), and selecting on a non-select element
+(+46). The good side contains more terminal (-92) and conclusion (-67) paths;
+\texttt{send\_msg\_to\_user} has a cumulative difference of -100.
+% 聚合 profile 包含 7,366 个 bad-side 与 3,780 个 good-side operation occurrence；正值表示 bad-only 或 bad-side excess 路径，负值表示 good-only 或 good-side excess 路径。最大的 bad-side result 路径是继续推进（+1,825）与精确 action-state 重复（+1,261），后者又分解为 click（+639）、no-op（+356）和 scroll（+277）。具体 bad-side error family 仍可独立搜索，包括点击不可见元素（+148）、click timeout（+129）、停止执行（+92）、向非输入元素填值（+57）和对非 select 元素执行选择（+46）。good side 则包含更多 terminal（-92）和 conclusion（-67）路径；\texttt{send\_msg\_to\_user} 的累计差值为 -100。
+
+This is diagnostic structure, not a new outcome classifier. On the same
+population, simple step count remains the strongest tested scalar (pairwise
+accuracy .7633; trajectory ROC AUC .7517). The profile adds a different answer:
+it identifies whether excess work is repetition, waiting, wrong-widget
+interaction, timeout, stopping, or missing completion, while retaining action
+and object frames for stock pprof drilldown. AgentRewardBench has outcome and
+looping annotations but no gold semantic hierarchy, so this case establishes
+complete differential-profile coverage and concrete path exposure, not
+semantic-stack accuracy or causality.
+% 这是一种诊断结构而不是新的 outcome classifier；在相同 population 上，简单 step count 仍是最强的已测 scalar（pairwise accuracy .7633，trajectory ROC AUC .7517）。Profile 回答的是另一个问题：多余工作究竟来自重复、等待、错误 widget 交互、timeout、停止还是缺少完成路径，并保留 action 与 object frame 供标准 pprof 下钻。AgentRewardBench 具有 outcome 和 looping 标注但没有 gold semantic hierarchy，因此该案例证明的是完整差分 profile 覆盖与具体路径暴露，而不是 semantic-stack accuracy 或因果关系。
 
 %% -------------------------------------------------------------------
 \subsection{RQ3: Tag Accuracy}

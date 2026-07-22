@@ -126,6 +126,7 @@ serialization is one standard pprof profile.
 local agent history / operation JSONL / trace container
     -> normalize to operations
     -> derive fields with declared mappings or taggers
+    -> optionally apply stable-ID operation marks
     -> optionally filter operations by field predicates
     -> choose or induce an operation stack
     -> fold weighted paths
@@ -146,9 +147,10 @@ Current rule order is:
 
 1. normalize source events into operation records;
 2. apply inline and file-backed field mappings;
-3. apply query predicates such as `FIELD=REGEX` or `FIELD!=REGEX`;
-4. construct the selected operation stack;
-5. fold weights and compute optional visible-field rank summaries.
+3. apply an optional stable-ID operation-mark path to the full source sequence;
+4. apply query predicates such as `FIELD=REGEX` or `FIELD!=REGEX`;
+5. construct the selected operation stack;
+6. fold weights and compute optional visible-field rank summaries.
 
 Later mappings may use earlier derived fields. A destination field uses the
 first applicable mapping under the declared precedence. Experiments must expose
@@ -171,7 +173,25 @@ lineage.
 
 ### Task-semantic construction frontier
 
-The next unadopted constructor follows one plain rule: task structure comes
+The artifact now accepts sparse, backend-neutral operation marks. A mark names
+a source sequence and replay-stable source operation ID and supplies a full path
+of semantic operation IDs from one shared name pool. Each source operation
+inherits the latest path in its sequence. Repeated `operation` field values form
+an unequal-depth semantic stack, so an Agent or traditional segmentation
+backend can select boundaries without returning a new label for every primitive
+operation. Strict coverage, identity, order, pool-membership, and first-mark
+checks reject ambiguous inputs. This implemented interface establishes
+addressable replay and aggregation; it does not establish that an automatic
+backend finds accurate nested boundaries or names.
+
+The initial product path admits normalized operation files in the operation-count
+view only. The configured source sequence and ID become standard pprof
+`source_session` and `evidence_id` labels. Marked paths are authoritative over
+stack-frame regex rules, and pool names, source sequences, and source IDs must
+remain distinct after final pprof normalization. Signed differences continue to use explicit
+shared stack fields; operation-mark input is not yet admitted for diff mode.
+
+The next unadopted automatic constructor follows one plain rule: task structure comes
 from intent-bearing task, plan, delegation, progress, and completion events;
 ordinary model, tool, command, file, process, and network operations inherit
 the active task path and supply the measured evidence. Only the former may open,
@@ -183,7 +203,7 @@ invent or complete a frame before and after every operation. It preserves the
 existing operation/operation-stack model and the variable-depth target while
 preventing data-plane field changes from manufacturing a task hierarchy. It is
 selected for an RQ3 evaluation with an independent public task/subtask
-reference, not yet implemented or adopted. The constructor must also emit
+reference, not yet validated or adopted. The constructor must also emit
 stable comparable task/subtask identities across runs and score those identities
 without reading the scoring reference. Complete local Codex traces may test
 coverage and scale, but cannot self-score structural correctness.

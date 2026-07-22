@@ -15,8 +15,9 @@ use std::time::Duration;
 use profile::{
     OperationStackConfig, OperationStackInductionConfig, ProfileView,
     build_profile_from_operation_records, build_profile_with_options, parse_operation_filters,
-    parse_stack_rules, parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks,
-    read_operation_record_values, write_pprof_difference, write_pprof_projection,
+    parse_operation_mark_file, parse_stack_rules, parse_stack_rules_with_flag, parse_stack_spec,
+    profile_to_stacks, read_operation_record_values, write_pprof_difference,
+    write_pprof_projection,
 };
 use session::{
     SessionRecord, default_claude_root, discover_agent_sessions, load_agent_trace_files,
@@ -132,6 +133,9 @@ struct Cli {
     /// Multiple predicates are ANDed. Use FIELD!=REGEX to exclude matching operations.
     #[arg(long = "where", value_name = "FIELD=REGEX")]
     where_rules: Vec<String>,
+    /// Apply Agent- or algorithm-produced stable-ID operation boundaries before folding.
+    #[arg(long = "operation-mark-file", value_name = "PATH")]
+    operation_mark_file: Option<PathBuf>,
     /// Derive recurring operation identities from visible session/action transitions.
     #[arg(long = "induce-operation-stack")]
     induce_operation_stack: bool,
@@ -267,6 +271,7 @@ struct ProfileSpec {
     stack_rules: Vec<String>,
     op_maps: Vec<String>,
     where_rules: Vec<String>,
+    operation_mark_file: Option<PathBuf>,
     induce_operation_stack: Option<bool>,
     induce_task_stack: Option<bool>,
     induce_allow_session: Option<bool>,
@@ -300,6 +305,7 @@ struct RawProfileSpec {
     op_maps: Vec<String>,
     #[serde(default)]
     where_rules: Vec<String>,
+    operation_mark_file: Option<PathBuf>,
     induce_operation_stack: Option<bool>,
     induce_task_stack: Option<bool>,
     induce_allow_session: Option<bool>,
@@ -369,7 +375,14 @@ fn command_export(args: Cli) -> Result<()> {
     let requested_legacy_task_induction =
         args.induce_task_stack || spec.induce_task_stack.unwrap_or(false);
     let induce_operation_stack = requested_operation_induction || requested_legacy_task_induction;
-    let induced_stack_field = if requested_operation_induction {
+    let operation_mark_file = args
+        .operation_mark_file
+        .clone()
+        .or_else(|| spec.operation_mark_file.clone());
+    if induce_operation_stack && operation_mark_file.is_some() {
+        bail!("--operation-mark-file cannot be combined with --induce-operation-stack");
+    }
+    let induced_stack_field = if requested_operation_induction || operation_mark_file.is_some() {
         "operation"
     } else {
         "task"
@@ -414,8 +427,15 @@ fn command_export(args: Cli) -> Result<()> {
         profile_options = profile_options.with_stack(parse_stack_spec(induced_stack_field)?);
         induced_stack_field
     } else if let Some(stack) = stack {
-        profile_options = profile_options.with_stack(parse_stack_spec(stack)?);
+        let parsed = parse_stack_spec(stack)?;
+        if operation_mark_file.is_some() && !parsed.contains_frame("operation") {
+            bail!("--operation-mark-file requires --stack to contain operation");
+        }
+        profile_options = profile_options.with_stack(parsed);
         stack
+    } else if operation_mark_file.is_some() {
+        profile_options = profile_options.with_stack(parse_stack_spec("operation")?);
+        "operation"
     } else {
         "default"
     };
@@ -439,6 +459,15 @@ fn command_export(args: Cli) -> Result<()> {
         .with_field_rules(parse_stack_rules_with_flag(&op_maps, "--op-map")?)
         .with_filters(parse_operation_filters(&where_rules)?)
         .with_rules(parse_stack_rules(&stack_rules)?);
+    if let Some(path) = operation_mark_file.as_ref() {
+        let raw = fs::read_to_string(path)
+            .with_context(|| format!("failed to read --operation-mark-file {}", path.display()))?;
+        profile_options =
+            profile_options
+                .with_operation_marks(parse_operation_mark_file(&raw).with_context(|| {
+                    format!("invalid --operation-mark-file {}", path.display())
+                })?);
+    }
     if induce_operation_stack {
         let mut induction =
             OperationStackInductionConfig::new().with_derived_field(induced_stack_field);
@@ -470,6 +499,19 @@ fn command_export(args: Cli) -> Result<()> {
         &trace_files,
         &standard_trace_files,
     )?;
+    if operation_mark_file.is_some() {
+        if operation_files.is_empty() {
+            bail!("--operation-mark-file currently requires normalized --operation-file input");
+        }
+        if view != ProfileView::Operations {
+            bail!("--operation-mark-file currently requires --view operations");
+        }
+        if !diff_base_operation_files.is_empty() {
+            bail!(
+                "--operation-mark-file cannot currently be combined with --diff-base-operation-file"
+            );
+        }
+    }
     validate_product_artifact(requested_format, output)?;
     if !standard_trace_files.is_empty() {
         let operation_records = standard_trace::operation_records_from_chrome_trace_files(
@@ -493,6 +535,7 @@ fn command_export(args: Cli) -> Result<()> {
             "unit": profile.unit,
             "profile_specs": args.profile_specs,
             "stack": effective_stack_name,
+            "operation_mark_file": operation_mark_file,
             "induce_operation_stack": induce_operation_stack,
             "induce_task_stack": induce_operation_stack,
             "induced_stack_field": induced_stack_field,
@@ -564,6 +607,7 @@ fn command_export(args: Cli) -> Result<()> {
             "unit": profile.unit,
             "profile_specs": args.profile_specs,
             "stack": effective_stack_name,
+            "operation_mark_file": operation_mark_file,
             "induce_operation_stack": induce_operation_stack,
             "induce_task_stack": induce_operation_stack,
             "induced_stack_field": induced_stack_field,
@@ -651,6 +695,7 @@ fn command_export(args: Cli) -> Result<()> {
         "profile_specs": args.profile_specs,
         "trace_files": trace_files,
         "stack": effective_stack_name,
+        "operation_mark_file": operation_mark_file,
         "induce_operation_stack": induce_operation_stack,
         "induce_task_stack": induce_operation_stack,
         "induced_stack_field": induced_stack_field,
@@ -833,6 +878,9 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
         stack_rules: raw.stack_rules,
         op_maps: raw.op_maps,
         where_rules: raw.where_rules,
+        operation_mark_file: raw
+            .operation_mark_file
+            .map(|path| resolve_spec_path(base, path)),
         induce_operation_stack: raw.induce_operation_stack,
         induce_task_stack: raw.induce_task_stack,
         induce_allow_session: raw.induce_allow_session,
@@ -943,6 +991,9 @@ impl ProfileSpec {
         }
         if next.stack.is_some() {
             self.stack = next.stack;
+        }
+        if next.operation_mark_file.is_some() {
+            self.operation_mark_file = next.operation_mark_file;
         }
         if next.induce_task_stack.is_some() {
             self.induce_task_stack = next.induce_task_stack;

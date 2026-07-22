@@ -91,6 +91,27 @@ impl OperationStackSpec {
         };
         parse_stack_spec(raw).expect("default stack spec is valid")
     }
+
+    pub fn contains_frame(&self, frame: &str) -> bool {
+        self.frames.iter().any(|candidate| candidate == frame)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OperationMarkFile {
+    sequence_field: String,
+    id_field: String,
+    operation_names: BTreeMap<String, String>,
+    marks: Vec<OperationMark>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OperationMark {
+    sequence: String,
+    start_operation_id: String,
+    operation_ids: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -117,6 +138,7 @@ pub struct OperationStackConfig {
     field_rules: Vec<OperationStackRule>,
     filters: Vec<OperationFilterRule>,
     rules: Vec<OperationStackRule>,
+    operation_marks: Option<OperationMarkFile>,
     operation_stack_induction: Option<OperationStackInductionConfig>,
 }
 
@@ -127,6 +149,7 @@ impl OperationStackConfig {
             field_rules: Vec::new(),
             filters: Vec::new(),
             rules: Vec::new(),
+            operation_marks: None,
             operation_stack_induction: None,
         }
     }
@@ -151,10 +174,76 @@ impl OperationStackConfig {
         self
     }
 
+    pub fn with_operation_marks(mut self, marks: OperationMarkFile) -> Self {
+        self.operation_marks = Some(marks);
+        self
+    }
+
     pub fn with_operation_stack_induction(mut self, config: OperationStackInductionConfig) -> Self {
         self.operation_stack_induction = Some(config);
         self
     }
+}
+
+pub fn parse_operation_mark_file(raw: &str) -> Result<OperationMarkFile> {
+    let marks: OperationMarkFile =
+        serde_json::from_str(raw).context("invalid operation mark JSON")?;
+    validate_operation_mark_file(&marks)?;
+    Ok(marks)
+}
+
+fn validate_operation_mark_file(mark_file: &OperationMarkFile) -> Result<()> {
+    if mark_file.sequence_field.trim().is_empty() {
+        bail!("operation mark sequence_field must not be empty");
+    }
+    if mark_file.id_field.trim().is_empty() {
+        bail!("operation mark id_field must not be empty");
+    }
+    if mark_file.operation_names.is_empty() {
+        bail!("operation mark operation_names must not be empty");
+    }
+    let mut display_names = BTreeSet::new();
+    let mut pprof_frame_names = BTreeMap::new();
+    for (operation_id, display_name) in &mark_file.operation_names {
+        if operation_id.trim().is_empty() || display_name.trim().is_empty() {
+            bail!("operation mark IDs and display names must not be empty");
+        }
+        if !display_names.insert(display_name) {
+            bail!("operation display name {display_name:?} is assigned to multiple IDs");
+        }
+        let pprof_name = safe_frame(display_name, Some(OPERATION_STACK_DERIVED_FIELD));
+        if let Some(previous_id) = pprof_frame_names.insert(pprof_name.clone(), operation_id) {
+            bail!(
+                "semantic operation IDs {previous_id:?} and {operation_id:?} normalize to the same pprof frame {pprof_name:?}"
+            );
+        }
+    }
+    if mark_file.marks.is_empty() {
+        bail!("operation mark file must contain at least one mark");
+    }
+    for mark in &mark_file.marks {
+        if mark.sequence.trim().is_empty() || mark.start_operation_id.trim().is_empty() {
+            bail!("operation mark sequence and start_operation_id must not be empty");
+        }
+        if mark.operation_ids.is_empty() {
+            bail!(
+                "operation mark at {:?}/{:?} must contain a nonempty operation_ids path",
+                mark.sequence,
+                mark.start_operation_id
+            );
+        }
+        for operation_id in &mark.operation_ids {
+            if !mark_file.operation_names.contains_key(operation_id) {
+                bail!(
+                    "operation mark at {:?}/{:?} refers to unknown semantic operation ID {:?}",
+                    mark.sequence,
+                    mark.start_operation_id,
+                    operation_id
+                );
+            }
+        }
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug)]
@@ -691,13 +780,11 @@ pub fn build_profile_with_options(
     let mut samples = Vec::new();
     for session in sessions {
         for sample in session_samples(session, project_name, view) {
-            let sample = apply_operation_field_rules(&sample, &options.field_rules);
-            if !operation_matches_filters(&sample, &options.filters) {
-                continue;
-            }
-            samples.push(sample);
+            samples.push(apply_operation_field_rules(&sample, &options.field_rules));
         }
     }
+    apply_operation_marks(&mut samples, options)?;
+    samples.retain(|sample| operation_matches_filters(sample, &options.filters));
     let (samples, report) = maybe_induce_operation_stack(samples, options)?;
     profile.operation_stack_induction = report;
     for sample in samples {
@@ -766,14 +853,12 @@ fn build_profile_from_operations(
 ) -> Result<Profile> {
     let (name, sample_type, unit) = view_metadata(view);
     let mut profile = Profile::new(name, sample_type, unit);
-    let mut samples = Vec::new();
-    for sample in operations {
-        let sample = apply_operation_field_rules(sample, &options.field_rules);
-        if !operation_matches_filters(&sample, &options.filters) {
-            continue;
-        }
-        samples.push(sample);
-    }
+    let mut samples = operations
+        .iter()
+        .map(|sample| apply_operation_field_rules(sample, &options.field_rules))
+        .collect::<Vec<_>>();
+    apply_operation_marks(&mut samples, options)?;
+    samples.retain(|sample| operation_matches_filters(sample, &options.filters));
     let (samples, report) = maybe_induce_operation_stack(samples, options)?;
     profile.operation_stack_induction = report;
     for sample in samples {
@@ -782,6 +867,153 @@ fn build_profile_from_operations(
         profile.sample(frames, sample.value, labels);
     }
     Ok(profile)
+}
+
+fn apply_operation_marks(samples: &mut [Operation], options: &OperationStackConfig) -> Result<()> {
+    let Some(mark_file) = options.operation_marks.as_ref() else {
+        return Ok(());
+    };
+    if options.operation_stack_induction.is_some() {
+        bail!("operation marks cannot be combined with operation-stack induction");
+    }
+
+    let mut sequences: BTreeMap<String, Vec<usize>> = BTreeMap::new();
+    let mut normalized_sequences: BTreeMap<String, String> = BTreeMap::new();
+    let mut source_ids: BTreeMap<String, BTreeMap<String, usize>> = BTreeMap::new();
+    let mut normalized_source_ids: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
+    for (index, sample) in samples.iter().enumerate() {
+        let sequence = operation_single_nonempty_value(
+            sample,
+            &mark_file.sequence_field,
+            "operation mark input",
+        )?;
+        let source_id =
+            operation_single_nonempty_value(sample, &mark_file.id_field, "operation mark input")?;
+        if !sequences.contains_key(&sequence) {
+            let normalized_sequence = safe_frame(&sequence, None);
+            if let Some(previous_sequence) =
+                normalized_sequences.insert(normalized_sequence.clone(), sequence.clone())
+            {
+                bail!(
+                    "input sequences {previous_sequence:?} and {sequence:?} normalize to the same pprof source_session label {normalized_sequence:?}"
+                );
+            }
+        }
+        let sequence_positions = sequences.entry(sequence.clone()).or_default();
+        let position = sequence_positions.len();
+        sequence_positions.push(index);
+        if source_ids
+            .entry(sequence.clone())
+            .or_default()
+            .insert(source_id.clone(), position)
+            .is_some()
+        {
+            bail!(
+                "operation mark input has duplicate source operation ID {source_id:?} in sequence {sequence:?}"
+            );
+        }
+        let normalized_source_id = safe_frame(&source_id, None);
+        if let Some(previous_id) = normalized_source_ids
+            .entry(sequence.clone())
+            .or_default()
+            .insert(normalized_source_id.clone(), source_id.clone())
+        {
+            bail!(
+                "source operation IDs {previous_id:?} and {source_id:?} in sequence {sequence:?} normalize to the same pprof evidence label {normalized_source_id:?}"
+            );
+        }
+    }
+
+    let mut marks_by_sequence: BTreeMap<String, Vec<&OperationMark>> = BTreeMap::new();
+    for mark in &mark_file.marks {
+        marks_by_sequence
+            .entry(mark.sequence.clone())
+            .or_default()
+            .push(mark);
+    }
+    if let Some(unused_sequence) = marks_by_sequence
+        .keys()
+        .find(|sequence| !sequences.contains_key(*sequence))
+    {
+        bail!("operation mark file refers to unknown input sequence {unused_sequence:?}");
+    }
+
+    for (sequence, indices) in sequences {
+        let marks = marks_by_sequence.get(&sequence).ok_or_else(|| {
+            anyhow::anyhow!("operation mark file has no marks for input sequence {sequence:?}")
+        })?;
+        let positions = &source_ids[&sequence];
+        let first_source_id = operation_single_nonempty_value(
+            &samples[indices[0]],
+            &mark_file.id_field,
+            "operation mark input",
+        )?;
+        if marks[0].start_operation_id != first_source_id {
+            bail!(
+                "first operation mark for sequence {sequence:?} must start at first source operation ID {first_source_id:?}"
+            );
+        }
+
+        let mut previous_position = None;
+        let mut resolved = Vec::with_capacity(marks.len());
+        for mark in marks {
+            let Some(position) = positions.get(&mark.start_operation_id).copied() else {
+                bail!(
+                    "operation mark for sequence {sequence:?} refers to unknown source operation ID {:?}",
+                    mark.start_operation_id
+                );
+            };
+            if previous_position.is_some_and(|previous| position <= previous) {
+                bail!(
+                    "operation marks for sequence {sequence:?} must be unique and ordered by source position"
+                );
+            }
+            previous_position = Some(position);
+            let operation_path = mark
+                .operation_ids
+                .iter()
+                .map(|operation_id| mark_file.operation_names[operation_id].clone())
+                .collect::<Vec<_>>();
+            resolved.push((position, operation_path));
+        }
+
+        for (mark_index, (start, operation_path)) in resolved.iter().enumerate() {
+            let end = resolved
+                .get(mark_index + 1)
+                .map(|(position, _)| *position)
+                .unwrap_or(indices.len());
+            for source_index in indices.iter().take(end).skip(*start).copied() {
+                let source_id = operation_single_nonempty_value(
+                    &samples[source_index],
+                    &mark_file.id_field,
+                    "operation mark input",
+                )?;
+                samples[source_index]
+                    .fields
+                    .insert("source_session".to_string(), vec![sequence.clone()]);
+                samples[source_index]
+                    .fields
+                    .insert("evidence_id".to_string(), vec![source_id]);
+                samples[source_index].fields.insert(
+                    OPERATION_STACK_DERIVED_FIELD.to_string(),
+                    operation_path.clone(),
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
+fn operation_single_nonempty_value(
+    operation: &Operation,
+    field: &str,
+    context: &str,
+) -> Result<String> {
+    let values = operation.values(field);
+    if values.len() != 1 || values[0].trim().is_empty() {
+        bail!("{context} requires exactly one nonempty {field:?} value per source operation");
+    }
+    Ok(values[0].clone())
 }
 
 #[cfg(test)]
@@ -875,7 +1107,13 @@ fn frame(kind: &str, value: impl Into<String>) -> Frame {
 fn stack_frames(sample: &Operation, options: &OperationStackConfig) -> Vec<Frame> {
     let mut frames = Vec::new();
     for name in &options.stack.frames {
-        for value in stack_frame_values(name, sample, &options.rules) {
+        let rules: &[OperationStackRule] =
+            if options.operation_marks.is_some() && name == OPERATION_STACK_DERIVED_FIELD {
+                &[]
+            } else {
+                &options.rules
+            };
+        for value in stack_frame_values(name, sample, rules) {
             frames.push(frame(name, value));
         }
     }
@@ -3092,6 +3330,149 @@ mod tests {
         assert_eq!(
             stacks.get("project:external;agent:human-demo;task:authenticate;phase:input;op:action;action:type;target:email;status:gold"),
             Some(&1)
+        );
+    }
+
+    #[test]
+    fn operation_marks_preserve_paths_across_filtering_and_pprof_evidence() {
+        fn marked_operation(value: u64, session: &str, id: &str, action: &str) -> Operation {
+            let mut operation = Operation::new(value);
+            operation.insert("session_id", session);
+            operation.insert("operation_id", id);
+            operation.insert("action", action);
+            operation
+        }
+
+        let operations = vec![
+            marked_operation(2, "s1", "a", "drop"),
+            marked_operation(3, "s1", "b", "keep"),
+            marked_operation(5, "s1", "c", "keep"),
+            marked_operation(7, "s2", "a", "keep"),
+            marked_operation(11, "s2", "b", "keep"),
+        ];
+        let marks = parse_operation_mark_file(
+            r#"{
+                "sequence_field":"session_id",
+                "id_field":"operation_id",
+                "operation_names":{
+                    "review":"Review evidence",
+                    "fix":"Fix implementation",
+                    "test":"Test the fix"
+                },
+                "marks":[
+                    {"sequence":"s1","start_operation_id":"a","operation_ids":["review"]},
+                    {"sequence":"s1","start_operation_id":"c","operation_ids":["fix","test"]},
+                    {"sequence":"s2","start_operation_id":"a","operation_ids":["review"]},
+                    {"sequence":"s2","start_operation_id":"b","operation_ids":["fix"]}
+                ]
+            }"#,
+        )
+        .unwrap();
+        let options = OperationStackConfig::for_view(ProfileView::Operations)
+            .with_stack(parse_stack_spec("operation").unwrap())
+            .with_filters(parse_operation_filters(&["action=keep".to_string()]).unwrap())
+            .with_rules(
+                parse_stack_rules(&["operation:regex-override=(action=keep)".to_string()]).unwrap(),
+            )
+            .with_operation_marks(marks);
+        let profile =
+            build_profile_from_operations(&operations, ProfileView::Operations, &options).unwrap();
+        let stacks = profile_to_stacks(&profile);
+        assert_eq!(stacks.get("operation:review_evidence"), Some(&10));
+        assert_eq!(
+            stacks.get("operation:fix_implementation;operation:test_the_fix"),
+            Some(&5)
+        );
+        assert_eq!(stacks.get("operation:fix_implementation"), Some(&11));
+        assert!(!stacks.keys().any(|stack| stack.contains("regex-override")));
+
+        let labels = profile
+            .pprof_samples
+            .iter()
+            .flat_map(|sample| sample.labels.iter())
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        assert!(labels.contains(&("source_session".to_string(), "s1".to_string())));
+        assert!(labels.contains(&("source_session".to_string(), "s2".to_string())));
+        assert!(labels.contains(&("evidence_id".to_string(), "b".to_string())));
+        assert!(labels.contains(&("evidence_id".to_string(), "c".to_string())));
+    }
+
+    #[test]
+    fn operation_marks_reject_pprof_name_collisions_and_unknown_sequences() {
+        let collision = parse_operation_mark_file(
+            r#"{
+                "sequence_field":"session",
+                "id_field":"id",
+                "operation_names":{"one":"Review Evidence","two":"review_evidence"},
+                "marks":[{"sequence":"s","start_operation_id":"a","operation_ids":["one"]}]
+            }"#,
+        )
+        .unwrap_err();
+        assert!(collision.to_string().contains("same pprof frame"));
+
+        let marks = parse_operation_mark_file(
+            r#"{
+                "sequence_field":"session",
+                "id_field":"id",
+                "operation_names":{"review":"Review evidence"},
+                "marks":[
+                    {"sequence":"s1","start_operation_id":"a","operation_ids":["review"]},
+                    {"sequence":"typo","start_operation_id":"x","operation_ids":["review"]}
+                ]
+            }"#,
+        )
+        .unwrap();
+        let mut operation = Operation::new(1);
+        operation.insert("session", "s1");
+        operation.insert("id", "a");
+        let options = OperationStackConfig::for_view(ProfileView::Operations)
+            .with_stack(parse_stack_spec("operation").unwrap())
+            .with_operation_marks(marks);
+        let error =
+            match build_profile_from_operations(&[operation], ProfileView::Operations, &options) {
+                Ok(_) => panic!("unknown operation-mark sequence should fail"),
+                Err(error) => error,
+            };
+        assert!(
+            error
+                .to_string()
+                .contains("unknown input sequence \"typo\"")
+        );
+
+        let marks = parse_operation_mark_file(
+            r#"{
+                "sequence_field":"session",
+                "id_field":"id",
+                "operation_names":{"review":"Review evidence"},
+                "marks":[
+                    {"sequence":"session 1","start_operation_id":"a","operation_ids":["review"]},
+                    {"sequence":"session_1","start_operation_id":"a","operation_ids":["review"]}
+                ]
+            }"#,
+        )
+        .unwrap();
+        let operations = ["session 1", "session_1"]
+            .into_iter()
+            .map(|session| {
+                let mut operation = Operation::new(1);
+                operation.insert("session", session);
+                operation.insert("id", "a");
+                operation
+            })
+            .collect::<Vec<_>>();
+        let options = OperationStackConfig::for_view(ProfileView::Operations)
+            .with_stack(parse_stack_spec("operation").unwrap())
+            .with_operation_marks(marks);
+        let error =
+            match build_profile_from_operations(&operations, ProfileView::Operations, &options) {
+                Ok(_) => panic!("colliding normalized source_session labels should fail"),
+                Err(error) => error,
+            };
+        assert!(
+            error
+                .to_string()
+                .contains("same pprof source_session label")
         );
     }
 
