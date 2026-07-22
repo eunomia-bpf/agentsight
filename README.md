@@ -27,6 +27,16 @@ cargo install agentsight
 # or: wget https://github.com/eunomia-bpf/agentsight/releases/latest/download/agentsight && chmod +x agentsight
 ```
 
+
+<div align="center">
+  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/top-mode-demo.png" alt="AgentSight top live session view" width="1000">
+  <p><em>Live sessions ranked by model, session tokens, health, process family, tool calls, file activity, and network activity</em></p>
+</div>
+
+```sh
+agentsight top
+```
+
 <div align="center">
   <img src="https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.gif" alt="Agent Nebula replay of Agent development across the ACTplane repository" width="1000">
   <p><em>Agent Nebula replays how coding agents read, write, create, rename, and delete files across the ACTplane repository</em></p>
@@ -35,11 +45,6 @@ cargo install agentsight
 ```sh
 agentsight vis
 ```
-
-<div align="center">
-  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/top-mode-demo.png" alt="AgentSight top live session view" width="1000">
-  <p><em>Live sessions ranked by model, session tokens, health, process family, tool calls, file activity, and network activity</em></p>
-</div>
 
 <div align="center">
   <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/semantic-flamegraph-top200.svg" alt="Semantic flamegraph of the top 200 agent stacks" width="1000">
