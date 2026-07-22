@@ -1,0 +1,73 @@
+# Independent plan review
+
+## Round 1 — REVISE
+
+The reviewer used `research-experiment-design` and accepted the core recursive
+STOP/SPLIT mechanism, strict interval shrinkage, absence of numerical/depth/
+leaf/minimum-length caps, complete real workload, retained comparisons, fixed
+thesis, and fixed RQ.
+
+Four must-fix contract gaps were identified:
+
+1. semantic usefulness depended on an unfixed post-hoc review;
+2. root naming ambiguously referenced a source-path identity while official
+   task clusters were meant to remain hidden;
+3. invalid/out-of-interval decisions, timeout, and context overflow had no
+   explicit terminal policy; and
+4. the B-cubed candidate cluster key was not mechanically specified.
+
+The plan now fixes two multi-session collections and four pprof questions,
+defines semantic failure, limits all model-visible task text and the shared pool
+to the raw first user request plus target-blind visible turns, fails closed on
+all invalid/runtime/context cases without silent STOP or truncation, and defines
+the predicted B-cubed key as the complete visible operation-ID path scoped to a
+trajectory under Bagga--Baldwin B-cubed.
+
+## Round 2 — REVISE
+
+Round 2 confirmed that the fixed collections/questions, target-blind name pool,
+fixed source projection, no dynamic truncation, runtime fail-closed behavior,
+complete visible-path B-cubed key, workload, metrics, and thesis/RQ boundaries
+resolved Round 1.
+
+Two inconsistencies remained. Child-name collisions were described both as a
+silent STOP and as an inference error, and the semantic review required every
+individual split to receive zero objections. The plan now makes only an
+explicit model STOP terminal; every invalid SPLIT fails closed and emits no
+marks. Reviewers record local semantic errors, while collection usefulness
+fails only for whole-session/turn-singleton degeneration, irreversible source
+lineage, or inability to answer a fixed user question. No error-ratio threshold
+was added.
+
+## Round 3 — PASS
+
+The reviewer found the Round 2 contradictions resolved and no remaining
+must-fix. The plan is simple, executable, target-blind, fail-closed, complete at
+the real-workload level, and aligned with the requested recursive STOP/SPLIT
+mechanism without a hidden numerical, depth, leaf-count, or interval-length
+limit.
+
+## Round 4 — REVISE after case-study correction
+
+After the user required every paper case to aggregate many sessions, the plan
+replaced the four-session and three-session case candidates with the complete
+405-session collection and a source-visible longest-decile collection of 41
+sessions. The reviewer accepted the leakage-free membership rule and the use
+of stock pprof, but identified two scope inconsistencies. Requiring review of
+every recursive split over all 405 sessions was not executable, and the text
+simultaneously required two collection profiles and one output artifact while
+unconditionally requiring a paper figure even for a contradicted backend.
+
+The plan now reviews every source drilldown actually reported by four fixed
+aggregate queries without claiming an exhaustive semantic error rate. It also
+specifies two ordinary AgentPProf invocations, each producing one `.pb.gz`, and
+requires paper inclusion only for a result that passes the registered
+scientific and collection-level semantic interpretation.
+
+## Round 5 — PASS
+
+The reviewer found both Round 4 issues resolved. The complete and long-horizon
+collections are fixed before inference from source-visible counts, the retained
+AgentReward differential is reuse rather than a second experiment, and the
+bounded stock-pprof review can support case-study utility without replacing
+the standard metric or claiming general user productivity.
