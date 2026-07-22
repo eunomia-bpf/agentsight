@@ -1,0 +1,81 @@
+{
+  "schema": "swe-interact-rq1-allocation-v1",
+  "created_at": "2026-07-21T21:20:00-07:00",
+  "selection_salt": "agentsight-swe-interact-rq1-20260721-v1",
+  "swe_interact_revision": "b32f98c3b8f76ca65e84341d1f30e5af7135f85d",
+  "harbor_revision": "00c19fe2a9c1b9b7ed07efc270412007ac4cb3da",
+  "eligible_families": ["deepswe", "swebenchpro"],
+  "excluded_family": {
+    "name": "rf",
+    "reason": "The final evaluator includes an LLM rubric; model-defined truth is forbidden for the primary outcome."
+  },
+  "allocation_rule": "Within each eligible family, sort task names by sha256(selection_salt + NUL + task_name). Rank 1 is mechanics preflight, ranks 2-13 are the RQ1 population, and ranks 14-25 are untouched holdout.",
+  "mechanics_preflight": {
+    "deepswe": [
+      "deepswe_bandit-structured-nosec-directives"
+    ],
+    "swebenchpro": [
+      "swebenchpro_instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26"
+    ]
+  },
+  "rq1": {
+    "deepswe": [
+      "deepswe_awilix-async-container-initialization",
+      "deepswe_pwntools-tube-multiplexing",
+      "deepswe_kcp-go-multiplexed-kcp-streams",
+      "deepswe_etree-xml-diff-patch",
+      "deepswe_participle-grammar-conflict-analysis",
+      "deepswe_mobly-grouped-test-barriers",
+      "deepswe_arcane-drift-detection-baselines",
+      "deepswe_helm-array-merge-strategies",
+      "deepswe_fastapi-implicit-head-options",
+      "deepswe_testem-bail-on-test-failure",
+      "deepswe_tomlkit-toml-table-converters",
+      "deepswe_fastapi-deprecation-response-headers"
+    ],
+    "swebenchpro": [
+      "swebenchpro_instance_qutebrowser__qutebrowser-bedc9f7fadf93f83d8dee95feeecb9922b6f063f-v2ef375ac784985212b1805e1d0431dc8f1b3c171",
+      "swebenchpro_instance_internetarchive__openlibrary-5de7de19211e71b29b2f2ba3b1dff2fe065d660f-v08d8e8889ec945ab821fb156c04c7d2e2810debb",
+      "swebenchpro_instance_ansible__ansible-e40889e7112ae00a21a2c74312b330e67a766cc0-v1055803c3a812189a1133297f7f5468579283f86",
+      "swebenchpro_instance_qutebrowser__qutebrowser-96b997802e942937e81d2b8a32d08f00d3f4bc4e-v5fc38aaf22415ab0b70567368332beee7955b367",
+      "swebenchpro_instance_protonmail__webclients-e65cc5f33719e02e1c378146fb981d27bc24bdf4",
+      "swebenchpro_instance_internetarchive__openlibrary-4b7ea2977be2747496ba792a678940baa985f7ea-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4",
+      "swebenchpro_instance_element-hq__element-web-fe14847bb9bb07cab1b9c6c54335ff22ca5e516a-vnan",
+      "swebenchpro_instance_gravitational__teleport-f432a71a13e698b6e1c4672a2e9e9c1f32d35c12",
+      "swebenchpro_instance_navidrome__navidrome-3972616585e82305eaf26aa25697b3f5f3082288",
+      "swebenchpro_instance_gravitational__teleport-d6ffe82aaf2af1057b69c61bf9df777f5ab5635a-vee9b09fb20c43af7e520f57e9239bbcf46b7113d",
+      "swebenchpro_instance_flipt-io__flipt-e5fe37c379e1eec2dd3492c5737c0be761050b26",
+      "swebenchpro_instance_internetarchive__openlibrary-0a90f9f0256e4f933523e9842799e39f95ae29ce-v76304ecdb3a5954fcf13feb710e8c40fcf24b73c"
+    ]
+  },
+  "holdout": {
+    "deepswe": [
+      "deepswe_ofetch-per-origin-circuit-breaker",
+      "deepswe_sqlite-utils-safe-import-checkpoints",
+      "deepswe_wazero-multi-module-snapshots",
+      "deepswe_drizzle-orm-window-function-builders",
+      "deepswe_returns-validated-error-accumulation",
+      "deepswe_boa-hierarchical-evaluation-cancellation",
+      "deepswe_kombu-single-active-consumer-priority",
+      "deepswe_httpx-streaming-json-iteration",
+      "deepswe_cattrs-partial-structuring-recovery",
+      "deepswe_httpx-deterministic-cookie-store",
+      "deepswe_clack-async-autocomplete-options",
+      "deepswe_vitest-duration-sharding"
+    ],
+    "swebenchpro": [
+      "swebenchpro_instance_qutebrowser__qutebrowser-deeb15d6f009b3ca0c3bd503a7cef07462bd16b4-v363c8a7e5ccdf6968fc7ab84a2053ac78036691d",
+      "swebenchpro_instance_qutebrowser__qutebrowser-fea33d607fde83cf505b228238cf365936437a63-v9f8e9d96c85c85a605e382f1510bd08563afc566",
+      "swebenchpro_instance_ansible__ansible-4c5ce5a1a9e79a845aff4978cfeb72a0d4ecf7d6-v1055803c3a812189a1133297f7f5468579283f86",
+      "swebenchpro_instance_element-hq__element-web-d06cf09bf0b3d4a0fbe6bd32e4115caea2083168-vnan",
+      "swebenchpro_instance_flipt-io__flipt-96820c3ad10b0b2305e8877b6b303f7fafdf815f",
+      "swebenchpro_instance_qutebrowser__qutebrowser-70248f256f93ed9b1984494d0a1a919ddd774892-v2ef375ac784985212b1805e1d0431dc8f1b3c171",
+      "swebenchpro_instance_nodebb__nodebb-8168c6c40707478f71b8af60300830fe554c778c-vf2cf3cbd463b7ad942381f1c6d077626485a1e9e",
+      "swebenchpro_instance_ansible__ansible-c616e54a6e23fa5616a1d56d243f69576164ef9b-v1055803c3a812189a1133297f7f5468579283f86",
+      "swebenchpro_instance_nodebb__nodebb-f083cd559d69c16481376868c8da65172729c0ca-vnan",
+      "swebenchpro_instance_future-architect__vuls-7eb77f5b5127c847481bcf600b4dca2b7a85cf3e",
+      "swebenchpro_instance_internetarchive__openlibrary-b67138b316b1e9c11df8a4a8391fe5cc8e75ff9f-ve8c8d62a2b60610a3c4631f5f23ed866bada9818",
+      "swebenchpro_instance_flipt-io__flipt-c1728053367c753688f114ec26e703c8fdeda125"
+    ]
+  }
+}

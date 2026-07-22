@@ -34,3 +34,31 @@ The entries below preserve only verbatim user-authored research instructions.
 > 不要考虑人工标注, 想别的方案实验
 
 > 独立 gold：需要两位专家独立标注，再由第三位专家盲审裁决。材料和具体要求见 [questions-for-author.md](/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/questions-for-author.md)。这不要. 你可以想办法用别的轨迹或者 benchmark 来饰演
+
+> 我们一定要改善吗
+
+> 能不能减少一些 claim, 之分析轨迹
+
+> 这样实验简单一点
+
+> 我们的 claim 是什么? 能解决什么用户问题? 分析出来什么?
+
+> 重建 claim：能够从原始 Agent 记录和 workspace 状态忠实重建跨 session 轨迹 这个是 by design 的吧
+
+> RQ 分别是什么
+
+> 我们 empirical study 开源项目的演化过程是一个贡献吗? 能分析出来什么?
+
+> 我们就是案例实证研究和 contribution 分开?
+
+> commit-level 历史遗漏的过程信息不是最关心的对吧? 核心的什么样的东西会让人最关心?
+
+> user prompt 记录下来了吗
+
+> 这些也记录? 还有没有有趣的问题? 多记录一下? 记录一个 empirical study 的文档? 然后去做, 分析五六个本地项目?  按照 research 流程不断迭代, target AAAI,  empirical study 至少 5 个 RQ, 然后工具本身再来一个 RQ, 证明测量 claim：该表示能够产生最终 diff 和简单事件计数无法表达的过程指标, 也能比起单独的 LLM as judge 或者别的方案更好的理解长期的 Agent 轨迹导致的项目演化过程? 前面 case study 的是不是可以用一些模型里面的指标来表达 (不过不一定要和模型完全绑定)?
+
+## 2026-07-22
+
+> 写一个 asbtract / title 给我先
+
+> 该画图的要画出来图

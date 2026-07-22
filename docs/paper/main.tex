@@ -15,7 +15,7 @@
 \usepackage{xcolor}
 \usepackage{tikz}
 \usepackage{xspace}
-\usetikzlibrary{arrows.meta,backgrounds,fit,positioning}
+\usetikzlibrary{arrows.meta,fit,positioning,shapes.geometric}
 
 \pdfinfo{
 /TemplateVersion (2027.1)
@@ -23,9 +23,10 @@
 
 \newcommand{\system}{\textsc{Agent Nebula}\xspace}
 \newcommand{\artifact}[1]{\texttt{#1}}
+\newcommand{\resulttodo}[1]{\textcolor{red}{[Result pending: #1]}}
 
-\title{Beyond the Session: Evaluating Process-Level Supervision of\\
-Long-Horizon Agents through Workspace Evolution}
+\title{Are Long-Running Agents Making Progress?\\
+A Longitudinal Study of Artifact Evolution, Rework, and Continuity}
 \author{Anonymous Submission}
 \affiliations{}
 
@@ -33,645 +34,538 @@ Long-Horizon Agents through Workspace Evolution}
 \maketitle
 
 \begin{abstract}
-Long-horizon agents work across context resets while persistently changing
-code, papers, data, experiments, and documentation.  Final outcomes and
-session-local traces hide how workspace state evolved and which earlier
-changes a later session revisited or validated.  Prior work diagnoses
-trajectories and injects guidance, but does not test structured workspace
-evidence against complete same-source records exposed by Full Raw Retrieval
-(Full Raw).  We hypothesize that workspace
-relations make relevant cross-session evidence accessible within a bounded
-budget and improve an automatic supervisor's executed continuation.  We present
-\system, a deterministic, source-linked workspace action trajectory and bounded
-retrieval interface.  At a frozen checkpoint, we define a comparison among
-No-op, Generic, Full Raw, and Workspace Trajectory.  A supervisor intervenes or abstains, the same
-worker continues from byte-identical forks, and the unmodified official
-executable evaluator (oracle)
-scores every result without human annotations, agent-generated labels, or
-LLM-judge scores.  A mechanics pilot had zero historical-evidence
-calls, and a preregistered six-task No-op headroom screen blocked the planned
-four-condition objective-utility comparison.  We report no treatment-effect estimate and specify
-the required prospective cross-domain qualification.
+Long-running agents can modify a workspace for days across many context resets.
+When they stop, action counts, commits, and final artifacts do not reveal
+whether activity accumulated into durable and validated progress or repeatedly
+overwrote, abandoned, and rediscovered the same work.  Existing trajectory
+studies characterize actions within benchmark attempts, while studies of
+long-lived agents focus on task outcomes or internal memory degradation.  We
+instead make the persistent workspace the longitudinal unit of analysis.
+We introduce a source-linked projection that connects native Claude, Codex, and
+Gemini actions to stable artifact identities, lifecycle effects, event time,
+and session boundaries without introducing semantic labels or aligning the
+timeline to Git commits.  We use it to study six real software and autonomous-
+research projects through artifact durability, later reuse, validation
+association, rework, attention migration, and cross-session re-grounding.  A
+separate measurement experiment compares source-verifiable fact coverage with
+Final State, aggregate Counts, the official ProcGrep action representation, and
+a bounded raw-log language-model reader.  \resulttodo{corpus coverage, central
+empirical findings, and measurement-comparison results.}
 \end{abstract}
 
 \section{Introduction}
 
-Long-horizon agents accept broad goals, work for hours or days, and return a
-repository or research workspace after many model contexts.  Software
-development and autonomous research share this structure because agents read,
-create, modify, rename, validate, and delete persistent artifacts while their internal
-context is repeatedly replaced.  Persistent multi-artifact workspaces already
-appear in realistic benchmarks~\cite{zhou2026orspace}.
+An increasingly common workflow gives an agent a broad idea, leaves it to work
+inside one repository for two or three days, and inspects the result later.
+The returned workspace may contain hundreds of tool calls, dozens of commits,
+and substantial code, prose, tests, and experimental output.  This volume
+looks productive but does not answer the question the user actually has:
+\emph{did the work converge into durable, validated progress?}
 
-A session is therefore an incomplete unit of oversight.  It records
-where an action executed, but the workspace preserves what one session leaves
-for later sessions to revisit or replace.  Final task scores are necessary but
-also collapse the process.  Two workers can reach the same score after different
-degrees of rediscovery, unvalidated change, or discarded work.  Context
-management can drop task-critical plans~\cite{mehta2026plans}, and failures can
-emerge only over many sessions~\cite{zhu2026aging}.  Linear logs preserve more
-evidence, yet force a bounded supervisor to reconstruct artifact lifecycles and
-cross-session continuity inside its context window.
+Final state and commit history are necessary but lossy views of that question.
+They omit reads, failed validations, transient artifacts, overwritten attempts,
+and the cost of re-establishing context after a session boundary.  Aggregate
+counts retain activity volume but erase which artifacts actions concerned and
+whether later work reused or replaced them.  A raw log retains detail, yet its
+session-local linear order does not directly expose a workspace lineage that
+continues after one context disappears.  Context management can rapidly weaken
+earlier plans~\cite{mehta2026plans}, and reliability can change over long chains
+of sessions~\cite{zhu2026aging}.
 
-Existing diagnosis and intervention methods do not establish objective
-intervention utility under a matched Full Raw--Workspace Trajectory comparison.
-We define this utility as improvement in the official outcome of the
-subsequently executed continuation under matched resources.  AgentDiagnose
-measures process competencies~\cite{ou2025agentdiagnose}, while AgentRx
-localizes critical steps using synthesized constraints and stepwise validation
-logs~\cite{barke2026agentrx}.
-TrajAudit retrieves evidence from noisy repository traces~\cite{wang2026trajaudit},
-and AgentForesight audits prefixes for early failure~\cite{zhang2026agentforesight}.
-Similarly,
-intervention alone is not the contribution: REFLECT validates attribution
-through controlled replay~\cite{lin2026reflect}, while harness-oriented work
-links trace mechanisms to repairs~\cite{chen2026harnessfix}.
+Fine-grained trajectory analysis is not new.  Prior work mines action
+sequences and repeated behaviors in software-engineering agents
+~\cite{bouzenia2025trajectories}, measures validation and context-gathering
+behavior under task and model confounds~\cite{mehtiyev2026behavioral}, and
+shows that agents may reach a correct intermediate state and later overwrite
+it~\cite{kim2026trajeval}.  ProcGrep represents trajectories as action
+procedures and supports deterministic pattern queries and behavioral
+fingerprints~\cite{oderinwale2026procgrep}.  Persistent file workspaces and
+multi-session tasks are also established system mechanisms and settings
+~\cite{zhou2026orspace}.  These results rule out generic claims about first
+trajectory analysis, edit loops, validation gaps, fingerprints, or persistent
+workspaces.
 
-The narrower open question is whether source-linked cross-session workspace
-relations improve objective intervention utility beyond the same bounded
-supervisor with complete same-source Full Raw access.  In this comparison, Full
-Raw is complete with respect to every frozen item in the registered Raw universe,
-including sanitized native sessions, prior official prompts and worker-visible
-logs, and immutable checkpoint or snapshot bytes and manifests.  Completeness
-is limited to those records and does not imply observation of effects absent
-from them.
+The remaining gap is longitudinal and artifact centered.  A benchmark attempt
+usually ends when one patch is scored; a persistent project continues while
+code, papers, datasets, results, and documentation acquire histories of their
+own.  We ask how action volume relates to three observable dimensions:
+\emph{durability}, whether an artifact persists; \emph{reuse}, whether later
+work returns to it; and \emph{validation association}, whether a later
+successful validation follows its mutation.  We keep these dimensions
+separate instead of combining them with arbitrary weights.  Their conjunction
+is useful shorthand for durable, reused, and validation-associated artifact
+progress, not a scalar quality score.
 
-Our hypothesis is that persistent-workspace relations can make relevant
-cross-session evidence accessible within a bounded retrieval budget and thereby
-improve the realized outcome of a later worker.  The hypothesis does not claim
-that the relations add source information, and trace readability alone does not
-establish it.  Support requires executed continuations to outperform both
-complete Full Raw access and matched extra inference.
-
-We present \system to test that hypothesis without semantic diagnosis labels.  It
-orders native actions by normalized reported execution time, projects only
-source-supported artifact effects, and exposes artifact history, differences
-between immutable post-session snapshots, and whether each action's effects are
-observed, absent under qualified coverage, or unresolved.  Both Full Raw and
-Workspace Trajectory draw on the same registered Raw universe.  At a frozen
-checkpoint, each bounded supervisor emits one guidance
-message or \artifact{ABSTAIN}.  Every fork then executes the same future task
-with the same worker.  The oracle measures the realized
-continuation outcome.  No-op and Generic control for unassisted continuation and
-extra inference.  This closed loop avoids asking either a person or another
-model to decide whether the process ``looked wrong.''
-
-The current implementation establishes mechanics but not objective intervention
-utility.  Its pilot and headroom results remain dependency-only findings.
+We build this study directly on native Agent records.  The existing
+\artifact{agent-session} adapters parse Claude, Codex, and Gemini.  A thin
+repository projection retains all admitted Tool actions, resolves qualified
+file effects, preserves explicit rename lineage and session identity, and
+orders events by Agent action time.  Git contributes final tracked state and
+optional content-survival evidence, but commits never define the time axis.
+The same facts drive both quantitative analyses and the auxiliary \system
+replay; visual layout is not a statistical measurement.
 
 This paper makes three contributions:
 
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
-  \item A workspace-centered formulation of process-level supervision across
-  sessions and artifact types, evaluated by objective continuation outcome
-  (Section~\ref{sec:problem}).
-  \item A deterministic, source-linked action trajectory and bounded query
-  interface exposing artifact history, session differences, and action effects while
-  preserving exact-record provenance and source-and-budget parity
-  with Full Raw
-  (Section~\ref{sec:design}).
-  \item A checkpoint-matched intervention protocol designed to distinguish
-  objective intervention utility from extra inference, worker variation, task headroom,
-  and evaluator leakage using No-op, Generic, and Full Raw controls
-  (Section~\ref{sec:evaluation}).
+  \item a longitudinal empirical characterization of how Agent activity,
+  artifact persistence, reuse, validation, rework, attention, and session
+  continuity interact across six real coding and autonomous-research projects;
+  \item a deterministic, source-linked measurement method that preserves
+  stable artifact identity and cross-session lineage without another general
+  event IR or generated semantic gold; and
+  \item a fact-level evaluation that isolates the incremental measurement
+  coverage of artifact and session relations from Final State, Counts,
+  ProcGrep's action-only procedures, and a bounded raw-log model reader.
 \end{enumerate}
 
-\section{Problem Setting and Motivation}
+\section{Problem Setting}
 \label{sec:problem}
 
-\subsection{Persistent Workspaces and Checkpoints}
+\subsection{Persistent Work Rather Than Isolated Sessions}
 
-Let a long-horizon task operate on a persistent workspace $W$ through model
-sessions $s_1,\ldots,s_m$.  A session may end because of context limits,
-interruption, delegation, or orchestration policy while both task and workspace
-continue.  Let $C$ be a structural checkpoint immediately before a fresh
-top-level worker session.  It freezes the complete workspace bytes, admitted
-source records, task state, worker configuration, and remaining official
-continuation.  The checkpoint, rather than a completed conversation, anchors
-the comparison in Section~\ref{sec:evaluation}.
+Let a workspace $W$ persist while sessions $S=(s_1,\ldots,s_m)$ execute native
+Tool actions $A=(a_1,\ldots,a_n)$.  Each action may read, create, mutate,
+rename, or delete zero or more artifacts.  Sessions partition model context;
+they do not reset $W$ or terminate an artifact's history.  Our unit of analysis
+is one repository lineage over the complete observation interval, with
+project-level cases kept separate.
 
-\subsection{The Workspace-Centered Evidence Gap}
+Action time is ordered by native timestamp and stable source identifier.  A
+commit can occur between actions and can anchor a final-state query, but it
+does not replace the action order.  This distinction is important because an
+agent can explore, fail, create temporary files, and revert changes before any
+commit.
 
-The final workspace $W_T$ cannot distinguish processes that leave similar
-artifacts.  A native transcript retains detail but partitions continuing work
-by transient contexts.  A workspace-centered view connects actions through
-durable artifacts across sessions.  This representation does not prove
-intent or causality.  It makes the observed cross-session action sequence
-retrievable under a bounded supervisor budget.
+\subsection{Observable Progress Without Semantic Gold}
 
-The claim is deliberately comparative.  Workspace Trajectory contains no
-native fact unavailable through Full Raw Retrieval.  Its hypothesized value is
-an inductive bias: artifact history, session differences, and action-effect
-status may
-make useful evidence accessible before the retrieval budget is exhausted.  For
-example, a configuration may be renamed in one session, followed by a test edit
-and no observed validation in later sessions.  Full Raw access requires the
-supervisor to discover both names and open several ranges.  Artifact history,
-session-difference and effect queries can return supporting source IDs in bounded
-requests.
-This is a motivating access pattern, not evidence of utility.  If Full Raw
-matches Workspace Trajectory's continuation outcomes, the objective intervention
-utility claim fails.  A tie that meets a preregistered lower-retrieval-cost
-criterion supports only an efficiency claim.
+We do not infer intent, failure cause, reflection, or waste from file motion.
+Instead, we measure source-verifiable process facts:
 
-\subsection{Supervision Target}
+\begin{itemize}[leftmargin=*,itemsep=2pt]
+  \item \textbf{Durability}: final artifact existence or tracked state and,
+  where independent diff or snapshot evidence permits, content survival;
+  \item \textbf{Reuse}: a later source-linked access to the same artifact
+  lineage and its event, time, and session distance; and
+  \item \textbf{Validation association}: distance from mutation to the next
+  source-native successful test, check, build, or experiment action.
+\end{itemize}
 
-The evaluated consumer is an automatic supervisor, not a human visualization
-user.  It may inspect checkpoint evidence, emit one bounded intervention, or
-abstain.  The intervention is useful only if the subsequently executed worker
-receives a better official outcome without unacceptable harm or cost.
+A successful validation proves that validation occurred, not that it covered a
+particular mutation.  A file that is never revisited is an observed orphaned
+artifact, not automatically useless.  Repeated tests or edits are process
+patterns, not automatically waste.  Skill and harness analyses therefore
+report temporal association, never causality, in the observational corpus.
 
-\section{Workspace Trajectory Design}
-\label{sec:design}
-
-\subsection{Overview and Requirements}
-
-Four requirements constrain the design.  \emph{Continuity} requires a common ordering
-across sessions and source adapters that have passed source/effect qualification.
-\emph{Evidentiary fidelity} requires the projection to separate observed effects
-from inferred semantics and link every relation to exact source records.
-\emph{Budgeted access} requires retrieval from long histories under fixed byte,
-token, tool, and time budgets.  \emph{Fair comparison} requires Full Raw and
-Workspace Trajectory to have identical source membership and total supervision and continuation
-resources.  Within qualified adapters, continuity and fidelity are checked
-through ordering, provenance, and parity.  Budget and fairness are protocol controls.
-Only objective intervention utility is an empirical claim.  \system
-normalizes reported native timestamps to epoch time, and the source ID
-deterministically orders equal timestamps.
-Records without a usable timestamp remain available to Full Raw lookup but do not
-create ordered transition edges.  Git commits do
-not define the action time axis or establish progress.  They may only mark
-milestones in an auxiliary replay.
-
-Figure~\ref{fig:architecture} shows the matched comparison.  Both conditions
-begin with the same frozen native records.  Full Raw exposes bounded search,
-exact-record, and exact-range access.  Workspace Trajectory retains those tools
-and adds only deterministic relations derived from the same records.  A shared
-supervisor and worker produce an executed continuation, which the official
-oracle scores.
+Figure~\ref{fig:process-measures} makes the measurement relationships explicit.
+The study follows Agent action time through session boundaries, keeps artifact
+histories distinct, and measures survival, later reuse, validation distance,
+and observable re-grounding.  The figure is a definition schematic rather than
+an empirical result; the corresponding result plots are generated from the
+six-project source rows in Section~\ref{sec:evaluation}.
 
 \begin{figure*}[t]
 \centering
-\resizebox{\textwidth}{!}{%
+\resizebox{0.96\textwidth}{!}{%
 \begin{tikzpicture}[
   x=1cm,y=1cm,
-  box/.style={draw,rounded corners,align=center,minimum height=0.85cm,
-              text width=1.9cm,font=\scriptsize,fill=blue!7},
-  source/.style={box,fill=gray!12},
-  index/.style={box,fill=green!10},
-  model/.style={box,fill=orange!13},
-  output/.style={box,fill=purple!10},
-  flow/.style={-{Stealth[length=2mm]},thick},
-  branch/.style={-{Stealth[length=2mm]},thick,dashed}
+  event/.style={draw,circle,minimum size=0.48cm,font=\scriptsize,inner sep=0pt},
+  read/.style={event,fill=blue!18},
+  mutate/.style={event,fill=orange!28},
+  validate/.style={draw,diamond,aspect=1.5,minimum size=0.58cm,
+                   font=\scriptsize,fill=green!22,inner sep=1pt},
+  state/.style={draw,rounded corners,minimum height=0.48cm,
+                font=\scriptsize,fill=gray!12},
+  flow/.style={-{Stealth[length=1.7mm]},thick},
+  measure/.style={-{Stealth[length=1.7mm]},dashed,semithick,purple!70!black}
 ]
-\node[source] (records) at (0,0) {Frozen native records and checkpoint};
-\node[index] (project) at (2.7,0.9) {Action/effect projection};
-\node[index] (queries) at (5.4,0.9) {History, diff, and effect queries};
-\node[source] (raw) at (5.4,-0.9) {Full Raw retrieval};
-\node[model] (supervisor) at (8.2,0) {Shared bounded supervisor};
-\node[output] (message) at (10.9,0) {Intervention or abstention};
-\node[model] (worker) at (13.5,0) {Shared worker continuation};
-\node[output] (oracle) at (16.0,0) {Official executable outcome};
-\draw[flow] (records) -- (project);
-\draw[flow] (project) -- (queries);
-\draw[flow] (queries) -- (supervisor);
-\draw[branch] (records) |- (raw);
-\draw[branch] (raw) -- (supervisor);
-\draw[flow] (supervisor) -- (message);
-\draw[flow] (message) -- (worker);
-\draw[flow] (worker) -- (oracle);
-\begin{scope}[on background layer]
-\node[draw=green!50!black,dashed,rounded corners,fit=(project)(queries),
-      inner sep=4pt,label={[font=\scriptsize]above:Workspace Trajectory}] {};
-\node[draw=black!55,dashed,rounded corners,fit=(queries)(raw),inner sep=5pt,
-      label={[font=\scriptsize]below:matched source and retrieval budget}] {};
-\end{scope}
-\end{tikzpicture}
-}
-\caption{Matched comparison of Full Raw and Workspace Trajectory.  Both use the
-same frozen sources and retrieval budgets; only Trajectory adds deterministic
-relations.  The official oracle scores the same worker's continuation after a
-bounded intervention or abstention.}
-\label{fig:architecture}
+\draw[flow] (0.8,3.8) -- (15.5,3.8) node[right,font=\scriptsize] {Agent action time};
+\draw[dashed,gray!70] (7.7,0.0) -- (7.7,4.25);
+\node[font=\small] at (4.2,4.18) {Session $s_1$};
+\node[font=\small] at (11.6,4.18) {Session $s_2$};
+\node[font=\scriptsize,rotate=90,gray!70] at (7.9,2.0) {context reset};
+
+\node[font=\small,anchor=east] at (0.55,2.85) {Artifact $f_1$};
+\node[font=\small,anchor=east] at (0.55,1.75) {Artifact $f_2$};
+\node[font=\small,anchor=east] at (0.55,0.65) {Artifact $f_3$};
+\draw[gray!45] (0.8,2.85) -- (15.3,2.85);
+\draw[gray!45] (0.8,1.75) -- (15.3,1.75);
+\draw[gray!45] (0.8,0.65) -- (15.3,0.65);
+
+\node[mutate] (c1) at (1.8,2.85) {C};
+\node[read] (r1) at (3.1,2.85) {R};
+\node[mutate] (w1) at (4.6,2.85) {W};
+\node[validate] (v1) at (6.3,2.85) {V};
+\node[read] (r2) at (9.1,2.85) {R};
+\node[state] (p1) at (13.7,2.85) {exists};
+\draw[flow] (c1) -- (r1);
+\draw[flow] (r1) -- (w1);
+\draw[flow] (w1) -- (v1);
+\draw[flow] (v1) -- (r2);
+\draw[flow] (r2) -- (p1);
+
+\node[mutate] (c2) at (2.5,1.75) {C};
+\node[read] (r3) at (4.0,1.75) {R};
+\node[mutate] (d2) at (5.5,1.75) {D};
+\node[state] (p2) at (13.7,1.75) {absent};
+\draw[flow] (c2) -- (r3);
+\draw[flow] (r3) -- (d2);
+\draw[flow,dotted] (d2) -- (p2);
+
+\node[read] (r4) at (5.8,0.65) {R};
+\node[mutate] (w3) at (7.1,0.65) {W};
+\node[read] (rg) at (8.7,0.65) {R};
+\node[mutate] (w4) at (10.2,0.65) {W};
+\node[validate] (v2) at (12.2,0.65) {V};
+\node[state] (p3) at (13.7,0.65) {exists};
+\draw[flow] (r4) -- (w3);
+\draw[flow] (w3) -- (rg);
+\draw[flow] (rg) -- (w4);
+\draw[flow] (w4) -- (v2);
+\draw[flow] (v2) -- (p3);
+
+\draw[measure] (w1.north) to[bend left=20]
+  node[above,font=\scriptsize] {validation distance} (v1.north);
+\draw[measure] (v1.north) to[bend left=18]
+  node[above,font=\scriptsize] {later reuse} (r2.north);
+\draw[measure] (7.72,0.2) to[bend right=18]
+  node[below,font=\scriptsize] {observable re-grounding} (rg.south);
+
+\node[read] at (1.2,-0.2) {R};
+\node[font=\scriptsize,anchor=west] at (1.55,-0.2) {read};
+\node[mutate] at (3.0,-0.2) {W};
+\node[font=\scriptsize,anchor=west] at (3.35,-0.2) {create/write/delete mutation};
+\node[validate] at (6.7,-0.2) {V};
+\node[font=\scriptsize,anchor=west] at (7.15,-0.2) {successful validation};
+\node[state] at (10.4,-0.2) {state};
+\node[font=\scriptsize,anchor=west] at (11.05,-0.2) {final workspace evidence};
+\end{tikzpicture}}
+\caption{Measurement schematic for persistent workspace evolution.  Circles
+are source-linked reads (R) and mutations (C/W/D); diamonds are successful
+validations (V); terminal boxes are independently observed final workspace
+state.  Artifact $f_1$ is mutated, validated, reused after a session reset, and
+survives; $f_2$ is created and later deleted; $f_3$ illustrates observable
+re-grounding before continued mutation.  The study reports these dimensions
+separately and never treats the schematic as empirical data.}
+\label{fig:process-measures}
 \end{figure*}
 
-\subsection{Source-Linked Workspace Trajectory}
+\section{Workspace-Centered Measurement}
+\label{sec:method}
 
-Projecting only files would erase searches, failed commands, and validation
-actions.  We therefore retain every native tool action and attach zero or more
-source-supported artifact effects.  An action is
+\subsection{Source Selection and Projection}
+
+We admit a complete native session when its project directory, working
+directory or worktree root, or Git remote identifies the target repository.
+All Tool actions in an admitted session remain on the timeline, including
+searches, shell commands, failed validations, and calls without a resolved
+file path.  A global path scan is reported separately because matching only
+repository-related lines loses the surrounding no-file actions.
+
+For each admitted action, the projection retains
 
 \begin{equation}
-a_i=(t_i,s_i,v_i,c_i,u_i,q_i),
+a_i=(t_i,id_i,s_i,v_i,u_i,e_i,q_i),
 \end{equation}
 
-where $t_i$ is the native timestamp, $s_i$ the session, $v_i$ the vendor, $c_i$
-the native call identifier, $u_i$ the native tool/category, and $q_i$ its
-reported success, failure, or unknown call status.  The source ID is
-$id_i=(s_i,c_i)$.  An action-effect status
-$h_i\in\{\textsf{observed},\textsf{no\_effect},\textsf{unknown}\}$ records
-whether qualified source evidence resolves the action's workspace effects.
-Read-only lookup $R(id_i)$ returns the frozen native arguments and result.  A
-deterministic projection associates $a_i$ with
+where $t_i$ is native time, $id_i$ the stable source ID, $s_i$ the session,
+$v_i$ the vendor, $u_i$ the Tool/category, $e_i$ the source-native command
+effect, and $q_i$ the reported status.  It attaches zero or more effects
 
 \begin{equation}
 \begin{aligned}
-E_i &= \{(p,o,p')\},\\
-o &\in \{\textsf{read,write,create,delete,rename}\},
+E_i &= \{(f,o,f')\},\\
+o &\in \{\textsf{read},\textsf{write},\textsf{create},\\
+  &\qquad \textsf{rename},\textsf{delete}\}.
 \end{aligned}
 \end{equation}
 
-where $p$ is workspace-relative and $p'$ is the previous path only for an
-observed rename.  A failed call contributes no successful effect.
-\textsf{no\_effect} is assigned only when the qualified adapter has complete
-declared effect coverage for the action and observes no effect.  Missing or
-ambiguous evidence remains \textsf{unknown}.  Both
-\textsf{no\_effect} and \textsf{unknown} may have $E_i=\emptyset$, but the index
-preserves their distinction and keeps unknown candidates retrievable.  Any
-unresolved disagreement about the task or workspace boundary blocks supervisor
-execution.
-The trajectory is
+Here $f$ is a repository-relative artifact and $f'$ is populated only by an
+observed rename.  Failed calls remain actions but emit no successful effect.
+Directory arguments are weak scope evidence rather than fabricated reads of
+every descendant.  Unknown paths, effects, and status remain explicit coverage
+gaps.
 
-\begin{equation}
-\mathcal{T}(W,C)=\operatorname{sort}_{(t_i,id_i)}[(a_i,h_i,E_i)].
-\end{equation}
+\begin{figure}[t]
+\centering
+\resizebox{0.9\columnwidth}{!}{%
+\begin{tikzpicture}[
+  box/.style={draw,rounded corners,align=center,minimum height=0.72cm,
+              text width=4.4cm,font=\small},
+  output/.style={draw,rounded corners,align=center,minimum height=0.72cm,
+                 text width=2.25cm,font=\scriptsize},
+  flow/.style={-{Stealth[length=2mm]},thick},
+  node distance=0.52cm
+]
+\node[box,fill=gray!12] (native) {Native Claude, Codex, and Gemini sessions};
+\node[box,fill=blue!8,below=of native] (parser) {Existing \artifact{agent-session} events};
+\node[box,fill=green!9,below=of parser] (projection) {Artifact identity, effects, and session lineage};
+\node[output,fill=orange!10,below left=0.6cm and 0.12cm of projection]
+  (metrics) {RQ metrics and source-linked tables};
+\node[output,fill=purple!9,below right=0.6cm and 0.12cm of projection]
+  (media) {Standalone \system media};
+\draw[flow] (native) -- node[right,font=\scriptsize] {parse} (parser);
+\draw[flow] (parser) -- node[right,font=\scriptsize] {repository projection} (projection);
+\draw[flow] (projection) -- (metrics);
+\draw[flow] (projection) -- (media);
+\end{tikzpicture}}
+\caption{One source projection supports measurement and visualization.  The
+empirical analyses consume structured events, not visual coordinates.}
+\label{fig:architecture}
+\end{figure}
 
-The source ID serializes as \artifact{session-id\#source-call-id}.  Full Raw
-resolves it to the frozen native record, and Workspace Trajectory preserves it
-on every derived relation.  A trajectory-only ordinal is not a source ID.
+\subsection{Artifact and Validation Derivations}
 
-\paragraph{Lifecycle and snapshot transitions.}
+An explicit rename preserves artifact identity.  Delete followed by create at
+the same path begins a new identity unless the source connects them.  For each
+mutation, we locate the next later access to that identity and the next
+successful validation globally and within the same session.  We report both
+event and wall-clock distance.  Final existence and tracked state are queried
+from the workspace and Git independently of the event ordering.
 
-For each artifact, the index maintains names, observation bounds, last access,
-read/write counts, and explicit lifecycle events.  A frozen checkpoint manifest
-marks files present at $C$.  Otherwise, existence before first observation is
-unknown.  Native rename preserves identity, but delete followed by create does
-not unless the source explicitly connects them.
+We report complete survival and distance curves or declared sensitivity ranges;
+no fixed 24-event attention window enters the research measurement.  Visual
+attention decay and force layout remain presentation-only choices.
 
-Let $B_s$ be the immutable manifest of the post-session workspace snapshot.
-The session difference $D(B_s,B_{s'})$ contains exact added, removed, and
-content-changed artifacts between consecutive admitted snapshots.  It is a
-state difference, not a causal dependency.  Directory hierarchy remains
-presentation metadata rather than an additional file-like object.
+\subsection{Fact-Level Tool Comparison}
 
-\subsection{Bounded Supervision Interface}
+The tool experiment stratifies questions into action-only, artifact-linked,
+cross-session, and final-state facts.  Every answer must cite source IDs or
+abstain.  Truth is generated independently from native records and
+workspace/Git state; no method under comparison labels its own answer.
 
-All supervisor arms can list, search, and read the current workspace.  Full Raw
-adds a four-operation read-only interface over the registered Raw universe.
-The \artifact{list\_sources}, \artifact{search}, \artifact{read\_record}, and
-\artifact{read\_range} operations expose source membership, lexical matches,
-exact records or snapshot bytes, and contiguous source intervals.
-
-Workspace Trajectory receives the same Raw tools plus exactly three
-deterministic relation queries.  \artifact{artifact\_history(path)} returns ordered
-source-backed reads, mutations, versions, renames, and deletion.
-\artifact{session\_diff(from,to)} returns exact added, removed, or changed
-artifacts between immutable post-session snapshots.
-\artifact{effects(action)} returns the action-effect status, observed effects,
-unresolved candidates, and supporting source IDs.  The registered interface
-exposes no hotspot, importance, recurrence, validation, anomaly, or semantic query.
-
-Queries return observations and provenance, not intent, failure reasons, or
-diagnostic labels.  The shared retrieval layer charges the budget for rendered requests,
-schemas, arguments, returned bytes and tokens, conversation history, and
-responses.  The comparison is
-therefore about bounded accessibility and inductive bias, not new source
-information.
-
-\paragraph{Intervention policy.}
-
-The supervisor prompt fixes one output schema: a bounded guidance message or
-\artifact{ABSTAIN}, cited source IDs when evidence is used, and a short action
-rationale.  It cannot write the workspace, invoke the worker's hidden tools, or
-inspect future prompts and evaluator fixtures.  The message is appended to the
-otherwise unchanged next official task.  Every call and cited source is logged
-for the historical-evidence engagement gate in the evaluation.
+Final State and Counts are lower-information controls.  ProcGrep is the
+strongest action-only procedure baseline and should tie or win action-only
+questions.  The bounded raw-log model receives the same source membership and
+fixed retrieval, context, and output budgets.  The proposed method can support
+only an incremental-coverage claim for artifact-linked and cross-session facts
+at comparable factual accuracy and reported cost.
 
 \section{Implementation}
 \label{sec:implementation}
 
-\system is implemented in Rust using the repository's existing parser for native
-agent sessions.  It affiliates sessions with a workspace, orders tool calls
-by native time, and resolves workspace-relative paths.  The research harness
-adds read-only retrieval, checkpoint cloning, supervisor/worker adapters, budget
-accounting, and oracle invocation without defining a second event schema.  The
-implementation parses and visualizes Claude, Codex, and Gemini native records.
-The completed research qualification, however, covers exact source/effect
-binding only for Codex.
+The implementation is a Rust extension of the existing \artifact{agentvis}
+repository projection.  It reuses \artifact{agent-session} for native parsing,
+affiliates sessions with all repository worktrees, normalizes paths, and emits
+ordinary source-linked JSON and CSV rows.  The analysis computes project-level
+coverage, artifact and mutation rows, and RQ summaries without a frontend,
+database, generated semantic layer, or additional runtime dependency.
 
-\subsection{Source Ingestion and Provenance}
+The product path continues to export one standalone HTML, SVG, PNG, GIF, or MP4
+per visualization.  Layout is computed once and media outputs share the same
+frame stream.  These outputs provide case evidence navigation and reproducible
+examples; the empirical measurements are recomputed from structured rows.
 
-Directly affiliated sessions are read completely.  Paths are resolved against
-known worktree roots, and records outside the workspace remain source actions
-without invented repository effects.  Dependency and build trees such as
-\artifact{.git}, \artifact{node\_modules}, \artifact{target}, and
-\artifact{.cache} are excluded from the repository projection.  Failed calls
-remain chronological actions.  Missing or ambiguous paths close as
-\textsf{unknown}, not \textsf{no\_effect}.
-
-Every projected relation retains its source ID.  Checkpoint creation
-freezes the workspace manifest, admitted session IDs and byte hashes, task
-boundary, worker argv/environment, future prompt identity, and remaining
-budget.  Concurrent records use $(t_i,id_i)$ for reproducible order without
-claiming causality.
-
-\subsection{Matched Retrieval and Continuation}
-
-Full Raw and Workspace Trajectory share one source store and retrieval layer.
-The retrieval layer enforces
-returned-byte, rendered-token, tool-call, response, time, and cost ceilings at
-the interface rather than through post-hoc line counts.  It records all queries,
-responses, source IDs, tokens, latency, and supervisor output.  The harness
-clones the frozen workspace once per condition, injects at most one bounded
-message, and launches the same worker command on the same official next task.
-
-The completed run invoked the oracle twice, rejected evaluations that disagreed,
-and retained only the first payload and invocation count.  A post-run code
-repair configures future runs to retain both payloads and their joint hash.  The
-inspected tasks were not rerun after this repair.  The completed run also
-mistakenly archived runtime credential state, which was removed without reading.
-A separate post-run repair configures future executions to purge credential and
-session runtime trees.  Publication excludes all such paths.
-
-The auxiliary \system replay uses action time rather than commit time and
-exports the same projection for inspection.  Neither visual aesthetics nor human
-reading speed provides evidence for the automatic-supervision RQs.
-
-\section{Evaluation}
+\section{Empirical Study}
 \label{sec:evaluation}
 
-\paragraph{RQ1: Objective Intervention Utility.}
-From the same frozen checkpoint, does Workspace Trajectory improve the official
-continuation score relative to Full Raw, and does its gain over No-op exceed
-Generic's gain, under fixed supervisor, worker, and total resource budgets while
-satisfying the harm criteria versus No-op?
+\subsection{Research Questions}
 
-\paragraph{RQ2: Query Contribution.}
-Only if RQ1 is supported do we ask two questions: (1) does removing artifact
-history, session differences, or action effects reduce objective intervention utility,
-and (2) is any gain attributable only to earlier-session source access?
+\paragraph{RQ1---Activity to artifact progress.}
+How much long-running Agent activity becomes artifact change that persists,
+is later reused, and is followed by successful validation?
 
-\paragraph{RQ3: Generalization and Safe Supervision.}
-Conditional on an RQ1-supported Workspace Trajectory advantage, does that
-advantage generalize across held-out coding and scientific-work workspace/task families, workers, and
-models while satisfying the preregistered intervention-harm, abstention, and
-budget criteria?
+\paragraph{RQ2---Validation dynamics.}
+How do successful and failed validations interleave with mutation bursts and
+unvalidated backlog across artifact types?
 
-\subsection{Prospective Experimental Protocol and Analysis}
+\paragraph{RQ3---Rework and convergence.}
+How do repeated mutation, validation-followed revision, delete/replace, and
+module switching characterize rework and non-convergence?
 
-The experimental unit is $(C,F)$, where $C$ denotes the frozen checkpoint and
-$F$ denotes the unchanged future task and continuation budget.  Supervisor policy $\pi_k$
-observes only condition-$k$ evidence available at $C$ and returns bounded
-guidance $z_k$ or \artifact{ABSTAIN}.  The fixed worker $A$ executes
+\paragraph{RQ4---Cross-session continuity.}
+How much observable re-grounding precedes a new session's first mutation, and
+how often does work continue the previous session's artifacts and modules?
 
-\begin{equation}
-W_k'=A(C,F,z_k), \qquad y_k=O(W_k'),
-\end{equation}
+\paragraph{RQ5---Attention allocation.}
+How does Agent attention migrate among code, tests, configuration, papers and
+documentation, data, results, and workspace modules?
 
-where $O$ is the unmodified executable oracle.  The experiment executes all
-four continuations.  No model estimates a counterfactual outcome.
+\paragraph{RQ6---Skill and harness association.}
+What process patterns follow source-visible skill, harness, model, and task
+configuration, and how heterogeneous are those associations across cases?
 
-We instantiate each unit at a structurally selected checkpoint before a fresh
-top-level worker session.  Earlier official rounds create the prefix workspace and source
-history.  Before condition execution, the harness freezes all inputs and clones
-four byte-identical forks:
+\paragraph{RQ7---Measurement capability.}
+Which source-verifiable facts does the artifact-linked representation recover
+beyond Final State, Counts, ProcGrep, and bounded raw-log model analysis, and
+at what accuracy and cost?
 
-\begin{enumerate}[leftmargin=*,itemsep=2pt]
-  \item \textbf{No Intervention (No-op)}: unchanged official continuation.
-  \item \textbf{Generic}: matched reflection/inspection guidance without
-  historical evidence access.
-  \item \textbf{Full Raw}: bounded search/read access over the complete
-  registered Raw universe.
-  \item \textbf{Workspace Trajectory}: the same Raw tools and budget plus the
-  deterministic workspace relations in Section~\ref{sec:design}.
-\end{enumerate}
+\subsection{Cases and Inclusion}
 
-All four forks share the checkpoint, future task, worker configuration, worker
-continuation budget, and oracle.  No-op invokes no supervisor.  Generic, Full
-Raw, and Workspace Trajectory share the supervisor model/version, base prompt,
-output schema, decoding configuration, and budget ceilings, but receive
-condition-specific evidence interfaces.  Generic has no historical-evidence
-tools.  Full Raw has Raw search/read.  Workspace Trajectory has the same Raw tools plus
-relation queries.  Condition-specific schemas and returned evidence are charged
-to the same ceiling.  Condition order is randomized within checkpoint.  Related
-repositories, task variants, and workspace histories remain in one held-out
-cluster.  Eligibility and checkpoint rules are frozen before observing scores.
+We fix six local open-source repositories before computing process rates.
+They cover systems software, mixed documentation and code, autonomous research,
+and skill/harness development.
 
-The supervisor cannot see future prompts, hidden fixtures, evaluator code or
-results, repaired siblings, or outputs from another condition.  Every relation
-visible to Workspace Trajectory cites a record retrievable by Full Raw.  The
-matched engagement gate requires one successful condition-specific call: a
-current-workspace inspection for Generic, a Raw-history call for Full Raw, and
-a registered relation query for Workspace Trajectory.  The returned payload
-must expose at least one registered source ID; an empty successful API response
-does not count.  A condition that misses its family cannot satisfy the protocol.
-
-\paragraph{Measures and interpretation.}
-
-All outcomes are executable-oracle scores.  No semantic label, human
-adjudication, agent-generated substitute label, or LLM-judge score enters the outcome.
-The registered primary estimand is the task-balanced paired difference
-$y_{Trajectory}-y_{Raw}$.  The mandatory competing contrast is
-$Gain(Trajectory)-Gain(Generic)$, where
-$Gain(k)=y_k-y_{NoOp}$ within a checkpoint.  No-op is the realized benefit and
-harm reference, not a third superiority estimand.  Safety reports harm rate and
-mean negative change versus No-op for every supervisor condition.  Secondary measures include
-abstention utility, returned bytes, rendered tokens, tool calls, latency, and
-total supervisor-plus-worker inference cost.
-
-Repeated continuations estimate worker stochasticity but do not create
-independent task instances.  We report task-level outcomes and paired
-uncertainty over held-out task-family clusters.  Support for objective
-intervention utility requires Workspace Trajectory to satisfy preregistered
-decision rules for the primary Full Raw contrast, the mandatory Generic
-contrast, and intervention harm.
-Before execution, those rules must freeze interval/effect thresholds and the
-acceptable harm-rate and mean-negative-change margins.  If
-Workspace Trajectory ties Full Raw while meeting the preregistered
-lower-retrieval-cost criterion, the result supports only an efficiency claim.
-A tie with Generic or No-op rejects the stronger claim.
-
-\subsection{RQ1: Objective Intervention Utility}
-
-RQ1 tests the primary Workspace Trajectory--Full Raw score contrast and the
-mandatory difference between Workspace Trajectory's and Generic's respective
-gains over No-op.  No-op separately anchors realized benefit and harm.
-Completed evidence is limited to a mechanics-only pilot on
-Harness-Bench~\cite{yao2026harnessbench} revision
-\artifact{1025086a446653702b80cfb48babbeec35db6b2c}.  The pilot used task
-\artifact{058-multiday-project-state} at its Day-2/Day-3 boundary.  Two distinct
-prefix Codex sessions yielded 133 Raw records and seven normalized actions.
-The run verified immutable snapshots, fork manifests, worker arguments and
-environment, source parity, network denial, future-task and oracle non-leakage,
-and agreement between duplicate oracle invocations.
-
-\paragraph{Realized pilot configuration.}
-The worker used Codex CLI 0.144.6 with \artifact{gpt-5.6-sol} configured for medium reasoning.
-The supervisor was Qwen3.6-27B Q4\_K\_M at the frozen model hash reported by the
-artifact, served by llama.cpp revision
-\artifact{2d973636e292ee6f75fadcf08d29cb33511f509f} on one 32-GB RTX 5090.
-Each supervisor had a 65,536-token context, 2,048-token output cap, 16,384-token
-and 65,536-byte evidence caps, 2,048-token/8,192-byte response caps, 24 tool
-calls, and a 20-minute timeout.  Rendered request sizes were 1,292,
-1,737, and 2,076 tokens for Generic, Full Raw, and Workspace Trajectory.  Elapsed supervisor
-times were 2.9, 2.3, and 2.6 seconds.  Each condition executed one final worker
-continuation and two oracle invocations.
-
-The three supervisor arms used the same model, prompt, and budget configuration.
-Full Raw and Workspace Trajectory also shared the source store but received
-their registered interfaces.
-All three supervisors made zero tool calls and cited no source IDs.  Full Raw and
-Workspace Trajectory therefore failed the historical-evidence engagement gate.
-Generic's zero calls are reported but it had no historical-evidence tools.
-Scores were 0.8594 for No-op, Full Raw, and Workspace Trajectory, and 0.9219 for
-Generic.  The run validates only checkpoint, fork, continuation, and oracle
-mechanics.  It does not test Workspace Trajectory retrieval or objective
-intervention utility.
-
-In separate fresh executions, the preregistered No-op headroom screen then
-evaluated six fixed tasks once.  Its task-058 score was not reused from the pilot:
-
-\begin{table}[ht]
+\begin{table}[t]
 \centering
 \small
-\begin{tabular}{@{}lr@{}}
+\begin{tabular}{@{}ll@{}}
 \toprule
-Task & Official score \\
+Repository & Dominant work type \\
 \midrule
-057 interruption/resume & 0.6154 \\
-058 multiday state & 0.8594 \\
-059 event update/replan & 1.0000 \\
-060 cancellation/cleanup & 1.0000 \\
-103 policy update/replan & 1.0000 \\
-105 partial-batch ledger & 0.4994 \\
+AgentSight & systems software and research \\
+ActPlane & systems software and research \\
+bpf-developer-tutorial & tutorial, code, documentation \\
+eunomia.dev & content, documentation, software \\
+agentskill-observability-paper & paper, experiment, code \\
+academic-writing-skills & skills, prompts, tests, documents \\
 \bottomrule
 \end{tabular}
-\caption{Registered Harness-Bench no-op headroom results.  The gate required at
-least four of six tasks below 0.95, but only three qualified.}
-\label{tab:headroom}
+\caption{Fixed first-study cases.  Each project remains one case; its sessions
+are not treated as independent projects.}
+\label{tab:cases}
 \end{table}
 
-The failed gate prevented the four-condition RQ1 matrix.  We also exclude post
-hoc selection of the three lower-scoring tasks.  The pilot supplied
-mechanics-only evidence because Full Raw and Workspace Trajectory made zero
-evidence-tool calls.  RQ1 therefore remains unanswered.
+The main corpus includes all repository-direct Claude, Codex, and Gemini
+sessions and retains actions with no file effect.  We report source coverage by
+project, vendor, session, effect, status, and path presence.  Global path-only
+matches form a separate sensitivity analysis.  \resulttodo{qualified session,
+action, effect, and observation-window counts for all six projects.}
 
-\subsection{RQ2: Query Contribution}
+\subsection{Analysis Protocol}
 
-RQ2 asks whether removing artifact history, session differences, or action effects
-reduces objective intervention utility.  Each representation ablation would
-remove one relation query while preserving complete
-prior-session source membership, Raw tools, checkpoint, and budgets.  A separate
-matched source-scope contrast would remove earlier-session records identically
-from Full Raw and Workspace Trajectory.  It is not a relation-query ablation.
-Because the four-condition RQ1 matrix was not admitted, the RQ2 gate did not
-open.  RQ2 remains unanswered.  Conditional on RQ1 support, the required
-evidence comprises three one-query removals followed by the matched
-earlier-session source-scope contrast.
+Each project is first analyzed as a complete case.  Cross-case summaries state
+their project weighting and do not treat actions as independent samples.
+Primary outputs are effect sizes, distributions, cumulative/survival curves,
+and uncertainty.  Bootstrap or permutation uses session or project blocks only
+when exchangeability is defensible.  Missing source fields remain coverage
+results rather than imputed events.
 
-\subsection{RQ3: Generalization and Safe Supervision}
+Artifact type is an inspectable path/extension classification with an unknown
+class.  Top-level directories provide the default module unit.  Model-derived
+motifs, embeddings, clusters, or summaries are exploratory secondary analyses
+and must resolve to source IDs and deterministic metrics.
 
-RQ3 asks whether an RQ1-supported Workspace Trajectory advantage generalizes
-across held-out coding and scientific-work families, workers, and models under
-the preregistered harm rule.
-Because RQ1 is unanswered, RQ3 is closed.  Workload qualification begins with
-structural properties, not treatment scores.
-For coding, SWE-ContextBench~\cite{zhu2026swecontext} is eligible only if related-task sequences retain
-one persistent workspace lineage and expose a genuine fresh-session boundary.
-Otherwise, a compatible SWE-INTERACT~\cite{raghavendra2026sweinteract}
-construction is required.  For scientific work,
-CORE-Bench~\cite{siegel2024corebench} is eligible only if its official runner can pause at a
-structural boundary, continue in a fresh session, and apply the unchanged
-oracle.
+\subsection{RQ1: Activity to Artifact Progress}
 
-Within each candidate domain, a preregistered manifest freezes structural
-eligibility and reserves disjoint RQ1 task-family clusters plus untouched RQ3
-families.  Coding and scientific work must separately pass structural
-qualification, a No-op headroom gate, and a mandatory historical-evidence
-engagement pilot before
-their four-condition RQ1 comparisons.  Only after an admitted RQ1 matrix
-satisfies the support rule may its held-out RQ3 matrix run after the same three
-gates.  Held-out low-scoring tasks cannot backfill RQ1.  Future admitted runs
-will retain both oracle payloads and hashes.  No task is selected from observed
-model scores.
+RQ1 reports action and mutation volume, final existence and tracked state,
+later reuse distance, mutation-to-successful-validation distance, and the
+intersection of observable durability, reuse, and validation association.
+File-level survival remains separate from content-level survival.  The latter
+is reported only where native diffs, snapshots, or Git line evidence establish
+it independently.  \resulttodo{per-project RQ1 distributions, survival curves,
+cross-case contrasts, and answer.}
 
-An admitted RQ3 experiment must report qualification, task-family clusters,
-paired outcomes, harm, abstention, cost, and uncertainty.  RQ3 remains unanswered.
+\subsection{RQ2: Validation Dynamics}
 
-\paragraph{Limitations.}
+RQ2 measures mutation bursts, successful and failed validation cadence,
+unvalidated mutation backlog, and behavior immediately before and after
+validation.  It never calls a successful command proof that every preceding
+change was correct.  \resulttodo{RQ2 tables, curves, and answer.}
 
-Native agent records may omit implicit reads, subprocess effects, or actions
-outside instrumented tools.  Future evaluations require controlled
-source-coverage audits to quantify this gap.  AgentSight system observations
-will form a separately named evidence ablation only if omission is material.
-Path-based identity remains imperfect
-when a tool copies content without an observed rename.
+\subsection{RQ3: Rework and Convergence}
 
-The supervisor message can change worker behavior for reasons unrelated to
-evidence quality.  The Generic matched-inference control, unchanged prompts, byte-identical
-forks, and total-budget accounting reduce but do not eliminate this threat.
+RQ3 reports repeated mutation per artifact, read--write--validate sequences,
+validation-followed rework, delete/replace events, and module switching.  We
+report distributions and sensitivity ranges rather than one ``thrashing''
+threshold.  \resulttodo{RQ3 distributions, sensitivity analysis, and answer.}
 
-Objective evaluators can reward narrow benchmark behavior.  Held-out task
-families and both coding and scientific-work domains are therefore required
-before broad claims.
+\subsection{RQ4: Cross-Session Continuity}
 
-The representation records actions and artifact effects without inferring
-intent or failure reasons and without judging whether repeated work was
-wasteful.  A supervisor may later infer those semantics, but the current study
-evaluates only whether the supervisor's intervention improves an executable
-outcome.
+RQ4 aligns every eligible native session boundary and measures actions before
+the first mutation, overlap with the preceding session's active artifacts and
+modules, and cross-session rework.  We call this observable cost a session
+reset tax without making a claim about hidden model memory.  \resulttodo{RQ4
+boundary-aligned results and answer.}
+
+\subsection{RQ5: Attention Allocation}
+
+RQ5 reports action allocation by artifact type, module transition matrices,
+transition entropy, hotspot migration, and persistent cold regions in action
+time.  Visual coordinates are excluded from statistics.  \resulttodo{RQ5
+allocation and migration results and answer.}
+
+\subsection{RQ6: Skill and Harness Association}
+
+RQ6 first audits whether skill and configuration events are explicit enough to
+observe.  It then compares subsequent artifact mix, validation cadence,
+rework, and survival within cases.  Task, model, time, and project confounds
+prevent causal attribution.  \resulttodo{RQ6 source coverage, associations,
+heterogeneity, and answer.}
+
+\subsection{RQ7: Measurement Capability}
+
+RQ7 uses a fixed, stratified fact set and the same source universe for every
+method.  It reports fact accuracy, answer coverage, evidence precision,
+abstention, tokens, bytes, and latency.  Action-only questions are positive
+controls for ProcGrep; final-state questions are positive controls for Final
+State.  Artifact-linked and cross-session questions isolate the proposed
+increment.  \resulttodo{fact-set size, baseline versions, accuracy/coverage/
+cost table, and answer.}
+
+\section{Threats to Validity}
+
+Native Agent records can omit implicit subprocess effects, external editor
+changes, or actions performed outside instrumented tools.  The study reports
+adapter and field coverage, and it does not convert missing effects into
+no-effect observations.  Optional system-level AgentSight evidence is a future
+coverage extension, not a second logic layer in the present analysis.
+
+Final workspace state cannot prove content-level survival of every historical
+edit.  We therefore separate file existence, Git-tracked state, and independently
+supported content survival.  Successful validation is association rather than
+coverage or correctness evidence.
+
+The six cases are selected from local author-associated projects.  They provide
+deep, source-native longitudinal evidence but cannot establish population-wide
+rates.  Broad AAAI claims require an independent public or prospectively
+captured corpus after this study identifies measurements with adequate source
+coverage.
+
+Skill, harness, model, task, and project often change together.  RQ6 is
+observational and generates controlled hypotheses; it does not identify causal
+effects.  Likewise, repeated actions, unvisited artifacts, and long validation
+gaps are process facts rather than automatic failure labels.
 
 \section{Related Work}
 
-\paragraph{Trajectory diagnosis and process analysis.}
-AgentDiagnose measures process competencies~\cite{ou2025agentdiagnose}.  AgentRx
-localizes failures~\cite{barke2026agentrx}.  TrajAudit retrieves evidence from
-repository traces~\cite{wang2026trajaudit}, and TRAJEVAL analyzes search, read,
-and edit stages~\cite{kim2026trajeval}.  Accordingly, our claim excludes generic
-diagnosis, trace retrieval, and stage analysis.  We instead test objective
-intervention utility from cross-session workspace relations against a
-same-source Full Raw interface.
+\paragraph{Agent trajectory studies.}
+Software-engineering trajectory studies analyze action sequences, reasoning,
+testing, and strategy~\cite{bouzenia2025trajectories,mehtiyev2026behavioral}.
+TRAJEVAL identifies coherence collapse after reaching useful intermediate
+code~\cite{kim2026trajeval}.  ProcGrep induces canonical action procedures and
+behavioral fingerprints~\cite{oderinwale2026procgrep}.  We reuse these
+action-level precedents and focus the novelty question on persistent artifact
+identity and cross-session lineage.
 
-\paragraph{Intervention and harness repair.}
-HarnessFix maps failed trajectories to repairable harness mechanisms
-~\cite{chen2026harnessfix}.  AgentForesight audits prefixes for early failure
-~\cite{zhang2026agentforesight}, and REFLECT uses controlled replay to validate
-attribution~\cite{lin2026reflect}.  Our contribution is not intervention itself.
-The matched checkpoint protocol is designed to test whether persistent-workspace
-evidence improves continuation beyond the Generic matched-inference condition
-and Full Raw access.
+\paragraph{Long-horizon and persistent work.}
+AgingBench studies reliability across many sessions~\cite{zhu2026aging}, while
+context-management work shows that plans can lose influence
+~\cite{mehta2026plans}.  OR-Space evaluates persistent multi-artifact workspaces
+~\cite{zhou2026orspace}.  These works motivate the setting but do not measure
+artifact durability, reuse, validation association, and re-grounding across
+real project histories.
 
-\paragraph{Long-lived agents and persistent workspaces.}
-AgingBench studies reliability across many sessions~\cite{zhu2026aging}.
-Cross-session threat detection shows that session-local guards miss aggregate
-behavior~\cite{azarafrooz2026crosssession}, and plans can lose influence after
-context management~\cite{mehta2026plans}.  OR-Space makes persistent,
-multi-artifact workspaces part of the task~\cite{zhou2026orspace}.  These results
-motivate the setting but do not answer the matched Full Raw--Workspace Trajectory
-intervention question.
+\paragraph{Diagnosis and harness analysis.}
+AgentDiagnose and AgentRx diagnose completed trajectories
+~\cite{ou2025agentdiagnose,barke2026agentrx}; TrajAudit retrieves evidence from
+repository traces~\cite{wang2026trajaudit}; and HarnessFix links failed
+trajectories to harness mechanisms~\cite{chen2026harnessfix}.  We do not claim a
+new diagnostic labeler or causal harness repair.  Our tool evaluation asks only
+which process facts are measurable from source-linked artifact lineage.
 
 \section{Ethical Considerations}
 
-Native traces can contain source code, prompts, paths, credentials, and private
-experimental data.  Runtime credentials and session homes are not research
-artifacts and must be purged before publication.  Any released trajectory must
-comply with the source workspace's applicable permissions.  Aggregate metrics do not authorize
-publishing private records.
+Native trajectories can contain private prompts, source code, paths, secrets,
+and experimental data.  Local analysis does not imply permission to publish
+raw sessions.  Released evidence must follow repository and data permissions,
+remove credentials and personal content, and prefer aggregate or explicitly
+approved source-linked examples.
 
-An automatic supervisor can cause harm by interrupting useful work.  The
-protocol therefore includes abstention, no-op
-comparison, harm reporting, and bounded intervention rather than autonomous
-control without evaluation.
+Process measurements can be misused as productivity scores.  We therefore do
+not rank people, treat activity volume as progress, or label an observed
+pattern as waste without independent task evidence.  The intended consumer is
+an Agent or automatic diagnostic process studying its own authorized workspace.
 
 \section{Conclusion}
 
-Long-horizon agents transform persistent workspaces across transient sessions.
-\system exposes this process through a source-linked action trajectory and is
-designed to evaluate supervision by the executed outcome.  The registered comparison tests
-Workspace Trajectory against Full Raw and Generic, with No-op anchoring benefit
-and harm.  The pilot validated mechanics, but headroom blocked the RQ1 matrix.
-An objective cross-domain experiment remains necessary before claiming improved
-process-level oversight.
+Long-running Agent work persists in artifacts while session context disappears.
+Studying only final state, commits, or action volume therefore misses the
+process users need to understand: whether work persists, is reused, receives
+validation, converges, and survives context resets.  Our workspace-centered
+measurement connects native actions to artifact identity and session lineage,
+then separates empirical findings from the tool's incremental fact coverage.
+\resulttodo{final evidence-backed answers to RQ1--RQ7 and their implications.}
 
 \bibliography{references}
 

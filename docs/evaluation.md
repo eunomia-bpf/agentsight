@@ -1,159 +1,131 @@
 # Evaluation Frontier
 
-## Research contract
+## Current research contract
 
-The active study asks whether a process representation can improve an automatic
-supervisor's *real intervention outcome*. It does not ask a person or another
-Agent to label what went wrong. One experimental unit is a frozen persistent-
-workspace checkpoint immediately before a fresh worker session. Every condition
-starts from byte-identical state, receives the same future task, and is graded by
-the benchmark's unmodified executable oracle.
+The active study asks whether days of Agent activity become durable,
+reuse- and validation-associated artifact progress, how rework and continuity
+evolve across session boundaries, and what additional source-verifiable facts
+artifact identity and lineage make measurable. It does not require an
+intervention to improve the Agent.
 
-Human annotation, human adjudication, Agent-generated substitute labels, and an
-LLM judge as primary truth are outside this experiment. Visual quality and human
-log-reading speed are also outside the scientific claim.
+Event time from native Agent actions is authoritative. Git contributes final
+state, tracked-file, optional content-survival, and milestone evidence; it does
+not define the timeline. Human labels, expert adjudication, and an LLM judge as
+truth remain excluded. The full Chinese study contract is
+`docs/empirical-study.zh-CN.md`.
 
 ## Open research questions
 
-All paper-level RQs remain open. The Harness Bench run below established
-mechanics and a stopping decision; it did not estimate a treatment effect.
-
-| RQ | Evidence required | Current status | Decisive next action |
+| RQ | Evidence required | Status | Next decisive action |
 |---|---|---|---|
-| RQ1 objective intervention utility | From the same frozen checkpoint, compare Workspace Trajectory Retrieval with Full Raw Retrieval, a generic matched control, and no intervention under the same supervisor, worker, prompt, tool, token, time, and continuation budgets. Execute every continuation and score its final workspace with the official oracle. | Open. Task-058 exercised checkpoint/fork/continue/oracle mechanics, but all three supervisors used zero evidence tools. The registered six-task headroom gate admitted only 3/6 tasks rather than the required 4/6. | Do not rerun or subset the inspected Harness tasks. Qualify a scientifically distinct objective workload with adequate headroom and mandatory, matched evidence-tool engagement. |
-| RQ2 information contribution | After an RQ1 effect exists, remove `artifact_history`, `session_diff`, and `effects` one at a time and measure the change in realized continuation outcome. Test earlier-session source access separately by removing that scope identically from Raw and Trajectory. | Not admitted until RQ1 beats both Raw and the generic matched control. | Run query ablations and the matched source-scope contrast only after an admitted RQ1 result. |
-| RQ3 generalization and safe supervision | Held-out task/workspace families across coding and scientific work, multiple workers/models, intervention harm, abstention, and budget curves. | Open. The current Harness configuration stopped at headroom. SWE Context Bench and CORE-Bench are candidate coding and scientific-work assets, subject to runner qualification. | Freeze structural eligibility before observing worker scores. Verify persistent lineage, a real fresh-session boundary, unchanged official evaluation, no-op headroom, and tool engagement separately in both domains. |
+| RQ1 activity to artifact progress | For all qualified sessions in six projects, relate actions and mutations to final artifact survival, later reuse, successful-validation distance, and their intersection; report source coverage and per-project distributions. | Open; literature grounded, extraction not yet run. | Complete a reviewed six-project extraction and RQ1 analysis. |
+| RQ2 validation dynamics | Mutation bursts, successful/failed validation cadence, mutation-to-validation event/time distance, and unvalidated backlog by artifact type and project. | Open. | Use the same frozen trace corpus in a separately reviewed analysis after RQ1. |
+| RQ3 rework and convergence | Artifact-level repeated mutation, read-write-validate sequences, validation-followed rework, delete/replace, and module switching with threshold sensitivity. | Open. | Freeze definitions after RQ1 coverage audit; do not invent one thrash cutoff. |
+| RQ4 cross-session continuity | Actions before first mutation, prior-hotspot/artifact overlap, module continuation, and cross-session rework at every eligible session boundary. | Open. | Qualify true native session identity and parallel-session handling, then run boundary-aligned analysis. |
+| RQ5 attention and artifact allocation | Action-time allocation across code, test, config, paper/docs, data/results and module transition/hotspot migration. | Open. | Freeze path classification with unknown retained; compare projects as cases, not independent population samples. |
+| RQ6 skill/harness association | Source-visible skill/config invocation followed by action, artifact, validation, rework, and survival patterns, with coverage and confounds. | Open; causal claims prohibited for local cases. | Audit explicit skill/config coverage before admitting analysis. |
+| RQ7 tool measurement | Stratified source-verifiable fact accuracy, coverage, evidence precision, abstention, tokens/bytes/latency for Final State, Counts, official ProcGrep, bounded Raw-log LLM, and artifact-linked trajectory. | Open; ProcGrep `2e8277003d...` qualified as strongest action-only baseline. | Build the fact set after RQ1 source coverage is known; include action-only questions where ProcGrep should tie or win. |
 
-## Conditions and estimand
+## RQ1 selected experiment
 
-The prefix worker executes the official task until a preregistered structural
-boundary. The harness freezes the workspace and source sessions, then creates
-four forks:
+**Question.** Across the complete set of repository-direct Claude, Codex, and
+Gemini sessions for AgentSight, ActPlane, bpf-developer-tutorial, eunomia.dev,
+agentskill-observability-paper, and academic-writing-skills, how much action
+volume is associated with artifact durability, later reuse, and subsequent
+successful validation?
 
-1. **No intervention:** continue the next official worker session unchanged.
-2. **Generic control:** add a budget-matched request to reflect, inspect, and
-   validate, without exposing prior trajectory evidence.
-3. **Full Raw Retrieval:** a supervisor may search and read the complete source
-   records through a bounded interface and emit one intervention or `ABSTAIN`.
-4. **Workspace Trajectory Retrieval:** the same Raw interface and budget plus
-   deterministic, source-linked workspace relations; it emits the same output
-   schema.
+**Primary outputs are a vector, not a weighted score:**
 
-The bounded intervention is appended to the otherwise unchanged official next
-prompt. The same worker configuration continues every fork. No model predicts a
-counterfactual score: all four futures execute and the official oracle grades
-the resulting workspaces.
+1. source and field coverage by project, vendor, session, action and effect;
+2. final tracked existence for observed creates and paths;
+3. later read/write reuse and event/session distance;
+4. mutation-to-next-successful-validation distance and unvalidated backlog;
+5. the conjunction of observable durability, reuse, and validation association;
+6. per-project and cross-case distributions, with sensitivity over complete
+   horizons rather than one fixed event window.
 
-The registered primary estimand is the paired official-outcome difference
-Trajectory-minus-Raw. The mandatory competing contrast is
-`Gain(Trajectory) - Gain(Generic)`, where each gain is measured relative to No
-Intervention within the same checkpoint. No Intervention separately anchors
-realized benefit and harm; it is not a third superiority estimand. A Raw tie
-with lower cost supports only compression or retrieval efficiency, while a tie
-on the mandatory Generic contrast rejects the stronger representation claim.
+The first run may retain fields needed by later RQs, but it cannot claim to
+answer RQ2--RQ7. File-level survival is reported separately from content-level
+survival. A successful validation is associated with preceding mutations; it
+does not prove coverage or correctness of each change.
 
-## Validity and parity rules
+## Corpus and inclusion contract
 
-- Freeze the supervisor model, worker model, prompts, checkpoint, future task,
-  tool schemas, token/byte/tool/time budgets, timeout, continuation budget, and
-  official evaluator before condition execution.
-- Split by complete workspace/task-family clusters. Related repositories,
-  histories, task variants, and derived slices cannot cross held-out boundaries.
-- Select workload eligibility and the structural checkpoint without using
-  observed treatment scores. A failed headroom gate stops the complete matrix;
-  it never licenses choosing only the lower-scoring tasks.
-- Every Trajectory relation must cite source records retrievable by Full Raw.
-  Both interfaces receive identical Raw membership and returned-byte,
-  rendered-token, and tool-call ceilings.
-- The matched engagement gate requires one successful condition-specific call:
-  a current-workspace inspection for Generic, a Raw-history call for Full Raw,
-  and a registered relation query for Workspace Trajectory. A relation response
-  counts only if the returned payload exposes at least one registered source ID;
-  an empty successful API response does not count. A condition that misses its
-  family validates only infrastructure, not the treatment or matched control.
-- Every fork begins from a byte-identical checkpoint. Supervisor input excludes
-  future prompts, hidden fixtures, evaluator implementation/results, repaired
-  siblings, and outputs from other conditions.
-- Run the official evaluator twice on each completed workspace and retain both
-  payloads plus their joint hash. Disagreement invalidates that unit.
-- Required outputs are a bounded intervention or `ABSTAIN`, source IDs for any
-  evidence used, and complete supervisor/worker token, byte, tool, latency, and
-  cost accounting.
-- Primary truth is the unmodified executable outcome. An Agent Nebula output,
-  summary, semantic tag, or visualization cannot define success.
+| Project | Main role | Required identity evidence |
+|---|---|---|
+| AgentSight | systems/research | native cwd, worktree root, or matching Git remote |
+| ActPlane | systems/research | same |
+| bpf-developer-tutorial | tutorial/code/docs | same |
+| eunomia.dev | content/software | same |
+| agentskill-observability-paper | auto research | same |
+| academic-writing-skills | skill/harness development | same |
 
-## Measures
+Main analyses retain complete repository-direct sessions, including Tool
+actions with no resolved path. Global path-search events are a separate
+sensitivity source because their surrounding no-file actions are unavailable;
+they cannot enter validation cadence or session-reset denominators.
 
-Primary measures are checkpoint-matched official outcome, paired outcome
-difference, and harm rate relative to no intervention. Secondary measures are
-abstention utility, supervisor and continuation tokens, returned bytes, tool
-calls, latency, and total inference cost. Report task-level results and paired
-uncertainty; do not treat repeated continuations from one task family as
-independent benchmark instances.
+All source-native failed calls remain activity records but contribute no
+successful file effect. Missing timestamp, cwd, effect, status, or path is
+reported in coverage rather than silently imputed. Artifacts under dependencies
+and build caches excluded by the visualization path policy remain excluded and
+are reported as such.
 
-For stochastic workers, repeat all conditions from the same checkpoint with a
-preregistered seed/run schedule and randomize condition order within each
-checkpoint. A positive claim must survive the generic control and a matched
-total inference-budget comparison.
+## RQ1 operational checks
 
-## Completed Harness Bench dependency check
+- Artifact durability uses final tracked/existing state and explicit native
+  lifecycle effects. Content survival is absent unless source diffs, snapshots,
+  or Git line evidence can independently establish it.
+- Reuse requires a later source-linked access to the same artifact lineage.
+- Validation association uses `agent-session`'s source-native command effect
+  plus successful status. Unknown status is not converted to success.
+- Every statistic is recomputable from exported project rows and source IDs.
+- Results remain separate by project. Any pooled summary weights projects
+  explicitly and cannot treat actions as independent projects.
+- Confidence intervals or bootstrap use session/project blocks only where the
+  exchangeability assumption is defensible.
 
-The implementation and no-model preparation gate passed on Harness Bench
-revision `1025086a446653702b80cfb48babbeec35db6b2c`. The strict P0 used task
-`058-multiday-project-state` at its Day-2/Day-3 boundary. Two prefix Codex
-sessions produced 133 Raw records and seven normalized actions. Immutable
-snapshots, fork manifests, stable argv/environment, worker network denial,
-hidden-source denial, and duplicate executable oracle evaluation passed.
+## RQ7 baseline contract
 
-The three supervisor conditions shared one source/model/budget identity, but
-each made zero retrieval calls and therefore exposed no source IDs. Official
-scores were 0.8594 for No Intervention, Raw, and Workspace Trajectory, and
-0.9219 for Generic. This is a mechanism result only: it gives no evidence that
-Trajectory relations were used or helped.
+| Method | Competing position | Matched-run role |
+|---|---|---|
+| Final workspace/diff | Process history is unnecessary for the fact. | Lower-information control; expected to answer final-state facts only. |
+| Aggregate Counts | Activity telemetry is an adequate process description. | Lower-information control; expected to answer count questions only. |
+| ProcGrep official action spine | Canonical action procedures are sufficient for trajectory measurement. | Strongest external baseline; expected to tie/win action-only questions. |
+| Bounded Raw-log LLM | A model can reconstruct the same facts on demand from source records. | Requested comparison; same source membership and fixed retrieval/context/output budget. |
+| Artifact-linked trajectory | Stable artifact identity and cross-session lineage add factual coverage. | Proposed method; must cite the same underlying source universe. |
 
-The registered no-op headroom screen then ran once on six fixed tasks in this
-order:
+Ground truth consists only of independently generated source-verifiable facts
+from native records and workspace/Git state. The method under test cannot define
+its own truth. Correct abstention is scored when the sources do not establish a
+fact.
 
-| Task | Official score |
-|---|---:|
-| `057-interruption-resume` | 0.6154 |
-| `058-multiday-project-state` | 0.8594 |
-| `059-event-update-replan` | 1.0000 |
-| `060-task-cancellation-cleanup` | 1.0000 |
-| `103-policy-update-replan-diff` | 1.0000 |
-| `105-partial-batch-resume-ledger` | 0.4994 |
+## Superseded intervention program
 
-The preregistered gate required at least four of six scores below 0.95. Only
-three qualified, so `full_matrix_admitted=false`. The full comparison did not
-run, and the observed low-score subset must not be reused as if it had been
-selected prospectively.
+The earlier H6 program compared No Intervention, Generic, Full Raw Retrieval,
+and Workspace Trajectory Retrieval through executed benchmark continuations.
+It is closed without a treatment inference because the author removed the
+improvement question.
 
-The authoritative current artifacts are:
+The completed Harness Bench dependency run remains valid mechanics evidence:
+task 058 exercised checkpoint/fork/continue/oracle mechanics, but all
+supervisors made zero evidence calls. The fixed six-task headroom gate admitted
+only 3/6 tasks and stopped the matrix. A later SWE-INTERACT plan received a
+blocking review and made no benchmark or model call. These artifacts are
+historical evidence, not the active evaluation:
 
-- `docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/plan.md`
-- `docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/plan-review.md`
-- `docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/result.md`
-- `docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/result-review.md`
+- `docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/`
+- `docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T212000-0700/`
 
-## Next objective workload qualification
+## Current evidence and reports
 
-The next experiment is not a rerun of the inspected Harness slice. Before any
-effect matrix, a small preregistered qualification checks two candidate domains:
-
-- **Coding:** SWE Context Bench only if related-task sequences preserve one
-  persistent workspace lineage across a real fresh-session boundary; otherwise
-  use SWE-Interact or another objective persistent-workspace workload.
-- **Scientific work:** CORE-Bench only if the official runner can pause at a
-  structural boundary, resume in a fresh worker session, and apply its unchanged
-  executable evaluator after continuation.
-
-For each domain, freeze structural eligibility before no-op execution. Then run
-a separate no-op headroom gate and a mandatory evidence-tool-engagement P0. Both
-must pass before No Intervention, Generic, Raw, and Trajectory are compared.
-
-## Raw evidence and reports
-
-- Active BOOTSTRAP step: `docs/tmp/bootstrap/step-0001-20260719T181243-0700/step-report.md`
-- Current experiment directory: `docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/`
-- Current implementation examples: `agentvis/examples/`
+- Study design: `docs/empirical-study.zh-CN.md`
+- Current literature boundary:
+  `docs/tmp/bootstrap/step-0001-20260719T181243-0700/literature-20260721T235934-0700/literature-report.md`
+- Active BOOTSTRAP step:
+  `docs/tmp/bootstrap/step-0001-20260719T181243-0700/step-report.md`
 - Visualization design: `docs/repository-nebula.zh-CN.md`
+
+No RQ currently has a complete reviewed result. Missing values, distributions,
+and figures remain hypotheses until a real full run and independent result
+review complete.

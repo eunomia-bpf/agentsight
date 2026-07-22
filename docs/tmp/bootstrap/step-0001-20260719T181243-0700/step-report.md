@@ -1357,3 +1357,272 @@ eligible only if its related tasks preserve one workspace across a genuine
 fresh-session boundary; otherwise use SWE-INTERACT or another compatible coding
 workload. CORE-Bench is eligible only if the official runner can pause/resume at
 a structural boundary and apply its unchanged executable evaluator afterward.
+
+### Node B27 — Recovery and author-directed empirical-study reconstruction
+
+**Context.** 2026-07-21T23:54:53-07:00; BOOTSTRAP EXPERIMENT_GATE after B26;
+status: recovered on commit `137b0d7a3`, with the intervention experiment
+closed before execution and the scientific contract reopened by explicit
+author instruction.
+
+**Question and entry.** The author asked to reduce the claims, stop requiring
+the representation to improve an Agent, and study trajectories themselves.
+They then fixed a broader empirical objective: determine whether days of Agent
+activity become durable, verified progress; characterize rework and
+cross-session continuity; study associations with skill and harness use; write
+a dedicated empirical-study document with at least five study RQs plus one tool
+measurement RQ; and analyze five or six local projects. This is a material
+BOOTSTRAP contract change, not an implementation repair to H6.
+
+**Inputs and recovery evidence.** The root reread `docs/user-instruction.md`,
+the complete `docs/idea-story.md`, the paper and canonical evaluation state,
+the latest B22--B26 records, and current Git state. The safely rewritten and
+pushed branch is clean at `137b0d7a3` before this node's new documentation
+changes. The subsequent SWE-INTERACT intervention draft and its independent
+review remain under `experiment-20260721T212000-0700/`; no real benchmark or
+model call was made. The review returned BLOCK on intervention timing,
+repository leakage, ITT handling, headroom reuse, source-effect engagement,
+regrading feasibility, and missing execution details. Those defects do not
+route to repair because the author has withdrawn the improvement/intervention
+question itself.
+
+**Scientific impact and decision.** H6 and its four-arm continuation matrix are
+superseded without inference. The next paper studies long-running Agent work as
+the evolution of persistent artifacts. The central empirical distinction is
+activity versus durable and verification-associated progress; Git history is a
+supporting observability contrast, not the headline. Source-linked trajectory
+reconstruction remains a method contribution and implementation qualification,
+not an empirical RQ. The first study is a multi-case analysis, so skill/harness
+differences are descriptive associations rather than causal effects. A tool RQ
+may compare process-fact recovery from Final Diff, Counts, equal-budget Raw-log
+LLM analysis, and trajectory queries, but it must use source-verifiable facts
+and no human semantic gold.
+
+**Review, state updates, and next action.** The exact new author prompt was
+appended verbatim to `docs/user-instruction.md`. Because the RQ set and central
+position changed during BOOTSTRAP, `research-literature-novelty` is reopened
+before a new experiment plan. The root will create a Chinese empirical-study
+design document, update `docs/idea-story.md` only after disposing the new
+literature evidence, qualify five or six distinct local repositories and their
+native Agent traces, and send one selected empirical RQ through the complete
+`research-experiment-design` loop. Completion requires a real multi-project
+result rather than a parser smoke test.
+
+### Node B28 — Closest-work audit for longitudinal artifact progress
+
+**Context.** 2026-07-21T23:59:34-07:00; BOOTSTRAP EXPERIMENT_GATE; parent B27;
+status: complete.
+
+**Question and entry.** With intervention utility withdrawn, which parts of a
+six-case trajectory study and tool comparison remain scientifically
+distinguishable from current Agent-trajectory work? The root reread the exact
+user instructions, complete idea history, paper, and previous literature
+frontier before reopening `research-literature-novelty`.
+
+**Inputs and method.** The node declared six search branches: coding-Agent
+trajectory studies, procedure representations and fingerprints, long-horizon
+diagnosis, persistent workspace systems, Agent-authored open-source evolution,
+and LLM-as-judge trace analysis. It verified primary papers and official
+artifacts, including ASE 2025's thought--action--result study, the ICSE behavior
+study, *Beyond Resolution Rates*, TRAJEVAL, HORIZON, AgingBench, AiScientist,
+FS-Researcher, AIDev, and the official ProcGrep repository at
+`2e8277003dacaa774b5ef61ba150ae03a4f06693`. Full queries, source evidence,
+coverage boundary, and baseline handoff are in
+`literature-20260721T235934-0700/literature-report.md`.
+
+**Results and raw evidence.** Generic trajectory analysis, action motifs,
+validation gaps, rework, behavior fingerprints, persistent file workspaces,
+deterministic action search, and broad LLM-comparison claims all have high
+same-claim risk. ProcGrep is the mandatory action-only tool baseline: it already
+supports local Claude/Codex ingest, canonical atoms, learned procedures,
+fingerprints, exact queries, and an LLM comparison. Its standard spine does not
+retain stable artifact identity, lifecycle, hierarchy, or cross-session
+lineage. Large PR studies cover public repository metadata but not native reads,
+transient artifacts, failed validation, or session lineage.
+
+**Scientific impact and decision.** The central empirical claim is restricted
+to observable artifact accumulation over independent native sessions: activity
+volume is not itself a measure of durability, later reuse, successful-
+validation association, rework, attention, or re-grounding. The tool claim is
+incremental source-verifiable fact coverage beyond action-only procedure
+representations, not a new IR or blanket superiority. Skill/harness effects in
+the six local cases are descriptive associations. The local corpus is
+supporting and hypothesis-generating; broad AAAI population claims require a
+later independent public or prospective corpus.
+
+**Review, state updates, and next action.** The root accepted the narrowed
+novelty boundary because it preserves the user's central activity-versus-
+progress problem while removing claims directly occupied by primary work. It
+updated `docs/background-related-work.md`; no user-authored scientific scope
+was deleted. The next node freezes the complete study contract before any rate
+is computed.
+
+### Node B29 — Empirical-study contract and H7 disposition
+
+**Context.** 2026-07-22T00:10:47-07:00; BOOTSTRAP EXPERIMENT_GATE; parent B28;
+status: complete.
+
+**Question and entry.** Convert the author's scenario into at least five
+empirical RQs plus one tool RQ without turning a by-construction reconstruction,
+Git omission, visualization, or a weighted score into the main claim.
+
+**Inputs and method.** The root compared the intact Initial Narrative, the
+immediately previous H6 intervention narrative, all user instructions, and B28.
+It wrote `docs/empirical-study.zh-CN.md` with six empirical RQs and one tool RQ,
+operational units, source rules, metrics, cases, baselines, analysis policy, and
+non-claims. It updated the current frontiers in `docs/idea-story.md`,
+`docs/evaluation.md`, `docs/design.md`, and `docs/implementation.md`.
+
+**Results.** RQ1 studies activity to observable artifact durability, reuse and
+validation association; RQ2 validation dynamics; RQ3 rework and convergence;
+RQ4 cross-session continuity; RQ5 attention allocation; RQ6 skill/harness
+association; and RQ7 incremental fact coverage against Final State, Counts,
+official ProcGrep, and bounded Raw-log LLM analysis. “Durable verified
+progress” is a vector and conjunction, not an arbitrary weighted scalar.
+Complete distance/survival curves replace fixed event windows. Event time is
+authoritative; Git supplies final-state evidence only.
+
+**Scientific impact and decision.** H6 is superseded without execution. H7
+predicts that activity counts do not collapse the durability, reuse,
+validation, rework, and continuity dimensions, and that stable artifact
+identity adds fact coverage beyond an official action-only representation. This
+is more faithful than both the Initial Narrative and H6: it retains the initial
+persistent-workspace unit and automatic measurability, directly answers the
+author's activity-versus-progress anxiety, and removes an intervention
+requirement the author explicitly withdrew. Reopen interventions only on
+explicit author instruction; revisit broad empirical scope after source
+qualification or closer same-claim work.
+
+**Review, state updates, and next action.** The canonical docs now agree on H7,
+but the reader-facing paper still expressed H6. `research-experiment-design`
+requires the selected RQ to appear in the paper. The experiment gate therefore
+does not manufacture an RQ1 plan against a stale paper; it transitions to the
+WRITE gate to express the accepted contract, then a new step will run RQ1.
+
+### EXPERIMENT_GATE transition after B29
+
+The central position and RQ set changed by explicit author instruction during
+BOOTSTRAP. Literature grounding completed, but no RQ experiment was admitted in
+this gate because the paper did not yet contain the new RQs. The obsolete
+SWE-INTERACT plan remains reviewed and unexecuted; repairing it would answer a
+withdrawn question. The exact next handoff is to WRITE_GATE: express H7 and all
+seven RQs in the paper without inventing result values, compile it, and then
+perform the step-level independent audit.
+
+## WRITE_GATE — H7 paper reconstruction
+
+**Entry and alignment.** The root reread `docs/user-instruction.md`, the
+complete `docs/idea-story.md`, B28--B29, and all current canonical docs.
+`docs/questions-for-author.md` is absent in this worktree and therefore was not
+used as evidence. The permitted BOOTSTRAP change is expression of
+the author-fixed H7 contract. No result value may be invented, and the old H6
+intervention findings remain historical mechanics rather than active results.
+
+### Node B30 — Reader-facing paper updated to the empirical-study contract
+
+**Context.** 2026-07-22T00:14:00-07:00; BOOTSTRAP WRITE_GATE; parent B29;
+status: complete with one recorded skill incompatibility.
+
+**Question and method.** Replace the stale three-RQ intervention paper with a
+submission-shaped account of the accepted activity-versus-progress study. The
+paper now contains the central user problem, persistent-workspace unit,
+deterministic source projection, six empirical RQs, one tool RQ, fixed six-case
+corpus, baseline roles, source/causal limits, and explicit placeholders for
+missing results. Two closest-work citations were added from verified primary
+sources: ASE 2025 and ProcGrep/arXiv 2606.16988.
+
+The required full `iter-refine-writing` component was inspected but could not
+enter: its First Step hard-rejects any paper-level RQ set outside two to five,
+while the author explicitly requires at least five empirical RQs plus one tool
+RQ. Collapsing or deleting RQs to satisfy a writing tool would violate user
+authority and the skill's own prohibition on changing RQ meaning. The component
+is therefore skipped with this failed entry condition; no claim is made that
+its twelve-round loop ran. The root performed the contract rewrite directly
+and leaves writing-style polish to a future compatible pass.
+
+**Results and evidence.** `docs/paper/main.tex` is now five pages and compiles
+with `latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex`. The final
+run resolves all citations and cross-references. B32 subsequently removes the
+remaining overfull equation box and visually validates both method figures;
+two underfull prose warnings do not invalidate the contract or build.
+`docs/paper/main.pdf` is the compiled artifact.
+
+**Scientific impact and decision.** The paper no longer claims intervention
+utility, human/LLM diagnostic gold, or a new general trajectory language. It
+states no empirical result before the real run. The contribution and case-study
+findings are separated, Git omission is supporting contrast, and ProcGrep is
+positioned as a baseline expected to tie or win action-only questions.
+
+**Review, state updates, and next action.** Canonical docs and paper now agree
+on H7. The next gate is REVIEW: a fresh reviewer must audit the contract
+transition, literature coverage, writing-skill skip, paper consistency, and
+whether a new step may admit RQ1 without silently narrowing the user's seven-RQ
+program.
+
+## REVIEW_GATE — Independent audit and BOOTSTRAP closure
+
+### Node B31 — Fresh outer audit of the H7 contract
+
+**Context.** 2026-07-22T00:28:00-07:00; BOOTSTRAP REVIEW_GATE; parent B30;
+status: complete; verdict: PASS.
+
+**Question and independence.** A fresh reviewer with no editing or execution
+role in B27--B30 audited user fidelity, the narrowed novelty boundary, paper
+consistency, the disclosed writing-skill incompatibility, and whether RQ1 can
+enter a real experiment. An earlier reviewer invocation was interrupted before
+producing an artifact or verdict; it supplied no evidence to the successful
+reviewer. The complete successful review is
+`outer-audit-20260722T002800-0700.md`.
+
+**Results.** The reviewer found no scientific or executability blocker. It
+confirmed six empirical RQs plus one tool RQ, the six-case local corpus,
+exclusion of human gold, observational treatment of skill/harness effects,
+ProcGrep as the mandatory action-only baseline, and the intentionally narrow
+incremental tool claim. It also confirmed that RQ1 has fixed cases, source
+admission rules, non-circular dimensions, explicit limitations, and planned
+source-linked JSON/CSV evidence. The three ranked non-blocking risks are native
+effect coverage, external validity of six author-associated cases, and later
+RQ7 baseline coverage.
+
+**Root response and provenance correction.** The root accepts the PASS and
+the exact routing recommendation: the next step enters BUILD_AND_EVALUATE with
+RQ1 as its sole interpreted experiment, while neutral extraction fields may
+support later RQs. Two diagnostic paths mentioned by earlier orchestration
+records, `scripts/check_progress.py` and `docs/questions-for-author.md`, are
+absent in this worktree; no claim is made that they ran or were read. Their
+absence does not alter the user instruction record, scientific contract, or
+RQ1 executability.
+
+### Node B32 — Required figures and visual validation
+
+**Context.** 2026-07-22T00:33:27-07:00; BOOTSTRAP REVIEW_GATE presentation
+follow-up; parent B31; status: complete.
+
+**Question and method.** The author required that every figure warranted by
+the study be drawn. The root used the paper-figure workflow to separate
+definition/architecture figures from empirical result figures. It added two
+data-free TikZ figures to the paper: (F1) an Agent-action-time schematic
+defining durability, later reuse, validation distance, and cross-session
+observable re-grounding, and (F2) the native-session to `agent-session` to
+artifact-projection data flow. It fixed the projection figure for a
+single-column layout and split the effect equation to remove the remaining
+overfull box.
+
+**Results and evidence.** `docs/empirical-study.zh-CN.md` now fixes F1--F10,
+with one principal question, data source, and rendering form per figure. F3--F10
+are deliberately not fabricated: each must be generated by Python/matplotlib
+from its frozen RQ CSV/JSON and exported as vector PDF, with source rows and
+scripts retained. `latexmk -pdf -interaction=nonstopmode -halt-on-error
+main.tex` succeeds, produces a five-page PDF, and the log contains no overfull
+box, undefined reference/citation, or LaTeX error. Page 3 was rendered to PNG
+and visually inspected; both figures are legible and remain distinct from
+numeric evidence.
+
+**Decision and phase transition.** Presentation changes do not alter the H7
+contract audited in B31. BOOTSTRAP step 0001 closes on H7: long-running Agent
+activity is measured against separate observable artifact durability, reuse,
+validation, rework, attention, and continuity dimensions; the tool claim is
+incremental source-verifiable fact coverage. The next step is
+BUILD_AND_EVALUATE/RQ1: independently review the experiment plan, run one real
+repository preflight, execute all six fixed cases, generate F3--F4 from frozen
+outputs, and independently review the results before interpreting RQ1.
