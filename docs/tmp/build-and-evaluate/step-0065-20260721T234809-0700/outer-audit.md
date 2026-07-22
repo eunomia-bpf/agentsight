@@ -62,6 +62,13 @@ The final case audit independently recomputed both artifact hashes, populations,
 stack counts, and every reported signed path value, confirmed that the paper
 did not change the thesis or four RQs, and returned PASS after those repairs.
 
+After commit `36e778343` was pushed, Grok 4.5 independently reviewed the exact
+commit against `447d2dc84` in read-only mode. It inspected the implementation,
+tests, documentation, pprof artifacts, reports, and complete paper, reproduced
+the principal counts and path values, and returned PASS with zero must-fix.
+Its procedure, verdict, and clearly separated optional future work are recorded
+in `external-grok-review.md`.
+
 ## Next state
 
 Remain in `EXPERIMENT_GATE`. Reuse the implemented mark interface for a real
