@@ -123,3 +123,19 @@ duplicate frame; only a new child adds a frame. Left and right remain distinct,
 earlier ancestors remain invalid, continuation is not STOP, and strict interval
 shrinkage remains mandatory. Standard metrics, stable-ID marks, pprof output,
 fixed workload, RQ, thesis, and paper authorization are unchanged.
+
+## Node 0066-E8 — unified stay/pop/push resolution
+
+The v2 source-only replay then returned the current nested analysis operation
+on one side and the earlier root operation on the other. This is the missing
+pop action from the user's original stack model. Independent plan review
+approved v3: resolve a child against the entire active path, using current
+match as stay, earlier match as pop, and no match as push. Resolved siblings
+must differ and every interval still strictly shrinks; STOP remains explicit.
+
+The reviewer also approved exact emitted-path canonicalization. A mark is
+emitted only at sequence start or when the resolved full path changes, so
+adjacent equal paths caused by nested pop do not create redundant leaves or
+marks. Non-adjacent or unequal paths never merge, and raw recursive decisions
+remain auditable. Algorithm/cache identity advances to v3; metrics, workload,
+RQ, thesis, and paper authorization remain unchanged.

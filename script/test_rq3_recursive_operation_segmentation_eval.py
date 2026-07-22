@@ -19,15 +19,13 @@ import rq3_recursive_operation_segmentation_eval as recursive  # noqa: E402
 class RecursiveOperationSegmentationTest(unittest.TestCase):
     def test_parse_decision_rejects_invalid_or_colliding_split(self) -> None:
         self.assertEqual(
-            recursive.parse_decision('{"decision":"stop"}', ["2"], [], "root"),
+            recursive.parse_decision('{"decision":"stop"}', ["2"]),
             {"decision": "stop"},
         )
         self.assertEqual(
             recursive.parse_decision(
                 '{"decision":"split","split_before":"2","left":"inspect code","right":"test fix"}',
                 ["2", "3"],
-                [],
-                "root",
             ),
             {
                 "decision": "split",
@@ -40,16 +38,27 @@ class RecursiveOperationSegmentationTest(unittest.TestCase):
             recursive.parse_decision(
                 '{"decision":"split","split_before":"9","left":"inspect code","right":"test fix"}',
                 ["2"],
-                [],
-                "root",
             )
-        with self.assertRaisesRegex(RuntimeError, "earlier ancestor"):
+        with self.assertRaisesRegex(RuntimeError, "collide"):
             recursive.parse_decision(
-                '{"decision":"split","split_before":"2","left":"root","right":"test fix"}',
+                '{"decision":"split","split_before":"2","left":"inspect code","right":"Inspect   Code"}',
                 ["2"],
-                ["root"],
-                "inspect code",
             )
+
+    def test_resolve_child_implements_stay_pop_and_push(self) -> None:
+        active = ["repair software", "inspect implementation", "trace state"]
+        self.assertEqual(recursive.resolve_child(active, "trace state"), active)
+        self.assertEqual(
+            recursive.resolve_child(active, "inspect implementation"),
+            ["repair software", "inspect implementation"],
+        )
+        self.assertEqual(recursive.resolve_child(active, "repair software"), ["repair software"])
+        self.assertEqual(
+            recursive.resolve_child(active, "validate fix"),
+            [*active, "validate fix"],
+        )
+        with self.assertRaisesRegex(RuntimeError, "duplicate operation"):
+            recursive.resolve_child(["repair software", "repair software"], "validate fix")
 
     def test_current_continuation_does_not_push_duplicate_frame(self) -> None:
         turns = [{"turn_id": str(index)} for index in range(1, 6)]
@@ -82,6 +91,104 @@ class RecursiveOperationSegmentationTest(unittest.TestCase):
             ],
         )
         self.assertTrue(all(left != right for row in leaves for left, right in zip(row["labels"], row["labels"][1:])))
+
+    def test_recursive_pop_discards_the_deeper_suffix(self) -> None:
+        turns = [{"turn_id": str(index)} for index in range(1, 7)]
+
+        def decide(start: int, end: int, ancestors: list[str], current: str) -> dict[str, str]:
+            if (start, end) == (0, 6):
+                return {
+                    "decision": "split",
+                    "split_before": "4",
+                    "left": "inspect implementation",
+                    "right": "validate fix",
+                }
+            if (start, end) == (0, 3):
+                return {
+                    "decision": "split",
+                    "split_before": "2",
+                    "left": "inspect implementation",
+                    "right": "repair software behavior",
+                }
+            return {"decision": "stop"}
+
+        leaves = recursive.decompose_turns(turns, "repair software behavior", decide)
+        self.assertEqual(
+            [row["labels"] for row in leaves],
+            [
+                ["repair software behavior", "inspect implementation"],
+                ["repair software behavior"],
+                ["repair software behavior", "validate fix"],
+            ],
+        )
+
+    def test_resolved_sibling_paths_must_differ(self) -> None:
+        turns = [{"turn_id": "1"}, {"turn_id": "2"}]
+
+        def decide(start: int, end: int, ancestors: list[str], current: str) -> dict[str, str]:
+            return {
+                "decision": "split",
+                "split_before": "2",
+                "left": "repair software behavior",
+                "right": " Repair   Software Behavior ",
+            }
+
+        with self.assertRaisesRegex(RuntimeError, "resolved child paths collide"):
+            recursive.decompose_turns(turns, "repair software behavior", decide)
+
+    def test_nested_pop_coalesces_adjacent_identical_paths_and_marks(self) -> None:
+        turns = [{"turn_id": str(index)} for index in range(1, 7)]
+
+        def decide(start: int, end: int, ancestors: list[str], current: str) -> dict[str, str]:
+            if (start, end) == (0, 6):
+                return {
+                    "decision": "split",
+                    "split_before": "4",
+                    "left": "inspect implementation",
+                    "right": "repair software behavior",
+                }
+            if (start, end) == (0, 3):
+                return {
+                    "decision": "split",
+                    "split_before": "3",
+                    "left": "inspect implementation",
+                    "right": "repair software behavior",
+                }
+            return {"decision": "stop"}
+
+        leaves = recursive.decompose_turns(turns, "repair software behavior", decide)
+        self.assertEqual(
+            leaves,
+            [
+                {"start": 0, "end": 2, "labels": ["repair software behavior", "inspect implementation"]},
+                {"start": 2, "end": 6, "labels": ["repair software behavior"]},
+            ],
+        )
+        operations = [
+            {"step": index, "turn_id": f"turn-{index}", "source_ref": f"trace#{index}"}
+            for index in range(1, 7)
+        ]
+        prepared = {
+            "session": {
+                "material": {"session": "session", "framework": "test", "operations": operations},
+                "turns": [
+                    {
+                        "turn_index": index - 1,
+                        "source_turn_id": f"turn-{index}",
+                        "operations": [operation],
+                    }
+                    for index, operation in enumerate(operations, 1)
+                ],
+            }
+        }
+        predictions, marks = recursive.build_outputs(
+            prepared,
+            {"session": {"leaves": leaves}},
+            ["session"],
+        )
+        self.assertEqual(len(predictions), 6)
+        self.assertEqual([row["start_operation_id"] for row in marks["marks"]], ["1", "3"])
+        self.assertEqual(predictions[2]["operation_ids"], predictions[-1]["operation_ids"])
 
     def test_recursive_split_has_variable_depth_and_complete_coverage(self) -> None:
         turns = [{"turn_id": str(index)} for index in range(1, 7)]

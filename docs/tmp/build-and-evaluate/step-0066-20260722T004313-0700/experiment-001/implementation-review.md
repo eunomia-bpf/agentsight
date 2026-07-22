@@ -41,3 +41,18 @@ stable IDs, cache identity, and mark materialization all remain intact.
 Focused tests pass 7/7, including both continuation directions, no duplicate
 frame, earlier-ancestor rejection, and a real stock-AgentPProf replay with
 exact sample mass. The reviewer returned PASS with no remaining must-fix.
+
+## Round 4 — PASS for v3 stay/pop/push
+
+The next source-only replay exposed an earlier-ancestor pop, so the plan and
+implementation advanced to the unified v3 resolver. Independent code review
+confirmed unique canonical active paths; current stay; one- and multi-frame
+pop; new-child push; raw and resolved sibling-collision rejection; strict
+interval shrinkage; explicit STOP; and no duplicate frames. Exact adjacent
+equal paths are canonicalized into one emitted run while raw calls and
+decisions remain in the session cache.
+
+Scoring and marks continue to use the stable complete path, and algorithm,
+material, inference, and cache identity are v3-bound. Focused tests pass 11/11,
+including an actual AgentPProf and stock-pprof replay. The reviewer returned
+PASS with no remaining must-fix.

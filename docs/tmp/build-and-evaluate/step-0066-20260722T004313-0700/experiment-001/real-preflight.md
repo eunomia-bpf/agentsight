@@ -42,3 +42,21 @@ must remain distinct, and equality with any earlier ancestor remains invalid.
 The algorithm identity advances from v1 to v2; no response under the old
 contract is eligible for cache reuse. Dataset, model, metrics, fixed 405-session
 run, RQ, and paper authorization remain unchanged.
+
+## Attempt 3 — nested output reveals the missing pop action
+
+Under v2, the same source-only trajectory progressed through root continuation
+and a new `analyze ocaml gc code` child. Inside that child, the Agent returned
+the current analysis operation on one side and the earlier root
+`fix ocaml garbage collector crash` on the other. The full decision chain was
+root stay/push, child stay/push, then child stay/root-pop. This precisely matches
+the append/stay/pop stack behavior in the user design; rejecting the earlier
+frame made the recursive interface incomplete.
+
+Independent review approved v3 before any manifest, stage, or score was opened.
+Child resolution now matches against the complete active path: current match is
+stay, earlier match is pop, and no match is push. Resolved sibling paths must
+differ, intervals still strictly shrink, and only explicit STOP/base case ends
+recursion. Exact adjacent equal resolved paths emit one canonical segment/mark,
+while all raw decisions remain cached for audit. The algorithm/cache identity
+advances to v3 and v1/v2 responses are ineligible for reuse.

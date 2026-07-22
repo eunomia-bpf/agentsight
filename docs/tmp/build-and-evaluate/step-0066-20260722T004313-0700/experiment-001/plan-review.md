@@ -94,3 +94,27 @@ path B-cubed, boundary F1, stable-ID marks, and pprof folding. It also encodes
 current-path occurrences aggregate as recurrence. The algorithm/cache identity
 must change and tests must cover both continuation directions, earlier-ancestor
 rejection, no duplicate frame, strict shrinkage, marks, and pprof replay.
+
+## Round 8 — PASS for unified stay/pop/push
+
+The v2 source-only replay next returned the current operation on one side and
+an earlier root operation on the other while decomposing a nested interval.
+This is the user's original pop action, not an invalid semantic label. Before
+opening any manifest, stage, or score, the plan was reopened again.
+
+The reviewer approved a unified resolver. A child matching current stays; a
+child matching an earlier active frame pops to that frame; a name absent from
+the active path pushes one new frame. Both child intervals strictly shrink,
+only explicit STOP or the one-turn base case terminates, and resolved full paths
+must differ. The sparse full-path mark, B-cubed, boundary, and pprof contracts
+remain unchanged. No replace operation is added.
+
+## Round 9 — PASS for emitted-path canonicalization
+
+The reviewer identified one structural consequence: a nested pop may produce
+two adjacent raw recursion leaves with the same resolved full path across a
+parent split. The approved materialization emits a mark only at sequence start
+or when the canonical full path changes, coalescing only exact adjacent equal
+paths. Raw decisions remain auditable. This is deterministic representation
+canonicalization—not semantic contraction—and changes neither assignments,
+B-cubed, boundaries, pprof mass, nor any user-visible stack.

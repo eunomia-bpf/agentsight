@@ -33,7 +33,7 @@ import rq3_stateful_native_turn_task_stack_eval as stateful  # noqa: E402
 
 
 base = source.base
-ALGORITHM_VERSION = "recursive-operation-segmentation-v2"
+ALGORITHM_VERSION = "recursive-operation-segmentation-v3"
 SCHEMA = "agentsight.rq3-recursive-operation-segmentation"
 EXPECTED_SESSIONS = 405
 EXPECTED_OPERATIONS = 20_866
@@ -63,11 +63,13 @@ tools, commands, files, actions, statuses, errors, retries, or observations
 change. Return SPLIT only when both sides can be named as distinct semantic
 responsibilities that explain a sustained change in what the agent is trying
 to accomplish. Choose the single most important such boundary. The two child
-names must be distinct. A child may repeat the CURRENT operation, which means
-that side continues the current responsibility without adding a duplicate
-stack frame. A child must not repeat any EARLIER name in ACTIVE SEMANTIC PATH.
-Child names must be concise lowercase semantic operation phrases, not tool or
-file labels. Return only the required JSON."""
+names must be distinct. A child may exactly repeat any name in ACTIVE SEMANTIC
+PATH: repeating CURRENT means stay at the current responsibility; repeating an
+EARLIER name means pop back to that responsibility and discard the deeper path
+suffix. Do not invent a synonym for stay or pop. A name not in ACTIVE SEMANTIC
+PATH pushes one new child responsibility. Child names must be concise lowercase
+semantic operation phrases, not tool or file labels. Return only the required
+JSON."""
 
 
 def parse_args() -> argparse.Namespace:
@@ -211,8 +213,6 @@ def parse_root(raw: str) -> str:
 def parse_decision(
     raw: str,
     valid_turn_ids: list[str],
-    earlier_ancestors: list[str],
-    current: str,
 ) -> dict[str, str]:
     try:
         value = json.loads(raw)
@@ -233,12 +233,6 @@ def parse_decision(
     left = canonical_label(value["left"], "left operation")
     right = canonical_label(value["right"], "right operation")
     require(left != right, "child operations collide")
-    forbidden = set(earlier_ancestors)
-    require(
-        left not in forbidden and right not in forbidden,
-        "child operation equals earlier ancestor",
-    )
-    require(bool(current), "current operation missing")
     return {"decision": "split", "split_before": split_before, "left": left, "right": right}
 
 
@@ -344,6 +338,16 @@ def interval_prompt(
 DecisionFunction = Callable[[int, int, list[str], str], dict[str, str]]
 
 
+def resolve_child(active_path: list[str], child: str) -> list[str]:
+    require(bool(active_path), "cannot resolve child against an empty active path")
+    normalized = [canonical_label(value, "active operation") for value in active_path]
+    require(len(set(normalized)) == len(normalized), "active path contains duplicate operation")
+    label = canonical_label(child, "child operation")
+    if label in normalized:
+        return normalized[: normalized.index(label) + 1]
+    return [*normalized, label]
+
+
 def decompose_turns(
     turns: list[dict[str, Any]],
     root: str,
@@ -367,28 +371,44 @@ def decompose_turns(
         split_before = decision["split_before"]
         require(split_before in valid, "decision did not strictly shrink interval")
         boundary = valid[split_before]
-        left = canonical_label(decision["left"], "left operation")
-        right = canonical_label(decision["right"], "right operation")
-        require(left != right, "recursive child collision")
-        require(
-            left not in ancestors and right not in ancestors,
-            "recursive child equals earlier ancestor",
-        )
+        active_path = [*ancestors, current]
+        require(len(set(active_path)) == len(active_path), "recursive active path collision")
+        left_path = resolve_child(active_path, decision["left"])
+        right_path = resolve_child(active_path, decision["right"])
+        require(left_path != right_path, "resolved child paths collide")
 
-        def descend(child_start: int, child_end: int, child: str) -> None:
-            if child == current:
-                visit(child_start, child_end, ancestors, current)
-            else:
-                visit(child_start, child_end, [*ancestors, current], child)
+        def descend(child_start: int, child_end: int, resolved_path: list[str]) -> None:
+            require(bool(resolved_path), "resolved child path is empty")
+            visit(child_start, child_end, resolved_path[:-1], resolved_path[-1])
 
-        descend(start, boundary, left)
-        descend(boundary, end, right)
+        descend(start, boundary, left_path)
+        descend(boundary, end, right_path)
 
     visit(0, len(turns), [], canonical_label(root, "root operation"))
     require(leaves[0]["start"] == 0 and leaves[-1]["end"] == len(turns), "leaf coverage ends")
     for left, right in zip(leaves, leaves[1:]):
         require(left["end"] == right["start"], "leaf coverage gap")
-    return leaves
+    canonical: list[dict[str, Any]] = []
+    for leaf in leaves:
+        if (
+            canonical
+            and canonical[-1]["end"] == leaf["start"]
+            and canonical[-1]["labels"] == leaf["labels"]
+        ):
+            canonical[-1]["end"] = leaf["end"]
+        else:
+            canonical.append(
+                {
+                    "start": int(leaf["start"]),
+                    "end": int(leaf["end"]),
+                    "labels": list(leaf["labels"]),
+                }
+            )
+    require(canonical[0]["start"] == 0 and canonical[-1]["end"] == len(turns), "canonical leaf coverage ends")
+    for left, right in zip(canonical, canonical[1:]):
+        require(left["end"] == right["start"], "canonical leaf coverage gap")
+        require(left["labels"] != right["labels"], "adjacent canonical paths collide")
+    return canonical
 
 
 def cache_name(session: str) -> str:
@@ -501,7 +521,7 @@ def infer_session(
         raw, payload, elapsed = call_model(
             llama_url, model_name, SPLIT_SYSTEM, prompt, grammar, timeout_seconds
         )
-        decision = parse_decision(raw, valid_ids, ancestors, current)
+        decision = parse_decision(raw, valid_ids)
         calls.append(
             {
                 "kind": "recursive",

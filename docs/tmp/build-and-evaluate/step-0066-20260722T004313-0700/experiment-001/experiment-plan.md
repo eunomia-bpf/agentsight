@@ -1,7 +1,7 @@
 # Experiment Plan: recursive operation segmentation
 
 Timestamp: 2026-07-22T00:43:13-07:00
-Status: approved after seven serial independent review rounds
+Status: approved after nine serial independent review rounds
 
 ## Research question and tested hypothesis
 
@@ -68,16 +68,17 @@ DECOMPOSE(interval, ancestors, current_operation)
         DESCEND(left interval, left_operation)
         DESCEND(right interval, right_operation)
 
+    RESOLVE(child_operation, active_path):
+        if child_operation == active_path[i]:
+            return active_path[:i+1]
+        return active_path + [child_operation]
+
     DESCEND(child interval, child_operation):
-        if child_operation == current_operation:
-            recursively DECOMPOSE(child interval,
-                                  ancestors,
-                                  current_operation)
-        else:
-            require child_operation not in ancestors
-            recursively DECOMPOSE(child interval,
-                                  ancestors + current_operation,
-                                  child_operation)
+        resolved_path = RESOLVE(child_operation,
+                                ancestors + [current_operation])
+        recursively DECOMPOSE(child interval,
+                              resolved_path[:-1],
+                              resolved_path[-1])
 ```
 
 `split_before_turn_id` must address an existing non-first turn in the current
@@ -87,17 +88,25 @@ interval length, numerical split threshold, or post-hoc contraction.
 
 The Agent may split only when it can name the two sides as distinct persistent
 task responsibilities or task-progress states. A tool, command, file, action,
-status, error string, or field change alone is not a semantic split. The two
-normalized child names must differ. A child equal to the current operation is
-an explicit continuation: recursion proceeds over the smaller interval without
-pushing a duplicate frame. A genuinely new child pushes the current operation
-once and must not equal any earlier ancestor. Thus a split may encode entering
-a subtask on one side and continuing or returning to the current responsibility
-on the other without inventing a synonym. Continuation is not STOP and remains
-recursive for every multi-turn interval. Only an explicit Agent `STOP` stops a
-multi-turn interval. Any other invalid `SPLIT` is an inference error and does
-not emit marks. The semantic STOP/SPLIT judgment is the sole fragmentation
-guard; there is no tuned length threshold.
+status, error string, or field change alone is not a semantic split. The active
+path contains unique canonical operation IDs. Each child is resolved against
+that path: matching the current operation means stay, matching an earlier frame
+means pop to that frame and discard the deeper suffix, and a name absent from
+the path pushes one new frame. The two resolved full paths must differ. Thus
+the same rule implements the user's original stay/pop/push task-stack actions
+without duplicate frames or invented synonyms. Stay and pop are not STOP and
+remain recursive for every multi-turn interval. Only an explicit Agent `STOP`
+stops a multi-turn interval. Any other invalid `SPLIT` is an inference error
+and does not emit marks. The semantic STOP/SPLIT judgment is the sole
+fragmentation guard; there is no tuned length threshold or replace operation.
+
+After recursion, each turn has one canonical full semantic operation-ID path.
+The materializer emits the first mark and then a mark only when that full path
+changes. Adjacent recursive leaves with an identical path therefore become one
+emitted segment. Raw recursive decisions remain in the session cache for audit.
+This exact representation canonicalization never merges non-adjacent or unequal
+paths and consults no length, score, label, or gold data; it is not threshold-
+based post-hoc contraction.
 
 Before recursion, one grammar-constrained Agent call names the root operation
 from target-blind public task text extracted before any manifest is opened. For
@@ -288,10 +297,9 @@ evidence only and must not be presented as standalone paper case studies.
   current interval for `SPLIT`; a one-turn interval is assigned without a model
   call.
 - Unknown, first, or out-of-interval split IDs; malformed/empty names;
-  left/right post-normalization collisions; a child name equal to an earlier
-  ancestor rather than the current-operation continuation; malformed JSON;
-  timeouts; server errors; and context overflow are inference errors. They
-  never silently become `STOP`.
+  duplicate IDs inside an active path; left/right raw-name or resolved-full-
+  path collisions; malformed JSON; timeouts; server errors; and context
+  overflow are inference errors. They never silently become `STOP`.
 - Preflight may repair implementation or grammar wiring without changing the
   semantic prompt. A failed request may be rerun unchanged. Any unresolved
   session leaves the full run incomplete.
