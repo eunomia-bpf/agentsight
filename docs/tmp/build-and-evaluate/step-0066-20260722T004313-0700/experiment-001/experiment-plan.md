@@ -1,7 +1,7 @@
 # Experiment Plan: recursive operation segmentation
 
 Timestamp: 2026-07-22T00:43:13-07:00
-Status: approved after eleven serial independent review rounds
+Status: approved after eleven serial independent review rounds; real v4 preflight passed
 
 ## Research question and tested hypothesis
 

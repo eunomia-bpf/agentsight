@@ -154,3 +154,16 @@ errors. Algorithm/cache identity advances to v4; workload, metrics, RQ, thesis,
 paper authorization, and the requirement for actual stock-pprof profiles are
 unchanged. Focused tests pass 13/13; independent v4 plan and code/document
 re-reviews both returned PASS.
+
+## Node 0066-E10 — real v4 preflight passes
+
+The fixed source-visible longest session from each of four frameworks completed
+under v4: 584 operations became exactly 584 valid pprof samples, with no
+warnings. Leaf counts were `4, 1, 1, 36`, and semantic depth ranged from one to
+four. The mixture of unchanged sessions and internally split sessions shows
+that neither a fixed depth nor mandatory splitting is imposed. Of 57 raw
+splits, 56 were effective and one was the audited identical-current no-op;
+24 explicit model STOPs remained distinct. Stock pprof readback succeeded at
+SHA-256 `445287a34b9ff50c9e4af2651d3da7ea70e57f92fab9674eb59a163616497843`.
+No gold label or score was read. Preflight now authorizes the complete fixed
+405-session inference, not any paper claim.

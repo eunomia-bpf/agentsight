@@ -76,3 +76,28 @@ minimal v4 controller rule recognizes only
 it creates no boundary or additional mark and is not reported as a model STOP.
 All other equal resolved siblings still fail closed. The algorithm/cache
 identity advances to v4, so no v1--v3 response is eligible for reuse.
+
+## Attempt 5 — PASS on all four fixed framework cases
+
+The exact v4 implementation completed the fixed source-visible longest session
+from OpenHands, SWE-agent, Terminus2, and mini-SWE-agent. It covered all 584
+turns/operations and produced 42 canonical leaves with per-session counts
+`4, 1, 1, 36`. Semantic depths ranged from one to four, with counts
+`15, 18, 8, 1`; leaf lengths ranged from one to 191 turns. Two sessions
+therefore remained intentionally unsplit while two received internal semantic
+boundaries. This rejects both uniform one-leaf-per-turn fragmentation and a
+controller-imposed fixed depth without requiring every session to split.
+
+The controller made 57 raw SPLIT decisions: 56 effective splits and one
+`degenerate_current_split_stop`; it also recorded 24 explicit model STOPs.
+The four roots plus recursive calls consumed 365,661 prompt tokens and 2,199
+completion tokens under the fixed one-slot server. No manifest, official stage,
+score, outcome, or prior prediction was opened.
+
+AgentPProf replayed the exact 584 operations into 584 pprof samples and 24
+unique stacks without warning. Stock `go tool pprof -top` read the output
+successfully. The profile is 3,182 bytes, SHA-256
+`445287a34b9ff50c9e4af2651d3da7ea70e57f92fab9674eb59a163616497843`.
+This preflight establishes executability only; it does not score accuracy or
+authorize a paper claim. The next action is the registered full 405-session
+run, followed by scoring and the 41-session long-horizon stock-pprof case.
