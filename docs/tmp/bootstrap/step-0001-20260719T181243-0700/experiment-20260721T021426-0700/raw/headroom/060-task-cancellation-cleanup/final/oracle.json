@@ -1,0 +1,83 @@
+{
+  "task": "060-task-cancellation-cleanup",
+  "workspace": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/headroom/060-task-cancellation-cleanup/runtime/workspace",
+  "outcome_score": 1.0,
+  "checks": [
+    {
+      "id": "state_parse",
+      "label": "state.json is valid JSON",
+      "pass": true,
+      "weight": 0.1,
+      "detail": null
+    },
+    {
+      "id": "cancel_state",
+      "label": "state records cancelled request and reason",
+      "pass": true,
+      "weight": 0.25,
+      "detail": {
+        "status": "cancelled",
+        "request_id": "cancel-77",
+        "cancel_reason": "Legal hold on renewal outreach data",
+        "cancelled_by": "ops-director@example.com",
+        "required_retention": "audit_only",
+        "cancelled_at": "2026-07-21T18:19:10-07:00",
+        "planned_artifacts": [
+          "renewal_targets.csv",
+          "renewal_summary.json"
+        ],
+        "final_exports_created": false,
+        "temporary_artifacts_removed": true
+      }
+    },
+    {
+      "id": "no_final_flag",
+      "label": "state does not claim final export completed",
+      "pass": true,
+      "weight": 0.1,
+      "detail": {
+        "status": "cancelled",
+        "request_id": "cancel-77",
+        "cancel_reason": "Legal hold on renewal outreach data",
+        "cancelled_by": "ops-director@example.com",
+        "required_retention": "audit_only",
+        "cancelled_at": "2026-07-21T18:19:10-07:00",
+        "planned_artifacts": [
+          "renewal_targets.csv",
+          "renewal_summary.json"
+        ],
+        "final_exports_created": false,
+        "temporary_artifacts_removed": true
+      }
+    },
+    {
+      "id": "tmp_clean",
+      "label": "temporary artifacts under out/tmp are removed",
+      "pass": true,
+      "weight": 0.2,
+      "detail": null
+    },
+    {
+      "id": "no_final_outputs",
+      "label": "cancelled task did not create final export files",
+      "pass": true,
+      "weight": 0.15,
+      "detail": []
+    },
+    {
+      "id": "audit_retained",
+      "label": "audit log and report explain start, cancellation, reason, and cleanup",
+      "pass": true,
+      "weight": 0.2,
+      "detail": null
+    },
+    {
+      "id": "fixtures_intact",
+      "label": "input fixtures are still present",
+      "pass": true,
+      "weight": 0.1,
+      "detail": null
+    }
+  ],
+  "outcome_llm_weight": 0.0
+}

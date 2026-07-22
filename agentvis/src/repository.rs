@@ -37,6 +37,9 @@ pub struct RepositoryTrace {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RepositoryEvent {
     pub id: String,
+    /// Native tool-call identifier retained for source-evidence citations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_call_id: Option<String>,
     pub session_id: String,
     pub vendor: String,
     pub ts_ms: i64,
@@ -275,6 +278,7 @@ fn append_session(
         used = true;
         batch.0.push(RepositoryEvent {
             id: format!("{session_id}:{ordinal}"),
+            source_call_id: tool.call_id.clone(),
             session_id: session_id.clone(),
             vendor: session.agent_type.clone(),
             ts_ms,
@@ -609,10 +613,12 @@ mod tests {
     fn tool(ts_ms: i64, status: &str, paths: Vec<ToolPath>) -> ToolEvent {
         ToolEvent {
             ts_ms: Some(ts_ms),
+            end_ts_ms: None,
             prompt_index: 0,
             tool_name: "Tool".into(),
             category: "file".into(),
             command: String::new(),
+            workdir: None,
             command_name: String::new(),
             effect: String::new(),
             process_chain: Vec::new(),
@@ -724,6 +730,16 @@ mod tests {
 
     #[test]
     fn repository_sessions_keep_every_timed_tool_action() {
+        let mut cited = tool(
+            3,
+            "ok",
+            vec![ToolPath {
+                path: "src/read.rs".into(),
+                access: "read".into(),
+                previous_path: None,
+            }],
+        );
+        cited.call_id = Some("toolu_source".into());
         let value = session(vec![
             tool(
                 1,
@@ -735,15 +751,7 @@ mod tests {
                 }],
             ),
             tool(2, "ok", Vec::new()),
-            tool(
-                3,
-                "ok",
-                vec![ToolPath {
-                    path: "src/read.rs".into(),
-                    access: "read".into(),
-                    previous_path: None,
-                }],
-            ),
+            cited,
         ]);
         let mut batch = (Vec::new(), 0);
         append_session(&value, 7, &["/repo".into()], true, &mut batch);
@@ -751,6 +759,7 @@ mod tests {
         assert!(batch.0[0].actions.is_empty());
         assert!(batch.0[1].actions.is_empty());
         assert_eq!(batch.0[2].actions[0].path, "src/read.rs");
+        assert_eq!(batch.0[2].source_call_id.as_deref(), Some("toolu_source"));
         assert_eq!(batch.1, 7);
     }
 

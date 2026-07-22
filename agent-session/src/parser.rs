@@ -433,6 +433,7 @@ fn parse_jsonl(
                                 .and_then(Value::as_bool)
                                 .unwrap_or(fallback);
                             tool.status = if failed { "fail" } else { "ok" }.to_string();
+                            tool.end_ts_ms = ts_ms_from_event(&obj);
                         }
                     }
                 } else if let Some(text) = local_message_preview(content) {
@@ -601,11 +602,16 @@ fn parse_jsonl(
                     && let Some(index) = call_index.get(call_id).copied()
                     && let Some(tool) = events.tools.get_mut(index)
                 {
-                    let output = obj
-                        .pointer("/payload/output")
-                        .and_then(Value::as_str)
-                        .unwrap_or("");
+                    let value = obj.pointer("/payload/output").unwrap_or(&Value::Null);
+                    let rendered;
+                    let output = if let Some(text) = value.as_str() {
+                        text
+                    } else {
+                        rendered = value.to_string();
+                        &rendered
+                    };
                     tool.status = status_from_output(output).to_string();
+                    tool.end_ts_ms = ts_ms_from_event(&obj);
                 }
             }
             (AGENT_CODEX, "response_item")
@@ -1034,7 +1040,18 @@ fn tool_event_from_input(
     input: &Value,
     call_id: Option<String>,
 ) -> ToolEvent {
-    let command = command_from_tool_input(input);
+    let wrapper_command = command_from_tool_input(input);
+    let nested_inputs = if name.eq_ignore_ascii_case("exec") {
+        embedded_json_objects(&wrapper_command, "tools.exec_command(")
+    } else {
+        Vec::new()
+    };
+    let effective_input = if nested_inputs.len() == 1 {
+        &nested_inputs[0]
+    } else {
+        input
+    };
+    let command = command_from_tool_input(effective_input);
     let category = tool_category(name, &command);
     let domains = extract_domains(&command);
     let command_name = if category == "shell" {
@@ -1054,8 +1071,15 @@ fn tool_event_from_input(
         command_effect(&command)
     };
     let cwd = cwd.unwrap_or("");
-    let path_groups = extract_path_groups(Path::new(cwd), name, input, &command);
-    let paths = extract_tool_paths(name, input, &command, &effect);
+    let workdir = effective_input
+        .get("workdir")
+        .or_else(|| effective_input.get("cwd"))
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(cwd)
+        .to_string();
+    let path_groups = extract_path_groups(Path::new(&workdir), name, effective_input, &command);
+    let paths = extract_tool_paths(name, effective_input, &command, &effect);
     let process_chain = if category == "shell" {
         command_process_chain(&command)
     } else {
@@ -1063,10 +1087,12 @@ fn tool_event_from_input(
     };
     ToolEvent {
         ts_ms,
+        end_ts_ms: None,
         prompt_index,
         tool_name: name.to_string(),
         category,
         command,
+        workdir: (!workdir.is_empty()).then_some(workdir),
         command_name,
         effect,
         process_chain,
@@ -1109,7 +1135,14 @@ fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) ->
         .or_else(|| input.get("input"))
         .or_else(|| input.get("text"))
         .and_then(Value::as_str)
-        .filter(|value| value.contains("*** Begin Patch") && value.lines().count() > 1)
+        .filter(|value| {
+            value.lines().any(|line| {
+                let line = line.trim();
+                line.starts_with("*** Add File: ")
+                    || line.starts_with("*** Update File: ")
+                    || line.starts_with("*** Delete File: ")
+            })
+        })
         .or(embedded_patch.as_deref())
         .or_else(|| {
             (command.contains("*** Begin Patch") && command.lines().count() > 1).then_some(command)
@@ -1211,12 +1244,65 @@ fn embedded_json_objects(text: &str, marker: &str) -> Vec<Value> {
             }
         }
         let Some(end) = end else { break };
-        if let Ok(value) = serde_json::from_str(&text[open..end]) {
+        if let Some(value) = parse_json_or_js_object(&text[open..end]) {
             rows.push(value);
         }
         offset = end;
     }
     rows
+}
+
+fn parse_json_or_js_object(text: &str) -> Option<Value> {
+    if let Ok(value) = serde_json::from_str(text) {
+        return Some(value);
+    }
+    let body = text.strip_prefix('{')?.strip_suffix('}')?;
+    let mut object = serde_json::Map::new();
+    for field in top_level_fields(body) {
+        let (name, value) = field.split_once(':')?;
+        let name = name.trim().trim_matches(['"', '\'']);
+        if name.is_empty()
+            || !name
+                .chars()
+                .all(|ch| ch == '_' || ch == '-' || ch.is_ascii_alphanumeric())
+        {
+            return None;
+        }
+        object.insert(name.to_string(), serde_json::from_str(value.trim()).ok()?);
+    }
+    (!object.is_empty()).then_some(Value::Object(object))
+}
+
+fn top_level_fields(text: &str) -> Vec<&str> {
+    let mut fields = Vec::new();
+    let mut start = 0usize;
+    let mut quoted = false;
+    let mut escaped = false;
+    let mut nested = 0usize;
+    for (index, byte) in text.as_bytes().iter().copied().enumerate() {
+        if quoted {
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == b'"' {
+                quoted = false;
+            }
+            continue;
+        }
+        match byte {
+            b'"' => quoted = true,
+            b'{' | b'[' | b'(' => nested += 1,
+            b'}' | b']' | b')' => nested = nested.saturating_sub(1),
+            b',' if nested == 0 => {
+                fields.push(&text[start..index]);
+                start = index + 1;
+            }
+            _ => {}
+        }
+    }
+    fields.push(&text[start..]);
+    fields
 }
 
 fn shell_file_actions(
@@ -1487,7 +1573,11 @@ fn parse_tool_args(value: &Value) -> Value {
 
 fn status_from_output(output: &str) -> &'static str {
     let lowered = output.to_ascii_lowercase();
-    if lowered.contains("process exited with code 0") || lowered.contains("\"is_error\":false") {
+    if lowered.contains("process exited with code 0")
+        || lowered.contains("script completed")
+        || lowered.contains("command completed")
+        || lowered.contains("\"is_error\":false")
+    {
         "ok"
     } else if lowered.contains("process exited with code")
         || lowered.contains("\"is_error\":true")
@@ -1501,7 +1591,7 @@ fn status_from_output(output: &str) -> &'static str {
 
 pub fn tool_category(name: &str, command: &str) -> String {
     let n = name.to_ascii_lowercase();
-    if n.ends_with("exec_command") || n == "bash" {
+    if n.ends_with("exec_command") || n == "exec" || n == "bash" {
         "shell"
     } else if ["apply_patch", "edit", "write", "multiedit", "notebookedit"].contains(&n.as_str()) {
         "edit"
@@ -2372,6 +2462,13 @@ fn ts_ms_from_event(value: &Value) -> Option<i64> {
         .and_then(parse_ts_ms)
 }
 
+/// Return the source-native RFC3339 timestamp of a transcript record.
+/// Consumers that correlate external evidence should use this timestamp rather
+/// than the time at which a copied/streamed record reached their process.
+pub fn event_timestamp_ms(value: &Value) -> Option<i64> {
+    ts_ms_from_event(value)
+}
+
 fn parse_ts_ms(value: &str) -> Option<i64> {
     chrono::DateTime::parse_from_rfc3339(value)
         .ok()
@@ -2523,21 +2620,85 @@ mod tests {
 
     #[test]
     fn codex_exec_wrapper_projects_nested_shell_actions() {
-        let event = tool_event_from_input(
-            Some("/repo"),
-            Some(1),
-            0,
-            "exec",
-            &json!({"text": r#"const r = await tools.exec_command({"cmd":"cat src/lib.rs && sed -i 's/a/b/' src/main.rs","workdir":"/repo"});"#}),
-            None,
+        for wrapper in [
+            r#"const r = await tools.exec_command({"cmd":"cat src/lib.rs && sed -i 's/a/b/' src/main.rs","workdir":"/repo"});"#,
+            r#"const r = await tools.exec_command({cmd:"cat src/lib.rs && sed -i 's/a/b/' src/main.rs",workdir:"/repo"});"#,
+        ] {
+            let event = tool_event_from_input(
+                Some("/repo"),
+                Some(1),
+                0,
+                "exec",
+                &json!({"text": wrapper}),
+                None,
+            );
+            assert_eq!(
+                event
+                    .paths
+                    .iter()
+                    .map(|path| (path.path.as_str(), path.access.as_str()))
+                    .collect::<Vec<_>>(),
+                vec![("/repo/src/lib.rs", "read"), ("/repo/src/main.rs", "write")]
+            );
+            assert_eq!(
+                event.command,
+                "cat src/lib.rs && sed -i 's/a/b/' src/main.rs"
+            );
+            assert_eq!(event.workdir.as_deref(), Some("/repo"));
+        }
+    }
+
+    #[test]
+    fn codex_custom_apply_patch_pairs_result_and_extracts_workspace_path() {
+        let input = r#"const patch = "*** Begin Patch\n*** Update File: /workspace/testing/logging/test_fixture.py\n@@\n-old\n+new\n*** End Patch"; tools.apply_patch(patch)"#;
+        assert!(
+            embedded_json_string(input, "*** Begin Patch").is_some_and(|patch| patch
+                .contains("*** Update File: /workspace/testing/logging/test_fixture.py"))
         );
+        let content = format!(
+            "{}\n{}\n{}\n",
+            serde_json::json!({
+                "timestamp": "2026-07-20T10:10:15Z",
+                "type": "session_meta",
+                "payload": {"cwd": "/workspace"}
+            }),
+            serde_json::json!({
+                "timestamp": "2026-07-20T10:10:52Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "custom_tool_call",
+                    "name": "exec",
+                    "call_id": "patch-call",
+                    "input": input
+                }
+            }),
+            serde_json::json!({
+                "timestamp": "2026-07-20T10:10:53Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "custom_tool_call_output",
+                    "call_id": "patch-call",
+                    "output": [{"type": "input_text", "text": "Script completed\nOutput:\n{}"}]
+                }
+            })
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+        let tool = &session.events.tools[0];
+        assert_eq!(tool.status, "ok");
+        assert_eq!(tool.end_ts_ms, Some(1_784_542_253_000));
         assert_eq!(
-            event
-                .paths
-                .iter()
-                .map(|path| (path.path.as_str(), path.access.as_str()))
-                .collect::<Vec<_>>(),
-            vec![("/repo/src/lib.rs", "read"), ("/repo/src/main.rs", "write")]
+            tool.paths,
+            vec![ToolPath {
+                path: "/workspace/testing/logging/test_fixture.py".into(),
+                access: "write".into(),
+                previous_path: None,
+            }]
         );
     }
 
@@ -2608,9 +2769,9 @@ mod tests {
         let content = concat!(
             r#"{"type":"turn_context","payload":{"cwd":"/repo"}}"#,
             "\n",
-            r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c1","arguments":"{\"cmd\":\"rm src/lib.rs\"}"}}"#,
+            r#"{"timestamp":"2026-01-01T00:00:01Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c1","arguments":"{\"cmd\":\"rm src/lib.rs\"}"}}"#,
             "\n",
-            r#"{"type":"response_item","payload":{"type":"function_call_output","call_id":"c1","output":"Process exited with code 1"}}"#,
+            r#"{"timestamp":"2026-01-01T00:00:03Z","type":"response_item","payload":{"type":"function_call_output","call_id":"c1","output":"Process exited with code 1"}}"#,
         );
         let session = parse_session_content(
             AGENT_CODEX,
@@ -2621,11 +2782,13 @@ mod tests {
         .expect("session");
         assert_eq!(session.events.tools[0].status, "fail");
         assert_eq!(session.events.tools[0].paths[0].access, "delete");
+        assert_eq!(session.events.tools[0].ts_ms, Some(1_767_225_601_000));
+        assert_eq!(session.events.tools[0].end_ts_ms, Some(1_767_225_603_000));
 
         let claude = concat!(
-            r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t0","name":"Read","input":{"file_path":"src/main.rs"}},{"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"src/lib.rs"}}]}}"#,
+            r#"{"timestamp":"2026-01-01T00:00:05Z","type":"assistant","message":{"content":[{"type":"tool_use","id":"t0","name":"Read","input":{"file_path":"src/main.rs"}},{"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"src/lib.rs"}}]}}"#,
             "\n",
-            r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t0","is_error":false,"content":"ok"},{"type":"tool_result","tool_use_id":"t1","is_error":true,"content":"failed"}]}}"#,
+            r#"{"timestamp":"2026-01-01T00:00:08Z","type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t0","is_error":false,"content":"ok"},{"type":"tool_result","tool_use_id":"t1","is_error":true,"content":"failed"}]}}"#,
         );
         let gemini = r#"{"messages":[{"type":"gemini","timestamp":"2026-01-01T00:00:00Z","toolCalls":[{"id":"t1","name":"write_file","args":{"file_path":"src/lib.rs"},"status":"error"}]}]}"#;
         for (agent, content, expected) in [
@@ -2642,6 +2805,26 @@ mod tests {
                 .map(|row| row.status.as_str())
                 .collect::<Vec<_>>();
             assert_eq!(statuses, expected);
+            if agent == AGENT_CLAUDE {
+                assert_eq!(session.events.tools[0].end_ts_ms, Some(1_767_225_608_000));
+                assert_eq!(session.events.tools[1].end_ts_ms, Some(1_767_225_608_000));
+            }
         }
+
+        let codex_array_output = concat!(
+            r#"{"timestamp":"2026-01-01T00:00:10Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"c2","input":"{}"}}"#,
+            "\n",
+            r#"{"timestamp":"2026-01-01T00:00:11Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"c2","output":[{"type":"input_text","text":"Script completed\nOutput:\n"}]}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            Path::new("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            codex_array_output,
+        )
+        .unwrap();
+        assert_eq!(session.events.tools[0].status, "ok");
+        assert_eq!(session.events.tools[0].category, "shell");
+        assert_eq!(session.events.tools[0].end_ts_ms, Some(1_767_225_611_000));
     }
 }

@@ -1030,10 +1030,12 @@ mod tests {
     fn shell_tool(ts_ms: i64, prompt_index: usize, status: &str, paths: Vec<&str>) -> ToolEvent {
         ToolEvent {
             ts_ms: Some(ts_ms),
+            end_ts_ms: None,
             prompt_index,
             tool_name: "exec_command".to_string(),
             category: "shell".to_string(),
             command: "cargo test".to_string(),
+            workdir: None,
             command_name: "cargo".to_string(),
             effect: "test".to_string(),
             process_chain: vec!["cargo".to_string()],

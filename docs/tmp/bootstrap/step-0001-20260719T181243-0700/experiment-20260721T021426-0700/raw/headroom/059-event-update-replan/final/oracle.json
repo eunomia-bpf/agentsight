@@ -1,0 +1,108 @@
+{
+  "task": "059-event-update-replan",
+  "workspace": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/headroom/059-event-update-replan/runtime/workspace",
+  "outcome_score": 1.0,
+  "checks": [
+    {
+      "id": "original_parse",
+      "label": "original_plan.json is valid JSON",
+      "pass": true,
+      "weight": 0.1,
+      "detail": null
+    },
+    {
+      "id": "revised_parse",
+      "label": "revised_plan.json is valid JSON",
+      "pass": true,
+      "weight": 0.1,
+      "detail": null
+    },
+    {
+      "id": "required_blocks",
+      "label": "revised plan contains all required blocks",
+      "pass": true,
+      "weight": 0.15,
+      "detail": [
+        "setup",
+        "rehearsal",
+        "accessibility_check",
+        "live_support",
+        "teardown"
+      ]
+    },
+    {
+      "id": "room_constraint",
+      "label": "live support moved to Room B",
+      "pass": true,
+      "weight": 0.15,
+      "detail": {
+        "id": "live_support",
+        "room": "Room B",
+        "start": "13:00",
+        "end": "14:30",
+        "assigned_people": [
+          "Ava",
+          "Ben",
+          "Dia"
+        ]
+      }
+    },
+    {
+      "id": "chen_removed",
+      "label": "Chen is not assigned after 13:00 live support",
+      "pass": true,
+      "weight": 0.15,
+      "detail": [
+        "Ava",
+        "Ben",
+        "Dia"
+      ]
+    },
+    {
+      "id": "rehearsal_time",
+      "label": "rehearsal ends before or at 11:00",
+      "pass": true,
+      "weight": 0.1,
+      "detail": {
+        "id": "rehearsal",
+        "room": "Room A",
+        "start": "10:00",
+        "end": "10:45",
+        "assigned_people": [
+          "Ava",
+          "Chen"
+        ]
+      }
+    },
+    {
+      "id": "accessibility_check",
+      "label": "15-minute accessibility check immediately precedes live support",
+      "pass": true,
+      "weight": 0.15,
+      "detail": {
+        "id": "accessibility_check",
+        "room": "Room B",
+        "start": "12:45",
+        "end": "13:00",
+        "assigned_people": [
+          "Ava"
+        ]
+      }
+    },
+    {
+      "id": "preserve_setup",
+      "label": "setup assignment is preserved from original when unaffected",
+      "pass": true,
+      "weight": 0.05,
+      "detail": null
+    },
+    {
+      "id": "diff_content",
+      "label": "diff.md lists added, removed, changed items and new constraints",
+      "pass": true,
+      "weight": 0.15,
+      "detail": null
+    }
+  ],
+  "outcome_llm_weight": 0.0
+}

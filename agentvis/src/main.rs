@@ -26,6 +26,14 @@ struct Cli {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    if let Some(command) = std::env::args_os().nth(1) {
+        if command == "research-store" {
+            return agentvis::run_research_store_from_args(std::env::args_os().skip(2));
+        }
+        if command == "research-supervisor" {
+            return agentvis::run_research_supervisor_from_args(std::env::args_os().skip(2));
+        }
+    }
     let cli = Cli::parse();
     agentvis::run_vis(&cli.path, &cli.outputs, cli.global, cli.compact_rate)
 }

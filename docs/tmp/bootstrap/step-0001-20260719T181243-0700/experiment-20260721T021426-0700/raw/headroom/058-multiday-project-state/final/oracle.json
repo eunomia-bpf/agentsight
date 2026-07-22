@@ -1,0 +1,116 @@
+{
+  "task": "058-multiday-project-state",
+  "workspace": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/headroom/058-multiday-project-state/runtime/workspace",
+  "outcome_score": 0.8594,
+  "checks": [
+    {
+      "id": "plan_parse",
+      "label": "final_plan.json is valid JSON",
+      "pass": true,
+      "weight": 0.1,
+      "detail": null
+    },
+    {
+      "id": "log_exists",
+      "label": "project_log.md exists",
+      "pass": true,
+      "weight": 0.1,
+      "detail": null
+    },
+    {
+      "id": "history_days",
+      "label": "change_history preserves Day 1/2/3 entries",
+      "pass": true,
+      "weight": 0.15,
+      "detail": [
+        "Day 1",
+        "Day 2",
+        "Day 3"
+      ]
+    },
+    {
+      "id": "status_by_day",
+      "label": "status_by_day covers all three days",
+      "pass": true,
+      "weight": 0.1,
+      "detail": {
+        "Day 1": {
+          "status": "baseline_established",
+          "summary": "Established a 120000 planning budget, Day 30 launch target, three workstreams and owners, initial risks R-data-quality and R-adoption, and tentative scope decisions."
+        },
+        "Day 2": {
+          "status": "plan_constrained",
+          "summary": "Reduced the approved budget to 92000, transferred WS-data ownership to Priya, recorded a five-day connector sandbox delay, required compliance review before launch, and logged the unresolved experimentation conflict."
+        },
+        "Day 3": {
+          "status": "finalized_conditional_go",
+          "summary": "Required security signoff for production data export, removed in-app experimentation from pilot scope while preserving the reversed decision, and recorded possible Day 12 sandbox delivery subject to expedited procurement approval."
+        }
+      }
+    },
+    {
+      "id": "risks",
+      "label": "risk register includes all new and carried risks",
+      "pass": true,
+      "weight": 0.15,
+      "detail": [
+        "R-connect-delay",
+        "R-budget",
+        "R-compliance",
+        "R-security"
+      ]
+    },
+    {
+      "id": "budget_decision",
+      "label": "final budget and recommendation are correct",
+      "pass": true,
+      "weight": 0.15,
+      "detail": null
+    },
+    {
+      "id": "owner_change",
+      "label": "WS-data owner changed to Priya",
+      "pass": true,
+      "weight": 0.1,
+      "detail": "Searched text for Priya"
+    },
+    {
+      "id": "conditions",
+      "label": "conditions cover compliance, security, and connector",
+      "pass": true,
+      "weight": 0.15,
+      "detail": [
+        "compliance review",
+        "security signoff",
+        "connector sandbox"
+      ]
+    },
+    {
+      "id": "conflict_handling",
+      "label": "plan records stakeholder conflict without deleting history",
+      "pass": false,
+      "weight": 0.08,
+      "detail": [
+        "stakeholder",
+        "sales",
+        "privacy",
+        "conflict"
+      ]
+    },
+    {
+      "id": "log_content",
+      "label": "log records each day and major changes",
+      "pass": true,
+      "weight": 0.1,
+      "detail": null
+    },
+    {
+      "id": "decision_register",
+      "label": "decision_register.csv preserves reversed decisions",
+      "pass": false,
+      "weight": 0.1,
+      "detail": null
+    }
+  ],
+  "outcome_llm_weight": 0.0
+}

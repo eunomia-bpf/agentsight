@@ -6,10 +6,14 @@
 
 mod export;
 mod repository;
+mod research;
+mod research_supervisor;
 
 pub use export::{CompactRate, run_vis};
 pub use repository::{
     FileAction, RepositoryEvent, RepositoryTrace, RepositoryTraceOptions, build_repository_trace,
 };
+pub use research::run_research_store_from_args;
+pub use research_supervisor::run_research_supervisor_from_args;
 
 pub const DEFAULT_OUTPUT: &str = "output/agent-nebula.gif";

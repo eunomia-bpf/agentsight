@@ -27,6 +27,18 @@ docs/blog
 
 node_modules/
 
+# LaTeX build intermediates (keep docs/paper/main.pdf as the review artifact).
+docs/paper/*.aux
+docs/paper/*.bbl
+docs/paper/*.blg
+docs/paper/*.fdb_latexmk
+docs/paper/*.fls
+
+# Research runs remain local by default: workspaces, model homes, benchmark
+# checkouts, and credentials must never be swept into a commit. Small reviewed
+# reports/oracle records are added explicitly when a step is published.
+docs/tmp/**/raw/
+
 # Cloudflare Workers local state and secrets.
 .wrangler/
 .dev.vars*

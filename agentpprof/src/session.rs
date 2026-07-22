@@ -194,10 +194,12 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
             for _ in 0..*count {
                 record.tools.push(ToolEvent {
                     ts_ms: record.start_ts_ms,
+                    end_ts_ms: None,
                     prompt_index: 0,
                     tool_name: tool.clone(),
                     category: agent_session::tool_category(tool, ""),
                     command: String::new(),
+                    workdir: None,
                     command_name: "none".to_string(),
                     effect: "process".to_string(),
                     process_chain: Vec::new(),

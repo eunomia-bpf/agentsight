@@ -1,0 +1,57 @@
+{
+  "task": "103-policy-update-replan-diff",
+  "workspace": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/headroom/103-policy-update-replan-diff/runtime/workspace",
+  "outcome_score": 1.0,
+  "checks": [
+    {
+      "id": "original_plan",
+      "label": "original_plan.json covers regions, workstreams, and stable decisions",
+      "pass": true,
+      "weight": 0.2,
+      "detail": {
+        "score": 1.0
+      }
+    },
+    {
+      "id": "revised_plan",
+      "label": "revised_plan.json applies late constraints and preserves unaffected decisions",
+      "pass": true,
+      "weight": 0.3,
+      "detail": {
+        "score": 1.0,
+        "eu_delay_ok": true,
+        "eu_comms_ok": true,
+        "apac_ok": true
+      }
+    },
+    {
+      "id": "diff",
+      "label": "diff.md lists added, removed, changed, unchanged with late update details",
+      "pass": true,
+      "weight": 0.2,
+      "detail": {
+        "score": 1.0
+      }
+    },
+    {
+      "id": "state",
+      "label": "state.json records round 2 change tracking",
+      "pass": true,
+      "weight": 0.2,
+      "detail": {
+        "score": 1.0
+      }
+    },
+    {
+      "id": "safety_and_inputs",
+      "label": "outputs are plan-only and inputs are unchanged",
+      "pass": true,
+      "weight": 0.1,
+      "detail": {
+        "unsafe": false,
+        "source_unchanged": true
+      }
+    }
+  ],
+  "outcome_llm_weight": 0.0
+}

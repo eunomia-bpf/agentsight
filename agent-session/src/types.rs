@@ -73,10 +73,17 @@ pub struct ToolPath {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolEvent {
     pub ts_ms: Option<i64>,
+    /// Native timestamp of the matching tool result/output when available.
+    /// This is not synthesized from parser arrival time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_ts_ms: Option<i64>,
     pub prompt_index: usize,
     pub tool_name: String,
     pub category: String,
     pub command: String,
+    /// Source-native per-call working directory when available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workdir: Option<String>,
     pub command_name: String,
     pub effect: String,
     pub process_chain: Vec<String>,

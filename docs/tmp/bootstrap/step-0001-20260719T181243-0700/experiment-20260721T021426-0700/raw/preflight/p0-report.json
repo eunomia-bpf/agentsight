@@ -1,0 +1,693 @@
+{
+  "schema": "agent-nebula-harness-p0-v1",
+  "status": "PASS",
+  "benchmark_revision": "1025086a446653702b80cfb48babbeec35db6b2c",
+  "task": "058-multiday-project-state",
+  "randomization_seed": 20260721,
+  "execution_order": [
+    "no-intervention",
+    "raw",
+    "trajectory",
+    "generic"
+  ],
+  "prefix_session_ids": [
+    "019f842a-ddc6-7cd1-b2d1-6a7121e84f12",
+    "019f842b-a0bb-7430-8262-e1e653578c50"
+  ],
+  "prefix_commands": [
+    {
+      "round": 1,
+      "session_id": "019f842a-ddc6-7cd1-b2d1-6a7121e84f12",
+      "command": [
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/agentvis/research/codex_profile_wrapper.py",
+        "exec",
+        "--cd",
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/workspace",
+        "--skip-git-repo-check",
+        "--sandbox",
+        "workspace-write",
+        "--output-last-message",
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/sandbox/codex-last-message.txt",
+        "--json",
+        "--model",
+        "gpt-5.6-sol",
+        "--strict-config",
+        "--ignore-rules",
+        "-"
+      ],
+      "reconstructed_from_frozen_adapter_config": true
+    },
+    {
+      "round": 2,
+      "session_id": "019f842b-a0bb-7430-8262-e1e653578c50",
+      "command": [
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/agentvis/research/codex_profile_wrapper.py",
+        "exec",
+        "--cd",
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/workspace",
+        "--skip-git-repo-check",
+        "--sandbox",
+        "workspace-write",
+        "--output-last-message",
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/sandbox/codex-last-message.txt",
+        "--json",
+        "--model",
+        "gpt-5.6-sol",
+        "--strict-config",
+        "--ignore-rules",
+        "-"
+      ],
+      "reconstructed_from_frozen_adapter_config": true
+    }
+  ],
+  "isolation": {
+    "status": "PASS",
+    "actual_model_turn": true,
+    "shell_tool_seen": true,
+    "direct_profile_probe": true,
+    "checks": {
+      "workspace_read": true,
+      "workspace_write": true,
+      "hidden_paths_unreadable": true,
+      "dns_blocked": true,
+      "network_blocked": true
+    },
+    "forbidden_path_names": [
+      "benchmark",
+      "credential",
+      "evidence_store",
+      "ground_truth",
+      "hooks",
+      "oracle"
+    ],
+    "session_sha256": "15aff98973cdd7140b646338d09af104ea593ce4674ba3f97219b08c036ee753"
+  },
+  "supervisor_model_sha256": "f7da7eee0f1ffa280742a293f02052d1f58d3253c9e109c1be8fb0067eb1b3a9",
+  "interventions": {
+    "generic": {
+      "decision": "INTERVENE",
+      "message": "Before writing the final outputs, you MUST read `/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/workspace/in/day3_update.json` to ground the Day 3 status and changes. Also read the existing `project_log.md` and `final_plan.json` from previous days to ensure you are absorbing all prior information as required. Do not infer file contents from shell text; use the `read_current` tool for each file.",
+      "source_ids": []
+    },
+    "raw": {
+      "decision": "INTERVENE",
+      "message": "Before writing the final outputs, read the current workspace manifest and the Day 3 update file to ground your content in actual workspace state. The final_plan.json must include root-level keys 'owners' (dict) and 'conditions' (list of strings), and the decision_register.csv must preserve reversed decisions in the audit trail rather than deleting them. Generate both output files in a single combined tool call to avoid timeouts.",
+      "source_ids": []
+    },
+    "trajectory": {
+      "decision": "INTERVENE",
+      "message": "Before writing final_plan.json, read the current workspace manifest and the day3_update.json input to verify the exact structure of existing outputs. The final plan must include root-level keys 'owners' (dict) and 'conditions' (list of strings), plus status_by_day, change_history, milestones, risk_register, final_budget (92000), launch_recommendation ('conditional_go'), and decision_register.csv content. Generate both output files in a single tool call to avoid timeouts.",
+      "source_ids": []
+    }
+  },
+  "fork_parity": [
+    {
+      "condition": "no-intervention",
+      "pre_advice_workspace_manifest_sha256": "66e4d0233cd61c7e4357db313420ff3d49167e0a743ae6094c7b4631bb42560e",
+      "base_prompt_sha256": "0c59fd597bd81e6447ec76a83bbcb59b4379fb342877a448702a34c3668db574",
+      "command_sha256": "e030fb13510ce450994bcd37c53856f00499925ab37c3825aa733e1cb65cf568",
+      "environment_sha256": "8ec46a71c5698a01cd5fd98ef6f8df6f4e685d74d2cf8cbee55cd667fb1446de"
+    },
+    {
+      "condition": "raw",
+      "pre_advice_workspace_manifest_sha256": "66e4d0233cd61c7e4357db313420ff3d49167e0a743ae6094c7b4631bb42560e",
+      "base_prompt_sha256": "0c59fd597bd81e6447ec76a83bbcb59b4379fb342877a448702a34c3668db574",
+      "command_sha256": "e030fb13510ce450994bcd37c53856f00499925ab37c3825aa733e1cb65cf568",
+      "environment_sha256": "8ec46a71c5698a01cd5fd98ef6f8df6f4e685d74d2cf8cbee55cd667fb1446de"
+    },
+    {
+      "condition": "trajectory",
+      "pre_advice_workspace_manifest_sha256": "66e4d0233cd61c7e4357db313420ff3d49167e0a743ae6094c7b4631bb42560e",
+      "base_prompt_sha256": "0c59fd597bd81e6447ec76a83bbcb59b4379fb342877a448702a34c3668db574",
+      "command_sha256": "e030fb13510ce450994bcd37c53856f00499925ab37c3825aa733e1cb65cf568",
+      "environment_sha256": "8ec46a71c5698a01cd5fd98ef6f8df6f4e685d74d2cf8cbee55cd667fb1446de"
+    },
+    {
+      "condition": "generic",
+      "pre_advice_workspace_manifest_sha256": "66e4d0233cd61c7e4357db313420ff3d49167e0a743ae6094c7b4631bb42560e",
+      "base_prompt_sha256": "0c59fd597bd81e6447ec76a83bbcb59b4379fb342877a448702a34c3668db574",
+      "command_sha256": "e030fb13510ce450994bcd37c53856f00499925ab37c3825aa733e1cb65cf568",
+      "environment_sha256": "8ec46a71c5698a01cd5fd98ef6f8df6f4e685d74d2cf8cbee55cd667fb1446de"
+    }
+  ],
+  "results": {
+    "no-intervention": {
+      "opaque_id": "fork-79e1bc17de49",
+      "decision": "ABSTAIN",
+      "outcome_score": 0.8594,
+      "worker_session_sha256": "a2ac6ace70b882367f0d3fc1418d562a67949c5c52d8ad947812560dbfe255cd",
+      "worker_command": [
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/agentvis/research/codex_profile_wrapper.py",
+        "exec",
+        "--cd",
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/workspace",
+        "--skip-git-repo-check",
+        "--sandbox",
+        "workspace-write",
+        "--output-last-message",
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/sandbox/codex-last-message.txt",
+        "--json",
+        "--model",
+        "gpt-5.6-sol",
+        "--strict-config",
+        "--ignore-rules",
+        "-"
+      ],
+      "oracle": {
+        "task": "058-multiday-project-state",
+        "workspace": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/workspace",
+        "outcome_score": 0.8594,
+        "checks": [
+          {
+            "id": "plan_parse",
+            "label": "final_plan.json is valid JSON",
+            "pass": true,
+            "weight": 0.1,
+            "detail": null
+          },
+          {
+            "id": "log_exists",
+            "label": "project_log.md exists",
+            "pass": true,
+            "weight": 0.1,
+            "detail": null
+          },
+          {
+            "id": "history_days",
+            "label": "change_history preserves Day 1/2/3 entries",
+            "pass": true,
+            "weight": 0.15,
+            "detail": [
+              "Day 1",
+              "Day 2",
+              "Day 3"
+            ]
+          },
+          {
+            "id": "status_by_day",
+            "label": "status_by_day covers all three days",
+            "pass": true,
+            "weight": 0.1,
+            "detail": {
+              "Day 1": {
+                "status": "baseline_established",
+                "summary": "Established the 120000 baseline budget, Day 30 target launch, three tentative workstreams, and initial data-quality and adoption risks."
+              },
+              "Day 2": {
+                "status": "replanned",
+                "summary": "Reduced the approved budget to 92000, reassigned WS-data to Priya, recorded a five-day connector delay, added a pre-launch compliance review, and logged the experimentation conflict."
+              },
+              "Day 3": {
+                "status": "conditional_go",
+                "summary": "Removed in-app experimentation from pilot scope, added the production-export security gate, and conditioned the connector sandbox's Day 12 delivery on expedited procurement approval."
+              }
+            }
+          },
+          {
+            "id": "risks",
+            "label": "risk register includes all new and carried risks",
+            "pass": true,
+            "weight": 0.15,
+            "detail": [
+              "R-connect-delay",
+              "R-budget",
+              "R-compliance",
+              "R-security"
+            ]
+          },
+          {
+            "id": "budget_decision",
+            "label": "final budget and recommendation are correct",
+            "pass": true,
+            "weight": 0.15,
+            "detail": null
+          },
+          {
+            "id": "owner_change",
+            "label": "WS-data owner changed to Priya",
+            "pass": true,
+            "weight": 0.1,
+            "detail": "Searched text for Priya"
+          },
+          {
+            "id": "conditions",
+            "label": "conditions cover compliance, security, and connector",
+            "pass": true,
+            "weight": 0.15,
+            "detail": [
+              "compliance review",
+              "security signoff",
+              "connector sandbox"
+            ]
+          },
+          {
+            "id": "conflict_handling",
+            "label": "plan records stakeholder conflict without deleting history",
+            "pass": false,
+            "weight": 0.08,
+            "detail": [
+              "stakeholder",
+              "sales",
+              "privacy",
+              "conflict"
+            ]
+          },
+          {
+            "id": "log_content",
+            "label": "log records each day and major changes",
+            "pass": true,
+            "weight": 0.1,
+            "detail": null
+          },
+          {
+            "id": "decision_register",
+            "label": "decision_register.csv preserves reversed decisions",
+            "pass": false,
+            "weight": 0.1,
+            "detail": null
+          }
+        ],
+        "outcome_llm_weight": 0.0
+      }
+    },
+    "raw": {
+      "opaque_id": "fork-80e8f6152201",
+      "decision": "INTERVENE",
+      "outcome_score": 0.8594,
+      "worker_session_sha256": "9275709481b94a49178baa85d6aa42cf0c4cfa7546a2539c6be8c9f73d1cc4af",
+      "worker_command": [
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/agentvis/research/codex_profile_wrapper.py",
+        "exec",
+        "--cd",
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/workspace",
+        "--skip-git-repo-check",
+        "--sandbox",
+        "workspace-write",
+        "--output-last-message",
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/sandbox/codex-last-message.txt",
+        "--json",
+        "--model",
+        "gpt-5.6-sol",
+        "--strict-config",
+        "--ignore-rules",
+        "-"
+      ],
+      "oracle": {
+        "task": "058-multiday-project-state",
+        "workspace": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/workspace",
+        "outcome_score": 0.8594,
+        "checks": [
+          {
+            "id": "plan_parse",
+            "label": "final_plan.json is valid JSON",
+            "pass": true,
+            "weight": 0.1,
+            "detail": null
+          },
+          {
+            "id": "log_exists",
+            "label": "project_log.md exists",
+            "pass": true,
+            "weight": 0.1,
+            "detail": null
+          },
+          {
+            "id": "history_days",
+            "label": "change_history preserves Day 1/2/3 entries",
+            "pass": true,
+            "weight": 0.15,
+            "detail": [
+              "Day 1",
+              "Day 2",
+              "Day 3"
+            ]
+          },
+          {
+            "id": "status_by_day",
+            "label": "status_by_day covers all three days",
+            "pass": true,
+            "weight": 0.1,
+            "detail": {
+              "Day 1": {
+                "status": "baseline_established",
+                "summary": "Established the 120000 baseline budget, Day 30 target launch, tentative workstreams and owners, initial risks, and tentative experiment scope."
+              },
+              "Day 2": {
+                "status": "plan_constrained",
+                "summary": "Reduced the approved budget to 92000, reassigned WS-data to Priya, recorded the 5-day connector delay, added the pre-launch compliance review, and logged the unresolved experimentation conflict."
+              },
+              "Day 3": {
+                "status": "conditional_go",
+                "summary": "Added the production-export security gate, removed in-app experimentation from scope, preserved the reversed decision, and made Day 12 sandbox delivery conditional on expedited procurement approval."
+              }
+            }
+          },
+          {
+            "id": "risks",
+            "label": "risk register includes all new and carried risks",
+            "pass": true,
+            "weight": 0.15,
+            "detail": [
+              "R-connect-delay",
+              "R-budget",
+              "R-compliance",
+              "R-security"
+            ]
+          },
+          {
+            "id": "budget_decision",
+            "label": "final budget and recommendation are correct",
+            "pass": true,
+            "weight": 0.15,
+            "detail": null
+          },
+          {
+            "id": "owner_change",
+            "label": "WS-data owner changed to Priya",
+            "pass": true,
+            "weight": 0.1,
+            "detail": "Searched text for Priya"
+          },
+          {
+            "id": "conditions",
+            "label": "conditions cover compliance, security, and connector",
+            "pass": true,
+            "weight": 0.15,
+            "detail": [
+              "compliance review",
+              "security signoff",
+              "connector sandbox"
+            ]
+          },
+          {
+            "id": "conflict_handling",
+            "label": "plan records stakeholder conflict without deleting history",
+            "pass": false,
+            "weight": 0.08,
+            "detail": [
+              "stakeholder",
+              "sales",
+              "privacy",
+              "conflict"
+            ]
+          },
+          {
+            "id": "log_content",
+            "label": "log records each day and major changes",
+            "pass": true,
+            "weight": 0.1,
+            "detail": null
+          },
+          {
+            "id": "decision_register",
+            "label": "decision_register.csv preserves reversed decisions",
+            "pass": false,
+            "weight": 0.1,
+            "detail": null
+          }
+        ],
+        "outcome_llm_weight": 0.0
+      }
+    },
+    "trajectory": {
+      "opaque_id": "fork-48214d83fbdc",
+      "decision": "INTERVENE",
+      "outcome_score": 0.8594,
+      "worker_session_sha256": "9435663011f6cf8ea617acffb3e0ba86b6a39159efa4c02d673a668b8c23cf6f",
+      "worker_command": [
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/agentvis/research/codex_profile_wrapper.py",
+        "exec",
+        "--cd",
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/workspace",
+        "--skip-git-repo-check",
+        "--sandbox",
+        "workspace-write",
+        "--output-last-message",
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/sandbox/codex-last-message.txt",
+        "--json",
+        "--model",
+        "gpt-5.6-sol",
+        "--strict-config",
+        "--ignore-rules",
+        "-"
+      ],
+      "oracle": {
+        "task": "058-multiday-project-state",
+        "workspace": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/workspace",
+        "outcome_score": 0.8594,
+        "checks": [
+          {
+            "id": "plan_parse",
+            "label": "final_plan.json is valid JSON",
+            "pass": true,
+            "weight": 0.1,
+            "detail": null
+          },
+          {
+            "id": "log_exists",
+            "label": "project_log.md exists",
+            "pass": true,
+            "weight": 0.1,
+            "detail": null
+          },
+          {
+            "id": "history_days",
+            "label": "change_history preserves Day 1/2/3 entries",
+            "pass": true,
+            "weight": 0.15,
+            "detail": [
+              "Day 1",
+              "Day 2",
+              "Day 3"
+            ]
+          },
+          {
+            "id": "status_by_day",
+            "label": "status_by_day covers all three days",
+            "pass": true,
+            "weight": 0.1,
+            "detail": {
+              "Day 1": {
+                "status": "baseline_established",
+                "summary": "Established the 120000 baseline budget, Day 30 target launch, three tentative workstreams and owners, and initial data-quality and adoption risks."
+              },
+              "Day 2": {
+                "status": "plan_updated",
+                "summary": "Reduced the approved budget to 92000, reassigned WS-data to Priya, recorded the five-day connector delay, added the pre-launch compliance requirement, and logged the experimentation conflict."
+              },
+              "Day 3": {
+                "status": "finalized_conditionally",
+                "summary": "Added the security signoff gate, removed experimentation while preserving its reversal, established conditional Day 12 sandbox delivery, and issued a conditional-go recommendation."
+              }
+            }
+          },
+          {
+            "id": "risks",
+            "label": "risk register includes all new and carried risks",
+            "pass": true,
+            "weight": 0.15,
+            "detail": [
+              "R-connect-delay",
+              "R-budget",
+              "R-compliance",
+              "R-security"
+            ]
+          },
+          {
+            "id": "budget_decision",
+            "label": "final budget and recommendation are correct",
+            "pass": true,
+            "weight": 0.15,
+            "detail": null
+          },
+          {
+            "id": "owner_change",
+            "label": "WS-data owner changed to Priya",
+            "pass": true,
+            "weight": 0.1,
+            "detail": "Searched text for Priya"
+          },
+          {
+            "id": "conditions",
+            "label": "conditions cover compliance, security, and connector",
+            "pass": true,
+            "weight": 0.15,
+            "detail": [
+              "compliance review",
+              "security signoff",
+              "connector sandbox"
+            ]
+          },
+          {
+            "id": "conflict_handling",
+            "label": "plan records stakeholder conflict without deleting history",
+            "pass": false,
+            "weight": 0.08,
+            "detail": [
+              "stakeholder",
+              "sales",
+              "privacy",
+              "conflict"
+            ]
+          },
+          {
+            "id": "log_content",
+            "label": "log records each day and major changes",
+            "pass": true,
+            "weight": 0.1,
+            "detail": null
+          },
+          {
+            "id": "decision_register",
+            "label": "decision_register.csv preserves reversed decisions",
+            "pass": false,
+            "weight": 0.1,
+            "detail": null
+          }
+        ],
+        "outcome_llm_weight": 0.0
+      }
+    },
+    "generic": {
+      "opaque_id": "fork-94f6afad4185",
+      "decision": "INTERVENE",
+      "outcome_score": 0.9219,
+      "worker_session_sha256": "b6bc39478c93ee3fe2f8592936ded8159148ea6ca92b41f7a3a492874ae8a32a",
+      "worker_command": [
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/agentvis/research/codex_profile_wrapper.py",
+        "exec",
+        "--cd",
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/workspace",
+        "--skip-git-repo-check",
+        "--sandbox",
+        "workspace-write",
+        "--output-last-message",
+        "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/sandbox/codex-last-message.txt",
+        "--json",
+        "--model",
+        "gpt-5.6-sol",
+        "--strict-config",
+        "--ignore-rules",
+        "-"
+      ],
+      "oracle": {
+        "task": "058-multiday-project-state",
+        "workspace": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/preflight/runtime/workspace",
+        "outcome_score": 0.9219,
+        "checks": [
+          {
+            "id": "plan_parse",
+            "label": "final_plan.json is valid JSON",
+            "pass": true,
+            "weight": 0.1,
+            "detail": null
+          },
+          {
+            "id": "log_exists",
+            "label": "project_log.md exists",
+            "pass": true,
+            "weight": 0.1,
+            "detail": null
+          },
+          {
+            "id": "history_days",
+            "label": "change_history preserves Day 1/2/3 entries",
+            "pass": true,
+            "weight": 0.15,
+            "detail": [
+              "Day 1",
+              "Day 2",
+              "Day 3"
+            ]
+          },
+          {
+            "id": "status_by_day",
+            "label": "status_by_day covers all three days",
+            "pass": true,
+            "weight": 0.1,
+            "detail": {
+              "Day 1": {
+                "status": "baseline_established",
+                "summary": "Established the tentative pilot scope, 120000 budget baseline, Day 30 target, initial ownership, risks, and reversible decisions."
+              },
+              "Day 2": {
+                "status": "plan_revised",
+                "summary": "Approved a 92000 budget, reassigned WS-data to Priya, recorded the five-day connector delay, required privacy compliance review, and logged the experimentation conflict."
+              },
+              "Day 3": {
+                "status": "conditional_go",
+                "summary": "Removed experimentation from pilot scope, added security signoff, targeted Day 12 sandbox delivery subject to expedited procurement, and made launch conditional on all gates."
+              }
+            }
+          },
+          {
+            "id": "risks",
+            "label": "risk register includes all new and carried risks",
+            "pass": true,
+            "weight": 0.15,
+            "detail": [
+              "R-connect-delay",
+              "R-budget",
+              "R-compliance",
+              "R-security"
+            ]
+          },
+          {
+            "id": "budget_decision",
+            "label": "final budget and recommendation are correct",
+            "pass": true,
+            "weight": 0.15,
+            "detail": null
+          },
+          {
+            "id": "owner_change",
+            "label": "WS-data owner changed to Priya",
+            "pass": true,
+            "weight": 0.1,
+            "detail": "Searched text for Priya"
+          },
+          {
+            "id": "conditions",
+            "label": "conditions cover compliance, security, and connector",
+            "pass": true,
+            "weight": 0.15,
+            "detail": [
+              "compliance review",
+              "security signoff",
+              "connector sandbox"
+            ]
+          },
+          {
+            "id": "conflict_handling",
+            "label": "plan records stakeholder conflict without deleting history",
+            "pass": true,
+            "weight": 0.08,
+            "detail": [
+              "stakeholder",
+              "sales",
+              "privacy",
+              "conflict"
+            ]
+          },
+          {
+            "id": "log_content",
+            "label": "log records each day and major changes",
+            "pass": true,
+            "weight": 0.1,
+            "detail": null
+          },
+          {
+            "id": "decision_register",
+            "label": "decision_register.csv preserves reversed decisions",
+            "pass": false,
+            "weight": 0.1,
+            "detail": null
+          }
+        ],
+        "outcome_llm_weight": 0.0
+      }
+    }
+  },
+  "rubric_provider_requests": 0,
+  "official_oracle_runs_per_fork": 2
+}

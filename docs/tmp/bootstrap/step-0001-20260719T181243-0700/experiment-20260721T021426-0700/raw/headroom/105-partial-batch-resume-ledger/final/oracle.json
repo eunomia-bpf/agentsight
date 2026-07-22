@@ -1,0 +1,66 @@
+{
+  "task": "105-partial-batch-resume-ledger",
+  "workspace": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/headroom/105-partial-batch-resume-ledger/runtime/workspace",
+  "outcome_score": 0.4994,
+  "checks": [
+    {
+      "id": "state",
+      "label": "state.json preserves attempts and records final resume state",
+      "pass": true,
+      "weight": 0.3,
+      "detail": {
+        "score": 1.0,
+        "attempt_counts": {
+          "ITEM-001": 1,
+          "ITEM-002": 1,
+          "ITEM-003": 1,
+          "ITEM-004": 1,
+          "ITEM-005": 1,
+          "ITEM-006": 2,
+          "ITEM-007": 1,
+          "ITEM-008": 0,
+          "ITEM-009": 1,
+          "ITEM-010": 1
+        }
+      }
+    },
+    {
+      "id": "final_results",
+      "label": "final_results.json merges partial and resumed results correctly",
+      "pass": false,
+      "weight": 0.3,
+      "detail": {
+        "score": 0.35
+      }
+    },
+    {
+      "id": "ledger",
+      "label": "retry_ledger.csv distinguishes skipped, retried, new, and rejected items",
+      "pass": false,
+      "weight": 0.25,
+      "detail": {
+        "score": 0.1
+      }
+    },
+    {
+      "id": "partial_results",
+      "label": "partial_results.json records round 1 stop without processing later items",
+      "pass": false,
+      "weight": 0.0,
+      "detail": {
+        "score": 0.65
+      }
+    },
+    {
+      "id": "report_and_inputs",
+      "label": "resume report/audit explain recovery, partial state is valid, and inputs remain unchanged",
+      "pass": false,
+      "weight": 0.15,
+      "detail": {
+        "source_unchanged": true,
+        "partial_score": 0.65
+      }
+    }
+  ],
+  "outcome_llm_weight": 0.0
+}

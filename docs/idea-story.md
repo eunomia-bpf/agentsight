@@ -1,0 +1,147 @@
+# Idea And Hypothesis History
+
+## Initial Narrative
+
+### Problem and stakes
+
+Long-running agents increasingly receive a goal and work for hours or days across many sessions. They leave behind code, papers, experiment results, data, documentation, and temporary artifacts. Final State, Native Report, Counts, and bounded Raw Retrieval each expose a different and potentially incomplete view of the process that produced those artifacts. This makes it difficult for another agent to determine whether the worker made progress, became stuck, drifted from the goal, skipped validation, or followed a wasteful skill or harness.
+
+The problem is not restricted to coding. Software development and auto research are instances of the same persistent-workspace process: an agent repeatedly reads, creates, modifies, renames, validates, and deletes digital artifacts while its session context is repeatedly replaced.
+
+### Challenged belief and central principle
+
+The status quo treats the task run or session as the natural unit of agent diagnosis and treats the final result as the dominant evidence of success. The hidden assumption is that a session contains the meaningful process and that intermediate workspace changes add little once the result and transcript are known.
+
+The central principle is that the persistent workspace, rather than an isolated session, is the stable unit of long-horizon agent work. Supervision therefore needs an action-time account of how artifacts evolve across sessions. The registered pilot tests whether `artifact_history`, snapshot `session_diff`, and action `effects` make process evidence easier to use than bounded Full Raw access.
+
+### Proposed system and method
+
+The project reconstructs workspace-centered action trajectories directly from the existing `agent-session` abstractions for Claude, Codex, Gemini, and future agents. Each trajectory preserves ordered tool actions, artifact lifecycle effects, workspace hierarchy, session boundaries, and links back to source evidence. Git commits are optional milestones and never define the timeline.
+
+The same reconstruction has two outputs. The query interface gives an automatic
+supervisor bounded, evidence-linked access to the complete registered Raw
+universe, artifact history, cross-session snapshot differences, and observed or
+unknown action effects. At a frozen
+checkpoint, the supervisor either emits one bounded worker-facing intervention
+or abstains; a fresh worker session then actually continues the official task.
+Agent Nebula renders the trajectory as a standalone HTML, SVG, PNG, GIF, or MP4
+artifact for inspection and demonstration. The supervisor consumes structured
+queries, not animation pixels, and the implementation does not duplicate
+`agent-session` with another general event IR.
+
+### Intended claims and contributions
+
+The ambitious target claim is that, under fixed supervisor and continuation
+budgets, Workspace Trajectory Retrieval enables an automatic supervisor to
+produce interventions with higher objectively measured continuation utility
+than same-source Full Raw Retrieval and matched extra-inference controls.
+
+The supporting claim is that artifact history, snapshot session differences,
+and action-effect closure make useful prior process evidence cheaper or more
+reliable to retrieve than an equally complete Raw interface. A Raw tie at lower
+cost supports only an efficiency claim; a tie
+with no intervention or Generic refutes the stronger representation claim.
+
+The intended contributions are:
+
+1. a cross-session, workspace-centered reconstruction of long-horizon agent actions and artifact evolution with source-evidence links;
+2. deterministic, source-linked queries that expose `artifact_history`,
+   `session_diff`, and `effects` without generating semantic labels;
+3. a matched-budget, closed-loop evaluation of Workspace Trajectory, Full Raw,
+   Generic current-state reflection/search, and no intervention, scored only by
+   the official executable outcome after actual continuation;
+4. a runnable artifact whose visual replay makes the same process inspectable but is not itself the diagnostic method.
+
+### Scope and boundaries
+
+The primary consumer is an automatic supervisor agent. Human annotation,
+human adjudication, Agent-generated substitute labels, and LLM-judge outcomes
+are outside the active experiment. Intent, failure reasons, and reflection may
+be exposed only when linked to explicit native session evidence; they cannot be
+inferred from file motion alone. Optional system observations may strengthen
+evidence binding, but native Agent sessions are the initial source. The paper
+does not claim that visualization makes humans faster or more accurate and does
+not require an HCI usability study.
+
+The target population is long-running autonomous work spanning multiple sessions and persistent digital artifacts. Coding repositories are the first controlled workload, while auto-research workspaces test whether the method generalizes beyond source code. The project does not claim that every inefficient-looking pattern is a failure, nor that visualization alone constitutes scalable oversight.
+
+### Research questions and evaluation promise
+
+- **RQ1 — Objective intervention utility:** From the same frozen checkpoint,
+  does Workspace Trajectory produce a higher official continuation outcome than
+  Full Raw, and does its gain over no intervention exceed Generic matched
+  reflection/search's gain, under fixed supervisor and worker budgets? No
+  intervention separately anchors realized benefit and harm.
+- **RQ2 — Information contribution:** If RQ1 shows a nonzero benefit, whose
+  removal reduces realized utility among `artifact_history`, `session_diff`,
+  and `effects`? A separate matched source-scope contrast removes earlier
+  sessions identically from Raw and Trajectory.
+- **RQ3 — Generalization and safety:** Does the effect survive held-out coding
+  and scientific-work task families, workers/models, intervention-harm checks,
+  abstention, and inference-budget curves?
+
+The evaluation uses deterministic multi-round benchmark tasks with fresh worker
+sessions over one persistent workspace. It freezes a real prefix checkpoint,
+forks it into all four conditions, appends only the bounded intervention to the
+otherwise unchanged next official prompt, executes each continuation, and runs
+the unmodified executable oracle twice. The registered primary metric is the
+paired Workspace-Trajectory-minus-Raw official outcome. The difference between
+Workspace Trajectory's gain over no intervention and Generic's corresponding
+gain is a mandatory competing contrast. No intervention separately anchors
+realized benefit and harm. Secondary metrics are abstention utility, tokens,
+tool calls, returned bytes, latency, and total continuation cost.
+Complete workspace/task families remain together in evaluation splits.
+
+Missing result values, datasets, effect sizes, and plots remain hypotheses until complete reviewed runs produce evidence.
+
+## Belief And Principle Evolution
+
+| Date | Prior belief/model | External evidence | Updated principle | Paper impact |
+|---|---|---|---|---|
+| 2026-07-19 | The initial recorded contract already targets an offline supervisor, but its generic trajectory-diagnosis mechanism is not yet separated from the closest automatic-diagnosis work. | User scope includes software and auto research and restricts evaluation to automatic diagnosis or agent use; the closest-work audit shows that generic trajectory diagnosis, cross-session analysis, and harness attribution already exist. | Persistent-workspace action trajectories are inputs to process-level automated oversight; the falsifiable mechanism is the incremental value of same-source artifact lifecycle and workspace transitions under matched access. Visualization is only a supporting view. | AAAI Alignment remains the primary target; human visualization utility stays outside the scientific contract, and the experiment must isolate workspace evolution rather than merely compare a structured view with weak logs. |
+| 2026-07-19 | Artifact lifecycle and a structured trace might themselves be the new mechanism. | OCEL/OCPM already model co-evolving object lifecycles, PM4AA applies process mining to repository records, PMAx gives deterministic process artifacts to an Agent, and HarnessFix Full HTIR already combines flow with artifact/state effects for diagnosis. | The contribution cannot be a new IR or generic structured-trace advantage. It must be the measured incremental value of longitudinal workspace process state for supervising ongoing and successful-but-pathological work across session/goal boundaries. | Add State Diff, Session Local, OCPM Features, and compatible Full HTIR controls; use OCEL only as an evaluation adapter; require intervention quality and real non-coding feasibility. |
+| 2026-07-19 | A collection of multiple sessions inside one goal might be sufficient evidence of longitudinal oversight. | Independent plan review showed that ending the item whenever the goal changes only tests within-goal aggregation; historical Git commits also cannot reconstruct exact dirty workspace state. | The longitudinal unit must include complete, exact prior-goal workspace history and a later target goal across genuine resumed/replaced top-level sessions. Parallel subagents are concurrency, not longitudinal continuation. | Historical slices without exact snapshots become mechanics-only; scientific evidence is prospectively captured in coding and auto-research, and the key ablation is full prior-goal history versus target-goal/session-local evidence. |
+| 2026-07-20 | A post-hoc deterministic adapter can make loose native/system records faithful enough for the Full-HTIR baseline. | Three independent dependency reviews found that even after removing leaks and validating spans, anchors, registry hashes, and ladder membership, missing model effects and cross-boundary/goal ownership could still create stale or misattributed evidence. | Effect and ownership completeness must be established when each action closes: every action has one observed/no-effect/unknown closure with exact call, time, session, goal, and boundary ownership. Structured views only project this evidence. | Close B9 without registry capture. Keep `agent-session` and AgentSight as the source abstractions; test a source-complete action/effect contract in a scientifically distinct dependency node before revisiting HTIR or the registry. |
+| 2026-07-20 | A dependency-aware action graph is itself a novel diagnosis algorithm. | AgentTether already constructs Transition Units and a Critical Transition Graph, then uses graph/run-local detectors for failure localization, repair memory, and intervention. DyG-RAG and HippoRAG also cover temporal event-graph retrieval and standard graph ranking. | The graph is established machinery. The surviving question is whether exact persistent-workspace effects across independent sessions/goals add incremental evidence over run-local graphs and an equal-budget full-fidelity Raw interface. | Do not claim graph novelty or train a graph detector before signal exists. Treat AgentTether as the closest structured competitor on compatible cases. |
+| 2026-07-20 | Full Raw should be serialized into one static supervisor prompt. | The real static preflight exceeded its frozen input ceiling and had source/leakage defects; AggAgent supplies a stronger full-fidelity search-and-segment interface for long trajectories. | Raw Retrieval must remain complete but external, with on-demand search, exact record, and exact range tools. Trajectory receives the same Raw tools plus only deterministic workspace relations. | Close the static experiment. Independently review a new queryable two-domain preflight with equal rendered-token, byte, and tool-call budgets. |
+| 2026-07-21 | The supervision benefit should be measured by agreement with independently annotated pathology and intervention labels. | The author explicitly prohibited human annotation. RHO shows that label-free harness improvement already exists; Remember When It Matters already injects trajectory-grounded reminders; REFLECT validates attribution by replay; Harness Bench supplies persistent multi-round workspaces with deterministic executable outcomes. | Measure supervision behaviorally: freeze a real benchmark checkpoint, fork it, execute each bounded intervention with the same worker, and let the official oracle measure realized continuation utility. Neither a human nor another Agent supplies semantic gold. | Replace pathology macro-F1 and recommendation agreement with checkpoint-matched official outcome improvement, harm, abstention, and cost. Keep equal-budget Full Raw and generic search/reflection as mandatory controls. |
+
+## Hypothesis Frontier
+
+| ID | Parent | Prediction | Falsifier | Evidence for/against | Status | Decisive next test | Reopen condition |
+|---|---|---|---|---|---|---|---|
+| H1 | root | An offline supervisor agent using Workspace Trajectory improves pathology classification, evidence localization, and retrospective intervention recommendations over Raw Retrieval, Final State, Native Report, and Counts under fixed budget. | No material improvement on held-out workspace/task groups, or gains disappear after matching information/token budget. | Prototype can reconstruct multi-session file actions; diagnostic outcome evidence is absent. | superseded on 2026-07-21 by H6; no inference occurred | None under the current no-human-label contract. | Reopen only on explicit author instruction to study semantic diagnosis labels. |
+| H2 | H6 | Apparent gains come only from extra inference, task headroom, or activity volume rather than workspace relations. | Trajectory beats Generic and Raw under matched total budgets on prospectively eligible held-out task families, and the effect survives count/activity controls. | Harness headroom failed; prior work shows task difficulty, model identity, and extra search are major confounds. | serious alternative, open | Enforce prospective eligibility, no-op headroom, Generic, Raw, and matched total-inference controls in the next admitted workload. | Reopen whenever the workload, model, or budget regime changes. |
+| H3 | H6 | A capable supervisor with complete Raw Retrieval performs as well as Workspace Trajectory; any value is only compression or lower cost. | Trajectory improves paired official continuation outcome over Raw at the same returned-byte, rendered-token, tool-call, and total inference budget. | No treatment-engaged comparison has run. | primary null, open | Equal-budget Raw-versus-Trajectory checkpoint continuations after workload qualification. | Reopen when longer-context or stronger retrieval changes Raw capability. |
+| H4 | H6 | Native session records omit material file effects, so a trajectory derived from them cannot support reliable intervention. | A controlled source-coverage audit shows sufficient recall, or adding AgentSight system evidence does not change objective intervention outcomes. | `agentvis` currently uses native sessions; system binding is not yet part of the experiment. | validity alternative, open | Audit native-to-workspace-effect coverage on controlled actions before claiming source completeness; add system evidence only if omission is material. | Reopen after system binding or a measured native-evidence failure. |
+| H5 | H6 | Prior-session workspace history, rather than only current state or the target session, supplies the relation that changes intervention utility. | Removing prior history does not reduce paired official outcome beyond the same scope removal in Raw, or RQ1 has no effect to explain. | Closest work already reuses trajectories; no valid local effect has isolated prior-session workspace evolution. | dormant until H6 support | If RQ1 succeeds, compare Full/Target Trajectory with matched Full/Target Raw under the same continuation protocol. | Reopen only after a supported RQ1 effect. |
+| H6 | root | At a frozen persistent-workspace checkpoint, a fixed-budget automatic supervisor using Workspace Trajectory Retrieval produces a bounded intervention whose executed continuation receives a higher official benchmark score than equal-budget Full Raw Retrieval, and its gain over no intervention exceeds generic matched reflection/search's gain while satisfying benefit/harm criteria versus no intervention. | Workspace Trajectory does not improve checkpoint-matched official outcomes beyond Full Raw, does not exceed Generic's gain, increases harm relative to no intervention, or its gain disappears on held-out workspace/task families or under matched total inference budget. | The reviewed implementation and no-model gate passed. Task-058 P0 passed execution mechanics but not treatment engagement: every supervisor used zero retrieval calls. The fixed no-op headroom scores were 0.6154, 0.8594, 1.0, 1.0, 1.0, and 0.4994; only 3/6 were below 0.95, so the current effect matrix was not admitted. | leading hypothesis; current Harness Bench configuration stopped | Do not subset the current tasks. Preregister a distinct objective workload/trajectory construction with adequate headroom, matched mandatory tool engagement, and auditable duplicate oracle payloads before any further comparison. | Reopen after an admitted new workload, a closer same-claim paper, or a material change in the benchmark/model budget regime. |
+
+## Claim Evolution
+
+| Date | Ambitious target claim | Evidence status | Unresolved uncertainty | Next evidence program |
+|---|---|---|---|---|
+| 2026-07-19 | Workspace-centered action trajectories enable process-level scalable oversight of long-horizon agents across sessions and artifact types. | Superseded formulation; prototype mechanism exists, but no outcome evidence was produced. | Semantic truth would have required a gold contract the author rejected. | Closed without inference; retained only as provenance. |
+| 2026-07-19 | Complete cross-goal workspace process history enables an automatic supervisor to diagnose ongoing or nominally successful pathologies and earliest intervention more reliably than equal-budget raw access and established state/process/trace baselines. | Superseded semantic-label formulation; no supervisor result exists. | The estimand depended on human labels and multiple compatibility-heavy diagnosis baselines. | Closed without inference; H6 preserves only the objective intervention question. |
+| 2026-07-20 | The same longitudinal oversight claim remains the target, but it requires source-complete action/effect ownership before any representation comparison is valid. | Hypothesis; capture mechanics passed, post-hoc Full-HTIR construction was terminally blocked, and no registry or supervisor run exists. | Whether native Agent actions and AgentSight effects can be closed one-to-one with exact boundary/goal ownership in both coding and auto-research. | Fresh source-completeness dependency plan and real preflight; only a PASS can reopen registry construction. |
+| 2026-07-21 | Under fixed supervisor and continuation budgets, source-linked cross-session workspace evolution improves the realized utility and safety of automatic interventions beyond complete Raw Retrieval and matched extra-inference controls. | Hypothesis; official benchmark and closest-work audit completed, old label-based experiment closed before inference. | Whether the effect exists beyond Raw access, generic reflection/search, stochastic continuation variance, and benchmark-specific prompt leakage. | Real Harness Bench checkpoint-fork preflight, followed conditionally by held-out coding and scientific-work evaluation. |
+| 2026-07-21 | The same objective H6 claim remains open after the first real dependency run. | P0 validated checkpoint/fork/continue/oracle mechanics but had zero retrieval calls; the preregistered Harness headroom gate failed at 3/6 and stopped the matrix. | Whether a prospectively selected coding/scientific workload has both intervention headroom and treatment engagement. | Qualify SWE Context Bench (or SWE-Interact) and CORE-Bench structurally before any scores; then run separate no-op headroom and tool-engagement gates. |
+
+## Rejected Or Dormant Paths
+
+| Path | Why rejected/dormant | Raw evidence | Revisit trigger |
+|---|---|---|---|
+| Human visualization usability as the main claim | User explicitly restricted the current research to automatic diagnosis or an agent using the tool. | `docs/user-instruction.md` | Explicit user instruction to add human-facing evaluation. |
+| Dynamic force layout as the main scientific contribution | Mental-map preservation and dynamic graph layout are established; it does not answer the automated oversight RQs. | `docs/reference/2011-archambault-animation-small-multiples.pdf`; `docs/reference/2014-beck-visualizing-dynamic-graphs.pdf` | A separate visualization paper with a new falsifiable layout result. |
+| Commit-centered evolution | User requires action-time and commit-only visual flashes. | `docs/user-instruction.md` | None under the current project. |
+| Human- or Agent-labeled pathology gold for the active RQ | The author explicitly rejected human annotation; an Agent substitute would be circular. The old branch closed before inference. | `docs/user-instruction.md`; B20 in the active step report | Explicit author instruction to reopen semantic-label evaluation. |
+
+## Narrative Evolution
+
+| Date | Before -> after | Reason and decisive evidence/instruction | Root disposition | Initial vs previous vs chosen comparison | Idea-audit report | Revisit condition |
+|---|---|---|---|---|---|---|
+| 2026-07-19 | Generic automatic trajectory diagnosis and intervention -> matched-budget diagnosis from cross-session observed workspace evolution, including successful work that nevertheless exhibits a pathology | AgentRx, TrajAudit, AgentForesight, HarnessFix, and REFLECT already cover run-level diagnosis, localization, harness repair, and intervention. OR-Space, AgingBench, and Cross-Session Threats also show that workspace and cross-session settings are not novel alone. | **Accept as a sharpening, not a retreat.** Preserve the ambitious automated-oversight claim, but require the experiment to isolate artifact lifecycle and workspace transitions beyond Raw Retrieval, Counts, Final State, and Native Report. | Initial: an offline supervisor diagnoses four long-horizon pathologies and retrospective intervention points under five evidence conditions. Previous: the same automatic-diagnosis goal was framed generically around cross-session trajectories. Chosen: isolate the incremental value of evidence-linked, realized workspace evolution over same-source retrieval and state/count/report controls. | `docs/tmp/bootstrap/step-0001-20260719T181243-0700/literature-20260719T181243-0700/literature-report.md` | Reopen if a closer work directly evaluates cross-session observed workspace evolution for matched-budget automatic diagnosis, or if the pilot finds no incremental signal. |
+| 2026-07-19 | Lifecycle-centered structured diagnosis -> longitudinal workspace supervision beyond established process and trace structures | OCEL/OCPM already supply lifecycle and conformance mechanisms; PM4AA/PMAx cover software-process mining and Agent interpretation; HarnessFix directly compares structured trace representations for diagnosis. | **Retain the direction at medium-high novelty risk.** Reject representation novelty. Test the problem/measurement unit: ongoing process state across session and goal boundaries, including success-with-pathology, under stronger controls. | Initial: offline supervisor under five conditions. Previous: observed artifact evolution versus raw/state/count/report. Chosen: longitudinal workspace process state versus State Diff, Session Local, OCPM Features, Full HTIR-compatible structure, and equal-budget Raw Retrieval. | `docs/tmp/bootstrap/step-0001-20260719T181243-0700/literature-20260719T211048-0700/literature-report.md` | Reopen if truth/access feasibility fails, OCPM/HTIR controls match the proposed method, or closer work evaluates the same cross-goal oversight task. |
+| 2026-07-19 | Within-goal multi-session evidence -> exact prior-goal plus target-goal workspace supervision interval | The first truth/access plan's unit terminated at a goal replacement and its historical examples lacked exact boundary snapshots; independent review showed both defects could falsely support the longitudinal claim. | **Accept the correction as mechanism isolation.** Require prospective exact state, multiple goals, and genuine resumed/replaced top-level sessions; treat parallel children and approximate Git reconstruction as mechanics only. | Initial: long-running work across sessions and persistent artifacts. Previous: a goal episode containing multiple source sessions. Chosen: identical complete prior-goal history plus a target goal, with a target-goal-only ablation isolating longitudinal value. | `docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260719T211552-0700/plan-review.md` | Reopen if prospective capture cannot produce enough exact intervals, human boundaries fail by domain, or prior-goal history adds no paired value. |
+| 2026-07-19 | Ambiguous all-goal/interval truth -> one target-goal outcome vector with prior history as evidence only | Final plan review showed that prior-goal positives could satisfy prevalence and agreement even if every target goal were negative; counting all goals would require a new hierarchical estimand. | **Select the target-goal estimand.** Each registered run contributes one selected target goal and one outcome vector. Prior-goal labels describe recurrence/history but never count as target positives or samples. | Initial: diagnose long-running work across persistent workspaces. Previous: annotate every included goal while calling one “main.” Chosen: all conditions predict the same selected target goal; the longitudinal statistic compares Full-minus-Target Trajectory against Full-minus-Target Raw. | `docs/tmp/bootstrap/step-0001-20260719T181243-0700/estimand-20260719T215859-0700/estimand-report.md` | Reopen only if a later paper deliberately adopts all-goal outcomes with a frozen hierarchical model and new power contract. |
+| 2026-07-21 | Human-adjudicated pathology diagnosis and retrospective recommendation -> objectively graded closed-loop automatic supervision | The author explicitly rejected the two-expert plus third-adjudicator requirement and requested benchmark/trajectory experiments. Active reminder injection, label-free harness optimization, and causal replay already exist, while Harness Bench, SWE, CORE-Bench, and RE-Bench provide executable outcomes. | **Close the old estimand without inference and accept H6.** At a frozen workspace checkpoint, fork no-op, generic matched-control, Full Raw, and Workspace Trajectory continuations. Execute every intervention with the same worker; use the official deterministic oracle as truth. | Initial: an offline supervisor predicts four semantic pathologies and a retrospective intervention against expert gold. Previous: the same task through a stronger queryable Raw baseline. Chosen: an automatic supervisor acts or abstains and is judged by realized outcome, harm, and cost. The persistent-workspace abstraction and coding-plus-auto-research scope remain unchanged. | `docs/tmp/bootstrap/step-0001-20260719T181243-0700/literature-20260721T020451-0700/literature-report.md` | Reopen semantic labels only on explicit author instruction. Reopen H6 if the preflight cannot produce faithful checkpoint forks/objective scores or if a closer same-claim study invalidates the novelty delta. |

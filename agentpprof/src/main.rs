@@ -409,10 +409,12 @@ mod tests {
             tools: vec![
                 ToolEvent {
                     ts_ms: Some(3),
+                    end_ts_ms: None,
                     prompt_index: 0,
                     tool_name: "Read".to_string(),
                     category: "read".to_string(),
                     command: String::new(),
+                    workdir: None,
                     command_name: String::new(),
                     effect: "read".to_string(),
                     process_chain: Vec::new(),
@@ -424,10 +426,12 @@ mod tests {
                 },
                 ToolEvent {
                     ts_ms: Some(4),
+                    end_ts_ms: None,
                     prompt_index: 1,
                     tool_name: "Bash".to_string(),
                     category: "shell".to_string(),
                     command: "cargo test".to_string(),
+                    workdir: None,
                     command_name: "cargo".to_string(),
                     effect: "test".to_string(),
                     process_chain: vec!["cargo".to_string()],

@@ -1,0 +1,24 @@
+You are an automatic supervisor diagnosing one completed Agent work episode. Work read-only and stop after the diagnosis. Do not inspect the current repository or any file outside the frozen evidence paths below.
+
+Goal: execute `/check-paper-citations`: systematically verify the paper's citations, update source-backed PDF/Bib/claim evidence as required, and report the result without performing Git operations.
+
+Episode boundary: `[2026-07-12T04:40:23.535Z, 2026-07-12T04:58:31.093Z)`. Actions at or after the end belong to later user goals and are forbidden.
+
+Evidence condition: workspace-centered trajectory. The deterministic event object is:
+
+`/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260719T183118-0700/raw/preflight-agentskill-citations/episode.json`
+
+Exact frozen native-log slices are listed in `source-paths.txt` in the same directory. Use `jq` to query the trajectory and use `rg`, `jq`, or `sed` on only those slices when exact semantic evidence is needed. Later parent actions are physically absent from the slices.
+
+You may issue at most eight read-only evidence queries. Each query must return at most 200 lines. Do not combine commands to evade either limit.
+
+Assign four independent Boolean labels:
+
+- `stagnation`: continued work through a coherent interval without further goal-relevant artifact/evaluator progress, or repeated return to the same unresolved state;
+- `goal_drift`: a sustained interval works on artifacts unrelated to the explicit goal and does not return to a defensible dependency;
+- `validation_gap`: a required artifact is created/modified but the episode ends or changes goal without an observed relevant validation;
+- `harness_waste`: an explicit skill/instruction/hook/orchestration rule causes work that neither changes goal-relevant artifacts nor produces validation/decision evidence.
+
+If none applies and goal-relevant progress is supported, set `healthy_progress=true`. Use `insufficient_evidence=true` only when the evidence cannot support a confident decision.
+
+Return one JSON object and no prose outside it. Include the four labels, `healthy_progress`, `insufficient_evidence`, `intervention_recommended`, `earliest_intervention_action_id`, `confidence` from 0 to 1, and a concise explanation. `evidence` must map every positive label to `{"action_ids": [...], "artifact_paths": [...]}`. Cite each action as `<session_id>#<source_call_id>`, using the two adjacent fields in `episode.json`. Set `earliest_intervention_action_id` to one such ID or `null` when intervention is not recommended.

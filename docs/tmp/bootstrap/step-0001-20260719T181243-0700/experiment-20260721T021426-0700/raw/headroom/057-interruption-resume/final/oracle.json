@@ -1,0 +1,157 @@
+{
+  "task": "057-interruption-resume",
+  "workspace": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/bootstrap/step-0001-20260719T181243-0700/experiment-20260721T021426-0700/raw/headroom/057-interruption-resume/runtime/workspace",
+  "outcome_score": 0.6154,
+  "checks": [
+    {
+      "id": "state_parse",
+      "label": "out/state.json is parseable",
+      "pass": true,
+      "weight": 0.1,
+      "detail": null
+    },
+    {
+      "id": "final_parse",
+      "label": "out/final_result.json is parseable",
+      "pass": true,
+      "weight": 0.1,
+      "detail": null
+    },
+    {
+      "id": "state_complete",
+      "label": "state records final completion and no pending ids",
+      "pass": true,
+      "weight": 0.15,
+      "detail": null
+    },
+    {
+      "id": "state_scores",
+      "label": "state keeps correct per-item risk scores",
+      "pass": false,
+      "weight": 0.15,
+      "detail": null
+    },
+    {
+      "id": "resume_log",
+      "label": "log shows pending work processed in round 2 without reprocessing completed items",
+      "pass": false,
+      "weight": 0.15,
+      "detail": {
+        "round2_ids": [],
+        "redo_ids": []
+      }
+    },
+    {
+      "id": "skip_audit",
+      "label": "preexisting round 1 items are explicitly skipped or reused",
+      "pass": false,
+      "weight": 0.1,
+      "detail": []
+    },
+    {
+      "id": "final_content",
+      "label": "final result has correct resume summary and aggregates",
+      "pass": true,
+      "weight": 0.2,
+      "detail": {
+        "run_id": "resume-drill-74",
+        "resumed_from_state": true,
+        "total_items": 5,
+        "completed_ids": [
+          "C-101",
+          "C-102",
+          "C-103",
+          "C-104",
+          "C-105"
+        ],
+        "escalations": [
+          "C-101",
+          "C-103",
+          "C-104"
+        ],
+        "monitor_ids": [
+          "C-102",
+          "C-105"
+        ],
+        "aggregate_risk_score": 62,
+        "resume_audit": {
+          "skipped_preexisting_ids": [
+            "C-101",
+            "C-102",
+            "C-103"
+          ],
+          "newly_processed_ids": [
+            "C-104",
+            "C-105"
+          ]
+        },
+        "patch_audit": {
+          "applied_patch_ids": [
+            "P-1",
+            "P-2"
+          ],
+          "ignored_patch_ids": [
+            "P-2",
+            "P-3"
+          ],
+          "ignored_reasons": {
+            "P-2": "duplicate patch_id after first application",
+            "P-3": "unknown item id C-999"
+          }
+        }
+      }
+    },
+    {
+      "id": "final_audit",
+      "label": "final audit separates skipped and newly processed ids",
+      "pass": true,
+      "weight": 0.1,
+      "detail": {
+        "skipped_preexisting_ids": [
+          "C-101",
+          "C-102",
+          "C-103"
+        ],
+        "newly_processed_ids": [
+          "C-104",
+          "C-105"
+        ]
+      }
+    },
+    {
+      "id": "patch_audit",
+      "label": "final audit separates applied and ignored patches",
+      "pass": true,
+      "weight": 0.1,
+      "detail": {
+        "applied_patch_ids": [
+          "P-1",
+          "P-2"
+        ],
+        "ignored_patch_ids": [
+          "P-2",
+          "P-3"
+        ],
+        "ignored_reasons": {
+          "P-2": "duplicate patch_id after first application",
+          "P-3": "unknown item id C-999"
+        }
+      }
+    },
+    {
+      "id": "resume_audit_md",
+      "label": "resume_audit.md explains history preservation and patch handling",
+      "pass": false,
+      "weight": 0.1,
+      "detail": null
+    },
+    {
+      "id": "fixture_present",
+      "label": "source fixture remains readable",
+      "pass": true,
+      "weight": 0.05,
+      "detail": null
+    }
+  ],
+  "outcome_llm_weight": 0.0
+}

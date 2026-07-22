@@ -1,4 +1,9 @@
-# Agent Nebula 研究计划：长期 Agent 的工作空间演化与行动轨迹
+# Agent Nebula 研究计划：长期 Agent 的工作空间轨迹与自动监督
+
+> **2026-07-21 当前科学合同。** 本研究不再使用人工 pathology 标注，也不让另一个 Agent
+> 充当 gold。核心实验在真实 benchmark 的 session 边界冻结 workspace，为不同监督条件
+> 创建完全相同的分叉，真正执行后续 Agent session，再由官方可执行 grader 判断干预是否
+> 改善结果。下文的表示、算法、用户场景和长期目标保持不变；实验与主张以这个闭环结果为准。
 
 ## 1. 研究对象
 
@@ -7,8 +12,9 @@ auto research、论文写作和实验迭代都属于同一种长期 Agent 工作
 持续改变一个 workspace，最终形成代码、论文、实验结果、数据和文档等数字产物。
 
 > 长期运行的 Agent 如何跨多个 session 持续改变一个 workspace，并最终形成代码、论文、
-> 实验结果、数据和文档等数字产物？我们能否重建这些产物的形成过程，使后来者能够核对
-> Agent 做了什么、如何做、在哪里失败和修正，并诊断 skill/harness 造成的低效？
+> 实验结果、数据和文档等数字产物？我们能否重建这些产物的形成过程，使自动诊断器或
+> 监督 Agent 能够核对执行证据，判断工作是否取得进展、陷入空转或偏离目标，并诊断
+> skill/harness 造成的低效？
 
 这里的核心对象是 action-time workspace evolution：以 Agent action 的真实顺序为时间，
 以具有生命周期的数字产物为实体，以 workspace 层级和相邻动作关系为空间约束，以
@@ -33,11 +39,16 @@ Git commit 只作为可选里程碑，不定义时间轴，也不参与布局。
 - skill 是否要求 Agent 记录大量几乎不再阅读的文档；
 - harness 是否让 Agent 长时间迭代无意义的测试用例，而没有推进真正的实现或研究目标。
 
+本研究不把“人直接看图回答问题”作为主要机制或实验对象。人的需求由自动诊断器或另一个
+监督 Agent 承接：它读取 workspace trajectory，输出进展判断、异常区间、可能原因、是否
+需要干预以及对应的原始 action 证据。人仍然是最终受益者，但不需要亲自浏览完整日志或
+承担论文中的主要诊断任务。
+
 真实文件动作能够证明“发生了什么”；意图、失败原因和反思则必须来自 Agent session 中
 可追溯的语义记录，不能从系统事件硬猜。语义解释是可附加的信息层，不改变底层 action
 时间轴和 artifact 生命周期。
 
-### 1.2 文件地图与 Agent 轨迹的分工
+### 1.2 文件地图、轨迹与诊断工具的分工
 
 Agent Nebula 中的星点表示文件，但文件不只意味着源代码：它也可以是测试、配置、论文、
 研究笔记、数据集、实验输入、日志、指标、图表、结果和临时产物。目录或其他 workspace
@@ -46,6 +57,11 @@ Agent Nebula 中的星点表示文件，但文件不只意味着源代码：它�
 文件地图回答“什么产物发生了变化”，Agent trajectory 回答“Agent 如何让它发生变化”。
 后者既包括 read/write/create/rename/delete 的先后次序，也包括与文件效应关联的搜索、
 执行和验证动作。二者共同表现模块形成、热点迁移、反复返工、遗忘区域和结构漂移。
+
+自动诊断器不需要从动画像素反推这些结构。实现上应直接从现有 agent-session 抽象计算
+可查询的轨迹投影，使监督 Agent 能够询问活跃产物、目录转移、验证滞后、返工区间、失败
+恢复和证据位置。HTML/GIF/MP4 是同一轨迹的可检查与传播视图，不是诊断 Agent 的输入
+协议，也不要求额外建立一套重复的事件 IR。
 
 中心研究主张是：
 
@@ -56,6 +72,18 @@ Agent Nebula 中的星点表示文件，但文件不只意味着源代码：它�
 即：长期 Agent 的关键观测对象不是一次对话或最终结果，而是它跨 session 改造持久工作
 空间、形成数字产物的完整过程。Coding 是第一批最容易严格评测的 workload，而不是系统
 抽象的边界。
+
+面向当前研究范围，更具体的贡献定位是：
+
+> We develop process-level scalable oversight for long-horizon agents by
+> reconstructing workspace-centered action trajectories that automatic
+> supervisors can query before intervening in a real continuation, whose effect
+> is measured by an executable task outcome.
+
+核心研究问题是：在 supervisor 与后续 worker 的预算固定时，workspace-centered action
+trajectory 能否比完整、等预算的 Raw Retrieval 更好地支持一次真实干预，使后续 session
+获得更高的官方任务分数，同时不增加伤害？“空转、偏航、验证缺失”仍是 supervisor 可以
+推理的过程现象，但不再要求人工先把它们标成 gold。
 
 ## 2. 新颖性边界
 
@@ -84,54 +112,77 @@ Thought–Action–Result、线性时间轴或抽象行为图为中心。Agent N
   生命周期，以及 Agent 注意力在目录和文件之间移动的顺序；
 - **声明与文件效应可关联：** Agent 原生 Tool action 表达调用意图，系统文件观察在可用时
   表达真实效应；二者绑定到同一 action，而不是建立两套互不相干的时间线；
-- **过程恢复而非结果展示：** 评价目标是用户能否准确回答“先测试还是先写、热点怎样迁移、
-  在哪里反复、哪些产物低回读”，并快速返回原始证据核对；
+- **过程恢复而非结果展示：** 评价目标是自动诊断器或监督 Agent 能否准确判断“先测试还是
+  先写、热点怎样迁移、在哪里反复、哪些产物低回读”，并返回可核验的原始证据；
 - **harness 诊断：** 从可观察的动作序列研究文档负担、test-only churn、验证滞后、重复
   探索等候选低效是否与 skill/harness 设计相关，而不是只比较任务是否最终通过。
 
 因此，建议的中心表述是：
 
-> Agent Nebula is a workspace-centered visual instrument for reconstructing and
-> diagnosing how long-running agents create and revise digital artifacts.
+> Agent Nebula is a workspace-centered process-observability and oversight
+> instrument for diagnosing how long-running agents create and revise digital
+> artifacts across sessions.
 
 “星云”是这个模型的一种交互表示，不是全部贡献。
 
 ## 3. 论文主张层级
 
-### 主张 C1：过程恢复
+### 主张 C1：可查询的过程恢复
 
 action-time、生命周期感知、workspace 中心的表示，相比原始 session 日志、普通 Tool 时间轴、
-静态热点图和 commit 历史，能让用户更快、更准确地恢复长期 Agent 工作过程，并定位支持
-答案的原始证据。
+session summary 和最终产物，能够保留诊断长期 Agent 所需的跨 session 顺序、产物生命周期、
+空间转移与原始证据，并允许诊断器按区间和产物查询。
 
-### 主张 C2：时空布局
+### 主张 C2：过程结构提高真实干预效用
 
-一个联合约束目录层级、动作相邻性、长期重要性和 temporal stability 的动态布局，能在
-“看清当前结构”和“保留跨帧空间记忆”之间取得可测量的平衡；Agent 的连续路径可读性
-高于固定最终布局或逐帧独立布局。
+在 supervisor、后续 worker、提示和预算相同的条件下，为监督 Agent 提供可查询的
+workspace trajectory，相比完整、同源、等预算的 Full Raw Retrieval，能够生成更有用的
+干预；从同一 workspace checkpoint 执行后，官方可执行 grader 给出更高结果。
 
-### 主张 C3：可观察的 harness 诊断
+### 主张 C3：自动监督的收益不是额外推理造成的
 
-不依赖生成式语义摘要，仅从有证据的文件动作和 Tool 顺序计算的指标，能够定位一部分
-人工确认的低效区间，例如文档低回读、测试空转、验证滞后、删除后重建和重复探索。
+Workspace Trajectory 的收益必须同时超过“不给干预”和“只查看当前 workspace 的通用反思/
+搜索”控制，并报告伤害率、弃权、token、工具调用和延迟。若只与弱 summary 或 final state
+比较，不能支持 C2。
 
 ### 主张 C4：跨 Agent 与跨任务泛化
 
-上述收益不是某一个 Agent、仓库规模、语言或任务类型造成的。结论需要按 repo、task、
+上述收益不是某一个 Agent、workspace 规模、语言或任务类型造成的。结论需要按 workspace、task、
 Agent 和 harness 分组验证，不能随机打散 event 后做有泄漏的评估。
 
 ## 4. 研究问题
 
-- **RQ1（理解）：** 不同表示怎样影响长期 Agent 过程问题的回答正确率、完成时间、证据
-  定位时间和信心校准？
-- **RQ2（布局）：** hierarchy、sequence adjacency 与 temporal stability 分别怎样影响
-  文件追踪、目录纯度、节点重叠、跨帧位移和真实结构变化的可见性？
-- **RQ3（诊断）：** 哪些纯动作指标能够识别人工确认的低效区间，在哪些 workload 上会
-  产生误报？
-- **RQ4（泛化）：** 结果在不同 Agent、harness、仓库规模、任务类型和运行时长上是否
-  稳定？
+- **RQ1（客观干预效用）：** 在 supervisor 与 continuation 预算固定时，Workspace
+  Trajectory Retrieval 产生的干预，是否比 Full Raw Retrieval 在相同 checkpoint 的真实
+  后续运行中获得更高的官方可执行结果？
+- **RQ2（信息贡献）：** 在 RQ1 出现非零收益后，prior-session 历史、action 顺序、artifact
+  生命周期和 workspace transition 分别贡献多少真实 continuation gain？
+- **RQ3（安全与泛化）：** 收益与伤害率、弃权和成本在不同 Agent、harness、workspace/
+  task family、任务类型和运行时长上是否稳定？
+- **RQ4（harness 诊断，后续）：** 多个任务上的真实干预效应能否进一步定位 skill/harness
+  的系统性失效，而不依赖人工 pathology 标签？这一问题不进入第一个 RQ1 pilot。
 
 ## 5. 表示与算法作为可检验模型
+
+### 5.1 论文算法：中性的 workspace 过程投影
+
+论文中的主算法不是星云的力导向布局，也不是一组手写的异常分数。对冻结区间中的全部
+Agent action，构造器按真实 action 顺序做一次确定性投影：保留包括零文件效应在内的全部
+action；只把 native/system 证据明确支持的 read、write、create、rename、delete、execute
+和 validate 关联到产物；只根据这些效应或精确静止边界更新产物的存在、路径和内容状态；
+再加入显式的 action 顺序、session 所属、goal 所属与相继、路径层级、rename identity 和
+action-to-artifact 关系。每个输出事实都必须带有 Full Raw 能逐字节取回的底层 ID。
+
+核心投影不使用阈值、固定事件窗口、重要性权重、从命令文本猜测的文件效应、pathology
+标签、生成的意图或由最终结果选择的特征。证据无法建立的关系保持缺失或 `unknown`。因此
+算法本身不预先诊断“空转”“偏航”或“验证缺失”；这些是使用同一模型与预算的监督 Agent
+需要输出的判断。
+
+验证候选关系和跨 goal recurrence matcher 降为可删除的派生索引。它们必须引用两侧的
+原始 action，并在查看标签前冻结规则；实验中单独消融。若收益依赖这些索引，只能主张该
+索引有用，不能把收益泛化成整个 workspace trajectory 都有用。
+
+### 5.2 展示算法：Agent Nebula 动态布局
 
 设第 `i` 个 Agent action 为 `a_i`，它在时间 `t_i` 对零个或多个文件产生带证据的动作。
 可视状态 `S_i` 由 `S_{i-1}` 和 `a_i` 更新；不存在以 commit 为单位的隐藏状态跳跃。
@@ -155,8 +206,8 @@ E_i = λ_h E_hierarchy
 ```
 
 其中 `E_temporal` 惩罚没有结构证据支持的跨帧位移，但注意力上升、新建、重命名和目录
-活动会降低局部稳定约束，使真实变化仍可见。研究中不把某组权重写成常数真理，而是通过
-消融和任务表现寻找 Pareto 区域。
+活动会降低局部稳定约束，使真实变化仍可见。这组权重只决定 HTML/GIF/MP4 的展示效果，
+不进入监督 Agent 的输入，不按 pathology 标签或诊断结果调参，也不是当前论文的算法贡献。
 
 Agent 的“轨迹”不是永久连线。每个 action 的目标位置是当次文件集合的加权质心；连续
 action 构成瞬时路径，视觉上只保留短尾迹或移动光环。用于分析时则保留完整的目录转移
@@ -164,37 +215,53 @@ action 构成瞬时路径，视觉上只保留短尾迹或移动光环。用于�
 
 ## 6. 实验设计
 
-### E1：过程理解对照实验
+### E1：checkpoint-fork 闭环干预实验
 
-从同一份证据生成四种条件，避免数据量不同造成偏差：
+在官方多轮 benchmark 的下一次独立 session 之前冻结完整 workspace、已完成的原生 session、
+runtime state 和下一轮官方 prompt。为同一个 checkpoint 创建四个字节一致、名称不泄漏条件
+的分叉：
 
-1. 原始 session/Tool 日志；
-2. 可缩放的线性 Tool 时间轴；
-3. 静态文件热点图或最终 treemap；
-4. Agent Nebula 动态工作空间轨迹。
+1. 不给任何干预；
+2. 让同一个 supervisor 只查看当前 workspace，做通用反思/搜索；
+3. 让 supervisor 使用完整、同源、等预算的 Full Raw Retrieval；
+4. 让 supervisor 使用相同 Raw 工具，再增加确定性的 artifact history、session diff 和
+   source-linked effect 查询。
 
-任务不问审美偏好，而问有客观答案的问题：主要修改模块或产物类别、首次测试与首次实现
-的顺序、论文/代码/实验投入、热点迁移、重复探索、删除后重建、文档回读、测试空转，以及
-支持判断的 action 证据。
-指标包括正确率、完成时间、证据定位时间、漏报/误报、信心校准和 NASA-TLX 等主观负荷。
+后三种条件都输出一条有长度上限的 advice 或 `ABSTAIN`，以相同中性 wrapper 附加到未修改的
+下一轮官方 prompt。随后使用相同 worker 模型、reasoning effort、超时和剩余轮数执行每个
+分叉，最后调用未修改的官方 executable oracle。
 
-### E2：布局消融与压力测试
+主要 estimand 是：
 
-在同一轨迹上比较：
+```text
+Δ_workspace = E[Y(WorkspaceTrajectory) - Y(FullRaw)]
+Gain(c)      = E[Y(c) - Y(NoIntervention)]
+Δ_structure = Gain(WorkspaceTrajectory) - Gain(GenericMatched)
+```
 
-- 无 temporal stability；
-- 固定最终布局；
-- 无目录层级力；
-- 无相邻动作力；
-- 完整模型。
+其中 `Y` 是同一 checkpoint 后真实 continuation 的官方分数，不是人或 LLM judge 的标签。
+同时报告每种干预相对 no-op 的伤害率、弃权效用、supervisor/worker token、工具调用、返回字节、
+延迟和总运行时间。Full Raw 打平或获胜即否定更强的表示主张；只降低成本则只能主张效率。
 
-客观指标包括节点身份追踪率、目录混杂度、节点重叠、归一化位移、轨迹折返可辨识度和
-对真实 create/rename/delete 的检测率。仓库规模和 action 数应分层，不用小仓库结论替代
-大仓库压力结果。
+### E2：轨迹信息消融
 
-### E3：行为与 harness 诊断
+只有 E1 在官方结果上优于 Full Raw 和 Generic 控制之后，才在同一闭环任务上依次去掉：
 
-先由多名标注者仅根据原始证据标记低效区间和类型，再冻结标签定义。候选指标至少包括：
+- 跨 session 连续性；
+- action 的先后顺序；
+- create/rename/delete 生命周期；
+- 目录和相邻 action 的空间转移；
+- 修改与后续验证的关联；
+- 可返回原始 action 的证据索引。
+
+该实验判断真实干预收益究竟来自哪类过程结构，而不是仅仅看到更多文本。所有条件必须对齐
+source membership 与预算并报告实际 token/byte/call 差异。动态布局继续用于 HTML/GIF/MP4
+检查与 demo，但不作为当前自动监督论文的独立主张。
+
+### E3：行为与 harness 诊断（后续、无语义 gold）
+
+只有多个任务上的客观干预结果存在后，才分析哪些可观测过程量与正收益、伤害或弃权相关。
+候选描述性指标包括：
 
 - artifact action share 与 active-duration share；
 - documentation readback；
@@ -204,8 +271,9 @@ action 构成瞬时路径，视觉上只保留短尾迹或移动光环。用于�
 - no-file-action share；
 - 目录转移熵、短期折返率和重复访问但无写入的探索段。
 
-评估按 repo/task/Agent 分组交叉验证，报告 precision、recall、AUROC/PR-AUC 与误报案例。
-如果指标只能区分任务类型，不能定位低效过程，则 C3 不成立。
+这些指标只用于预注册描述性分析或后续机制消融，不作为主轨迹构造器的手写 pathology
+特征，也不产生“人工确认的低效区间”。harness 责任必须由实际替换/移除对应 skill、hook、
+instruction 后的 outcome change 或其他可执行反事实来验证；单纯相关性不能叫根因。
 
 ### E4：跨来源证据消融
 
@@ -218,11 +286,13 @@ action 构成瞬时路径，视觉上只保留短尾迹或移动光环。用于�
 数据集应包含不同 Agent、harness、workspace 类型、语言、规模、任务类型和运行时长，并
 保留失败 run，不能只收集成功案例。软件仓库可以作为第一阶段受控 workload；auto
 research、论文与实验 workspace 用于检验表示是否真的超越 coding。最小可发表单元不是
-event 数，而是具有完整任务上下文、可复核证据和结果判定的 run/session group。
+event 数，而是能够在冻结 checkpoint 上复现、分叉并由官方 grader 判定结果的
+task/session group。
 
 训练或调参、阈值选择、诊断评估必须按 workspace 或 task group 划分。相同 issue、fork、
 模板 workspace 或同一长运行的切片不能跨训练与测试集合。发布数据时可用路径哈希或受控
-重放，但论文内部的 ground truth 必须能回到原始 action 核验。
+重放，但论文中的 primary truth 是未修改的官方 executable outcome；轨迹中的每个派生事实
+仍须回到原始 action 或 checkpoint 字节核验。
 
 ## 8. 最近工作与直接威胁
 
@@ -237,47 +307,55 @@ event 数，而是具有完整任务上下文、可复核证据和结果判定�
   Agent Nebula 应提供新的可操作测量，而不是重复描述“不同 Agent 行为不同”。
 - **动态图：** temporal stability 与 mental-map preservation 已有完整研究脉络；新意需要
   来自面向文件生命周期和 Agent 路径的联合目标及其任务实证，而非直接复用术语。
+- **主动记忆与 harness 优化：** Remember When It Matters 已经让独立 memory Agent 注入
+  trajectory-grounded reminder；RHO 已经用历史 rollout 无监督优化 harness；SWE Context
+  Bench 已比较 full trajectory 与 summary 的经验复用；REFLECT 已用 intervention replay
+  检验 attribution。因此当前新意只能是严格匹配 Raw 与额外推理预算后，跨 session
+  workspace evolution 是否提高真实 continuation utility。
+- **评测混淆：** Rethinking Harness Evolution 说明额外 feedback/search 和同 benchmark
+  调参可以伪造 harness 改进。因此必须加入 Generic matched control、held-out task family
+  和实际资源账单。
 
 ## 9. 投稿路线
 
 扩大到 workspace 后，会议选择应由最终证据最强的贡献决定，而不是预先把项目限定为
 软件工程工具：
 
-1. **CHI：首选完整故事。** 如果核心是人如何理解、接管和监督数日运行的 Agent，需要
-   formative study、真实长期任务、对照界面和严格用户实验。CHI 能容纳 coding、auto
-   research、论文与实验等多种 workspace，也是“从最终结果转向过程理解”最自然的社区。
-2. **IEEE VIS：首选可视分析故事。** 如果核心产出是新的动态 workspace 表示、时空布局、
-   mental-map 权衡和分析任务模型，应以表示/交互、analytics/decisions 或 empirical VIS
-   的标准评价，而不把论文写成 Agent 产品介绍。
-3. **IUI：近期且高度匹配的 AI×HCI 路线。** 如果贡献同时包含可计算的行为指标和供人
-   检查 Agent 的智能界面，IUI 要求的 computational 与 human-centric 两面正好匹配；
-   仍需用户研究或计算实验支撑主张。
+1. **AAAI AI Alignment：首选完整故事。** 以 process-level scalable oversight 为中心，
+   证明监督 Agent 能够利用 workspace trajectory 在真实 continuation 中提高官方结果并
+   控制伤害；动态图是可解释、可复核的 artifact，而不是论文唯一贡献。
+2. **AAAI Demonstration：系统展示路线。** 用真实长期 workspace 现场展示轨迹查询和
+   Agent Nebula 回放，适合验证传播力和收集反馈，但两页 demo 不能替代完整科学评价。
+3. **IAAI：部署后的应用路线。** 当诊断工具已经被真实 Agent workflow 使用，并能报告
+   可测量的可靠性、生产率或维护收益时，Tools and Methodologies 路线高度匹配。
 4. **MSR：行为数据与测量路线。** 如果主贡献变成跨 Agent、harness 和 workspace 的长期
    trajectory 数据集、过程指标与实证发现，MSR 比单纯可视化会议更合适。可视化在这条
    路线上是分析仪器，不是主要新意。
 5. **ICSE/FSE/ASE：软件工程子集路线。** 如果实验主要落在代码仓库，贡献集中于开发过程
    恢复、软件理解或自动化开发诊断，可以投稿；但需要明确把 auto research 作为泛化场景，
    不能一边声称通用 workspace、一边只评测 coding。
-6. **UIST：有条件候选。** 只有在交互技术本身足够新、可复用且经过强交互实验时才优先；
-   单纯一张动态星云或一个回放页面不够。
+6. **CHI/IEEE VIS/IUI：不作为当前主路线。** 它们适合未来研究人类理解、交互或布局本身；
+   当前既然只研究自动诊断或 Agent 使用工具，就不以用户实验和可视化可用性作为主要证据。
 
-当前建议以 **CHI 作为完整研究故事的第一目标，IEEE VIS 作为算法与可视分析强时的并列
-目标，IUI 作为更聚焦且近期的落点**。MSR 可承接独立的数据/测量论文。若未来把 AgentSight
-的跨层系统捕获、声明—效应差异、低开销长期采集和生产规模做成核心，才适合讨论系统
-会议；仅有可视化不足以支撑 OSDI/SOSP 式系统主张。
+当前建议以 **AAAI AI Alignment 作为完整研究故事的第一目标**，AAAI Demonstration 作为
+独立的系统展示入口，MSR 可承接数据/测量论文。若未来把 AgentSight 的跨层系统捕获、
+声明—效应差异、低开销长期采集和生产规模做成核心，才适合讨论系统会议；仅有可视化
+不足以支撑 OSDI/SOSP 式系统主张。
 
 ## 10. Go/No-Go 门槛
 
-在扩大实现之前先完成三个 pilot：
+在扩大实现之前按顺序完成三个 gate：
 
-1. **可回答性 pilot：** 盲测参与者能否从现有图中正确回答至少一组过程问题，并比 Tool
-   时间轴更快定位证据；
-2. **稳定性 pilot：** 大仓库与长历史中，完整布局相对消融版是否减少无意义跳动，同时
-   不隐藏真实重命名、创建和热点迁移；
-3. **诊断 pilot：** 预注册的动作指标能否在未见过的 run 上命中人工确认的低效区间。
+1. **真实机制 preflight：** 在 Harness Bench 多轮任务的 session 边界成功 pause/fork/
+   inject，四个分叉字节一致、无 oracle/future leakage，所有后续 session 和官方 grader
+   可重复运行；
+2. **客观效用 pilot：** Workspace Trajectory 相对 Full Raw 与 Generic matched control
+   是否提高 task-balanced official outcome，且不增加相对 no-op 的伤害率；
+3. **泛化 pilot：** 通过独立计划把同一协议扩展到未见过的 coding workspace family 和
+   scientific-work benchmark，不能把同一任务的多次 continuation 当成多个 task family。
 
-若只观察到“动画更吸引人”，但正确率、证据定位或诊断能力没有提高，应将 Agent Nebula
-定位为产品展示功能，而不是继续包装成研究贡献。
+若 Workspace Trajectory 没有超过强 Raw 和额外推理控制，即使动画更吸引人，也不能继续
+包装成自动监督研究贡献；最多保留经成本证实的压缩效率或产品展示价值。
 
 ## 参考入口
 
@@ -296,6 +374,20 @@ event 数，而是具有完整任务上下文、可复核证据和结果判定�
   <https://arxiv.org/abs/2606.07297>
 - Oderinwale. *Agent trajectories as programs: fingerprinting and programming
   coding-agent behavior*. <https://arxiv.org/abs/2606.16988>
+- Harness Bench. *Measuring Harness Effects in Realistic Agent Workflows*.
+  <https://www.harness-bench.ai/>
+- Wu et al. *Remember When It Matters: Proactive Memory Agent for Long-Horizon
+  Agents*. <https://arxiv.org/abs/2607.08716>
+- Pan et al. *Retrospective Harness Optimization: Improving LLM Agents via
+  Self-Preference over Trajectory Rollouts*. <https://arxiv.org/abs/2606.05922>
+- Wang et al. *Rethinking the Evaluation of Harness Evolution for Agents*.
+  <https://arxiv.org/abs/2607.12227>
+- Zhu et al. *SWE Context Bench: A Benchmark for Context Learning in Coding*.
+  <https://arxiv.org/abs/2602.08316>
+- METR. *RE-Bench: Evaluating frontier AI R&D capabilities of language model
+  agents against human experts*.
+  <https://metr.org/blog/2024-11-22-evaluating-r-d-capabilities-of-llms/>
+- Siegel et al. *CORE-Bench*. <https://github.com/siegelz/core-bench>
 - Archambault, Purchase, and Pinaud. *Animation, Small Multiples, and the Effect
   of Mental Map Preservation in Dynamic Graphs*.
   <https://inria.hal.science/inria-00472423v1>
