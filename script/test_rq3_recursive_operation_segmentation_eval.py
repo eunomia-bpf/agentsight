@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
+import tempfile
 import unittest
 from unittest import mock
 
@@ -17,14 +19,15 @@ import rq3_recursive_operation_segmentation_eval as recursive  # noqa: E402
 class RecursiveOperationSegmentationTest(unittest.TestCase):
     def test_parse_decision_rejects_invalid_or_colliding_split(self) -> None:
         self.assertEqual(
-            recursive.parse_decision('{"decision":"stop"}', ["2"], ["root"]),
+            recursive.parse_decision('{"decision":"stop"}', ["2"], [], "root"),
             {"decision": "stop"},
         )
         self.assertEqual(
             recursive.parse_decision(
                 '{"decision":"split","split_before":"2","left":"inspect code","right":"test fix"}',
                 ["2", "3"],
-                ["root"],
+                [],
+                "root",
             ),
             {
                 "decision": "split",
@@ -37,14 +40,48 @@ class RecursiveOperationSegmentationTest(unittest.TestCase):
             recursive.parse_decision(
                 '{"decision":"split","split_before":"9","left":"inspect code","right":"test fix"}',
                 ["2"],
-                ["root"],
+                [],
+                "root",
             )
-        with self.assertRaisesRegex(RuntimeError, "equals ancestor"):
+        with self.assertRaisesRegex(RuntimeError, "earlier ancestor"):
             recursive.parse_decision(
                 '{"decision":"split","split_before":"2","left":"root","right":"test fix"}',
                 ["2"],
                 ["root"],
+                "inspect code",
             )
+
+    def test_current_continuation_does_not_push_duplicate_frame(self) -> None:
+        turns = [{"turn_id": str(index)} for index in range(1, 6)]
+
+        def decide(start: int, end: int, ancestors: list[str], current: str) -> dict[str, str]:
+            if (start, end) == (0, 5):
+                return {
+                    "decision": "split",
+                    "split_before": "3",
+                    "left": "inspect implementation",
+                    "right": "repair software behavior",
+                }
+            if (start, end) == (2, 5):
+                return {
+                    "decision": "split",
+                    "split_before": "4",
+                    "left": "repair software behavior",
+                    "right": "validate fix",
+                }
+            return {"decision": "stop"}
+
+        leaves = recursive.decompose_turns(turns, "repair software behavior", decide)
+        self.assertEqual([(row["start"], row["end"]) for row in leaves], [(0, 2), (2, 3), (3, 5)])
+        self.assertEqual(
+            [row["labels"] for row in leaves],
+            [
+                ["repair software behavior", "inspect implementation"],
+                ["repair software behavior"],
+                ["repair software behavior", "validate fix"],
+            ],
+        )
+        self.assertTrue(all(left != right for row in leaves for left, right in zip(row["labels"], row["labels"][1:])))
 
     def test_recursive_split_has_variable_depth_and_complete_coverage(self) -> None:
         turns = [{"turn_id": str(index)} for index in range(1, 7)]
@@ -124,6 +161,58 @@ class RecursiveOperationSegmentationTest(unittest.TestCase):
             recursive.ROOT_SYSTEM + "\nchanged prompt contract",
         ):
             self.assertNotEqual(baseline, recursive.inference_contract_hash())
+
+    def test_continuation_marks_replay_through_agentpprof(self) -> None:
+        session = "continuation-session"
+        operation_rows = [
+            {
+                "fields": {
+                    "traj_id": session,
+                    "step_id": str(step),
+                    "source_ref": f"trace.json#{step}",
+                },
+                "value": 1,
+            }
+            for step in range(1, 5)
+        ]
+        root = recursive.semantic_id("repair software behavior")
+        inspect = recursive.semantic_id("inspect implementation")
+        validate = recursive.semantic_id("validate fix")
+        mark_payload = {
+            "sequence_field": "traj_id",
+            "id_field": "step_id",
+            "operation_names": {
+                root: "repair software behavior",
+                inspect: "inspect implementation",
+                validate: "validate fix",
+            },
+            "marks": [
+                {"sequence": session, "start_operation_id": "1", "operation_ids": [root, inspect]},
+                {"sequence": session, "start_operation_id": "2", "operation_ids": [root]},
+                {"sequence": session, "start_operation_id": "3", "operation_ids": [root, validate]},
+            ],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root_dir = Path(directory)
+            operations = root_dir / "operations.jsonl"
+            marks = root_dir / "marks.json"
+            profile = root_dir / "operations.pb.gz"
+            operations.write_text(
+                "".join(json.dumps(row, sort_keys=True) + "\n" for row in operation_rows),
+                encoding="utf-8",
+            )
+            marks.write_text(json.dumps(mark_payload, sort_keys=True), encoding="utf-8")
+            result = recursive.run_agentpprof(
+                ROOT / "agentpprof/Cargo.toml",
+                operations,
+                marks,
+                profile,
+                expected_operations=4,
+                expected_sessions=1,
+                expected_marks=3,
+            )
+            self.assertEqual(result["report"]["samples"], 4)
+            self.assertEqual(result["report"]["unique_stacks"], 3)
 
 
 if __name__ == "__main__":

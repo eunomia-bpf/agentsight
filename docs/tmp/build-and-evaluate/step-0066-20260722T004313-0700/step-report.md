@@ -109,3 +109,17 @@ ancestor-distinct requirement, so the minimal wiring repair states that both
 children must be distinct from every active path name; otherwise the Agent must
 STOP. It does not add a new specificity criterion. Exact details are in
 `experiment-001/real-preflight.md`.
+
+## Node 0066-E7 — current-operation continuation
+
+An exact source-only replay after the wording repair again used the current
+root operation on one side of a split and a concrete new subtask on the other.
+This exposed a flaw in the approved binary-tree contract rather than another
+wording omission. Before opening any manifest or score, the plan was reopened.
+
+Independent review approved a minimal v2 rule: a child equal to the current
+operation recursively continues over its smaller interval without pushing a
+duplicate frame; only a new child adds a frame. Left and right remain distinct,
+earlier ancestors remain invalid, continuation is not STOP, and strict interval
+shrinkage remains mandatory. Standard metrics, stable-ID marks, pprof output,
+fixed workload, RQ, thesis, and paper authorization are unchanged.

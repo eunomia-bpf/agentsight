@@ -24,3 +24,21 @@ the Agent cannot name both without repeating an active name, it must return
 STOP. No new specificity criterion, parser rule, dataset, metric, model, depth
 policy, scientific hypothesis, or score was introduced. The inference-contract
 hash changes automatically, so no stale response can enter the rerun.
+
+## Attempt 2 — repeated parent reveals a contract flaw
+
+The repaired wording still produced a source-only root split whose left child
+was `analyze gc sweep code` and whose right child exactly repeated the current
+root `fix ocaml garbage collector crash`. This is not meaningless output: the
+left interval enters a concrete subtask while the right interval continues the
+root responsibility. Requiring a new right-hand name would manufacture a
+synonym rather than improve the stack.
+
+The plan was therefore reopened before any label or score was read. Independent
+review approved one semantic correction. A child equal to the current operation
+means continuation: recurse over the strictly smaller interval without pushing
+a duplicate frame. A new child pushes a genuine operation frame. Left and right
+must remain distinct, and equality with any earlier ancestor remains invalid.
+The algorithm identity advances from v1 to v2; no response under the old
+contract is eligible for cache reuse. Dataset, model, metrics, fixed 405-session
+run, RQ, and paper authorization remain unchanged.

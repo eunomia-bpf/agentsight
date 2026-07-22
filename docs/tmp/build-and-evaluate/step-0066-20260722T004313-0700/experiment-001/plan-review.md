@@ -71,3 +71,26 @@ collections are fixed before inference from source-visible counts, the retained
 AgentReward differential is reuse rather than a second experiment, and the
 bounded stock-pprof review can support case-study utility without replacing
 the standard metric or claiming general user productivity.
+
+## Round 6 — REVISE after real source-only preflight
+
+Before any manifest, stage, or score was opened, the real mini-SWE-agent
+preflight showed that a binary split naturally used the current root operation
+for one side and a new subtask for the other. Strengthening wording did not
+change this behavior. Rejecting it forced the backend either to fail or invent
+a synonym for continuing the current responsibility.
+
+The root proposed a current-continuation exception: equality with the current
+operation recursively shrinks the interval without pushing a duplicate frame;
+a new child pushes a real frame; left and right remain distinct; equality with
+an earlier ancestor remains invalid.
+
+## Round 7 — PASS
+
+The reviewer found this revision principled and minimal. It preserves one real
+boundary per SPLIT, strict interval shrinkage, explicit STOP, complete visible-
+path B-cubed, boundary F1, stable-ID marks, and pprof folding. It also encodes
+`current -> child -> current` without a repeated frame and lets noncontiguous
+current-path occurrences aggregate as recurrence. The algorithm/cache identity
+must change and tests must cover both continuation directions, earlier-ancestor
+rejection, no duplicate frame, strict shrinkage, marks, and pprof replay.
