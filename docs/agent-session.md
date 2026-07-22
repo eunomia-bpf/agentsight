@@ -40,20 +40,16 @@ Applications can exchange parsed sessions with the stable JSON wrapper:
 }
 ```
 
-The wrapper is not a profiling object. AgentSight's semantic profiler can read
-it with `agentpprof --trace-file`, export the same sessions as
-Chrome/Perfetto Trace Event JSON with `agentpprof --export-standard-trace`, or
-import such a standard trace with `agentpprof --standard-trace-file`. The
-standard trace path is still converted into ordinary operations before
-profiling, so the only profiler abstractions remain operations and operation
-stacks.
+The wrapper is not a profiling object. AgentPProf can read it with
+`agentpprof --trace-file`, and it can import Chrome/Perfetto Trace Event JSON
+with `agentpprof --standard-trace-file`. Both inputs become ordinary operations
+before profiling. AgentPProf writes exactly one standard pprof artifact and
+does not export another trace container.
 
 Use `script/agent_trace_to_operations.py` or
 `script/agent_trace_convert.py import-standard --format chrome` when a workflow
 needs an explicit operation JSONL file for `agentpprof --operation-file`. Trace
-export accepts raw source selectors such as `--agent` and `--session-id`;
-semantic tag filters remain a profiling step and are not applied while writing
-the exchange trace. `AgentTrace::new` and `from_json_str` preserve their input
+`AgentTrace::new` and `from_json_str` preserve their input
 fields; `AgentTrace::portable` is the export constructor that normalizes
 host-local filesystem fields before serialization. Portable export gives
 sessions stable `trace/<agent>/<hash>.jsonl` names, writes `cwd` as `repo`,

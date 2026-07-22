@@ -13,15 +13,14 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use profile::{
-    OperationStackConfig, OperationStackInductionConfig, OutputFormat, ProfileView, StackRankMode,
-    build_profile_from_operation_records, build_profile_with_options, infer_output_format,
-    parse_operation_filters, parse_operation_rank_rules, parse_stack_rank_rules, parse_stack_rules,
-    parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks, read_operation_record_values,
-    write_pprof_difference, write_projection,
+    OperationStackConfig, OperationStackInductionConfig, ProfileView,
+    build_profile_from_operation_records, build_profile_with_options, parse_operation_filters,
+    parse_stack_rules, parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks,
+    read_operation_record_values, write_pprof_difference, write_pprof_projection,
 };
 use session::{
     SessionRecord, default_claude_root, discover_agent_sessions, load_agent_trace_files,
-    session_records_from_agent_sessions, write_agent_trace,
+    session_records_from_agent_sessions,
 };
 use tagger::{
     LlamaTagger, RegexTagger, TagDiagnostics, annotate_sessions_regex,
@@ -41,13 +40,13 @@ FIELD DERIVATION WORKFLOW:
   mechanism. Without --tag-rule or --preset, prompts are marked 'unmatched' and
   prompt-tag frames will not aggregate well.
 
-  1. Run with no rules to see diagnostics:
-     agentpprof --project-root . -o out.json --format json --include-previews
+  1. Run with no rules to see tagging diagnostics on stdout and write pprof:
+     agentpprof --project-root . -o agent.pb.gz
 
-  2. Examine unmatched prompts in the JSON output, identify patterns
+  2. Examine unmatched prompt diagnostics on stdout and identify patterns.
 
   3. Add --tag-rule arguments for your project:
-     agentpprof --project-root . -o out.svg \
+     agentpprof --project-root . -o agent.pb.gz \
        --tag-rule prompt:review='(?i)review|diff|pr' \
        --tag-rule prompt:debug='(?i)fix|bug|error' \
        --tag-rule prompt:test='(?i)test|cargo test'
@@ -61,24 +60,22 @@ OPERATION STACK QUERY WORKFLOW:
   --view chooses which operation samples are measured. --stack chooses how those
   operations fold into a stack. Use --op-map to derive reusable operation
   fields, --where to select an operation subset, then --stack chooses how those
-  fields recursively fold. Use
-  --op-map-file to load reusable mappings, and --stack-rule for one-off
-  stack-frame overrides. JSON output can also include visible stack-ranking
-  rules with --rank-rule, operation-field ranking rules with --rank-op-rule,
-  and --rank-mode.
+  fields recursively fold. Use --op-map-file to load reusable mappings and
+  --stack-rule for one-off stack-frame overrides. Inspect the resulting profile
+  with existing pprof-compatible tools such as `go tool pprof`.
 
-     agentpprof --view files -o files.json --format json \
+     agentpprof --view files -o files.pb.gz \
        --stack 'project,agent,task,phase,op,tool,path,status' \
        --op-map-file operation-map.txt \
        --op-map 'task:verify=(effect=test|cmd=cargo)' \
        --op-map 'phase:inspect=(effect=read)' \
-       --where 'task=verify' \
-       --rank-mode rule-score \
-       --rank-rule 'verify-risk:2=phase:execute|status:error' \
-       --rank-op-rule 'error-density:3=status=error'
+       --where 'task=verify'
+
+     go tool pprof -top files.pb.gz
+     go tool pprof -tags files.pb.gz
 
   For repeatable external-trace experiments, put output, view, operation files,
-  op-map files, predicates, rank rules, stack, and local-session tagging rules
+  op-map files, predicates, stack, and local-session tagging rules
   in a JSON file and run:
 
      agentpprof --profile-spec agentnet-diagnostic-spec.json
@@ -103,7 +100,7 @@ OPERATION STACK QUERY WORKFLOW:
 #[command(after_help = TAGGING_HELP)]
 #[derive(Clone)]
 struct Cli {
-    /// Output file. Use .pb.gz for Go pprof, .folded for folded stacks, .svg for an SVG flamegraph, or .json.
+    /// The sole product artifact: one standard pprof .pb or .pb.gz file.
     /// Required unless --profile-spec provides output.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -111,7 +108,8 @@ struct Cli {
     project_root: PathBuf,
     #[arg(long)]
     project_name: Option<String>,
-    #[arg(long, value_enum)]
+    /// Optional explicit format. Only pprof is accepted.
+    #[arg(long, value_enum, hide_possible_values = true)]
     format: Option<CliOutputFormat>,
     #[arg(long, value_enum)]
     view: Option<CliProfileView>,
@@ -134,17 +132,6 @@ struct Cli {
     /// Multiple predicates are ANDed. Use FIELD!=REGEX to exclude matching operations.
     #[arg(long = "where", value_name = "FIELD=REGEX")]
     where_rules: Vec<String>,
-    /// Rank JSON stack groups by visible folded-stack text, e.g. risk:2='phase:execute|status:error'.
-    /// Ranking runs after operation stacking and never reads hidden labels unless the stack includes them.
-    #[arg(long = "rank-rule", value_name = "LABEL:WEIGHT=REGEX")]
-    rank_rules: Vec<String>,
-    /// Rank JSON operation-stack groups using visible per-operation field matches aggregated inside each group.
-    /// Unlike --rank-rule, these regexes run on mapped operation fields before folding.
-    #[arg(long = "rank-op-rule", value_name = "LABEL:WEIGHT=REGEX")]
-    rank_op_rules: Vec<String>,
-    /// Choose how JSON rank rules order stack groups.
-    #[arg(long = "rank-mode", value_enum)]
-    rank_mode: Option<CliRankMode>,
     /// Derive recurring operation identities from visible session/action transitions.
     #[arg(long = "induce-operation-stack")]
     induce_operation_stack: bool,
@@ -198,14 +185,6 @@ struct Cli {
     /// Read Chrome/Perfetto Trace Event JSON as imported operations.
     #[arg(long = "standard-trace-file", value_name = "PATH")]
     standard_trace_files: Vec<PathBuf>,
-    /// Export matched local sessions as portable agent-session trace JSON.
-    /// If no -o/--output is provided, export the trace and exit.
-    #[arg(long = "export-trace", value_name = "PATH")]
-    export_trace: Option<PathBuf>,
-    /// Export matched local sessions as Chrome/Perfetto Trace Event JSON.
-    /// If no -o/--output is provided, export the trace and exit.
-    #[arg(long = "export-standard-trace", value_name = "PATH")]
-    export_standard_trace: Option<PathBuf>,
     /// Read already-normalized operation JSONL instead of local Codex/Claude sessions.
     #[arg(long = "operation-file")]
     operation_files: Vec<PathBuf>,
@@ -238,34 +217,17 @@ struct Cli {
     timeout: u64,
     #[arg(long, default_value_t = -1)]
     max_uncached_tags: isize,
+    /// Read an existing LLM tag cache as input. AgentPProf never writes this file.
     #[arg(long)]
     cache: Option<PathBuf>,
+    /// Ignore the default read-only LLM tag cache input.
     #[arg(long)]
     no_cache: bool,
-    #[arg(long)]
-    include_previews: bool,
-    /// SVG width in pixels (default: 1200, narrower for better readability)
-    #[arg(long, default_value_t = 1200)]
-    svg_width: u32,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum, PartialEq, Eq)]
 enum CliOutputFormat {
     Pprof,
-    Folded,
-    Svg,
-    Json,
-}
-
-impl From<CliOutputFormat> for OutputFormat {
-    fn from(val: CliOutputFormat) -> Self {
-        match val {
-            CliOutputFormat::Pprof => OutputFormat::Pprof,
-            CliOutputFormat::Folded => OutputFormat::Folded,
-            CliOutputFormat::Svg => OutputFormat::Svg,
-            CliOutputFormat::Json => OutputFormat::Json,
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum, PartialEq, Eq)]
@@ -275,21 +237,6 @@ enum CliProfileView {
     Files,
     Network,
     Time,
-}
-
-#[derive(Clone, Copy, Debug, ValueEnum, PartialEq, Eq)]
-enum CliRankMode {
-    WidthBoost,
-    RuleScore,
-}
-
-impl From<CliRankMode> for StackRankMode {
-    fn from(val: CliRankMode) -> Self {
-        match val {
-            CliRankMode::WidthBoost => StackRankMode::WidthBoost,
-            CliRankMode::RuleScore => StackRankMode::RuleScore,
-        }
-    }
 }
 
 impl From<CliProfileView> for ProfileView {
@@ -320,9 +267,6 @@ struct ProfileSpec {
     stack_rules: Vec<String>,
     op_maps: Vec<String>,
     where_rules: Vec<String>,
-    rank_rules: Vec<String>,
-    rank_op_rules: Vec<String>,
-    rank_mode: Option<CliRankMode>,
     induce_operation_stack: Option<bool>,
     induce_task_stack: Option<bool>,
     induce_allow_session: Option<bool>,
@@ -356,11 +300,6 @@ struct RawProfileSpec {
     op_maps: Vec<String>,
     #[serde(default)]
     where_rules: Vec<String>,
-    #[serde(default)]
-    rank_rules: Vec<String>,
-    #[serde(default)]
-    rank_op_rules: Vec<String>,
-    rank_mode: Option<String>,
     induce_operation_stack: Option<bool>,
     induce_task_stack: Option<bool>,
     induce_allow_session: Option<bool>,
@@ -399,11 +338,9 @@ fn main() -> Result<()> {
 fn command_export(args: Cli) -> Result<()> {
     let spec = load_profile_specs(&args.profile_specs)?;
     let output = args.output.clone().or_else(|| spec.output.clone());
-    if output.is_none() && args.export_trace.is_none() && args.export_standard_trace.is_none() {
-        bail!(
-            "missing output path; pass -o/--output, set output in --profile-spec, --export-trace, or --export-standard-trace"
-        );
-    }
+    let output = output
+        .as_ref()
+        .context("missing output path; pass -o/--output or set output in --profile-spec")?;
     let requested_format = args
         .format
         .or(spec.format)
@@ -491,12 +428,6 @@ fn command_export(args: Cli) -> Result<()> {
     )?;
     let stack_rules = merge_cli_first(&args.stack_rules, &spec.stack_rules);
     let where_rules = effective_where_rules(&args.where_rules, &spec.where_rules);
-    let rank_rules = merge_cli_first(&args.rank_rules, &spec.rank_rules);
-    let rank_op_rules = merge_cli_first(&args.rank_op_rules, &spec.rank_op_rules);
-    let rank_mode = args
-        .rank_mode
-        .or(spec.rank_mode)
-        .unwrap_or(CliRankMode::WidthBoost);
     let tag_rules = merge_cli_first(&args.tag_rules, &spec.tag_rules);
     let preset = args.preset || spec.preset.unwrap_or(false);
     let tagger = args.tagger.or(spec.tagger).unwrap_or(TaggerKind::Regex);
@@ -507,10 +438,7 @@ fn command_export(args: Cli) -> Result<()> {
     profile_options = profile_options
         .with_field_rules(parse_stack_rules_with_flag(&op_maps, "--op-map")?)
         .with_filters(parse_operation_filters(&where_rules)?)
-        .with_rules(parse_stack_rules(&stack_rules)?)
-        .with_rank_rules(parse_stack_rank_rules(&rank_rules)?)
-        .with_rank_operation_rules(parse_operation_rank_rules(&rank_op_rules)?)
-        .with_rank_mode(rank_mode.into());
+        .with_rules(parse_stack_rules(&stack_rules)?);
     if induce_operation_stack {
         let mut induction =
             OperationStackInductionConfig::new().with_derived_field(induced_stack_field);
@@ -536,18 +464,14 @@ fn command_export(args: Cli) -> Result<()> {
     let standard_trace_files =
         merge_spec_first(&spec.standard_trace_files, &args.standard_trace_files);
     validate_input_modes(
-        &args,
         &operation_files,
         &diff_base_operation_files,
         &session_files,
         &trace_files,
         &standard_trace_files,
     )?;
+    validate_product_artifact(requested_format, output)?;
     if !standard_trace_files.is_empty() {
-        let output = output
-            .as_ref()
-            .context("missing output path; pass -o/--output or set output in --profile-spec")?;
-        let format = infer_output_format(requested_format.into(), output);
         let operation_records = standard_trace::operation_records_from_chrome_trace_files(
             &standard_trace_files,
             &project_name,
@@ -559,19 +483,11 @@ fn command_export(args: Cli) -> Result<()> {
         if stacks.is_empty() {
             bail!("standard trace input produced no folded stacks");
         }
-        write_projection(
-            &profile,
-            format,
-            output,
-            args.include_previews,
-            &[],
-            args.svg_width,
-            deterministic_output,
-        )?;
+        write_pprof_projection(&profile, output, deterministic_output)?;
         let result = json!({
             "status": "ok",
             "output": output,
-            "format": format!("{:?}", format).to_ascii_lowercase(),
+            "format": "pprof",
             "view": profile.view,
             "sample_type": profile.sample_type,
             "unit": profile.unit,
@@ -585,9 +501,6 @@ fn command_export(args: Cli) -> Result<()> {
             "op_maps": op_maps,
             "op_map_files": op_map_files,
             "where_rules": where_rules,
-            "rank_rules": rank_rules,
-            "rank_op_rules": rank_op_rules,
-            "rank_mode": cli_rank_mode_name(rank_mode),
             "deterministic_output": deterministic_output,
             "stack_rules": stack_rules,
             "standard_trace_files": standard_trace_files,
@@ -608,36 +521,6 @@ fn command_export(args: Cli) -> Result<()> {
                 "--diff-base-operation-file cannot be combined with --induce-operation-stack; provide explicit shared stack fields for both inputs"
             );
         }
-        let standard_trace_events = if let Some(trace_path) = args.export_standard_trace.as_ref() {
-            Some(standard_trace::write_chrome_trace_from_operation_records(
-                trace_path,
-                &operation_records,
-                &project_name,
-            )?)
-        } else {
-            None
-        };
-        if output.is_none() {
-            let result = json!({
-                "status": "ok",
-                "standard_trace_output": args.export_standard_trace,
-                "standard_trace_format": if args.export_standard_trace.is_some() {
-                    Some(standard_trace::CHROME_TRACE_FORMAT)
-                } else {
-                    None
-                },
-                "standard_trace_events": standard_trace_events,
-                "operation_files": operation_files,
-                "operations": operation_records.len(),
-                "warnings": [],
-            });
-            println!("{}", serde_json::to_string_pretty(&result)?);
-            return Ok(());
-        }
-        let output = output
-            .as_ref()
-            .context("missing output path; pass -o/--output or set output in --profile-spec")?;
-        let format = infer_output_format(requested_format.into(), output);
         let profile =
             build_profile_from_operation_records(&operation_records, view, &profile_options)?;
         let stacks = profile_to_stacks(&profile);
@@ -645,30 +528,15 @@ fn command_export(args: Cli) -> Result<()> {
             bail!("operation input produced no folded stacks");
         }
         let difference = if diff_base_operation_files.is_empty() {
-            write_projection(
-                &profile,
-                format,
-                output,
-                args.include_previews,
-                &[],
-                args.svg_width,
-                deterministic_output,
-            )?;
+            write_pprof_projection(&profile, output, deterministic_output)?;
             None
         } else {
-            if format != OutputFormat::Pprof {
-                bail!(
-                    "--diff-base-operation-file only writes standard pprof; use a .pb or .pb.gz output and omit non-pprof --format values"
-                );
-            }
             let base_records = read_operation_record_values(&diff_base_operation_files)?;
             let base_profile =
                 build_profile_from_operation_records(&base_records, view, &profile_options)?;
-            let base_stacks = profile_to_stacks(&base_profile);
             Some(write_pprof_difference(
                 &profile,
-                &stacks,
-                &base_stacks,
+                &base_profile,
                 output,
                 deterministic_output,
             )?)
@@ -690,7 +558,7 @@ fn command_export(args: Cli) -> Result<()> {
         let result = json!({
             "status": "ok",
             "output": output,
-            "format": format!("{:?}", format).to_ascii_lowercase(),
+            "format": "pprof",
             "view": profile.view,
             "sample_type": profile.sample_type,
             "unit": profile.unit,
@@ -704,22 +572,12 @@ fn command_export(args: Cli) -> Result<()> {
             "op_maps": op_maps,
             "op_map_files": op_map_files,
             "where_rules": where_rules,
-            "rank_rules": rank_rules,
-            "rank_op_rules": rank_op_rules,
-            "rank_mode": cli_rank_mode_name(rank_mode),
             "deterministic_output": deterministic_output,
             "stack_rules": stack_rules,
             "operation_files": operation_files,
             "diff_base_operation_files": diff_base_operation_files,
             "comparison": difference.as_ref().map(|_| "candidate-minus-base"),
             "operations": operation_records.len(),
-            "standard_trace_output": args.export_standard_trace,
-            "standard_trace_format": if args.export_standard_trace.is_some() {
-                Some(standard_trace::CHROME_TRACE_FORMAT)
-            } else {
-                None
-            },
-            "standard_trace_events": standard_trace_events,
             "samples": stacks.values().sum::<u64>(),
             "unique_stacks": stacks.len(),
             "difference_unique_stacks": difference.as_ref().map(|samples| samples.len()),
@@ -759,44 +617,6 @@ fn command_export(args: Cli) -> Result<()> {
             project_root.display()
         );
     }
-    if let Some(trace_path) = args.export_trace.as_ref() {
-        write_agent_trace(trace_path, &agent_sessions)?;
-    }
-    let standard_trace_events = if let Some(trace_path) = args.export_standard_trace.as_ref() {
-        let export_sessions = session_records_from_agent_sessions(&agent_sessions);
-        Some(standard_trace::write_chrome_trace(
-            trace_path,
-            &export_sessions,
-            &project_name,
-            args.include_previews,
-        )?)
-    } else {
-        None
-    };
-    if output.is_none() {
-        let result = json!({
-            "status": "ok",
-            "trace_output": args.export_trace,
-            "trace_schema": if args.export_trace.is_some() {
-                Some(agent_session::AGENT_TRACE_SCHEMA)
-            } else {
-                None
-            },
-            "standard_trace_output": args.export_standard_trace,
-            "standard_trace_format": if args.export_standard_trace.is_some() {
-                Some(standard_trace::CHROME_TRACE_FORMAT)
-            } else {
-                None
-            },
-            "standard_trace_events": standard_trace_events,
-            "sessions": agent_sessions.len(),
-            "session_files": session_files,
-            "trace_files": trace_files,
-            "warnings": [],
-        });
-        println!("{}", serde_json::to_string_pretty(&result)?);
-        return Ok(());
-    }
     let mut sessions = session_records_from_agent_sessions(&agent_sessions);
     filter_sessions_before_tagging(&mut sessions, &args);
     if sessions.is_empty() {
@@ -814,42 +634,22 @@ fn command_export(args: Cli) -> Result<()> {
     if sessions.is_empty() {
         bail!("sessions were found, but none matched the requested tag filters");
     }
-    let output = output
-        .as_ref()
-        .context("missing output path; pass -o/--output or set output in --profile-spec")?;
-    let format = infer_output_format(requested_format.into(), output);
     let profile = build_profile_with_options(&sessions, &project_name, view, &profile_options)?;
     let stacks = profile_to_stacks(&profile);
     if stacks.is_empty() {
         bail!("selected view {:?} produced no samples", cli_view);
     }
-    write_projection(
-        &profile,
-        format,
-        output,
-        args.include_previews,
-        &sessions,
-        args.svg_width,
-        deterministic_output,
-    )?;
+    write_pprof_projection(&profile, output, deterministic_output)?;
 
     let mut result = json!({
         "status": "ok",
         "output": output,
-        "format": format!("{:?}", format).to_ascii_lowercase(),
+        "format": "pprof",
         "view": profile.view,
         "sample_type": profile.sample_type,
         "unit": profile.unit,
         "profile_specs": args.profile_specs,
         "trace_files": trace_files,
-        "trace_output": args.export_trace,
-        "standard_trace_output": args.export_standard_trace,
-        "standard_trace_format": if args.export_standard_trace.is_some() {
-            Some(standard_trace::CHROME_TRACE_FORMAT)
-        } else {
-            None
-        },
-        "standard_trace_events": standard_trace_events,
         "stack": effective_stack_name,
         "induce_operation_stack": induce_operation_stack,
         "induce_task_stack": induce_operation_stack,
@@ -859,9 +659,6 @@ fn command_export(args: Cli) -> Result<()> {
         "op_maps": op_maps,
         "op_map_files": op_map_files,
         "where_rules": where_rules,
-        "rank_rules": rank_rules,
-        "rank_op_rules": rank_op_rules,
-        "rank_mode": cli_rank_mode_name(rank_mode),
         "tagger": cli_tagger_name(tagger),
         "tag_rules": tag_rules,
         "preset": preset,
@@ -956,8 +753,25 @@ fn load_effective_op_map_rules(
     Ok(rules)
 }
 
+fn validate_product_artifact(requested_format: CliOutputFormat, output: &Path) -> Result<()> {
+    if requested_format != CliOutputFormat::Pprof {
+        bail!("AgentPProf only writes standard pprof; use --format pprof");
+    }
+    let output_name = output
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    if !output_name.ends_with(".pb") && !output_name.ends_with(".pb.gz") {
+        bail!(
+            "AgentPProf output must be one standard pprof .pb or .pb.gz artifact, got {}",
+            output.display()
+        );
+    }
+    Ok(())
+}
+
 fn validate_input_modes(
-    args: &Cli,
     operation_files: &[PathBuf],
     diff_base_operation_files: &[PathBuf],
     session_files: &[PathBuf],
@@ -966,13 +780,6 @@ fn validate_input_modes(
 ) -> Result<()> {
     if !diff_base_operation_files.is_empty() && operation_files.is_empty() {
         bail!("--diff-base-operation-file requires --operation-file");
-    }
-    if !diff_base_operation_files.is_empty()
-        && (args.export_trace.is_some() || args.export_standard_trace.is_some())
-    {
-        bail!(
-            "--diff-base-operation-file cannot be combined with trace export; it writes one signed pprof comparison"
-        );
     }
     if !operation_files.is_empty() && !trace_files.is_empty() {
         bail!("--trace-file cannot be used with --operation-file");
@@ -992,19 +799,6 @@ fn validate_input_modes(
         }
         if !trace_files.is_empty() {
             bail!("--standard-trace-file cannot be used with --trace-file");
-        }
-        if args.export_trace.is_some() || args.export_standard_trace.is_some() {
-            bail!(
-                "--standard-trace-file cannot be used with --export-trace or --export-standard-trace"
-            );
-        }
-    }
-    if args.export_trace.is_some() || args.export_standard_trace.is_some() {
-        if args.export_trace.is_some() && !operation_files.is_empty() {
-            bail!("--export-trace cannot be used with --operation-file");
-        }
-        if args.session_tag.is_some() || args.prompt_tag.is_some() {
-            bail!("trace export cannot be combined with --session-tag or --prompt-tag");
         }
     }
     Ok(())
@@ -1039,13 +833,6 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
         stack_rules: raw.stack_rules,
         op_maps: raw.op_maps,
         where_rules: raw.where_rules,
-        rank_rules: raw.rank_rules,
-        rank_op_rules: raw.rank_op_rules,
-        rank_mode: raw
-            .rank_mode
-            .as_deref()
-            .map(parse_spec_rank_mode)
-            .transpose()?,
         induce_operation_stack: raw.induce_operation_stack,
         induce_task_stack: raw.induce_task_stack,
         induce_allow_session: raw.induce_allow_session,
@@ -1110,9 +897,6 @@ fn resolve_spec_path(base: &Path, path: PathBuf) -> PathBuf {
 fn parse_spec_output_format(raw: &str) -> Result<CliOutputFormat> {
     match raw.trim().to_ascii_lowercase().replace('_', "-").as_str() {
         "pprof" | "pb" | "pb-gz" | "pb.gz" => Ok(CliOutputFormat::Pprof),
-        "folded" | "foldedtxt" | "folded-txt" => Ok(CliOutputFormat::Folded),
-        "svg" => Ok(CliOutputFormat::Svg),
-        "json" => Ok(CliOutputFormat::Json),
         other => bail!("unsupported profile spec format '{other}'"),
     }
 }
@@ -1128,26 +912,11 @@ fn parse_spec_view(raw: &str) -> Result<CliProfileView> {
     }
 }
 
-fn parse_spec_rank_mode(raw: &str) -> Result<CliRankMode> {
-    match raw.trim().to_ascii_lowercase().replace('_', "-").as_str() {
-        "width-boost" | "widthboost" => Ok(CliRankMode::WidthBoost),
-        "rule-score" | "rulescore" => Ok(CliRankMode::RuleScore),
-        other => bail!("unsupported profile spec rank_mode '{other}'"),
-    }
-}
-
 fn parse_spec_tagger(raw: &str) -> Result<TaggerKind> {
     match raw.trim().to_ascii_lowercase().replace('_', "-").as_str() {
         "regex" => Ok(TaggerKind::Regex),
         "llm" | "llama" | "llama-cpp" => Ok(TaggerKind::Llm),
         other => bail!("unsupported profile spec tagger '{other}'"),
-    }
-}
-
-fn cli_rank_mode_name(mode: CliRankMode) -> &'static str {
-    match mode {
-        CliRankMode::WidthBoost => "width-boost",
-        CliRankMode::RuleScore => "rule-score",
     }
 }
 
@@ -1174,9 +943,6 @@ impl ProfileSpec {
         }
         if next.stack.is_some() {
             self.stack = next.stack;
-        }
-        if next.rank_mode.is_some() {
-            self.rank_mode = next.rank_mode;
         }
         if next.induce_task_stack.is_some() {
             self.induce_task_stack = next.induce_task_stack;
@@ -1205,8 +971,6 @@ impl ProfileSpec {
         self.stack_rules.extend(next.stack_rules);
         self.op_maps.extend(next.op_maps);
         self.where_rules.extend(next.where_rules);
-        self.rank_rules.extend(next.rank_rules);
-        self.rank_op_rules.extend(next.rank_op_rules);
         self.induce_query_terms.extend(next.induce_query_terms);
         self.induce_reference_operation_files
             .extend(next.induce_reference_operation_files);
@@ -1353,9 +1117,6 @@ fn annotate_sessions_with(
             }
             let task_choices = parse_declared_tag_choices(&args.task_choices)?;
             annotate_sessions_with_declared_tasks(sessions, &mut tagger, &task_choices)?;
-            if !args.no_cache {
-                tagger.save()?;
-            }
             Ok(None)
         }
     }
@@ -1388,7 +1149,7 @@ mod tests {
         let args = Cli::parse_from([
             "agentpprof",
             "-o",
-            "out.json",
+            "out.pb.gz",
             "--task-choice",
             "alfworld=household tasks",
             "--task-choice",
@@ -1435,8 +1196,8 @@ mod tests {
         std::fs::write(
             &spec_path,
             r#"{
-  "output": "out/agent.folded",
-  "format": "folded",
+  "output": "out/agent.pb.gz",
+  "format": "pprof",
   "view": "operations",
   "project_name": "external-agent-traces",
   "operation_files": ["inputs/agentnet.jsonl"],
@@ -1448,9 +1209,6 @@ mod tests {
   "stack": "project,dataset,task,phase,op,tool,action,status",
   "op_maps": ["phase:inspect=(action=screenshot)"],
   "where_rules": ["phase!=noise"],
-  "rank_rules": ["unsafe-risk:2=phase:execute|status:error"],
-  "rank_op_rules": ["failure-density:3=status=error"],
-  "rank_mode": "rule-score",
   "tagger": "regex",
   "preset": true,
   "tag_rules": ["prompt:review=(?i)review|diff"],
@@ -1462,11 +1220,11 @@ mod tests {
         .unwrap();
 
         let spec = load_profile_specs(&[spec_path]).unwrap();
-        assert_eq!(spec.format, Some(CliOutputFormat::Folded));
+        assert_eq!(spec.format, Some(CliOutputFormat::Pprof));
         assert_eq!(spec.view, Some(CliProfileView::Operations));
         assert_eq!(
             spec.output,
-            Some(dir.path().join("out").join("agent.folded"))
+            Some(dir.path().join("out").join("agent.pb.gz"))
         );
         assert_eq!(
             spec.operation_files,
@@ -1513,15 +1271,6 @@ mod tests {
             effective_where_rules(&[], &spec.where_rules),
             vec!["phase!=noise".to_string()]
         );
-        assert_eq!(
-            spec.rank_rules,
-            vec!["unsafe-risk:2=phase:execute|status:error".to_string()]
-        );
-        assert_eq!(
-            spec.rank_op_rules,
-            vec!["failure-density:3=status=error".to_string()]
-        );
-        assert_eq!(spec.rank_mode, Some(CliRankMode::RuleScore));
         assert_eq!(spec.tagger, Some(TaggerKind::Regex));
         assert_eq!(spec.preset, Some(true));
         assert_eq!(
@@ -1540,7 +1289,7 @@ mod tests {
             "--operation-file",
             "operations.jsonl",
             "-o",
-            "out.folded",
+            "out.pb.gz",
         ]);
         let err = command_export(args).unwrap_err().to_string();
 
@@ -1556,7 +1305,7 @@ mod tests {
             "--operation-file",
             "operations.jsonl",
             "-o",
-            "out.folded",
+            "out.pb.gz",
         ]);
         let err = command_export(args).unwrap_err().to_string();
 
@@ -1572,7 +1321,7 @@ mod tests {
             "--trace-file",
             "trace.json",
             "-o",
-            "out.folded",
+            "out.pb.gz",
         ]);
         let err = command_export(args).unwrap_err().to_string();
 
@@ -1588,7 +1337,7 @@ mod tests {
             "--operation-file",
             "operations.jsonl",
             "-o",
-            "out.folded",
+            "out.pb.gz",
         ]);
         let err = command_export(args).unwrap_err().to_string();
 
@@ -1604,7 +1353,7 @@ mod tests {
             "--session-file",
             "session.jsonl",
             "-o",
-            "out.folded",
+            "out.pb.gz",
         ]);
         let err = command_export(args).unwrap_err().to_string();
 
@@ -1620,7 +1369,7 @@ mod tests {
             "--trace-file",
             "agent-trace.json",
             "-o",
-            "out.folded",
+            "out.pb.gz",
         ]);
         let err = command_export(args).unwrap_err().to_string();
 
@@ -1628,11 +1377,11 @@ mod tests {
     }
 
     #[test]
-    fn deterministic_output_makes_json_profiles_byte_stable() {
+    fn deterministic_output_makes_pprof_profiles_byte_stable() {
         let dir = tempfile::tempdir().unwrap();
         let operations = dir.path().join("operations.jsonl");
-        let out1 = dir.path().join("one.json");
-        let out2 = dir.path().join("two.json");
+        let out1 = dir.path().join("one.pb.gz");
+        let out2 = dir.path().join("two.pb.gz");
         std::fs::write(
             &operations,
             r#"{"value":1,"fields":{"task":"verify","status":"ok"}}
@@ -1648,8 +1397,6 @@ mod tests {
                 operations.to_str().unwrap(),
                 "--view",
                 "operations",
-                "--format",
-                "json",
                 "--stack",
                 "task,status",
                 "--deterministic-output",
@@ -1659,42 +1406,10 @@ mod tests {
             command_export(args).unwrap();
         }
 
-        let first = std::fs::read_to_string(&out1).unwrap();
-        let second = std::fs::read_to_string(&out2).unwrap();
+        let first = std::fs::read(&out1).unwrap();
+        let second = std::fs::read(&out2).unwrap();
         assert_eq!(first, second);
-        assert!(first.contains(r#""generated_at": "1970-01-01T00:00:00Z""#));
-    }
-
-    #[test]
-    fn export_trace_rejects_tag_filters() {
-        let args = Cli::parse_from([
-            "agentpprof",
-            "--session-file",
-            "missing.jsonl",
-            "--export-trace",
-            "trace.json",
-            "--prompt-tag",
-            "review",
-        ]);
-        let err = command_export(args).unwrap_err().to_string();
-
-        assert!(err.contains("trace export cannot be combined with --session-tag"));
-    }
-
-    #[test]
-    fn export_standard_trace_rejects_tag_filters() {
-        let args = Cli::parse_from([
-            "agentpprof",
-            "--session-file",
-            "missing.jsonl",
-            "--export-standard-trace",
-            "trace.json",
-            "--prompt-tag",
-            "review",
-        ]);
-        let err = command_export(args).unwrap_err().to_string();
-
-        assert!(err.contains("trace export cannot be combined with --session-tag"));
+        assert_eq!(&first[..2], &[0x1f, 0x8b]);
     }
 
     #[test]
@@ -1715,6 +1430,7 @@ mod tests {
                     text_hash: "h0".to_string(),
                     preview: "review prompt".to_string(),
                     tag: "review".to_string(),
+                    task_path: vec!["review prompt".to_string()],
                 },
                 UserRequest {
                     index: 0,
@@ -1722,6 +1438,7 @@ mod tests {
                     text_hash: "h1".to_string(),
                     preview: "test prompt".to_string(),
                     tag: "test".to_string(),
+                    task_path: vec!["test prompt".to_string()],
                 },
             ],
             tools: vec![
@@ -1738,6 +1455,7 @@ mod tests {
                     path_groups: Vec::new(),
                     domains: Vec::new(),
                     call_id: None,
+                    task_path: Vec::new(),
                 },
                 ToolEvent {
                     ts_ms: Some(4),
@@ -1752,6 +1470,7 @@ mod tests {
                     path_groups: Vec::new(),
                     domains: Vec::new(),
                     call_id: None,
+                    task_path: Vec::new(),
                 },
             ],
             llm_calls: vec![
@@ -1766,6 +1485,8 @@ mod tests {
                     cache_tokens: 0,
                     total_tokens: 0,
                     tag: "answer".to_string(),
+                    response_phase: "final_answer".to_string(),
+                    task_path: Vec::new(),
                 },
                 LlmEvent {
                     ts_ms: Some(6),
@@ -1778,6 +1499,8 @@ mod tests {
                     cache_tokens: 0,
                     total_tokens: 0,
                     tag: "answer".to_string(),
+                    response_phase: "final_answer".to_string(),
+                    task_path: Vec::new(),
                 },
             ],
             session_tag: "review".to_string(),
@@ -1796,9 +1519,8 @@ mod tests {
         assert_eq!(session.llm_calls[0].prompt_index, 0);
         assert_eq!(session.llm_calls[0].text_hash, "l1");
 
-        let payload = profile::session_to_json(&session, false);
-        let tool = &payload["tool_events"].as_array().expect("tool events")[0];
-        assert_eq!(tool["prompt_key"], "0:h1");
-        assert_eq!(tool["prompt_tag"], "test");
+        let request = session.request_by_index(session.tools[0].prompt_index);
+        assert_eq!(request.prompt_key(), "0:h1");
+        assert_eq!(request.tag, "test");
     }
 }

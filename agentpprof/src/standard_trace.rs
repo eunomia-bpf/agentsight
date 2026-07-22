@@ -1,15 +1,19 @@
 use anyhow::{Context, Result, bail};
 use serde_json::{Map, Value, json};
+#[cfg(test)]
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
+#[cfg(test)]
 use crate::session::SessionRecord;
 
 pub const CHROME_TRACE_FORMAT: &str = "chrome-trace-event-json";
+#[cfg(test)]
 const AGENTSIGHT_OPERATION_SCHEMA: &str = "agentsight.operation.v1";
 
+#[cfg(test)]
 struct OperationTraceRecord {
     fields: Map<String, Value>,
     value: u64,
@@ -18,45 +22,7 @@ struct OperationTraceRecord {
     tid: i64,
 }
 
-pub fn write_chrome_trace(
-    path: &Path,
-    sessions: &[SessionRecord],
-    project_name: &str,
-    include_previews: bool,
-) -> Result<usize> {
-    let payload = chrome_payload_from_sessions(sessions, project_name, include_previews);
-    write_chrome_trace_payload(path, &payload, "agent sessions")
-}
-
-pub fn write_chrome_trace_from_operation_records(
-    path: &Path,
-    records: &[Value],
-    project_name: &str,
-) -> Result<usize> {
-    let payload = chrome_payload_from_operation_records(records, project_name);
-    write_chrome_trace_payload(path, &payload, "operation input")
-}
-
-fn write_chrome_trace_payload(path: &Path, payload: &Value, empty_source: &str) -> Result<usize> {
-    let events = payload
-        .get("traceEvents")
-        .and_then(Value::as_array)
-        .map(Vec::len)
-        .unwrap_or(0);
-    if events == 0 {
-        bail!("{empty_source} produced zero Chrome trace events");
-    }
-    if let Some(parent) = path.parent()
-        && !parent.as_os_str().is_empty()
-    {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("failed to create trace dir {}", parent.display()))?;
-    }
-    fs::write(path, serde_json::to_string_pretty(&payload)? + "\n")
-        .with_context(|| format!("failed to write standard trace {}", path.display()))?;
-    Ok(events)
-}
-
+#[cfg(test)]
 pub fn chrome_payload_from_sessions(
     sessions: &[SessionRecord],
     project_name: &str,
@@ -90,42 +56,6 @@ pub fn chrome_payload_from_sessions(
         "metadata": {
             "format": CHROME_TRACE_FORMAT,
             "source_schema": agent_session::AGENT_TRACE_SCHEMA,
-            "operation_schema": AGENTSIGHT_OPERATION_SCHEMA,
-            "project": project_name,
-        },
-        "traceEvents": events,
-    })
-}
-
-pub fn chrome_payload_from_operation_records(records: &[Value], project_name: &str) -> Value {
-    let records = collect_operation_file_trace_records(records, project_name);
-    let base_ms = records.iter().filter_map(|record| record.ts_ms).min();
-    let events = records
-        .iter()
-        .enumerate()
-        .map(|(idx, record)| {
-            json!({
-                "name": event_name(&record.fields),
-                "cat": string_field(&record.fields, "op").unwrap_or_else(|| "operation".to_string()),
-                "ph": "X",
-                "ts": trace_timestamp_us(record.ts_ms, base_ms, idx),
-                "dur": 1,
-                "pid": record.pid,
-                "tid": record.tid,
-                "args": {
-                    "agentsight.schema": AGENTSIGHT_OPERATION_SCHEMA,
-                    "agentsight.value": record.value.max(1),
-                    "agentsight.operation": record.fields,
-                }
-            })
-        })
-        .collect::<Vec<_>>();
-
-    json!({
-        "displayTimeUnit": "ms",
-        "metadata": {
-            "format": CHROME_TRACE_FORMAT,
-            "source_schema": AGENTSIGHT_OPERATION_SCHEMA,
             "operation_schema": AGENTSIGHT_OPERATION_SCHEMA,
             "project": project_name,
         },
@@ -168,6 +98,7 @@ pub fn operation_records_from_chrome_trace_payload(
         .collect())
 }
 
+#[cfg(test)]
 fn collect_operation_records(
     sessions: &[SessionRecord],
     project_name: &str,
@@ -240,68 +171,7 @@ fn collect_operation_records(
     records
 }
 
-fn collect_operation_file_trace_records(
-    records: &[Value],
-    project_name: &str,
-) -> Vec<OperationTraceRecord> {
-    records
-        .iter()
-        .enumerate()
-        .filter_map(|(idx, record)| operation_file_trace_record(record, project_name, idx))
-        .collect()
-}
-
-fn operation_file_trace_record(
-    record: &Value,
-    project_name: &str,
-    ordinal: usize,
-) -> Option<OperationTraceRecord> {
-    let object = record.as_object()?;
-    let mut fields = object
-        .get("fields")
-        .and_then(Value::as_object)
-        .cloned()
-        .unwrap_or_else(|| {
-            object
-                .iter()
-                .filter(|(key, _)| key.as_str() != "value")
-                .map(|(key, value)| (key.clone(), value.clone()))
-                .collect()
-        });
-    if fields.is_empty() {
-        return None;
-    }
-    if !fields.contains_key("project") {
-        insert(&mut fields, "project", project_name);
-    }
-    if !fields.contains_key("agent") {
-        insert(&mut fields, "agent", "operation-file");
-    }
-    let session = string_field(&fields, "session")
-        .or_else(|| string_field(&fields, "session_id"))
-        .unwrap_or_else(|| "operation-file".to_string());
-    if !fields.contains_key("session") {
-        insert(&mut fields, "session", &session);
-    }
-    if !fields.contains_key("session_id") {
-        insert(&mut fields, "session_id", &session);
-    }
-    let tid = parse_i64(fields.get("prompt_index"))
-        .or_else(|| parse_i64(fields.get("trace_tid")))
-        .unwrap_or(0);
-    let ts_ms = parse_i64(fields.get("ts_ms"))
-        .or_else(|| parse_i64(fields.get("timestamp_ms")))
-        .or_else(|| parse_i64(fields.get("trace_ts_us")).map(|value| value / 1000));
-
-    Some(OperationTraceRecord {
-        fields: clean_fields(fields),
-        value: operation_value(object.get("value")),
-        ts_ms,
-        pid: stable_int(&session),
-        tid: tid + ordinal as i64,
-    })
-}
-
+#[cfg(test)]
 fn base_fields(
     session: &SessionRecord,
     project_name: &str,
@@ -328,6 +198,7 @@ fn base_fields(
     fields
 }
 
+#[cfg(test)]
 fn tool_phase(event: &crate::session::ToolEvent) -> String {
     if !event.effect.is_empty() && event.effect != "process" {
         return event.effect.clone();
@@ -341,6 +212,7 @@ fn tool_phase(event: &crate::session::ToolEvent) -> String {
     event.tool_name.clone()
 }
 
+#[cfg(test)]
 fn command_preview(event: &crate::session::ToolEvent) -> &str {
     if !event.command_name.is_empty() && event.command_name != "none" {
         &event.command_name
@@ -349,6 +221,7 @@ fn command_preview(event: &crate::session::ToolEvent) -> &str {
     }
 }
 
+#[cfg(test)]
 fn llm_phase(call: &crate::session::LlmEvent) -> String {
     if !call.tag.is_empty() && call.tag != "unmatched" {
         call.tag.clone()
@@ -357,10 +230,12 @@ fn llm_phase(call: &crate::session::LlmEvent) -> String {
     }
 }
 
+#[cfg(test)]
 fn last_model_segment(model: &str) -> &str {
     model.rsplit('/').next().unwrap_or(model)
 }
 
+#[cfg(test)]
 fn event_name(fields: &Map<String, Value>) -> String {
     let op = string_field(fields, "op").unwrap_or_else(|| "operation".to_string());
     for key in ["phase", "tool", "model", "action", "status"] {
@@ -373,6 +248,7 @@ fn event_name(fields: &Map<String, Value>) -> String {
     op
 }
 
+#[cfg(test)]
 fn trace_timestamp_us(ts_ms: Option<i64>, base_ms: Option<i64>, index: usize) -> i64 {
     if let (Some(ts_ms), Some(base_ms)) = (ts_ms, base_ms) {
         return ts_ms.saturating_sub(base_ms).max(0) * 1000 + index as i64;
@@ -380,6 +256,7 @@ fn trace_timestamp_us(ts_ms: Option<i64>, base_ms: Option<i64>, index: usize) ->
     index as i64 * 1000
 }
 
+#[cfg(test)]
 fn stable_int(value: &str) -> i64 {
     let mut hasher = Sha256::new();
     hasher.update(value.as_bytes());
@@ -669,12 +546,14 @@ fn insert(fields: &mut Map<String, Value>, key: &str, value: impl Into<String>) 
     }
 }
 
+#[cfg(test)]
 fn insert_u64(fields: &mut Map<String, Value>, key: &str, value: u64) {
     if value > 0 {
         fields.insert(key.to_string(), json!(value));
     }
 }
 
+#[cfg(test)]
 fn insert_array(fields: &mut Map<String, Value>, key: &str, values: &[String]) {
     let values = values
         .iter()
@@ -700,6 +579,7 @@ fn clean_fields(fields: Map<String, Value>) -> Map<String, Value> {
         .collect()
 }
 
+#[cfg(test)]
 fn string_field(fields: &Map<String, Value>, key: &str) -> Option<String> {
     string_value(fields.get(key))
 }
@@ -734,6 +614,7 @@ mod tests {
                 text_hash: "h1".to_string(),
                 preview: "review this change".to_string(),
                 tag: "review".to_string(),
+                task_path: vec!["review this change".to_string()],
             }],
             tools: vec![ToolEvent {
                 ts_ms: Some(1010),
@@ -748,6 +629,7 @@ mod tests {
                 path_groups: vec!["docs/design.md".to_string()],
                 domains: Vec::new(),
                 call_id: None,
+                task_path: Vec::new(),
             }],
             llm_calls: vec![LlmEvent {
                 ts_ms: Some(1020),
@@ -760,6 +642,8 @@ mod tests {
                 cache_tokens: 0,
                 total_tokens: 18,
                 tag: "review".to_string(),
+                response_phase: "final_answer".to_string(),
+                task_path: Vec::new(),
             }],
             session_tag: String::new(),
             task_tag: String::new(),

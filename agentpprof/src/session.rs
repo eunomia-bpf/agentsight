@@ -9,16 +9,18 @@ pub type ToolEvent = agent_session::ToolEvent;
 pub type LlmEvent = agent_session::LlmResponse;
 
 pub use agent_session::{
-    collapse_project_path, contains_private_marker, path_component_strings, short_hash,
-    truncate_clean,
+    collapse_project_path, contains_private_marker, path_component_strings, semantic_task_label,
+    short_hash, truncate_clean,
 };
 
 #[derive(Debug, Clone)]
 pub struct SessionRecord {
     pub source: String,
+    #[allow(dead_code)]
     pub path: PathBuf,
     pub session_id: String,
     pub cwd: String,
+    #[allow(dead_code)]
     pub agent_role: String,
     pub model: String,
     pub title: String,
@@ -46,6 +48,7 @@ impl SessionRecord {
                 text_hash: "bootstrap".to_string(),
                 preview: "session bootstrap".to_string(),
                 tag: String::new(),
+                task_path: Vec::new(),
             });
         }
     }
@@ -121,18 +124,6 @@ pub fn load_agent_trace_files(paths: &[PathBuf]) -> Result<Vec<AgentSession>> {
         sessions.extend(trace.sessions);
     }
     Ok(sessions)
-}
-
-pub fn write_agent_trace(path: &Path, sessions: &[AgentSession]) -> Result<()> {
-    if let Some(parent) = path.parent()
-        && !parent.as_os_str().is_empty()
-    {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("failed to create trace dir {}", parent.display()))?;
-    }
-    let trace = AgentTrace::portable(sessions.to_vec());
-    let payload = trace.to_pretty_json()?;
-    fs::write(path, payload).with_context(|| format!("failed to write trace {}", path.display()))
 }
 
 fn discover_configured_roots(codex_root: &Path, claude_root: &Path) -> Vec<SessionCandidate> {
@@ -213,6 +204,7 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
             text_hash: short_hash(prompt, 12),
             preview: truncate_clean(prompt, 180),
             tag: String::new(),
+            task_path: vec![semantic_task_label(prompt)],
         });
     }
     if record.tools.is_empty() {
@@ -235,6 +227,7 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                         .collect(),
                     domains: Vec::new(),
                     call_id: None,
+                    task_path: Vec::new(),
                 });
             }
         }
@@ -256,6 +249,8 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                     + nonnegative_u64(usage.cache_read_tokens),
                 total_tokens: nonnegative_u64(usage.total_tokens),
                 tag: String::new(),
+                response_phase: String::new(),
+                task_path: Vec::new(),
             });
         }
     }
@@ -304,7 +299,8 @@ mod tests {
             events: SessionEvents::default(),
         };
 
-        write_agent_trace(&path, std::slice::from_ref(&session)).unwrap();
+        let trace = AgentTrace::portable(vec![session]);
+        fs::write(&path, trace.to_pretty_json().unwrap()).unwrap();
         let loaded = load_agent_trace_files(&[path]).unwrap();
 
         assert_eq!(loaded.len(), 1);

@@ -1,21 +1,14 @@
 #!/usr/bin/env python3
-"""
-Clustering-based tagger for agentpprof.
+"""Archived clustering experiment; not an AgentPProf product backend.
 
 This module provides unsupervised semantic clustering of prompts using
 traditional NLP techniques (TF-IDF + K-Means). It serves as an alternative
 to regex-based tagging when you want to discover natural groupings in
 your prompt distribution without predefined rules.
 
-Usage:
-    # Generate tags from a folded stack file
-    python cluster_tagger.py --input prompts.jsonl --output tags.json --clusters 15
-
-    # Or read from stdin
-    agentpprof --format json ... | python cluster_tagger.py --clusters 15
-
-The output is a JSON mapping of prompt hash -> tag that can be used with
-agentpprof's --tag-cache option.
+It accepts an explicitly prepared research JSON input and writes an
+experiment-only JSON mapping. AgentPProf does not invoke this script, consume
+its output, or emit the JSON input it expects. The product emits only pprof.
 """
 
 import argparse

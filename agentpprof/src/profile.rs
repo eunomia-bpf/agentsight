@@ -5,15 +5,14 @@ use prost::Message;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 
 use crate::session::{
     SessionRecord, collapse_project_path, contains_private_marker, path_component_strings,
-    short_hash, truncate_clean,
+    semantic_task_label, short_hash,
 };
 
 pub type Counter = BTreeMap<String, u64>;
@@ -28,16 +27,19 @@ pub struct StackNode {
     pub value: u64,
 }
 
+struct PprofProfileSample {
+    stack: String,
+    value: u64,
+    labels: Vec<(String, String)>,
+}
+
 pub struct Profile {
     pub view: &'static str,
     pub sample_type: &'static str,
     pub unit: &'static str,
     pub ops: Vec<StackNode>,
     pub operation_stack_induction: Option<OperationStackInductionReport>,
-    rank_rules: Vec<StackRankRule>,
-    rank_operation_rules: Vec<StackRankRule>,
-    rank_operation_matches: BTreeMap<String, BTreeMap<String, u64>>,
-    rank_mode: StackRankMode,
+    pprof_samples: Vec<PprofProfileSample>,
 }
 
 impl Profile {
@@ -48,29 +50,16 @@ impl Profile {
             unit,
             ops: Vec::new(),
             operation_stack_induction: None,
-            rank_rules: Vec::new(),
-            rank_operation_rules: Vec::new(),
-            rank_operation_matches: BTreeMap::new(),
-            rank_mode: StackRankMode::WidthBoost,
+            pprof_samples: Vec::new(),
         }
     }
 
-    fn with_rank_rules(mut self, rules: Vec<StackRankRule>) -> Self {
-        self.rank_rules = rules;
-        self
-    }
-
-    fn with_rank_mode(mut self, mode: StackRankMode) -> Self {
-        self.rank_mode = mode;
-        self
-    }
-
-    fn with_rank_operation_rules(mut self, rules: Vec<StackRankRule>) -> Self {
-        self.rank_operation_rules = rules;
-        self
-    }
-
-    fn sample(&mut self, frames: Vec<Frame>, value: u64) {
+    fn sample(&mut self, frames: Vec<Frame>, value: u64, labels: Vec<(String, String)>) {
+        self.pprof_samples.push(PprofProfileSample {
+            stack: folded_stack_from_frames(&frames),
+            value,
+            labels,
+        });
         let last = frames.len().saturating_sub(1);
         let mut parent = None;
         for (idx, (kind, name)) in frames.into_iter().enumerate() {
@@ -84,22 +73,6 @@ impl Profile {
             parent = Some(id);
         }
     }
-
-    fn record_rank_operation_matches(&mut self, stack: &str, sample: &Operation, value: u64) {
-        if self.rank_operation_rules.is_empty() {
-            return;
-        }
-        for rule in &self.rank_operation_rules {
-            if sample.matches_field_token(&rule.regex) {
-                *self
-                    .rank_operation_matches
-                    .entry(stack.to_string())
-                    .or_default()
-                    .entry(rule.label.clone())
-                    .or_default() += value.max(1);
-            }
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -110,18 +83,10 @@ pub struct OperationStackSpec {
 impl OperationStackSpec {
     fn default_for_view(view: ProfileView) -> Self {
         let raw = match view {
-            ProfileView::Operations => {
-                "project,agent,dataset,task,session,prompt,phase,op,tool,action,cmd,process,path,domain,status"
-            }
-            ProfileView::Tokens => "project,agent,session,prompt,phase,op,call,model,token",
-            ProfileView::Files => {
-                "project,agent,session,prompt,phase,op,tool,cmd,process,path,effect,status"
-            }
-            ProfileView::Network => {
-                "project,agent,session,prompt,phase,op,tool,cmd,process,domain,status"
-            }
-            ProfileView::Time => {
-                "project,agent,session,prompt,phase,op,tool,cmd,process,call,model"
+            ProfileView::Operations => "task,phase,action,object,repeat,result,outcome",
+            ProfileView::Tokens => "task,phase,action,object,repeat,result,outcome,token",
+            ProfileView::Files | ProfileView::Network | ProfileView::Time => {
+                "task,phase,action,object,repeat,result,outcome"
             }
         };
         parse_stack_spec(raw).expect("default stack spec is valid")
@@ -152,9 +117,6 @@ pub struct OperationStackConfig {
     field_rules: Vec<OperationStackRule>,
     filters: Vec<OperationFilterRule>,
     rules: Vec<OperationStackRule>,
-    rank_rules: Vec<StackRankRule>,
-    rank_operation_rules: Vec<StackRankRule>,
-    rank_mode: StackRankMode,
     operation_stack_induction: Option<OperationStackInductionConfig>,
 }
 
@@ -165,9 +127,6 @@ impl OperationStackConfig {
             field_rules: Vec::new(),
             filters: Vec::new(),
             rules: Vec::new(),
-            rank_rules: Vec::new(),
-            rank_operation_rules: Vec::new(),
-            rank_mode: StackRankMode::WidthBoost,
             operation_stack_induction: None,
         }
     }
@@ -189,21 +148,6 @@ impl OperationStackConfig {
 
     pub fn with_filters(mut self, filters: Vec<OperationFilterRule>) -> Self {
         self.filters = filters;
-        self
-    }
-
-    pub fn with_rank_rules(mut self, rank_rules: Vec<StackRankRule>) -> Self {
-        self.rank_rules = rank_rules;
-        self
-    }
-
-    pub fn with_rank_operation_rules(mut self, rank_operation_rules: Vec<StackRankRule>) -> Self {
-        self.rank_operation_rules = rank_operation_rules;
-        self
-    }
-
-    pub fn with_rank_mode(mut self, rank_mode: StackRankMode) -> Self {
-        self.rank_mode = rank_mode;
         self
     }
 
@@ -450,44 +394,6 @@ impl std::fmt::Debug for OperationFilterRule {
     }
 }
 
-#[derive(Clone)]
-pub struct StackRankRule {
-    label: String,
-    pattern: String,
-    weight: f64,
-    regex: Regex,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum StackRankMode {
-    WidthBoost,
-    RuleScore,
-}
-
-impl StackRankMode {
-    fn policy_name(self, has_stack_rules: bool, has_operation_rules: bool) -> &'static str {
-        if !has_stack_rules && !has_operation_rules {
-            return "width";
-        }
-        match (self, has_operation_rules) {
-            (Self::WidthBoost, false) => "width_times_visible_rule_multiplier",
-            (Self::RuleScore, false) => "visible_rule_score_then_width",
-            (Self::WidthBoost, true) => "width_times_visible_operation_rule_multiplier",
-            (Self::RuleScore, true) => "visible_operation_rule_score_then_width",
-        }
-    }
-}
-
-impl std::fmt::Debug for StackRankRule {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StackRankRule")
-            .field("label", &self.label)
-            .field("pattern", &self.pattern)
-            .field("weight", &self.weight)
-            .finish()
-    }
-}
-
 #[derive(Clone, Debug)]
 struct Operation {
     fields: BTreeMap<String, Vec<String>>,
@@ -526,14 +432,33 @@ impl Operation {
             .collect::<Vec<_>>()
             .join(" ")
     }
+}
 
-    fn matches_field_token(&self, regex: &Regex) -> bool {
-        self.fields.iter().any(|(key, values)| {
-            values
+const PPROF_EVIDENCE_LABEL_FIELDS: &[&str] = &[
+    "source_kind",
+    "evidence_id",
+    "agent",
+    "status",
+    "response_phase",
+    "outcome",
+    "source_session",
+    "call_id",
+    "prompt_hash",
+    "response_hash",
+    "timestamp_ms",
+    "comparison_side",
+];
+
+fn pprof_evidence_labels(operation: &Operation) -> Vec<(String, String)> {
+    PPROF_EVIDENCE_LABEL_FIELDS
+        .iter()
+        .flat_map(|field| {
+            operation
+                .values(field)
                 .iter()
-                .any(|value| regex.is_match(&format!("{key}={value}")))
+                .map(move |value| ((*field).to_string(), safe_frame(value, None)))
         })
-    }
+        .collect()
 }
 
 #[derive(Clone, Deserialize)]
@@ -602,54 +527,6 @@ pub fn parse_operation_filters(raw_filters: &[String]) -> Result<Vec<OperationFi
     parse_operation_filters_with_flag(raw_filters, "--where")
 }
 
-pub fn parse_stack_rank_rules(raw_rules: &[String]) -> Result<Vec<StackRankRule>> {
-    raw_rules
-        .iter()
-        .map(|rule| parse_rank_rule(rule, "--rank-rule", false))
-        .collect()
-}
-
-pub fn parse_operation_rank_rules(raw_rules: &[String]) -> Result<Vec<StackRankRule>> {
-    raw_rules
-        .iter()
-        .map(|rule| parse_rank_rule(rule, "--rank-op-rule", true))
-        .collect()
-}
-
-fn parse_rank_rule(raw: &str, flag_name: &str, allow_negative: bool) -> Result<StackRankRule> {
-    let (left, pattern) = raw.split_once('=').ok_or_else(|| {
-        anyhow::anyhow!("invalid {flag_name} {raw:?}; expected LABEL:WEIGHT=REGEX")
-    })?;
-    let (label, weight) = left.split_once(':').ok_or_else(|| {
-        anyhow::anyhow!("invalid {flag_name} {raw:?}; expected LABEL:WEIGHT=REGEX")
-    })?;
-    validate_frame_name(label, "rank rule label")?;
-    let weight = weight
-        .parse::<f64>()
-        .map_err(|error| anyhow::anyhow!("invalid {flag_name} weight {weight:?}: {error}"))?;
-    if !weight.is_finite()
-        || (!allow_negative && weight <= 0.0)
-        || (allow_negative && weight == 0.0)
-    {
-        if allow_negative {
-            bail!("invalid {flag_name} {raw:?}; weight must be a non-zero finite number");
-        } else {
-            bail!("invalid {flag_name} {raw:?}; weight must be a positive finite number");
-        }
-    }
-    if pattern.is_empty() {
-        bail!("invalid {flag_name} {raw:?}; regex pattern cannot be empty");
-    }
-    let regex = Regex::new(pattern)
-        .map_err(|error| anyhow::anyhow!("invalid {flag_name} regex {pattern:?}: {error}"))?;
-    Ok(StackRankRule {
-        label: label.to_string(),
-        pattern: pattern.to_string(),
-        weight,
-        regex,
-    })
-}
-
 pub fn parse_operation_filters_with_flag(
     raw_filters: &[String],
     flag_name: &str,
@@ -703,76 +580,6 @@ pub enum ProfileView {
     Files,
     Network,
     Time,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum OutputFormat {
-    Pprof,
-    Folded,
-    Svg,
-    Json,
-}
-
-#[derive(Serialize)]
-pub struct CounterSummary {
-    total_weight: u64,
-    unique_stacks: usize,
-    compression_ratio: f64,
-    max_stack_reuse: u64,
-    top: Vec<WeightedStack>,
-}
-
-#[derive(Serialize)]
-pub struct WeightedStack {
-    stack: String,
-    weight: u64,
-}
-
-#[derive(Serialize)]
-pub struct StackRankingSummary {
-    policy: &'static str,
-    groups: usize,
-    limit: usize,
-    rank_rules: Vec<StackRankRuleSpec>,
-    rank_operation_rules: Vec<StackRankRuleSpec>,
-    top: Vec<RankedStack>,
-}
-
-#[derive(Serialize)]
-pub struct StackRankRuleSpec {
-    label: String,
-    pattern: String,
-    weight: f64,
-}
-
-#[derive(Serialize)]
-pub struct RankedStack {
-    stack: String,
-    weight: u64,
-    rank_score: f64,
-    matched_rank_rules: Vec<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    rank_operation_features: Vec<StackRankFeature>,
-}
-
-#[derive(Serialize)]
-pub struct StackRankFeature {
-    label: String,
-    matched_weight: u64,
-    fraction: f64,
-    weighted_score: f64,
-}
-
-#[derive(Default)]
-struct FlameNode {
-    value: u64,
-    children: BTreeMap<String, FlameNode>,
-}
-
-#[derive(Default)]
-struct FlameRenderStats {
-    drawn: usize,
-    hidden_tiny: usize,
 }
 
 #[derive(Clone, PartialEq, Message)]
@@ -880,10 +687,7 @@ pub fn build_profile_with_options(
     options: &OperationStackConfig,
 ) -> Result<Profile> {
     let (name, sample_type, unit) = view_metadata(view);
-    let mut profile = Profile::new(name, sample_type, unit)
-        .with_rank_rules(options.rank_rules.clone())
-        .with_rank_operation_rules(options.rank_operation_rules.clone())
-        .with_rank_mode(options.rank_mode);
+    let mut profile = Profile::new(name, sample_type, unit);
     let mut samples = Vec::new();
     for session in sessions {
         for sample in session_samples(session, project_name, view) {
@@ -898,9 +702,8 @@ pub fn build_profile_with_options(
     profile.operation_stack_induction = report;
     for sample in samples {
         let frames = stack_frames(&sample, options);
-        let stack = folded_stack_from_frames(&frames);
-        profile.record_rank_operation_matches(&stack, &sample, sample.value);
-        profile.sample(frames, sample.value);
+        let labels = pprof_evidence_labels(&sample);
+        profile.sample(frames, sample.value, labels);
     }
     Ok(profile)
 }
@@ -962,10 +765,7 @@ fn build_profile_from_operations(
     options: &OperationStackConfig,
 ) -> Result<Profile> {
     let (name, sample_type, unit) = view_metadata(view);
-    let mut profile = Profile::new(name, sample_type, unit)
-        .with_rank_rules(options.rank_rules.clone())
-        .with_rank_operation_rules(options.rank_operation_rules.clone())
-        .with_rank_mode(options.rank_mode);
+    let mut profile = Profile::new(name, sample_type, unit);
     let mut samples = Vec::new();
     for sample in operations {
         let sample = apply_operation_field_rules(sample, &options.field_rules);
@@ -978,9 +778,8 @@ fn build_profile_from_operations(
     profile.operation_stack_induction = report;
     for sample in samples {
         let frames = stack_frames(&sample, options);
-        let stack = folded_stack_from_frames(&frames);
-        profile.record_rank_operation_matches(&stack, &sample, sample.value);
-        profile.sample(frames, sample.value);
+        let labels = pprof_evidence_labels(&sample);
+        profile.sample(frames, sample.value, labels);
     }
     Ok(profile)
 }
@@ -2015,44 +1814,198 @@ fn session_samples(
 }
 
 fn operation_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
-    let mut samples = Vec::new();
+    let terminal_paths = terminal_task_paths(session);
+    let mut events = Vec::<(Option<i64>, u8, usize, Option<String>, Operation)>::new();
     for (idx, req) in session.user_requests.iter().enumerate() {
         let mut sample = base_sample(session, project_name, idx, 1);
         sample.insert("op", "prompt");
         sample.insert("phase", "prompt");
+        sample.insert("action", "state task");
+        sample.insert("object", "task request");
+        sample.insert("result", "task received");
         sample.insert("status", "observed");
+        sample.insert("source_kind", "prompt");
+        sample.insert(
+            "evidence_id",
+            short_hash(
+                &format!("{}:prompt:{}", session.session_id, req.text_hash),
+                16,
+            ),
+        );
         sample.insert("prompt_hash", req.text_hash.clone());
-        samples.push(sample);
+        if let Some(ts) = req.ts_ms {
+            sample.insert("timestamp_ms", ts.to_string());
+        }
+        insert_task_outcome(&mut sample, &terminal_paths);
+        events.push((req.ts_ms, 0, idx, None, sample));
     }
-    for event in &session.tools {
-        samples.push(tool_sample(session, project_name, event, 1));
+    for (idx, event) in session.tools.iter().enumerate() {
+        let mut sample = tool_sample(session, project_name, event, 1);
+        insert_task_outcome(&mut sample, &terminal_paths);
+        events.push((
+            event.ts_ms,
+            1,
+            idx,
+            Some(tool_repeat_signature(event, &sample)),
+            sample,
+        ));
     }
-    for call in &session.llm_calls {
+    for (idx, call) in session.llm_calls.iter().enumerate() {
         let mut sample = base_sample(session, project_name, call.prompt_index, 1);
+        replace_task_path(&mut sample, &call.task_path);
         sample.insert("op", "llm");
         sample.insert("phase", llm_phase_label(call));
+        sample.insert("action", "reason or report");
+        sample.insert("object", "current task");
+        sample.insert("result", llm_result_label(call));
         sample.insert("call", format!("llm/{}", call.tag));
         sample.insert("llm", call.tag.clone());
         sample.insert("llm_preview", call.preview.clone());
         sample.insert("model", last_model_segment(&call.model));
+        sample.insert("response_phase", call.response_phase.clone());
+        sample.insert("response_hash", call.text_hash.clone());
+        if let Some(ts) = call.ts_ms {
+            sample.insert("timestamp_ms", ts.to_string());
+        }
         sample.insert("status", "observed");
+        sample.insert("source_kind", "llm");
+        sample.insert(
+            "evidence_id",
+            short_hash(
+                &format!("{}:llm:{}", session.session_id, call.text_hash),
+                16,
+            ),
+        );
+        insert_task_outcome(&mut sample, &terminal_paths);
+        events.push((call.ts_ms, 2, idx, None, sample));
+    }
+
+    events.sort_by_key(|(ts, kind, ordinal, _, _)| {
+        (ts.is_none(), ts.unwrap_or_default(), *kind, *ordinal)
+    });
+    let mut samples = Vec::with_capacity(events.len());
+    let mut previous_tool: Option<(i64, String)> = None;
+    for (ts, _, _, tool_signature, mut sample) in events {
+        if let Some(signature) = tool_signature {
+            if let Some(current_ts) = ts
+                && previous_tool
+                    .as_ref()
+                    .is_some_and(|(previous_ts, previous)| {
+                        *previous_ts < current_ts && previous == &signature
+                    })
+            {
+                sample.insert("repeat", "consecutive exact repeat");
+            }
+            previous_tool = ts.map(|timestamp| (timestamp, signature));
+        } else {
+            previous_tool = None;
+        }
         samples.push(sample);
     }
     samples
 }
 
+fn terminal_task_paths(session: &SessionRecord) -> BTreeSet<Vec<String>> {
+    session
+        .llm_calls
+        .iter()
+        .filter(|call| call.response_phase == "final_answer")
+        .map(|call| {
+            if call.task_path.is_empty() {
+                request_task_path(session, call.prompt_index)
+            } else {
+                call.task_path.clone()
+            }
+        })
+        .collect()
+}
+
+fn request_task_path(session: &SessionRecord, prompt_index: usize) -> Vec<String> {
+    let request = session.request_by_index(prompt_index);
+    if !request.task_path.is_empty() {
+        request.task_path.clone()
+    } else if !session.task_tag.is_empty() {
+        vec![session.task_tag.clone()]
+    } else {
+        vec![semantic_task_label(&request.preview)]
+    }
+}
+
+fn tool_repeat_signature(event: &crate::session::ToolEvent, sample: &Operation) -> String {
+    [
+        sample.values("task").join("\u{1f}"),
+        event.tool_name.clone(),
+        event.command.clone(),
+        event.path_groups.join("\u{1f}"),
+        event.domains.join("\u{1f}"),
+        sample.values("action").join("\u{1f}"),
+        sample.values("object").join("\u{1f}"),
+    ]
+    .join("\u{1e}")
+}
+
+fn insert_task_outcome(sample: &mut Operation, terminal_paths: &BTreeSet<Vec<String>>) {
+    let task_path = sample.values("task");
+    let exact = terminal_paths
+        .iter()
+        .any(|terminal| terminal.as_slice() == task_path);
+    let related = terminal_paths.iter().any(|terminal| {
+        terminal.as_slice().starts_with(task_path) || task_path.starts_with(terminal.as_slice())
+    });
+    sample.insert(
+        "outcome",
+        if exact {
+            "source-visible terminal response at exact task"
+        } else if related {
+            "source-visible terminal response at related task"
+        } else {
+            "no source-visible terminal response for task"
+        },
+    );
+}
+
+fn llm_result_label(call: &crate::session::LlmEvent) -> &'static str {
+    match call.response_phase.as_str() {
+        "final_answer" => "terminal response reported",
+        "commentary" => "progress reported",
+        _ if call.preview == "token report" || call.preview == "session token summary" => {
+            "token usage reported"
+        }
+        _ => "assistant response reported",
+    }
+}
+
 fn token_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
+    let terminal_paths = terminal_task_paths(session);
     let mut samples = Vec::new();
     for call in &session.llm_calls {
         for (kind, value) in call.token_components() {
             let mut sample = base_sample(session, project_name, call.prompt_index, value);
+            replace_task_path(&mut sample, &call.task_path);
             sample.insert("op", "llm");
             sample.insert("phase", llm_phase_label(call));
+            sample.insert("action", "reason or report");
+            sample.insert("object", "current task");
+            sample.insert("result", llm_result_label(call));
             sample.insert("call", format!("llm/{}", call.tag));
             sample.insert("llm", call.tag.clone());
             sample.insert("llm_preview", call.preview.clone());
             sample.insert("model", last_model_segment(&call.model));
+            sample.insert("response_phase", call.response_phase.clone());
+            sample.insert("response_hash", call.text_hash.clone());
+            if let Some(ts) = call.ts_ms {
+                sample.insert("timestamp_ms", ts.to_string());
+            }
             sample.insert("token", kind);
+            sample.insert("source_kind", "llm");
+            sample.insert(
+                "evidence_id",
+                short_hash(
+                    &format!("{}:llm:{}", session.session_id, call.text_hash),
+                    16,
+                ),
+            );
+            insert_task_outcome(&mut sample, &terminal_paths);
             samples.push(sample);
         }
     }
@@ -2060,6 +2013,7 @@ fn token_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> 
 }
 
 fn file_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
+    let terminal_paths = terminal_task_paths(session);
     let mut samples = Vec::new();
     for event in &session.tools {
         if event.path_groups.is_empty() {
@@ -2068,6 +2022,10 @@ fn file_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
         for group in &event.path_groups {
             let mut sample = tool_sample(session, project_name, event, 1);
             sample.insert("path", group.clone());
+            sample
+                .fields
+                .insert("object".to_string(), vec![group.clone()]);
+            insert_task_outcome(&mut sample, &terminal_paths);
             samples.push(sample);
         }
     }
@@ -2075,6 +2033,7 @@ fn file_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
 }
 
 fn network_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
+    let terminal_paths = terminal_task_paths(session);
     let mut samples = Vec::new();
     for event in &session.tools {
         if event.effect != "network" && event.domains.is_empty() {
@@ -2087,7 +2046,9 @@ fn network_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation
         };
         for domain in domains {
             let mut sample = tool_sample(session, project_name, event, 1);
-            sample.insert("domain", domain);
+            sample.insert("domain", domain.clone());
+            sample.fields.insert("object".to_string(), vec![domain]);
+            insert_task_outcome(&mut sample, &terminal_paths);
             samples.push(sample);
         }
     }
@@ -2095,6 +2056,7 @@ fn network_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation
 }
 
 fn time_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
+    let terminal_paths = terminal_task_paths(session);
     let mut events = Vec::new();
     let mut ordinal = 0usize;
 
@@ -2102,26 +2064,58 @@ fn time_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
         if let Some(ts) = req.ts_ms {
             let mut sample = base_sample(session, project_name, idx, 0);
             sample.insert("op", "prompt");
+            sample.insert("phase", "prompt");
+            sample.insert("action", "state task");
+            sample.insert("object", "task request");
+            sample.insert("result", "task received");
+            sample.insert("source_kind", "prompt");
+            sample.insert(
+                "evidence_id",
+                short_hash(
+                    &format!("{}:prompt:{}", session.session_id, req.text_hash),
+                    16,
+                ),
+            );
             sample.insert("prompt_hash", req.text_hash.clone());
+            sample.insert("timestamp_ms", ts.to_string());
+            insert_task_outcome(&mut sample, &terminal_paths);
             events.push((ts, ordinal, sample));
             ordinal += 1;
         }
     }
     for event in &session.tools {
         if let Some(ts) = event.ts_ms {
-            events.push((ts, ordinal, tool_sample(session, project_name, event, 0)));
+            let mut sample = tool_sample(session, project_name, event, 0);
+            insert_task_outcome(&mut sample, &terminal_paths);
+            events.push((ts, ordinal, sample));
             ordinal += 1;
         }
     }
     for call in &session.llm_calls {
         if let Some(ts) = call.ts_ms {
             let mut sample = base_sample(session, project_name, call.prompt_index, 0);
+            replace_task_path(&mut sample, &call.task_path);
             sample.insert("op", "llm");
             sample.insert("phase", llm_phase_label(call));
+            sample.insert("action", "reason or report");
+            sample.insert("object", "current task");
+            sample.insert("result", llm_result_label(call));
             sample.insert("call", format!("llm/{}", call.tag));
             sample.insert("llm", call.tag.clone());
             sample.insert("llm_preview", call.preview.clone());
             sample.insert("model", last_model_segment(&call.model));
+            sample.insert("response_phase", call.response_phase.clone());
+            sample.insert("response_hash", call.text_hash.clone());
+            sample.insert("timestamp_ms", ts.to_string());
+            sample.insert("source_kind", "llm");
+            sample.insert(
+                "evidence_id",
+                short_hash(
+                    &format!("{}:llm:{}", session.session_id, call.text_hash),
+                    16,
+                ),
+            );
+            insert_task_outcome(&mut sample, &terminal_paths);
             events.push((ts, ordinal, sample));
             ordinal += 1;
         }
@@ -2154,13 +2148,73 @@ fn base_sample(
     sample.insert("project", project_name);
     sample.insert("agent", session.source.clone());
     sample.insert("session", session.session_tag.clone());
-    if !session.task_tag.is_empty() {
-        sample.insert("task", session.task_tag.clone());
-    }
+    sample.insert("source_session", session.session_id.clone());
+    sample.extend("task", request_task_path(session, prompt_index));
     sample.insert("prompt", req.tag.clone());
     sample.insert("prompt_hash", req.text_hash.clone());
     sample.insert("prompt_preview", req.preview.clone());
     sample
+}
+
+fn replace_task_path(sample: &mut Operation, task_path: &[String]) {
+    if task_path.is_empty() {
+        return;
+    }
+    sample.fields.remove("task");
+    sample.extend("task", task_path.iter().cloned());
+}
+
+fn tool_action_label(event: &crate::session::ToolEvent) -> String {
+    let name = event.tool_name.to_ascii_lowercase();
+    if name == "composite" {
+        return "run composite source operation".to_string();
+    }
+    if name.contains("spawn_agent") {
+        return "delegate subtask".to_string();
+    }
+    if name.contains("wait_agent") || name == "wait" || name.contains("list_agents") {
+        return "observe subtask".to_string();
+    }
+    if name.contains("send_message") || name.contains("followup") {
+        return "coordinate subtask".to_string();
+    }
+    if name.contains("interrupt_agent") {
+        return "stop subtask".to_string();
+    }
+    match event.effect.as_str() {
+        "read" => "read or search".to_string(),
+        "write" => "edit artifact".to_string(),
+        "test" => "run validation".to_string(),
+        "network" => "collect external evidence".to_string(),
+        "repo" => "record repository progress".to_string(),
+        _ if event.category == "plan" => "update task plan".to_string(),
+        _ if event.category == "subagent" => "coordinate subtask".to_string(),
+        _ if !event.command_name.is_empty() && event.command_name != "none" => {
+            format!("run {}", event.command_name)
+        }
+        _ => event.tool_name.replace('_', " "),
+    }
+}
+
+fn tool_object_label(event: &crate::session::ToolEvent) -> String {
+    event
+        .path_groups
+        .first()
+        .or_else(|| event.domains.first())
+        .cloned()
+        .or_else(|| {
+            (!event.command_name.is_empty() && event.command_name != "none")
+                .then(|| event.command_name.clone())
+        })
+        .unwrap_or_else(|| event.tool_name.replace('_', " "))
+}
+
+fn tool_result_label(status: &str) -> &'static str {
+    match status {
+        "ok" | "success" => "completed",
+        "fail" | "error" => "failed",
+        _ => "machine outcome unobserved",
+    }
 }
 
 fn tool_sample(
@@ -2170,17 +2224,41 @@ fn tool_sample(
     value: u64,
 ) -> Operation {
     let mut sample = base_sample(session, project_name, event.prompt_index, value);
+    replace_task_path(&mut sample, &event.task_path);
     sample.insert("op", "tool");
     sample.insert("phase", tool_phase_label(event));
+    sample.insert("action", tool_action_label(event));
+    sample.insert("object", tool_object_label(event));
+    sample.insert("result", tool_result_label(&event.status));
     sample.insert("tool", event.tool_name.clone());
     sample.insert("category", event.category.clone());
     sample.insert("command", event.command.clone());
     sample.insert("effect", event.effect.clone());
     sample.insert("status", event.status.clone());
+    if let Some(call_id) = &event.call_id {
+        sample.insert("call_id", call_id.clone());
+    }
+    if let Some(ts) = event.ts_ms {
+        sample.insert("timestamp_ms", ts.to_string());
+    }
     if event.category == "shell" && !event.command_name.is_empty() {
         sample.insert("cmd", event.command_name.clone());
     }
     sample.extend("process", event.process_chain.clone());
+    sample.insert("source_kind", "tool");
+    sample.insert(
+        "evidence_id",
+        short_hash(
+            &format!(
+                "{}:tool:{}:{}:{}",
+                session.session_id,
+                event.call_id.as_deref().unwrap_or("none"),
+                event.ts_ms.unwrap_or_default(),
+                event.tool_name
+            ),
+            16,
+        ),
+    );
     sample
 }
 
@@ -2241,236 +2319,50 @@ fn normalize_folded_frame(frame: String) -> String {
     }
 }
 
-pub fn summarize_counter(counter: &Counter, limit: usize) -> CounterSummary {
-    let total_weight = counter.values().sum::<u64>();
-    let unique_stacks = counter.len();
-    let max_stack_reuse = counter.values().copied().max().unwrap_or(0);
-    CounterSummary {
-        total_weight,
-        unique_stacks,
-        compression_ratio: if unique_stacks == 0 {
-            0.0
-        } else {
-            round3(total_weight as f64 / unique_stacks as f64)
-        },
-        max_stack_reuse,
-        top: top_stacks(counter, limit),
-    }
-}
-
-pub fn summarize_ranked_counter(
-    counter: &Counter,
-    rules: &[StackRankRule],
-    operation_rules: &[StackRankRule],
-    operation_matches: &BTreeMap<String, BTreeMap<String, u64>>,
-    mode: StackRankMode,
-    limit: usize,
-) -> StackRankingSummary {
-    let mut rows = counter
-        .iter()
-        .map(|(stack, weight)| {
-            rank_stack(
-                stack,
-                *weight,
-                rules,
-                operation_rules,
-                operation_matches.get(stack),
-                mode,
-            )
-        })
-        .collect::<Vec<_>>();
-    rows.sort_by(|left, right| {
-        right
-            .rank_score
-            .partial_cmp(&left.rank_score)
-            .unwrap_or(std::cmp::Ordering::Equal)
-            .then_with(|| right.weight.cmp(&left.weight))
-            .then_with(|| left.stack.cmp(&right.stack))
-    });
-    rows.truncate(limit);
-
-    StackRankingSummary {
-        policy: mode.policy_name(!rules.is_empty(), !operation_rules.is_empty()),
-        groups: counter.len(),
-        limit,
-        rank_rules: rules
-            .iter()
-            .map(|rule| StackRankRuleSpec {
-                label: rule.label.clone(),
-                pattern: rule.pattern.clone(),
-                weight: round3(rule.weight),
-            })
-            .collect(),
-        rank_operation_rules: operation_rules
-            .iter()
-            .map(|rule| StackRankRuleSpec {
-                label: rule.label.clone(),
-                pattern: rule.pattern.clone(),
-                weight: round3(rule.weight),
-            })
-            .collect(),
-        top: rows,
-    }
-}
-
-fn rank_stack(
-    stack: &str,
-    weight: u64,
-    rules: &[StackRankRule],
-    operation_rules: &[StackRankRule],
-    operation_matches: Option<&BTreeMap<String, u64>>,
-    mode: StackRankMode,
-) -> RankedStack {
-    let mut matched_rank_rules = Vec::new();
-    let mut stack_score = 0.0;
-    for rule in rules {
-        if rule.regex.is_match(stack) {
-            stack_score += rule.weight;
-            matched_rank_rules.push(rule.label.clone());
-        }
-    }
-    let rank_operation_features =
-        operation_rank_features(weight, operation_rules, operation_matches);
-    let operation_score = rank_operation_features
-        .iter()
-        .map(|feature| feature.weighted_score)
-        .sum::<f64>();
-    let rule_score = stack_score + operation_score;
-    RankedStack {
-        stack: stack.to_string(),
-        weight,
-        rank_score: round3(match mode {
-            StackRankMode::WidthBoost => weight as f64 * (1.0 + rule_score).max(0.0),
-            StackRankMode::RuleScore => {
-                if rules.is_empty() && operation_rules.is_empty() {
-                    weight as f64
-                } else {
-                    rule_score
-                }
-            }
-        }),
-        matched_rank_rules,
-        rank_operation_features,
-    }
-}
-
-fn operation_rank_features(
-    stack_weight: u64,
-    rules: &[StackRankRule],
-    matches: Option<&BTreeMap<String, u64>>,
-) -> Vec<StackRankFeature> {
-    if rules.is_empty() || stack_weight == 0 {
-        return Vec::new();
-    }
-    let mut rows = Vec::new();
-    for rule in rules {
-        let matched_weight = matches
-            .and_then(|matched| matched.get(&rule.label).copied())
-            .unwrap_or(0);
-        if matched_weight == 0 {
-            continue;
-        }
-        let fraction = matched_weight as f64 / stack_weight as f64;
-        rows.push(StackRankFeature {
-            label: rule.label.clone(),
-            matched_weight,
-            fraction: round3(fraction),
-            weighted_score: round3(fraction * rule.weight),
-        });
-    }
-    rows
-}
-
-fn top_stacks(counter: &Counter, limit: usize) -> Vec<WeightedStack> {
-    let mut rows = counter
-        .iter()
-        .map(|(stack, weight)| WeightedStack {
-            stack: stack.clone(),
-            weight: *weight,
-        })
-        .collect::<Vec<_>>();
-    rows.sort_by_key(|row| (std::cmp::Reverse(row.weight), row.stack.clone()));
-    rows.truncate(limit);
-    rows
-}
-
-pub fn write_projection(
-    projection: &Profile,
-    format: OutputFormat,
-    output: &Path,
-    include_previews: bool,
-    sessions: &[SessionRecord],
-    svg_width: u32,
-    deterministic_output: bool,
-) -> Result<()> {
-    ensure_parent_dir(output)?;
-    let stacks = profile_to_stacks(projection);
-    match format {
-        OutputFormat::Pprof => write_pprof_projection(projection, &stacks, output, deterministic_output),
-        OutputFormat::Folded => write_folded(output, &stacks),
-        OutputFormat::Svg => fs::write(
-            output,
-            flamegraph_svg(
-                &stacks,
-                &format!("agentpprof {} profile", projection.view),
-                projection.unit,
-                svg_width,
-            ),
-        )
-        .map_err(Into::into),
-        OutputFormat::Json => fs::write(
-            output,
-            serde_json::to_vec_pretty(&json!({
-                "schema_version": 1,
-                "generated_at": if deterministic_output {
-                    "1970-01-01T00:00:00Z".to_string()
-                } else {
-                    now_iso()
-                },
-                "profile": {
-                    "view": projection.view,
-                    "sample_type": projection.sample_type,
-                    "unit": projection.unit,
-                    "summary": summarize_counter(&stacks, 20),
-                    "ranking": summarize_ranked_counter(
-                        &stacks,
-                        &projection.rank_rules,
-                        &projection.rank_operation_rules,
-                        &projection.rank_operation_matches,
-                        projection.rank_mode,
-                        stacks.len(),
-                    ),
-                    "operation_stack_induction": projection.operation_stack_induction,
-                    "stacks": stacks,
-                },
-                "sessions": sessions.iter().map(|s| session_to_json(s, include_previews)).collect::<Vec<_>>(),
-            }))?,
-        )
-        .map_err(Into::into),
-    }
-}
-
 pub fn write_pprof_difference(
-    projection: &Profile,
-    candidate: &Counter,
-    base: &Counter,
+    candidate: &Profile,
+    base: &Profile,
     output: &Path,
     deterministic_output: bool,
 ) -> Result<SignedCounter> {
     ensure_parent_dir(output)?;
+    let candidate_stacks = profile_to_stacks(candidate);
+    let base_stacks = profile_to_stacks(base);
     let mut difference = SignedCounter::new();
-    for stack in candidate.keys().chain(base.keys()) {
-        let candidate_weight = i128::from(candidate.get(stack).copied().unwrap_or(0));
-        let base_weight = i128::from(base.get(stack).copied().unwrap_or(0));
+    for stack in candidate_stacks.keys().chain(base_stacks.keys()) {
+        let candidate_weight = i128::from(candidate_stacks.get(stack).copied().unwrap_or(0));
+        let base_weight = i128::from(base_stacks.get(stack).copied().unwrap_or(0));
         let value = (candidate_weight - base_weight)
             .clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64;
         if value != 0 {
             difference.insert(stack.clone(), value);
         }
     }
+
+    let mut signed_samples = Vec::<(String, i64, Vec<(String, String)>)>::new();
+    for sample in &candidate.pprof_samples {
+        let mut labels = sample.labels.clone();
+        labels.push(("comparison_side".to_string(), "candidate".to_string()));
+        signed_samples.push((
+            sample.stack.clone(),
+            i64::try_from(sample.value).unwrap_or(i64::MAX),
+            labels,
+        ));
+    }
+    for sample in &base.pprof_samples {
+        let mut labels = sample.labels.clone();
+        labels.push(("comparison_side".to_string(), "base".to_string()));
+        signed_samples.push((
+            sample.stack.clone(),
+            -i64::try_from(sample.value).unwrap_or(i64::MAX),
+            labels,
+        ));
+    }
     write_pprof_samples(
-        projection,
-        difference.iter().map(|(stack, weight)| (stack, *weight)),
+        candidate,
+        signed_samples
+            .iter()
+            .map(|(stack, weight, labels)| (stack.as_str(), *weight, labels.as_slice())),
         output,
         deterministic_output,
         Some("candidate-minus-base"),
@@ -2487,17 +2379,20 @@ fn ensure_parent_dir(path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn write_pprof_projection(
+pub fn write_pprof_projection(
     projection: &Profile,
-    stacks: &Counter,
     output: &Path,
     deterministic_output: bool,
 ) -> Result<()> {
     write_pprof_samples(
         projection,
-        stacks
-            .iter()
-            .map(|(stack, weight)| (stack, i64::try_from(*weight).unwrap_or(i64::MAX))),
+        projection.pprof_samples.iter().map(|sample| {
+            (
+                sample.stack.as_str(),
+                i64::try_from(sample.value).unwrap_or(i64::MAX),
+                sample.labels.as_slice(),
+            )
+        }),
         output,
         deterministic_output,
         None,
@@ -2512,7 +2407,7 @@ fn write_pprof_samples<'a, I>(
     comparison: Option<&str>,
 ) -> Result<()>
 where
-    I: IntoIterator<Item = (&'a String, i64)>,
+    I: IntoIterator<Item = (&'a str, i64, &'a [(String, String)])>,
 {
     let mut strings = StringInterner::with_pprof_root();
     let sample_type = PprofValueType {
@@ -2529,7 +2424,7 @@ where
     let mut frame_locations = BTreeMap::<String, u64>::new();
     let mut samples = Vec::new();
 
-    for (stack, weight) in stacks {
+    for (stack, weight, evidence_labels) in stacks {
         let mut location_ids = Vec::new();
         for frame in stack.split(';').filter(|frame| !frame.is_empty()).rev() {
             let id = if let Some(id) = frame_locations.get(frame) {
@@ -2561,6 +2456,12 @@ where
         }];
         if let Some((key, str_value)) = comparison_label {
             labels.push(PprofLabel { key, str_value });
+        }
+        for (key, value) in evidence_labels {
+            labels.push(PprofLabel {
+                key: strings.intern(key),
+                str_value: strings.intern(value),
+            });
         }
         samples.push(PprofSample {
             location_id: location_ids,
@@ -2596,300 +2497,12 @@ where
     Ok(())
 }
 
-fn write_folded(path: &Path, stacks: &Counter) -> Result<()> {
-    let mut text = String::new();
-    for (stack, weight) in stacks {
-        text.push_str(stack);
-        text.push(' ');
-        text.push_str(&weight.to_string());
-        text.push('\n');
-    }
-    fs::write(path, text)?;
-    Ok(())
-}
-
-pub fn flamegraph_svg(stacks: &Counter, title: &str, metric: &str, svg_width: u32) -> String {
-    let width = svg_width as f64;
-    let total = stacks.values().sum::<u64>();
-    if total == 0 {
-        return format!(
-            "<svg xmlns='http://www.w3.org/2000/svg' width='{svg_width}' height='120'><text x='16' y='40'>{}</text></svg>",
-            html_escape(title)
-        );
-    }
-    let tree = build_flame_tree(stacks);
-    let levels = flame_depth(&tree).max(1);
-    let top = 72.0;
-    let frame_h = 18.0;
-    let gap = 2.0;
-    let left = 16.0;
-    let chart_width = width - 32.0;
-    let height = top + levels as f64 * (frame_h + gap) + 30.0;
-    let mut svg = format!(
-        "<svg xmlns='http://www.w3.org/2000/svg' width='{svg_width}' height='{height}' viewBox='0 0 {svg_width} {height}'>\
-         <style>text{{font-family:ui-monospace,Menlo,monospace;font-size:11px;pointer-events:none}}.title{{font-family:system-ui,sans-serif;font-size:18px;font-weight:700}}.meta{{font-family:system-ui,sans-serif;font-size:12px;fill:#444}}rect:hover{{stroke:#111;stroke-width:1.2}}</style>\
-         <rect width='{svg_width}' height='{height}' fill='#fbfbf7'/><text class='title' x='16' y='28'>{}</text>",
-        html_escape(title),
-    );
-    let mut stats = FlameRenderStats::default();
-    let mut path = Vec::new();
-    render_flame_children(
-        &mut svg,
-        &tree,
-        FlameRenderCtx {
-            x: left,
-            width: chart_width,
-            depth: 0,
-            max_depth: levels,
-            total,
-            top,
-            frame_h,
-            gap,
-            metric,
-        },
-        &mut path,
-        &mut stats,
-    );
-    svg.insert_str(
-        svg.find("</text>").map(|pos| pos + "</text>".len()).unwrap_or(svg.len()),
-        &format!(
-            "<text class='meta' x='16' y='50'>prefix-merged flamegraph; width = {}; total = {}; drawn nodes = {}; hidden tiny nodes = {}; depth = {}</text>",
-            html_escape(metric),
-            total,
-            stats.drawn,
-            stats.hidden_tiny,
-            levels
-        ),
-    );
-    svg.push_str("</svg>");
-    svg
-}
-
-fn build_flame_tree(stacks: &Counter) -> FlameNode {
-    let mut root = FlameNode::default();
-    for (stack, weight) in stacks {
-        if *weight == 0 {
-            continue;
-        }
-        root.value += *weight;
-        let mut node = &mut root;
-        for frame in stack.split(';').filter(|frame| !frame.is_empty()) {
-            node = node.children.entry(frame.to_string()).or_default();
-            node.value += *weight;
-        }
-    }
-    root
-}
-
-fn flame_depth(node: &FlameNode) -> usize {
-    node.children
-        .values()
-        .map(|child| 1 + flame_depth(child))
-        .max()
-        .unwrap_or(0)
-}
-
-struct FlameRenderCtx<'a> {
-    x: f64,
-    width: f64,
-    depth: usize,
-    max_depth: usize,
-    total: u64,
-    top: f64,
-    frame_h: f64,
-    gap: f64,
-    metric: &'a str,
-}
-
-fn render_flame_children(
-    svg: &mut String,
-    node: &FlameNode,
-    ctx: FlameRenderCtx<'_>,
-    path: &mut Vec<String>,
-    stats: &mut FlameRenderStats,
-) {
-    let mut cursor = ctx.x;
-    let mut children = node.children.iter().collect::<Vec<_>>();
-    children.sort_by(|(left_name, left), (right_name, right)| {
-        right
-            .value
-            .cmp(&left.value)
-            .then_with(|| left_name.cmp(right_name))
-    });
-
-    for (name, child) in children {
-        let child_width = if node.value == 0 {
-            0.0
-        } else {
-            ctx.width * child.value as f64 / node.value as f64
-        };
-        path.push(name.clone());
-        render_flame_node(
-            svg,
-            name,
-            child,
-            FlameRenderCtx {
-                x: cursor,
-                width: child_width,
-                depth: ctx.depth + 1,
-                max_depth: ctx.max_depth,
-                total: ctx.total,
-                top: ctx.top,
-                frame_h: ctx.frame_h,
-                gap: ctx.gap,
-                metric: ctx.metric,
-            },
-            path,
-            stats,
-        );
-        path.pop();
-        cursor += child_width;
-    }
-}
-
-fn render_flame_node(
-    svg: &mut String,
-    name: &str,
-    node: &FlameNode,
-    ctx: FlameRenderCtx<'_>,
-    path: &mut Vec<String>,
-    stats: &mut FlameRenderStats,
-) {
-    const MIN_VISIBLE_WIDTH: f64 = 0.35;
-    if ctx.width >= MIN_VISIBLE_WIDTH {
-        stats.drawn += 1;
-        let y = ctx.top + (ctx.max_depth - ctx.depth) as f64 * (ctx.frame_h + ctx.gap);
-        let pct = if ctx.total == 0 {
-            0.0
-        } else {
-            node.value as f64 * 100.0 / ctx.total as f64
-        };
-        let title = format!(
-            "{} | {} {} ({pct:.2}%)",
-            path.join(" ; "),
-            node.value,
-            ctx.metric
-        );
-        let color = color_for(name, ctx.depth);
-        svg.push_str(&format!(
-            "<g><title>{}</title><rect x='{:.3}' y='{:.3}' width='{:.3}' height='{:.0}' rx='2' ry='2' fill='{color}' stroke='#fff' stroke-width='.7'/>",
-            html_escape(&title),
-            ctx.x,
-            y,
-            ctx.width,
-            ctx.frame_h
-        ));
-        if let Some(label) = label_for_width(name, ctx.width) {
-            svg.push_str(&format!(
-                "<text x='{:.3}' y='{:.3}' fill='#171717'>{}</text>",
-                ctx.x + 4.0,
-                y + ctx.frame_h - 4.0,
-                html_escape(&label)
-            ));
-        }
-        svg.push_str("</g>");
-    } else {
-        stats.hidden_tiny += 1;
-    }
-
-    if !node.children.is_empty() {
-        render_flame_children(svg, node, ctx, path, stats);
-    }
-}
-
-fn label_for_width(label: &str, width: f64) -> Option<String> {
-    if width < 32.0 {
-        return None;
-    }
-    let max_chars = ((width - 8.0) / 7.0).floor().max(3.0) as usize;
-    Some(truncate_clean(label, max_chars))
-}
-
-fn prompt_index_status(count: usize) -> &'static str {
-    if count <= 1 {
-        "unique"
-    } else {
-        "duplicate_non_keyed"
-    }
-}
-
-pub fn session_to_json(session: &SessionRecord, include_previews: bool) -> Value {
-    let mut prompt_index_counts = HashMap::<usize, usize>::new();
-    for req in &session.user_requests {
-        *prompt_index_counts.entry(req.index).or_insert(0) += 1;
-    }
-    json!({
-        "source": session.source,
-        "session_id": session.session_id,
-        "agent_sight_session_id": agent_sight_session_id(&session.source, &session.session_id),
-        "session_file": session.path.file_name().and_then(|v| v.to_str()).unwrap_or("session"),
-        "cwd_hash": if session.cwd.is_empty() { String::new() } else { short_hash(&session.cwd, 16) },
-        "agent_role": session.agent_role,
-        "model": session.model,
-        "session_tag": session.session_tag,
-        "task_tag": session.task_tag,
-        "start_ts_ms": session.start_ts_ms,
-        "prompt_count": session.user_requests.len(),
-        "tool_count": session.tools.len(),
-        "llm_count": session.llm_calls.len(),
-        "prompts": session.user_requests.iter().enumerate().map(|(ordinal, req)| json!({
-            "row_ordinal": ordinal,
-            "index": req.index,
-            "prompt_key": req.prompt_key(),
-            "prompt_index_status": prompt_index_status(*prompt_index_counts.get(&req.index).unwrap_or(&0)),
-            "ts_ms": req.ts_ms,
-            "hash": req.text_hash,
-            "tag": req.tag,
-            "preview": if include_previews { req.preview.clone() } else { "redacted".to_string() },
-        })).collect::<Vec<_>>(),
-        "tool_events": session.tools.iter().map(|event| {
-            let request = session.request_by_index(event.prompt_index);
-            json!({
-                "ts_ms": event.ts_ms,
-                "prompt_index": request.index,
-                "prompt_key": request.prompt_key(),
-                "prompt_index_status": prompt_index_status(*prompt_index_counts.get(&request.index).unwrap_or(&0)),
-                "prompt_tag": request.tag,
-                "tool_name": event.tool_name,
-                "category": event.category,
-                "command_name": event.command_name,
-                "command_hash": if event.command.is_empty() { String::new() } else { short_hash(&event.command, 16) },
-                "command_preview": if include_previews { event.command.clone() } else { "redacted".to_string() },
-                "process_chain": event.process_chain,
-                "effect": event.effect,
-                "status": event.status,
-                "path_groups": event.path_groups,
-                "domains": event.domains,
-                "call_id_hash": event.call_id.as_ref().map(|id| short_hash(id, 16)),
-            })
-        }).collect::<Vec<_>>(),
-        "llm_events": session.llm_calls.iter().map(|call| {
-            let request = session.request_by_index(call.prompt_index);
-            json!({
-                "ts_ms": call.ts_ms,
-                "prompt_index": request.index,
-                "prompt_key": request.prompt_key(),
-                "prompt_index_status": prompt_index_status(*prompt_index_counts.get(&request.index).unwrap_or(&0)),
-                "prompt_tag": request.tag,
-                "llm_tag": call.tag,
-                "model": call.model,
-                "hash": call.text_hash,
-                "input_tokens": call.input_tokens,
-                "output_tokens": call.output_tokens,
-                "cache_tokens": call.cache_tokens,
-                "estimated_tokens": call.total_tokens,
-                "preview": if include_previews { call.preview.clone() } else { "redacted".to_string() },
-            })
-        }).collect::<Vec<_>>()
-    })
-}
-
 pub fn safe_frame(text: &str, prefix: Option<&str>) -> String {
     let text = redact_private_frame_text(text, prefix);
     let text = normalize_frame_text(&text, prefix);
     let mut out = String::new();
-    for ch in text.to_ascii_lowercase().chars() {
-        if ch.is_ascii_alphanumeric() || "._:/+-".contains(ch) {
+    for ch in text.to_lowercase().chars() {
+        if ch.is_alphanumeric() || "._:/+-".contains(ch) {
             out.push(ch);
         } else if !out.ends_with('_') {
             out.push('_');
@@ -2950,6 +2563,7 @@ fn current_username() -> Option<String> {
         .filter(|name| !name.is_empty())
 }
 
+#[cfg(test)]
 fn agent_family(source: &str) -> String {
     if source.starts_with("codex") {
         "codex".to_string()
@@ -2960,6 +2574,7 @@ fn agent_family(source: &str) -> String {
     }
 }
 
+#[cfg(test)]
 fn short_session_id(session_id: &str) -> String {
     let compact = session_id
         .rsplit(['/', '\\'])
@@ -2984,6 +2599,7 @@ fn short_session_id(session_id: &str) -> String {
     }
 }
 
+#[cfg(test)]
 fn agent_sight_session_id(source: &str, session_id: &str) -> String {
     let family = agent_family(source);
     format!("local:{family}:{family}:{}", short_session_id(session_id))
@@ -2991,41 +2607,6 @@ fn agent_sight_session_id(source: &str, session_id: &str) -> String {
 
 fn last_model_segment(model: &str) -> &str {
     model.rsplit('/').next().unwrap_or(model)
-}
-
-fn round3(value: f64) -> f64 {
-    (value * 1000.0).round() / 1000.0
-}
-
-fn html_escape(text: &str) -> String {
-    text.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-}
-
-fn color_for(text: &str, depth: usize) -> String {
-    let digest = Sha256::digest(text.as_bytes());
-    let hue = (digest[0] as usize + depth * 19) % 360;
-    let sat = 48 + digest[1] % 20;
-    let light = 62 + digest[2] % 12;
-    format!("hsl({hue} {sat}% {light}%)")
-}
-
-fn now_iso() -> String {
-    Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
-}
-
-pub fn infer_output_format(requested: OutputFormat, output: &Path) -> OutputFormat {
-    if requested != OutputFormat::Pprof {
-        return requested;
-    }
-    match output.extension().and_then(|ext| ext.to_str()) {
-        Some("folded") | Some("foldedtxt") => OutputFormat::Folded,
-        Some("svg") => OutputFormat::Svg,
-        Some("json") => OutputFormat::Json,
-        _ => OutputFormat::Pprof,
-    }
 }
 
 #[cfg(test)]
@@ -3065,6 +2646,7 @@ mod tests {
             text_hash: hash.to_string(),
             preview: preview.to_string(),
             tag: tag.to_string(),
+            task_path: Vec::new(),
         }
     }
 
@@ -3082,6 +2664,7 @@ mod tests {
             path_groups: paths.into_iter().map(str::to_string).collect(),
             domains: Vec::new(),
             call_id: Some("call-1".to_string()),
+            task_path: Vec::new(),
         }
     }
 
@@ -3099,6 +2682,7 @@ mod tests {
             path_groups: paths.into_iter().map(str::to_string).collect(),
             domains: Vec::new(),
             call_id: Some("call-read".to_string()),
+            task_path: Vec::new(),
         }
     }
 
@@ -3114,6 +2698,8 @@ mod tests {
             cache_tokens: 0,
             total_tokens: 0,
             tag: tag.to_string(),
+            response_phase: "final_answer".to_string(),
+            task_path: Vec::new(),
         }
     }
 
@@ -3131,6 +2717,15 @@ mod tests {
             1,
         );
         assert!(stacks.contains_key("project:agentsight;path:.git"));
+    }
+
+    #[test]
+    fn semantic_frames_preserve_unicode_labels() {
+        assert_eq!(safe_frame("写论文", Some("task")), "task:写论文");
+        assert_eq!(
+            safe_frame("撰写 Abstract", Some("subtask")),
+            "subtask:撰写_abstract"
+        );
     }
 
     #[test]
@@ -3157,17 +2752,19 @@ mod tests {
         let stacks = profile_to_stacks(&profile);
         // prompt at 1000ms, tool at 3000ms -> 2 seconds
         assert_eq!(
-            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;op:prompt"),
+            stacks.get("task:fix_rust_tests;phase:prompt;action:state_task;object:task_request;result:task_received;outcome:source-visible_terminal_response_at_exact_task"),
             Some(&2)
         );
-        // tool at 3000ms, llm at 8000ms -> 5 seconds (with tool name, cmd, and process chain)
+        // tool at 3000ms, llm at 8000ms -> 5 seconds
         assert_eq!(
-            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;phase:test;op:tool;tool:exec_command;cmd:cargo;process:cargo"),
+            stacks.get(
+                "task:fix_rust_tests;phase:test;action:run_validation;object:repo;result:completed;outcome:source-visible_terminal_response_at_exact_task"
+            ),
             Some(&5)
         );
-        // last event gets 1 second (with llm details)
+        // last event gets 1 second
         assert_eq!(
-            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;phase:summarize;op:llm;call:llm/summarize;model:gpt-5"),
+            stacks.get("task:fix_rust_tests;phase:summarize;action:reason_or_report;object:current_task;result:terminal_response_reported;outcome:source-visible_terminal_response_at_exact_task"),
             Some(&1)
         );
     }
@@ -3191,11 +2788,15 @@ mod tests {
         let stacks = profile_to_stacks(&profile);
 
         assert_eq!(
-            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;phase:read;op:tool;tool:read;path:src;effect:read;status:ok"),
+            stacks.get(
+                "task:fix_rust_tests;phase:read;action:read_or_search;object:src;result:completed;outcome:no_source-visible_terminal_response_for_task"
+            ),
             Some(&1)
         );
         assert_eq!(
-            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;phase:test;op:tool;tool:exec_command;cmd:cargo;process:cargo;path:tests;effect:test;status:ok"),
+            stacks.get(
+                "task:fix_rust_tests;phase:test;action:run_validation;object:tests;result:completed;outcome:no_source-visible_terminal_response_for_task"
+            ),
             Some(&1)
         );
     }
@@ -3231,6 +2832,169 @@ mod tests {
     }
 
     #[test]
+    fn default_profile_exposes_nested_tasks_and_repeated_work() {
+        let mut first = read_tool(2000, 0, vec!["paper.tex"]);
+        first.task_path = vec!["write a paper".to_string(), "write abstract".to_string()];
+        let mut second = first.clone();
+        second.ts_ms = Some(3000);
+        second.call_id = Some("call-repeat".to_string());
+        let session = test_session(
+            "codex",
+            "paper",
+            vec![prompt(0, 1000, "h1", "write a paper", "writing")],
+            vec![first, second],
+            Vec::new(),
+        );
+
+        let options = OperationStackConfig::for_view(ProfileView::Operations);
+        let profile =
+            build_profile_with_options(&[session], "agentsight", ProfileView::Operations, &options)
+                .unwrap();
+        let stacks = profile_to_stacks(&profile);
+
+        assert_eq!(
+            stacks.get("task:write_a_paper;task:write_abstract;phase:read;action:read_or_search;object:paper.tex;result:completed;outcome:no_source-visible_terminal_response_for_task"),
+            Some(&1)
+        );
+        assert_eq!(
+            stacks.get("task:write_a_paper;task:write_abstract;phase:read;action:read_or_search;object:paper.tex;repeat:consecutive_exact_repeat;result:completed;outcome:no_source-visible_terminal_response_for_task"),
+            Some(&1)
+        );
+    }
+
+    #[test]
+    fn repeated_work_requires_chronological_adjacency_without_progress() {
+        let mut first = read_tool(2000, 0, vec!["paper.tex"]);
+        first.task_path = vec!["write a paper".to_string(), "write abstract".to_string()];
+        let mut second = first.clone();
+        second.ts_ms = Some(4000);
+        second.call_id = Some("call-after-progress".to_string());
+        let mut progress = llm(3000, 0, "gpt-5", "commentary");
+        progress.response_phase = "commentary".to_string();
+        progress.task_path = first.task_path.clone();
+        let session = test_session(
+            "codex",
+            "paper",
+            vec![prompt(0, 1000, "h1", "write a paper", "writing")],
+            vec![first, second],
+            vec![progress],
+        );
+
+        let profile = build_profile_with_options(
+            &[session],
+            "agentsight",
+            ProfileView::Operations,
+            &OperationStackConfig::for_view(ProfileView::Operations),
+        )
+        .unwrap();
+        let stacks = profile_to_stacks(&profile);
+
+        assert_eq!(
+            stacks.get("task:write_a_paper;task:write_abstract;phase:read;action:read_or_search;object:paper.tex;result:completed;outcome:no_source-visible_terminal_response_for_task"),
+            Some(&2)
+        );
+        assert!(
+            !stacks
+                .keys()
+                .any(|stack| stack.contains("consecutive_exact_repeat"))
+        );
+    }
+
+    #[test]
+    fn different_source_commands_are_not_collapsed_as_repetition() {
+        let mut first = shell_tool(2000, 0, "ok", vec!["repo"]);
+        first.command = "rg parser agent-session".to_string();
+        first.command_name = "rg".to_string();
+        first.effect = "read".to_string();
+        let mut second = first.clone();
+        second.ts_ms = Some(3000);
+        second.command = "rg profile agentpprof".to_string();
+        second.call_id = Some("different-command".to_string());
+        let session = test_session(
+            "codex",
+            "audit",
+            vec![prompt(0, 1000, "h1", "audit profiler", "audit")],
+            vec![first, second],
+            Vec::new(),
+        );
+
+        let profile = build_profile_with_options(
+            &[session],
+            "agentsight",
+            ProfileView::Operations,
+            &OperationStackConfig::for_view(ProfileView::Operations),
+        )
+        .unwrap();
+        let stacks = profile_to_stacks(&profile);
+        assert!(
+            !stacks
+                .keys()
+                .any(|stack| stack.contains("consecutive_exact_repeat"))
+        );
+    }
+
+    #[test]
+    fn ambiguous_same_timestamp_does_not_claim_a_repeat() {
+        let first = read_tool(2000, 0, vec!["paper.tex"]);
+        let mut second = first.clone();
+        second.call_id = Some("same-millisecond".to_string());
+        let session = test_session(
+            "codex",
+            "audit",
+            vec![prompt(0, 1000, "h1", "audit profiler", "audit")],
+            vec![first, second],
+            Vec::new(),
+        );
+        let profile = build_profile_with_options(
+            &[session],
+            "agentsight",
+            ProfileView::Operations,
+            &OperationStackConfig::for_view(ProfileView::Operations),
+        )
+        .unwrap();
+        let stacks = profile_to_stacks(&profile);
+        assert!(
+            !stacks
+                .keys()
+                .any(|stack| stack.contains("consecutive_exact_repeat"))
+        );
+    }
+
+    #[test]
+    fn terminal_outcome_is_scoped_to_the_matching_task_path() {
+        let mut abstract_tool = read_tool(2000, 0, vec!["abstract.tex"]);
+        abstract_tool.task_path = vec!["write a paper".to_string(), "write abstract".to_string()];
+        let mut evaluation_tool = read_tool(3000, 0, vec!["evaluation.tex"]);
+        evaluation_tool.task_path =
+            vec!["write a paper".to_string(), "write evaluation".to_string()];
+        let mut final_response = llm(4000, 0, "gpt-5", "final");
+        final_response.task_path = evaluation_tool.task_path.clone();
+        let session = test_session(
+            "codex",
+            "paper",
+            vec![prompt(0, 1000, "h1", "write a paper", "writing")],
+            vec![abstract_tool, evaluation_tool],
+            vec![final_response],
+        );
+        let profile = build_profile_with_options(
+            &[session],
+            "agentsight",
+            ProfileView::Operations,
+            &OperationStackConfig::for_view(ProfileView::Operations),
+        )
+        .unwrap();
+        let stacks = profile_to_stacks(&profile);
+        assert!(stacks.keys().any(|stack| {
+            stack.contains("task:write_abstract")
+                && stack.contains("outcome:no_source-visible_terminal_response_for_task")
+        }));
+        assert!(stacks.keys().any(|stack| {
+            stack.contains("task:write_evaluation")
+                && stack.contains("outcome:source-visible_terminal_response_at_exact_task")
+        }));
+    }
+
+    #[test]
     fn declared_task_tag_is_additional_to_raw_session_tag() {
         let mut session = test_session(
             "agentboard",
@@ -3254,9 +3018,6 @@ mod tests {
             profile_to_stacks(&profile).get("session:shopping;task:webshop;prompt:shopping"),
             Some(&1)
         );
-        let json = session_to_json(&session, false);
-        assert_eq!(json["session_tag"], "shopping");
-        assert_eq!(json["task_tag"], "webshop");
     }
 
     #[test]
@@ -3405,117 +3166,6 @@ mod tests {
             stacks.get("project:external;agent:gold;task:authenticate;phase:input;op:action;action:type;status:gold"),
             Some(&1)
         );
-    }
-
-    #[test]
-    fn stack_rank_rules_sort_json_groups_by_visible_frames() {
-        let rules = parse_stack_rank_rules(&[
-            "unsafe-risk:2=phase:execute|action:write".to_string(),
-            "error-risk:1.5=status:error".to_string(),
-        ])
-        .unwrap();
-        let stacks = BTreeMap::from([
-            (
-                "project:external;task:safety;phase:inspect;action:read;status:ok".to_string(),
-                9_u64,
-            ),
-            (
-                "project:external;task:safety;phase:execute;action:write;status:error".to_string(),
-                3_u64,
-            ),
-        ]);
-
-        let ranking = summarize_ranked_counter(
-            &stacks,
-            &rules,
-            &[],
-            &BTreeMap::new(),
-            StackRankMode::WidthBoost,
-            10,
-        );
-
-        assert_eq!(ranking.policy, "width_times_visible_rule_multiplier");
-        assert_eq!(
-            ranking.top[0].stack,
-            "project:external;task:safety;phase:execute;action:write;status:error"
-        );
-        assert_eq!(ranking.top[0].weight, 3);
-        assert_eq!(ranking.top[0].rank_score, 13.5);
-        assert_eq!(
-            ranking.top[0].matched_rank_rules,
-            vec!["unsafe-risk".to_string(), "error-risk".to_string()]
-        );
-        assert_eq!(ranking.top[1].rank_score, 9.0);
-    }
-
-    #[test]
-    fn rule_score_rank_mode_sorts_before_width_tiebreaker() {
-        let rules = parse_stack_rank_rules(&["unsafe-risk:2=phase:execute".to_string()]).unwrap();
-        let stacks = BTreeMap::from([
-            (
-                "project:external;task:safety;phase:inspect;action:read;status:ok".to_string(),
-                100_u64,
-            ),
-            (
-                "project:external;task:safety;phase:execute;action:write;status:error".to_string(),
-                3_u64,
-            ),
-        ]);
-
-        let ranking = summarize_ranked_counter(
-            &stacks,
-            &rules,
-            &[],
-            &BTreeMap::new(),
-            StackRankMode::RuleScore,
-            10,
-        );
-
-        assert_eq!(ranking.policy, "visible_rule_score_then_width");
-        assert_eq!(
-            ranking.top[0].stack,
-            "project:external;task:safety;phase:execute;action:write;status:error"
-        );
-        assert_eq!(ranking.top[0].rank_score, 2.0);
-        assert_eq!(ranking.top[1].rank_score, 0.0);
-    }
-
-    #[test]
-    fn operation_rank_rules_score_density_inside_folded_stack() {
-        let records = vec![
-            json!({"value": 1, "fields": {"task": "wide", "status": "error"}}),
-            json!({"value": 3, "fields": {"task": "wide", "status": "ok"}}),
-            json!({"value": 1, "fields": {"task": "narrow", "status": "error"}}),
-        ];
-        let stack = parse_stack_spec("task").unwrap();
-        let rank_operation_rules =
-            parse_operation_rank_rules(&["failure:2=status=error".to_string()]).unwrap();
-        let options = OperationStackConfig::for_view(ProfileView::Operations)
-            .with_stack(stack)
-            .with_rank_operation_rules(rank_operation_rules)
-            .with_rank_mode(StackRankMode::RuleScore);
-        let profile =
-            build_profile_from_operation_records(&records, ProfileView::Operations, &options)
-                .unwrap();
-        let stacks = profile_to_stacks(&profile);
-        let ranking = summarize_ranked_counter(
-            &stacks,
-            &profile.rank_rules,
-            &profile.rank_operation_rules,
-            &profile.rank_operation_matches,
-            profile.rank_mode,
-            10,
-        );
-
-        assert_eq!(ranking.policy, "visible_operation_rule_score_then_width");
-        assert_eq!(ranking.top[0].stack, "task:narrow");
-        assert_eq!(ranking.top[0].rank_score, 2.0);
-        assert_eq!(ranking.top[0].rank_operation_features[0].matched_weight, 1);
-        assert_eq!(ranking.top[0].rank_operation_features[0].fraction, 1.0);
-        assert_eq!(ranking.top[1].stack, "task:wide");
-        assert_eq!(ranking.top[1].rank_score, 0.5);
-        assert_eq!(ranking.top[1].rank_operation_features[0].matched_weight, 1);
-        assert_eq!(ranking.top[1].rank_operation_features[0].fraction, 0.25);
     }
 
     #[test]
@@ -3997,54 +3647,29 @@ mod tests {
     }
 
     #[test]
-    fn json_report_exports_prompt_keys_when_prompt_indexes_repeat() {
-        let mut tool = shell_tool(3, 1, "ok", Vec::new());
-        tool.tool_name = "Bash".to_string();
-        tool.call_id = None;
-        let session = test_session(
-            "claude",
-            "review",
-            vec![
-                prompt(0, 1, "h0", "first prompt", "review"),
-                prompt(0, 2, "h1", "second prompt", "test"),
-            ],
-            vec![tool],
-            vec![llm(4, 0, "claude", "answer")],
-        );
-
-        let payload = session_to_json(&session, false);
-        let prompts = payload["prompts"].as_array().expect("prompts array");
-        assert_eq!(prompts[0]["prompt_key"], "0:h0");
-        assert_eq!(prompts[1]["prompt_key"], "0:h1");
-        assert_eq!(prompts[0]["prompt_index_status"], "duplicate_non_keyed");
-        assert_eq!(prompts[1]["prompt_index_status"], "duplicate_non_keyed");
-
-        let tool = &payload["tool_events"].as_array().expect("tool events")[0];
-        assert_eq!(tool["prompt_index"], 0);
-        assert_eq!(tool["prompt_key"], "0:h1");
-        assert_eq!(tool["prompt_tag"], "test");
-        assert_eq!(tool["prompt_index_status"], "duplicate_non_keyed");
-
-        let llm = &payload["llm_events"].as_array().expect("llm events")[0];
-        assert_eq!(llm["prompt_index"], 0);
-        assert_eq!(llm["prompt_key"], "0:h0");
-        assert_eq!(llm["prompt_tag"], "review");
-        assert_eq!(llm["prompt_index_status"], "duplicate_non_keyed");
-    }
-
-    #[test]
     fn pprof_writer_emits_gzip_profile() {
         use flate2::read::GzDecoder;
         use std::io::Read;
 
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("profile.pb.gz");
-        let projection = Profile::new("tokens", "tokens", "count");
-        let stacks = BTreeMap::from([(
-            "project:test;agent:codex;session:rustfix;prompt:review;op:llm;token:input".to_string(),
+        let mut projection = Profile::new("tokens", "tokens", "count");
+        projection.sample(
+            vec![
+                ("project".to_string(), "test".to_string()),
+                ("agent".to_string(), "codex".to_string()),
+                ("session".to_string(), "rustfix".to_string()),
+                ("prompt".to_string(), "review".to_string()),
+                ("op".to_string(), "llm".to_string()),
+                ("token".to_string(), "input".to_string()),
+            ],
             7,
-        )]);
-        write_pprof_projection(&projection, &stacks, &path, false).unwrap();
+            vec![
+                ("source_kind".to_string(), "llm".to_string()),
+                ("evidence_id".to_string(), "abc123".to_string()),
+            ],
+        );
+        write_pprof_projection(&projection, &path, false).unwrap();
 
         let bytes = fs::read(path).unwrap();
         let mut decoder = GzDecoder::new(&bytes[..]);
@@ -4053,6 +3678,79 @@ mod tests {
         let profile = PprofProfile::decode(&decoded[..]).unwrap();
         assert_eq!(profile.sample.len(), 1);
         assert_eq!(profile.sample[0].value, vec![7]);
+        let labels = profile.sample[0]
+            .label
+            .iter()
+            .map(|label| {
+                (
+                    profile.string_table[label.key as usize].as_str(),
+                    profile.string_table[label.str_value as usize].as_str(),
+                )
+            })
+            .collect::<BTreeSet<_>>();
+        assert!(labels.contains(&("view", "tokens")));
+        assert!(labels.contains(&("source_kind", "llm")));
+        assert!(labels.contains(&("evidence_id", "abc123")));
+    }
+
+    #[test]
+    fn product_pprof_keeps_reversible_source_evidence_labels() {
+        use flate2::read::GzDecoder;
+        use std::io::Read;
+
+        let session = test_session(
+            "codex",
+            "evidence",
+            vec![prompt(0, 1000, "prompt-hash", "inspect parser", "inspect")],
+            vec![read_tool(2000, 0, vec!["agent-session/src/parser.rs"])],
+            vec![llm(3000, 0, "gpt-5", "final")],
+        );
+        let profile = build_profile_with_options(
+            &[session],
+            "agentsight",
+            ProfileView::Operations,
+            &OperationStackConfig::for_view(ProfileView::Operations),
+        )
+        .unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("evidence.pb.gz");
+        write_pprof_projection(&profile, &path, true).unwrap();
+
+        let bytes = fs::read(path).unwrap();
+        let mut decoder = GzDecoder::new(&bytes[..]);
+        let mut decoded = Vec::new();
+        decoder.read_to_end(&mut decoded).unwrap();
+        let decoded = PprofProfile::decode(&decoded[..]).unwrap();
+        let label_sets = decoded
+            .sample
+            .iter()
+            .map(|sample| {
+                sample
+                    .label
+                    .iter()
+                    .map(|label| {
+                        (
+                            decoded.string_table[label.key as usize].as_str(),
+                            decoded.string_table[label.str_value as usize].as_str(),
+                        )
+                    })
+                    .collect::<BTreeSet<_>>()
+            })
+            .collect::<Vec<_>>();
+
+        assert!(label_sets.iter().all(|labels| {
+            labels.contains(&("source_session", "s1"))
+                && labels.contains(&("prompt_hash", "prompt-hash"))
+                && labels.iter().any(|(key, _)| *key == "timestamp_ms")
+        }));
+        assert!(label_sets.iter().any(|labels| {
+            labels.contains(&("source_kind", "tool")) && labels.contains(&("call_id", "call-read"))
+        }));
+        assert!(label_sets.iter().any(|labels| {
+            labels.contains(&("source_kind", "llm"))
+                && labels.contains(&("response_hash", "l0"))
+                && labels.contains(&("response_phase", "final_answer"))
+        }));
     }
 
     #[test]
@@ -4062,20 +3760,29 @@ mod tests {
 
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("difference.pb.gz");
-        let projection = Profile::new("operations", "operations", "count");
-        let candidate = BTreeMap::from([
-            ("task:checkout;action:retry;result:error".to_string(), 3),
-            ("task:checkout;action:finish;result:done".to_string(), 1),
-        ]);
-        let base = BTreeMap::from([
-            ("task:checkout;action:retry;result:error".to_string(), 1),
-            ("task:checkout;action:finish;result:done".to_string(), 4),
-        ]);
+        let mut candidate = Profile::new("operations", "operations", "count");
+        candidate.sample(
+            vec![
+                ("task".to_string(), "checkout".to_string()),
+                ("action".to_string(), "retry".to_string()),
+                ("result".to_string(), "error".to_string()),
+            ],
+            3,
+            vec![("evidence_id".to_string(), "c1".to_string())],
+        );
+        let mut base = Profile::new("operations", "operations", "count");
+        base.sample(
+            vec![
+                ("task".to_string(), "checkout".to_string()),
+                ("action".to_string(), "retry".to_string()),
+                ("result".to_string(), "error".to_string()),
+            ],
+            1,
+            vec![("evidence_id".to_string(), "b1".to_string())],
+        );
 
-        let difference =
-            write_pprof_difference(&projection, &candidate, &base, &path, true).unwrap();
+        let difference = write_pprof_difference(&candidate, &base, &path, true).unwrap();
         assert_eq!(difference["task:checkout;action:retry;result:error"], 2);
-        assert_eq!(difference["task:checkout;action:finish;result:done"], -3);
 
         let bytes = fs::read(path).unwrap();
         let mut decoder = GzDecoder::new(&bytes[..]);
@@ -4088,12 +3795,35 @@ mod tests {
             .map(|sample| sample.value[0])
             .collect::<Vec<_>>();
         values.sort_unstable();
-        assert_eq!(values, vec![-3, 2]);
+        assert_eq!(values, vec![-1, 3]);
         assert!(profile.sample.iter().all(|sample| {
             sample.label.iter().any(|label| {
                 profile.string_table[label.key as usize] == "comparison"
                     && profile.string_table[label.str_value as usize] == "candidate-minus-base"
             })
+        }));
+        let labeled_sides = profile
+            .sample
+            .iter()
+            .map(|sample| {
+                sample
+                    .label
+                    .iter()
+                    .map(|label| {
+                        (
+                            profile.string_table[label.key as usize].as_str(),
+                            profile.string_table[label.str_value as usize].as_str(),
+                        )
+                    })
+                    .collect::<BTreeSet<_>>()
+            })
+            .collect::<Vec<_>>();
+        assert!(labeled_sides.iter().any(|labels| {
+            labels.contains(&("comparison_side", "candidate"))
+                && labels.contains(&("evidence_id", "c1"))
+        }));
+        assert!(labeled_sides.iter().any(|labels| {
+            labels.contains(&("comparison_side", "base")) && labels.contains(&("evidence_id", "b1"))
         }));
     }
 
@@ -4104,11 +3834,20 @@ mod tests {
 
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("no-difference.pb.gz");
-        let projection = Profile::new("operations", "operations", "count");
-        let stacks = BTreeMap::from([("task:checkout;result:done".to_string(), 1)]);
+        let mut candidate = Profile::new("operations", "operations", "count");
+        candidate.sample(
+            vec![("task".to_string(), "checkout".to_string())],
+            1,
+            vec![("evidence_id".to_string(), "candidate".to_string())],
+        );
+        let mut base = Profile::new("operations", "operations", "count");
+        base.sample(
+            vec![("task".to_string(), "checkout".to_string())],
+            1,
+            vec![("evidence_id".to_string(), "base".to_string())],
+        );
 
-        let difference =
-            write_pprof_difference(&projection, &stacks, &stacks, &path, true).unwrap();
+        let difference = write_pprof_difference(&candidate, &base, &path, true).unwrap();
         assert!(difference.is_empty());
 
         let bytes = fs::read(path).unwrap();
@@ -4116,21 +3855,15 @@ mod tests {
         let mut decoded = Vec::new();
         decoder.read_to_end(&mut decoded).unwrap();
         let profile = PprofProfile::decode(&decoded[..]).unwrap();
-        assert!(profile.sample.is_empty());
+        assert_eq!(profile.sample.len(), 2);
+        assert_eq!(
+            profile
+                .sample
+                .iter()
+                .map(|sample| sample.value[0])
+                .sum::<i64>(),
+            0
+        );
         assert_eq!(profile.sample_type.len(), 1);
-    }
-
-    #[test]
-    fn svg_flamegraph_merges_common_prefixes() {
-        let stacks = BTreeMap::from([
-            ("project:test;agent:codex;prompt:debug".to_string(), 7_u64),
-            ("project:test;agent:codex;prompt:review".to_string(), 3_u64),
-        ]);
-        let svg = flamegraph_svg(&stacks, "test", "count", 1800);
-        assert!(svg.contains("prefix-merged flamegraph"));
-        assert!(svg.contains("project:test | 10 count"));
-        assert!(svg.contains("project:test ; agent:codex | 10 count"));
-        assert!(!svg.contains("project:test | 7 count"));
-        assert!(!svg.contains("project:test | 3 count"));
     }
 }

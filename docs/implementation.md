@@ -15,14 +15,14 @@ history is archived at
 
 | Path | Role |
 |---|---|
-| `agentpprof/src/main.rs` | CLI, profile-spec loading, source selection, mapping/filter/rank options, output routing |
-| `agentpprof/src/profile.rs` | operation records, operation-stack configuration, mappings, filters, folding, ranking, and stack induction |
+| `agentpprof/src/main.rs` | CLI, profile-spec loading, source selection, mapping/filter options, and the sole pprof output route |
+| `agentpprof/src/profile.rs` | operation records, operation-stack configuration, mappings, filters, folding, pprof encoding, and stack induction |
 | `agentpprof/src/session.rs` | local agent-session ingestion |
-| `agentpprof/src/standard_trace.rs` | Chrome/Perfetto Trace Event import and export through operation records |
+| `agentpprof/src/standard_trace.rs` | Chrome/Perfetto Trace Event input normalization through operation records |
 | `agentpprof/src/tagger.rs` | optional open-vocabulary and declared-label tagging support |
-| `agentpprof/tests/profile_spec_cli.rs` | CLI/profile-spec/mapping/filter/ranking/induction integration tests |
-| `agentpprof/tests/standard_trace_cli.rs` | trace import/export integration tests |
-| `agentpprof/backend/python/cluster_tagger.py` | optional Python tagging backend |
+| `agentpprof/tests/profile_spec_cli.rs` | pprof-only CLI/profile-spec/mapping/filter/induction integration tests |
+| `agentpprof/tests/standard_trace_cli.rs` | standard-trace input and alternative-output rejection tests |
+| `agentpprof/backend/python/` | archived clustering prototype; not a product backend or output path |
 | `agentpprof/examples/` | public fixture and usage material |
 | `script/hodoscope_representation_eval.py` | thin official-data adapter for the completed matched Hodoscope/flat/turn/recursive experiment; not a core AgentProf subsystem |
 | `script/hintbench_profile_localization_eval.py` | thin official-data adapter, real-AgentProf runner, baseline scorer, and result reporter for the completed HINTBench experiment; not a core AgentProf subsystem |
@@ -52,8 +52,8 @@ local Codex/Claude sessions, operation JSONL, or supported trace input
   -> field predicates
   -> declared or induced operation stack
   -> weighted folding
-  -> optional group ranking
-  -> pprof, folded, JSON, or SVG output
+  -> weighted semantic stack and evidence labels
+  -> one standard .pb or .pb.gz pprof
 ```
 
 The Rust inducer now constructs operation identities from cross-session action
@@ -101,7 +101,7 @@ duration.
 
 Implemented CLI capabilities include:
 
-- `--profile-spec` for repeatable source, view, mapping, filter, stack, ranking,
+- `--profile-spec` for repeatable source, view, mapping, filter, stack,
   tagging, and output choices;
 - repeated `--task-choice TAG=DESCRIPTION` with the LLM tagger for assigning a
   separate canonical task field while preserving the raw open-vocabulary tag;
@@ -112,9 +112,8 @@ Implemented CLI capabilities include:
   identity, with optional label-free reference operations from
   `--induce-reference-operation-file` and optional disjoint grouped calibration
   operations from `--induce-calibration-operation-file`;
-- `--rank-rule`, `--rank-op-rule`, and `--rank-mode` for JSON group ordering;
-- Chrome/Perfetto Trace Event import and export through operations;
-- pprof-compatible profiles plus folded-stack, JSON, and SVG renderings.
+- Chrome/Perfetto Trace Event import through operations;
+- exactly one standard pprof artifact per successful invocation.
 
 The exact CLI remains authoritative; use `cargo run --manifest-path
 agentpprof/Cargo.toml -- --help` before copying a command into a paper or
@@ -166,6 +165,10 @@ experiment.
 - Public benchmark outcome labels remain outside target-time construction and
   ranking unless a baseline explicitly uses them as an oracle upper bound.
 - Trace containers are normalized into operations before profiling.
+- AgentPProf accepts trace containers as inputs but never emits them as a
+  second artifact.
+- The only successful product output is one `.pb` or `.pb.gz` pprof. Existing
+  pprof-compatible tools provide visualization and interaction.
 - Automatic operation-stack induction requires exactly one nonempty `session`
   and `action` value per operation and returns an explicit error when its
   recurrence model cannot be learned.
@@ -175,8 +178,8 @@ experiment.
 - AgentSight evidence must first be converted into one of the supported inputs;
   the current CLI has no direct AgentSight-recording reader and does not claim
   verified trigger lineage.
-- All serialized views should represent the same folded weighted paths for the
-  same effective configuration.
+- The pprof must preserve the selected weighted paths and reversible source
+  evidence for the effective configuration.
 
 ## Known Scientific Gaps
 
@@ -229,8 +232,8 @@ configuration. In particular:
     as the evaluated profile identity and raises ordinary B-cubed F1 from
     0.4909 to 0.5671 relative to hidden frame IDs, but the fixed online
     constructor remains below recurrence at 0.6627. Adjacent repeated-frame
-    contraction is a diagnostic only; the Rust folded/pprof paths preserve
-    every frame.
+    contraction is a diagnostic only; the Rust pprof path preserves every
+    frame.
 13. the final causal exact-leaf evaluator applies 6,731 identity-preserving
     stays and improves exact-visible-path B-cubed F1 from 0.5671 to 0.6499, but
     does not clear recurrence at 0.6627; its paired adoption interval crosses

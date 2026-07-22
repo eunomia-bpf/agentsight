@@ -1,617 +1,156 @@
-# agentpprof: profiling AI agents with operation stacks
+# AgentPProf: profiling AI-agent work with standard pprof
 
-End of month, the bill shows the agent spent $3000. What types of work consumed
-that budget? How much went to code review, how much to debugging, how much to
-documentation? This question seems simple, but none of the existing agent
-observability tools directly expose it as a query-time profiling problem.
+AgentPProf is a no-sudo offline profiler for Codex and Claude Code histories,
+portable agent traces, Chrome/Perfetto traces, and normalized operation JSONL.
+It turns agent activity into weighted semantic operation stacks.
 
-`agentpprof` is a profiling tool built around two abstractions: operations and
-operation stacks. An operation is a weighted record with fields; a prompt, LLM
-call, tool call, process event, file effect, network event, or imported
-benchmark action is just one operation shape. An operation stack is a
-user-chosen list of fields used to recursively fold the same operations at
-different task, phase, action, session, or boundary depths. SVG flamegraphs are
-one output format; the same stack query can also produce pprof, folded-stack,
-or JSON profiles.
+## Hard Product Boundary
 
-For local history, `agentpprof` currently supports Codex and Claude Code trace
-files through the `agent-session` parser. For public agent benchmarks or other
-tools, it reads normalized operation JSONL through `--operation-file`.
+Every successful run writes exactly one standard `.pb` or `.pb.gz` pprof
+profile. AgentPProf has no custom frontend and no folded-stack, SVG, PNG, HTML,
+JSON, dashboard, or trace-export product path. Existing pprof-compatible tools
+provide flamegraphs, search, focus, comparison, and drilldown.
 
-## Limitations of existing tools
-
-LLM observability platforms like LangSmith, Langfuse, and Phoenix can show token
-counts and latency for each call. They are strong single-trace debugging tools:
-timeline views help you locate the failing span at 14:03, span trees show call
-hierarchy, and waterfall charts reveal parallelism. Their default hierarchy,
-however, is usually the recorded trace/session/span tree. For profiling
-questions such as "which task family consumed the budget" or "which semantic
-boundary should be inspected first," that fixed tree is often the wrong
-aggregation boundary.
-
-Datadog and Laminar are starting to move in the right direction with semantic
-classification. Datadog uses topic clustering to group user messages, Laminar
-uses Signals to extract structured events from traces. Those mechanisms are
-compatible with operation fields, but `agentpprof` makes the profiling step
-explicit: derive fields with mapping/tagging, choose a query subset, and fold
-the operations by the stack fields that answer the current question.
-
-CPU profilers solved a similar aggregation problem long ago. Flamegraphs
-compress millions of function calls into one chart, width representing time
-share. The stack indicates context, and repeated calls to the same function
-merge into wider bars. This works because function names are **deterministic**:
-the same code path produces the same stack, and identical stacks can be directly
-merged.
-
-Agent traces break this assumption. Prompts are natural language: non-
-deterministic, variable-length, multilingual, and often conversational. "Fix the
-bug" and "修一下这个 error" express the same intent but share no common string.
-If you use raw prompt text as frame labels, the flamegraph becomes too wide to
-read, with each prompt as an isolated bar, losing the point of aggregation. And
-raw prompts often contain sensitive information, making them unsuitable for
-sharing.
-
-## Operation-stack profiles
-
-`agentpprof` restores aggregation by deriving stable operation fields before
-folding. Semantic tagging is one field-derivation mechanism for free-form local
-prompts; mapping rules and imported dataset labels are the same kind of input to
-the stack query. Once an operation has fields such as `task=debug`,
-`phase=inspect`, `action=click`, or `repeat_signal=loop-like`, repeated
-activities merge under the selected operation stack.
-
-The value of stack profiles is not just aggregation but also **stack-based
-context linking**. Traditional CPU flamegraph stacks are function call chains:
-`main → parse → tokenize` means tokenize was called by parse, which was called
-by main. Operation stacks are agent behavior projections:
-`prompt:debug → call:llm/analysis → tool:bash → file:src/main.rs` means this
-file modification is counted under a debug prompt, an LLM analysis step, and a
-shell tool action. The stack is a chosen projection over operation fields, not a
-new prompt/session/tool object hierarchy.
-
-| | Traditional CPU Flamegraph | Operation-Stack Profile |
-| --- | --- | --- |
-| **Stack meaning** | Function call chain | selected operation fields |
-| **Aggregation** | Same function name merges | Same operation stack merges |
-| **Width meaning** | CPU time share | token / time / operation count share |
-| **Question answered** | Where does the program spend CPU | Where does the agent spend budget by category |
-
-This projection lets you drill down from any layer: from a file being modified,
-inspect which task, phase, tool, or status field it folded under; or from a
-task category, see what LLM calls, tool executions, and system effects share
-that stack prefix.
-
-`agentpprof` exposes several projections over the same data, each answering a
-different question:
-
-| View | Width means | Primary question |
-| --- | ---: | --- |
-| `operations` | operation count | Which recursive operation stacks dominate a local or external trajectory set? |
-| `tokens` | reported token count (input/output/cache) | Which prompts consumed the most model budget? |
-| `time` | duration in seconds | How long did each prompt/activity take? |
-| `files` | file/path effect count | Which prompts touched which parts of the repository? |
-| `network` | network/domain effect count | Which prompts contacted which domains? |
-
-Start with `operations` for generic local or external trajectory analysis,
-`tokens` to find cost hotspots, `time` to trace where wall-clock time went, and
-`files` and `network` for security audits.
-
-## Example Flamegraphs
-
-The examples below were generated from AgentSight's own development traces (Claude Code). They demonstrate what insights each view provides.
-
-### Tokens View
-
-**Question:** Which activities consumed the most model budget?
-
-![Tokens flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-tokens.svg)
-
-The token distribution shows that code review (`prompt:review`) dominated the model budget, followed by git operations (`prompt:git`), code work (`prompt:code`), editing (`prompt:edit`), and debugging (`prompt:debug`). Through the stack, you can trace which LLM calls each prompt category triggered: `call:llm/usage` for token statistics events, `call:llm/code` and `call:llm/test` for code-related responses, `call:llm/tool` for tool calls, and `call:llm/edit` for modification responses.
-
-### Time View
-
-**Question:** Where did wall-clock time go?
-
-![Time flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-time.svg)
-
-Wall-clock time distribution follows a similar pattern to token consumption: review (`prompt:review`) leads, followed by git, edit, docs, and code prompts. Continuation prompts (`prompt:continue`) appear frequently, reflecting a workflow pattern where complex tasks required multiple follow-up exchanges. The `prompt:inspect` category captures quick look-at-this requests that are common in iterative development.
-
-### Files View
-
-**Question:** Which parts of the codebase were touched and how?
-
-![Files flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-files.svg)
-
-File access patterns show heavy activity in `collector/src/` (the Rust codebase) and `collector/Cargo.toml`, consistent with development work. External paths (`external/tmp`, `external/home`, `external/codex`) appear frequently, reflecting tool invocations that touch temporary files, home directory configs, and Codex session data. The flamegraph distinguishes between read and write effects, revealing the balance of inspection versus modification across both project and external paths.
-
-### Network View
-
-**Question:** Which external services were contacted?
-
-![Network flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-network.svg)
-
-Network activity is sparse relative to file operations, confirming that most development work occurred locally. The contacted domains include `anthropic.com` for model inference, `crates.io` for Rust dependencies, `github.com` for version control, and various localhost ports for local development servers. Process chains visible in the upper frames show which tools initiated network requests, enabling attribution of network activity to specific agent actions.
-
-See `docs/flamegraph-example/agentsight.sh` for the generation script with tag rules.
-
-## Tagging
-
-Assigning stable semantic tags to natural language prompts is not trivial. Prompts
-in a single project may mix languages ("fix the 编译 error"), range from single
-characters ("嗯", "ok") to long paragraphs, and include many fragments that make
-no sense in isolation ("continue", "ok", system-generated context restoration
-messages). To address these challenges, `agentpprof` provides a pluggable tagger
-framework with multiple backends:
-
-| Backend | Approach | Best for |
-| --- | --- | --- |
-| Regex + Agent iteration | Pattern matching, rules iteratively refined by AI agent | Production, CI, reproducible analysis |
-| LLM tagger | Local LLM inference via llama.cpp | Complex prompts, initial rule discovery |
-| Python clustering | TF-IDF + K-Means unsupervised clustering | Exploratory analysis, finding natural groupings |
-
-### Regex Tagger and Agent Iteration Workflow
-
-The regex tagger is the production default, but the workflow differs from
-traditional regular expressions. **You don't need to hand-write all rules.**
-The correct workflow is to have an AI agent observe actual prompt samples and
-iteratively refine rules until the unmatched rate drops below 5%.
-
-AgentSight provides the `agentpprof-flamegraph` skill to guide agents through
-this iteration:
-
-1. Run `agentpprof`, observe the unmatched rate and sample prompts
-2. Propose new `--tag-rule` rules based on samples
-3. Re-run and measure coverage
-4. Repeat until unmatched < 5% and distribution is reasonable (10-20 categories,
-   no single category > 50%)
-
-This iteration typically takes 5-10 rounds, 1-2 minutes each. The final rule
-set is deterministic and reproducible, suitable for version control and CI use.
-
-By default there are no built-in rules, and all prompts are marked `unmatched`.
-This is an intentional design choice: generic rules are unlikely to match your
-project's actual prompt distribution, and blindly applying them produces
-misleading aggregation.
-
-Rule format is `KIND:TAG=REGEX`:
-
-```bash
-agentpprof -o tokens.svg \
-  --tagger regex \
-  --tag-rule prompt:review='(?i)review|diff|regression' \
-  --tag-rule prompt:test='(?i)cargo test|pytest|unit test' \
-  --tag-rule prompt:debug='(?i)fix|error|bug|broken'
-```
-
-`KIND` may be `prompt`, `llm`, or `all`. `TAG` must be a lowercase English word
-between 3 and 12 letters. Rules are evaluated in command-line order; first
-match wins.
-
-For quick testing, use `--preset` to enable built-in demo rules:
-
-```bash
-agentpprof -o tokens.svg --tagger regex --preset
-```
-
-### LLM Tagger
-
-For complex prompts or initial rule discovery, use a local LLM to generate tags.
-Run a llama.cpp-compatible server:
-
-```bash
-llama-server -m /path/to/model.gguf --port 8080
-agentpprof -o tokens.svg --tagger llm --llama-url http://127.0.0.1:8080
-```
-
-LLM tags are cached in `$XDG_CACHE_HOME/agentpprof/tags.json` by default. The
-LLM tagger output can serve as a reference for writing regex rules: observe
-what categories the LLM produces, then write a regex rule for each. It is
-field-derivation assistance, not an automatic boundary detector.
-
-### Python Clustering Backend (Experimental)
-
-For exploratory analysis, use the Python clustering backend to discover natural
-groupings in prompts. This backend uses TF-IDF vectorization and K-Means
-clustering, requiring no predefined rules:
-
-```bash
-# Export prompts
-agentpprof --project-root . --format json -o prompts.json
-
-# Cluster and generate tag cache
-python agentpprof/backend/python/cluster_tagger.py \
-  --input prompts.json --output tags.json --show-info
-
-# Use the tag cache
-agentpprof --project-root . --tag-cache tags.json -o flamegraph.svg
-```
-
-The clustering backend automatically selects the optimal cluster count (5-25)
-and generates tag names from each cluster's keywords. This is useful for
-understanding "what natural categories exist in my prompt distribution" and
-can serve as a starting point for writing regex rules. Clustering is an
-exploratory way to propose operation-field candidates; make them reproducible
-through rules, profile specs, or imported dataset labels before using them in a
-paper experiment.
+The command prints a small JSON status record to stdout, but that status is not
+a second profile or visualization artifact. Standard and portable trace formats
+are inputs only.
 
 ## Install
 
-After release, install via `cargo install agentpprof`, or download prebuilt
-binaries from AgentSight GitHub release artifacts. The release pipeline builds
-and smoke-tests both `agentsight` and `agentpprof` from the same release tag.
-
-From a source checkout:
-
 ```bash
-cargo run --manifest-path agentpprof/Cargo.toml -- --version
-cargo run --manifest-path agentpprof/Cargo.toml -- -o agent.pb.gz
+cargo install --path agentpprof --locked --force
 ```
 
-## First profile
-
-Generate a token profile for the current repository:
+## First Profile
 
 ```bash
 agentpprof --project-root . --view tokens -o tokens.pb.gz
-```
-
-Open the pprof profile with standard Go tooling:
-
-```bash
 go tool pprof -top tokens.pb.gz
+go tool pprof -tags tokens.pb.gz
 go tool pprof -http=:0 tokens.pb.gz
 ```
 
-Generate a browser-openable flamegraph instead:
-
-```bash
-agentpprof --project-root . --view tokens -o tokens.svg
-```
-
-The extension chooses the output format when `--format` is not provided:
-
-```bash
-agentpprof -o tokens.pb.gz  --view tokens   # pprof protobuf, gzip-compressed
-agentpprof -o time.folded   --view time     # folded stack text
-agentpprof -o files.svg     --view files    # standalone SVG flamegraph
-agentpprof -o network.json  --view network  # redacted JSON summary and stacks
-```
-
-## What data does it read?
-
-`agentpprof` reads agent-native local trace history. Today that means Codex
-and Claude Code JSONL files parsed through the `agent-session` crate. It does
-not load eBPF probes, require root, or record a live process. It is the offline
-profiling side of AgentSight: use `agentsight` to observe live system behavior,
-and use `agentpprof` to aggregate already-recorded agent traces.
-
-By default, it scans recent local traces that match `--project-root`:
-
-```bash
-agentpprof --project-root /path/to/repo --view tokens -o tokens.svg
-```
-
-For repeatable analysis, pass explicit trace files:
+Use an explicit public fixture when private local histories must not be read:
 
 ```bash
 agentpprof \
-  --project-root /path/to/repo \
-  --session-file ~/.codex/sessions/.../session.jsonl \
-  --session-file ~/.claude/projects/.../session.jsonl \
-  --view tokens \
-  -o tokens.folded
-```
-
-You can also export parsed local sessions into a portable agent-session trace,
-then import that trace later without the native Codex/Claude files:
-
-```bash
-agentpprof \
-  --session-file ~/.codex/sessions/.../session.jsonl \
-  --export-trace agent-session-trace.json
-
-agentpprof \
-  --trace-file agent-session-trace.json \
+  --project-root . \
+  --project-name agentsight-public-fixture \
+  --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
+  --tagger regex \
+  --no-cache \
   --view operations \
-  --stack 'project,agent,op,phase,tool,status' \
-  -o trace.folded
+  -o fixture.pb.gz
 ```
 
-The trace schema is `agentsight.agent-session.trace.v1`. It is an exchange
-format for parsed sessions, not a profiler abstraction. The `agent-session`
-crate owns the schema and exposes `AgentTrace` parse/serialize helpers;
-`agentpprof` imports the trace and then projects it into operations and
-operation stacks. `--export-trace` accepts source selectors such as `--agent`
-and `--session-id`, but rejects `--session-tag` and `--prompt-tag` because
-those tags are profiler annotations. Exported traces normalize filesystem and
-tool-command fields: session log paths become stable
-`trace/<agent>/<hash>.jsonl` names, `cwd` is reduced to `repo`, file paths are
-merged into path groups, and tool commands keep the extracted command name
-rather than the full raw shell text. Prompt and LLM previews remain parsed
-session summaries; redact or omit them upstream when sharing sensitive content.
-To feed the same data through the external-dataset path, convert it to
-operation JSONL:
+## Views
+
+`--view` selects the measured quantity; `--stack` independently selects its
+semantic hierarchy.
+
+| View | Sample weight |
+|---|---|
+| `operations` | observed operation count |
+| `tokens` | reported input, output, cache, or reasoning tokens |
+| `files` | file/path effects |
+| `network` | domain/network effects |
+| `time` | elapsed time inferred from source timestamps |
+
+Examples:
 
 ```bash
-python3 script/agent_trace_convert.py to-operations \
-  --trace-file agent-session-trace.json \
-  --project-name my-project \
-  --out operations.jsonl
-
-agentpprof --operation-file operations.jsonl --view operations -o operations.folded
+agentpprof --view operations -o operations.pb.gz
+agentpprof --view tokens     -o tokens.pb.gz
+agentpprof --view files      -o files.pb.gz
+agentpprof --view network    -o network.pb.gz
+agentpprof --view time       -o time.pb.gz
 ```
 
-The converter exits nonzero if a trace produces no operations. It uses
-event-level prompt/tool/LLM rows when present and falls back to session-level
-tool and token summaries.
+These are semantic profiles, not CPU profiles. Width represents the selected
+agent-work measure.
 
-When another viewer or tool expects a standard trace container, export Chrome /
-Perfetto Trace Event JSON and import it back to operations before profiling:
+## Task-Semantic Stacks
+
+The default stack keeps task structure in the main hierarchy and stores system
+details as evidence labels. A useful task-oriented shape is:
+
+```text
+task -> subtask -> phase/strategy -> semantic action -> object -> result -> outcome
+```
+
+Agent, model, session, tool type, command, path, status, source identifier, call
+identifier, and timestamp remain available for filtering and evidence
+drilldown. They should not replace task structure as the main hierarchy.
+
+For normalized operation input, choose explicit fields:
 
 ```bash
 agentpprof \
-  --session-file ~/.codex/sessions/.../session.jsonl \
-  --export-standard-trace standard-trace.json
-
-agentpprof \
-  --standard-trace-file standard-trace.json \
+  --operation-file operations.jsonl \
   --view operations \
-  --stack 'project,agent,op,phase,tool,status' \
-  -o standard.folded
+  --stack 'task,subtask,phase,action,object,result,outcome' \
+  -o operations.pb.gz
 ```
 
-The Python converter exposes the same bridge when the starting point is an
-already-exported `agentsight.agent-session.trace.v1` file and the desired
-project format is operation JSONL:
-
-```bash
-python3 script/agent_trace_convert.py export-standard \
-  --format chrome \
-  --trace-file agent-session-trace.json \
-  --project-name my-project \
-  --out standard-trace.json
-
-python3 script/agent_trace_convert.py import-standard \
-  --format chrome \
-  --trace-file standard-trace.json \
-  --project-name my-project \
-  --out standard-operations.jsonl
-
-agentpprof --operation-file standard-operations.jsonl --view operations -o standard.folded
-```
-
-The standard trace file is an exchange container, not a third profiler
-abstraction. Imported events still become operation JSONL, and recursive
-folding is controlled by `agentpprof --stack` and `--op-map`.
-
-To reproduce the complete exchange bridge from a public Codex fixture, run:
-
-```bash
-python3 script/agent_trace_exchange_eval.py
-```
-
-The script exports `agentsight.agent-session.trace.v1`, converts it to
-operation JSONL, profiles direct trace import and converted operation import,
-and fails if the folded outputs differ.
-
-Useful selectors:
-
-```bash
-agentpprof -o tokens.svg --agent codex
-agentpprof -o tokens.svg --session-id 019ec5
-agentpprof -o tokens.svg --session-tag debug
-agentpprof -o tokens.svg --prompt-tag review
-```
-
-## The stack model
-
-The operation stack is a projection, not a literal function call stack.
-Operations are the only profiled entities: a prompt, inferred task, LLM
-call, tool call, process, path, or domain is just an operation at a different
-granularity. `--view` chooses which operations are sampled and how they are
-weighted. `--op-map` derives reusable operation fields, and `--stack` chooses
-which frames form the operation stack. A stack frame can come directly from an
-operation field or from the first matching `--stack-rule` for that frame, which
-lets one operation sequence fold to arbitrary task/subtask/phase depths.
-
-For third-party traces or benchmark datasets, `--operation-file` accepts
-normalized operation JSONL directly. Each line is one operation with a numeric
-`value` and a `fields` object. This bypasses Codex/Claude session discovery but
-uses the same projection path:
-
-```bash
-agentpprof -o external.folded --view operations \
-  --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
-  --stack 'project,agent,dataset,task,session,phase,op,action,target,status'
-```
-
-For example, this derives task and phase as ordinary operation fields, then
-folds several prompt/tool events through those frames without making prompt a
-special boundary:
-
-```bash
-agentpprof -o files.folded --view files \
-  --stack 'project,agent,task,phase,op,tool,path,status' \
-  --op-map-file project-op-map.txt \
-  --op-map 'task:verify=(effect=test|cmd=cargo|path=tests)' \
-  --op-map 'task:explore=(effect=read|tool=read)' \
-  --op-map 'phase:inspect=(effect=read)' \
-  --op-map 'phase:execute=(effect=test)' \
-  --stack-rule 'path:tests=(path=tests)'
-```
-
-`--op-map FIELD:LABEL=REGEX` and `--stack-rule FRAME:LABEL=REGEX` both match a
-`key=value` string assembled from operation fields such as `prompt`,
-`prompt_preview`, `op`, `tool`, `category`, `command`, `cmd`, `process`,
-`effect`, `status`, `path`, `domain`, `llm`, `llm_preview`, `model`, and
-`token`, plus any field supplied by `--operation-file`. `--op-map` runs first
-and rewrites operation fields in order, so later mappings can match fields
-derived by earlier mappings; `--op-map-file` reads the same rules from a text
-file, one per line, ignoring blank lines and `#` comments. Inline `--op-map`
-rules run before file rules, so the CLI can override shared defaults.
-`--where FIELD=REGEX` and `--where FIELD!=REGEX` run after `--op-map` and
-before stack construction; multiple predicates are ANDed. `--stack-rule` is a
-frame-local override during stack construction. `--rank-rule LABEL:WEIGHT=REGEX`
-orders JSON operation-stack groups after folding by visible stack text.
-`--rank-op-rule LABEL:WEIGHT=REGEX` matches visible `field=value` operation
-tokens after mapping/filtering and aggregates matched operation weight inside
-each folded group. Default stacks use `phase`, but users can add or remove any
-field or stack frame.
-
-For example, this derives a reusable task field, selects only that query subset,
-then folds it at an arbitrary depth:
-
-```bash
-agentpprof -o looping.json --format json --view operations \
-  --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl \
-  --op-map 'task_family:looping=(analysis_task=agentreward_looping)' \
-  --where 'task_family=looping' \
-  --stack 'task_family,dataset,query_family,environment,phase,action,repeat_signal,status' \
-  --rank-mode rule-score \
-  --rank-rule 'loop-risk:4=repeat_signal:loop-like|status:failure' \
-  --rank-op-rule 'loop-density:5=repeat_signal=loop-like'
-```
-
-For labeled external traces, `script/operation_map_infer.py` can derive a
-reusable mapping file from observed `dataset`, `tool`, `task`, and `action`
-labels:
-
-```bash
-python3 script/operation_map_infer.py \
-  --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
-  --out op-map.txt \
-  --json-out op-map.json
-
-agentpprof -o external.folded --view operations \
-  --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
-  --op-map-file op-map.txt \
-  --stack 'project,dataset,task,phase,op,tool,action,status'
-```
-
-For repeatable external-trajectory experiments, bundle the same knobs in a JSON
-profile spec:
+Each JSONL row is one weighted operation:
 
 ```json
-{
-  "output": "agentnet-diagnostic.folded",
-  "format": "folded",
-  "view": "operations",
-  "project_name": "external-agent-traces",
-  "operation_files": ["../external-agent-trace-agentnet-r291/agentnet-operations.jsonl"],
-  "op_map_files": ["../external-agent-trace-agentnet-r291/agentnet-op-map.txt"],
-  "where_rules": ["dataset=agentnet"],
-  "rank_rules": ["step-risk:2=status:failure|repeat_signal:loop-like"],
-  "rank_op_rules": ["failure-density:2=status=failure"],
-  "rank_mode": "rule-score",
-  "stack": "project,dataset,benchmark,environment,task,phase,op,tool,action,status,step_correct,step_redundant,repeat_signal"
-}
+{"value":1,"fields":{"task":"write paper","subtask":"write abstract","action":"edit","object":"main.tex","result":"completed"}}
 ```
 
-Run it with:
+`--op-map`, `--op-map-file`, and `--where` derive and select visible operation
+fields before stack construction. `--stack-rule` can override one selected
+frame. A JSON `--profile-spec` can record the same input and configuration, but
+its output must still be one `.pb` or `.pb.gz` pprof.
+
+## Supported Inputs
+
+- native Codex and Claude Code session JSONL;
+- `--session-file` for explicit native files;
+- `--trace-file` for the portable `agentsight.agent-session.trace.v1` wrapper;
+- `--standard-trace-file` for Chrome/Perfetto Trace Event JSON;
+- `--operation-file` for normalized operation JSONL.
+
+All input adapters normalize records into operations before profiling. They do
+not create additional profiler abstractions or outputs.
+
+## Differential Profile
+
+For two executions of the same task, write one signed candidate-minus-base
+pprof:
 
 ```bash
-agentpprof --profile-spec docs/visexp/out/profile-spec-r293/agentnet-diagnostic-spec.json
+agentpprof \
+  --operation-file bad-trace.jsonl \
+  --diff-base-operation-file good-trace.jsonl \
+  --view tokens \
+  --stack 'task,subtask,phase,action,object,result,outcome' \
+  -o bad-minus-good.pb.gz
 ```
 
-Paths inside a spec are resolved relative to the spec file. Specs may carry
-`operation_files`, `session_files`, `trace_files`, or `standard_trace_files`
-so the input source is replayed with the same operation-stack query. These
-input source families are mutually exclusive after spec and CLI values are
-merged, which prevents an unused source from silently appearing in a replay
-spec. Scalar CLI flags such as `-o`, `--view`, `--format`, and `--stack`
-override spec values; CLI `--op-map` and `--op-map-file` entries are evaluated
-before spec defaults.
-When CLI `--where` is present, it replaces spec `where_rules`; otherwise the
-spec predicates are used. CLI `--rank-rule` and `--rank-op-rule` entries are
-evaluated before spec `rank_rules` and `rank_op_rules`. Both rule types use
-`LABEL:WEIGHT=REGEX`: `rank_rules` match folded stack text, while
-`rank_op_rules` match individual mapped operation `field=value` tokens and
-score each stack by matched-operation density. They do not affect pprof,
-folded, or SVG output. The default `rank_mode` is `width-boost`, which keeps
-width as the main signal. `rule-score` ranks by matched visible rules first and
-uses width as a tie-breaker. For local-session inputs, a spec can also carry
-`tagger`, `preset`, and `tag_rules`; these fields derive prompt/session tags
-before operation-stack construction just like CLI tagging flags. For standard
-trace imports, `include_standard_trace_args` mirrors
-`--include-standard-trace-args`. A profile spec is only a reproducibility
-wrapper around operations, input selection, field derivation, predicates, rank
-policies, and operation stacks. It is not a third profiler abstraction.
+Candidate samples are positive and base samples are negative. Each raw sample
+retains `comparison_side` and source-evidence labels, so a pprof consumer can
+focus a side or recover the corresponding source record.
 
-The `tokens` view uses model budget as the width:
+## Source Evidence And Privacy
 
-```text
-project:agentsight;agent:claude;session:profile;prompt:debug;phase:debug;op:llm;call:llm/debug;model:claude-opus-4-6;token:input 4200
-project:agentsight;agent:claude;session:profile;prompt:debug;phase:debug;op:llm;call:llm/debug;model:claude-opus-4-6;token:output 980
-project:agentsight;agent:claude;session:profile;prompt:debug;phase:debug;op:llm;call:llm/debug;model:claude-opus-4-6;token:cache 150000
-```
+Profiles preserve semantic frames plus source kind, source session, evidence or
+call identifier, response phase, outcome, and timestamp labels when available.
+Raw prompts and model responses are not required as stack labels. Paths outside
+the selected project root are grouped into stable external buckets.
 
-The `time` view uses wall-clock duration (seconds) as the width:
+Local histories may still be sensitive. Prefer explicit sanitized inputs for
+public artifacts and inspect labels with `go tool pprof -tags` before sharing.
 
-```text
-project:agentsight;agent:claude;session:profile;prompt:debug;phase:debug;op:llm 45
-project:agentsight;agent:claude;session:profile;prompt:debug;phase:test;op:tool 12
-project:agentsight;agent:claude;session:profile;prompt:debug;op:prompt 2
-```
-
-The `files` view makes repository areas the main branch:
-
-```text
-project:agentsight;agent:codex;session:release;prompt:docs;phase:write;op:tool;tool:apply_patch;path:docs/flamegraph;effect:write;status:ok 1
-```
-
-The `network` view centers domains:
-
-```text
-project:agentsight;agent:codex;session:release;prompt:publish;phase:network;op:tool;tool:exec_command;process:cargo;domain:crates.io;status:ok 1
-```
-
-Choose the view based on your question: tokens for cost analysis, time for
-performance analysis, files for impact assessment, network for security audits.
-
-## Privacy and redaction
-
-Local agent histories can contain prompts, tool outputs, paths, commands,
-repository names, and model responses. `agentpprof` is conservative by default:
-
-- SVG, pprof, and folded outputs contain stack labels and weights, not raw
-  prompts or model responses.
-- JSON output redacts previews unless `--include-previews` is set.
-- Absolute paths outside the selected project root are grouped into stable
-  buckets such as `external/home`, `external/tmp`, `external/codex`, and
-  `external/claude`.
-- Private-looking domains are collapsed instead of exposing user-specific
-  hostnames.
-
-Use explicit `--session-file` inputs when you need repeatability. Use
-`--include-previews` only for private debugging or already-sanitized traces.
-
-## Using agentpprof with AgentSight
-
-`agentsight` provides live visibility (process trees, file effects, network
-destinations), while `agentpprof` provides aggregate analysis (cost hotspots,
-time distribution). A typical workflow is to record with `agentsight`, then
-analyze with `agentpprof`:
+## Development
 
 ```bash
-sudo agentsight record -- claude
-agentsight report
-agentpprof --project-root . --view tokens -o tokens.svg
-agentpprof --project-root . --view time -o time.svg
-agentpprof --project-root . --view files -o files.svg
+cargo test --manifest-path agent-session/Cargo.toml
+cargo test --manifest-path agentpprof/Cargo.toml
 ```
 
-## Troubleshooting
+The canonical CLI reference is:
 
-If no traces are found, pass explicit `--session-file` paths and confirm the
-trace `cwd` matches `--project-root`.
-
-If labels are too generic, add a few `--tag-rule` entries for the project. Do
-not try to make every prompt unique. Good tags preserve useful semantic
-diversity while merging meaningless long-tail fragments.
-
-If pprof output opens but looks unfamiliar, remember that the sample unit is
-not CPU time. Use `go tool pprof -top` to inspect the widest semantic frames,
-then generate SVG or folded output when you need the full stack shape.
-
-If a public artifact might contain sensitive information, prefer SVG, folded,
-or pprof output, and do not pass `--include-previews`.
+```bash
+cargo run --manifest-path agentpprof/Cargo.toml -- --help
+```

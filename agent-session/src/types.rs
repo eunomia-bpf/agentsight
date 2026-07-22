@@ -54,6 +54,9 @@ pub struct UserPrompt {
     pub preview: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub tag: String,
+    /// Source-visible semantic responsibility path after applying this prompt.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub task_path: Vec<String>,
 }
 
 impl UserPrompt {
@@ -76,6 +79,9 @@ pub struct ToolEvent {
     pub path_groups: Vec<String>,
     pub domains: Vec<String>,
     pub call_id: Option<String>,
+    /// Source-visible semantic responsibility path active at this operation.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub task_path: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -91,6 +97,13 @@ pub struct LlmResponse {
     pub total_tokens: u64,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub tag: String,
+    /// Source-native response lifecycle when the agent records one explicitly.
+    /// Examples are `commentary`, `final_answer`, and `assistant_message`.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub response_phase: String,
+    /// Source-visible semantic responsibility path active at this response.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub task_path: Vec<String>,
 }
 
 impl LlmResponse {
@@ -165,12 +178,9 @@ impl AgentTrace {
         }
     }
 
-    /// Build an export trace with host-local filesystem and tool-command fields
-    /// normalized.
-    ///
-    /// This is the constructor used by `agentpprof --export-trace`. Parsing a
-    /// trace with `from_json_str` preserves the input rather than applying this
-    /// normalization a second time.
+    /// Build a portable trace with host-local filesystem and tool-command
+    /// fields normalized. Parsing a trace with `from_json_str` preserves the
+    /// input rather than applying this normalization a second time.
     pub fn portable(sessions: Vec<AgentSession>) -> Self {
         Self {
             schema: AGENT_TRACE_SCHEMA.to_string(),
@@ -506,6 +516,7 @@ mod tests {
             path_groups: Vec::new(),
             domains: Vec::new(),
             call_id: None,
+            task_path: Vec::new(),
         });
 
         let payload = AgentTrace::new(vec![session]).to_pretty_json().unwrap();
@@ -552,6 +563,7 @@ mod tests {
             ],
             domains: Vec::new(),
             call_id: None,
+            task_path: Vec::new(),
         });
 
         let payload = AgentTrace::portable(vec![session])

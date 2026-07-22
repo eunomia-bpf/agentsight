@@ -215,6 +215,106 @@ pub fn codex_exec_prompt(command: &str) -> Option<String> {
 // Internal parsing implementation
 // ---------------------------------------------------------------------------
 
+#[derive(Default)]
+struct SemanticTaskStack {
+    root: Option<String>,
+    active_plan: Option<String>,
+}
+
+impl SemanticTaskStack {
+    fn observe_user(&mut self, text: &str) {
+        let label = semantic_task_label(text);
+        if self.root.is_some() && is_continuation_prompt(&label) {
+            return;
+        }
+        self.root = Some(label);
+        self.active_plan = None;
+    }
+
+    fn observe_plan(&mut self, input: &Value) {
+        let active = input
+            .get("plan")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(|item| {
+                (item.get("status").and_then(Value::as_str) == Some("in_progress"))
+                    .then(|| item.get("step").and_then(Value::as_str))
+                    .flatten()
+                    .map(semantic_task_label)
+            })
+            .collect::<Vec<_>>();
+        self.active_plan = match active.as_slice() {
+            [] => None,
+            [only] => Some(only.clone()),
+            many => self
+                .active_plan
+                .as_ref()
+                .filter(|current| many.contains(current))
+                .cloned()
+                .or_else(|| many.first().cloned()),
+        };
+    }
+
+    fn path(&self) -> Vec<String> {
+        self.root
+            .iter()
+            .chain(self.active_plan.iter())
+            .cloned()
+            .collect()
+    }
+
+    fn path_for_tool(&self, name: &str, input: &Value) -> Vec<String> {
+        let mut path = self.path();
+        if name == "spawn_agent"
+            && let Some(label) = input
+                .get("task_name")
+                .or_else(|| input.get("message"))
+                .and_then(Value::as_str)
+        {
+            path.push(semantic_task_label(label));
+        }
+        path
+    }
+}
+
+pub fn semantic_task_label(text: &str) -> String {
+    let mut selected = text.trim();
+    if let Some(start) = selected.rfind("## My request for Codex:") {
+        selected = &selected[start + "## My request for Codex:".len()..];
+    } else if let Some(start) = selected.find("<objective>")
+        && let Some(end) = selected[start + "<objective>".len()..].find("</objective>")
+    {
+        selected = &selected[start + "<objective>".len()..start + "<objective>".len() + end];
+    }
+    let label = truncate_clean(selected.trim_matches(['\'', '"']), 120);
+    if label.is_empty() {
+        "unnamed task".to_string()
+    } else {
+        label
+    }
+}
+
+fn is_continuation_prompt(text: &str) -> bool {
+    let lowered = text.trim().to_lowercase();
+    matches!(
+        lowered.as_str(),
+        "继续"
+            | "继续做"
+            | "去做"
+            | "开始"
+            | "嗯"
+            | "好"
+            | "好的"
+            | "continue"
+            | "go on"
+            | "proceed"
+            | "do it"
+            | "ok"
+            | "okay"
+    )
+}
+
 fn parse_jsonl(
     agent: &str,
     path: &Path,
@@ -228,11 +328,82 @@ fn parse_jsonl(
     let mut events = SessionEvents::default();
     let mut current_prompt_index = 0usize;
     let mut call_index = BTreeMap::<String, usize>::new();
+    let mut task_stack = SemanticTaskStack::default();
+    let mut codex_meta_seen = false;
+    let mut codex_owns_events = true;
+    let mut codex_session_started_at = 0.0_f64;
 
     for line in content.lines() {
         let Ok(obj) = serde_json::from_str::<Value>(line) else {
             continue;
         };
+        let typ = obj.get("type").and_then(Value::as_str).unwrap_or("");
+        if agent == AGENT_CODEX && typ == "session_meta" {
+            if !codex_meta_seen {
+                codex_meta_seen = true;
+                let payload = obj.get("payload").unwrap_or(&Value::Null);
+                if let Some(id) = payload
+                    .get("id")
+                    .or_else(|| payload.get("session_id"))
+                    .and_then(Value::as_str)
+                {
+                    acc.session_id = id.to_string();
+                }
+                acc.conversation_id = payload
+                    .get("session_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_string);
+                let parent = payload
+                    .get("parent_thread_id")
+                    .or_else(|| payload.get("forked_from_id"))
+                    .and_then(Value::as_str)
+                    .or_else(|| {
+                        payload
+                            .pointer("/source/subagent/thread_spawn/parent_thread_id")
+                            .and_then(Value::as_str)
+                    });
+                codex_owns_events = parent.is_none_or(str::is_empty);
+                codex_session_started_at = payload
+                    .get("timestamp")
+                    .or_else(|| obj.get("timestamp"))
+                    .and_then(Value::as_str)
+                    .and_then(rfc3339_seconds)
+                    .unwrap_or_default();
+                if acc.cwd.is_none() {
+                    acc.cwd = payload
+                        .get("cwd")
+                        .and_then(Value::as_str)
+                        .filter(|cwd| !cwd.is_empty())
+                        .map(str::to_string);
+                }
+            }
+            continue;
+        }
+        if agent == AGENT_CODEX && !codex_owns_events {
+            let payload = obj.get("payload").unwrap_or(&Value::Null);
+            if typ == "event_msg"
+                && payload.get("type").and_then(Value::as_str) == Some("task_started")
+            {
+                let source_start = payload
+                    .get("started_at")
+                    .and_then(Value::as_f64)
+                    .filter(|value| *value > 0.0)
+                    .or_else(|| {
+                        payload
+                            .get("turn_id")
+                            .and_then(Value::as_str)
+                            .and_then(uuid7_seconds)
+                    })
+                    .unwrap_or_default();
+                if source_start > 0.0
+                    && (codex_session_started_at == 0.0
+                        || source_start >= codex_session_started_at.floor())
+                {
+                    codex_owns_events = true;
+                }
+            }
+            continue;
+        }
         let (session_id, conversation_id) = local_session_ids(&obj);
         if let Some(id) = session_id {
             acc.session_id = id;
@@ -252,7 +423,6 @@ fn parse_jsonl(
             acc.last_message_at = Some(ts.to_string());
             acc.end_timestamp_ms = iso_ms(ts).or(acc.end_timestamp_ms);
         }
-        let typ = obj.get("type").and_then(Value::as_str).unwrap_or("");
         match (agent, typ) {
             (AGENT_CLAUDE, "result") => {
                 acc.duration_ms = json_u64(&obj, "duration_ms");
@@ -320,6 +490,8 @@ fn parse_jsonl(
                             name,
                             item.get("input").unwrap_or(&Value::Null),
                             call_id.clone(),
+                            task_stack
+                                .path_for_tool(name, item.get("input").unwrap_or(&Value::Null)),
                         );
                         if let Some(id) = call_id {
                             call_index.insert(id, events.tools.len());
@@ -371,6 +543,17 @@ fn parse_jsonl(
                             + json_u64(usage, "cache_read_input_tokens"),
                         total_tokens: 0,
                         tag: String::new(),
+                        response_phase: if obj
+                            .pointer("/message/stop_reason")
+                            .and_then(Value::as_str)
+                            == Some("end_turn")
+                            && !text.trim().is_empty()
+                        {
+                            "final_answer".to_string()
+                        } else {
+                            "assistant_message".to_string()
+                        },
+                        task_path: task_stack.path(),
                     });
                 }
             }
@@ -380,7 +563,9 @@ fn parse_jsonl(
                     && let Some(text) = clean_prompt_text(text)
                 {
                     acc.prompt_preview = Some(text.clone());
-                    current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index =
+                        events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                 }
             }
             (AGENT_CLAUDE, "last-prompt") if acc.prompt_preview.is_none() => {
@@ -388,7 +573,9 @@ fn parse_jsonl(
                     && let Some(text) = clean_prompt_text(text)
                 {
                     acc.prompt_preview = Some(text.clone());
-                    current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index =
+                        events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                 }
             }
             (AGENT_CLAUDE, "user") => {
@@ -410,14 +597,18 @@ fn parse_jsonl(
                     if acc.prompt_preview.is_none() {
                         acc.prompt_preview = Some(text.clone());
                     }
-                    current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index =
+                        events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                 }
             }
             (AGENT_CLAUDE, "last-prompt") => {
                 if let Some(text) = obj.get("lastPrompt").and_then(Value::as_str)
                     && let Some(text) = clean_prompt_text(text)
                 {
-                    current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index =
+                        events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                 }
             }
             (AGENT_CODEX, "turn_context") => {
@@ -461,32 +652,14 @@ fn parse_jsonl(
                     let total_tokens = json_u64(token_usage, "total_tokens")
                         .max(json_u64(info, "total_tokens"))
                         .max(json_u64(info, "tokens"));
-                    if total_tokens > 0 {
-                        if let Some(last) = events.llm_responses.last_mut()
-                            && last.total_tokens == 0
-                        {
-                            last.input_tokens = input_tokens;
-                            last.output_tokens = output_tokens;
-                            last.cache_tokens = cache_tokens;
-                            last.total_tokens = total_tokens;
-                            continue;
-                        }
-                        events.llm_responses.push(LlmResponse {
-                            ts_ms: ts_ms_from_event(&obj),
-                            prompt_index: current_prompt_index,
-                            model: if codex_model.is_empty() {
-                                AGENT_CODEX.to_string()
-                            } else {
-                                codex_model.clone()
-                            },
-                            text_hash: short_hash(&token_usage.to_string(), 12),
-                            preview: "token report".to_string(),
-                            input_tokens,
-                            output_tokens,
-                            cache_tokens,
-                            total_tokens,
-                            tag: String::new(),
-                        });
+                    if total_tokens > 0
+                        && let Some(last) = events.llm_responses.last_mut()
+                        && last.total_tokens == 0
+                    {
+                        last.input_tokens = input_tokens;
+                        last.output_tokens = output_tokens;
+                        last.cache_tokens = cache_tokens;
+                        last.total_tokens = total_tokens;
                     }
                 }
                 if ptype == "user_message" {
@@ -497,7 +670,9 @@ fn parse_jsonl(
                         .unwrap_or("");
                     if let Some(text) = clean_prompt_text(text) {
                         acc.prompt_preview = Some(text.clone());
-                        current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                        task_stack.observe_user(&text);
+                        current_prompt_index =
+                            events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                     }
                 }
                 if ptype == "agent_message" {
@@ -522,8 +697,60 @@ fn parse_jsonl(
                             cache_tokens: 0,
                             total_tokens: 0,
                             tag: String::new(),
+                            response_phase: payload
+                                .get("phase")
+                                .and_then(Value::as_str)
+                                .unwrap_or("assistant_message")
+                                .to_string(),
+                            task_path: task_stack.path(),
                         });
                     }
+                }
+            }
+            (AGENT_CODEX, "response_item")
+                if obj.pointer("/payload/type").and_then(Value::as_str)
+                    == Some("custom_tool_call") =>
+            {
+                let payload = obj.get("payload").unwrap_or(&Value::Null);
+                let outer_name = payload
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("tool");
+                let raw_input = payload.get("input").and_then(Value::as_str).unwrap_or("");
+                let (name, args) = codex_custom_tool_input(outer_name, raw_input);
+                acc.add_tool(&name);
+                let call_id = payload
+                    .get("call_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_string);
+                let event = tool_event_from_input(
+                    acc.cwd.as_deref(),
+                    ts_ms_from_event(&obj),
+                    current_prompt_index,
+                    &name,
+                    &args,
+                    call_id.clone(),
+                    task_stack.path_for_tool(&name, &args),
+                );
+                if name == "update_plan" {
+                    task_stack.observe_plan(&args);
+                }
+                if let Some(id) = call_id {
+                    call_index.insert(id, events.tools.len());
+                }
+                events.tools.push(event);
+            }
+            (AGENT_CODEX, "response_item")
+                if obj.pointer("/payload/type").and_then(Value::as_str)
+                    == Some("custom_tool_call_output") =>
+            {
+                if let Some(call_id) = obj.pointer("/payload/call_id").and_then(Value::as_str)
+                    && let Some(index) = call_index.get(call_id).copied()
+                    && let Some(tool) = events.tools.get_mut(index)
+                {
+                    let output =
+                        content_to_text(obj.pointer("/payload/output").unwrap_or(&Value::Null));
+                    tool.status = status_from_output(&output).to_string();
                 }
             }
             (AGENT_CODEX, "response_item")
@@ -548,7 +775,11 @@ fn parse_jsonl(
                     name,
                     &args,
                     call_id.clone(),
+                    task_stack.path_for_tool(name, &args),
                 );
+                if name == "update_plan" {
+                    task_stack.observe_plan(&args);
+                }
                 if let Some(id) = call_id {
                     call_index.insert(id, events.tools.len());
                 }
@@ -575,10 +806,32 @@ fn parse_jsonl(
                 let payload = obj.get("payload").unwrap_or(&Value::Null);
                 let text = payload
                     .get("message")
-                    .or_else(|| payload.get("content"))
                     .and_then(Value::as_str)
-                    .unwrap_or("");
-                if let Some(text) = clean_prompt_text(text) {
+                    .map(str::to_string)
+                    .unwrap_or_else(|| {
+                        content_to_text(payload.get("content").unwrap_or(&Value::Null))
+                    });
+                if let Some(text) = clean_prompt_text(&text) {
+                    if payload.get("role").and_then(Value::as_str) == Some("user") {
+                        acc.prompt_preview = Some(text.clone());
+                        task_stack.observe_user(&text);
+                        current_prompt_index =
+                            events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
+                        continue;
+                    }
+                    let role = payload.get("role").and_then(Value::as_str);
+                    let legacy_assistant = role.is_none()
+                        && payload
+                            .get("content")
+                            .and_then(Value::as_array)
+                            .is_some_and(|items| {
+                                items.iter().any(|item| {
+                                    item.get("type").and_then(Value::as_str) == Some("output_text")
+                                })
+                            });
+                    if role != Some("assistant") && !legacy_assistant {
+                        continue;
+                    }
                     events.llm_responses.push(LlmResponse {
                         ts_ms: ts_ms_from_event(&obj),
                         prompt_index: current_prompt_index,
@@ -594,19 +847,29 @@ fn parse_jsonl(
                         cache_tokens: 0,
                         total_tokens: 0,
                         tag: String::new(),
+                        response_phase: payload
+                            .get("phase")
+                            .and_then(Value::as_str)
+                            .unwrap_or("assistant_message")
+                            .to_string(),
+                        task_path: task_stack.path(),
                     });
                 }
             }
             (AGENT_CODEX, "message" | "input" | "user") => {
                 if let Some(text) = local_message_preview(&obj) {
                     acc.prompt_preview = Some(text.clone());
-                    current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index =
+                        events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                 }
             }
             _ if acc.prompt_preview.is_none() && typ.contains("user") => {
                 if let Some(text) = local_message_preview(&obj) {
                     acc.prompt_preview = Some(text.clone());
-                    current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index =
+                        events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                 }
             }
             _ => {}
@@ -616,7 +879,45 @@ fn parse_jsonl(
     if acc.model_usage.is_empty() {
         acc.model_usage = claude_message_models;
     }
+    deduplicate_llm_responses(&mut events);
     acc.finish_with_events(events)
+}
+
+fn deduplicate_llm_responses(events: &mut SessionEvents) {
+    let mut unique: Vec<LlmResponse> = Vec::with_capacity(events.llm_responses.len());
+    for response in events.llm_responses.drain(..) {
+        let duplicate = unique.last_mut().filter(|previous| {
+            previous.prompt_index == response.prompt_index
+                && previous.text_hash == response.text_hash
+                && previous
+                    .ts_ms
+                    .zip(response.ts_ms)
+                    .is_some_and(|(left, right)| left.abs_diff(right) <= 1_000)
+        });
+        if let Some(previous) = duplicate {
+            previous.input_tokens = previous.input_tokens.max(response.input_tokens);
+            previous.output_tokens = previous.output_tokens.max(response.output_tokens);
+            previous.cache_tokens = previous.cache_tokens.max(response.cache_tokens);
+            previous.total_tokens = previous.total_tokens.max(response.total_tokens);
+            if response_phase_priority(&response.response_phase)
+                > response_phase_priority(&previous.response_phase)
+            {
+                previous.response_phase = response.response_phase;
+            }
+            continue;
+        }
+        unique.push(response);
+    }
+    events.llm_responses = unique;
+}
+
+fn response_phase_priority(phase: &str) -> u8 {
+    match phase {
+        "final_answer" => 3,
+        "commentary" => 2,
+        "assistant_message" => 1,
+        _ => 0,
+    }
 }
 
 fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<AgentSession> {
@@ -624,6 +925,7 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
     let mut acc = SessionAccumulator::new(AGENT_GEMINI, path, updated);
     let mut events = SessionEvents::default();
     let mut current_prompt_index = 0usize;
+    let mut task_stack = SemanticTaskStack::default();
     if let Some(id) = root.get("sessionId").and_then(Value::as_str) {
         acc.session_id = id.to_string();
         acc.conversation_id = Some(id.to_string());
@@ -658,12 +960,14 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
             Some("user") if acc.prompt_preview.is_none() => {
                 if let Some(text) = local_message_preview(msg.get("content").unwrap_or(msg)) {
                     acc.prompt_preview = Some(text.clone());
-                    current_prompt_index = events.upsert_prompt(ts_ms, &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index = events.upsert_prompt(ts_ms, &text, task_stack.path());
                 }
             }
             Some("user") => {
                 if let Some(text) = local_message_preview(msg.get("content").unwrap_or(msg)) {
-                    current_prompt_index = events.upsert_prompt(ts_ms, &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index = events.upsert_prompt(ts_ms, &text, task_stack.path());
                 }
             }
             Some("gemini") | Some("assistant") | Some("model") => {
@@ -697,6 +1001,7 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                             name,
                             call,
                             call.get("id").and_then(Value::as_str).map(str::to_string),
+                            task_stack.path_for_tool(name, call),
                         ));
                     }
                 }
@@ -722,6 +1027,16 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                         cache_tokens: json_u64(tokens, "cached"),
                         total_tokens: json_u64(tokens, "total"),
                         tag: String::new(),
+                        response_phase: if msg
+                            .get("toolCalls")
+                            .and_then(Value::as_array)
+                            .is_some_and(|calls| !calls.is_empty())
+                        {
+                            "assistant_message".to_string()
+                        } else {
+                            "final_answer".to_string()
+                        },
+                        task_path: task_stack.path(),
                     });
                 }
             }
@@ -945,13 +1260,19 @@ fn add_usage(
 }
 
 impl SessionEvents {
-    fn upsert_prompt(&mut self, ts_ms: Option<i64>, text: &str) -> usize {
+    fn upsert_prompt(&mut self, ts_ms: Option<i64>, text: &str, task_path: Vec<String>) -> usize {
         let hash = short_hash(text, 12);
-        if let Some(existing) = self
-            .prompts
-            .iter()
-            .position(|prompt| prompt.text_hash == hash)
-        {
+        if let Some(existing) = self.prompts.iter().rposition(|prompt| {
+            prompt.text_hash == hash
+                && match (prompt.ts_ms, ts_ms) {
+                    (Some(left), Some(right)) => left.abs_diff(right) <= 1_000,
+                    (None, None) => self
+                        .prompts
+                        .last()
+                        .is_some_and(|last| last.index == prompt.index),
+                    _ => false,
+                }
+        }) {
             return existing;
         }
         let index = self.prompts.len();
@@ -961,6 +1282,7 @@ impl SessionEvents {
             text_hash: hash,
             preview: truncate_clean(text, 180),
             tag: String::new(),
+            task_path,
         });
         index
     }
@@ -973,6 +1295,7 @@ fn tool_event_from_input(
     name: &str,
     input: &Value,
     call_id: Option<String>,
+    task_path: Vec<String>,
 ) -> ToolEvent {
     let command = command_from_tool_input(input);
     let category = tool_category(name, &command);
@@ -1013,7 +1336,141 @@ fn tool_event_from_input(
         path_groups,
         domains,
         call_id,
+        task_path,
     }
+}
+
+fn codex_custom_tool_input(outer_name: &str, raw: &str) -> (String, Value) {
+    let nested_calls = codex_custom_tool_calls(raw);
+    let nested_name = if raw.contains("Promise.all") || nested_calls.len() > 1 {
+        "composite".to_string()
+    } else {
+        nested_calls
+            .first()
+            .cloned()
+            .unwrap_or_else(|| outer_name.to_string())
+    };
+
+    let commands = extract_js_string_fields(raw, &["command", "cmd"]);
+    let paths = extract_js_string_fields(raw, &["file_path", "path"]);
+    let workdirs = extract_js_string_fields(raw, &["workdir"]);
+    let mut input = serde_json::Map::new();
+    if !commands.is_empty() {
+        input.insert("command".to_string(), Value::String(commands.join("\n")));
+    } else if !raw.trim().is_empty() {
+        input.insert("text".to_string(), Value::String(truncate_clean(raw, 600)));
+    }
+    if let Some(path) = paths.first() {
+        input.insert("path".to_string(), Value::String(path.clone()));
+    }
+    if let Some(workdir) = workdirs.first() {
+        input.insert("workdir".to_string(), Value::String(workdir.clone()));
+    }
+    for key in ["task_name", "target", "message"] {
+        if let Some(value) = extract_js_string_fields(raw, &[key]).first() {
+            input.insert(key.to_string(), Value::String(value.clone()));
+        }
+    }
+    if nested_name == "update_plan" {
+        let steps = extract_js_string_fields(raw, &["step"]);
+        let statuses = extract_js_string_fields(raw, &["status"]);
+        let plan = steps
+            .into_iter()
+            .enumerate()
+            .map(|(index, step)| {
+                serde_json::json!({
+                    "step": step,
+                    "status": statuses.get(index).map(String::as_str).unwrap_or("pending")
+                })
+            })
+            .collect::<Vec<_>>();
+        input.insert("plan".to_string(), Value::Array(plan));
+    }
+    (nested_name, Value::Object(input))
+}
+
+fn codex_custom_tool_calls(raw: &str) -> Vec<String> {
+    let mut calls = Vec::new();
+    let mut offset = 0usize;
+    while let Some(relative) = raw[offset..].find("tools.") {
+        let start = offset + relative + "tools.".len();
+        let tail = &raw[start..];
+        let name = tail
+            .chars()
+            .take_while(|ch| ch.is_ascii_alphanumeric() || *ch == '_')
+            .collect::<String>();
+        let name_len = name.len();
+        let after_name = tail[name.len()..].trim_start();
+        if !name.is_empty() && after_name.starts_with('(') {
+            calls.push(name);
+        }
+        offset = start + name_len.max(1);
+    }
+    calls
+}
+
+fn extract_js_string_fields(raw: &str, keys: &[&str]) -> Vec<String> {
+    let mut values = Vec::new();
+    for key in keys {
+        let mut offset = 0usize;
+        while let Some(relative) = raw[offset..].find(key) {
+            let start = offset + relative;
+            let before = raw[..start].chars().next_back();
+            let after = raw[start + key.len()..].chars().next();
+            if before.is_some_and(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+                || after.is_some_and(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+            {
+                offset = start + key.len();
+                continue;
+            }
+            let tail = &raw[start + key.len()..];
+            let Some(colon) = tail.find(':').filter(|index| *index <= 4) else {
+                offset = start + key.len();
+                continue;
+            };
+            let value = tail[colon + 1..].trim_start();
+            let Some(quote) = value
+                .chars()
+                .next()
+                .filter(|ch| ['\'', '"', '`'].contains(ch))
+            else {
+                offset = start + key.len();
+                continue;
+            };
+            if let Some((decoded, consumed)) = parse_js_string(&value[quote.len_utf8()..], quote) {
+                if !decoded.is_empty() && !values.contains(&decoded) {
+                    values.push(decoded);
+                }
+                offset = start + key.len() + colon + 1 + consumed;
+            } else {
+                offset = start + key.len();
+            }
+        }
+    }
+    values
+}
+
+fn parse_js_string(raw: &str, quote: char) -> Option<(String, usize)> {
+    let mut decoded = String::new();
+    let mut escaped = false;
+    for (index, ch) in raw.char_indices() {
+        if escaped {
+            decoded.push(match ch {
+                'n' => '\n',
+                'r' => '\r',
+                't' => '\t',
+                other => other,
+            });
+            escaped = false;
+        } else if ch == '\\' {
+            escaped = true;
+        } else if ch == quote {
+            return Some((decoded, index + ch.len_utf8() + quote.len_utf8()));
+        } else {
+            decoded.push(ch);
+        }
+    }
+    None
 }
 
 fn command_from_tool_input(input: &Value) -> String {
@@ -1045,21 +1502,56 @@ fn parse_tool_args(value: &Value) -> Value {
 
 fn status_from_output(output: &str) -> &'static str {
     let lowered = output.to_ascii_lowercase();
-    if lowered.contains("process exited with code 0") || lowered.contains("\"is_error\":false") {
-        "ok"
-    } else if lowered.contains("process exited with code")
-        || lowered.contains("\"is_error\":true")
-        || lowered.contains("error")
-    {
-        "fail"
-    } else {
-        "observed"
+    let exit_codes = explicit_exit_codes(&lowered);
+    if exit_codes.iter().any(|code| *code != 0) {
+        return "fail";
     }
+    if !exit_codes.is_empty() {
+        return "ok";
+    }
+    if lowered.contains("\"is_error\":false") || lowered.contains("\"success\":true") {
+        return "ok";
+    }
+    if lowered.contains("\"is_error\":true") || lowered.contains("\"success\":false") {
+        return "fail";
+    }
+    if lowered.lines().any(|line| line.trim() == "script failed") {
+        return "fail";
+    }
+    if lowered
+        .lines()
+        .any(|line| line.trim() == "script completed")
+    {
+        return "ok";
+    }
+    "observed"
+}
+
+fn explicit_exit_codes(output: &str) -> Vec<i32> {
+    output
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            let value = if let Some(rest) = line.strip_prefix("exit code:") {
+                rest
+            } else if let Some((_, rest)) = line.split_once("process exited with code") {
+                rest.strip_prefix(':').unwrap_or(rest)
+            } else {
+                return None;
+            };
+            let digits = value
+                .trim_start()
+                .chars()
+                .take_while(|ch| ch.is_ascii_digit() || *ch == '-')
+                .collect::<String>();
+            digits.parse().ok()
+        })
+        .collect()
 }
 
 pub fn tool_category(name: &str, command: &str) -> String {
     let n = name.to_ascii_lowercase();
-    if n.ends_with("exec_command") || n == "bash" {
+    if n.ends_with("exec_command") || n.ends_with("shell_command") || n == "bash" {
         "shell"
     } else if ["apply_patch", "edit", "write", "multiedit", "notebookedit"].contains(&n.as_str()) {
         "edit"
@@ -1730,6 +2222,25 @@ fn parse_ts_ms(value: &str) -> Option<i64> {
         .map(|ts| ts.timestamp_millis())
 }
 
+fn rfc3339_seconds(value: &str) -> Option<f64> {
+    chrono::DateTime::parse_from_rfc3339(value)
+        .ok()
+        .map(|ts| ts.timestamp_millis() as f64 / 1000.0)
+}
+
+fn uuid7_seconds(value: &str) -> Option<f64> {
+    let mut parts = value.split('-');
+    let high = parts.next()?;
+    let low = parts.next()?;
+    let version = parts.next()?;
+    if !version.starts_with('7') {
+        return None;
+    }
+    u64::from_str_radix(&format!("{high}{low}"), 16)
+        .ok()
+        .map(|milliseconds| milliseconds as f64 / 1000.0)
+}
+
 fn iso_ms(value: &str) -> Option<u64> {
     chrono::DateTime::parse_from_rfc3339(value)
         .ok()
@@ -1774,6 +2285,8 @@ mod tests {
             "\n",
             r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c1","arguments":"{\"cmd\":\"cargo test\"}"}}"#,
             "\n",
+            r#"{"type":"event_msg","payload":{"type":"agent_message","message":"tests passed"}}"#,
+            "\n",
             r#"{"type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":10,"output_tokens":5,"total_tokens":15}}}}"#,
         );
         let claude = concat!(
@@ -1802,5 +2315,280 @@ mod tests {
                 .max(usage.input_tokens + usage.output_tokens + usage.cache_tokens);
             assert_eq!(total, tokens);
         }
+    }
+
+    #[test]
+    fn codex_source_controls_build_sparse_semantic_task_paths() {
+        let codex = concat!(
+            r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"write a paper"}]}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"update_plan","call_id":"p1","arguments":"{\"plan\":[{\"step\":\"write abstract\",\"status\":\"in_progress\"}]}"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c1","arguments":"{\"cmd\":\"sed -n 1,80p paper.tex\"}"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call_output","call_id":"c1","output":"Process exited with code 0\n0 tests failed"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"继续"}]}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c2","arguments":"{\"cmd\":\"rg error paper.tex\"}"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call_output","call_id":"c2","output":"review error handling documentation"}}"#,
+        );
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.prompts.len(), 2);
+        assert!(session.events.llm_responses.is_empty());
+        assert_eq!(session.events.tools[0].task_path, vec!["write a paper"]);
+        assert_eq!(
+            session.events.tools[1].task_path,
+            vec!["write a paper", "write abstract"]
+        );
+        assert_eq!(
+            session.events.tools[2].task_path,
+            session.events.tools[1].task_path
+        );
+        assert_eq!(session.events.tools[1].status, "ok");
+        assert_eq!(session.events.tools[2].status, "observed");
+    }
+
+    #[test]
+    fn codex_custom_exec_is_a_real_source_tool_event() {
+        let codex = [
+            json!({
+                "timestamp": "2026-07-21T00:00:00.000Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "message",
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": "test the parser"}]
+                }
+            }),
+            json!({
+                "timestamp": "2026-07-21T00:00:01.000Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "custom_tool_call",
+                    "name": "exec",
+                    "call_id": "custom-1",
+                    "input": "const r = await tools.shell_command({command:\"cargo test\",workdir:\"/repo\"}); text(r);"
+                }
+            }),
+            json!({
+                "timestamp": "2026-07-21T00:00:02.000Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "custom_tool_call_output",
+                    "call_id": "custom-1",
+                    "output": [{"type": "input_text", "text": "Script completed\nExit code: 0\nOutput:\nall tests passed"}]
+                }
+            }),
+        ]
+        .into_iter()
+        .map(|line| line.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.tools.len(), 1);
+        let event = &session.events.tools[0];
+        assert_eq!(event.tool_name, "shell_command");
+        assert_eq!(event.category, "shell");
+        assert_eq!(event.effect, "test");
+        assert_eq!(event.command, "cargo test");
+        assert_eq!(event.status, "ok");
+        assert_eq!(event.task_path, vec!["test the parser"]);
+    }
+
+    #[test]
+    fn custom_update_plan_changes_only_later_operation_paths() {
+        let codex = [
+            json!({
+                "timestamp": "2026-07-21T00:00:00.000Z",
+                "type": "response_item",
+                "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "write a paper"}]}
+            }),
+            json!({
+                "timestamp": "2026-07-21T00:00:01.000Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "custom_tool_call",
+                    "name": "exec",
+                    "call_id": "plan-1",
+                    "input": "const r = await tools.update_plan({plan:[{step:\"write abstract\",status:\"in_progress\"},{step:\"write evaluation\",status:\"pending\"}]}); text(r);"
+                }
+            }),
+            json!({
+                "timestamp": "2026-07-21T00:00:02.000Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "custom_tool_call",
+                    "name": "exec",
+                    "call_id": "shell-1",
+                    "input": "const r = await tools.shell_command({command:\"sed -n 1,80p paper.tex\",workdir:\"/repo\"}); text(r);"
+                }
+            }),
+        ]
+        .into_iter()
+        .map(|line| line.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.tools.len(), 2);
+        assert_eq!(session.events.tools[0].tool_name, "update_plan");
+        assert_eq!(session.events.tools[0].task_path, vec!["write a paper"]);
+        assert_eq!(
+            session.events.tools[1].task_path,
+            vec!["write a paper", "write abstract"]
+        );
+    }
+
+    #[test]
+    fn prompt_dedup_is_local_and_continuations_keep_the_current_task() {
+        let codex = [
+            ("2026-07-21T00:00:00.000Z", "write a paper"),
+            ("2026-07-21T00:00:00.500Z", "write a paper"),
+            ("2026-07-21T00:00:03.000Z", "write a paper"),
+            ("2026-07-21T00:00:06.000Z", "继续"),
+        ]
+        .into_iter()
+        .map(|(timestamp, text)| {
+            json!({
+                "timestamp": timestamp,
+                "type": "response_item",
+                "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": text}]}
+            })
+            .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.prompts.len(), 3);
+        assert_eq!(session.events.prompts[2].preview, "继续");
+        assert_eq!(session.events.prompts[2].task_path, vec!["write a paper"]);
+    }
+
+    #[test]
+    fn developer_messages_are_not_agent_responses() {
+        let codex = concat!(
+            r#"{"timestamp":"2026-07-21T00:00:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"review"}]}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-21T00:00:01.000Z","type":"response_item","payload":{"type":"message","role":"developer","content":[{"type":"input_text","text":"internal instruction"}]}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-21T00:00:02.000Z","type":"response_item","payload":{"type":"message","role":"assistant","phase":"final_answer","content":[{"type":"output_text","text":"review complete"}]}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            codex,
+        )
+        .expect("session");
+        assert_eq!(session.events.llm_responses.len(), 1);
+        assert_eq!(session.events.llm_responses[0].preview, "review complete");
+    }
+
+    #[test]
+    fn mixed_batch_exit_codes_fail_if_any_command_failed() {
+        assert_eq!(
+            status_from_output("Script completed\nExit code: 0\nExit code: 7"),
+            "fail"
+        );
+        assert_eq!(
+            status_from_output(
+                "Process exited with code 0\nProcess exited with code 0\n0 tests failed"
+            ),
+            "ok"
+        );
+    }
+
+    #[test]
+    fn codex_preserves_commentary_and_final_response_phases() {
+        let codex = concat!(
+            r#"{"timestamp":"2026-07-21T00:00:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"review the code"}]}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-21T00:00:01.000Z","type":"response_item","payload":{"type":"message","role":"assistant","phase":"commentary","content":[{"type":"output_text","text":"I am checking it"}]}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-21T00:00:02.000Z","type":"response_item","payload":{"type":"message","role":"assistant","phase":"final_answer","content":[{"type":"output_text","text":"The code is correct"}]}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.llm_responses.len(), 2);
+        assert_eq!(session.events.llm_responses[0].response_phase, "commentary");
+        assert_eq!(
+            session.events.llm_responses[1].response_phase,
+            "final_answer"
+        );
+    }
+
+    #[test]
+    fn semantic_task_label_prefers_explicit_goal_payload() {
+        let raw = "prefix <objective>write a paper and evaluate it</objective> suffix";
+        assert_eq!(semantic_task_label(raw), "write a paper and evaluate it");
+    }
+
+    #[test]
+    fn codex_fork_excludes_copied_parent_history_before_ownership_boundary() {
+        let codex = concat!(
+            r#"{"timestamp":"1970-01-01T00:00:01Z","type":"session_meta","payload":{"id":"child","session_id":"parent","parent_thread_id":"parent","timestamp":"1970-01-01T00:00:01Z","cwd":"/repo"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"user_message","message":"copied parent task"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"copied","arguments":"{\"cmd\":\"false\"}"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"task_started","started_at":2.0}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"user_message","message":"review child result"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"owned","arguments":"{\"cmd\":\"cargo test\"}"}}"#,
+        );
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/child.jsonl"),
+            UNIX_EPOCH,
+            codex,
+        )
+        .expect("child session");
+
+        assert_eq!(session.session_id, "child");
+        assert_eq!(session.conversation_id.as_deref(), Some("parent"));
+        assert_eq!(session.events.prompts.len(), 1);
+        assert_eq!(session.events.prompts[0].preview, "review child result");
+        assert_eq!(session.events.tools.len(), 1);
+        assert_eq!(session.events.tools[0].call_id.as_deref(), Some("owned"));
     }
 }

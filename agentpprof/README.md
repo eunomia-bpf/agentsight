@@ -125,29 +125,17 @@ The view is independent from `--stack`. For example, the same operations can be
 weighted by tokens and folded by prompt tags, or weighted by operation count and
 folded by dataset/task/phase/action fields.
 
-## Legacy Diagnostic Exports
+## Product Boundary
 
-The default format is pprof protobuf, gzipped when the output path ends in
-`.gz`. The output extension also selects common formats:
+Every successful invocation writes exactly one standard pprof `.pb` or
+`.pb.gz` artifact. The CLI rejects folded-stack, SVG, JSON, PNG, HTML, dashboard,
+and trace-export output paths. AgentPProf has no frontend. Use existing
+pprof-compatible tools for flamegraphs, focus, search, comparison, and source
+drilldown. Standard trace JSON and normalized operation JSONL remain supported
+as inputs only.
 
-```bash
-agentpprof -o tokens.folded --view tokens
-agentpprof -o tokens.svg --view tokens
-agentpprof -o files.json --view files
-```
-
-These exports predate the pprof-only product boundary and remain for artifact
-compatibility; they are not a visualization surface to extend. Folded stacks
-are compatible with common flamegraph tooling. SVG output is a
-single quick-look stack chart built from the folded stacks; use folded output
-with standard tools such as inferno or flamegraph.pl when you need canonical
-merged-prefix flamegraphs. JSON output includes redacted session summaries and
-the stack table. Passing `--include-previews` writes prompt, command, and
-LLM-output previews into JSON; avoid it for public artifacts unless the source
-sessions are already sanitized. Path frames outside the selected project root
-are grouped into stable `external/*` buckets so home-directory names are not
-emitted in public profiles. See `../docs/flamegraph/` for a public fixture
-gallery and view-by-view usage examples.
+Path frames outside the selected project root are grouped into stable
+`external/*` buckets so home-directory names are not emitted in profiles.
 
 ## Field Derivation
 
@@ -163,7 +151,7 @@ Rules use `KIND:TAG=REGEX`, are tried in command-line order before the built-in
 rules, and support `session`, `prompt`, `llm`, or `all` as `KIND`:
 
 ```bash
-agentpprof -o tokens.svg \
+agentpprof -o tokens.pb.gz \
   --tagger regex \
   --tag-rule prompt:review='(?i)review|diff|regression' \
   --tag-rule prompt:test='(?i)cargo test|pytest|unit test'
@@ -176,9 +164,10 @@ llama-server -m /path/to/model.gguf --port 8080
 agentpprof -o tokens.pb.gz --tagger llm --llama-url http://127.0.0.1:8080
 ```
 
-LLM tags are cached under the user cache directory by default, for example
-`$XDG_CACHE_HOME/agentpprof/tags.json`. Override with `--cache`, or pass
-`--no-cache` to avoid saving new entries.
+The LLM tagger may read an existing cache under the user cache directory, for
+example `$XDG_CACHE_HOME/agentpprof/tags.json`. Override the read-only input
+with `--cache`, or pass `--no-cache` to ignore it. AgentPProf never writes the
+cache; tags created during a run are deduplicated only in memory.
 
 For external operations and reproducible experiments, prefer `--op-map`,
 `--op-map-file`, and `--profile-spec`. These mechanisms derive operation fields
@@ -215,7 +204,7 @@ profiling abstraction. For external datasets or converters, pass one or more
 operation JSONL files:
 
 ```bash
-agentpprof -o external.folded --view operations \
+agentpprof -o external.pb.gz --view operations \
   --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
   --stack 'project,agent,dataset,task,session,phase,op,action,target,status'
 ```
@@ -237,7 +226,7 @@ Use `script/agent_trace_datasets.py` to sample known labeled datasets into this
 format without committing raw external data.
 
 ```bash
-agentpprof -o external.folded --view operations \
+agentpprof -o external.pb.gz --view operations \
   --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
   --op-map-file docs/visexp/out/operation-map-infer-r281/inferred-op-map.txt \
   --op-map 'task:web=(dataset=weblinx-chat|tool=browser)' \
@@ -255,90 +244,24 @@ python3 script/operation_map_infer.py \
   --json-out op-map.json
 ```
 
-## Standard Trace Exchange
+## Standard Trace Input
 
-Local Codex/Claude sessions can be exported directly as Chrome Trace Event JSON
-when another tool wants a standard trace container:
+Chrome/Perfetto Trace Event JSON is an input adapter, not a product output:
 
 ```bash
-agentpprof --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
-  --export-standard-trace fixture-chrome-trace.json
-
 agentpprof --standard-trace-file fixture-chrome-trace.json --view operations \
-  --stack 'project,agent,op,phase,tool,status' \
-  -o fixture.folded --format folded
+  --stack 'project,agent,task,phase,tool,status' \
+  -o fixture.pb.gz
 ```
 
-Already-normalized external operation JSONL can also be exported through the
-same standard trace container:
+After import, AgentPProf folds ordinary operations with the selected stack and
+writes the same single pprof artifact as every other input mode.
 
-```bash
-agentpprof --operation-file external-operations.jsonl \
-  --export-standard-trace external-chrome-trace.json
+## Archived Python Prototype
 
-agentpprof --standard-trace-file external-chrome-trace.json --view operations \
-  --stack 'project,dataset,task,phase,op,action,status' \
-  -o external.folded --format folded
-```
-
-Use the scripts when a workflow needs explicit intermediate files in AgentSight
-operation JSONL:
-
-```bash
-agentpprof --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
-  --export-trace fixture-agent-trace.json
-
-python3 script/agent_trace_chrome_trace.py export \
-  --trace-file fixture-agent-trace.json \
-  --out fixture-chrome-trace.json
-
-python3 script/agent_trace_chrome_trace.py import \
-  --trace-file fixture-chrome-trace.json \
-  --out fixture-operations.jsonl
-
-agentpprof --operation-file fixture-operations.jsonl --view operations \
-  --stack 'project,agent,op,phase,tool,status' \
-  -o fixture.folded --format folded
-```
-
-The Chrome/Perfetto trace is an exchange format, not a third profiling object.
-After import, `agentpprof` still folds ordinary operation JSONL with the chosen
-operation stack. `python3 script/agent_trace_chrome_exchange_eval.py` reproduces
-the fixture round trip and checks that direct trace import, direct operation
-import, and Chrome-trace import produce the same folded output. `python3
-script/operation_standard_trace_exchange_eval.py` performs the same equality
-check for the Rust operation-file export path on a deterministic prefix of an
-existing real labeled operation artifact.
-
-## Python Prototype
-
-The earlier experimental Python exporter now lives under
-`docs/visexp/agentpprof-python/` as research material:
-
-```bash
-PYTHONPATH=docs/visexp/agentpprof-python/src python3 -m agentpprof export \
-  --project-root . \
-  --out .agentsight/agentpprof/latest \
-  --max-sessions 12
-```
-
-The export writes:
-
-- `tokens.pb.gz`
-- `tools.pb.gz`
-- `files.pb.gz`
-- `network.pb.gz`
-- matching folded stacks
-- `*.flame.svg` operation-stack SVG profiles
-- `agentpprof.json`
-- optional `*.top.txt` reports when `go tool pprof` is available
-
-Open the generated flamegraphs directly:
-
-```bash
-xdg-open .agentsight/agentpprof/latest/tools.flame.svg
-xdg-open .agentsight/agentpprof/latest/tokens.flame.svg
-```
+The earlier Python exporter under `docs/visexp/agentpprof-python/` is archived
+research material. It is not an AgentPProf product path and must not be used to
+add alternative outputs or a custom visualization surface.
 
 ## Stack Projections
 
@@ -349,17 +272,14 @@ directly from an operation field or from the first matching `--stack-rule` for
 that frame:
 
 ```bash
-agentpprof -o files.json --format json --view files \
+agentpprof -o files.pb.gz --view files \
   --stack 'project,agent,task,phase,op,tool,path,status' \
   --op-map-file project-op-map.txt \
   --op-map 'task:verify=(effect=test|cmd=cargo|path=tests)' \
   --op-map 'task:explore=(effect=read|tool=read)' \
   --op-map 'phase:inspect=(effect=read)' \
   --where 'task=verify' \
-  --stack-rule 'path:tests=(path=tests)' \
-  --rank-mode rule-score \
-  --rank-rule 'verify-risk:2=phase:execute|status:error' \
-  --rank-op-rule 'error-density:3=status=error'
+  --stack-rule 'path:tests=(path=tests)'
 ```
 
 Operation mapping and stack rules match a searchable `key=value` string built
@@ -371,13 +291,8 @@ derived so far; the first match wins for each derived field. Inline `--op-map`
 rules run before `--op-map-file` rules, so command-line rules can override a
 shared mapping file. `--where FIELD=REGEX` and `--where FIELD!=REGEX` run after
 mapping and before stack construction; multiple predicates are ANDed.
-`--rank-rule LABEL:WEIGHT=REGEX` orders JSON operation-stack groups by visible
-folded-stack text. `--rank-op-rule LABEL:WEIGHT=REGEX` matches individual
-`field=value` operation tokens after mapping/filtering and aggregates matched
-operation weight inside each folded group. Both ranking surfaces affect only
-JSON output, not pprof, folded, or SVG output. The default `--rank-mode
-width-boost` keeps width as the primary signal; `--rank-mode rule-score` ranks
-by matched visible rules first and uses width as a tie-breaker.
+Diagnostic selection belongs in the explicit mapped fields and `--where`
+predicate; visualization and interactive ranking belong to the pprof consumer.
 
 Token profile:
 

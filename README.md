@@ -114,9 +114,8 @@ agentpprof \
   -o tasks.pb.gz
 ```
 
-See [agentpprof/README.md](agentpprof/README.md)
-for CLI details, and [docs/flamegraph](docs/flamegraph/README.md)
-for flamegraph examples, view selection, and tagging rules.
+See [agentpprof/README.md](agentpprof/README.md) for CLI details and
+[the pprof viewing guide](docs/flamegraph/README.md) for standard-tool examples.
 
 ### Querying Past Sessions
 
@@ -142,8 +141,9 @@ agentsight report --local                    # summarize native Claude/Codex/Gem
 
 ### Offline Agent pprof Profiles
 
-Use `agentpprof` when you want a no-sudo pprof/folded-stack/SVG summary of
-local Codex or Claude session history:
+Use `agentpprof` when you want a no-sudo standard pprof profile of local Codex
+or Claude session history. AgentPProf has no separate frontend or alternative
+product-output format:
 
 ```bash
 cargo run --manifest-path agentpprof/Cargo.toml -- \
@@ -164,8 +164,7 @@ prompt tag, model, and token kind.
 </div>
 
 See [agentpprof/README.md](agentpprof/README.md) for CLI details and
-[docs/flamegraph](docs/flamegraph-example/README.md) for flamegraph examples, view
-selection, and deterministic tagging rules.
+[the pprof viewing guide](docs/flamegraph/README.md) for standard-tool examples.
 
 ### Web Interface
 

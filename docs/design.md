@@ -117,8 +117,8 @@ namespace an occurrence-level accuracy evaluation without becoming a stack
 frame or authorizing cross-run semantic equality.
 
 For every operation with positive value, the profiler emits its selected frame
-path and adds the operation's value to that path. All output formats derive from
-the same folded paths.
+path and adds the operation's value to that path. The sole product
+serialization is one standard pprof profile.
 
 ## Data Flow
 
@@ -129,8 +129,8 @@ local agent history / operation JSONL / trace container
     -> optionally filter operations by field predicates
     -> choose or induce an operation stack
     -> fold weighted paths
-    -> optionally rank profile groups from visible fields
-    -> pprof / folded stacks / JSON / SVG
+    -> encode weighted paths and source evidence
+    -> one standard .pb or .pb.gz pprof
 ```
 
 Available source-native path fields can form one operation stack and an
@@ -250,9 +250,10 @@ Each group receives a run-length-compressed action motif such as
 `action=click-then-type-then-press`. Identical motifs therefore fold to the
 same cross-session operation identity. If distinct raw motifs normalize to the
 same emitted frame spelling, a stable value-derived suffix preserves identity.
-The JSON report exposes every `(session,input-position)` boundary decision and
-every segment's start, end, and motif, so aggregation cannot hide duplicated or
-missing assignments.
+The internal induction report used by tests records every
+`(session,input-position)` boundary decision and every segment's start, end,
+and motif, so correctness checks can detect duplicated or missing assignments.
+It is not a second product artifact.
 
 Legacy information-gain knobs remain parseable only to produce a clear error:
 `--induce-max-depth`, `--induce-query-term`, and
@@ -305,9 +306,11 @@ One profile declares one sample measure and unit. Existing views cover operation
 count and resource/effect-oriented measures such as tokens, time, files, and
 network or system effects when those values are present in the source.
 
-The pprof, folded-stack, JSON, and SVG outputs are serializations or renderers
-of the same weighted operation-stack paths. The flamegraph is not the research
-abstraction.
+Every run writes one standard `.pb` or `.pb.gz` pprof containing the weighted
+operation-stack paths and evidence labels. AgentPProf has no frontend and no
+folded-stack, JSON, SVG, PNG, HTML, or dashboard product output. Existing
+pprof-compatible tools own flamegraphs, search, focus, comparison, and
+drilldown. The visualization remains distinct from the research abstraction.
 
 ## Ranking And Diagnosis Boundary
 

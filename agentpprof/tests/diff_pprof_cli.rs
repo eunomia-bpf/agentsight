@@ -92,7 +92,7 @@ fn cli_rejects_non_pprof_difference_output() {
         .output()
         .unwrap();
     assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("only writes standard pprof"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains(".pb or .pb.gz"));
     assert!(!output_path.exists());
 }
 

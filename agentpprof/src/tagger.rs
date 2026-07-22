@@ -54,7 +54,6 @@ struct ExistingCache {
 }
 
 pub struct LlamaTagger {
-    cache_path: PathBuf,
     base_url: String,
     model: String,
     timeout: Duration,
@@ -83,7 +82,6 @@ impl LlamaTagger {
             .timeout_write(timeout)
             .build();
         Self {
-            cache_path,
             base_url: base_url.trim_end_matches('/').to_string(),
             model,
             timeout,
@@ -282,26 +280,6 @@ impl LlamaTagger {
             .into_json()
             .map_err(|error| anyhow!("invalid llama.cpp JSON response: {error}"))?;
         extract_llm_text(&payload).ok_or_else(|| anyhow!("llama.cpp response had no text content"))
-    }
-
-    pub fn save(&self) -> Result<()> {
-        if let Some(parent) = self.cache_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        let payload = json!({
-            "schema_version": 2,
-            "created_by": "agentpprof-rust",
-            "updated_at": now_iso(),
-            "llm": {
-                "provider": "llama.cpp",
-                "base_url": self.base_url,
-                "model": self.model,
-            },
-            "stats": self.stats,
-            "tags": self.cache,
-        });
-        fs::write(&self.cache_path, serde_json::to_vec_pretty(&payload)?)?;
-        Ok(())
     }
 }
 

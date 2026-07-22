@@ -25,22 +25,11 @@ filesystem fields before serialization: session paths become stable trace-local
 names, `cwd` becomes `repo`, file paths become path groups, and tool commands
 keep only the extracted command name. `AgentTrace::new` and `from_json_str`
 preserve their input fields.
-For AgentSight's semantic profiler, `script/agent_trace_to_operations.py`
-converts the trace into normalized operation JSONL consumed by
-`agentpprof --operation-file`. The converter uses event-level prompt/tool/LLM
-rows when present and falls back to session-level summaries; prompt and LLM
-previews are omitted unless `--include-previews` is passed. The end-to-end
-bridge can be replayed with `python3 script/agent_trace_exchange_eval.py`,
-which exports a fixture trace, converts it, imports both paths, and checks that
-the folded outputs are byte-identical under the same operation stack.
-For tools that expect a more standard trace container, AgentSight also provides
-`agentpprof --export-standard-trace`, which writes Chrome Trace Event JSON
-that can be opened by Chrome/Perfetto-style trace viewers, and
-`agentpprof --standard-trace-file`, which imports that container back as
-ordinary operations before profiling. `script/agent_trace_convert.py`
-provides the same bridge when a workflow needs explicit intermediate operation
-JSONL files, and `script/agent_trace_chrome_trace.py` remains the lower-level
-Chrome bridge used by the exchange evaluation.
+`agentpprof` can read this portable trace with `--trace-file`. It can also read
+normalized operation JSONL through `--operation-file` and Chrome Trace Event
+JSON through `--standard-trace-file`. Regardless of the input container,
+AgentPProf emits one standard `.pb` or `.pb.gz` pprof profile; existing
+pprof-compatible tools provide every visualization.
 
 ## Scope
 
