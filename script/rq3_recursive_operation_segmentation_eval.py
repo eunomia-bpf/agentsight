@@ -62,9 +62,11 @@ Return STOP when the interval advances one persistent responsibility, even if
 tools, commands, files, actions, statuses, errors, retries, or observations
 change. Return SPLIT only when both sides can be named as distinct semantic
 responsibilities that explain a sustained change in what the agent is trying
-to accomplish. Choose the single most important such boundary. Child names
-must be concise lowercase semantic operation phrases, not tool or file labels.
-Return only the required JSON."""
+to accomplish. Choose the single most important such boundary. Both child
+names must be distinct from each other and from every name in ACTIVE SEMANTIC
+PATH. If both sides cannot be named without repeating an active name, return
+STOP. Child names must be concise lowercase semantic operation phrases, not
+tool or file labels. Return only the required JSON."""
 
 
 def parse_args() -> argparse.Namespace:

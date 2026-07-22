@@ -97,3 +97,15 @@ Focused recursive tests pass 5/5 and all 68 AgentPProf tests pass. A strict
 readback control reproduced the existing 326-operation AgentCap pprof at the
 exact prior SHA-256, confirming that the new coverage checks accept a known
 complete profile before the costly CodeTrace run.
+
+## Node 0066-E6 — real preflight attempt 1
+
+The first real preflight reconstructed all 405 public trajectories but stopped
+on the first selected mini-SWE-agent recursion before opening official stages.
+The Agent reused the active parent `analyze codebase and locate bug` as one
+child and named only the other child more specifically. The parser failed
+closed as designed. The system prompt had omitted the plan's explicit
+ancestor-distinct requirement, so the minimal wiring repair states that both
+children must be distinct from every active path name; otherwise the Agent must
+STOP. It does not add a new specificity criterion. Exact details are in
+`experiment-001/real-preflight.md`.
