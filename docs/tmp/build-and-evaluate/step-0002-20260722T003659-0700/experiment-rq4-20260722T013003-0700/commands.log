@@ -1,0 +1,64 @@
+RQ4 execution record
+====================
+
+Plan review:
+  Round 1: BLOCK (concurrency, source-session role, censoring, lifecycle,
+  overlap units, and first-mutation state were under-specified)
+  Round 2: PASS after replacing adjacent sessions with per-worktree transitive
+  source-session concurrency components and freezing identity replay.
+
+Verification and authoritative command:
+  python3 -m py_compile agentvis/research/plot_rq4.py
+  python3 agentvis/research/plot_rq4.py \
+    --rq1-root docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq1-20260722T003659-0700/full-six-projects/raw \
+    --output docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq4-20260722T013003-0700
+  result: success
+  resources: 3.95 wall seconds, 627,688 KiB max RSS
+
+Frozen inputs are the authoritative RQ1 artifacts, mutations, sessions, and
+verified event gzip files recorded in the RQ1 commands.log.
+
+Independent result-review repair:
+  Round 1 blocked the result because terminal no-mutation components were
+  pooled into Panel B, status-observed lifecycle actions were missing from
+  identity replay, estimator coverage was not printed, and lifecycle/state
+  self-checks were incomplete. The repaired run replays every non-scope action
+  with RQ1 lifecycle semantics, reconciles 7,154/7,154 artifact births and all
+  13,152 confirmed mutation identities, has zero unresolved non-scope
+  identities, excludes no-mutation components from prefix composition, prints
+  per-estimator counts, and executes the frozen synthetic test matrix.
+  Round 2 independently replayed every identity and returned PASS. Its
+  non-blocking suggestion to print resolved-prefix boundary count R separately
+  from prefix-action count P is included in the final coverage strip.
+
+Determinism check:
+  all four CSV files and the PNG were byte-identical across consecutive runs.
+  Matplotlib PDF metadata changes across runs; the PNG and source CSVs are the
+  byte-reproducibility anchors.
+
+Frozen output SHA-256:
+  385f6fa49efe7af02446dfea50ce0c6a98a2f6559ef62a6973beb73398621d58  raw/rq4-accesses.csv.gz (committed archive)
+  26466eb3a343ee6eb9a459a6c4690b8ae072b0317a775f6636093f0d3eb344cf  raw/rq4-accesses.csv
+  61152fcbb4228964f728ca26ad31cd50d31770880dcd92fe7cc851f1d5f7ca32  raw/rq4-boundaries.csv
+  8b7671356c9f7385710aec4944524ef3427fac6971d747cd1461f8ef90a7648a  raw/rq4-components.csv
+  9f1e80fdfa098716f40d94c84987c9906e146ffd748218897cca70d48bf0bc47  raw/rq4-prefix-actions.csv
+  b86fb9dbf41469427493a30a79506a25fd2e17dfa52c73436130050dd221e7ff  figures/rq4-component-continuity.pdf
+  3cca1fddc9d8c8011959b7152c17d427d10c29f1fb00f9e9365ad6b93392ae91  figures/rq4-component-continuity.png
+  8570e5eba60cd48cba79a84d4c3302268ea752dec5b79734d3de13d632032d05  result.md
+  cf44306c998cadd3fd60a58b140a013cc517f8e221f31db20da78bc056799220  agentvis/research/plot_rq4.py
+
+Paper-width rendering repair (measurements unchanged):
+  439193d0739faac8391ee4606b80e03513a37be5d534a9f93c98f3319895fccb  agentvis/research/plot_rq4.py
+  67dce60ec450cf898a95b2f3de3256337e403baac844470339698e619d6dbb78  figures/rq4-component-continuity.pdf
+  9f4230ed524d9d04e3f3da07b4c634777981f8e5454986b95acfdaf6cf269619  figures/rq4-component-continuity.png
+
+Final float-fit rendering (measurements unchanged):
+  e61aa3bb32640a435505cc1bc71dc81ba13671eb707aa51e7e0091165c077b92  agentvis/research/plot_rq4.py
+  8c55200f3936b52009bb709320e70bd7700dd0aa2bee037a00bfab83c7afed52  figures/rq4-component-continuity.pdf
+  db2159529bbb3f90a0e8940a0f58ff780bf1d25cca739780de15c97f3b20db66  figures/rq4-component-continuity.png
+
+Final paper-audit rendering (measurements unchanged):
+  the estimator-coverage strip is retained at paper width and reports C/B/M/P/O/R.
+  824a31a89926fdc9e33023207b606161a017ef97a19f0f7353a65e0b51a41851  agentvis/research/plot_rq4.py
+  dee156bd0e39803ed405b5bc65bfe7a2d676a667aada7084a26ec6a9b4a019ea  figures/rq4-component-continuity.pdf
+  3cd488fe73e3e73f4d994fe95658258650708235b3e32cdb3fed3ef30afd27a0  figures/rq4-component-continuity.png

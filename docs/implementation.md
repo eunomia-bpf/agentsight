@@ -15,18 +15,26 @@
 The current product projection is `RepositoryTrace`. It is a thin serializable
 view over `agent-session`, not a second general event model.
 
-## Gaps blocking the empirical study
+## Research implementation
 
-`RepositoryEvent` currently retains tool/category/command name/status and file
-actions, but drops `ToolEvent.effect`. RQ1 therefore cannot distinguish a
-successful validation command from a generic Bash action. The minimum repair is
-to retain the source-native command effect in `RepositoryEvent`; no command
-text classifier or new IR is required.
+`RepositoryEvent` now retains `ToolEvent.effect` and a hashed Tool-worktree
+identity. Tool-level workdir precedes session cwd, so parallel worktrees do not
+collide by relative path and adapter-recognized validation remains available to
+the research projection. This extends the existing `FileAction`; it does not
+introduce another IR.
 
-The RQ1 analyzer must additionally compute final path existence/tracked state,
-later artifact reuse, next successful validation, and coverage fields. It should
-write ordinary JSON/CSV/Markdown under the experiment's raw-result directory.
+The RQ1 analyzer computes final path existence/tracked state,
+introduced-artifact persistence, later artifact reuse,
+validation-before-supersession, competing outcomes, and coverage fields. It
+writes ordinary JSON/CSV/Markdown under the experiment's raw-result directory.
 These are analysis outputs, not a research-control database or production API.
+
+RQ2--RQ7 remain small, research-only Python projections over the same frozen
+rows. Each `agentvis/research/plot_rqN.py` writes inspectable CSVs first and
+renders its PDF/PNG only by reopening those rows. Large ledgers are committed as
+gzip archives while their local uncompressed copies are ignored. The scripts
+do not add a server, database, second event IR, generated semantic labels, or a
+production frontend.
 
 ## Source selection behavior
 
@@ -42,9 +50,9 @@ matching file-effect rows. The empirical CLI must label those rows as global
 sensitivity data and never combine them with direct-session validation or
 session-boundary denominators.
 
-## Planned minimal research entrypoint
+## Minimal research entrypoint
 
-One research-only entrypoint will accept the six repository roots and an output
+The research-only `research-rq1` entrypoint accepts the six repository roots and an output
 directory, reuse `build_repository_trace`, and produce:
 
 ```text
@@ -67,14 +75,20 @@ needed.
 For each project:
 
 1. build the complete repository-direct trace;
-2. retain source coverage by vendor, session, effect, status and path presence;
-3. group source-linked file actions by explicit rename lineage or normalized
-   path when no rename exists;
-4. for every create/mutation, find the next later access to the same artifact;
-5. find the next successful validation event globally and within the same
-   session, reporting event and wall-clock distance separately;
-6. query final workspace existence and Git tracked state; and
-7. aggregate only at project level before any cross-case summary.
+2. reconcile candidate, parsed, included and excluded sessions, then retain
+   coverage by vendor, worktree, session, effect, status and path presence;
+3. group source-linked file actions by `(worktree_id, path)` and explicit
+   same-worktree rename lineage; delete--recreate begins a new identity;
+4. mark only identities born from confirmed-success create as
+   observation-born; rename inherits source birth state and existing-file
+   writes retain `content_durability=unknown`;
+5. for every confirmed non-delete mutation, find later reuse and the next
+   recognized successful validation before same-artifact mutation/delete;
+6. encode delete/supersede as competing outcomes and only observation end as
+   right censoring;
+7. query final workspace existence and Git tracked state in the corresponding
+   worktree, retaining unknown when the worktree cannot be queried; and
+8. aggregate only at project level before any cross-case summary.
 
 Failed calls never create successful mutations. Directory-scope actions remain
 scope evidence and do not count as file reuse. Unknown access/effect/status is
@@ -89,9 +103,10 @@ cd ../agentvis && cargo test
 cd ../collector && cargo test
 ```
 
-The empirical run will add one authoritative command after independent plan
-review. A real preflight must use one of the six repositories and write the
-actual raw output path; unit tests alone do not count as research evidence.
+The authoritative command, fresh cutoff, input/output hashes, resource use and
+reconciliation are recorded in the RQ1 `commands.log`. The AgentSight preflight
+and full six-project run both used real native sessions; unit tests alone were
+not counted as research evidence.
 
 ## Superseded research-only code
 
@@ -104,8 +119,27 @@ They produced no intervention-treatment claim and close no current RQ.
 
 ## Current evidence status
 
-The visualization and repository projection run on real local sessions, but no
-RQ1 six-project analysis has completed. Exact session counts, effect coverage,
-durability, reuse, validation-association results and plots remain unknown until
-the reviewed full run finishes. Prototype visuals and passing unit tests do not
-close a paper RQ.
+The reviewed RQ1 run covers 2,049 admitted native sessions, 206,249 Tool
+actions, 7,154 observed artifact identities and 13,152 confirmed mutation rows.
+All source-ID, hash, cutoff, worktree, lifecycle, final-state and competing-risk
+checks passed independent reproduction. F3/F4 are generated from frozen CSVs
+and embedded in the paper. Reuse is measurable in 6/6 projects; persistence and
+recognized-validation panels remain coverage-only at 3/6.
+
+Separate reviewed projections now produce:
+
+- F5: recognized-validation cadence, with 3/6 coverage and a cross-case stop;
+- F6: repeated-mutation structure across all six cases;
+- F7: source-session component continuity, with every cross-case estimator gate
+  stopped;
+- F8a/F8b: path-resolved workspace activity allocation, transitions and return
+  gaps, with one low-support N/A;
+- F9: Skill/instruction source coverage and an explicit association stop; and
+- F10: a dependency-only benchmark-readiness audit. It finds the normalized
+  spine present but native-prefix and cutoff-worktree contracts absent, so no
+  baseline, question, accuracy, advantage or cost result is produced.
+
+F10 closes the paper's readiness RQ, not the separate capability claim. A
+matched comparison still requires immutable native admitted prefixes,
+per-worktree cutoff revisions/untracked-state disposition, pinned baseline
+interfaces, and a separately reviewed source-explicit oracle.

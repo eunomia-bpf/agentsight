@@ -48,7 +48,7 @@ For each admitted native action retain:
 ```text
 a_i = (timestamp, source_id, session_id, vendor,
        tool_name, category, command_effect, status)
-e_i = [(artifact_path, access, previous_path, scope)]
+e_i = [(worktree_id, artifact_path, access, previous_path, scope)]
 ```
 
 where `source_id` is the native call identifier when present, otherwise the
@@ -57,17 +57,19 @@ Failed calls remain actions but emit no successful file effect.
 
 The projection performs one pass over sorted actions:
 
-1. normalize every source-qualified path relative to a known repository
-   worktree and discard paths outside the repository;
+1. resolve Tool-level workdir before session cwd, normalize every
+   source-qualified path relative to a known repository worktree, retain a
+   hashed worktree ID, and discard paths outside the repository;
 2. retain source-native read, write, create, rename and delete effects;
 3. preserve explicit rename lineage; a later create at a deleted path is a new
    artifact unless the source says otherwise;
 4. retain directory-scope references as weak scope effects rather than
    pretending every descendant was read;
-5. retain source-native command effect and status so successful test/check/
-   build/experiment actions can be observed; and
+5. retain adapter-derived command effect and status so the recognized
+   test/check/build command families and their coverage can be observed; and
 6. derive final path existence and tracked state from the current workspace and
-   Git without moving the action-time axis onto commits.
+   Git without moving the action-time axis onto commits; a missing or
+   unqueryable worktree yields unknown final state, never inferred absence.
 
 If inputs are ordered, projection time is `O(|A| + |E|)` plus repository-state
 lookups; otherwise sorting costs `O(|A| log |A|)`. Artifact maps require
@@ -78,28 +80,40 @@ lookups; otherwise sorting costs `O(|A| log |A|)`. Artifact maps require
 The core projection contains no progress score, pathology label or intent
 inference. RQ analyses derive transparent measurements:
 
-- **durability:** final tracked/existing state and explicit lifecycle survival;
+- **introduced-artifact persistence:** final tracked/existing state for
+  identities born from a confirmed-success create in the same worktree;
+  rename inherits source birth state and existing-file write content durability
+  remains unknown; identities with unknown final worktree state are excluded;
 - **reuse:** the next later access to the same artifact lineage and its event,
   time and session distance;
-- **validation association:** the next later successful source-native
-  validation event and the mutation backlog before it;
-- **rework:** repeated mutation and validation-followed mutation on the same
-  artifact, reported as distributions;
-- **continuity:** actions before a session's first mutation, overlap with the
-  preceding session's artifacts/modules, and cross-session rework;
-- **attention:** action allocation and transitions over artifact types and
-  modules; and
-- **configuration association:** observable process differences following
-  explicit skill/harness/config events, without causal language.
+- **validation association:** adapter-recognized successful validation before
+  the same artifact's next mutation/delete, with supersession as a competing
+  outcome and arbitrary later validation reported only as global association;
+- **repeated-mutation structure:** first/repeat-observed mutation episodes,
+  per-identity load, exact concentration and action-atomic prefix evolution;
+- **source-session continuity:** mutation-observed prefix composition,
+  artifact/module overlap and first-mutation state between adjacent
+  non-overlapping concurrency components; overlapping sessions are not forced
+  into an invented serial order;
+- **workspace activity allocation and migration:** path-resolved action/call
+  allocation, same-artifact/same-module/cross-module transitions and return
+  gaps in native action order, without interpreting them as duration or latent
+  attention; and
+- **skill/instruction source coverage:** exact visible Skill Tool and
+  instruction-file signals. Association analysis is admitted only when positive
+  and negative exposure can both be established; the current corpus cannot.
 
-“Durable verified progress” is the conjunction of observable durability,
-reuse and validation association, not a weighted scalar. Complete distance and
-survival curves are retained. No arbitrary fixed 24-event window enters the
-research measurements.
+The three-way progress conjunction is restricted to eligible
+observation-born introduction episodes; it is not a weighted scalar. Complete
+distance and competing-risk curves are retained. No arbitrary fixed 24-event
+window enters the research measurements.
 
 ## Source evidence and uncertainty
 
 Every exported fact retains the project, session and source-call identifier.
+Activity reports both all admitted actions and the subset whose Tool-level
+workdir/session cwd resolves to a retained worktree; only the latter is used for
+workspace activity--progress comparison.
 The analysis distinguishes:
 
 - `observed`: a native adapter exposes the action/effect/status;
@@ -121,7 +135,7 @@ default structural unit; language-specific module mappings may be added only as
 declared secondary analyses. Classification changes presentation and grouped
 statistics, never the underlying action or artifact identity.
 
-## RQ7 comparison boundary
+## RQ7 comparison boundary and readiness gate
 
 Final workspace, Counts, official ProcGrep, bounded Raw-log LLM and the
 artifact-linked trajectory receive the same declared source universe. ProcGrep
@@ -130,6 +144,15 @@ action-only facts. The proposed method can support a claim only for incremental
 artifact-linked or cross-session facts at comparable factual accuracy and
 reported cost. Every answer cites source IDs or abstains; the representation
 under test cannot generate its own truth set.
+
+Before any question or performance value is produced, the matched run requires
+immutable admitted native prefixes, a per-worktree cutoff revision manifest,
+an untracked-state disposition, executable pinned baseline interfaces and a
+separate source-explicit oracle specification. The current RQ1 freeze has the
+normalized action spine but not those contracts. F10 therefore reports only
+benchmark readiness with explicit N/A cells and `MATCHED COMPARISON STOPPED`;
+it closes only the readiness question and is not evidence for trajectory
+superiority.  The separate capability comparison remains future work.
 
 ## Presentation-only choices
 

@@ -1,0 +1,85 @@
+RQ1 execution record
+====================
+
+Baseline verification:
+  cargo test --manifest-path agent-session/Cargo.toml --quiet
+  result: 11 passed
+  cargo test --manifest-path agentvis/Cargo.toml --quiet
+  result: 35 passed
+  cargo check --manifest-path collector/Cargo.toml --quiet
+  result: success
+  python3 -m py_compile agentvis/research/plot_rq1.py
+  result: success
+
+Preflight event cutoff:
+  1784707912312 epoch milliseconds
+
+Authoritative preflight:
+  cargo run --quiet --manifest-path agentvis/Cargo.toml -- research-rq1 \
+    --cutoff-ms 1784707912312 \
+    --output docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq1-20260722T003659-0700/preflight-agentsight/raw \
+    /home/yunwei37/workspace/agentsight
+  result: 1 project, 4,254 artifacts, 6,472 confirmed mutations
+  resources: 23.83 wall seconds, 766,864 KiB max RSS
+  reconciliation: PASS
+
+First six-project attempt:
+  result: stopped on ActPlane because Git listed a missing worktree directory.
+  disposition: no result interpreted; final state changed from forced false to
+  explicit final_state_known/unknown, and the entire six-project command reran.
+
+Superseded successful run:
+  result: completed after the final-state repair.
+  disposition: discarded without interpretation because it reused the earlier
+  preflight cutoff while final workspace state was queried minutes later. A
+  fresh cutoff was frozen immediately before the authoritative rerun below.
+
+Authoritative six-project run:
+  cargo run --quiet --manifest-path agentvis/Cargo.toml -- research-rq1 \
+    --cutoff-ms 1784708569241 \
+    --output docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq1-20260722T003659-0700/full-six-projects/raw \
+    /home/yunwei37/workspace/agentsight \
+    /home/yunwei37/workspace/ActPlane \
+    /home/yunwei37/workspace/bpf-developer-tutorial \
+    /home/yunwei37/workspace/eunomia.dev \
+    /home/yunwei37/workspace/agentskill-observability-paper \
+    /home/yunwei37/workspace/my-paper-work/academic-writing-skills
+  result: 6 projects, 7,154 artifacts, 13,152 confirmed mutations
+  resources: 39.69 wall seconds, 762,708 KiB max RSS
+  row and coverage reconciliation: PASS
+  note: this final run uses a fresh cutoff immediately before extraction so
+  event inclusion and the read-only final-workspace query share one freeze.
+
+Figure generation:
+  python3 agentvis/research/plot_rq1.py \
+    --input docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq1-20260722T003659-0700/full-six-projects/raw \
+    --output docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq1-20260722T003659-0700/full-six-projects/figures
+  result: F3/F4 PDF and PNG generated and visually inspected
+
+Frozen-output SHA-256:
+  2491c33ac5c5e64c877ea8c998731df2dad2999e37af715e528f997f909dc58b  raw/projects.json
+  8e72aa19b5305b9c455c64cd009b535f45145d67729d9c8b58318e89ef767cc1  raw/rq1-artifacts.csv
+  3d911332f7827afdee74a1f6a0f85aa002be297379e14909dbba1fee36d88964  raw/rq1-mutations.csv
+  d04cee570c409ab1a8b1518657683e6ccb417663acb9933690c063adcf61406b  raw/rq1-summary.csv
+  f8536f1ab6d73393d993c2cde66e6fc9deff759329f17a12eaa1888a49986db4  raw/events/academic-writing-skills.json.gz
+  4ee9fc1aebeee30bc3c2b45117e38a0d63053bda1d167a839466eed630034026  raw/events/ActPlane.json.gz
+  ebbf3dd94459a6d43db945a41f8b112f3289b5833d09b864a070fbc66a8bbf46  raw/events/agentsight.json.gz
+  33b6b1b172027b77ae66695a37025ec41c818df5d0f81c05390568f8fc5c6880  raw/events/agentskill-observability-paper.json.gz
+  88dec6db8a1320c6991fefa236eb6afbfc65e175d62eddbadb80c68ed6a46098  raw/events/bpf-developer-tutorial.json.gz
+  cf7dfea58a4453b221abe8eaf32ed83fe24842d3cac67010fd23a46f974b4fe9  raw/events/eunomia-dev.json.gz
+  8cbc56e7ae4aa788ad072e535dde85b1349cc13ab354084d829e1cc3813b30e6  figures/rq1-activity-progress.pdf
+  14a1c08936c6600876233b2e3229c3f78a7a4a0ef74a449b4cf15ede7dfd6abf  figures/rq1-activity-progress.png
+  20045f19ec9cd3217bb50f6e25e482ef8ee9ba6dc3447bf54fd7aaa2a0e0e915  figures/rq1-progress-curves.pdf
+  704b084b90568be81e1e510fa7748828569cd433ed2ae3a242adc59491c21eb2  figures/rq1-progress-curves.png
+
+Paper-width rendering repair (measurements unchanged):
+  67649a6eb13830382f8d2dcf2278a18b6118614a5d4a22d148f4dca82374ae0c  agentvis/research/plot_rq1.py
+  517e1fe2c40ce5a6607b2b66b4d600727c20b5f6a6b7753166ada9a240a4c189  figures/rq1-activity-progress.pdf
+  50d0b09a65b6dde3a96af6b2a59027d9a41ddc48108dcc1caec9adf684610604  figures/rq1-activity-progress.png
+  a180dbe60b06bcae89e1db1f62db59affbcaa40f355bf253f2d5bb3d6b77639a  figures/rq1-progress-curves.pdf
+  417fb69e21bb0b167b9c994bfe5fe219691d3a6dad471a3323d01038b242d3fc  figures/rq1-progress-curves.png
+
+Final paper-audit rendering (measurements unchanged; full project labels retained):
+  dc04baab1ed5207a9a4a06c24c2bf4f6024fb9c19016322db6be5f1c8bacbd9b  agentvis/research/plot_rq1.py
+  f50fb44163fc2514b8036393adcaf54674f6055090b4bcce77997110d04a8923  figures/rq1-progress-curves.pdf
+  c93ed808eb9be8877904bbaec9ddd6d2aeb8e06d196e78cb21a83bde55ec2148  figures/rq1-progress-curves.png

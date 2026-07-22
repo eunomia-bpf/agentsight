@@ -1,0 +1,51 @@
+RQ6 execution record
+====================
+
+Plan review:
+  Round 1: BLOCK because the original association construct used fields absent
+  from the frozen export and mixed non-equivalent signals.
+  Round 2: PASS after narrowing F9 to an unconditional source-coverage audit
+  and stopping every association/effect analysis in advance.
+
+Verification and authoritative command:
+  python3 -m py_compile agentvis/research/plot_rq6.py
+  python3 agentvis/research/plot_rq6.py \
+    --rq1-root docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq1-20260722T003659-0700/full-six-projects/raw \
+    --output docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq6-20260722T013003-0700
+  result: success; 1,762 source-signal rows in 1,525 unique native Tool events
+  resources: 1.69 wall seconds, 414,408 KiB max RSS
+
+Frozen inputs are the authoritative RQ1 event gzip files and projects.json at
+cutoff 1784708569241. Unique session IDs reconcile exactly to every frozen
+project and vendor `included_sessions` denominator.
+
+Coverage decision:
+  Skill Tool arguments/names, native model/configuration fields,
+  repository-external instruction paths, and proof of actual non-exposure are
+unavailable. Therefore no exposed/unexposed group, process outcome,
+bootstrap, contrast, or forest plot is computed. F9 prints the stop and N/A
+fields. Rename endpoints are checked without double counting; 60 bins encode
+merged native action order only, not wall-clock time.
+
+Result-review repair:
+  Panel B derives a project/vendor availability mask from admitted-session
+  coverage. Unavailable strata are gray N/A cells, distinct from observed zero
+  counts. Available cells use exact log1p(unique event count) color with a
+  labeled count scale. The duplicate in-figure title was removed. A consecutive
+  rerun again produced byte-identical CSVs and PNG.
+
+Determinism check:
+  all four CSVs and the PNG were byte-identical across consecutive runs.
+  Matplotlib PDF metadata changes across runs; CSVs and PNG are the byte-level
+  reproducibility anchors. The PDF is exact paper width with embedded TrueType
+  fonts and labels at or above 7 pt.
+
+Frozen output SHA-256:
+  3f13217769a1a8eaa2b49e49b88d3c39b0e560e95ead7c8b63ff1a6072aa2b1d  raw/rq6-action-bins.csv
+  199f994d8312aa2b336b0338cd689cc24de03bf09b1780869aee7721823735d3  raw/rq6-observed-events.csv
+  01a4d5e231de1b42b1dba7e2c4c0800ac09811fb3feaa1a31db0aae3d4f31181  raw/rq6-session-coverage.csv
+  fddd3dcba80c1c0df177a045c99db168215d29d9ab3bbdccd80bdf79f3d14888  raw/rq6-source-coverage.csv
+  ffc4cca83cd2ba97cdff327e07b588a14ce9e5532ff9d25af0cc1deabd017f4a  figures/rq6-source-coverage.pdf
+  9e59d0032dc78e1a6429dbd7abeec817e60f6411d598d7167a673a45836b315f  figures/rq6-source-coverage.png
+  c7fc6ef51ebdea1ae871f724888f8741f7f500d91f2a3c51833ba7fcafe094bf  result.md
+  27cf0322e91250913855c84f04662edc5ae6a63f7c02ed82ffaa88971a34241c  agentvis/research/plot_rq6.py

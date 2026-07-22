@@ -1,0 +1,60 @@
+RQ7/F10 benchmark-readiness audit
+==================================
+
+Plan review:
+  Round 1: BLOCK because the proposed matched benchmark lacked frozen native
+  prefixes, cutoff worktree state, executable method interfaces, a non-circular
+  oracle, coherent dispositions, and conditional N/A rendering.
+  Round 2: PASS after narrowing this step to a dependency-only source-contract
+  audit. No baseline, question set, oracle, accuracy, advantage, evidence,
+  latency, token, or cost measurement is authorized.
+
+Verification and authoritative command:
+  python3 -m py_compile agentvis/research/plot_rq7.py
+  python3 agentvis/research/plot_rq7.py \
+    --rq1-root docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq1-20260722T003659-0700/full-six-projects/raw \
+    --output docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq7-20260722T013003-0700
+  result: success; 12 present, 0 partial, 24 N/A source-contract cells
+  resources: 1.24 wall seconds, 385,632 KiB max RSS
+
+The implementation compares current files with the preregistered SHA-256 list
+from the authoritative RQ1 commands.log (copied as constants before the audit).
+It does not re-baseline current hashes. Exact missing contract locations are:
+  contracts/native-prefix-manifest.json
+  contracts/native-prefixes.tar.zst
+  contracts/worktree-revisions.json
+  contracts/cutoff-untracked-state.json
+  contracts/procgrep-preflight.json
+  contracts/raw-log-llm.json
+No live checkout or native session file is consulted.
+
+Determinism check:
+  all three CSVs, result.md, and PNG were byte-identical across consecutive
+  runs. Matplotlib PDF metadata changes across runs; CSVs and PNG are the
+  byte-level reproducibility anchors. F10 was visually inspected at original
+  resolution and preserves N/A as gray labeled cells.
+
+Frozen output SHA-256 before the 7pt-only rendering repair:
+  3a546a3bcbd8946ee7695feb6c4fa5969af6ec240520a0fa4ab6c83177521adc  raw/rq7-method-readiness.csv
+  f236880339d484a090b219c975f2fccdc1518b28621072b021f9038457148808  raw/rq7-source-contract.csv
+  f4ed2d7065a1a2f834955b45a6c0e6e61cc51ee12b49a04b27b2a466f60f6d0a  raw/rq7-template-readiness.csv
+  3c26b1a3d2a3617d7ed4a3ae065034bf3dc09e674a1cd7b1548aa5a4f6610b22  figures/rq7-benchmark-readiness.png
+  fa5c2fa392203e377a3a2c9b517b37ce71876ffa8eaa3cfe6f4492ada271fc19  result.md
+  776c9c31612c07c7c92a148896865c6f5439094ab09cd96d471b9b47fbf2b6d5  agentvis/research/plot_rq7.py
+
+Result-review repair and final anchors:
+  The first result review independently reproduced every row and stopped only
+  because this log was empty and the source-matrix cell labels were 6.5pt. This
+  log is now complete; labels are 7pt; and a consecutive rerun again produced
+  byte-identical CSVs, result.md, and PNG.
+  d9d3334fac7401e6d27ff6db9ef0fe8eb9cd31ed0750cf8c7d1440e5694c6de4  figures/rq7-benchmark-readiness.pdf
+  19a4404e7b797726b91b4398827f76226db613f8838325667ba0cefa0625b3f0  figures/rq7-benchmark-readiness.png
+  b9b4df4f4b12c3df0c6c6b16728fa5d30195f64865d3b02eb157713437b7dae2  agentvis/research/plot_rq7.py
+
+Scientific disposition:
+  Counts (normalized) prerequisites are machine-checked for descriptive counts.
+  Artifact Trajectory is coverage-only because its normalized projection exists
+  without an independent matched oracle. Final State, ProcGrep, and Raw-log LLM
+  matched conditions are N/A. Every template family and its 30x4 gate remains
+  not evaluated. MATCHED COMPARISON STOPPED. This is not canonical RQ7 evidence
+  and supports no baseline-performance or trajectory-superiority claim.

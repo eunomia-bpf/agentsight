@@ -23,10 +23,9 @@
 
 \newcommand{\system}{\textsc{Agent Nebula}\xspace}
 \newcommand{\artifact}[1]{\texttt{#1}}
-\newcommand{\resulttodo}[1]{\textcolor{red}{[Result pending: #1]}}
 
 \title{Are Long-Running Agents Making Progress?\\
-A Longitudinal Study of Artifact Evolution, Rework, and Continuity}
+A Longitudinal Study of Artifact Progress, Repeated Mutation, and Continuity}
 \author{Anonymous Submission}
 \affiliations{}
 
@@ -34,7 +33,7 @@ A Longitudinal Study of Artifact Evolution, Rework, and Continuity}
 \maketitle
 
 \begin{abstract}
-Long-running agents can modify a workspace for days across many context resets.
+Long-running agents can modify a workspace for days across many session boundaries.
 When they stop, action counts, commits, and final artifacts do not reveal
 whether activity accumulated into durable and validated progress or repeatedly
 overwrote, abandoned, and rediscovered the same work.  Existing trajectory
@@ -45,12 +44,18 @@ We introduce a source-linked projection that connects native Claude, Codex, and
 Gemini actions to stable artifact identities, lifecycle effects, event time,
 and session boundaries without introducing semantic labels or aligning the
 timeline to Git commits.  We use it to study six real software and autonomous-
-research projects through artifact durability, later reuse, validation
-association, rework, attention migration, and cross-session re-grounding.  A
-separate measurement experiment compares source-verifiable fact coverage with
-Final State, aggregate Counts, the official ProcGrep action representation, and
-a bounded raw-log language-model reader.  \resulttodo{corpus coverage, central
-empirical findings, and measurement-comparison results.}
+research projects through introduced-artifact persistence, later reuse,
+validation association, repeated mutation, workspace-activity migration, and
+cross-session continuity.  Across 2,049 sessions and 206,249 Tool actions,
+89.8--97.3\% of eligible mutations are later revisited, yet action volume does
+not reproduce the cross-project reuse ordering ($\rho=0.09$).  Repeat-observed
+episodes account for 71.8--91.8\% of mutation episodes, with 41.9--86.7\% of
+episodes concentrated in the most-mutated 10\% of identities.  Source coverage
+is itself consequential: recognized successful validation appears in only
+3/6 cases, and skill exposure cannot be identified.  A preregistered readiness
+audit further shows that the frozen corpus lacks the native-prefix and cutoff
+workspace contracts needed for a fair matched baseline comparison; we report
+those conditions as N/A rather than manufacturing a superiority result.
 \end{abstract}
 
 \section{Introduction}
@@ -89,9 +94,10 @@ The remaining gap is longitudinal and artifact centered.  A benchmark attempt
 usually ends when one patch is scored; a persistent project continues while
 code, papers, datasets, results, and documentation acquire histories of their
 own.  We ask how action volume relates to three observable dimensions:
-\emph{durability}, whether an artifact persists; \emph{reuse}, whether later
-work returns to it; and \emph{validation association}, whether a later
-successful validation follows its mutation.  We keep these dimensions
+\emph{introduced-artifact persistence}, whether an observably introduced
+artifact persists; \emph{reuse}, whether later work returns to it; and
+\emph{validation association}, whether an adapter-recognized successful
+validation precedes the artifact's next mutation or deletion.  We keep these dimensions
 separate instead of combining them with arbitrary weights.  Their conjunction
 is useful shorthand for durable, reused, and validation-associated artifact
 progress, not a scalar quality score.
@@ -109,14 +115,15 @@ This paper makes three contributions:
 
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
   \item a longitudinal empirical characterization of how Agent activity,
-  artifact persistence, reuse, validation, rework, attention, and session
+  artifact persistence, reuse, validation, repeated mutation, workspace
+  activity, and session
   continuity interact across six real coding and autonomous-research projects;
   \item a deterministic, source-linked measurement method that preserves
   stable artifact identity and cross-session lineage without another general
   event IR or generated semantic gold; and
-  \item a fact-level evaluation that isolates the incremental measurement
-  coverage of artifact and session relations from Final State, Counts,
-  ProcGrep's action-only procedures, and a bounded raw-log model reader.
+  \item a reproducible source-coverage and benchmark-readiness audit that
+  separates measured results, coverage-only evidence, and N/A conditions
+  instead of treating missing trajectory evidence as observed absence.
 \end{enumerate}
 
 \section{Problem Setting}
@@ -143,16 +150,19 @@ We do not infer intent, failure cause, reflection, or waste from file motion.
 Instead, we measure source-verifiable process facts:
 
 \begin{itemize}[leftmargin=*,itemsep=2pt]
-  \item \textbf{Durability}: final artifact existence or tracked state and,
-  where independent diff or snapshot evidence permits, content survival;
+  \item \textbf{Introduced-artifact persistence}: final existence or tracked
+  state for artifacts observably introduced during the trace; existing-file
+  writes have unknown content durability without independent evidence;
   \item \textbf{Reuse}: a later source-linked access to the same artifact
   lineage and its event, time, and session distance; and
   \item \textbf{Validation association}: distance from mutation to the next
-  source-native successful test, check, build, or experiment action.
+  adapter-recognized successful test, check, or build action before that
+  artifact's next mutation or deletion.
 \end{itemize}
 
-A successful validation proves that validation occurred, not that it covered a
-particular mutation.  A file that is never revisited is an observed orphaned
+Recognized validation proves only that the adapter observed a successful
+command, not that it covered a particular mutation; unrecognized commands and
+unknown statuses remain coverage gaps.  A file that is never revisited is an observed orphaned
 artifact, not automatically useless.  Repeated tests or edits are process
 patterns, not automatically waste.  Skill and harness analyses therefore
 report temporal association, never causality, in the observational corpus.
@@ -183,7 +193,7 @@ six-project source rows in Section~\ref{sec:evaluation}.
 \draw[dashed,gray!70] (7.7,0.0) -- (7.7,4.25);
 \node[font=\small] at (4.2,4.18) {Session $s_1$};
 \node[font=\small] at (11.6,4.18) {Session $s_2$};
-\node[font=\scriptsize,rotate=90,gray!70] at (7.9,2.0) {context reset};
+\node[font=\scriptsize,rotate=90,gray!70] at (7.9,2.0) {session boundary};
 
 \node[font=\small,anchor=east] at (0.55,2.85) {Artifact $f_1$};
 \node[font=\small,anchor=east] at (0.55,1.75) {Artifact $f_2$};
@@ -243,7 +253,7 @@ six-project source rows in Section~\ref{sec:evaluation}.
 \caption{Measurement schematic for persistent workspace evolution.  Circles
 are source-linked reads (R) and mutations (C/W/D); diamonds are successful
 validations (V); terminal boxes are independently observed final workspace
-state.  Artifact $f_1$ is mutated, validated, reused after a session reset, and
+state.  Artifact $f_1$ is mutated, validated, reused after a session boundary, and
 survives; $f_2$ is created and later deleted; $f_3$ illustrates observable
 re-grounding before continued mutation.  The study reports these dimensions
 separately and never treats the schematic as empirical data.}
@@ -269,19 +279,20 @@ a_i=(t_i,id_i,s_i,v_i,u_i,e_i,q_i),
 \end{equation}
 
 where $t_i$ is native time, $id_i$ the stable source ID, $s_i$ the session,
-$v_i$ the vendor, $u_i$ the Tool/category, $e_i$ the source-native command
+$v_i$ the vendor, $u_i$ the Tool/category, $e_i$ the adapter-derived command
 effect, and $q_i$ the reported status.  It attaches zero or more effects
 
 \begin{equation}
 \begin{aligned}
-E_i &= \{(f,o,f')\},\\
+E_i &= \{(w,f,o,f')\},\\
 o &\in \{\textsf{read},\textsf{write},\textsf{create},\\
   &\qquad \textsf{rename},\textsf{delete}\}.
 \end{aligned}
 \end{equation}
 
-Here $f$ is a repository-relative artifact and $f'$ is populated only by an
-observed rename.  Failed calls remain actions but emit no successful effect.
+Here $w$ is a hashed worktree identifier, $f$ is a repository-relative
+artifact, and $f'$ is populated only by an observed rename. Failed calls remain
+actions but emit no confirmed-success effect.
 Directory arguments are weak scope evidence rather than fabricated reads of
 every descendant.  Unknown paths, effects, and status remain explicit coverage
 gaps.
@@ -316,30 +327,34 @@ empirical analyses consume structured events, not visual coordinates.}
 
 \subsection{Artifact and Validation Derivations}
 
-An explicit rename preserves artifact identity.  Delete followed by create at
-the same path begins a new identity unless the source connects them.  For each
-mutation, we locate the next later access to that identity and the next
-successful validation globally and within the same session.  We report both
-event and wall-clock distance.  Final existence and tracked state are queried
-from the workspace and Git independently of the event ordering.
+Artifact identity is keyed by hashed worktree ID and relative path. Tool-level
+workdir takes precedence over session cwd. An explicit same-worktree rename
+preserves identity and its birth state; only a confirmed-success create makes
+an identity eligible as an introduction inside the observation. Unknown-status
+creates retain a separate birth state. Delete followed by create begins a new identity. For each
+confirmed non-delete mutation, we locate later reuse and adapter-recognized
+successful validation before the same artifact's next mutation/delete.
+Supersession is a competing outcome and only observation end is right-censored.
+Final existence and tracked state are queried in the corresponding worktree.
 
 We report complete survival and distance curves or declared sensitivity ranges;
 no fixed 24-event attention window enters the research measurement.  Visual
 attention decay and force layout remain presentation-only choices.
 
-\subsection{Fact-Level Tool Comparison}
+\subsection{Matched-Comparison Prerequisites}
 
-The tool experiment stratifies questions into action-only, artifact-linked,
-cross-session, and final-state facts.  Every answer must cite source IDs or
-abstain.  Truth is generated independently from native records and
-workspace/Git state; no method under comparison labels its own answer.
+A valid tool comparison would stratify questions into action-only,
+artifact-linked, cross-session, and final-state facts.  Every answer would cite
+source IDs or abstain, and no method under comparison could label its own
+answer.  Final State and Counts would be lower-information controls, ProcGrep
+the strongest action-only procedure baseline, and a bounded raw-log model a
+same-source reconstruction condition.
 
-Final State and Counts are lower-information controls.  ProcGrep is the
-strongest action-only procedure baseline and should tie or win action-only
-questions.  The bounded raw-log model receives the same source membership and
-fixed retrieval, context, and output budgets.  The proposed method can support
-only an incremental-coverage claim for artifact-linked and cross-session facts
-at comparable factual accuracy and reported cost.
+This design is conditional rather than an executed claim.  It requires hashed
+native prefixes, cutoff workspace state, pinned executable interfaces, and an
+independent source-explicit oracle before questions or performance values are
+generated.  Section~\ref{sec:evaluation} audits those prerequisites and stops
+the comparison when they are absent.
 
 \section{Implementation}
 \label{sec:implementation}
@@ -350,6 +365,9 @@ affiliates sessions with all repository worktrees, normalizes paths, and emits
 ordinary source-linked JSON and CSV rows.  The analysis computes project-level
 coverage, artifact and mutation rows, and RQ summaries without a frontend,
 database, generated semantic layer, or additional runtime dependency.
+It reports all admitted Tool actions but uses only actions whose Tool-level
+workdir or session cwd resolves to a retained worktree for the primary
+activity--progress comparison.
 
 The product path continues to export one standalone HTML, SVG, PNG, GIF, or MP4
 per visualization.  Layout is computed once and media outputs share the same
@@ -367,28 +385,28 @@ is later reused, and is followed by successful validation?
 
 \paragraph{RQ2---Validation dynamics.}
 How do successful and failed validations interleave with mutation bursts and
-unvalidated backlog across artifact types?
+worktree-local inter-success mutation accumulation?
 
-\paragraph{RQ3---Rework and convergence.}
-How do repeated mutation, validation-followed revision, delete/replace, and
-module switching characterize rework and non-convergence?
+\paragraph{RQ3---Repeated-mutation structure.}
+How common and concentrated are first- and repeat-observed mutation episodes
+across artifacts and Agent action time?
 
-\paragraph{RQ4---Cross-session continuity.}
-How much observable re-grounding precedes a new session's first mutation, and
-how often does work continue the previous session's artifacts and modules?
+\paragraph{RQ4---Source-session continuity.}
+What continuity is observable between adjacent non-overlapping source-session
+components, and where does the available source coverage stop interpretation?
 
-\paragraph{RQ5---Attention allocation.}
-How does Agent attention migrate among code, tests, configuration, papers and
-documentation, data, results, and workspace modules?
+\paragraph{RQ5---Workspace activity allocation and migration.}
+How are path-resolved actions allocated among artifact types, and how do their
+artifact and module transitions and returns evolve in action order?
 
-\paragraph{RQ6---Skill and harness association.}
-What process patterns follow source-visible skill, harness, model, and task
-configuration, and how heterogeneous are those associations across cases?
+\paragraph{RQ6---Skill and instruction source coverage.}
+Are visible Skill calls and instruction-file accesses sufficiently complete to
+support an observational association analysis in this corpus?
 
-\paragraph{RQ7---Measurement capability.}
-Which source-verifiable facts does the artifact-linked representation recover
-beyond Final State, Counts, ProcGrep, and bounded raw-log model analysis, and
-at what accuracy and cost?
+\paragraph{RQ7---Matched-comparison readiness.}
+Does the frozen corpus contain the immutable native-log and cutoff-workspace
+contracts needed to compare Final State, Counts, ProcGrep, bounded raw-log
+model analysis, and artifact-linked trajectories on the same evidence?
 
 \subsection{Cases and Inclusion}
 
@@ -419,8 +437,12 @@ are not treated as independent projects.}
 The main corpus includes all repository-direct Claude, Codex, and Gemini
 sessions and retains actions with no file effect.  We report source coverage by
 project, vendor, session, effect, status, and path presence.  Global path-only
-matches form a separate sensitivity analysis.  \resulttodo{qualified session,
-action, effect, and observation-window counts for all six projects.}
+matches form a separate sensitivity analysis.  The frozen corpus contains
+2,049 admitted native sessions and 206,249 Tool actions; 1,825 sessions and
+175,850 actions resolve to retained worktrees.  It yields 7,154 observed
+artifact identities and 13,152 confirmed mutation rows.  All six projects pass
+the longitudinal gate, although source coverage for individual measurements
+varies substantially.
 
 \subsection{Analysis Protocol}
 
@@ -438,60 +460,218 @@ and must resolve to source IDs and deterministic metrics.
 
 \subsection{RQ1: Activity to Artifact Progress}
 
-RQ1 reports action and mutation volume, final existence and tracked state,
-later reuse distance, mutation-to-successful-validation distance, and the
-intersection of observable durability, reuse, and validation association.
-File-level survival remains separate from content-level survival.  The latter
-is reported only where native diffs, snapshots, or Git line evidence establish
-it independently.  \resulttodo{per-project RQ1 distributions, survival curves,
-cross-case contrasts, and answer.}
+RQ1 reports action and mutation volume, introduced-artifact persistence, later
+reuse distance, validation-before-supersession distance, competing outcomes,
+and the conjunction for eligible observation-born introduction episodes.
+Existing-file writes have unknown content durability unless native diffs,
+snapshots, or Git line evidence establish it independently.
+
+Figure~\ref{fig:rq1-progress} separates the three dimensions.  All six projects
+support later-reuse analysis: 89.8--97.3\% of eligible mutations receive a
+later observed access, with delete before reuse treated as a competing outcome.
+However, only AgentSight, ActPlane, and eunomia.dev expose an eligible
+confirmed create and an adapter-recognized successful validation.  The
+preregistered four-project gate therefore stops cross-case interpretation of
+persistence and validation; their panels are coverage descriptions, not
+population estimates.  The three observable persistence proportions are
+939/983, 3/50, and 4/10, and the corresponding observed
+validation-before-supersession proportions are 2077/6118, 873/5630, and
+32/157.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/rq1-progress-curves.pdf}
+  \caption{RQ1's three observable progress dimensions.  Panel A reports exact
+  final-path persistence only for adapter-recognized confirmed creates.
+  Panels B and C use Aalen--Johansen cumulative incidence over native Agent
+  action-event distance: deletion competes with later reuse, while the next
+  same-artifact mutation/delete competes with recognized validation.  N/A is
+  source ineligibility, not zero progress.  Because persistence and validation
+  each cover only 3/6 cases, those panels stop at coverage description.}
+  \label{fig:rq1-progress}
+\end{figure*}
+
+Figure~\ref{fig:rq1-activity} tests whether raw action volume is an adequate
+proxy for these outcomes.  Only reuse meets the cross-case coverage gate, and
+its descriptive Spearman rank association with worktree-attributed Tool action
+volume is $\rho=0.086$ across six cases.  This near-zero six-case rank contrast
+does not estimate a population effect, but it demonstrates that action count
+alone does not reproduce the observed reuse ordering in this corpus.  RQ1 thus
+establishes measurable activity--progress separation for reuse while exposing
+a first-order adapter-coverage limit for persistence and validation.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/rq1-activity-progress.pdf}
+  \caption{Worktree-attributed Tool action volume versus exact observed RQ1
+  proportions.  Labels show numerator/denominator rather than fitted values.
+  Persistence and validation fail the four-case gate, so no correlation is
+  computed.  Reuse includes all six projects and reports only a descriptive
+  rank correlation; actions are not treated as independent cases.}
+  \label{fig:rq1-activity}
+\end{figure*}
 
 \subsection{RQ2: Validation Dynamics}
 
-RQ2 measures mutation bursts, successful and failed validation cadence,
-unvalidated mutation backlog, and behavior immediately before and after
-validation.  It never calls a successful command proof that every preceding
-change was correct.  \resulttodo{RQ2 tables, curves, and answer.}
+RQ2 measures mutation bursts, recognized successful and failed validation
+cadence, and worktree-local mutation accumulation between recognized
+successes.  It never calls a successful command proof that every preceding
+change was covered or correct.  Figure~\ref{fig:rq2-validation} shows the exact
+action-order trajectories and complete inter-success intervals.  Only
+AgentSight, ActPlane, and eunomia.dev expose a recognized successful
+validation, so the predeclared four-project gate stops a cross-case answer.
+Within those covered cases, complete intervals are strongly zero-inflated yet
+occasionally very large: the four eligible worktree lanes have 60.0--89.1\%
+zero-mutation intervals, while their maxima range from 32 to 1,144 mutations.
+This is evidence about adapter-recognized cadence, not redundant testing or
+mutation coverage.
 
-\subsection{RQ3: Rework and Convergence}
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/rq2-validation-dynamics.pdf}
+  \caption{RQ2 recognized-validation dynamics.  Panel A follows native Agent
+  action order in every worktree lane; mutation effects project to the affected
+  worktree while validation remains on the command worktree.  Panel B reports
+  complete worktree-local intervals between recognized successful validations.
+  Panel C exposes project-level outcome coverage.  Only 3/6 cases contain a
+  recognized success, so the analysis stops at coverage and within-case
+  description.}
+  \label{fig:rq2-validation}
+\end{figure*}
 
-RQ3 reports repeated mutation per artifact, read--write--validate sequences,
-validation-followed rework, delete/replace events, and module switching.  We
-report distributions and sensitivity ranges rather than one ``thrashing''
-threshold.  \resulttodo{RQ3 distributions, sensitivity analysis, and answer.}
+\subsection{RQ3: Repeated-Mutation Structure}
 
-\subsection{RQ4: Cross-Session Continuity}
+RQ3 treats each artifact's first observed mutation episode separately from
+later observed episodes.  Figure~\ref{fig:rq3-rework} shows that repeat-observed
+episodes account for 71.8--91.8\% of observed mutation episodes across all six
+qualified cases.  Concentration differs substantially: the exact top 10\% of
+mutated identities account for 41.9--86.7\% of episodes.  These are descriptive
+properties of the observed trajectories.  They do not identify a tail family,
+convergence, thrashing, defect repair, or wasted work; validation-followed
+revision and module switching remain open facets of the broader question.
 
-RQ4 aligns every eligible native session boundary and measures actions before
-the first mutation, overlap with the preceding session's active artifacts and
-modules, and cross-session rework.  We call this observable cost a session
-reset tax without making a claim about hidden model memory.  \resulttodo{RQ4
-boundary-aligned results and answer.}
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/rq3-rework-structure.pdf}
+  \caption{RQ3 repeated-mutation structure for 7,154 observed identities,
+  2,219 mutated identities, and 13,150 mutation episodes (13,152 source rows).
+  The all-identity zero mass is separated from the conditional CCDF; the
+  concentration curve uses the exact fractional 10\% boundary; and the repeat
+  fraction evolves as an action-atomic post-action step function.}
+  \label{fig:rq3-rework}
+\end{figure*}
 
-\subsection{RQ5: Attention Allocation}
+\subsection{RQ4: Source-Session Continuity}
 
-RQ5 reports action allocation by artifact type, module transition matrices,
-transition entropy, hotspot migration, and persistent cold regions in action
-time.  Visual coordinates are excluded from statistics.  \resulttodo{RQ5
-allocation and migration results and answer.}
+Native records do not provide portable parent/child session roles, and many
+sessions overlap.  RQ4 therefore forms transitive concurrency components
+within each worktree lane and compares only adjacent non-overlapping
+components.  Figure~\ref{fig:rq4-continuity} reports 120 components and 108
+boundaries, including mutation-observed prefix composition and defined
+artifact/module overlap.  Fewer than four projects reach 20 eligible boundaries
+for every estimator; the preregistered gate stops.  The figure is thus a
+source-coverage and within-case continuity audit, not evidence of session reset
+cost, resumption, model memory, comprehension, or forgetting.
 
-\subsection{RQ6: Skill and Harness Association}
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/rq4-component-continuity.pdf}
+  \caption{RQ4 source-session component continuity.  Adjacent, non-overlapping
+  concurrency components avoid inventing a serial order among overlapping
+  sessions.  Timing is conditional on an observed first mutation; empty
+  denominators remain undefined.  The stop notice makes the failed
+  four-project gate explicit, so all panels remain within-case descriptions.}
+  \label{fig:rq4-continuity}
+\end{figure*}
 
-RQ6 first audits whether skill and configuration events are explicit enough to
-observe.  It then compares subsequent artifact mix, validation cadence,
-rework, and survival within cases.  Task, model, time, and project confounds
-prevent causal attribution.  \resulttodo{RQ6 source coverage, associations,
-heterogeneity, and answer.}
+\subsection{RQ5: Workspace Activity Allocation and Migration}
 
-\subsection{RQ7: Measurement Capability}
+RQ5 analyzes path-resolved activity rather than latent attention or time spent.
+Figure~\ref{fig:rq5-allocation} separates access from mutation and retains both
+\texttt{ok} and \texttt{observed} statuses.  Status sensitivity is material:
+for example, eunomia.dev's mutation allocation to paper/docs is 39.2\% with all
+resolved statuses and 88.2\% with \texttt{ok} only.  Therefore neither stratum
+is silently promoted to ground truth.
 
-RQ7 uses a fixed, stratified fact set and the same source universe for every
-method.  It reports fact accuracy, answer coverage, evidence precision,
-abstention, tokens, bytes, and latency.  Action-only questions are positive
-controls for ProcGrep; final-state questions are positive controls for Final
-State.  Artifact-linked and cross-session questions isolate the proposed
-increment.  \resulttodo{fact-set size, baseline versions, accuracy/coverage/
-cost table, and answer.}
+Figure~\ref{fig:rq5-migration} follows each worktree lane in native call order.
+Across the six cases, successive path-resolved calls remain on the same
+artifact 29.3--81.6\% of the time, move within the same module 17.5--64.6\%,
+and cross modules 0.9--20.8\%.  Five cases meet the return-gap gate, with
+median return gaps of 3--5 calls; the AgentSkill case has only three returns
+and is N/A.  These measurements do not imply duration, internal attention,
+importance, productivity, entropy, cooling, or forgetting.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/rq5-artifact-allocation.pdf}
+  \caption{RQ5 path-resolved workspace activity allocation by artifact class,
+  action effect, and source status.  One multi-path Tool call contributes
+  fractionally across its resolved paths in the call-weighted view; exact
+  action-weighted rows are retained separately.}
+  \label{fig:rq5-allocation}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth,height=0.78\textheight,keepaspectratio]{figures/rq5-activity-migration.pdf}
+  \caption{RQ5 workspace activity migration in native call order.  Transitions
+  are computed within worktree lanes as same artifact, same module, or cross
+  module; return gaps count intervening calls.  Module names and worktree-module
+  keys are reported separately, and low-support estimates remain N/A.}
+  \label{fig:rq5-migration}
+\end{figure*}
+
+\subsection{RQ6: Skill and Instruction Source Coverage}
+
+RQ6 first audits whether the source records expose the configuration needed for
+an association analysis.  We observe exact \texttt{Skill} Tool calls and reads
+or mutations of \artifact{AGENTS.md}, \artifact{CLAUDE.md}, and
+\artifact{SKILL.md}.  The corpus yields 1,762 signal rows across 1,525 native
+Tool events, but omits Skill names and arguments, model/configuration fields,
+repository-external instructions, and proof that a no-signal session was not
+exposed.  Figure~\ref{fig:rq6-coverage} therefore records an explicit analysis
+stop: these visible signals cannot support exposed/unexposed groups or an
+outcome association, let alone a causal claim.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/rq6-source-coverage.pdf}
+  \caption{RQ6 source-signal coverage audit.  Session shares are nonexclusive;
+  the vendor--signal--status matrix and equal-action-count bins expose where
+  exact visible signals occur.  Missing exposure-defining fields trigger the
+  preregistered association stop; N/A is not a null effect.}
+  \label{fig:rq6-coverage}
+\end{figure*}
+
+\subsection{RQ7: Matched-Comparison Readiness}
+
+Before asking which representation answers more questions, RQ7 audits whether
+every condition can receive the same frozen evidence and an independent
+oracle.  The audit checks six projects against six contracts: a hashed
+normalized action spine, source linkage, a native admitted-prefix manifest and
+archive, a cutoff worktree revision manifest, and an explicit untracked-state
+snapshot.  It finds 12 present, zero partial, and 24 N/A project--contract
+cells.  All 206,249 normalized events retain project, vendor, session, event,
+and source-call linkage, but the frozen study lacks native-prefix archives and
+per-worktree cutoff state.
+
+Consequently, Counts is admitted only for descriptive prerequisites and the
+artifact trajectory is coverage-only: its own RQ1 tables cannot serve as an
+independent accuracy oracle.  Final State, pinned ProcGrep, and bounded raw-log
+model analysis remain N/A.  No action-only, artifact-linked, cross-session, or
+final-state question family passes the planned $30\times4$ gate.  Figure
+~\ref{fig:rq7-readiness} therefore contains no accuracy, coverage advantage,
+latency, token, or cost value.  This is a benchmark-readiness result, not
+evidence that the proposed representation outperforms a baseline.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/rq7-benchmark-readiness.pdf}
+  \caption{RQ7 source-contract and method-readiness audit.  Gray N/A cells
+  denote unavailable matched evidence, not zero performance.  The audit stops
+  the comparison before question generation or model execution.}
+  \label{fig:rq7-readiness}
+\end{figure*}
 
 \section{Threats to Validity}
 
@@ -512,10 +692,12 @@ rates.  Broad AAAI claims require an independent public or prospectively
 captured corpus after this study identifies measurements with adequate source
 coverage.
 
-Skill, harness, model, task, and project often change together.  RQ6 is
-observational and generates controlled hypotheses; it does not identify causal
-effects.  Likewise, repeated actions, unvisited artifacts, and long validation
-gaps are process facts rather than automatic failure labels.
+Skill, harness, model, task, and project often change together.  More
+fundamentally, the frozen records do not expose enough fields to identify
+positive and negative configuration exposure.  RQ6 therefore stops at source
+coverage rather than estimating an observational or causal effect.  Likewise,
+repeated actions, unvisited artifacts, and long validation gaps are process
+facts rather than automatic failure labels.
 
 \section{Related Work}
 
@@ -533,7 +715,7 @@ AgingBench studies reliability across many sessions~\cite{zhu2026aging}, while
 context-management work shows that plans can lose influence
 ~\cite{mehta2026plans}.  OR-Space evaluates persistent multi-artifact workspaces
 ~\cite{zhou2026orspace}.  These works motivate the setting but do not measure
-artifact durability, reuse, validation association, and re-grounding across
+introduced-artifact persistence, reuse, validation association, and re-grounding across
 real project histories.
 
 \paragraph{Diagnosis and harness analysis.}
@@ -561,11 +743,14 @@ an Agent or automatic diagnostic process studying its own authorized workspace.
 
 Long-running Agent work persists in artifacts while session context disappears.
 Studying only final state, commits, or action volume therefore misses the
-process users need to understand: whether work persists, is reused, receives
-validation, converges, and survives context resets.  Our workspace-centered
-measurement connects native actions to artifact identity and session lineage,
-then separates empirical findings from the tool's incremental fact coverage.
-\resulttodo{final evidence-backed answers to RQ1--RQ7 and their implications.}
+process users need to understand: which work persists, is revisited, receives
+recognized validation, accumulates repeated mutation, and migrates across a
+workspace.  Across six projects, later reuse is consistently high but weakly
+ordered by action volume, while repeated mutation is both common and strongly
+concentrated.  Validation, session-continuity, and skill analyses also expose
+hard source-coverage boundaries rather than portable success, reset, or causal
+harness effects.  Our workspace-centered measurement makes these process facts
+reproducible while keeping unsupported comparisons explicitly N/A.
 
 \bibliography{references}
 

@@ -1,0 +1,57 @@
+RQ5 execution record
+====================
+
+Plan review:
+  Round 1: BLOCK (classifier, identity, transition, return, figure and gate definitions)
+  Round 2: BLOCK (status/fractional denominator, cross-worktree adjacency,
+  return-risk opening and color normalization)
+  Round 3: PASS after all definitions were frozen.
+
+Verification and authoritative command:
+  python3 -m py_compile agentvis/research/plot_rq5.py
+  python3 agentvis/research/plot_rq5.py \
+    --rq1-root docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq1-20260722T003659-0700/full-six-projects/raw \
+    --rq4-root docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq4-20260722T013003-0700/raw \
+    --output docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq5-20260722T013003-0700
+  result: success; 95,111 path-resolved primary units, 71,250 worktree-lane
+  resolved calls, 71,238 adjacent transitions, and 10,959 observed returns
+  resources: 5.9 wall seconds, 717,268 KiB observed max RSS
+
+Frozen inputs:
+  authoritative RQ1 event gzip files recorded in RQ1 commands.log
+  26466eb3a343ee6eb9a459a6c4690b8ae072b0317a775f6636093f0d3eb344cf  RQ4 raw/rq4-accesses.csv
+
+Execution notes:
+  Repaired RQ4 identity replay resolves all 95,111 retained primary units; no
+  non-scope identity remains unknown. Coverage is reconciled per project and
+  vendor, including home-or-target worktree attribution, scope-only calls,
+  calls without a resolved path, and failed calls without path evidence.
+  All six projects pass allocation and transition gates; five pass the return
+  gate. AgentSkill's three returns remain N/A/coverage-only in the figure and
+  result. Status `observed` is retained as unknown outcome, not confirmed
+  effect. F8 is split into paper-width allocation/status-sensitivity and
+  spatial-dynamics figures; both use embedded TrueType fonts at >=7 pt.
+
+Determinism check:
+  all CSVs and both PNGs were byte-identical across consecutive runs.
+  Matplotlib PDF metadata changes across runs; CSVs and PNGs are the
+  reproducibility anchors.
+
+Frozen output SHA-256:
+  b2e2d6f8e44cd2e9000a2b8caf0ccc13d3a71acc879ecf7f61627544c131f86d  raw/rq5-actions.csv.gz (committed archive)
+  b655cb547b1dc43d0dd7c7a3d944b324f1bb5bd0ab66099eb0011828fa5a866f  raw/rq5-calls.csv.gz (committed archive)
+  5decd1c3cabb091c157996da9363ac525dfd9a742207935dae04d48bfd48ee0a  raw/rq5-transitions.csv.gz (committed archive)
+  b9dd9177e5e092010af552f59c9a6a0f67368f1515368fec3e419ffe85373684  raw/rq5-actions.csv
+  21f931bc56261fa7396a001042cc195d27f9366e51b79fbff4fba9d3001e20bd  raw/rq5-calls.csv
+  4da46b77d2b0eeb085370f124e5341d186b1112a0461212e9f7a2499579ebfc8  raw/rq5-coverage.csv
+  63f156e745da820b369dff053c03dc96ca79210e1607813fc13c1597072b5aaf  raw/rq5-leader-changes.csv
+  e921cc58d56e6235344b5dbd11d4ede25611aae63b8deb23765b1b63a07e3882  raw/rq5-module-returns.csv
+  5a10fadf04989d92de85938b1f7eefc501a082f78a0467a7f8323a311e37a700  raw/rq5-module-summary.csv
+  aab311f18c0598f96fcb7e3b4c3763d903a1de3399580d6ca232357f026b7d7c  raw/rq5-summary.csv
+  a4fbf188f22073fd80cb415671ac44f1e6749115fc5f98c70bb2f8f1cd2af840  raw/rq5-transitions.csv
+  88f5ee5eb0c40001af3a329268721cfebef78233f6676f9ca4df12d912ad79a2  figures/rq5-activity-migration.pdf
+  0a6e5aa8bc94987b17aab824753f95771206164a11f2b92a8013e6e9bbfa8177  figures/rq5-activity-migration.png
+  135acbe9bd00029464dbf2835d7a8506c0dd37f49f8ee7d4686b51367dad8907  figures/rq5-artifact-allocation.pdf
+  def5b8bd67d6c041724878222a20758df3d48e44149826619d111483ef6da990  figures/rq5-artifact-allocation.png
+  467108ac5d909dce501c2b6c72b217c17d70973d37bd286f8215f73dc8fefb6c  result.md
+  512cf22782e1d7f69d3090e3534e3647699e69f327a0751ca30e86db5ece40b8  agentvis/research/plot_rq5.py

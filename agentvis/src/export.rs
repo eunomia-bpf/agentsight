@@ -103,6 +103,7 @@ pub fn run_vis(
     let trace = build_repository_trace(&RepositoryTraceOptions {
         repo: repo.into(),
         global,
+        end_ms: None,
     })?;
     eprintln!(
         "[agentvis 3/5] actions     {} sessions · {} source events · {} tool actions · {} file actions · {:.1}s",

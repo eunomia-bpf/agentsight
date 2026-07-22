@@ -1,0 +1,52 @@
+RQ3 execution record
+====================
+
+Plan review:
+  Round 1: BLOCK (left-censoring terminology, denominator, compound effects,
+  unsupported heavy-tail/convergence labels)
+  Round 2: PASS
+
+Verification and authoritative command:
+  python3 -m py_compile agentvis/research/plot_rq3.py
+  python3 agentvis/research/plot_rq3.py \
+    --rq1-root docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq1-20260722T003659-0700/full-six-projects/raw \
+    --output docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq3-20260722T013003-0700
+  result: success; 13,152 mutation rows collapsed to 13,150 mutation episodes
+  resources: 1.84 wall seconds, 482,092 KiB max RSS
+
+Frozen inputs are the authoritative RQ1 artifact/mutation CSV and verified
+event gzip files recorded in the RQ1 commands.log.
+
+Independent result-review repair:
+  The first result audit rejected F6 because 829 Tool actions with multiple
+  artifact episodes were linearly ordered inside one event, display annotations
+  were incomplete, and ceil(n/10) overstated small-project top-10% shares. The
+  final run aggregates exact event-index prefixes with post-step curves, uses
+  fractional-boundary top-10% shares, and prints episode/raw, repeat,
+  cross-session, rename/delete, and wall-time fields.
+
+Frozen output SHA-256:
+  c26f035e88c6ebf5feefb97c8be003f2e5fc375be47de80eca089187ca15c8d4  raw/rq3-artifact-load.csv
+  095500dbbaaa3de70e970d57d73eeca9bc3d1ebf45c55c56ff9a22f3f22359bf  raw/rq3-episodes.csv
+  2308ddffd2b7a66819bbfafb501eb14a920d437bc99ffa91c26e8439e25ba7cb  raw/rq3-summary.csv
+  fca5b546e52be852d26399ea5b68abbadc2c267ab3021279e3defa2614039e6f  figures/rq3-birth-state-sensitivity.pdf
+  65f029dd50d2b78d04dbea65f10e0a1bdff2739d5832cb1533991feefa404c14  figures/rq3-birth-state-sensitivity.png
+  d29fa20b7d7a6d950bfaed987866e155292ced6d87cc9957c1f61efe8eeebc1f  figures/rq3-rework-structure.pdf
+  7c70d70010d6d071595051abec80d3b4c65834d4413163b61276c03f2c846c11  figures/rq3-rework-structure.png
+
+Paper-width rendering repair (measurements unchanged):
+  7f1644598091c075c54cf3056e20b0a1e34f158ce6eb6c537d88a0af2b6f8f02  agentvis/research/plot_rq3.py
+  8c43a88d3073047359975c960135986945522af1dc81e885e830dc3bdd696a6e  figures/rq3-birth-state-sensitivity.pdf
+  5209bda722e188cd804a959fa463276a68ec813690e77f77b9a0e4c39c28cfd3  figures/rq3-birth-state-sensitivity.png
+  2b6b48776083dfd345c3d10cbf881873a7efe2fda1d0e080a25ba6a04160a3c6  figures/rq3-rework-structure.pdf
+  8bca912e10f0d3175e7d75dfa2d565bfabe418ceed659b7187a07e40d155cb78  figures/rq3-rework-structure.png
+
+Final float-fit rendering (measurements unchanged):
+  a259b5c84d8e8f63bc84f1f31b9ff8ef3bb9b24fd507ccafc322e51f9aa858d2  agentvis/research/plot_rq3.py
+  6872ebdb368b65566e53a58f46e8f5d102becf6e631ace35448564c51fd110ab  figures/rq3-rework-structure.pdf
+  32dc4defb0ac0e9e016e049d2296df3205f8f2a9e6c039fcdd847213e9150587  figures/rq3-rework-structure.png
+
+Final paper-audit rendering (measurements unchanged; right-edge ticks retained):
+  7e7bc0d287412f021f68e7c5a655671c95e313d63bfd9813cea649345deabfb3  agentvis/research/plot_rq3.py
+  e40b60901fc98e2ff87397adecdac8baa34a94e56d7143b177d6fb00d7834dcc  figures/rq3-rework-structure.pdf
+  ee73ed4583a9c9ef8c68abc64a4f248472abdee40a642dd77c03d893e5e82e47  figures/rq3-rework-structure.png

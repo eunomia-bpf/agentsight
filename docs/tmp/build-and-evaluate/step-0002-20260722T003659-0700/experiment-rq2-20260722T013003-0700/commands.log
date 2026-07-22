@@ -1,0 +1,51 @@
+RQ2 execution record
+====================
+
+Plan review:
+  Round 1: BLOCK (worktree mixing, unsupported backlog construct)
+  Round 2: BLOCK (three execution-level provenance gaps)
+  Round 3: PASS
+
+Verification and authoritative command:
+  python3 -m py_compile agentvis/research/plot_rq2.py
+  python3 agentvis/research/plot_rq2.py \
+    --rq1-root docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq1-20260722T003659-0700/full-six-projects/raw \
+    --output docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq2-20260722T013003-0700
+  result: success; 3/6 recognized-success coverage; cross-case stop retained
+  resources: 3.05 wall seconds, 535,580 KiB max RSS after the target-worktree repair
+
+Implementation repair during generation:
+  An earlier post-edit run exhausted memory while retaining decoded source
+  JSON and simultaneously rereading the frozen trajectory CSV for plotting.
+  It produced no admitted result. The final script releases extraction objects
+  before the required CSV reread; measurements and figure semantics are
+  unchanged, and the authoritative command above reran from verified inputs.
+
+Frozen input SHA-256:
+  3d911332f7827afdee74a1f6a0f85aa002be297379e14909dbba1fee36d88964  rq1-mutations.csv
+  f8536f1ab6d73393d993c2cde66e6fc9deff759329f17a12eaa1888a49986db4  events/academic-writing-skills.json.gz
+  4ee9fc1aebeee30bc3c2b45117e38a0d63053bda1d167a839466eed630034026  events/ActPlane.json.gz
+  ebbf3dd94459a6d43db945a41f8b112f3289b5833d09b864a070fbc66a8bbf46  events/agentsight.json.gz
+  33b6b1b172027b77ae66695a37025ec41c818df5d0f81c05390568f8fc5c6880  events/agentskill-observability-paper.json.gz
+  88dec6db8a1320c6991fefa236eb6afbfc65e175d62eddbadb80c68ed6a46098  events/bpf-developer-tutorial.json.gz
+  cf7dfea58a4453b221abe8eaf32ed83fe24842d3cac67010fd23a46f974b4fe9  events/eunomia-dev.json.gz
+
+Independent result-review repair:
+  The first result audit found 4,099 mutation rows whose FileAction worktree
+  differed from the Tool cwd worktree. The initial F5 was rejected. The final
+  implementation projects each action into its home and explicit target
+  worktree lanes, while validation belongs only to the home worktree. The full
+  command reran; all 13,152 mutation rows now reconcile.
+
+Frozen output SHA-256:
+  f6263c517c515378d9837f9c97675eb39fdede2690ccd35f5c036d6b1411abed  raw/rq2-trajectory.csv.gz (committed archive)
+  61c1ccaf0469bbbf1e5ce7bd4bb1e68ce7484678052e13871552eadc91e05301  raw/rq2-coverage.csv
+  8377ae6db609f8a7a5b3caa9cc4c5417ae69538ee22a7c43fc3d6d4ea944f9d7  raw/rq2-cycles.csv
+  ab3a4b46ff006411dca82e1d1f6bd0b0322b8c69b75b7e7d181de8d2fb412a9f  raw/rq2-trajectory.csv
+  c333093d592c3a1ff851df143e04cd845f43ae453c12158102b4ca21863a0f2c  figures/rq2-validation-dynamics.pdf
+  7989a62af38fb7cc98f7e76f47b4d44b7db2e8de23d0ade2cbf92413c3d7ebbe  figures/rq2-validation-dynamics.png
+
+Paper-width rendering repair (measurements unchanged):
+  09f64c18521a76c811f7326835c718aa7499b3eb866c5a7819eaa6d77cf2914f  agentvis/research/plot_rq2.py
+  af77144f1866e4ab2ba84c5f7955fa041037b7252dc3ea54a867371f051e9ced  figures/rq2-validation-dynamics.pdf
+  423dc9d73b8495ea1bf89536c5e1a2d87a6759d9f05f9226719e0bb9ea404c3c  figures/rq2-validation-dynamics.png

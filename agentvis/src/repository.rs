@@ -9,7 +9,7 @@ use agent_session::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::io::{self, BufRead, BufReader, Read};
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -18,6 +18,8 @@ use std::process::{Command, Stdio};
 pub struct RepositoryTraceOptions {
     pub repo: PathBuf,
     pub global: bool,
+    /// Optional research cutoff; product callers leave this unset.
+    pub end_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,7 +29,13 @@ pub struct RepositoryTrace {
     pub start_ms: i64,
     pub end_ms: i64,
     pub global: bool,
+    pub worktree_count: usize,
+    pub candidate_session_count: usize,
+    pub parsed_session_count: usize,
     pub session_count: usize,
+    pub candidate_sessions_by_vendor: BTreeMap<String, usize>,
+    pub parsed_sessions_by_vendor: BTreeMap<String, usize>,
+    pub included_sessions_by_vendor: BTreeMap<String, usize>,
     pub source_event_count: usize,
     pub file_action_count: usize,
     pub events: Vec<RepositoryEvent>,
@@ -43,19 +51,28 @@ pub struct RepositoryEvent {
     pub session_id: String,
     pub vendor: String,
     pub ts_ms: i64,
+    /// Worktree containing the Tool-level workdir/cwd, when resolvable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub worktree_id: Option<String>,
     pub tool_name: String,
     pub category: String,
     pub command_name: String,
+    /// Adapter-derived command effect such as read, write, test, or process.
+    pub effect: String,
     pub status: String,
     pub actions: Vec<FileAction>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct FileAction {
+    /// Stable, non-reversible identifier of the canonical Git worktree root.
+    pub worktree_id: String,
     pub path: String,
     pub access: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub previous_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_worktree_id: Option<String>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub scope: bool,
 }
@@ -75,7 +92,15 @@ pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<Re
         .filter(|candidate| candidate_may_match_repo(candidate, &roots, remote.as_deref()))
         .collect::<Vec<_>>();
     candidates.sort_by(|left, right| left.path.cmp(&right.path));
-    let (mut events, source_event_count) = scan_sessions(&candidates, &roots, options.global)?;
+    let candidate_sessions_by_vendor = count_candidates_by_vendor(&candidates);
+    let parsed = parse_candidates(&candidates);
+    let parsed_sessions_by_vendor = count_sessions_by_vendor(&parsed);
+    let parsed_session_count = parsed.len();
+    let (mut events, source_event_count) =
+        scan_sessions(&candidates, parsed, &roots, options.global)?;
+    if let Some(end_ms) = options.end_ms {
+        events.retain(|event| event.ts_ms <= end_ms);
+    }
     annotate_directory_scopes(&repo, &mut events)?;
     events.sort_by(|left, right| (left.ts_ms, &left.id).cmp(&(right.ts_ms, &right.id)));
     let session_count = events
@@ -83,10 +108,14 @@ pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<Re
         .map(|event| &event.session_id)
         .collect::<HashSet<_>>()
         .len();
+    let included_sessions_by_vendor = count_included_sessions_by_vendor(&events);
     let mut commits_ms = git_lines(&repo, &["log", "--all", "--format=%ct"])?
         .into_iter()
         .filter_map(|value| value.parse::<i64>().ok().map(|seconds| seconds * 1_000))
         .collect::<Vec<_>>();
+    if let Some(end_ms) = options.end_ms {
+        commits_ms.retain(|timestamp| *timestamp <= end_ms);
+    }
     commits_ms.sort_unstable();
     commits_ms.dedup();
     let start_ms = events.first().map_or(0, |event| event.ts_ms);
@@ -102,7 +131,13 @@ pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<Re
         start_ms,
         end_ms,
         global: options.global,
+        worktree_count: roots.len(),
+        candidate_session_count: candidates.len(),
+        parsed_session_count,
         session_count,
+        candidate_sessions_by_vendor,
+        parsed_sessions_by_vendor,
+        included_sessions_by_vendor,
         source_event_count,
         file_action_count,
         events,
@@ -112,11 +147,12 @@ pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<Re
 
 fn scan_sessions(
     candidates: &[SessionCandidate],
+    parsed: Vec<(AgentSession, usize)>,
     roots: &[PathBuf],
     global: bool,
 ) -> io::Result<(Vec<RepositoryEvent>, usize)> {
     let mut result = (Vec::new(), 0usize);
-    for (session, source_count) in parse_candidates(candidates) {
+    for (session, source_count) in parsed {
         append_session(&session, source_count, roots, true, &mut result);
     }
     if global {
@@ -156,6 +192,36 @@ fn parse_candidates(candidates: &[SessionCandidate]) -> Vec<(AgentSession, usize
             .flat_map(|handle| handle.join().unwrap_or_default())
             .collect()
     })
+}
+
+fn count_candidates_by_vendor(candidates: &[SessionCandidate]) -> BTreeMap<String, usize> {
+    let mut counts = BTreeMap::new();
+    for candidate in candidates {
+        *counts.entry(candidate.agent.to_string()).or_default() += 1;
+    }
+    counts
+}
+
+fn count_sessions_by_vendor(sessions: &[(AgentSession, usize)]) -> BTreeMap<String, usize> {
+    let mut counts = BTreeMap::new();
+    for (session, _) in sessions {
+        *counts.entry(session.agent_type.clone()).or_default() += 1;
+    }
+    counts
+}
+
+fn count_included_sessions_by_vendor(events: &[RepositoryEvent]) -> BTreeMap<String, usize> {
+    let mut sessions = BTreeMap::<String, BTreeSet<String>>::new();
+    for event in events {
+        sessions
+            .entry(event.vendor.clone())
+            .or_default()
+            .insert(event.session_id.clone());
+    }
+    sessions
+        .into_iter()
+        .map(|(vendor, sessions)| (vendor, sessions.len()))
+        .collect()
 }
 
 fn repository_session(candidate: &SessionCandidate) -> Option<(AgentSession, usize)> {
@@ -253,20 +319,32 @@ fn append_session(
     let mut used = false;
     for (ordinal, tool) in session.events.tools.iter().enumerate() {
         let Some(ts_ms) = tool.ts_ms else { continue };
+        let tool_cwd = effective_tool_cwd(cwd.as_deref(), tool.workdir.as_deref());
+        let event_worktree_id = tool_cwd
+            .as_deref()
+            .and_then(|path| relative_to_roots(path, roots))
+            .map(|path| path.worktree_id);
         let actions = if tool.status == "fail" {
             BTreeSet::new()
         } else {
             tool.paths
                 .iter()
                 .filter_map(|item| {
-                    let path = resolve_path(&item.path, cwd.as_deref(), roots)?;
-                    (!ignored_path(&path)).then_some(FileAction {
-                        path,
+                    let path = resolve_path(&item.path, tool_cwd.as_deref(), roots)?;
+                    (!ignored_path(&path.path)).then_some(FileAction {
+                        worktree_id: path.worktree_id,
+                        path: path.path,
                         access: item.access.clone(),
+                        previous_worktree_id: item
+                            .previous_path
+                            .as_deref()
+                            .and_then(|value| resolve_path(value, tool_cwd.as_deref(), roots))
+                            .map(|value| value.worktree_id),
                         previous_path: item
                             .previous_path
                             .as_deref()
-                            .and_then(|value| resolve_path(value, cwd.as_deref(), roots)),
+                            .and_then(|value| resolve_path(value, tool_cwd.as_deref(), roots))
+                            .map(|value| value.path),
                         scope: false,
                     })
                 })
@@ -282,9 +360,11 @@ fn append_session(
             session_id: session_id.clone(),
             vendor: session.agent_type.clone(),
             ts_ms,
+            worktree_id: event_worktree_id,
             tool_name: tool.tool_name.clone(),
             category: tool.category.clone(),
             command_name: tool.command_name.clone(),
+            effect: tool.effect.clone(),
             status: tool.status.clone(),
             actions: actions.into_iter().collect(),
         });
@@ -517,14 +597,14 @@ fn session_header(path: &Path) -> String {
         .collect()
 }
 
-fn repository_root(path: &Path) -> io::Result<PathBuf> {
+pub(crate) fn repository_root(path: &Path) -> io::Result<PathBuf> {
     let path = path.canonicalize()?;
     Ok(PathBuf::from(
         git_text(&path, &["rev-parse", "--show-toplevel"])?.trim(),
     ))
 }
 
-fn worktree_roots(repo: &Path) -> Vec<PathBuf> {
+pub(crate) fn worktree_roots(repo: &Path) -> Vec<PathBuf> {
     let mut roots = git_text(repo, &["worktree", "list", "--porcelain"])
         .unwrap_or_default()
         .lines()
@@ -543,7 +623,23 @@ fn worktree_roots(repo: &Path) -> Vec<PathBuf> {
     roots
 }
 
-fn resolve_path(raw: &str, cwd: Option<&Path>, roots: &[PathBuf]) -> Option<String> {
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ResolvedPath {
+    worktree_id: String,
+    path: String,
+}
+
+fn effective_tool_cwd(session_cwd: Option<&Path>, tool_workdir: Option<&str>) -> Option<PathBuf> {
+    let Some(workdir) = tool_workdir.map(Path::new) else {
+        return session_cwd.map(lexical);
+    };
+    if workdir.is_absolute() {
+        return Some(lexical(workdir));
+    }
+    Some(lexical(&session_cwd?.join(workdir)))
+}
+
+fn resolve_path(raw: &str, cwd: Option<&Path>, roots: &[PathBuf]) -> Option<ResolvedPath> {
     let raw = raw.trim().trim_matches(['"', '\'', '`']);
     if raw.is_empty() || raw.contains(['*', '$', '\n', '\r']) {
         return None;
@@ -555,14 +651,21 @@ fn resolve_path(raw: &str, cwd: Option<&Path>, roots: &[PathBuf]) -> Option<Stri
     relative_to_roots(&cwd?.join(path), roots)
 }
 
-fn relative_to_roots(path: &Path, roots: &[PathBuf]) -> Option<String> {
+fn relative_to_roots(path: &Path, roots: &[PathBuf]) -> Option<ResolvedPath> {
     let normalized = lexical(path);
     roots.iter().find_map(|root| {
         normalized.strip_prefix(lexical(root)).ok().map(|relative| {
             let value = relative.to_string_lossy().replace('\\', "/");
-            if value.is_empty() { ".".into() } else { value }
+            ResolvedPath {
+                worktree_id: worktree_id(root),
+                path: if value.is_empty() { ".".into() } else { value },
+            }
         })
     })
+}
+
+pub(crate) fn worktree_id(root: &Path) -> String {
+    repository_hash(root).chars().take(12).collect()
 }
 
 fn lexical(path: &Path) -> PathBuf {
@@ -584,7 +687,7 @@ fn ignored_path(path: &str) -> bool {
         .any(|part| matches!(part, ".git" | "node_modules" | "target" | ".cache"))
 }
 
-fn git_lines(repo: &Path, args: &[&str]) -> io::Result<Vec<String>> {
+pub(crate) fn git_lines(repo: &Path, args: &[&str]) -> io::Result<Vec<String>> {
     Ok(git_text(repo, args)?
         .lines()
         .map(|line| line.trim().to_string())
@@ -661,11 +764,11 @@ mod tests {
     fn lexical_paths_cannot_escape_a_worktree() {
         let roots = vec![PathBuf::from("/repo")];
         assert_eq!(
-            resolve_path("src/../lib.rs", Some(Path::new("/repo")), &roots),
+            resolve_path("src/../lib.rs", Some(Path::new("/repo")), &roots).map(|value| value.path),
             Some("lib.rs".into())
         );
         assert_eq!(
-            resolve_path(".", Some(Path::new("/repo")), &roots),
+            resolve_path(".", Some(Path::new("/repo")), &roots).map(|value| value.path),
             Some(".".into())
         );
         assert_eq!(
@@ -723,8 +826,25 @@ mod tests {
             PathBuf::from("/repo"),
         ];
         assert_eq!(
-            relative_to_roots(Path::new("/repo/.worktrees/feature/src/lib.rs"), &roots),
+            relative_to_roots(Path::new("/repo/.worktrees/feature/src/lib.rs"), &roots)
+                .map(|value| value.path),
             Some("src/lib.rs".into())
+        );
+    }
+
+    #[test]
+    fn tool_workdir_takes_precedence_over_session_cwd() {
+        assert_eq!(
+            effective_tool_cwd(Some(Path::new("/repo")), Some("nested")),
+            Some(PathBuf::from("/repo/nested"))
+        );
+        assert_eq!(
+            effective_tool_cwd(Some(Path::new("/repo")), Some("/repo/other")),
+            Some(PathBuf::from("/repo/other"))
+        );
+        assert_eq!(
+            effective_tool_cwd(Some(Path::new("/repo")), None),
+            Some(PathBuf::from("/repo"))
         );
     }
 
