@@ -145,6 +145,21 @@ fn hierarchy_warnings(nodes: &[TraceNode], regions: &[Region]) -> Vec<String> {
             ));
         }
 
+        let covered_tool_calls = nodes[region.start..region.end]
+            .iter()
+            .filter(|node| node.kind == "tool")
+            .count();
+        if source_kind != "session"
+            && source_kind != "prompt"
+            && direct_children.is_empty()
+            && covered_tool_calls >= 8
+        {
+            warnings.insert(format!(
+                "coarse unrefined span: operation {:?} at {:?} covers {} tool calls without a semantic child",
+                region.tag, nodes[region.start].id, covered_tool_calls
+            ));
+        }
+
         if direct_children.len() >= 8 {
             let refined_children = direct_children
                 .iter()

@@ -191,8 +191,9 @@ agent -> session-level operation -> prompt-level operation
 Raw session and prompt IDs remain pprof labels, so equal operation paths fold
 across runs without losing drilldown identity. The CLI rejects missing,
 crossing, or uncovered regions and reports nonblocking warnings for degenerate
-unary refinement or a large, mostly unrefined flat fan-out. The warnings expose
-bad hierarchy shape but never force depth or block pprof generation.
+unary refinement, a large mostly-unrefined flat fan-out, or a long optional
+semantic leaf with no child operation. The warnings expose suspicious
+hierarchy shape but never force depth or block pprof generation.
 
 ### Predecessor complete-path operation marks
 

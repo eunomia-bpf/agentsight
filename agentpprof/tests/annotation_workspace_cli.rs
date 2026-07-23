@@ -157,3 +157,66 @@ fn invalid_annotation_does_not_rewrite_workspace_files() {
     assert_eq!(fs::read_to_string(folded).unwrap(), "existing 1\n");
     assert!(!output.exists());
 }
+
+#[test]
+fn broad_optional_leaf_emits_coarse_span_warning_without_blocking_profile() {
+    let tmp = tempfile::tempdir().unwrap();
+    let workspace = tmp.path().join("workspace");
+    fs::create_dir(&workspace).unwrap();
+    let trace = workspace.join("trace.jsonl");
+    let annotations = workspace.join("annotation.json");
+    let output = tmp.path().join("profile.pb.gz");
+    let mut rows = vec![
+        r#"{"id":"s","parent":null,"kind":"session","data":{"agent":"Codex"},"metrics":{},"path":[]}"#
+            .to_string(),
+        r#"{"id":"p","parent":"s","kind":"prompt","data":{"name":"repair"},"metrics":{},"path":[]}"#
+            .to_string(),
+    ];
+    for index in 0..8 {
+        rows.push(format!(
+            r#"{{"id":"c{index}","parent":"p","kind":"llm","data":{{"name":"step {index}"}},"metrics":{{}},"path":[]}}"#
+        ));
+        rows.push(format!(
+            r#"{{"id":"t{index}","parent":"c{index}","kind":"tool","data":{{"name":"shell"}},"metrics":{{"operations":1}},"path":[]}}"#
+        ));
+    }
+    fs::write(&trace, rows.join("\n") + "\n").unwrap();
+    fs::write(
+        &annotations,
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "s": {"tag":"Repair regression","parent":null,"next":null},
+            "p": {"tag":"Fix user-reported failure","parent":"s","next":null},
+            "c0": {"tag":"Recover from failed interaction","parent":"p","next":null}
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let result = run(
+        env!("CARGO_BIN_EXE_agentpprof"),
+        &[
+            "--annotation-file",
+            annotations.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--output",
+            output.to_str().unwrap(),
+        ],
+    );
+    assert!(
+        result.status.success(),
+        "stdout={}\nstderr={}",
+        String::from_utf8_lossy(&result.stdout),
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let status: Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(status["samples"], 8);
+    let warnings = status["warnings"].as_array().unwrap();
+    assert_eq!(warnings.len(), 1);
+    assert!(
+        warnings[0]
+            .as_str()
+            .unwrap()
+            .contains("coarse unrefined span")
+    );
+}

@@ -348,6 +348,9 @@ def trace_to_summary(label: Label) -> TraceSummary:
             "action": action_name,
             "object": object_name,
             "result": result,
+            "agent": label.model,
+            "source_session": label.key,
+            "evidence_id": f"{label.key}:step-{index:04d}",
         }
         fields = {key: value for key, value in fields.items() if value}
         operations.append({"value": 1, "fields": fields})
@@ -425,15 +428,7 @@ def invoke_agentpprof(
     output: Path,
 ) -> dict[str, Any]:
     output.parent.mkdir(parents=True, exist_ok=True)
-    command = [
-        str(binary),
-        "--operation-file", str(candidate),
-        "--diff-base-operation-file", str(base),
-        "--view", view,
-        "--stack", STACK,
-        "--deterministic-output",
-        "--output", str(output),
-    ]
+    command = agentpprof_command(binary, candidate, base, view, output)
     run = subprocess.run(command, check=False, capture_output=True, text=True)
     if run.returncode != 0:
         raise RuntimeError(f"AgentPProf failed: {' '.join(command)}\n{run.stderr}")
@@ -450,6 +445,24 @@ def invoke_agentpprof(
     if readback.returncode != 0:
         raise RuntimeError(f"go tool pprof rejected {output}: {readback.stderr}")
     return status
+
+
+def agentpprof_command(
+    binary: Path,
+    candidate: Path,
+    base: Path,
+    view: str,
+    output: Path,
+) -> list[str]:
+    return [
+        str(binary),
+        "--operation-file", str(candidate),
+        "--diff-base-operation-file", str(base),
+        "--view", view,
+        "--stack", STACK,
+        "--deterministic-output",
+        "--output", str(output),
+    ]
 
 
 def top_evidence(summary: TraceSummary, result_names: set[str], limit: int = 8) -> list[dict[str, Any]]:
@@ -470,6 +483,11 @@ def main() -> int:
         "--case-only",
         action="store_true",
         help="Run only the fixed VisualWebArena 512 Qwen-bad/Claude-good preflight pair.",
+    )
+    parser.add_argument(
+        "--aggregate-only",
+        action="store_true",
+        help="Build the complete pair-occurrence aggregate without regenerating per-pair profiles.",
     )
     args = parser.parse_args()
 
@@ -517,18 +535,19 @@ def main() -> int:
                 pair_name = pair_slug(benchmark, task, bad.label, good.label)
                 pair_dir = out_dir / "pairs" / pair_name
                 statuses: dict[str, Any] = {}
-                try:
-                    for view in ("operations", "tokens"):
-                        statuses[view] = invoke_agentpprof(
-                            binary,
-                            out_dir / "traces" / bad.label.key / f"{view}.jsonl",
-                            out_dir / "traces" / good.label.key / f"{view}.jsonl",
-                            view,
-                            pair_dir / f"bad-minus-good-{view}.pb.gz",
-                        )
-                        profile_count += 1
-                except Exception as error:  # recorded and reported; never silently drop a pair
-                    profile_failures.append({"pair": pair_name, "error": str(error)})
+                if not args.aggregate_only:
+                    try:
+                        for view in ("operations", "tokens"):
+                            statuses[view] = invoke_agentpprof(
+                                binary,
+                                out_dir / "traces" / bad.label.key / f"{view}.jsonl",
+                                out_dir / "traces" / good.label.key / f"{view}.jsonl",
+                                view,
+                                pair_dir / f"bad-minus-good-{view}.pb.gz",
+                            )
+                            profile_count += 1
+                    except Exception as error:  # recorded and reported; never silently drop a pair
+                        profile_failures.append({"pair": pair_name, "error": str(error)})
                 pair_rows.append(
                     {
                         "benchmark": benchmark,
@@ -550,6 +569,34 @@ def main() -> int:
                 )
                 if len(pair_rows) % 25 == 0:
                     print(f"profiled {len(pair_rows)} pairs", flush=True)
+
+    aggregate_dir = out_dir / "aggregate"
+    aggregate_candidate = aggregate_dir / "bad.operations.jsonl"
+    aggregate_base = aggregate_dir / "good.operations.jsonl"
+    aggregate_output = aggregate_dir / "bad-minus-good.operations.pb.gz"
+    write_jsonl(
+        aggregate_candidate,
+        (record for bad, _ in pairs for record in bad.operation_records),
+    )
+    write_jsonl(
+        aggregate_base,
+        (record for _, good in pairs for record in good.operation_records),
+    )
+    aggregate_status = invoke_agentpprof(
+        binary,
+        aggregate_candidate,
+        aggregate_base,
+        "operations",
+        aggregate_output,
+    )
+    profile_count += 1
+    aggregate_command = agentpprof_command(
+        binary,
+        aggregate_candidate,
+        aggregate_base,
+        "operations",
+        aggregate_output,
+    )
 
     score_names = ("steps", "tokens", "error_rate", "repeat_rate", "nonprogress_rate")
     trajectory_rows = list(summaries.values())
@@ -618,6 +665,9 @@ def main() -> int:
             "operation_pprof": str(out_dir / "pairs" / case_pair_name / "bad-minus-good-operations.pb.gz"),
             "token_pprof": str(out_dir / "pairs" / case_pair_name / "bad-minus-good-tokens.pb.gz"),
         }
+        if args.aggregate_only:
+            case["operation_pprof"] = None
+            case["token_pprof"] = None
 
     result = {
         "schema_version": 1,
@@ -635,9 +685,19 @@ def main() -> int:
             "by_benchmark": dict(Counter(key[0] for key in groups)),
         },
         "profiles": {
-            "attempted": len(pairs) * 2,
+            "attempted": 1 if args.aggregate_only else len(pairs) * 2 + 1,
             "decoded_by_go_tool_pprof": profile_count,
             "failures": profile_failures,
+        },
+        "aggregate_profile": {
+            "pair_occurrence_weighting": True,
+            "bad_operation_occurrences": sum(bad.steps for bad, _ in pairs),
+            "good_operation_occurrences": sum(good.steps for _, good in pairs),
+            "candidate_input": str(aggregate_candidate),
+            "base_input": str(aggregate_base),
+            "output": str(aggregate_output),
+            "command": aggregate_command,
+            "status": aggregate_status,
         },
         "metrics": metrics,
         "looping_repeat_rate_auc": looping_auc,

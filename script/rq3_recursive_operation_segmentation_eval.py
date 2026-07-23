@@ -94,7 +94,7 @@ def parse_args() -> argparse.Namespace:
     score.add_argument("--inference-summary", type=Path, required=True)
     score.add_argument("--verified-manifest", type=Path, required=True)
     score.add_argument("--multires-assignments", type=Path, required=True)
-    score.add_argument("--causal-score-rows", type=Path, required=True)
+    score.add_argument("--causal-score-rows", type=Path)
     score.add_argument("--out", type=Path, required=True)
     return parser.parse_args()
 
@@ -1002,25 +1002,62 @@ def load_predictions(path: Path) -> dict[tuple[str, int], dict[str, Any]]:
     return rows
 
 
+def native_tree_occurrences(
+    grouped: dict[str, list[dict[str, Any]]], selected: list[str]
+) -> dict[tuple[str, int], str]:
+    """Build the predeclared N0 from source-provided hierarchy fields only."""
+    occurrences: dict[tuple[str, int], str] = {}
+    for session in selected:
+        previous_path: tuple[str, ...] | None = None
+        occurrence = -1
+        for row in grouped[session]:
+            path = tuple(
+                str(row[field]).strip()
+                for field in ("phase", "action", "action_detail")
+                if str(row.get(field) or "").strip()
+            )
+            require(bool(path), f"{session}: empty native-tree path")
+            if path != previous_path:
+                occurrence += 1
+                previous_path = path
+            key = (session, int(row["step_id"]))
+            require(key not in occurrences, "duplicate native-tree operation")
+            occurrences[key] = f"{session}:native-tree:{occurrence:05d}"
+    return occurrences
+
+
 def score_rows(
     grouped: dict[str, list[dict[str, Any]]],
     selected: list[str],
     predictions: dict[tuple[str, int], dict[str, Any]],
+    native_tree: dict[tuple[str, int], str],
     baselines: dict[tuple[str, int], dict[str, str]],
-    causal: dict[tuple[str, int], str],
+    causal: dict[tuple[str, int], str] | None,
     official: dict[tuple[str, int], str],
     frameworks: dict[str, str],
     tasks: dict[str, str],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     operations: list[dict[str, Any]] = []
     pairs: list[dict[str, Any]] = []
-    methods = ("candidate", "multires_recurrence", "causal_qwen")
+    methods = ["native_turn", "native_tree", "multires_recurrence", "candidate"]
+    if causal is not None:
+        methods.append("causal_qwen")
     for session in selected:
         previous: dict[str, Any] | None = None
         for source_row in grouped[session]:
             key = (session, int(source_row["step_id"]))
-            require(key in predictions and key in baselines and key in causal, "score coverage")
+            require(
+                key in predictions and key in native_tree and key in baselines,
+                "score coverage",
+            )
+            if causal is not None:
+                require(key in causal, "causal score coverage")
             prediction = predictions[key]
+            source_turn_instance = prediction.get("source_turn_instance")
+            if source_turn_instance is None:
+                source_turn_id = prediction.get("source_turn_id")
+                require(source_turn_id is not None, "missing source turn identity")
+                source_turn_instance = f"{session}:turn:{source_turn_id}"
             operation = {
                 "session": session,
                 "framework": frameworks[session],
@@ -1029,9 +1066,12 @@ def score_rows(
                 "official_stage": official[key],
                 "candidate": str(prediction["task_occurrence_instance"]),
                 "candidate_path": json.dumps(prediction["semantic_stack"], ensure_ascii=False),
+                "native_turn": str(source_turn_instance),
+                "native_tree": native_tree[key],
                 "multires_recurrence": baselines[key]["multires_recurrence"],
-                "causal_qwen": causal[key],
             }
+            if causal is not None:
+                operation["causal_qwen"] = causal[key]
             operations.append(operation)
             if previous is not None:
                 pair = {
@@ -1064,7 +1104,7 @@ def metric_bundle(
 
 def result_report(summary: dict[str, Any]) -> str:
     lines = [
-        "# Recursive Operation Segmentation — Result",
+        "# Automatic Agent Operation Segmentation — Result",
         "",
         f"- mode: {summary['mode']}",
         f"- status: {summary['status']}",
@@ -1106,7 +1146,7 @@ def run_score(args: argparse.Namespace) -> None:
     inference_path = absolute(args.inference_summary)
     manifest_path = absolute(args.verified_manifest)
     baseline_path = absolute(args.multires_assignments)
-    causal_path = absolute(args.causal_score_rows)
+    causal_path = absolute(args.causal_score_rows) if args.causal_score_rows else None
     out_dir = absolute(args.out)
     for path in (
         target_path,
@@ -1114,9 +1154,10 @@ def run_score(args: argparse.Namespace) -> None:
         inference_path,
         manifest_path,
         baseline_path,
-        causal_path,
     ):
         require(path.is_file(), f"missing score input: {path}")
+    if causal_path is not None:
+        require(causal_path.is_file(), f"missing score input: {causal_path}")
     inference = json.loads(inference_path.read_text(encoding="utf-8"))
     require(inference.get("status") == "complete", "inference incomplete")
     grouped = base.load_visible_operations(target_path)
@@ -1128,16 +1169,30 @@ def run_score(args: argparse.Namespace) -> None:
         for row in grouped[session]
     }
     require(set(predictions) == expected, "prediction score coverage")
+    native_tree = native_tree_occurrences(grouped, selected)
+    require(set(native_tree) == expected, "native-tree score coverage")
     baselines = base.load_baselines(baseline_path)
-    causal = global_eval.load_causal(causal_path)
-    require(expected <= set(baselines) and expected <= set(causal), "baseline score coverage")
+    causal = global_eval.load_causal(causal_path) if causal_path is not None else None
+    require(expected <= set(baselines), "baseline score coverage")
+    if causal is not None:
+        require(expected <= set(causal), "causal score coverage")
     official, frameworks, tasks = base.load_stages_after_prediction(
         manifest_path, grouped, selected
     )
     pairs, operations = score_rows(
-        grouped, selected, predictions, baselines, causal, official, frameworks, tasks
+        grouped,
+        selected,
+        predictions,
+        native_tree,
+        baselines,
+        causal,
+        official,
+        frameworks,
+        tasks,
     )
-    methods = ("candidate", "multires_recurrence", "causal_qwen")
+    methods = ["native_turn", "native_tree", "multires_recurrence", "candidate"]
+    if causal is not None:
+        methods.append("causal_qwen")
     metrics = metric_bundle(pairs, operations, methods)
     out_dir.mkdir(parents=True, exist_ok=True)
     candidate_minus_multires = source.bcubed_task_bootstrap(
@@ -1146,11 +1201,15 @@ def run_score(args: argparse.Namespace) -> None:
         "multires_recurrence",
         out_dir / "bootstrap-candidate-minus-multires.jsonl",
     )
-    candidate_minus_causal = source.bcubed_task_bootstrap(
-        operations,
-        "candidate",
-        "causal_qwen",
-        out_dir / "bootstrap-candidate-minus-causal.jsonl",
+    candidate_minus_causal = (
+        source.bcubed_task_bootstrap(
+            operations,
+            "candidate",
+            "causal_qwen",
+            out_dir / "bootstrap-candidate-minus-causal.jsonl",
+        )
+        if causal is not None
+        else None
     )
     per_framework = {}
     for framework in sorted(set(frameworks.values())):
@@ -1171,6 +1230,9 @@ def run_score(args: argparse.Namespace) -> None:
         if contradicted
         else "mixed-pending-semantic-review"
     )
+    bootstrap = {"candidate_minus_multires": candidate_minus_multires}
+    if candidate_minus_causal is not None:
+        bootstrap["candidate_minus_causal"] = candidate_minus_causal
     summary = {
         "schema": SCHEMA + ".score.v1",
         "mode": mode,
@@ -1186,10 +1248,7 @@ def run_score(args: argparse.Namespace) -> None:
             "frameworks": dict(Counter(frameworks.values())),
         },
         "metrics": metrics,
-        "bootstrap": {
-            "candidate_minus_multires": candidate_minus_multires,
-            "candidate_minus_causal": candidate_minus_causal,
-        },
+        "bootstrap": bootstrap,
         "per_framework": per_framework,
         "decision": {
             "primary_metric": "ordinary unweighted operation-level B-cubed F1",

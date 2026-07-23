@@ -261,9 +261,12 @@ command, file, or status fields do not add semantic value.
 The hierarchy audit is deliberately advisory. A recursively introduced
 operation with only one explicit semantic child is usually a redundant unary
 chain, and a large parent with many direct children but almost no recursive
-children is often a prematurely flat decomposition. Both produce warnings, not
-failures. Mandatory session/prompt operations are exempt from the unary check,
-and the CLI never invents a second child merely to make a tree look deeper.
+children is often a prematurely flat decomposition. An optional semantic leaf
+covering at least eight tool calls is also reported because it may have absorbed
+multiple responsibilities without refinement. All three produce warnings, not
+failures. Mandatory session/prompt operations are exempt from the unary and
+coarse-leaf checks, and the CLI never invents a second child merely to make a
+tree look deeper.
 
 ## Interchangeable Backends
 

@@ -75,8 +75,9 @@ external recording or benchmark
 
 The CLI requires a session-level operation at each source root and a
 prompt-level operation at each prompt, rejects crossing or uncovered ranges,
-and emits nonblocking warnings for unary refinement or a large mostly-flat
-fan-out. It still writes the profile when only a warning is present.
+and emits nonblocking warnings for unary refinement, a large mostly-flat
+fan-out, or a long optional semantic leaf with no child operation. It still
+writes the profile when only a warning is present.
 
 For normalized marked inputs, a zero `value` is a source carrier rather than a
 sample. It receives the active semantic path and evidence labels, then is

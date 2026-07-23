@@ -296,6 +296,26 @@ class RecursiveOperationSegmentationTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "characters"):
             recursive.canonical_label("run pytest -q /tmp/x.py")
 
+    def test_native_tree_contracts_only_adjacent_equal_visible_paths(self) -> None:
+        grouped = {
+            "s": [
+                {"step_id": 1, "phase": "explore", "action": "inspect", "action_detail": "rg"},
+                {"step_id": 2, "phase": "explore", "action": "inspect", "action_detail": "rg"},
+                {"step_id": 3, "phase": "implement", "action": "edit", "action_detail": "patch"},
+                {"step_id": 4, "phase": "explore", "action": "inspect", "action_detail": "rg"},
+            ]
+        }
+        occurrences = recursive.native_tree_occurrences(grouped, ["s"])
+        self.assertEqual(
+            [occurrences[("s", step)] for step in range(1, 5)],
+            [
+                "s:native-tree:00000",
+                "s:native-tree:00000",
+                "s:native-tree:00001",
+                "s:native-tree:00002",
+            ],
+        )
+
     def test_inference_contract_changes_with_prompt_contract(self) -> None:
         baseline = recursive.inference_contract_hash()
         with mock.patch.object(

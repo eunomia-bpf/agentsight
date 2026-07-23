@@ -32,11 +32,13 @@ annotation produces both profiles without changing a boundary or name:
 | Operation count | 489 operations |
 | Provider-reported tokens | 4,558,192 tokens |
 
-The CLI reports no hierarchy warning. Semantic depth is variable rather than
-fixed: 0.53% of token mass stops at depth two, 30.02% at depth three, 61.09% at
-depth four, and 8.35% at depth five. Thus, 69.44% of token mass has at least
-two recursively refined operation levels below the mandatory session and
-prompt operations.
+The reconciled profile has zero unary and zero flat-fan-out warnings. The
+current CLI additionally reports 27 coarse optional leaves; those advisory
+warnings identify possible future refinement and do not invalidate this case.
+Semantic depth is variable rather than fixed: 0.53% of token mass stops at
+depth two, 30.02% at depth three, 61.09% at depth four, and 8.35% at depth
+five. Thus, 69.44% of token mass has at least two recursively refined operation
+levels below the mandatory session and prompt operations.
 
 ## What Is Being Aggregated
 
@@ -71,10 +73,12 @@ responsibility absorbed that work.
 
 ## Result 2: SSH Diagnosis Is The Expensive Unresolved Responsibility
 
-The shared `diagnose rejected SSH password authentication` operation contains
-97 operations, or 19.84% of the focused workload, but 1,936,828 tokens, or
-42.49%. Both OpenHands executions return to this responsibility after control
-or fallback attempts.
+The shared `diagnose rejected SSH password authentication` frame directly
+contains 97 operations and 1,936,828 tokens. After shared-name reconciliation,
+its complete subtree contains 105 operations (21.47% of the focused workload)
+and 2,103,587 tokens (46.15%). The difference is its recursively refined child
+work; the direct and cumulative values must not be conflated. Both OpenHands
+executions return to this responsibility after control or fallback attempts.
 
 ![Recursive SSH diagnosis](git.tokens.ssh-diagnosis.hierarchy.paper.png)
 
@@ -109,44 +113,47 @@ was five. The reason was distribution, not the renderer: 53.32% of token mass
 stopped at semantic depth three, and one Terminus2 prompt had 12 direct children
 with no recursive child.
 
-AgentPProf now reports two nonblocking warning classes:
+AgentPProf now reports three nonblocking warning classes:
 
 - `degenerate unary refinement` when an optional recursive operation has only
   one explicit semantic child;
 - `flat fan-out` when a large operation has many direct children but almost no
-  recursively refined child.
+  recursively refined child;
+- `coarse unrefined span` when an optional semantic leaf covers at least eight
+  tool calls without a semantic child.
 
 The audit does not require every tree node to have two children. Mandatory
 session/prompt operations may legitimately form a unary source-scope chain, and
 an unsplit operation is a valid leaf. The warning asks only whether an optional
 recursive refinement created a real partition. After revising the three unary
-regions and the wide flat intervals, the final CLI output contains no warning.
+regions and the wide flat intervals, the reconciled case has no unary or flat
+warning. Coarse-leaf warnings remain advisory prompts for optional further
+refinement; they are not a completeness criterion.
 
 ## Reproduction And Visualization Boundary
 
 AgentPProf itself emits only standard pprof:
 
 ```bash
-agentpprof \
-  --annotation-file annotation.json \
-  --view operations \
-  --deterministic-output \
-  -o git.operations.pb.gz
-
-agentpprof \
-  --annotation-file annotation.json \
-  --view tokens \
-  --deterministic-output \
-  -o git.tokens.pb.gz
-
-go tool pprof -http=:0 git.tokens.pb.gz
+go tool pprof -top \
+  ../git-multibranch.semantic.operations.pb.gz
+go tool pprof -top \
+  ../git-multibranch.semantic.tokens.pb.gz
+go tool pprof -top -focus='diagnose_rejected_ssh_password_authentication' \
+  ../git-multibranch.semantic.tokens.pb.gz
+go tool pprof -http=:0 \
+  ../git-multibranch.semantic.tokens.pb.gz
 ```
 
-The paper previews were generated from those profiles with stock `go tool
-pprof` filtering and the official Brendan Gregg FlameGraph scripts. The
-operation-only paper projection hides LLM/tool leaf frames for readability;
-the `.pb.gz` profiles retain them. No AgentPProf frontend or custom renderer is
-part of the product.
+The parent-directory `git-multibranch.semantic.*.pb.gz` files are the
+post-name-reconciliation profiles that reproduce the cumulative 105-operation
+and 2,103,587-token subtree above. The local `git.*.pb.gz` workspace snapshots
+precede that final shared-name merge and are retained only with the annotation
+workspace. Paper previews were generated from the reconciled profiles with
+stock `go tool pprof` filtering and the official Brendan Gregg FlameGraph
+scripts. The operation-only paper projection hides LLM/tool leaf frames for
+readability; the `.pb.gz` profiles retain them. No AgentPProf frontend or
+custom renderer is part of the product.
 
 ## Scope
 

@@ -106,9 +106,10 @@ session and prompt IDs remain pprof labels so they do not fragment cross-run
 aggregation.
 
 The CLI reports nonblocking warnings when an optional recursive operation has
-only one explicit semantic child, or when a large operation has a wide flat
-fan-out with little recursive refinement. Warnings never block the `.pb` or
-`.pb.gz` output and never force artificial depth. See
+only one explicit semantic child, when a large operation has a wide flat
+fan-out with little recursive refinement, or when an optional semantic leaf
+spans at least eight tool calls without a child operation. Warnings never block
+the `.pb` or `.pb.gz` output and never force artificial depth. See
 [`docs/design/visexp/agentpprof-annotation-workspace.md`](../docs/design/visexp/agentpprof-annotation-workspace.md)
 for the complete contract.
 
