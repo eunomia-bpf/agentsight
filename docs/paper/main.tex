@@ -448,10 +448,11 @@ noncrossing, and collectively cover every source node, then atomically updates
 derived paths and the current folded aggregate.
 % Backend 读取 \texttt{trace.jsonl} 且只写 \texttt{annotation.json}；前者保留 source content、source-parent link、可加度量和当前派生 path，后者将 source start ID 映射到 \texttt{tag}、语义 \texttt{parent} 与 exclusive \texttt{next}；\sys 校验引用存在、区间嵌套且不交叉、并共同覆盖每个 source node，再原子更新派生 path 与当前 folded aggregate。
 It also emits nonblocking hierarchy warnings for a recursive operation with
-only one explicit semantic child and for a large flat fan-out with little
-recursive refinement. These diagnostics expose redundant or prematurely flat
-annotations without forcing artificial depth or blocking profile generation.
-% CLI 还会针对只有一个显式 semantic child 的递归 operation，以及几乎没有进一步递归的大型 flat fan-out，输出非阻塞 hierarchy warning；这些诊断暴露冗余或过早停止的 annotation，但不会强制虚假深度，也不会阻塞 profile 生成。
+only one explicit semantic child, a large flat fan-out with little recursive
+refinement, or an optional semantic leaf that spans at least eight tool calls.
+These diagnostics expose redundant, prematurely flat, or coarse annotations
+without forcing artificial depth or blocking profile generation.
+% CLI 还会针对只有一个显式 semantic child 的递归 operation、几乎没有进一步递归的大型 flat fan-out，以及覆盖至少八个 tool call 的可选 semantic leaf 输出非阻塞 hierarchy warning；这些诊断暴露冗余、过早扁平化或过粗的 annotation，但不会强制虚假深度，也不会阻塞 profile 生成。
 The same annotation can be replayed with operation count, tokens, time, file
 effects, or network effects without changing a boundary or semantic name.
 % 同一 annotation 可使用 operation count、token、time、file effect 或 network effect 重放，而不改变 boundary 或语义名称。
@@ -534,9 +535,9 @@ contains 41 real long-horizon agent trajectories, 3{,}146 source-native turns,
 and 5{,}750 operations. Within it, three independent executions repeat the
 same Git-deployment task. The automatic Agent backend assigns 96 recursive
 annotations to their 735 source nodes. The resulting hierarchy reaches
-semantic depth five without a fixed limit, and the CLI reports no unary or
-flat-fan-out warning.
-% RQ1 测试固定语义层次在切换可加资源度量时是否暴露实质不同的瓶颈；source population 含 41 条真实 long-horizon agent 轨迹、3,146 个 source-native turn 和 5,750 个 operation，其中三条独立执行重复同一个 Git 部署任务。Automatic Agent backend 为其 735 个 source node 生成 96 个递归 annotation；层次在没有固定上限的情况下达到 semantic depth 5，CLI 不再报告 unary 或 flat-fan-out warning。
+semantic depth five without a fixed limit. The CLI reports no unary or
+flat-fan-out warning and 27 advisory coarse-leaf warnings.
+% RQ1 测试固定语义层次在切换可加资源度量时是否暴露实质不同的瓶颈；source population 含 41 条真实 long-horizon agent 轨迹、3,146 个 source-native turn 和 5,750 个 operation，其中三条独立执行重复同一个 Git 部署任务。Automatic Agent backend 为其 735 个 source node 生成 96 个递归 annotation；层次在没有固定上限的情况下达到 semantic depth 5，CLI 不再报告 unary 或 flat-fan-out warning，并给出 27 个仅供诊断的 coarse-leaf warning。
 \paragraph{Case Study 1: Long-Horizon Agent Diagnosis.}
 Figure~\ref{fig:flamegraph} uses a stock-pprof focus query to retain all three
 executions of one repeated Git-deployment task rather than selecting one trace.
@@ -570,18 +571,20 @@ By count, Terminus2 contributes 56.24\% and OpenHands 43.76\%; by tokens,
 OpenHands contributes 86.62\%.
 % 按 operation 数量，Terminus2 占 56.24\%，OpenHands 占 43.76\%；按 token，OpenHands 占 86.62\%。
 The repeated \texttt{diagnose rejected SSH password authentication}
-responsibility accounts for 97 operations but 1{,}936{,}828 tokens (19.84\%
-and 42.49\% of the focused task, respectively).
-% 重复的“诊断 SSH 密码认证失败”职责包含 97 个 operation、消耗 1,936,828 个 token，分别占聚焦任务的 19.84\% 和 42.49\%。
+frame directly contains 97 operations and 1{,}936{,}828 tokens; its complete
+recursive subtree contains 105 operations and 2{,}103{,}587 tokens (21.47\%
+and 46.15\% of the focused task).
+% 重复的“诊断 SSH 密码认证失败”frame 直接包含 97 个 operation 和 1,936,828 个 token；其完整递归子树包含 105 个 operation 和 2,103,587 个 token，分别占聚焦任务的 21.47\% 和 46.15\%。
 Source drilldown shows both OpenHands executions returning to this
 responsibility after control or fallback attempts; all three executions verify
 web deployment or substitute transport paths, but none establishes the
 requested password-authenticated \texttt{git@localhost} path.
 % Source drilldown 显示两条 OpenHands 执行在 control 或 fallback 尝试后都返回该职责；三条执行均验证了 web 部署或替代 transport 路径，但没有一条建立所要求的密码认证 \texttt{git@localhost} 路径。
 Thus, the fixed hierarchy exposes a bottleneck that an operation-count view
-substantially understates: the SSH-diagnosis path is roughly one fifth of work
-by count but more than two fifths by tokens. Source drilldown explains the disparity and
-shows the expensive path did not establish the requested terminal condition.
+substantially understates: the SSH-diagnosis subtree is roughly one fifth of
+work by count but nearly half by tokens. Source drilldown explains the
+disparity and shows the expensive path did not establish the requested
+terminal condition.
 RQ1 therefore answers yes for this repeated real task without claiming that
 one resource measure universally dominates another.
 % 固定层次显示出 operation count 明显低估的瓶颈：SSH 诊断约占五分之一 operation，却接近一半 token；source 下钻同时表明该高成本路径并未建立请求的终局条件。
@@ -661,49 +664,63 @@ both successful and unsuccessful runs, producing 338 complete bad--good pairs:
 24 pair occurrences from AssistantBench, 102 from VisualWebArena, 144 from
 WebArena, and 68 from WorkArena. Because tasks can contain multiple runs, the
 202 successful and 238 unsuccessful sessions are reused across pairs; the
-profile is therefore pair-occurrence weighted. All 338 bad members and all 338
-good members are folded into one signed operation-count pprof. Individual pair
-profiles are used only to descend from a collection-level path to source
-evidence.
-% 我们进一步聚合 AgentRewardBench 的完整 mixed-outcome population，而不是展示一个有利的 trace pair。该集合包含 125 个同时具有成功和失败运行的任务、440 条真实轨迹与 338 个完整 bad--good pair，其中 AssistantBench、VisualWebArena、WebArena 和 WorkArena 分别贡献 24、102、144 和 68 个 pair occurrence。由于同一任务可以包含多个运行，202 条成功 session 和 238 条失败 session 会跨 pair 复用，因此 profile 按 pair occurrence 加权。全部 338 个 bad member 与 338 个 good member 被折叠进一个 signed operation-count pprof；单个 pair profile 仅用于从集合级路径下钻到原始证据。
+profile is therefore pair-occurrence weighted.
+% 我们进一步聚合 AgentRewardBench 的完整 mixed-outcome population，而不是展示一个有利的 trace pair。该集合包含 125 个同时具有成功和失败运行的任务、440 条真实轨迹与 338 个完整 bad--good pair，其中 AssistantBench、VisualWebArena、WebArena 和 WorkArena 分别贡献 24、102、144 和 68 个 pair occurrence。由于同一任务可以包含多个运行，202 条成功 session 和 238 条失败 session 会跨 pair 复用，因此 profile 按 pair occurrence 加权。
+
+Before opening outcomes or expert annotations, three automatic Agent workers
+produce 2{,}131 sparse recursive annotations over all 7{,}229 source
+operations. The resulting hierarchy reaches semantic depth four before its
+LLM-call and tool-call evidence leaves. We then fold all 338 bad members and
+all 338 good members into one signed operation-count pprof, preserving the same
+source occurrences on both the recursive and fixed-chain projections.
+% 在读取 outcome 或专家 annotation 之前，三个 automatic Agent worker 为全部 7,229 个 source operation 生成 2,131 个稀疏递归 annotation；所得层次在 LLM-call 与 tool-call evidence leaf 之前达到 semantic depth 4。随后我们将全部 338 个 bad member 和 338 个 good member 折叠进一个 signed operation-count pprof，并保证递归投影与 fixed-chain 投影使用完全相同的 source occurrence。
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=.95\linewidth]{../visexp/out/agentreward-diff-pprof-v1/agentreward-repeated.paper.png}\\[2pt]
-\includegraphics[width=.95\linewidth]{../visexp/out/agentreward-diff-pprof-v1/agentreward-completion.paper.png}
+\includegraphics[width=.97\linewidth]{../visexp/out/agentreward-diff-pprof-v1/agentreward-recovery.recursive.stock-pprof.png}\\[2pt]
+\includegraphics[width=.97\linewidth]{../visexp/out/agentreward-diff-pprof-v1/agentreward-completion.recursive.stock-pprof.png}
 \caption{Focused stock-pprof views of the signed differential profile over all
 338 bad--good pairs. Red is bad-side excess and green is good-side excess. The
-repeated-work path contains 1{,}485 bad-side versus 224 good-side occurrences
-(top); completion paths contain 183 bad-side versus 373 good-side occurrences
-(bottom). These are aggregate diagnostic differences, not causal effects.}
-\Description{Two stock-pprof flame graphs. The upper red graph decomposes excess
-repeated work into actions and objects. The lower green-dominant graph shows
-completion and conclusion paths occurring more often on successful runs.}
+recursive recovery subtree contains 2{,}993 bad-side versus 392 good-side
+occurrences (top); the completion subtree contains 135 bad-side versus 191
+good-side occurrences (bottom). Each path descends from shared responsibilities
+to the contributing LLM and tool calls. These are aggregate diagnostic
+differences, not causal effects.}
+\Description{Two stock-pprof flame graphs. The upper red graph descends from
+browser-task responsibilities into recovery and specific retry or inspection
+operations. The lower green-dominant graph descends through task completion to
+source LLM and tool calls.}
 \label{fig:agentreward-diff}
 \end{figure*}
 
 The aggregate contains 7{,}366 bad-side and 3{,}780 good-side operation
-occurrences. Positive values denote bad-only or bad-side excess paths; negative
-values denote good-only or good-side excess paths. The largest bad-side result
-paths are continuing progress (+1{,}825) and exact repeated action-state work
-(+1{,}261). The latter decomposes into click (+639), no-op (+356), and scroll
-(+277) paths. Concrete bad-side error families remain separately searchable:
-clicking an invisible element (+148), click timeout (+129), stopped execution
-(+92), filling a non-input element (+57), and selecting on a non-select element
-(+46). The good side contains more terminal (-92) and conclusion (-67) paths;
-\texttt{send\_msg\_to\_user} has a cumulative difference of -100.
-% 聚合 profile 包含 7,366 个 bad-side 与 3,780 个 good-side operation occurrence；正值表示 bad-only 或 bad-side excess 路径，负值表示 good-only 或 good-side excess 路径。最大的 bad-side result 路径是继续推进（+1,825）与精确 action-state 重复（+1,261），后者又分解为 click（+639）、no-op（+356）和 scroll（+277）。具体 bad-side error family 仍可独立搜索，包括点击不可见元素（+148）、click timeout（+129）、停止执行（+92）、向非输入元素填值（+57）和对非 select 元素执行选择（+46）。good side 则包含更多 terminal（-92）和 conclusion（-67）路径；\texttt{send\_msg\_to\_user} 的累计差值为 -100。
+occurrences. Recovery accounts for 40.6\% of bad-side occurrences but only
+10.4\% of good-side occurrences; completion accounts for 1.8\% and 5.1\%,
+respectively. The recursive recovery focus separates verification challenges,
+repeated searches, mistaken navigation, product or record retries, and
+repository inspection beneath the same responsibility, while source labels
+identify the contributing session and call.
+% 聚合 profile 包含 7,366 个 bad-side 与 3,780 个 good-side operation occurrence。Recovery 占 bad side 的 40.6\%，而仅占 good side 的 10.4\%；completion 分别占 1.8\% 与 5.1\%。递归 recovery focus 在同一职责下区分 verification challenge、重复搜索、误导航、产品或记录重试以及 repository inspection，并通过 source label 定位贡献这些宽度的 session 与 call。
 
-This is diagnostic structure, not a new outcome classifier. On the same
-population, simple step count remains the strongest tested scalar (pairwise
-accuracy .7633; trajectory ROC AUC .7517). The profile adds a different answer:
-it identifies whether excess work is repetition, waiting, wrong-widget
-interaction, timeout, stopping, or missing completion, while retaining action
-and object frames for stock pprof drilldown. AgentRewardBench has outcome and
-looping annotations but no gold semantic hierarchy, so this case establishes
-complete differential-profile coverage and concrete path exposure, not
-semantic-stack accuracy or causality.
-% 这是一种诊断结构而不是新的 outcome classifier；在相同 population 上，简单 step count 仍是最强的已测 scalar（pairwise accuracy .7633，trajectory ROC AUC .7517）。Profile 回答的是另一个问题：多余工作究竟来自重复、等待、错误 widget 交互、timeout、停止还是缺少完成路径，并保留 action 与 object frame 供标准 pprof 下钻。AgentRewardBench 具有 outcome 和 looping 标注但没有 gold semantic hierarchy，因此该案例证明的是完整差分 profile 覆盖与具体路径暴露，而不是 semantic-stack accuracy 或因果关系。
+We test whether this visible recovery structure corresponds to an independent
+problem rather than merely reflecting more steps. For each trajectory, recovery
+exposure is the fraction of source operations whose path contains the shared
+recovery responsibility. Among 435 trajectories with consensus expert looping
+labels, this score obtains AP .614 at prevalence .398; a 10{,}000-draw
+task-cluster bootstrap places AP minus prevalence in [.162,.274]. A registered
+fixed-chain repeated/error projection obtains AP .656, and the
+recursive-minus-fixed interval [-.127,.042] does not establish detector
+superiority. The recursive profile therefore contributes a source-drillable
+explanation of \emph{where} recovery accumulates while independently
+corresponding to expert-identified looping.
+% 我们进一步检验该可见 recovery 结构是否对应独立问题，而不仅仅反映更多 step。每条轨迹的 recovery exposure 定义为路径中包含共享 recovery responsibility 的 source operation 比例。在 435 条具有一致专家 looping label 的轨迹上，该 score 的 AP 为 .614，prevalence 为 .398；10,000 次 task-cluster bootstrap 给出的 AP-minus-prevalence 区间为 [.162,.274]。注册的 fixed-chain repeated/error 投影 AP 为 .656，recursive-minus-fixed 区间 [-.127,.042] 不支持 detector superiority。因此递归 profile 的价值是可下钻地解释 recovery 在何处累积，并且该 exposure 独立对应专家识别的 looping。
+
+This case answers RQ2 at collection scale: a target-blind recursive profile
+exposes failed-side recovery and successful-side completion under shared
+responsibilities, and its recovery signal corresponds to an independently
+annotated real problem. AgentRewardBench has no gold nested semantic
+hierarchy, so this result does not measure topology accuracy or causality.
+% 该案例在集合尺度上回答 RQ2：target-blind 递归 profile 在共享职责下暴露失败侧 recovery 与成功侧 completion，且 recovery signal 对应独立标注的真实问题。AgentRewardBench 没有 gold nested semantic hierarchy，因此该结果不衡量 topology accuracy 或因果关系。
 
 %% -------------------------------------------------------------------
 \subsection{RQ3: Automatic Operation Structure}
