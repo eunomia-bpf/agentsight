@@ -58,9 +58,11 @@ complete public localization benchmarks, 287 OSWorld-Human sessions, two
 population case studies, and four public cost workloads.
 % 我们在 405 条带人工 stage 的 CodeTraceBench 轨迹、三个完整公开 localization benchmark、287 个 OSWorld-Human session、两个 population case study 和四个公开成本 workload 上评估 \sys。
 Automatic Agent annotation raises ordinary B$^3$ F1 against human stages from
-0.541 for raw action and 0.663 for recurrence to 0.704, while semantic grouping
-improves MAP over raw action in all three localization benchmarks.
-% 自动 Agent 标注将相对人工 stage partition 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.704；semantic grouping 还在三个 localization benchmark 上均提高相对 raw action 的 MAP。
+0.541 for raw action and 0.663 for recurrence to 0.704. A target-blind declared
+semantic hierarchy improves MAP over raw action in all three localization
+benchmarks, while automatic Agent+Evidence improves HINTBench from 0.281 to
+0.414 and TraceElephant from 0.121 to 0.252.
+% 自动 Agent 标注将相对人工 stage partition 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.704。target-blind declared semantic hierarchy 在三个 localization benchmark 上均提高相对 raw action 的 MAP；automatic Agent+Evidence 则将 HINTBench 从 0.281 提升到 0.414，将 TraceElephant 从 0.121 提升到 0.252。
 Evaluated task-family and action backends reach 0.695 and 0.498 macro-F1,
 label-free recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1 on
 OSWorld-Human, and \sys constructs a 27{,}765-operation profile in 1.17\,s.
@@ -183,10 +185,11 @@ automatic Agent annotation reaches 0.704 ordinary B$^3$ F1 against human
 stages, compared with 0.663 for multi-resolution recurrence and 0.541 for raw
 action.
 % 在 released source 能生成官方 operation sequence 的全部 405 条失败 CodeTraceBench 轨迹上，自动 Agent 标注相对人工 stage 的普通 B$^3$ F1 为 0.704，高于 multi-resolution recurrence 的 0.663 和 raw action 的 0.541。
-Across three complete public workloads, semantic grouping raises MAP over raw
-action from 0.773 to 0.789, 0.281 to 0.452, and 0.121 to 0.230,
-respectively~\cite{agentprocessbench,hintbench,traceelephant}.
-% 三个完整公开 workload 的全部 27,346 个 operation 均参与评分；在 614/400/220 条含目标 query 上，trajectory MAP 分别从 0.773 提升到 0.789、从 0.281 提升到 0.452、从 0.121 提升到 0.230。
+Across three complete public workloads, a target-blind declared semantic
+hierarchy raises MAP over raw action from 0.773 to 0.789, 0.281 to 0.452, and
+0.121 to 0.230; the automatic Agent+Evidence configuration obtains 0.773,
+0.414, and 0.252, respectively~\cite{agentprocessbench,hintbench,traceelephant}.
+% 三个完整公开 workload 的全部 27,346 个 operation 均参与评分；target-blind declared semantic hierarchy 将 trajectory MAP 分别从 0.773 提升到 0.789、从 0.281 提升到 0.452、从 0.121 提升到 0.230；automatic Agent+Evidence 配置分别达到 0.773、0.414 与 0.252。
 On 287 OSWorld-Human development sessions~\cite{osworldhuman}, label-free
 recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1. On the AgentBoard and
 ASE populations, task-family and action backends reach 0.695 and 0.498
@@ -212,10 +215,11 @@ This paper makes three contributions:
 % 系统：\sys。backend-neutral annotation workspace 将递归标记的语义区间与 source-native 层次组合，并产生 pprof 兼容输出。
 \item \textbf{Evaluation.}
   Automatic operation structure improves human-stage agreement and problem
-  ranking over raw action. Two population case studies expose high-cost
-  unfinished work and success--failure differences, and \sys profiles 27{,}765
-  operations in 1.17 seconds (Evaluation).
-% 评估。自动 operation structure 相对 raw action 改进人工 stage agreement 与问题排序；两个 population case study 暴露高成本未完成工作和成功--失败差异；AgentProf 在 1.17 秒内 profile 27,765 个 operation。
+  ranking over raw action on two of three localization workloads. Two
+  population case studies expose high-cost unfinished work and success--failure
+  differences, and \sys profiles 27{,}765 operations in 1.17 seconds
+  (Evaluation).
+% 评估。自动 operation structure 相对 raw action 改进人工 stage agreement，并在三个 localization workload 中的两个改进问题排序；两个 population case study 暴露高成本未完成工作和成功--失败差异；AgentProf 在 1.17 秒内 profile 27,765 个 operation。
 \end{enumerate}
 
 %% ===================================================================
@@ -503,7 +507,7 @@ export format.
 % 研究问题。
 The evaluation addresses four research questions:
 % 评估回答四个固定的论文级研究问题：
-\textbf{RQ1:} Does one semantic hierarchy expose different resource bottlenecks?
+\textbf{RQ1:} Does semantic profiling improve resource attribution?
 \textbf{RQ2:} Does profiler output correspond to real problems?
 \textbf{RQ3:} How accurately do automatic backends recover operation structure?
 \textbf{RQ4:} What is the cost of constructing a semantic profile?
@@ -529,15 +533,16 @@ agentnet}.
 \subsection{RQ1: Multi-Resource Attribution}
 % RQ1：多资源归因。
 
-RQ1 asks whether a fixed semantic hierarchy reveals materially different
-bottlenecks when the additive resource measure changes. The source population
-contains 41 real long-horizon agent trajectories, 3{,}146 source-native turns,
-and 5{,}750 operations. Within it, three independent executions repeat the
-same Git-deployment task. The automatic Agent backend assigns 96 recursive
-annotations to their 735 source nodes. The resulting hierarchy reaches
-semantic depth five without a fixed limit. The CLI reports no unary or
-flat-fan-out warning and 27 advisory coarse-leaf warnings.
-% RQ1 测试固定语义层次在切换可加资源度量时是否暴露实质不同的瓶颈；source population 含 41 条真实 long-horizon agent 轨迹、3,146 个 source-native turn 和 5,750 个 operation，其中三条独立执行重复同一个 Git 部署任务。Automatic Agent backend 为其 735 个 source node 生成 96 个递归 annotation；层次在没有固定上限的情况下达到 semantic depth 5，CLI 不再报告 unary 或 flat-fan-out warning，并给出 27 个仅供诊断的 coarse-leaf warning。
+RQ1 asks whether semantic profiling improves resource attribution. We test one
+necessary consequence: whether a fixed semantic hierarchy reveals materially
+different bottlenecks when the additive resource measure changes. The source
+population contains 41 real long-horizon agent trajectories, 3{,}146
+source-native turns, and 5{,}750 operations. Within it, three independent
+executions repeat the same Git-deployment task. The automatic Agent backend
+assigns 96 recursive annotations to their 735 source nodes. The resulting
+hierarchy reaches semantic depth five without a fixed limit. The CLI reports no
+unary or flat-fan-out warning and 27 advisory coarse-leaf warnings.
+% RQ1 问 semantic profiling 是否改善资源归因。这里测试一个必要后果：固定语义层次在切换可加资源度量时是否暴露实质不同的瓶颈；source population 含 41 条真实 long-horizon agent 轨迹、3,146 个 source-native turn 和 5,750 个 operation，其中三条独立执行重复同一个 Git 部署任务。Automatic Agent backend 为其 735 个 source node 生成 96 个递归 annotation；层次在没有固定上限的情况下达到 semantic depth 5，CLI 不再报告 unary 或 flat-fan-out warning，并给出 27 个仅供诊断的 coarse-leaf warning。
 \paragraph{Case Study 1: Long-Horizon Agent Diagnosis.}
 Figure~\ref{fig:flamegraph} uses a stock-pprof focus query to retain all three
 executions of one repeated Git-deployment task rather than selecting one trace.
@@ -585,9 +590,11 @@ substantially understates: the SSH-diagnosis subtree is roughly one fifth of
 work by count but nearly half by tokens. Source drilldown explains the
 disparity and shows the expensive path did not establish the requested
 terminal condition.
-RQ1 therefore answers yes for this repeated real task without claiming that
-one resource measure universally dominates another.
-% 固定层次显示出 operation count 明显低估的瓶颈：SSH 诊断约占五分之一 operation，却接近一半 token；source 下钻同时表明该高成本路径并未建立请求的终局条件。
+This repeated real task supports RQ1's multi-resource attribution hypothesis:
+one shared responsibility path reunites the SSH work across executions, while
+the selected additive measure changes its attributed importance. We do not
+claim that one resource measure universally dominates another.
+% 固定层次显示出 operation count 明显低估的瓶颈：SSH 诊断约占五分之一 operation，却接近一半 token；source 下钻同时表明该高成本路径并未建立请求的终局条件。这个重复的真实任务支持 RQ1 的多资源归因假设：一个共享 responsibility path 跨执行重聚 SSH 工作，而所选可加度量会改变其归因重要性；我们不声称某一种资源度量普遍支配其他度量。
 
 
 %% Flamegraph figure appears with the RQ1 multi-weight evidence.
@@ -633,17 +640,21 @@ TraceElephant & .230 & .121 & \textbf{.252} & .194 \\
 \bottomrule
 \end{tabular}
 \caption{Standard per-query AP averaged as MAP after scoring every operation.
-Sem. is the declared semantic hierarchy. Agent+Evidence composes identical
-automatic Agent marks with retained LLM/tool/action evidence frames; Agent-only
-omits those frames. Higher is better.}
+Sem. is the target-blind declared/reference semantic hierarchy fixed before
+evaluator target labels are loaded. Agent+Evidence composes identical automatic
+Agent marks with retained LLM/tool/action evidence frames; Agent-only omits
+those frames. Higher is better.}
 \label{tab:rq2-localization}
 \end{table}
 
-In the primary comparison, \sys improves MAP over raw action on all three
-complete workloads (Table~\ref{tab:rq2-localization}). The gains are +.016
-[.005,.027], +.171 [.154,.188], and +.109 [.077,.142], using 10{,}000 paired
-resamples of trajectory clusters within benchmark-defined strata.
-% AgentProf 在三个完整 workload 的含目标 query 上均提高了相对 matched raw-action organization 的标准主要指标 MAP，因此 RQ2 的答案为肯定。
+The target-blind declared/reference hierarchy improves MAP over raw action on
+all three complete workloads (Table~\ref{tab:rq2-localization}). The gains are
++.016 [.005,.027], +.171 [.154,.188], and +.109 [.077,.142], using 10{,}000
+paired resamples of trajectory clusters within benchmark-defined strata. At
+full precision, automatic Agent+Evidence changes MAP relative to raw action by
+-0.000665, +0.132752, and +0.130656: it is unchanged at table precision on
+AgentProcessBench and improves HINTBench and TraceElephant.
+% target-blind declared/reference hierarchy 在三个完整 workload 上均提高相对 raw action 的 MAP；automatic Agent+Evidence 相对 raw action 的全精度变化分别为 -0.000665、+0.132752 与 +0.130656，即在 AgentProcessBench 上按表格精度不变，并提高 HINTBench 与 TraceElephant。
 
 The automatic Agent marks cover all 1{,}000/536/220 sessions and
 8{,}509/12{,}877/5{,}960 operations. Retaining source-call frames beneath those
@@ -987,11 +998,11 @@ Agent observability needs profiling, not only debugging. \sys recursively
 annotates semantic responsibility over source-native traces and folds covered
 source evidence under shared operation stacks across runs. Its profiles expose
 resource-dependent bottlenecks and success--failure differences, improve
-stage-partition agreement and localization MAP over raw action, and recover
-OSWorld-Human groups at 0.680 boundary F1 and 0.786 B$^3$ F1. \sys builds a
-27{,}765-operation profile in 1.17 seconds, making population profiling
-practical alongside per-run debugging.
-% 在真实与公开轨迹上，这些 profile 相比 raw action identity 改善归因、优先呈现独立标注的问题、恢复有用的 task、action 与 group 结构，并在 1.17 秒内构建最大的已评估 profile。
+stage-partition agreement and localization MAP over raw action on two complete
+workloads, and recover OSWorld-Human groups at 0.680 boundary F1 and 0.786
+B$^3$ F1. \sys builds a 27{,}765-operation profile in 1.17 seconds, making
+population profiling practical alongside per-run debugging.
+% 在真实与公开轨迹上，这些 profile 相比 raw action identity 改善归因、在两个完整 workload 上提高 localization MAP、恢复有用的 task、action 与 group 结构，并在 1.17 秒内构建最大的已评估 profile。
 
 \bibliography{references}
 
