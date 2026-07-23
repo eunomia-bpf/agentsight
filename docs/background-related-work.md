@@ -452,9 +452,9 @@ alone.
    semantics remain domain dependent under this scalar interface. This closes
    the tested transfer mechanism without claiming novelty for quantiles,
    reopening target-specific recurrence tuning, or changing RQ3.
-4. **RQ4 — profiling cost.** Step 0005 supplies the paper-level construction
-   answer: current `agentpprof 0.2.37` builds the 27,765-operation semantic
-   union in 1.17 s median with 464.49 MiB maximum RSS, while R160 separately
+4. **RQ4 — profiling cost.** Step 0071 supplies the current paper-level
+   construction answer: `agentpprof 0.2.37` builds the 27,765-operation
+   semantic union in 1.16 s median with 465.16 MiB maximum RSS, while R160 separately
    supports the predecessor shared-cache mechanism. Do not reopen another
    cost/cache variant.
 

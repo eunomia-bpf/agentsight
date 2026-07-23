@@ -644,6 +644,34 @@ reported standard metrics.
 official corpus is available and the result can change the paper-level RQ3
 answer or improve the actual tagger; dataset availability alone is insufficient.
 
+### E010 — Canonicalize operation identity without changing the story
+
+**Before:** the adopted A2 automatic Agent marks supplied the strongest
+CodeTrace structure result, but their 5,537 open-vocabulary names did not
+implement the later author instruction that recurring operation tags be
+action-first and no longer than three meaningful words.
+**After:** the same 5,752 temporal marks use one source-only action--object
+identity. A fail-closed boundary-safe refinement prevents adjacent display
+paths from collapsing, and equal canonical names receive one stable
+cross-session operation ID. The complete result has 1,434 two- or three-word
+identities, zero adjacent collision, and unchanged B-cubed/boundary scores.
+**Reason/evidence:** direct product replay rejected duplicate display
+name--ID assignments, while structural audit showed that naive canonicalization
+would erase 717 visible adjacent distinctions. The final adapter independently
+regenerates every operation from marks, preserves the temporal occurrence and
+boundary vectors, and loads in stock pprof.
+**Root disposition:** accept this as the current operation-identity
+implementation and RQ3/RQ4 input. It strengthens cross-run aggregation without
+changing the thesis, four RQs, contribution chain, or narrative.
+**Initial/previous/chosen comparison:** the Initial Narrative requires
+cross-run profiling identity; the immediately previous A2 supplied accurate
+boundaries but fragmented names; the chosen version keeps those boundaries and
+adds the reusable identity the original story requires.
+**Detail:** [Step 0071 latest-operation replay](tmp/build-and-evaluate/step-0071-20260723T015043-0700/experiment-001/results.md).
+**Revisit:** a later identity algorithm may replace this mapping only after a
+complete source-only replay shows a stronger paper-level result without
+deleting valid temporal boundaries.
+
 ## Invariants For Every Future Story Decision
 
 - Read this entire file, including the Initial Narrative and every evolution

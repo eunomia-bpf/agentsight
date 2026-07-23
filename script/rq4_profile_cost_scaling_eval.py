@@ -18,9 +18,6 @@ from pathlib import Path
 from statistics import median
 from typing import Any
 
-from operation_profile_cost_eval import read_output_stats
-
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BINARY = ROOT / "agentpprof" / "target" / "release" / "agentpprof"
 DEFAULT_OUT = ROOT / ".agentsight" / "experiments" / "rq4-cost-scaling-v1"
@@ -149,7 +146,7 @@ def run_one(
     stem = f"rep-{rep:02d}-{workload}-{profile}"
     run_dir = out_dir / "runs" / stem
     run_dir.mkdir(parents=True, exist_ok=True)
-    profile_path = run_dir / "profile.json"
+    profile_path = run_dir / "profile.pb.gz"
     timing_path = run_dir / "time.json"
     stdout_path = run_dir / "stdout.json"
     stderr_path = run_dir / "stderr.txt"
@@ -171,7 +168,7 @@ def run_one(
             "--stack",
             PROFILES[profile],
             "--format",
-            "json",
+            "pprof",
             "--deterministic-output",
             "-o",
             str(profile_path),
@@ -206,9 +203,20 @@ def run_one(
         )
     if not profile_path.is_file():
         raise SystemExit(f"missing profile output for {stem}")
-    output = read_output_stats(profile_path, "json")
-    if int(status.get("unique_stacks", -1)) != int(output["output_unique_stacks"]):
-        raise SystemExit(f"unique-stack mismatch for {stem}")
+    opened = subprocess.run(
+        ["go", "tool", "pprof", "-top", str(profile_path)],
+        cwd=ROOT,
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if opened.returncode != 0:
+        raise SystemExit(
+            f"stock pprof rejected {stem}: {opened.stderr.strip()}"
+        )
+    if profile_path.stat().st_size <= 0:
+        raise SystemExit(f"empty profile output for {stem}")
 
     wall_ms = float(timing["wall_s"]) * 1000.0
     return {
@@ -222,7 +230,7 @@ def run_one(
         if float(timing["wall_s"]) > 0
         else None,
         "max_rss_kb": int(timing["max_rss_kb"]),
-        "output_bytes": int(output["output_bytes"]),
+        "output_bytes": profile_path.stat().st_size,
         "samples": int(status["samples"]),
         "unique_stacks": int(status["unique_stacks"]),
         "exit_status": int(timing["exit_status"]),

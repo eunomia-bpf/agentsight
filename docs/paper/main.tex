@@ -68,8 +68,8 @@ AgentProcess and Trace.
 Evaluated task-family and action backends reach 0.695 and 0.498 macro-F1,
 label-free recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1 on
 OSWorld-Human, and, after marks are fixed, \sys constructs a
-27{,}765-operation profile in 1.17\,s.
-% 评估的 task-family 与 action backend 分别达到 0.695 和 0.498 macro-F1；在 OSWorld-Human 上，无标签 recurrence 达到 0.680 boundary F1 和 0.786 B$^3$ F1；固定 mark 后，\sys 在 1.17 秒内构建包含 27,765 个 operation 的 profile。
+27{,}765-operation profile in 1.16\,s.
+% 评估的 task-family 与 action backend 分别达到 0.695 和 0.498 macro-F1；在 OSWorld-Human 上，无标签 recurrence 达到 0.680 boundary F1 和 0.786 B$^3$ F1；固定 mark 后，\sys 在 1.16 秒内构建包含 27,765 个 operation 的 profile。
 \end{abstract}
 
 % AI agents increasingly orchestrate long-running, multi-step
@@ -199,8 +199,8 @@ ASE populations, task-family and action backends reach 0.695 and 0.498
 macro-F1, respectively~\cite{agentboard,bouzenia-pradel-2025-trajectories}.
 % 在 287 个 OSWorld-Human development session 上，无标签 recurrence 的 boundary F1 与 B$^3$ F1 为 0.680 和 0.786；在 AgentBoard 与 ASE population 上，task-family 与 action backend 分别达到 0.695 和 0.498 macro-F1。
 On four public workloads, after marks are fixed, \sys constructs a
-27{,}765-operation profile in 1.17\,s.
-% 在四个公开 workload 上，固定 mark 后，\sys 用 1.17 秒和 464.5 MiB profile 27,765 个 operation，比 raw action 增加 18.2\% 时间和 1.3\% 内存。
+27{,}765-operation profile in 1.16\,s.
+% 在四个公开 workload 上，固定 mark 后，\sys 用 1.16 秒和 465.2 MiB profile 27,765 个 operation，比 raw action 增加 19.6\% 时间和 1.14\% 内存。
 
 %% ¶8: Contributions
 This paper makes three contributions:
@@ -222,9 +222,9 @@ This paper makes three contributions:
   workloads. Two
   population case studies expose high-cost unfinished work and success--failure
   differences, and, after marks are fixed, \sys profiles 27{,}765 operations
-  in 1.17 seconds
+  in 1.16 seconds
   (Evaluation).
-% 评估。自动 operation structure 相对 raw action 改进人工 stage agreement，并在三个 localization workload 中均改进问题排序；两个 population case study 暴露高成本未完成工作和成功--失败差异；固定 mark 后，AgentProf 在 1.17 秒内 profile 27,765 个 operation。
+% 评估。自动 operation structure 相对 raw action 改进人工 stage agreement，并在三个 localization workload 中均改进问题排序；两个 population case study 暴露高成本未完成工作和成功--失败差异；固定 mark 后，AgentProf 在 1.16 秒内 profile 27,765 个 operation。
 \end{enumerate}
 
 %% ===================================================================
@@ -448,6 +448,14 @@ are materialized. A2 adds one deterministic source-only representation repair:
 when a one-turn root-only mark is immediately followed by its first
 responsibility, the first turn receives the complete root--responsibility path.
 % 完整 CodeTraceBench 运行使用本地 Qwen3.6-27B、temperature 0、seed 20260722 与 grammar-constrained JSON；全部 405 条轨迹物化前不读取官方 stage、outcome、recurrence assignment 或 score。A2 只增加一个确定性的 source-only 表示修复：若 one-turn root-only mark 紧邻其第一个 responsibility，则首 turn 直接采用完整 root--responsibility path。
+Before folding, one fixed source-only action--object map canonicalizes the A2
+display identity. A boundary-safe refinement retains a canonical action and
+the minimum source words needed whenever two adjacent paths would otherwise
+become equal; unresolved collisions fail closed. Equal canonical names receive
+one stable operation ID across sessions. The complete replay reduces 5{,}537
+open-vocabulary names to 1{,}434 two- or three-word identities with zero
+adjacent path collision, while preserving every temporal mark occurrence.
+% 折叠前，一个固定且仅使用 source 的 action--object 映射规范化 A2 的显示 identity；若相邻路径将变成相同，boundary-safe refinement 保留 canonical action 与最少的 source 区分词，无法区分则 fail closed；相同 canonical 名称在跨 session 共享稳定 operation ID。完整重放将 5,537 个开放名称压缩为 1,434 个二到三词 identity，且不删除任何时间边界。
 
 %% ===================================================================
 \section{Implementation}
@@ -808,6 +816,13 @@ one-turn task-root-only prefix to its first nested responsibility, eliminating
 marks have semantic depth one (51 marks), two (5{,}608), or three (93); no
 prompt requests a depth.
 % Automatic Agent 仅接收 source packet；确定性的表示修复把一步长的 task-root-only prefix 归入首个嵌套 responsibility，在不读取 stage label 的情况下消除 149 个伪 leaf，得到 5,752 个可变深度 mark。
+The current name replay then maps 5{,}537 open-vocabulary operation IDs to
+1{,}434 action-first two- or three-word canonical IDs. It independently
+re-expands all operations from the unchanged marks, preserves the temporal
+occurrence and adjacent-boundary vectors exactly, and leaves no adjacent
+display-path collision. Nonadjacent and cross-session equal names intentionally
+merge so recurring work folds in pprof.
+% 当前名称重放把 5,537 个开放 operation ID 映射为 1,434 个 action-first、二到三词 canonical ID；它从未改变的 mark 独立展开全部 operation，精确保留 temporal occurrence 与相邻 boundary，并有意合并非相邻及跨 session 的同名工作。
 
 Ordinary operation-level B$^3$ measures the induced leaf partition, while exact
 adjacent-boundary F1 measures transition placement. Both are standard metrics
@@ -956,11 +971,11 @@ Measurements use \texttt{agentpprof 0.2.37} on a 24-core Intel Core Ultra 9
 \toprule
 Workload & Ops & \shortstack{Semantic\\(s)} & \shortstack{Raw action\\(s)} & \shortstack{Peak RSS\\(MiB)} \\
 \midrule
-AgentRewardBench & 729 & 0.04 & 0.03 & 19.0 \\
-SATraj-OS & 4{,}285 & 0.17 & 0.14 & 73.5 \\
-OSWorld-Human & 6{,}010 & 0.25 & 0.21 & 108.4 \\
-AgentNet & 16{,}741 & 0.71 & 0.58 & 278.4 \\
-Union & 27{,}765 & 1.17 & 0.99 & 464.5 \\
+AgentRewardBench & 729 & 0.04 & 0.03 & 19.3 \\
+SATraj-OS & 4{,}285 & 0.17 & 0.14 & 73.9 \\
+OSWorld-Human & 6{,}010 & 0.24 & 0.21 & 109.1 \\
+AgentNet & 16{,}741 & 0.70 & 0.58 & 279.3 \\
+Union & 27{,}765 & 1.16 & 0.97 & 465.2 \\
 \bottomrule
 \end{tabular}
 \caption{RQ4 profile-construction cost. Times are three-run medians, and
@@ -969,19 +984,19 @@ resident set size (RSS) is the largest peak observed for the semantic profile.}
 \end{table}
 
 Both time curves are monotonic across the five input sizes. The semantic curve
-has a descriptive slope of 0.0422\,ms per operation ($R^2=0.9997$), reaching
-23{,}731 operations/s on the union.
-% 两条时间曲线在五个自然输入规模上均单调增长。语义曲线的描述性斜率为每个 operation 0.0422 毫秒（R 方为 0.9997），在并集上达到每秒 23,731 个 operation。
-For the 27{,}765-operation union, semantic construction completes in 1.17
-seconds, reaches 464.5\,MiB peak RSS, and incurs 180\,ms (18.2\%) more time and
-6.0\,MiB (1.3\%) more peak RSS than raw-action grouping.
-% 因此，RQ4 表明当前 binary 在测试范围内具有实用的构建开销：最大的 27,765-operation profile 在 1.17 秒内完成，使用 464.5 MiB，相对 raw action 增加 18.2% 时间和 1.3% 内存。
+has a descriptive slope of 0.0418\,ms per operation ($R^2=0.9997$), reaching
+23{,}935 operations/s on the union.
+% 两条时间曲线在五个自然输入规模上均单调增长。语义曲线的描述性斜率为每个 operation 0.0418 毫秒（R 方为 0.9997），在并集上达到每秒 23,935 个 operation。
+For the 27{,}765-operation union, semantic construction completes in 1.16
+seconds, reaches 465.2\,MiB peak RSS, and incurs 190\,ms (19.6\%) more time and
+5.25\,MiB (1.14\%) more peak RSS than raw-action grouping.
+% 因此，RQ4 表明当前 binary 在测试范围内具有实用的构建开销：最大的 27,765-operation profile 在 1.16 秒内完成，使用 465.2 MiB，相对 raw action 增加 19.6% 时间和 1.14% 内存。
 As a direct replay of the adopted automatic backend, the fixed 20{,}866-operation
 A2 input constructs either its operation-count or 494{,}862{,}929-token profile
-in 0.61\,s median, with at most 308.9\,MiB observed RSS. Both outputs load in
+in 0.79 and 0.81\,s median, respectively, with at most 307.3\,MiB observed RSS. Both outputs load in
 stock pprof and conserve their exact additive mass. This replay measures the
 profiling core after marks are fixed; automatic annotation latency is separate.
-% 采用的 A2 backend 在固定 mark 后重放 20,866 个 operation：operation 与 token profile 的中位构建时间均为 0.61 秒，最大 RSS 为 308.9 MiB，并精确保守可加权重。
+% 采用的 A2 backend 在固定 mark 后重放 20,866 个 operation：operation 与 token profile 的中位构建时间分别为 0.79 与 0.81 秒，最大 RSS 为 307.3 MiB，并精确保守可加权重。
 
 \subsection{Scope and Limitations}
 
@@ -1047,9 +1062,9 @@ stage-partition agreement on CodeTraceBench and localization MAP over raw
 action on all three localization workloads, and recover OSWorld-Human groups
 at 0.680 boundary F1 and 0.786
 B$^3$ F1. After marks are fixed, \sys builds a 27{,}765-operation profile in
-1.17 seconds, making
+1.16 seconds, making
 population profiling practical alongside per-run debugging.
-% 在真实与公开轨迹上，这些 profile 相比 raw action identity 改善归因、在三个完整 workload 上提高 localization MAP、恢复有用的 task、action 与 group 结构，并在固定 mark 后用 1.17 秒构建最大的已评估 profile。
+% 在真实与公开轨迹上，这些 profile 相比 raw action identity 改善归因、在三个完整 workload 上提高 localization MAP、恢复有用的 task、action 与 group 结构，并在固定 mark 后用 1.16 秒构建最大的已评估 profile。
 
 \bibliography{references}
 

@@ -18,10 +18,10 @@ later explicit user instruction may change the four author-fixed RQs.
 
 | RQ | Fixed question | Positive hypothesis | Next evidence need |
 |---|---|---|---|
-| RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed positive answer.** R114 establishes scoped source-lineage correctness under concurrent controls and lossless profile folding. Step 0035 establishes the complete same-input coarse recurrence comparison on 405 CodeTraceBench trajectories: ordinary B-cubed F1 is 0.649 versus 0.541 for raw-action grouping. Step 0049 adds detailed visible-action continuity and reaches 0.663; its +0.014 gain over coarse has a task-cluster 95% interval of [+0.009,+0.018] and is positive in all four frameworks. Phase-only is 0.654, so the result supports semantic stage-aligned attribution over raw action, not one view's dominance over every decision. R170/R224/R251 remain descriptive declared-category and multi-weight evidence rather than an independent oracle. Do not reopen another RQ1 benchmark, metric, or constructor variant before WRITE/REVIEW. |
-| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed positive answer against matched raw-action organization, with an explicit atomic/local mechanism boundary.** Step 0036 rechecks all 1,756 trajectories and 27,346 operations using standard per-query AP/MAP as the primary metric and exact-budget Recall@20% only as secondary analysis: AgentProf-minus-raw intervals are positive for both measurements on AgentProcessBench, HINTBench, and TraceElephant. Atomic nevertheless wins both AgentProcessBench measurements, while the HINT/Trace atomic comparisons are mixed; HINT grouping also propagates nonzero support to 76.54% of clean operations versus 0.742% atomic. Step 0037 then adaptively preserves every strict local-score ordering and uses semantic recurrence only to break exact local-score ties. On the same observed populations it improves MAP over atomic and semantic-only ranking on all three workloads and over a matched local+raw tie-breaker on HINTBench and TraceElephant; AgentProcessBench is indistinguishable from local+raw. Step 0067 adds a complete outcome-blind recursive Agent case over 440 AgentRewardBench trajectories: the recovery exposure has AP 0.634 versus 0.398 expert-looping prevalence with a positive task-cluster interval, while its interval against the registered fixed-chain baseline crosses zero. Step 0070 fixes one target-blind action--object lexicon across all three RQ2 workloads: 876 old names become 239 reusable two- or three-word identities. Under byte-identical source evidence, HINTBench improves by .008 while AgentProcessBench and TraceElephant are statistically unchanged; all three final automatic profiles remain above raw action. This supports readable recurring identity, real-problem correspondence, and recursive context—not detector superiority. Collectively the evidence supports problem ranking, group prioritization, and differential drilldown, not universally lower work, human productivity, or dominance over every atomic/session view. |
-| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping recovers accurate and stable task/action identities plus phase/group structure and boundaries on unseen agents and task families without materially corrupting attribution. | **Positive evidence on declared flat/named public populations; nested task/subtask structure remains open.** Step 0006 supports supervised group-boundary identity on 287 session-held-out OSWorld-Human tasks. Step 0008 adds target-blind task-partition evidence on Mind2Web and 100 ScienceWorld sessions, with V-measure 0.5565 and 0.8151 at full coverage versus 0 for a constant control. Step 0024 supplies the coarse recurrence predecessor: 0.6799 exact boundary F1 and 0.7862 ordinary B-cubed F1 on OSWorld, and 0.2871 / 0.6492 on CodeTraceBench. Step 0049's current multi-resolution constructor falls back exactly on OSWorld and reaches 0.2656 / 0.6627 on CodeTraceBench. Step 0030 separately fits one scalar on disjoint grouped references and reaches B-cubed F1 0.8011 on OSWorld and 0.6666 on CodeTraceBench. Step 0031's fixed Qwen3.6-27B path reaches 0.695 task-family macro-F1 on all 1,012 AgentBoard goals. Step 0032 uses the complete 2,737-label ASE population and reaches 0.498 action macro-F1 versus 0.061 majority, a +0.437 trajectory-bootstrap effect with 95% interval [+0.380, +0.494], and exact two-run stability. Step 0038 confirms that the original RQ3 also evaluated mapping-derived phase structure rather than independent literal phase names. No current result scores variable-depth task/subtask hierarchy or cross-run identity; Step 0061 reopens only that missing RQ3 evidence, not the RQ or positive hypothesis. Unknown/open label sets, universal phase-name ontologies, and uniform cross-framework accuracy remain outside the declared population; they are not automatic blockers. |
-| RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Current `agentpprof 0.2.37` completes the 27,765-operation semantic union in 1.17 s median with 464.49 MiB maximum RSS, with a monotonic near-linear measured scale curve. R160 separately supports the shared cache mechanism on one predecessor fixed-input pair. The paper now states both results with the binary boundary explicit; do not reopen another cost/cache variant. |
+| RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed positive answer.** R114 establishes scoped source-lineage correctness under concurrent controls and lossless profile folding. Step 0035 establishes the complete same-input coarse recurrence comparison on 405 CodeTraceBench trajectories: ordinary B-cubed F1 is 0.649 versus 0.541 for raw-action grouping. Step 0049 adds detailed visible-action continuity and reaches 0.663; its +0.014 gain over coarse has a task-cluster 95% interval of [+0.009,+0.018] and is positive in all four frameworks. Step 0071 rebuilds the fixed three-run Git count/token case with the current release; both pprof outputs are byte-identical to the paper inputs and conserve 489 operations and 4,558,192 tokens. Phase-only is 0.654, so the result supports semantic stage-aligned attribution over raw action, not one view's dominance over every decision. R170/R224/R251 remain descriptive declared-category and multi-weight evidence rather than an independent oracle. |
+| RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed positive answer against matched raw-action organization, with an explicit atomic/local mechanism boundary.** Step 0036 rechecks all 1,756 trajectories and 27,346 operations using standard per-query AP/MAP as the primary metric. Step 0067 adds a complete outcome-blind recursive Agent case over 440 AgentRewardBench trajectories: the recovery exposure has AP 0.634 versus 0.398 expert-looping prevalence with a positive task-cluster interval, while its interval against the registered fixed-chain baseline crosses zero. Step 0070 fixes one target-blind action--object lexicon across all three RQ2 workloads: 876 old names become 239 reusable two- or three-word identities. Under byte-identical source evidence, HINTBench improves by .008 while AgentProcessBench and TraceElephant are statistically unchanged; final Agent+Evidence MAP is .791/.432/.259 and remains above raw action on all three workloads. Step 0071 replays all three complete candidates with the current release; every per-query row and summary is byte-identical to Step 0070. This supports readable recurring identity, real-problem correspondence, and recursive context—not detector superiority or universal human-time reduction. |
+| RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping recovers accurate and stable task/action identities plus phase/group structure and boundaries on unseen agents and task families without materially corrupting attribution. | **Positive evidence on declared structural and literal public populations.** Step 0067's complete source-only automatic Agent A2 reaches ordinary B-cubed F1 .704 and exact boundary F1 .394 on all 405 CodeTraceBench trajectories and 20,866 operations, versus .663/.266 for recurrence and .541 B-cubed for raw action. Step 0071 applies the current action-first identity, reducing 5,537 open names to 1,434 two- or three-word canonical IDs with zero adjacent display-path collision while preserving the full temporal occurrence/boundary vectors and standard scores. Step 0006/0030 provide OSWorld boundary/partition evidence (.680/.786 label-free and .734/.801 reference-calibrated); Step 0008 provides V-measure .557/.815 on Mind2Web/ScienceWorld; Step 0031/0032 provide task-family/action macro-F1 .695/.498. These standard metrics evaluate complementary outputs; the canonical IDs are not claimed as gold open-vocabulary semantic classes. |
+| RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Step 0071's current `agentpprof 0.2.37` build completes all 30 public-matrix runs. The 27,765-operation semantic union takes 1.16 s median with 465.16 MiB maximum RSS and 23,935 operations/s; the semantic scale curve is monotonic with descriptive slope .041825 ms/operation and R² .999679. Six latest-A2 runs take .79 s operation-width and .81 s token-width median with at most 307.32 MiB RSS and exact mass. R160 remains only bounded predecessor cache-mechanism evidence. |
 
 RQ3's phase-structure component reuses the complete CodeTraceBench measurement
 reported under RQ1: the deterministic phase field reaches 0.654445 ordinary
@@ -656,16 +656,25 @@ rechecked; old readiness booleans are not evidence.
 
 ## Admitted RQ4 Evidence And Boundaries
 
-Step 0005 ran release `agentpprof 0.2.37` over the four complete existing
-public operation files and their exact union. The complete matrix contains five
-natural input sizes, one fixed semantic construction, one raw-action cost
-control, and three repetitions per cell: 30/30 invocations completed and passed
-independent recomputation. Semantic median construction increases monotonically
-from 40 ms for 729 operations to 1.17 s for the 27,765-operation union. The
-descriptive fit has slope 0.042176 ms/operation and R-squared 0.999738. On the
-union, throughput is 23,731 operations/s and maximum observed RSS is 464.49
-MiB. Relative to the identical-input raw-action cost control, the semantic
-hierarchy adds 180 ms median time (18.18%) and 1.29% maximum RSS.
+Step 0071 rebuilds release `agentpprof 0.2.37` from
+`db465c32b312ce96f466a3975ede7d73525855fc` (binary SHA-256
+`c560754b3e1c0496b914ce49ee0e17a4d8004e7702556cccaa5814f7e6843d9b`)
+and reruns the four complete public operation files and their exact union. The
+complete matrix contains five natural input sizes, one fixed semantic
+construction, one raw-action cost control, and three repetitions per cell:
+30/30 invocations complete, conserve mass, and load in stock pprof. Semantic
+median construction increases monotonically from 40 ms for 729 operations to
+1.16 s for the 27,765-operation union. The descriptive fit has slope 0.041825
+ms/operation and R-squared 0.999679. On the union, throughput is 23,935
+operations/s and maximum observed RSS is 465.16 MiB. Relative to the
+identical-input raw-action control, the semantic hierarchy adds 190 ms median
+time (19.6%) and 1.14% maximum RSS.
+
+The same build completes six latest-A2 fixed-input runs. The 20,866-operation
+profile takes 0.79 s median and the 494,862,929-token profile takes 0.81 s,
+with at most 307.32 MiB observed RSS. This measures parsing, mark replay,
+folding, and serialization only; automatic annotation, capture, and source
+adaptation remain outside RQ4 timing.
 
 R160 is reused only as bounded cache-mechanism evidence. Its one predecessor
 AgentFlame fixed-input pair took 1.64 s clean with 60 LLM calls and 0.11 s
@@ -673,8 +682,9 @@ cached with 76/76 hits and zero calls, a 14.91x observed ratio. It is not
 current-binary cache timing or a repeated estimate. Full Step 0005 plans,
 reviews, preflight, results, and independent recomputation are under
 [`loop-001-rq4-cost-scaling`](tmp/build-and-evaluate/step-0005-20260714T022913-0700/01-experiment-gate/loop-001-rq4-cost-scaling/),
-with machine-readable results under
-`.agentsight/experiments/rq4-cost-scaling-v1/`.
+with the superseding machine-readable results under
+`.agentsight/experiments/rq4-cost-scaling-v2-current/` and
+`.agentsight/experiments/a2-canonical-v1/cost/`.
 
 ## Admitted RQ3 Evidence And Boundaries
 
@@ -1316,6 +1326,15 @@ not mix RQ1 or RQ2 outcomes or reopen NPMI, thresholds, depth caps,
 contractions, or prompt-only variants. Complete review reports are
 under
 [`step-0061-20260720T192035-0700`](tmp/build-and-evaluate/step-0061-20260720T192035-0700/).
+
+Steps 0067 and 0071 supersede that historical constructor pointer without
+changing RQ3. The adopted source-only automatic Agent A2 covers all 405
+CodeTrace sessions and reaches ordinary B-cubed F1 0.704113 and exact boundary
+F1 0.393916. Step 0071 replays the current short operation identity over the
+same 5,752 marks: 5,537 open names become 1,434 action-first two- or three-word
+canonical IDs, all 717 initially colliding adjacent display paths are
+disambiguated without target access, and the temporal occurrence and boundary
+vectors remain exact. This is the current CodeTrace RQ3 result.
 
 ## Experiment History Policy
 
