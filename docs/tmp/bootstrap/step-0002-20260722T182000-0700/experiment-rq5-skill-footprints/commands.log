@@ -1,0 +1,56 @@
+RQ5 source-explicit footprint execution record
+==============================================
+
+Frozen cutoff:
+  1784760000000 epoch milliseconds
+
+Regression checks:
+  cargo test --manifest-path agent-session/Cargo.toml
+  result: 17 passed
+  cargo test --manifest-path agentvis/Cargo.toml
+  result: 35 passed
+  cargo test --manifest-path agentpprof/Cargo.toml
+  result: 14 passed
+  cargo check --manifest-path collector/Cargo.toml
+  result: PASS
+
+Preflight projection:
+  cargo run --quiet --manifest-path agentvis/Cargo.toml -- research-rq1 \
+    --cutoff-ms 1784760000000 \
+    --output docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq5-skill-footprints/preflight/raw \
+    /home/yunwei37/workspace/agentsight
+  result: 1 project, 4,293 artifacts, 6,625 confirmed mutations
+  resources: 25.67 wall seconds, 810,960 KiB max RSS
+
+Authoritative six-project projection:
+  cargo run --quiet --manifest-path agentvis/Cargo.toml -- research-rq1 \
+    --cutoff-ms 1784760000000 \
+    --output docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq5-skill-footprints/full-six-projects/raw \
+    /home/yunwei37/workspace/agentsight \
+    /home/yunwei37/workspace/ActPlane \
+    /home/yunwei37/workspace/bpf-developer-tutorial \
+    /home/yunwei37/workspace/eunomia.dev \
+    /home/yunwei37/workspace/agentskill-observability-paper \
+    /home/yunwei37/workspace/my-paper-work/academic-writing-skills
+  result: 6 projects, 7,760 artifacts, 13,270 confirmed mutations
+  resources: 60.27 wall seconds, 1,065,492 KiB max RSS
+
+Independent included-source reconciliation:
+  python3 agentvis/research/check_rq5_sources.py \
+    --input docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq5-skill-footprints/full-six-projects/raw \
+    --output docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq5-skill-footprints/full-six-projects/figures/source-check.json
+  result: PASS; 2,063/2,063 included source streams located;
+    7,304/7,304 projected signal rows, 67 Skill invocations, 1,675
+    attributed Skill actions, and 205,836 adjacent Tool boundaries matched;
+    2,822 high-confidence direct/simple-shell instruction accesses
+    independently recomputed; 0 failures
+
+Analysis and figures:
+  python3 agentvis/research/plot_rq5_skill_footprints.py \
+    --input docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq5-skill-footprints/full-six-projects/raw \
+    --source-audit docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq5-skill-footprints/full-six-projects/figures/source-check-instructions.csv \
+    --output docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq5-skill-footprints/full-six-projects/figures
+  result: CSV, result.md, F9a/F9b PDF and PNG generated; five exact-context
+    Skill strata qualify, one project supports a two-Skill comparison;
+    same/different median JSD 0.116/0.123 (9/10 pairs); one-sided exact
+    root-block p=0.750 over 12 admissible assignments (4 unique statistics)

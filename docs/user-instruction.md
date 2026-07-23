@@ -62,3 +62,11 @@ The entries below preserve only verbatim user-authored research instructions.
 > 写一个 asbtract / title 给我先
 
 > 该画图的要画出来图
+
+> skill/harness 的访问能也从轨迹里面看出来吧
+
+> 现有冻结数据 是什么? 我们可以从轨迹上获得啊? 谁让你冻结数据了?
+
+> 我们不需要改可视化, 你现在先把 empirical study 做好? RQ6 修一下? 能不能想想更有趣的问题, 再来几个 RQ? 我觉得有一些是显然的吗比如说 RQ1, 也有一些数据不一定具有代表性, 因为是我们自己的开发数据? 另外 empirical study 也需要画图对吧?
+
+> 以及你也可以帮助想想我们的星云图有没有必要重新设计

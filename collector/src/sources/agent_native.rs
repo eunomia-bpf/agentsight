@@ -158,6 +158,8 @@ fn codex_state_session(
         agent_type: agent_session::AGENT_CODEX.to_string(),
         session_id: id.clone(),
         conversation_id: Some(id.clone()),
+        source_role: Some("root".to_string()),
+        source_agent_id: None,
         display_id: format!("{}:{}", agent_session::AGENT_CODEX, short_session_id(&id)),
         path,
         updated,

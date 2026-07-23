@@ -18,13 +18,13 @@ truth remain excluded. The full Chinese study contract is
 
 | RQ | Evidence required | Status | Next decisive action |
 |---|---|---|---|
-| RQ1 activity to artifact progress | For all qualified sessions in six projects, relate actions and mutations to final artifact survival, later reuse, successful-validation distance, and their intersection; report source coverage and per-project distributions. | Reviewed six-project run complete. Reuse is measurable in 6/6; persistence and recognized validation are coverage-only at 3/6. | Preserve reviewed F3/F4 while extending the frozen corpus to later RQs. |
-| RQ2 validation dynamics | Recognized successful/failed validation cadence and complete worktree-local inter-success mutation intervals. | Independently reviewed F5 complete for 3/6 source-covered projects; cross-case gate stopped. | Improve validation adapters before making a six-case cadence claim. |
-| RQ3 repeated-mutation structure | First/repeat-observed mutation episodes, per-identity load, exact concentration, and action-atomic prefix evolution. | Independently reviewed F6 complete for all six cases. | Keep convergence, validation-followed revision, module switching, failure and waste interpretations open. |
-| RQ4 source-session continuity | Adjacent non-overlapping concurrency components, mutation-observed prefixes, artifact/module overlap and first-mutation state. | Independently reviewed F7 complete as coverage/within-case evidence; every four-project estimator gate stopped. | Capture portable source-session roles before estimating reset/resumption effects. |
-| RQ5 workspace activity allocation/migration | Path-resolved action/call allocation, same-artifact/same-module/cross-module transitions and return gaps. | Independently reviewed F8a/F8b complete; five cases pass the return gate and one remains N/A. | Preserve status sensitivity; do not reinterpret action order as attention or duration. |
-| RQ6 skill/instruction source coverage | Exact Skill Tool and instruction-file source signals by session, vendor, status and action-order bin. | Independently reviewed F9 complete; missing exposure-defining fields stop every association/effect analysis. | Capture Skill name/arguments, model/config, external instructions and actual non-exposure prospectively. |
-| RQ7 matched-comparison readiness | Immutable normalized/native source universes, cutoff worktree state, pinned method interfaces and an independent oracle contract. | Independently reviewed F10 complete: 12 present, 0 partial and 24 N/A source-contract cells; matched comparison stopped before questions or method calls. | Prospectively freeze the missing contracts before attempting the separate capability comparison. |
+| RQ1 artifact consolidation/revival | Final survival for confirmed introductions, lineage reuse/revival, first/repeat-observed mutation and identity concentration. | Six-case reuse/repetition evidence complete; confirmed-create persistence remains coverage-only at 3/6. | Add dormant-to-revived state transitions without converting repeated activity into a progress score. |
+| RQ2 validation response | Recognized success/failure cadence, mutation backlog and event-distance response around validation. | F5 complete for 3/6 source-covered projects; cross-case gate stopped. | Improve validation adapters before a six-case response claim. |
+| RQ3 workspace focus evolution | Artifact-class allocation, same-artifact/same-module/cross-module transitions, hotspot turnover and return gaps. | F8a/F8b complete; five cases pass the return gate and one remains N/A. | Add rank-turnover/cooling curves; keep action order distinct from time or internal attention. |
+| RQ4 cross-session continuity | Native-root/source-stream structure, adjacent non-overlapping components, pre-mutation re-grounding and prior artifact/module overlap. | F7 is coverage/within-case evidence; the four-project estimator gate stopped. | Recompute with corrected native root/subagent identity before estimating continuity. |
+| RQ5 Skill/instruction footprints | Exact Skill name/arguments and source attribution blocked by native root session; separate instruction focal events. | Fresh six-case run and independent 2,063-stream checker pass. Five exact-context Skill strata qualify, but only one project supports a two-Skill comparison: same/different JSD 0.116/0.123, exact root-block p=0.750 over 12 admissible assignments. | Report source-attributed coverage and no supported repeatable Skill separation; make no fingerprint or causal harness claim. |
+| RQ6 external boundary | Replicate compatible within-attempt relations separately in public coding and scientific-process traces; mark persistence/re-grounding N/A without persistent lineage. | Sources selected (Open-SWE-Traces and IdeaTrail), execution open. | Run relation-level direction/coverage checks without pooling heterogeneous populations. |
+| Separate measurement capability | Compare source-verifiable factual coverage, abstention and cost for Final State, Counts, ProcGrep, bounded Raw-log reader and artifact-linked trajectories. | Open. Step 0003 froze 72 complete sessions and a 120-question oracle, but the Raw child never started. | Resume only as a separate tool experiment; it is not required to close the descriptive RQs. |
 
 ## RQ1 selected experiment
 
@@ -127,6 +127,16 @@ evidence, latency, token, or cost value. This dependency result cannot close
 the separate capability/superiority question; it does close the paper's
 matched-comparison readiness RQ.
 
+Step 0003 prospectively froze 12 complete session files for each of six
+projects and generated 120 source-witnessed questions, 30 in each of the four
+families. A separate shell/jq checker reproduced every answer. Final State,
+Counts, pinned ProcGrep and the artifact trajectory completed the final
+preflight, but the Raw child resolved relative `--cd` and output paths against
+its own relative cwd and exited before model startup. Because the three allowed
+preflight attempts are exhausted, the corrected absolute-path runner has not
+been executed. These artifacts establish a reusable corpus and an incomplete
+execution path only; they provide no RQ7 accuracy, coverage or cost result.
+
 ## Superseded intervention program
 
 The earlier H6 program compared No Intervention, Generic, Full Raw Retrieval,
@@ -152,8 +162,13 @@ historical evidence, not the active evaluation:
 - Active BOOTSTRAP step:
   `docs/tmp/bootstrap/step-0001-20260719T181243-0700/step-report.md`
 - Visualization design: `docs/repository-nebula.zh-CN.md`
+- Current RQ7 plan and incomplete preflight record:
+  `docs/tmp/build-and-evaluate/step-0003-20260722T142124-0700/`
+- Corrected Skill/instruction footprint run:
+  `docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq5-skill-footprints/`
 
-RQ1--RQ6 now have independently reviewed figures with the coverage stops above.
-RQ7's readiness question is closed by F10: the matched run cannot start from
-this freeze.  The separate capability/superiority question remains open and
-requires a future immutable source contract plus an independently scored run.
+Local RQ1--RQ5 have executable figures with the coverage stops above; the
+corrected RQ5 result now replaces the old exporter-induced source-coverage
+stop. RQ6 external triangulation remains open. F10 closes only the old freeze's
+readiness audit; the separate capability experiment remains open until its Raw
+baseline and independently scored matched run complete.

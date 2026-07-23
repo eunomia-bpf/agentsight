@@ -263,8 +263,10 @@ session 空档或 commit 压缩。求取任一媒体帧之前仍按顺序推进�
 
 时间轴从第一个 Agent action 开始，到最后一个 Agent action 结束。进度条按动作序号
 推进；墙钟时间只在详情中显示，不把 session 间长时间空档扩成空白帧。跨 session
-保留仓库状态和长期重要性，但短期注意力与轨迹在新 session 开始时重新建立。session
-边界只在进度条上显示一个细刻度，不增加星点、连线或大块提示。
+保留仓库状态和长期重要性，但短期注意力与轨迹只在新的 native root session 开始时
+重新建立。共享同一 native root session 的 parent/subagent source stream 属于一次委派
+过程，不重置轨迹。root-session 边界只在进度条上显示一个细刻度，不增加星点、连线
+或大块提示。
 
 commit 不定义时间轴起点、终点、布局或文件状态。对位于观测 action 时间范围内的
 commit，在第一个满足 `action.ts_ms >= commit_ms` 的快照让最外框闪烁；因此落在两个
@@ -406,8 +408,9 @@ w_read/write/create/rename/delete = 1 / 2 / 2.5 / 2.5 / 2
 
 焦点使用细环或局部光晕，从 `q_{i-1}` 平滑移动到 `q_i`，不画永久连线。最近焦点的
 余辉使用和注意力相同的指数形式；默认 `H_trail=H_attention`，但状态独立，后续可按
-跨帧轨迹追踪实验单独标定 `H_trail/epsilon_trail`。新 session 从第一个有文件动作的位置
-重新出现。一个 action 同时触达许多文件时，每个文件分别产生操作效果，焦点只摘要
+跨帧轨迹追踪实验单独标定 `H_trail/epsilon_trail`。新的 native root session 从第一个
+有文件动作的位置重新出现；它不是每个 subagent transcript 文件。
+一个 action 同时触达许多文件时，每个文件分别产生操作效果，焦点只摘要
 影响中心，并同时计算这些文件相对焦点的影响半径。没有文件动作的 action 保持上一个
 焦点位置，不产生文件波纹。
 
@@ -425,6 +428,31 @@ A_ab = 1 - exp(-S_ab)
 `A_ab` 只产生目录中心之间的弱力，所有目录分量都保留；文件不会被转移力单独拉出所属
 目录。任一 degree 为 0 时定义 `S_ab=0`。路径引力表达静态结构邻近，`A_ab` 表达 Agent
 行动的长期时序邻近。
+
+### 实证结果驱动的重设计判定
+
+当前不需要推翻星域、目录色系和动态力场。六案例的 path-resolved 轨迹中，相邻动作
+留在同一 artifact、同一 module 或跨 module 的比例明显不同，离开后返回的中位距离
+通常只有 3--5 个 call；这支持“空间 focus + 短期余辉 + 长期结构”的基本表示。但需要
+做三项定向修正，避免把好看的布局误当测量：
+
+1. **把轨迹主体画得比长期重要性更明确。** 当前 action 的文件波纹、空间焦点和最近
+   焦点余辉构成一条无永久连线的时序轨迹；余辉按数据驱动的 `H_attention` 衰减。长期
+   importance 只决定背景星域，不得盖过最近动作序列。
+2. **按 native root session 处理委派。** source audit 显示显式 Skill 调用和
+   `attributionSkill` 执行经常分布在 parent/subagent 的不同 stream。图例可以在画布外
+   显示当前 root session、source role 和 source-native Skill attribution，但不能把
+   subagent 文件切换画成一次“失忆”或全新轨迹。RQ5 在唯一满足比较门槛的案例中也未
+   支持稳定的 Skill 足迹分离，因此 Skill 不能决定星点颜色、位置、质量、目录引力或
+   永久边；它只能作为当前 action 的可核对上下文出现在动态图例中。
+3. **把可测量层与位置层分开。** artifact allocation、transition、return gap、Skill
+   action composition 等数值必须从 action/path rows 计算；力布局坐标只帮助观看，不进入
+   科研统计。若需要在单 HTML 中复用这些结果，只用简洁动态图例或进度条标记，不增加
+   第二张图、侧边栏或永久边。
+
+因此建议是“保留视觉骨架，强化 action-order 轨迹和 root-session 语义”，不是重做成
+另一种图。只有后续跨帧追踪实验表明用户无法跟住焦点或目录纯度显著下降时，才重新选择
+布局模型。
 
 ### Temporal stability
 

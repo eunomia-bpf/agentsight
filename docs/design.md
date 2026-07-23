@@ -89,19 +89,26 @@ inference. RQ analyses derive transparent measurements:
 - **validation association:** adapter-recognized successful validation before
   the same artifact's next mutation/delete, with supersession as a competing
   outcome and arbitrary later validation reported only as global association;
-- **repeated-mutation structure:** first/repeat-observed mutation episodes,
-  per-identity load, exact concentration and action-atomic prefix evolution;
+- **artifact consolidation and revival:** introduced-artifact persistence,
+  first/repeat-observed mutation, per-identity concentration, later reuse and
+  return after inactivity, without labeling repetition as waste;
 - **source-session continuity:** mutation-observed prefix composition,
   artifact/module overlap and first-mutation state between adjacent
   non-overlapping concurrency components; overlapping sessions are not forced
   into an invented serial order;
-- **workspace activity allocation and migration:** path-resolved action/call
+- **workspace focus allocation and migration:** path-resolved action/call
   allocation, same-artifact/same-module/cross-module transitions and return
   gaps in native action order, without interpreting them as duration or latent
   attention; and
-- **skill/instruction source coverage:** exact visible Skill Tool and
-  instruction-file signals. Association analysis is admitted only when positive
-  and negative exposure can both be established; the current corpus cannot.
+- **skill/instruction footprints:** source-native Skill name/arguments,
+  `attributionSkill`, root-session and source-stream identity, plus separate
+  instruction-file focal events. Skill-conditioned composition is aggregated
+  by native root session; same-stream invocation links are coverage evidence,
+  not invented delegated episode boundaries. No observational footprint is
+  interpreted as a causal harness effect; and
+- **external boundary:** replicate only compatible within-attempt relations in
+  public coding/scientific-process traces, with longitudinal persistence and
+  re-grounding explicitly N/A where persistent lineage is unavailable.
 
 The three-way progress conjunction is restricted to eligible
 observation-born introduction episodes; it is not a weighted scalar. Complete
@@ -151,8 +158,18 @@ an untracked-state disposition, executable pinned baseline interfaces and a
 separate source-explicit oracle specification. The current RQ1 freeze has the
 normalized action spine but not those contracts. F10 therefore reports only
 benchmark readiness with explicit N/A cells and `MATCHED COMPARISON STOPPED`;
-it closes only the readiness question and is not evidence for trajectory
-superiority.  The separate capability comparison remains future work.
+it closes only the old freeze's readiness audit and is not evidence for
+trajectory superiority. RQ7 remains open until a prospective source-complete
+freeze supports an independently scored capability comparison.
+
+The Step 0003 prospective freeze now supplies the missing source and workspace
+contracts for 72 complete session files and 120 independently reproduced
+questions. It does not change the comparison boundary: the final preflight
+stopped before the Raw model started because its child paths were relative to
+the sandbox cwd. The executor now resolves those paths before child
+construction, but that correction has not received an author-authorized extra
+preflight. No capability claim follows from the freeze or deterministic arms
+alone.
 
 ## Presentation-only choices
 

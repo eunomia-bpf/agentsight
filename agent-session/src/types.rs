@@ -79,6 +79,26 @@ pub struct ToolEvent {
     pub end_ts_ms: Option<i64>,
     pub prompt_index: usize,
     pub tool_name: String,
+    /// Source-native event identifier when the transcript exposes one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_event_id: Option<String>,
+    /// Source-native parent event identifier when the transcript exposes one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_event_id: Option<String>,
+    /// Model recorded on the source event, without inference from later rows.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    /// Native attribution labels. These are evidence, not inferred ownership.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attribution_skill: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attribution_agent: Option<String>,
+    /// Exact explicit Skill invocation fields. `command` remains a bounded
+    /// display projection and must not be used as the research source.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skill_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skill_args: Option<String>,
     pub category: String,
     pub command: String,
     /// Source-native per-call working directory when available.
@@ -148,6 +168,12 @@ pub struct AgentSession {
     pub agent_type: String,
     pub session_id: String,
     pub conversation_id: Option<String>,
+    /// Native role of this source stream, such as root or subagent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_role: Option<String>,
+    /// Native agent/subagent identifier when available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_agent_id: Option<String>,
     pub display_id: String,
     pub path: PathBuf,
     pub updated: SystemTime,

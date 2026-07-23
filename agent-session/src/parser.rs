@@ -263,6 +263,45 @@ fn parse_jsonl(
         if let Some(id) = conversation_id {
             acc.conversation_id = Some(id);
         }
+        match agent {
+            AGENT_CLAUDE => {
+                if let Some(sidechain) = obj.get("isSidechain").and_then(Value::as_bool) {
+                    acc.source_role = Some(if sidechain { "subagent" } else { "root" }.into());
+                }
+                if let Some(id) = obj.get("agentId").and_then(Value::as_str) {
+                    acc.source_agent_id = Some(id.to_string());
+                }
+            }
+            AGENT_CODEX if obj.get("type").and_then(Value::as_str) == Some("session_meta") => {
+                if let Some(id) = obj
+                    .pointer("/payload/session_id")
+                    .and_then(Value::as_str)
+                    .or_else(|| obj.pointer("/payload/thread_id").and_then(Value::as_str))
+                    .or_else(|| obj.pointer("/payload/id").and_then(Value::as_str))
+                {
+                    acc.session_id = id.to_string();
+                }
+                acc.source_role = obj
+                    .pointer("/payload/thread_source")
+                    .and_then(Value::as_str)
+                    .map(ToString::to_string)
+                    .or_else(|| {
+                        obj.pointer("/payload/source/subagent")
+                            .is_some()
+                            .then(|| "subagent".to_string())
+                    })
+                    .or_else(|| Some("root".to_string()));
+                acc.source_agent_id = obj
+                    .pointer("/payload/agent_path")
+                    .and_then(Value::as_str)
+                    .or_else(|| {
+                        obj.pointer("/payload/agent_nickname")
+                            .and_then(Value::as_str)
+                    })
+                    .map(ToString::to_string);
+            }
+            _ => {}
+        }
         if acc.cwd.is_none() {
             acc.cwd = obj
                 .get("cwd")
@@ -336,7 +375,7 @@ fn parse_jsonl(
                             acc.add_file(fp);
                         }
                         let call_id = item.get("id").and_then(Value::as_str).map(str::to_string);
-                        let event = tool_event_from_input(
+                        let mut event = tool_event_from_input(
                             acc.cwd.as_deref(),
                             ts_ms_from_event(&obj),
                             current_prompt_index,
@@ -344,6 +383,7 @@ fn parse_jsonl(
                             item.get("input").unwrap_or(&Value::Null),
                             call_id.clone(),
                         );
+                        annotate_tool_source(&mut event, &obj, &model);
                         if let Some(id) = call_id {
                             call_index.insert(id, events.tools.len());
                         }
@@ -397,12 +437,14 @@ fn parse_jsonl(
                     });
                 }
             }
-            (AGENT_CLAUDE, "queue-operation") if acc.prompt_preview.is_none() => {
+            (AGENT_CLAUDE, "queue-operation") => {
                 if obj.get("operation").and_then(Value::as_str) == Some("enqueue")
                     && let Some(text) = obj.get("content").and_then(Value::as_str)
                     && let Some(text) = clean_prompt_text(text)
                 {
-                    acc.prompt_preview = Some(text.clone());
+                    if acc.prompt_preview.is_none() {
+                        acc.prompt_preview = Some(text.clone());
+                    }
                     current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
                 }
             }
@@ -436,7 +478,9 @@ fn parse_jsonl(
                             tool.end_ts_ms = ts_ms_from_event(&obj);
                         }
                     }
-                } else if let Some(text) = local_message_preview(content) {
+                } else if !obj.get("isMeta").and_then(Value::as_bool).unwrap_or(false)
+                    && let Some(text) = local_message_preview(content)
+                {
                     if acc.prompt_preview.is_none() {
                         acc.prompt_preview = Some(text.clone());
                     }
@@ -579,7 +623,7 @@ fn parse_jsonl(
                     .get("call_id")
                     .and_then(Value::as_str)
                     .map(str::to_string);
-                let event = tool_event_from_input(
+                let mut event = tool_event_from_input(
                     acc.cwd.as_deref(),
                     ts_ms_from_event(&obj),
                     current_prompt_index,
@@ -587,6 +631,7 @@ fn parse_jsonl(
                     &args,
                     call_id.clone(),
                 );
+                annotate_tool_source(&mut event, &obj, &codex_model);
                 if let Some(id) = call_id {
                     call_index.insert(id, events.tools.len());
                 }
@@ -681,6 +726,7 @@ fn codex_token_usage(value: &Value) -> TokenUsage {
 fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<AgentSession> {
     let root: Value = serde_json::from_str(content).ok()?;
     let mut acc = SessionAccumulator::new(AGENT_GEMINI, path, updated);
+    acc.source_role = Some("root".to_string());
     let mut events = SessionEvents::default();
     let mut current_prompt_index = 0usize;
     if let Some(id) = root.get("sessionId").and_then(Value::as_str) {
@@ -757,6 +803,7 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                             call,
                             call.get("id").and_then(Value::as_str).map(str::to_string),
                         );
+                        annotate_tool_source(&mut event, call, &llm_model);
                         event.status = match call.get("status").and_then(Value::as_str) {
                             Some("success") => "ok",
                             Some("error") => "fail",
@@ -801,6 +848,8 @@ struct SessionAccumulator {
     agent_type: String,
     session_id: String,
     conversation_id: Option<String>,
+    source_role: Option<String>,
+    source_agent_id: Option<String>,
     path: PathBuf,
     updated: SystemTime,
     start_timestamp_ms: Option<u64>,
@@ -827,6 +876,8 @@ impl SessionAccumulator {
             agent_type: agent.to_string(),
             session_id,
             conversation_id: None,
+            source_role: None,
+            source_agent_id: None,
             path: normalized.clone(),
             updated,
             start_timestamp_ms: None,
@@ -908,6 +959,8 @@ impl SessionAccumulator {
             agent_type: self.agent_type,
             session_id: self.session_id,
             conversation_id: self.conversation_id,
+            source_role: self.source_role,
+            source_agent_id: self.source_agent_id,
             display_id,
             path: self.path,
             updated: self.updated,
@@ -1013,12 +1066,12 @@ fn add_usage(
 impl SessionEvents {
     fn upsert_prompt(&mut self, ts_ms: Option<i64>, text: &str) -> usize {
         let hash = short_hash(text, 12);
-        if let Some(existing) = self
+        if self
             .prompts
-            .iter()
-            .position(|prompt| prompt.text_hash == hash)
+            .last()
+            .is_some_and(|prompt| prompt.text_hash == hash)
         {
-            return existing;
+            return self.prompts.len();
         }
         let index = self.prompts.len();
         self.prompts.push(UserPrompt {
@@ -1028,8 +1081,33 @@ impl SessionEvents {
             preview: truncate_clean(text, 180),
             tag: String::new(),
         });
-        index
+        index + 1
     }
+}
+
+fn annotate_tool_source(event: &mut ToolEvent, source: &Value, model: &str) {
+    event.source_event_id = source
+        .get("uuid")
+        .and_then(Value::as_str)
+        .or_else(|| source.get("id").and_then(Value::as_str))
+        .or_else(|| source.pointer("/payload/id").and_then(Value::as_str))
+        .map(ToString::to_string);
+    event.parent_event_id = source
+        .get("parentUuid")
+        .and_then(Value::as_str)
+        .or_else(|| source.pointer("/payload/parent_id").and_then(Value::as_str))
+        .map(ToString::to_string);
+    event.model = (!model.is_empty()).then(|| model.to_string());
+    event.attribution_skill = source
+        .get("attributionSkill")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string);
+    event.attribution_agent = source
+        .get("attributionAgent")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string);
 }
 
 fn tool_event_from_input(
@@ -1085,11 +1163,34 @@ fn tool_event_from_input(
     } else {
         Vec::new()
     };
+    let skill_name = name
+        .eq_ignore_ascii_case("skill")
+        .then(|| input.get("skill").and_then(Value::as_str))
+        .flatten()
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string);
+    let skill_args = name
+        .eq_ignore_ascii_case("skill")
+        .then(|| input.get("args"))
+        .flatten()
+        .map(|value| {
+            value
+                .as_str()
+                .map(ToString::to_string)
+                .unwrap_or_else(|| value.to_string())
+        });
     ToolEvent {
         ts_ms,
         end_ts_ms: None,
         prompt_index,
         tool_name: name.to_string(),
+        source_event_id: None,
+        parent_event_id: None,
+        model: None,
+        attribution_skill: None,
+        attribution_agent: None,
+        skill_name,
+        skill_args,
         category,
         command,
         workdir: (!workdir.is_empty()).then_some(workdir),
@@ -1337,7 +1438,11 @@ fn shell_file_actions(
         }
         let mut actions = shell_segment_actions(&name, operands, input, depth);
         for (path, _, previous_path) in &mut actions {
-            if !path.starts_with(['~', '$'])
+            if let Some(relative) = path.strip_prefix("~/")
+                && let Some(home) = user_home_dir()
+            {
+                *path = home.join(relative).to_string_lossy().into_owned();
+            } else if !path.starts_with('$')
                 && !Path::new(path).is_absolute()
                 && let Some(base) = &cwd
             {
@@ -1345,7 +1450,11 @@ fn shell_file_actions(
             }
             *path = clean_path_token(path);
             if let Some(previous) = previous_path {
-                if !previous.starts_with(['~', '$'])
+                if let Some(relative) = previous.strip_prefix("~/")
+                    && let Some(home) = user_home_dir()
+                {
+                    *previous = home.join(relative).to_string_lossy().into_owned();
+                } else if !previous.starts_with('$')
                     && !Path::new(previous).is_absolute()
                     && let Some(base) = &cwd
                 {
@@ -1442,8 +1551,19 @@ fn shell_segment_actions(
                 .into_iter()
                 .map(|path| (path, "write".into(), None)),
         ),
-        "cat" | "head" | "tail" | "nl" | "wc" | "source" | "." => rows.extend(
+        "cat" | "head" | "tail" | "nl" | "wc" | "source" | "." | "stat" | "ls" | "xxd"
+        | "readlink" | "realpath" | "sha256sum" => rows.extend(
             paths(&values)
+                .into_iter()
+                .map(|path| (path, "read".into(), None)),
+        ),
+        "cmp" | "diff" => rows.extend(
+            paths(&values)
+                .into_iter()
+                .map(|path| (path, "read".into(), None)),
+        ),
+        "git" => rows.extend(
+            paths(values.get(1..).unwrap_or_default())
                 .into_iter()
                 .map(|path| (path, "read".into(), None)),
         ),
@@ -2014,7 +2134,6 @@ fn plausible_path_token(part: &str) -> bool {
     if part.is_empty()
         || part.starts_with('-')
         || part.starts_with('$')
-        || part.starts_with('~')
         || part.starts_with("http://")
         || part.starts_with("https://")
         || lower.starts_with("origin/")
@@ -2550,6 +2669,150 @@ mod tests {
     }
 
     #[test]
+    fn claude_skill_source_fields_preserve_exact_long_arguments() {
+        let long_args = "context ".repeat(80);
+        let content = serde_json::json!({
+            "type": "assistant",
+            "uuid": "event-1",
+            "parentUuid": "event-0",
+            "sessionId": "root-session",
+            "isSidechain": true,
+            "agentId": "worker-a",
+            "attributionSkill": "research-experiment-design",
+            "attributionAgent": "researcher",
+            "message": {
+                "model": "claude-opus",
+                "content": [{
+                    "type": "tool_use",
+                    "id": "call-1",
+                    "name": "Skill",
+                    "input": {
+                        "skill": "research-experiment-design",
+                        "args": long_args
+                    }
+                }],
+                "usage": {"input_tokens": 1, "output_tokens": 1}
+            }
+        })
+        .to_string();
+        let session = parse_session_content(
+            AGENT_CLAUDE,
+            &PathBuf::from("/tmp/subagent.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+        let tool = &session.events.tools[0];
+
+        assert_eq!(session.session_id, "root-session");
+        assert_eq!(session.source_role.as_deref(), Some("subagent"));
+        assert_eq!(session.source_agent_id.as_deref(), Some("worker-a"));
+        assert_eq!(tool.source_event_id.as_deref(), Some("event-1"));
+        assert_eq!(tool.parent_event_id.as_deref(), Some("event-0"));
+        assert_eq!(tool.model.as_deref(), Some("claude-opus"));
+        assert_eq!(
+            tool.attribution_skill.as_deref(),
+            Some("research-experiment-design")
+        );
+        assert_eq!(tool.attribution_agent.as_deref(), Some("researcher"));
+        assert_eq!(
+            tool.skill_name.as_deref(),
+            Some("research-experiment-design")
+        );
+        assert_eq!(tool.skill_args.as_deref(), Some(long_args.as_str()));
+        assert!(tool.command.len() < long_args.len());
+    }
+
+    #[test]
+    fn claude_source_files_with_one_native_id_share_the_root_unit() {
+        let root = concat!(
+            r#"{"type":"user","sessionId":"shared","isSidechain":false,"message":{"content":"root"}}"#,
+            "\n",
+            r#"{"type":"assistant","sessionId":"shared","isSidechain":false,"message":{"model":"claude","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"src/lib.rs"}}]}}"#,
+        );
+        let child = r#"{"type":"assistant","sessionId":"shared","isSidechain":true,"agentId":"child","message":{"model":"claude","content":[{"type":"tool_use","id":"c1","name":"Read","input":{"file_path":"src/main.rs"}}]}}"#;
+
+        let root = parse_session_content(
+            AGENT_CLAUDE,
+            &PathBuf::from("/tmp/root.jsonl"),
+            UNIX_EPOCH,
+            root,
+        )
+        .expect("root");
+        let child = parse_session_content(
+            AGENT_CLAUDE,
+            &PathBuf::from("/tmp/child.jsonl"),
+            UNIX_EPOCH,
+            child,
+        )
+        .expect("child");
+
+        assert_eq!(root.session_id, child.session_id);
+        assert_eq!(root.source_role.as_deref(), Some("root"));
+        assert_eq!(child.source_role.as_deref(), Some("subagent"));
+        assert_eq!(child.source_agent_id.as_deref(), Some("child"));
+    }
+
+    #[test]
+    fn repeated_prompt_text_after_another_turn_is_a_new_boundary() {
+        let content = concat!(
+            r#"{"type":"user","sessionId":"root","message":{"content":"same"}}"#,
+            "\n",
+            r#"{"type":"assistant","sessionId":"root","message":{"model":"claude","content":[{"type":"tool_use","id":"a","name":"Read","input":{"file_path":"a.rs"}}]}}"#,
+            "\n",
+            r#"{"type":"user","sessionId":"root","message":{"content":"different"}}"#,
+            "\n",
+            r#"{"type":"assistant","sessionId":"root","message":{"model":"claude","content":[{"type":"tool_use","id":"b","name":"Read","input":{"file_path":"b.rs"}}]}}"#,
+            "\n",
+            r#"{"type":"user","sessionId":"root","message":{"content":"same"}}"#,
+            "\n",
+            r#"{"type":"assistant","sessionId":"root","message":{"model":"claude","content":[{"type":"tool_use","id":"c","name":"Read","input":{"file_path":"c.rs"}}]}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CLAUDE,
+            &PathBuf::from("/tmp/repeated-prompt.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.prompts.len(), 3);
+        assert_eq!(
+            session
+                .events
+                .tools
+                .iter()
+                .map(|tool| tool.prompt_index)
+                .collect::<Vec<_>>(),
+            vec![1, 2, 3]
+        );
+    }
+
+    #[test]
+    fn claude_meta_skill_injection_is_not_a_human_prompt_boundary() {
+        let content = concat!(
+            r#"{"type":"assistant","sessionId":"root","message":{"model":"claude","content":[{"type":"tool_use","id":"skill","name":"Skill","input":{"skill":"example"}}]}}"#,
+            "\n",
+            r#"{"type":"user","sessionId":"root","isMeta":true,"sourceToolUseID":"skill","message":{"content":[{"type":"text","text":"injected skill body"}]}}"#,
+            "\n",
+            r#"{"type":"assistant","sessionId":"root","message":{"model":"claude","content":[{"type":"tool_use","id":"read","name":"Read","input":{"file_path":"a.rs"}}]}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CLAUDE,
+            &PathBuf::from("/tmp/meta-skill.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+
+        assert!(session.events.prompts.is_empty());
+        assert_eq!(
+            session.events.tools[0].prompt_index,
+            session.events.tools[1].prompt_index
+        );
+    }
+
+    #[test]
     fn codex_cumulative_usage_separates_cached_input() {
         let content = concat!(
             r#"{"type":"turn_context","payload":{"model":"gpt-5.6-sol"}}"#,
@@ -2569,6 +2832,31 @@ mod tests {
         assert_eq!(session.usage.cache_read_tokens, 9_984);
         assert_eq!(session.usage.output_tokens, 11);
         assert_eq!(session.usage.total_tokens, 19_195);
+    }
+
+    #[test]
+    fn codex_session_meta_uses_native_root_id_for_root_and_subagent() {
+        let root = concat!(
+            r#"{"type":"session_meta","payload":{"id":"root-id","thread_source":"user"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"r","arguments":"{\"cmd\":\"pwd\"}"}}"#,
+        );
+        let child = concat!(
+            r#"{"type":"session_meta","payload":{"id":"child-id","session_id":"root-id","thread_source":"subagent","agent_path":"/root/check"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c","arguments":"{\"cmd\":\"pwd\"}"}}"#,
+        );
+        for (path, content, role, agent) in [
+            ("/tmp/root.jsonl", root, "user", None),
+            ("/tmp/child.jsonl", child, "subagent", Some("/root/check")),
+        ] {
+            let session =
+                parse_session_content(AGENT_CODEX, &PathBuf::from(path), UNIX_EPOCH, content)
+                    .expect("session");
+            assert_eq!(session.session_id, "root-id");
+            assert_eq!(session.source_role.as_deref(), Some(role));
+            assert_eq!(session.source_agent_id.as_deref(), agent);
+        }
     }
 
     #[test]
@@ -2645,6 +2933,34 @@ mod tests {
                 "cat src/lib.rs && sed -i 's/a/b/' src/main.rs"
             );
             assert_eq!(event.workdir.as_deref(), Some("/repo"));
+        }
+    }
+
+    #[test]
+    fn common_inspection_commands_retain_instruction_file_reads() {
+        for command in [
+            "git diff -- skills/example/SKILL.md",
+            "stat -c '%n' AGENTS.md",
+            "cmp CLAUDE.md backup/CLAUDE.md",
+        ] {
+            let event = tool_event_from_input(
+                Some("/repo"),
+                Some(1),
+                0,
+                "exec_command",
+                &json!({"cmd": command}),
+                None,
+            );
+            assert!(
+                event
+                    .paths
+                    .iter()
+                    .any(|path| ["AGENTS.md", "CLAUDE.md", "SKILL.md"]
+                        .iter()
+                        .any(|name| path.path.ends_with(name))),
+                "missing instruction path for {command}: {:?}",
+                event.paths
+            );
         }
     }
 

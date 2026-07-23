@@ -1,12 +1,12 @@
 # Background And Related Work
 
-Last updated: 2026-07-22T00:22:00-07:00
+Last updated: 2026-07-22T18:20:00-07:00
 Source/command: claim-oriented web search, primary papers, official artifact
 repositories, and full-text checks recorded in the active BOOTSTRAP literature
 reports
-Completeness: sufficient to bound the six empirical RQs, identify ProcGrep as
-the strongest action-only baseline, and admit an RQ1 plan; public-corpus and
-model-based metric searches reopen after the local source-coverage result
+Completeness: sufficient to reconstruct six non-causal empirical RQs, identify
+the selected-case boundary, admit an exact Skill/instruction-footprint plan,
+and select coding plus scientific-process public corpora for external checks
 
 ## Search Log
 
@@ -19,6 +19,9 @@ model-based metric searches reopen after the local source-coverage result
 | 2026-07-21 | persistent file workspaces for Agent research | Bound mechanism novelty | AiScientist and FS-Researcher use durable file workspaces as external state. Persistence is a setting, not the contribution. |
 | 2026-07-21 | Agent-authored open-source evolution | Bound empirical scope | AIDev and Agentic-PR studies cover very large GitHub PR populations and repository outcomes but lack native reads, transient files, failed validation, and session lineage. |
 | 2026-07-21 | *Agent Trajectories as Programs* and official ProcGrep repository | Find strongest tool baseline | ProcGrep `2e8277003dacaa774b5ef61ba150ae03a4f06693` supports local Claude/Codex ingest, canonical actions, learned procedures, fingerprints, JSD/entropy, and exact queries. Its standard spine omits stable artifact identity and cross-session lineage. |
+| 2026-07-22 | natural persistent Agent use in academic research | Test whether a self-observed longitudinal workspace study is itself novel | Alzahrani reports a 96-day single-investigator persistent research environment with 75,671 records, 5,760 all-Agent session files, 57 skills, and artifact-level measurement recommendations. Natural persistent use and artifact denominators are occupied; six author-associated cases remain selected multi-case evidence. |
+| 2026-07-22 | heterogeneous workspace and research-process benchmarks | Test the non-coding boundary | Workspace-Bench covers five worker profiles, 74 file types and explicit dependencies/lineage; IdeaTrail releases 1,170 synthetic scientific-ideation trajectories with artifact updates. Heterogeneous workspaces are not novel, and synthetic research traces are a triangulation source rather than natural behavior. |
+| 2026-07-22 | public action/artifact trajectory corpora | Find a feasible external-validity check | The NVIDIA Open-SWE-Traces Dataset Viewer exposes 207,489 rows across a 2-harness by 2-model design with exact tool arguments, repository/language, patches and resolved labels. It can replicate within-attempt relations but cannot validate cross-session workspace evolution. |
 
 The complete current search, source verification, query revisions, and baseline
 handoff are in
@@ -39,6 +42,10 @@ reports but no longer define the current frontier.
 | Plans Don't Persist | `docs/reference/2026-mehta-plans-dont-persist.pdf` | Full PDF checked | Context-loss mechanism boundary. |
 | AiScientist | `https://arxiv.org/abs/2604.13018` | Primary arXiv verified | Durable workspace mechanism boundary for autonomous research. |
 | OR-Space | `docs/reference/2026-zhou-or-space.pdf` | Full PDF checked | Persistent heterogeneous-artifact workload precedent. |
+| Persistent AI Agents in Academic Research | `https://arxiv.org/abs/2605.26870` | Primary arXiv full text checked | Closest natural persistent self-observed research-environment case. |
+| Workspace-Bench 1.0 | `https://arxiv.org/abs/2605.03596` and official repository | Primary paper and artifact checked | Heterogeneous files, dependencies, lineage and harness/model comparison precedent. |
+| Open-SWE-Traces | `https://arxiv.org/abs/2606.16038` and `nvidia/Open-SWE-Traces` | Primary paper plus Dataset Viewer schema/size checked | Large public external source for within-attempt replication. |
+| IdeaTrail | `https://arxiv.org/abs/2607.10144` and `AliceKJ/IdeaTrail` | Primary paper plus Dataset Viewer checked | Non-coding synthetic process and artifact-update contrast. |
 
 ## Claim-Oriented Novelty Map
 
@@ -52,6 +59,8 @@ reports but no longer define the current frontier.
 | Days-long activity should be measured through artifact durability, reuse, validation association, rework, and re-grounding across native session resets. | TRAJEVAL, AgingBench, Plans Don't Persist | Medium | Retain as central empirical question; test in complete persistent-project lineages. |
 | Stable artifact identity and cross-session lineage add source-verifiable fact coverage beyond standard action-only procedures. | ProcGrep, OCEL/OCPM | Medium | Retain as narrow RQ7; compare with official ProcGrep and include facts it should answer. |
 | Skill/harness use causes progress or waste. | HarnessFix and harness-optimization work | High without control | Do not claim causality from local cases; report temporal association only. |
+| Explicit named Skill/instruction mechanisms have recurring workspace footprints across natural contexts. | ProcGrep; HarnessFix | Medium | Only one selected project supports a two-Skill qualified exact-context comparison; same/different JSD is 0.116/0.123 and the exact root-block randomization does not support separation (p=0.750). Retain source-attributed coverage and a negative repeatability result, not a fingerprint claim. |
+| Six author-associated repositories estimate population behavior. | Persistent-research case study; public benchmark corpora | Very high | Reject. Treat local projects as natural longitudinal cases and use public task traces only to check within-session relation directions and coverage. |
 
 ## Closest Work
 
@@ -65,6 +74,10 @@ reports but no longer define the current frontier.
 | AgingBench and Plans Don't Persist | Session-scale aging and plan-signal decay | Study internal/context reliability rather than observable artifact re-grounding and progress. |
 | AiScientist and FS-Researcher | Durable file workspaces improve autonomous research systems | System construction and outcomes, not an observational study of artifact progress, rework, and continuity. |
 | AIDev / Agentic-PR studies | Large-scale Agent-authored PR outcomes and metadata | No native action-time reads, transient artifacts, validation timing, or session lineage. |
+| Persistent AI Agents in Academic Research | 96-day self-observed academic environment; utilization, artifacts, resources, governance and skills | Closest natural-use setting, but one investigator and proxy-coded outputs/failures; does not reconstruct stable artifact-lineage transitions from native multi-vendor Tool effects. |
+| Workspace-Bench 1.0 | 388 controlled tasks across five heterogeneous worker workspaces with file dependencies/lineage | One task/run is the unit and outcomes use rubrics; useful future workload, not natural days-long evolution. |
+| Open-SWE-Traces | 207,489 public OpenHands/SWE-agent trajectories with tools, paths, patches and resolved outcome | Excellent within-attempt replication and confound control; no persistent source-session lineage. |
+| IdeaTrail | 1,170 scientific-ideation/proposal trajectories with evidence tools and artifact updates | Non-coding contrast, but reverse-synthesized rather than observed natural work. |
 
 ## Mandatory Baselines
 
@@ -82,17 +95,21 @@ reports but no longer define the current frontier.
 |---|---|---|---|
 | RQ1 | TRAJEVAL; software survival analysis | Intermediate-to-final survival and outcome-independent process measurement | Separate file-level durability, reuse, and validation association; no opaque weighted score. |
 | RQ2 | ASE study; Beyond Resolution Rates | Test-after-edit and validation investment | Use native effect/status and call it association, not test coverage. |
-| RQ3 | TRAJEVAL; ProcGrep | Repeated patterns and edit/validation cycles | Preserve artifact identity; report distributions and sensitivity, not one thrash cutoff. |
+| RQ1 supplement | TRAJEVAL; ProcGrep | Repeated patterns and edit/validation cycles | Preserve artifact identity; report consolidation/revival distributions, not one thrash cutoff. |
 | RQ4 | AgingBench; Plans Don't Persist | Boundary-aligned longitudinal analysis | Measure pre-mutation re-grounding and prior-artifact overlap; do not infer memory. |
-| RQ5 | ProcGrep; process mining | Procedure distribution, transitions, entropy/JSD | Separate action-only variation from artifact/module attention. |
-| RQ6 | Beyond Resolution Rates; HarnessFix | Model/framework confounds and harness-visible mechanisms | Observational association only in local cases. |
-| RQ7 | ProcGrep episodic search; HORIZON judge | Exact queries, bounded model reader, fact accuracy/cost | Independent source-verifiable facts; no human/LLM semantic gold. |
+| RQ3 | ProcGrep; process mining | Procedure distribution and transitions | Separate action-only variation from artifact/module focus; do not use layout coordinates as measurements. |
+| RQ5 | Beyond Resolution Rates; HarnessFix | Model/framework confounds and harness-visible mechanisms | Root-session blocked source attribution only; no stable fingerprint or causal effect claim. |
+| RQ6 | Open-SWE-Traces; IdeaTrail | Public coding and scientific-process traces | Relation-level replication with explicit N/A cells; no pooled population. |
+| separate tool question | ProcGrep episodic search; HORIZON judge | Exact queries, bounded model reader, fact accuracy/cost | Independent source-verifiable facts; no human/LLM semantic gold. |
+| external boundary | Open-SWE-Traces; IdeaTrail; Workspace-Bench | public coding actions/outcomes, scientific artifact-update processes, heterogeneous controlled workspaces | Replicate only compatible within-session relations; never pool synthetic/task attempts with natural multi-session cases as one population. |
 
-The fixed first assets are six local repositories with native Agent sessions:
+The fixed natural-case assets are six local repositories with native Agent sessions:
 AgentSight, ActPlane, bpf-developer-tutorial, eunomia.dev,
 agentskill-observability-paper, and academic-writing-skills. They are supporting
-case evidence. Public AIDev-style corpora and prospective trace capture are
-external-validity candidates after the source audit identifies stable metrics.
+case evidence. Open-SWE-Traces is the first external coding replication source;
+IdeaTrail is a non-coding synthetic triangulation source. Neither validates
+cross-session longitudinal claims. Workspace-Bench remains a future controlled
+workload rather than part of the current observational corpus.
 
 ## Adjacent Communities
 
@@ -130,15 +147,23 @@ empirical and measurement evidence.
 - **Overall risk:** high for generic trajectory, motif, validation-gap,
   fingerprint, persistent-workspace, and deterministic-search claims; medium
   for longitudinal artifact progress across independent native sessions.
-- **Surviving empirical position:** activity volume is not itself a process
-  measure. Study durability, later reuse, successful-validation association,
-  rework, attention, and observable session re-grounding as separate dimensions.
+- **Surviving empirical position:** the standalone “activity is not progress”
+  claim is too obvious. Study artifact consolidation/revival,
+  validation-aligned change, hotspot turnover, observable session
+  re-grounding, and exact Skill/instruction footprints as separate dimensions.
 - **Surviving tool position:** stable artifact identity and session lineage may
   add source-verifiable fact coverage beyond ProcGrep's action-only spine; it is
   not a new general event or procedure language.
 - **Required scope discipline:** local cases support deep descriptive findings,
   not population rates or skill/harness causality. Broad AAAI claims require an
   independent public or prospective corpus.
-- **Next action:** review and run RQ1 over every qualified native session in the
-  six fixed repositories, then use its source-coverage result to freeze RQ7's
-  stratified fact set. ProcGrep must be run officially for action-only facts.
+- **Current Skill result:** the exact-source run reconciles all 7,304 projected
+  signal rows against the 2,063 native streams included by the projection; five
+  exact project/vendor/model/source-role/Skill strata meet the
+  three-root gate, but only one project supports the qualified two-Skill
+  comparison. Its small same/different contrast is within-case only and removes
+  any cross-project recurrence novelty.
+- **Next action:** run the public-corpus relation-level boundary check and
+  recompute cross-session continuity with corrected native root/subagent
+  identity. The unfinished method-capability comparison is not the active
+  empirical gate.

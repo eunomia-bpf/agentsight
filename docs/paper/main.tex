@@ -379,34 +379,39 @@ examples; the empirical measurements are recomputed from structured rows.
 
 \subsection{Research Questions}
 
-\paragraph{RQ1---Activity to artifact progress.}
-How much long-running Agent activity becomes artifact change that persists,
-is later reused, and is followed by successful validation?
+\paragraph{RQ1---Artifact consolidation and revival.}
+How do introduced and repeatedly modified artifacts persist, receive later
+reuse, concentrate work, become dormant, and return across Agent action time?
 
-\paragraph{RQ2---Validation dynamics.}
-How do successful and failed validations interleave with mutation bursts and
-worktree-local inter-success mutation accumulation?
+\paragraph{RQ2---Validation response.}
+How do successful and failed validations interleave with mutation bursts,
+backlog, and subsequent workspace changes?
 
-\paragraph{RQ3---Repeated-mutation structure.}
-How common and concentrated are first- and repeat-observed mutation episodes
-across artifacts and Agent action time?
+\paragraph{RQ3---Workspace focus evolution.}
+How are path-resolved actions allocated among artifact types, and how do
+artifact/module hotspots migrate, cool, and receive later returns?
 
-\paragraph{RQ4---Source-session continuity.}
-What continuity is observable between adjacent non-overlapping source-session
-components, and where does the available source coverage stop interpretation?
+\paragraph{RQ4---Cross-session continuity.}
+What re-grounding and prior-artifact/module continuity is observable between
+adjacent non-overlapping native-root session components?
 
-\paragraph{RQ5---Workspace activity allocation and migration.}
-How are path-resolved actions allocated among artifact types, and how do their
-artifact and module transitions and returns evolve in action order?
+\paragraph{RQ5---Skill and instruction footprints.}
+What workspace-action composition is explicitly attributed to named Skills
+across independent native root sessions, is it more repeatable than matched
+different-Skill activity, and what immediate activity follows explicit
+instruction-file access?
 
-\paragraph{RQ6---Skill and instruction source coverage.}
-Are visible Skill calls and instruction-file accesses sufficiently complete to
-support an observational association analysis in this corpus?
+\paragraph{RQ6---External boundary.}
+Which compatible within-attempt relations replicate in public coding and
+scientific-process traces, and which longitudinal claims remain N/A without
+persistent cross-session workspace lineage?
 
-\paragraph{RQ7---Matched-comparison readiness.}
-Does the frozen corpus contain the immutable native-log and cutoff-workspace
-contracts needed to compare Final State, Counts, ProcGrep, bounded raw-log
-model analysis, and artifact-linked trajectories on the same evidence?
+\paragraph{Separate tool question---Measurement capability.}
+Given the same frozen native evidence and an independent source-explicit
+oracle, which action-only, artifact-linked, cross-session, and final-state
+facts can Final State, Counts, ProcGrep, bounded raw-log model analysis, and
+artifact-linked trajectories answer correctly, and at what evidence and
+inference cost?
 
 \subsection{Cases and Inclusion}
 
@@ -458,7 +463,7 @@ class.  Top-level directories provide the default module unit.  Model-derived
 motifs, embeddings, clusters, or summaries are exploratory secondary analyses
 and must resolve to source IDs and deterministic metrics.
 
-\subsection{RQ1: Activity to Artifact Progress}
+\subsection{RQ1: Artifact Consolidation and Revival}
 
 RQ1 reports action and mutation volume, introduced-artifact persistence, later
 reuse distance, validation-before-supersession distance, competing outcomes,
@@ -511,7 +516,7 @@ a first-order adapter-coverage limit for persistence and validation.
   \label{fig:rq1-activity}
 \end{figure*}
 
-\subsection{RQ2: Validation Dynamics}
+\subsection{RQ2: Validation Response}
 
 RQ2 measures mutation bursts, recognized successful and failed validation
 cadence, and worktree-local mutation accumulation between recognized
@@ -539,9 +544,9 @@ mutation coverage.
   \label{fig:rq2-validation}
 \end{figure*}
 
-\subsection{RQ3: Repeated-Mutation Structure}
+\subsection{RQ1 Supplement: Repeated-Mutation Structure}
 
-RQ3 treats each artifact's first observed mutation episode separately from
+RQ1 also treats each artifact's first observed mutation episode separately from
 later observed episodes.  Figure~\ref{fig:rq3-rework} shows that repeat-observed
 episodes account for 71.8--91.8\% of observed mutation episodes across all six
 qualified cases.  Concentration differs substantially: the exact top 10\% of
@@ -553,7 +558,7 @@ revision and module switching remain open facets of the broader question.
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/rq3-rework-structure.pdf}
-  \caption{RQ3 repeated-mutation structure for 7,154 observed identities,
+  \caption{RQ1 repeated-mutation structure for 7,154 observed identities,
   2,219 mutated identities, and 13,150 mutation episodes (13,152 source rows).
   The all-identity zero mass is separated from the conditional CCDF; the
   concentration curve uses the exact fractional 10\% boundary; and the repeat
@@ -561,10 +566,11 @@ revision and module switching remain open facets of the broader question.
   \label{fig:rq3-rework}
 \end{figure*}
 
-\subsection{RQ4: Source-Session Continuity}
+\subsection{RQ4: Cross-Session Continuity}
 
-Native records do not provide portable parent/child session roles, and many
-sessions overlap.  RQ4 therefore forms transitive concurrency components
+Native records expose root/subagent identity unevenly across vendors, and many
+source streams share one native root session or overlap in time.  RQ4 therefore
+keeps shared-root streams in one independent block and forms transitive concurrency components
 within each worktree lane and compares only adjacent non-overlapping
 components.  Figure~\ref{fig:rq4-continuity} reports 120 components and 108
 boundaries, including mutation-observed prefix composition and defined
@@ -584,9 +590,9 @@ cost, resumption, model memory, comprehension, or forgetting.
   \label{fig:rq4-continuity}
 \end{figure*}
 
-\subsection{RQ5: Workspace Activity Allocation and Migration}
+\subsection{RQ3: Workspace Focus Evolution}
 
-RQ5 analyzes path-resolved activity rather than latent attention or time spent.
+RQ3 analyzes path-resolved activity rather than latent attention or time spent.
 Figure~\ref{fig:rq5-allocation} separates access from mutation and retains both
 \texttt{ok} and \texttt{observed} statuses.  Status sensitivity is material:
 for example, eunomia.dev's mutation allocation to paper/docs is 39.2\% with all
@@ -604,7 +610,7 @@ importance, productivity, entropy, cooling, or forgetting.
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/rq5-artifact-allocation.pdf}
-  \caption{RQ5 path-resolved workspace activity allocation by artifact class,
+  \caption{RQ3 path-resolved workspace activity allocation by artifact class,
   action effect, and source status.  One multi-path Tool call contributes
   fractionally across its resolved paths in the call-weighted view; exact
   action-weighted rows are retained separately.}
@@ -614,38 +620,83 @@ importance, productivity, entropy, cooling, or forgetting.
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth,height=0.78\textheight,keepaspectratio]{figures/rq5-activity-migration.pdf}
-  \caption{RQ5 workspace activity migration in native call order.  Transitions
+  \caption{RQ3 workspace focus migration in native call order.  Transitions
   are computed within worktree lanes as same artifact, same module, or cross
   module; return gaps count intervening calls.  Module names and worktree-module
   keys are reported separately, and low-support estimates remain N/A.}
   \label{fig:rq5-migration}
 \end{figure*}
 
-\subsection{RQ6: Skill and Instruction Source Coverage}
+\subsection{RQ5: Skill and Instruction Footprints}
 
-RQ6 first audits whether the source records expose the configuration needed for
-an association analysis.  We observe exact \texttt{Skill} Tool calls and reads
-or mutations of \artifact{AGENTS.md}, \artifact{CLAUDE.md}, and
-\artifact{SKILL.md}.  The corpus yields 1,762 signal rows across 1,525 native
-Tool events, but omits Skill names and arguments, model/configuration fields,
-repository-external instructions, and proof that a no-signal session was not
-exposed.  Figure~\ref{fig:rq6-coverage} therefore records an explicit analysis
-stop: these visible signals cannot support exposed/unexposed groups or an
-outcome association, let alone a causal claim.
+The corrected parser retains exact \texttt{Skill} names and arguments,
+source-native \texttt{attributionSkill}, model, native root-session identity,
+source-stream identity, and prompt index.  A separate checker directly rereads
+all 2,063 included native transcript streams and reconciles all 7,304 projected
+Skill/instruction signal rows and 205,836 adjacent Tool boundaries without a
+mismatch.  The six
+cases contain 67 explicit Skill invocations and 1,675 source-attributed Skill
+Tool actions.
+
+Invocation and execution do not always occupy the same transcript stream: only
+476 attributed actions are contiguously preceded by a matching same-stream
+invocation.  This is a conservative coverage diagnostic, not an exact join.
+We therefore aggregate native-attributed actions by project, vendor, model,
+source role, root session, and Skill instead of inventing per-invocation
+delegated episode boundaries. Five exact-context Skill strata meet the minimum
+of three distinct root sessions, but only
+agentskill-observability-paper contains two or more qualified Skills in one
+exact project/vendor/model/source-role stratum. Within that case, median
+Jensen--Shannon distance is 0.116 for 9 same-Skill pairs and 0.123 for 10
+different-Skill pairs.  The median difference is $-0.007$; the one-sided exact
+root-block randomization gives $p=0.750$ over 12 admissible assignments (four
+distinct statistic values).  The result therefore does not support
+a stable or repeatable Skill-fingerprint claim even inside the sole eligible
+case.
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=\textwidth]{figures/rq6-source-coverage.pdf}
-  \caption{RQ6 source-signal coverage audit.  Session shares are nonexclusive;
-  the vendor--signal--status matrix and equal-action-count bins expose where
-  exact visible signals occur.  Missing exposure-defining fields trigger the
-  preregistered association stop; N/A is not a null effect.}
-  \label{fig:rq6-coverage}
+  \includegraphics[width=\textwidth]{figures/rq5-skill-footprints.pdf}
+  \caption{RQ5 named-Skill evidence.  Transcript files sharing a native root
+  session are one independent block.  The support gate requires at least three
+  roots.  Same-Skill and different-Skill distances are observational matched
+  comparisons, not causal harness effects.}
+  \label{fig:rq5-skill-coverage}
 \end{figure*}
 
-\subsection{RQ7: Matched-Comparison Readiness}
+Reads and mutations of \artifact{AGENTS.md}, \artifact{CLAUDE.md}, and
+\artifact{SKILL.md} are analyzed separately as focal events.  Figure
+~\ref{fig:rq5-instructions} reports their immediate next Tool action before a
+native prompt-index change.  The primary figure uses the 2,822 direct or
+simple-shell accesses independently recomputed with high confidence; the
+broader parser output remains a sensitivity table because arbitrary scripts
+and unexpanded shell globs are not claimed complete.  An access is not proof
+that an instruction was injected, followed, useful, or harmful.
 
-Before asking which representation answers more questions, RQ7 audits whether
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/rq5-instruction-footprints.pdf}
+  \caption{RQ5 instruction-file focal events and immediate following activity.
+  Reads and mutations remain separate, each focal event contributes at most
+  one following Tool action, and next-action shares are normalized within each
+  project rather than pooled across the six selected cases.}
+  \label{fig:rq5-instructions}
+\end{figure*}
+
+\subsection{RQ6: External Boundary}
+
+The six local projects are selected natural cases and do not estimate a
+population rate.  Open-SWE-Traces and IdeaTrail are selected for separate
+relation-level triangulation: the former provides public coding Tool actions
+and outcomes, while the latter provides scientific-process artifact updates.
+Neither preserves natural cross-session project lineage, so persistence,
+revival, and re-grounding remain N/A rather than being approximated from task
+attempts.  This external analysis is not yet executed and supports no result
+claim in the present draft.
+
+\subsection{Separate Tool Question: Measurement Capability}
+
+Before executing the capability comparison, we audited whether
 every condition can receive the same frozen evidence and an independent
 oracle.  The audit checks six projects against six contracts: a hashed
 normalized action spine, source linkage, a native admitted-prefix manifest and
@@ -662,12 +713,14 @@ model analysis remain N/A.  No action-only, artifact-linked, cross-session, or
 final-state question family passes the planned $30\times4$ gate.  Figure
 ~\ref{fig:rq7-readiness} therefore contains no accuracy, coverage advantage,
 latency, token, or cost value.  This is a benchmark-readiness result, not
-evidence that the proposed representation outperforms a baseline.
+evidence that the proposed representation outperforms a baseline, and it does
+not close the separate tool question.  A prospective matched run is required.
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/rq7-benchmark-readiness.pdf}
-  \caption{RQ7 source-contract and method-readiness audit.  Gray N/A cells
+  \caption{Measurement-capability source-contract and method-readiness audit.
+  Gray N/A cells
   denote unavailable matched evidence, not zero performance.  The audit stops
   the comparison before question generation or model execution.}
   \label{fig:rq7-readiness}
@@ -692,12 +745,13 @@ rates.  Broad AAAI claims require an independent public or prospectively
 captured corpus after this study identifies measurements with adequate source
 coverage.
 
-Skill, harness, model, task, and project often change together.  More
-fundamentally, the frozen records do not expose enough fields to identify
-positive and negative configuration exposure.  RQ6 therefore stops at source
-coverage rather than estimating an observational or causal effect.  Likewise,
-repeated actions, unvisited artifacts, and long validation gaps are process
-facts rather than automatic failure labels.
+Skill, harness, model, task, and project often change together.  Source-native
+attribution makes Skill-conditioned activity measurable, but it does not
+identify positive and negative configuration exposure or remove task/phase
+confounding.  RQ5 therefore reports source-attributed composition and a
+negative repeatability result rather than an observational outcome or causal
+effect.  Likewise, repeated actions, unvisited artifacts, and long validation
+gaps are process facts rather than automatic failure labels.
 
 \section{Related Work}
 

@@ -2,7 +2,7 @@
 
 ## 核心问题
 
-**一个 Agent 自主运行几天时，它究竟在持续取得经过验证的进展，还是只产生了大量看起来繁忙的活动？**
+**一个 Agent 自主运行几天、跨过多个 session 后，持久 workspace 中的产物究竟如何形成、被验证、被重访、迁移和重新组织？**
 
 用户面对的不是“Git 少记录了什么”这一抽象问题，而是一个很具体的判断困难：给 Agent 一个目标和初始 idea，让它在同一个 workspace 里跨多个 session 自我迭代两三天；回来时看见几百次工具调用、几十个 commit 和大量文件，却不能判断项目是否正在收敛，Agent 先测试还是先实现，主要改了什么模块，在代码、论文和实验上分别投入多少，哪些尝试失败后被修正，以及 skill 或 harness 是否让工作陷入文档负担或测试空转。
 
@@ -10,7 +10,7 @@
 
 ## 研究贡献与案例发现分开
 
-1. **实证贡献。** 在六个真实、持续演化的本地开源项目中，描述活动如何转化为 artifact 的持久、复用和验证，重复 mutation 如何分布，source-session component 之间可以观察到什么连续性，以及 path-resolved workspace activity 如何在 artifact 类型和模块间迁移。
+1. **实证贡献。** 在六个真实、持续演化的本地项目中，描述 artifact 如何保留、复用和复活，validation 如何响应 mutation，热点如何形成和迁移，source-session component 之间可以观察到什么连续性，以及 source-explicit skill/instruction 如何对应到 workspace 足迹。
 2. **测量贡献。** 检验带有稳定 artifact identity、生命周期、层级、事件时间和 session lineage 的 workspace-centered action trajectory，能否表达 Final Diff、简单事件计数和 action-only procedure 无法编码的源可校验过程事实。
 3. **工具产物。** `agent-session` 负责跨 Agent 的原始抽象；Agent Nebula 和研究查询只做薄投影。单图 HTML/PNG/SVG/GIF/MP4 是同一事实的可检查和可分享输出，不是独立科学 claim。
 
@@ -39,33 +39,33 @@
 
 ## Research Questions
 
-### RQ1：活动如何转化为持久且验证相关的 artifact progress？
+### RQ1：artifact 如何被巩固、搁置和重新激活？
 
-长期轨迹中新引入的 artifact 有多少最终仍存在？mutation episode 有多少后来重新使用，多少在下一次 mutation/delete 覆盖之前出现 adapter 识别的成功 validation？活动量、mutation 量、引入物存活、复用和验证之间是否一致，还是大量活动没有进入这些交集？
+长期轨迹中新引入或反复修改的 artifact 有多少最终仍存在、后来被重新读取或修改、跨 session 延续，或者在沉寂后再次被激活？mutation 是否集中在少数 identity，以及这些集中点是否随 action order 改变？这里研究的是 artifact fate 和 lineage，不再把“activity 不等于 progress”当成独立的新发现。
 
-### RQ2：验证以什么节律跟随实现和研究产物变化？
+### RQ2：Agent 如何在 mutation 与 validation 之间切换？
 
-Agent 是先验证再修改、边修改边验证，还是累积大量变更后才验证？成功和失败 validation 前后，mutation burst、artifact 范围和下一次修改如何变化？代码、测试、论文、数据和结果产物的节律是否不同？
+Agent 是先探索、先修改还是先验证；成功和失败 validation 前后，mutation 范围、下一次修改和验证间隔如何改变？validation 是否紧跟实现，还是出现长的 mutation backlog？当前 adapter 覆盖不足时只报告 within-case 节律，不把未识别命令当成缺少验证。
 
-### RQ3：重复 mutation 的结构如何表现？
+### RQ3：workspace focus 如何形成、迁移、冷却和返回？
 
-artifact 的首次 mutation 与 repeat-observed mutation episode 分别有多少？重复 mutation 在 artifact identity 之间如何集中，并怎样随 Agent action order 累积？当前证据只回答这一描述性切面；它不自动等于返工、不收敛、thrashing、缺陷修复或浪费，validation-followed revision 和 module switching 仍是开放问题。
+可解析到路径的 action 分别落在代码、测试、配置、论文/文档、数据和实验结果的什么位置？相邻 Tool call 是留在同一 artifact、同一 module，还是跨 module；热点何时换位、离开后经过多少 call 返回？这些是 action-order 的可观察 focus，不是内部注意力、时长、重要性、生产率、entropy 或 forgetting。
 
-### RQ4：source-session component 之间能观察到什么连续性？
+### RQ4：跨 source-session component 的工作如何续接？
 
-native records 不提供跨 Agent 可移植的 parent/child session role，而且 session 会重叠。当前分析在每个 worktree lane 内构造 transitive concurrency components，只比较相邻且不重叠的 component：下一 component 首次 mutation 前发生了什么、是否重访前一 component 的 artifact/module。若 coverage gate 不足，就只报告 within-case/source-coverage，不把它称为 reset、resume、memory、forgetting 或 comprehension。
+把共享 native root session 的 parent/subagent stream 保持在同一个独立块内；对真正相邻且不重叠的 component，比较下一 component 首次 mutation 前的 re-grounding、前一 component artifact/module 的重访和新热点形成。coverage gate 不足时，不把它称为 memory、forgetting、comprehension 或 reset effect。
 
-### RQ5：path-resolved workspace activity 如何分配和迁移？
+### RQ5：source-explicit skill 与 instruction 是否留下可重复的 workspace 足迹？
 
-可解析到路径的 action 分别落在代码、测试、配置、论文/文档、数据和实验结果的什么位置？相邻 Tool call 是留在同一 artifact、同一 module，还是跨 module；离开后经过多少 call 返回？这些是 action-order activity，不是时长、内部 attention、重要性、生产率、entropy、cooling 或 forgetting。
+直接保留原生 `Skill` 名称/参数、`attributionSkill`、模型、root session、source stream 和 prompt index。Skill 足迹的主单位是 `(project, vendor, model, source role, native root session, attributionSkill)`；显式调用和 delegated execution 的同流连续连接只作保守覆盖审计，不虚构 per-invocation episode。`AGENTS.md`、`CLAUDE.md`、`SKILL.md` 的 read/mutation 单独作为 focal event。比较只问 source-attributed 组成是否重复，不推断 skill/harness 有用、无用或有因果效果。
 
-### RQ6：skill 和 instruction 的 source coverage 足够做关联分析吗？
+### RQ6：哪些局部关系能跨出这六个选择性案例？
 
-用户仍然关心：skill/harness 是否制造文档负担、无效测试迭代或其他流程空转。但在比较结果前，必须先确认 source records 能否定义 exposure 和 non-exposure。当前只审计 exact `Skill` Tool call，以及 `AGENTS.md`、`CLAUDE.md`、`SKILL.md` 的 read/mutation；若缺少 Skill 名称/参数、模型/配置字段、repo 外 instruction 和真实未暴露证明，就停止 association analysis，而不是把缺失当作未使用。
+六个作者相关项目不能估计总体发生率。RQ6 不把外部 task trace 与本地长期 workspace 混成一个总体，而是在 Open-SWE-Traces 等公开 coding 轨迹和 IdeaTrail 等 scientific-process 轨迹上分别复核兼容的 within-attempt 关系，例如探索—修改—验证顺序、artifact-touch 集中和 action transition。跨 session persistence、revival 和 re-grounding 在不具备持续 workspace lineage 的公开数据上明确记为 N/A。
 
-### RQ7（工具）：冻结 corpus 是否具备公平 matched comparison 的证据合同？
+### 单独的工具能力问题（不混入案例 RQ）
 
-在生成任何问题、模型调用或性能数值之前，冻结 corpus 是否同时保存了 normalized action spine、source linkage、immutable native admitted prefixes、per-worktree cutoff revision/untracked state，以及可执行的 pinned baseline 和独立 oracle 合同？缺一项就将相应方法/问题族记为 N/A，并停止比较。workspace-centered trajectory 是否优于 Final Diff、Counts、ProcGrep 或 Raw-log LLM 是后续 capability 问题，不由当前 RQ7 回答。
+workspace-centered trajectory 是否比 Final workspace、Counts、ProcGrep 或 bounded Raw-log reader 多恢复 source-verifiable artifact-linked/cross-session 事实，是后续 measurement-capability 实验。它不定义本轮案例发现，也不需要为了完成描述性 RQ 而强行运行。
 
 ## 指标：不用一个任意总分吞掉结构
 
@@ -81,13 +81,12 @@ native records 不提供跨 Agent 可移植的 parent/child session role，而�
 
 | RQ | 主要测量 | 重要控制或限制 |
 |---|---|---|
-| RQ1 | action/mutation 数；introduced-artifact persistence；mutation 后重访；validation-before-supersession competing-risk 曲线；合格 introduction episode 的三者交集 | 分项目报告；既有 write 的内容 durability 为 unknown；不把 activity 当分母之外的进展证据 |
-| RQ2 | validation cadence；mutation burst；成功/失败 validation 前后事件窗；未验证 backlog | 只使用 native status；按任务/项目/Agent 分层，不声称测试覆盖具体修改 |
-| RQ3 | 首次/repeat-observed mutation episode；每 identity load；exact top-10% concentration；action-atomic prefix curve | 只描述已观察 mutation 结构，不推断 convergence、thrashing、waste 或 failure |
-| RQ4 | concurrency component 边界；mutation-observed prefix；artifact/module overlap；first-mutation state | 只比较相邻不重叠 component；coverage 不足即停止，不推断 reset/resume/memory/forgetting |
-| RQ5 | artifact 类型的 path-resolved action/call allocation；同 artifact/同 module/跨 module transition；return gap | `ok`/`observed` 分层；不使用力布局坐标，不解释为 attention/time/importance/entropy/cooling |
-| RQ6 | exact Skill Tool；instruction read/mutation；session/vendor/status/source-call coverage；action-order bins | 当前 exposure 字段不足，association/effect 全部 N/A |
-| RQ7 | source-contract present/partial/N/A；method/template readiness；comparison stop | 不生成 accuracy、advantage、evidence、token、latency 或 cost 数值；N/A 不等于零性能 |
+| RQ1 | introduced-artifact persistence；lineage reuse/revival；首次/repeat-observed mutation；identity concentration | 既有 write 的内容 durability 为 unknown；不把 repeat 自动称为 rework/thrashing/waste |
+| RQ2 | validation cadence；mutation backlog；成功/失败 validation 前后的 event-distance response | 只使用 native effect/status；不声称某次 test 覆盖具体 mutation |
+| RQ3 | artifact 类型分配；同 artifact/同 module/跨 module transition；hotspot rank turnover；return gap | `ok`/`observed` 分层；不使用力布局坐标作为统计量 |
+| RQ4 | native-root/source-stream 结构；不重叠 component 边界；artifact/module overlap；pre-mutation re-grounding | root session 是重采样块；coverage 不足即停止，不推断 memory/forgetting |
+| RQ5 | exact Skill invocation/attribution；root-session×Skill 组成和 JSD；instruction read/mutation 与 immediate next action | 参数不进入特征；至少 3 个 root session；观察性足迹不等于 causal effect |
+| RQ6 | 公开数据中的兼容 within-attempt relation；不可兼容 longitudinal cell 的 N/A map | 不把 synthetic/task traces 与 natural multi-session cases 池化 |
 
 模型派生的 motif、embedding、聚类或 LLM 摘要可以作为二级探索性指标，但必须回到 source ID 和确定性指标解释；它们不定义 primary truth，也不能替代上述事实测量。
 
@@ -104,7 +103,7 @@ native records 不提供跨 Agent 可移植的 parent/child session role，而�
 
 主分析只纳入 repository identity 可直接确认的 Claude、Codex 和 Gemini session，并保留 session 中没有文件路径的 Bash、validation 和其他 Tool action。`--global` 路径命中只补充外部 session 的文件 effect；因为它缺少周围 no-file action，不能进入 validation cadence 和 session-reset 主分析，只做覆盖率敏感性检查。
 
-## RQ7 readiness gate 与后续对照设计
+## 单独的 measurement-capability gate 与后续对照设计
 
 1. **Final Diff / final workspace：** 代表只看最终结果。
 2. **Counts：** 每类 action、文件和 session 的聚合计数，代表 activity telemetry。
@@ -133,12 +132,14 @@ native records 不提供跨 Agent 可移植的 parent/child session role，而�
 ## 预期产物
 
 - 每项目一个 source-coverage JSON/CSV 和一个过程指标 JSON/CSV；
-- 跨项目 RQ1–RQ6 汇总表与可复算脚本；
-- RQ7 的 source-contract、method/template readiness 表；后续 corpus 合同齐备后再生成分层事实集、方法输出和成本表；
-- RQ1 的 artifact survival、reuse 和 validation-association 图；
-- RQ2/RQ3 的 mutation/validation/rework 时间图；
+- 跨项目 RQ1–RQ5 汇总表、source checker 与可复算脚本；
+- RQ6 的分 corpus external-relation coverage/N/A 表，不把异质数据合并成总体；
+- 单独工具实验的 source-contract、method/template readiness 表；后续合同齐备后再生成分层事实集、方法输出和成本表；
+- RQ1 的 artifact survival、reuse、revival 和 mutation-concentration 图；
+- RQ2 的 mutation/validation response 图；
+- RQ3 的 artifact/module focus 分配、迁移和 return 图；
 - RQ4 的 session-boundary 对齐图；
-- RQ5 的 artifact/module path-resolved activity 分配和迁移图；
+- RQ5 的 Skill attribution footprint 与 instruction focal-event 图；
 - 每项目可分享的 Agent Nebula 单图 HTML 和媒体文件，作为案例证据导航而非统计真值。
 
 ### 论文图表计划
@@ -152,14 +153,15 @@ native records 不提供跨 Agent 可移植的 parent/child session role，而�
 | F3 RQ1 progress 曲线 | 展示 introduced-artifact persistence、reuse 和 validation-before-supersession | Python 生成 persistence panel 与 Aalen–Johansen competing-risk 曲线，显示 denominator/risk count | 六项目真实数据已独立复算通过并入文 |
 | F4 RQ1 activity–progress 对照 | 检验可归属 worktree 的 action/mutation volume 是否对应三个进展维度 | Python scatter/interval plot；无法定位 worktree 的 admitted action 单列为 coverage，不混入横轴 | 六项目真实数据已独立复算通过并入文 |
 | F5 RQ2 validation 节律 | 展示 cumulative mutation trajectory、recognized validation outcome 和完整 cycle backlog | Python 原生 action-order 轨迹 + complete-cycle 分布；无成功 validation 的项目只显示 coverage | 真实数据已独立复算通过；3/6 source coverage，结论停在 within-case |
-| F6 RQ3 repeated-mutation 结构 | 展示 unconditional zero mass、conditional CCDF、identity concentration 和 action-atomic repeat prefix | Python CCDF + concentration + post-action step curve，不定义 thrash cutoff | 六项目真实数据已独立复算通过并入文 |
+| F6 RQ1 artifact consolidation 补充 | 展示 unconditional zero mass、conditional CCDF、identity concentration 和 action-atomic repeat prefix | Python CCDF + concentration + post-action step curve，不定义 thrash cutoff | 六项目真实数据已独立复算通过 |
 | F7 RQ4 component continuity | 展示相邻不重叠 component 的 first mutation、prefix composition、artifact/module overlap 和 coverage | Python component-boundary 图；重叠 session 不被强行串行化 | 真实数据已独立复算通过；gate 失败，停在 coverage/within-case |
-| F8a/F8b RQ5 activity allocation/migration | 展示 artifact 类型分配、module activity、source-path transition 和 return gap | Python stacked bars + action-order heatmap；不使用力布局坐标作统计 | 真实数据已独立复算通过并入文；低支持 return 显示 N/A |
-| F9 RQ6 source-signal coverage | 展示 exact Skill/instruction 信号的 session、vendor、status 和 action-order coverage | Python nonexclusive shares + N/A-masked count heatmap + equal-action bins；不画效应 | 两轮独立结果复核通过；association analysis 明确停止 |
-| F10 RQ7 matched-comparison readiness | 审计 Final State、Counts、ProcGrep、Raw-log LLM 和 artifact trajectory 是否具备公平比较所需的同源证据合同 | Python source-contract/method/template readiness 矩阵；N/A 不编码为零性能 | 两轮独立结果复核通过；12 present、0 partial、24 N/A，matched comparison 明确停止 |
+| F8a/F8b RQ3 focus allocation/migration | 展示 artifact 类型分配、module activity、source-path transition 和 return gap | Python stacked bars + action-order heatmap；不使用力布局坐标作统计 | 真实数据已独立复算通过；低支持 return 显示 N/A |
+| F9a/F9b RQ5 Skill/instruction footprints | 展示 native root-session source coverage、合格 Skill 足迹距离、instruction focal event 和 immediate next action | Python root-block bars/有限点集 + 分项目归一化 focal-event heatmap；不构造 exposure 或因果标签 | 新鲜六项目投影和 2,063 个 native stream 复核通过；唯一合格双 Skill 比较不支持可重复分离（精确 p=0.750） |
+| F10 工具 matched-comparison readiness | 审计 Final State、Counts、ProcGrep、Raw-log reader 和 artifact trajectory 是否具备公平比较所需的同源证据合同 | Python source-contract/method/template readiness 矩阵；N/A 不编码为零性能 | 旧 freeze 的 readiness audit 已完成；不属于六个案例 RQ |
+| F11 RQ6 external boundary | 显示每个 local relation 在 public coding/scientific trace 上是 replicated、contradicted 还是 N/A | 分 corpus 的 relation-direction/coverage matrix；不池化异质总体 | 待运行；Open-SWE-Traces/IdeaTrail 只支持 within-attempt cells |
 
 正文只保留支持主要 claim 的图；精确数值和完整项目表放附录/结果文件，避免同一数据同时以冗余表格和图重复。
 
 ## 当前证据状态
 
-RQ1–RQ7 均在同一冻结 corpus 上分别设计、运行和独立复核，没有用一个巨大脚本同时“证明”不同关系。RQ1 的 reuse 具备六项目覆盖，persistence/validation 只覆盖 3/6；RQ2 同样因 recognized-success 只覆盖 3/6 而停止跨案例回答；RQ3 的 repeated-mutation structure 覆盖六项目；RQ4 的 boundary estimator 未满足四项目 gate；RQ5 的 path-resolved activity allocation/transition 覆盖六项目但 return gap 有一个低支持 N/A；RQ6 因 exposure-defining 字段缺失，停在 source-coverage。RQ7 完成的是 matched-comparison readiness audit：normalized Counts 仅满足描述性 prerequisite，Artifact Trajectory 仅为 coverage-only，Final State、ProcGrep 和 Raw-log LLM 因缺少 native-prefix/cutoff-workspace 合同保持 N/A；它不构成任何 baseline 优越性证据。
+本地 RQ1–RQ5 分别由确定性脚本和 source ID 支持。RQ1 的 reuse 与 repeated-mutation structure 覆盖六案例，confirmed-create persistence 仍只有 3/6；RQ2 因 recognized successful validation 只有 3/6 而停止跨案例估计；RQ3 的 allocation/transition 覆盖六案例但一个 return-gap case 为低支持 N/A；RQ4 的 boundary estimator 未满足四项目 gate；RQ5 已修复旧导出器假阴性，67 次显式 Skill 调用和 1,675 条原生归因被保留；独立检查器对投影纳入的 2,063 个 source stream 逐一复核，共核对 7,304 条 Skill/instruction 信号和 205,836 个相邻 Tool 边界，差异为零。任意脚本或未展开 shell glob 的 instruction 访问不宣称完整；主要 instruction 图只使用 2,822 条独立重算的高置信直接/简单 shell 访问。五个 exact project/vendor/model/source-role/Skill strata 满足三 root gate，但只有 agentskill-observability-paper 的 root role 同时具备两种合格 Skill；same/different JSD 中位数为 0.116/0.123（9/10 对），root-block 随机化的差值为 -0.007，在 12 个可容许赋值（4 个不同统计值）上的单侧精确 p=0.750，因此结果是不支持稳定或可重复的 Skill fingerprint，而不是“弱指纹”。RQ6 的外部 relation-level triangulation 尚未运行，任何跨总体表述保持开放。工具 capability comparison 与上述案例 RQ 分离，现有 readiness/corpus 产物不构成 baseline 优越性证据。

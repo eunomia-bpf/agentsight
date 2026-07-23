@@ -4,7 +4,7 @@
 //! Repository-scoped file actions from native coding-agent sessions.
 
 use agent_session::{
-    AGENT_CLAUDE, AGENT_CODEX, AGENT_GEMINI, AgentSession, SessionCandidate,
+    AGENT_CLAUDE, AGENT_CODEX, AGENT_GEMINI, AgentSession, SessionCandidate, ToolPath,
     discover_session_files, parse_session_content, session_candidate_from_path,
 };
 use serde::{Deserialize, Serialize};
@@ -48,9 +48,33 @@ pub struct RepositoryEvent {
     /// Native tool-call identifier retained for source-evidence citations.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_call_id: Option<String>,
+    /// Stable identity of the native root session. Subagent streams that share
+    /// a native session id remain one independent longitudinal unit.
+    pub native_session_id: String,
+    /// Stable identity of the source transcript file/stream.
+    pub source_stream_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_role: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_agent_id: Option<String>,
     pub session_id: String,
     pub vendor: String,
     pub ts_ms: i64,
+    pub prompt_index: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_event_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_event_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attribution_skill: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attribution_agent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skill_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub skill_args: Option<String>,
     /// Worktree containing the Tool-level workdir/cwd, when resolvable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub worktree_id: Option<String>,
@@ -60,6 +84,10 @@ pub struct RepositoryEvent {
     /// Adapter-derived command effect such as read, write, test, or process.
     pub effect: String,
     pub status: String,
+    /// Original source paths before repository scoping. Research analyses use
+    /// these to distinguish instruction files from repository artifacts.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub source_paths: Vec<ToolPath>,
     pub actions: Vec<FileAction>,
 }
 
@@ -250,9 +278,15 @@ fn repository_session(candidate: &SessionCandidate) -> Option<(AgentSession, usi
             || (response && (kind("function_call") || kind("custom_tool_call")));
         let result = (kind("user") && line.contains(r#""tool_result""#))
             || (response && (kind("function_call_output") || kind("custom_tool_call_output")));
+        let prompt = (kind("user") && !line.contains(r#""tool_result""#))
+            || (kind("event_msg") && line.contains(r#""user_message""#))
+            || kind("queue-operation")
+            || kind("last-prompt")
+            || kind("message")
+            || kind("input");
         llm_count +=
             usize::from(assistant || kind("agent_message") || (response && kind("message")));
-        if context || tool || result {
+        if context || tool || result || prompt {
             content.push_str(&line);
             have_context |= kind("turn_context");
         }
@@ -316,6 +350,8 @@ fn append_session(
             .and_then(|value| value.to_str())
             .unwrap_or(&session.session_id)
     );
+    let native_session_id = format!("{}:{}", session.agent_type, session.session_id);
+    let source_stream_id = source_stream_id(&session.path);
     let mut used = false;
     for (ordinal, tool) in session.events.tools.iter().enumerate() {
         let Some(ts_ms) = tool.ts_ms else { continue };
@@ -357,21 +393,38 @@ fn append_session(
         batch.0.push(RepositoryEvent {
             id: format!("{session_id}:{ordinal}"),
             source_call_id: tool.call_id.clone(),
+            native_session_id: native_session_id.clone(),
+            source_stream_id: source_stream_id.clone(),
+            source_role: session.source_role.clone(),
+            source_agent_id: session.source_agent_id.clone(),
             session_id: session_id.clone(),
             vendor: session.agent_type.clone(),
             ts_ms,
+            prompt_index: tool.prompt_index,
+            source_event_id: tool.source_event_id.clone(),
+            parent_event_id: tool.parent_event_id.clone(),
+            model: tool.model.clone().or_else(|| session.model.clone()),
+            attribution_skill: tool.attribution_skill.clone(),
+            attribution_agent: tool.attribution_agent.clone(),
+            skill_name: tool.skill_name.clone(),
+            skill_args: tool.skill_args.clone(),
             worktree_id: event_worktree_id,
             tool_name: tool.tool_name.clone(),
             category: tool.category.clone(),
             command_name: tool.command_name.clone(),
             effect: tool.effect.clone(),
             status: tool.status.clone(),
+            source_paths: tool.paths.clone(),
             actions: actions.into_iter().collect(),
         });
     }
     if used {
         batch.1 += source_count;
     }
+}
+
+fn source_stream_id(path: &Path) -> String {
+    hex::encode(Sha256::digest(path.to_string_lossy().as_bytes()))[..16].to_string()
 }
 
 fn annotate_directory_scopes(repo: &Path, events: &mut [RepositoryEvent]) -> io::Result<()> {
@@ -719,6 +772,13 @@ mod tests {
             end_ts_ms: None,
             prompt_index: 0,
             tool_name: "Tool".into(),
+            source_event_id: None,
+            parent_event_id: None,
+            model: None,
+            attribution_skill: None,
+            attribution_agent: None,
+            skill_name: None,
+            skill_args: None,
             category: "file".into(),
             command: String::new(),
             workdir: None,
@@ -738,6 +798,8 @@ mod tests {
             agent_type: AGENT_CODEX.into(),
             session_id: "session".into(),
             conversation_id: None,
+            source_role: Some("root".into()),
+            source_agent_id: None,
             display_id: "session".into(),
             path: "/sessions/session.jsonl".into(),
             updated: SystemTime::UNIX_EPOCH,
