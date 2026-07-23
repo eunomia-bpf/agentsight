@@ -1,0 +1,535 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="1800" height="221" onload="init(evt)" viewBox="0 0 1800 221" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+<!-- NOTES:  -->
+<defs>
+	<linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+		<stop stop-color="#ffffff" offset="5%" />
+		<stop stop-color="#ffffff" offset="95%" />
+	</linearGradient>
+</defs>
+<style type="text/css">
+	text { font-family:Verdana; font-size:13px; fill:rgb(0,0,0); }
+	#search, #ignorecase { opacity:0.1; cursor:pointer; }
+	#search:hover, #search.show, #ignorecase:hover, #ignorecase.show { opacity:1; }
+	#subtitle { text-anchor:middle; font-color:rgb(160,160,160); }
+	#title { text-anchor:middle; font-size:18px}
+	#unzoom { cursor:pointer; }
+	#frames > *:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+	.hide { display:none; }
+	.parent { opacity:0.5; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	"use strict";
+	var details, searchbtn, unzoombtn, matchedtxt, svg, searching, currentSearchTerm, ignorecase, ignorecaseBtn;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		ignorecaseBtn = document.getElementById("ignorecase");
+		unzoombtn = document.getElementById("unzoom");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+		currentSearchTerm = null;
+
+		// use GET parameters to restore a flamegraphs state.
+		var params = get_params();
+		if (params.x && params.y)
+			zoom(find_group(document.querySelector('[x="' + params.x + '"][y="' + params.y + '"]')));
+                if (params.s) search(params.s);
+	}
+
+	// event listeners
+	window.addEventListener("click", function(e) {
+		var target = find_group(e.target);
+		if (target) {
+			if (target.nodeName == "a") {
+				if (e.ctrlKey === false) return;
+				e.preventDefault();
+			}
+			if (target.classList.contains("parent")) unzoom(true);
+			zoom(target);
+			if (!document.querySelector('.parent')) {
+				// we have basically done a clearzoom so clear the url
+				var params = get_params();
+				if (params.x) delete params.x;
+				if (params.y) delete params.y;
+				history.replaceState(null, null, parse_params(params));
+				unzoombtn.classList.add("hide");
+				return;
+			}
+
+			// set parameters for zoom state
+			var el = target.querySelector("rect");
+			if (el && el.attributes && el.attributes.y && el.attributes._orig_x) {
+				var params = get_params()
+				params.x = el.attributes._orig_x.value;
+				params.y = el.attributes.y.value;
+				history.replaceState(null, null, parse_params(params));
+			}
+		}
+		else if (e.target.id == "unzoom") clearzoom();
+		else if (e.target.id == "search") search_prompt();
+		else if (e.target.id == "ignorecase") toggle_ignorecase();
+	}, false)
+
+	// mouse-over for info
+	// show
+	window.addEventListener("mouseover", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = "Operation " + g_to_text(target);
+	}, false)
+
+	// clear
+	window.addEventListener("mouseout", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = ' ';
+	}, false)
+
+	// ctrl-F for search
+	// ctrl-I to toggle case-sensitive search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+		else if (e.ctrlKey && e.keyCode === 73) {
+			e.preventDefault();
+			toggle_ignorecase();
+		}
+	}, false)
+
+	// functions
+	function get_params() {
+		var params = {};
+		var paramsarr = window.location.search.substr(1).split('&');
+		for (var i = 0; i < paramsarr.length; ++i) {
+			var tmp = paramsarr[i].split("=");
+			if (!tmp[0] || !tmp[1]) continue;
+			params[tmp[0]]  = decodeURIComponent(tmp[1]);
+		}
+		return params;
+	}
+	function parse_params(params) {
+		var uri = "?";
+		for (var key in params) {
+			uri += key + '=' + encodeURIComponent(params[key]) + '&';
+		}
+		if (uri.slice(-1) == "&")
+			uri = uri.substring(0, uri.length - 1);
+		if (uri == '?')
+			uri = window.location.href.split('?')[0];
+		return uri;
+	}
+	function find_child(node, selector) {
+		var children = node.querySelectorAll(selector);
+		if (children.length) return children[0];
+	}
+	function find_group(node) {
+		var parent = node.parentElement;
+		if (!parent) return;
+		if (parent.id == "frames") return node;
+		return find_group(parent);
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_" + attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_" + attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_" + attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes.width.value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes.x.value = parseFloat(r.attributes.x.value) + 3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2 * 13 * 0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		var sl = t.getSubStringLength(0, txt.length);
+		// check if only whitespace or if we can fit the entire string into width w
+		if (/^ *$/.test(txt) || sl < w)
+			return;
+
+		// this isn't perfect, but gives a good starting point
+		// and avoids calling getSubStringLength too often
+		var start = Math.floor((w/sl) * txt.length);
+		for (var x = start; x > 0; x = x-2) {
+			if (t.getSubStringLength(0, x + 2) <= w) {
+				t.textContent = txt.substring(0, x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = (parseFloat(e.attributes.x.value) - x - 10) * ratio + 10;
+				if (e.tagName == "text")
+					e.attributes.x.value = find_child(e.parentNode, "rect[x]").attributes.x.value + 3;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseFloat(e.attributes.width.value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_child(c[i], x - 10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = 10;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseInt(svg.width.baseVal.value) - (10 * 2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr.width.value);
+		var xmin = parseFloat(attr.x.value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr.y.value);
+		var ratio = (svg.width.baseVal.value - 2 * 10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		unzoombtn.classList.remove("hide");
+
+		var el = document.getElementById("frames").children;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a.x.value);
+			var ew = parseFloat(a.width.value);
+			var upstack;
+			// Is it an ancestor
+			if (1 == 0) {
+				upstack = parseFloat(a.y.value) > ymin;
+			} else {
+				upstack = parseFloat(a.y.value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.classList.add("parent");
+					zoom_parent(e);
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.classList.add("hide");
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.classList.add("hide");
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					update_text(e);
+				}
+			}
+		}
+		search();
+	}
+	function unzoom(dont_update_text) {
+		unzoombtn.classList.add("hide");
+		var el = document.getElementById("frames").children;
+		for(var i = 0; i < el.length; i++) {
+			el[i].classList.remove("parent");
+			el[i].classList.remove("hide");
+			zoom_reset(el[i]);
+			if(!dont_update_text) update_text(el[i]);
+		}
+		search();
+	}
+	function clearzoom() {
+		unzoom();
+
+		// remove zoom state
+		var params = get_params();
+		if (params.x) delete params.x;
+		if (params.y) delete params.y;
+		history.replaceState(null, null, parse_params(params));
+	}
+
+	// search
+	function toggle_ignorecase() {
+		ignorecase = !ignorecase;
+		if (ignorecase) {
+			ignorecaseBtn.classList.add("show");
+		} else {
+			ignorecaseBtn.classList.remove("show");
+		}
+		reset_search();
+		search();
+	}
+	function reset_search() {
+		var el = document.querySelectorAll("#frames rect");
+		for (var i = 0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+		var params = get_params();
+		delete params.s;
+		history.replaceState(null, null, parse_params(params));
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)"
+			    + (ignorecase ? ", ignoring case" : "")
+			    + "\nPress Ctrl-i to toggle case sensitivity", "");
+			if (term != null) search(term);
+		} else {
+			reset_search();
+			searching = 0;
+			currentSearchTerm = null;
+			searchbtn.classList.remove("show");
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.classList.add("hide");
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		if (term) currentSearchTerm = term;
+		if (currentSearchTerm === null) return;
+
+		var re = new RegExp(currentSearchTerm, ignorecase ? 'i' : '');
+		var el = document.getElementById("frames").children;
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes.width.value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes.x.value);
+				orig_save(rect, "fill");
+				rect.attributes.fill.value = "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+		var params = get_params();
+		params.s = currentSearchTerm;
+		history.replaceState(null, null, parse_params(params));
+
+		searchbtn.classList.add("show");
+		searchbtn.firstChild.nodeValue = "Reset Search";
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.classList.remove("hide");
+		var pct = 100 * count / maxwidth;
+		if (pct != 100) pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+]]>
+</script>
+<rect x="0.0" y="0" width="1800.0" height="221.0" fill="url(#background)"  />
+<text id="title" x="900.00" y="26" >Why SSH password authentication kept failing</text>
+<text id="subtitle" x="900.00" y="52" >2 real agent runs; width = attributed tokens</text>
+<text id="details" x="10.00" y="203" > </text>
+<text id="unzoom" x="10.00" y="26" class="hide">Reset Zoom</text>
+<text id="search" x="1690.00" y="26" >Search</text>
+<text id="ignorecase" x="1774.00" y="26" >ic</text>
+<text id="matched" x="1690.00" y="203" > </text>
+<g id="frames">
+<g >
+<title>rebuild account and key configuration (191,389 tokens, 9.88%)</title><rect x="623.9" y="99" width="175.8" height="29.0" fill="rgb(97,208,208)" rx="2" ry="2" />
+<text  x="626.86" y="116.5" >rebuild account and ..</text>
+</g>
+<g >
+<title>test account and shell hypotheses (206,315 tokens, 10.65%)</title><rect x="1443.2" y="99" width="189.6" height="29.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="1446.16" y="116.5" >test account and shell..</text>
+</g>
+<g >
+<title>run daemon-level debugging (197,949 tokens, 10.22%)</title><rect x="1211.3" y="99" width="181.9" height="29.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="1214.30" y="116.5" >run daemon-level debu..</text>
+</g>
+<g >
+<title>restart sshd under debug mode (65,754 tokens, 3.39%)</title><rect x="1270.7" y="129" width="60.4" height="29.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="1273.66" y="146.5" >resta..</text>
+</g>
+<g >
+<title>compare local login with ssh authentication (29,558 tokens, 1.53%)</title><rect x="488.4" y="129" width="27.2" height="29.0" fill="rgb(89,200,200)" rx="2" ry="2" />
+<text  x="491.41" y="146.5" >c..</text>
+</g>
+<g >
+<title>reset account credentials and retest (166,045 tokens, 8.57%)</title><rect x="958.1" y="99" width="152.6" height="29.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="961.07" y="116.5" >reset account cre..</text>
+</g>
+<g >
+<title>inspect ssh and pam rejection evidence (86,766 tokens, 4.48%)</title><rect x="186.9" y="99" width="79.8" height="29.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="189.94" y="116.5" >inspect ..</text>
+</g>
+<g >
+<title>verify ssh daemon availability (17,870 tokens, 0.92%)</title><rect x="1773.6" y="99" width="16.4" height="29.0" fill="rgb(85,197,197)" rx="2" ry="2" />
+<text  x="1776.58" y="116.5" ></text>
+</g>
+<g >
+<title>reproduce the password-login failure (81,264 tokens, 4.20%)</title><rect x="883.4" y="99" width="74.7" height="29.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="886.38" y="116.5" >reprodu..</text>
+</g>
+<g >
+<title>test system-wide account hypotheses (153,211 tokens, 7.91%)</title><rect x="1632.8" y="99" width="140.8" height="29.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="1635.77" y="116.5" >test system-wide..</text>
+</g>
+<g >
+<title>separate ipv6 transport from password rejection (54,344 tokens, 2.81%)</title><rect x="1393.2" y="99" width="50.0" height="29.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="1396.22" y="116.5" >sepa..</text>
+</g>
+<g >
+<title>isolate hostname and transport behavior (184,138 tokens, 9.51%)</title><rect x="266.7" y="99" width="169.2" height="29.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="269.68" y="116.5" >isolate hostname and..</text>
+</g>
+<g >
+<title>repair account shell and home setup (39,822 tokens, 2.06%)</title><rect x="799.7" y="99" width="36.6" height="29.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="802.75" y="116.5" >re..</text>
+</g>
+<g >
+<title>rebuild account and daemon configuration (53,489 tokens, 2.76%)</title><rect x="574.7" y="99" width="49.2" height="29.0" fill="rgb(97,208,208)" rx="2" ry="2" />
+<text  x="577.70" y="116.5" >rebu..</text>
+</g>
+<g >
+<title>rule out pam as the system-wide cause (61,929 tokens, 3.20%)</title><rect x="1632.8" y="129" width="56.9" height="29.0" fill="rgb(92,203,203)" rx="2" ry="2" />
+<text  x="1635.77" y="146.5" >rule ..</text>
+</g>
+<g >
+<title>inspect daemon configuration and logs (75,552 tokens, 3.90%)</title><rect x="117.5" y="99" width="69.4" height="29.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="120.50" y="116.5" >inspect..</text>
+</g>
+<g >
+<title>test a fresh user account (91,282 tokens, 4.71%)</title><rect x="1689.7" y="129" width="83.9" height="29.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="1692.69" y="146.5" >test a f..</text>
+</g>
+<g >
+<title>inspect and modify daemon authentication settings (116,975 tokens, 6.04%)</title><rect x="10.0" y="99" width="107.5" height="29.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="13.00" y="116.5" >inspect and ..</text>
+</g>
+<g >
+<title>retest against the debug daemon (67,604 tokens, 3.49%)</title><rect x="1331.1" y="129" width="62.1" height="29.0" fill="rgb(92,203,203)" rx="2" ry="2" />
+<text  x="1334.09" y="146.5" >retest..</text>
+</g>
+<g >
+<title>reproduce the git-clone failure (51,182 tokens, 2.64%)</title><rect x="836.3" y="99" width="47.1" height="29.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="839.35" y="116.5" >repr..</text>
+</g>
+<g >
+<title>diagnose rejected ssh password authentication (1,936,828 tokens, 100.00%)</title><rect x="10.0" y="69" width="1780.0" height="29.0" fill="rgb(101,211,211)" rx="2" ry="2" />
+<text  x="13.00" y="86.5" >diagnose rejected ssh password authentication</text>
+</g>
+<g >
+<title>disable pam and retest (64,328 tokens, 3.32%)</title><rect x="515.6" y="129" width="59.1" height="29.0" fill="rgb(96,207,207)" rx="2" ry="2" />
+<text  x="518.58" y="146.5" >disab..</text>
+</g>
+<g >
+<title>all (1,936,828 tokens, 100%)</title><rect x="10.0" y="39" width="1780.0" height="29.0" fill="rgb(110,220,220)" rx="2" ry="2" />
+<text  x="13.00" y="56.5" ></text>
+</g>
+<g >
+<title>retest after daemon rewrite (109,496 tokens, 5.65%)</title><rect x="1110.7" y="99" width="100.6" height="29.0" fill="rgb(92,203,203)" rx="2" ry="2" />
+<text  x="1113.67" y="116.5" >retest afte..</text>
+</g>
+<g >
+<title>isolate pam and account authentication (151,021 tokens, 7.80%)</title><rect x="435.9" y="99" width="138.8" height="29.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="438.91" y="116.5" >isolate pam and ..</text>
+</g>
+</g>
+</svg>

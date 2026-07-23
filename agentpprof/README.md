@@ -77,6 +77,41 @@ go tool pprof -top tokens.pb.gz
 go tool pprof -http=:0 tokens.pb.gz
 ```
 
+### Recursive annotation workspace
+
+An automatic Agent, LLM, rule, or change-point backend can share the same
+three-file workspace contract:
+
+```text
+workspace/trace.jsonl
+workspace/annotation.json
+workspace/stacks.folded
+```
+
+The backend reads the current trace and writes only `annotation.json`.
+AgentPProf validates and applies that file with one additional CLI argument:
+
+```bash
+agentpprof \
+  --annotation-file workspace/annotation.json \
+  --view tokens \
+  -o tokens.pb.gz
+```
+
+Every source root must begin a session-level operation and every prompt must
+begin a prompt-level operation. Optional nested annotations refine either scope
+without a fixed depth. The visible stack is `agent -> session operation ->
+prompt operation -> recursive operations -> LLM call -> tool/effect`; unique
+session and prompt IDs remain pprof labels so they do not fragment cross-run
+aggregation.
+
+The CLI reports nonblocking warnings when an optional recursive operation has
+only one explicit semantic child, or when a large operation has a wide flat
+fan-out with little recursive refinement. Warnings never block the `.pb` or
+`.pb.gz` output and never force artificial depth. See
+[`docs/design/visexp/agentpprof-annotation-workspace.md`](../docs/design/visexp/agentpprof-annotation-workspace.md)
+for the complete contract.
+
 ### Differential pprof
 
 For two executions of the same task, pass the trace under investigation as the
@@ -124,6 +159,22 @@ agentpprof -o time.pb.gz --view time
 The view is independent from `--stack`. For example, the same operations can be
 weighted by tokens and folded by prompt tags, or weighted by operation count and
 folded by dataset/task/phase/action fields.
+
+The predecessor `--operation-mark-file` path is likewise independent from the width measure. A
+resource-specific normalized operation file can reuse the same semantic marks
+with `--view operations`, `tokens`, `time`, `files`, or `network`. Without an
+explicit `--stack`, marked profiles preserve the available native
+`project,agent,source_session,prompt` ancestry, insert the variable-depth
+semantic `operation` path, and retain available LLM `call` and `tool` evidence
+below it. The normalized input must retain every marked source operation;
+operations with no value for a sparse measure use `value: 0`. They participate
+in mark propagation but contribute no pprof width.
+For a cross-session aggregate, pass an explicit stack that omits unique source
+identifiers; those identifiers remain available as pprof evidence labels.
+Marks assign semantic-operation membership to weighted source leaves; they do
+not reclassify a session, prompt, LLM call, or tool call as an operation. A
+stable source kind or tool may remain below `operation` for evidence, while
+unique occurrence IDs stay in labels so operation paths aggregate across runs.
 
 ## Product Boundary
 
@@ -266,7 +317,9 @@ backend; it is not a product human-annotation workflow. Every
 operation inherits the latest full operation-ID path in its sequence; unequal
 path lengths produce variable-depth stacks, and the shared name pool lets equal
 semantic IDs aggregate across sessions. With no explicit `--stack`, this mode
-uses `operation`; an explicit stack must contain that field.
+preserves available `project,agent,source_session,prompt` ancestry above
+`operation` and available `call,tool` evidence below it; an explicit stack must
+contain `operation`.
 
 The input fails closed when a sequence or ID field is missing or multivalued,
 IDs repeat within a sequence, the first source operation is unmarked, marks are
@@ -275,9 +328,10 @@ name pool. Display names, source sequences, and source IDs must also remain uniq
 normalization. The configured source sequence and operation ID are preserved as
 the pprof `source_session` and `evidence_id` labels.
 
-This first interface is intentionally limited to normalized `--operation-file`
-input with `--view operations`; it does not yet mark expanded local-session
-token/file/network/time samples or combine mark files with signed differences.
+This interface requires normalized `--operation-file` input. The file may carry
+operation, token, duration, file, or network weights, including zero-weight
+carrier operations needed to propagate sparse marks. Mark files cannot yet be
+combined with signed differences.
 Operation marks and `--induce-operation-stack` are mutually exclusive because
 both derive the `operation` field. Regex mappings may normalize fields or help
 an Agent retrieve candidate source IDs, but neither mappings nor

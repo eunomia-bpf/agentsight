@@ -1,0 +1,759 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="1800" height="283" onload="init(evt)" viewBox="0 0 1800 283" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+<!-- NOTES:  -->
+<defs>
+	<linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+		<stop stop-color="#ffffff" offset="5%" />
+		<stop stop-color="#ffffff" offset="95%" />
+	</linearGradient>
+</defs>
+<style type="text/css">
+	text { font-family:Verdana; font-size:13px; fill:rgb(0,0,0); }
+	#search, #ignorecase { opacity:0.1; cursor:pointer; }
+	#search:hover, #search.show, #ignorecase:hover, #ignorecase.show { opacity:1; }
+	#subtitle { text-anchor:middle; font-color:rgb(160,160,160); }
+	#title { text-anchor:middle; font-size:18px}
+	#unzoom { cursor:pointer; }
+	#frames > *:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+	.hide { display:none; }
+	.parent { opacity:0.5; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	"use strict";
+	var details, searchbtn, unzoombtn, matchedtxt, svg, searching, currentSearchTerm, ignorecase, ignorecaseBtn;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		ignorecaseBtn = document.getElementById("ignorecase");
+		unzoombtn = document.getElementById("unzoom");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+		currentSearchTerm = null;
+
+		// use GET parameters to restore a flamegraphs state.
+		var params = get_params();
+		if (params.x && params.y)
+			zoom(find_group(document.querySelector('[x="' + params.x + '"][y="' + params.y + '"]')));
+                if (params.s) search(params.s);
+	}
+
+	// event listeners
+	window.addEventListener("click", function(e) {
+		var target = find_group(e.target);
+		if (target) {
+			if (target.nodeName == "a") {
+				if (e.ctrlKey === false) return;
+				e.preventDefault();
+			}
+			if (target.classList.contains("parent")) unzoom(true);
+			zoom(target);
+			if (!document.querySelector('.parent')) {
+				// we have basically done a clearzoom so clear the url
+				var params = get_params();
+				if (params.x) delete params.x;
+				if (params.y) delete params.y;
+				history.replaceState(null, null, parse_params(params));
+				unzoombtn.classList.add("hide");
+				return;
+			}
+
+			// set parameters for zoom state
+			var el = target.querySelector("rect");
+			if (el && el.attributes && el.attributes.y && el.attributes._orig_x) {
+				var params = get_params()
+				params.x = el.attributes._orig_x.value;
+				params.y = el.attributes.y.value;
+				history.replaceState(null, null, parse_params(params));
+			}
+		}
+		else if (e.target.id == "unzoom") clearzoom();
+		else if (e.target.id == "search") search_prompt();
+		else if (e.target.id == "ignorecase") toggle_ignorecase();
+	}, false)
+
+	// mouse-over for info
+	// show
+	window.addEventListener("mouseover", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = "Operation " + g_to_text(target);
+	}, false)
+
+	// clear
+	window.addEventListener("mouseout", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = ' ';
+	}, false)
+
+	// ctrl-F for search
+	// ctrl-I to toggle case-sensitive search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+		else if (e.ctrlKey && e.keyCode === 73) {
+			e.preventDefault();
+			toggle_ignorecase();
+		}
+	}, false)
+
+	// functions
+	function get_params() {
+		var params = {};
+		var paramsarr = window.location.search.substr(1).split('&');
+		for (var i = 0; i < paramsarr.length; ++i) {
+			var tmp = paramsarr[i].split("=");
+			if (!tmp[0] || !tmp[1]) continue;
+			params[tmp[0]]  = decodeURIComponent(tmp[1]);
+		}
+		return params;
+	}
+	function parse_params(params) {
+		var uri = "?";
+		for (var key in params) {
+			uri += key + '=' + encodeURIComponent(params[key]) + '&';
+		}
+		if (uri.slice(-1) == "&")
+			uri = uri.substring(0, uri.length - 1);
+		if (uri == '?')
+			uri = window.location.href.split('?')[0];
+		return uri;
+	}
+	function find_child(node, selector) {
+		var children = node.querySelectorAll(selector);
+		if (children.length) return children[0];
+	}
+	function find_group(node) {
+		var parent = node.parentElement;
+		if (!parent) return;
+		if (parent.id == "frames") return node;
+		return find_group(parent);
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_" + attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_" + attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_" + attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes.width.value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes.x.value = parseFloat(r.attributes.x.value) + 3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2 * 13 * 0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		var sl = t.getSubStringLength(0, txt.length);
+		// check if only whitespace or if we can fit the entire string into width w
+		if (/^ *$/.test(txt) || sl < w)
+			return;
+
+		// this isn't perfect, but gives a good starting point
+		// and avoids calling getSubStringLength too often
+		var start = Math.floor((w/sl) * txt.length);
+		for (var x = start; x > 0; x = x-2) {
+			if (t.getSubStringLength(0, x + 2) <= w) {
+				t.textContent = txt.substring(0, x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = (parseFloat(e.attributes.x.value) - x - 10) * ratio + 10;
+				if (e.tagName == "text")
+					e.attributes.x.value = find_child(e.parentNode, "rect[x]").attributes.x.value + 3;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseFloat(e.attributes.width.value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_child(c[i], x - 10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = 10;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseInt(svg.width.baseVal.value) - (10 * 2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr.width.value);
+		var xmin = parseFloat(attr.x.value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr.y.value);
+		var ratio = (svg.width.baseVal.value - 2 * 10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		unzoombtn.classList.remove("hide");
+
+		var el = document.getElementById("frames").children;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a.x.value);
+			var ew = parseFloat(a.width.value);
+			var upstack;
+			// Is it an ancestor
+			if (1 == 0) {
+				upstack = parseFloat(a.y.value) > ymin;
+			} else {
+				upstack = parseFloat(a.y.value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.classList.add("parent");
+					zoom_parent(e);
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.classList.add("hide");
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.classList.add("hide");
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					update_text(e);
+				}
+			}
+		}
+		search();
+	}
+	function unzoom(dont_update_text) {
+		unzoombtn.classList.add("hide");
+		var el = document.getElementById("frames").children;
+		for(var i = 0; i < el.length; i++) {
+			el[i].classList.remove("parent");
+			el[i].classList.remove("hide");
+			zoom_reset(el[i]);
+			if(!dont_update_text) update_text(el[i]);
+		}
+		search();
+	}
+	function clearzoom() {
+		unzoom();
+
+		// remove zoom state
+		var params = get_params();
+		if (params.x) delete params.x;
+		if (params.y) delete params.y;
+		history.replaceState(null, null, parse_params(params));
+	}
+
+	// search
+	function toggle_ignorecase() {
+		ignorecase = !ignorecase;
+		if (ignorecase) {
+			ignorecaseBtn.classList.add("show");
+		} else {
+			ignorecaseBtn.classList.remove("show");
+		}
+		reset_search();
+		search();
+	}
+	function reset_search() {
+		var el = document.querySelectorAll("#frames rect");
+		for (var i = 0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+		var params = get_params();
+		delete params.s;
+		history.replaceState(null, null, parse_params(params));
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)"
+			    + (ignorecase ? ", ignoring case" : "")
+			    + "\nPress Ctrl-i to toggle case sensitivity", "");
+			if (term != null) search(term);
+		} else {
+			reset_search();
+			searching = 0;
+			currentSearchTerm = null;
+			searchbtn.classList.remove("show");
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.classList.add("hide");
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		if (term) currentSearchTerm = term;
+		if (currentSearchTerm === null) return;
+
+		var re = new RegExp(currentSearchTerm, ignorecase ? 'i' : '');
+		var el = document.getElementById("frames").children;
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes.width.value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes.x.value);
+				orig_save(rect, "fill");
+				rect.attributes.fill.value = "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+		var params = get_params();
+		params.s = currentSearchTerm;
+		history.replaceState(null, null, parse_params(params));
+
+		searchbtn.classList.add("show");
+		searchbtn.firstChild.nodeValue = "Reset Search";
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.classList.remove("hide");
+		var pct = 100 * count / maxwidth;
+		if (pct != 100) pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+]]>
+</script>
+<rect x="0.0" y="0" width="1800.0" height="283.0" fill="url(#background)"  />
+<text id="title" x="900.00" y="26" >Agent operation token profile</text>
+<text id="subtitle" x="900.00" y="52" >3 real Git task sessions; width = attributed tokens</text>
+<text id="details" x="10.00" y="265" > </text>
+<text id="unzoom" x="10.00" y="26" class="hide">Reset Zoom</text>
+<text id="search" x="1690.00" y="26" >Search</text>
+<text id="ignorecase" x="1774.00" y="26" >ic</text>
+<text id="matched" x="1690.00" y="265" > </text>
+<g id="frames">
+<g >
+<title>retry the ssh service on the required port (46,598 tokens, 1.02%)</title><rect x="1624.6" y="169" width="18.2" height="25.0" fill="rgb(92,203,203)" rx="2" ry="2" />
+<text  x="1627.57" y="184.5" ></text>
+</g>
+<g >
+<title>validate repository access on an alternate port (85,301 tokens, 1.87%)</title><rect x="1743.5" y="143" width="33.3" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="1746.48" y="158.5" >va..</text>
+</g>
+<g >
+<title>repair web paths and gather authentication evidence (17,494 tokens, 0.38%)</title><rect x="1585.3" y="169" width="6.9" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="1588.33" y="184.5" ></text>
+</g>
+<g >
+<title>deploy git branches over ssh and https (3,948,391 tokens, 86.62%)</title><rect x="10.0" y="117" width="1541.9" height="25.0" fill="rgb(104,214,214)" rx="2" ry="2" />
+<text  x="13.00" y="132.5" >deploy git branches over ssh and https</text>
+</g>
+<g >
+<title>validate password authentication and cloning on the alternate port (28,398 tokens, 0.62%)</title><rect x="1765.7" y="169" width="11.1" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="1768.70" y="184.5" ></text>
+</g>
+<g >
+<title>complete the git deployment task (609,801 tokens, 13.38%)</title><rect x="1551.9" y="91" width="238.1" height="25.0" fill="rgb(89,200,200)" rx="2" ry="2" />
+<text  x="1554.87" y="106.5" >complete the git deployment t..</text>
+</g>
+<g >
+<title>summarize the partial system (33,591 tokens, 0.74%)</title><rect x="1011.4" y="143" width="13.1" height="25.0" fill="rgb(89,201,201)" rx="2" ry="2" />
+<text  x="1014.40" y="158.5" ></text>
+</g>
+<g >
+<title>attempt packet-level port redirection (37,051 tokens, 0.81%)</title><rect x="1642.8" y="169" width="14.4" height="25.0" fill="rgb(80,193,193)" rx="2" ry="2" />
+<text  x="1645.77" y="184.5" ></text>
+</g>
+<g >
+<title>agent terminus2 (609,801 tokens, 13.38%)</title><rect x="1551.9" y="65" width="238.1" height="25.0" fill="rgb(85,197,197)" rx="2" ry="2" />
+<text  x="1554.87" y="80.5" >agent terminus2</text>
+</g>
+<g >
+<title>inspect ssh and pam rejection evidence (86,766 tokens, 1.90%)</title><rect x="203.3" y="169" width="33.9" height="25.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="206.35" y="184.5" >in..</text>
+</g>
+<g >
+<title>create the git user and bare repository (43,224 tokens, 0.95%)</title><rect x="111.3" y="143" width="16.9" height="25.0" fill="rgb(81,194,194)" rx="2" ry="2" />
+<text  x="114.29" y="158.5" ></text>
+</g>
+<g >
+<title>create the bare repository (6,210 tokens, 0.14%)</title><rect x="108.9" y="143" width="2.4" height="25.0" fill="rgb(81,194,194)" rx="2" ry="2" />
+<text  x="111.86" y="158.5" ></text>
+</g>
+<g >
+<title>implement branch-triggered deployment (56,027 tokens, 1.23%)</title><rect x="884.5" y="143" width="21.9" height="25.0" fill="rgb(83,195,195)" rx="2" ry="2" />
+<text  x="887.51" y="158.5" ></text>
+</g>
+<g >
+<title>repair account shell and home setup (39,822 tokens, 0.87%)</title><rect x="463.7" y="169" width="15.6" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="466.74" y="184.5" ></text>
+</g>
+<g >
+<title>rebuild account and key configuration (191,389 tokens, 4.20%)</title><rect x="389.0" y="169" width="74.7" height="25.0" fill="rgb(97,208,208)" rx="2" ry="2" />
+<text  x="392.00" y="184.5" >rebuild..</text>
+</g>
+<g >
+<title>validate secure branch endpoints (13,720 tokens, 0.30%)</title><rect x="1784.6" y="143" width="5.4" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="1787.64" y="158.5" ></text>
+</g>
+<g >
+<title>agent openhands (3,948,391 tokens, 86.62%)</title><rect x="10.0" y="65" width="1541.9" height="25.0" fill="rgb(85,197,197)" rx="2" ry="2" />
+<text  x="13.00" y="80.5" >agent openhands</text>
+</g>
+<g >
+<title>restore password-authenticated repository access (12,334 tokens, 0.27%)</title><rect x="1671.1" y="143" width="4.8" height="25.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="1674.06" y="158.5" ></text>
+</g>
+<g >
+<title>configure an iptables redirect (38,551 tokens, 0.85%)</title><rect x="1693.1" y="169" width="15.1" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="1696.10" y="184.5" ></text>
+</g>
+<g >
+<title>deploy the dev branch (47,061 tokens, 1.03%)</title><rect x="1206.0" y="169" width="18.4" height="25.0" fill="rgb(104,214,214)" rx="2" ry="2" />
+<text  x="1209.04" y="184.5" ></text>
+</g>
+<g >
+<title>replace the ssh daemon configuration (71,207 tokens, 1.56%)</title><rect x="980.2" y="143" width="27.8" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="983.20" y="158.5" >r..</text>
+</g>
+<g >
+<title>test a fresh user account (91,282 tokens, 2.00%)</title><rect x="841.9" y="195" width="35.6" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="844.88" y="210.5" >te..</text>
+</g>
+<g >
+<title>inspect daemon configuration and logs (75,552 tokens, 1.66%)</title><rect x="173.8" y="169" width="29.5" height="25.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="176.84" y="184.5" >i..</text>
+</g>
+<g >
+<title>isolate pam and account authentication (151,021 tokens, 3.31%)</title><rect x="309.1" y="169" width="59.0" height="25.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="312.14" y="184.5" >isola..</text>
+</g>
+<g >
+<title>retest after daemon rewrite (109,496 tokens, 2.40%)</title><rect x="595.9" y="169" width="42.7" height="25.0" fill="rgb(92,203,203)" rx="2" ry="2" />
+<text  x="598.85" y="184.5" >ret..</text>
+</g>
+<g >
+<title>consider an http-authentication fallback (56,241 tokens, 1.23%)</title><rect x="86.9" y="143" width="22.0" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="89.90" y="158.5" ></text>
+</g>
+<g >
+<title>try key authentication as a control (166,759 tokens, 3.66%)</title><rect x="1024.5" y="143" width="65.1" height="25.0" fill="rgb(91,202,202)" rx="2" ry="2" />
+<text  x="1027.52" y="158.5" >try ke..</text>
+</g>
+<g >
+<title>verify the https branch endpoints (103,018 tokens, 2.26%)</title><rect x="1452.6" y="169" width="40.3" height="25.0" fill="rgb(85,197,197)" rx="2" ry="2" />
+<text  x="1455.64" y="184.5" >ver..</text>
+</g>
+<g >
+<title>reproduce the password-login failure (81,264 tokens, 1.78%)</title><rect x="499.3" y="169" width="31.7" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="502.28" y="184.5" >re..</text>
+</g>
+<g >
+<title>verify deployed branch contents (143,688 tokens, 3.15%)</title><rect x="1396.5" y="169" width="56.1" height="25.0" fill="rgb(85,197,197)" rx="2" ry="2" />
+<text  x="1399.53" y="184.5" >verif..</text>
+</g>
+<g >
+<title>try socket-reuse and legacy-iptables alternatives (41,721 tokens, 0.92%)</title><rect x="1708.2" y="169" width="16.2" height="25.0" fill="rgb(91,202,202)" rx="2" ry="2" />
+<text  x="1711.15" y="184.5" ></text>
+</g>
+<g >
+<title>separate ipv6 transport from password rejection (54,344 tokens, 1.19%)</title><rect x="715.9" y="169" width="21.2" height="25.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="718.91" y="184.5" ></text>
+</g>
+<g >
+<title>deploy git branches over ssh and https (609,801 tokens, 13.38%)</title><rect x="1551.9" y="117" width="238.1" height="25.0" fill="rgb(104,214,214)" rx="2" ry="2" />
+<text  x="1554.87" y="132.5" >deploy git branches over ssh ..</text>
+</g>
+<g >
+<title>compare local login with ssh authentication (29,558 tokens, 0.65%)</title><rect x="331.4" y="195" width="11.6" height="25.0" fill="rgb(89,200,200)" rx="2" ry="2" />
+<text  x="334.45" y="210.5" ></text>
+</g>
+<g >
+<title>seek network-level endpoint redirection (124,372 tokens, 2.73%)</title><rect x="1675.9" y="143" width="48.5" height="25.0" fill="rgb(92,204,204)" rx="2" ry="2" />
+<text  x="1678.88" y="158.5" >seek..</text>
+</g>
+<g >
+<title>implement push-triggered deployment (7,278 tokens, 0.16%)</title><rect x="1601.6" y="143" width="2.8" height="25.0" fill="rgb(83,195,195)" rx="2" ry="2" />
+<text  x="1604.59" y="158.5" ></text>
+</g>
+<g >
+<title>repair deployment permissions and hook (74,392 tokens, 1.63%)</title><rect x="1367.5" y="169" width="29.0" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="1370.48" y="184.5" >r..</text>
+</g>
+<g >
+<title>launch an isolated ssh daemon (26,498 tokens, 0.58%)</title><rect x="1755.4" y="169" width="10.3" height="25.0" fill="rgb(73,186,186)" rx="2" ry="2" />
+<text  x="1758.35" y="184.5" ></text>
+</g>
+<g >
+<title>summarize deployment evidence (48,735 tokens, 1.07%)</title><rect x="1724.4" y="143" width="19.1" height="25.0" fill="rgb(89,201,201)" rx="2" ry="2" />
+<text  x="1727.45" y="158.5" ></text>
+</g>
+<g >
+<title>redirect the required repository endpoint (72,459 tokens, 1.59%)</title><rect x="1642.8" y="143" width="28.3" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="1645.77" y="158.5" >r..</text>
+</g>
+<g >
+<title>isolate ssh behavior on an alternate port (56,086 tokens, 1.23%)</title><rect x="906.4" y="143" width="21.9" height="25.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="909.39" y="158.5" ></text>
+</g>
+<g >
+<title>reproduce the git-clone failure (51,182 tokens, 1.12%)</title><rect x="479.3" y="169" width="20.0" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="482.29" y="184.5" ></text>
+</g>
+<g >
+<title>configure tls and nginx endpoints (152,699 tokens, 3.35%)</title><rect x="27.3" y="143" width="59.6" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="30.27" y="158.5" >confi..</text>
+</g>
+<g >
+<title>run an end-to-end clone and deployment test (8,696 tokens, 0.19%)</title><rect x="1008.0" y="143" width="3.4" height="25.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="1011.00" y="158.5" ></text>
+</g>
+<g >
+<title>configure the ssh account and service (19,867 tokens, 0.44%)</title><rect x="19.5" y="143" width="7.8" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="22.51" y="158.5" ></text>
+</g>
+<g >
+<title>bind ssh to loopback and revalidate the endpoints (44,100 tokens, 0.97%)</title><rect x="1675.9" y="169" width="17.2" height="25.0" fill="rgb(83,195,195)" rx="2" ry="2" />
+<text  x="1678.88" y="184.5" ></text>
+</g>
+<g >
+<title>all (4,558,192 tokens, 100%)</title><rect x="10.0" y="39" width="1780.0" height="25.0" fill="rgb(110,220,220)" rx="2" ry="2" />
+<text  x="13.00" y="54.5" ></text>
+</g>
+<g >
+<title>inspect ssh configuration and reproduce the failure (15,276 tokens, 0.34%)</title><rect x="1572.1" y="169" width="6.0" height="25.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="1575.11" y="184.5" ></text>
+</g>
+<g >
+<title>deploy the main branch (113,524 tokens, 2.49%)</title><rect x="1224.4" y="169" width="44.3" height="25.0" fill="rgb(104,214,214)" rx="2" ry="2" />
+<text  x="1227.41" y="184.5" >dep..</text>
+</g>
+<g >
+<title>isolate hostname and transport behavior (184,138 tokens, 4.04%)</title><rect x="237.2" y="169" width="71.9" height="25.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="240.23" y="184.5" >isolate..</text>
+</g>
+<g >
+<title>restore the working alternate-port service (47,618 tokens, 1.04%)</title><rect x="1606.0" y="169" width="18.6" height="25.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="1608.97" y="184.5" ></text>
+</g>
+<g >
+<title>validate branch contents through the alternate ssh service (201,566 tokens, 4.42%)</title><rect x="1089.6" y="143" width="78.8" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="1092.64" y="158.5" >validate..</text>
+</g>
+<g >
+<title>replace the conflicting ssh daemon (24,129 tokens, 0.53%)</title><rect x="1592.2" y="169" width="9.4" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="1595.16" y="184.5" ></text>
+</g>
+<g >
+<title>plan the server and deployment components (12,706 tokens, 0.28%)</title><rect x="928.3" y="143" width="4.9" height="25.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="931.29" y="158.5" ></text>
+</g>
+<g >
+<title>validate deployment through a local-file transport (96,505 tokens, 2.12%)</title><rect x="1168.4" y="143" width="37.6" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="1171.35" y="158.5" >va..</text>
+</g>
+<g >
+<title>compare account authentication on a debug daemon (22,150 tokens, 0.49%)</title><rect x="1555.7" y="169" width="8.6" height="25.0" fill="rgb(89,200,200)" rx="2" ry="2" />
+<text  x="1558.68" y="184.5" ></text>
+</g>
+<g >
+<title>reset account credentials and retest (166,045 tokens, 3.64%)</title><rect x="531.0" y="169" width="64.9" height="25.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="534.01" y="184.5" >reset ..</text>
+</g>
+<g >
+<title>validate repository hooks and https deployment locally (734,528 tokens, 16.11%)</title><rect x="1206.0" y="143" width="286.9" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="1209.04" y="158.5" >validate repository hooks and https..</text>
+</g>
+<g >
+<title>provision the ssh service (120,223 tokens, 2.64%)</title><rect x="933.2" y="143" width="47.0" height="25.0" fill="rgb(98,209,209)" rx="2" ry="2" />
+<text  x="936.25" y="158.5" >prov..</text>
+</g>
+<g >
+<title>rule out pam as the system-wide cause (61,929 tokens, 1.36%)</title><rect x="817.7" y="195" width="24.2" height="25.0" fill="rgb(92,203,203)" rx="2" ry="2" />
+<text  x="820.70" y="210.5" >r..</text>
+</g>
+<g >
+<title>inspect ssh overrides and retry the password clone (18,593 tokens, 0.41%)</title><rect x="1578.1" y="169" width="7.2" height="25.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="1581.07" y="184.5" ></text>
+</g>
+<g >
+<title>validate ssh cloning (151,076 tokens, 3.31%)</title><rect x="1492.9" y="143" width="59.0" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="1495.87" y="158.5" >valid..</text>
+</g>
+<g >
+<title>diagnose required repository transport (117,558 tokens, 2.58%)</title><rect x="1555.7" y="143" width="45.9" height="25.0" fill="rgb(101,211,211)" rx="2" ry="2" />
+<text  x="1558.68" y="158.5" >dia..</text>
+</g>
+<g >
+<title>configure secure transport and branch endpoints (9,758 tokens, 0.21%)</title><rect x="1551.9" y="143" width="3.8" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="1554.87" y="158.5" ></text>
+</g>
+<g >
+<title>test account and shell hypotheses (206,315 tokens, 4.53%)</title><rect x="737.1" y="169" width="80.6" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="740.13" y="184.5" >test acc..</text>
+</g>
+<g >
+<title>attempt socket forwarding to the required port (35,408 tokens, 0.78%)</title><rect x="1657.2" y="169" width="13.9" height="25.0" fill="rgb(80,193,193)" rx="2" ry="2" />
+<text  x="1660.23" y="184.5" ></text>
+</g>
+<g >
+<title>reconfigure repository transport (94,216 tokens, 2.07%)</title><rect x="1606.0" y="143" width="36.8" height="25.0" fill="rgb(96,207,207)" rx="2" ry="2" />
+<text  x="1608.97" y="158.5" >re..</text>
+</g>
+<g >
+<title>test system-wide account hypotheses (153,211 tokens, 3.36%)</title><rect x="817.7" y="169" width="59.8" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="820.70" y="184.5" >test ..</text>
+</g>
+<g >
+<title>prepare a local validation repository (252,845 tokens, 5.55%)</title><rect x="1268.7" y="169" width="98.8" height="25.0" fill="rgb(96,207,207)" rx="2" ry="2" />
+<text  x="1271.75" y="184.5" >prepare a ..</text>
+</g>
+<g >
+<title>verify ssh daemon availability (17,870 tokens, 0.39%)</title><rect x="877.5" y="169" width="7.0" height="25.0" fill="rgb(85,197,197)" rx="2" ry="2" />
+<text  x="880.53" y="184.5" ></text>
+</g>
+<g >
+<title>run daemon-level debugging (197,949 tokens, 4.34%)</title><rect x="638.6" y="169" width="77.3" height="25.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="641.61" y="184.5" >run daem..</text>
+</g>
+<g >
+<title>validate repository deployment (20,115 tokens, 0.44%)</title><rect x="1776.8" y="143" width="7.8" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="1779.79" y="158.5" ></text>
+</g>
+<g >
+<title>retest against the debug daemon (67,604 tokens, 1.48%)</title><rect x="689.5" y="195" width="26.4" height="25.0" fill="rgb(92,203,203)" rx="2" ry="2" />
+<text  x="692.51" y="210.5" >r..</text>
+</g>
+<g >
+<title>diagnose the pre-authentication connection reset (19,916 tokens, 0.44%)</title><rect x="1564.3" y="169" width="7.8" height="25.0" fill="rgb(101,211,211)" rx="2" ry="2" />
+<text  x="1567.33" y="184.5" ></text>
+</g>
+<g >
+<title>restart sshd under debug mode (65,754 tokens, 1.44%)</title><rect x="663.8" y="195" width="25.7" height="25.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="666.83" y="210.5" >r..</text>
+</g>
+<g >
+<title>rebuild account and daemon configuration (53,489 tokens, 1.17%)</title><rect x="368.1" y="169" width="20.9" height="25.0" fill="rgb(97,208,208)" rx="2" ry="2" />
+<text  x="371.11" y="184.5" ></text>
+</g>
+<g >
+<title>inspect and modify daemon authentication settings (116,975 tokens, 2.57%)</title><rect x="128.2" y="169" width="45.6" height="25.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="131.16" y="184.5" >ins..</text>
+</g>
+<g >
+<title>diagnose rejected ssh password authentication (1,936,828 tokens, 42.49%)</title><rect x="128.2" y="143" width="756.3" height="25.0" fill="rgb(101,211,211)" rx="2" ry="2" />
+<text  x="131.16" y="158.5" >diagnose rejected ssh password authentication</text>
+</g>
+<g >
+<title>complete the git deployment task (3,948,391 tokens, 86.62%)</title><rect x="10.0" y="91" width="1541.9" height="25.0" fill="rgb(89,200,200)" rx="2" ry="2" />
+<text  x="13.00" y="106.5" >complete the git deployment task</text>
+</g>
+<g >
+<title>disable pam and retest (64,328 tokens, 1.41%)</title><rect x="343.0" y="195" width="25.1" height="25.0" fill="rgb(96,207,207)" rx="2" ry="2" />
+<text  x="345.99" y="210.5" >d..</text>
+</g>
+<g >
+<title>attempt to rebind ssh to the required port (30,405 tokens, 0.67%)</title><rect x="1743.5" y="169" width="11.9" height="25.0" fill="rgb(80,193,193)" rx="2" ry="2" />
+<text  x="1746.48" y="184.5" ></text>
+</g>
+</g>
+</svg>

@@ -17,10 +17,12 @@ history is archived at
 |---|---|
 | `agentpprof/src/main.rs` | CLI, profile-spec loading, source selection, mapping/filter options, and the sole pprof output route |
 | `agentpprof/src/profile.rs` | operation records, operation-stack configuration, mappings, filters, folding, pprof encoding, and stack induction |
+| `agentpprof/src/annotation_workspace.rs` | ordered source-tree validation, recursive annotation replay, hierarchy warnings, path materialization, and pprof construction |
 | `agentpprof/src/session.rs` | local agent-session ingestion |
 | `agentpprof/src/standard_trace.rs` | Chrome/Perfetto Trace Event input normalization through operation records |
 | `agentpprof/src/tagger.rs` | optional open-vocabulary and declared-label tagging support |
 | `agentpprof/tests/profile_spec_cli.rs` | pprof-only CLI/profile-spec/mapping/filter/induction integration tests |
+| `agentpprof/tests/annotation_workspace_cli.rs` | recursive annotation workspace, visible stack, conservation, warning, and atomic-update integration tests |
 | `agentpprof/tests/standard_trace_cli.rs` | standard-trace input and alternative-output rejection tests |
 | `agentpprof/backend/python/` | archived clustering prototype; not a product backend or output path |
 | `agentpprof/examples/` | public fixture and usage material |
@@ -56,6 +58,39 @@ local Codex/Claude sessions, operation JSONL, or supported trace input
   -> weighted semantic stack and evidence labels
   -> one standard .pb or .pb.gz pprof
 ```
+
+The recursive annotation path shares the same sole pprof output route but keeps
+the source tree intact until semantic paths are applied:
+
+```text
+external recording or benchmark
+  -> source adapter
+  -> workspace trace.jsonl (session -> prompt -> LLM -> tool/effect)
+  -> backend annotation.json
+  -> validated session/prompt operations plus recursive nested operations
+  -> agent -> operation* -> LLM -> tool/effect frames
+     with raw session/prompt IDs as labels
+  -> one standard .pb or .pb.gz pprof
+```
+
+The CLI requires a session-level operation at each source root and a
+prompt-level operation at each prompt, rejects crossing or uncovered ranges,
+and emits nonblocking warnings for unary refinement or a large mostly-flat
+fan-out. It still writes the profile when only a warning is present.
+
+For normalized marked inputs, a zero `value` is a source carrier rather than a
+sample. It receives the active semantic path and evidence labels, then is
+removed before profile serialization. This lets token, duration, file, network,
+or other sparse additive views reuse one mark configuration without converting
+missing resource events into unit weight. The default marked stack uses the
+derived `source_session` from the mark file's declared sequence field rather
+than assuming an input field literally named `session`.
+
+Applying a mark adds semantic membership to each normalized source record. It
+does not change the record's source type: prompt, LLM, tool, file, and network
+events remain evidence leaves. Population profiles omit unique occurrence
+frames from the function stack and retain them as labels; otherwise identical
+semantic paths from different sessions could not fold into one pprof stack.
 
 The Rust inducer now constructs operation identities from cross-session action
 recurrence. It counts adjacent action transitions in a reference population,
@@ -178,12 +213,20 @@ experiment.
   operation, and rejects unknown, duplicate, out-of-order, empty, or
   pool-inconsistent paths. The path is applied before filtering so queries
   inherit boundaries from the complete selected source sequence.
-- The current CLI admits marks only for normalized operation JSONL under the
-  operation-count view. It aliases the configured sequence and source ID to
+- The predecessor `--operation-mark-file` mode admits marks only for normalized operation JSONL. The same
+  complete source sequence and marks can carry operation, token, duration,
+  file, or network weights. It aliases the configured sequence and source ID to
   pprof `source_session` and `evidence_id`, validates post-normalization name
   and ID uniqueness (including source-sequence labels), and makes the marked path authoritative over
-  operation-targeting stack rules. Marked local-session expanded views and
+  operation-targeting stack rules. The research constructor case-folds
+  independently generated semantic labels before assigning IDs because pprof
+  frame identity is case-insensitive. Marked local-session expanded views and
   marked signed differences are rejected rather than approximated.
+- The current `--annotation-file` mode accepts an ordered working
+  `trace.jsonl`, reads backend decisions from its sibling `annotation.json`,
+  rewrites only derived `path` fields and the sibling `stacks.folded`, and emits
+  exactly one pprof. Raw session and prompt IDs are labels; LLM and tool/effect
+  nodes remain visible evidence frames below semantic operations.
 - Operation marks and recurrence induction cannot run together because both
   derive the `operation` field. A mark is an addressable boundary and does not
   imply a product human-annotation workflow; regexes may parse or retrieve candidates but are not
@@ -224,10 +267,7 @@ configuration. In particular:
 7. the tested fixed 8/32/128 recursive adapter has no stable first-hit advantage
    on Hodoscope iQuest, and the official density-gap/FPS bundle is substantially
    stronger on its published task.
-8. imported zero values are currently normalized to one; existing admitted
-   experiments use positive integer weights, but zero-valued measures require
-   an artifact correction before use.
-9. the final same-signal RQ2 consolidation improves standard MAP over matched
+8. the final same-signal RQ2 consolidation improves standard MAP over matched
    raw-action organization on all three complete workloads, but direct local
    evidence remains stronger on AgentProcessBench. The adaptive local-first
    semantic refinement improves over local-only and semantic-only ranking on

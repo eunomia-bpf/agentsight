@@ -1,40 +1,38 @@
 \begin{tikzpicture}[
-  node distance=0.35cm and 0.55cm,
-  box/.style={rectangle, draw, fill=blue!15, minimum width=2.0cm,
-              minimum height=0.8cm, font=\small, align=center,
+  node distance=0.32cm and 0.48cm,
+  box/.style={rectangle, draw, fill=blue!15, minimum width=1.85cm,
+              minimum height=0.72cm, font=\small, align=center,
               rounded corners=2pt},
-  input/.style={rectangle, draw, fill=gray!15, minimum width=1.9cm,
-               minimum height=0.7cm, font=\small, align=center,
+  input/.style={rectangle, draw, fill=gray!15, minimum width=1.75cm,
+               minimum height=0.66cm, font=\small, align=center,
                rounded corners=2pt},
-  output/.style={rectangle, draw, fill=green!12, minimum width=1.6cm,
-                minimum height=0.7cm, font=\small, align=center,
-                rounded corners=2pt},
   arr/.style={-{Stealth[length=1.8mm]}, thick, gray!70},
 ]
 
-% Inputs (left)
-\node[input] (local) {Local\\Histories};
-\node[input, below=0.35cm of local] (public) {Operation\\JSONL};
+% Source input and native hierarchy.
+\node[input] (local) {Local histories /\\structured traces};
+\node[box, right=0.48cm of local] (adapter) {Source adapter};
+\node[box, right=0.48cm of adapter, fill=gray!10] (trace)
+  {Working trace\\session $\rightarrow$ prompt\\$\rightarrow$ LLM $\rightarrow$ tool};
 
-% Uniform representation
-\node[box, right=0.55cm of local, yshift=-0.52cm] (ops) {Uniform\\Operations};
+% Annotation producer and its small contract.
+\node[input, below=0.50cm of adapter] (backend)
+  {Agent / LLM /\\non-LLM backend};
+\node[box, right=0.48cm of backend, fill=orange!15] (annotation)
+  {Annotation\\tag / parent / next};
 
-% Field derivation
-\node[box, right=0.55cm of ops, fill=orange!15] (fields) {Field\\Derivation};
-\node[font=\small, below=0.05cm of fields] (backends) {rules / model / mapping};
+% Deterministic construction and one output contract.
+\node[box, right=0.55cm of trace, yshift=-0.48cm] (fold)
+  {Validate + compose\\+ resource fold};
+\node[box, right=0.48cm of fold, fill=green!12] (out)
+  {pprof protobuf\\\texttt{.pb / .pb.gz}};
 
-% Stack construction and folding
-\node[box, right=0.55cm of fields] (stack) {Stack Construction\\+ Folding};
-
-% Output
-\node[box, right=0.55cm of stack, fill=green!12] (out) {Profiles};
-\node[font=\small, below=0.05cm of out] {pprof / SVG / JSON};
-
-% Arrows
-\draw[arr] (local) -- node[above, font=\small, text=black] {parse} (ops);
-\draw[arr] (public) -- node[below, font=\small, text=black] {read} (ops);
-\draw[arr] (ops) -- (fields);
-\draw[arr] (fields) -- (stack);
-\draw[arr] (stack) -- (out);
+\draw[arr] (local) -- (adapter);
+\draw[arr] (adapter) -- (trace);
+\draw[arr] (trace) |- (backend);
+\draw[arr] (backend) -- (annotation);
+\draw[arr] (trace) -- (fold);
+\draw[arr] (annotation) -- (fold);
+\draw[arr] (fold) -- (out);
 
 \end{tikzpicture}

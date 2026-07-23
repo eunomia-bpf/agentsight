@@ -207,10 +207,13 @@ fn agent_operation_marks_create_shared_variable_depth_operation_stacks() {
         ],
     );
     let status = assert_pprof(&output, &output_path);
-    assert_eq!(status["stack"], "operation");
+    assert_eq!(
+        status["stack"],
+        "project,agent,source_session,prompt,operation,call,tool"
+    );
     assert_eq!(status["induced_stack_field"], "operation");
     assert_eq!(status["samples"], 28);
-    assert_eq!(status["unique_stacks"], 3);
+    assert_eq!(status["unique_stacks"], 4);
     assert_eq!(status["operation_mark_file"], marks_path.to_str().unwrap());
 }
 
@@ -282,7 +285,18 @@ fn operation_marks_fail_closed_and_do_not_mix_with_induction() {
             .contains("cannot be combined with --induce-operation-stack")
     );
 
-    let wrong_view = run(
+    fs::write(
+        &marks_path,
+        r#"{
+            "sequence_field":"session",
+            "id_field":"id",
+            "operation_names":{"review":"Review evidence"},
+            "marks":[{"sequence":"s","start_operation_id":"one","operation_ids":["review"]}]
+        }"#,
+    )
+    .unwrap();
+
+    let token_view = run(
         binary,
         &[
             "--operation-file",
@@ -295,11 +309,10 @@ fn operation_marks_fail_closed_and_do_not_mix_with_induction() {
             output_path.to_str().unwrap(),
         ],
     );
-    assert!(!wrong_view.status.success());
-    assert!(
-        String::from_utf8_lossy(&wrong_view.stderr)
-            .contains("currently requires --view operations")
-    );
+    let token_status = assert_pprof(&token_view, &output_path);
+    assert_eq!(token_status["view"], "tokens");
+    assert_eq!(token_status["sample_type"], "tokens");
+    assert_eq!(token_status["samples"], 2);
 
     let diff = run(
         binary,
@@ -321,6 +334,60 @@ fn operation_marks_fail_closed_and_do_not_mix_with_induction() {
         String::from_utf8_lossy(&diff.stderr)
             .contains("cannot currently be combined with --diff-base-operation-file")
     );
+}
+
+#[test]
+fn operation_marks_propagate_across_zero_weight_resource_operations() {
+    let tmp = tempfile::tempdir().unwrap();
+    let ops_path = tmp.path().join("ops.jsonl");
+    let marks_path = tmp.path().join("operation-marks.json");
+    let output_path = tmp.path().join("files.pb.gz");
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+    fs::write(
+        &ops_path,
+        [
+            r#"{"value":0,"fields":{"sequence":"s","id":"a"}}"#,
+            r#"{"value":4,"fields":{"sequence":"s","id":"b"}}"#,
+            r#"{"value":0,"fields":{"sequence":"s","id":"c"}}"#,
+            r#"{"value":5,"fields":{"sequence":"s","id":"d"}}"#,
+        ]
+        .join("\n")
+            + "\n",
+    )
+    .unwrap();
+    fs::write(
+        &marks_path,
+        r#"{
+            "sequence_field":"sequence",
+            "id_field":"id",
+            "operation_names":{"review":"Review evidence","fix":"Fix implementation"},
+            "marks":[
+                {"sequence":"s","start_operation_id":"a","operation_ids":["review"]},
+                {"sequence":"s","start_operation_id":"c","operation_ids":["fix"]}
+            ]
+        }"#,
+    )
+    .unwrap();
+
+    let output = run(
+        binary,
+        &[
+            "--operation-file",
+            ops_path.to_str().unwrap(),
+            "--operation-mark-file",
+            marks_path.to_str().unwrap(),
+            "--view",
+            "files",
+            "--deterministic-output",
+            "--output",
+            output_path.to_str().unwrap(),
+        ],
+    );
+    let status = assert_pprof(&output, &output_path);
+    assert_eq!(status["sample_type"], "file_events");
+    assert_eq!(status["operations"], 4);
+    assert_eq!(status["samples"], 9);
+    assert_eq!(status["unique_stacks"], 2);
 }
 
 #[test]
@@ -361,7 +428,10 @@ fn profile_spec_resolves_relative_operation_mark_file() {
 
     let output = run(binary, &["--profile-spec", spec_path.to_str().unwrap()]);
     let status = assert_pprof(&output, &output_path);
-    assert_eq!(status["stack"], "operation");
+    assert_eq!(
+        status["stack"],
+        "project,agent,source_session,prompt,operation,call,tool"
+    );
     assert_eq!(status["samples"], 1);
     assert_eq!(status["operation_mark_file"], marks_path.to_str().unwrap());
 }

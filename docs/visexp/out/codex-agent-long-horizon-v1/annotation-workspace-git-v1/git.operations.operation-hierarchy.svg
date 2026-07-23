@@ -1,0 +1,763 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="1800" height="283" onload="init(evt)" viewBox="0 0 1800 283" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+<!-- NOTES:  -->
+<defs>
+	<linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+		<stop stop-color="#ffffff" offset="5%" />
+		<stop stop-color="#ffffff" offset="95%" />
+	</linearGradient>
+</defs>
+<style type="text/css">
+	text { font-family:Verdana; font-size:13px; fill:rgb(0,0,0); }
+	#search, #ignorecase { opacity:0.1; cursor:pointer; }
+	#search:hover, #search.show, #ignorecase:hover, #ignorecase.show { opacity:1; }
+	#subtitle { text-anchor:middle; font-color:rgb(160,160,160); }
+	#title { text-anchor:middle; font-size:18px}
+	#unzoom { cursor:pointer; }
+	#frames > *:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+	.hide { display:none; }
+	.parent { opacity:0.5; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	"use strict";
+	var details, searchbtn, unzoombtn, matchedtxt, svg, searching, currentSearchTerm, ignorecase, ignorecaseBtn;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		ignorecaseBtn = document.getElementById("ignorecase");
+		unzoombtn = document.getElementById("unzoom");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+		currentSearchTerm = null;
+
+		// use GET parameters to restore a flamegraphs state.
+		var params = get_params();
+		if (params.x && params.y)
+			zoom(find_group(document.querySelector('[x="' + params.x + '"][y="' + params.y + '"]')));
+                if (params.s) search(params.s);
+	}
+
+	// event listeners
+	window.addEventListener("click", function(e) {
+		var target = find_group(e.target);
+		if (target) {
+			if (target.nodeName == "a") {
+				if (e.ctrlKey === false) return;
+				e.preventDefault();
+			}
+			if (target.classList.contains("parent")) unzoom(true);
+			zoom(target);
+			if (!document.querySelector('.parent')) {
+				// we have basically done a clearzoom so clear the url
+				var params = get_params();
+				if (params.x) delete params.x;
+				if (params.y) delete params.y;
+				history.replaceState(null, null, parse_params(params));
+				unzoombtn.classList.add("hide");
+				return;
+			}
+
+			// set parameters for zoom state
+			var el = target.querySelector("rect");
+			if (el && el.attributes && el.attributes.y && el.attributes._orig_x) {
+				var params = get_params()
+				params.x = el.attributes._orig_x.value;
+				params.y = el.attributes.y.value;
+				history.replaceState(null, null, parse_params(params));
+			}
+		}
+		else if (e.target.id == "unzoom") clearzoom();
+		else if (e.target.id == "search") search_prompt();
+		else if (e.target.id == "ignorecase") toggle_ignorecase();
+	}, false)
+
+	// mouse-over for info
+	// show
+	window.addEventListener("mouseover", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = "Operation " + g_to_text(target);
+	}, false)
+
+	// clear
+	window.addEventListener("mouseout", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = ' ';
+	}, false)
+
+	// ctrl-F for search
+	// ctrl-I to toggle case-sensitive search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+		else if (e.ctrlKey && e.keyCode === 73) {
+			e.preventDefault();
+			toggle_ignorecase();
+		}
+	}, false)
+
+	// functions
+	function get_params() {
+		var params = {};
+		var paramsarr = window.location.search.substr(1).split('&');
+		for (var i = 0; i < paramsarr.length; ++i) {
+			var tmp = paramsarr[i].split("=");
+			if (!tmp[0] || !tmp[1]) continue;
+			params[tmp[0]]  = decodeURIComponent(tmp[1]);
+		}
+		return params;
+	}
+	function parse_params(params) {
+		var uri = "?";
+		for (var key in params) {
+			uri += key + '=' + encodeURIComponent(params[key]) + '&';
+		}
+		if (uri.slice(-1) == "&")
+			uri = uri.substring(0, uri.length - 1);
+		if (uri == '?')
+			uri = window.location.href.split('?')[0];
+		return uri;
+	}
+	function find_child(node, selector) {
+		var children = node.querySelectorAll(selector);
+		if (children.length) return children[0];
+	}
+	function find_group(node) {
+		var parent = node.parentElement;
+		if (!parent) return;
+		if (parent.id == "frames") return node;
+		return find_group(parent);
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_" + attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_" + attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_" + attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes.width.value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes.x.value = parseFloat(r.attributes.x.value) + 3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2 * 13 * 0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		var sl = t.getSubStringLength(0, txt.length);
+		// check if only whitespace or if we can fit the entire string into width w
+		if (/^ *$/.test(txt) || sl < w)
+			return;
+
+		// this isn't perfect, but gives a good starting point
+		// and avoids calling getSubStringLength too often
+		var start = Math.floor((w/sl) * txt.length);
+		for (var x = start; x > 0; x = x-2) {
+			if (t.getSubStringLength(0, x + 2) <= w) {
+				t.textContent = txt.substring(0, x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = (parseFloat(e.attributes.x.value) - x - 10) * ratio + 10;
+				if (e.tagName == "text")
+					e.attributes.x.value = find_child(e.parentNode, "rect[x]").attributes.x.value + 3;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseFloat(e.attributes.width.value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_child(c[i], x - 10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = 10;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseInt(svg.width.baseVal.value) - (10 * 2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr.width.value);
+		var xmin = parseFloat(attr.x.value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr.y.value);
+		var ratio = (svg.width.baseVal.value - 2 * 10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		unzoombtn.classList.remove("hide");
+
+		var el = document.getElementById("frames").children;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a.x.value);
+			var ew = parseFloat(a.width.value);
+			var upstack;
+			// Is it an ancestor
+			if (1 == 0) {
+				upstack = parseFloat(a.y.value) > ymin;
+			} else {
+				upstack = parseFloat(a.y.value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.classList.add("parent");
+					zoom_parent(e);
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.classList.add("hide");
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.classList.add("hide");
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					update_text(e);
+				}
+			}
+		}
+		search();
+	}
+	function unzoom(dont_update_text) {
+		unzoombtn.classList.add("hide");
+		var el = document.getElementById("frames").children;
+		for(var i = 0; i < el.length; i++) {
+			el[i].classList.remove("parent");
+			el[i].classList.remove("hide");
+			zoom_reset(el[i]);
+			if(!dont_update_text) update_text(el[i]);
+		}
+		search();
+	}
+	function clearzoom() {
+		unzoom();
+
+		// remove zoom state
+		var params = get_params();
+		if (params.x) delete params.x;
+		if (params.y) delete params.y;
+		history.replaceState(null, null, parse_params(params));
+	}
+
+	// search
+	function toggle_ignorecase() {
+		ignorecase = !ignorecase;
+		if (ignorecase) {
+			ignorecaseBtn.classList.add("show");
+		} else {
+			ignorecaseBtn.classList.remove("show");
+		}
+		reset_search();
+		search();
+	}
+	function reset_search() {
+		var el = document.querySelectorAll("#frames rect");
+		for (var i = 0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+		var params = get_params();
+		delete params.s;
+		history.replaceState(null, null, parse_params(params));
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)"
+			    + (ignorecase ? ", ignoring case" : "")
+			    + "\nPress Ctrl-i to toggle case sensitivity", "");
+			if (term != null) search(term);
+		} else {
+			reset_search();
+			searching = 0;
+			currentSearchTerm = null;
+			searchbtn.classList.remove("show");
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.classList.add("hide");
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		if (term) currentSearchTerm = term;
+		if (currentSearchTerm === null) return;
+
+		var re = new RegExp(currentSearchTerm, ignorecase ? 'i' : '');
+		var el = document.getElementById("frames").children;
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes.width.value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes.x.value);
+				orig_save(rect, "fill");
+				rect.attributes.fill.value = "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+		var params = get_params();
+		params.s = currentSearchTerm;
+		history.replaceState(null, null, parse_params(params));
+
+		searchbtn.classList.add("show");
+		searchbtn.firstChild.nodeValue = "Reset Search";
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.classList.remove("hide");
+		var pct = 100 * count / maxwidth;
+		if (pct != 100) pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+]]>
+</script>
+<rect x="0.0" y="0" width="1800.0" height="283.0" fill="url(#background)"  />
+<text id="title" x="900.00" y="26" >Agent operation-count profile</text>
+<text id="subtitle" x="900.00" y="52" >same 3 Git task sessions; width = operation count</text>
+<text id="details" x="10.00" y="265" > </text>
+<text id="unzoom" x="10.00" y="26" class="hide">Reset Zoom</text>
+<text id="search" x="1690.00" y="26" >Search</text>
+<text id="ignorecase" x="1774.00" y="26" >ic</text>
+<text id="matched" x="1690.00" y="265" > </text>
+<g id="frames">
+<g >
+<title>validate ssh cloning (9 operations, 1.84%)</title><rect x="756.2" y="143" width="32.8" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="759.22" y="158.5" >va..</text>
+</g>
+<g >
+<title>summarize the partial system (1 operations, 0.20%)</title><rect x="570.6" y="143" width="3.6" height="25.0" fill="rgb(89,201,201)" rx="2" ry="2" />
+<text  x="573.57" y="158.5" ></text>
+</g>
+<g >
+<title>validate repository access on an alternate port (29 operations, 5.93%)</title><rect x="1527.9" y="143" width="105.6" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="1530.91" y="158.5" >validate re..</text>
+</g>
+<g >
+<title>isolate ssh behavior on an alternate port (2 operations, 0.41%)</title><rect x="483.2" y="143" width="7.3" height="25.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="486.21" y="158.5" ></text>
+</g>
+<g >
+<title>configure an iptables redirect (8 operations, 1.64%)</title><rect x="1436.9" y="169" width="29.1" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="1439.91" y="184.5" >c..</text>
+</g>
+<g >
+<title>verify ssh daemon availability (2 operations, 0.41%)</title><rect x="454.1" y="169" width="7.3" height="25.0" fill="rgb(85,197,197)" rx="2" ry="2" />
+<text  x="457.09" y="184.5" ></text>
+</g>
+<g >
+<title>verify deployed branch contents (6 operations, 1.23%)</title><rect x="719.8" y="169" width="21.9" height="25.0" fill="rgb(85,197,197)" rx="2" ry="2" />
+<text  x="722.82" y="184.5" ></text>
+</g>
+<g >
+<title>rule out pam as the system-wide cause (2 operations, 0.41%)</title><rect x="435.9" y="195" width="7.3" height="25.0" fill="rgb(92,203,203)" rx="2" ry="2" />
+<text  x="438.89" y="210.5" ></text>
+</g>
+<g >
+<title>configure the ssh account and service (3 operations, 0.61%)</title><rect x="24.6" y="143" width="10.9" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="27.56" y="158.5" ></text>
+</g>
+<g >
+<title>separate ipv6 transport from password rejection (4 operations, 0.82%)</title><rect x="384.9" y="169" width="14.6" height="25.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="387.93" y="184.5" ></text>
+</g>
+<g >
+<title>validate repository hooks and https deployment locally (32 operations, 6.54%)</title><rect x="639.7" y="143" width="116.5" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="642.73" y="158.5" >validate repo..</text>
+</g>
+<g >
+<title>deploy the main branch (5 operations, 1.02%)</title><rect x="647.0" y="169" width="18.2" height="25.0" fill="rgb(104,214,214)" rx="2" ry="2" />
+<text  x="650.01" y="184.5" ></text>
+</g>
+<g >
+<title>retry the ssh service on the required port (10 operations, 2.04%)</title><rect x="1240.3" y="169" width="36.4" height="25.0" fill="rgb(92,203,203)" rx="2" ry="2" />
+<text  x="1243.35" y="184.5" >re..</text>
+</g>
+<g >
+<title>diagnose required repository transport (54 operations, 11.04%)</title><rect x="865.4" y="143" width="196.6" height="25.0" fill="rgb(101,211,211)" rx="2" ry="2" />
+<text  x="868.42" y="158.5" >diagnose required repos..</text>
+</g>
+<g >
+<title>consider an http-authentication fallback (2 operations, 0.41%)</title><rect x="82.8" y="143" width="7.3" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="85.80" y="158.5" ></text>
+</g>
+<g >
+<title>isolate pam and account authentication (10 operations, 2.04%)</title><rect x="192.0" y="169" width="36.4" height="25.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="195.00" y="184.5" >is..</text>
+</g>
+<g >
+<title>diagnose rejected ssh password authentication (97 operations, 19.84%)</title><rect x="108.3" y="143" width="353.1" height="25.0" fill="rgb(101,211,211)" rx="2" ry="2" />
+<text  x="111.28" y="158.5" >diagnose rejected ssh password authentication</text>
+</g>
+<g >
+<title>test system-wide account hypotheses (5 operations, 1.02%)</title><rect x="435.9" y="169" width="18.2" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="438.89" y="184.5" ></text>
+</g>
+<g >
+<title>try socket-reuse and legacy-iptables alternatives (9 operations, 1.84%)</title><rect x="1466.0" y="169" width="32.8" height="25.0" fill="rgb(91,202,202)" rx="2" ry="2" />
+<text  x="1469.03" y="184.5" >tr..</text>
+</g>
+<g >
+<title>reproduce the password-login failure (6 operations, 1.23%)</title><rect x="283.0" y="169" width="21.8" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="286.01" y="184.5" ></text>
+</g>
+<g >
+<title>rebuild account and daemon configuration (2 operations, 0.41%)</title><rect x="228.4" y="169" width="7.3" height="25.0" fill="rgb(97,208,208)" rx="2" ry="2" />
+<text  x="231.40" y="184.5" ></text>
+</g>
+<g >
+<title>restore the working alternate-port service (10 operations, 2.04%)</title><rect x="1203.9" y="169" width="36.4" height="25.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="1206.95" y="184.5" >re..</text>
+</g>
+<g >
+<title>implement branch-triggered deployment (6 operations, 1.23%)</title><rect x="461.4" y="143" width="21.8" height="25.0" fill="rgb(83,195,195)" rx="2" ry="2" />
+<text  x="464.37" y="158.5" ></text>
+</g>
+<g >
+<title>compare local login with ssh authentication (2 operations, 0.41%)</title><rect x="206.6" y="195" width="7.2" height="25.0" fill="rgb(89,200,200)" rx="2" ry="2" />
+<text  x="209.56" y="210.5" ></text>
+</g>
+<g >
+<title>restart sshd under debug mode (3 operations, 0.61%)</title><rect x="363.1" y="195" width="10.9" height="25.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="366.09" y="210.5" ></text>
+</g>
+<g >
+<title>run an end-to-end clone and deployment test (1 operations, 0.20%)</title><rect x="566.9" y="143" width="3.7" height="25.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="569.93" y="158.5" ></text>
+</g>
+<g >
+<title>attempt socket forwarding to the required port (10 operations, 2.04%)</title><rect x="1309.5" y="169" width="36.4" height="25.0" fill="rgb(80,193,193)" rx="2" ry="2" />
+<text  x="1312.51" y="184.5" >at..</text>
+</g>
+<g >
+<title>try key authentication as a control (8 operations, 1.64%)</title><rect x="574.2" y="143" width="29.1" height="25.0" fill="rgb(91,202,202)" rx="2" ry="2" />
+<text  x="577.21" y="158.5" >t..</text>
+</g>
+<g >
+<title>prepare a local validation repository (12 operations, 2.45%)</title><rect x="665.2" y="169" width="43.7" height="25.0" fill="rgb(96,207,207)" rx="2" ry="2" />
+<text  x="668.21" y="184.5" >pre..</text>
+</g>
+<g >
+<title>provision repository transport and web serving (17 operations, 3.48%)</title><rect x="1142.1" y="143" width="61.8" height="25.0" fill="rgb(98,209,209)" rx="2" ry="2" />
+<text  x="1145.07" y="158.5" >provis..</text>
+</g>
+<g >
+<title>agent openhands (214 operations, 43.76%)</title><rect x="10.0" y="65" width="779.0" height="25.0" fill="rgb(85,197,197)" rx="2" ry="2" />
+<text  x="13.00" y="80.5" >agent openhands</text>
+</g>
+<g >
+<title>inspect and modify daemon authentication settings (6 operations, 1.23%)</title><rect x="108.3" y="169" width="21.8" height="25.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="111.28" y="184.5" ></text>
+</g>
+<g >
+<title>restore password-authenticated repository access (10 operations, 2.04%)</title><rect x="1345.9" y="143" width="36.4" height="25.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="1348.91" y="158.5" >re..</text>
+</g>
+<g >
+<title>deploy the dev branch (2 operations, 0.41%)</title><rect x="639.7" y="169" width="7.3" height="25.0" fill="rgb(104,214,214)" rx="2" ry="2" />
+<text  x="642.73" y="184.5" ></text>
+</g>
+<g >
+<title>repair account shell and home setup (4 operations, 0.82%)</title><rect x="261.2" y="169" width="14.5" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="264.17" y="184.5" ></text>
+</g>
+<g >
+<title>reconfigure repository transport (20 operations, 4.09%)</title><rect x="1203.9" y="143" width="72.8" height="25.0" fill="rgb(96,207,207)" rx="2" ry="2" />
+<text  x="1206.95" y="158.5" >reconfi..</text>
+</g>
+<g >
+<title>attempt packet-level port redirection (9 operations, 1.84%)</title><rect x="1276.7" y="169" width="32.8" height="25.0" fill="rgb(80,193,193)" rx="2" ry="2" />
+<text  x="1279.75" y="184.5" >at..</text>
+</g>
+<g >
+<title>inspect ssh overrides and retry the password clone (7 operations, 1.43%)</title><rect x="981.9" y="169" width="25.5" height="25.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="984.90" y="184.5" >i..</text>
+</g>
+<g >
+<title>configure tls and nginx endpoints (13 operations, 2.66%)</title><rect x="35.5" y="143" width="47.3" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="38.48" y="158.5" >conf..</text>
+</g>
+<g >
+<title>validate repository deployment (27 operations, 5.52%)</title><rect x="1633.5" y="143" width="98.3" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="1636.48" y="158.5" >validate r..</text>
+</g>
+<g >
+<title>launch an isolated ssh daemon (10 operations, 2.04%)</title><rect x="1564.3" y="169" width="36.4" height="25.0" fill="rgb(73,186,186)" rx="2" ry="2" />
+<text  x="1567.31" y="184.5" >la..</text>
+</g>
+<g >
+<title>redirect the required repository endpoint (19 operations, 3.89%)</title><rect x="1276.7" y="143" width="69.2" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="1279.75" y="158.5" >redirec..</text>
+</g>
+<g >
+<title>provision the ssh service (15 operations, 3.07%)</title><rect x="497.8" y="143" width="54.6" height="25.0" fill="rgb(98,209,209)" rx="2" ry="2" />
+<text  x="500.77" y="158.5" >provi..</text>
+</g>
+<g >
+<title>replace the conflicting ssh daemon (7 operations, 1.43%)</title><rect x="1036.5" y="169" width="25.5" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="1039.50" y="184.5" >r..</text>
+</g>
+<g >
+<title>validate password authentication and cloning on the alternate port (9 operations, 1.84%)</title><rect x="1600.7" y="169" width="32.8" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="1603.72" y="184.5" >va..</text>
+</g>
+<g >
+<title>isolate hostname and transport behavior (7 operations, 1.43%)</title><rect x="166.5" y="169" width="25.5" height="25.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="169.52" y="184.5" >i..</text>
+</g>
+<g >
+<title>seek network-level endpoint redirection (32 operations, 6.54%)</title><rect x="1382.3" y="143" width="116.5" height="25.0" fill="rgb(92,204,204)" rx="2" ry="2" />
+<text  x="1385.31" y="158.5" >seek network-..</text>
+</g>
+<g >
+<title>attempt to rebind ssh to the required port (10 operations, 2.04%)</title><rect x="1527.9" y="169" width="36.4" height="25.0" fill="rgb(80,193,193)" rx="2" ry="2" />
+<text  x="1530.91" y="184.5" >at..</text>
+</g>
+<g >
+<title>test account and shell hypotheses (10 operations, 2.04%)</title><rect x="399.5" y="169" width="36.4" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="402.49" y="184.5" >te..</text>
+</g>
+<g >
+<title>bind ssh to loopback and revalidate the endpoints (15 operations, 3.07%)</title><rect x="1382.3" y="169" width="54.6" height="25.0" fill="rgb(83,195,195)" rx="2" ry="2" />
+<text  x="1385.31" y="184.5" >bind ..</text>
+</g>
+<g >
+<title>retest against the debug daemon (3 operations, 0.61%)</title><rect x="374.0" y="195" width="10.9" height="25.0" fill="rgb(92,203,203)" rx="2" ry="2" />
+<text  x="377.01" y="210.5" ></text>
+</g>
+<g >
+<title>complete the git deployment task (275 operations, 56.24%)</title><rect x="789.0" y="91" width="1001.0" height="25.0" fill="rgb(89,200,200)" rx="2" ry="2" />
+<text  x="791.98" y="106.5" >complete the git deployment task</text>
+</g>
+<g >
+<title>plan the server and deployment components (2 operations, 0.41%)</title><rect x="490.5" y="143" width="7.3" height="25.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="493.49" y="158.5" ></text>
+</g>
+<g >
+<title>validate branch contents through the alternate ssh service (7 operations, 1.43%)</title><rect x="603.3" y="143" width="25.5" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="606.33" y="158.5" >v..</text>
+</g>
+<g >
+<title>test a fresh user account (3 operations, 0.61%)</title><rect x="443.2" y="195" width="10.9" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="446.17" y="210.5" ></text>
+</g>
+<g >
+<title>validate secure branch endpoints (16 operations, 3.27%)</title><rect x="1731.8" y="143" width="58.2" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="1734.76" y="158.5" >valid..</text>
+</g>
+<g >
+<title>deploy git branches over ssh and https (214 operations, 43.76%)</title><rect x="10.0" y="117" width="779.0" height="25.0" fill="rgb(104,214,214)" rx="2" ry="2" />
+<text  x="13.00" y="132.5" >deploy git branches over ssh and https</text>
+</g>
+<g >
+<title>disable pam and retest (4 operations, 0.82%)</title><rect x="213.8" y="195" width="14.6" height="25.0" fill="rgb(96,207,207)" rx="2" ry="2" />
+<text  x="216.84" y="210.5" ></text>
+</g>
+<g >
+<title>inspect ssh and pam rejection evidence (3 operations, 0.61%)</title><rect x="155.6" y="169" width="10.9" height="25.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="158.60" y="184.5" ></text>
+</g>
+<g >
+<title>inspect ssh configuration and reproduce the failure (16 operations, 3.27%)</title><rect x="923.7" y="169" width="58.2" height="25.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="926.66" y="184.5" >inspe..</text>
+</g>
+<g >
+<title>create the git user and bare repository (4 operations, 0.82%)</title><rect x="93.7" y="143" width="14.6" height="25.0" fill="rgb(81,194,194)" rx="2" ry="2" />
+<text  x="96.72" y="158.5" ></text>
+</g>
+<g >
+<title>implement push-triggered deployment (22 operations, 4.50%)</title><rect x="1062.0" y="143" width="80.1" height="25.0" fill="rgb(83,195,195)" rx="2" ry="2" />
+<text  x="1064.98" y="158.5" >implemen..</text>
+</g>
+<g >
+<title>reproduce the git-clone failure (2 operations, 0.41%)</title><rect x="275.7" y="169" width="7.3" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="278.73" y="184.5" ></text>
+</g>
+<g >
+<title>rebuild account and key configuration (7 operations, 1.43%)</title><rect x="235.7" y="169" width="25.5" height="25.0" fill="rgb(97,208,208)" rx="2" ry="2" />
+<text  x="238.69" y="184.5" >r..</text>
+</g>
+<g >
+<title>compare account authentication on a debug daemon (8 operations, 1.64%)</title><rect x="865.4" y="169" width="29.1" height="25.0" fill="rgb(89,200,200)" rx="2" ry="2" />
+<text  x="868.42" y="184.5" >c..</text>
+</g>
+<g >
+<title>replace the ssh daemon configuration (4 operations, 0.82%)</title><rect x="552.4" y="143" width="14.5" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="555.37" y="158.5" ></text>
+</g>
+<g >
+<title>retest after daemon rewrite (4 operations, 0.82%)</title><rect x="337.6" y="169" width="14.6" height="25.0" fill="rgb(92,203,203)" rx="2" ry="2" />
+<text  x="340.61" y="184.5" ></text>
+</g>
+<g >
+<title>repair web paths and gather authentication evidence (8 operations, 1.64%)</title><rect x="1007.4" y="169" width="29.1" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="1010.38" y="184.5" >r..</text>
+</g>
+<g >
+<title>complete the git deployment task (214 operations, 43.76%)</title><rect x="10.0" y="91" width="779.0" height="25.0" fill="rgb(89,200,200)" rx="2" ry="2" />
+<text  x="13.00" y="106.5" >complete the git deployment task</text>
+</g>
+<g >
+<title>repair deployment permissions and hook (3 operations, 0.61%)</title><rect x="708.9" y="169" width="10.9" height="25.0" fill="rgb(95,206,206)" rx="2" ry="2" />
+<text  x="711.90" y="184.5" ></text>
+</g>
+<g >
+<title>reset account credentials and retest (9 operations, 1.84%)</title><rect x="304.8" y="169" width="32.8" height="25.0" fill="rgb(93,204,204)" rx="2" ry="2" />
+<text  x="307.85" y="184.5" >re..</text>
+</g>
+<g >
+<title>all (489 operations, 100%)</title><rect x="10.0" y="39" width="1780.0" height="25.0" fill="rgb(110,220,220)" rx="2" ry="2" />
+<text  x="13.00" y="54.5" ></text>
+</g>
+<g >
+<title>validate deployment through a local-file transport (3 operations, 0.61%)</title><rect x="628.8" y="143" width="10.9" height="25.0" fill="rgb(81,193,193)" rx="2" ry="2" />
+<text  x="631.81" y="158.5" ></text>
+</g>
+<g >
+<title>inspect daemon configuration and logs (7 operations, 1.43%)</title><rect x="130.1" y="169" width="25.5" height="25.0" fill="rgb(93,205,205)" rx="2" ry="2" />
+<text  x="133.12" y="184.5" >i..</text>
+</g>
+<g >
+<title>run daemon-level debugging (9 operations, 1.84%)</title><rect x="352.2" y="169" width="32.7" height="25.0" fill="rgb(90,202,202)" rx="2" ry="2" />
+<text  x="355.17" y="184.5" >ru..</text>
+</g>
+<g >
+<title>configure secure transport and branch endpoints (21 operations, 4.29%)</title><rect x="789.0" y="143" width="76.4" height="25.0" fill="rgb(88,200,200)" rx="2" ry="2" />
+<text  x="791.98" y="158.5" >configu..</text>
+</g>
+<g >
+<title>deploy git branches over ssh and https (275 operations, 56.24%)</title><rect x="789.0" y="117" width="1001.0" height="25.0" fill="rgb(104,214,214)" rx="2" ry="2" />
+<text  x="791.98" y="132.5" >deploy git branches over ssh and https</text>
+</g>
+<g >
+<title>verify the https branch endpoints (4 operations, 0.82%)</title><rect x="741.7" y="169" width="14.5" height="25.0" fill="rgb(85,197,197)" rx="2" ry="2" />
+<text  x="744.66" y="184.5" ></text>
+</g>
+<g >
+<title>summarize deployment evidence (8 operations, 1.64%)</title><rect x="1498.8" y="143" width="29.1" height="25.0" fill="rgb(89,201,201)" rx="2" ry="2" />
+<text  x="1501.79" y="158.5" >s..</text>
+</g>
+<g >
+<title>diagnose the pre-authentication connection reset (8 operations, 1.64%)</title><rect x="894.5" y="169" width="29.2" height="25.0" fill="rgb(101,211,211)" rx="2" ry="2" />
+<text  x="897.54" y="184.5" >d..</text>
+</g>
+<g >
+<title>create the bare repository (1 operations, 0.20%)</title><rect x="90.1" y="143" width="3.6" height="25.0" fill="rgb(81,194,194)" rx="2" ry="2" />
+<text  x="93.08" y="158.5" ></text>
+</g>
+<g >
+<title>agent terminus2 (275 operations, 56.24%)</title><rect x="789.0" y="65" width="1001.0" height="25.0" fill="rgb(85,197,197)" rx="2" ry="2" />
+<text  x="791.98" y="80.5" >agent terminus2</text>
+</g>
+</g>
+</svg>

@@ -34,10 +34,11 @@ fields are visible to the profiler and which are scoring-only labels.
 An operation is a profiling record, not a claim that all events are equivalent
 execution units or that the profiler has recovered causality.
 
-The current CLI represents positive integer sample values in its admitted
-experiments. Imported zero is normalized to one, so zero-valued observations in
-the formal model are not yet faithfully preserved. This is an artifact gap, not
-evidence for changing existing positive-weight results.
+The CLI represents nonnegative integer sample values. Zero-weight operations
+remain in the ordered source sequence while mappings, external marks, and
+filters are applied, then are omitted before pprof folding. A sparse resource
+view can therefore preserve semantic-boundary propagation without manufacturing
+width; positive leaf weights still sum exactly into their ancestors.
 
 ### Operation Stack
 
@@ -171,9 +172,31 @@ used as stack fields when the input supplies them. These preserve the available
 execution view for comparison and drilldown; they do not prove complete native
 lineage.
 
-### Task-semantic construction frontier
+### Recursive annotation workspace
 
-The artifact now accepts sparse, backend-neutral operation marks. A mark names
+The current backend-neutral path operates on an ordered source tree rather than
+flattening the trace before semantic construction. A workspace contains the
+current `trace.jsonl`, backend-produced `annotation.json`, and CLI-derived
+`stacks.folded`. Every source root begins a session-level operation, every
+prompt begins a prompt-level operation, and optional nested intervals refine
+either scope without a fixed depth.
+
+The visible profile stack is:
+
+```text
+agent -> session-level operation -> prompt-level operation
+      -> recursively refined operations -> LLM call -> tool/effect
+```
+
+Raw session and prompt IDs remain pprof labels, so equal operation paths fold
+across runs without losing drilldown identity. The CLI rejects missing,
+crossing, or uncovered regions and reports nonblocking warnings for degenerate
+unary refinement or a large, mostly unrefined flat fan-out. The warnings expose
+bad hierarchy shape but never force depth or block pprof generation.
+
+### Predecessor complete-path operation marks
+
+The artifact also accepts the predecessor sparse complete-path operation marks. A mark names
 a source sequence and replay-stable source operation ID and supplies a full path
 of semantic operation IDs from one shared name pool. Each source operation
 inherits the latest path in its sequence. Repeated `operation` field values form
@@ -184,19 +207,33 @@ checks reject ambiguous inputs. This implemented interface establishes
 addressable replay and aggregation; it does not establish that an automatic
 backend finds accurate nested boundaries or names.
 
-The initial product path admits normalized operation files in the operation-count
-view only. The configured source sequence and ID become standard pprof
+The product path admits the same marked normalized operation sequence for any
+existing pprof view. The configured source sequence and ID become standard pprof
 `source_session` and `evidence_id` labels. Marked paths are authoritative over
 stack-frame regex rules, and pool names, source sequences, and source IDs must
 remain distinct after final pprof normalization. Signed differences continue to use explicit
 shared stack fields; operation-mark input is not yet admitted for diff mode.
 
-The next unadopted automatic constructor follows one plain rule: task structure comes
-from intent-bearing task, plan, delegation, progress, and completion events;
-ordinary model, tool, command, file, process, and network operations inherit
-the active task path and supply the measured evidence. Only the former may open,
-resume, or close a persistent task frame. Agent, model, session, tool type,
-command, path, and status remain tags, filters, colors, measures, or details.
+In this predecessor mode, without an explicit stack, a marked profile starts from the available
+`project -> agent -> source_session -> prompt -> operation -> call -> tool`
+ancestry. The variable-depth semantic operation path refines native prompt/call
+ranges rather than replacing their source evidence. Cross-session queries may
+omit high-cardinality occurrence frames from the function stack while retaining
+their IDs as pprof labels, allowing equal visible operation paths to fold.
+
+This is membership, not renaming. A session, prompt, LLM call, tool call, file
+event, or network event remains its original source kind; none becomes a new
+semantic operation. The mark states only which active semantic-operation path
+contains that weighted source leaf. Equal paths can therefore aggregate across
+sessions. A detailed evidence view may display stable `call` or `tool` frames
+below the semantic path, while unique session, prompt, call, and evidence IDs
+stay as labels and do not fragment the aggregate.
+
+Automatic construction remains outside the CLI: an Agent, plain LLM,
+deterministic rule, change-point method, or recurrence method reads the same
+working trace and writes the same small annotation file. Agent, model, raw
+session ID, tool type, command, path, and status remain source evidence, labels,
+filters, or measures rather than substitutes for semantic operation intent.
 
 This information boundary is materially different from asking a model to
 invent or complete a frame before and after every operation. It preserves the

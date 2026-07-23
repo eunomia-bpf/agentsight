@@ -335,3 +335,268 @@ recursive operaion segamentation 现在是怎么实现的? 应该在什么上面
 case study 至少 2 个；每一个 case study 都必须以许多完整 session
 组成的集合为主要分析单位。单条 trace 只能作为集合结论的证据下钻，不能把一个
 session 或一个 good/bad pair 包装成完整 case study。
+
+火焰图必须放进论文, 真实打开看, 确实像是解决了真实问题的火焰图, 堆栈深度有参差并且能有比较深的. 再来看看一个 case study 做做 long horizon agent, 有没有非常长的 agent 的
+
+---
+
+不是让你自己作为 Agent 手动去标注1
+
+---
+
+谁是 agent? 谁在做?
+
+---
+
+你可以让 subagent 标注
+
+---
+
+框架不需要支持多个 backend, 框架是不是只需要是命令行工具, 允许输入标注配置文件
+
+---
+
+生成的名称再对当前 active stack 做统一解析：
+名称等于栈顶：stay，当前任务继续。
+名称等于较早祖先：pop，返回上层任务。
+名称不在栈中：push，进入新子任务。
+例如： 这个是啥啥意思
+
+---
+
+我们是不是本身就在一个层次结构上做? 你看看主线上是什么层次结构, 我们只是在那个层次结构上面继续做折叠?
+
+---
+
+我们是不是本身就在一个层次结构上做? 你看看主线上是什么层次结构, 我们只是在那个层次结构上面继续做折叠? 让堆栈参差不齐
+
+---
+
+除了 Agent 标注, 我们是不是还可以 propose 一两个非 LLM 的算法, 或者刚刚 LLM 标注的算法 (非 Agent 标注?) 然后所有 RQ 都跑一遍
+
+---
+
+我刚刚的要求记录到一个特定的文档里面了吗? 我记得和你说过一个特定的文档专门记录 user reques?
+
+---
+
+Agent 标注就是自动算法。你也得计算它的质量
+
+---
+
+user instruction 里面要放我的原话对吧
+
+---
+
+我们的 skills 里面有没有强调要原话?
+
+---
+
+每个必须读完整 session、只输出完整路径 marks，不需要要求它们读完整 session
+
+---
+
+subagent 不就是 automatic backend
+
+---
+
+最好深度要有足够的, 比如说 3-4 ? 你想想?
+
+---
+
+不要强制深度
+
+---
+
+火焰图必须放进论文, 做好之后真实打开看, 确实像是解决了真实用户问题的火焰图, 堆栈深度有参差并且能有比较深的, 并且你能从里面分析出有价值的信息
+
+---
+
+project → agent → session → prompt -> LLM call -> tool call 从这个形态开始折叠对吧? 宽度实际上对应叶子节点的各种, 比如说token, time, 文件读取写入次数等等
+
+---
+
+session/prompt/call/tool 不应该给他们assign operation, 这就可以通过 operation 聚合了?
+
+---
+
+你先把图画出来给我看看
+
+---
+
+session S1
+└── prompt P1
+    └── LLM call C7
+        ├── tool call T8: inspect file
+        └── tool call T9: run test 火焰图的深度应该比这个深吧? toolcall / llmcall 这样的叶子节点是不是还是用 regex 或者别的方式做 tag 标记? 有必要吗
+
+---
+
+另外还要支持多个后端
+
+---
+
+你先把用户友好的路径找到
+
+---
+
+不应该source adapter 解析出的结构化事件? 你想想你的火焰图例子能看出来什么
+
+---
+
+举一个例子, 现在到底生成了什么.
+
+---
+
+我们论文有啥数据了? 还差啥数据
+
+---
+
+Agent 给这一步标记的 operation path 是：
+Repair software regression
+└── Reproduce issue
+    └── Run reproducer 这个是怎么标记出来的?
+
+---
+
+我们的 stack 也不应该到     └── operation:repair_software_regression
+        └── operation:reproduce_issue
+            └── operation:run_reproducer 就停了吧? 单个的 LLM call 或者 toolcall 是不是底层的叶子单元? 无论如何都得有吧?
+
+---
+
+等等, 我觉得过于复杂了....是不是内部应该保留成类似 trace 一样的层次数据结构? 然后 operation 在 trace 上面某些位置划分和断开和命名?
+
+---
+
+你应该是每一层分别标记吧? 比如说 session 级别做 session 的标记, prompt 级别做 prompt 标记, llm call 级别做 llm call 级别标记? 每一层都可以额外折叠? 这样好还是直接开始折叠好?
+
+---
+
+你觉得从 trace 开始做还是全部拍平了做好? 你分析一下?
+
+---
+
+是不是应该让命令行工具维护 json? 比如说 agent 标记完, 调用命令行工具去更新 json 里面每个 node 的 path. 底层 trace 单独保存：
+{"id":"S1","parent_id":null,"kind":"session"}
+{"id":"P1","parent_id":"S1","kind":"prompt"}
+{"id":"C1","parent_id":"P1","kind":"llm_call","metrics":{"tokens":1240}}
+{"id":"T1","parent_id":"C1","kind":"tool_call","attributes":{"tool":"view"}}
+{"id":"C2","parent_id":"P1","kind":"llm_call","metrics":{"tokens":830}}
+{"id":"T2","parent_id":"C2","kind":"tool_call","attributes":{"tool":"grep"}} 这里面每一个都加一个 path, 但是由命令行生成, 这样 agent 可以直观的看到现在的形状是什么样的, 正不正确. 包括原始的 prompt, llm response,  session 名称, 工具调用也得留下吧? 这可以帮忙对照是否正确.
+
+---
+
+乱七八糟, 再来梳理一下: 我们有一个工作区, 工作区有 3 个文件怎样? 一个是当前在工作的 trace, 一个是 annotation, 一个是当前所有的聚合起来的 stack fold format. agent 或者无论什么backend 的目标就是输出 annotation, 然后 cli 会从 annotation 计算出当前在工作的 trace, 并且更新 trace 里面的 path field 和更新 stack fold format. 你作为 agent 可以不断迭代 annotation 找到最好的表达形式, 或者别的算法也可以, 这合适吗
+
+---
+
+原始 trace 不是单独文件, 不在工作区.
+
+---
+
+这是一个可以不断迭代并且不断增加切分的模型对吧
+
+---
+
+算法 backend 可以是什么
+
+---
+
+你把这个记录到一个文件, 然后 commit push 所有更改, 顺便把之前的旧的整理到 docs/tmp 之类的地方
+
+---
+
+先写文件
+
+---
+
+修改代码, 去实现, 去测试, 然后先给我看看你手动标注出来的效果, 是不是很像真实的的火焰图? 能不能解决我们讨论过的 case study 的用户问题? 告诉我完整的 case stidy, 类似 blog 一样写出来
+
+---
+
+之后不一定要审查了
+
+---
+
+你就把我要的 case study 做出了
+
+---
+
+能不能直接复用之前的 casestudy 和之前的框架?
+
+---
+
+不要自己做一套
+
+---
+
+你之前是不是做过两个 casedtudy
+
+---
+
+codex-agent-long-horizon-v1：41 条长期 session 的总体 profile，并对三条 git-multibranch 运行做同任务下钻，回答任务如何拆解、SSH 诊断为何反复、哪些路径高 token 但没有完成要求。
+agentreward-diff-pprof-v1：440 条真实 trace、125 个 mixed-outcome task、338 个成功/失败配对，用差分 pprof 看失败侧重复/无进展路径与成功侧 terminal/conclusion 路径。之前的结果有了吗? 看起来怎样?
+
+---
+
+你就直接改工具然后去改进旧的两个图和结论, 然后把两个 casestudy 放进论文
+
+---
+
+现在 RQ1-4 分别是啥? 仔细讲解一下? 符合 NIPS/AAAi 水平吗
+
+---
+
+AgentSight 能否把系统副作用连接到正确 agent operation？20 个真实 Codex 任务及并发 control。
+1,574 个目标 effect 中恢复 1,520 个。
+precision 100%，recall 96.57%。
+1,629 个 control effect 全部拒绝。 正确性不需要评估吧
+
+---
+
+我们刚刚讨论的这些记录到 user instructuin' 了吗
+
+---
+
+RQ1–RQ4 效果能不能大幅度提高? 你来手动标注?
+
+---
+
+新的 casestudy 的图生成了吗? 给我看看
+
+---
+
+session / prompt 不应该是被 operation 覆盖了吗
+
+---
+
+堆栈应该是 agent -> operation (session) -> operation (user prompt) -> operation -> operation .... -> LLM call -> toolcall?
+
+---
+
+我没有这样的要求吧? 栈中继续保留 session → prompt → LLM call → tool call，可以从聚合 operation 下钻到原始证据。这个句话是不是删掉? 误导你了?
+
+---
+
+确保把文档和论文清理好
+
+---
+
+做好重新给我看看图
+
+---
+
+能不能更好的方式生成更好看的火焰图?
+
+---
+
+看看有没有啥工具从 pprof 生成
+
+---
+
+我觉得看起来还是不太对, 很明显没有层次感? 比原先的还差了>
+
+---
+
+我们是不是要一个机械检查和 warning? 比如说一个 stack 的 chlid 应该 >=2

@@ -18,7 +18,7 @@ use crate::session::{
 pub type Counter = BTreeMap<String, u64>;
 pub type SignedCounter = BTreeMap<String, i64>;
 pub type OpId = usize;
-type Frame = (String, String);
+pub(crate) type Frame = (String, String);
 
 pub struct StackNode {
     pub parent: Option<OpId>,
@@ -43,7 +43,7 @@ pub struct Profile {
 }
 
 impl Profile {
-    fn new(view: &'static str, sample_type: &'static str, unit: &'static str) -> Self {
+    pub(crate) fn new(view: &'static str, sample_type: &'static str, unit: &'static str) -> Self {
         Self {
             view,
             sample_type,
@@ -54,7 +54,7 @@ impl Profile {
         }
     }
 
-    fn sample(&mut self, frames: Vec<Frame>, value: u64, labels: Vec<(String, String)>) {
+    pub(crate) fn sample(&mut self, frames: Vec<Frame>, value: u64, labels: Vec<(String, String)>) {
         self.pprof_samples.push(PprofProfileSample {
             stack: folded_stack_from_frames(&frames),
             value,
@@ -526,6 +526,7 @@ impl Operation {
 const PPROF_EVIDENCE_LABEL_FIELDS: &[&str] = &[
     "source_kind",
     "evidence_id",
+    "operation_start_id",
     "agent",
     "status",
     "response_phase",
@@ -785,7 +786,8 @@ pub fn build_profile_with_options(
     }
     apply_operation_marks(&mut samples, options)?;
     samples.retain(|sample| operation_matches_filters(sample, &options.filters));
-    let (samples, report) = maybe_induce_operation_stack(samples, options)?;
+    let (mut samples, report) = maybe_induce_operation_stack(samples, options)?;
+    samples.retain(|sample| sample.value > 0);
     profile.operation_stack_induction = report;
     for sample in samples {
         let frames = stack_frames(&sample, options);
@@ -859,7 +861,8 @@ fn build_profile_from_operations(
         .collect::<Vec<_>>();
     apply_operation_marks(&mut samples, options)?;
     samples.retain(|sample| operation_matches_filters(sample, &options.filters));
-    let (samples, report) = maybe_induce_operation_stack(samples, options)?;
+    let (mut samples, report) = maybe_induce_operation_stack(samples, options)?;
+    samples.retain(|sample| sample.value > 0);
     profile.operation_stack_induction = report;
     for sample in samples {
         let frames = stack_frames(&sample, options);
@@ -974,13 +977,14 @@ fn apply_operation_marks(samples: &mut [Operation], options: &OperationStackConf
                 .iter()
                 .map(|operation_id| mark_file.operation_names[operation_id].clone())
                 .collect::<Vec<_>>();
-            resolved.push((position, operation_path));
+            resolved.push((position, mark.start_operation_id.clone(), operation_path));
         }
 
-        for (mark_index, (start, operation_path)) in resolved.iter().enumerate() {
+        for (mark_index, (start, operation_start_id, operation_path)) in resolved.iter().enumerate()
+        {
             let end = resolved
                 .get(mark_index + 1)
-                .map(|(position, _)| *position)
+                .map(|(position, _, _)| *position)
                 .unwrap_or(indices.len());
             for source_index in indices.iter().take(end).skip(*start).copied() {
                 let source_id = operation_single_nonempty_value(
@@ -991,6 +995,10 @@ fn apply_operation_marks(samples: &mut [Operation], options: &OperationStackConf
                 samples[source_index]
                     .fields
                     .insert("source_session".to_string(), vec![sequence.clone()]);
+                samples[source_index].fields.insert(
+                    "operation_start_id".to_string(),
+                    vec![operation_start_id.clone()],
+                );
                 samples[source_index]
                     .fields
                     .insert("evidence_id".to_string(), vec![source_id]);
@@ -1058,13 +1066,13 @@ fn operation_record_to_value(record: OperationRecord) -> Value {
     let mut fields = record.fields;
     fields.extend(record.extra_fields);
     json!({
-        "value": record.value.unwrap_or(1).max(1),
+        "value": record.value.unwrap_or(1),
         "fields": fields,
     })
 }
 
 fn operation_from_record(record: OperationRecord) -> Result<Operation> {
-    let mut operation = Operation::new(record.value.unwrap_or(1).max(1));
+    let mut operation = Operation::new(record.value.unwrap_or(1));
     for (key, value) in record.fields {
         insert_json_field(&mut operation, &key, value)?;
     }
@@ -3396,6 +3404,8 @@ mod tests {
         assert!(labels.contains(&("source_session".to_string(), "s2".to_string())));
         assert!(labels.contains(&("evidence_id".to_string(), "b".to_string())));
         assert!(labels.contains(&("evidence_id".to_string(), "c".to_string())));
+        assert!(labels.contains(&("operation_start_id".to_string(), "a".to_string())));
+        assert!(labels.contains(&("operation_start_id".to_string(), "c".to_string())));
     }
 
     #[test]

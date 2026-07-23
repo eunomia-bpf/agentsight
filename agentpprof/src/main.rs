@@ -1,3 +1,4 @@
+mod annotation_workspace;
 mod profile;
 mod session;
 mod standard_trace;
@@ -12,6 +13,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use annotation_workspace::export_annotation_workspace;
 use profile::{
     OperationStackConfig, OperationStackInductionConfig, ProfileView,
     build_profile_from_operation_records, build_profile_with_options, parse_operation_filters,
@@ -114,6 +116,10 @@ struct Cli {
     format: Option<CliOutputFormat>,
     #[arg(long, value_enum)]
     view: Option<CliProfileView>,
+    /// Apply workspace/annotation.json to sibling trace.jsonl, update
+    /// stacks.folded, and emit one standard pprof profile.
+    #[arg(long = "annotation-file", value_name = "PATH")]
+    annotation_file: Option<PathBuf>,
     /// Load a reusable JSON profile specification. Later specs override scalar
     /// fields, while list fields are appended. CLI flags override spec defaults.
     #[arg(long = "profile-spec", value_name = "PATH")]
@@ -368,6 +374,40 @@ fn command_export(args: Cli) -> Result<()> {
         });
     let cli_view = args.view.or(spec.view).unwrap_or(CliProfileView::Tokens);
     let view = cli_view.into();
+    if let Some(annotation_file) = args.annotation_file.as_ref() {
+        validate_annotation_workspace_mode(&args, &spec)?;
+        validate_product_artifact(requested_format, output)?;
+        let deterministic_output =
+            args.deterministic_output || spec.deterministic_output.unwrap_or(false);
+        let summary =
+            export_annotation_workspace(annotation_file, view, output, deterministic_output)?;
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json!({
+                "status": "ok",
+                "output": output,
+                "format": "pprof",
+                "view": match cli_view {
+                    CliProfileView::Operations => "operations",
+                    CliProfileView::Tokens => "tokens",
+                    CliProfileView::Files => "files",
+                    CliProfileView::Network => "network",
+                    CliProfileView::Time => "time",
+                },
+                "annotation_file": summary.annotation_file,
+                "trace_file": summary.trace_file,
+                "folded_file": summary.folded_file,
+                "nodes": summary.nodes,
+                "annotations": summary.annotations,
+                "samples": summary.samples,
+                "unique_stacks": summary.unique_stacks,
+                "max_semantic_depth": summary.max_semantic_depth,
+                "deterministic_output": deterministic_output,
+                "warnings": summary.warnings,
+            }))?
+        );
+        return Ok(());
+    }
     let mut profile_options = OperationStackConfig::for_view(view);
     let stack = args.stack.as_deref().or(spec.stack.as_deref());
     let requested_operation_induction =
@@ -434,8 +474,10 @@ fn command_export(args: Cli) -> Result<()> {
         profile_options = profile_options.with_stack(parsed);
         stack
     } else if operation_mark_file.is_some() {
-        profile_options = profile_options.with_stack(parse_stack_spec("operation")?);
-        "operation"
+        profile_options = profile_options.with_stack(parse_stack_spec(
+            "project,agent,source_session,prompt,operation,call,tool",
+        )?);
+        "project,agent,source_session,prompt,operation,call,tool"
     } else {
         "default"
     };
@@ -502,9 +544,6 @@ fn command_export(args: Cli) -> Result<()> {
     if operation_mark_file.is_some() {
         if operation_files.is_empty() {
             bail!("--operation-mark-file currently requires normalized --operation-file input");
-        }
-        if view != ProfileView::Operations {
-            bail!("--operation-mark-file currently requires --view operations");
         }
         if !diff_base_operation_files.is_empty() {
             bail!(
@@ -760,6 +799,34 @@ fn command_export(args: Cli) -> Result<()> {
     }
 
     println!("{}", serde_json::to_string_pretty(&result)?);
+    Ok(())
+}
+
+fn validate_annotation_workspace_mode(args: &Cli, spec: &ProfileSpec) -> Result<()> {
+    let conflicting = !args.profile_specs.is_empty()
+        || args.stack.is_some()
+        || !args.stack_rules.is_empty()
+        || !args.op_maps.is_empty()
+        || !args.where_rules.is_empty()
+        || args.operation_mark_file.is_some()
+        || args.induce_operation_stack
+        || args.induce_task_stack
+        || !args.op_map_files.is_empty()
+        || !args.session_files.is_empty()
+        || !args.trace_files.is_empty()
+        || !args.standard_trace_files.is_empty()
+        || !args.operation_files.is_empty()
+        || !args.diff_base_operation_files.is_empty()
+        || spec.operation_mark_file.is_some()
+        || !spec.operation_files.is_empty()
+        || !spec.session_files.is_empty()
+        || !spec.trace_files.is_empty()
+        || !spec.standard_trace_files.is_empty();
+    if conflicting {
+        bail!(
+            "--annotation-file is a complete workspace input and cannot be combined with profile specs, trace/operation inputs, marks, induction, mappings, filters, or stack overrides"
+        );
+    }
     Ok(())
 }
 
