@@ -60,13 +60,16 @@ population case studies, and four public cost workloads.
 Automatic Agent annotation raises ordinary B$^3$ F1 against human stages from
 0.541 for raw action and 0.663 for recurrence to 0.704. A target-blind declared
 semantic hierarchy improves MAP over raw action in all three localization
-benchmarks, while automatic Agent+Evidence improves HINTBench from 0.281 to
-0.414 and TraceElephant from 0.121 to 0.252.
-% 自动 Agent 标注将相对人工 stage partition 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.704。target-blind declared semantic hierarchy 在三个 localization benchmark 上均提高相对 raw action 的 MAP；automatic Agent+Evidence 则将 HINTBench 从 0.281 提升到 0.414，将 TraceElephant 从 0.121 提升到 0.252。
+benchmarks, while short canonical automatic Agent+Evidence identities reach
+0.791, 0.432, and 0.259 MAP, improving over raw action on every workload.
+Canonical renaming alone improves HINT; its paired intervals include zero on
+AgentProcess and Trace.
+% 自动 Agent 标注将相对人工 stage partition 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.704。target-blind declared semantic hierarchy 在三个 localization benchmark 上均提高相对 raw action 的 MAP；短 canonical automatic Agent+Evidence identity 分别达到 0.791、0.432 和 0.259 MAP，并在全部 workload 上优于 raw action。
 Evaluated task-family and action backends reach 0.695 and 0.498 macro-F1,
 label-free recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1 on
-OSWorld-Human, and \sys constructs a 27{,}765-operation profile in 1.17\,s.
-% 评估的 task-family 与 action backend 分别达到 0.695 和 0.498 macro-F1；在 OSWorld-Human 上，无标签 recurrence 达到 0.680 boundary F1 和 0.786 B$^3$ F1；\sys 在 1.17 秒内构建包含 27,765 个 operation 的 profile。
+OSWorld-Human, and, after marks are fixed, \sys constructs a
+27{,}765-operation profile in 1.17\,s.
+% 评估的 task-family 与 action backend 分别达到 0.695 和 0.498 macro-F1；在 OSWorld-Human 上，无标签 recurrence 达到 0.680 boundary F1 和 0.786 B$^3$ F1；固定 mark 后，\sys 在 1.17 秒内构建包含 27,765 个 operation 的 profile。
 \end{abstract}
 
 % AI agents increasingly orchestrate long-running, multi-step
@@ -187,17 +190,17 @@ action.
 % 在 released source 能生成官方 operation sequence 的全部 405 条失败 CodeTraceBench 轨迹上，自动 Agent 标注相对人工 stage 的普通 B$^3$ F1 为 0.704，高于 multi-resolution recurrence 的 0.663 和 raw action 的 0.541。
 Across three complete public workloads, a target-blind declared semantic
 hierarchy raises MAP over raw action from 0.773 to 0.789, 0.281 to 0.452, and
-0.121 to 0.230; the automatic Agent+Evidence configuration obtains 0.773,
-0.414, and 0.252, respectively~\cite{agentprocessbench,hintbench,traceelephant}.
-% 三个完整公开 workload 的全部 27,346 个 operation 均参与评分；target-blind declared semantic hierarchy 将 trajectory MAP 分别从 0.773 提升到 0.789、从 0.281 提升到 0.452、从 0.121 提升到 0.230；automatic Agent+Evidence 配置分别达到 0.773、0.414 与 0.252。
+0.121 to 0.230; the short canonical automatic Agent+Evidence configuration
+obtains 0.791, 0.432, and 0.259, respectively~\cite{agentprocessbench,hintbench,traceelephant}.
+% 三个完整公开 workload 的全部 27,346 个 operation 均参与评分；target-blind declared semantic hierarchy 将 trajectory MAP 分别从 0.773 提升到 0.789、从 0.281 提升到 0.452、从 0.121 提升到 0.230；短 canonical automatic Agent+Evidence 配置分别达到 0.791、0.432 与 0.259。
 On 287 OSWorld-Human development sessions~\cite{osworldhuman}, label-free
 recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1. On the AgentBoard and
 ASE populations, task-family and action backends reach 0.695 and 0.498
 macro-F1, respectively~\cite{agentboard,bouzenia-pradel-2025-trajectories}.
 % 在 287 个 OSWorld-Human development session 上，无标签 recurrence 的 boundary F1 与 B$^3$ F1 为 0.680 和 0.786；在 AgentBoard 与 ASE population 上，task-family 与 action backend 分别达到 0.695 和 0.498 macro-F1。
-On four public workloads, \sys constructs a 27{,}765-operation profile in
-1.17\,s.
-% 在四个公开 workload 上，\sys 用 1.17 秒和 464.5 MiB profile 27,765 个 operation，比 raw action 增加 18.2\% 时间和 1.3\% 内存。
+On four public workloads, after marks are fixed, \sys constructs a
+27{,}765-operation profile in 1.17\,s.
+% 在四个公开 workload 上，固定 mark 后，\sys 用 1.17 秒和 464.5 MiB profile 27,765 个 operation，比 raw action 增加 18.2\% 时间和 1.3\% 内存。
 
 %% ¶8: Contributions
 This paper makes three contributions:
@@ -214,12 +217,14 @@ This paper makes three contributions:
   (Implementation).
 % 系统：\sys。backend-neutral annotation workspace 将递归标记的语义区间与 source-native 层次组合，并产生 pprof 兼容输出。
 \item \textbf{Evaluation.}
-  Automatic operation structure improves human-stage agreement and problem
-  ranking over raw action on two of three localization workloads. Two
+  Automatic operation structure improves human-stage agreement on
+  CodeTraceBench and problem ranking over raw action on all three localization
+  workloads. Two
   population case studies expose high-cost unfinished work and success--failure
-  differences, and \sys profiles 27{,}765 operations in 1.17 seconds
+  differences, and, after marks are fixed, \sys profiles 27{,}765 operations
+  in 1.17 seconds
   (Evaluation).
-% 评估。自动 operation structure 相对 raw action 改进人工 stage agreement，并在三个 localization workload 中的两个改进问题排序；两个 population case study 暴露高成本未完成工作和成功--失败差异；AgentProf 在 1.17 秒内 profile 27,765 个 operation。
+% 评估。自动 operation structure 相对 raw action 改进人工 stage agreement，并在三个 localization workload 中均改进问题排序；两个 population case study 暴露高成本未完成工作和成功--失败差异；固定 mark 后，AgentProf 在 1.17 秒内 profile 27,765 个 operation。
 \end{enumerate}
 
 %% ===================================================================
@@ -421,6 +426,29 @@ contract. The profiler therefore does not depend on one model or inference
 service.
 % 默认的 Agent-assisted backend 读取 source content 与当前 path 做出这些决策；普通语言模型、确定性规则、change-point 方法和无标签 recurrence constructor 使用相同 annotation contract，因此 profiler 不依赖单一模型或推理服务。
 
+The evaluated Agent backend instantiates this contract with a fixed binary
+recursive policy. For an interval, it receives target-blind task text, the
+active ancestor path, and every source-visible turn summary in that interval,
+then returns either \textsc{Stop} or
+\textsc{Split}(\emph{non-first turn}, \emph{left name}, \emph{right name}).
+A child name equal to the current frame stays, one equal to an ancestor pops
+to that frame, and a new name pushes one frame; equal resolved children fail
+closed. Nonempty children recurse independently. A one-turn interval,
+\textsc{Stop}, or a split whose two sides both resolve to the unchanged path
+terminates the branch. There is no depth cap, leaf cap, length threshold, or
+score-tuned contraction. After recursion, the materializer emits a sparse mark
+only when the complete path changes, thereby merging adjacent identical paths
+but never nonadjacent or unequal ones.
+% 评测的 Agent backend 使用固定二元递归策略实例化该 contract：对每个 interval，它只读取 target-blind task text、active ancestor path 及 interval 内全部 source-visible turn summary，并输出 Stop 或 Split(非首 turn、左右名称)；名称匹配当前 frame 时 stay，匹配 ancestor 时 pop，新名称时 push；两侧解析成同一路径则 fail closed。非空子区间独立递归；one-turn、Stop 或两侧均解析成未变路径时终止。算法没有深度、叶子数、长度阈值或 score-tuned contraction；materializer 仅在完整 path 改变时发出 sparse mark。
+
+The complete CodeTraceBench run uses local Qwen3.6-27B at temperature zero and
+seed 20260722 with grammar-constrained JSON. Official stages, outcomes,
+recurrence assignments, and scores remain hidden until all 405 trajectories
+are materialized. A2 adds one deterministic source-only representation repair:
+when a one-turn root-only mark is immediately followed by its first
+responsibility, the first turn receives the complete root--responsibility path.
+% 完整 CodeTraceBench 运行使用本地 Qwen3.6-27B、temperature 0、seed 20260722 与 grammar-constrained JSON；全部 405 条轨迹物化前不读取官方 stage、outcome、recurrence assignment 或 score。A2 只增加一个确定性的 source-only 表示修复：若 one-turn root-only mark 紧邻其第一个 responsibility，则首 turn 直接采用完整 root--responsibility path。
+
 %% ===================================================================
 \section{Implementation}
 % 实现
@@ -543,6 +571,10 @@ assigns 96 recursive annotations to their 735 source nodes. The resulting
 hierarchy reaches semantic depth five without a fixed limit. The CLI reports no
 unary or flat-fan-out warning and 27 advisory coarse-leaf warnings.
 % RQ1 问 semantic profiling 是否改善资源归因。这里测试一个必要后果：固定语义层次在切换可加资源度量时是否暴露实质不同的瓶颈；source population 含 41 条真实 long-horizon agent 轨迹、3,146 个 source-native turn 和 5,750 个 operation，其中三条独立执行重复同一个 Git 部署任务。Automatic Agent backend 为其 735 个 source node 生成 96 个递归 annotation；层次在没有固定上限的情况下达到 semantic depth 5，CLI 不再报告 unary 或 flat-fan-out warning，并给出 27 个仅供诊断的 coarse-leaf warning。
+This establishes the necessary multi-resource attribution capability on a
+repeated real task; it does not claim superiority over every attribution
+interface or generalize the measured ratios beyond this population.
+% 该实验在一个重复真实任务上建立多资源 attribution 的必要能力，但不声称优于所有 attribution interface，也不把测得比例推广到该 population 之外。
 \paragraph{Case Study 1: Long-Horizon Agent Diagnosis.}
 Figure~\ref{fig:flamegraph} uses a stock-pprof focus query to retain all three
 executions of one repeated Git-deployment task rather than selecting one trace.
@@ -550,17 +582,16 @@ executions of one repeated Git-deployment task rather than selecting one trace.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=.97\linewidth]{../visexp/out/codex-agent-long-horizon-v1/annotation-workspace-git-v1/git.operations.operation-hierarchy.paper.png}\\[1pt]
-\includegraphics[width=.97\linewidth]{../visexp/out/codex-agent-long-horizon-v1/annotation-workspace-git-v1/git.tokens.operation-hierarchy.paper.png}\\[1pt]
-\includegraphics[width=.97\linewidth]{../visexp/out/codex-agent-long-horizon-v1/annotation-workspace-git-v1/git.tokens.ssh-diagnosis.hierarchy.paper.png}
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.operations.png}\\[1pt]
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.tokens.png}\\[1pt]
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-authentication.tokens.png}
 \caption{All three real \texttt{git-multibranch} executions under one fixed
 operation hierarchy. Width is operation count (top) or provider-reported
-tokens (middle); the bottom panel focuses the repeated SSH-password diagnosis
-and exposes its recursively nested hypotheses and controls. The profiles retain
-LLM/tool evidence frames and source labels; the paper rendering hides only the
-leaf evidence frames to keep the operation hierarchy legible. AgentPProf emits
-standard pprof, and these static panels use the official Brendan Gregg
-FlameGraph tool rather than a custom frontend.}
+tokens (middle); the bottom panel focuses the shared
+\texttt{diagnose authentication} operation and exposes its recursively nested
+hypotheses, controls, LLM calls, and tool leaves. AgentPProf emits only standard
+pprof; a paper-only renderer reads the same \texttt{.pb.gz} through
+\texttt{go tool pprof} without introducing a product frontend.}
 \Description{Three operation flame graphs over the same Git-deployment traces.
 The count view is dominated by Terminus2, whereas the token view is dominated
 by OpenHands and repeated SSH diagnosis. A focused panel expands the SSH path
@@ -575,8 +606,8 @@ tokens from OpenHands/Claude, OpenHands/DeepSeek, and Terminus2/DeepSeek.
 By count, Terminus2 contributes 56.24\% and OpenHands 43.76\%; by tokens,
 OpenHands contributes 86.62\%.
 % 按 operation 数量，Terminus2 占 56.24\%，OpenHands 占 43.76\%；按 token，OpenHands 占 86.62\%。
-The repeated \texttt{diagnose rejected SSH password authentication}
-frame directly contains 97 operations and 1{,}936{,}828 tokens; its complete
+The repeated \texttt{diagnose authentication} operation directly contains 97
+operations and 1{,}936{,}828 tokens; its complete
 recursive subtree contains 105 operations and 2{,}103{,}587 tokens (21.47\%
 and 46.15\% of the focused task).
 % 重复的“诊断 SSH 密码认证失败”frame 直接包含 97 个 operation 和 1,936,828 个 token；其完整递归子树包含 105 个 operation 和 2,103,587 个 token，分别占聚焦任务的 21.47\% 和 46.15\%。
@@ -634,36 +665,50 @@ queries, respectively~\cite{robertson2008ap}.
 \toprule
 Workload & Sem. & Raw & Agent+Evidence & Agent-only \\
 \midrule
-AgentProcessBench & .789 & .773 & .773 & .730 \\
-HINTBench & .452 & .281 & .414 & .284 \\
-TraceElephant & .230 & .121 & \textbf{.252} & .194 \\
+AgentProcessBench & .789 & .773 & .791 & .734 \\
+HINTBench & .452 & .281 & .432 & .281 \\
+TraceElephant & .230 & .121 & .259 & .194 \\
 \bottomrule
 \end{tabular}
 \caption{Standard per-query AP averaged as MAP after scoring every operation.
 Sem. is the target-blind declared/reference semantic hierarchy fixed before
 evaluator target labels are loaded. Agent+Evidence composes identical automatic
 Agent marks with retained LLM/tool/action evidence frames; Agent-only omits
-those frames. Higher is better.}
+those frames. Automatic names use one fixed target-blind action--object
+canonicalization. Higher is better.}
 \label{tab:rq2-localization}
 \end{table}
 
 The target-blind declared/reference hierarchy improves MAP over raw action on
 all three complete workloads (Table~\ref{tab:rq2-localization}). The gains are
 +.016 [.005,.027], +.171 [.154,.188], and +.109 [.077,.142], using 10{,}000
-paired resamples of trajectory clusters within benchmark-defined strata. At
-full precision, automatic Agent+Evidence changes MAP relative to raw action by
--0.000665, +0.132752, and +0.130656: it is unchanged at table precision on
-AgentProcessBench and improves HINTBench and TraceElephant.
-% target-blind declared/reference hierarchy 在三个完整 workload 上均提高相对 raw action 的 MAP；automatic Agent+Evidence 相对 raw action 的全精度变化分别为 -0.000665、+0.132752 与 +0.130656，即在 AgentProcessBench 上按表格精度不变，并提高 HINTBench 与 TraceElephant。
+paired resamples of trajectory clusters within benchmark-defined strata.
+
+The current automatic backend uses one shared target-blind
+\texttt{verb--object--qualifier} lexicon: 876 open-vocabulary names become 239
+reusable two- or three-word identities without changing any of the 14{,}238
+sparse marks or their source evidence. Relative to the preceding automatic
+names under byte-identical source-evidence inputs, Agent+Evidence MAP changes
+from .795 to .791 on AgentProcessBench ($\Delta=-.004$, 95\% interval
+[-.011,.003]), from .424 to .432 on HINTBench
+($\Delta=.008$, [.002,.014]), and from .260 to .259 on TraceElephant
+($\Delta=-.0008$, [-.0023,0]). Thus, the fixed short identity improves HINT
+localization while the paired intervals include zero on the other two
+workloads, and it reduces 876 open-vocabulary names to 239 reusable identities.
+This adaptive current-product replay fixes the identity rule once
+across all three workloads rather than choosing a granularity from their
+scores. Relative to raw action, the final automatic profile improves MAP by
+.017, .151, and .138.
+% target-blind declared/reference hierarchy 在三个完整 workload 上均提高相对 raw action 的 MAP；统一的短 operation identity 将 876 个开放词汇名称压缩为 239 个可复用 identity，在 HINT 上改善定位，并在另外两个 workload 上保持统计上不可区分的准确率。
 
 The automatic Agent marks cover all 1{,}000/536/220 sessions and
 8{,}509/12{,}877/5{,}960 operations. Retaining source-call frames beneath those
-same marks raises MAP over Agent-only by .043, .130, and .058, respectively;
+same marks raises MAP over Agent-only by .056, .151, and .065, respectively;
 the paired task-cluster intervals exclude zero in all three workloads. The
 result directly supports the design decision that semantic operations retain
 source evidence rather than discarding it. Agent+Evidence approaches the declared
 semantic hierarchy on the first two workloads and exceeds it on TraceElephant.
-% Automatic Agent marks 覆盖三个完整 workload；在完全相同的 mark 下保留 LLM/tool/action evidence frame，相对 Agent-only 的 MAP 分别提高 .043、.130 和 .058，直接支持“语义 operation 保留 source evidence 而不丢弃它”的设计。
+% Automatic Agent marks 覆盖三个完整 workload；在完全相同的 mark 下保留 LLM/tool/action evidence frame，相对 Agent-only 的 MAP 分别提高 .056、.151 和 .065，直接支持“语义 operation 保留 source evidence 而不丢弃它”的设计。
 
 \subsection{Case Study 2: Differential Profiling at Scale}
 % 案例研究 2：大规模差分 profiling。
@@ -688,43 +733,43 @@ source occurrences on both the recursive and fixed-chain projections.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=.97\linewidth]{../visexp/out/agentreward-diff-pprof-v1/agentreward-recovery.recursive.stock-pprof.png}\\[2pt]
-\includegraphics[width=.97\linewidth]{../visexp/out/agentreward-diff-pprof-v1/agentreward-completion.recursive.stock-pprof.png}
-\caption{Focused stock-pprof views of the signed differential profile over all
-338 bad--good pairs. Red is bad-side excess and green is good-side excess. The
-recursive recovery subtree contains 2{,}993 bad-side versus 392 good-side
-occurrences (top); the completion subtree contains 135 bad-side versus 191
-good-side occurrences (bottom). Each path descends from shared responsibilities
-to the contributing LLM and tool calls. These are aggregate diagnostic
-differences, not causal effects.}
-\Description{Two stock-pprof flame graphs. The upper red graph descends from
-browser-task responsibilities into recovery and specific retry or inspection
-operations. The lower green-dominant graph descends through task completion to
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-recovery-bad-excess.operations.png}\\[2pt]
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-completion-good-excess.operations.png}
+\caption{Focused paper renderings of the signed pprof profile over all
+338 bad--good pairs. The top panel selects positive samples under
+\texttt{recover interaction}: 3{,}286 bad-side versus 455 good-side
+occurrences. The bottom selects negative samples under
+\texttt{report completion}: 135 bad-side versus 191 good-side occurrences.
+Each path descends from shared responsibilities to contributing LLM and tool
+calls. These are aggregate diagnostic differences, not causal effects.}
+\Description{Two paper renderings of stock-pprof stacks. The upper graph
+descends from browser-task responsibilities into recovery and specific retry
+or inspection operations. The lower graph descends through task completion to
 source LLM and tool calls.}
 \label{fig:agentreward-diff}
 \end{figure*}
 
 The aggregate contains 7{,}366 bad-side and 3{,}780 good-side operation
-occurrences. Recovery accounts for 40.6\% of bad-side occurrences but only
-10.4\% of good-side occurrences; completion accounts for 1.8\% and 5.1\%,
+occurrences. Recovery accounts for 44.6\% of bad-side occurrences but only
+12.0\% of good-side occurrences; completion accounts for 1.8\% and 5.1\%,
 respectively. The recursive recovery focus separates verification challenges,
 repeated searches, mistaken navigation, product or record retries, and
 repository inspection beneath the same responsibility, while source labels
 identify the contributing session and call.
-% 聚合 profile 包含 7,366 个 bad-side 与 3,780 个 good-side operation occurrence。Recovery 占 bad side 的 40.6\%，而仅占 good side 的 10.4\%；completion 分别占 1.8\% 与 5.1\%。递归 recovery focus 在同一职责下区分 verification challenge、重复搜索、误导航、产品或记录重试以及 repository inspection，并通过 source label 定位贡献这些宽度的 session 与 call。
+% 聚合 profile 包含 7,366 个 bad-side 与 3,780 个 good-side operation occurrence。Recovery 占 bad side 的 44.6\%，而仅占 good side 的 12.0\%；completion 分别占 1.8\% 与 5.1\%。递归 recovery focus 在同一职责下区分 verification challenge、重复搜索、误导航、产品或记录重试以及 repository inspection，并通过 source label 定位贡献这些宽度的 session 与 call。
 
 We test whether this visible recovery structure corresponds to an independent
 problem rather than merely reflecting more steps. For each trajectory, recovery
 exposure is the fraction of source operations whose path contains the shared
 recovery responsibility. Among 435 trajectories with consensus expert looping
-labels, this score obtains AP .614 at prevalence .398; a 10{,}000-draw
-task-cluster bootstrap places AP minus prevalence in [.162,.274]. A registered
+labels, this score obtains AP .634 at prevalence .398; a 10{,}000-draw
+task-cluster bootstrap places AP minus prevalence in [.181,.293]. A registered
 fixed-chain repeated/error projection obtains AP .656, and the
-recursive-minus-fixed interval [-.127,.042] does not establish detector
+recursive-minus-fixed interval [-.107,.061] does not establish detector
 superiority. The recursive profile therefore contributes a source-drillable
 explanation of \emph{where} recovery accumulates while independently
 corresponding to expert-identified looping.
-% 我们进一步检验该可见 recovery 结构是否对应独立问题，而不仅仅反映更多 step。每条轨迹的 recovery exposure 定义为路径中包含共享 recovery responsibility 的 source operation 比例。在 435 条具有一致专家 looping label 的轨迹上，该 score 的 AP 为 .614，prevalence 为 .398；10,000 次 task-cluster bootstrap 给出的 AP-minus-prevalence 区间为 [.162,.274]。注册的 fixed-chain repeated/error 投影 AP 为 .656，recursive-minus-fixed 区间 [-.127,.042] 不支持 detector superiority。因此递归 profile 的价值是可下钻地解释 recovery 在何处累积，并且该 exposure 独立对应专家识别的 looping。
+% 我们进一步检验该可见 recovery 结构是否对应独立问题，而不仅仅反映更多 step。每条轨迹的 recovery exposure 定义为路径中包含共享 recovery responsibility 的 source operation 比例。在 435 条具有一致专家 looping label 的轨迹上，该 score 的 AP 为 .634，prevalence 为 .398；10,000 次 task-cluster bootstrap 给出的 AP-minus-prevalence 区间为 [.181,.293]。注册的 fixed-chain repeated/error 投影 AP 为 .656，recursive-minus-fixed 区间 [-.107,.061] 不支持 detector superiority。因此递归 profile 的价值是可下钻地解释 recovery 在何处累积，并且该 exposure 独立对应专家识别的 looping。
 
 This case answers RQ2 at collection scale: a target-blind recursive profile
 exposes failed-side recovery and successful-side completion under shared
@@ -998,11 +1043,13 @@ Agent observability needs profiling, not only debugging. \sys recursively
 annotates semantic responsibility over source-native traces and folds covered
 source evidence under shared operation stacks across runs. Its profiles expose
 resource-dependent bottlenecks and success--failure differences, improve
-stage-partition agreement and localization MAP over raw action on two complete
-workloads, and recover OSWorld-Human groups at 0.680 boundary F1 and 0.786
-B$^3$ F1. \sys builds a 27{,}765-operation profile in 1.17 seconds, making
+stage-partition agreement on CodeTraceBench and localization MAP over raw
+action on all three localization workloads, and recover OSWorld-Human groups
+at 0.680 boundary F1 and 0.786
+B$^3$ F1. After marks are fixed, \sys builds a 27{,}765-operation profile in
+1.17 seconds, making
 population profiling practical alongside per-run debugging.
-% 在真实与公开轨迹上，这些 profile 相比 raw action identity 改善归因、在两个完整 workload 上提高 localization MAP、恢复有用的 task、action 与 group 结构，并在 1.17 秒内构建最大的已评估 profile。
+% 在真实与公开轨迹上，这些 profile 相比 raw action identity 改善归因、在三个完整 workload 上提高 localization MAP、恢复有用的 task、action 与 group 结构，并在固定 mark 后用 1.17 秒构建最大的已评估 profile。
 
 \bibliography{references}
 

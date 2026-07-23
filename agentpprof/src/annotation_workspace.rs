@@ -275,8 +275,17 @@ fn resolve_regions(
 
     let mut starts = HashMap::new();
     for (id, annotation) in annotations {
-        if annotation.tag.trim().is_empty() {
+        let tag = annotation.tag.trim();
+        if tag.is_empty() {
             bail!("annotation at {:?} has an empty tag", id);
+        }
+        let words = tag.split_whitespace().count();
+        if words > 3 {
+            bail!(
+                "annotation at {:?} has {} words; operation tags must contain 1 to 3 words",
+                id,
+                words
+            );
         }
         let start = *index
             .get(id)
@@ -586,7 +595,7 @@ mod tests {
             (
                 "p".to_string(),
                 Annotation {
-                    tag: "Fix the reported regression".to_string(),
+                    tag: "Fix reported regression".to_string(),
                     parent: Some("s".to_string()),
                     next: None,
                 },
@@ -622,15 +631,12 @@ mod tests {
             nodes[3].path,
             [
                 "Repair",
-                "Fix the reported regression",
+                "Fix reported regression",
                 "Diagnose",
                 "Run reproducer"
             ]
         );
-        assert_eq!(
-            nodes[5].path,
-            ["Repair", "Fix the reported regression", "Fix"]
-        );
+        assert_eq!(nodes[5].path, ["Repair", "Fix reported regression", "Fix"]);
     }
 
     #[test]

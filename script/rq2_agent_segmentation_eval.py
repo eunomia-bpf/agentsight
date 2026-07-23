@@ -33,7 +33,7 @@ METHODS = (
 )
 EXPECTED_HISTORICAL_MAP = {
     "agentprocess": 0.788919404004148,
-    "hint": 0.45285157726449404,
+    "hint": 0.45237266196390236,
     "trace": 0.23016832132386486,
 }
 
@@ -628,12 +628,12 @@ def load_signals_after_groups(
     raise RuntimeError(f"unknown benchmark: {benchmark}")
 
 
-def wilson_lower(hits: int, count: int, *, exact_zero: bool) -> float:
+def wilson_lower(hits: int, count: int) -> float:
     require(count > 0 and 0 <= hits <= count, "invalid Wilson inputs")
-    # Preserve each workload's already-published scorer exactly.  TraceElephant
-    # canonicalizes a zero-hit group to +0.0; HINTBench evaluates the formula
-    # directly, whose floating-point cancellation leaves signed near-zero values.
-    if exact_zero and hits == 0:
+    # A group with no hits has exactly zero lower support.  Computing the
+    # algebraic expression directly can leave a signed floating-point residue,
+    # which changes tie ordering despite being mathematically zero.
+    if hits == 0:
         return 0.0
     z = 1.959963984540054
     proportion = hits / count
@@ -719,7 +719,6 @@ def scores_for_method(
         prefix: wilson_lower(
             prefix_hits[prefix],
             prefix_counts[prefix],
-            exact_zero=benchmark == "trace",
         )
         for prefix in prefix_counts
     }

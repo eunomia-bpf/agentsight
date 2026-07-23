@@ -91,12 +91,12 @@ three fields:
 ```json
 {
   "S1": {
-    "tag": "Repair software regression",
+    "tag": "Repair regression",
     "parent": null,
     "next": null
   },
   "P1": {
-    "tag": "Fix the user-reported failure",
+    "tag": "Fix reported failure",
     "parent": "S1",
     "next": null
   },
@@ -134,6 +134,15 @@ The object key is the source node where the annotated operation begins:
 `next` is an exclusive boundary. It is not a second source-order relation and
 does not replace the source tree's `parent` field. The annotation relation and
 the source relation deliberately remain separate.
+
+An operation tag contains one to three meaningful words. Its canonical form is
+`verb`, `verb object`, or `verb object qualifier`; use the shortest form that
+remains semantically distinct. Good examples are `inspect`, `diagnose auth`,
+and `validate deployment locally`. Do not put task, benchmark, session, or
+agent names into the tag. Avoid generic placeholders such as `run`, `single`,
+or `do task`. Since the first token is a stable action verb, a later query can
+roll full operation names up by verb while the profile retains the more precise
+one-to-three-word frame.
 
 The v0 contract contains no full path, region identifier, canonical-operation
 identifier, metric, copied prompt, copied response, confidence, or model

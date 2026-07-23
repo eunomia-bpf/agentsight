@@ -31,10 +31,10 @@ TARGET_LABELS = {
     "no",
 }
 PROMPT_OPERATIONS = {
-    "assistantbench": "answer a real-world information request",
-    "webarena": "complete a website task",
-    "workarena": "complete an enterprise workflow",
-    "visualwebarena": "complete a visual website task",
+    "assistantbench": "answer information request",
+    "webarena": "execute website task",
+    "workarena": "execute enterprise workflow",
+    "visualwebarena": "execute visual task",
 }
 MAX_PROJECTION_WORKERS = 4
 
@@ -259,12 +259,12 @@ def materialize(
             }
         )
         annotations[session_node] = {
-            "tag": "complete a browser task",
+            "tag": "execute browser task",
             "parent": None,
             "next": None,
         }
         annotations[prompt_node] = {
-            "tag": PROMPT_OPERATIONS.get(benchmark, "fulfill the user request"),
+            "tag": PROMPT_OPERATIONS.get(benchmark, "fulfill user request"),
             "parent": session_node,
             "next": None,
         }

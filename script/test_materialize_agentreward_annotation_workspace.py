@@ -61,8 +61,8 @@ def test_materializer_uses_cleaned_source_without_expert_annotation(tmp_path):
     serialized = json.dumps(nodes)
     assert "Successful" not in serialized
     assert "trajectory_looping" not in serialized
-    assert annotations[f"session:{session}"]["tag"] == "complete a browser task"
-    assert annotations[f"prompt:{session}"]["tag"] == "complete a website task"
+    assert annotations[f"session:{session}"]["tag"] == "execute browser task"
+    assert annotations[f"prompt:{session}"]["tag"] == "execute website task"
     assert MODULE.annotation_input_matches(nodes) == []
     assert nodes[2]["data"]["reasoning"] == "I need to open the discussion."
     assert nodes[3]["data"]["action"] == "click('17')"

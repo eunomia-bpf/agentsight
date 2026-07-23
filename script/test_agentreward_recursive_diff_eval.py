@@ -30,9 +30,9 @@ def test_recursive_records_preserve_source_and_add_concrete_call_leaf():
     record = operation("webarena__task-1__model", 3)
     evidence = record["fields"]["evidence_id"]
     path = [
-        "complete a browser task",
-        "complete a website task",
-        "recover from failed or repeated interaction",
+        "complete browser task",
+        "execute website task",
+        "recover interaction",
     ]
 
     recursive = MODULE.recursive_records([record], {evidence: path})
@@ -50,10 +50,10 @@ def test_unique_session_score_deduplicates_pair_occurrences():
     progress = operation(session, 1)
     paths = {
         repeated["fields"]["evidence_id"]: [
-            "complete a browser task",
+            "complete browser task",
             MODULE.RECOVERY_OPERATION,
         ],
-        progress["fields"]["evidence_id"]: ["complete a browser task", "make progress"],
+        progress["fields"]["evidence_id"]: ["complete browser task", "make progress"],
     }
 
     rows = MODULE.unique_session_rows(

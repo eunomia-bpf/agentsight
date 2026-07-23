@@ -105,6 +105,14 @@ prompt operation -> recursive operations -> LLM call -> tool/effect`; unique
 session and prompt IDs remain pprof labels so they do not fragment cross-run
 aggregation.
 
+Every annotation tag contains one to three meaningful words and starts with an
+action verb: `inspect`, `diagnose auth`, or `validate deployment locally`.
+Backends should prefer one word when it remains unambiguous, add an object only
+when needed, and use a third qualifier only to prevent a real semantic
+collision. Tags describe reusable operations rather than task, benchmark, or
+agent names. The stable first verb also permits a coarser query-time rollup
+without replacing the full operation name.
+
 The CLI reports nonblocking warnings when an optional recursive operation has
 only one explicit semantic child, when a large operation has a wide flat
 fan-out with little recursive refinement, or when an optional semantic leaf

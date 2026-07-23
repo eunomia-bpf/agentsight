@@ -24,7 +24,9 @@ all three executions of the repeated `git-multibranch` task:
 - Terminus2 with DeepSeek V3.2.
 
 The source adapter materializes 735 ordered source nodes. The final automatic
-Agent annotation contains 96 boundaries over those nodes. Replaying the same
+Agent annotation contains 96 boundaries over those nodes. Its operation names
+use reusable one-to-three-word action phrases such as `deploy branches`,
+`diagnose authentication`, and `validate deployment`. Replaying the same
 annotation produces both profiles without changing a boundary or name:
 
 | View | Conserved total |
@@ -61,9 +63,9 @@ source drilldown.
 
 ## Result 1: Count And Token Width Tell Different Stories
 
-![Operation-count hierarchy](git.operations.operation-hierarchy.paper.png)
+![Operation-count hierarchy](../../r221-pprof-renderer-v1/git-multibranch.operations.png)
 
-![Token hierarchy](git.tokens.operation-hierarchy.paper.png)
+![Token hierarchy](../../r221-pprof-renderer-v1/git-multibranch.tokens.png)
 
 By operation count, Terminus2 contributes 56.24% and OpenHands 43.76%. By
 tokens, OpenHands contributes 86.62%. The hierarchy is identical in both
@@ -73,14 +75,14 @@ responsibility absorbed that work.
 
 ## Result 2: SSH Diagnosis Is The Expensive Unresolved Responsibility
 
-The shared `diagnose rejected SSH password authentication` frame directly
+The shared `diagnose authentication` operation directly
 contains 97 operations and 1,936,828 tokens. After shared-name reconciliation,
 its complete subtree contains 105 operations (21.47% of the focused workload)
 and 2,103,587 tokens (46.15%). The difference is its recursively refined child
 work; the direct and cumulative values must not be conflated. Both OpenHands
 executions return to this responsibility after control or fallback attempts.
 
-![Recursive SSH diagnosis](git.tokens.ssh-diagnosis.hierarchy.paper.png)
+![Recursive SSH diagnosis](../../r221-pprof-renderer-v1/git-authentication.tokens.png)
 
 The focused hierarchy separates concrete strategies that the flat parent had
 previously hidden:
@@ -139,7 +141,7 @@ go tool pprof -top \
   ../git-multibranch.semantic.operations.pb.gz
 go tool pprof -top \
   ../git-multibranch.semantic.tokens.pb.gz
-go tool pprof -top -focus='diagnose_rejected_ssh_password_authentication' \
+go tool pprof -top -focus='diagnose_authentication' \
   ../git-multibranch.semantic.tokens.pb.gz
 go tool pprof -http=:0 \
   ../git-multibranch.semantic.tokens.pb.gz
@@ -149,11 +151,11 @@ The parent-directory `git-multibranch.semantic.*.pb.gz` files are the
 post-name-reconciliation profiles that reproduce the cumulative 105-operation
 and 2,103,587-token subtree above. The local `git.*.pb.gz` workspace snapshots
 precede that final shared-name merge and are retained only with the annotation
-workspace. Paper previews were generated from the reconciled profiles with
-stock `go tool pprof` filtering and the official Brendan Gregg FlameGraph
-scripts. The operation-only paper projection hides LLM/tool leaf frames for
-readability; the `.pb.gz` profiles retain them. No AgentPProf frontend or
-custom renderer is part of the product.
+workspace. Paper previews were generated from the reconciled profiles by
+`docs/visexp/r221_visual_gallery.py`, which reads every stack through stock
+`go tool pprof`. The previews retain the variable-depth operation hierarchy
+and LLM/tool leaves. They are paper/inspection derivatives only: AgentPProf
+ships no frontend or renderer and emits only `.pb`/`.pb.gz`.
 
 ## Scope
 

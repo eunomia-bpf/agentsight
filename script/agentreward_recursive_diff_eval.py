@@ -24,8 +24,8 @@ import numpy as np
 from sklearn.metrics import average_precision_score
 
 
-RECOVERY_OPERATION = "recover from failed or repeated interaction"
-COMPLETION_OPERATION = "verify or report task completion"
+RECOVERY_OPERATION = "recover interaction"
+COMPLETION_OPERATION = "report completion"
 RECURSIVE_STACK = "agent,operation,call_id,tool"
 FIXED_STACK = "task,subtask,strategy,action,object,result"
 BOOTSTRAP_SEED = 20260722

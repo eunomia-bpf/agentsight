@@ -51,7 +51,7 @@ fn annotation_workspace_updates_trace_and_folded_and_writes_pprof() {
         &annotations,
         serde_json::to_vec_pretty(&serde_json::json!({
             "s": {"tag":"Repair regression","parent":null,"next":null},
-            "p": {"tag":"Fix user-reported failure","parent":"s","next":null},
+            "p": {"tag":"Fix reported failure","parent":"s","next":null},
             "c1": {"tag":"Diagnose","parent":"p","next":"c2"},
             "t1": {"tag":"Run reproducer","parent":"c1","next":"c2"},
             "c2": {"tag":"Validate fix","parent":"p","next":null}
@@ -91,19 +91,18 @@ fn annotation_workspace_updates_trace_and_folded_and_writes_pprof() {
 
     let rewritten = fs::read_to_string(&trace).unwrap();
     assert!(rewritten.contains(
-        r#""path":["Repair regression","Fix user-reported failure","Diagnose","Run reproducer"]"#
+        r#""path":["Repair regression","Fix reported failure","Diagnose","Run reproducer"]"#
     ));
     assert!(
-        rewritten
-            .contains(r#""path":["Repair regression","Fix user-reported failure","Validate fix"]"#)
+        rewritten.contains(r#""path":["Repair regression","Fix reported failure","Validate fix"]"#)
     );
     let folded = fs::read_to_string(workspace.join("stacks.folded")).unwrap();
     assert!(
-        folded.contains("agent:codex;operation:repair_regression;operation:fix_user-reported_failure;operation:diagnose;operation:run_reproducer"),
+        folded.contains("agent:codex;operation:repair_regression;operation:fix_reported_failure;operation:diagnose;operation:run_reproducer"),
         "{folded}"
     );
     assert!(folded.contains(
-        "agent:codex;operation:repair_regression;operation:fix_user-reported_failure;operation:validate_fix"
+        "agent:codex;operation:repair_regression;operation:fix_reported_failure;operation:validate_fix"
     ));
     assert!(!folded.contains("session:run_a"));
     assert!(!folded.contains("prompt:repair"));
@@ -186,7 +185,7 @@ fn broad_optional_leaf_emits_coarse_span_warning_without_blocking_profile() {
         serde_json::to_vec_pretty(&serde_json::json!({
             "s": {"tag":"Repair regression","parent":null,"next":null},
             "p": {"tag":"Fix user-reported failure","parent":"s","next":null},
-            "c0": {"tag":"Recover from failed interaction","parent":"p","next":null}
+            "c0": {"tag":"Recover interaction","parent":"p","next":null}
         }))
         .unwrap(),
     )
@@ -219,4 +218,43 @@ fn broad_optional_leaf_emits_coarse_span_warning_without_blocking_profile() {
             .unwrap()
             .contains("coarse unrefined span")
     );
+}
+
+#[test]
+fn annotation_tag_over_three_words_is_rejected() {
+    let tmp = tempfile::tempdir().unwrap();
+    let workspace = tmp.path().join("workspace");
+    fs::create_dir(&workspace).unwrap();
+    let trace = workspace.join("trace.jsonl");
+    let annotations = workspace.join("annotation.json");
+    let output = tmp.path().join("profile.pb.gz");
+    fs::write(
+        &trace,
+        r#"{"id":"s","parent":null,"kind":"session","metrics":{"operations":1},"path":[]}
+"#,
+    )
+    .unwrap();
+    fs::write(
+        &annotations,
+        r#"{"s":{"tag":"Diagnose rejected SSH password","parent":null,"next":null}}"#,
+    )
+    .unwrap();
+
+    let result = run(
+        env!("CARGO_BIN_EXE_agentpprof"),
+        &[
+            "--annotation-file",
+            annotations.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--output",
+            output.to_str().unwrap(),
+        ],
+    );
+    assert!(!result.status.success());
+    assert!(
+        String::from_utf8_lossy(&result.stderr)
+            .contains("operation tags must contain 1 to 3 words")
+    );
+    assert!(!output.exists());
 }

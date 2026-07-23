@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""R221: render an AgentFlame visual gallery from existing artifacts.
+"""Render R221-style semantic flamegraphs and the archived visual gallery.
 
-This script is intentionally a presentation artifact. It reads the committed
-R170/R180/R211/R212/R213/R214/R219 outputs and writes static SVG figures plus
-one self-contained HTML flamegraph. It does not read raw Codex/Claude session
-histories, call an LLM, or mutate the display map.
+With ``--profile``, this script reads one standard pprof ``.pb`` or ``.pb.gz``
+through ``go tool pprof`` and writes one self-contained SVG while preserving
+the profile's complete stack hierarchy. Without ``--profile``, it reproduces
+the archived R221 gallery from its committed research inputs. It never reads
+raw agent histories, calls a model, or mutates profile annotations.
 """
 
 from __future__ import annotations
@@ -15,10 +16,13 @@ import datetime as dt
 import html
 import json
 import math
+import re
+import shutil
 import statistics
 import subprocess
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +53,9 @@ FRAME_COLORS = {
     "session": "#2f7d55",
     "prompt": "#b7791f",
     "call": "#6f5aa7",
+    "call_id": "#6f5aa7",
+    "llm": "#6f5aa7",
+    "tool": "#2b7f8f",
     "process": "#2b7f8f",
     "effect": "#c46d2d",
     "path": "#7d6b42",
@@ -218,9 +225,11 @@ def stack_frames(stack: str) -> list[str]:
     return [part for part in str(stack or "").split(";") if part]
 
 
-def build_tree(stack_rows: list[dict[str, str]], limit: int = 200) -> TreeNode:
+def build_tree(stack_rows: list[dict[str, str]], limit: int | None = 200) -> TreeNode:
     root = TreeNode("root")
-    rows = sorted(stack_rows, key=lambda row: as_int(row.get("weight")), reverse=True)[:limit]
+    rows = sorted(stack_rows, key=lambda row: as_int(row.get("weight")), reverse=True)
+    if limit is not None:
+        rows = rows[:limit]
     for row in rows:
         root.add(stack_frames(row.get("stack", "")), as_int(row.get("weight")))
     return root
@@ -280,38 +289,246 @@ def flame_rects(
     return rects
 
 
-def write_flamegraph_svg(out_dir: Path, top_stacks: list[dict[str, str]]) -> tuple[Path, list[dict[str, Any]]]:
-    root = build_tree(top_stacks, 200)
-    width = 1320
+def render_flamegraph_svg(
+    path: Path,
+    stack_rows: list[dict[str, str]],
+    *,
+    title: str,
+    subtitle: str,
+    width_label: str,
+    limit: int | None,
+    width: int = 1320,
+    min_width: float = 1.5,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    root = build_tree(stack_rows, limit)
+    if root.value <= 0 or not root.children:
+        raise ValueError("profile has no positive stack samples to render")
     left = 38
     top = 112
     graph_w = width - 76
     row_h = 27
-    max_depth = min(9, tree_depth(root))
+    max_depth = tree_depth(root)
     height = int(top + row_h * max_depth + 54)
-    rects = flame_rects(root, left, top, graph_w, row_h, 0, max_depth)
+    rects = flame_rects(root, left, top, graph_w, row_h, 0, max_depth, min_width)
     body: list[str] = [
-        f'<text x="{left}" y="102" font-family="Inter, Arial, sans-serif" font-size="12" fill="{MUTED}">width = system-effect weight over R170 top-200 semantic stacks; rectangles are collapsed stack prefixes</text>'
+        f'<text x="{left}" y="102" font-family="Inter, Arial, sans-serif" font-size="12" fill="{MUTED}">{esc(width_label)}</text>'
     ]
     for rect in rects:
-        label = font_fit(frame_value(rect["name"]), rect["width"])
+        label = font_fit(frame_value(rect["name"]).replace("_", " "), rect["width"])
         body.append(
             f'<g><title>{esc(rect["name"])} | weight={rect["value"]}</title>'
             f'<rect x="{rect["x"]:.2f}" y="{rect["y"]:.2f}" width="{rect["width"]:.2f}" height="{rect["height"]:.2f}" rx="3" fill="{rect["color"]}" opacity="0.88"/>'
             f'<text x="{rect["x"] + 5:.2f}" y="{rect["y"] + 18:.2f}" font-family="Inter, Arial, sans-serif" font-size="11" fill="white">{esc(label)}</text></g>'
         )
-    path = out_dir / "01-semantic-flamegraph-top200.svg"
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         svg_shell(
-            "Semantic Flamegraph",
-            f"Collapsed stack prefixes from R170 top-200 stacks; top-200 weight={root.value}.",
+            title,
+            subtitle,
             width,
             height,
             "\n".join(body),
         ),
         encoding="utf-8",
     )
+    return rects, {
+        "samples": len(stack_rows),
+        "rendered_weight": root.value,
+        "stack_depth": max_depth,
+        "frames": len(rects),
+    }
+
+
+def write_flamegraph_svg(out_dir: Path, top_stacks: list[dict[str, str]]) -> tuple[Path, list[dict[str, Any]]]:
+    path = out_dir / "01-semantic-flamegraph-top200.svg"
+    rects, _ = render_flamegraph_svg(
+        path,
+        top_stacks,
+        title="Semantic Flamegraph",
+        subtitle=f"Collapsed stack prefixes from R170 top-200 stacks; top-200 weight={build_tree(top_stacks, 200).value}.",
+        width_label="width = system-effect weight over R170 top-200 semantic stacks; rectangles are collapsed stack prefixes",
+        limit=200,
+    )
     return path, rects
+
+
+PPROF_SAMPLE_RE = re.compile(
+    r"^\s*"
+    r"([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)"
+    r"(\S*)\s{2,}(\S.*)$"
+)
+PPROF_FRAME_RE = re.compile(r"^\s{2,}(\S.*)$")
+
+
+def read_pprof_stacks(
+    profile: Path,
+    *,
+    sample_index: str | None,
+    focus: str | None,
+    sample_sign: str | None,
+) -> tuple[list[dict[str, str]], dict[str, Any]]:
+    if not profile.is_file():
+        raise ValueError(f"profile does not exist: {profile}")
+    if not (profile.name.endswith(".pb") or profile.name.endswith(".pb.gz")):
+        raise ValueError("profile input must end in .pb or .pb.gz")
+    if shutil.which("go") is None:
+        raise ValueError("go is required because this renderer reads profiles through go tool pprof")
+
+    command = ["go", "tool", "pprof", "-traces", "-unit=minimum"]
+    if sample_index:
+        command.append(f"-sample_index={sample_index}")
+    if focus:
+        command.append(f"-focus={focus}")
+    command.append(str(profile))
+    completed = subprocess.run(command, text=True, capture_output=True, check=False)
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise ValueError(f"go tool pprof failed ({completed.returncode}): {detail}")
+
+    metric = ""
+    current_weight: Decimal | None = None
+    current_frames: list[str] = []
+    parsed_samples: list[tuple[Decimal, list[str]]] = []
+    output_units: set[str] = set()
+
+    def flush() -> None:
+        nonlocal current_weight, current_frames
+        if current_weight is not None:
+            if not current_frames:
+                raise ValueError("pprof trace contains a sample without stack frames")
+            if any(";" in frame for frame in current_frames):
+                raise ValueError("pprof frame names containing ';' cannot be represented as folded stacks")
+            parsed_samples.append((current_weight, list(reversed(current_frames))))
+        current_weight = None
+        current_frames = []
+
+    for line in completed.stdout.splitlines():
+        if line.startswith("Type:"):
+            metric = line.partition(":")[2].strip()
+            continue
+        if line.startswith("-----------"):
+            flush()
+            continue
+        sample_match = PPROF_SAMPLE_RE.match(line)
+        if sample_match and current_weight is None:
+            try:
+                current_weight = Decimal(sample_match.group(1))
+            except InvalidOperation as error:
+                raise ValueError(f"invalid pprof sample weight: {sample_match.group(1)}") from error
+            output_units.add(sample_match.group(2))
+            current_frames = [sample_match.group(3).strip()]
+            continue
+        if current_weight is not None:
+            frame_match = PPROF_FRAME_RE.match(line)
+            if frame_match:
+                current_frames.append(frame_match.group(1).strip())
+    flush()
+
+    if not parsed_samples:
+        raise ValueError("go tool pprof returned no stack samples")
+    if len(output_units) != 1:
+        raise ValueError(f"pprof trace uses inconsistent output units: {sorted(output_units)}")
+    output_unit = next(iter(output_units))
+    positive = sum(1 for weight, _ in parsed_samples if weight > 0)
+    negative = sum(1 for weight, _ in parsed_samples if weight < 0)
+    zero = sum(1 for weight, _ in parsed_samples if weight == 0)
+
+    if sample_sign is None:
+        if positive and negative:
+            raise ValueError(
+                "signed profile contains positive and negative samples; "
+                "choose --sample-sign positive or --sample-sign negative"
+            )
+        sample_sign = "negative" if negative else "positive"
+    if sample_sign == "positive":
+        selected = [(weight, frames) for weight, frames in parsed_samples if weight > 0]
+    elif sample_sign == "negative":
+        selected = [(-weight, frames) for weight, frames in parsed_samples if weight < 0]
+    else:
+        raise ValueError("sample sign must be positive or negative")
+    if not selected:
+        raise ValueError(f"profile contains no {sample_sign} nonzero samples")
+
+    decimal_places = max(0, max(-weight.as_tuple().exponent for weight, _ in selected))
+    weight_scale = 10**decimal_places
+    normalized = [
+        (int(weight * weight_scale), frames)
+        for weight, frames in selected
+    ]
+    if any(weight <= 0 for weight, _ in normalized):
+        raise ValueError("pprof formatted a selected nonzero sample below its output precision")
+    rows = [
+        {"stack": ";".join(frames), "weight": str(weight)}
+        for weight, frames in normalized
+    ]
+    selected_weight = sum(weight for weight, _ in selected)
+    display_weight = f"{selected_weight:f}"
+    if "." in display_weight:
+        display_weight = display_weight.rstrip("0").rstrip(".")
+    return rows, {
+        "metric": metric or sample_index or "samples",
+        "parsed_samples": len(parsed_samples),
+        "selected_samples": len(selected),
+        "positive_samples": positive,
+        "negative_samples": negative,
+        "zero_samples": zero,
+        "selected_weight": int(selected_weight)
+        if selected_weight == selected_weight.to_integral()
+        else str(selected_weight),
+        "display_weight": f"{display_weight}{output_unit}",
+        "output_unit": output_unit,
+        "weight_scale": weight_scale,
+        "sample_sign": sample_sign,
+        "command": command,
+    }
+
+
+def render_profile(
+    profile: Path,
+    output: Path,
+    *,
+    title: str | None,
+    subtitle: str | None,
+    sample_index: str | None,
+    focus: str | None,
+    sample_sign: str | None,
+) -> dict[str, Any]:
+    if output.suffix.lower() != ".svg":
+        raise ValueError("profile rendering output must end in .svg")
+
+    rows, source = read_pprof_stacks(
+        profile,
+        sample_index=sample_index,
+        focus=focus,
+        sample_sign=sample_sign,
+    )
+    metric = str(source["metric"])
+    rendered_title = title or "Semantic Operation Flamegraph"
+    rendered_subtitle = subtitle or (
+        f"{profile.name}; {len(rows):,} pprof samples; "
+        f"weight={source['display_weight']} {metric}"
+    )
+    width_label = (
+        f"width = {metric}; rectangles are collapsed pprof stack prefixes; "
+        f"sample sign = {source['sample_sign']}"
+    )
+    _, rendered = render_flamegraph_svg(
+        output,
+        rows,
+        title=rendered_title,
+        subtitle=rendered_subtitle,
+        width_label=width_label,
+        limit=None,
+        min_width=0,
+    )
+    return {
+        "status": "ok",
+        "profile": str(profile.resolve()),
+        "output": str(output.resolve()),
+        "source": source,
+        "rendered": rendered,
+        "focus": focus,
+    }
 
 
 def write_flamegraph_html(out_dir: Path, rects: list[dict[str, Any]], total_weight: int) -> Path:
@@ -1230,10 +1447,49 @@ def render_gallery(vis_out: Path, out_dir: Path) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--vis-out", type=Path, default=DEFAULT_VIS_OUT)
-    parser.add_argument("--out", type=Path, default=DEFAULT_OUT_DIR)
+    parser.add_argument("--profile", type=Path, help="standard pprof .pb or .pb.gz input")
+    parser.add_argument("--out", type=Path)
+    parser.add_argument("--title")
+    parser.add_argument("--subtitle")
+    parser.add_argument("--sample-index", help="pprof sample type, for example tokens or operations")
+    parser.add_argument("--focus", help="pprof-compatible frame regular expression")
+    parser.add_argument(
+        "--sample-sign",
+        choices=("positive", "negative"),
+        help="required for signed profiles; selects one direction without mixing it",
+    )
     args = parser.parse_args()
-    manifest = render_gallery(args.vis_out, args.out)
-    print(json.dumps({"status": "ok", "out_dir": manifest["out_dir"], "figures": len(manifest["figures"])}, indent=2))
+    try:
+        if args.profile:
+            if args.out is None:
+                parser.error("--out is required with --profile")
+            result = render_profile(
+                args.profile,
+                args.out,
+                title=args.title,
+                subtitle=args.subtitle,
+                sample_index=args.sample_index,
+                focus=args.focus,
+                sample_sign=args.sample_sign,
+            )
+            print(json.dumps(result, indent=2))
+            return
+        if any(
+            value is not None
+            for value in (
+                args.title,
+                args.subtitle,
+                args.sample_index,
+                args.focus,
+                args.sample_sign,
+            )
+        ):
+            parser.error("profile rendering options require --profile")
+        out_dir = args.out or DEFAULT_OUT_DIR
+        manifest = render_gallery(args.vis_out, out_dir)
+        print(json.dumps({"status": "ok", "out_dir": manifest["out_dir"], "figures": len(manifest["figures"])}, indent=2))
+    except ValueError as error:
+        parser.error(str(error))
 
 
 if __name__ == "__main__":
