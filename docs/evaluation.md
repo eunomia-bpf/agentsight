@@ -1336,6 +1336,23 @@ canonical IDs, all 717 initially colliding adjacent display paths are
 disambiguated without target access, and the temporal occurrence and boundary
 vectors remain exact. This is the current CodeTrace RQ3 result.
 
+Step 0073 separately scores the complete manifest-defined 364-session
+fixed-instruction follow-on population that was not part of the initial
+41-session long-horizon product collection. Current A2 reaches ordinary
+B-cubed precision/recall/F1 `.910237/.535911/.674628`, versus
+`.758227/.627664/.686795` for multi-resolution recurrence. The task-cluster
+95% interval for A2 minus recurrence is `[-.027266,+.003221]`, so the primary
+positive comparison is inconclusive. A2 nevertheless has higher exact
+adjacent-boundary F1 in all four frameworks (`.402802` overall versus
+`.289023`). The joint diagnosis is excess fragmentation rather than absent
+transition information: A2 emits 5,198 occurrences for 2,382 official stages,
+including 1,623 singleton occurrences. This fixed-instruction follow-on is a
+post-aggregate stress test within the observed CodeTrace family, not an
+untouched external test. It records the current backend boundary without
+changing RQ3, the thesis, or the paper story, and it routes the next experiment
+to the already fixed source-only recursive backend rather than label-driven
+contraction or another benchmark.
+
 Step 0072 reopens only the RQ2 comparison requested by the author and evaluates
 the current fixed Agent+Evidence paths under a stricter information-matched
 local-first design. Before labels are loaded, the scorer constructs four rank

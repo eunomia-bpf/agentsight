@@ -684,6 +684,21 @@ problem, thesis, four RQs, operation-stack model, contributions, and narrative
 unchanged. The independent result review and exact admissible claim are in
 [Step 0072](tmp/build-and-evaluate/step-0072-20260723T193258-0700/experiment-001/independent-result-review.md).
 
+### Evidence-only note — Step 0073 does not change the story
+
+The complete 364-session fixed-instruction CodeTrace follow-on separates the
+current automatic A2 backend from the initial 41-session long-horizon product
+collection. A2 has higher exact adjacent-boundary F1 than recurrence in every
+framework, but its ordinary B-cubed F1 is statistically inconclusive against
+recurrence because A2 over-fragments the broader follow-on population. This is
+a tested-backend diagnosis, not a thesis or story challenge: it preserves the
+original positive RQ3, records the evidence boundary, and motivates completing
+the already fixed source-only recursive constructor that can use interval-wide
+context to decide whether a split is warranted. It does not authorize
+label-driven contraction, a narrower RQ, a new abstraction, or replacement of
+the canonical AgentProf story. Complete evidence is in
+[Step 0073](tmp/build-and-evaluate/step-0073-20260723T201812-0700/experiment-001/full-run-report.md).
+
 ## Invariants For Every Future Story Decision
 
 - Read this entire file, including the Initial Narrative and every evolution
