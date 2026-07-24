@@ -806,6 +806,7 @@ def run_infer(args: argparse.Namespace) -> None:
         "llama server model path mismatch",
     )
 
+    source_started = time.monotonic()
     grouped = base.load_visible_operations(target_path)
     require(len(grouped) == EXPECTED_SESSIONS, "CodeTrace session count")
     require(sum(len(rows) for rows in grouped.values()) == EXPECTED_OPERATIONS, "CodeTrace operation count")
@@ -828,9 +829,11 @@ def run_infer(args: argparse.Namespace) -> None:
         if number % 50 == 0 or number == len(grouped):
             print(f"prepared {number}/{len(grouped)}", flush=True)
     selected = select_preflight(prepared) if args.mode == "preflight" else sorted(grouped)
+    source_adaptation_seconds = time.monotonic() - source_started
 
     cache_dir = out_dir / "sessions"
     results: dict[str, dict[str, Any]] = {}
+    annotation_started = time.monotonic()
     for number, session in enumerate(selected, 1):
         results[session] = infer_session(
             prepared[session],
@@ -846,7 +849,9 @@ def run_infer(args: argparse.Namespace) -> None:
             f"leaves={len(results[session]['leaves'])}",
             flush=True,
         )
+    annotation_loop_seconds = time.monotonic() - annotation_started
 
+    materialization_started = time.monotonic()
     predictions, mark_file = build_outputs(prepared, results, selected)
     expected_operations = sum(len(grouped[session]) for session in selected)
     expected_turns = sum(len(prepared[session]["turns"]) for session in selected)
@@ -901,6 +906,7 @@ def run_infer(args: argparse.Namespace) -> None:
             "frameworks": dict(Counter(prepared[session]["material"]["framework"] for session in long_sessions)),
             "profile": long_profile,
         }
+    profile_materialization_seconds = time.monotonic() - materialization_started
 
     leaves = [leaf for session in selected for leaf in results[session]["leaves"]]
     calls = [call for session in selected for call in results[session]["calls"]]
@@ -924,6 +930,7 @@ def run_infer(args: argparse.Namespace) -> None:
         for key, value in (call.get("usage") or {}).items():
             if isinstance(value, int):
                 usage[key] += value
+    total_wall_seconds = time.monotonic() - started
     summary = {
         "schema": SCHEMA + ".inference.v1",
         "algorithm_version": ALGORITHM_VERSION,
@@ -969,7 +976,13 @@ def run_infer(args: argparse.Namespace) -> None:
         "long_horizon": long_horizon,
         "predictions": relative(prediction_path),
         "operation_marks": relative(mark_path),
-        "wall_seconds": time.monotonic() - started,
+        "timing": {
+            "source_adaptation_seconds": source_adaptation_seconds,
+            "annotation_loop_seconds": annotation_loop_seconds,
+            "profile_materialization_seconds": profile_materialization_seconds,
+            "total_wall_seconds": total_wall_seconds,
+        },
+        "wall_seconds": total_wall_seconds,
         "isolation": {
             "official_manifest_opened": False,
             "official_stages_opened": False,

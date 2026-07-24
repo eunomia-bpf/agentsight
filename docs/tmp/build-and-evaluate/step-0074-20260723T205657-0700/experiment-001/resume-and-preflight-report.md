@@ -44,6 +44,12 @@ decision. It removes avoidable pre-execution work from the complete run and
 prevents RQ4 from charging full automatic annotation for a preflight-only
 selection feature.
 
+The full runner now also records three direct wall-time components:
+source adaptation, the annotation/cache loop, and profile materialization.
+These are observation-only timers around existing phases. They do not enter
+the inference identity or RQ3 decision and are required to avoid presenting
+the fixed-mark replay time as end-to-end automatic cost.
+
 Validation:
 
 - Python compilation: PASS;
