@@ -699,6 +699,18 @@ label-driven contraction, a narrower RQ, a new abstraction, or replacement of
 the canonical AgentProf story. Complete evidence is in
 [Step 0073](tmp/build-and-evaluate/step-0073-20260723T201812-0700/experiment-001/full-run-report.md).
 
+### Evidence-only note — Step 0074 does not change the story
+
+The fixed recursive split/stop constructor completes all 405 CodeTrace
+sessions but under-segments: it emits 1,068 leaves for 2,948 official stages,
+reaches ordinary B-cubed F1 `.386034` and exact boundary F1 `.090455`, and is
+decisively below recurrence under the predeclared task-cluster interval. This
+rejects only the tested recursive policy. It does not authorize replacing A2,
+narrowing RQ3, changing the four-RQ spine, or rewriting the AgentProf story.
+The complete local-backend run remains valuable as backend-specific cost
+evidence for RQ4. Details are in
+[Step 0074](tmp/build-and-evaluate/step-0074-20260723T205657-0700/experiment-001/full-run-and-result.md).
+
 ## Invariants For Every Future Story Decision
 
 - Read this entire file, including the Initial Narrative and every evolution

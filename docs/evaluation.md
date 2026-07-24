@@ -1370,6 +1370,20 @@ over raw action with identical retained evidence remains unestablished. This
 adaptive mechanism result does not change the thesis, RQ, or backend
 generalization claims.
 
+Step 0074 completes the fixed source-only recursive split/stop constructor over
+all 405 CodeTrace sessions before opening official stages. Qwen3.6-27B emits
+1,068 leaves over 17,148 turns and 20,866 operations, with internal splits in
+only 73 sessions. Ordinary B-cubed precision/recall/F1 is
+`.242532/.945422/.386034`, and exact boundary F1 is `.090455`, versus
+`.662740/.265571` for multi-resolution recurrence. The task-cluster 95%
+interval for candidate minus recurrence B-cubed is
+`[-.306589,-.245664]`. The mechanism therefore avoids turn-level
+fragmentation by collapsing too far; it is contradicted and not adopted.
+This changes neither A2, RQ3, nor the paper story. The completed run separately
+records 6.80M model tokens, 3,070.96 seconds summed model-request time, 503.42
+seconds source adaptation, and 12.44 seconds pprof materialization for the
+next backend-specific RQ4 accounting experiment.
+
 ## Experiment History Policy
 
 Detailed plans, reviews, commands, results, and failures live in timestamped
