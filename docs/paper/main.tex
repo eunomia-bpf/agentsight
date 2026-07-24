@@ -441,13 +441,14 @@ only when the complete path changes, thereby merging adjacent identical paths
 but never nonadjacent or unequal ones.
 % 评测的 Agent backend 使用固定二元递归策略实例化该 contract：对每个 interval，它只读取 target-blind task text、active ancestor path 及 interval 内全部 source-visible turn summary，并输出 Stop 或 Split(非首 turn、左右名称)；名称匹配当前 frame 时 stay，匹配 ancestor 时 pop，新名称时 push；两侧解析成同一路径则 fail closed。非空子区间独立递归；one-turn、Stop 或两侧均解析成未变路径时终止。算法没有深度、叶子数、长度阈值或 score-tuned contraction；materializer 仅在完整 path 改变时发出 sparse mark。
 
-The complete CodeTraceBench run uses local Qwen3.6-27B at temperature zero and
-seed 20260722 with grammar-constrained JSON. Official stages, outcomes,
-recurrence assignments, and scores remain hidden until all 405 trajectories
-are materialized. A2 adds one deterministic source-only representation repair:
+The complete CodeTraceBench A2 run uses independent Codex Agent workers under
+one fixed source-only annotation instruction, followed by root merge and
+validation. Official stages, outcomes, recurrence assignments, and scores
+remain hidden until all 405 trajectories are materialized. A2 adds one
+deterministic source-only representation repair:
 when a one-turn root-only mark is immediately followed by its first
 responsibility, the first turn receives the complete root--responsibility path.
-% 完整 CodeTraceBench 运行使用本地 Qwen3.6-27B、temperature 0、seed 20260722 与 grammar-constrained JSON；全部 405 条轨迹物化前不读取官方 stage、outcome、recurrence assignment 或 score。A2 只增加一个确定性的 source-only 表示修复：若 one-turn root-only mark 紧邻其第一个 responsibility，则首 turn 直接采用完整 root--responsibility path。
+% 完整 CodeTraceBench A2 运行由多个独立 Codex Agent worker 按同一份固定 source-only annotation instruction 执行，再由 root merge 与验证；全部 405 条轨迹物化前不读取官方 stage、outcome、recurrence assignment 或 score。A2 只增加一个确定性的 source-only 表示修复：若 one-turn root-only mark 紧邻其第一个 responsibility，则首 turn 直接采用完整 root--responsibility path。
 Before folding, one fixed source-only action--object map canonicalizes the A2
 display identity. A boundary-safe refinement retains a canonical action and
 the minimum source words needed whenever two adjacent paths would otherwise
@@ -649,74 +650,66 @@ Of HINTBench's reported 629 trajectories, the released test snapshot used here
 contains 536. A separate 80-trajectory validation snapshot selects one of 24
 field orders before all 536 tests are scored.
 
-Within each workload, we give \sys and raw-action grouping identical operations
-and precomputed benchmark judge/localizer predictions, so they differ only in
-grouping. We fix predictions, group scores, profiles, and scoring rules before
-loading the corresponding test target labels. We select HINTBench's field order
-on the separate validation snapshot described above. AgentProcessBench averages
-judge votes within each group. For HINTBench and TraceElephant, we assign every
-root-to-frame stack prefix the 95\% Wilson lower bound~\cite{wilson1927} of the
-fraction of its members with a positive frozen benchmark prediction. Each
-operation inherits the maximum score among prefixes containing it, with ties
-preserved.
+Within each workload, we fix operations, target-blind paths, benchmark
+judge/localizer predictions, and scoring rules before loading test targets.
+AgentProcessBench averages judge votes within a group. HINTBench and
+TraceElephant assign each root-to-frame prefix the 95\% Wilson lower
+bound~\cite{wilson1927} of its frozen positive-prediction fraction; an
+operation receives the maximum score over prefixes containing it.
+
+The main test asks whether this profile adds information after an
+operation-local diagnostic score already exists. The candidate ranks each
+operation lexicographically by
+(\emph{local score}, \emph{Agent+Evidence group score}); hence the profile may
+refine exact local-score ties but cannot override a strict local ordering. One
+baseline uses the local score alone. A stronger baseline replaces only the
+semantic-operation prefix with raw action while retaining the identical
+source-kind, tool/call, and outcome suffix and aggregation. AgentProf-only
+reports the profile component without the local score.
 
 Each query is one trajectory containing an annotated target. We report
-non-interpolated per-query AP, evaluating ties at their shared score threshold,
-and arithmetic-mean MAP across the 614, 400, and 220 target-bearing
-queries, respectively~\cite{robertson2008ap}.
-% RQ2 在完整的 AgentProcessBench、HINTBench 和 TraceElephant workload 上测试 target-blind profile 是否更早排列独立标注的问题。HINTBench 使用独立的 80-trajectory validation snapshot 从 24 个 field order 中选定一个，再评分全部 536 个 test。每个 workload 的 AgentProf 与 raw-action grouping 使用相同 operation 及预先计算的 benchmark judge/localizer prediction；这些 prediction、group score、profile 与 scoring rule 均在对应 test target label 载入前固定，HINTBench field order 仅由上述独立 validation snapshot 选择。AgentProcessBench 在组内平均 judge vote；HINTBench 与 TraceElephant 为每个从根到 frame 的 stack prefix 计算成员 frozen benchmark positive prediction 比例的 95% Wilson lower bound，每个 operation 继承包含它的 prefix 中的最大分数并保留并列。每条含标注目标的 trajectory 是一个 query，评测每 query 的非插值 average precision（AP）及跨 query 的 mean average precision（MAP）。
+non-interpolated per-query AP and arithmetic-mean MAP across 614, 400, and 220
+target-bearing queries, respectively~\cite{robertson2008ap}. All 522
+zero-positive trajectories are consumed for population coverage but excluded
+from MAP because AP is undefined without a relevant item.
+% RQ2 在完整的 AgentProcessBench、HINTBench 和 TraceElephant workload 上测试 target-blind profile 是否补充 operation-local diagnostic score。候选仅用 Agent+Evidence group score 打破相同 local score 的并列，不能覆盖严格 local ordering；强 baseline 用 raw-action prefix 替换 semantic-operation prefix，同时保留完全相同的 source-kind、tool/call、outcome suffix 和聚合。主指标为标准 per-query AP 与 MAP。
 
 \begin{table}[tb]
 \centering\small
 \setlength{\tabcolsep}{1.8pt}
 \begin{tabular}{@{}lrrrr@{}}
 \toprule
-Workload & Sem. & Raw & Agent+Evidence & Agent-only \\
+Workload & \shortstack{Local+\\AgentProf} & \shortstack{Local+Raw\\+Evidence} & Local & \shortstack{AgentProf\\only} \\
 \midrule
-AgentProcessBench & .789 & .773 & .791 & .734 \\
-HINTBench & .452 & .281 & .432 & .281 \\
-TraceElephant & .230 & .121 & .259 & .194 \\
+AgentProcessBench & \textbf{.894} & .893 & .863 & .791 \\
+HINTBench & .517 & \textbf{.518} & .411 & .432 \\
+TraceElephant & \textbf{.326} & .324 & .209 & .259 \\
 \bottomrule
 \end{tabular}
-\caption{Standard per-query AP averaged as MAP after scoring every operation.
-Sem. is the target-blind declared/reference semantic hierarchy fixed before
-evaluator target labels are loaded. Agent+Evidence composes identical automatic
-Agent marks with retained LLM/tool/action evidence frames; Agent-only omits
-those frames. Automatic names use one fixed target-blind action--object
-canonicalization. Higher is better.}
+\caption{Standard per-query AP averaged as MAP over complete RQ2 populations.
+Both local-first methods preserve every strict local-score ordering and retain
+identical source evidence. Higher is better.}
 \label{tab:rq2-localization}
 \end{table}
 
-The target-blind declared/reference hierarchy improves MAP over raw action on
-all three complete workloads (Table~\ref{tab:rq2-localization}). The gains are
-+.016 [.005,.027], +.171 [.154,.188], and +.109 [.077,.142], using 10{,}000
-paired resamples of trajectory clusters within benchmark-defined strata.
+Local+AgentProf raises MAP over Local by .031 [.024,.039], .107
+[.093,.120], and .117 [.088,.148], using 10{,}000 paired resamples of
+trajectory clusters within benchmark-defined strata. Thus the profile adds
+clear ranking information to a fixed local diagnostic signal on all three
+complete workloads (Table~\ref{tab:rq2-localization}).
 
-The current automatic backend uses one shared target-blind
-\texttt{verb--object--qualifier} lexicon: 876 open-vocabulary names become 239
-reusable two- or three-word identities without changing any of the 14{,}238
-sparse marks or their source evidence. Relative to the preceding automatic
-names under byte-identical source-evidence inputs, Agent+Evidence MAP changes
-from .795 to .791 on AgentProcessBench ($\Delta=-.004$, 95\% interval
-[-.011,.003]), from .424 to .432 on HINTBench
-($\Delta=.008$, [.002,.014]), and from .260 to .259 on TraceElephant
-($\Delta=-.0008$, [-.0023,0]). Thus, the fixed short identity improves HINT
-localization while the paired intervals include zero on the other two
-workloads, and it reduces 876 open-vocabulary names to 239 reusable identities.
-This adaptive current-product replay fixes the identity rule once
-across all three workloads rather than choosing a granularity from their
-scores. Relative to raw action, the final automatic profile improves MAP by
-.017, .151, and .138.
-% target-blind declared/reference hierarchy 在三个完整 workload 上均提高相对 raw action 的 MAP；统一的短 operation identity 将 876 个开放词汇名称压缩为 239 个可复用 identity，在 HINT 上改善定位，并在另外两个 workload 上保持统计上不可区分的准确率。
-
-The automatic Agent marks cover all 1{,}000/536/220 sessions and
-8{,}509/12{,}877/5{,}960 operations. Retaining source-call frames beneath those
-same marks raises MAP over Agent-only by .056, .151, and .065, respectively;
-the paired task-cluster intervals exclude zero in all three workloads. The
-result directly supports the design decision that semantic operations retain
-source evidence rather than discarding it. Agent+Evidence approaches the declared
-semantic hierarchy on the first two workloads and exceeds it on TraceElephant.
-% Automatic Agent marks 覆盖三个完整 workload；在完全相同的 mark 下保留 LLM/tool/action evidence frame，相对 Agent-only 的 MAP 分别提高 .056、.151 和 .065，直接支持“语义 operation 保留 source evidence 而不丢弃它”的设计。
+The information-matched raw-action refinement reaches .893, .518, and .324.
+Candidate-minus-baseline intervals are [-.0003,.0029], [-.0116,.0103], and
+[-.0247,.0280], so this experiment does not establish that the
+semantic-operation prefix ranks targets better when both views retain the same
+source evidence. The matched result attributes the ranking gain to
+group/evidence refinement in the complete profile, not specifically to its
+semantic prefix. Separately, that prefix supplies the cross-run hierarchy and
+source drilldown illustrated below. Because
+the local-first rule and fixed source-only paths were developed on these
+populations, this is adaptive mechanism evidence rather than untouched backend
+generalization.
+% Local+AgentProf 相对 Local-only 在三个完整 workload 上分别提高 MAP .031、.107 与 .117，区间均为正；与保留相同 source evidence 的 raw-action refinement 统计上不可区分。因此该实验支持 profiling 补充 local diagnosis，但不声称 semantic prefix 在这三个已观察 population 上具有额外的 target-ranking 优势。
 
 \subsection{Case Study 2: Differential Profiling at Scale}
 % 案例研究 2：大规模差分 profiling。

@@ -616,3 +616,15 @@ session / prompt 不应该是被 operation 覆盖了吗
 ---
 
 论文的所有 RQ 都得更新
+
+---
+
+RQ1 是不是更应该变成 motication?
+
+---
+
+RQ4 不包含 automatic annotation 的端到端成本 这个要做是不是? 还有啥实验和 baseline 应该补充? 我们有啥应该对比的baseline?
+
+---
+
+RQ 123 也要补充吧? 去做, 去改进实验, 确保能符合顶会标准

@@ -672,6 +672,18 @@ adds the reusable identity the original story requires.
 complete source-only replay shows a stronger paper-level result without
 deleting valid temporal boundaries.
 
+### Evidence-only note — Step 0072 does not change the story
+
+The author explicitly reopened RQ2 for a stricter current-algorithm comparison.
+Across all 1,756 trajectories and 27,346 operations, Local+AgentProf raises
+standard MAP over local-only by .031, .107, and .117 with wholly positive paired
+intervals. It is statistically indistinguishable from an information-matched
+raw-action refinement that retains the same source evidence. This strengthens
+the existing claim that profiling complements local diagnosis while leaving the
+problem, thesis, four RQs, operation-stack model, contributions, and narrative
+unchanged. The independent result review and exact admissible claim are in
+[Step 0072](tmp/build-and-evaluate/step-0072-20260723T193258-0700/experiment-001/independent-result-review.md).
+
 ## Invariants For Every Future Story Decision
 
 - Read this entire file, including the Initial Narrative and every evolution

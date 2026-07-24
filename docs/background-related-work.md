@@ -45,10 +45,13 @@ HINTBench, and TraceElephant populations with standard per-query AP/MAP on
 information-matched semantic and raw-action organizations. Semantic grouping
 improves MAP on all three. Step 0037 reuses those populations for a post-hoc
 mechanism analysis: a local-first ranker preserves every strict operation-local
-ordering and uses semantic recurrence only for exact ties; it improves over
-local-only and semantic-only on all three, and over a matched local-plus-raw
-tie-breaker on HINTBench and TraceElephant. These results support problem
-ranking, not automatic human-productivity or lower-work claims. Step 0019
+ordering and uses a profile only for exact ties. Step 0072 repeats that question
+with the current fixed Agent+Evidence paths and an information-matched raw
+baseline. Local+AgentProf improves over local-only on all three complete
+populations, while it is statistically indistinguishable from raw action when
+both retain identical source-kind/tool/outcome evidence. These results support
+profiling as a complement to local diagnosis, not semantic-prefix ranking
+superiority, automatic human productivity, or lower-work claims. Step 0019
 separately tests a fixed rank-hidden LLM reader on existing assets and supports
 the registered recall and precision comparison on six tasks. It remains bounded
 downstream-use evidence inside unchanged RQ2, not a new story.
@@ -380,7 +383,7 @@ A third variant would be target retuning rather than stronger external evidence.
 | Fielded observations can be grouped into hierarchical views. | Very high | Profilers, OLAP/trace query systems, pprof labels, and semantic clustering already do this. |
 | Agent observability needs profiling, not only debugging. | Medium | The fixed broad position remains valuable if demonstrated on recurring measured behavior and real decisions. |
 | A conserved cross-layer record can attribute additive resources to semantic responsibility across runs. | Medium/high | Potential systems contribution; requires independent lineage and attribution truth. |
-| A plan-defined semantic profile concentrates independently annotated real problems. | High | Standard per-query AP/MAP improves over matched raw-action organization on all three complete public workloads; the post-hoc local-first analysis isolates additional semantic value on HINTBench and TraceElephant. Hodoscope, Datadog Patterns, LangSmith Insights, WebGraphEval, TraceGraph, TraceProbe, MP-Bench, and AgentLocate make generic cross-run discovery or failure localization non-novel. AgentProf's distinct question is whether a conserved selectable responsibility view improves matched organization of the same evidence. |
+| A plan-defined semantic profile concentrates independently annotated real problems. | High | Standard per-query AP/MAP shows the current profile significantly improves a local diagnostic score on all three complete public workloads. An information-matched raw-action refinement reaches statistically indistinguishable MAP, so the evidence supports the profile-plus-local composition rather than target-ranking superiority of the semantic prefix. Hodoscope, Datadog Patterns, LangSmith Insights, WebGraphEval, TraceGraph, TraceProbe, MP-Bench, and AgentLocate make generic cross-run discovery or failure localization non-novel. AgentProf's distinct question is whether one conserved responsibility view organizes additive resources, repeated problems, and source evidence for ordinary profiler queries. |
 | Semantic profiling reduces human inspection or improves repair outcomes. | Very high | The fixed-reader result is bounded supporting evidence, while Hodoscope and TraceGraph provide stronger published inspection/intervention precedents. AgentProf should not imply this consequence without a direct matched test; the larger profiling thesis does not depend on claiming it prematurely. |
 
 Two additional close neighbors sharpen this boundary. *Agentic AI Process
@@ -402,12 +405,12 @@ alone.
    categories, so the next highest-value candidate is a same-input comparison
    with an independently defined responsibility outcome, reusing the completed
    real trajectories before seeking a new external asset.
-2. **RQ2 — real-problem localization.** Step 0036 establishes positive standard
-   MAP differences over matched raw-action organization on all three complete
-   public populations. Step 0037's post-hoc local-first analysis preserves
-   operation-local evidence and shows that semantic recurrence is useful as a
-   tie refinement, but it is not untouched confirmation. Do not reopen the same
-   score, cutoff, or observed benchmark branches. Step 0019 completes one
+2. **RQ2 — real-problem localization.** Step 0072 establishes positive standard
+   MAP differences over local-only on all three complete public populations and
+   no detectable difference from information-matched raw+evidence. It is
+   adaptive mechanism evidence, not untouched confirmation. Do not retune the
+   same score, cutoff, or observed benchmark branches; any later RQ2 experiment
+   must use an independently different decision or user outcome. Step 0019 completes one
    different downstream decision over all 18 R315 packets: the fixed reader
    improves selected-positive recall on 5/6 tasks and precision on 4/6 versus
    the matched fixed-session packet. Flat remains a lower bound and visible
