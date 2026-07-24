@@ -812,15 +812,18 @@ def run_infer(args: argparse.Namespace) -> None:
     prepared: dict[str, dict[str, Any]] = {}
     for number, session in enumerate(sorted(grouped), 1):
         item = prepare_material(raw_root, session, grouped[session])
-        full_prompt = interval_prompt(
-            str(item["material"]["task"]),
-            [],
-            "placeholder root operation",
-            item["projected_turns"],
-        )
-        item["projected_prompt_tokens"] = token_count(
-            args.llama_url, SPLIT_SYSTEM + "\n" + full_prompt, args.timeout_seconds
-        )
+        if args.mode == "preflight":
+            full_prompt = interval_prompt(
+                str(item["material"]["task"]),
+                [],
+                "placeholder root operation",
+                item["projected_turns"],
+            )
+            item["projected_prompt_tokens"] = token_count(
+                args.llama_url,
+                SPLIT_SYSTEM + "\n" + full_prompt,
+                args.timeout_seconds,
+            )
         prepared[session] = item
         if number % 50 == 0 or number == len(grouped):
             print(f"prepared {number}/{len(grouped)}", flush=True)
