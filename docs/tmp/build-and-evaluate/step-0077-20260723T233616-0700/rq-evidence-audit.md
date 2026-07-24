@@ -151,6 +151,17 @@ substitute for the other.  Quality and cost remain separate results: lower cost
 cannot compensate for worse answerability or structure, and higher cost does
 not invalidate a quality improvement.
 
+### Same-population backend comparison
+
+The final cost table should also compare the source-native/no-annotation view,
+deterministic recurrence, fresh Automatic Agent, and converged Automatic Agent
+on the same CodeTraceBench population.  Each row reports its own construction
+time, peak RSS, backend token use, and the already-defined RQ3 B-cubed/boundary
+scores.  This exposes the quality--cost choice without inventing a combined
+utility score.  AgentReward and the Git case remain the complete product-facing
+cost measurements; their token counts must not be mixed with CodeTrace quality
+as though they came from the same population.
+
 ## Paper-level closure order
 
 1. Freeze the Step 0077 terminal annotations and cost telemetry.
