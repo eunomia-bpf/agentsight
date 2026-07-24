@@ -1182,6 +1182,7 @@ mod tests {
     fn event(index: usize, session: &str, status: &str, effect: &str) -> RepositoryEvent {
         RepositoryEvent {
             id: format!("e{index}"),
+            source_file: "fixture.jsonl".into(),
             source_call_id: Some(format!("call{index}")),
             native_session_id: session.into(),
             source_stream_id: session.into(),
@@ -1191,8 +1192,10 @@ mod tests {
             session_id: session.into(),
             session_ordinal: 0,
             vendor: "codex".into(),
+            workspace_session: true,
             ts_ms: index as i64 * 10,
             prompt_index: 0,
+            prompt_preview: String::new(),
             source_event_id: None,
             parent_event_id: None,
             model: None,
@@ -1203,6 +1206,7 @@ mod tests {
             worktree_id: Some("w1".into()),
             tool_name: "tool".into(),
             category: "file".into(),
+            command: "cargo test".into(),
             command_name: "tool".into(),
             effect: effect.into(),
             status: status.into(),

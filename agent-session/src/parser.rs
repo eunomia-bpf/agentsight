@@ -1508,6 +1508,12 @@ fn shell_segment_actions(name: &str, operands: &[String]) -> Vec<(String, String
             .collect::<Vec<_>>()
     };
     match name {
+        "git" if values.first().is_some_and(|value| value == "rm") => {
+            rows.extend(shell_segment_actions("rm", &values[1..]));
+        }
+        "git" if values.first().is_some_and(|value| value == "mv") => {
+            rows.extend(shell_segment_actions("mv", &values[1..]));
+        }
         "cp" => {
             let paths = paths(&values);
             if paths.len() >= 2 {
@@ -1733,10 +1739,40 @@ pub fn tool_category(name: &str, command: &str) -> String {
 fn command_effect(command: &str) -> String {
     let cmd = basename_from_command(command);
     let text = command.to_ascii_lowercase();
-    if ["cargo", "pytest", "npm", "pnpm", "yarn", "go", "make"].contains(&cmd.as_str())
-        && any_word(&text, &["test", "check", "build", "clippy"])
+    let validator_script = ["python", "python3", "node", "bash", "sh"].contains(&cmd.as_str())
+        && text.split_whitespace().any(|word| {
+            let name = word
+                .trim_matches(|ch: char| !ch.is_ascii_alphanumeric() && !"._-/".contains(ch))
+                .rsplit('/')
+                .next()
+                .unwrap_or("");
+            ["test", "check", "verify", "validate", "lint", "smoke"]
+                .iter()
+                .any(|marker| {
+                    Path::new(name)
+                        .file_stem()
+                        .and_then(|value| value.to_str())
+                        .unwrap_or(name)
+                        .split(|ch: char| !ch.is_ascii_alphanumeric())
+                        .any(|part| part == *marker)
+                })
+        });
+    let validator_executable =
+        ["test", "check", "verify", "validate", "lint"]
+            .iter()
+            .any(|marker| {
+                cmd == *marker
+                    || cmd.starts_with(&format!("{marker}-"))
+                    || cmd.starts_with(&format!("{marker}_"))
+            });
+    if (["cargo", "pytest", "npm", "pnpm", "yarn", "go", "make"].contains(&cmd.as_str())
+        && any_word(&text, &["test", "check", "build", "clippy"]))
+        || validator_script
+        || validator_executable
     {
         "test"
+    } else if cmd == "git" && any_word(&text, &["rm", "mv"]) {
+        "write"
     } else if cmd == "git"
         && any_word(
             &text,
@@ -2595,6 +2631,54 @@ fn system_time_ms(value: SystemTime) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn repository_specific_validator_scripts_are_test_effects() {
+        assert_eq!(
+            command_effect("python scripts/check_progress.py --repo fixture"),
+            "test"
+        );
+        assert_eq!(command_effect("bash tests/smoke_agent.sh"), "test");
+        assert_eq!(command_effect("./verify-package"), "test");
+        assert_eq!(
+            command_effect("python scripts/generate_report.py"),
+            "process"
+        );
+        assert_eq!(command_effect("python latest_results.py"), "process");
+    }
+
+    #[test]
+    fn git_rm_is_a_confirmed_workspace_mutation_in_compound_shell() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"cwd":"/repo"}}"#,
+            "\n",
+            r#"{"timestamp":"2026-01-01T00:00:01Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c1","arguments":"{\"cmd\":\"git rm -f bpf/process bpf/test_taint\\nrm -f bpf/process_new\"}"}}"#,
+            "\n",
+            r#"{"timestamp":"2026-01-01T00:00:03Z","type":"response_item","payload":{"type":"function_call_output","call_id":"c1","output":"Process exited with code 0"}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            Path::new("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        let event = &session.events.tools[0];
+        assert_eq!(event.effect, "write");
+        assert_eq!(event.status, "ok");
+        assert_eq!(
+            event
+                .paths
+                .iter()
+                .map(|row| (row.path.as_str(), row.access.as_str()))
+                .collect::<Vec<_>>(),
+            vec![
+                ("bpf/process", "delete"),
+                ("bpf/process_new", "delete"),
+                ("bpf/test_taint", "delete"),
+            ]
+        );
+    }
     use serde_json::json;
     use std::time::UNIX_EPOCH;
 

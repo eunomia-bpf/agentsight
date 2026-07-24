@@ -36,6 +36,9 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if command == "research-rq1" {
             return agentvis::run_rq1_from_args(std::env::args_os().skip(2));
         }
+        if command == "diagnose" {
+            return agentvis::run_diagnose_from_args(std::env::args_os().skip(2));
+        }
     }
     let cli = Cli::parse();
     agentvis::run_vis(&cli.path, &cli.outputs, cli.global, cli.compact_rate)

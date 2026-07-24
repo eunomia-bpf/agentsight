@@ -203,6 +203,22 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Build an Agent-readable cross-session workspace process brief.
+    Diagnose {
+        /// Git worktree whose native Agent history should be analysed.
+        #[arg(default_value = ".")]
+        path: PathBuf,
+        /// Markdown or JSON output path.
+        #[arg(
+            short = 'o',
+            long = "output",
+            default_value = "output/trajectory-brief.md"
+        )]
+        output: PathBuf,
+        /// Also admit sessions rooted elsewhere when their actions target this repository.
+        #[arg(long)]
+        global: bool,
+    },
     /// Render repository file evolution from local agent sessions.
     Vis {
         /// Git worktree to visualize.
@@ -590,13 +606,21 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let suppress_terminal_output = command_uses_top_tui(&cli);
     init_logging(suppress_terminal_output);
 
-    // Long-running monitors coordinate graceful shutdown. `vis` is a synchronous
-    // batch export, so retaining the OS default makes Ctrl-C interrupt Chromium too.
-    if !matches!(&cli.command, Commands::Vis { .. }) {
+    // Long-running monitors coordinate graceful shutdown. Batch analysis and
+    // visualization retain the OS default so Ctrl-C interrupts them directly.
+    if !matches!(
+        &cli.command,
+        Commands::Vis { .. } | Commands::Diagnose { .. }
+    ) {
         setup_signal_handler(suppress_terminal_output).await;
     }
 
     match &cli.command {
+        Commands::Diagnose {
+            path,
+            output,
+            global,
+        } => agentvis::run_diagnose(path, output, *global)?,
         Commands::Vis {
             path,
             outputs,

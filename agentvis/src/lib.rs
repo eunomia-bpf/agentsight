@@ -4,12 +4,14 @@
 //! Repository-evolution projections and self-contained visual artifacts for
 //! local AI-agent sessions.
 
+mod diagnose;
 mod export;
 mod repository;
 mod research;
 mod research_supervisor;
 mod rq1;
 
+pub use diagnose::{run_diagnose, run_diagnose_from_args};
 pub use export::{CompactRate, run_vis};
 pub use repository::{
     FileAction, RepositoryEvent, RepositoryTrace, RepositoryTraceOptions, build_repository_trace,

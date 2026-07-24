@@ -45,6 +45,10 @@ pub struct RepositoryTrace {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RepositoryEvent {
     pub id: String,
+    /// Native transcript file retained so diagnostic evidence can be inspected
+    /// without searching every local Agent history.
+    #[serde(default)]
+    pub source_file: String,
     /// Native tool-call identifier retained for source-evidence citations.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_call_id: Option<String>,
@@ -65,8 +69,18 @@ pub struct RepositoryEvent {
     #[serde(default)]
     pub session_ordinal: usize,
     pub vendor: String,
+    /// True when the native session itself belongs to this repository/worktree.
+    /// False means `--global` admitted the Tool call through an exact path
+    /// reference from a session rooted elsewhere.
+    #[serde(default)]
+    pub workspace_session: bool,
     pub ts_ms: i64,
     pub prompt_index: usize,
+    /// Exact native user-prompt preview associated by `agent-session` with
+    /// this Tool call. Kept as context for Agent readers; no semantic label is
+    /// inferred here.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub prompt_preview: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_event_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -86,6 +100,10 @@ pub struct RepositoryEvent {
     pub worktree_id: Option<String>,
     pub tool_name: String,
     pub category: String,
+    /// Source-native command or Tool input display. Diagnostics may show this
+    /// as evidence; measurements use normalized effects and file actions.
+    #[serde(default)]
+    pub command: String,
     pub command_name: String,
     /// Adapter-derived command effect such as read, write, test, or process.
     pub effect: String,
@@ -124,12 +142,9 @@ fn is_false(value: &bool) -> bool {
 pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<RepositoryTrace> {
     let repo = repository_root(&options.repo)?;
     let roots = worktree_roots(&repo);
-    let remote = git_text(&repo, &["remote", "get-url", "origin"])
-        .ok()
-        .map(|value| normalize_repository_url(&value));
     let mut candidates = discover_session_files()
         .into_iter()
-        .filter(|candidate| candidate_may_match_repo(candidate, &roots, remote.as_deref()))
+        .filter(|candidate| candidate_may_match_repo(candidate, &roots))
         .collect::<Vec<_>>();
     candidates.sort_by(|left, right| left.path.cmp(&right.path));
     let candidate_sessions_by_vendor = count_candidates_by_vendor(&candidates);
@@ -138,10 +153,11 @@ pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<Re
     let parsed_session_count = parsed.len();
     let (mut events, source_event_count) =
         scan_sessions(&candidates, parsed, &roots, options.global)?;
+    deduplicate_native_tool_calls(&mut events);
     if let Some(end_ms) = options.end_ms {
         events.retain(|event| event.ts_ms <= end_ms);
     }
-    annotate_directory_scopes(&repo, &mut events)?;
+    annotate_directory_scopes(&mut events);
     events.sort_by(|left, right| {
         (
             left.ts_ms,
@@ -220,6 +236,155 @@ fn scan_sessions(
         }
     }
     Ok(result)
+}
+
+/// Native Agent histories may retain several physical transcript files for one
+/// logical root session (for example, a continued Codex rollout copied into a
+/// later archive).  A Tool call is one observation even when that observation
+/// occurs in several of those files.
+///
+/// Prefer source-native call/event identifiers.  The fallback deliberately
+/// includes the timestamp, command, and normalized source paths: it removes
+/// byte-equivalent transcript copies without collapsing two ordinary repeated
+/// commands in the same native session.
+fn deduplicate_native_tool_calls(events: &mut Vec<RepositoryEvent>) {
+    let mut unique = BTreeMap::<String, RepositoryEvent>::new();
+    for mut event in std::mem::take(events) {
+        let identity = native_tool_identity(&event);
+        event.id = stable_identity("tool", &identity);
+        match unique.entry(identity) {
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                entry.insert(event);
+            }
+            std::collections::btree_map::Entry::Occupied(mut entry) => {
+                merge_duplicate_event(entry.get_mut(), event);
+            }
+        }
+    }
+    *events = unique.into_values().collect();
+}
+
+fn native_tool_identity(event: &RepositoryEvent) -> String {
+    let mut identity = format!("{}\u{1f}", event.native_session_id);
+    let has_native_id = if let Some(call_id) = event
+        .source_call_id
+        .as_deref()
+        .filter(|value| !value.is_empty())
+    {
+        identity.push_str("call\u{1f}");
+        identity.push_str(call_id);
+        true
+    } else if let Some(source_event_id) = event
+        .source_event_id
+        .as_deref()
+        .filter(|value| !value.is_empty())
+    {
+        identity.push_str("event\u{1f}");
+        identity.push_str(source_event_id);
+        true
+    } else {
+        identity.push_str("fallback");
+        false
+    };
+
+    // Keep a source-native ID collision from merging two different subagent
+    // calls. A continued/archive copy can rewrite its envelope timestamp, so a
+    // native ID is joined with the Agent stream and command, not the timestamp.
+    // Status and extracted actions are omitted because a later copy can contain
+    // the completed result and richer paths.
+    for field in [
+        event.source_agent_id.as_deref().unwrap_or_default(),
+        &event.tool_name,
+        &event.command,
+    ] {
+        identity.push('\u{1f}');
+        identity.push_str(field);
+    }
+    if !has_native_id {
+        identity.push('\u{1f}');
+        identity.push_str(&event.ts_ms.to_string());
+        for path in &event.source_paths {
+            identity.push('\u{1e}');
+            identity.push_str(&path.path);
+            identity.push('\u{1f}');
+            identity.push_str(&path.access);
+            identity.push('\u{1f}');
+            identity.push_str(path.previous_path.as_deref().unwrap_or_default());
+        }
+    }
+    identity
+}
+
+fn stable_identity(namespace: &str, identity: &str) -> String {
+    let mut digest = Sha256::new();
+    digest.update(namespace.as_bytes());
+    digest.update([0]);
+    digest.update(identity.as_bytes());
+    hex::encode(digest.finalize())[..16].to_string()
+}
+
+fn merge_duplicate_event(existing: &mut RepositoryEvent, duplicate: RepositoryEvent) {
+    existing.workspace_session |= duplicate.workspace_session;
+    if duplicate_event_score(&duplicate) > duplicate_event_score(existing) {
+        let workspace_session = existing.workspace_session;
+        let mut preferred = duplicate;
+        preferred.workspace_session = workspace_session;
+        std::mem::swap(existing, &mut preferred);
+        merge_duplicate_event(existing, preferred);
+        return;
+    }
+
+    if existing.prompt_preview.is_empty() {
+        existing.prompt_preview = duplicate.prompt_preview;
+    }
+    if existing.model.is_none() {
+        existing.model = duplicate.model;
+    }
+    if existing.worktree_id.is_none() {
+        existing.worktree_id = duplicate.worktree_id;
+    }
+    if existing.attribution_skill.is_none() {
+        existing.attribution_skill = duplicate.attribution_skill;
+    }
+    if existing.attribution_agent.is_none() {
+        existing.attribution_agent = duplicate.attribution_agent;
+    }
+    if existing.skill_name.is_none() {
+        existing.skill_name = duplicate.skill_name;
+    }
+    if existing.skill_args.is_none() {
+        existing.skill_args = duplicate.skill_args;
+    }
+    for path in duplicate.source_paths {
+        if !existing.source_paths.contains(&path) {
+            existing.source_paths.push(path);
+        }
+    }
+    for action in duplicate.actions {
+        if !existing.actions.iter().any(|current| {
+            current.worktree_id == action.worktree_id
+                && current.path == action.path
+                && current.access == action.access
+                && current.previous_path == action.previous_path
+                && current.previous_worktree_id == action.previous_worktree_id
+        }) {
+            existing.actions.push(action);
+        }
+    }
+    existing
+        .actions
+        .sort_by(|left, right| action_order_key(left).cmp(&action_order_key(right)));
+    for (ordinal, action) in existing.actions.iter_mut().enumerate() {
+        action.action_ordinal = ordinal;
+    }
+}
+
+fn duplicate_event_score(event: &RepositoryEvent) -> usize {
+    usize::from(event.status != "unknown") * 100
+        + event.actions.len() * 10
+        + usize::from(!event.prompt_preview.is_empty()) * 4
+        + usize::from(event.model.is_some()) * 2
+        + usize::from(event.workspace_session)
 }
 
 fn parse_candidates(candidates: &[SessionCandidate]) -> Vec<(AgentSession, usize)> {
@@ -378,7 +543,20 @@ fn append_session(
     let mut used = false;
     for (ordinal, tool) in session.events.tools.iter().enumerate() {
         let Some(ts_ms) = tool.ts_ms else { continue };
-        let tool_cwd = effective_tool_cwd(cwd.as_deref(), tool.workdir.as_deref());
+        if is_standalone_workspace_diagnose_command(&tool.command) {
+            continue;
+        }
+        let explicit_cwd = effective_tool_cwd(cwd.as_deref(), tool.workdir.as_deref());
+        let (tool_cwd, require_literal_absolute_path, rebase_preabsolutized_path) =
+            match inline_shell_cwd(&tool.command, explicit_cwd.as_deref()) {
+                InlineShellCwd::Absent => (explicit_cwd.clone(), false, false),
+                InlineShellCwd::Known(path) => (Some(path), false, true),
+                // A dynamic leading `cd "$tmpdir"` is evidence that the explicit
+                // session cwd is no longer valid, but not enough evidence to
+                // resolve relative operands. Only absolute operands literally
+                // present in the shell command remain admissible.
+                InlineShellCwd::Unknown => (None, true, false),
+            };
         let event_worktree_id = tool_cwd
             .as_deref()
             .and_then(|path| relative_to_roots(path, roots))
@@ -387,7 +565,20 @@ fn append_session(
             .paths
             .iter()
             .filter_map(|item| {
-                let path = resolve_path(&item.path, tool_cwd.as_deref(), roots)?;
+                if require_literal_absolute_path
+                    && (!Path::new(&item.path).is_absolute() || !tool.command.contains(&item.path))
+                {
+                    return None;
+                }
+                let path = resolve_tool_path(
+                    &item.path,
+                    cwd.as_deref(),
+                    explicit_cwd.as_deref(),
+                    tool_cwd.as_deref(),
+                    &tool.command,
+                    rebase_preabsolutized_path,
+                    roots,
+                )?;
                 Some(FileAction {
                     worktree_id: path.worktree_id,
                     path: path.path,
@@ -395,12 +586,32 @@ fn append_session(
                     previous_worktree_id: item
                         .previous_path
                         .as_deref()
-                        .and_then(|value| resolve_path(value, tool_cwd.as_deref(), roots))
+                        .and_then(|value| {
+                            resolve_tool_path(
+                                value,
+                                cwd.as_deref(),
+                                explicit_cwd.as_deref(),
+                                tool_cwd.as_deref(),
+                                &tool.command,
+                                rebase_preabsolutized_path,
+                                roots,
+                            )
+                        })
                         .map(|value| value.worktree_id),
                     previous_path: item
                         .previous_path
                         .as_deref()
-                        .and_then(|value| resolve_path(value, tool_cwd.as_deref(), roots))
+                        .and_then(|value| {
+                            resolve_tool_path(
+                                value,
+                                cwd.as_deref(),
+                                explicit_cwd.as_deref(),
+                                tool_cwd.as_deref(),
+                                &tool.command,
+                                rebase_preabsolutized_path,
+                                roots,
+                            )
+                        })
                         .map(|value| value.path),
                     scope: false,
                     action_ordinal: 0,
@@ -425,6 +636,7 @@ fn append_session(
         used = true;
         batch.0.push(RepositoryEvent {
             id: format!("{source_stream_id}:{ordinal}"),
+            source_file: session.path.to_string_lossy().into_owned(),
             source_call_id: tool.call_id.clone(),
             native_session_id: native_session_id.clone(),
             source_stream_id: source_stream_id.clone(),
@@ -434,8 +646,14 @@ fn append_session(
             session_id: native_session_id.clone(),
             session_ordinal: 0,
             vendor: session.agent_type.clone(),
+            workspace_session: repository_session,
             ts_ms,
             prompt_index: tool.prompt_index,
+            prompt_preview: tool
+                .prompt_index
+                .checked_sub(1)
+                .and_then(|index| session.events.prompts.get(index))
+                .map_or_else(String::new, |prompt| prompt.preview.clone()),
             source_event_id: tool.source_event_id.clone(),
             parent_event_id: tool.parent_event_id.clone(),
             model: tool.model.clone().or_else(|| session.model.clone()),
@@ -446,6 +664,7 @@ fn append_session(
             worktree_id: event_worktree_id,
             tool_name: tool.tool_name.clone(),
             category: tool.category.clone(),
+            command: tool.command.clone(),
             command_name: tool.command_name.clone(),
             effect: tool.effect.clone(),
             status: tool.status.clone(),
@@ -456,6 +675,30 @@ fn append_session(
     if used {
         batch.1 += source_count;
     }
+}
+
+fn is_standalone_workspace_diagnose_command(command: &str) -> bool {
+    let clauses = command
+        .split("&&")
+        .flat_map(|part| part.split([';', '\n']))
+        .map(str::trim)
+        .filter(|clause| {
+            !clause.is_empty() && !clause.starts_with("set ") && !shell_assignment_clause(clause)
+        })
+        .collect::<Vec<_>>();
+    !clauses.is_empty()
+        && clauses.into_iter().all(|clause| {
+            let words = clause
+                .split_whitespace()
+                .map(|word| word.trim_matches(['\'', '"']))
+                .collect::<Vec<_>>();
+            let position = usize::from(words.first().is_some_and(|word| *word == "sudo"));
+            words.get(position + 1) == Some(&"diagnose")
+                && words
+                    .get(position)
+                    .and_then(|word| word.rsplit('/').next())
+                    .is_some_and(|binary| binary == "agentvis" || binary == "agentsight")
+        })
 }
 
 fn action_order_key(action: &FileAction) -> (u8, &str, &str, &str) {
@@ -470,6 +713,93 @@ fn action_order_key(action: &FileAction) -> (u8, &str, &str, &str) {
         action.access.as_str(),
         action.previous_path.as_deref().unwrap_or(""),
     )
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum InlineShellCwd {
+    Absent,
+    Known(PathBuf),
+    Unknown,
+}
+
+fn inline_shell_cwd(command: &str, current: Option<&Path>) -> InlineShellCwd {
+    let clauses = command
+        .split("&&")
+        .flat_map(|part| part.split([';', '\n']))
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>();
+    let mut resolved = None;
+    let mut prior_command = false;
+    for clause in clauses {
+        if clause.starts_with("set ") || shell_assignment_clause(clause) {
+            continue;
+        }
+        if clause == "popd" || clause.starts_with("popd ") || clause.starts_with("pushd ") {
+            return InlineShellCwd::Unknown;
+        }
+        let Some(target) = clause.strip_prefix("cd ") else {
+            prior_command = true;
+            continue;
+        };
+        if prior_command || resolved.is_some() {
+            // One Tool call crossed cwd boundaries. ToolPath currently has no
+            // per-shell-segment ownership, so resolving every relative operand
+            // against either side would fabricate at least one association.
+            return InlineShellCwd::Unknown;
+        }
+        let Some(target) = shell_word(target.trim()) else {
+            return InlineShellCwd::Unknown;
+        };
+        if target.contains('$') || target.contains('`') || target == "-" {
+            return InlineShellCwd::Unknown;
+        }
+        let target = if target == "~" {
+            let Some(home) = dirs::home_dir() else {
+                return InlineShellCwd::Unknown;
+            };
+            home
+        } else if let Some(suffix) = target.strip_prefix("~/") {
+            let Some(home) = dirs::home_dir() else {
+                return InlineShellCwd::Unknown;
+            };
+            home.join(suffix)
+        } else {
+            PathBuf::from(target)
+        };
+        resolved = Some(if target.is_absolute() {
+            lexical(&target)
+        } else {
+            let Some(current) = current else {
+                return InlineShellCwd::Unknown;
+            };
+            lexical(&current.join(target))
+        });
+    }
+    resolved.map_or(InlineShellCwd::Absent, InlineShellCwd::Known)
+}
+
+fn shell_assignment_clause(clause: &str) -> bool {
+    let Some((name, _)) = clause.split_once('=') else {
+        return false;
+    };
+    !name.is_empty()
+        && name.chars().enumerate().all(|(index, ch)| {
+            ch == '_' || ch.is_ascii_alphabetic() || (index > 0 && ch.is_ascii_digit())
+        })
+}
+
+fn shell_word(value: &str) -> Option<&str> {
+    let value = value.trim_start();
+    let first = value.as_bytes().first().copied()?;
+    if first == b'\'' || first == b'"' {
+        let quote = first as char;
+        let rest = &value[1..];
+        let end = rest.find(quote)?;
+        Some(&rest[..end])
+    } else {
+        value.split_whitespace().next()
+    }
 }
 
 fn annotate_session_ordinals(events: &mut [RepositoryEvent]) {
@@ -584,27 +914,72 @@ fn source_stream_id(vendor: &str, native_session_id: &str, source_stem: &str) ->
     hex::encode(digest.finalize())[..16].to_string()
 }
 
-fn annotate_directory_scopes(repo: &Path, events: &mut [RepositoryEvent]) -> io::Result<()> {
-    let mut paths = git_lines(repo, &["ls-files"])?;
-    paths.extend(events.iter().flat_map(|event| {
-        event.actions.iter().flat_map(|action| {
-            std::iter::once(action.path.clone()).chain(action.previous_path.clone())
-        })
-    }));
-    let mut directories = directory_prefixes(&paths);
-    for path in &paths {
-        if repo.join(path).is_dir() {
-            directories.insert(path.trim_end_matches('/').to_string());
+fn annotate_directory_scopes(events: &mut [RepositoryEvent]) {
+    let mut directories = HashSet::<(String, String)>::new();
+    for event in events {
+        for action in &event.actions {
+            for prefix in directory_prefixes(std::slice::from_ref(&action.path)) {
+                directories.insert((action.worktree_id.clone(), prefix));
+            }
+            if let Some(previous) = &action.previous_path {
+                let worktree = action
+                    .previous_worktree_id
+                    .as_deref()
+                    .unwrap_or(&action.worktree_id);
+                for prefix in directory_prefixes(std::slice::from_ref(previous)) {
+                    directories.insert((worktree.to_string(), prefix));
+                }
+            }
+        }
+        let exact_file_tool = exact_file_tool(event);
+        let directory_tool = directory_tool(event);
+        for action in &mut event.actions {
+            let key = (
+                action.worktree_id.clone(),
+                action.path.trim_end_matches('/').to_string(),
+            );
+            if exact_file_tool {
+                directories.remove(&key);
+            }
+            let previous_is_directory = action.previous_path.as_deref().is_some_and(|path| {
+                directories.contains(&(
+                    action
+                        .previous_worktree_id
+                        .clone()
+                        .unwrap_or_else(|| action.worktree_id.clone()),
+                    path.trim_end_matches('/').to_string(),
+                ))
+            });
+            action.scope = !exact_file_tool
+                && (directory_tool || directories.contains(&key) || previous_is_directory);
+            if action.scope && action.access == "delete" {
+                directories.retain(|(worktree, path)| {
+                    worktree != &key.0
+                        || (path != &key.1 && !path.starts_with(&format!("{}/", key.1)))
+                });
+            }
         }
     }
-    for action in events.iter_mut().flat_map(|event| &mut event.actions) {
-        action.scope = directories.contains(action.path.trim_end_matches('/'))
-            || action
-                .previous_path
-                .as_deref()
-                .is_some_and(|path| directories.contains(path.trim_end_matches('/')));
-    }
-    Ok(())
+}
+
+fn exact_file_tool(event: &RepositoryEvent) -> bool {
+    let name = event.tool_name.to_ascii_lowercase();
+    event.category == "edit"
+        || matches!(
+            name.as_str(),
+            "read" | "edit" | "write" | "multiedit" | "notebookedit" | "apply_patch"
+        )
+        || matches!(
+            event.command_name.as_str(),
+            "cat" | "sed" | "head" | "tail" | "touch" | "truncate"
+        )
+}
+
+fn directory_tool(event: &RepositoryEvent) -> bool {
+    matches!(
+        event.command_name.as_str(),
+        "ls" | "find" | "fd" | "tree" | "mkdir" | "rmdir"
+    )
 }
 
 fn directory_prefixes(paths: &[String]) -> HashSet<String> {
@@ -621,11 +996,7 @@ fn directory_prefixes(paths: &[String]) -> HashSet<String> {
     directories
 }
 
-fn candidate_may_match_repo(
-    candidate: &SessionCandidate,
-    roots: &[PathBuf],
-    remote: Option<&str>,
-) -> bool {
+fn candidate_may_match_repo(candidate: &SessionCandidate, roots: &[PathBuf]) -> bool {
     match candidate.agent {
         AGENT_CLAUDE => {
             candidate_cwd_matches(&candidate.path, roots)
@@ -639,17 +1010,10 @@ fn candidate_may_match_repo(
             let Some(row) = serde_json::from_str::<serde_json::Value>(line).ok() else {
                 return false;
             };
-            let cwd_matches = row
-                .pointer("/payload/cwd")
+            row.pointer("/payload/cwd")
                 .and_then(|value| value.as_str())
                 .map(PathBuf::from)
-                .is_some_and(|cwd| roots.iter().any(|root| cwd.starts_with(root)));
-            let remote_matches = remote.is_some_and(|expected| {
-                row.pointer("/payload/git/repository_url")
-                    .and_then(|value| value.as_str())
-                    .is_some_and(|value| normalize_repository_url(value) == expected)
-            });
-            cwd_matches || remote_matches
+                .is_some_and(|cwd| roots.iter().any(|root| cwd.starts_with(root)))
         }),
         AGENT_GEMINI => gemini_project_hash(&candidate.path)
             .is_some_and(|project| roots.iter().any(|root| repository_hash(root) == project)),
@@ -717,20 +1081,6 @@ fn repository_hash(root: &Path) -> String {
     hex::encode(Sha256::digest(root.to_string_lossy().as_bytes()))
 }
 
-fn normalize_repository_url(value: &str) -> String {
-    let value = value
-        .trim()
-        .trim_end_matches('/')
-        .trim_end_matches(".git")
-        .to_ascii_lowercase();
-    value
-        .strip_prefix("git@")
-        .and_then(|rest| rest.split_once(':'))
-        .map_or(value.clone(), |(host, path)| {
-            format!("https://{host}/{path}")
-        })
-}
-
 fn behavior_sessions(
     roots: &[PathBuf],
     excluded: &HashSet<PathBuf>,
@@ -770,7 +1120,7 @@ fn behavior_sessions(
         .stdout
         .take()
         .ok_or_else(|| io::Error::other("ripgrep session scan returned no stdout"))?;
-    let mut selected = HashMap::<PathBuf, Vec<String>>::new();
+    let mut selected = HashSet::<PathBuf>::new();
     for line in BufReader::new(stdout).lines() {
         let line = line?;
         let Ok(row) = serde_json::from_str::<serde_json::Value>(&line) else {
@@ -791,7 +1141,7 @@ fn behavior_sessions(
         if !tool_call && !path.contains("/.gemini/") {
             continue;
         }
-        selected.entry(path.into()).or_default().push(text.into());
+        selected.insert(path.into());
     }
     let status = child.wait()?;
     if !status.success() && status.code() != Some(1) {
@@ -799,25 +1149,13 @@ fn behavior_sessions(
             "ripgrep global session scan failed with {status}"
         )));
     }
-    Ok(selected
+    let mut candidates = selected
         .into_iter()
-        .filter(|(path, _)| !excluded.contains(path))
-        .filter_map(|(path, lines)| {
-            let candidate = session_candidate_from_path(&path)?;
-            if candidate.agent == AGENT_GEMINI {
-                return repository_session(&candidate);
-            }
-            let content = lines.concat();
-            let session = parse_session_content(
-                candidate.agent,
-                &candidate.path,
-                candidate.updated,
-                &content,
-            )?;
-            let count = session.events.tools.len();
-            Some((session, count))
-        })
-        .collect())
+        .filter(|path| !excluded.contains(path))
+        .filter_map(|path| session_candidate_from_path(&path))
+        .collect::<Vec<_>>();
+    candidates.sort_by(|left, right| left.path.cmp(&right.path));
+    Ok(parse_candidates(&candidates))
 }
 
 fn session_header(path: &Path) -> String {
@@ -876,6 +1214,37 @@ fn effective_tool_cwd(session_cwd: Option<&Path>, tool_workdir: Option<&str>) ->
         return Some(lexical(workdir));
     }
     Some(lexical(&session_cwd?.join(workdir)))
+}
+
+fn resolve_tool_path(
+    raw: &str,
+    session_cwd: Option<&Path>,
+    explicit_cwd: Option<&Path>,
+    tool_cwd: Option<&Path>,
+    command: &str,
+    rebase_preabsolutized: bool,
+    roots: &[PathBuf],
+) -> Option<ResolvedPath> {
+    let path = Path::new(raw.trim().trim_matches(['"', '\'', '`']));
+    if rebase_preabsolutized
+        && path.is_absolute()
+        && !command.contains(raw)
+        && let (Some(explicit), Some(scoped)) = (explicit_cwd, tool_cwd)
+        && let Ok(relative) = path.strip_prefix(explicit)
+    {
+        return relative_to_roots(&scoped.join(relative), roots);
+    }
+    if rebase_preabsolutized
+        && path.is_relative()
+        && !command.contains(raw)
+        && let (Some(session), Some(explicit), Some(scoped)) = (session_cwd, explicit_cwd, tool_cwd)
+        && let Ok(prefix) = explicit.strip_prefix(session)
+        && !prefix.as_os_str().is_empty()
+        && let Ok(relative) = path.strip_prefix(prefix)
+    {
+        return relative_to_roots(&scoped.join(relative), roots);
+    }
+    resolve_path(raw, tool_cwd, roots)
 }
 
 fn resolve_path(raw: &str, cwd: Option<&Path>, roots: &[PathBuf]) -> Option<ResolvedPath> {
@@ -1087,6 +1456,46 @@ mod tests {
     }
 
     #[test]
+    fn copied_native_transcripts_do_not_duplicate_tool_calls() {
+        let mut first_tool = tool(
+            1,
+            "unknown",
+            vec![ToolPath {
+                path: "src/lib.rs".into(),
+                access: "write".into(),
+                previous_path: None,
+            }],
+        );
+        first_tool.call_id = Some("call-shared".into());
+        let mut first = session(vec![first_tool]);
+        first.path = "/sessions/rollout-one.jsonl".into();
+
+        let mut complete_tool = tool(
+            2,
+            "ok",
+            vec![ToolPath {
+                path: "src/lib.rs".into(),
+                access: "write".into(),
+                previous_path: None,
+            }],
+        );
+        complete_tool.call_id = Some("call-shared".into());
+        let mut complete = session(vec![complete_tool]);
+        complete.path = "/sessions/rollout-two.jsonl".into();
+
+        let mut batch = (Vec::new(), 0);
+        append_session(&first, 1, &["/repo".into()], true, &mut batch);
+        append_session(&complete, 1, &["/repo".into()], true, &mut batch);
+        deduplicate_native_tool_calls(&mut batch.0);
+
+        assert_eq!(batch.0.len(), 1);
+        assert_eq!(batch.0[0].status, "ok");
+        assert_eq!(batch.0[0].source_call_id.as_deref(), Some("call-shared"));
+        assert_eq!(batch.0[0].actions.len(), 1);
+        assert_eq!(batch.0[0].id.len(), 16);
+    }
+
+    #[test]
     fn nested_worktree_root_wins_over_parent_repository() {
         let roots = vec![
             PathBuf::from("/repo/.worktrees/feature"),
@@ -1113,6 +1522,202 @@ mod tests {
             effective_tool_cwd(Some(Path::new("/repo")), None),
             Some(PathBuf::from("/repo"))
         );
+    }
+
+    #[test]
+    fn leading_shell_cd_scopes_relative_paths_before_repository_projection() {
+        assert_eq!(
+            inline_shell_cwd(
+                "cd /tmp/scratch && mkdir -p fake/docs",
+                Some(Path::new("/repo"))
+            ),
+            InlineShellCwd::Known(PathBuf::from("/tmp/scratch"))
+        );
+        assert_eq!(
+            inline_shell_cwd("set -e\ncd nested && cargo test", Some(Path::new("/repo"))),
+            InlineShellCwd::Known(PathBuf::from("/repo/nested"))
+        );
+        assert_eq!(
+            inline_shell_cwd("cd \"$tmpdir\" && touch fake.rs", Some(Path::new("/repo"))),
+            InlineShellCwd::Unknown
+        );
+        assert_eq!(
+            inline_shell_cwd(
+                "tmpdir=$(mktemp -d); cd \"$tmpdir\"; touch fake.rs",
+                Some(Path::new("/repo"))
+            ),
+            InlineShellCwd::Unknown
+        );
+        assert_eq!(
+            inline_shell_cwd(
+                "label=fixture; cd /tmp/scratch; touch fake.rs",
+                Some(Path::new("/repo"))
+            ),
+            InlineShellCwd::Known(PathBuf::from("/tmp/scratch"))
+        );
+        assert_eq!(
+            inline_shell_cwd(
+                "echo preparing; cd /tmp/scratch; touch fake.rs",
+                Some(Path::new("/repo"))
+            ),
+            InlineShellCwd::Unknown
+        );
+        assert_eq!(
+            inline_shell_cwd(
+                "cd /tmp/first; cd /tmp/second; touch fake.rs",
+                Some(Path::new("/repo"))
+            ),
+            InlineShellCwd::Unknown
+        );
+        assert_eq!(
+            inline_shell_cwd(
+                "pushd /tmp/scratch; touch fake.rs",
+                Some(Path::new("/repo"))
+            ),
+            InlineShellCwd::Unknown
+        );
+        assert_eq!(
+            inline_shell_cwd("cargo test", Some(Path::new("/repo"))),
+            InlineShellCwd::Absent
+        );
+
+        let mut outside = tool(
+            1,
+            "ok",
+            vec![ToolPath {
+                path: "fake/docs/output.md".into(),
+                access: "create".into(),
+                previous_path: None,
+            }],
+        );
+        outside.command = "cd /tmp/scratch && mkdir -p fake/docs".into();
+        let mut dynamic = tool(
+            2,
+            "ok",
+            vec![ToolPath {
+                path: "fake.rs".into(),
+                access: "create".into(),
+                previous_path: None,
+            }],
+        );
+        dynamic.command = "cd \"$tmpdir\" && touch fake.rs".into();
+        let mut preabsolutized_dynamic = tool(
+            3,
+            "ok",
+            vec![ToolPath {
+                path: "/repo/fake.rs".into(),
+                access: "create".into(),
+                previous_path: None,
+            }],
+        );
+        preabsolutized_dynamic.command = "cd \"$tmpdir\" && touch fake.rs".into();
+        let mut inside = tool(
+            4,
+            "ok",
+            vec![ToolPath {
+                // `agent-session` may already have joined this relative shell
+                // operand to Tool workdir; repository scoping must still
+                // apply the literal leading `cd nested`.
+                path: "/repo/src/lib.rs".into(),
+                access: "read".into(),
+                previous_path: None,
+            }],
+        );
+        inside.command = "cd nested && sed -n 1,20p src/lib.rs".into();
+        let mut relative_workdir = tool(
+            5,
+            "ok",
+            vec![ToolPath {
+                path: "nested/src/lib.rs".into(),
+                access: "read".into(),
+                previous_path: None,
+            }],
+        );
+        relative_workdir.workdir = Some("nested".into());
+        relative_workdir.command = "cd sub && cat src/lib.rs".into();
+        let mut batch = (Vec::new(), 0);
+        append_session(
+            &session(vec![
+                outside,
+                dynamic,
+                preabsolutized_dynamic,
+                inside,
+                relative_workdir,
+            ]),
+            5,
+            &["/repo".into()],
+            true,
+            &mut batch,
+        );
+        assert!(batch.0[0].actions.is_empty());
+        assert!(batch.0[1].actions.is_empty());
+        assert!(batch.0[2].actions.is_empty());
+        assert_eq!(batch.0[3].actions[0].path, "nested/src/lib.rs");
+        assert_eq!(batch.0[4].actions[0].path, "nested/sub/src/lib.rs");
+    }
+
+    #[test]
+    fn directory_scope_is_action_time_local_across_file_directory_conversion() {
+        let mut file_before = tool(
+            1,
+            "ok",
+            vec![ToolPath {
+                path: "node".into(),
+                access: "write".into(),
+                previous_path: None,
+            }],
+        );
+        file_before.tool_name = "Write".into();
+        file_before.category = "edit".into();
+        let mut child = tool(
+            2,
+            "ok",
+            vec![ToolPath {
+                path: "node/child.rs".into(),
+                access: "read".into(),
+                previous_path: None,
+            }],
+        );
+        child.tool_name = "Read".into();
+        let mut file_after = tool(
+            3,
+            "ok",
+            vec![ToolPath {
+                path: "node".into(),
+                access: "write".into(),
+                previous_path: None,
+            }],
+        );
+        file_after.tool_name = "Write".into();
+        file_after.category = "edit".into();
+        let mut batch = (Vec::new(), 0);
+        append_session(
+            &session(vec![file_before, child, file_after]),
+            3,
+            &["/repo".into()],
+            true,
+            &mut batch,
+        );
+        annotate_directory_scopes(&mut batch.0);
+        assert!(!batch.0[0].actions[0].scope);
+        assert!(!batch.0[1].actions[0].scope);
+        assert!(!batch.0[2].actions[0].scope);
+    }
+
+    #[test]
+    fn diagnose_invocation_does_not_observe_itself() {
+        assert!(is_standalone_workspace_diagnose_command(
+            "/tmp/target/release/agentvis diagnose /repo --global"
+        ));
+        assert!(is_standalone_workspace_diagnose_command(
+            "./agentsight diagnose . -o output/brief.md"
+        ));
+        assert!(!is_standalone_workspace_diagnose_command(
+            "rg -n 'agentsight diagnose' docs/usage.md"
+        ));
+        assert!(!is_standalone_workspace_diagnose_command(
+            "cargo test && ./agentsight diagnose ."
+        ));
     }
 
     #[test]
@@ -1233,5 +1838,6 @@ mod tests {
         append_session(&value, 2, &["/repo".into()], false, &mut batch);
         assert_eq!(batch.0.len(), 1);
         assert_eq!(batch.0[0].ts_ms, 2);
+        assert!(!batch.0[0].workspace_session);
     }
 }

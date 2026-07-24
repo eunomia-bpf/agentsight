@@ -107,3 +107,44 @@ by action index; use `--compact-rate full` for one media frame per action. HTML
 always keeps the full action timeline.
 See [the Chinese algorithm specification](repository-nebula.zh-CN.md) for the
 event boundary, force model, frame count, and export invariants.
+
+## Diagnose a long-running workspace
+
+`diagnose` computes a compact Markdown brief for another Agent to inspect. It
+uses the same Claude, Codex, and Gemini session discovery as `vis`, but reports
+source-linked process signals rather than rendering media:
+
+```sh
+cd your-repository
+agentsight diagnose
+```
+
+The default output is `output/trajectory-brief.md`. It covers the
+inspect–mutate–validate action sequence, pre-mutation inspection, module
+migration, artifact revival, repeated changes, validation lag and carryover,
+one-touch artifacts, documentation reuse, open and mutation-closed exploration
+spans, and explicit Skill-associated session footprints. A signal is a place
+to inspect, not an automatic claim that the Agent failed or wasted work; each
+section states its interpretation boundary and cites the native transcript and
+Tool call. When available, evidence also carries the associated native user
+prompt preview so the next Agent can distinguish a user correction from an
+unprompted change without scanning the entire transcript.
+
+Continued and archived transcript files can contain the same native Tool call.
+`diagnose` deduplicates those copies by source-native call/event identity before
+computing patterns. Coverage prints both raw parsed Tool/LLM records and unique
+retained Tool calls so the boundary is visible.
+
+Use `-o output/trajectory-brief.json` for complete machine-readable session and
+transition rows, or add `--global` to admit externally rooted sessions whose
+file operations target the repository. Read-only external roots stay out of
+the mutation-driven pre-mutation-inspection and module-transition sequence;
+roots that mutate the repository remain evolution evidence. A root-external
+session may be a delegated subagent intentionally working on the repository, so
+access is not labelled an independent consumer or causal reuse.
+The source-snapshot fingerprint in each output distinguishes changing live
+histories.
+
+Validation relations are deliberately conservative: a successful recognized
+check closes pending mutations in the same worktree only as a temporal
+association. It does not prove per-file coverage or correctness.
