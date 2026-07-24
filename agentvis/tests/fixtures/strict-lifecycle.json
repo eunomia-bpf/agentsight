@@ -1,0 +1,136 @@
+[
+  {
+    "name": "failed-create-cannot-revive-after-confirmed-generation",
+    "steps": [
+      {
+        "path": "artifact",
+        "access": "create",
+        "confirmed": false,
+        "previous_path": null,
+        "artifact_id": "artifact#0"
+      },
+      {
+        "path": "artifact",
+        "access": "create",
+        "confirmed": true,
+        "previous_path": null,
+        "artifact_id": "artifact#1"
+      },
+      {
+        "path": "artifact",
+        "access": "delete",
+        "confirmed": true,
+        "previous_path": null,
+        "artifact_id": "artifact#1"
+      },
+      {
+        "path": "artifact",
+        "access": "read",
+        "confirmed": true,
+        "previous_path": null,
+        "artifact_id": "artifact#2"
+      }
+    ]
+  },
+  {
+    "name": "failed-rename-does-not-transfer-persistent-identity",
+    "steps": [
+      {
+        "path": "old",
+        "access": "rename_from",
+        "confirmed": false,
+        "previous_path": null,
+        "artifact_id": "old#0"
+      },
+      {
+        "path": "new",
+        "access": "rename",
+        "confirmed": false,
+        "previous_path": "old",
+        "artifact_id": "new#0"
+      }
+    ]
+  },
+  {
+    "name": "same-worktree-rename-preserves-identity",
+    "steps": [
+      {
+        "worktree": "w1",
+        "path": "old",
+        "access": "create",
+        "confirmed": true,
+        "previous_path": null,
+        "previous_worktree": null,
+        "artifact_id": "old#0"
+      },
+      {
+        "worktree": "w1",
+        "path": "old",
+        "access": "rename_from",
+        "confirmed": true,
+        "previous_path": null,
+        "previous_worktree": null,
+        "artifact_id": "old#0"
+      },
+      {
+        "worktree": "w1",
+        "path": "new",
+        "access": "rename",
+        "confirmed": true,
+        "previous_path": "old",
+        "previous_worktree": "w1",
+        "artifact_id": "old#0"
+      },
+      {
+        "worktree": "w1",
+        "path": "new",
+        "access": "read",
+        "confirmed": true,
+        "previous_path": null,
+        "previous_worktree": null,
+        "artifact_id": "old#0"
+      }
+    ]
+  },
+  {
+    "name": "cross-worktree-rename-does-not-transfer-identity",
+    "steps": [
+      {
+        "worktree": "w1",
+        "path": "old",
+        "access": "create",
+        "confirmed": true,
+        "previous_path": null,
+        "previous_worktree": null,
+        "artifact_id": "old#0"
+      },
+      {
+        "worktree": "w1",
+        "path": "old",
+        "access": "rename_from",
+        "confirmed": true,
+        "previous_path": null,
+        "previous_worktree": null,
+        "artifact_id": "old#0"
+      },
+      {
+        "worktree": "w2",
+        "path": "new",
+        "access": "rename",
+        "confirmed": true,
+        "previous_path": "old",
+        "previous_worktree": "w1",
+        "artifact_id": "new#0"
+      },
+      {
+        "worktree": "w1",
+        "path": "old",
+        "access": "read",
+        "confirmed": true,
+        "previous_path": null,
+        "previous_worktree": null,
+        "artifact_id": "old#0"
+      }
+    ]
+  }
+]

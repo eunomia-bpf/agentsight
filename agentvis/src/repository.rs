@@ -53,11 +53,17 @@ pub struct RepositoryEvent {
     pub native_session_id: String,
     /// Stable identity of the source transcript file/stream.
     pub source_stream_id: String,
+    /// Tool-call appearance order within the source transcript.
+    #[serde(default)]
+    pub source_tool_ordinal: usize,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_role: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_agent_id: Option<String>,
     pub session_id: String,
+    /// Production-derived ordering of native root sessions.
+    #[serde(default)]
+    pub session_ordinal: usize,
     pub vendor: String,
     pub ts_ms: i64,
     pub prompt_index: usize,
@@ -103,6 +109,12 @@ pub struct FileAction {
     pub previous_worktree_id: Option<String>,
     #[serde(default, skip_serializing_if = "is_false")]
     pub scope: bool,
+    /// Canonical order within one Tool call.
+    #[serde(default)]
+    pub action_ordinal: usize,
+    /// Production-derived artifact generation identity.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub artifact_id: String,
 }
 
 fn is_false(value: &bool) -> bool {
@@ -130,10 +142,25 @@ pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<Re
         events.retain(|event| event.ts_ms <= end_ms);
     }
     annotate_directory_scopes(&repo, &mut events)?;
-    events.sort_by(|left, right| (left.ts_ms, &left.id).cmp(&(right.ts_ms, &right.id)));
+    events.sort_by(|left, right| {
+        (
+            left.ts_ms,
+            &left.source_stream_id,
+            left.source_tool_ordinal,
+            &left.id,
+        )
+            .cmp(&(
+                right.ts_ms,
+                &right.source_stream_id,
+                right.source_tool_ordinal,
+                &right.id,
+            ))
+    });
+    annotate_session_ordinals(&mut events);
+    annotate_artifact_ids(&mut events);
     let session_count = events
         .iter()
-        .map(|event| &event.session_id)
+        .map(|event| &event.native_session_id)
         .collect::<HashSet<_>>()
         .len();
     let included_sessions_by_vendor = count_included_sessions_by_vendor(&events);
@@ -244,7 +271,7 @@ fn count_included_sessions_by_vendor(events: &[RepositoryEvent]) -> BTreeMap<Str
         sessions
             .entry(event.vendor.clone())
             .or_default()
-            .insert(event.session_id.clone());
+            .insert(event.native_session_id.clone());
     }
     sessions
         .into_iter()
@@ -341,17 +368,13 @@ fn append_session(
                     .cloned()
             })
         });
-    let session_id = format!(
-        "{}:{}",
-        session.agent_type,
-        session
-            .path
-            .file_stem()
-            .and_then(|value| value.to_str())
-            .unwrap_or(&session.session_id)
-    );
     let native_session_id = format!("{}:{}", session.agent_type, session.session_id);
-    let source_stream_id = source_stream_id(&session.path);
+    let source_stem = session
+        .path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or(&session.session_id);
+    let source_stream_id = source_stream_id(&session.agent_type, &session.session_id, source_stem);
     let mut used = false;
     for (ordinal, tool) in session.events.tools.iter().enumerate() {
         let Some(ts_ms) = tool.ts_ms else { continue };
@@ -360,44 +383,56 @@ fn append_session(
             .as_deref()
             .and_then(|path| relative_to_roots(path, roots))
             .map(|path| path.worktree_id);
-        let actions = if tool.status == "fail" {
-            BTreeSet::new()
-        } else {
-            tool.paths
-                .iter()
-                .filter_map(|item| {
-                    let path = resolve_path(&item.path, tool_cwd.as_deref(), roots)?;
-                    (!ignored_path(&path.path)).then_some(FileAction {
-                        worktree_id: path.worktree_id,
-                        path: path.path,
-                        access: item.access.clone(),
-                        previous_worktree_id: item
-                            .previous_path
-                            .as_deref()
-                            .and_then(|value| resolve_path(value, tool_cwd.as_deref(), roots))
-                            .map(|value| value.worktree_id),
-                        previous_path: item
-                            .previous_path
-                            .as_deref()
-                            .and_then(|value| resolve_path(value, tool_cwd.as_deref(), roots))
-                            .map(|value| value.path),
-                        scope: false,
-                    })
+        let mut actions = tool
+            .paths
+            .iter()
+            .filter_map(|item| {
+                let path = resolve_path(&item.path, tool_cwd.as_deref(), roots)?;
+                Some(FileAction {
+                    worktree_id: path.worktree_id,
+                    path: path.path,
+                    access: item.access.clone(),
+                    previous_worktree_id: item
+                        .previous_path
+                        .as_deref()
+                        .and_then(|value| resolve_path(value, tool_cwd.as_deref(), roots))
+                        .map(|value| value.worktree_id),
+                    previous_path: item
+                        .previous_path
+                        .as_deref()
+                        .and_then(|value| resolve_path(value, tool_cwd.as_deref(), roots))
+                        .map(|value| value.path),
+                    scope: false,
+                    action_ordinal: 0,
+                    artifact_id: String::new(),
                 })
-                .collect::<BTreeSet<_>>()
-        };
+            })
+            .collect::<Vec<_>>();
+        actions.sort_by(|left, right| action_order_key(left).cmp(&action_order_key(right)));
+        actions.dedup_by(|left, right| {
+            left.worktree_id == right.worktree_id
+                && left.path == right.path
+                && left.access == right.access
+                && left.previous_path == right.previous_path
+                && left.previous_worktree_id == right.previous_worktree_id
+        });
+        for (action_ordinal, action) in actions.iter_mut().enumerate() {
+            action.action_ordinal = action_ordinal;
+        }
         if !repository_session && actions.is_empty() {
             continue;
         }
         used = true;
         batch.0.push(RepositoryEvent {
-            id: format!("{session_id}:{ordinal}"),
+            id: format!("{source_stream_id}:{ordinal}"),
             source_call_id: tool.call_id.clone(),
             native_session_id: native_session_id.clone(),
             source_stream_id: source_stream_id.clone(),
+            source_tool_ordinal: ordinal,
             source_role: session.source_role.clone(),
             source_agent_id: session.source_agent_id.clone(),
-            session_id: session_id.clone(),
+            session_id: native_session_id.clone(),
+            session_ordinal: 0,
             vendor: session.agent_type.clone(),
             ts_ms,
             prompt_index: tool.prompt_index,
@@ -415,7 +450,7 @@ fn append_session(
             effect: tool.effect.clone(),
             status: tool.status.clone(),
             source_paths: tool.paths.clone(),
-            actions: actions.into_iter().collect(),
+            actions,
         });
     }
     if used {
@@ -423,8 +458,130 @@ fn append_session(
     }
 }
 
-fn source_stream_id(path: &Path) -> String {
-    hex::encode(Sha256::digest(path.to_string_lossy().as_bytes()))[..16].to_string()
+fn action_order_key(action: &FileAction) -> (u8, &str, &str, &str) {
+    let priority = match action.access.as_str() {
+        "rename_from" => 0,
+        "rename" => 1,
+        _ => 2,
+    };
+    (
+        priority,
+        action.path.as_str(),
+        action.access.as_str(),
+        action.previous_path.as_deref().unwrap_or(""),
+    )
+}
+
+fn annotate_session_ordinals(events: &mut [RepositoryEvent]) {
+    let mut first = BTreeMap::<String, i64>::new();
+    for event in events.iter() {
+        first
+            .entry(event.native_session_id.clone())
+            .and_modify(|value| *value = (*value).min(event.ts_ms))
+            .or_insert(event.ts_ms);
+    }
+    let mut sessions = first.into_iter().collect::<Vec<_>>();
+    sessions.sort_by(|left, right| (left.1, &left.0).cmp(&(right.1, &right.0)));
+    let ordinals = sessions
+        .into_iter()
+        .enumerate()
+        .map(|(ordinal, (session, _))| (session, ordinal))
+        .collect::<HashMap<_, _>>();
+    for event in events {
+        event.session_ordinal = ordinals[&event.native_session_id];
+    }
+}
+
+#[derive(Default)]
+struct ArtifactIds {
+    current: HashMap<(String, String), String>,
+    attempted: HashMap<(String, String), String>,
+    generations: HashMap<(String, String), usize>,
+}
+
+impl ArtifactIds {
+    fn new_id(&mut self, worktree: &str, path: &str) -> String {
+        let key = (worktree.to_string(), path.to_string());
+        let generation = self.generations.entry(key).or_default();
+        let identity = format!("{path}#{generation}");
+        *generation += 1;
+        identity
+    }
+
+    fn resolve(&mut self, action: &FileAction, confirmed: bool) -> String {
+        let key = (action.worktree_id.clone(), action.path.clone());
+        if action.access == "rename"
+            && confirmed
+            && let Some(previous) = &action.previous_path
+        {
+            let previous_worktree = action
+                .previous_worktree_id
+                .as_deref()
+                .unwrap_or(&action.worktree_id);
+            if previous_worktree == action.worktree_id {
+                let previous_key = (previous_worktree.to_string(), previous.clone());
+                let identity = self
+                    .current
+                    .remove(&previous_key)
+                    .or_else(|| self.attempted.remove(&previous_key))
+                    .unwrap_or_else(|| self.new_id(previous_worktree, previous));
+                self.current.insert(key.clone(), identity.clone());
+                self.attempted.remove(&key);
+                return identity;
+            }
+        }
+        if !confirmed {
+            if let Some(identity) = self.current.get(&key) {
+                return identity.clone();
+            }
+            if let Some(identity) = self.attempted.get(&key) {
+                return identity.clone();
+            }
+            let identity = self.new_id(&action.worktree_id, &action.path);
+            self.attempted.insert(key, identity.clone());
+            return identity;
+        }
+        let identity = if let Some(identity) = self.current.get(&key) {
+            identity.clone()
+        } else {
+            let identity = if action.access == "create" {
+                self.new_id(&action.worktree_id, &action.path)
+            } else {
+                self.attempted
+                    .remove(&key)
+                    .unwrap_or_else(|| self.new_id(&action.worktree_id, &action.path))
+            };
+            self.current.insert(key.clone(), identity.clone());
+            identity
+        };
+        // A confirmed effect supersedes any identity that existed only as a
+        // failed/unknown attempt.  Otherwise a later delete could expose and
+        // incorrectly revive that stale attempted generation.
+        self.attempted.remove(&key);
+        if action.access == "delete" {
+            self.current.remove(&key);
+        }
+        identity
+    }
+}
+
+fn annotate_artifact_ids(events: &mut [RepositoryEvent]) {
+    let mut tracker = ArtifactIds::default();
+    for event in events {
+        for action in &mut event.actions {
+            action.artifact_id = tracker.resolve(action, event.status == "ok");
+        }
+    }
+}
+
+fn source_stream_id(vendor: &str, native_session_id: &str, source_stem: &str) -> String {
+    let mut digest = Sha256::new();
+    digest.update(vendor.as_bytes());
+    digest.update([0]);
+    digest.update(native_session_id.as_bytes());
+    digest.update([0]);
+    digest.update(source_stem.as_bytes());
+    hex::encode(digest.finalize())[..16].to_string()
 }
 
 fn annotate_directory_scopes(repo: &Path, events: &mut [RepositoryEvent]) -> io::Result<()> {
@@ -470,11 +627,14 @@ fn candidate_may_match_repo(
     remote: Option<&str>,
 ) -> bool {
     match candidate.agent {
-        AGENT_CLAUDE => claude_project_name(&candidate.path).is_some_and(|project| {
-            roots
-                .iter()
-                .any(|root| encoded_claude_root(root) == project)
-        }),
+        AGENT_CLAUDE => {
+            candidate_cwd_matches(&candidate.path, roots)
+                || claude_project_name(&candidate.path).is_some_and(|project| {
+                    roots
+                        .iter()
+                        .any(|root| encoded_claude_root(root) == project)
+                })
+        }
         AGENT_CODEX => session_header(&candidate.path).lines().any(|line| {
             let Some(row) = serde_json::from_str::<serde_json::Value>(line).ok() else {
                 return false;
@@ -495,6 +655,32 @@ fn candidate_may_match_repo(
             .is_some_and(|project| roots.iter().any(|root| repository_hash(root) == project)),
         _ => false,
     }
+}
+
+fn candidate_cwd_matches(path: &Path, roots: &[PathBuf]) -> bool {
+    let Ok(file) = std::fs::File::open(path) else {
+        return false;
+    };
+    let mut reader = BufReader::new(file);
+    let mut line = String::new();
+    let mut bytes = 0usize;
+    while bytes < 256 * 1024 && reader.read_line(&mut line).is_ok_and(|read| read > 0) {
+        bytes += line.len();
+        let matched = serde_json::from_str::<serde_json::Value>(&line)
+            .ok()
+            .and_then(|row| {
+                row.get("cwd")
+                    .or_else(|| row.pointer("/payload/cwd"))
+                    .and_then(|value| value.as_str())
+                    .map(PathBuf::from)
+            })
+            .is_some_and(|cwd| roots.iter().any(|root| cwd.starts_with(root)));
+        if matched {
+            return true;
+        }
+        line.clear();
+    }
+    false
 }
 
 fn encoded_claude_root(root: &Path) -> String {
@@ -694,7 +880,11 @@ fn effective_tool_cwd(session_cwd: Option<&Path>, tool_workdir: Option<&str>) ->
 
 fn resolve_path(raw: &str, cwd: Option<&Path>, roots: &[PathBuf]) -> Option<ResolvedPath> {
     let raw = raw.trim().trim_matches(['"', '\'', '`']);
-    if raw.is_empty() || raw.contains(['*', '$', '\n', '\r']) {
+    if raw.is_empty()
+        || raw
+            .chars()
+            .any(|character| "$*?[]{}<>\n\r".contains(character))
+    {
         return None;
     }
     let path = Path::new(raw);
@@ -733,11 +923,6 @@ fn lexical(path: &Path) -> PathBuf {
         }
     }
     output
-}
-
-fn ignored_path(path: &str) -> bool {
-    path.split('/')
-        .any(|part| matches!(part, ".git" | "node_modules" | "target" | ".cache"))
 }
 
 pub(crate) fn git_lines(repo: &Path, args: &[&str]) -> io::Result<Vec<String>> {
@@ -840,12 +1025,6 @@ mod tests {
     }
 
     #[test]
-    fn ignored_dependencies_do_not_become_stars() {
-        assert!(ignored_path("frontend/node_modules/a.js"));
-        assert!(!ignored_path("collector/src/main.rs"));
-    }
-
-    #[test]
     fn path_prefixes_identify_directories_without_turning_files_into_scopes() {
         let paths = vec![
             "src/main.rs".into(),
@@ -878,6 +1057,32 @@ mod tests {
         assert_ne!(
             claude_project_name(sibling),
             Some(encoded_claude_root(root))
+        );
+    }
+
+    #[test]
+    fn claude_candidate_cwd_handles_dotted_repository_names() {
+        let path = std::env::temp_dir().join(format!(
+            "agentsight-claude-cwd-{}.jsonl",
+            std::process::id()
+        ));
+        std::fs::write(
+            &path,
+            r#"{"type":"user","cwd":"/home/user/eunomia.dev","sessionId":"s"}"#,
+        )
+        .expect("write fixture");
+        assert!(candidate_cwd_matches(
+            &path,
+            &[PathBuf::from("/home/user/eunomia.dev")]
+        ));
+        std::fs::remove_file(path).expect("remove fixture");
+    }
+
+    #[test]
+    fn source_stream_identity_is_archive_location_independent() {
+        assert_eq!(
+            source_stream_id("claude", "abc", "file"),
+            "9e5577cec53a8c58"
         );
     }
 
@@ -938,11 +1143,76 @@ mod tests {
         let mut batch = (Vec::new(), 0);
         append_session(&value, 7, &["/repo".into()], true, &mut batch);
         assert_eq!(batch.0.len(), 3);
-        assert!(batch.0[0].actions.is_empty());
+        assert_eq!(batch.0[0].status, "fail");
+        assert_eq!(batch.0[0].actions[0].path, "src/failed.rs");
         assert!(batch.0[1].actions.is_empty());
         assert_eq!(batch.0[2].actions[0].path, "src/read.rs");
         assert_eq!(batch.0[2].source_call_id.as_deref(), Some("toolu_source"));
+        assert_eq!(batch.0[2].source_tool_ordinal, 2);
         assert_eq!(batch.1, 7);
+    }
+
+    #[test]
+    fn rename_actions_have_canonical_order_and_one_artifact_identity() {
+        let value = session(vec![tool(
+            1,
+            "ok",
+            vec![
+                ToolPath {
+                    path: "aaa-new.rs".into(),
+                    access: "rename".into(),
+                    previous_path: Some("zzz-old.rs".into()),
+                },
+                ToolPath {
+                    path: "zzz-old.rs".into(),
+                    access: "rename_from".into(),
+                    previous_path: None,
+                },
+            ],
+        )]);
+        let mut batch = (Vec::new(), 0);
+        append_session(&value, 1, &["/repo".into()], true, &mut batch);
+        annotate_session_ordinals(&mut batch.0);
+        annotate_artifact_ids(&mut batch.0);
+        let actions = &batch.0[0].actions;
+        assert_eq!(actions[0].access, "rename_from");
+        assert_eq!(actions[0].action_ordinal, 0);
+        assert_eq!(actions[1].access, "rename");
+        assert_eq!(actions[1].action_ordinal, 1);
+        assert_eq!(actions[0].artifact_id, actions[1].artifact_id);
+    }
+
+    #[test]
+    fn artifact_identity_matches_shared_lifecycle_fixture() {
+        let path = std::env::var("RQ7_LIFECYCLE_FIXTURES").ok();
+        let text = path.as_deref().map_or_else(
+            || include_str!("../tests/fixtures/strict-lifecycle.json").to_string(),
+            |path| std::fs::read_to_string(path).expect("read lifecycle fixture"),
+        );
+        let fixtures: Vec<serde_json::Value> =
+            serde_json::from_str(&text).expect("parse lifecycle fixture");
+        for fixture in fixtures {
+            let mut tracker = ArtifactIds::default();
+            for step in fixture["steps"].as_array().expect("fixture steps") {
+                let worktree = step["worktree"].as_str().unwrap_or("w");
+                let action = FileAction {
+                    worktree_id: worktree.into(),
+                    path: step["path"].as_str().expect("path").into(),
+                    access: step["access"].as_str().expect("access").into(),
+                    previous_path: step["previous_path"].as_str().map(str::to_string),
+                    previous_worktree_id: step["previous_worktree"].as_str().map(str::to_string),
+                    scope: false,
+                    action_ordinal: 0,
+                    artifact_id: String::new(),
+                };
+                assert_eq!(
+                    tracker.resolve(&action, step["confirmed"].as_bool().expect("confirmed")),
+                    step["artifact_id"].as_str().expect("artifact id"),
+                    "fixture {}",
+                    fixture["name"].as_str().expect("fixture name"),
+                );
+            }
+        }
     }
 
     #[test]

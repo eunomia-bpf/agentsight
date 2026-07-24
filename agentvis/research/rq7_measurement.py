@@ -33,11 +33,27 @@ from typing import Any, Iterable
 
 
 SEED = "20260722"
+SPEC_VERSION = "native-root-conformance-v3"
+FROZEN_SELECTION_SEED = "20260723-heldout-v3-001"
+FROZEN_SESSIONS_PER_PROJECT = 6
+FROZEN_PROJECT_COUNT = 6
+FROZEN_SOURCE_BYTES = 16_777_216
+FROZEN_STABILITY_WAIT = 60
+FROZEN_DISCOVERY_CUTOFF_NS = 1_784_871_070_206_832_949
+FROZEN_PROJECTS_SHA256 = "2de529d002815aefa74b1b8f8164ddf3b78b1e2f8e9e02214d43a9598f49368a"
+V0_REVISION = "7e5464eca650428ba238ea3d2c20052bedbbe272"
+V0_CARGO_LOCK_SHA256 = "c117357cf567baad5a8867f8def4d43a5f4733f1904d94a2c4cf662243553143"
+V0_BINARY_SHA256 = "7f83e0f73fb8ab0b88e1dc257b27ffedd79ceb7ba1e5684b60c4b194773760f0"
+EXPECTED_EXCLUSION_SHA256 = {
+    "838b814a31be1be48d28040d12235ee16489081f1d7214e8c7e814f8da057e35",
+    "2a7148ee78d0a0fadb99c768cbf6bda9fea2dce6e1ce844a8ae953e0fea38767",
+}
 VENDORS = ("claude", "codex", "gemini")
 READ_COMMANDS = {"cat", "sed", "head", "tail", "nl", "less", "more"}
 MUTATE_COMMANDS = {"touch", "rm", "mv", "cp"}
 PATH_KEYS = {
     "file_path",
+    "filepath",
     "path",
     "absolute_path",
     "target_file",
@@ -93,6 +109,39 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def source_stream_id(vendor: str, native_session_id: str, source_stem: str) -> str:
+    material = "\0".join((vendor, native_session_id, source_stem))
+    return sha256_bytes(material.encode())[:16]
+
+
+def status_from_output(output: str) -> str:
+    lowered = output.lower()
+    if (
+        "process exited with code 0" in lowered
+        or "script completed" in lowered
+        or "command completed" in lowered
+        or '"is_error":false' in lowered
+    ):
+        return "ok"
+    if (
+        "process exited with code" in lowered
+        or '"is_error":true' in lowered
+        or "error" in lowered
+    ):
+        return "fail"
+    return "observed"
+
+
+def add_tool_ordinals(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    ordinal = 0
+    for event in events:
+        if event.get("kind") == "tool":
+            event["source_tool_ordinal"] = ordinal
+            event.setdefault("status", "observed")
+            ordinal += 1
+    return events
 
 
 def write_json(path: Path, value: Any) -> None:
@@ -198,6 +247,33 @@ def matching_root(cwd: str | None, roots: dict[str, Path]) -> tuple[str, Path] |
     return max(matches, key=lambda item: len(item[1].parts)) if matches else None
 
 
+def codex_native_root_id(payload: dict[str, Any], fallback: str) -> str:
+    for key in ("session_id", "parent_thread_id", "thread_id", "id"):
+        value = payload.get(key)
+        if value:
+            return str(value)
+    return fallback
+
+
+def native_root_from_path(vendor: str, path: Path, fallback: str) -> str:
+    """Resolve only the source-native semantic root, without project matching."""
+    source = load_json_or_jsonl(path)
+    if vendor == "gemini" and isinstance(source, dict):
+        return str(source.get("sessionId") or fallback)
+    if not isinstance(source, list):
+        return fallback
+    identity = fallback
+    for row in source:
+        if not isinstance(row, dict):
+            continue
+        if vendor == "claude" and row.get("sessionId"):
+            identity = str(row["sessionId"])
+        elif vendor == "codex" and row.get("type") == "session_meta":
+            payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
+            identity = codex_native_root_id(payload, identity)
+    return identity
+
+
 def native_metadata(vendor: str, path: Path, roots: dict[str, Path]) -> dict[str, Any] | None:
     """Read source-native metadata/tool envelopes, rejecting foreign JSONL early."""
     session_id = path.stem
@@ -252,7 +328,7 @@ def native_metadata(vendor: str, path: Path, roots: dict[str, Path]) -> dict[str
                         payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
                         discovered_cwd = cwd
                         if row.get("type") == "session_meta":
-                            session_id = str(payload.get("id") or payload.get("session_id") or session_id)
+                            session_id = codex_native_root_id(payload, session_id)
                             discovered_cwd = str(payload.get("cwd") or cwd or "") or None
                         elif row.get("type") == "turn_context":
                             discovered_cwd = str(payload.get("cwd") or cwd or "") or None
@@ -316,7 +392,12 @@ def discover_sources(home: Path, all_roots: list[Path], cutoff_ns: int, raw_cap:
     return rows
 
 
-def select_sources(candidates: list[dict[str, Any]], raw_cap: int, sessions: int) -> tuple[Path, list[dict[str, Any]]]:
+def select_sources(
+    candidates: list[dict[str, Any]],
+    raw_cap: int,
+    sessions: int,
+    seed: str,
+) -> tuple[Path, list[dict[str, Any]]]:
     by_root: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in candidates:
         by_root[row["worktree"]].append(row)
@@ -331,12 +412,13 @@ def select_sources(candidates: list[dict[str, Any]], raw_cap: int, sessions: int
         pool = [row for row in by_root[selected_root] if row["vendor"] == vendor]
         pool.sort(
             key=lambda row: sha256_bytes(
-                (SEED + vendor + row["sha256"]).encode()
+                (seed + vendor + row["sha256"]).encode()
             )
         )
         pools[vendor] = pool
     result: list[dict[str, Any]] = []
     offsets = {vendor: 0 for vendor in VENDORS}
+    selected_roots: set[tuple[str, str]] = set()
     serialized = 0
     while len(result) < sessions:
         progress = False
@@ -345,10 +427,14 @@ def select_sources(candidates: list[dict[str, Any]], raw_cap: int, sessions: int
             while offsets[vendor] < len(pool):
                 row = pool[offsets[vendor]]
                 offsets[vendor] += 1
+                root_key = (row["vendor"], row["native_session_id"])
+                if root_key in selected_roots:
+                    continue
                 boundary = f"BEGIN_NATIVE {vendor} {row['sha256']} {row['bytes']}\nEND_NATIVE\n".encode()
                 if raw_cap > 0 and serialized + len(boundary) + row["bytes"] > raw_cap:
                     continue
                 result.append(row)
+                selected_roots.add(root_key)
                 serialized += len(boundary) + row["bytes"]
                 progress = True
                 break
@@ -358,7 +444,7 @@ def select_sources(candidates: list[dict[str, Any]], raw_cap: int, sessions: int
             break
     available = {vendor for vendor in VENDORS if pools[vendor]}
     represented = {row["vendor"] for row in result}
-    if len(result) < 6 or not available.issubset(represented):
+    if len(result) != sessions or not available.issubset(represented):
         raise RuntimeError(
             f"source selection failed: {len(result)} sessions, available={sorted(available)}, represented={sorted(represented)}"
         )
@@ -392,6 +478,54 @@ def parse_arguments(value: Any) -> dict[str, Any]:
         return parsed if isinstance(parsed, dict) else {"command": value}
     except json.JSONDecodeError:
         return {"command": value}
+
+
+def embedded_exec_arguments(text: str) -> dict[str, Any] | None:
+    marker = "tools.exec_command("
+    start = text.find(marker)
+    if start < 0:
+        return None
+    opening = text.find("{", start + len(marker))
+    if opening < 0:
+        return None
+    depth = 0
+    quoted = False
+    escaped = False
+    for index, character in enumerate(text[opening:], start=opening):
+        if escaped:
+            escaped = False
+        elif character == "\\" and quoted:
+            escaped = True
+        elif character == '"':
+            quoted = not quoted
+        elif not quoted and character == "{":
+            depth += 1
+        elif not quoted and character == "}":
+            depth -= 1
+            if depth == 0:
+                raw = text[opening:index + 1]
+                try:
+                    value = json.loads(raw)
+                except json.JSONDecodeError:
+                    try:
+                        value = json.loads(
+                            re.sub(
+                                r"([{,]\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:)",
+                                r'\1"\2"\3',
+                                raw,
+                            )
+                        )
+                    except json.JSONDecodeError:
+                        return None
+                return value if isinstance(value, dict) else None
+    return None
+
+
+def normalized_tool_arguments(name: str, args: dict[str, Any]) -> dict[str, Any]:
+    if name.lower() != "exec":
+        return args
+    nested = embedded_exec_arguments(command_text(name, args))
+    return nested or args
 
 
 def command_text(name: str, args: dict[str, Any]) -> str:
@@ -460,6 +594,7 @@ def native_events(vendor: str, path: Path, meta: dict[str, Any]) -> list[dict[st
                 if not isinstance(call, dict):
                     continue
                 args = call.get("args") if isinstance(call.get("args"), dict) else {}
+                args = normalized_tool_arguments(str(call.get("name") or ""), args)
                 events.append({
                     "kind": "tool",
                     "tool": str(call.get("name") or ""),
@@ -470,10 +605,15 @@ def native_events(vendor: str, path: Path, meta: dict[str, Any]) -> list[dict[st
                     "ts_ms": stamp,
                     "record_index": record_index,
                     "call_index": call_index,
+                    "status": {
+                        "success": "ok",
+                        "error": "fail",
+                    }.get(str(call.get("status") or "").lower(), "observed"),
                 })
-        return events
+        return add_tool_ordinals(events)
     rows = obj
     current_cwd = cwd
+    call_positions: dict[str, int] = {}
     for record_index, row in enumerate(rows):
         if not isinstance(row, dict):
             continue
@@ -483,14 +623,13 @@ def native_events(vendor: str, path: Path, meta: dict[str, Any]) -> list[dict[st
             content = (row.get("message") or {}).get("content") if isinstance(row.get("message"), dict) else None
             if row.get("type") == "user" and _is_human_prompt(content):
                 events.append({"kind": "prompt", "atom": "prompt_ai", "ts_ms": stamp, "record_index": record_index, "call_index": 0})
-            if row.get("type") == "file-history-snapshot":
-                events.append({"kind": "tool", "tool": "file_snapshot", "args": {}, "call_id": f"snapshot:{record_index}", "workdir": current_cwd, "atom": "edit", "ts_ms": stamp, "record_index": record_index, "call_index": 0})
             if row.get("type") == "assistant" and isinstance(content, list):
                 call_index = 0
                 for block in content:
                     if not isinstance(block, dict) or block.get("type") != "tool_use":
                         continue
                     args = block.get("input") if isinstance(block.get("input"), dict) else {}
+                    args = normalized_tool_arguments(str(block.get("name") or ""), args)
                     events.append({
                         "kind": "tool",
                         "tool": str(block.get("name") or ""),
@@ -501,8 +640,24 @@ def native_events(vendor: str, path: Path, meta: dict[str, Any]) -> list[dict[st
                         "ts_ms": stamp,
                         "record_index": record_index,
                         "call_index": call_index,
+                        "status": "observed",
                     })
+                    call_positions[str(block.get("id") or f"{record_index}:{call_index}")] = len(events) - 1
                     call_index += 1
+            if row.get("type") == "user" and isinstance(content, list):
+                fallback = bool(
+                    (row.get("toolUseResult") or {}).get("is_error")
+                    if isinstance(row.get("toolUseResult"), dict)
+                    else False
+                )
+                for block in content:
+                    if not isinstance(block, dict) or block.get("type") != "tool_result":
+                        continue
+                    call_id = str(block.get("tool_use_id") or "")
+                    position = call_positions.get(call_id)
+                    if position is not None:
+                        failed = bool(block.get("is_error", fallback))
+                        events[position]["status"] = "fail" if failed else "ok"
         else:
             payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
             if row.get("type") in {"session_meta", "turn_context"}:
@@ -510,6 +665,7 @@ def native_events(vendor: str, path: Path, meta: dict[str, Any]) -> list[dict[st
             if row.get("type") == "response_item" and payload.get("type") in {"function_call", "custom_tool_call"}:
                 name = str(payload.get("name") or "")
                 args = parse_arguments(payload.get("arguments", payload.get("input")))
+                args = normalized_tool_arguments(name, args)
                 events.append({
                     "kind": "tool",
                     "tool": name,
@@ -520,8 +676,20 @@ def native_events(vendor: str, path: Path, meta: dict[str, Any]) -> list[dict[st
                     "ts_ms": stamp,
                     "record_index": record_index,
                     "call_index": 0,
+                    "status": "observed",
                 })
-    return events
+                call_positions[str(payload.get("call_id") or payload.get("id") or f"{record_index}:0")] = len(events) - 1
+            if (
+                row.get("type") == "response_item"
+                and payload.get("type") in {"function_call_output", "custom_tool_call_output"}
+            ):
+                call_id = str(payload.get("call_id") or "")
+                position = call_positions.get(call_id)
+                if position is not None:
+                    output = payload.get("output")
+                    rendered = output if isinstance(output, str) else json.dumps(output, sort_keys=True)
+                    events[position]["status"] = status_from_output(rendered)
+    return add_tool_ordinals(events)
 
 
 def lexical_repo_path(raw: str, workdir: str, root: Path) -> str | None:
@@ -555,39 +723,69 @@ def structured_paths(args: Any) -> list[str]:
 
 
 def shell_segments(command: str) -> list[list[str]]:
-    try:
-        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|<>")
-        lexer.whitespace_split = True
-        tokens = list(lexer)
-    except ValueError:
-        return []
     segments: list[list[str]] = []
-    current: list[str] = []
-    for token in tokens:
-        if token and set(token) <= {";", "&", "|"}:
-            if current:
-                segments.append(current)
-                current = []
-        else:
-            current.append(token)
-    if current:
-        segments.append(current)
+    pending: list[str] = []
+    for line in command.splitlines():
+        if pending:
+            if line.strip() == pending[0]:
+                pending.pop(0)
+            continue
+        pending.extend(
+            match.group(1)
+            for match in re.finditer(r"<<-?\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?", line)
+        )
+        try:
+            lexer = shlex.shlex(line, posix=True, punctuation_chars=";&|<>")
+            lexer.whitespace_split = True
+            tokens = list(lexer)
+        except ValueError:
+            continue
+        current: list[str] = []
+        for token in tokens:
+            if token and set(token) <= {";", "&", "|"}:
+                if current:
+                    segments.append(current)
+                    current = []
+            else:
+                current.append(token)
+        if current:
+            segments.append(current)
     return segments
 
 
-def operands(tokens: list[str]) -> list[str]:
+def file_operands(name: str, tokens: list[str]) -> list[str]:
     values: list[str] = []
-    skip = False
+    skip_next = False
+    end_options = False
+    explicit_sed_program = False
+    option_arity = {
+        "head": {"-n", "--lines", "-c", "--bytes"},
+        "tail": {"-n", "--lines", "-c", "--bytes", "-s", "--sleep-interval", "--pid"},
+        "sed": {"-e", "--expression", "-f", "--file"},
+        "nl": {"-b", "--body-numbering", "-d", "--section-delimiter", "-f", "--footer-numbering",
+               "-h", "--header-numbering", "-i", "--line-increment", "-l", "--join-blank-lines",
+               "-n", "--number-format", "-s", "--number-separator", "-v", "--starting-line-number",
+               "-w", "--number-width"},
+    }.get(name, set())
     for token in tokens:
-        if skip:
-            skip = False
+        if skip_next:
+            skip_next = False
             continue
-        if token in {"-n", "--lines", "-c", "--bytes", "-f", "-e"}:
-            skip = True
+        if token == "--":
+            end_options = True
             continue
-        if token.startswith("-"):
+        option_name = token.split("=", 1)[0]
+        if not end_options and option_name in option_arity:
+            explicit_sed_program |= name == "sed" and option_name in {
+                "-e", "--expression", "-f", "--file"
+            }
+            skip_next = "=" not in token
+            continue
+        if not end_options and token.startswith("-"):
             continue
         values.append(token)
+    if name == "sed" and not explicit_sed_program and values:
+        values = values[1:]
     return values
 
 
@@ -603,9 +801,7 @@ def shell_path_actions(command: str) -> list[dict[str, str | None]]:
         args = segment[1:]
         if name not in READ_COMMANDS | MUTATE_COMMANDS:
             continue
-        values = operands(args)
-        if name == "sed" and len(values) >= 2:
-            values = values[1:]
+        values = file_operands(name, args)
         if name in {"mv", "cp"}:
             if len(values) < 2:
                 continue
@@ -632,18 +828,43 @@ def event_path_actions(event: dict[str, Any]) -> list[dict[str, str | None]]:
     command = command_text(name, args)
     if name in {"bash", "exec", "exec_command", "shell_command", "run_shell_command", "shell"}:
         actions.extend(shell_path_actions(command))
-    if name == "apply_patch" or "*** Begin Patch" in command:
+    if name == "apply_patch" or (
+        name in {"bash", "exec", "exec_command", "shell_command", "run_shell_command", "shell"}
+        and "*** Begin Patch" in command
+    ):
         patch = command or str(args.get("patch") or "")
-        pending_move: str | None = None
-        for match in PATCH_RE.finditer(patch):
-            kind, path = match.groups()
-            access = {"Add": "create", "Update": "write", "Delete": "delete"}[kind]
-            actions.append({"path": path.strip(), "access": access, "previous_path": None})
-            pending_move = path.strip() if kind == "Update" else None
-            move = MOVE_RE.search(patch, match.end())
-            if pending_move and move:
-                actions.append({"path": pending_move, "access": "rename_from", "previous_path": None})
-                actions.append({"path": move.group(1).strip(), "access": "rename", "previous_path": pending_move})
+        pending_update: str | None = None
+        for raw_line in patch.splitlines():
+            line = raw_line.strip()
+            matched = PATCH_RE.fullmatch(line)
+            if matched:
+                kind, raw_path = matched.groups()
+                path = raw_path.strip()
+                access = {"Add": "create", "Update": "write", "Delete": "delete"}[kind]
+                actions.append({"path": path, "access": access, "previous_path": None})
+                pending_update = path if kind == "Update" else None
+                continue
+            moved = MOVE_RE.fullmatch(line)
+            if moved and pending_update:
+                actions = [
+                    action
+                    for action in actions
+                    if not (
+                        action["path"] == pending_update
+                        and action["access"] == "write"
+                    )
+                ]
+                actions.append({
+                    "path": pending_update,
+                    "access": "rename_from",
+                    "previous_path": None,
+                })
+                actions.append({
+                    "path": moved.group(1).strip(),
+                    "access": "rename",
+                    "previous_path": pending_update,
+                })
+                pending_update = None
     lower = name
     if lower in {"read", "notebookread", "read_file"}:
         access = "read"
@@ -663,62 +884,127 @@ def event_path_actions(event: dict[str, Any]) -> list[dict[str, str | None]]:
         if key not in seen:
             seen.add(key)
             dedup.append(action)
-    return dedup
+    priority = {"rename_from": 0, "rename": 1}
+    return sorted(
+        dedup,
+        key=lambda action: (
+            priority.get(str(action["access"]), 2),
+            str(action["path"]),
+            str(action["access"]),
+            str(action.get("previous_path") or ""),
+        ),
+    )
 
 
 class ArtifactTracker:
     def __init__(self, root: Path) -> None:
         self.root = root
-        self.current: dict[str, str] = {}
-        self.generation: Counter[str] = Counter()
-        self.deleted: set[str] = set()
+        self.current: dict[tuple[str, str], str] = {}
+        self.attempted: dict[tuple[str, str], str] = {}
+        self.generation: Counter[tuple[str, str]] = Counter()
         self.display: dict[str, str] = {}
 
-    def identity(self, path: str, access: str, previous: str | None = None) -> str:
-        if access == "rename" and previous:
-            identity = self.current.pop(previous, None)
-            if identity is None:
-                identity = self._new(previous)
-            self.current[path] = identity
+    def identity(
+        self,
+        path: str,
+        access: str,
+        previous: str | None = None,
+        confirmed: bool = False,
+        worktree: str = "w",
+        previous_worktree: str | None = None,
+    ) -> str:
+        key = (worktree, path)
+        previous_worktree = previous_worktree or worktree
+        previous_key = (previous_worktree, previous) if previous else None
+        if (
+            access == "rename"
+            and previous_key
+            and confirmed
+            and previous_worktree == worktree
+        ):
+            identity = (
+                self.current.pop(previous_key, None)
+                or self.attempted.pop(previous_key, None)
+                or self._new(previous, previous_worktree)
+            )
+            self.current[key] = identity
+            self.attempted.pop(key, None)
             self.display[identity] = path
-            self.deleted.discard(previous)
             return identity
-        if path not in self.current or (path in self.deleted and access in {"create", "write"}):
-            self.current[path] = self._new(path)
-            self.deleted.discard(path)
-        identity = self.current[path]
+        if not confirmed:
+            identity = self.current.get(key)
+            if identity is None:
+                identity = self.attempted.get(key)
+                if identity is None:
+                    identity = self._new(path, worktree)
+                    self.attempted[key] = identity
+            self.display[identity] = path
+            return identity
+        identity = self.current.get(key)
+        if identity is None:
+            if access == "create":
+                identity = self._new(path, worktree)
+            else:
+                identity = self.attempted.pop(key, None) or self._new(path, worktree)
+            self.current[key] = identity
+        self.attempted.pop(key, None)
         if access == "delete":
-            self.deleted.add(path)
+            self.current.pop(key, None)
         self.display[identity] = path
         return identity
 
-    def _new(self, path: str) -> str:
-        generation = self.generation[path]
-        self.generation[path] += 1
+    def _new(self, path: str, worktree: str = "w") -> str:
+        key = (worktree, path)
+        generation = self.generation[key]
+        self.generation[key] += 1
         identity = f"{path}#{generation}"
         self.display[identity] = path
         return identity
 
 
-def artifact_edges(project: dict[str, Any], selected: list[dict[str, Any]], frozen_home: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def artifact_edges(
+    project: dict[str, Any],
+    selected: list[dict[str, Any]],
+    frozen_home: Path,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     root = Path(project["worktree"])
     sessions = []
     for source in selected:
         copy = frozen_home / source["home_relative"]
-        events = native_events(source["vendor"], copy, source)
-        first_ts = min((event["ts_ms"] for event in events if event.get("ts_ms") is not None), default=source.get("first_ts_ms") or 0)
-        sessions.append({**source, "events": events, "first_ts_ms": first_ts})
-    sessions.sort(key=lambda row: (row["first_ts_ms"], row["sha256"]))
+        events = [
+            event
+            for event in native_events(source["vendor"], copy, source)
+            if event.get("ts_ms") is not None
+        ]
+        if not any(event.get("kind") == "tool" for event in events):
+            continue
+        first_ts = min(
+            event["ts_ms"] for event in events if event.get("kind") == "tool"
+        )
+        native_root = f"{source['vendor']}:{source['native_session_id']}"
+        sessions.append({
+            **source,
+            "events": events,
+            "first_ts_ms": first_ts,
+            "semantic_session_id": native_root,
+            "source_stream_id": source_stream_id(
+                source["vendor"], source["native_session_id"], source["source_stem"]
+            ),
+        })
+    sessions.sort(key=lambda row: (row["first_ts_ms"], row["semantic_session_id"]))
     tracker = ArtifactTracker(root)
     edges: list[dict[str, Any]] = []
+    calls: list[dict[str, Any]] = []
     ordered_events = []
     for session_ordinal, session in enumerate(sessions):
         for event in session["events"]:
+            if event.get("kind") != "tool":
+                continue
             ordered_events.append((
                 event.get("ts_ms") if event.get("ts_ms") is not None else session["first_ts_ms"],
-                session["sha256"],
-                event["record_index"],
-                event["call_index"],
+                session["source_stream_id"],
+                event.get("source_tool_ordinal", -1),
+                f"{event['record_index']}:{event['call_index']}",
                 session_ordinal,
                 session,
                 event,
@@ -726,6 +1012,19 @@ def artifact_edges(project: dict[str, Any], selected: list[dict[str, Any]], froz
     ordered_events.sort(key=lambda row: row[:4])
     pending_rename: dict[tuple[str, str], str] = {}
     for event_ordinal, (_, _, _, _, session_ordinal, session, event) in enumerate(ordered_events):
+        if event.get("kind") == "tool":
+            calls.append({
+                "project": project["project"],
+                "vendor": session["vendor"],
+                "native_session_id": session["semantic_session_id"],
+                "session_ordinal": session_ordinal,
+                "source_stream_id": session["source_stream_id"],
+                "source_tool_ordinal": event["source_tool_ordinal"],
+                "call_id": str(event["call_id"]),
+                "status": str(event.get("status") or "observed"),
+                "atom": str(event["atom"]),
+            })
+        normalized_actions = []
         for action in event_path_actions(event):
             raw_path = str(action["path"] or "")
             path = lexical_repo_path(raw_path, str(event.get("workdir") or root), root)
@@ -734,28 +1033,52 @@ def artifact_edges(project: dict[str, Any], selected: list[dict[str, Any]], froz
             previous = None
             if action.get("previous_path"):
                 previous = lexical_repo_path(str(action["previous_path"]), str(event.get("workdir") or root), root)
+            normalized_actions.append((action, path, previous))
+        normalized_actions = list({
+            (str(action["access"]), path, previous): (action, path, previous)
+            for action, path, previous in normalized_actions
+        }.values())
+        normalized_actions.sort(
+            key=lambda row: (
+                {"rename_from": 0, "rename": 1}.get(str(row[0]["access"]), 2),
+                row[1],
+                str(row[0]["access"]),
+                row[2] or "",
+            )
+        )
+        for action_ordinal, (action, path, previous) in enumerate(normalized_actions):
             access = str(action["access"])
             if access == "rename_from":
-                pending_rename[(session["session_id"], str(event["call_id"]))] = path
+                pending_rename[(session["semantic_session_id"], str(event["call_id"]))] = path
             if access == "rename" and previous is None:
-                previous = pending_rename.get((session["session_id"], str(event["call_id"])))
-            identity = tracker.identity(path, access, previous)
+                previous = pending_rename.get(
+                    (session["semantic_session_id"], str(event["call_id"]))
+                )
+            status = str(event.get("status") or "observed")
+            identity = tracker.identity(path, access, previous, status == "ok")
             edges.append({
                 "project": project["project"],
-                "session_id": session["session_id"],
+                "session_id": session["semantic_session_id"],
+                "native_session_id": session["semantic_session_id"],
                 "session_ordinal": session_ordinal,
                 "vendor": session["vendor"],
                 "source_id": session["source_id"],
                 "source_sha256": session["sha256"],
+                "source_stream_id": session["source_stream_id"],
+                "source_tool_ordinal": event["source_tool_ordinal"],
                 "record_index": event["record_index"],
                 "call_index": event["call_index"],
                 "call_id": str(event["call_id"]),
                 "event_ordinal": event_ordinal,
+                "action_ordinal": action_ordinal,
                 "artifact_id": identity,
                 "path": path,
                 "display_path": tracker.display[identity],
                 "access": access,
+                "previous_path": previous,
                 "action_class": "read" if access == "read" else "mutate",
+                "status": status,
+                "confirmed_effect": status == "ok",
             })
     for edge in edges:
         edge["display_path"] = tracker.display[edge["artifact_id"]]
@@ -763,14 +1086,16 @@ def artifact_edges(project: dict[str, Any], selected: list[dict[str, Any]], froz
         {key: value for key, value in session.items() if key != "events"} | {"session_ordinal": index}
         for index, session in enumerate(sessions)
     ]
-    return edges, public_sessions
+    return edges, public_sessions, calls
 
 
 def direct_atoms(selected: list[dict[str, Any]], frozen_home: Path) -> dict[str, list[str]]:
     result = {}
     for source in selected:
         events = native_events(source["vendor"], frozen_home / source["home_relative"], source)
-        result[source["session_id"]] = [str(event["atom"]) for event in events]
+        result[f"{source['vendor']}:{source['native_session_id']}"] = [
+            str(event["atom"]) for event in events if event.get("ts_ms") is not None
+        ]
     return result
 
 
@@ -1042,7 +1367,7 @@ def proposed_edges(project: dict[str, Any], trace: dict[str, Any], frozen_home: 
         actions = [
             action
             for action in event.get("actions") or []
-            if not action.get("scope") and action.get("worktree_id") == target_worktree
+            if action.get("worktree_id") == target_worktree
         ]
         if not actions:
             continue
@@ -1081,16 +1406,295 @@ def proposed_edges(project: dict[str, Any], trace: dict[str, Any], frozen_home: 
     return edges, matches[0], None
 
 
+def production_atom(event: dict[str, Any]) -> str:
+    name = str(event.get("tool_name") or "").lower()
+    if name in {"read", "notebookread", "read_file"}:
+        return "read_file"
+    if name in {"edit", "write", "notebookedit", "multiedit", "apply_patch"}:
+        return "edit"
+    if name in {"grep", "glob", "websearch", "webfetch", "search_file_content", "list_directory"}:
+        return "search_repo"
+    if name in {"todowrite", "exitplanmode", "update_plan", "write_todos", "exit_plan_mode"}:
+        return "think"
+    if name in {"bash", "exec", "exec_command", "shell_command", "run_shell_command", "shell"}:
+        if event.get("effect") == "test":
+            return "run_test"
+        if str(event.get("command_name") or "").lower() in READ_COMMANDS:
+            return "read_file"
+        if event.get("effect") == "repo":
+            return "version_control"
+        if event.get("effect") == "network":
+            return "package"
+        return "other"
+    return "other"
+
+
+def production_projection(
+    project: dict[str, Any],
+    trace: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, list[str]], str | None]:
+    root = Path(project["worktree"])
+    target_worktree = worktree_id(root)
+    expected_sessions = {
+        row["semantic_session_id"] for row in project["sessions"]
+    }
+    expected_streams = {
+        row["source_stream_id"]: row["semantic_session_id"]
+        for row in project["sessions"]
+    }
+    edges: list[dict[str, Any]] = []
+    calls: list[dict[str, Any]] = []
+    atoms: dict[str, list[str]] = defaultdict(list)
+    for event_ordinal, event in enumerate(trace.get("events") or []):
+        native_session_id = str(
+            event.get("native_session_id") or event.get("session_id") or ""
+        )
+        source_stream = str(event.get("source_stream_id") or "")
+        if native_session_id not in expected_sessions:
+            return [], [], {}, (
+                f"unexpected production native root "
+                f"{native_session_id or '<missing>'}:{source_stream or '<missing>'}"
+            )
+        if expected_streams.get(source_stream) != native_session_id:
+            return [], [], {}, (
+                f"source-stream join mismatch {native_session_id}:{source_stream or '<missing>'}"
+            )
+        call_id = str(event.get("source_call_id") or "")
+        source_tool_ordinal = int(event.get("source_tool_ordinal", -1))
+        status = str(event.get("status") or "observed")
+        session_ordinal = int(event.get("session_ordinal", -1))
+        atom = production_atom(event)
+        atoms[native_session_id].append(atom)
+        calls.append({
+            "project": project["project"],
+            "vendor": str(event.get("vendor") or ""),
+            "native_session_id": native_session_id,
+            "source_stream_id": source_stream,
+            "source_tool_ordinal": source_tool_ordinal,
+            "call_id": call_id,
+            "status": status,
+            "atom": atom,
+            "session_ordinal": session_ordinal,
+        })
+        for action in event.get("actions") or []:
+            if action.get("worktree_id") != target_worktree:
+                continue
+            path = str(action.get("path") or "")
+            if not path:
+                continue
+            access = str(action.get("access") or "")
+            previous = str(action.get("previous_path") or "") or None
+            identity = str(action.get("artifact_id") or "")
+            if not identity:
+                return [], [], {}, (
+                    f"missing production artifact identity {native_session_id}:{call_id}"
+                )
+            edges.append({
+                "project": project["project"],
+                "session_id": native_session_id,
+                "native_session_id": native_session_id,
+                "session_ordinal": session_ordinal,
+                "vendor": str(event.get("vendor") or ""),
+                "source_stream_id": source_stream,
+                "source_tool_ordinal": source_tool_ordinal,
+                "call_id": call_id,
+                "event_ordinal": event_ordinal,
+                "action_ordinal": int(action.get("action_ordinal", -1)),
+                "artifact_id": identity,
+                "path": path,
+                "display_path": path,
+                "access": access,
+                "previous_path": previous,
+                "action_class": "read" if access == "read" else "mutate",
+                "status": status,
+                "confirmed_effect": status == "ok",
+            })
+    final_display = {
+        row["artifact_id"]: row["path"]
+        for row in edges
+    }
+    for edge in edges:
+        edge["display_path"] = final_display[edge["artifact_id"]]
+    return edges, calls, dict(atoms), None
+
+
+def edge_key(row: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        int(row["session_ordinal"]),
+        row["native_session_id"],
+        row["source_stream_id"],
+        str(row["call_id"]),
+        int(row["source_tool_ordinal"]),
+        int(row["event_ordinal"]),
+        int(row["action_ordinal"]),
+        row["path"],
+        row["access"],
+        row.get("previous_path"),
+        row["artifact_id"],
+    )
+
+
+def call_status_key(row: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        int(row["session_ordinal"]),
+        row["native_session_id"],
+        row["source_stream_id"],
+        str(row["call_id"]),
+        int(row["source_tool_ordinal"]),
+        row["status"],
+    )
+
+
+def multiset_metrics(expected: Counter[Any], actual: Counter[Any]) -> dict[str, Any]:
+    matched = sum((expected & actual).values())
+    expected_count = sum(expected.values())
+    actual_count = sum(actual.values())
+    return {
+        "expected": expected_count,
+        "actual": actual_count,
+        "matched": matched,
+        "precision": matched / actual_count if actual_count else float(expected_count == 0),
+        "recall": matched / expected_count if expected_count else float(actual_count == 0),
+        "missing": expected_count - matched,
+        "extra": actual_count - matched,
+    }
+
+
+def projection_conformance(
+    project: dict[str, Any],
+    production_edges: list[dict[str, Any]],
+    production_calls: list[dict[str, Any]],
+) -> dict[str, Any]:
+    oracle_edges = project["oracle_edges"]
+    all_production_calls = production_calls
+    edge_call_keys = {
+        (
+            row["native_session_id"],
+            row["source_stream_id"],
+            str(row["call_id"]),
+            int(row["source_tool_ordinal"]),
+        )
+        for row in oracle_edges + production_edges
+    }
+    oracle_calls = [
+        row
+        for row in project["oracle_calls"]
+        if (
+            row["native_session_id"],
+            row["source_stream_id"],
+            str(row["call_id"]),
+            int(row["source_tool_ordinal"]),
+        )
+        in edge_call_keys
+    ]
+    production_calls = [
+        row
+        for row in production_calls
+        if (
+            row["native_session_id"],
+            row["source_stream_id"],
+            str(row["call_id"]),
+            int(row["source_tool_ordinal"]),
+        )
+        in edge_call_keys
+    ]
+    result = {
+        "project": project["project"],
+        "session_order": multiset_metrics(
+            Counter(
+                (row["semantic_session_id"], int(row["session_ordinal"]))
+                for row in project["sessions"]
+            ),
+            Counter(
+                {
+                    (row["native_session_id"], int(row["session_ordinal"]))
+                    for row in all_production_calls
+                }
+            ),
+        ),
+        "attempted_edges": multiset_metrics(
+            Counter(edge_key(row) for row in oracle_edges),
+            Counter(edge_key(row) for row in production_edges),
+        ),
+        "confirmed_effect_edges": multiset_metrics(
+            Counter(edge_key(row) for row in oracle_edges if row["status"] == "ok"),
+            Counter(edge_key(row) for row in production_edges if row["status"] == "ok"),
+        ),
+        "edge_call_statuses": multiset_metrics(
+            Counter(call_status_key(row) for row in oracle_calls),
+            Counter(call_status_key(row) for row in production_calls),
+        ),
+        "by_vendor": {},
+    }
+    for vendor in sorted({row["vendor"] for row in project["sessions"]}):
+        expected_edges = [row for row in oracle_edges if row["vendor"] == vendor]
+        actual_edges = [row for row in production_edges if row["vendor"] == vendor]
+        expected_calls = [row for row in oracle_calls if row["vendor"] == vendor]
+        actual_calls = [row for row in production_calls if row["vendor"] == vendor]
+        result["by_vendor"][vendor] = {
+            "session_order": multiset_metrics(
+                Counter(
+                    (row["semantic_session_id"], int(row["session_ordinal"]))
+                    for row in project["sessions"]
+                    if row["vendor"] == vendor
+                ),
+                Counter(
+                    {
+                        (row["native_session_id"], int(row["session_ordinal"]))
+                        for row in all_production_calls
+                        if row["vendor"] == vendor
+                    }
+                ),
+            ),
+            "attempted_edges": multiset_metrics(
+                Counter(edge_key(row) for row in expected_edges),
+                Counter(edge_key(row) for row in actual_edges),
+            ),
+            "confirmed_effect_edges": multiset_metrics(
+                Counter(edge_key(row) for row in expected_edges if row["status"] == "ok"),
+                Counter(edge_key(row) for row in actual_edges if row["status"] == "ok"),
+            ),
+            "edge_call_statuses": multiset_metrics(
+                Counter(call_status_key(row) for row in expected_calls),
+                Counter(call_status_key(row) for row in actual_calls),
+            ),
+        }
+    return result
+
+
 def question_spec() -> str:
-    return """# RQ7 Frozen Question Semantics
+    return """# RQ7 Native-Root Conformance v3
+
+Specification ID: `native-root-conformance-v3`.
 
 All answers use only the complete native files and cutoff manifest in the
-prompt. Native events are ordered by native timestamp, source SHA-256, record
-index, and call index. Sessions are ordered by first native timestamp and source
-SHA-256. Tool invocations are attempted actions regardless of result status.
+prompt. A semantic session is one `(vendor, native_root_session_id)`; a source
+stream is provenance, not another session. The held-out selection contains at
+most one stream per native root. Sessions are ordered by first included native
+Tool timestamp and semantic session ID. Native events are ordered by timestamp, stable source
+stream ID, source Tool ordinal, and source record/call index as a final
+uniqueness key. Opaque call IDs never establish time order.
+Tool calls without a native timestamp are outside the ordered trajectory and
+are reported as coverage exclusions rather than assigned a synthetic time.
+For Codex `session_meta`, native root resolution is
+`payload.session_id`, then `payload.parent_thread_id`, then
+`payload.thread_id`, then the source stream's `payload.id`. Empty values are
+skipped. Source stream identity remains separate and never replaces this
+semantic root.
 
-Action mapping follows the frozen ProcGrep Claude/Codex/Gemini rules:
-Read/NotebookRead/read_file and terminal cat/sed/head/tail/nl/less/more are
+Tool invocations are attempted actions regardless of result status. The
+independent oracle also pairs native Tool results and records `ok`, `fail`, or
+`observed`. Only `ok` path actions are confirmed effects; failed or unknown
+mutations do not create, rename, delete, or supersede an artifact generation.
+A confirmed effect clears any same-path identity that existed only for a
+failed or unknown attempt, so that identity cannot be revived after a later
+delete.
+
+Action mapping uses the exact Tool names
+Read/NotebookRead/read_file, Edit/NotebookEdit/MultiEdit,
+Write/write_file, apply_patch, and
+bash/exec/exec_command/shell_command/run_shell_command/shell. Unlisted names
+and substring matches are excluded. Terminal cat/sed/head/tail/nl/less/more are
 read_file; Edit/Write/NotebookEdit/MultiEdit/apply_patch are edit; commands
 matching pytest, test(s), unittest, jest, mocha, vitest, tox, go test, cargo
 test, npm/yarn test, make test, or gradle test are run_test. Other calls still
@@ -1099,24 +1703,37 @@ occupy their ordered atom position. A4 is the number of sessions matching
 `edit (?:[a-z_]+ )*run_test `.
 
 Artifact paths come only from structured path keys, apply_patch file headers,
-and path operands of cat/sed/head/tail/nl/less/more/touch/rm/mv/cp. Event
-workdir overrides session cwd. Resolve relative paths lexically inside the
+and path operands of cat/sed/head/tail/nl/less/more/touch/rm/mv/cp.
+Structured keys are path, file_path, filepath, absolute_path, target_file,
+notebook_path, old_path, and new_path. Event workdir overrides session cwd.
+Resolve relative paths lexically inside the
 selected worktree; exclude outside paths, variables, globs, symlink
 dereferencing, search scopes, and ambiguous shell syntax. In particular, any
 shell segment containing input/output redirection or a heredoc contributes no
 artifact edge; redirect tokens, targets, and bodies are never paths.
-Multi-path calls add one edge per distinct path. Explicit mv preserves
-identity; delete then create starts a generation. Read actions are the readers
-above; all retained write, create, delete, rename, and copy actions are
-mutations.
+Option arguments and sed programs are not file operands. Calls add one edge
+per distinct `(path, access, previous_path)` tuple, so different actions on the
+same path remain distinct. Shell extraction accepts only a direct declared
+file command at the start of a segment; cd state, command wrappers, and nested
+shell interpretation are excluded. A Codex `tools.exec_command({...})`
+transport envelope is unwrapped before applying that rule. Update plus Move
+patch headers are one rename pair, not an additional write. Actions within a
+call use the canonical order rename-source, rename-destination, then
+lexicographic `(path, access, previous_path)`. Explicit rename preserves
+identity only when its Tool result is `ok`; confirmed delete followed by
+confirmed create starts a generation. A failed or unknown rename source and
+destination therefore retain separate attempted identities and never transfer
+persistent identity. Read actions are the readers above; all
+retained write, create, delete, rename, and copy attempts are mutations.
 
 P0--P4 are the five artifacts with the most distinct attempted calls; HMAC path
 ID breaks ties. The question gives their normalized paths. A1--A3 are total
 read_file/edit/run_test atoms. A4--A5 are the session pattern counts. B1--B5
 ask P0 attempted calls, reads, mutations, first action class, and distinct
-sessions. C1--C5 ask adjacent session pairs sharing any artifact, later
-sessions revisiting any prior artifact, P0 return episodes after a gap, P0
-first-to-last ordinal gap, and artifacts present in at least two sessions.
+native-root sessions. C1--C5 ask adjacent native-root session pairs sharing any
+artifact, later native-root sessions revisiting any prior artifact, P0 return
+episodes after a native-root gap, P0 first-to-last native-root ordinal gap, and
+artifacts present in at least two native-root sessions.
 D1--D5 ask tracked/untracked/absent at cutoff for P0--P4; tracked means an index
 entry, untracked means present without one, and absent means neither.
 
@@ -1147,7 +1764,7 @@ def official_procgrep_atoms(procgrep: Path, selected: list[dict[str, Any]], froz
             atoms = gemini_cli_adapter(record)
         if not atoms:
             raise RuntimeError(f"official ProcGrep produced an empty trace for {source['source_id']}")
-        result[source["session_id"]] = list(atoms)
+        result[f"{source['vendor']}:{source['native_session_id']}"] = list(atoms)
     return result
 
 
@@ -1197,7 +1814,6 @@ def sanitize_question(row: dict[str, Any], spec_hash: str) -> dict[str, Any]:
         "project": row["project"],
         "family": row["family"],
         "template": row["template"],
-        "expected_answer": row["answer"],
         "path_id": row["path_id"],
         "witness_hash": sha256_bytes("\n".join(row["witnesses"]).encode()),
         "question_spec_sha256": spec_hash,
@@ -1213,6 +1829,7 @@ def finalize_freeze(private: Path, release: Path) -> int:
     write_json(private / "freeze.json", freeze_data)
     manifest_hash = audit_manifest(private)
     write_json(release / "freeze-summary.json", {
+        "spec_version": freeze_data.get("spec_version"),
         "projects": len(freeze_data["projects"]),
         "questions": len(freeze_data["questions"]),
         "questions_per_family": dict(Counter(row["family"] for row in freeze_data["questions"])),
@@ -1222,6 +1839,7 @@ def finalize_freeze(private: Path, release: Path) -> int:
         "question_spec_sha256": freeze_data["question_spec_sha256"],
         "private_audit_manifest_sha256": manifest_hash,
         "oracle_checker_sha256": checker_result["checker_sha256"],
+        "split_audit": freeze_data.get("split_audit", {}),
     })
     print(f"[rq7] freeze complete: {len(freeze_data['questions'])} questions; audit {manifest_hash}")
     return 0
@@ -1230,17 +1848,60 @@ def finalize_freeze(private: Path, release: Path) -> int:
 def freeze(args: argparse.Namespace) -> int:
     private = args.private.resolve()
     release = args.release.resolve()
-    if private.exists():
-        shutil.rmtree(private)
-    if release.exists():
-        shutil.rmtree(release)
+    if private.exists() or release.exists():
+        raise RuntimeError("freeze is append-only; private/release target already exists")
     private.mkdir(parents=True)
     release.mkdir(parents=True)
+    if sha256_file(args.projects_file.resolve()) != FROZEN_PROJECTS_SHA256:
+        raise RuntimeError("projects file does not match the preregistered hash")
     projects_input = read_json(args.projects_file)
-    if not isinstance(projects_input, list) or len(projects_input) != 6:
+    if not isinstance(projects_input, list) or len(projects_input) != FROZEN_PROJECT_COUNT:
         raise RuntimeError("RQ7 freeze requires the fixed six-project projects.json")
     home = Path.home()
-    cutoff_ns = time.time_ns() - 600 * 1_000_000_000
+    excluded_hashes: set[str] = set()
+    excluded_roots: set[tuple[str, str]] = set()
+    excluded_calls: set[tuple[str, str, str]] = set()
+    exclusion_paths = [path.resolve() for path in (args.exclude_freeze or [])]
+    exclusion_hashes = {sha256_file(path) for path in exclusion_paths}
+    if len(exclusion_paths) != 2 or exclusion_hashes != EXPECTED_EXCLUSION_SHA256:
+        raise RuntimeError(
+            "exclusion manifests do not match the preregistered Step 0004 + "
+            "invalid Experiment 001 union"
+        )
+    for exclusion_path in exclusion_paths:
+        excluded = read_json(exclusion_path)
+        archive = exclusion_path.parent / "frozen-home"
+        for project in excluded["projects"]:
+            for source in project["sources"]:
+                vendor = str(source["vendor"])
+                archived_source = archive / str(source.get("home_relative") or "")
+                if not archived_source.is_file():
+                    raise RuntimeError(f"missing exclusion source archive: {archived_source}")
+                if archived_source.stat().st_size != int(source["bytes"]):
+                    raise RuntimeError(f"exclusion source size mismatch: {archived_source}")
+                if sha256_file(archived_source) != str(source["sha256"]):
+                    raise RuntimeError(f"exclusion source hash mismatch: {archived_source}")
+                native_root = native_root_from_path(
+                    vendor,
+                    archived_source,
+                    str(source["native_session_id"]),
+                )
+                excluded_hashes.add(str(source["sha256"]))
+                excluded_roots.add((vendor, native_root))
+                for event in native_events(
+                    vendor,
+                    archived_source,
+                    {"worktree": str(project["worktree"])},
+                ):
+                    if event.get("kind") == "tool":
+                        excluded_calls.add(
+                            (
+                                vendor,
+                                native_root,
+                                str(event.get("call_id") or ""),
+                            )
+                        )
+    cutoff_ns = args.cutoff_ns
     projects: list[dict[str, Any]] = []
     all_roots: dict[str, list[Path]] = {}
     for source_project in projects_input:
@@ -1254,8 +1915,21 @@ def freeze(args: argparse.Namespace) -> int:
         repo = canonical(Path(source_project["repository_root"]))
         roots = all_roots[source_project["project"]]
         root_strings = {str(canonical(root)) for root in roots}
-        candidates = [row for row in discovered if row["worktree"] in root_strings]
-        selected_root, selected = select_sources(candidates, args.raw_bytes, args.sessions)
+        candidates = [
+            row
+            for row in discovered
+            if row["worktree"] in root_strings
+            and row["sha256"] not in excluded_hashes
+            and (row["vendor"], row["native_session_id"]) not in excluded_roots
+        ]
+        selected_root, selected = select_sources(
+            candidates, args.raw_bytes, args.sessions, args.seed
+        )
+        if len(selected) != FROZEN_SESSIONS_PER_PROJECT:
+            raise RuntimeError(
+                f"{source_project['project']} did not yield exactly "
+                f"{FROZEN_SESSIONS_PER_PROJECT} roots"
+            )
         projects.append({
             "project": source_project["project"],
             "repository_root": str(repo),
@@ -1267,13 +1941,16 @@ def freeze(args: argparse.Namespace) -> int:
     frozen_home = private / "frozen-home"
     all_questions = []
     release_sources = []
+    selected_hashes: set[str] = set()
+    selected_roots: set[tuple[str, str]] = set()
+    selected_calls: set[tuple[str, str, str]] = set()
     for project in projects:
         copy_selected(project["sources"], home, frozen_home)
         direct = direct_atoms(project["sources"], frozen_home)
         official = official_procgrep_atoms(args.procgrep.resolve(), project["sources"], frozen_home)
         project["direct_action_atoms"] = direct
         project["procgrep_action_atoms"] = official
-        edges, sessions = artifact_edges(project, project["sources"], frozen_home)
+        edges, sessions, calls = artifact_edges(project, project["sources"], frozen_home)
         anchors = choose_anchors(edges)
         snapshot = workspace_snapshot(
             Path(project["worktree"]),
@@ -1290,12 +1967,26 @@ def freeze(args: argparse.Namespace) -> int:
         if len(questions) != 20:
             raise RuntimeError("fixed grammar did not produce 20 questions")
         all_questions.extend(questions)
+        selected_hashes.update(str(row["sha256"]) for row in project["sources"])
+        selected_roots.update(
+            (str(row["vendor"]), str(row["native_session_id"]))
+            for row in project["sources"]
+        )
+        selected_calls.update(
+            (
+                str(call["vendor"]),
+                str(call["native_session_id"]).split(":", 1)[1],
+                str(call["call_id"]),
+            )
+            for call in calls
+        )
         project.update({
             "sessions": sessions,
             "anchors": anchors,
             "workspace": snapshot,
             "source_cutoff_ms": source_cutoff,
             "oracle_edges": edges,
+            "oracle_calls": calls,
             "questions": questions,
         })
         for row in project["sources"]:
@@ -1313,7 +2004,8 @@ def freeze(args: argparse.Namespace) -> int:
     spec_path.write_text(spec)
     spec_hash = sha256_bytes(spec.encode())
     freeze_data = {
-        "seed": SEED,
+        "seed": args.seed,
+        "spec_version": SPEC_VERSION,
         "created_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "agent_revision": run(["git", "rev-parse", "HEAD"], cwd=Path(__file__).parents[2]).strip(),
         "agentvis_cargo_lock_sha256": sha256_file(Path(__file__).parents[1] / "Cargo.lock"),
@@ -1322,9 +2014,33 @@ def freeze(args: argparse.Namespace) -> int:
         "codex_version": run(["codex", "--version"]).strip(),
         "python_version": sys.version,
         "question_spec_sha256": spec_hash,
+        "projects_file_sha256": sha256_file(args.projects_file.resolve()),
+        "discovery_cutoff_ns": cutoff_ns,
+        "source_count_contract": {
+            "projects": FROZEN_PROJECT_COUNT,
+            "sources_per_project": FROZEN_SESSIONS_PER_PROJECT,
+            "total_sources": FROZEN_PROJECT_COUNT * FROZEN_SESSIONS_PER_PROJECT,
+        },
         "projects": projects,
         "questions": all_questions,
+        "split_audit": {
+            "excluded_freezes": [str(path) for path in exclusion_paths],
+            "file_hash_overlap": len(selected_hashes & excluded_hashes),
+            "native_root_overlap": len(selected_roots & excluded_roots),
+            "native_root_call_overlap": len(selected_calls & excluded_calls),
+            "selected_file_hashes": len(selected_hashes),
+            "selected_native_roots": len(selected_roots),
+        },
     }
+    if any(
+        freeze_data["split_audit"][key] != 0
+        for key in ("file_hash_overlap", "native_root_overlap", "native_root_call_overlap")
+    ):
+        raise RuntimeError(f"held-out split overlap: {freeze_data['split_audit']}")
+    if len(selected_hashes) != FROZEN_PROJECT_COUNT * FROZEN_SESSIONS_PER_PROJECT:
+        raise RuntimeError("held-out source hashes are not globally distinct")
+    if len(selected_roots) != FROZEN_PROJECT_COUNT * FROZEN_SESSIONS_PER_PROJECT:
+        raise RuntimeError("held-out semantic roots are not globally distinct")
     write_json(private / "freeze.json", freeze_data)
     write_json(private / "oracle-questions.json", all_questions)
     write_csv(
@@ -1335,7 +2051,7 @@ def freeze(args: argparse.Namespace) -> int:
     public_questions = [sanitize_question(row, spec_hash) for row in all_questions]
     write_csv(
         release / "questions.csv",
-        ["id", "project", "family", "template", "expected_answer", "path_id", "witness_hash", "question_spec_sha256"],
+        ["id", "project", "family", "template", "path_id", "witness_hash", "question_spec_sha256"],
         public_questions,
     )
     checker = Path(__file__).with_name("rq7_source_oracle_check.py")
@@ -1344,6 +2060,8 @@ def freeze(args: argparse.Namespace) -> int:
 
 
 def recover_freeze(args: argparse.Namespace) -> int:
+    if read_json(args.private / "freeze.json").get("spec_version") == SPEC_VERSION:
+        raise RuntimeError("v3 scientific freezes are immutable; recovery is disabled")
     checker = Path(__file__).with_name("rq7_source_oracle_check.py")
     run([
         sys.executable,
@@ -1357,6 +2075,8 @@ def recover_freeze(args: argparse.Namespace) -> int:
 def rederive_freeze(args: argparse.Namespace) -> int:
     """Recompute the oracle from one immutable archive without live discovery."""
     source_private = args.source_private.resolve()
+    if read_json(source_private / "freeze.json").get("spec_version") == SPEC_VERSION:
+        raise RuntimeError("v3 scientific freezes cannot be rederived")
     private = args.private.resolve()
     release = args.release.resolve()
     if private.exists():
@@ -1404,28 +2124,39 @@ def rederive_freeze(args: argparse.Namespace) -> int:
         selected = project["sources"]
         direct = direct_atoms(selected, private / "frozen-home")
         official = official_procgrep_atoms(args.procgrep.resolve(), selected, private / "frozen-home")
-        edges, sessions = artifact_edges(project, selected, private / "frozen-home")
+        edges, sessions, calls = artifact_edges(project, selected, private / "frozen-home")
         anchors = choose_anchors(edges)
         prior_snapshot = prior_project["workspace"]
         prior_paths = [row["path"] for row in prior_snapshot["paths"]]
         new_paths = [row["path"] for row in anchors]
-        if prior_paths != new_paths:
-            raise RuntimeError(
-                f"corrected anchors require a new workspace cutoff for {project['project']}: "
-                f"prior={prior_paths}, corrected={new_paths}"
+        if args.refresh_workspace:
+            destination = private / "workspace" / project["project"]
+            if destination.exists():
+                shutil.rmtree(destination)
+            snapshot = workspace_snapshot(
+                Path(project["worktree"]),
+                anchors,
+                destination,
             )
-        snapshot = {
-            **prior_snapshot,
-            "paths": [
-                {**old, **anchor}
-                for old, anchor in zip(prior_snapshot["paths"], anchors)
-            ],
-        }
+        else:
+            if prior_paths != new_paths:
+                raise RuntimeError(
+                    f"corrected anchors require --refresh-workspace for {project['project']}: "
+                    f"prior={prior_paths}, corrected={new_paths}"
+                )
+            snapshot = {
+                **prior_snapshot,
+                "paths": [
+                    {**old, **anchor}
+                    for old, anchor in zip(prior_snapshot["paths"], anchors)
+                ],
+            }
         project_questions = question_rows(project, direct, edges, sessions, anchors, snapshot)
         project.update({
             "direct_action_atoms": direct,
             "procgrep_action_atoms": official,
             "oracle_edges": edges,
+            "oracle_calls": calls,
             "sessions": sessions,
             "anchors": anchors,
             "workspace": snapshot,
@@ -1478,7 +2209,6 @@ def rederive_freeze(args: argparse.Namespace) -> int:
             "project",
             "family",
             "template",
-            "expected_answer",
             "path_id",
             "witness_hash",
             "question_spec_sha256",
@@ -1495,17 +2225,35 @@ def rederive_freeze(args: argparse.Namespace) -> int:
     return finalize_freeze(private, release)
 
 
-def build_agent_session_projection(private: Path, destination: Path) -> tuple[dict[str, dict[str, Any]], float]:
+def build_agent_session_projection(
+    private: Path,
+    destination: Path,
+    project_names: set[str] | None = None,
+    binary_override: Path | None = None,
+) -> tuple[dict[str, dict[str, Any]], float]:
     freeze_data = read_json(private / "freeze.json")
+    projects = [
+        project
+        for project in freeze_data["projects"]
+        if project_names is None or project["project"] in project_names
+    ]
     repo_root = Path(__file__).parents[2]
-    binary = repo_root / "agentvis" / "target" / "release" / "agentvis"
+    override = str(binary_override) if binary_override else os.environ.get("RQ7_AGENTVIS_BINARY")
+    binary = (
+        Path(override).resolve()
+        if override
+        else repo_root / "agentvis" / "target" / "release" / "agentvis"
+    )
     build_started = time.perf_counter()
-    run(["cargo", "build", "--release", "--locked", "--manifest-path", str(repo_root / "agentvis" / "Cargo.toml")], cwd=repo_root)
+    if not override:
+        run(["cargo", "build", "--release", "--locked", "--manifest-path", str(repo_root / "agentvis" / "Cargo.toml")], cwd=repo_root)
+    elif not binary.is_file():
+        raise RuntimeError(f"RQ7_AGENTVIS_BINARY does not exist: {binary}")
     if destination.exists():
-        shutil.rmtree(destination)
+        raise RuntimeError(f"projection output is append-only: {destination}")
     raw = destination / "raw"
-    roots = [project["worktree"] for project in freeze_data["projects"]]
-    cutoff = max(project["workspace"]["cutoff_ms"] for project in freeze_data["projects"])
+    roots = [project["worktree"] for project in projects]
+    cutoff = max(project["workspace"]["cutoff_ms"] for project in projects)
     env = os.environ.copy()
     env["HOME"] = str(private / "frozen-home")
     command = [
@@ -1521,7 +2269,7 @@ def build_agent_session_projection(private: Path, destination: Path) -> tuple[di
     (destination / "command.txt").write_text(shlex.join(command) + "\n" + log)
     traces = [read_json(path) for path in sorted((raw / "events").glob("*.json"))]
     mapped: dict[str, dict[str, Any]] = {}
-    for project in freeze_data["projects"]:
+    for project in projects:
         expected = {
             identity
             for source in project["sources"]
@@ -1545,32 +2293,65 @@ def answer(status: str, value: Any = "") -> dict[str, str]:
     return {"status": status, "answer": str(value) if status == "answer" else ""}
 
 
-def deterministic_methods(private: Path, output: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def deterministic_methods(
+    private: Path,
+    output: Path,
+    project_names: set[str] | None = None,
+    projection_output: Path | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     freeze_data = read_json(private / "freeze.json")
-    projection, build_seconds = build_agent_session_projection(private, private / "deterministic" / "projection")
+    projects = [
+        project
+        for project in freeze_data["projects"]
+        if project_names is None or project["project"] in project_names
+    ]
+    projection, build_seconds = build_agent_session_projection(
+        private,
+        projection_output or output / "projection",
+        project_names,
+    )
     result_rows: list[dict[str, Any]] = []
     cost_rows: list[dict[str, Any]] = []
+    conformance_rows: list[dict[str, Any]] = []
     project_query_seconds: dict[str, float] = {}
-    frozen_home = private / "frozen-home"
     query_started = time.perf_counter()
-    for project in freeze_data["projects"]:
+    for project in projects:
         project_started = time.perf_counter()
         official = project["procgrep_action_atoms"]
-        action_values = {
+        procgrep_values = {
             "A1": str(sum(sequence.count("read_file") for sequence in official.values())),
             "A2": str(sum(sequence.count("edit") for sequence in official.values())),
             "A3": str(sum(sequence.count("run_test") for sequence in official.values())),
             "A4": str(pattern_count(official, r"read_file (?:[a-z_]+ )*edit ")),
             "A5": str(pattern_count(official, r"edit (?:[a-z_]+ )*run_test ")),
         }
-        # The proposed action spine is the exact official array, retained without transformation.
-        proposed_action_spine = json.dumps(official, sort_keys=True, separators=(",", ":"))
-        procgrep_action_spine = json.dumps(project["procgrep_action_atoms"], sort_keys=True, separators=(",", ":"))
-        if proposed_action_spine.encode() != procgrep_action_spine.encode():
-            raise RuntimeError(f"action spine mismatch: {project['project']}")
-        pedges, p0_identity, join_error = proposed_edges(project, projection[project["project"]], frozen_home)
+        pedges, pcalls, production_atoms, join_error = production_projection(
+            project, projection[project["project"]]
+        )
         if join_error:
             raise RuntimeError(join_error)
+        action_values = {
+            "A1": str(sum(sequence.count("read_file") for sequence in production_atoms.values())),
+            "A2": str(sum(sequence.count("edit") for sequence in production_atoms.values())),
+            "A3": str(sum(sequence.count("run_test") for sequence in production_atoms.values())),
+            "A4": str(pattern_count(production_atoms, r"read_file (?:[a-z_]+ )*edit ")),
+            "A5": str(pattern_count(production_atoms, r"edit (?:[a-z_]+ )*run_test ")),
+        }
+        conformance_rows.append(projection_conformance(project, pedges, pcalls))
+        p0_path = project["anchors"][0]["path"]
+        p0_candidates = {
+            row["artifact_id"]
+            for row in pedges
+            if row["path"] == p0_path or row["display_path"] == p0_path
+        }
+        p0_identity = (
+            max(
+                p0_candidates,
+                key=lambda identity: sum(row["artifact_id"] == identity for row in pedges),
+            )
+            if p0_candidates
+            else None
+        )
         relation = relation_values(pedges, len(project["sessions"]), p0_identity) if p0_identity else None
         final_by_template = {
             f"D{index}": row["status"] for index, row in enumerate(project["workspace"]["paths"], start=1)
@@ -1581,7 +2362,7 @@ def deterministic_methods(private: Path, output: Path) -> tuple[list[dict[str, A
             template = question["template"]
             family = question["family"]
             methods: dict[str, dict[str, str]] = {}
-            methods["procgrep"] = answer("answer", action_values[template]) if family == "A" else answer("abstain")
+            methods["procgrep"] = answer("answer", procgrep_values[template]) if family == "A" else answer("abstain")
             methods["counts"] = answer("answer", action_values[template]) if template in {"A1", "A2", "A3"} else answer("abstain")
             methods["final_state"] = answer("answer", final_by_template[template]) if family == "D" else answer("abstain")
             if family == "A":
@@ -1608,9 +2389,9 @@ def deterministic_methods(private: Path, output: Path) -> tuple[list[dict[str, A
                 })
         project_query_seconds[project["project"]] = time.perf_counter() - project_started
     query_seconds = time.perf_counter() - query_started
-    for project in freeze_data["projects"]:
+    for project in projects:
         for method in ("procgrep", "counts", "final_state", "trajectory"):
-            construction = build_seconds / len(freeze_data["projects"]) if method == "trajectory" else 0.0
+            construction = build_seconds / len(projects) if method == "trajectory" else 0.0
             query = project_query_seconds[project["project"]]
             cost_rows.append({
                 "project": project["project"],
@@ -1633,6 +2414,7 @@ def deterministic_methods(private: Path, output: Path) -> tuple[list[dict[str, A
             })
     write_json(output / "deterministic-results.json", result_rows)
     write_json(output / "deterministic-costs.json", cost_rows)
+    write_json(output / "projection-conformance.json", conformance_rows)
     return result_rows, cost_rows
 
 
@@ -2102,93 +2884,607 @@ def model_call(
     return result_rows, cost
 
 
-def preflight(args: argparse.Namespace) -> int:
-    freeze_data = read_json(args.private / "freeze.json")
-    vendors = {source["vendor"] for project in freeze_data["projects"] for source in project["sources"]}
-    if vendors != set(VENDORS):
-        raise RuntimeError(f"three-vendor preflight unavailable: {sorted(vendors)}")
-    checker = read_json(args.private / "oracle-check.json")
-    if checker.get("status") != "pass":
-        raise RuntimeError("independent oracle checker did not pass")
-    deterministic, costs = deterministic_methods(args.private, args.release / "deterministic")
-    if len(deterministic) != 480:
-        raise RuntimeError(f"deterministic preflight expected 480 rows, got {len(deterministic)}")
-    project = min(
-        freeze_data["projects"],
-        key=lambda row: sum(source["bytes"] for source in row["sources"]),
+def exact_conformance(rows: list[dict[str, Any]]) -> bool:
+    for row in rows:
+        groups = [row, *row["by_vendor"].values()]
+        for group in groups:
+            for name in (
+                "session_order",
+                "attempted_edges",
+                "confirmed_effect_edges",
+                "edge_call_statuses",
+            ):
+                metric = group[name]
+                if metric["precision"] != 1.0 or metric["recall"] != 1.0:
+                    return False
+    return True
+
+
+def run_deterministic(args: argparse.Namespace) -> int:
+    rows, costs = deterministic_methods(args.private, args.output)
+    print(f"[rq7] deterministic projection complete: {len(rows)} rows, {len(costs)} costs")
+    return 0
+
+
+def check_action_fixtures(args: argparse.Namespace) -> int:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "rq7_source_oracle_check",
+        Path(__file__).with_name("rq7_source_oracle_check.py"),
     )
-    model_rows, model_cost = model_call(
-        freeze_data,
-        project,
-        args.private,
-        args.private / "preflight" / project["project"],
-        args.model,
-        args.reasoning,
-        0,
-    )
-    if model_cost["terminal_status"] != "complete":
-        raise RuntimeError(f"Raw retrieval preflight failed: {model_cost['terminal_status']}")
-    if model_cost["tool_calls"] < 1 or model_cost["tool_result_bytes"] < 1:
-        raise RuntimeError("Raw retrieval preflight did not engage the local evidence tools")
-    subset = []
-    for family in "ABCD":
-        qid = next(row["id"] for row in project["questions"] if row["family"] == family)
-        subset.extend(row for row in deterministic if row["id"] == qid)
-        subset.extend(row for row in model_rows if row["id"] == qid)
-    write_json(args.release / "preflight-result.json", {
-        "status": "pass",
-        "project": project["project"],
-        "vendors": sorted(vendors),
-        "questions_exercised": 4,
-        "methods": ["counts", "final_state", "procgrep", "raw_model", "trajectory"],
-        "model_terminal_status": model_cost["terminal_status"],
-        "rows": subset,
-        "deterministic_cost_rows": len(costs),
-    })
+    if spec is None or spec.loader is None:
+        raise RuntimeError("could not load independent source checker")
+    checker = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(checker)
+    fixtures = read_json(args.fixtures)
+    for fixture in fixtures:
+        name = str(fixture["tool"])
+        raw_args = fixture["args"]
+        primary_args = normalized_tool_arguments(name, raw_args)
+        independent_args = checker.unwrap_exec(name, raw_args)
+        if primary_args != independent_args:
+            raise RuntimeError(f"argument normalization mismatch: {fixture['name']}")
+        primary = event_path_actions({
+            "kind": "tool",
+            "tool": name,
+            "args": primary_args,
+        })
+        independent = [
+            {"path": path, "access": access, "previous_path": previous}
+            for path, access, previous in checker.event_effects({
+                "kind": "tool",
+                "name": name,
+                "args": independent_args,
+            })
+        ]
+        if primary != fixture["actions"] or independent != fixture["actions"]:
+            raise RuntimeError(
+                f"action fixture mismatch {fixture['name']}: "
+                f"primary={primary}, independent={independent}"
+            )
+    lifecycle_path = args.fixtures.parents[2] / "agentvis" / "tests" / "fixtures" / "strict-lifecycle.json"
+    if not lifecycle_path.is_file():
+        lifecycle_path = Path(__file__).parents[1] / "tests" / "fixtures" / "strict-lifecycle.json"
+    lifecycle_fixtures = read_json(lifecycle_path)
+    for fixture in lifecycle_fixtures:
+        primary_tracker = ArtifactTracker(Path("/fixture"))
+        independent_tracker = checker.Identities()
+        for step in fixture["steps"]:
+            expected = step["artifact_id"]
+            primary_id = primary_tracker.identity(
+                step["path"],
+                step["access"],
+                step.get("previous_path"),
+                step["confirmed"],
+                step.get("worktree", "w"),
+                step.get("previous_worktree"),
+            )
+            independent_id = independent_tracker.resolve(
+                step["path"],
+                step["access"],
+                step.get("previous_path"),
+                step["confirmed"],
+                step.get("worktree", "w"),
+                step.get("previous_worktree"),
+            )
+            if primary_id != expected or independent_id != expected:
+                raise RuntimeError(
+                    f"lifecycle fixture mismatch {fixture['name']}: "
+                    f"primary={primary_id}, independent={independent_id}, expected={expected}"
+                )
+
+    session_path = args.fixtures.with_name("native-root-identity.json")
+    session_fixtures = read_json(session_path)
+    for fixture in session_fixtures:
+        payload = fixture["payload"]
+        expected = str(fixture["expected"])
+        primary = codex_native_root_id(payload, "fallback")
+        independent = checker.codex_root_identity(payload, "fallback")
+        if primary != expected or independent != expected:
+            raise RuntimeError(
+                f"native-root fixture mismatch {fixture['name']}: "
+                f"primary={primary}, independent={independent}, expected={expected}"
+            )
+
+    repo = Path(__file__).resolve().parents[2]
+    environment = {
+        **os.environ,
+        "RQ7_ACTION_FIXTURES": str(args.fixtures.resolve()),
+        "RQ7_LIFECYCLE_FIXTURES": str(lifecycle_path.resolve()),
+        "RQ7_SESSION_FIXTURES": str(session_path.resolve()),
+    }
+    for manifest, test_name in (
+        (
+            repo / "agent-session" / "Cargo.toml",
+            "codex_native_root_matches_shared_fixture",
+        ),
+        (
+            repo / "agent-session" / "Cargo.toml",
+            "strict_action_grammar_matches_shared_fixture",
+        ),
+        (
+            repo / "agentvis" / "Cargo.toml",
+            "artifact_identity_matches_shared_lifecycle_fixture",
+        ),
+    ):
+        completed = subprocess.run(
+            [
+                "cargo",
+                "test",
+                "--quiet",
+                "--manifest-path",
+                str(manifest),
+                test_name,
+            ],
+            cwd=repo,
+            env=environment,
+            text=True,
+            capture_output=True,
+        )
+        if completed.returncode:
+            raise RuntimeError(
+                f"production fixture failed {test_name}:\n"
+                f"{completed.stdout}\n{completed.stderr}"
+            )
     print(
-        f"[rq7] preflight pass: three vendors, five methods, model={model_cost['terminal_status']}"
+        f"[rq7] shared fixtures pass: {len(fixtures)} action, "
+        f"{len(lifecycle_fixtures)} lifecycle, {len(session_fixtures)} native-root, "
+        "production + two independent oracles"
     )
     return 0
 
 
-def full(args: argparse.Namespace) -> int:
+def seal_repaired_code(args: argparse.Namespace) -> int:
+    output = args.output.resolve()
+    if output.exists():
+        raise RuntimeError(f"code seal already exists: {output}")
+    private = args.private.resolve()
+    freeze_data = read_json(private / "freeze.json")
+    repo = Path(__file__).resolve().parents[2]
+    if run(
+        ["git", "status", "--porcelain", "--untracked-files=no"],
+        cwd=repo,
+    ).strip():
+        raise RuntimeError("repaired repository has tracked modifications")
+    revision = run(["git", "rev-parse", "HEAD"], cwd=repo).strip()
+    tree = run(["git", "rev-parse", "HEAD^{tree}"], cwd=repo).strip()
+    test_commands = [
+        [
+            sys.executable,
+            str(Path(__file__).resolve()),
+            "check-action-fixtures",
+            "--fixtures",
+            str(repo / "agent-session" / "tests" / "fixtures" / "strict-action-grammar.json"),
+        ],
+        ["cargo", "test", "--manifest-path", str(repo / "agent-session" / "Cargo.toml")],
+        ["cargo", "test", "--manifest-path", str(repo / "agentvis" / "Cargo.toml")],
+        ["cargo", "fmt", "--manifest-path", str(repo / "agent-session" / "Cargo.toml"), "--", "--check"],
+        ["cargo", "fmt", "--manifest-path", str(repo / "agentvis" / "Cargo.toml"), "--", "--check"],
+        [
+            sys.executable,
+            "-m",
+            "py_compile",
+            str(repo / "agentvis" / "research" / "rq7_measurement.py"),
+            str(repo / "agentvis" / "research" / "rq7_source_oracle_check.py"),
+        ],
+        ["git", "diff", "--check"],
+    ]
+    test_records = []
+    for command in test_commands:
+        completed = subprocess.run(
+            command,
+            cwd=repo,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        combined = (completed.stdout + "\n" + completed.stderr).encode()
+        test_records.append({
+            "command": shlex.join(command),
+            "returncode": completed.returncode,
+            "output_sha256": sha256_bytes(combined),
+        })
+        if completed.returncode:
+            raise RuntimeError(
+                f"code-seal validation failed: {shlex.join(command)}\n"
+                f"{completed.stderr[-4000:]}"
+            )
+    build_command = [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--manifest-path",
+        str(repo / "agentvis" / "Cargo.toml"),
+    ]
+    build_output = run(build_command, cwd=repo)
+    binary = repo / "agentvis" / "target" / "release" / "agentvis"
+    sealed_files = [
+        repo / "agent-session" / "src" / "parser.rs",
+        repo / "agent-session" / "tests" / "fixtures" / "strict-action-grammar.json",
+        repo / "agent-session" / "tests" / "fixtures" / "native-root-identity.json",
+        repo / "agentvis" / "src" / "repository.rs",
+        repo / "agentvis" / "src" / "rq1.rs",
+        repo / "agentvis" / "research" / "rq7_measurement.py",
+        repo / "agentvis" / "research" / "rq7_source_oracle_check.py",
+        repo / "agentvis" / "tests" / "fixtures" / "strict-lifecycle.json",
+        repo / "agentvis" / "Cargo.lock",
+    ]
+    write_json(output, {
+        "spec_version": SPEC_VERSION,
+        "freeze_sha256": sha256_file(private / "freeze.json"),
+        "question_spec_sha256": freeze_data["question_spec_sha256"],
+        "git_revision": revision,
+        "git_tree": tree,
+        "build_command": shlex.join(build_command),
+        "build_output_sha256": sha256_bytes(build_output.encode()),
+        "binary": str(binary),
+        "binary_sha256": sha256_file(binary),
+        "files": {
+            str(path.relative_to(repo)): sha256_file(path)
+            for path in sealed_files
+        },
+        "tests": test_records,
+        "created_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+    })
+    print(f"[rq7] repaired code seal complete: {output}")
+    return 0
+
+
+def validate_repaired_code(
+    private: Path,
+    seal_path: Path,
+    review_path: Path,
+) -> dict[str, str]:
+    seal_path = seal_path.resolve()
+    review_path = review_path.resolve()
+    seal = read_json(seal_path)
+    review = read_json(review_path)
+    repo = Path(__file__).resolve().parents[2]
+    if seal.get("spec_version") != SPEC_VERSION:
+        raise RuntimeError("repaired code seal specification mismatch")
+    if seal.get("freeze_sha256") != sha256_file(private / "freeze.json"):
+        raise RuntimeError("repaired code seal corpus mismatch")
+    if seal.get("git_revision") != run(["git", "rev-parse", "HEAD"], cwd=repo).strip():
+        raise RuntimeError("repaired code revision changed after sealing")
+    if seal.get("git_tree") != run(["git", "rev-parse", "HEAD^{tree}"], cwd=repo).strip():
+        raise RuntimeError("repaired code tree changed after sealing")
+    if run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=repo).strip():
+        raise RuntimeError("repaired repository became dirty after sealing")
+    for relative, expected in seal.get("files", {}).items():
+        path = repo / relative
+        if not path.is_file() or sha256_file(path) != expected:
+            raise RuntimeError(f"repaired sealed file changed: {relative}")
+    binary = Path(str(seal.get("binary") or ""))
+    if not binary.is_file() or sha256_file(binary) != seal.get("binary_sha256"):
+        raise RuntimeError("repaired binary changed after sealing")
+    if not seal.get("tests") or any(row.get("returncode") != 0 for row in seal["tests"]):
+        raise RuntimeError("repaired code seal lacks passing test records")
+    seal_hash = sha256_file(seal_path)
+    if review.get("status") != "pass" or review.get("code_seal_sha256") != seal_hash:
+        raise RuntimeError("independent code review does not approve this exact seal")
+    return {
+        "code_seal_sha256": seal_hash,
+        "code_review_sha256": sha256_file(review_path),
+    }
+
+
+def validate_baseline(
+    private: Path,
+    baseline_path: Path,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    baseline_path = baseline_path.resolve()
+    freeze_data = read_json(private / "freeze.json")
+    seal = read_json(baseline_path.with_name("baseline-seal.json"))
+    if seal.get("revision") != V0_REVISION:
+        raise RuntimeError("baseline revision seal does not identify current-v0")
+    if seal.get("cargo_lock_sha256") != V0_CARGO_LOCK_SHA256:
+        raise RuntimeError("baseline Cargo.lock seal violates preregistration")
+    if seal.get("binary_sha256") != V0_BINARY_SHA256:
+        raise RuntimeError("baseline binary seal violates preregistration")
+    if seal.get("freeze_sha256") != sha256_file(private / "freeze.json"):
+        raise RuntimeError("baseline corpus seal does not match this freeze")
+    if seal.get("question_spec_sha256") != freeze_data["question_spec_sha256"]:
+        raise RuntimeError("baseline question specification does not match this freeze")
+    if seal.get("candidate_sha256") != sha256_file(baseline_path):
+        raise RuntimeError("baseline candidate hash does not match its seal")
+    worktree = Path(str(seal["worktree"]))
+    binary = worktree / "agentvis" / "target" / "release" / "agentvis"
+    if not binary.is_file() or sha256_file(binary) != V0_BINARY_SHA256:
+        raise RuntimeError("preregistered current-v0 binary is unavailable")
+    lock = worktree / "agentvis" / "Cargo.lock"
+    if not lock.is_file() or sha256_file(lock) != V0_CARGO_LOCK_SHA256:
+        raise RuntimeError("preregistered current-v0 Cargo.lock is unavailable")
+    candidates = read_json(baseline_path)
+    ids = [str(row["id"]) for row in candidates]
+    expected_ids = {str(row["id"]) for row in freeze_data["questions"]}
+    if len(ids) != len(expected_ids) or set(ids) != expected_ids:
+        raise RuntimeError("baseline candidate IDs do not match the frozen questions")
+    ids_hash = sha256_bytes("\n".join(sorted(ids)).encode())
+    if seal.get("candidate_ids_sha256") != ids_hash:
+        raise RuntimeError("baseline candidate ID seal mismatch")
+    if any(
+        row.get("question_spec_sha256") != freeze_data["question_spec_sha256"]
+        for row in candidates
+    ):
+        raise RuntimeError("baseline candidate question specification mismatch")
+    return seal, candidates
+
+
+def run_current_baseline(args: argparse.Namespace) -> int:
+    if args.output.exists():
+        raise RuntimeError("baseline output is append-only")
+    worktree = args.worktree.resolve()
+    revision = run(["git", "rev-parse", "HEAD"], cwd=worktree).strip()
+    if revision != V0_REVISION:
+        raise RuntimeError(f"current-v0 revision mismatch: {revision}")
+    if run(
+        ["git", "status", "--porcelain", "--untracked-files=no"],
+        cwd=worktree,
+    ).strip():
+        raise RuntimeError("current-v0 worktree has tracked modifications")
+    binary = worktree / "agentvis" / "target" / "release" / "agentvis"
+    if not binary.is_file():
+        raise RuntimeError(f"current-v0 binary missing: {binary}")
+    if sha256_file(worktree / "agentvis" / "Cargo.lock") != V0_CARGO_LOCK_SHA256:
+        raise RuntimeError("current-v0 Cargo.lock does not match preregistration")
+    if sha256_file(binary) != V0_BINARY_SHA256:
+        raise RuntimeError("current-v0 binary does not match preregistration")
     freeze_data = read_json(args.private / "freeze.json")
-    full_private = args.private / "full"
-    full_private.mkdir(parents=True, exist_ok=True)
-    deterministic, deterministic_costs = deterministic_methods(args.private, full_private / "deterministic")
-    model_rows: list[dict[str, Any]] = []
-    model_costs: list[dict[str, Any]] = []
+    projection, build_seconds = build_agent_session_projection(
+        args.private,
+        args.output / "projection",
+        binary_override=binary,
+    )
+    frozen_home = args.private / "frozen-home"
+    results = []
     for project in freeze_data["projects"]:
-        for repetition in range(1, args.repetitions + 1):
-            destination = full_private / "raw-model" / project["project"] / f"rep-{repetition}"
-            checkpoint = destination / "scored.json"
-            if checkpoint.exists():
-                saved = read_json(checkpoint)
-                rows, cost = saved["results"], saved["cost"]
-                print(f"[rq7] resume {project['project']} repetition {repetition}")
-            else:
-                print(f"[rq7] model {project['project']} repetition {repetition}", flush=True)
-                rows, cost = model_call(
-                    freeze_data,
-                    project,
-                    args.private,
-                    destination,
-                    args.model,
-                    args.reasoning,
-                    repetition,
+        pedges, p0_identity, join_error = proposed_edges(
+            project, projection[project["project"]], frozen_home
+        )
+        relation = (
+            relation_values(pedges, len(project["sessions"]), p0_identity)
+            if p0_identity and not join_error
+            else None
+        )
+        final_by_template = {
+            f"D{index}": row["status"]
+            for index, row in enumerate(project["workspace"]["paths"], start=1)
+        }
+        projected_paths = {
+            row["display_path"] for row in pedges
+        } | {row["path"] for row in pedges}
+        for question in project["questions"]:
+            template = question["template"]
+            family = question["family"]
+            if family in {"B", "C"} and relation:
+                value = answer("answer", relation[template])
+            elif family == "D":
+                path = project["workspace"]["paths"][int(template[1:]) - 1]["path"]
+                value = (
+                    answer("answer", final_by_template[template])
+                    if path in projected_paths
+                    else answer("abstain")
                 )
-            model_rows.extend(rows)
-            model_costs.append(cost)
-    expected_model_rows = 120 * args.repetitions
-    if len(model_rows) != expected_model_rows:
-        write_json(full_private / "partial.json", {"expected": expected_model_rows, "actual": len(model_rows)})
-        return 2
-    all_rows = deterministic + model_rows
-    all_costs = deterministic_costs + model_costs
-    write_json(full_private / "method-results.json", all_rows)
-    write_json(full_private / "costs.json", all_costs)
-    audit_manifest(args.private)
-    print(f"[rq7] full run complete: {len(all_rows)} scored method rows")
+            else:
+                value = answer("abstain")
+            results.append({
+                "id": question["id"],
+                "project": project["project"],
+                "family": family,
+                "template": template,
+                "method": "current_v0",
+                "repetition": 0,
+                "status": value["status"],
+                "answer": value["answer"],
+                "question_spec_sha256": freeze_data["question_spec_sha256"],
+            })
+    write_json(args.output / "baseline-candidates.json", results)
+    write_json(args.output / "baseline-cost.json", {
+        "method": "current_v0",
+        "build_seconds": f"{build_seconds:.6f}",
+        "rows": len(results),
+        "binary_sha256": sha256_file(binary),
+    })
+    candidate_path = args.output / "baseline-candidates.json"
+    write_json(args.output / "baseline-seal.json", {
+        "revision": revision,
+        "worktree": str(worktree),
+        "build_command": (
+            "cargo build --release --locked --manifest-path agentvis/Cargo.toml"
+        ),
+        "cargo_lock_sha256": sha256_file(worktree / "agentvis" / "Cargo.lock"),
+        "binary_sha256": sha256_file(binary),
+        "freeze_sha256": sha256_file(args.private / "freeze.json"),
+        "question_spec_sha256": freeze_data["question_spec_sha256"],
+        "candidate_sha256": sha256_file(candidate_path),
+        "candidate_ids_sha256": sha256_bytes(
+            "\n".join(sorted(str(row["id"]) for row in results)).encode()
+        ),
+        "rows": len(results),
+    })
+    print(f"[rq7] current-v0 baseline complete: {len(results)} rows")
+    return 0
+
+
+def bc_gate(rows: list[dict[str, Any]], expected: int) -> dict[str, int]:
+    selected = [
+        row
+        for row in rows
+        if row["method"] == "trajectory" and row["family"] in {"B", "C"}
+    ]
+    result = {
+        "expected": expected,
+        "answers": sum(row["status"] == "answer" for row in selected),
+        "correct": sum(row["correct"] for row in selected),
+        "wrong": sum(row["wrong"] for row in selected),
+        "abstain": sum(row["status"] != "answer" for row in selected),
+    }
+    result["pass"] = int(
+        len(selected) == expected
+        and result["answers"] == expected
+        and result["correct"] == expected
+        and result["wrong"] == 0
+        and result["abstain"] == 0
+    )
+    return result
+
+
+def score_blind_candidates(
+    candidates: list[dict[str, Any]],
+    questions: list[dict[str, Any]],
+    spec_hash: str,
+) -> list[dict[str, Any]]:
+    if any(
+        any(key in row for key in ("expected", "correct", "wrong"))
+        for row in candidates
+    ):
+        raise RuntimeError("baseline candidates contain gold-derived fields")
+    question_by_id = {str(row["id"]): row for row in questions}
+    candidate_ids = [str(row["id"]) for row in candidates]
+    if len(candidate_ids) != len(question_by_id) or set(candidate_ids) != set(question_by_id):
+        raise RuntimeError("baseline candidate IDs do not match the frozen questions")
+    scored = []
+    for row in candidates:
+        question = question_by_id[str(row["id"])]
+        if row.get("question_spec_sha256") != spec_hash:
+            raise RuntimeError(f"baseline question-spec mismatch: {row['id']}")
+        expected = str(question["answer"])
+        status = str(row["status"])
+        value = str(row["answer"])
+        scored.append({
+            **row,
+            "expected": expected,
+            "correct": int(status == "answer" and value == expected),
+            "wrong": int(status == "answer" and value != expected),
+        })
+    return scored
+
+
+def preflight(args: argparse.Namespace) -> int:
+    private = args.private.resolve()
+    release = args.release.resolve()
+    private_run = private / "preflight"
+    if private_run.exists() or release.exists():
+        raise RuntimeError("preflight outputs are append-only")
+    validate_baseline(private, args.baseline)
+    validate_repaired_code(private, args.code_seal, args.code_review)
+    freeze_data = read_json(private / "freeze.json")
+    checker = read_json(private / "oracle-check.json")
+    if checker.get("status") != "pass":
+        raise RuntimeError("independent oracle checker did not pass")
+    project = min(
+        freeze_data["projects"],
+        key=lambda row: (
+            sum(source["bytes"] for source in row["sources"]),
+            row["project"],
+        ),
+    )
+    output = release / "deterministic"
+    deterministic, costs = deterministic_methods(
+        private,
+        output,
+        {project["project"]},
+        private_run / "projection",
+    )
+    conformance = read_json(output / "projection-conformance.json")
+    gate = bc_gate(deterministic, 10)
+    status = "pass" if exact_conformance(conformance) and gate["pass"] else "fail"
+    write_json(release / "preflight-result.json", {
+        "status": status,
+        "project": project["project"],
+        "vendors": sorted({source["vendor"] for source in project["sources"]}),
+        "strict_edge_conformance": exact_conformance(conformance),
+        "bc_gate": gate,
+        "deterministic_cost_rows": len(costs),
+    })
+    if status != "pass":
+        raise RuntimeError(f"held-out preflight failed for {project['project']}")
+    print(f"[rq7] preflight pass: {project['project']}, exact edges/status/effects, B+C 10/10")
+    return 0
+
+
+def full(args: argparse.Namespace) -> int:
+    private = args.private.resolve()
+    release = args.release.resolve()
+    full_private = private / "full"
+    if full_private.exists() or release.exists():
+        raise RuntimeError("full-run outputs are append-only")
+    baseline_seal, baseline_candidates = validate_baseline(private, args.baseline)
+    repaired_hashes = validate_repaired_code(
+        private,
+        args.code_seal,
+        args.code_review,
+    )
+    freeze_data = read_json(private / "freeze.json")
+    preflight_attempt = read_json(private.parent / "preflight-attempt.json")
+    preflight_result_path = Path(str(preflight_attempt.get("result_path") or ""))
+    if (
+        preflight_attempt.get("terminal_status") != "complete"
+        or preflight_attempt.get("decision") != "pass"
+        or preflight_attempt.get("freeze_sha256") != sha256_file(private / "freeze.json")
+        or preflight_attempt.get("baseline_seal_sha256")
+        != sha256_file(args.baseline.resolve().with_name("baseline-seal.json"))
+        or preflight_attempt.get("code_seal_sha256")
+        != repaired_hashes["code_seal_sha256"]
+        or preflight_attempt.get("code_review_sha256")
+        != repaired_hashes["code_review_sha256"]
+        or not preflight_result_path.is_file()
+        or preflight_attempt.get("result_sha256") != sha256_file(preflight_result_path)
+        or read_json(preflight_result_path).get("status") != "pass"
+    ):
+        raise RuntimeError("full run requires the unique matching passed preflight")
+    deterministic, deterministic_costs = deterministic_methods(
+        private,
+        full_private / "deterministic",
+        projection_output=full_private / "projection",
+    )
+    conformance = read_json(
+        full_private / "deterministic" / "projection-conformance.json"
+    )
+    gate = bc_gate(deterministic, 60)
+    baseline_rows = score_blind_candidates(
+        baseline_candidates,
+        freeze_data["questions"],
+        freeze_data["question_spec_sha256"],
+    )
+    baseline_gate = bc_gate(
+        [
+            {**row, "method": "trajectory"}
+            for row in baseline_rows
+            if row.get("method") == "current_v0"
+        ],
+        60,
+    )
+    improves_over_v0 = (
+        gate["correct"] > baseline_gate["correct"]
+        and gate["wrong"] <= baseline_gate["wrong"]
+        and gate["abstain"] <= baseline_gate["abstain"]
+    )
+    summary = {
+        "status": "pass"
+        if exact_conformance(conformance) and gate["pass"] and improves_over_v0
+        else "fail",
+        "projects": len(freeze_data["projects"]),
+        "sources": sum(len(project["sources"]) for project in freeze_data["projects"]),
+        "strict_edge_conformance": exact_conformance(conformance),
+        "bc_gate": gate,
+        "current_v0_bc": baseline_gate,
+        "improves_over_current_v0": improves_over_v0,
+        "conformance": conformance,
+    }
+    write_json(release / "heldout-summary.json", summary)
+    write_json(full_private / "method-results.json", deterministic)
+    write_json(full_private / "costs.json", deterministic_costs)
+    audit_manifest(private)
+    if summary["status"] != "pass":
+        raise RuntimeError("full held-out conformance gate failed")
+    print(
+        f"[rq7] full pass: {summary['sources']} roots, "
+        "exact edges/status/effects, B+C 60/60"
+    )
     return 0
 
 
@@ -2739,11 +4035,15 @@ def parser() -> argparse.ArgumentParser:
     freeze_parser.add_argument("--private", type=Path, required=True)
     freeze_parser.add_argument("--release", type=Path, required=True)
     freeze_parser.add_argument("--procgrep", type=Path, required=True)
-    freeze_parser.add_argument("--seed", default=SEED)
-    freeze_parser.add_argument("--sessions", type=int, default=12)
-    freeze_parser.add_argument("--raw-bytes", type=int, default=163_840)
-    freeze_parser.add_argument("--stability-wait", type=int, default=60)
-    freeze_parser.set_defaults(func=freeze)
+    freeze_parser.add_argument("--exclude-freeze", type=Path, action="append", required=True)
+    freeze_parser.set_defaults(
+        func=freeze,
+        seed=FROZEN_SELECTION_SEED,
+        sessions=FROZEN_SESSIONS_PER_PROJECT,
+        raw_bytes=FROZEN_SOURCE_BYTES,
+        stability_wait=FROZEN_STABILITY_WAIT,
+        cutoff_ns=FROZEN_DISCOVERY_CUTOFF_NS,
+    )
 
     recover_parser = sub.add_parser("recover-freeze")
     recover_parser.add_argument("--private", type=Path, required=True)
@@ -2755,21 +4055,43 @@ def parser() -> argparse.ArgumentParser:
     rederive_parser.add_argument("--private", type=Path, required=True)
     rederive_parser.add_argument("--release", type=Path, required=True)
     rederive_parser.add_argument("--procgrep", type=Path, required=True)
+    rederive_parser.add_argument("--refresh-workspace", action="store_true")
     rederive_parser.set_defaults(func=rederive_freeze)
 
     preflight_parser = sub.add_parser("preflight")
     preflight_parser.add_argument("--private", type=Path, required=True)
     preflight_parser.add_argument("--release", type=Path, required=True)
-    preflight_parser.add_argument("--model", default="gpt-5.6-terra")
-    preflight_parser.add_argument("--reasoning", default="medium")
+    preflight_parser.add_argument("--baseline", type=Path, required=True)
+    preflight_parser.add_argument("--code-seal", type=Path, required=True)
+    preflight_parser.add_argument("--code-review", type=Path, required=True)
     preflight_parser.set_defaults(func=preflight)
+
+    deterministic_parser = sub.add_parser("deterministic")
+    deterministic_parser.add_argument("--private", type=Path, required=True)
+    deterministic_parser.add_argument("--output", type=Path, required=True)
+    deterministic_parser.set_defaults(func=run_deterministic)
+
+    fixture_parser = sub.add_parser("check-action-fixtures")
+    fixture_parser.add_argument("--fixtures", type=Path, required=True)
+    fixture_parser.set_defaults(func=check_action_fixtures)
+
+    seal_parser = sub.add_parser("seal-code")
+    seal_parser.add_argument("--private", type=Path, required=True)
+    seal_parser.add_argument("--output", type=Path, required=True)
+    seal_parser.set_defaults(func=seal_repaired_code)
+
+    baseline_parser = sub.add_parser("baseline")
+    baseline_parser.add_argument("--private", type=Path, required=True)
+    baseline_parser.add_argument("--output", type=Path, required=True)
+    baseline_parser.add_argument("--worktree", type=Path, required=True)
+    baseline_parser.set_defaults(func=run_current_baseline)
 
     full_parser = sub.add_parser("full")
     full_parser.add_argument("--private", type=Path, required=True)
     full_parser.add_argument("--release", type=Path, required=True)
-    full_parser.add_argument("--model", default="gpt-5.6-terra")
-    full_parser.add_argument("--reasoning", default="medium")
-    full_parser.add_argument("--repetitions", type=int, default=3)
+    full_parser.add_argument("--baseline", type=Path, required=True)
+    full_parser.add_argument("--code-seal", type=Path, required=True)
+    full_parser.add_argument("--code-review", type=Path, required=True)
     full_parser.set_defaults(func=full)
 
     score_parser = sub.add_parser("score")
@@ -2789,9 +4111,92 @@ def parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = parser().parse_args()
-    if getattr(args, "seed", SEED) != SEED:
-        raise RuntimeError(f"frozen seed must be {SEED}")
-    return int(args.func(args))
+    if hasattr(args, "seed") and not args.seed:
+        raise RuntimeError("selection seed must be non-empty")
+    if args.command not in {"freeze", "preflight", "full"}:
+        return int(args.func(args))
+    if args.command in {"preflight", "full"}:
+        private = args.private.resolve()
+        attempt_path = private.parent / f"{args.command}-attempt.json"
+        if attempt_path.exists():
+            raise RuntimeError(f"{args.command} attempt already exists: {attempt_path}")
+        baseline = args.baseline.resolve()
+        baseline_seal = baseline.with_name("baseline-seal.json")
+        code_seal = args.code_seal.resolve()
+        code_review = args.code_review.resolve()
+        result_path = args.release.resolve() / (
+            "preflight-result.json"
+            if args.command == "preflight"
+            else "heldout-summary.json"
+        )
+        attempt = {
+            "command": shlex.join(sys.argv),
+            "started_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+            "terminal_status": "running",
+            "freeze_sha256": sha256_file(private / "freeze.json"),
+            "baseline_candidate_sha256": sha256_file(baseline),
+            "baseline_seal_sha256": sha256_file(baseline_seal),
+            "code_seal_sha256": sha256_file(code_seal),
+            "code_review_sha256": sha256_file(code_review),
+            "result_path": str(result_path),
+        }
+        write_json(attempt_path, attempt)
+        try:
+            result = int(args.func(args))
+        except BaseException as error:
+            attempt["terminal_status"] = "failed"
+            attempt["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+            attempt["error_type"] = type(error).__name__
+            if result_path.is_file():
+                payload = read_json(result_path)
+                attempt["decision"] = payload.get("status")
+                attempt["result_sha256"] = sha256_file(result_path)
+            write_json(attempt_path, attempt)
+            raise
+        attempt["terminal_status"] = "complete"
+        attempt["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+        if result_path.is_file():
+            payload = read_json(result_path)
+            attempt["decision"] = payload.get("status")
+            attempt["result_sha256"] = sha256_file(result_path)
+        write_json(attempt_path, attempt)
+        return result
+    attempt_path = args.private.resolve().parent / "freeze-attempt.json"
+    if attempt_path.exists():
+        raise RuntimeError(f"freeze attempt already exists: {attempt_path}")
+    attempt_path.parent.mkdir(parents=True, exist_ok=True)
+    attempt = {
+        "command": shlex.join(sys.argv),
+        "started_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "terminal_status": "running",
+        "seed": args.seed,
+        "sessions_per_project": args.sessions,
+        "raw_bytes": args.raw_bytes,
+        "stability_wait_seconds": args.stability_wait,
+        "discovery_cutoff_ns": args.cutoff_ns,
+        "projects_file": str(args.projects_file.resolve()),
+        "projects_file_sha256": sha256_file(args.projects_file.resolve()),
+        "exclusion_manifests": [
+            {
+                "path": str(path.resolve()),
+                "sha256": sha256_file(path.resolve()),
+            }
+            for path in args.exclude_freeze
+        ],
+    }
+    write_json(attempt_path, attempt)
+    try:
+        result = int(args.func(args))
+    except BaseException as error:
+        attempt["terminal_status"] = "failed"
+        attempt["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+        attempt["error_type"] = type(error).__name__
+        write_json(attempt_path, attempt)
+        raise
+    attempt["terminal_status"] = "complete"
+    attempt["finished_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+    write_json(attempt_path, attempt)
+    return result
 
 
 if __name__ == "__main__":

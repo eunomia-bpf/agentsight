@@ -1,0 +1,86 @@
+[
+  {
+    "name": "direct-shell-operands",
+    "tool": "exec_command",
+    "args": {
+      "cmd": "cat README; head -n 2 src/a.rs; sudo cat LICENSE; bash -c 'cat Makefile'; cat hidden.rs > out.txt"
+    },
+    "actions": [
+      {"path": "README", "access": "read", "previous_path": null},
+      {"path": "src/a.rs", "access": "read", "previous_path": null}
+    ]
+  },
+  {
+    "name": "atomic-patch-move",
+    "tool": "apply_patch",
+    "args": {
+      "patch": "*** Begin Patch\n*** Update File: z-old\n*** Move to: a-new\n*** End Patch"
+    },
+    "actions": [
+      {"path": "z-old", "access": "rename_from", "previous_path": null},
+      {"path": "a-new", "access": "rename", "previous_path": "z-old"}
+    ]
+  },
+  {
+    "name": "all-structured-path-keys",
+    "tool": "Read",
+    "args": {
+      "absolute_path": "README",
+      "filepath": "LICENSE",
+      "target_file": "Makefile"
+    },
+    "actions": [
+      {"path": "LICENSE", "access": "read", "previous_path": null},
+      {"path": "Makefile", "access": "read", "previous_path": null},
+      {"path": "README", "access": "read", "previous_path": null}
+    ]
+  },
+  {
+    "name": "codex-exec-envelope",
+    "tool": "exec",
+    "args": {
+      "command": "const r = await tools.exec_command({cmd:\"cat README\"});"
+    },
+    "actions": [
+      {"path": "README", "access": "read", "previous_path": null}
+    ]
+  },
+  {
+    "name": "same-path-multiple-actions",
+    "tool": "exec_command",
+    "args": {
+      "cmd": "cat README; touch README"
+    },
+    "actions": [
+      {"path": "README", "access": "create", "previous_path": null},
+      {"path": "README", "access": "read", "previous_path": null}
+    ]
+  },
+  {
+    "name": "same-path-copy-actions",
+    "tool": "exec_command",
+    "args": {
+      "cmd": "cp README README"
+    },
+    "actions": [
+      {"path": "README", "access": "create", "previous_path": null},
+      {"path": "README", "access": "read", "previous_path": null}
+    ]
+  },
+  {
+    "name": "substring-tool-names-are-not-admitted",
+    "tool": "replace",
+    "args": {
+      "file_path": "src/lib.rs"
+    },
+    "actions": []
+  },
+  {
+    "name": "unknown-patch-tool-is-not-admitted",
+    "tool": "patch_preview",
+    "args": {
+      "input": "*** Begin Patch\n*** Update File: src/lib.rs\n*** End Patch"
+    },
+    "actions": []
+  }
+]

@@ -325,6 +325,12 @@ fn analyze_project(
             *actions_by_worktree
                 .entry(action.worktree_id.clone())
                 .or_default() += 1;
+            // RepositoryEvent records attempted references. Artifact
+            // lifecycles and reuse/validation estimands admit confirmed
+            // effects only.
+            if event.status != "ok" {
+                continue;
+            }
             let artifact_index = apply_action(
                 &project,
                 event,
@@ -342,7 +348,7 @@ fn analyze_project(
                 operation: action.access.clone(),
             });
             update_artifact(&mut artifacts[artifact_index], event, event_index, action);
-            if event.status == "ok" && is_mutation(&action.access) {
+            if is_mutation(&action.access) {
                 mutations.push(MutationTemp {
                     project: project.clone(),
                     event_id: event.id.clone(),
@@ -498,10 +504,8 @@ fn apply_action(
     }
 
     let index = live.get(&key).copied().unwrap_or_else(|| {
-        let birth = if action.access == "create" && event.status == "ok" {
+        let birth = if action.access == "create" {
             "confirmed_create"
-        } else if action.access == "create" {
-            "unknown_create_status"
         } else {
             "left_censored_existing"
         };
@@ -521,11 +525,7 @@ fn apply_action(
     if action.access == "delete" {
         live.remove(&key);
         artifacts[index].current_path = None;
-        artifacts[index].closed_reason = if event.status == "ok" {
-            "confirmed_delete".into()
-        } else {
-            "status_unknown_delete".into()
-        };
+        artifacts[index].closed_reason = "confirmed_delete".into();
     }
     index
 }
@@ -581,11 +581,9 @@ fn update_artifact(
     if action.access == "read" {
         artifact.reads += 1;
     }
-    if is_mutation(&action.access) {
-        artifact.mutations += usize::from(event.status == "ok");
-    }
-    artifact.renames += usize::from(action.access == "rename" && event.status == "ok");
-    artifact.deletes += usize::from(action.access == "delete" && event.status == "ok");
+    artifact.mutations += usize::from(is_mutation(&action.access));
+    artifact.renames += usize::from(action.access == "rename");
+    artifact.deletes += usize::from(action.access == "delete");
 }
 
 fn artifact_row(project: &str, artifact: &ArtifactState, state: &FinalState) -> ArtifactRow {
@@ -1187,9 +1185,11 @@ mod tests {
             source_call_id: Some(format!("call{index}")),
             native_session_id: session.into(),
             source_stream_id: session.into(),
+            source_tool_ordinal: index,
             source_role: Some("root".into()),
             source_agent_id: None,
             session_id: session.into(),
+            session_ordinal: 0,
             vendor: "codex".into(),
             ts_ms: index as i64 * 10,
             prompt_index: 0,
@@ -1219,7 +1219,48 @@ mod tests {
             previous_path: None,
             previous_worktree_id: None,
             scope: false,
+            action_ordinal: 0,
+            artifact_id: String::new(),
         }
+    }
+
+    fn trace(events: Vec<RepositoryEvent>) -> RepositoryTrace {
+        RepositoryTrace {
+            repository: "p".into(),
+            revision: "r".into(),
+            start_ms: events.first().map_or(0, |event| event.ts_ms),
+            end_ms: events.last().map_or(0, |event| event.ts_ms),
+            global: false,
+            worktree_count: 1,
+            candidate_session_count: 1,
+            parsed_session_count: 1,
+            session_count: 1,
+            candidate_sessions_by_vendor: BTreeMap::from([("codex".into(), 1)]),
+            parsed_sessions_by_vendor: BTreeMap::from([("codex".into(), 1)]),
+            included_sessions_by_vendor: BTreeMap::from([("codex".into(), 1)]),
+            source_event_count: events.len(),
+            file_action_count: events.iter().map(|event| event.actions.len()).sum(),
+            events,
+            commits_ms: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn failed_and_observed_mutations_do_not_create_artifact_lifecycle() {
+        let mut failed = event(0, "s1", "fail", "write");
+        failed.actions.push(action("w1", "failed.rs", "create"));
+        let mut observed = event(1, "s1", "observed", "write");
+        observed.actions.push(action("w1", "observed.rs", "rename"));
+        let trace = trace(vec![failed, observed]);
+        let state = FinalState {
+            roots: HashMap::new(),
+            tracked: HashMap::new(),
+            unavailable: HashSet::new(),
+        };
+        let (_, artifacts, mutations, _) =
+            analyze_project(Path::new("/unused"), &trace, &state, trace.end_ms);
+        assert!(artifacts.is_empty());
+        assert!(mutations.is_empty());
     }
 
     #[test]
@@ -1263,6 +1304,39 @@ mod tests {
             &mut live,
         );
         assert_eq!(artifacts[born].birth_state, "confirmed_create");
+    }
+
+    #[test]
+    fn cross_worktree_rename_does_not_transfer_artifact_identity() {
+        let mut artifacts = Vec::new();
+        let mut histories = Vec::new();
+        let mut live = HashMap::new();
+        let source = action("w1", "old", "create");
+        let old = apply_action(
+            "p",
+            &event(0, "s1", "ok", "write"),
+            0,
+            &source,
+            &mut artifacts,
+            &mut histories,
+            &mut live,
+        );
+        let mut rename = action("w2", "new", "rename");
+        rename.previous_path = Some("old".into());
+        rename.previous_worktree_id = Some("w1".into());
+        let new = apply_action(
+            "p",
+            &event(1, "s1", "ok", "write"),
+            1,
+            &rename,
+            &mut artifacts,
+            &mut histories,
+            &mut live,
+        );
+        assert_ne!(old, new);
+        assert_eq!(artifacts[new].birth_state, "unknown_rename_source");
+        assert!(live.contains_key(&("w1".into(), "old".into())));
+        assert!(live.contains_key(&("w2".into(), "new".into())));
     }
 
     #[test]

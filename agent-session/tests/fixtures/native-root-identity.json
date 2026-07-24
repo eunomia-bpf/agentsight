@@ -1,0 +1,43 @@
+[
+  {
+    "name": "legacy-root",
+    "payload": {
+      "id": "root-legacy"
+    },
+    "expected": "root-legacy"
+  },
+  {
+    "name": "new-root-prefers-session",
+    "payload": {
+      "id": "stream-root",
+      "session_id": "root-new"
+    },
+    "expected": "root-new"
+  },
+  {
+    "name": "legacy-subagent-prefers-parent",
+    "payload": {
+      "id": "stream-child-legacy",
+      "parent_thread_id": "root-legacy"
+    },
+    "expected": "root-legacy"
+  },
+  {
+    "name": "new-subagent-prefers-session-over-parent",
+    "payload": {
+      "id": "stream-child-new",
+      "thread_id": "thread-child-new",
+      "parent_thread_id": "root-parent-new",
+      "session_id": "root-session-new"
+    },
+    "expected": "root-session-new"
+  },
+  {
+    "name": "thread-precedes-stream-id",
+    "payload": {
+      "id": "stream-thread",
+      "thread_id": "root-thread"
+    },
+    "expected": "root-thread"
+  }
+]

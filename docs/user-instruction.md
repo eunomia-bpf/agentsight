@@ -70,3 +70,7 @@ The entries below preserve only verbatim user-authored research instructions.
 > 我们不需要改可视化, 你现在先把 empirical study 做好? RQ6 修一下? 能不能想想更有趣的问题, 再来几个 RQ? 我觉得有一些是显然的吗比如说 RQ1, 也有一些数据不一定具有代表性, 因为是我们自己的开发数据? 另外 empirical study 也需要画图对吧?
 
 > 以及你也可以帮助想想我们的星云图有没有必要重新设计
+
+## 2026-07-23
+
+> 能不能先把研究变得更好? 你可以随意改算法, 把论文先弄好? 去做

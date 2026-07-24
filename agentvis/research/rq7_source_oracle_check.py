@@ -22,11 +22,13 @@ from typing import Any
 
 
 SEED = "20260722"
+SPEC_VERSION = "native-root-conformance-v3"
 READERS = {"cat", "sed", "head", "tail", "nl", "less", "more"}
 MUTATORS = {"touch", "rm", "mv", "cp"}
 SHELL_TOOLS = {"bash", "exec", "exec_command", "shell_command", "run_shell_command", "shell"}
 PATH_KEYS = {
     "file_path",
+    "filepath",
     "path",
     "absolute_path",
     "target_file",
@@ -78,6 +80,37 @@ def digest_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def stream_key(vendor: str, native_session_id: str, source_stem: str) -> str:
+    material = "\0".join((vendor, native_session_id, source_stem))
+    return digest_bytes(material.encode())[:16]
+
+
+def classify_output(output: str) -> str:
+    lowered = output.lower()
+    successes = (
+        "process exited with code 0",
+        "script completed",
+        "command completed",
+        '"is_error":false',
+    )
+    failures = ("process exited with code", '"is_error":true', "error")
+    if any(marker in lowered for marker in successes):
+        return "ok"
+    if any(marker in lowered for marker in failures):
+        return "fail"
+    return "observed"
+
+
+def number_tools(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    position = 0
+    for event in events:
+        if event.get("kind") == "tool":
+            event["tool_ordinal"] = position
+            event.setdefault("status", "observed")
+            position += 1
+    return events
+
+
 def timestamp_ms(value: Any) -> int | None:
     if isinstance(value, (int, float)):
         number = int(value)
@@ -121,6 +154,50 @@ def command_of(name: str, args: dict[str, Any]) -> str:
     if isinstance(value, list):
         return " ".join(map(str, value))
     return value if isinstance(value, str) else ""
+
+
+def unwrap_exec(name: str, args: dict[str, Any]) -> dict[str, Any]:
+    if name.lower() != "exec":
+        return args
+    text = command_of(name, args)
+    marker = text.find("tools.exec_command(")
+    opening = text.find("{", marker + 1) if marker >= 0 else -1
+    if opening < 0:
+        return args
+    depth = 0
+    in_string = False
+    escaped = False
+    closing = -1
+    for offset, character in enumerate(text[opening:], start=opening):
+        if escaped:
+            escaped = False
+        elif in_string and character == "\\":
+            escaped = True
+        elif character == '"':
+            in_string = not in_string
+        elif not in_string and character == "{":
+            depth += 1
+        elif not in_string and character == "}":
+            depth -= 1
+            if depth == 0:
+                closing = offset + 1
+                break
+    if closing < 0:
+        return args
+    raw = text[opening:closing]
+    try:
+        nested = json.loads(raw)
+    except json.JSONDecodeError:
+        raw = re.sub(
+            r"([{,]\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:)",
+            r'\1"\2"\3',
+            raw,
+        )
+        try:
+            nested = json.loads(raw)
+        except json.JSONDecodeError:
+            return args
+    return nested if isinstance(nested, dict) else args
 
 
 def command_atom(command: str) -> str:
@@ -178,6 +255,14 @@ def human_prompt(content: Any) -> bool:
     return bool(stripped) and not stripped.startswith(INJECTED)
 
 
+def codex_root_identity(payload: dict[str, Any], fallback: str) -> str:
+    for key in ("session_id", "parent_thread_id", "thread_id", "id"):
+        value = payload.get(key)
+        if value:
+            return str(value)
+    return fallback
+
+
 def native_identity(vendor: str, source: Any, fallback: str) -> str:
     if vendor == "gemini" and isinstance(source, dict):
         return str(source.get("sessionId") or fallback)
@@ -188,7 +273,7 @@ def native_identity(vendor: str, source: Any, fallback: str) -> str:
             fallback = str(row["sessionId"])
         if vendor == "codex" and row.get("type") == "session_meta":
             payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
-            fallback = str(payload.get("id") or payload.get("session_id") or fallback)
+            fallback = codex_root_identity(payload, fallback)
     return fallback
 
 
@@ -210,6 +295,7 @@ def events_from_source(vendor: str, source: Any, default_cwd: str) -> list[dict[
                     continue
                 args = call.get("args") if isinstance(call.get("args"), dict) else {}
                 name = str(call.get("name") or "")
+                args = unwrap_exec(name, args)
                 events.append({
                     "kind": "tool",
                     "name": name,
@@ -220,10 +306,15 @@ def events_from_source(vendor: str, source: Any, default_cwd: str) -> list[dict[
                     "ts": stamp,
                     "record": record_index,
                     "call": call_index,
+                    "status": {
+                        "success": "ok",
+                        "error": "fail",
+                    }.get(str(call.get("status") or "").lower(), "observed"),
                 })
-        return events
+        return number_tools(events)
 
     cwd = default_cwd
+    call_position: dict[str, int] = {}
     if not isinstance(source, list):
         return events
     for record_index, row in enumerate(source):
@@ -234,12 +325,21 @@ def events_from_source(vendor: str, source: Any, default_cwd: str) -> list[dict[
             content = message.get("content")
             if row.get("type") == "user" and human_prompt(content):
                 events.append({"kind": "prompt", "atom": "prompt_ai", "ts": stamp, "record": record_index, "call": 0})
-            if row.get("type") == "file-history-snapshot":
-                events.append({
-                    "kind": "tool", "name": "file_snapshot", "args": {},
-                    "id": f"snapshot:{record_index}", "cwd": cwd, "atom": "edit",
-                    "ts": stamp, "record": record_index, "call": 0,
-                })
+            if row.get("type") == "user" and isinstance(content, list):
+                fallback_row = row.get("toolUseResult")
+                fallback = bool(
+                    fallback_row.get("is_error")
+                    if isinstance(fallback_row, dict)
+                    else False
+                )
+                for block in content:
+                    if not isinstance(block, dict) or block.get("type") != "tool_result":
+                        continue
+                    position = call_position.get(str(block.get("tool_use_id") or ""))
+                    if position is not None:
+                        events[position]["status"] = (
+                            "fail" if bool(block.get("is_error", fallback)) else "ok"
+                        )
             if row.get("type") != "assistant" or not isinstance(content, list):
                 continue
             call_index = 0
@@ -248,28 +348,51 @@ def events_from_source(vendor: str, source: Any, default_cwd: str) -> list[dict[
                     continue
                 args = block.get("input") if isinstance(block.get("input"), dict) else {}
                 name = str(block.get("name") or "")
+                args = unwrap_exec(name, args)
                 events.append({
                     "kind": "tool", "name": name, "args": args,
                     "id": str(block.get("id") or f"{record_index}:{call_index}"),
                     "cwd": str(args.get("workdir") or cwd), "atom": atom_for(name, args),
                     "ts": stamp, "record": record_index, "call": call_index,
+                    "status": "observed",
                 })
+                call_position[str(block.get("id") or f"{record_index}:{call_index}")] = len(events) - 1
                 call_index += 1
         else:
             payload = row.get("payload") if isinstance(row.get("payload"), dict) else {}
             if row.get("type") in {"session_meta", "turn_context"}:
                 cwd = str(payload.get("cwd") or cwd)
-            if row.get("type") != "response_item" or payload.get("type") not in {"function_call", "custom_tool_call"}:
-                continue
-            name = str(payload.get("name") or "")
-            args = arguments(payload.get("arguments", payload.get("input")))
-            events.append({
-                "kind": "tool", "name": name, "args": args,
-                "id": str(payload.get("call_id") or payload.get("id") or f"{record_index}:0"),
-                "cwd": str(args.get("workdir") or cwd), "atom": atom_for(name, args),
-                "ts": stamp, "record": record_index, "call": 0,
-            })
-    return events
+            if (
+                row.get("type") == "response_item"
+                and payload.get("type") in {"function_call", "custom_tool_call"}
+            ):
+                name = str(payload.get("name") or "")
+                args = arguments(payload.get("arguments", payload.get("input")))
+                args = unwrap_exec(name, args)
+                events.append({
+                    "kind": "tool", "name": name, "args": args,
+                    "id": str(payload.get("call_id") or payload.get("id") or f"{record_index}:0"),
+                    "cwd": str(args.get("workdir") or cwd), "atom": atom_for(name, args),
+                    "ts": stamp, "record": record_index, "call": 0,
+                    "status": "observed",
+                })
+                call_position[
+                    str(payload.get("call_id") or payload.get("id") or f"{record_index}:0")
+                ] = len(events) - 1
+            elif (
+                row.get("type") == "response_item"
+                and payload.get("type") in {"function_call_output", "custom_tool_call_output"}
+            ):
+                position = call_position.get(str(payload.get("call_id") or ""))
+                if position is not None:
+                    raw_output = payload.get("output")
+                    output = (
+                        raw_output
+                        if isinstance(raw_output, str)
+                        else json.dumps(raw_output, sort_keys=True)
+                    )
+                    events[position]["status"] = classify_output(output)
+    return number_tools(events)
 
 
 def nested_paths(value: Any) -> list[str]:
@@ -287,39 +410,68 @@ def nested_paths(value: Any) -> list[str]:
 
 
 def shell_commands(command: str) -> list[list[str]]:
-    try:
-        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|<>")
-        lexer.whitespace_split = True
-        tokens = list(lexer)
-    except ValueError:
-        return []
     commands: list[list[str]] = []
-    current: list[str] = []
-    for token in tokens:
-        if token and set(token) <= {";", "&", "|"}:
-            if current:
-                commands.append(current)
-                current = []
-        else:
-            current.append(token)
-    if current:
-        commands.append(current)
+    delimiter: str | None = None
+    for line in command.splitlines():
+        if delimiter is not None:
+            if line.strip() == delimiter:
+                delimiter = None
+            continue
+        marker = re.search(r"<<-?\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?", line)
+        if marker:
+            delimiter = marker.group(1)
+        try:
+            lexer = shlex.shlex(line, posix=True, punctuation_chars=";&|<>")
+            lexer.whitespace_split = True
+            tokens = list(lexer)
+        except ValueError:
+            continue
+        current: list[str] = []
+        for token in tokens:
+            if token and set(token) <= {";", "&", "|"}:
+                if current:
+                    commands.append(current)
+                    current = []
+            else:
+                current.append(token)
+        if current:
+            commands.append(current)
     return commands
 
 
-def plain_operands(tokens: list[str]) -> list[str]:
+def path_operands(command: str, tokens: list[str]) -> list[str]:
     values: list[str] = []
     skip_next = False
+    options_done = False
+    explicit_sed_program = False
+    arity = {
+        "head": {"-n", "--lines", "-c", "--bytes"},
+        "tail": {"-n", "--lines", "-c", "--bytes", "-s", "--sleep-interval", "--pid"},
+        "sed": {"-e", "--expression", "-f", "--file"},
+        "nl": {"-b", "--body-numbering", "-d", "--section-delimiter", "-f", "--footer-numbering",
+               "-h", "--header-numbering", "-i", "--line-increment", "-l", "--join-blank-lines",
+               "-n", "--number-format", "-s", "--number-separator", "-v", "--starting-line-number",
+               "-w", "--number-width"},
+    }.get(command, set())
     for token in tokens:
         if skip_next:
             skip_next = False
             continue
-        if token in {"-n", "--lines", "-c", "--bytes", "-f", "-e"}:
-            skip_next = True
-        elif token.startswith("-"):
+        if token == "--":
+            options_done = True
+            continue
+        name = token.split("=", 1)[0]
+        if not options_done and name in arity:
+            explicit_sed_program |= command == "sed" and name in {
+                "-e", "--expression", "-f", "--file"
+            }
+            skip_next = "=" not in token
+        elif not options_done and token.startswith("-"):
             continue
         else:
             values.append(token)
+    if command == "sed" and not explicit_sed_program and values:
+        values = values[1:]
     return values
 
 
@@ -331,9 +483,7 @@ def shell_effects(command: str) -> list[tuple[str, str, str | None]]:
         name = tokens[0].rsplit("/", 1)[-1].lower()
         if name not in READERS | MUTATORS:
             continue
-        values = plain_operands(tokens[1:])
-        if name == "sed" and len(values) >= 2:
-            values = values[1:]
+        values = path_operands(name, tokens[1:])
         if name in {"mv", "cp"}:
             if len(values) < 2:
                 continue
@@ -355,16 +505,36 @@ def event_effects(event: dict[str, Any]) -> list[tuple[str, str, str | None]]:
     args = event.get("args") if isinstance(event.get("args"), dict) else {}
     command = command_of(name, args)
     effects = shell_effects(command) if name in SHELL_TOOLS else []
-    if name == "apply_patch" or "*** Begin Patch" in command:
+    if name == "apply_patch" or (
+        name in SHELL_TOOLS and "*** Begin Patch" in command
+    ):
         patch = command or str(args.get("patch") or "")
-        for match in PATCH_RE.finditer(patch):
-            kind, raw_path = match.groups()
-            path = raw_path.strip()
-            effects.append((path, {"Add": "create", "Update": "write", "Delete": "delete"}[kind], None))
-            if kind == "Update":
-                move = MOVE_RE.search(patch, match.end())
-                if move:
-                    effects.extend([(path, "rename_from", None), (move.group(1).strip(), "rename", path)])
+        pending_update: str | None = None
+        for raw_line in patch.splitlines():
+            line = raw_line.strip()
+            match = PATCH_RE.fullmatch(line)
+            if match:
+                kind, raw_path = match.groups()
+                path = raw_path.strip()
+                effects.append((
+                    path,
+                    {"Add": "create", "Update": "write", "Delete": "delete"}[kind],
+                    None,
+                ))
+                pending_update = path if kind == "Update" else None
+                continue
+            move = MOVE_RE.fullmatch(line)
+            if move and pending_update:
+                effects = [
+                    effect
+                    for effect in effects
+                    if not (effect[0] == pending_update and effect[1] == "write")
+                ]
+                effects.extend([
+                    (pending_update, "rename_from", None),
+                    (move.group(1).strip(), "rename", pending_update),
+                ])
+                pending_update = None
     access = {
         "read": "read",
         "notebookread": "read",
@@ -377,7 +547,17 @@ def event_effects(event: dict[str, Any]) -> list[tuple[str, str, str | None]]:
     }.get(name)
     if access:
         effects.extend((path, access, None) for path in nested_paths(args))
-    return list(dict.fromkeys(effects))
+    unique = list(dict.fromkeys(effects))
+    priority = {"rename_from": 0, "rename": 1}
+    return sorted(
+        unique,
+        key=lambda effect: (
+            priority.get(effect[1], 2),
+            effect[0],
+            effect[1],
+            effect[2] or "",
+        ),
+    )
 
 
 def repo_path(raw: str, cwd: str, root: Path) -> str | None:
@@ -397,30 +577,64 @@ def repo_path(raw: str, cwd: str, root: Path) -> str | None:
 
 class Identities:
     def __init__(self) -> None:
-        self.current: dict[str, str] = {}
-        self.next_generation: Counter[str] = Counter()
-        self.deleted: set[str] = set()
+        self.current: dict[tuple[str, str], str] = {}
+        self.attempted: dict[tuple[str, str], str] = {}
+        self.next_generation: Counter[tuple[str, str]] = Counter()
         self.display: dict[str, str] = {}
 
-    def new(self, path: str) -> str:
-        identity = f"{path}#{self.next_generation[path]}"
-        self.next_generation[path] += 1
+    def new(self, path: str, worktree: str = "w") -> str:
+        key = (worktree, path)
+        identity = f"{path}#{self.next_generation[key]}"
+        self.next_generation[key] += 1
         self.display[identity] = path
         return identity
 
-    def resolve(self, path: str, access: str, previous: str | None) -> str:
-        if access == "rename" and previous:
-            identity = self.current.pop(previous, None) or self.new(previous)
-            self.current[path] = identity
+    def resolve(
+        self,
+        path: str,
+        access: str,
+        previous: str | None,
+        confirmed: bool,
+        worktree: str = "w",
+        previous_worktree: str | None = None,
+    ) -> str:
+        key = (worktree, path)
+        previous_worktree = previous_worktree or worktree
+        previous_key = (previous_worktree, previous) if previous else None
+        if (
+            access == "rename"
+            and previous_key
+            and confirmed
+            and previous_worktree == worktree
+        ):
+            identity = (
+                self.current.pop(previous_key, None)
+                or self.attempted.pop(previous_key, None)
+                or self.new(previous, previous_worktree)
+            )
+            self.current[key] = identity
+            self.attempted.pop(key, None)
             self.display[identity] = path
-            self.deleted.discard(path)
             return identity
-        if path not in self.current or (path in self.deleted and access in {"create", "write"}):
-            self.current[path] = self.new(path)
-            self.deleted.discard(path)
-        identity = self.current[path]
+        if not confirmed:
+            identity = self.current.get(key)
+            if identity is None:
+                identity = self.attempted.get(key)
+                if identity is None:
+                    identity = self.new(path, worktree)
+                    self.attempted[key] = identity
+            self.display[identity] = path
+            return identity
+        identity = self.current.get(key)
+        if identity is None:
+            if access == "create":
+                identity = self.new(path, worktree)
+            else:
+                identity = self.attempted.pop(key, None) or self.new(path, worktree)
+            self.current[key] = identity
+        self.attempted.pop(key, None)
         if access == "delete":
-            self.deleted.add(path)
+            self.current.pop(key, None)
         self.display[identity] = path
         return identity
 
@@ -430,7 +644,10 @@ def path_id(path: str) -> str:
     return hmac.new(key, path.encode(), hashlib.sha256).hexdigest()[:16]
 
 
-def recompute_project(private: Path, project: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, Any]]]:
+def recompute_project(
+    private: Path,
+    project: dict[str, Any],
+) -> tuple[dict[str, str], list[dict[str, Any]], list[dict[str, Any]]]:
     root = Path(project["worktree"])
     sessions = []
     for source_meta in project["sources"]:
@@ -441,44 +658,111 @@ def recompute_project(private: Path, project: dict[str, Any]) -> tuple[dict[str,
         identity = native_identity(source_meta["vendor"], native, path.stem)
         if identity != source_meta["native_session_id"]:
             raise RuntimeError(f"native session mismatch: {source_meta['source_id']}")
-        events = events_from_source(source_meta["vendor"], native, str(root))
-        first = min((event["ts"] for event in events if event.get("ts") is not None), default=source_meta.get("first_ts_ms") or 0)
-        sessions.append({**source_meta, "events": events, "first": first})
-    sessions.sort(key=lambda row: (row["first"], row["sha256"]))
+        events = [
+            event
+            for event in events_from_source(source_meta["vendor"], native, str(root))
+            if event.get("ts") is not None
+        ]
+        if not any(event.get("kind") == "tool" for event in events):
+            continue
+        first = min(
+            event["ts"] for event in events if event.get("kind") == "tool"
+        )
+        semantic = f"{source_meta['vendor']}:{source_meta['native_session_id']}"
+        sessions.append({
+            **source_meta,
+            "events": events,
+            "first": first,
+            "semantic_session_id": semantic,
+            "source_stream_id": stream_key(
+                source_meta["vendor"],
+                source_meta["native_session_id"],
+                source_meta["source_stem"],
+            ),
+        })
+    sessions.sort(key=lambda row: (row["first"], row["semantic_session_id"]))
 
-    sequences = {row["session_id"]: [event["atom"] for event in row["events"]] for row in sessions}
+    sequences = {
+        row["semantic_session_id"]: [event["atom"] for event in row["events"]]
+        for row in sessions
+    }
     ordered = []
     for ordinal, session in enumerate(sessions):
         for event in session["events"]:
+            if event.get("kind") != "tool":
+                continue
             ordered.append((
                 event["ts"] if event.get("ts") is not None else session["first"],
-                session["sha256"], event["record"], event["call"], ordinal, session, event,
+                session["source_stream_id"],
+                event.get("tool_ordinal", -1),
+                f"{event['record']}:{event['call']}",
+                ordinal,
+                session,
+                event,
             ))
     ordered.sort(key=lambda row: row[:4])
     identities = Identities()
     edges = []
+    calls = []
     pending: dict[tuple[str, str], str] = {}
     for event_ordinal, (_, _, _, _, session_ordinal, session, event) in enumerate(ordered):
+        if event.get("kind") == "tool":
+            calls.append({
+                "project": project["project"],
+                "vendor": session["vendor"],
+                "native_session_id": session["semantic_session_id"],
+                "session_ordinal": session_ordinal,
+                "source_stream_id": session["source_stream_id"],
+                "source_tool_ordinal": event["tool_ordinal"],
+                "call_id": str(event["id"]),
+                "status": str(event.get("status") or "observed"),
+                "atom": str(event["atom"]),
+            })
+        normalized_effects = []
         for raw_path, access, old_raw in event_effects(event):
             normalized = repo_path(raw_path, str(event.get("cwd") or root), root)
             if normalized is None:
                 continue
             previous = repo_path(old_raw, str(event.get("cwd") or root), root) if old_raw else None
-            key = (session["session_id"], str(event["id"]))
+            normalized_effects.append((normalized, access, previous))
+        normalized_effects = list(dict.fromkeys(normalized_effects))
+        normalized_effects.sort(
+            key=lambda effect: (
+                {"rename_from": 0, "rename": 1}.get(effect[1], 2),
+                effect[0],
+                effect[1],
+                effect[2] or "",
+            )
+        )
+        for action_ordinal, (normalized, access, previous) in enumerate(normalized_effects):
+            key = (session["semantic_session_id"], str(event["id"]))
             if access == "rename_from":
                 pending[key] = normalized
             elif access == "rename" and previous is None:
                 previous = pending.get(key)
-            identity = identities.resolve(normalized, access, previous)
+            status = str(event.get("status") or "observed")
+            identity = identities.resolve(normalized, access, previous, status == "ok")
             edges.append({
-                "session_id": session["session_id"],
+                "session_id": session["semantic_session_id"],
+                "native_session_id": session["semantic_session_id"],
                 "session_ordinal": session_ordinal,
+                "vendor": session["vendor"],
+                "source_id": session["source_id"],
+                "source_sha256": session["sha256"],
+                "source_stream_id": session["source_stream_id"],
+                "source_tool_ordinal": event["tool_ordinal"],
+                "record_index": event["record"],
+                "call_index": event["call"],
                 "call_id": str(event["id"]),
                 "event_ordinal": event_ordinal,
+                "action_ordinal": action_ordinal,
                 "artifact_id": identity,
                 "path": normalized,
                 "access": access,
+                "previous_path": previous,
                 "action_class": "read" if access == "read" else "mutate",
+                "status": status,
+                "confirmed_effect": status == "ok",
             })
     for edge in edges:
         edge["display_path"] = identities.display[edge["artifact_id"]]
@@ -576,7 +860,7 @@ def recompute_project(private: Path, project: dict[str, Any]) -> tuple[dict[str,
             ):
                 raise RuntimeError(f"index path/stage mismatch: {project['project']} P{index - 1}")
         answers[f"D{index}"] = derived_status
-    return answers, edges
+    return answers, edges, calls
 
 
 def main() -> int:
@@ -585,14 +869,63 @@ def main() -> int:
     freeze_path = Path(sys.argv[1]).resolve()
     output_path = Path(sys.argv[2]).resolve()
     freeze = json.loads(freeze_path.read_text())
+    if freeze.get("spec_version") != SPEC_VERSION:
+        raise RuntimeError(
+            f"specification mismatch: {freeze.get('spec_version')} != {SPEC_VERSION}"
+        )
     private = freeze_path.parent
     recomputed: dict[str, str] = {}
     edge_count = 0
+    call_count = 0
     all_edges: list[dict[str, Any]] = []
+    edge_fields = (
+        "native_session_id",
+        "source_stream_id",
+        "source_tool_ordinal",
+        "call_id",
+        "event_ordinal",
+        "action_ordinal",
+        "artifact_id",
+        "path",
+        "display_path",
+        "access",
+        "previous_path",
+        "status",
+        "confirmed_effect",
+        "session_ordinal",
+    )
+    call_fields = (
+        "native_session_id",
+        "session_ordinal",
+        "source_stream_id",
+        "source_tool_ordinal",
+        "call_id",
+        "status",
+        "atom",
+    )
     for project in freeze["projects"]:
-        answers, edges = recompute_project(private, project)
+        answers, edges, calls = recompute_project(private, project)
         edge_count += len(edges)
+        call_count += len(calls)
         all_edges.extend(edges)
+        expected_edges = sorted(
+            tuple(row.get(field) for field in edge_fields)
+            for row in project.get("oracle_edges") or []
+        )
+        actual_edges = sorted(
+            tuple(row.get(field) for field in edge_fields) for row in edges
+        )
+        if expected_edges != actual_edges:
+            raise RuntimeError(f"complete edge ledger mismatch: {project['project']}")
+        expected_calls = sorted(
+            tuple(row.get(field) for field in call_fields)
+            for row in project.get("oracle_calls") or []
+        )
+        actual_calls = sorted(
+            tuple(row.get(field) for field in call_fields) for row in calls
+        )
+        if expected_calls != actual_calls:
+            raise RuntimeError(f"complete call/status ledger mismatch: {project['project']}")
         for template, answer in answers.items():
             recomputed[f"{project['project']}-{template}"] = answer
     expected = {row["id"]: row["answer"] for row in freeze["questions"]}
@@ -616,6 +949,10 @@ def main() -> int:
         "questions": len(recomputed),
         "projects": len(freeze["projects"]),
         "artifact_edges": edge_count,
+        "tool_calls": call_count,
+        "complete_edge_ledger_match": True,
+        "complete_call_status_ledger_match": True,
+        "spec_version": SPEC_VERSION,
         "answers_sha256": digest_bytes(answer_lines.encode()),
         "checker_sha256": digest_file(Path(__file__)),
         "source_direct": True,
