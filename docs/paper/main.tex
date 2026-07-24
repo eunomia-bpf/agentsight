@@ -58,13 +58,12 @@ complete public localization benchmarks, 287 OSWorld-Human sessions, two
 population case studies, and four public cost workloads.
 % 我们在 405 条带人工 stage 的 CodeTraceBench 轨迹、三个完整公开 localization benchmark、287 个 OSWorld-Human session、两个 population case study 和四个公开成本 workload 上评估 \sys。
 Automatic Agent annotation raises ordinary B$^3$ F1 against human stages from
-0.541 for raw action and 0.663 for recurrence to 0.704. A target-blind declared
-semantic hierarchy improves MAP over raw action in all three localization
-benchmarks, while short canonical automatic Agent+Evidence identities reach
-0.791, 0.432, and 0.259 MAP, improving over raw action on every workload.
-Canonical renaming alone improves HINT; its paired intervals include zero on
-AgentProcess and Trace.
-% 自动 Agent 标注将相对人工 stage partition 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.704。target-blind declared semantic hierarchy 在三个 localization benchmark 上均提高相对 raw action 的 MAP；短 canonical automatic Agent+Evidence identity 分别达到 0.791、0.432 和 0.259 MAP，并在全部 workload 上优于 raw action。
+0.541 for raw action and 0.663 for recurrence to 0.704. On three complete
+localization workloads used for protocol development, AgentProf raises MAP over
+benchmark-native direct diagnostics by 0.031, 0.107, and 0.117, but is
+statistically indistinguishable from an information-matched raw-action plus
+source-evidence refinement.
+% 自动 Agent 标注将相对人工 stage partition 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.704。在用于协议开发的三个完整 localization workload 上，AgentProf 相对 benchmark-native direct diagnostic 将 MAP 分别提高 0.031、0.107 和 0.117，但与信息量匹配的 raw-action 加 source-evidence refinement 在统计上不可区分。
 Evaluated task-family and action backends reach 0.695 and 0.498 macro-F1,
 label-free recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1 on
 OSWorld-Human, and, after marks are fixed, \sys constructs a
@@ -145,8 +144,8 @@ and some derive hierarchical categories across traces and aggregate latency, cos
 or evaluation metrics~\cite{langsmith-insights,datadog-patterns}, while recent
 research canonicalizes actions into process profiles or cross-run graphs for
 monitoring and recovery~\cite{traceprobe2026,graphectory2026,hodoscope2026,
-tracegraph2026}. These systems establish semantic grouping, metric rollups, and
-cross-run analysis. They do not combine recursively annotated semantic
+tracegraph2026,actonomy2026,chief2026}. These systems establish semantic
+grouping, metric rollups, and cross-run analysis. They do not combine recursively annotated semantic
 responsibility, source-linked LLM/tool evidence, conserved additive measures,
 and standard profiler output over the same histories.
 % 现有智能体工具提供 tracing、tag/metadata 聚合和群体级 dashboard；部分工具跨 trace 派生分层类别并聚合 latency、cost 或 evaluation metric，但没有在同一批 history 上同时结合递归标注的语义责任、source-linked LLM/tool evidence、守恒的可加度量和标准 profiler 输出。
@@ -183,16 +182,18 @@ call. Raw session and prompt identities remain pprof labels for drilldown.
 % 栈构造确定性地输出 agent→session-level operation→prompt-level operation→recursive operations→LLM call→tool call；raw session 与 prompt identity 作为 pprof label 保留供下钻。
 
 %% ¶7: Results
-Across all 405 reconstructable failed CodeTraceBench trajectories~\cite{li2026codetracer},
+Across all 405 released CodeTraceBench trajectories reconstructable from
+source~\cite{li2026codetracer},
 automatic Agent annotation reaches 0.704 ordinary B$^3$ F1 against human
 stages, compared with 0.663 for multi-resolution recurrence and 0.541 for raw
 action.
-% 在 released source 能生成官方 operation sequence 的全部 405 条失败 CodeTraceBench 轨迹上，自动 Agent 标注相对人工 stage 的普通 B$^3$ F1 为 0.704，高于 multi-resolution recurrence 的 0.663 和 raw action 的 0.541。
-Across three complete public workloads, a target-blind declared semantic
-hierarchy raises MAP over raw action from 0.773 to 0.789, 0.281 to 0.452, and
-0.121 to 0.230; the short canonical automatic Agent+Evidence configuration
-obtains 0.791, 0.432, and 0.259, respectively~\cite{agentprocessbench,hintbench,traceelephant}.
-% 三个完整公开 workload 的全部 27,346 个 operation 均参与评分；target-blind declared semantic hierarchy 将 trajectory MAP 分别从 0.773 提升到 0.789、从 0.281 提升到 0.452、从 0.121 提升到 0.230；短 canonical automatic Agent+Evidence 配置分别达到 0.791、0.432 与 0.259。
+% 在 released source 能生成官方 operation sequence 的全部 405 条 CodeTraceBench 轨迹上，自动 Agent 标注相对人工 stage 的普通 B$^3$ F1 为 0.704，高于 multi-resolution recurrence 的 0.663 和 raw action 的 0.541。
+Across three complete public workloads used for protocol development,
+AgentProf refines benchmark-native direct diagnostic ties and raises MAP by
+0.031, 0.107, and 0.117, respectively~\cite{agentprocessbench,hintbench,traceelephant}.
+An information-matched raw-action plus source-evidence refinement is
+statistically tied on all three workloads.
+% 在用于协议开发的三个完整公开 workload 上，AgentProf 细化 benchmark-native direct diagnostic 的并列，并将 MAP 分别提高 0.031、0.107 和 0.117；信息量匹配的 raw-action 加 source-evidence refinement 在三个 workload 上均与其统计持平。
 On 287 OSWorld-Human development sessions~\cite{osworldhuman}, label-free
 recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1. On the AgentBoard and
 ASE populations, task-family and action backends reach 0.695 and 0.498
@@ -218,13 +219,14 @@ This paper makes three contributions:
 % 系统：\sys。backend-neutral annotation workspace 将递归标记的语义区间与 source-native 层次组合，并产生 pprof 兼容输出。
 \item \textbf{Evaluation.}
   Automatic operation structure improves human-stage agreement on
-  CodeTraceBench and problem ranking over raw action on all three localization
-  workloads. Two
-  population case studies expose high-cost unfinished work and success--failure
-  differences, and, after marks are fixed, \sys profiles 27{,}765 operations
-  in 1.16 seconds
+  CodeTraceBench, and operation profiles supplement benchmark-native direct
+  diagnostics on all three localization workloads while tying an
+  information-matched raw-evidence refinement. A repeated-task resource case
+  and a population-scale differential case expose high-cost unfinished work and
+  success--failure differences. After marks are fixed, \sys profiles 27{,}765
+  operations in 1.16 seconds
   (Evaluation).
-% 评估。自动 operation structure 相对 raw action 改进人工 stage agreement，并在三个 localization workload 中均改进问题排序；两个 population case study 暴露高成本未完成工作和成功--失败差异；固定 mark 后，AgentProf 在 1.16 秒内 profile 27,765 个 operation。
+% 评估。自动 operation structure 相对 raw action 改进人工 stage agreement；operation profile 在三个 localization workload 上补充 benchmark-native direct diagnostic，但与信息量匹配的 raw-evidence refinement 持平；重复任务资源案例与 population-scale 差分案例暴露高成本未完成工作和成功--失败差异；固定 mark 后，AgentProf 在 1.16 秒内 profile 27,765 个 operation。
 \end{enumerate}
 
 %% ===================================================================
@@ -625,6 +627,22 @@ responsibility after control or fallback attempts; all three executions verify
 web deployment or substitute transport paths, but none establishes the
 requested password-authenticated \texttt{git@localhost} path.
 % Source drilldown 显示两条 OpenHands 执行在 control 或 fallback 尝试后都返回该职责；三条执行均验证了 web 部署或替代 transport 路径，但没有一条建立所要求的密码认证 \texttt{git@localhost} 路径。
+As a post-hoc organization control, we replay the same 489 source operations
+and both weights through the current binary with common
+\texttt{project, agent} prefixes, \texttt{call, tool} evidence leaves, and
+three alternative middle organizations: native
+\texttt{session, prompt}, coarse \texttt{action kind, raw action}, or the
+accepted semantic operation path. All six profiles conserve exact mass and
+open in stock pprof. The fixed SSH-responsibility members occupy 105 distinct
+source calls in the native hierarchy and span six coarse action kinds; the
+largest coarse branch contains only 39.42\% of their tokens. At the next
+coarse level, 102 of 105 members are merely \texttt{run}, together with 97
+unrelated operations. Only the semantic organization supplies one focusable
+cross-run responsibility while retaining those same source labels and leaves.
+Because the responsibility was selected from the prior semantic case, this
+matched projection establishes an organization difference, not independent
+discovery accuracy.
+% 作为 post-hoc 同输入组织对照，我们用相同 489 个 operation、相同权重和 binary 重放 native source、coarse action 与 semantic operation。SSH responsibility 在 native view 中分散到 105 个 call，在 coarse view 中跨六个 action kind；最大分支仅含该责任 token 的 39.42%，而 run 还混入 97 个无关 operation。该对照说明组织差异，不是独立发现准确率。
 Thus, the fixed hierarchy exposes a bottleneck that an operation-count view
 substantially understates: the SSH-diagnosis subtree is roughly one fifth of
 work by count but nearly half by tokens. Source drilldown explains the
@@ -657,15 +675,21 @@ TraceElephant assign each root-to-frame prefix the 95\% Wilson lower
 bound~\cite{wilson1927} of its frozen positive-prediction fraction; an
 operation receives the maximum score over prefixes containing it.
 
-The main test asks whether this profile adds information after an
-operation-local diagnostic score already exists. The candidate ranks each
+The main test asks whether this profile adds information after a
+benchmark-native process judge or trajectory localizer has already scored the
+execution. We call its per-operation output the \emph{direct diagnostic}:
+AgentProcessBench supplies released process-judge risk units, while HINTBench
+and TraceElephant supply trajectory-localizer decisions. In particular, the
+TraceElephant localizer reads the complete trace and reference answer before
+predicting the responsible agent and decisive step. The candidate ranks each
 operation lexicographically by
-(\emph{local score}, \emph{Agent+Evidence group score}); hence the profile may
-refine exact local-score ties but cannot override a strict local ordering. One
-baseline uses the local score alone. A stronger baseline replaces only the
-semantic-operation prefix with raw action while retaining the identical
-source-kind, tool/call, and outcome suffix and aggregation. AgentProf-only
-reports the profile component without the local score.
+(\emph{direct diagnostic}, \emph{Agent+Evidence group score}); hence the
+profile may refine exact diagnostic-score ties but cannot override a strict
+ordering made by the direct reader. One baseline uses the direct diagnostic
+alone. A stronger baseline replaces only the semantic-operation prefix with
+raw action while retaining the identical source-kind, tool/call, and outcome
+suffix and aggregation. AgentProf-only reports the profile component without
+the direct diagnostic.
 
 Each query is one trajectory containing an annotated target. We report
 non-interpolated per-query AP and arithmetic-mean MAP across 614, 400, and 220
@@ -679,7 +703,7 @@ from MAP because AP is undefined without a relevant item.
 \setlength{\tabcolsep}{1.8pt}
 \begin{tabular}{@{}lrrrr@{}}
 \toprule
-Workload & \shortstack{Local+\\AgentProf} & \shortstack{Local+Raw\\+Evidence} & Local & \shortstack{AgentProf\\only} \\
+Workload & \shortstack{Direct+\\AgentProf} & \shortstack{Direct+Raw\\+Evidence} & \shortstack{Direct\\only} & \shortstack{AgentProf\\only} \\
 \midrule
 AgentProcessBench & \textbf{.894} & .893 & .863 & .791 \\
 HINTBench & .517 & \textbf{.518} & .411 & .432 \\
@@ -687,18 +711,19 @@ TraceElephant & \textbf{.326} & .324 & .209 & .259 \\
 \bottomrule
 \end{tabular}
 \caption{Standard per-query AP averaged as MAP over complete RQ2 populations.
-Both local-first methods preserve every strict local-score ordering and retain
+``Direct'' is the benchmark-native trajectory judge/localizer. Both
+direct-first methods preserve every strict diagnostic ordering and retain
 identical source evidence. Higher is better.}
 \label{tab:rq2-localization}
 \end{table}
 
-Local+AgentProf raises MAP over Local by .031 [.024,.039], .107
+Direct+AgentProf raises MAP over Direct-only by .031 [.024,.039], .107
 [.093,.120], and .117 [.088,.148], using 10{,}000 paired resamples of
 trajectory clusters within benchmark-defined strata. Thus the profile adds
-clear ranking information to a fixed local diagnostic signal on all three
+clear ranking information after a fixed trajectory reader on all three
 complete workloads (Table~\ref{tab:rq2-localization}).
 
-The information-matched raw-action refinement reaches .893, .518, and .324.
+The information-matched Direct+Raw+Evidence refinement reaches .893, .518, and .324.
 Candidate-minus-baseline intervals are [-.0003,.0029], [-.0116,.0103], and
 [-.0247,.0280], so this experiment does not establish that the
 semantic-operation prefix ranks targets better when both views retain the same
@@ -709,7 +734,7 @@ source drilldown illustrated below. Because
 the local-first rule and fixed source-only paths were developed on these
 populations, this is adaptive mechanism evidence rather than untouched backend
 generalization.
-% Local+AgentProf 相对 Local-only 在三个完整 workload 上分别提高 MAP .031、.107 与 .117，区间均为正；与保留相同 source evidence 的 raw-action refinement 统计上不可区分。因此该实验支持 profiling 补充 local diagnosis，但不声称 semantic prefix 在这三个已观察 population 上具有额外的 target-ranking 优势。
+% Direct+AgentProf 相对 Direct-only trajectory judge/localizer 在三个完整 workload 上分别提高 MAP .031、.107 与 .117，区间均为正；与保留相同 source evidence 的 raw-action refinement 统计上不可区分。因此该实验支持 profiling 补充 direct trajectory diagnosis，但不声称 semantic prefix 在这三个已观察 population 上具有额外的 target-ranking 优势。
 
 \subsection{Case Study 2: Differential Profiling at Scale}
 % 案例研究 2：大规模差分 profiling。
@@ -947,15 +972,15 @@ than collapsing them into one bespoke score.
 \subsection{RQ4: Profiling Cost}
 % RQ4：分析开销是多少？
 
-RQ4 measures the profiling core: parsing fixed operation JSONL, constructing
-stacks, folding weights, and serializing the profile. It excludes capture,
-source adaptation, and automatic annotation. Across four complete public
-workloads and their union, we compare the fixed semantic hierarchy
+RQ4 separates fixed-input replay from the observable components of first
+profile construction. Across four complete public workloads and their union,
+we first measure the profiling core---parsing operation JSONL, constructing
+stacks, folding weights, and serializing the profile---by comparing the fixed semantic hierarchy
 \texttt{project, agent, task, phase, op, tool, status} with the raw hierarchy
 \texttt{project, agent, action, status} on identical inputs over three runs.
 Measurements use \texttt{agentpprof 0.2.37} on a 24-core Intel Core Ultra 9
 285K with 125\,GiB RAM and Linux 6.15.11.
-% RQ4 测量 operation-input profile construction：解析带固定字段的 operation JSONL、构造 stack、折叠权重并序列化 profile；不含 capture、source adaptation 和 field/tag generation。我们在四个完整公开 workload 及其 union 上各运行三次，并比较固定 semantic hierarchy 与相同输入的 raw action。
+% RQ4 区分 fixed-input replay 与首次 profile 构建的可观测组件。我们先在四个完整公开 workload 及其 union 上各运行三次，比较固定 semantic hierarchy 与相同输入的 raw action，再分解完整 A2 deterministic path。
 
 \begin{table}[h]
 \centering\small
@@ -984,12 +1009,26 @@ For the 27{,}765-operation union, semantic construction completes in 1.16
 seconds, reaches 465.2\,MiB peak RSS, and incurs 190\,ms (19.6\%) more time and
 5.25\,MiB (1.14\%) more peak RSS than raw-action grouping.
 % 因此，RQ4 表明当前 binary 在测试范围内具有实用的构建开销：最大的 27,765-operation profile 在 1.16 秒内完成，使用 465.2 MiB，相对 raw action 增加 19.6% 时间和 1.14% 内存。
-As a direct replay of the adopted automatic backend, the fixed 20{,}866-operation
-A2 input constructs either its operation-count or 494{,}862{,}929-token profile
-in 0.79 and 0.81\,s median, respectively, with at most 307.3\,MiB observed RSS. Both outputs load in
-stock pprof and conserve their exact additive mass. This replay measures the
-profiling core after marks are fixed; automatic annotation latency is separate.
-% 采用的 A2 backend 在固定 mark 后重放 20,866 个 operation：operation 与 token profile 的中位构建时间分别为 0.79 与 0.81 秒，最大 RSS 为 307.3 MiB，并精确保守可加权重。
+We then reconstruct the adopted A2 path three times on all 405 CodeTrace
+sessions (17{,}148 source-native turns and 20{,}866 operations). Joining the
+fixed target operations to released raw archives and constructing source-only
+Agent packets takes 501.64\,s median. Deterministic annotation assembly,
+root-prefix repair, validation, and name canonicalization take 3.54\,s.
+Afterward, the current source-preserving stack constructs either the
+operation-count or 494{,}862{,}929-token profile in 1.17\,s median. Every
+reconstructed population and A2 artifact is byte-identical across runs; all
+profiles load in stock pprof and conserve exact mass.
+% 在全部 405 条 CodeTrace session 上，A2 source-packet reconstruction 的中位时间为 501.64 秒，deterministic assembly/root repair/name canonicalization 为 3.54 秒；随后 operation 与 token profile 均以 1.17 秒中位重放，并精确保守质量。
+
+The existing automatic-Agent annotations were produced in two disjoint
+workflow waves whose packet-manifest-to-final-artifact spans sum to 54.36
+minutes. We report this only as an artifact-time workflow envelope: retained
+telemetry cannot separate model inference from orchestration, idle time, and
+file writing or recover provider token usage. Thus 1.17\,s is replay latency,
+not annotation latency; the measured deterministic first-construction
+components total 506.35\,s, while model/provider inference remains outside the
+instrumented timing.
+% 两个自动 Agent annotation wave 的 artifact 时间窗合计 54.36 分钟，但该窗口混合 inference、调度、空闲与写文件，不能当作模型计时；因此 1.17 秒是 replay 而非 annotation latency，deterministic first-construction 组件合计 506.35 秒。
 
 \subsection{Scope and Limitations}
 
@@ -997,10 +1036,12 @@ Results apply to the named populations and annotation protocols. CodeTraceBench
 is the complete development population for the Agent-assisted constructor;
 OSWorld-Human separately evaluates recurrence and supervised boundary backends.
 RQ2 scores released localizer predictions over complete public workloads; it
-does not measure end-user diagnosis time. RQ4 measures fixed-input parsing,
-stack construction, folding, and serialization, excluding capture, source
-adaptation, automatic annotation, and live-agent overhead.
-% 结果适用于声明的 population 与 annotation protocol；CodeTraceBench 是 Agent-assisted constructor 的完整开发 population，OSWorld-Human 独立评估其他 boundary backend。RQ4 不含 automatic annotation 与 live-agent overhead。
+does not measure end-user diagnosis time. RQ4 measures fixed-input replay and
+the deterministic A2 path from normalized operations plus released raw
+archives. It excludes capture, raw-to-normalized conversion, live-agent
+overhead, and instrumented model/provider annotation timing; the reported
+54.36-minute artifact envelope is not model latency.
+% 结果适用于声明的 population 与 annotation protocol；CodeTraceBench 是 Agent-assisted constructor 的完整开发 population，OSWorld-Human 独立评估其他 boundary backend。RQ4 测量 fixed-input replay 与 deterministic A2 path，但不含 capture、raw-to-normalized conversion、live-agent overhead 和 instrumented model/provider annotation timing。
 
 
 %% ===================================================================
@@ -1020,16 +1061,21 @@ measures into standard pprof profiles.
 % Agent observability 平台收集 span、metadata 与 evaluation signal，并提供单次运行或群体 dashboard；\sys 在保留的 source-call tree 上递归分配共享语义责任，并把守恒的资源度量折叠为标准 pprof profile。
 
 \textbf{Cross-run agent analysis.}
-TraceProbe supplies resource-aware process profiles, while Graphectory builds
-per-trajectory process graphs with aggregated phase patterns~\cite{traceprobe2026,
+TraceProbe normalizes coding traces into canonical actions and deterministic
+process diagnostics, while Graphectory builds per-trajectory cyclic
+action/navigation graphs and aggregates phase patterns~\cite{traceprobe2026,
 graphectory2026}.
+Act$\cdot$onomy supplies a fixed three-level behavior taxonomy and automated
+behavioral profiles; CHIEF instead builds task/subtask causal graphs for
+oracle-guided failure attribution~\cite{actonomy2026,chief2026}.
 Hodoscope compares
 behavior distributions to direct human review, while TraceGraph builds shared
 decision landscapes that guide recovery~\cite{hodoscope2026,tracegraph2026}.
 Together, these systems establish canonical actions, recurring cross-run
 structure, and analysis-to-decision precedents. \sys complements them with
-variable-depth responsibility annotations that cover native trace evidence and
-can replay the same boundaries under different additive resource measures.
+shared variable-depth responsibility annotations that cover native call
+evidence, fold across runs, and replay the same boundaries under different
+additive resource measures in a standard profiler.
 
 \textbf{Profiling and diagnosis.}
 pprof and flame graphs fold runtime stacks, whereas Pivot Tracing dynamically
@@ -1051,9 +1097,9 @@ Agent observability needs profiling, not only debugging. \sys recursively
 annotates semantic responsibility over source-native traces and folds covered
 source evidence under shared operation stacks across runs. Its profiles expose
 resource-dependent bottlenecks and success--failure differences, improve
-stage-partition agreement on CodeTraceBench and localization MAP over raw
-action on all three localization workloads, and recover OSWorld-Human groups
-at 0.680 boundary F1 and 0.786
+stage-partition agreement on CodeTraceBench, supplement benchmark-native direct
+diagnostics on all three localization workloads, and recover OSWorld-Human
+groups at 0.680 boundary F1 and 0.786
 B$^3$ F1. After marks are fixed, \sys builds a 27{,}765-operation profile in
 1.16 seconds, making
 population profiling practical alongside per-run debugging.

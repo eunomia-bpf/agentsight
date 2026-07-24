@@ -675,13 +675,15 @@ deleting valid temporal boundaries.
 ### Evidence-only note — Step 0072 does not change the story
 
 The author explicitly reopened RQ2 for a stricter current-algorithm comparison.
-Across all 1,756 trajectories and 27,346 operations, Local+AgentProf raises
-standard MAP over local-only by .031, .107, and .117 with wholly positive paired
-intervals. It is statistically indistinguishable from an information-matched
-raw-action refinement that retains the same source evidence. This strengthens
-the existing claim that profiling complements local diagnosis while leaving the
-problem, thesis, four RQs, operation-stack model, contributions, and narrative
-unchanged. The independent result review and exact admissible claim are in
+Across all 1,756 trajectories and 27,346 operations, Direct+AgentProf raises
+standard MAP over each benchmark's direct process judge or trajectory
+localizer by .031, .107, and .117 with wholly positive paired intervals. It is
+statistically indistinguishable from an information-matched raw-action
+refinement that retains the same source evidence. This strengthens the
+existing claim that profiling complements an Agent/judge that directly reads
+the trajectory while leaving the problem, thesis, four RQs, operation-stack
+model, contributions, and narrative unchanged. The independent result review
+and exact admissible claim are in
 [Step 0072](tmp/build-and-evaluate/step-0072-20260723T193258-0700/experiment-001/independent-result-review.md).
 
 ### Evidence-only note — Step 0073 does not change the story
@@ -725,6 +727,22 @@ must not call that mutable chronology model time. This strengthens the cost
 answer without changing the problem, thesis, four RQs, operation-stack model,
 contributions, backend choice, or narrative. Complete evidence is in
 [Step 0075](tmp/build-and-evaluate/step-0075-20260723T214459-0700/experiment-001/independent-result-review.md).
+
+### Evidence-only note — Step 0076 does not change the story
+
+The fixed three-execution Git case now has the missing same-input organization
+controls. All six count/token profiles use the same 489 evidence IDs, current
+binary, outer prefix, call/tool leaves, and exact additive weights. The
+candidate-defined SSH responsibility occupies 105 distinct source calls and
+spans six coarse action kinds; no coarse kind contains 40% of its token mass,
+while the raw `run` key mixes its 102 members with 97 unrelated operations.
+The accepted semantic path supplies one focusable cross-run responsibility and
+retains the same source labels and leaves. This is a post-hoc descriptive
+contrast, not independent operation-discovery accuracy, and therefore adds
+bounded RQ1 evidence without changing the initial problem, thesis, fixed RQs,
+operation-stack model, contribution chain, or story. Complete independent
+reconstruction is in
+[Step 0076](tmp/build-and-evaluate/step-0076-20260723T224718-0700/experiment-001/independent-result-review.md).
 
 ## Invariants For Every Future Story Decision
 
