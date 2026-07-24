@@ -536,7 +536,7 @@ fn resolve_regions(
             if end <= start {
                 bail!("annotation at {id:?} has a non-forward next boundary");
             }
-            if root_for_node[end] != root {
+            if end != session_end[root] && root_for_node[end] != root {
                 bail!("annotation at {id:?} crosses a session boundary");
             }
         }
@@ -1182,6 +1182,70 @@ mod tests {
             .unwrap_err()
             .to_string();
         assert!(error.contains("contiguous source-tree block"));
+    }
+
+    #[test]
+    fn session_root_may_use_next_session_root_as_exclusive_end() {
+        let nodes = [
+            ("s1", None, "session"),
+            ("p1", Some("s1"), "prompt"),
+            ("s2", None, "session"),
+            ("p2", Some("s2"), "prompt"),
+        ]
+        .into_iter()
+        .map(|(id, parent, kind)| TraceNode {
+            id: id.to_string(),
+            parent: parent.map(str::to_string),
+            kind: kind.to_string(),
+            data: Map::new(),
+            metrics: BTreeMap::new(),
+            path: Vec::new(),
+        })
+        .collect::<Vec<_>>();
+        let index = validate_source_tree(&nodes).unwrap();
+        let annotations = BTreeMap::from([
+            (
+                "s1".to_string(),
+                Annotation {
+                    tag: "Run first".to_string(),
+                    parent: None,
+                    next: Some("s2".to_string()),
+                },
+            ),
+            (
+                "p1".to_string(),
+                Annotation {
+                    tag: "Handle first".to_string(),
+                    parent: Some("s1".to_string()),
+                    next: Some("s2".to_string()),
+                },
+            ),
+            (
+                "s2".to_string(),
+                Annotation {
+                    tag: "Run second".to_string(),
+                    parent: None,
+                    next: None,
+                },
+            ),
+            (
+                "p2".to_string(),
+                Annotation {
+                    tag: "Handle second".to_string(),
+                    parent: Some("s2".to_string()),
+                    next: None,
+                },
+            ),
+        ]);
+        let regions = resolve_regions(&nodes, &index, &annotations).unwrap();
+        let ends = regions
+            .iter()
+            .map(|region| (nodes[region.start].id.as_str(), region.end))
+            .collect::<BTreeMap<_, _>>();
+        assert_eq!(ends["s1"], 2);
+        assert_eq!(ends["p1"], 2);
+        assert_eq!(ends["s2"], 4);
+        assert_eq!(ends["p2"], 4);
     }
 
     #[test]
