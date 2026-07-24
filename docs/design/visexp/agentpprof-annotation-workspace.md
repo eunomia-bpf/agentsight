@@ -252,8 +252,9 @@ run AgentPProf and inspect aggregate diagnostics
 -> reread only that bounded source context
 -> add or revise annotation.json
 -> run AgentPProf
--> repeat diagnostics in a fixed order
--> stop at the first complete pass that accepts no change
+-> reuse accepted decisions whose local fingerprint is unchanged
+-> reread only new or invalidated diagnostics
+-> stop when no invalidated diagnostic remains
 ```
 
 There is no fixed depth, target depth distribution, or requirement to annotate
@@ -269,11 +270,17 @@ workspace file:
 - `semantic_depth_mass` maps semantic depth to the selected additive width;
 - `issues` gives kind, tag, session, start node, exclusive end node, child
   counts, and covered tool-call count.
+- every hierarchy issue, tag-reuse row, and near-name candidate gives a stable
+  `review_key` plus a deterministic `context_fingerprint`. The key identifies
+  the review question; the fingerprint changes when its local annotation or
+  supporting context changes.
 
 These fields locate questions; they do not decide the answer. A singleton may
 be genuinely task-specific, near names may express different responsibilities,
 and a broad leaf may contain homogeneous repetition. The backend must consult
-source evidence before changing the annotation.
+source evidence before changing the annotation. A cached `keep` is valid only
+for the same key and fingerprint. This cache is backend execution state, not a
+fourth required workspace file or a correctness attestation.
 
 The objective is not maximum segmentation. The session-root and prompt-scope
 annotations cover the complete source tree from the first iteration; later

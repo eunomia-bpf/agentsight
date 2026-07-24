@@ -195,6 +195,13 @@ unary refinement, a large mostly-unrefined flat fan-out, or a long optional
 semantic leaf with no child operation. The warnings expose suspicious
 hierarchy shape but never force depth or block pprof generation.
 
+Reviewable diagnostics also carry a stable key and a deterministic local
+context fingerprint. Automatic backends can retain an evidence-grounded
+`keep` decision while the fingerprint is unchanged and reopen only the
+affected local review after an annotation edit. This incremental invalidation
+belongs to backend execution; it adds no required workspace file and does not
+change the pprof product.
+
 ### Predecessor complete-path operation marks
 
 The artifact also accepts the predecessor sparse complete-path operation marks. A mark names

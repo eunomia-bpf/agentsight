@@ -66,6 +66,8 @@ pub struct TagReuseSummary {
     pub tag: String,
     pub occurrences: usize,
     pub sessions: Vec<String>,
+    pub review_key: String,
+    pub context_fingerprint: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -73,6 +75,8 @@ pub struct NearNameCandidate {
     pub left: String,
     pub right: String,
     pub edit_distance: usize,
+    pub review_key: String,
+    pub context_fingerprint: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -85,6 +89,8 @@ pub struct HierarchyIssue {
     pub covered_tool_calls: usize,
     pub direct_children: usize,
     pub refined_children: usize,
+    pub review_key: String,
+    pub context_fingerprint: String,
 }
 
 #[derive(Debug)]
@@ -99,6 +105,49 @@ struct HierarchyDiagnostics {
     near_name_candidates: Vec<NearNameCandidate>,
     issues: Vec<HierarchyIssue>,
     warnings: Vec<String>,
+}
+
+struct RangeFingerprints {
+    prefix: Vec<u64>,
+    powers: Vec<u64>,
+}
+
+impl RangeFingerprints {
+    const BASE: u64 = 0x9e3779b185ebca87;
+
+    fn new(nodes: &[TraceNode]) -> Self {
+        let mut prefix = Vec::with_capacity(nodes.len() + 1);
+        let mut powers = Vec::with_capacity(nodes.len() + 1);
+        prefix.push(0_u64);
+        powers.push(1_u64);
+        for node in nodes {
+            let canonical = format!(
+                "id={}|parent={:?}|kind={}|data={}|metrics={}",
+                node.id,
+                node.parent,
+                node.kind,
+                serde_json::to_string(&node.data).unwrap_or_default(),
+                serde_json::to_string(&node.metrics).unwrap_or_default(),
+            );
+            let node_hash = stable_hash(&canonical);
+            prefix.push(
+                prefix
+                    .last()
+                    .copied()
+                    .unwrap_or(0)
+                    .wrapping_mul(Self::BASE)
+                    .wrapping_add(node_hash),
+            );
+            powers.push(powers.last().copied().unwrap_or(1).wrapping_mul(Self::BASE));
+        }
+        Self { prefix, powers }
+    }
+
+    fn range(&self, start: usize, end: usize) -> String {
+        let hash = self.prefix[end]
+            .wrapping_sub(self.prefix[start].wrapping_mul(self.powers[end - start]));
+        format!("{hash:016x}")
+    }
 }
 
 pub fn export_annotation_workspace(
@@ -183,6 +232,7 @@ fn hierarchy_diagnostics(
     regions: &[Region],
     view: ProfileView,
 ) -> HierarchyDiagnostics {
+    let range_fingerprints = RangeFingerprints::new(nodes);
     let by_start = regions
         .iter()
         .enumerate()
@@ -226,15 +276,46 @@ fn hierarchy_diagnostics(
             .filter(|node| node.kind == "tool")
             .count();
         let end_node_id = nodes.get(region.end).map(|node| node.id.clone());
-        let issue = |kind: &str| HierarchyIssue {
-            kind: kind.to_string(),
-            tag: region.tag.clone(),
-            start_node_id: nodes[region.start].id.clone(),
-            end_node_id: end_node_id.clone(),
-            session_id: nodes[root_at[region.start]].id.clone(),
-            covered_tool_calls,
-            direct_children: direct_children.len(),
-            refined_children,
+        let issue = |kind: &str| {
+            let session_id = nodes[root_at[region.start]].id.clone();
+            let review_key = format!("hierarchy:{kind}:{session_id}:{}", nodes[region.start].id);
+            let semantic_parent = region.parent.map(|parent_start| {
+                let parent_tag = by_start
+                    .get(&parent_start)
+                    .map(|parent_index| regions[*parent_index].tag.as_str())
+                    .unwrap_or("");
+                format!("{}:{parent_tag}", nodes[parent_start].id)
+            });
+            let mut local_context = format!(
+                "{review_key}|tag={}|parent={semantic_parent:?}|end={:?}|tools={covered_tool_calls}|children={}|refined={refined_children}|source={}",
+                region.tag,
+                end_node_id,
+                direct_children.len(),
+                range_fingerprints.range(region.start, region.end),
+            );
+            for child_index in direct_children {
+                let child = &regions[*child_index];
+                local_context.push_str(&format!(
+                    "|child={}:{}:{:?}:{}:{}",
+                    nodes[child.start].id,
+                    child.tag,
+                    nodes.get(child.end).map(|node| node.id.as_str()),
+                    children.get(child_index).map(Vec::len).unwrap_or(0),
+                    range_fingerprints.range(child.start, child.end),
+                ));
+            }
+            HierarchyIssue {
+                kind: kind.to_string(),
+                tag: region.tag.clone(),
+                start_node_id: nodes[region.start].id.clone(),
+                end_node_id: end_node_id.clone(),
+                session_id,
+                covered_tool_calls,
+                direct_children: direct_children.len(),
+                refined_children,
+                review_key,
+                context_fingerprint: stable_fingerprint(&local_context),
+            }
         };
         if source_kind != "session" && source_kind != "prompt" && direct_children.len() == 1 {
             warnings.insert(format!(
@@ -270,6 +351,7 @@ fn hierarchy_diagnostics(
 
     let mut tag_sessions = BTreeMap::<String, BTreeSet<String>>::new();
     let mut tag_occurrences = BTreeMap::<String, usize>::new();
+    let mut tag_contexts = BTreeMap::<String, Vec<String>>::new();
     for region in regions {
         let source_kind = nodes[region.start].kind.as_str();
         if source_kind == "session" || source_kind == "prompt" {
@@ -283,14 +365,38 @@ fn hierarchy_diagnostics(
             .entry(tag.clone())
             .or_default()
             .insert(nodes[root_at[region.start]].id.clone());
-        *tag_occurrences.entry(tag).or_default() += 1;
+        *tag_occurrences.entry(tag.clone()).or_default() += 1;
+        tag_contexts.entry(tag).or_default().push(format!(
+            "start={}|end={:?}|parent={:?}|source={}",
+            nodes[region.start].id,
+            nodes.get(region.end).map(|node| node.id.as_str()),
+            region.parent.map(|parent_start| {
+                let parent_tag = by_start
+                    .get(&parent_start)
+                    .map(|parent_index| regions[*parent_index].tag.as_str())
+                    .unwrap_or("");
+                format!("{}:{parent_tag}", nodes[parent_start].id)
+            }),
+            range_fingerprints.range(region.start, region.end),
+        ));
     }
     let tag_reuse = tag_sessions
         .iter()
-        .map(|(tag, sessions)| TagReuseSummary {
-            tag: tag.clone(),
-            occurrences: tag_occurrences.get(tag).copied().unwrap_or(0),
-            sessions: sessions.iter().cloned().collect(),
+        .map(|(tag, sessions)| {
+            let occurrences = tag_occurrences.get(tag).copied().unwrap_or(0);
+            let sessions = sessions.iter().cloned().collect::<Vec<_>>();
+            let contexts = tag_contexts.get(tag).cloned().unwrap_or_default();
+            let review_key = format!("tag:{tag}");
+            let context_fingerprint = stable_fingerprint(&format!(
+                "{review_key}|occurrences={occurrences}|sessions={sessions:?}|contexts={contexts:?}"
+            ));
+            TagReuseSummary {
+                tag: tag.clone(),
+                occurrences,
+                sessions,
+                review_key,
+                context_fingerprint,
+            }
         })
         .collect::<Vec<_>>();
     let semantic_tags = tag_sessions.len();
@@ -317,7 +423,8 @@ fn hierarchy_diagnostics(
     }
 
     let names = tag_sessions.keys().cloned().collect::<Vec<_>>();
-    let near_name_candidates = find_near_name_candidates(&names);
+    let near_name_candidates =
+        find_near_name_candidates(&names, &tag_occurrences, &tag_sessions, &tag_contexts);
     if !near_name_candidates.is_empty() {
         let examples = near_name_candidates
             .iter()
@@ -366,7 +473,12 @@ fn hierarchy_diagnostics(
     }
 }
 
-fn find_near_name_candidates(names: &[String]) -> Vec<NearNameCandidate> {
+fn find_near_name_candidates(
+    names: &[String],
+    occurrences: &BTreeMap<String, usize>,
+    sessions: &BTreeMap<String, BTreeSet<String>>,
+    contexts: &BTreeMap<String, Vec<String>>,
+) -> Vec<NearNameCandidate> {
     let mut candidates = Vec::new();
     for (left_index, left) in names.iter().enumerate() {
         for right in names.iter().skip(left_index + 1) {
@@ -375,15 +487,42 @@ fn find_near_name_candidates(names: &[String]) -> Vec<NearNameCandidate> {
             }
             let edit_distance = levenshtein_distance(left, right);
             if edit_distance > 0 && edit_distance <= 2 {
+                let review_key = format!("near-name:{left}:{right}");
+                let context_fingerprint = stable_fingerprint(&format!(
+                    "{review_key}|distance={edit_distance}|left_occurrences={:?}|right_occurrences={:?}|left_sessions={:?}|right_sessions={:?}|left_contexts={:?}|right_contexts={:?}",
+                    occurrences.get(left),
+                    occurrences.get(right),
+                    sessions.get(left),
+                    sessions.get(right),
+                    contexts.get(left),
+                    contexts.get(right),
+                ));
                 candidates.push(NearNameCandidate {
                     left: left.clone(),
                     right: right.clone(),
                     edit_distance,
+                    review_key,
+                    context_fingerprint,
                 });
             }
         }
     }
     candidates
+}
+
+fn stable_hash(value: &str) -> u64 {
+    // FNV-1a is deliberately small and deterministic. This is an invalidation
+    // fingerprint, not a security or artifact-integrity mechanism.
+    let mut hash = 0xcbf29ce484222325_u64;
+    for byte in value.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    hash
+}
+
+fn stable_fingerprint(value: &str) -> String {
+    format!("{:016x}", stable_hash(value))
 }
 
 fn levenshtein_distance(left: &str, right: &str) -> usize {
@@ -1329,7 +1468,8 @@ mod tests {
             .map(|index| format!("inspect {index:02}"))
             .collect::<Vec<_>>();
         names.extend(["界界".to_string(), "aa".to_string()]);
-        let candidates = find_near_name_candidates(&names);
+        let candidates =
+            find_near_name_candidates(&names, &BTreeMap::new(), &BTreeMap::new(), &BTreeMap::new());
         assert!(candidates.len() > 25);
         assert!(candidates.iter().any(|candidate| {
             candidate.left == "inspect 28" && candidate.right == "inspect 29"
@@ -1338,6 +1478,160 @@ mod tests {
             candidates
                 .iter()
                 .any(|candidate| candidate.left == "界界" && candidate.right == "aa")
+        );
+        assert!(candidates.iter().all(|candidate| {
+            candidate.review_key.starts_with("near-name:")
+                && candidate.context_fingerprint.len() == 16
+        }));
+    }
+
+    #[test]
+    fn diagnostic_fingerprints_are_stable_and_local() {
+        assert_eq!(
+            stable_fingerprint("same local context"),
+            stable_fingerprint("same local context")
+        );
+        assert_ne!(
+            stable_fingerprint("same local context"),
+            stable_fingerprint("changed local context")
+        );
+    }
+
+    #[test]
+    fn diagnostic_rows_invalidate_on_local_evidence_and_ignore_unrelated_evidence() {
+        let annotations = BTreeMap::from([
+            (
+                "s".to_string(),
+                Annotation {
+                    tag: "Repair".to_string(),
+                    parent: None,
+                    next: None,
+                },
+            ),
+            (
+                "p".to_string(),
+                Annotation {
+                    tag: "Fix failure".to_string(),
+                    parent: Some("s".to_string()),
+                    next: None,
+                },
+            ),
+            (
+                "c1".to_string(),
+                Annotation {
+                    tag: "Inspect code".to_string(),
+                    parent: Some("p".to_string()),
+                    next: Some("c2".to_string()),
+                },
+            ),
+            (
+                "t1".to_string(),
+                Annotation {
+                    tag: "Read file".to_string(),
+                    parent: Some("c1".to_string()),
+                    next: Some("c2".to_string()),
+                },
+            ),
+            (
+                "c2".to_string(),
+                Annotation {
+                    tag: "Inspect codes".to_string(),
+                    parent: Some("p".to_string()),
+                    next: None,
+                },
+            ),
+        ]);
+        let diagnose = |nodes: &[TraceNode], annotations: &BTreeMap<String, Annotation>| {
+            let index = validate_source_tree(nodes).unwrap();
+            let regions = resolve_regions(nodes, &index, annotations).unwrap();
+            hierarchy_diagnostics(nodes, &regions, ProfileView::Operations)
+        };
+
+        let baseline_nodes = nodes();
+        let baseline = diagnose(&baseline_nodes, &annotations);
+        let baseline_issue = &baseline.issues[0];
+        let baseline_read_file = baseline
+            .tag_reuse
+            .iter()
+            .find(|row| row.tag == "read file")
+            .unwrap();
+        let baseline_near = baseline
+            .near_name_candidates
+            .iter()
+            .find(|row| row.left == "inspect code" && row.right == "inspect codes")
+            .unwrap();
+
+        let mut unrelated_nodes = baseline_nodes.clone();
+        unrelated_nodes[5]
+            .data
+            .insert("result".to_string(), Value::String("changed".to_string()));
+        let unrelated = diagnose(&unrelated_nodes, &annotations);
+        assert_eq!(
+            baseline_issue.context_fingerprint,
+            unrelated.issues[0].context_fingerprint
+        );
+        assert_eq!(
+            baseline_read_file.context_fingerprint,
+            unrelated
+                .tag_reuse
+                .iter()
+                .find(|row| row.tag == "read file")
+                .unwrap()
+                .context_fingerprint
+        );
+        assert_ne!(
+            baseline_near.context_fingerprint,
+            unrelated
+                .near_name_candidates
+                .iter()
+                .find(|row| row.left == "inspect code" && row.right == "inspect codes")
+                .unwrap()
+                .context_fingerprint
+        );
+
+        let mut local_nodes = baseline_nodes.clone();
+        local_nodes[3]
+            .data
+            .insert("result".to_string(), Value::String("changed".to_string()));
+        let local = diagnose(&local_nodes, &annotations);
+        assert_ne!(
+            baseline_issue.context_fingerprint,
+            local.issues[0].context_fingerprint
+        );
+        assert_ne!(
+            baseline_read_file.context_fingerprint,
+            local
+                .tag_reuse
+                .iter()
+                .find(|row| row.tag == "read file")
+                .unwrap()
+                .context_fingerprint
+        );
+
+        let mut renamed_parent_annotations = annotations;
+        renamed_parent_annotations.get_mut("p").unwrap().tag = "Repair failure".to_string();
+        let renamed_parent = diagnose(&baseline_nodes, &renamed_parent_annotations);
+        assert_ne!(
+            baseline_issue.context_fingerprint,
+            renamed_parent.issues[0].context_fingerprint
+        );
+        assert_ne!(
+            baseline_near.context_fingerprint,
+            renamed_parent
+                .near_name_candidates
+                .iter()
+                .find(|row| row.left == "inspect code" && row.right == "inspect codes")
+                .unwrap()
+                .context_fingerprint
+        );
+        assert_ne!(
+            baseline_near.context_fingerprint,
+            local
+                .near_name_candidates
+                .iter()
+                .find(|row| row.left == "inspect code" && row.right == "inspect codes")
+                .unwrap()
+                .context_fingerprint
         );
     }
 

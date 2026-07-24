@@ -229,6 +229,17 @@ fn broad_optional_leaf_emits_coarse_span_warning_without_blocking_profile() {
     assert_eq!(status["issues"][0]["end_node_id"], "c8");
     assert_eq!(status["issues"][0]["session_id"], "s");
     assert_eq!(status["issues"][0]["covered_tool_calls"], 8);
+    assert_eq!(
+        status["issues"][0]["review_key"],
+        "hierarchy:coarse_span:s:c0"
+    );
+    assert_eq!(
+        status["issues"][0]["context_fingerprint"]
+            .as_str()
+            .unwrap()
+            .len(),
+        16
+    );
 }
 
 #[test]
@@ -263,7 +274,7 @@ fn multi_session_workspace_reports_cross_session_tag_reuse() {
             "s2": {"tag":"Repair regression","parent":null,"next":null},
             "p2": {"tag":"Fix failure","parent":"s2","next":null},
             "c2": {"tag":"Inspect code","parent":"p2","next":"c3"},
-            "c3": {"tag":"Validate fix","parent":"p2","next":null}
+            "c3": {"tag":"Inspect codes","parent":"p2","next":null}
         }))
         .unwrap(),
     )
@@ -298,14 +309,25 @@ fn multi_session_workspace_reports_cross_session_tag_reuse() {
     assert_eq!(tag_reuse[0]["tag"], "inspect code");
     assert_eq!(tag_reuse[0]["occurrences"], 2);
     assert_eq!(tag_reuse[0]["sessions"].as_array().unwrap().len(), 2);
-    assert_eq!(tag_reuse[1]["tag"], "validate fix");
+    assert_eq!(tag_reuse[0]["review_key"], "tag:inspect code");
+    assert_eq!(
+        tag_reuse[0]["context_fingerprint"].as_str().unwrap().len(),
+        16
+    );
+    assert_eq!(tag_reuse[1]["tag"], "inspect codes");
     assert_eq!(tag_reuse[1]["occurrences"], 1);
     assert_eq!(tag_reuse[1]["sessions"][0], "s2");
-    assert!(
-        status["near_name_candidates"]
-            .as_array()
-            .unwrap()
-            .is_empty()
+    let near_names = status["near_name_candidates"].as_array().unwrap();
+    assert_eq!(near_names.len(), 1);
+    assert_eq!(near_names[0]["left"], "inspect code");
+    assert_eq!(near_names[0]["right"], "inspect codes");
+    assert_eq!(
+        near_names[0]["review_key"],
+        "near-name:inspect code:inspect codes"
+    );
+    assert_eq!(
+        near_names[0]["context_fingerprint"].as_str().unwrap().len(),
+        16
     );
     assert!(
         status["warnings"]

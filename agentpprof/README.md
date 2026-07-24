@@ -118,7 +118,11 @@ source-session reuse, singleton tags, lexically near-name candidates,
 weighted semantic-depth mass, and bounded unary/coarse/fan-out issue records.
 An automatic backend can therefore regenerate the profile, reread only the
 reported source intervals, revise the same `annotation.json`, and regenerate
-again until a complete pass makes no change. Diagnostics are advisory:
+again. Every reviewable row includes a stable `review_key` and a local
+`context_fingerprint`. A backend may cache a source-grounded `keep` decision
+while that fingerprint is unchanged and reopen only new or locally changed
+rows; this avoids repeatedly asking fresh reviewers to reconsider the same
+accepted context. Diagnostics are advisory:
 warnings never block the `.pb` or `.pb.gz` output, force a merge, or impose
 artificial depth. See
 [`docs/design/visexp/agentpprof-annotation-workspace.md`](../docs/design/visexp/agentpprof-annotation-workspace.md)
