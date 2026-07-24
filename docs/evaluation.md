@@ -23,7 +23,7 @@ truth remain excluded. The full Chinese study contract is
 | RQ3 workspace focus evolution | Artifact-class allocation, same-artifact/same-module/cross-module transitions, hotspot turnover and return gaps. | F8a/F8b complete; five cases pass the return gate and one remains N/A. | Add rank-turnover/cooling curves; keep action order distinct from time or internal attention. |
 | RQ4 cross-session continuity | Native-root/source-stream structure, adjacent non-overlapping components, pre-mutation re-grounding and prior artifact/module overlap. | F7 is coverage/within-case evidence; the four-project estimator gate stopped. | Recompute with corrected native root/subagent identity before estimating continuity. |
 | RQ5 Skill/instruction footprints | Exact Skill name/arguments and source attribution blocked by native root session; separate instruction focal events. | Fresh six-case run and independent 2,063-stream checker pass. Five exact-context Skill strata qualify, but only one project supports a two-Skill comparison: same/different JSD 0.116/0.123, exact root-block p=0.750 over 12 admissible assignments. | Report source-attributed coverage and no supported repeatable Skill separation; make no fingerprint or causal harness claim. |
-| RQ6 external boundary | Replicate compatible within-attempt relations separately in public coding and scientific-process traces; mark persistence/re-grounding N/A without persistent lineage. | Sources selected (Open-SWE-Traces and IdeaTrail), execution open. | Run relation-level direction/coverage checks without pooling heterogeneous populations. |
+| RQ6 external boundary | Replicate compatible within-attempt relations separately in public coding and scientific-process traces; mark persistence/re-grounding N/A without persistent lineage. | Complete over 64 independent task instances per Open-SWE stratum (256 selections, 255 unique IDs across strata) and 64 IdeaTrail topics. All five strata pass the 64-unit gate and the independent checker reconciles 31,249 Tool calls and 22,113 transitions without mismatch. Cross-module movement is 18.0--30.0% publicly versus 2.1--20.2% locally; median intervening calls before module return are 2--3 versus 2--4. | Report path locality/return recurrence and the magnitude difference; keep persistent lineage, cross-session re-grounding, and Skill attribution N/A. |
 | Separate measurement capability | Compare source-verifiable factual coverage, abstention and cost for Final State, Counts, ProcGrep, bounded Raw-log reader and artifact-linked trajectories. | Open. Step 0003 froze 72 complete sessions and a 120-question oracle, but the Raw child never started. | Resume only as a separate tool experiment; it is not required to close the descriptive RQs. |
 
 ## RQ1 selected experiment
@@ -166,9 +166,12 @@ historical evidence, not the active evaluation:
   `docs/tmp/build-and-evaluate/step-0003-20260722T142124-0700/`
 - Corrected Skill/instruction footprint run:
   `docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq5-skill-footprints/`
+- RQ6 public external-boundary run:
+  `docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq6-external-boundary/full/`
 
 Local RQ1--RQ5 have executable figures with the coverage stops above; the
 corrected RQ5 result now replaces the old exporter-induced source-coverage
-stop. RQ6 external triangulation remains open. F10 closes only the old freeze's
+stop. RQ6 now closes the compatible within-attempt external check without
+extending it to longitudinal lineage. F10 closes only the old freeze's
 readiness audit; the separate capability experiment remains open until its Raw
 baseline and independently scored matched run complete.

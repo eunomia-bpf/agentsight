@@ -1,0 +1,66 @@
+RQ6 external-boundary execution record
+======================================
+
+Pinned public sources:
+  nvidia/Open-SWE-Traces @ 9c0e4579a4ee0effa3e5f7a552494a045f29377d
+  AliceKJ/IdeaTrail @ 56a26582c8723992ce1e9e289953e24e03977aa7
+
+Plan and amendments:
+  The plan passed an independent read-only plan review. The formal sample was
+  amended to the first 64 SHA-256-ranked units per stratum after acquisition
+  started but before relation metrics were computed or inspected. This is a
+  pre-analysis amendment, not a pre-outcome amendment. The deterministic
+  256-candidate prefix per stratum remains in full/selection-plan.csv.
+  Acquisition transport was changed from row-level HEAD checks to HEAD checks
+  before and after batches of at most 32 rows after rate limiting; row IDs,
+  offsets, revision, and SHA-256 checks are unchanged.
+
+Local path-compatible anchor:
+  python3 agentvis/research/freeze_rq6_local_anchor.py \
+    --input docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq4-20260722T013003-0700/raw/rq4-accesses.csv \
+    --output docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq6-external-boundary/local-anchor.csv \
+    --metadata docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq6-external-boundary/local-anchor.json
+  result: 6 projects, 78,102 path-resolved Tool calls, 78,090 transitions.
+
+Preflight:
+  python3 agentvis/research/rq6_external_boundary.py \
+    --workers 8 --request-interval 0.2 --preflight \
+    --output docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq6-external-boundary/preflight
+  result: 8 rows (one per Open-SWE stratum and four IdeaTrail topics); all
+  relation directions remain N/A below the 50-unit gate.
+
+Authoritative full run:
+  python3 agentvis/research/rq6_external_boundary.py \
+    --workers 16 --request-interval 0.2 \
+    --output docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq6-external-boundary/full
+  result: 320 stratum-specific selections; 64 independent units per stratum.
+  Open-SWE contributes 256 selections and 255 unique instance IDs across
+  strata because pingcap__tidb-lightning-508 occurs in two harness/model strata.
+
+Independent source checker:
+  python3 agentvis/research/check_rq6_sources.py \
+    --experiment docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq6-external-boundary/full \
+    --output docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq6-external-boundary/full/source-check-independent.json
+  result: PASS; 320/320 rows, 31,249 Tool calls, 22,433 path-resolved calls,
+  22,113 transitions, and zero mismatches.
+
+Estimator correction:
+  E4 counts only path-resolved Tool calls strictly between module visits;
+  A,B,A has return gap 1. The public and local path-compatible projections use
+  the same definition. This correction changes return medians but not path
+  transition counts, observed-return counts, coverage gates, or direction.
+  All generated CSVs use explicit LF line endings for deterministic repository
+  artifacts.
+
+Reproducibility anchors (SHA-256):
+  afab2de6f84007bf977a9090d8ad78329efc9ccdc1dcaddb2d661b147a6c8714  local-anchor.csv
+  bbedc8fdc1df55376d01a8e9cb5f42860d69c1fb2feb51689320576d498cf8a1  full/selection-plan.csv
+  abf4cfc552334dc9bff2d5ec5b28a1a94242c3ff93b1c01aaf8038d57993ad19  full/sample-manifest.csv
+  e4401c2763c5f73706be9c7fadbc9bf6ba3068a77890e077b737ffb5548031c2  full/trajectory-metrics.csv
+  8df7e63b7cb8af85d3038e0c5a7c5d85ce6e7924f83fda2f545b16dd6c146d12  full/relation-summary.csv
+  8c54e21a1a2ce20847fa7276b029e232822d03067255a1e6854b3d44bce28337  full/source-check-independent.json
+  d5305a7e532b93418600099a4acf1742a445fbaf781d4ba6db6407dfb63a1f3f  full/result.md
+  8e0d3c10a81cfddd2cdc59da210a82649346fa8985693ac28f158ff63c4ecce5  full/figures/rq6-external-boundary.png
+  9b50d83bf4dd83f9ff4a6e71d1288c0bdd326eafacba15b858b7e2d723e1a1f3  agentvis/research/rq6_external_boundary.py
+  4685825cba001cf5eda96fbc53cb1225bafe5b0e7f099e4ca3489c070a09ca81  agentvis/research/freeze_rq6_local_anchor.py
+  fb9d56e53a255d269cf9e2c1db2de5cabb3721fad89d7ef105bbf1011ddc85d9  agentvis/research/check_rq6_sources.py

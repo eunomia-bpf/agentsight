@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Derive and render reviewed workspace activity allocation and migration (RQ5)."""
+"""Derive and render reviewed workspace activity allocation and migration (RQ3)."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import PercentFormatter
 
-from plot_rq2 import load_projects, read_csv, sha256, verify_inputs, write_csv
+from plot_rq2 import load_projects, read_csv, sha256, verify_inputs
 
 
 RQ4_ACCESS_SHA256 = "26466eb3a343ee6eb9a459a6c4690b8ae072b0317a775f6636093f0d3eb344cf"
@@ -44,6 +44,15 @@ CONFIG_NAMES = {
     "setup.py", "requirements.txt", "go.mod", "go.sum", "build.gradle", "pom.xml",
 }
 SOURCE_EXT = {".c", ".h", ".cc", ".cpp", ".rs", ".go", ".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".kt", ".swift", ".rb", ".php", ".sh", ".bash", ".css", ".scss", ".html"}
+
+
+def write_csv(path: Path, rows: list[dict[str, object]], fields: list[str]) -> None:
+    """Write deterministic LF-only research tables."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def classify_path(path: str) -> str:
@@ -238,7 +247,8 @@ def derive(
                         "origin_event_id": previous["event_id"],
                         "end_event_id": row["event_id"],
                         "observed": True,
-                        "distance_calls": index - int(previous["index"]),
+                        # Strictly intervening calls: A, B, A has gap 1.
+                        "distance_calls": index - int(previous["index"]) - 1,
                         "distance_ms": int(row["ts_ms"]) - int(previous["ts_ms"]),
                         "same_session": row["session_id"] == previous["session_id"],
                     })
@@ -459,7 +469,7 @@ def self_check() -> None:
     assert math.isclose(sum(mutation_weights), 1.0)
     assert [row["transition"] for row in synthetic_transitions[:3]] == ["same_artifact", "same_module", "cross_module"]
     assert bool(synthetic_transitions[0]["singleton_only"])
-    assert any(bool(row["observed"]) and row["module"] == "src" and int(row["distance_calls"]) == 2 for row in synthetic_returns)
+    assert any(bool(row["observed"]) and row["module"] == "src" and int(row["distance_calls"]) == 1 for row in synthetic_returns)
     assert any(not bool(row["observed"]) and row["module"] == "docs" for row in synthetic_returns)
 
 
@@ -505,7 +515,7 @@ def plot(raw: Path, figures: Path) -> None:
         axis.set_title(title, fontsize=9, pad=5)
         axis.grid(axis="x", alpha=0.16)
     handles, labels = allocation_axes[0].get_legend_handles_labels()
-    allocation_fig.suptitle("RQ5a: Artifact-type allocation and native-status sensitivity", fontsize=11, fontweight="bold", y=0.985)
+    allocation_fig.suptitle("RQ3a: Artifact-type allocation and native-status sensitivity", fontsize=11, fontweight="bold", y=0.985)
     allocation_fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 0.925), ncol=4, fontsize=7, frameon=False)
     allocation_fig.text(0.5, 0.018, "R = read; M = mutation. `observed` is path-resolved activity with unknown outcome, not a confirmed effect.", ha="center", fontsize=7, color="#8b3e34")
     allocation_fig.subplots_adjust(top=0.80, bottom=0.12, left=0.25, right=0.985, wspace=0.46)
@@ -596,7 +606,7 @@ def plot(raw: Path, figures: Path) -> None:
     return_axis.invert_yaxis()
     return_axis.set_xscale("log")
     return_axis.tick_params(axis="x", labelsize=7)
-    return_axis.set_xlabel("calls from last presence to return", fontsize=7)
+    return_axis.set_xlabel("path-resolved calls strictly between visits", fontsize=7)
     return_axis.set_title("C. Module-return distance", loc="left", fontweight="bold", fontsize=9)
     finite_p90 = [value for value in p90s if not math.isnan(value)]
     if finite_p90:
@@ -605,7 +615,7 @@ def plot(raw: Path, figures: Path) -> None:
     return_axis.grid(axis="x", alpha=0.16)
 
     qualified = {field: sum(bool_text(row[field]) for row in coverage) for field in ["allocation_qualified", "transition_qualified", "revisit_qualified"]}
-    fig.suptitle("RQ5b: Worktree-module activity and source-path migration", fontsize=11, fontweight="bold", y=0.99)
+    fig.suptitle("RQ3b: Worktree-module activity and source-path migration", fontsize=11, fontweight="bold", y=0.99)
     fig.text(0.17, 0.947, "A. Top (worktree, module) activity over native action order; row-max color only", fontsize=9, fontweight="bold")
     fig.text(0.5, 0.012, f"Activity is not duration, internal attention, importance, or productivity. Gates: transitions {qualified['transition_qualified']}/6; returns {qualified['revisit_qualified']}/6.", ha="center", fontsize=7, color="#8b3e34")
     fig.subplots_adjust(top=0.91, bottom=0.06, left=0.20, right=0.985)
@@ -623,7 +633,7 @@ def write_result(
 ) -> None:
     totals = [row for row in coverage if row["vendor"] == "ALL"]
     lines = [
-        "# RQ5 Workspace Activity Allocation and Migration",
+        "# RQ3 Workspace Activity Allocation and Migration",
         "",
         "Resolved means path-resolved, not confirmed effect. `observed` and `ok` statuses are retained and reported separately; duration, internal attention, importance, productivity, and causality are not measured.",
         "",
@@ -669,7 +679,7 @@ def write_result(
         "",
         "## Transitions and return gaps",
         "",
-        "| Project | Same artifact / module / cross (all) | Singleton-only n | Returns observed/censored | Return calls median/p90 |",
+        "| Project | Same artifact / module / cross (all) | Singleton-only n | Returns observed/censored | Intervening calls median/p90 |",
         "|---|---:|---:|---:|---:|",
     ])
     for row in totals:

@@ -151,3 +151,38 @@ changes session semantics: short-term trajectory state resets only at a native
 root-session boundary, not at every subagent transcript stream. The design
 frontier now recommends clearer fading action-order focus and a small external
 role/Skill legend, without permanent edges or a new layout family.
+
+### Node B31 — RQ6 public external boundary
+
+**Status:** full 320-selection run complete; source reconciliation and final
+independent result review PASS.
+
+The fixed public boundary uses Open-SWE-Traces at
+`9c0e4579a4ee0effa3e5f7a552494a045f29377d` and IdeaTrail at
+`56a26582c8723992ce1e9e289953e24e03977aa7`. Each of four Open-SWE
+harness/model strata contributes 64 independent task instances, yielding 256
+stratum-specific selections but 255 unique task IDs across strata; IdeaTrail
+contributes 64 independent topics. The formal 64-unit prefix was a
+pre-analysis amendment after acquisition started but before relation metrics
+were computed or inspected, not a pre-outcome amendment.
+
+The independent checker rereads all 320 raw rows and reconciles 31,249 Tool
+calls, 22,433 path-resolved calls, 10,751 mutation calls and 22,113 adjacent
+path-target transitions with zero mismatch. Across public strata,
+cross-module transitions range from 18.0% to 30.0%, compared with 2.1% to
+20.2% in the six-case path-compatible local anchor. With `A,B,A` defined as
+one strictly intervening path call, public module-return medians are 2--3 and
+qualified local medians are 2--4. Thus path locality and short returns recur
+outside the six selected projects, but their magnitude differs.
+
+This closes only a within-attempt external boundary. Public traces do not
+provide persistent cross-session artifact lineage, re-grounding, or exact
+Skill attribution; those cells remain N/A. The result is neither a population
+prevalence estimate nor evidence of productivity, long-term progress, or a
+causal harness/model effect.
+
+For Agent Nebula, RQ3/RQ6 support retaining directory-colored spatial
+clustering while strengthening the action-order layer. The proposed change is
+limited to fading recent focus, native-root session continuity, and active
+halo visibility. Force-layout coordinates remain presentation, not a research
+metric; no visualization implementation is changed in this bootstrap step.

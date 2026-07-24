@@ -1,5 +1,9 @@
 # RQ5 Result Review — Final
 
+> Historical review before the strictly-intervening-call off-by-one
+> correction. The corrected deterministic rerun is reviewed in
+> `result-review-2.md`; this file is retained as an audit trail.
+
 **Reviewer:** independent result reviewer  
 **Date:** 2026-07-22  
 **Verdict:** **PASS**
@@ -138,4 +142,3 @@ forgetting is not supported by this run. The valid claim is narrower:
 path-resolved artifact allocation and source-path activity migration differ
 among these six observed persistent workspaces, and native status materially
 changes several allocation summaries.
-

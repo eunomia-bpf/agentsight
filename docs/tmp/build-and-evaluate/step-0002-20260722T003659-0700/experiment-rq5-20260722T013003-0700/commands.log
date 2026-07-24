@@ -32,6 +32,15 @@ Execution notes:
   effect. F8 is split into paper-width allocation/status-sensitivity and
   spatial-dynamics figures; both use embedded TrueType fonts at >=7 pt.
 
+Estimator correction after independent RQ6 audit:
+  Observed module-return distance now counts only path-resolved Tool calls
+  strictly between visits: A,B,A has distance 1. The earlier implementation
+  included the returning call and was one too high. Inputs, transition counts,
+  return counts, gates, and qualitative findings are unchanged; RQ3 medians
+  are now 2--4 intervening calls in the five qualified projects.
+  Research CSV writers use explicit LF line endings so reruns remain stable
+  across platforms and pass repository whitespace checks.
+
 Determinism check:
   all CSVs and both PNGs were byte-identical across consecutive runs.
   Matplotlib PDF metadata changes across runs; CSVs and PNGs are the
@@ -41,17 +50,17 @@ Frozen output SHA-256:
   b2e2d6f8e44cd2e9000a2b8caf0ccc13d3a71acc879ecf7f61627544c131f86d  raw/rq5-actions.csv.gz (committed archive)
   b655cb547b1dc43d0dd7c7a3d944b324f1bb5bd0ab66099eb0011828fa5a866f  raw/rq5-calls.csv.gz (committed archive)
   5decd1c3cabb091c157996da9363ac525dfd9a742207935dae04d48bfd48ee0a  raw/rq5-transitions.csv.gz (committed archive)
-  b9dd9177e5e092010af552f59c9a6a0f67368f1515368fec3e419ffe85373684  raw/rq5-actions.csv
-  21f931bc56261fa7396a001042cc195d27f9366e51b79fbff4fba9d3001e20bd  raw/rq5-calls.csv
-  4da46b77d2b0eeb085370f124e5341d186b1112a0461212e9f7a2499579ebfc8  raw/rq5-coverage.csv
-  63f156e745da820b369dff053c03dc96ca79210e1607813fc13c1597072b5aaf  raw/rq5-leader-changes.csv
-  e921cc58d56e6235344b5dbd11d4ede25611aae63b8deb23765b1b63a07e3882  raw/rq5-module-returns.csv
-  5a10fadf04989d92de85938b1f7eefc501a082f78a0467a7f8323a311e37a700  raw/rq5-module-summary.csv
-  aab311f18c0598f96fcb7e3b4c3763d903a1de3399580d6ca232357f026b7d7c  raw/rq5-summary.csv
-  a4fbf188f22073fd80cb415671ac44f1e6749115fc5f98c70bb2f8f1cd2af840  raw/rq5-transitions.csv
-  88f5ee5eb0c40001af3a329268721cfebef78233f6676f9ca4df12d912ad79a2  figures/rq5-activity-migration.pdf
-  0a6e5aa8bc94987b17aab824753f95771206164a11f2b92a8013e6e9bbfa8177  figures/rq5-activity-migration.png
-  135acbe9bd00029464dbf2835d7a8506c0dd37f49f8ee7d4686b51367dad8907  figures/rq5-artifact-allocation.pdf
-  def5b8bd67d6c041724878222a20758df3d48e44149826619d111483ef6da990  figures/rq5-artifact-allocation.png
-  467108ac5d909dce501c2b6c72b217c17d70973d37bd286f8215f73dc8fefb6c  result.md
-  512cf22782e1d7f69d3090e3534e3647699e69f327a0751ca30e86db5ece40b8  agentvis/research/plot_rq5.py
+  61444d4006d58243f6b6210b6006696e000d0963d0face759b5de98ae1fa5b9a  raw/rq5-actions.csv
+  a77c4b6a1296a59ec4e7cad8b425e20b889b54d3ac47bd274b32b446c5302130  raw/rq5-calls.csv
+  dad1bbdd6207ddb3b345edff2b499a9ef8cf0d7d65cb140d94a3c9383aff066e  raw/rq5-coverage.csv
+  3dbf0d169e8a80efa00833236652409251b5d28f504d708be2dacc145716deac  raw/rq5-leader-changes.csv
+  401b2883c46e09975465e5dc3f4890650386e883ecc0f21a81d97de7520f198d  raw/rq5-module-returns.csv
+  59da5e9a76105e088b56362e7f116cb560d4a85509ec484085608dbfb9fb394f  raw/rq5-module-summary.csv
+  6007a13a6e5bfb726d83cf84836b4e4d80f24a42eb3adc4db06005ba884b41f2  raw/rq5-summary.csv
+  a658e0446b8f4575b5e011481bb544a054622c2912fa86e56dcff0941dde295f  raw/rq5-transitions.csv
+  2c26796e2309bb720f74a83d189059535ef3826c993d9ee136844e4849681b00  figures/rq5-activity-migration.pdf
+  8743b75edb5d69bed5082bc21374f2215ccd3a74e714db0ae61a53121e768ac2  figures/rq5-activity-migration.png
+  d3c6f56e4977b88d71c9766129257a166781dd256465fcaa4df2768412f36a98  figures/rq5-artifact-allocation.pdf
+  4ede5166b35dbf7369fb37204ec48ec4100f1637b85a2868a7488fe132ad8fc6  figures/rq5-artifact-allocation.png
+  d64bfe18add9e136d9feae3609fb4deb2815c37b95a814b5a11f6d8ee94ecfcb  result.md
+  3b70dde5c8d75b908a5571fa94f64f3477b2eafa6089b7dd92c84559820038e1  agentvis/research/plot_rq5.py
