@@ -22,7 +22,7 @@ history is archived at
 | `agentpprof/src/standard_trace.rs` | Chrome/Perfetto Trace Event input normalization through operation records |
 | `agentpprof/src/tagger.rs` | optional open-vocabulary and declared-label tagging support |
 | `agentpprof/tests/profile_spec_cli.rs` | pprof-only CLI/profile-spec/mapping/filter/induction integration tests |
-| `agentpprof/tests/annotation_workspace_cli.rs` | recursive annotation workspace, visible stack, conservation, warning, and atomic-update integration tests |
+| `agentpprof/tests/annotation_workspace_cli.rs` | recursive annotation workspace, visible stack, conservation, aggregate diagnostics, bounded issues, and atomic-update integration tests |
 | `agentpprof/tests/standard_trace_cli.rs` | standard-trace input and alternative-output rejection tests |
 | `agentpprof/backend/python/` | archived clustering prototype; not a product backend or output path |
 | `agentpprof/examples/` | public fixture and usage material |
@@ -227,7 +227,10 @@ experiment.
   `trace.jsonl`, reads backend decisions from its sibling `annotation.json`,
   rewrites only derived `path` fields and the sibling `stacks.folded`, and emits
   exactly one pprof. Raw session and prompt IDs are labels; LLM and tool/effect
-  nodes remain visible evidence frames below semantic operations.
+  nodes remain visible evidence frames below semantic operations. Its JSON
+  status reports tag reuse, singleton/near-name candidates, weighted
+  semantic-depth mass, and bounded hierarchy issues so a backend can reread
+  implicated context and revise the same annotation in another pass.
 - Operation marks and recurrence induction cannot run together because both
   derive the `operation` field. A mark is an addressable boundary and does not
   imply a product human-annotation workflow; regexes may parse or retrieve candidates but are not

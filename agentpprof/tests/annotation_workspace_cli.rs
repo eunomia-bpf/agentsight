@@ -179,13 +179,17 @@ fn broad_optional_leaf_emits_coarse_span_warning_without_blocking_profile() {
             r#"{{"id":"t{index}","parent":"c{index}","kind":"tool","data":{{"name":"shell"}},"metrics":{{"operations":1}},"path":[]}}"#
         ));
     }
+    rows.push(
+        r#"{"id":"c8","parent":"p","kind":"llm","data":{"name":"report"},"metrics":{},"path":[]}"#
+            .to_string(),
+    );
     fs::write(&trace, rows.join("\n") + "\n").unwrap();
     fs::write(
         &annotations,
         serde_json::to_vec_pretty(&serde_json::json!({
             "s": {"tag":"Repair regression","parent":null,"next":null},
             "p": {"tag":"Fix user-reported failure","parent":"s","next":null},
-            "c0": {"tag":"Recover interaction","parent":"p","next":null}
+            "c0": {"tag":"Recover interaction","parent":"p","next":"c8"}
         }))
         .unwrap(),
     )
@@ -218,6 +222,152 @@ fn broad_optional_leaf_emits_coarse_span_warning_without_blocking_profile() {
             .unwrap()
             .contains("coarse unrefined span")
     );
+    assert_eq!(status["semantic_depth_mass"]["3"], 8);
+    assert_eq!(status["issues"].as_array().unwrap().len(), 1);
+    assert_eq!(status["issues"][0]["kind"], "coarse_span");
+    assert_eq!(status["issues"][0]["start_node_id"], "c0");
+    assert_eq!(status["issues"][0]["end_node_id"], "c8");
+    assert_eq!(status["issues"][0]["session_id"], "s");
+    assert_eq!(status["issues"][0]["covered_tool_calls"], 8);
+}
+
+#[test]
+fn multi_session_workspace_reports_cross_session_tag_reuse() {
+    let tmp = tempfile::tempdir().unwrap();
+    let workspace = tmp.path().join("workspace");
+    fs::create_dir(&workspace).unwrap();
+    let trace = workspace.join("trace.jsonl");
+    let annotations = workspace.join("annotation.json");
+    let output = tmp.path().join("profile.pb.gz");
+    fs::write(
+        &trace,
+        [
+            r#"{"id":"s1","parent":null,"kind":"session","data":{"agent":"Codex"},"metrics":{},"path":[]}"#,
+            r#"{"id":"p1","parent":"s1","kind":"prompt","metrics":{},"path":[]}"#,
+            r#"{"id":"c1","parent":"p1","kind":"llm","metrics":{"operations":1},"path":[]}"#,
+            r#"{"id":"s2","parent":null,"kind":"session","data":{"agent":"Codex"},"metrics":{},"path":[]}"#,
+            r#"{"id":"p2","parent":"s2","kind":"prompt","metrics":{},"path":[]}"#,
+            r#"{"id":"c2","parent":"p2","kind":"llm","metrics":{"operations":1},"path":[]}"#,
+            r#"{"id":"c3","parent":"p2","kind":"llm","metrics":{"operations":1},"path":[]}"#,
+        ]
+        .join("\n")
+            + "\n",
+    )
+    .unwrap();
+    fs::write(
+        &annotations,
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "s1": {"tag":"Repair regression","parent":null,"next":null},
+            "p1": {"tag":"Fix failure","parent":"s1","next":null},
+            "c1": {"tag":"Inspect code","parent":"p1","next":null},
+            "s2": {"tag":"Repair regression","parent":null,"next":null},
+            "p2": {"tag":"Fix failure","parent":"s2","next":null},
+            "c2": {"tag":"Inspect code","parent":"p2","next":"c3"},
+            "c3": {"tag":"Validate fix","parent":"p2","next":null}
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+
+    let result = run(
+        env!("CARGO_BIN_EXE_agentpprof"),
+        &[
+            "--annotation-file",
+            annotations.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--output",
+            output.to_str().unwrap(),
+        ],
+    );
+    assert!(
+        result.status.success(),
+        "stdout={}\nstderr={}",
+        String::from_utf8_lossy(&result.stdout),
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let status: Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(status["semantic_tags"], 2);
+    assert_eq!(status["cross_session_tags"], 1);
+    assert_eq!(status["singleton_tags"], 1);
+    assert_eq!(status["min_semantic_depth"], 3);
+    assert_eq!(status["max_semantic_depth"], 3);
+    assert_eq!(status["semantic_depth_mass"]["3"], 3);
+    let tag_reuse = status["tag_reuse"].as_array().unwrap();
+    assert_eq!(tag_reuse.len(), 2);
+    assert_eq!(tag_reuse[0]["tag"], "inspect code");
+    assert_eq!(tag_reuse[0]["occurrences"], 2);
+    assert_eq!(tag_reuse[0]["sessions"].as_array().unwrap().len(), 2);
+    assert_eq!(tag_reuse[1]["tag"], "validate fix");
+    assert_eq!(tag_reuse[1]["occurrences"], 1);
+    assert_eq!(tag_reuse[1]["sessions"][0], "s2");
+    assert!(
+        status["near_name_candidates"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        status["warnings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|warning| warning
+                .as_str()
+                .unwrap()
+                .contains("cross-session fragmentation"))
+    );
+}
+
+#[test]
+fn annotation_workspace_depth_mass_matches_every_profile_view() {
+    let tmp = tempfile::tempdir().unwrap();
+    let workspace = tmp.path().join("workspace");
+    fs::create_dir(&workspace).unwrap();
+    let trace = workspace.join("trace.jsonl");
+    let annotations = workspace.join("annotation.json");
+    fs::write(
+        &trace,
+        r#"{"id":"s","parent":null,"kind":"session","data":{"agent":"Codex"},"metrics":{"operations":2,"tokens":3,"files":4,"network":5,"time_ns":6},"path":[]}
+"#,
+    )
+    .unwrap();
+    fs::write(
+        &annotations,
+        r#"{"s":{"tag":"Inspect","parent":null,"next":null}}
+"#,
+    )
+    .unwrap();
+
+    for (view, expected) in [
+        ("operations", 2),
+        ("tokens", 3),
+        ("files", 4),
+        ("network", 5),
+        ("time", 6),
+    ] {
+        let output = tmp.path().join(format!("{view}.pb.gz"));
+        let result = run(
+            env!("CARGO_BIN_EXE_agentpprof"),
+            &[
+                "--annotation-file",
+                annotations.to_str().unwrap(),
+                "--view",
+                view,
+                "--output",
+                output.to_str().unwrap(),
+            ],
+        );
+        assert!(
+            result.status.success(),
+            "view={view}\nstdout={}\nstderr={}",
+            String::from_utf8_lossy(&result.stdout),
+            String::from_utf8_lossy(&result.stderr)
+        );
+        let status: Value = serde_json::from_slice(&result.stdout).unwrap();
+        assert_eq!(status["samples"], expected);
+        assert_eq!(status["semantic_depth_mass"]["1"], expected);
+    }
 }
 
 #[test]

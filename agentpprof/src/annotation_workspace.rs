@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::profile::{Profile, ProfileView, profile_to_stacks, write_pprof_projection};
+use crate::profile::{Profile, ProfileView, profile_to_stacks, safe_frame, write_pprof_projection};
 
 const TRACE_FILE: &str = "trace.jsonl";
 const FOLDED_FILE: &str = "stacks.folded";
@@ -49,8 +49,56 @@ pub struct WorkspaceSummary {
     pub annotations: usize,
     pub samples: u64,
     pub unique_stacks: usize,
+    pub semantic_tags: usize,
+    pub cross_session_tags: usize,
+    pub singleton_tags: usize,
+    pub min_semantic_depth: usize,
     pub max_semantic_depth: usize,
+    pub semantic_depth_mass: BTreeMap<usize, u64>,
+    pub tag_reuse: Vec<TagReuseSummary>,
+    pub near_name_candidates: Vec<NearNameCandidate>,
+    pub issues: Vec<HierarchyIssue>,
     pub warnings: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct TagReuseSummary {
+    pub tag: String,
+    pub occurrences: usize,
+    pub sessions: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct NearNameCandidate {
+    pub left: String,
+    pub right: String,
+    pub edit_distance: usize,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct HierarchyIssue {
+    pub kind: String,
+    pub tag: String,
+    pub start_node_id: String,
+    pub end_node_id: Option<String>,
+    pub session_id: String,
+    pub covered_tool_calls: usize,
+    pub direct_children: usize,
+    pub refined_children: usize,
+}
+
+#[derive(Debug)]
+struct HierarchyDiagnostics {
+    semantic_tags: usize,
+    cross_session_tags: usize,
+    singleton_tags: usize,
+    min_semantic_depth: usize,
+    max_semantic_depth: usize,
+    semantic_depth_mass: BTreeMap<usize, u64>,
+    tag_reuse: Vec<TagReuseSummary>,
+    near_name_candidates: Vec<NearNameCandidate>,
+    issues: Vec<HierarchyIssue>,
+    warnings: Vec<String>,
 }
 
 pub fn export_annotation_workspace(
@@ -80,7 +128,7 @@ pub fn export_annotation_workspace(
     validate_operation_scopes(&nodes, &annotations)?;
     let regions = resolve_regions(&nodes, &index, &annotations)?;
     apply_paths(&mut nodes, &regions)?;
-    let warnings = hierarchy_warnings(&nodes, &regions);
+    let diagnostics = hierarchy_diagnostics(&nodes, &regions, view);
 
     let profile = build_profile(&nodes, view)?;
     let stacks = profile_to_stacks(&profile);
@@ -88,6 +136,13 @@ pub fn export_annotation_workspace(
         bail!(
             "selected view produced no samples in {}",
             trace_file.display()
+        );
+    }
+    let sample_mass = stacks.values().sum::<u64>();
+    let depth_mass = diagnostics.semantic_depth_mass.values().sum::<u64>();
+    if depth_mass != sample_mass {
+        bail!(
+            "annotation workspace depth mass {depth_mass} does not match pprof sample mass {sample_mass}"
         );
     }
 
@@ -108,14 +163,26 @@ pub fn export_annotation_workspace(
         folded_file,
         nodes: nodes.len(),
         annotations: annotations.len(),
-        samples: stacks.values().sum(),
+        samples: sample_mass,
         unique_stacks: stacks.len(),
-        max_semantic_depth: nodes.iter().map(|node| node.path.len()).max().unwrap_or(0),
-        warnings,
+        semantic_tags: diagnostics.semantic_tags,
+        cross_session_tags: diagnostics.cross_session_tags,
+        singleton_tags: diagnostics.singleton_tags,
+        min_semantic_depth: diagnostics.min_semantic_depth,
+        max_semantic_depth: diagnostics.max_semantic_depth,
+        semantic_depth_mass: diagnostics.semantic_depth_mass,
+        tag_reuse: diagnostics.tag_reuse,
+        near_name_candidates: diagnostics.near_name_candidates,
+        issues: diagnostics.issues,
+        warnings: diagnostics.warnings,
     })
 }
 
-fn hierarchy_warnings(nodes: &[TraceNode], regions: &[Region]) -> Vec<String> {
+fn hierarchy_diagnostics(
+    nodes: &[TraceNode],
+    regions: &[Region],
+    view: ProfileView,
+) -> HierarchyDiagnostics {
     let by_start = regions
         .iter()
         .enumerate()
@@ -131,24 +198,52 @@ fn hierarchy_warnings(nodes: &[TraceNode], regions: &[Region]) -> Vec<String> {
         }
     }
 
+    let mut root_at = vec![0; nodes.len()];
+    let mut root = 0;
+    let mut roots = 0;
+    for (position, node) in nodes.iter().enumerate() {
+        if node.parent.is_none() {
+            root = position;
+            roots += 1;
+        }
+        root_at[position] = root;
+    }
+
     let mut warnings = BTreeSet::new();
+    let mut issues = Vec::new();
     for (region_index, region) in regions.iter().enumerate() {
         let direct_children = children
             .get(&region_index)
             .map(Vec::as_slice)
             .unwrap_or(&[]);
+        let refined_children = direct_children
+            .iter()
+            .filter(|child| children.get(child).is_some_and(|nested| !nested.is_empty()))
+            .count();
         let source_kind = nodes[region.start].kind.as_str();
+        let covered_tool_calls = nodes[region.start..region.end]
+            .iter()
+            .filter(|node| node.kind == "tool")
+            .count();
+        let end_node_id = nodes.get(region.end).map(|node| node.id.clone());
+        let issue = |kind: &str| HierarchyIssue {
+            kind: kind.to_string(),
+            tag: region.tag.clone(),
+            start_node_id: nodes[region.start].id.clone(),
+            end_node_id: end_node_id.clone(),
+            session_id: nodes[root_at[region.start]].id.clone(),
+            covered_tool_calls,
+            direct_children: direct_children.len(),
+            refined_children,
+        };
         if source_kind != "session" && source_kind != "prompt" && direct_children.len() == 1 {
             warnings.insert(format!(
                 "degenerate unary refinement: operation {:?} at {:?} has only one explicit semantic child",
                 region.tag, nodes[region.start].id
             ));
+            issues.push(issue("unary_refinement"));
         }
 
-        let covered_tool_calls = nodes[region.start..region.end]
-            .iter()
-            .filter(|node| node.kind == "tool")
-            .count();
         if source_kind != "session"
             && source_kind != "prompt"
             && direct_children.is_empty()
@@ -158,25 +253,154 @@ fn hierarchy_warnings(nodes: &[TraceNode], regions: &[Region]) -> Vec<String> {
                 "coarse unrefined span: operation {:?} at {:?} covers {} tool calls without a semantic child",
                 region.tag, nodes[region.start].id, covered_tool_calls
             ));
+            issues.push(issue("coarse_span"));
         }
 
-        if direct_children.len() >= 8 {
-            let refined_children = direct_children
-                .iter()
-                .filter(|child| children.get(child).is_some_and(|nested| !nested.is_empty()))
-                .count();
-            if refined_children * 4 < direct_children.len() {
-                warnings.insert(format!(
-                    "flat fan-out: operation {:?} at {:?} has {} direct semantic children but only {} recursively refined children",
-                    region.tag,
-                    nodes[region.start].id,
-                    direct_children.len(),
-                    refined_children
-                ));
+        if direct_children.len() >= 8 && refined_children * 4 < direct_children.len() {
+            warnings.insert(format!(
+                "flat fan-out: operation {:?} at {:?} has {} direct semantic children but only {} recursively refined children",
+                region.tag,
+                nodes[region.start].id,
+                direct_children.len(),
+                refined_children
+            ));
+            issues.push(issue("flat_fanout"));
+        }
+    }
+
+    let mut tag_sessions = BTreeMap::<String, BTreeSet<String>>::new();
+    let mut tag_occurrences = BTreeMap::<String, usize>::new();
+    for region in regions {
+        let source_kind = nodes[region.start].kind.as_str();
+        if source_kind == "session" || source_kind == "prompt" {
+            continue;
+        }
+        let tag = safe_frame(&region.tag, Some("operation"))
+            .strip_prefix("operation:")
+            .unwrap_or(&region.tag)
+            .replace('_', " ");
+        tag_sessions
+            .entry(tag.clone())
+            .or_default()
+            .insert(nodes[root_at[region.start]].id.clone());
+        *tag_occurrences.entry(tag).or_default() += 1;
+    }
+    let tag_reuse = tag_sessions
+        .iter()
+        .map(|(tag, sessions)| TagReuseSummary {
+            tag: tag.clone(),
+            occurrences: tag_occurrences.get(tag).copied().unwrap_or(0),
+            sessions: sessions.iter().cloned().collect(),
+        })
+        .collect::<Vec<_>>();
+    let semantic_tags = tag_sessions.len();
+    let cross_session_tags = tag_sessions
+        .values()
+        .filter(|sessions| sessions.len() > 1)
+        .count();
+    let singleton_names = tag_sessions
+        .iter()
+        .filter(|(_, sessions)| sessions.len() == 1)
+        .map(|(tag, _)| tag.clone())
+        .collect::<Vec<_>>();
+    let singleton_tags = singleton_names.len();
+    if roots > 1 && singleton_tags > 0 {
+        let examples = singleton_names
+            .iter()
+            .take(5)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(", ");
+        warnings.insert(format!(
+            "cross-session fragmentation: {singleton_tags} of {semantic_tags} optional operation tags appear in only one session; examples: {examples}"
+        ));
+    }
+
+    let names = tag_sessions.keys().cloned().collect::<Vec<_>>();
+    let near_name_candidates = find_near_name_candidates(&names);
+    if !near_name_candidates.is_empty() {
+        let examples = near_name_candidates
+            .iter()
+            .take(5)
+            .map(|candidate| format!("{} ~ {}", candidate.left, candidate.right))
+            .collect::<Vec<_>>()
+            .join(", ");
+        warnings.insert(format!(
+            "lexically near operation tags: inspect before keeping separate or merging; examples: {examples}"
+        ));
+    }
+
+    let metric = match view {
+        ProfileView::Operations => "operations",
+        ProfileView::Tokens => "tokens",
+        ProfileView::Files => "files",
+        ProfileView::Network => "network",
+        ProfileView::Time => "time_ns",
+    };
+    let mut semantic_depth_mass = BTreeMap::<usize, u64>::new();
+    for node in nodes {
+        let weight = node.metrics.get(metric).copied().unwrap_or(0);
+        if weight > 0 {
+            *semantic_depth_mass.entry(node.path.len()).or_default() += weight;
+        }
+    }
+    let min_semantic_depth = semantic_depth_mass.keys().next().copied().unwrap_or(0);
+    let max_semantic_depth = semantic_depth_mass.keys().next_back().copied().unwrap_or(0);
+    if max_semantic_depth.saturating_sub(min_semantic_depth) >= 4 {
+        warnings.insert(format!(
+            "uneven semantic depth: weighted leaves range from {min_semantic_depth} to {max_semantic_depth} operation frames"
+        ));
+    }
+
+    HierarchyDiagnostics {
+        semantic_tags,
+        cross_session_tags,
+        singleton_tags,
+        min_semantic_depth,
+        max_semantic_depth,
+        semantic_depth_mass,
+        tag_reuse,
+        near_name_candidates,
+        issues,
+        warnings: warnings.into_iter().collect(),
+    }
+}
+
+fn find_near_name_candidates(names: &[String]) -> Vec<NearNameCandidate> {
+    let mut candidates = Vec::new();
+    for (left_index, left) in names.iter().enumerate() {
+        for right in names.iter().skip(left_index + 1) {
+            if left.chars().count().abs_diff(right.chars().count()) > 2 {
+                continue;
+            }
+            let edit_distance = levenshtein_distance(left, right);
+            if edit_distance > 0 && edit_distance <= 2 {
+                candidates.push(NearNameCandidate {
+                    left: left.clone(),
+                    right: right.clone(),
+                    edit_distance,
+                });
             }
         }
     }
-    warnings.into_iter().collect()
+    candidates
+}
+
+fn levenshtein_distance(left: &str, right: &str) -> usize {
+    let right = right.chars().collect::<Vec<_>>();
+    let mut previous = (0..=right.len()).collect::<Vec<_>>();
+    for (left_index, left_char) in left.chars().enumerate() {
+        let mut current = Vec::with_capacity(right.len() + 1);
+        current.push(left_index + 1);
+        for (right_index, right_char) in right.iter().enumerate() {
+            let substitution = previous[right_index] + usize::from(left_char != *right_char);
+            let insertion = current[right_index] + 1;
+            let deletion = previous[right_index + 1] + 1;
+            current.push(substitution.min(insertion).min(deletion));
+        }
+        previous = current;
+    }
+    previous[right.len()]
 }
 
 fn read_trace(path: &Path) -> Result<Vec<TraceNode>> {
@@ -250,28 +474,7 @@ fn resolve_regions(
     index: &HashMap<String, usize>,
     annotations: &BTreeMap<String, Annotation>,
 ) -> Result<Vec<Region>> {
-    let mut session_end = vec![nodes.len(); nodes.len()];
-    let mut active_root = None;
-    for (position, node) in nodes.iter().enumerate() {
-        if node.parent.is_none() {
-            if let Some(root) = active_root.replace(position) {
-                session_end[root] = position;
-            }
-        }
-    }
-    if let Some(root) = active_root {
-        session_end[root] = nodes.len();
-    }
-
-    let mut root_for_node = vec![0; nodes.len()];
-    let mut current_root = None;
-    for (position, node) in nodes.iter().enumerate() {
-        if node.parent.is_none() {
-            current_root = Some(position);
-        }
-        root_for_node[position] = current_root
-            .with_context(|| format!("trace node {:?} appears before a root node", node.id))?;
-    }
+    let (root_for_node, session_end) = source_root_layout(nodes, index)?;
 
     let mut starts = HashMap::new();
     for (id, annotation) in annotations {
@@ -295,6 +498,7 @@ fn resolve_regions(
 
     let mut regions = Vec::with_capacity(annotations.len());
     let mut region_by_start = HashMap::new();
+    let mut explicit_ends = Vec::with_capacity(annotations.len());
     for (id, annotation) in annotations {
         let start = starts[id];
         let parent_start = annotation
@@ -339,13 +543,15 @@ fn resolve_regions(
         let region_index = regions.len();
         regions.push(Region {
             start,
-            end: explicit_end.unwrap_or(session_end[root]),
+            end: explicit_end.unwrap_or(0),
             parent: parent_start,
             tag: annotation.tag.trim().to_string(),
         });
+        explicit_ends.push(explicit_end);
         region_by_start.insert(start, region_index);
     }
 
+    let mut parent_indices = Vec::with_capacity(regions.len());
     for region_index in 0..regions.len() {
         let parent_start = regions[region_index].parent;
         let parent_index = parent_start
@@ -358,11 +564,35 @@ fn resolve_regions(
                 })
             })
             .transpose()?;
-        if regions[region_index].end == session_end[root_for_node[regions[region_index].start]] {
-            if let Some(parent_index) = parent_index {
-                regions[region_index].end = regions[parent_index].end;
-            }
+        if let Some(parent_index) = parent_index
+            && root_for_node[regions[parent_index].start]
+                != root_for_node[regions[region_index].start]
+        {
+            bail!(
+                "annotation {:?} has semantic parent {:?} in another session",
+                nodes[regions[region_index].start].id,
+                nodes[regions[parent_index].start].id
+            );
         }
+        parent_indices.push(parent_index);
+    }
+
+    let mut end_state = vec![0_u8; regions.len()];
+    for region_index in 0..regions.len() {
+        resolve_region_end(
+            region_index,
+            &mut regions,
+            &explicit_ends,
+            &parent_indices,
+            &root_for_node,
+            &session_end,
+            nodes,
+            &mut end_state,
+        )?;
+    }
+
+    for region_index in 0..regions.len() {
+        let parent_index = parent_indices[region_index];
         if let Some(parent_index) = parent_index {
             let child = &regions[region_index];
             let parent = &regions[parent_index];
@@ -381,11 +611,25 @@ fn resolve_regions(
             let a = &regions[left];
             let b = &regions[right];
             let overlaps = a.start < b.end && b.start < a.end;
-            let nested =
-                (a.start <= b.start && b.end <= a.end) || (b.start <= a.start && a.end <= b.end);
-            if overlaps && !nested {
+            let a_contains_b = a.start <= b.start && b.end <= a.end;
+            let b_contains_a = b.start <= a.start && a.end <= b.end;
+            if overlaps && !a_contains_b && !b_contains_a {
                 bail!(
                     "annotations at {:?} and {:?} cross; ranges must be nested or disjoint",
+                    nodes[a.start].id,
+                    nodes[b.start].id
+                );
+            }
+            if a_contains_b && !is_semantic_ancestor(left, right, &parent_indices) {
+                bail!(
+                    "annotation {:?} is nested inside {:?} but does not declare it as a semantic ancestor",
+                    nodes[b.start].id,
+                    nodes[a.start].id
+                );
+            }
+            if b_contains_a && !is_semantic_ancestor(right, left, &parent_indices) {
+                bail!(
+                    "annotation {:?} is nested inside {:?} but does not declare it as a semantic ancestor",
                     nodes[a.start].id,
                     nodes[b.start].id
                 );
@@ -393,6 +637,107 @@ fn resolve_regions(
         }
     }
     Ok(regions)
+}
+
+fn source_root_layout(
+    nodes: &[TraceNode],
+    index: &HashMap<String, usize>,
+) -> Result<(Vec<usize>, Vec<usize>)> {
+    let mut root_for_node = vec![0; nodes.len()];
+    for (position, node) in nodes.iter().enumerate() {
+        root_for_node[position] = match node.parent.as_ref() {
+            None => position,
+            Some(parent) => root_for_node[index[parent]],
+        };
+    }
+
+    let mut session_end = vec![nodes.len(); nodes.len()];
+    let mut previous_root = None;
+    let mut closed_roots = HashSet::new();
+    for (position, root) in root_for_node.iter().copied().enumerate() {
+        if previous_root == Some(root) {
+            continue;
+        }
+        if closed_roots.contains(&root) {
+            bail!(
+                "trace node {:?} returns to an earlier source root; each session must be one contiguous source-tree block",
+                nodes[position].id
+            );
+        }
+        if let Some(previous) = previous_root {
+            session_end[previous] = position;
+            closed_roots.insert(previous);
+        }
+        previous_root = Some(root);
+    }
+    if let Some(root) = previous_root {
+        session_end[root] = nodes.len();
+    }
+    Ok((root_for_node, session_end))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn resolve_region_end(
+    region_index: usize,
+    regions: &mut [Region],
+    explicit_ends: &[Option<usize>],
+    parent_indices: &[Option<usize>],
+    root_for_node: &[usize],
+    session_end: &[usize],
+    nodes: &[TraceNode],
+    state: &mut [u8],
+) -> Result<usize> {
+    match state[region_index] {
+        2 => return Ok(regions[region_index].end),
+        1 => {
+            bail!(
+                "annotation {:?} participates in a semantic-parent cycle",
+                nodes[regions[region_index].start].id
+            )
+        }
+        _ => {}
+    }
+    state[region_index] = 1;
+    let end = if let Some(end) = explicit_ends[region_index] {
+        end
+    } else if let Some(parent_index) = parent_indices[region_index] {
+        resolve_region_end(
+            parent_index,
+            regions,
+            explicit_ends,
+            parent_indices,
+            root_for_node,
+            session_end,
+            nodes,
+            state,
+        )?
+    } else {
+        session_end[root_for_node[regions[region_index].start]]
+    };
+    if end <= regions[region_index].start {
+        bail!(
+            "annotation at {:?} resolves to a non-forward end boundary",
+            nodes[regions[region_index].start].id
+        );
+    }
+    regions[region_index].end = end;
+    state[region_index] = 2;
+    Ok(end)
+}
+
+fn is_semantic_ancestor(
+    candidate: usize,
+    descendant: usize,
+    parent_indices: &[Option<usize>],
+) -> bool {
+    let mut current = parent_indices[descendant];
+    while let Some(region_index) = current {
+        if region_index == candidate {
+            return true;
+        }
+        current = parent_indices[region_index];
+    }
+    false
 }
 
 fn apply_paths(nodes: &mut [TraceNode], regions: &[Region]) -> Result<()> {
@@ -640,6 +985,206 @@ mod tests {
     }
 
     #[test]
+    fn inherited_ends_follow_semantic_parents_not_annotation_key_order() {
+        let mut nodes = [
+            ("s", None, "session"),
+            ("p", Some("s"), "prompt"),
+            ("z_grand", Some("p"), "llm"),
+            ("y_parent", Some("p"), "llm"),
+            ("a_child", Some("p"), "llm"),
+            ("end", Some("p"), "llm"),
+        ]
+        .into_iter()
+        .map(|(id, parent, kind)| TraceNode {
+            id: id.to_string(),
+            parent: parent.map(str::to_string),
+            kind: kind.to_string(),
+            data: Map::new(),
+            metrics: BTreeMap::from([("operations".to_string(), 1)]),
+            path: Vec::new(),
+        })
+        .collect::<Vec<_>>();
+        let index = validate_source_tree(&nodes).unwrap();
+        let annotations = BTreeMap::from([
+            (
+                "s".to_string(),
+                Annotation {
+                    tag: "Execute".to_string(),
+                    parent: None,
+                    next: None,
+                },
+            ),
+            (
+                "p".to_string(),
+                Annotation {
+                    tag: "Fulfill request".to_string(),
+                    parent: Some("s".to_string()),
+                    next: None,
+                },
+            ),
+            (
+                "z_grand".to_string(),
+                Annotation {
+                    tag: "Inspect".to_string(),
+                    parent: Some("p".to_string()),
+                    next: Some("end".to_string()),
+                },
+            ),
+            (
+                "y_parent".to_string(),
+                Annotation {
+                    tag: "Diagnose".to_string(),
+                    parent: Some("z_grand".to_string()),
+                    next: None,
+                },
+            ),
+            (
+                "a_child".to_string(),
+                Annotation {
+                    tag: "Test".to_string(),
+                    parent: Some("y_parent".to_string()),
+                    next: None,
+                },
+            ),
+            (
+                "end".to_string(),
+                Annotation {
+                    tag: "Report".to_string(),
+                    parent: Some("p".to_string()),
+                    next: None,
+                },
+            ),
+        ]);
+        let regions = resolve_regions(&nodes, &index, &annotations).unwrap();
+        apply_paths(&mut nodes, &regions).unwrap();
+        assert_eq!(
+            nodes[4].path,
+            ["Execute", "Fulfill request", "Inspect", "Diagnose", "Test"]
+        );
+    }
+
+    #[test]
+    fn nested_intervals_declared_as_siblings_are_rejected() {
+        let nodes = [
+            ("s", None, "session"),
+            ("p", Some("s"), "prompt"),
+            ("c1", Some("p"), "llm"),
+            ("c2", Some("p"), "llm"),
+            ("c3", Some("p"), "llm"),
+            ("c4", Some("p"), "llm"),
+        ]
+        .into_iter()
+        .map(|(id, parent, kind)| TraceNode {
+            id: id.to_string(),
+            parent: parent.map(str::to_string),
+            kind: kind.to_string(),
+            data: Map::new(),
+            metrics: BTreeMap::new(),
+            path: Vec::new(),
+        })
+        .collect::<Vec<_>>();
+        let index = validate_source_tree(&nodes).unwrap();
+        let annotations = BTreeMap::from([
+            (
+                "s".to_string(),
+                Annotation {
+                    tag: "Execute".to_string(),
+                    parent: None,
+                    next: None,
+                },
+            ),
+            (
+                "p".to_string(),
+                Annotation {
+                    tag: "Fulfill request".to_string(),
+                    parent: Some("s".to_string()),
+                    next: None,
+                },
+            ),
+            (
+                "c1".to_string(),
+                Annotation {
+                    tag: "Inspect outer".to_string(),
+                    parent: Some("p".to_string()),
+                    next: Some("c4".to_string()),
+                },
+            ),
+            (
+                "c2".to_string(),
+                Annotation {
+                    tag: "Diagnose sibling".to_string(),
+                    parent: Some("p".to_string()),
+                    next: Some("c3".to_string()),
+                },
+            ),
+        ]);
+        let error = resolve_regions(&nodes, &index, &annotations)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("does not declare it as a semantic ancestor"));
+    }
+
+    #[test]
+    fn noncontiguous_source_session_is_rejected_without_panicking() {
+        let nodes = [
+            ("s1", None, "session"),
+            ("p1", Some("s1"), "prompt"),
+            ("s2", None, "session"),
+            ("p2", Some("s2"), "prompt"),
+            ("c1", Some("p1"), "llm"),
+        ]
+        .into_iter()
+        .map(|(id, parent, kind)| TraceNode {
+            id: id.to_string(),
+            parent: parent.map(str::to_string),
+            kind: kind.to_string(),
+            data: Map::new(),
+            metrics: BTreeMap::new(),
+            path: Vec::new(),
+        })
+        .collect::<Vec<_>>();
+        let index = validate_source_tree(&nodes).unwrap();
+        let annotations = BTreeMap::from([
+            (
+                "s1".to_string(),
+                Annotation {
+                    tag: "Run first".to_string(),
+                    parent: None,
+                    next: None,
+                },
+            ),
+            (
+                "p1".to_string(),
+                Annotation {
+                    tag: "Handle first".to_string(),
+                    parent: Some("s1".to_string()),
+                    next: None,
+                },
+            ),
+            (
+                "s2".to_string(),
+                Annotation {
+                    tag: "Run second".to_string(),
+                    parent: None,
+                    next: None,
+                },
+            ),
+            (
+                "p2".to_string(),
+                Annotation {
+                    tag: "Handle second".to_string(),
+                    parent: Some("s2".to_string()),
+                    next: None,
+                },
+            ),
+        ]);
+        let error = resolve_regions(&nodes, &index, &annotations)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("contiguous source-tree block"));
+    }
+
+    #[test]
     fn wide_unrefined_prompt_emits_flat_fanout_warning() {
         let mut nodes = vec![
             TraceNode {
@@ -699,11 +1244,36 @@ mod tests {
 
         let index = validate_source_tree(&nodes).unwrap();
         let regions = resolve_regions(&nodes, &index, &annotations).unwrap();
-        let warnings = hierarchy_warnings(&nodes, &regions);
+        let warnings = hierarchy_diagnostics(&nodes, &regions, ProfileView::Operations).warnings;
         assert!(
             warnings
                 .iter()
                 .any(|warning| warning.contains("flat fan-out"))
+        );
+    }
+
+    #[test]
+    fn near_name_distance_detects_small_lexical_variants() {
+        assert_eq!(levenshtein_distance("configure", "reconfigure"), 2);
+        assert_eq!(levenshtein_distance("test", "retest"), 2);
+        assert!(levenshtein_distance("inspect", "validate") > 2);
+    }
+
+    #[test]
+    fn near_name_candidates_are_exhaustive_and_unicode_uses_character_length() {
+        let mut names = (0..30)
+            .map(|index| format!("inspect {index:02}"))
+            .collect::<Vec<_>>();
+        names.extend(["界界".to_string(), "aa".to_string()]);
+        let candidates = find_near_name_candidates(&names);
+        assert!(candidates.len() > 25);
+        assert!(candidates.iter().any(|candidate| {
+            candidate.left == "inspect 28" && candidate.right == "inspect 29"
+        }));
+        assert!(
+            candidates
+                .iter()
+                .any(|candidate| candidate.left == "界界" && candidate.right == "aa")
         );
     }
 

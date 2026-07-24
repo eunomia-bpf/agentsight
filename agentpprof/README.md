@@ -113,11 +113,14 @@ collision. Tags describe reusable operations rather than task, benchmark, or
 agent names. The stable first verb also permits a coarser query-time rollup
 without replacing the full operation name.
 
-The CLI reports nonblocking warnings when an optional recursive operation has
-only one explicit semantic child, when a large operation has a wide flat
-fan-out with little recursive refinement, or when an optional semantic leaf
-spans at least eight tool calls without a child operation. Warnings never block
-the `.pb` or `.pb.gz` output and never force artificial depth. See
+Each run also returns structured aggregate diagnostics: per-tag
+source-session reuse, singleton tags, lexically near-name candidates,
+weighted semantic-depth mass, and bounded unary/coarse/fan-out issue records.
+An automatic backend can therefore regenerate the profile, reread only the
+reported source intervals, revise the same `annotation.json`, and regenerate
+again until a complete pass makes no change. Diagnostics are advisory:
+warnings never block the `.pb` or `.pb.gz` output, force a merge, or impose
+artificial depth. See
 [`docs/design/visexp/agentpprof-annotation-workspace.md`](../docs/design/visexp/agentpprof-annotation-workspace.md)
 for the complete contract.
 

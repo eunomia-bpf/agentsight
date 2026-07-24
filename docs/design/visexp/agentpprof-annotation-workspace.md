@@ -1,7 +1,7 @@
 # AgentPProf Annotation Workspace
 
 **Status:** implemented CLI contract  
-**Updated:** 2026-07-22
+**Updated:** 2026-07-23
 
 ## Decision
 
@@ -202,8 +202,9 @@ backend registry, or custom frontend. It performs five deterministic actions:
    every prompt begins a prompt-level operation, and every source node is
    covered;
 2. compute the active semantic path for every source node;
-3. report nonblocking hierarchy warnings for degenerate unary refinement or a
-   large flat fan-out with little recursive refinement;
+3. report nonblocking hierarchy warnings plus structured issue intervals,
+   per-tag cross-session reuse, singleton tags, near-name candidates, and
+   weighted semantic-depth mass;
 4. atomically update `trace.jsonl` and `stacks.folded`;
 5. encode the folded stacks and source evidence in one standard pprof.
 
@@ -246,18 +247,33 @@ Repair software regression
 Each iteration is the same:
 
 ```text
-read trace.jsonl and its current paths
--> select one region whose current expression is not useful enough
+run AgentPProf and inspect aggregate diagnostics
+-> select one reported region whose current expression may be unhelpful
+-> reread only that bounded source context
 -> add or revise annotation.json
 -> run AgentPProf
--> inspect the new trace paths, folded aggregate, and stock pprof
--> continue only where another split improves the explanation
+-> repeat diagnostics in a fixed order
+-> stop at the first complete pass that accepts no change
 ```
 
 There is no fixed depth, target depth distribution, or requirement to annotate
 every node. Different branches naturally stop at different depths. The normal
 search direction is monotonic refinement, but a backend may remove, merge, or
 rename a bad earlier split instead of accumulating errors.
+
+The JSON status makes the feedback loop inspectable without adding another
+workspace file:
+
+- `tag_reuse` gives each optional tag's occurrence count and source sessions;
+- `near_name_candidates` reports small lexical variants for semantic review;
+- `semantic_depth_mass` maps semantic depth to the selected additive width;
+- `issues` gives kind, tag, session, start node, exclusive end node, child
+  counts, and covered tool-call count.
+
+These fields locate questions; they do not decide the answer. A singleton may
+be genuinely task-specific, near names may express different responsibilities,
+and a broad leaf may contain homogeneous repetition. The backend must consult
+source evidence before changing the annotation.
 
 The objective is not maximum segmentation. The session-root and prompt-scope
 annotations cover the complete source tree from the first iteration; later
