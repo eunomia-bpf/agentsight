@@ -47,7 +47,7 @@ impl Event {
         }
     }
 
-    /// Get the event timestamp as a DateTime<Utc>
+    /// Get the event timestamp as a `DateTime<Utc>`.
     pub fn datetime(&self) -> DateTime<Utc> {
         DateTime::from_timestamp_millis(self.timestamp as i64).unwrap_or_else(Utc::now)
     }

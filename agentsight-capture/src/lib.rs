@@ -9,13 +9,13 @@ pub mod analyzers;
 pub mod binary_extractor;
 pub mod binary_resolver;
 pub mod event;
-pub mod json;
+mod json;
 pub mod model;
 pub mod runners;
 pub mod sinks;
 pub mod sources;
 pub mod text;
-pub mod time;
+mod time;
 pub mod view;
 
 pub use binary_extractor::BinaryExtractor;
