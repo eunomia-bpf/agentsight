@@ -711,6 +711,21 @@ The complete local-backend run remains valuable as backend-specific cost
 evidence for RQ4. Details are in
 [Step 0074](tmp/build-and-evaluate/step-0074-20260723T205657-0700/experiment-001/full-run-and-result.md).
 
+### Evidence-only note — Step 0075 does not change the story
+
+The complete RQ4 accounting experiment separates costs that the earlier
+fixed-input number conflated. On all 405 CodeTrace sessions, fresh
+source-packet reconstruction takes 501.64 seconds median, deterministic
+assembly/root repair/name canonicalization takes 3.54 seconds, and current
+source-preserving operation/token replay takes 1.17/1.17 seconds. All
+populations, A2 artifacts, and stock-pprof masses reproduce exactly. The two
+historical automatic-Agent waves span 54.36 artifact minutes, but retained
+telemetry cannot isolate model/provider inference time or tokens; the paper
+must not call that mutable chronology model time. This strengthens the cost
+answer without changing the problem, thesis, four RQs, operation-stack model,
+contributions, backend choice, or narrative. Complete evidence is in
+[Step 0075](tmp/build-and-evaluate/step-0075-20260723T214459-0700/experiment-001/independent-result-review.md).
+
 ## Invariants For Every Future Story Decision
 
 - Read this entire file, including the Initial Narrative and every evolution

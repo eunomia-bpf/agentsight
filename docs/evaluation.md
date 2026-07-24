@@ -21,7 +21,7 @@ later explicit user instruction may change the four author-fixed RQs.
 | RQ1 | Does Semantic Profiling Improve Resource Attribution? | Semantic operation stacks reunite recurring responsibility fragmented across executions and improve attribution of independently recorded additive resources while preserving source lineage and mass. | **Evidence-backed positive answer.** R114 establishes scoped source-lineage correctness under concurrent controls and lossless profile folding. Step 0035 establishes the complete same-input coarse recurrence comparison on 405 CodeTraceBench trajectories: ordinary B-cubed F1 is 0.649 versus 0.541 for raw-action grouping. Step 0049 adds detailed visible-action continuity and reaches 0.663; its +0.014 gain over coarse has a task-cluster 95% interval of [+0.009,+0.018] and is positive in all four frameworks. Step 0071 rebuilds the fixed three-run Git count/token case with the current release; both pprof outputs are byte-identical to the paper inputs and conserve 489 operations and 4,558,192 tokens. Phase-only is 0.654, so the result supports semantic stage-aligned attribution over raw action, not one view's dominance over every decision. R170/R224/R251 remain descriptive declared-category and multi-weight evidence rather than an independent oracle. |
 | RQ2 | Does Profiler Output Correspond to Real Problems? | A target-blind semantic profile concentrates independently annotated failures, unsafe effects, redundant work, or task boundaries and reduces analyst inspection without using target labels. | **Evidence-backed positive answer as a complement to operation-local diagnosis.** Step 0072 rechecks all 1,756 trajectories and 27,346 operations with standard per-query AP/MAP. Refining exact local-score ties with the current fixed Agent+Evidence profile raises MAP over local-only from .863/.411/.209 to .894/.517/.326; paired differences are +.031 [.024,.039], +.107 [.093,.120], and +.117 [.088,.148]. An information-matched raw-action refinement that retains the same source-kind/tool/outcome evidence reaches .893/.518/.324, and all three candidate-minus-raw intervals include zero. Thus the profile clearly complements local diagnosis, while this adaptive experiment does not establish target-ranking superiority for the semantic prefix alone. Step 0067's 440-trajectory AgentReward case separately shows cross-run recovery structure corresponding to expert looping. |
 | RQ3 | How Accurate Are the Tags? | A target-blind fixed tagger or mapping recovers accurate and stable task/action identities plus phase/group structure and boundaries on unseen agents and task families without materially corrupting attribution. | **Positive evidence on declared structural and literal public populations.** Step 0067's complete source-only automatic Agent A2 reaches ordinary B-cubed F1 .704 and exact boundary F1 .394 on all 405 CodeTraceBench trajectories and 20,866 operations, versus .663/.266 for recurrence and .541 B-cubed for raw action. Step 0071 applies the current action-first identity, reducing 5,537 open names to 1,434 two- or three-word canonical IDs with zero adjacent display-path collision while preserving the full temporal occurrence/boundary vectors and standard scores. Step 0006/0030 provide OSWorld boundary/partition evidence (.680/.786 label-free and .734/.801 reference-calibrated); Step 0008 provides V-measure .557/.815 on Mind2Web/ScienceWorld; Step 0031/0032 provide task-family/action macro-F1 .695/.498. These standard metrics evaluate complementary outputs; the canonical IDs are not claimed as gold open-vocabulary semantic classes. |
-| RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed paper-level construction-cost answer.** Step 0071's current `agentpprof 0.2.37` build completes all 30 public-matrix runs. The 27,765-operation semantic union takes 1.16 s median with 465.16 MiB maximum RSS and 23,935 operations/s; the semantic scale curve is monotonic with descriptive slope .041825 ms/operation and R² .999679. Six latest-A2 runs take .79 s operation-width and .81 s token-width median with at most 307.32 MiB RSS and exact mass. R160 remains only bounded predecessor cache-mechanism evidence. |
+| RQ4 | What Is the Profiling Cost? | Complete profile construction has practical predictable scaling, and cached field derivation makes repeated profile queries substantially cheaper than initial construction and repeated raw-trace review. | **Evidence-backed deterministic construction and replay answer, with one explicit inference gap.** Step 0071's current `agentpprof 0.2.37` build completes all 30 public-matrix runs: the 27,765-operation semantic union takes 1.16 s median with 465.16 MiB maximum RSS and 23,935 operations/s. Step 0075 freshly reconstructs the complete 405-session A2 path three times. Source-packet construction takes 501.64 s median, deterministic assembly/root repair/name canonicalization takes 3.54 s, and current source-preserving operation/token replay takes 1.17/1.17 s with exact mass. The two historical automatic-Agent waves span 54.36 artifact minutes, but A2 model/provider inference time and tokens remain unavailable and are not inferred from mutable mtimes. R160 remains only bounded predecessor cache-mechanism evidence. |
 
 RQ3's phase-structure component reuses the complete CodeTraceBench measurement
 reported under RQ1: the deterministic phase field reaches 0.654445 ordinary
@@ -670,11 +670,38 @@ operations/s and maximum observed RSS is 465.16 MiB. Relative to the
 identical-input raw-action control, the semantic hierarchy adds 190 ms median
 time (19.6%) and 1.14% maximum RSS.
 
-The same build completes six latest-A2 fixed-input runs. The 20,866-operation
-profile takes 0.79 s median and the 494,862,929-token profile takes 0.81 s,
-with at most 307.32 MiB observed RSS. This measures parsing, mark replay,
-folding, and serialization only; automatic annotation, capture, and source
-adaptation remain outside RQ4 timing.
+The same build's Step 0071 lean-stack replay takes 0.79 s for the
+20,866-operation profile and 0.81 s for the 494,862,929-token profile, with at
+most 307.32 MiB observed RSS. Step 0075 supersedes that fixed-input-only
+accounting for the current source-preserving default and separately measures
+the complete deterministic A2 path on the same 405 sessions:
+
+- fixed normalized operations plus released raw archives to 12 source-packet
+  batches: `500.07/505.64/501.64` s, median `501.64` s;
+- annotation assembly, root-prefix repair, validation, and name
+  canonicalization: `3.56/3.51/3.54` s, median `3.54` s;
+- current source-preserving fixed-mark operation and token replays: median
+  `1.17/1.17` s, with exact masses of 20,866 operations and 494,862,929
+  tokens.
+
+All three source-packet populations and deterministic A2 outputs are
+byte-identical; every one of 12 full profiles loads in stock pprof and is
+byte-identical within method. Coarse action takes 0.10 s median and
+reference-corpus recurrence 0.49 s as lower-cost controls; their matched
+structure scores are `.473242/.267524` and `.662740/.265571` B-cubed/boundary
+F1, versus adopted A2 `.704113/.393916`.
+
+The two disjoint historical automatic-Agent waves span 543.17 and 2,718.72
+seconds from packet-manifest mtime to final annotation-batch mtime, 54.36
+minutes total. This is mutable artifact chronology that mixes unknown
+inference, orchestration, idle time, and file writing. It is neither model
+time nor a lower bound and is not added to the fresh component timers. A2
+model/provider inference time and token usage remain unavailable. Complete
+plans, three-round plan review, preflight, full data, and independent
+recomputation are under
+[`step-0075`](tmp/build-and-evaluate/step-0075-20260723T214459-0700/experiment-001/),
+with raw artifacts under
+`.agentsight/experiments/rq4-end-to-end-cost-v1/`.
 
 R160 is reused only as bounded cache-mechanism evidence. Its one predecessor
 AgentFlame fixed-input pair took 1.64 s clean with 60 LLM calls and 0.11 s
@@ -682,7 +709,7 @@ cached with 76/76 hits and zero calls, a 14.91x observed ratio. It is not
 current-binary cache timing or a repeated estimate. Full Step 0005 plans,
 reviews, preflight, results, and independent recomputation are under
 [`loop-001-rq4-cost-scaling`](tmp/build-and-evaluate/step-0005-20260714T022913-0700/01-experiment-gate/loop-001-rq4-cost-scaling/),
-with the superseding machine-readable results under
+with the earlier machine-readable results under
 `.agentsight/experiments/rq4-cost-scaling-v2-current/` and
 `.agentsight/experiments/a2-canonical-v1/cost/`.
 
