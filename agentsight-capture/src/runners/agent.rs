@@ -8,6 +8,7 @@ use futures::stream::select_all;
 
 /// AgentRunner composes multiple runners into a single unified stream
 /// with optional global analyzers applied to the merged stream
+#[derive(Default)]
 pub struct AgentRunner {
     runners: Vec<Box<dyn Runner>>,
     analyzers: Vec<Box<dyn Analyzer>>,
@@ -16,10 +17,7 @@ pub struct AgentRunner {
 impl AgentRunner {
     /// Create a new AgentRunner
     pub fn new() -> Self {
-        Self {
-            runners: Vec::new(),
-            analyzers: Vec::new(),
-        }
+        Self::default()
     }
 
     /// Add a pre-configured runner with its analyzer chain

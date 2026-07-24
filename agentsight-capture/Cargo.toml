@@ -1,0 +1,53 @@
+[package]
+name = "agentsight-capture"
+version = "0.2.65"
+edition = "2024"
+rust-version = "1.87"
+description = "Reusable capture and analysis pipeline for AgentSight."
+license = "MIT"
+repository = "https://github.com/eunomia-bpf/agentsight"
+homepage = "https://github.com/eunomia-bpf/agentsight"
+readme = "README.md"
+keywords = ["ebpf", "ai-agent", "observability", "tracing", "linux"]
+categories = ["development-tools::debugging", "os::linux-apis"]
+build = "build.rs"
+include = [
+    "Cargo.toml",
+    "README.md",
+    "build.rs",
+    "src/**",
+    "tests/**",
+    "vendor/bpf/process",
+    "vendor/bpf/sslsniff",
+    "vendor/bpf/stdiocap",
+]
+
+[features]
+test-support = []
+
+[dependencies]
+async-stream = "0.3"
+async-trait = "0.1"
+agent-session = { version = "0.4.35", path = "../agent-session" }
+chrono = { version = "0.4", features = ["serde"] }
+futures = "0.3"
+hex = "0.4"
+hpack = "0.3"
+flate2 = "1.0"
+brotli = "7.0"
+zstd = "0.13"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+tempfile = "3.10"
+tokio = { version = "1.0", features = ["full"] }
+uuid = { version = "1.0", features = ["v4"] }
+log = "0.4"
+dirs = "6"
+libc = "0.2"
+sysinfo = { version = "0.36.1", default-features = false, features = ["system"] }
+chunked_transfer = "1.5"
+num_cpus = "1.16"
+rusqlite = { version = "0.32", features = ["bundled"] }
+hyper = { version = "1.0", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"

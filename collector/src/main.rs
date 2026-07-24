@@ -18,9 +18,10 @@ use std::sync::{
 use tokio::signal;
 use tokio::sync::Notify;
 
-mod analyzers;
-mod binary_extractor;
-mod binary_resolver;
+pub(crate) use agentsight_capture::{
+    analyzers, binary_extractor, binary_resolver, event, model, runners, sinks, text,
+};
+
 mod cli_db;
 mod cmd_debug;
 mod cmd_exec;
@@ -29,17 +30,10 @@ mod cmd_perf_live;
 mod cmd_perf_tui;
 mod cmd_trace;
 mod cmd_tui_record;
-mod event;
-mod json;
-mod model;
 mod output;
-mod runners;
 mod server;
-mod sinks;
 mod sources;
 mod state;
-mod text;
-mod time;
 mod view;
 
 use analyzers::{print_global_http_filter_metrics, print_global_ssl_filter_metrics};

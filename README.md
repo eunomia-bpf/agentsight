@@ -84,6 +84,14 @@ AgentSight captures critical interactions that application-level tools miss:
 
 For source builds, see [docs/build.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/build.md).
 
+### Rust Library
+
+Rust applications can depend on
+[`agentsight-capture`](https://crates.io/crates/agentsight-capture) to reuse the
+same eBPF runners, agent-native sources, analyzers, event model, materialized
+view, and sinks as the `agentsight` binary. The CLI is published separately as
+the `agentsight` package and is the library's primary consumer.
+
 ### Installation
 
 #### Cargo or Release Binary

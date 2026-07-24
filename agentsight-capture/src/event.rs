@@ -16,7 +16,7 @@ pub struct Event {
 
 impl Event {
     /// Create a new event with current timestamp
-    #[cfg(test)]
+    #[cfg(any(test, feature = "test-support"))]
     pub fn new(source: String, pid: u32, comm: String, data: serde_json::Value) -> Self {
         Self {
             timestamp: std::time::SystemTime::now()

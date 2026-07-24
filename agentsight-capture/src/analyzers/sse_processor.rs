@@ -20,6 +20,12 @@ pub struct SSEProcessor {
     max_buffers: usize,
 }
 
+impl Default for SSEProcessor {
+    fn default() -> Self {
+        Self::new_with_timeout(30_000)
+    }
+}
+
 struct SSEAccumulator {
     message_id: Option<String>,
     accumulated_text: String,
@@ -54,7 +60,7 @@ pub struct SSEEvent {
 impl SSEProcessor {
     #[cfg(test)]
     pub fn new() -> Self {
-        Self::new_with_timeout(30_000)
+        Self::default()
     }
 
     pub fn new_with_timeout(timeout_ms: u64) -> Self {

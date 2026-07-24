@@ -74,6 +74,14 @@ AgentSight 能捕获应用级工具遗漏的关键交互：
 
 从源码构建时还需要 Rust 1.88.0+、Node.js 18+、clang、llvm 和 libelf-dev。
 
+### Rust 库
+
+Rust 应用可以依赖
+[`agentsight-capture`](https://crates.io/crates/agentsight-capture)，复用与
+`agentsight` 二进制相同的 eBPF runner、Agent 原生数据源、分析器、事件模型、
+物化视图和 sink。CLI 仍作为独立的 `agentsight` package 发布，并且是该库的
+主要使用者。
+
 ### 安装
 
 #### Cargo 或 Release Binary
