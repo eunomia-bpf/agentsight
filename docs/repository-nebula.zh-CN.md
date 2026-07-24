@@ -140,7 +140,10 @@ RepositoryTrace = {
 }
 
 RepositoryEvent = {
-  id, ts_ms, session_id, vendor,
+  id, ts_ms,
+  source_stream_id,    # 当前原生日志/parent/subagent stream
+  native_session_id,   # 共享上下文根；parent/subagent 委派保持一致
+  vendor,
   tool?, category?, command_name?, status?,
   start_ms?, end_ms?, skill_scope?,
   actions: [FileAction]
@@ -154,6 +157,10 @@ Evidence = {
   source: native_tool | system_observation | command_derivation,
   count?, first_ms?, last_ms?
 }
+
+source_stream_id 与 native_session_id 不得复用成一个 session_id。
+事件全序以 (ts_ms, source_stream_id, id) 作稳定 tie-break；
+短期余辉只在 native_session_id 改变时重置。
 
 Claude/Codex/Gemini sessions
             │
@@ -239,7 +246,8 @@ first-observed 节点，只有命令文本推测而没有明确路径证据的 r
 
 ## 时间与帧
 
-动作按 `(ts_ms, session-id, event ordinal)` 排序。同一 Tool 事件中的多个
+动作按 `(ts_ms, source_stream_id, event id/ordinal)` 作稳定全序；
+`native_session_id` 只决定短期余辉和 session tick 的边界。同一 Tool 事件中的多个
 文件动作属于同一个动作步。每个 Agent action 产生一个布局快照；没有仓库文件动作的
 action 也保留一个状态不变的快照，使 HTML 进度条与 session 操作一一对应。HTML 不合并、
 不抽帧、不设置快照总数上限；GIF/MP4 只按显式 `--compact-rate` 选择均匀 action 帧，
@@ -431,7 +439,14 @@ A_ab = 1 - exp(-S_ab)
 
 ### 实证结果驱动的重设计判定
 
-当前不需要推翻星域、目录色系和动态力场。六案例的 path-resolved 轨迹中，相邻动作
+当前不需要推翻星域、目录色系和动态力场，但不得假设现有 path projection 已经通过
+源数据一致性校验。独立的 120 问题 measurement experiment 中，trajectory 对 60 个
+artifact-linked/cross-session 事实只答对 32 个，另有 28 个错误；因此先修正 direct
+effect、shell/scope inference、artifact identity 和 native-root session join，再实现
+新的动作余辉。较弱推导可以继续服务回放，但不能与直接结构化 file effect 混成论文
+测量。
+
+六案例的 path-resolved 轨迹中，相邻动作
 留在同一 artifact、同一 module 或跨 module 的比例明显不同；在五个满足 gate 的案例中，
 两次 module 访问之间严格介入的 call 中位数为 2--4。这支持“空间 focus + 短期余辉 +
 长期结构”的基本表示。但需要
@@ -594,17 +609,22 @@ Archambault、Purchase 和 Pinaud 的实验发现 small multiples 总体更快�
 - [本地论文：Animation, Small Multiples, and the Effect of Mental Map Preservation in Dynamic Graphs](reference/2011-archambault-animation-small-multiples.pdf)
 - [本地综述：The State of the Art in Visualizing Dynamic Graphs](reference/2014-beck-visualizing-dynamic-graphs.pdf)
 
-### 可检验问题
+### 未来独立的 HCI/可视化研究问题（不属于当前论文）
+
+下面三项只有在另立 human-subject/HCI 研究合同后才运行，不能作为当前无人工标注、
+automatic-consumer 实证研究的验收标准：
 
 1. 相比静态最终图和普通 Tool 时间轴，空间轨迹是否让用户更快、更准确地识别主要模块、
    热点迁移、反复探索和遗忘后重访？
 2. `k_shape/k_center` 的什么取值能在跨帧追踪、目录纯度、节点重叠和真实结构变化之间
    取得较好的任务相关平衡？
-3. 文档回读率、test-only churn、验证滞后和 recovery cost 能否准确定位人工确认的
-   skill/harness 低效区间，而不是只反映任务类型？
+3. 用户能否从图中定位到 source ID，并在原始证据中复核 read/write/session 顺序，而
+   不是只获得“看起来懂了”的主观感受？
 
 验证应按仓库、任务和 Agent 分组，避免路径与 workload 泄漏。若图只能提高主观的
-“看起来懂了”，却不能提高问题回答准确率或原始证据定位速度，则设计主张不成立。
+“看起来懂了”，却不能提高问题回答准确率或原始证据定位速度，则未来的 HCI 设计主张
+不成立。当前论文只要求 source-conformance、自动事实恢复和证据链接；它不运行或引用
+上述人工实验。
 
 ## 参考资料
 

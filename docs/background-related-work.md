@@ -57,7 +57,7 @@ reports but no longer define the current frontier.
 | Deterministic procedure queries outperform LLM trace reading. | ProcGrep | High | Reject blanket claim; run a fact-class comparison. |
 | Git/PR metadata omits native Agent process. | AIDev and Agentic-PR studies | Low novelty and low centrality | Use only as an observability contrast. |
 | Days-long activity should be measured through artifact durability, reuse, validation association, rework, and re-grounding across native session resets. | TRAJEVAL, AgingBench, Plans Don't Persist | Medium | Retain as central empirical question; test in complete persistent-project lineages. |
-| Stable artifact identity and cross-session lineage add source-verifiable fact coverage beyond standard action-only procedures. | ProcGrep, OCEL/OCPM | Medium | Retain as narrow RQ7; compare with official ProcGrep and include facts it should answer. |
+| Stable artifact identity and cross-session lineage add source-verifiable fact coverage beyond standard action-only procedures. | ProcGrep, OCEL/OCPM | Medium | Current implementation claim rejected: 32/60 B+C facts correct and 28 wrong. Retain only as a redesign hypothesis pending source-conformance. |
 | Skill/harness use causes progress or waste. | HarnessFix and harness-optimization work | High without control | Do not claim causality from local cases; report temporal association only. |
 | Explicit named Skill/instruction mechanisms have recurring workspace footprints across natural contexts. | ProcGrep; HarnessFix | Medium | Only one selected project supports a two-Skill qualified exact-context comparison; same/different JSD is 0.116/0.123 and the exact root-block randomization does not support separation (p=0.750). Retain source-attributed coverage and a negative repeatability result, not a fingerprint claim. |
 | Six author-associated repositories estimate population behavior. | Persistent-research case study; public benchmark corpora | Very high | Reject. Treat local projects as natural longitudinal cases and use public task traces only to check within-session relation directions and coverage. |
@@ -87,7 +87,7 @@ reports but no longer define the current frontier.
 | Aggregate Counts | Same admitted actions, paths removed after counting | Action/category/session totals | Lower-information control for the belief that activity telemetry is sufficient. |
 | ProcGrep | `hamidahoderinwale/procgrep@2e8277003d...` | Official standard action representation from supported native logs | Strongest runnable action-only baseline; should tie or win action-only facts. Report any adapter boundary rather than substitute a homemade n-gram. |
 | Bounded Raw-log LLM | Frozen model, source membership, retrieval/context/output budgets | Same native records without artifact-linked convenience | Requested comparison of on-demand reconstruction; not truth. Must cite sources or abstain. |
-| Artifact-linked trajectory | Current `agent-session` plus thin repository projection | Same source universe plus deterministic identity/effect/session relations | Proposed measurement. May claim only incremental fact coverage at comparable accuracy and reported cost. |
+| Artifact-linked trajectory | Current `agent-session` plus thin repository projection | Same source universe plus deterministic identity/effect/session relations | Method under test. Current projection fails the source-direct correctness check; no incremental capability claim. |
 
 ## Experimental Precedents And External Assets
 
@@ -122,13 +122,15 @@ workload rather than part of the current observational corpus.
 
 ## Venue Evaluation Patterns
 
-AAAI is plausible if the paper contributes consequential empirical knowledge
-about long-horizon Agent behavior and a validated measurement capability, not
-only a polished visualization. A competitive full paper needs a source-audited
-corpus, strong process baselines, uncertainty/confound analysis, and external
-validation beyond six author-associated local cases. AAAI Demo is a secondary
-route for the standalone Agent Nebula artifact but cannot substitute for the
-empirical and measurement evidence.
+AAAI remains plausible only if the paper contributes consequential empirical
+knowledge about long-horizon Agent behavior and source-valid measurements, not
+only a polished visualization. The current projection-capability result is
+negative, so it cannot serve as the required validated-method contribution.
+A competitive full paper needs a source-conformance repair/audit, strong
+process baselines, uncertainty/confound analysis, and external validation
+beyond six author-associated local cases. AAAI Demo is a secondary route for
+the standalone Agent Nebula artifact but cannot substitute for empirical and
+measurement evidence.
 
 ## Must-Read List
 
@@ -151,9 +153,11 @@ empirical and measurement evidence.
   claim is too obvious. Study artifact consolidation/revival,
   validation-aligned change, hotspot turnover, observable session
   re-grounding, and exact Skill/instruction footprints as separate dimensions.
-- **Surviving tool position:** stable artifact identity and session lineage may
-  add source-verifiable fact coverage beyond ProcGrep's action-only spine; it is
-  not a new general event or procedure language.
+- **Tool result:** stable artifact identity and session lineage create
+  additional answerable fields in the current implementation, but 28/60 B+C
+  answers are wrong under an independent source-direct oracle. The capability
+  claim is rejected until direct effects, shell/scope inference, identity, and
+  native-root joins pass conformance.
 - **Required scope discipline:** local cases support deep descriptive findings,
   not population rates or skill/harness causality. Broad AAAI claims require an
   independent public or prospective corpus.
@@ -163,7 +167,6 @@ empirical and measurement evidence.
   three-root gate, but only one project supports the qualified two-Skill
   comparison. Its small same/different contrast is within-case only and removes
   any cross-project recurrence novelty.
-- **Next action:** run the public-corpus relation-level boundary check and
-  recompute cross-session continuity with corrected native root/subagent
-  identity. The unfinished method-capability comparison is not the active
-  empirical gate.
+- **Next action:** audit source/projection disagreement before using local
+  trajectory rows as source truth. RQ5's independent native checker and RQ6's
+  independent public reconstruction remain the strongest current evidence.

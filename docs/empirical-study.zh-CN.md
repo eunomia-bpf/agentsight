@@ -11,7 +11,7 @@
 ## 研究贡献与案例发现分开
 
 1. **实证贡献。** 在六个真实、持续演化的本地项目中，描述 artifact 如何保留、复用和复活，validation 如何响应 mutation，热点如何形成和迁移，source-session component 之间可以观察到什么连续性，以及 source-explicit skill/instruction 如何对应到 workspace 足迹。
-2. **测量贡献。** 检验带有稳定 artifact identity、生命周期、层级、事件时间和 session lineage 的 workspace-centered action trajectory，能否表达 Final Diff、简单事件计数和 action-only procedure 无法编码的源可校验过程事实。
+2. **测量贡献候选。** 检验带有稳定 artifact identity、生命周期、层级、事件时间和 session lineage 的 workspace-centered action trajectory，能否正确表达 Final Diff、简单事件计数和 action-only procedure 无法编码的源可校验过程事实。当前实现未通过独立源数据一致性检验，因此这仍是被否定的实现假设，不是已经成立的论文贡献。
 3. **工具产物。** `agent-session` 负责跨 Agent 的原始抽象；Agent Nebula 和研究查询只做薄投影。单图 HTML/PNG/SVG/GIF/MP4 是同一事实的可检查和可分享输出，不是独立科学 claim。
 
 案例研究产生的是发现，不自动成为方法贡献。轨迹重建是 by design 的构造性质；只有来源覆盖、事实恢复准确性、额外事实覆盖和计算成本才是可检验的工具主张。
@@ -65,7 +65,11 @@ Agent 是先探索、先修改还是先验证；成功和失败 validation 前�
 
 ### 单独的工具能力问题（不混入案例 RQ）
 
-workspace-centered trajectory 是否比 Final workspace、Counts、ProcGrep 或 bounded Raw-log reader 多恢复 source-verifiable artifact-linked/cross-session 事实，是后续 measurement-capability 实验。它不定义本轮案例发现，也不需要为了完成描述性 RQ 而强行运行。
+workspace-centered trajectory 是否比 Final workspace、Counts、ProcGrep 或 bounded Raw-log reader 多恢复 source-verifiable artifact-linked/cross-session 事实，是单独的 measurement-capability 实验。它不定义案例发现，也不能把自身输出当作真值。
+
+当前结果是负面的实现校验：对 72 份冻结 native session、六个项目和 120 个独立源数据问题，四个确定性条件完成了 480 行比较。Trajectory 与 ProcGrep 的 30 个 action-only 答案完全一致，但只与实验中不同的 source-direct action grammar 一致 18 个；更关键的是，Trajectory 对 60 个 artifact-linked/cross-session 问题全部作答，却有 28 个答案错误。因此“增加可回答事实”不能转化为 capability claim。Raw-log model 因边界契约与 evidence 中原始绝对路径冲突，在有 11 次本地读取后停止，记为 N/A，不能形成 LLM 正确率、成本或优越性结论。
+
+这项结果要求把当前本地案例数字理解为“在已声明投影规则下得到的测量”，而不是未经校验的 source truth。后续先区分 structured direct effect、较弱的 shell/scope inference、artifact identity 和 native-root session join，再决定是否重跑工具能力比较。RQ5 有独立的 2,063-stream checker，RQ6 使用独立公开数据重建；它们不依赖本次 B/C 关系表的正确性。RQ1、RQ3、RQ4 以及 RQ2 的 mutation-linkage 部分需要额外 source-level error taxonomy。
 
 ## 指标：不用一个任意总分吞掉结构
 
@@ -118,7 +122,7 @@ workspace-centered trajectory 是否比 Final workspace、Counts、ProcGrep 或 
 - **cross-session：** 新 session 是否回到上一 session 热点、首次 mutation 前重新读取了哪些既有 artifact。
 - **final-state：** 哪些 artifact 最终存在；Final Diff 应当足够。
 
-上述是后续 capability comparison 的条件设计。真值必须由与被测输出独立的 native record、workspace state 和 Git/source snapshot 校验程序生成；工具输出必须给出 source ID，没有足够源证据时正确行为是 abstain。当前冻结 corpus 缺少 immutable native prefixes 和 cutoff worktree/untracked state，因此 F10 只审计 readiness，不生成事实问题或方法分数。
+上述 capability comparison 已完成确定性部分。真值由与被测输出独立的 native record、workspace state 和 Git/source snapshot 校验程序生成；工具输出必须给出 source ID，没有足够源证据时正确行为是 abstain。Step 0004 冻结 72 份 native session 和 cutoff state，独立重建 1,721 条 edge 与 120 个答案，并执行 480 行确定性矩阵。Trajectory 的 B+C 为 32/60 正确、28/60 错误，因此当前 capability claim 被否定。Raw branch 在有真实本地检索的 preflight 中因边界契约停止，记为 N/A；840 行 integrated comparison 未完成，不比较 Raw 或确定性方法成本。
 
 ## 分析与报告规则
 
@@ -134,7 +138,7 @@ workspace-centered trajectory 是否比 Final workspace、Counts、ProcGrep 或 
 - 每项目一个 source-coverage JSON/CSV 和一个过程指标 JSON/CSV；
 - 跨项目 RQ1–RQ5 汇总表、source checker 与可复算脚本；
 - RQ6 的分 corpus external-relation coverage/N/A 表，不把异质数据合并成总体；
-- 单独工具实验的 source-contract、method/template readiness 表；后续合同齐备后再生成分层事实集、方法输出和成本表；
+- 单独工具实验的 120 个分层事实、480 行确定性方法输出、source-conformance 结果和 Raw N/A 记录；不把共享 loop timing 当方法成本；
 - RQ1 的 artifact survival、reuse、revival 和 mutation-concentration 图；
 - RQ2 的 mutation/validation response 图；
 - RQ3 的 artifact/module focus 分配、迁移和 return 图；
@@ -157,11 +161,11 @@ workspace-centered trajectory 是否比 Final workspace、Counts、ProcGrep 或 
 | F7 RQ4 component continuity | 展示相邻不重叠 component 的 first mutation、prefix composition、artifact/module overlap 和 coverage | Python component-boundary 图；重叠 session 不被强行串行化 | 真实数据已独立复算通过；gate 失败，停在 coverage/within-case |
 | F8a/F8b RQ3 focus allocation/migration | 展示 artifact 类型分配、module activity、source-path transition 和 return gap | Python stacked bars + action-order heatmap；不使用力布局坐标作统计 | 真实数据已独立复算通过；低支持 return 显示 N/A |
 | F9a/F9b RQ5 Skill/instruction footprints | 展示 native root-session source coverage、合格 Skill 足迹距离、instruction focal event 和 immediate next action | Python root-block bars/有限点集 + 分项目归一化 focal-event heatmap；不构造 exposure 或因果标签 | 新鲜六项目投影和 2,063 个 native stream 复核通过；唯一合格双 Skill 比较不支持可重复分离（精确 p=0.750） |
-| F10 工具 matched-comparison readiness | 审计 Final State、Counts、ProcGrep、Raw-log reader 和 artifact trajectory 是否具备公平比较所需的同源证据合同 | Python source-contract/method/template readiness 矩阵；N/A 不编码为零性能 | 旧 freeze 的 readiness audit 已完成；不属于六个案例 RQ |
+| F10 工具 source-conformance | 对比 Final State、Counts、ProcGrep 和 artifact trajectory 在 action/artifact/cross-session/final-state 四类源可校验事实上的 correct/wrong/abstain；Raw 单列 N/A | Python 120-question common-denominator stacked bars；不绘制不可比较的 cost | 480 行确定性矩阵完成；Trajectory B+C 32 正确/28 错误，capability claim 否定；Raw preflight 后 N/A |
 | F11 RQ6 external boundary | 显示 local path-target transition/module return 在 public coding/scientific trace 上的 recurrence、幅度差异和 N/A 边界 | 分 corpus 的 transition/return 图与 evidence-boundary matrix；不池化异质总体 | 五个 strata 各 64 个独立单位已运行（Open-SWE 共 256 条选择、跨 strata 255 个唯一任务 ID）；独立 checker 对 31,249 个 Tool call 和 22,113 个 transition 零差异复算通过 |
 
 正文只保留支持主要 claim 的图；精确数值和完整项目表放附录/结果文件，避免同一数据同时以冗余表格和图重复。
 
 ## 当前证据状态
 
-本地 RQ1–RQ5 分别由确定性脚本和 source ID 支持。RQ1 的 reuse 与 repeated-mutation structure 覆盖六案例，confirmed-create persistence 仍只有 3/6；RQ2 因 recognized successful validation 只有 3/6 而停止跨案例估计；RQ3 的 allocation/transition 覆盖六案例但一个 return-gap case 为低支持 N/A；RQ4 的 boundary estimator 未满足四项目 gate；RQ5 已修复旧导出器假阴性，67 次显式 Skill 调用和 1,675 条原生归因被保留；独立检查器对投影纳入的 2,063 个 source stream 逐一复核，共核对 7,304 条 Skill/instruction 信号和 205,836 个相邻 Tool 边界，差异为零。任意脚本或未展开 shell glob 的 instruction 访问不宣称完整；主要 instruction 图只使用 2,822 条独立重算的高置信直接/简单 shell 访问。五个 exact project/vendor/model/source-role/Skill strata 满足三 root gate，但只有 agentskill-observability-paper 的 root role 同时具备两种合格 Skill；same/different JSD 中位数为 0.116/0.123（9/10 对），root-block 随机化的差值为 -0.007，在 12 个可容许赋值（4 个不同统计值）上的单侧精确 p=0.750，因此结果是不支持稳定或可重复的 Skill fingerprint，而不是“弱指纹”。RQ6 在四个 Open-SWE strata 各取 64 个独立 task instance（256 条分层选择，跨 strata 为 255 个唯一 task ID），并取 64 个独立 IdeaTrail topic；所有 strata 均有 64 个可解析 path/transition 单位，独立 checker 对 320 行、31,249 个 Tool call 和 22,113 个 transition 零差异复算通过。五层的跨模块比例为 18.0%–30.0%，本地 path-compatible anchor 为 2.1%–20.2%；公开轨迹在 module return 前严格位于两次访问之间的调用数中位数为 2–3，本地合格案例为 2–4。因此外部证据支持“Agent 行动形成局部且会返回的有序路径轨迹”，但不支持把本地幅度当总体发生率，也不能回答 persistent artifact lineage、跨 session re-grounding 或 Skill attribution。工具 capability comparison 与上述案例 RQ 分离，现有 readiness/corpus 产物不构成 baseline 优越性证据。
+本地 RQ1–RQ5 分别由确定性脚本和 source ID 支持。RQ1 的 reuse 与 repeated-mutation structure 覆盖六案例，confirmed-create persistence 仍只有 3/6；RQ2 因 recognized successful validation 只有 3/6 而停止跨案例估计；RQ3 的 allocation/transition 覆盖六案例但一个 return-gap case 为低支持 N/A；RQ4 的 boundary estimator 未满足四项目 gate；RQ5 已修复旧导出器假阴性，67 次显式 Skill 调用和 1,675 条原生归因被保留；独立检查器对投影纳入的 2,063 个 source stream 逐一复核，共核对 7,304 条 Skill/instruction 信号和 205,836 个相邻 Tool 边界，差异为零。任意脚本或未展开 shell glob 的 instruction 访问不宣称完整；主要 instruction 图只使用 2,822 条独立重算的高置信直接/简单 shell 访问。五个 exact project/vendor/model/source-role/Skill strata 满足三 root gate，但只有 agentskill-observability-paper 的 root role 同时具备两种合格 Skill；same/different JSD 中位数为 0.116/0.123（9/10 对），root-block 随机化的差值为 -0.007，在 12 个可容许赋值（4 个不同统计值）上的单侧精确 p=0.750，因此结果是不支持稳定或可重复的 Skill fingerprint，而不是“弱指纹”。RQ6 在四个 Open-SWE strata 各取 64 个独立 task instance（256 条分层选择，跨 strata 为 255 个唯一 task ID），并取 64 个独立 IdeaTrail topic；所有 strata 均有 64 个可解析 path/transition 单位，独立 checker 对 320 行、31,249 个 Tool call 和 22,113 个 transition 零差异复算通过。五层的跨模块比例为 18.0%–30.0%，本地 path-compatible anchor 为 2.1%–20.2%；公开轨迹在 module return 前严格位于两次访问之间的调用数中位数为 2–3，本地合格案例为 2–4。因此外部证据支持“Agent 行动形成局部且会返回的有序路径轨迹”，但不支持把本地幅度当总体发生率，也不能回答 persistent artifact lineage、跨 session re-grounding 或 Skill attribution。工具 capability comparison 与上述案例 RQ 分离。确定性矩阵已经完成并否定当前实现的 exact-fact capability；Raw 因 preflight 边界停止为 N/A，没有 LLM、成本或 baseline 优越性结论。该结果要求先对 RQ1–RQ4 共用的本地投影做 source/projection error taxonomy；RQ5 的独立 native checker 与 RQ6 的独立公开数据重建受影响较小。

@@ -2,14 +2,15 @@
 
 ## 结论
 
-需要局部重新设计，但不应推翻星点、目录色系和动态力场。
+视觉上只需要局部重新设计，不应推翻星点、目录色系和动态力场；实现顺序上必须先修正并校验数据投影，再增加动作余辉。
 
 - **保留空间层：** 文件是星点；目录由稳定色系和不可见簇力表达；文件位置随路径结构、
   目录整体、重要性、斥力、碰撞和 temporal stability 动态变化。
 - **重做动作轨迹层：** 当前动作、最近动作次序和 native root-session 边界必须比长期
   importance 更容易看见。
-- **不改测量层：** transition、return gap、artifact fate 和 session continuity 继续从
-  action/path/lineage rows 计算；任何力布局坐标都不是科研统计量。
+- **先校验测量输入：** transition、return gap、artifact fate 和 session continuity
+  只能从通过 source-level conformance 的 action/path/lineage rows 计算；任何力布局
+  坐标都不是科研统计量。
 
 这不是“换一种更炫的图”，而是修复视觉主语：Agent Nebula 的主语应当是 Agent 如何
 沿 workspace 移动并改变 artifact，背景星域只是它作用的空间。
@@ -43,6 +44,25 @@ strata 为 255 个唯一任务 ID）和 64 个 IdeaTrail topic；跨 module 比�
    session 才应重置短期轨迹。
 
 这两个问题可以在不改力场、不增加节点类型和不引入永久边的情况下修复。
+
+### 4. 2026-07-23 的源数据校验改变了实现优先级
+
+独立 source-direct checker 在同一批 72 份冻结 native session 上重建了 1,721 条
+artifact edge。当前 trajectory 在 60 个 artifact-linked/cross-session 问题上得到
+32 个正确答案和 28 个错误答案；六个项目的正确率差异也很大。这个结果没有否定星点、
+目录色和动态聚类的视觉语法，但否定了“现有投影已经足够忠实，可以直接作为科研测量”
+这一实现假设。
+
+因此重新设计分成严格的先后关系：
+
+1. 先区分 native Tool 参数直接证明的 file effect 与 Bash/path scope 推导出的弱 effect；
+2. 校验 worktree-relative path、rename/delete/create identity 和 native-root session join；
+3. 只有通过校验的 effect 才进入论文 estimand，较弱 effect 可以进入回放，但必须在
+   动态图例和导出元数据中标明 evidence strength；
+4. 数据契约通过后，再实现本页的最近焦点余辉和 session tick。
+
+这不是把 Agent Nebula 改成另一种图，而是防止它把错误的 artifact 关系可视化得更有
+说服力。
 
 ## 最小重新设计
 
@@ -104,6 +124,7 @@ H_trail = H_attention
 ## 科研位置
 
 该改动首先是观测仪器的可读性修复，不单独构成“算法优越”的论文 claim。论文中的
-过程关系由确定性 action/path/lineage estimand 支持；Agent Nebula 用来回放、导航和
-形成可核对案例。若未来要声称布局本身更好，必须另做跨帧追踪、目录纯度、节点重叠和
-空间记忆评测，不能用当前实证结果替布局背书。
+过程关系必须由独立源数据校验后的 action/path/lineage estimand 支持；Agent Nebula
+用来回放、导航和形成可核对案例。现阶段不应重做视觉骨架，也不应继续添加语义层；
+优先级是 projection conformance。若未来要声称布局本身更好，必须另做跨帧追踪、目录
+纯度、节点重叠和空间记忆评测，不能用当前实证结果替布局背书。

@@ -1,0 +1,43 @@
+{
+  "attempts": [
+    {
+      "model": "gpt-5.6-sol",
+      "status": "invalid_transport",
+      "terminal_status": "exit_1",
+      "reason": "isolated /etc/resolv.conf target was not mounted",
+      "scoreable_answers": 0
+    },
+    {
+      "model": "gpt-5.6-sol",
+      "status": "invalid_monitor",
+      "terminal_status": "boundary_violation:outside_absolute_path://",
+      "reason": "jq // was misclassified as an absolute path",
+      "tool_calls": 2,
+      "tool_result_bytes": 9572,
+      "wall_seconds": 27.77044741201098,
+      "scoreable_answers": 0
+    },
+    {
+      "model": "gpt-5.6-sol",
+      "status": "unavailable",
+      "terminal_status": "timeout",
+      "tool_calls": 0,
+      "tool_result_bytes": 0,
+      "wall_seconds": 900.0076828859892,
+      "scoreable_answers": 0,
+      "private_artifact": "private/preflight-attempts/sol-timeout"
+    },
+    {
+      "model": "gpt-5.6-terra",
+      "status": "unavailable",
+      "terminal_status": "boundary_violation:outside_absolute_path:/home/yunwei37/workspace/agentskill-observability-paper/docs/paper/paper.tex",
+      "reason": "the registered command monitor stopped an original absolute path appearing inside the isolated evidence; no further attempt was permitted",
+      "tool_calls": 11,
+      "tool_result_bytes": 117184,
+      "wall_seconds": 99.74312054199982,
+      "scoreable_answers": 0,
+      "private_artifact": "private/preflight-attempts/terra-boundary-stop"
+    }
+  ],
+  "scoring_disposition": "Raw reader is N/A; no attempt is scored as wrong or abstain."
+}

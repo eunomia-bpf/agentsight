@@ -24,7 +24,7 @@ truth remain excluded. The full Chinese study contract is
 | RQ4 cross-session continuity | Native-root/source-stream structure, adjacent non-overlapping components, pre-mutation re-grounding and prior artifact/module overlap. | F7 is coverage/within-case evidence; the four-project estimator gate stopped. | Recompute with corrected native root/subagent identity before estimating continuity. |
 | RQ5 Skill/instruction footprints | Exact Skill name/arguments and source attribution blocked by native root session; separate instruction focal events. | Fresh six-case run and independent 2,063-stream checker pass. Five exact-context Skill strata qualify, but only one project supports a two-Skill comparison: same/different JSD 0.116/0.123, exact root-block p=0.750 over 12 admissible assignments. | Report source-attributed coverage and no supported repeatable Skill separation; make no fingerprint or causal harness claim. |
 | RQ6 external boundary | Replicate compatible within-attempt relations separately in public coding and scientific-process traces; mark persistence/re-grounding N/A without persistent lineage. | Complete over 64 independent task instances per Open-SWE stratum (256 selections, 255 unique IDs across strata) and 64 IdeaTrail topics. All five strata pass the 64-unit gate and the independent checker reconciles 31,249 Tool calls and 22,113 transitions without mismatch. Cross-module movement is 18.0--30.0% publicly versus 2.1--20.2% locally; median intervening calls before module return are 2--3 versus 2--4. | Report path locality/return recurrence and the magnitude difference; keep persistent lineage, cross-session re-grounding, and Skill attribution N/A. |
-| Separate measurement capability | Compare source-verifiable factual coverage, abstention and cost for Final State, Counts, ProcGrep, bounded Raw-log reader and artifact-linked trajectories. | Open. Step 0003 froze 72 complete sessions and a 120-question oracle, but the Raw child never started. | Resume only as a separate tool experiment; it is not required to close the descriptive RQs. |
+| Separate measurement capability | Compare source-verifiable factual coverage and abstention for Final State, Counts, ProcGrep, bounded Raw-log reader and artifact-linked trajectories. | Narrow negative/mixed result. A corrected source-direct oracle and 480-row deterministic matrix show that the current trajectory answers 32/60 B+C facts correctly and 28 incorrectly. Raw is N/A after a retrieval-engaged preflight boundary stop. | Remove the current capability claim; audit direct effects, shell/scope inference, artifact identity and native-root joins before rerunning. |
 
 ## RQ1 selected experiment
 
@@ -102,7 +102,7 @@ are reported as such.
 - Confidence intervals or bootstrap use session/project blocks only where the
   exchangeability assumption is defensible.
 
-## RQ7 baseline contract and current stop
+## Separate measurement-capability result
 
 | Method | Competing position | Matched-run role |
 |---|---|---|
@@ -117,25 +117,51 @@ from native records and workspace/Git state. The method under test cannot define
 its own truth. Correct abstention is scored when the sources do not establish a
 fact.
 
-The existing RQ1 freeze contains normalized event spines and artifact tables,
-but not immutable admitted native prefixes, a per-worktree cutoff revision
-manifest, or an untracked-state disposition. It also has no pinned three-vendor
-ProcGrep preflight or frozen Raw-log LLM retrieval/model budget. Consequently,
-the current F10 is a benchmark-readiness/source-contract audit and explicitly
-states `MATCHED COMPARISON STOPPED`; it reports no accuracy, advantage,
-evidence, latency, token, or cost value. This dependency result cannot close
-the separate capability/superiority question; it does close the paper's
-matched-comparison readiness RQ.
+Step 0004 reuses the same 72 archived native session files and cutoff workspace
+evidence as Step 0003 but rederives all questions after removing false
+redirection/heredoc shell artifacts. A standalone Python checker imports
+neither the primary experiment code nor `agent-session`; it reparses Claude,
+Codex, and Gemini records, reconstructs 1,721 artifact edges, independently
+derives cutoff state from archived index/presence evidence, and reproduces all
+120 answers.
 
-Step 0003 prospectively froze 12 complete session files for each of six
-projects and generated 120 source-witnessed questions, 30 in each of the four
-families. A separate shell/jq checker reproduced every answer. Final State,
-Counts, pinned ProcGrep and the artifact trajectory completed the final
-preflight, but the Raw child resolved relative `--cd` and output paths against
-its own relative cwd and exited before model startup. Because the three allowed
-preflight attempts are exhausted, the corrected absolute-path runner has not
-been executed. These artifacts establish a reusable corpus and an incomplete
-execution path only; they provide no RQ7 accuracy, coverage or cost result.
+The completed deterministic matrix contains 480 rows. Exact outcomes are:
+
+| Method | A action-only | B artifact-linked | C cross-session | D final-state |
+|---|---:|---:|---:|---:|
+| Final State | 0 correct, 30 abstain | 0 correct, 30 abstain | 0 correct, 30 abstain | 30/30 correct |
+| Counts | 7 correct, 11 wrong, 12 abstain | 0 correct, 30 abstain | 0 correct, 30 abstain | 0 correct, 30 abstain |
+| ProcGrep | 18 correct, 12 wrong | 0 correct, 30 abstain | 0 correct, 30 abstain | 0 correct, 30 abstain |
+| Artifact trajectory | 18 correct, 12 wrong | 16 correct, 14 wrong | 16 correct, 14 wrong | 28 correct, 2 abstain |
+
+Trajectory preserves ProcGrep's A answers exactly (30/30 identity), but the
+frozen source-direct action grammar differs from the official adapter grammar;
+the 18/30 agreement is not a failure to preserve
+ProcGrep. The decisive result is B+C: trajectory answers all 60 questions but
+gets 28 wrong. Its extra coverage therefore fails the correctness requirement
+and cannot support the proposed capability claim. Per-project B+C conditional
+accuracy is 1.000, 0.400, 0.700, 0.000, 0.600, and 0.500, so the result is not
+one isolated project defect.
+
+The bounded Raw reader is N/A. The single registered Terra preflight made 11
+local evidence calls and retrieved 117,184 bytes, but the frozen boundary
+monitor stopped it when an original absolute path embedded in the evidence
+appeared in a command. That stop exposes a harness/contract incompatibility,
+not model performance. No Raw accuracy, token, cost, efficiency, or superiority
+claim is made. The all-project deterministic preflight is reused as the final
+480-row deterministic matrix; the planned 840-row integrated comparison is
+incomplete because none of the 360 Raw rows ran. Likewise, deterministic timing
+is not method-specific and is not compared.
+
+This negative result changes the measurement boundary for the local empirical
+study. It does not automatically invalidate RQ1--RQ6, but it prevents treating
+the shared projection as source truth. RQ1, RQ3, and RQ4 need a raw-source error
+taxonomy; RQ2 needs the same audit where mutation linkage matters. RQ5 is better
+protected by its separate 2,063-stream checker, and RQ6 by an independent
+public-data reconstruction. Until the audit separates deliberately broader
+shell/scope evidence from genuine path, identity, and native-root join errors,
+local projection quantities are reported as measurements under the admitted
+projection rather than source-complete facts.
 
 ## Superseded intervention program
 
@@ -162,16 +188,16 @@ historical evidence, not the active evaluation:
 - Active BOOTSTRAP step:
   `docs/tmp/bootstrap/step-0001-20260719T181243-0700/step-report.md`
 - Visualization design: `docs/repository-nebula.zh-CN.md`
-- Current RQ7 plan and incomplete preflight record:
-  `docs/tmp/build-and-evaluate/step-0003-20260722T142124-0700/`
+- Corrected measurement-capability experiment and independent result review:
+  `docs/tmp/build-and-evaluate/step-0004-20260723T181008-0700/experiment-001/`
 - Corrected Skill/instruction footprint run:
   `docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq5-skill-footprints/`
 - RQ6 public external-boundary run:
   `docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq6-external-boundary/full/`
 
-Local RQ1--RQ5 have executable figures with the coverage stops above; the
-corrected RQ5 result now replaces the old exporter-induced source-coverage
-stop. RQ6 now closes the compatible within-attempt external check without
-extending it to longitudinal lineage. F10 closes only the old freeze's
-readiness audit; the separate capability experiment remains open until its Raw
-baseline and independently scored matched run complete.
+Local RQ1--RQ5 have executable figures with the coverage stops above. The
+corrected RQ5 result replaces the old exporter-induced source-coverage stop,
+and RQ6 closes the compatible within-attempt external check without extending
+it to longitudinal lineage. The separate tool experiment now rejects the
+current projection's exact-fact capability claim; a Raw reader comparison
+remains N/A rather than open evidence of either method.

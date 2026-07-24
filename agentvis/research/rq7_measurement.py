@@ -525,7 +525,7 @@ def native_events(vendor: str, path: Path, meta: dict[str, Any]) -> list[dict[st
 
 
 def lexical_repo_path(raw: str, workdir: str, root: Path) -> str | None:
-    if not raw or any(char in raw for char in ("$", "*", "?", "[", "]", "{", "}")):
+    if not raw or any(char in raw for char in ("$", "*", "?", "[", "]", "{", "}", "<", ">")):
         return None
     candidate = Path(raw)
     base = Path(workdir) if workdir else root
@@ -556,7 +556,7 @@ def structured_paths(args: Any) -> list[str]:
 
 def shell_segments(command: str) -> list[list[str]]:
     try:
-        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|")
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|<>")
         lexer.whitespace_split = True
         tokens = list(lexer)
     except ValueError:
@@ -594,7 +594,10 @@ def operands(tokens: list[str]) -> list[str]:
 def shell_path_actions(command: str) -> list[dict[str, str | None]]:
     out: list[dict[str, str | None]] = []
     for segment in shell_segments(command):
-        if not segment:
+        # Redirections and heredocs are excluded from artifact extraction.  The
+        # command still contributes its action atom, but neither redirect
+        # targets nor heredoc bodies can become repository artifacts.
+        if not segment or any(token and set(token) <= {"<", ">"} for token in segment):
             continue
         name = segment[0].rsplit("/", 1)[-1].lower()
         args = segment[1:]
@@ -1099,10 +1102,13 @@ Artifact paths come only from structured path keys, apply_patch file headers,
 and path operands of cat/sed/head/tail/nl/less/more/touch/rm/mv/cp. Event
 workdir overrides session cwd. Resolve relative paths lexically inside the
 selected worktree; exclude outside paths, variables, globs, symlink
-dereferencing, search scopes, and ambiguous shell syntax. Multi-path calls add
-one edge per distinct path. Explicit mv preserves identity; delete then create
-starts a generation. Read actions are the readers above; all retained write,
-create, delete, rename, and copy actions are mutations.
+dereferencing, search scopes, and ambiguous shell syntax. In particular, any
+shell segment containing input/output redirection or a heredoc contributes no
+artifact edge; redirect tokens, targets, and bodies are never paths.
+Multi-path calls add one edge per distinct path. Explicit mv preserves
+identity; delete then create starts a generation. Read actions are the readers
+above; all retained write, create, delete, rename, and copy actions are
+mutations.
 
 P0--P4 are the five artifacts with the most distinct attempted calls; HMAC path
 ID breaks ties. The question gives their normalized paths. A1--A3 are total
@@ -1332,15 +1338,161 @@ def freeze(args: argparse.Namespace) -> int:
         ["id", "project", "family", "template", "expected_answer", "path_id", "witness_hash", "question_spec_sha256"],
         public_questions,
     )
-    checker = Path(__file__).with_name("rq7_oracle_check.sh")
-    run([str(checker), str(private / "freeze.json"), str(private / "oracle-check.json")])
+    checker = Path(__file__).with_name("rq7_source_oracle_check.py")
+    run([sys.executable, str(checker), str(private / "freeze.json"), str(private / "oracle-check.json")])
     return finalize_freeze(private, release)
 
 
 def recover_freeze(args: argparse.Namespace) -> int:
-    checker = Path(__file__).with_name("rq7_oracle_check.sh")
-    run([str(checker), str(args.private / "freeze.json"), str(args.private / "oracle-check.json")])
+    checker = Path(__file__).with_name("rq7_source_oracle_check.py")
+    run([
+        sys.executable,
+        str(checker),
+        str(args.private / "freeze.json"),
+        str(args.private / "oracle-check.json"),
+    ])
     return finalize_freeze(args.private.resolve(), args.release.resolve())
+
+
+def rederive_freeze(args: argparse.Namespace) -> int:
+    """Recompute the oracle from one immutable archive without live discovery."""
+    source_private = args.source_private.resolve()
+    private = args.private.resolve()
+    release = args.release.resolve()
+    if private.exists():
+        shutil.rmtree(private)
+    if release.exists():
+        shutil.rmtree(release)
+    private.mkdir(parents=True)
+    release.mkdir(parents=True)
+
+    def link_or_copy(source: str, destination: str) -> str:
+        try:
+            os.link(source, destination)
+        except OSError:
+            shutil.copy2(source, destination)
+        return destination
+
+    shutil.copytree(
+        source_private / "frozen-home",
+        private / "frozen-home",
+        copy_function=link_or_copy,
+    )
+    shutil.copytree(
+        source_private / "workspace",
+        private / "workspace",
+        copy_function=link_or_copy,
+    )
+    prior = read_json(source_private / "freeze.json")
+    projects = []
+    questions = []
+    release_sources = []
+    for prior_project in prior["projects"]:
+        project = {
+            key: value
+            for key, value in prior_project.items()
+            if key not in {
+                "direct_action_atoms",
+                "procgrep_action_atoms",
+                "oracle_edges",
+                "sessions",
+                "anchors",
+                "questions",
+                "workspace",
+            }
+        }
+        selected = project["sources"]
+        direct = direct_atoms(selected, private / "frozen-home")
+        official = official_procgrep_atoms(args.procgrep.resolve(), selected, private / "frozen-home")
+        edges, sessions = artifact_edges(project, selected, private / "frozen-home")
+        anchors = choose_anchors(edges)
+        prior_snapshot = prior_project["workspace"]
+        prior_paths = [row["path"] for row in prior_snapshot["paths"]]
+        new_paths = [row["path"] for row in anchors]
+        if prior_paths != new_paths:
+            raise RuntimeError(
+                f"corrected anchors require a new workspace cutoff for {project['project']}: "
+                f"prior={prior_paths}, corrected={new_paths}"
+            )
+        snapshot = {
+            **prior_snapshot,
+            "paths": [
+                {**old, **anchor}
+                for old, anchor in zip(prior_snapshot["paths"], anchors)
+            ],
+        }
+        project_questions = question_rows(project, direct, edges, sessions, anchors, snapshot)
+        project.update({
+            "direct_action_atoms": direct,
+            "procgrep_action_atoms": official,
+            "oracle_edges": edges,
+            "sessions": sessions,
+            "anchors": anchors,
+            "workspace": snapshot,
+            "questions": project_questions,
+        })
+        projects.append(project)
+        questions.extend(project_questions)
+        for row in selected:
+            release_sources.append({
+                "project": project["project"],
+                "vendor": row["vendor"],
+                "source_id": row["source_id"],
+                "bytes": row["bytes"],
+                "sha256": row["sha256"],
+                "session_id_hash": sha256_bytes(row["session_id"].encode())[:16],
+                "worktree_id": worktree_id(Path(project["worktree"])),
+            })
+
+    spec = question_spec()
+    (private / "question-spec.md").write_text(spec)
+    spec_hash = sha256_bytes(spec.encode())
+    freeze_data = {
+        key: value
+        for key, value in prior.items()
+        if key not in {"projects", "questions", "oracle_checker_sha256"}
+    }
+    freeze_data.update({
+        "created_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "agent_revision": run(["git", "rev-parse", "HEAD"], cwd=Path(__file__).parents[2]).strip(),
+        "procgrep_revision": run(["git", "rev-parse", "HEAD"], cwd=args.procgrep.resolve()).strip(),
+        "procgrep_lock_sha256": sha256_file(args.procgrep.resolve() / "uv.lock"),
+        "codex_version": run(["codex", "--version"]).strip(),
+        "python_version": sys.version,
+        "question_spec_sha256": spec_hash,
+        "source_archive_parent_sha256": sha256_file(source_private / "freeze.json"),
+        "projects": projects,
+        "questions": questions,
+    })
+    write_json(private / "freeze.json", freeze_data)
+    write_json(private / "oracle-questions.json", questions)
+    write_csv(
+        release / "freeze-sources.csv",
+        ["project", "vendor", "source_id", "bytes", "sha256", "session_id_hash", "worktree_id"],
+        release_sources,
+    )
+    write_csv(
+        release / "questions.csv",
+        [
+            "id",
+            "project",
+            "family",
+            "template",
+            "expected_answer",
+            "path_id",
+            "witness_hash",
+            "question_spec_sha256",
+        ],
+        [sanitize_question(row, spec_hash) for row in questions],
+    )
+    checker = Path(__file__).with_name("rq7_source_oracle_check.py")
+    run([
+        sys.executable,
+        str(checker),
+        str(private / "freeze.json"),
+        str(private / "oracle-check.json"),
+    ])
+    return finalize_freeze(private, release)
 
 
 def build_agent_session_projection(private: Path, destination: Path) -> tuple[dict[str, dict[str, Any]], float]:
@@ -1676,8 +1828,19 @@ def retrieval_event(value: Any, sandbox: Path) -> tuple[str | None, int, str | N
 def command_access_violation(command: str, sandbox: Path) -> str | None:
     if re.search(r"https?://|\b(curl|wget|ssh|scp|rsync)\b|\bgit\s+(clone|fetch|pull)\b", command, re.I):
         return "network_or_remote_command"
-    allowed_prefixes = (str(sandbox), "/bin/", "/usr/bin/", "/usr/local/bin/", "/dev/null", "/proc/")
+    allowed_prefixes = (
+        str(sandbox),
+        "/work/",
+        "/bin/",
+        "/usr/bin/",
+        "/usr/local/bin/",
+        "/dev/null",
+        "/proc/",
+        "/tmp/",
+    )
     for token in re.findall(r"(?<![A-Za-z0-9_])(/[A-Za-z0-9_./+@=-]+)", command):
+        if token in {"/", "//"}:
+            continue
         if not token.startswith(allowed_prefixes):
             return f"outside_absolute_path:{token}"
     for token in re.findall(r"(?:^|\s)(\.\.?/[A-Za-z0-9_./+@=-]+)", command):
@@ -1705,19 +1868,116 @@ def model_call(
     prompt = render_model_prompt(freeze_data, sandbox)
     prompt_path = destination / "prompt.txt"
     prompt_path.write_text(prompt)
-    schema = private / "model-answer.schema.json"
+    schema = sandbox / "model-answer.schema.json"
     model_schema(schema)
     response = destination / "response.json"
     events = destination / "events.jsonl"
     stderr = destination / "stderr.log"
+    codex_binary = Path(shutil.which("codex") or "").resolve()
+    auth_file = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))) / "auth.json"
+    if not codex_binary.is_file() or not auth_file.is_file():
+        raise RuntimeError("isolated Raw runner requires the Codex binary and auth.json")
+    inner_command = [
+        "/usr/local/bin/codex",
+        "exec",
+        "--ignore-user-config",
+        "--ignore-rules",
+        "--strict-config",
+        "--ephemeral",
+        "--skip-git-repo-check",
+        "--sandbox",
+        "read-only",
+        "--cd",
+        "/work",
+        "--model",
+        model,
+        "--config",
+        f'model_reasoning_effort="{reasoning}"',
+        "--disable",
+        "apps",
+        "--disable",
+        "browser_use",
+        "--disable",
+        "browser_use_external",
+        "--disable",
+        "image_generation",
+        "--disable",
+        "multi_agent_v2",
+        "--output-schema",
+        "/work/model-answer.schema.json",
+        "--json",
+        "--output-last-message",
+        "/out/response.json",
+        "-",
+    ]
     command = [
-        "timeout", "--signal=TERM", "--kill-after=30s", "900s",
-        "codex", "exec", "--ignore-user-config", "--ignore-rules", "--strict-config",
-        "--ephemeral", "--skip-git-repo-check", "--sandbox", "read-only", "--cd", str(sandbox),
-        "--model", model, "--config", f'model_reasoning_effort="{reasoning}"',
-        "--disable", "apps", "--disable", "browser_use", "--disable", "browser_use_external",
-        "--disable", "image_generation", "--disable", "multi_agent_v2",
-        "--output-schema", str(schema), "--json", "--output-last-message", str(response), "-",
+        "timeout",
+        "--signal=TERM",
+        "--kill-after=30s",
+        "900s",
+        "bwrap",
+        "--die-with-parent",
+        "--unshare-pid",
+        "--clearenv",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--ro-bind",
+        "/bin",
+        "/bin",
+        "--ro-bind",
+        "/lib",
+        "/lib",
+        "--ro-bind",
+        "/lib64",
+        "/lib64",
+        "--ro-bind",
+        "/etc",
+        "/etc",
+        "--proc",
+        "/proc",
+        "--dev",
+        "/dev",
+        "--tmpfs",
+        "/tmp",
+        "--tmpfs",
+        "/home",
+        "--dir",
+        "/run",
+        "--dir",
+        "/run/systemd",
+        "--ro-bind",
+        "/run/systemd/resolve",
+        "/run/systemd/resolve",
+        "--dir",
+        "/home/codex",
+        "--dir",
+        "/home/codex/.codex",
+        "--ro-bind",
+        str(auth_file),
+        "/home/codex/.codex/auth.json",
+        "--ro-bind",
+        str(codex_binary),
+        "/usr/local/bin/codex",
+        "--ro-bind",
+        str(sandbox),
+        "/work",
+        "--bind",
+        str(destination),
+        "/out",
+        "--setenv",
+        "HOME",
+        "/home/codex",
+        "--setenv",
+        "CODEX_HOME",
+        "/home/codex/.codex",
+        "--setenv",
+        "PATH",
+        "/usr/local/bin:/usr/bin:/bin",
+        "--chdir",
+        "/work",
+        "--",
+        *inner_command,
     ]
     (destination / "command.txt").write_text(shlex.join(command) + "\n")
     started = time.perf_counter()
@@ -1862,8 +2122,8 @@ def preflight(args: argparse.Namespace) -> int:
         project,
         args.private,
         args.private / "preflight" / project["project"],
-        "gpt-5.6-sol",
-        "medium",
+        args.model,
+        args.reasoning,
         0,
     )
     if model_cost["terminal_status"] != "complete":
@@ -2119,6 +2379,243 @@ def score(args: argparse.Namespace) -> int:
     return 0
 
 
+def score_deterministic(args: argparse.Namespace) -> int:
+    rows = read_json(args.deterministic / "deterministic-results.json")
+    costs = read_json(args.deterministic / "deterministic-costs.json")
+    freeze_data = read_json(args.private / "freeze.json")
+    projects = [project["project"] for project in freeze_data["projects"]]
+    methods = ("final_state", "counts", "procgrep", "trajectory")
+    if len(rows) != 480:
+        raise RuntimeError(f"deterministic score expected 480 rows, got {len(rows)}")
+    aggregate = []
+    for method in methods:
+        for family in "ABCD":
+            selected = [row for row in rows if row["method"] == method and row["family"] == family]
+            aggregate.append({
+                "method": method,
+                "family": family,
+                "n": 30,
+                "correct": sum(int(row["correct"]) for row in selected),
+                "wrong": sum(int(row["wrong"]) for row in selected),
+                "abstain": sum(row["status"] == "abstain" for row in selected),
+                "correct_coverage": sum(int(row["correct"]) for row in selected) / 30,
+                "conditional_accuracy": (
+                    sum(int(row["correct"]) for row in selected)
+                    / max(sum(row["status"] == "answer" for row in selected), 1)
+                ),
+            })
+    per_project = {
+        project: (
+            project_score(rows, "trajectory", project, {"B", "C"})
+            - project_score(rows, "procgrep", project, {"B", "C"})
+        )
+        for project in projects
+    }
+    rng = random.Random(int(SEED))
+    draws = [
+        statistics.mean(per_project[rng.choice(projects)] for _ in projects)
+        for _ in range(10_000)
+    ]
+    effect = {
+        "estimate": statistics.mean(per_project.values()),
+        "ci_low": percentile(draws, 0.025),
+        "ci_high": percentile(draws, 0.975),
+        "project_effects": per_project,
+    }
+    action_rows = [row for row in rows if row["method"] in {"procgrep", "trajectory"} and row["family"] == "A"]
+    by_id = {
+        qid: {row["method"]: row for row in action_rows if row["id"] == qid}
+        for qid in {row["id"] for row in action_rows}
+    }
+    action_identity = len(by_id) == 30 and all(
+        set(pair) == {"procgrep", "trajectory"}
+        and pair["procgrep"]["answer"] == pair["trajectory"]["answer"]
+        and pair["procgrep"]["status"] == pair["trajectory"]["status"]
+        for pair in by_id.values()
+    )
+    action_correctness = len(by_id) == 30 and all(
+        pair["procgrep"]["correct"] and pair["trajectory"]["correct"]
+        for pair in by_id.values()
+    )
+    trajectory_bc = [
+        row for row in rows if row["method"] == "trajectory" and row["family"] in {"B", "C"}
+    ]
+    correct = sum(int(row["correct"]) for row in trajectory_bc)
+    wrong = sum(int(row["wrong"]) for row in trajectory_bc)
+    answered = sum(row["status"] == "answer" for row in trajectory_bc)
+    project_accuracy = {
+        project: (
+            sum(int(row["correct"]) for row in trajectory_bc if row["project"] == project)
+            / max(sum(row["status"] == "answer" for row in trajectory_bc if row["project"] == project), 1)
+        )
+        for project in projects
+    }
+    correctness_veto = (
+        correct / 60 >= 0.80
+        and correct / max(answered, 1) >= 0.95
+        and wrong / 60 <= 0.05
+        and min(project_accuracy.values()) >= 0.80
+    )
+    decisions = {
+        "procgrep_incremental_coverage": (
+            "positive"
+            if effect["ci_low"] > 0 and action_identity and action_correctness and correctness_veto
+            else "rejected_by_correctness_veto"
+        ),
+        "action_spine_identity_pass": action_identity,
+        "action_source_correctness_veto_pass": action_correctness,
+        "trajectory_correctness_veto_pass": correctness_veto,
+        "raw_model_comparison": "unavailable_after_preflight",
+    }
+    args.release.mkdir(parents=True, exist_ok=True)
+    write_json(args.release / "aggregate.json", aggregate)
+    write_json(args.release / "effects.json", {"trajectory_minus_procgrep_bc": effect})
+    write_json(args.release / "decisions.json", decisions)
+    write_csv(
+        args.release / "method-results.csv",
+        [
+            "id", "project", "family", "template", "method", "repetition", "status",
+            "answer", "expected", "correct", "wrong", "question_spec_sha256",
+        ],
+        rows,
+    )
+    write_csv(
+        args.release / "costs.csv",
+        [
+            "project", "method", "repetition", "source_bytes", "input_bytes",
+            "output_bytes", "input_tokens", "cached_input_tokens", "output_tokens",
+            "reasoning_tokens", "model_calls", "tool_calls", "build_seconds",
+            "query_seconds", "wall_seconds", "peak_rss_kib", "terminal_status",
+        ],
+        costs,
+    )
+    plot_deterministic_results(aggregate, args.figure)
+    write_deterministic_result(
+        args.release.parent / "result.md",
+        aggregate,
+        effect,
+        decisions,
+        correct,
+        wrong,
+        answered,
+        project_accuracy,
+    )
+    print(f"[rq7] deterministic score complete: {decisions}")
+    return 0
+
+
+def plot_deterministic_results(aggregate: list[dict[str, Any]], figure: Path) -> None:
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    methods = ["final_state", "counts", "procgrep", "trajectory"]
+    labels = {
+        "final_state": "Final state",
+        "counts": "Counts",
+        "procgrep": "ProcGrep",
+        "trajectory": "Trajectory",
+    }
+    families = list("ABCD")
+    colors = {"correct": "#2a9d8f", "wrong": "#e76f51", "abstain": "#d9dee7"}
+    fig, ax = plt.subplots(figsize=(7.2, 3.5))
+    width = 0.19
+    x = np.arange(len(families))
+    for method_index, method in enumerate(methods):
+        rows_by_family = {row["family"]: row for row in aggregate if row["method"] == method}
+        positions = x + (method_index - 1.5) * width
+        correct = [rows_by_family[family]["correct"] / 30 for family in families]
+        wrong = [rows_by_family[family]["wrong"] / 30 for family in families]
+        abstain = [rows_by_family[family]["abstain"] / 30 for family in families]
+        ax.bar(positions, correct, width, color=colors["correct"], edgecolor="white", linewidth=0.3)
+        ax.bar(positions, wrong, width, bottom=correct, color=colors["wrong"], edgecolor="white", linewidth=0.3)
+        ax.bar(
+            positions,
+            abstain,
+            width,
+            bottom=np.array(correct) + np.array(wrong),
+            color=colors["abstain"],
+            edgecolor="white",
+            linewidth=0.3,
+        )
+        for position in positions:
+            ax.text(position, 1.015, str(method_index + 1), ha="center", va="bottom", fontsize=7, color="#343a40")
+    ax.set_xticks(x, ["Action", "Artifact", "Cross-session", "Final state"])
+    ax.set_ylim(0, 1.07)
+    ax.set_ylabel("Fraction of common questions")
+    ax.set_title("Source-verifiable fact outcomes", loc="left", fontweight="bold")
+    ax.grid(axis="y", color="#e8ebf0", linewidth=0.6)
+    handles = [plt.Rectangle((0, 0), 1, 1, color=colors[key]) for key in ("correct", "wrong", "abstain")]
+    ax.legend(handles, ["Correct", "Wrong", "Abstain"], ncol=3, frameon=False, loc="upper center")
+    ax.text(
+        0.01,
+        -0.22,
+        "Bar order: 1 Final state · 2 Counts · 3 ProcGrep · 4 Trajectory; Raw model N/A after preflight",
+        transform=ax.transAxes,
+        fontsize=7,
+    )
+    fig.tight_layout()
+    figure.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(figure, bbox_inches="tight")
+    fig.savefig(figure.with_suffix(".png"), dpi=220, bbox_inches="tight")
+    plt.close(fig)
+
+
+def write_deterministic_result(
+    path: Path,
+    aggregate: list[dict[str, Any]],
+    effect: dict[str, Any],
+    decisions: dict[str, Any],
+    trajectory_correct: int,
+    trajectory_wrong: int,
+    trajectory_answered: int,
+    project_accuracy: dict[str, float],
+) -> None:
+    lines = [
+        "# Separate Tool Question — Measurement Capability",
+        "",
+        "All deterministic rows use the same 120-question source-direct oracle. "
+        "The bounded Raw reader is N/A: the final registered Terra preflight "
+        "engaged local evidence retrieval but was stopped by the frozen boundary "
+        "contract before a scoreable answer. Its rows are not scored as wrong or abstain.",
+        "",
+        "| Method | Family | Correct | Wrong | Abstain | Correct coverage | Conditional accuracy |",
+        "|---|---:|---:|---:|---:|---:|---:|",
+    ]
+    for row in aggregate:
+        lines.append(
+            f"| {row['method']} | {row['family']} | {row['correct']} | {row['wrong']} | "
+            f"{row['abstain']} | {row['correct_coverage']:.3f} | {row['conditional_accuracy']:.3f} |"
+        )
+    lines.extend([
+        "",
+        "## Predeclared contrasts and vetoes",
+        "",
+        f"- Trajectory − ProcGrep B+C correct coverage: {effect['estimate']:.3f}, "
+        f"frozen-corpus project-block interval [{effect['ci_low']:.3f}, {effect['ci_high']:.3f}].",
+        f"- Trajectory B+C: {trajectory_correct}/60 correct, {trajectory_wrong}/60 wrong, "
+        f"{trajectory_answered}/60 answered.",
+        "- Per-project Trajectory B+C conditional accuracy: "
+        + ", ".join(f"{project}={value:.3f}" for project, value in project_accuracy.items())
+        + ".",
+        "",
+        "## Decision",
+        "",
+    ])
+    for key, value in decisions.items():
+        lines.append(f"- **{key}:** {value}")
+    lines.extend([
+        "",
+        "The positive raw coverage difference over ProcGrep does not support a "
+        "capability claim. The trajectory preserved ProcGrep's action answers "
+        "exactly, but both failed the action source-correctness veto, and the "
+        "trajectory failed the B+C correctness veto. This is a negative "
+        "implementation result, not evidence "
+        "against the workspace-centered representation in principle. No LLM-reader "
+        "accuracy or superiority claim is made.",
+    ])
+    path.write_text("\n".join(lines) + "\n")
+
+
 def plot_results(aggregate: list[dict[str, Any]], costs: list[dict[str, Any]], figure: Path) -> None:
     import matplotlib.pyplot as plt
     import numpy as np
@@ -2253,15 +2750,24 @@ def parser() -> argparse.ArgumentParser:
     recover_parser.add_argument("--release", type=Path, required=True)
     recover_parser.set_defaults(func=recover_freeze)
 
+    rederive_parser = sub.add_parser("rederive-freeze")
+    rederive_parser.add_argument("--source-private", type=Path, required=True)
+    rederive_parser.add_argument("--private", type=Path, required=True)
+    rederive_parser.add_argument("--release", type=Path, required=True)
+    rederive_parser.add_argument("--procgrep", type=Path, required=True)
+    rederive_parser.set_defaults(func=rederive_freeze)
+
     preflight_parser = sub.add_parser("preflight")
     preflight_parser.add_argument("--private", type=Path, required=True)
     preflight_parser.add_argument("--release", type=Path, required=True)
+    preflight_parser.add_argument("--model", default="gpt-5.6-terra")
+    preflight_parser.add_argument("--reasoning", default="medium")
     preflight_parser.set_defaults(func=preflight)
 
     full_parser = sub.add_parser("full")
     full_parser.add_argument("--private", type=Path, required=True)
     full_parser.add_argument("--release", type=Path, required=True)
-    full_parser.add_argument("--model", default="gpt-5.6-sol")
+    full_parser.add_argument("--model", default="gpt-5.6-terra")
     full_parser.add_argument("--reasoning", default="medium")
     full_parser.add_argument("--repetitions", type=int, default=3)
     full_parser.set_defaults(func=full)
@@ -2271,6 +2777,13 @@ def parser() -> argparse.ArgumentParser:
     score_parser.add_argument("--release", type=Path, required=True)
     score_parser.add_argument("--figure", type=Path, required=True)
     score_parser.set_defaults(func=score)
+
+    deterministic_score_parser = sub.add_parser("score-deterministic")
+    deterministic_score_parser.add_argument("--private", type=Path, required=True)
+    deterministic_score_parser.add_argument("--deterministic", type=Path, required=True)
+    deterministic_score_parser.add_argument("--release", type=Path, required=True)
+    deterministic_score_parser.add_argument("--figure", type=Path, required=True)
+    deterministic_score_parser.set_defaults(func=score_deterministic)
     return root
 
 

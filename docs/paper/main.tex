@@ -46,7 +46,8 @@ and session boundaries without introducing semantic labels or aligning the
 timeline to Git commits.  We use it to study six real software and autonomous-
 research projects through introduced-artifact persistence, later reuse,
 validation association, repeated mutation, workspace-activity migration, and
-cross-session continuity.  Across 2,049 sessions and 206,249 Tool actions,
+cross-session continuity.  Under the admitted local projection, across 2,049
+sessions and 206,249 Tool actions,
 89.8--97.3\% of eligible mutations are later revisited, yet action volume does
 not reproduce the cross-project reuse ordering ($\rho=0.09$).  Repeat-observed
 episodes account for 71.8--91.8\% of mutation episodes, with 41.9--86.7\% of
@@ -56,6 +57,11 @@ is itself consequential: recognized successful validation appears in only
 eligible comparison.  In 320 stratum-specific public task/topic selections,
 path-local transitions and 2--3-intervening-call module returns recur, but persistent
 artifact lineage and cross-session re-grounding remain unobservable.
+Finally, a source-direct 120-question conformance experiment rejects the
+current projection's exact-fact capability: it answers 32/60 artifact-linked
+and cross-session facts correctly and 28 incorrectly.  This negative result
+separates the workspace-centered research unit from an implementation that
+still requires source-conformance repair.
 \end{abstract}
 
 \section{Introduction}
@@ -105,25 +111,28 @@ progress, not a scalar quality score.
 We build this study directly on native Agent records.  The existing
 \artifact{agent-session} adapters parse Claude, Codex, and Gemini.  A thin
 repository projection retains all admitted Tool actions, resolves qualified
-file effects, preserves explicit rename lineage and session identity, and
-orders events by Agent action time.  Git contributes final tracked state and
+file effects, attempts to preserve explicit rename lineage and session
+identity, and orders events by Agent action time.  Git contributes final tracked state and
 optional content-survival evidence, but commits never define the time axis.
 The same facts drive both quantitative analyses and the auxiliary \system
-replay; visual layout is not a statistical measurement.
+replay; visual layout is not a statistical measurement.  We independently
+test the projection rather than treating its output as truth.
 
 This paper makes three contributions:
 
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
-  \item a longitudinal empirical characterization of how Agent activity,
+  \item a projection-conditioned longitudinal characterization of how Agent activity,
   artifact persistence, reuse, validation, repeated mutation, workspace
   activity, and session
   continuity interact across six real coding and autonomous-research projects;
-  \item a deterministic, source-linked measurement method that preserves
-  stable artifact identity and cross-session lineage without another general
-  event IR or generated semantic gold; and
-  \item a reproducible source-coverage and benchmark-readiness audit that
-  separates measured results, coverage-only evidence, and N/A conditions
-  instead of treating missing trajectory evidence as observed absence.
+  \item a deterministic, source-linked measurement protocol for stable
+  artifact identity and cross-session lineage, together with a source-direct
+  conformance benchmark that rejects the current implementation's exact-fact
+  capability rather than using its output as ground truth; and
+  \item a reproducible coverage discipline that separates measured results,
+  coverage-only evidence, implementation disagreement, and N/A conditions
+  instead of treating missing or projected trajectory evidence as observed
+  truth.
 \end{enumerate}
 
 \section{Problem Setting}
@@ -350,11 +359,13 @@ answer.  Final State and Counts would be lower-information controls, ProcGrep
 the strongest action-only procedure baseline, and a bounded raw-log model a
 same-source reconstruction condition.
 
-This design is conditional rather than an executed claim.  It requires hashed
-native prefixes, cutoff workspace state, pinned executable interfaces, and an
-independent source-explicit oracle before questions or performance values are
-generated.  Section~\ref{sec:evaluation} audits those prerequisites and stops
-the comparison when they are absent.
+Step 0004 satisfies these prerequisites for the deterministic conditions: it
+freezes hashed native prefixes and cutoff state, independently reconstructs
+the oracle, and executes the 480-row Final State, Counts, ProcGrep, and
+Trajectory matrix.  The Raw branch alone stops during its retrieval-engaged
+preflight, so the planned 840-row integrated comparison remains incomplete.
+Section~\ref{sec:evaluation} reports the deterministic negative result and
+keeps Raw explicitly N/A.
 
 \section{Implementation}
 \label{sec:implementation}
@@ -720,34 +731,44 @@ descriptions, not stable-artifact replication.
 
 \subsection{Separate Tool Question: Measurement Capability}
 
-Before executing the capability comparison, we audited whether
-every condition can receive the same frozen evidence and an independent
-oracle.  The audit checks six projects against six contracts: a hashed
-normalized action spine, source linkage, a native admitted-prefix manifest and
-archive, a cutoff worktree revision manifest, and an explicit untracked-state
-snapshot.  It finds 12 present, zero partial, and 24 N/A project--contract
-cells.  All 206,249 normalized events retain project, vendor, session, event,
-and source-call linkage, but the frozen study lacks native-prefix archives and
-per-worktree cutoff state.
+We freeze 12 complete Claude, Codex, or Gemini session files per project and
+derive 120 questions: 30 each about action-only, artifact-linked,
+cross-session, and final-state facts.  A standalone checker imports neither
+the projection code nor \artifact{agent-session}; it reparses the 72 native
+files, reconstructs 1,721 artifact edges, independently verifies archived
+cutoff state, and reproduces every answer.  We then compare Final State,
+Counts, pinned ProcGrep, and the artifact trajectory on the common denominator.
 
-Consequently, Counts is admitted only for descriptive prerequisites and the
-artifact trajectory is coverage-only: its own RQ1 tables cannot serve as an
-independent accuracy oracle.  Final State, pinned ProcGrep, and bounded raw-log
-model analysis remain N/A.  No action-only, artifact-linked, cross-session, or
-final-state question family passes the planned $30\times4$ gate.  Figure
-~\ref{fig:rq7-readiness} therefore contains no accuracy, coverage advantage,
-latency, token, or cost value.  This is a benchmark-readiness result, not
-evidence that the proposed representation outperforms a baseline, and it does
-not close the separate tool question.  A prospective matched run is required.
+Figure~\ref{fig:rq7-capability} reports the complete 480-row deterministic
+matrix.  Final State answers all 30 final-state questions.  ProcGrep and
+Trajectory return identical answers on all 30 action questions; they agree
+with the experiment's different source-direct action grammar on 18.  This does
+not indicate failed ProcGrep preservation: the official adapter deliberately
+leaves some terminal reads unclassified.  The decisive result is
+artifact-linked plus cross-session correctness.  Trajectory answers all 60
+questions but returns only 32 correct and 28 wrong.  Conditional accuracy
+varies from 0.0 to 1.0 across the six projects.  Its additional coverage
+therefore fails the correctness requirement and cannot support an exact-fact
+capability claim.
+
+The bounded Raw-log reader is N/A.  Its single registered Terra preflight made
+11 local evidence calls and retrieved 117,184 bytes, but the frozen boundary
+monitor stopped execution when an original absolute path embedded in evidence
+appeared in a command.  This is a reader-harness contract incompatibility, not
+a model result.  We report no Raw accuracy, token, cost, efficiency, or
+superiority value.  The deterministic preflight covered all six projects and
+is reused as the final deterministic matrix; none of the planned 360 Raw rows
+ran.  Deterministic times are also not method-specific because all four methods
+share one project-loop measurement.
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=\textwidth]{figures/rq7-benchmark-readiness.pdf}
-  \caption{Measurement-capability source-contract and method-readiness audit.
-  Gray N/A cells
-  denote unavailable matched evidence, not zero performance.  The audit stops
-  the comparison before question generation or model execution.}
-  \label{fig:rq7-readiness}
+  \includegraphics[width=\textwidth]{figures/rq7-measurement-capability.pdf}
+  \caption{Source-direct measurement conformance over 120 questions.  Each bar
+  partitions the common 30-question family into correct, wrong, and abstain.
+  Raw is N/A after its retrieval-engaged preflight stopped at the frozen
+  boundary and is not scored as wrong or abstain.}
+  \label{fig:rq7-capability}
 \end{figure*}
 
 \section{Threats to Validity}
@@ -757,6 +778,18 @@ changes, or actions performed outside instrumented tools.  The study reports
 adapter and field coverage, and it does not convert missing effects into
 no-effect observations.  Optional system-level AgentSight evidence is a future
 coverage extension, not a second logic layer in the present analysis.
+
+The source-direct tool experiment also finds material disagreement between the
+current projection and native records.  Under its grammar, source/projection
+edge counts differ in every local project, and 28/60 answered artifact-linked
+or cross-session facts are wrong.  Some differences can be deliberate broader
+shell/scope admission; others may arise from path, artifact identity, or
+native-root session joins.  Until that taxonomy is complete, RQ1--RQ4
+quantities are measurements under the declared projection, not source-complete
+ground truth.  RQ5 is better protected by its separate 2,063-stream checker,
+and RQ6 by an independent public-data reconstruction.  This limitation
+prevents a current tool-capability claim but does not change N/A into observed
+absence.
 
 Final workspace state cannot prove content-level survival of every historical
 edit.  We therefore separate file existence, Git-tracked state, and independently
@@ -829,8 +862,13 @@ workspace.  Across six projects, later reuse is consistently high but weakly
 ordered by action volume, while repeated mutation is both common and strongly
 concentrated.  Validation, session-continuity, and skill analyses also expose
 hard source-coverage boundaries rather than portable success, reset, or causal
-harness effects.  Our workspace-centered measurement makes these process facts
-reproducible while keeping unsupported comparisons explicitly N/A.
+harness effects.  Our workspace-centered analysis makes these process facts
+inspectable while keeping unsupported comparisons explicitly N/A.  A
+source-direct conformance experiment further shows that the current projection
+does not yet make exact artifact/session facts reliable: 28/60 answered facts
+are wrong.  The resulting research boundary is concrete---persistent
+workspace evolution remains the useful unit, while projection conformance must
+precede stronger measurement or tool claims.
 
 \bibliography{references}
 
