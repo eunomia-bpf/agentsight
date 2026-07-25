@@ -1,0 +1,465 @@
+{
+  "operation_count": 30,
+  "operations": [
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:439:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users with recruitment and talent acquisition tasks, including candidate profiling, interview coordination, and hiring workflow management. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"add_recruiter_note\", \"description\": \"Adds a recruiter note or interview feedback to a candidate's profile and returns a success confirmation with the note ID and timestamp.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"candidate_id\": { \"type\": \"STRING\", \"description\": \"Unique identifier of the candidate to attach the note to.\" }, \"note\": { \"type\": \"STRI ... [middle omitted] ... ., employee IDs) for workflow sequencing\" }, \"approval_deadline\": { \"type\": \"STRING\", \"description\": \"Optional due timestamp for completion in ISO 8601 format (e.g., 2023-12-31T23:59:59Z); uses system default if omitted\" } }, \"required\": [ \"offer_id\", \"approver_ids\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:439:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "I found a strong candidate on LinkedIn for our Senior Data Scientist role (job ID #DS2024) and have their resume PDF. Please create their profile in our ATS, assess their fit against the job description, and if suitable, move them through interviews—then after a positive outcome, route their offer for approval and start the background check.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "report",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:439:2",
+      "ordinal": 2,
+      "source_summary": {
+        "content": "To proceed with creating the candidate profile, please share the LinkedIn URL of the candidate you found for job #DS2024.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:439:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "Here is the candidate's LinkedIn profile URL: https://linkedin.com/in/candidate-example",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "act",
+        "getLinkedInProfile",
+        "unknown"
+      ],
+      "operation_id": "test:439:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"getLinkedInProfile\", \"arguments\": {\"linkedin_url\": \"https://linkedin.com/in/candidate-example\"}}",
+        "role": "agent",
+        "thought": "I need to fetch the candidate's LinkedIn data using the provided URL to proceed with creating their ATS profile."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "environment",
+        "observe",
+        "getLinkedInProfile",
+        "unknown"
+      ],
+      "operation_id": "test:439:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"employment_history\": [{\"company\": \"TechCorp Inc\", \"position\": \"Lead Data Scientist\", \"current\": true, \"duration\": \"2020-Present\"}], \"skills\": [\"Python\", \"Machine Learning\"], \"certifications\": [], \"languages\": [\"English\"], \"publications\": [], \"patents\": [], \"awards\": []}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "report",
+        "getLinkedInProfile",
+        "unknown"
+      ],
+      "operation_id": "test:439:6",
+      "ordinal": 6,
+      "source_summary": {
+        "content": "To complete the candidate's employment verification, could you provide the website domain for their current employer, TechCorp Inc?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:439:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "The company domain for TechCorp Inc is techcorp.com.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "act",
+        "lookupCompanyInfo",
+        "unknown"
+      ],
+      "operation_id": "test:439:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"lookupCompanyInfo\", \"arguments\": {\"domain\": \"techcorp.com\"}}",
+        "role": "agent",
+        "thought": "To verify the candidate's current employment at TechCorp Inc, I need to look up company information using the provided domain techcorp.com."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "environment",
+        "observe",
+        "lookupCompanyInfo",
+        "unknown"
+      ],
+      "operation_id": "test:439:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"name\": \"TechCorp Inc\", \"size\": \"1001-5000\", \"industry\": \"Information Technology\", \"location\": \"San Francisco, CA\", \"website\": \"https://techcorp.com\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "report",
+        "lookupCompanyInfo",
+        "unknown"
+      ],
+      "operation_id": "test:439:10",
+      "ordinal": 10,
+      "source_summary": {
+        "content": "To create the candidate profile in our ATS and proceed with the assessment, please share the candidate's full name, email address, optional phone number, and upload their resume PDF.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:439:11",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "Here are the candidate details: full name Alex Johnson, email alex.johnson@example.com, phone +15551234567, and their resume PDF file resume.pdf.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "act",
+        "create_candidate_record",
+        "unknown"
+      ],
+      "operation_id": "test:439:12",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"create_candidate_record\", \"arguments\": {\"full_name\": \"Alex Johnson\", \"email\": \"alex.johnson@example.com\", \"phone\": \"+15551234567\", \"source\": \"outbound\", \"job_id\": \"DS2024\"}}",
+        "role": "agent",
+        "thought": "I'll create the candidate profile in the ATS using the provided details for Alex Johnson to initiate the assessment process for job DS2024."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "environment",
+        "observe",
+        "create_candidate_record",
+        "unknown"
+      ],
+      "operation_id": "test:439:13",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"candidate_id\": \"CAND78901\", \"record_details\": {\"name\": \"Alex Johnson\", \"email\": \"alex.johnson@example.com\", \"status\": \"new\"}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "act",
+        "parseAndScreenResume",
+        "unknown"
+      ],
+      "operation_id": "test:439:14",
+      "ordinal": 14,
+      "source_summary": {
+        "action": "{\"name\": \"parseAndScreenResume\", \"arguments\": {\"resume_file\": \"resume.pdf\", \"job_id\": \"DS2024\"}}",
+        "role": "agent",
+        "thought": "I need to parse and screen the provided resume file resume.pdf against job DS2024 to assess candidate fit as requested."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "environment",
+        "observe",
+        "parseAndScreenResume",
+        "unknown"
+      ],
+      "operation_id": "test:439:15",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "{\"parsed_resume\": {\"name\": \"Alex Johnson\", \"skills\": [\"Python\", \"Machine Learning\"], \"experience\": [{\"company\": \"TechCorp Inc\", \"position\": \"Lead Data Scientist\", \"duration\": \"2020-Present\"}]}, \"fit_percentage\": 85, \"recommendation\": \"Advance to technical interview\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "act",
+        "update_candidate_stage",
+        "unknown"
+      ],
+      "operation_id": "test:439:16",
+      "ordinal": 16,
+      "source_summary": {
+        "action": "{\"name\": \"update_candidate_stage\", \"arguments\": {\"candidate_id\": \"CAND78901\", \"new_stage\": \"interview\", \"reason\": \"Screening showed 85% fit\"}}",
+        "role": "agent",
+        "thought": "I'll update the candidate stage to interview because the resume screening showed a high fit percentage."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "environment",
+        "observe",
+        "update_candidate_stage",
+        "success"
+      ],
+      "operation_id": "test:439:17",
+      "ordinal": 17,
+      "source_summary": {
+        "content": "{\"success\": true, \"updated_stage\": \"interview\", \"timestamp\": \"2024-01-15T10:30:00Z\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "report",
+        "update_candidate_stage",
+        "success"
+      ],
+      "operation_id": "test:439:18",
+      "ordinal": 18,
+      "source_summary": {
+        "content": "To schedule the technical interview for Alex Johnson (candidate ID CAND78901) for job #DS2024, please provide the interviewers' names, preferred time slot, and whether it should be virtual or onsite.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:439:19",
+      "ordinal": 19,
+      "source_summary": {
+        "content": "Please schedule the interview for candidate Alex Johnson with interviewers HIRER1 and HIRER2 virtually from 2:00 PM to 3:00 PM UTC on January 18, 2024.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "act",
+        "create_interview_schedule",
+        "unknown"
+      ],
+      "operation_id": "test:439:20",
+      "ordinal": 20,
+      "source_summary": {
+        "action": "{\"name\": \"create_interview_schedule\", \"arguments\": {\"candidate_id\": \"CAND78901\", \"interviewer_ids\": [\"HIRER1\", \"HIRER2\"], \"start_time\": \"2024-01-18T14:00:00Z\", \"end_time\": \"2024-01-18T15:00:00Z\", \"mode\": \"Virtual\"}}",
+        "role": "agent",
+        "thought": "I'll create the interview schedule for the candidate with the provided details as requested in the user's latest message."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "environment",
+        "observe",
+        "create_interview_schedule",
+        "unknown"
+      ],
+      "operation_id": "test:439:21",
+      "ordinal": 21,
+      "source_summary": {
+        "content": "{\"schedule_id\": \"SCHED123\", \"interview_details\": {\"candidate_id\": \"CAND78901\", \"start_time\": \"2024-01-18T14:00:00Z\", \"interviewers\": [\"HIRER1\", \"HIRER2\"]}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "report",
+        "create_interview_schedule",
+        "unknown"
+      ],
+      "operation_id": "test:439:22",
+      "ordinal": 22,
+      "source_summary": {
+        "content": "I've scheduled the technical interview for Alex Johnson. Please note that post-interview feedback must be provided after the interview occurs—I can't add it until you share the results later. Please confirm the technical interview outcome for Alex Johnson was positive. If so, provide the offer package details (salary, start date, etc.) and required approvers for routing, along with consent documentation to initiate the background check.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:439:24",
+      "ordinal": 23,
+      "source_summary": {
+        "content": "The technical interview outcome for Alex Johnson was positive. Please route the standard offer package (ID: OFFER456) for approval to APPROVER3 and APPROVER4.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "act",
+        "update_candidate_stage",
+        "unknown"
+      ],
+      "operation_id": "test:439:25",
+      "ordinal": 24,
+      "source_summary": {
+        "action": "{\"name\": \"update_candidate_stage\", \"arguments\": {\"candidate_id\": \"CAND78901\", \"new_stage\": \"offer\", \"reason\": \"Positive interview feedback confirmed\"}}",
+        "role": "agent",
+        "thought": "I'll update the candidate stage to offer because the technical interview outcome was positive as confirmed by the user."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "environment",
+        "observe",
+        "update_candidate_stage",
+        "success"
+      ],
+      "operation_id": "test:439:26",
+      "ordinal": 25,
+      "source_summary": {
+        "content": "{\"success\": true, \"updated_stage\": \"offer\", \"timestamp\": \"2024-01-22T09:15:00Z\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "act",
+        "route_offer_for_approval",
+        "unknown"
+      ],
+      "operation_id": "test:439:27",
+      "ordinal": 26,
+      "source_summary": {
+        "action": "{\"name\": \"route_offer_for_approval\", \"arguments\": {\"offer_id\": \"OFFER456\", \"approver_ids\": [\"APPROVER3\", \"APPROVER4\"]}}",
+        "role": "agent",
+        "thought": "I'll route the offer package OFFER456 for approval to APPROVER3 and APPROVER4 as explicitly requested in the latest user message after the confirmed positive interview outcome."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "environment",
+        "observe",
+        "route_offer_for_approval",
+        "unknown"
+      ],
+      "operation_id": "test:439:28",
+      "ordinal": 27,
+      "source_summary": {
+        "content": "{\"approval_request_id\": \"APPR789\", \"status\": \"pending\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "agent",
+        "act",
+        "initiate_background_check",
+        "unknown"
+      ],
+      "operation_id": "test:439:29",
+      "ordinal": 28,
+      "source_summary": {
+        "action": "{\"name\": \"initiate_background_check\", \"arguments\": {\"candidate_id\": \"CAND78901\", \"package_type\": \"standard\"}}",
+        "role": "agent",
+        "thought": "I'll initiate the background check for candidate CAND78901 with the standard package now that the offer is routed for approval."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal_v10",
+        "environment",
+        "observe",
+        "initiate_background_check",
+        "unknown"
+      ],
+      "operation_id": "test:439:30",
+      "ordinal": 29,
+      "source_summary": {
+        "content": "{\"background_check_id\": \"BG456\", \"status\": \"initiated\"}",
+        "role": "environment"
+      }
+    }
+  ],
+  "task": "I found a strong candidate on LinkedIn for our Senior Data Scientist role (job ID #DS2024) and have their resume PDF. Please create their profile in our ATS, assess their fit against the job description, and if suitable, move them through interviews—then after a positive outcome, route their offer for approval and start the background check."
+}

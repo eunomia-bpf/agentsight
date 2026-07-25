@@ -1,0 +1,235 @@
+{
+  "operation_count": 15,
+  "operations": [
+    {
+      "native_path": [
+        "cryptoForensics",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:362:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users with cryptocurrency fraud investigations, equipped to retrieve transaction histories, file regulatory reports, broadcast alerts, and manage case records. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"getTransactionHistory\", \"description\": \"Retrieves transaction history for a specified wallet address or details for a specific transaction hash on a blockchain. Returns counterparties, amounts, timestamps, and gas fees.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"address\": { \"type\": \"string\", \"description\": \"Wallet address to query ... [middle omitted] ... mationCode\": { \"type\": \"string\", \"description\": \"Two-factor authentication code to authorize execution.\" } }, \"required\": [ \"sourceWallets\", \"custodyWallet\", \"assetType\", \"courtOrderNumber\", \"caseId\", \"reason\", \"requesterId\", \"supervisorApproval\", \"confirmationCode\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:362:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "I'm investigating a suspected crypto scam involving wallet address 0x8a1f9e8f26fae2d. First, gather transaction history and social media intelligence to confirm fraudulent activity, then file a SAR and alert partner networks, and finally seize all identified scam assets from the wallet.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "agent",
+        "report",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:362:2",
+      "ordinal": 2,
+      "source_summary": {
+        "content": "To retrieve the transaction history for wallet address 0x8a1f9e8f26fae2d, please specify which blockchain network it operates on, such as Ethereum or Binance Smart Chain.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:362:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "The wallet address 0x8a1f9e8f26fae2d operates on the Ethereum blockchain. Please proceed with gathering the transaction history and social intelligence for that network.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "agent",
+        "act",
+        "getTransactionHistory",
+        "unknown"
+      ],
+      "operation_id": "test:362:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"getTransactionHistory\", \"arguments\": {\"address\": \"0x8a1f9e8f26fae2d\", \"blockchain\": \"ethereum\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve the transaction history for the provided wallet address and blockchain to begin gathering evidence for the fraud investigation."
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "environment",
+        "observe",
+        "getTransactionHistory",
+        "success"
+      ],
+      "operation_id": "test:362:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"transactions\": [{\"txHash\": \"0x...\", \"from\": \"...\", \"to\": \"...\", \"amount\": 0.1, \"timestamp\": \"2023-01-01T00:00:00Z\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "agent",
+        "report",
+        "getTransactionHistory",
+        "success"
+      ],
+      "operation_id": "test:362:6",
+      "ordinal": 6,
+      "source_summary": {
+        "content": "To proceed with gathering social media intelligence related to the suspected scam, please provide the token symbol, name, or contract address associated with the fraudulent activity.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:362:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "The token symbol associated with the scam is SCAMTOKEN.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "agent",
+        "act",
+        "fetchSocialIntelligence",
+        "unknown"
+      ],
+      "operation_id": "test:362:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"fetchSocialIntelligence\", \"arguments\": {\"coinName\": \"SCAMTOKEN\", \"walletAddress\": \"0x8a1f9e8f26fae2d\"}}",
+        "role": "agent",
+        "thought": "I'll gather social media intelligence for the provided token symbol SCAMTOKEN and wallet address 0x8a1f9e8f26fae2d to investigate scam connections."
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "environment",
+        "observe",
+        "fetchSocialIntelligence",
+        "success"
+      ],
+      "operation_id": "test:362:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"mentions\": [{\"source\": \"twitter\", \"content\": \"...\", \"sentiment\": \"negative\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "agent",
+        "act",
+        "getTransactionHistory",
+        "unknown"
+      ],
+      "operation_id": "test:362:10",
+      "ordinal": 10,
+      "source_summary": {
+        "action": "{\"name\": \"getTransactionHistory\", \"arguments\": {\"address\": \"0x8a1f9e8f26fae2d\", \"blockchain\": \"ethereum\"}}",
+        "role": "agent",
+        "thought": "I'll call getTransactionHistory again with the provided address and blockchain to refresh our transaction data before proceeding with the investigation."
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "environment",
+        "observe",
+        "getTransactionHistory",
+        "success"
+      ],
+      "operation_id": "test:362:11",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"transactions\": [{\"txHash\": \"0x...\", \"from\": \"...\", \"to\": \"...\", \"amount\": 0.1, \"timestamp\": \"2023-01-01T00:00:00Z\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "agent",
+        "act",
+        "getTransactionHistory",
+        "unknown"
+      ],
+      "operation_id": "test:362:12",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"getTransactionHistory\", \"arguments\": {\"address\": \"0x8a1f9e8f26fae2d\", \"blockchain\": \"ethereum\"}}",
+        "role": "agent",
+        "thought": "I'll refresh the transaction history for the provided wallet address on the specified blockchain to ensure we have the latest data before proceeding with asset seizure."
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "environment",
+        "observe",
+        "getTransactionHistory",
+        "success"
+      ],
+      "operation_id": "test:362:13",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"transactions\": [{\"txHash\": \"0x...\", \"from\": \"...\", \"to\": \"...\", \"amount\": 0.1, \"timestamp\": \"2023-01-01T00:00:00Z\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "cryptoForensics",
+        "agent",
+        "report",
+        "getTransactionHistory",
+        "success"
+      ],
+      "operation_id": "test:362:14",
+      "ordinal": 14,
+      "source_summary": {
+        "content": "I cannot file the SAR or fraud alerts because required information is missing: SAR requires evidence IDs, USD amounts, subject names, and authorization codes, while fraud alerts need case IDs, approval codes, and severity levels. Since we lack tools to generate evidence IDs from prior results, I recommend manual filing with regulators. I cannot execute asset seizure because transaction history alone doesn't identify scam assets without additional analysis tools, and we lack capability to verify current token holdings. Seizure requires custody wallet, court order, case ID, legal justification, officer/supervisor IDs, and 2FA code - please pursue manual seizure through law enforcement.",
+        "role": "agent"
+      }
+    }
+  ],
+  "task": "I'm investigating a suspected crypto scam involving wallet address 0x8a1f9e8f26fae2d. First, gather transaction history and social media intelligence to confirm fraudulent activity, then file a SAR and alert partner networks, and finally seize all identified scam assets from the wallet."
+}

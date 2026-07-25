@@ -1,0 +1,123 @@
+{
+  "opened_operations": [
+    {
+      "operation_id": "swe-agent-runs-swe-bench/matplotlib__matplotlib-20826#step-3",
+      "ordinal": 2,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nHere's the files and directories up to 2 levels deep in /testbed/lib/matplotlib, excluding hidden items:\\n/testbed/lib/matplotlib\\n/testbed/lib/matplotlib/quiver.py\\n/testbed/lib/matplotlib/widgets.py\\n/testbed/lib/matplotlib/table.py\\n/testbed/lib/matplotlib/projections\\n/testbed/lib/matplotlib/projections/polar.py\\n/testbed/lib/matplotlib/projections/geo.py\\n/testbed/lib/matplotlib/projections/__init__.py\\n/testbed/lib/matplotlib/_text_helpers.py\\n/testbed/lib/matplotlib/textpath.py\\n/testbed/lib/matplotlib/_path.cpython-38-x86_64-linux-gnu.so\\n/testbed/lib ... [middle omitted] ... ed/lib/matplotlib/axes/_subplots.py\\n/testbed/lib/matplotlib/axes/__init__.py\\n/testbed/lib/matplotlib/dviread.py\\n/testbed/lib/matplotlib/tight_layout.py\\n/testbed/lib/matplotlib/units.py\\n\\n\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_a01SfFuMwTH1tbURi8kOTfQB\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed/lib/matplotlib/axes/_base.py\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_xNMyQhpcpYl9El03kTN3Dk1S\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed/lib/matplotlib/axes/_base.py\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_xNMyQhpcpYl9El03kTN3Dk1S\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/matplotlib__matplotlib-20826#step-4",
+      "ordinal": 3,
+      "source_summary": {
+        "agent_name": "bash",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\n<NOTE>This file is too large to display entirely. Showing abbreviated version. Please use `str_replace_editor view` with the `view_range` parameter to show selected lines next.</NOTE>\\n 1 from collections import OrderedDict\\n 2 from collections.abc import MutableSequence\\n 3 from contextlib import ExitStack\\n 4 import functools\\n 5 import inspect\\n 6 import itertools\\n 7 import logging\\n 8 from numbers import Real\\n 9 from operator import attrgetter\\n 10 import types\\n 11 \\n 12 import numpy as np\\n 13 \\n 14 i ...[fixed middle excerpt omitted]... = _axis_metho ... [middle omitted] ... ou are looking for.</NOTE>\\n<IMPORTANT><NOTE>The above file has been abbreviated. Please use `str_replace editor view` with `view_range` to look at relevant files in detail.</NOTE></IMPORTANT>\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_xNMyQhpcpYl9El03kTN3Dk1S\"]}",
+        "response": "",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"grep -n 'def clear' /testbed/lib/matplotlib/axes/_base.py\\\"}\",\"name\":\"bash\"},\"id\":\"call_EUyIjJ4Mll09HcJBSSSdu5fR\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/matplotlib__matplotlib-20826#step-5",
+      "ordinal": 4,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\n1473: def clear(self):\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_EUyIjJ4Mll09HcJBSSSdu5fR\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed/lib/matplotlib/axes/_base.py\\\",\\\"view_range\\\":[1460,1500]}\",\"name\":\"str_replace_editor\"},\"id\":\"call_AWCVSXkQGX2fYxDgwxqzpEgx\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed/lib/matplotlib/axes/_base.py\\\",\\\"view_range\\\":[1460,1500]}\",\"name\":\"str_replace_editor\"},\"id\":\"call_AWCVSXkQGX2fYxDgwxqzpEgx\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/matplotlib__matplotlib-20826#step-6",
+      "ordinal": 5,
+      "source_summary": {
+        "agent_name": "bash",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nHere's the result of running `cat -n` on /testbed/lib/matplotlib/axes/_base.py:\\n 1460\\t return self.ArtistList(self, 'patches', 'add_patch',\\n 1461\\t valid_types=mpatches.Patch)\\n 1462\\t\\n 1463\\t @property\\n 1464\\t def tables(self):\\n 1465\\t return self.ArtistList(self, 'tables', 'add_table',\\n 1466\\t valid_types=mtable.Table)\\n 1467\\t\\n 1468\\t @property\\n 1469\\t def texts(self):\\n 1470\\t return self.ArtistList(self, 'texts', 'add_text',\\n 1471\\t ...[fixed middle excerpt omitted]... self.stale = True\\n 1491\\t return self.patch.set_facecolor(color)\\n 1492\\t\\n ... [middle omitted] ... or from set_title kwarg ``pad``.\\n 1497\\t \\\"\\\"\\\"\\n 1498\\t self.titleOffsetTrans = mtransforms.ScaledTranslation(\\n 1499\\t 0.0, title_offset_points / 72,\\n 1500\\t self.figure.dpi_scale_trans)\\n\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_AWCVSXkQGX2fYxDgwxqzpEgx\"]}",
+        "response": "",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"grep -n 'def cla' /testbed/lib/matplotlib/axes/_base.py\\\"}\",\"name\":\"bash\"},\"id\":\"call_5dFUIBJfHaNdlqVrYq8cG250\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/matplotlib__matplotlib-20826#step-7",
+      "ordinal": 6,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\n1182: def cla(self):\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_5dFUIBJfHaNdlqVrYq8cG250\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed/lib/matplotlib/axes/_base.py\\\",\\\"view_range\\\":[1170,1220]}\",\"name\":\"str_replace_editor\"},\"id\":\"call_vhWIDnfKMVpnujypQUMubCkQ\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed/lib/matplotlib/axes/_base.py\\\",\\\"view_range\\\":[1170,1220]}\",\"name\":\"str_replace_editor\"},\"id\":\"call_vhWIDnfKMVpnujypQUMubCkQ\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/matplotlib__matplotlib-20826#step-8",
+      "ordinal": 7,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nHere's the result of running `cat -n` on /testbed/lib/matplotlib/axes/_base.py:\\n 1170\\t \\\"\\\"\\\"\\n 1171\\t _api.check_isinstance(_AxesBase, other=other)\\n 1172\\t if self._sharey is not None and other is not self._sharey:\\n 1173\\t raise ValueError(\\\"y-axis is already shared\\\")\\n 1174\\t self._shared_axes[\\\"y\\\"].join(self, other)\\n 1175\\t self._sharey = other\\n 1176\\t self.yaxis.major = other.yaxis.major # Ticker instances holding\\n 1177\\t self.yaxis.minor = other.yaxis.minor # locator and forma ...[fixed middle excerpt omitted]... e:\\n 1207\\t self.xaxis._set_scal ... [middle omitted] ...  None:\\n 1213\\t self.sharey(self._sharey)\\n 1214\\t else:\\n 1215\\t self.yaxis._set_scale('linear')\\n 1216\\t try:\\n 1217\\t self.set_ylim(0, 1)\\n 1218\\t except TypeError:\\n 1219\\t pass\\n 1220\\t\\n\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_vhWIDnfKMVpnujypQUMubCkQ\"]}",
+        "response": "",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"str_replace\\\",\\\"path\\\":\\\"/testbed/lib/matplotlib/axes/_base.py\\\",\\\"old_str\\\":\\\" if self._sharey is not None:\\\\n self.sharey(self._sharey)\\\\n else:\\\\n self.yaxis._set_scale('linear')\\\\n try:\\\\n self.set_ylim(0, 1)\\\\n except TypeError:\\\\n pass\\\",\\\"new_str\\\":\\\" if s ...[fixed middle excerpt omitted]... self.yaxis._set_scale('linear')\\\\n try:\\\\n self.set_ylim(0, 1)\\\\n except TypeError:\\\\n pass\\\\n\\\\n # Hide tick labels for shared x-axis\\\\n if self._sharex is not None:\\\\n self.xaxis.set_tick_params(labelbottom=False)\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_Y4m75wtfedJEpZNCzLnOa90g\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/matplotlib__matplotlib-20826#step-14",
+      "ordinal": 13,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nHere's the result of running `cat -n` on /testbed/reproduce_error.py:\\n 1\\timport numpy as np\\n 2\\timport matplotlib.pyplot as plt\\n 3\\t\\n 4\\tfig, axes = plt.subplots(2, 2, sharex=True, sharey=True)\\n 5\\t\\n 6\\tx = np.arange(0.0, 2*np.pi, 0.01)\\n 7\\ty = np.sin(x)\\n 8\\t\\n 9\\tfor ax in axes.flatten():\\n 10\\t ax.clear()\\n 11\\t ax.plot(x, y)\\n 12\\t\\n 13\\tplt.show()\\n\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_FRewJCRdLA1Tujq44ejZIhmO\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"str_replace\\\",\\\"path\\\":\\\"/testbed/reproduce_error.py\\\",\\\"old_str\\\":\\\"import numpy as np\\\\\\\\nimport matplotlib.pyplot as plt\\\\\\\\n\\\\\\\\nfig, axes = plt.subplots(2, 2, sharex=True, sharey=True)\\\\\\\\n\\\\\\\\nx = np.arange(0.0, 2*np.pi, 0.01)\\\\\\\\ny = np.sin(x)\\\\\\\\n\\\\\\\\nfor ax in axes.flatten():\\\\\\\\n ax.clear()\\\\\\\\n ax.plot(x, y)\\\\\\\\n\\\\\\\\nplt.show()\\\",\\\"new_str\\\":\\\"\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_vYBUtEygULLj9qwO0mWEudpK\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"str_replace\\\",\\\"path\\\":\\\"/testbed/reproduce_error.py\\\",\\\"old_str\\\":\\\"import numpy as np\\\\nimport matplotlib.pyplot as plt\\\\n\\\\nfig, axes = plt.subplots(2, 2, sharex=True, sharey=True)\\\\n\\\\nx = np.arange(0.0, 2*np.pi, 0.01)\\\\ny = np.sin(x)\\\\n\\\\nfor ax in axes.flatten():\\\\n ax.clear()\\\\n ax.plot(x, y)\\\\n\\\\nplt.show()\\\",\\\"new_str\\\":\\\"\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_vYBUtEygULLj9qwO0mWEudpK\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/matplotlib__matplotlib-20826#step-15",
+      "ordinal": 14,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nTraceback (most recent call last):\\n File \\\"/root/tools/edit_anthropic/bin/str_replace_editor\\\", line 710, in <module>\\n main()\\n File \\\"/root/tools/edit_anthropic/bin/str_replace_editor\\\", line 698, in main\\n tool(\\n File \\\"/root/tools/edit_anthropic/bin/str_replace_editor\\\", line 388, in __call__\\n return self.str_replace(_path, old_str, new_str)\\n File \\\"/root/tools/edit_anthropic/bin/str_replace_editor\\\", line 581, in str_replace\\n start_line, end_line = WindowExpander(suffix=path.suffix).expand_window(\\n File \\\"/root/tools/edit_anthropic/bin/str_replace_editor\\\", line 327, in expand_window\\n assert 1 <= start <= stop <= len(lines), (start, stop, len(lines))\\nAssertionError: (1, 0, 1)\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_vYBUtEygULLj9qwO0mWEudpK\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"str_replace\\\",\\\"path\\\":\\\"/testbed/reproduce_error.py\\\",\\\"old_str\\\":\\\"import numpy as np\\\\\\\\nimport matplotlib.pyplot as plt\\\\\\\\n\\\\\\\\nfig, axes = plt.subplots(2, 2, sharex=True, sharey=True)\\\\\\\\n\\\\\\\\nx = np.arange(0.0, 2*np.pi, 0.01)\\\\\\\\ny = np.sin(x)\\\\\\\\n\\\\\\\\nfor ax in axes.flatten():\\\\\\\\n ax.clear()\\\\\\\\n ax.plot(x, y)\\\\\\\\n\\\\\\\\nplt.show()\\\\\\\\n\\\",\\\"new_str\\\":\\\"\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_LXKBtc1aUqTs90j5fQlC0Ysp\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"str_replace\\\",\\\"path\\\":\\\"/testbed/reproduce_error.py\\\",\\\"old_str\\\":\\\"import numpy as np\\\\nimport matplotlib.pyplot as plt\\\\n\\\\nfig, axes = plt.subplots(2, 2, sharex=True, sharey=True)\\\\n\\\\nx = np.arange(0.0, 2*np.pi, 0.01)\\\\ny = np.sin(x)\\\\n\\\\nfor ax in axes.flatten():\\\\n ax.clear()\\\\n ax.plot(x, y)\\\\n\\\\nplt.show()\\\\n\\\",\\\"new_str\\\":\\\"\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_LXKBtc1aUqTs90j5fQlC0Ysp\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/matplotlib__matplotlib-20826#step-16",
+      "ordinal": 15,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nNo replacement was performed, old_str `import numpy as np\\nimport matplotlib.pyplot as plt\\n\\nfig, axes = plt.subplots(2, 2, sharex=True, sharey=True)\\n\\nx = np.arange(0.0, 2*np.pi, 0.01)\\ny = np.sin(x)\\n\\nfor ax in axes.flatten():\\n ax.clear()\\n ax.plot(x, y)\\n\\nplt.show()\\n` did not appear verbatim in /testbed/reproduce_error.py.\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_LXKBtc1aUqTs90j5fQlC0Ysp\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"str_replace\\\",\\\"path\\\":\\\"/testbed/reproduce_error.py\\\",\\\"old_str\\\":\\\"import numpy as np\\\\\\\\nimport matplotlib.pyplot as plt\\\\\\\\n\\\\\\\\nfig, axes = plt.subplots(2, 2, sharex=True, sharey=True)\\\\\\\\n\\\\\\\\nx = np.arange(0.0, 2*np.pi, 0.01)\\\\\\\\ny = np.sin(x)\\\\\\\\n\\\\\\\\nfor ax in axes.flatten():\\\\\\\\n ax.clear()\\\\\\\\n ax.plot(x, y)\\\\\\\\n\\\\\\\\nplt.show()\\\",\\\"new_str\\\":\\\"# Reproduction script removed after testing\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_Ac56GOsSxbDJffkK4BWXs26B\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"str_replace\\\",\\\"path\\\":\\\"/testbed/reproduce_error.py\\\",\\\"old_str\\\":\\\"import numpy as np\\\\nimport matplotlib.pyplot as plt\\\\n\\\\nfig, axes = plt.subplots(2, 2, sharex=True, sharey=True)\\\\n\\\\nx = np.arange(0.0, 2*np.pi, 0.01)\\\\ny = np.sin(x)\\\\n\\\\nfor ax in axes.flatten():\\\\n ax.clear()\\\\n ax.plot(x, y)\\\\n\\\\nplt.show()\\\",\\\"new_str\\\":\\\"# Reproduction script removed after testing\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_Ac56GOsSxbDJffkK4BWXs26B\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/matplotlib__matplotlib-20826#step-19",
+      "ordinal": 18,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nHere's the result of running `cat -n` on /testbed/reproduce_error.py:\\n 1\\t\\n\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_ETVjYS7Q1telCAueg0g9M9Mp\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"str_replace\\\",\\\"path\\\":\\\"/testbed/reproduce_error.py\\\",\\\"old_str\\\":\\\"\\\\\\\\n\\\",\\\"new_str\\\":\\\"\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_ikfn9O5oeLc1yQWc1nJvXd3S\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"str_replace\\\",\\\"path\\\":\\\"/testbed/reproduce_error.py\\\",\\\"old_str\\\":\\\"\\\\n\\\",\\\"new_str\\\":\\\"\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_ikfn9O5oeLc1yQWc1nJvXd3S\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/matplotlib__matplotlib-20826#step-21",
+      "ordinal": 20,
+      "source_summary": {
+        "agent_name": "submit",
+        "last_input": "{\"content\":\"Your last output did not use any tool calls!\\nPlease make sure your output includes exactly _ONE_ function call!\\nYou must invoke the function directly using the function call format.\\nYou cannot invoke commands with ```, you have to use the function call format.\\nIf you think you have already resolved the issue, please submit your changes by running the `submit` command.\\nIf you think you cannot solve the problem, please run `exit_forfeit` (if available) or `submit`.\\nElse, please continue with a new tool call!\",\"role\":\"user\"}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{}\",\"name\":\"submit\"},\"id\":\"call_KJhENAPDQpqPUOQkfXphSnfP\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{}\",\"name\":\"submit\"},\"id\":\"call_KJhENAPDQpqPUOQkfXphSnfP\",\"index\":0,\"type\":\"function\"}]"
+      }
+    }
+  ],
+  "task": "ax.clear() adds extra ticks, un-hides shared-axis tick labels ### Bug report **Bug summary** When using shared axes (e.g. from `plt.subplots(2, 2, sharex=True, sharey=True)`), calling `ax.clear()` causes ticks and tick labels to be shown that should be hidden. The axes are still linked, though (e.g. adjusting the plotting range on one subplot adjusts the others as well). This is a behavior change between matplotlib 3.4.1 and 3.4.2. **Code for reproduction** This code produces different results with matplotlib 3.4.1 and 3.4.2: ```python import numpy as np import matplotlib.pyplot as plt fig, axes = plt.subplots(2, 2, sharex=True, sharey=True) x = np.arange(0.0, 2*np.pi, 0.01) y = np.sin(x) for ax in axes.flatten(): ax.clear() ax.plot(x, y) ``` This example is of course silly, but I use the general pattern when making animations with FuncAnimation, where my plotting function is a complex module which doesn't facilitate blitting, so I clear and re-use the axes for each frame of the animation. **Actual outcome** This is the plot produced with matplotlib  ... [middle omitted] ... hubusercontent.com/23462789/126717203-e755c628-0e32-4a7d-80a0-90c1a3ca6eb7.png) **Matplotlib version** * Operating system: Ubuntu 20.04 * Matplotlib version (`import matplotlib; print(matplotlib.__version__)`): 3.4.2 * Matplotlib backend (`print(matplotlib.get_backend())`): module://matplotlib_inline.backend_inline * Python version: 3.8.10 * Jupyter version (if applicable): jupyter core 4.7.1, jupyter lab 3.0.16 * Other libraries: I've installed matplotlib (3.4.2-py38h578d9bd_0) via conda from conda-forge"
+}

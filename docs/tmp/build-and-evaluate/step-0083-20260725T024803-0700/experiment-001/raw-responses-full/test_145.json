@@ -1,0 +1,75 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 10528,
+        "prompt_tokens_o200k": 2707,
+        "returncode": 0,
+        "stderr_tail": "• The key failure: at op 12, get_scheduled_transactions shows the rent payment IS already scheduled (SCHD789, 1200, IBAN match, 2024-02-05). But at op 13, agent says \"I don't see any rent payment scheduled\" and asks to schedule. Then at op 15, it schedules a duplicate. That's the failure: duplicate rent payment despite already scheduled.\n\n  Ranked: op 13 (misreported), op 15 (duplicate schedule), op 11 (the check was correct actually — it did verify). Also op 14 user confirms based on agent's wrong statement. The user instruction at 14 was induced by agent error. Rank: 13, 15, 14?, 11? Op 11 was correct behavior. Op 14 is a user message but arguably responsible-ish. Rank: test:145:13, test:145:15, test:145:14, test:145:11.\n\nTo resume this session: kimi -r session_911aa4dd-2fb1-449e-b359-154be565c9ad\n"
+      },
+      "parsed": [
+        "test:145:13",
+        "test:145:15",
+        "test:145:14",
+        "test:145:11"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:145:13\", \"test:145:15\", \"test:145:14\", \"test:145:11\"]}\n\n",
+      "wall_seconds": 13.48632483597612
+    }
+  ],
+  "completed_ranking": [
+    "test:145:13",
+    "test:145:15",
+    "test:145:14",
+    "test:145:11",
+    "test:145:0",
+    "test:145:1",
+    "test:145:2",
+    "test:145:3",
+    "test:145:4",
+    "test:145:5",
+    "test:145:6",
+    "test:145:7",
+    "test:145:8",
+    "test:145:9",
+    "test:145:10",
+    "test:145:12",
+    "test:145:16",
+    "test:145:17",
+    "test:145:18",
+    "test:145:19",
+    "test:145:20",
+    "test:145:21",
+    "test:145:22",
+    "test:145:23",
+    "test:145:24",
+    "test:145:25"
+  ],
+  "condition": "full_trace_reader",
+  "operation_count": 26,
+  "packet_chars": 9641,
+  "prompt_tokens_o200k": 2707,
+  "query_id": "test:145",
+  "reader_ranked_operation_ids": [
+    "test:145:13",
+    "test:145:15",
+    "test:145:14",
+    "test:145:11"
+  ],
+  "scored_as_original_order_failure": false,
+  "status": "ok",
+  "wall_seconds": 13.48632483597612
+}

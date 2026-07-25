@@ -1,0 +1,267 @@
+{
+  "operation_count": 17,
+  "operations": [
+    {
+      "native_path": [
+        "publicTransit",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:223:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users with public transit operations, including project justification, budget approvals, vendor contracts, and passenger communications during service disruptions. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"approveCapitalExpenditure\", \"description\": \"Approves major capital expenditures (fleet, infrastructure, facilities) after validating financial approvals and budget allocation. Returns a confirmation record with approval details. WARNING: Commits significant public funds; improper use may trigger audits.\", \"parameters\": { \"type\": \"object ... [middle omitted] ...  Optional; defaults to current time.\" }, \"endTime\": { \"type\": \"string\", \"description\": \"ISO 8601 timestamp for estimated resolution (e.g., '2025-04-15T10:00:00Z'). Optional; no end time assumed if omitted.\" } }, \"required\": [ \"lineId\", \"severity\", \"title\", \"message\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:223:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "We're upgrading the signaling system on Metro Line 7 next month, which will cause multi-day closures. I need you to help justify the project by analyzing recent reliability metrics and current passenger volumes, secure budget approval and sign the contractor agreement, and manage passenger communications during the closure through alerts, alternative routes, notifications, and refunds for monthly pass holders.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "getOperationalMetrics",
+        "unknown"
+      ],
+      "operation_id": "test:223:2",
+      "ordinal": 2,
+      "source_summary": {
+        "action": "{\"name\": \"getOperationalMetrics\", \"arguments\": {\"metricType\": \"reliability\", \"lineId\": \"7\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve the reliability metrics for line 7 to support the project justification analysis as requested."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "getOperationalMetrics",
+        "success"
+      ],
+      "operation_id": "test:223:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"lineId\": \"7\", \"timeframeDays\": 30, \"service_consistency_index\": 0.85, \"on_time_performance\": 78.2, \"major_delay_events\": 12}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "report",
+        "getOperationalMetrics",
+        "success"
+      ],
+      "operation_id": "test:223:4",
+      "ordinal": 4,
+      "source_summary": {
+        "content": "Based on the recent reliability metrics showing only 78.2% on-time performance and 12 major delay events in the past month, the disruption impact on Line 7 is severe, making the signaling system upgrade urgently necessary. The severe disruption metrics confirm the signaling system replacement is critically urgent. However, Goal 2 requires manual processing: the vendor contract tool lacks a 'signaling system' option, and the budget approval tool needs missing parameters like projectID and approverID. Please handle this contract manually given the urgency. To proceed with passenger communication ... [middle omitted] ... airs for alternative route planning. 3. Notification details—channel (SMS/email/app push), target audience, and message content. Note: Bulk refunds require unavailable parameters (incidentId, affectedTrips, refundPercentage, financeApproval); manual processing is recommended.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:223:7",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "Set the service alert with severity 'major', title 'Line 7 Closure: Signaling Upgrade', message 'Line 7 closed May 1-7. Use buses 12/24 or Line 6. Expect delays.', startTime '2025-05-01T00:00:00Z', and endTime '2025-05-07T23:59:59Z'. Also provide alternative routes for Metro Center to Northeast Station and West Transfer to Downtown Hub, and send email notifications to line7_monthly_passholders with message 'Line 7 closed May 1-7. See alternative routes at metro.com/detours'.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "createServiceAlert",
+        "unknown"
+      ],
+      "operation_id": "test:223:8",
+      "ordinal": 6,
+      "source_summary": {
+        "action": "{\"name\": \"createServiceAlert\", \"arguments\": {\"lineId\": \"7\", \"severity\": \"major\", \"title\": \"Line 7 Closure: Signaling Upgrade\", \"message\": \"Line 7 closed May 1-7. Use buses 12/24 or Line 6. Expect delays.\", \"startTime\": \"2025-05-01T00:00:00Z\", \"endTime\": \"2025-05-07T23:59:59Z\"}}",
+        "role": "agent",
+        "thought": "I'll create the service alert for Line 7 with the provided parameters to inform passengers about the upcoming closure as requested in the latest user message."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "createServiceAlert",
+        "success"
+      ],
+      "operation_id": "test:223:9",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "{\"status\": \"published\", \"alertId\": \"alert_7_20250501\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "getTripPlanningData",
+        "unknown"
+      ],
+      "operation_id": "test:223:10",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"getTripPlanningData\", \"arguments\": {\"origin\": \"Metro Center\", \"destination\": \"Northeast Station\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve alternative routes for the first origin-destination pair specified in the latest user message using the getTripPlanningData tool."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "getTripPlanningData",
+        "success"
+      ],
+      "operation_id": "test:223:11",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"options\": [{\"duration\": \"35 min\", \"transfers\": 1, \"fare\": 2.75}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "getTripPlanningData",
+        "unknown"
+      ],
+      "operation_id": "test:223:12",
+      "ordinal": 10,
+      "source_summary": {
+        "action": "{\"name\": \"getTripPlanningData\", \"arguments\": {\"origin\": \"West Transfer\", \"destination\": \"Downtown Hub\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve alternative routes for the second origin-destination pair specified in the latest user message using the getTripPlanningData tool."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "getTripPlanningData",
+        "success"
+      ],
+      "operation_id": "test:223:13",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"options\": [{\"duration\": \"28 min\", \"transfers\": 0, \"fare\": 2.5}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "sendPassengerNotification",
+        "unknown"
+      ],
+      "operation_id": "test:223:14",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"sendPassengerNotification\", \"arguments\": {\"channel\": \"email\", \"audience\": \"line7_monthly_passholders\", \"message\": \"Line 7 closed May 1-7. See alternative routes at metro.com/detours\"}}",
+        "role": "agent",
+        "thought": "I'll send the email notification to the specified audience with the provided message to complete the passenger communication task from the latest user request."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "sendPassengerNotification",
+        "success"
+      ],
+      "operation_id": "test:223:15",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"status\": \"sent\", \"delivered\": 12450, \"failed\": 18}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "sendPassengerNotification",
+        "unknown"
+      ],
+      "operation_id": "test:223:16",
+      "ordinal": 14,
+      "source_summary": {
+        "action": "{\"name\": \"sendPassengerNotification\", \"arguments\": {\"channel\": \"email\", \"audience\": \"line7_monthly_passholders\", \"message\": \"Line 7 closed May 1-7. See alternative routes at metro.com/detours\"}}",
+        "role": "agent",
+        "thought": "I'll send the email notification to the specified audience with the provided message to complete the passenger communication task from the latest user request."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "sendPassengerNotification",
+        "success"
+      ],
+      "operation_id": "test:223:17",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "{\"status\": \"sent\", \"delivered\": 12450, \"failed\": 18}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "report",
+        "sendPassengerNotification",
+        "success"
+      ],
+      "operation_id": "test:223:18",
+      "ordinal": 16,
+      "source_summary": {
+        "content": "I've detected a state tracking failure that caused duplicate passenger notifications being sent - passengers received the same alert twice because I forgot step 15 was already executed. This duplication may cause confusion, alert fatigue, and increased unsubscribe rates.",
+        "role": "agent"
+      }
+    }
+  ],
+  "task": "We're upgrading the signaling system on Metro Line 7 next month, which will cause multi-day closures. I need you to help justify the project by analyzing recent reliability metrics and current passenger volumes, secure budget approval and sign the contractor agreement, and manage passenger communications during the closure through alerts, alternative routes, notifications, and refunds for monthly pass holders."
+}

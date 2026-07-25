@@ -1,0 +1,574 @@
+{
+  "operation_count": 37,
+  "operations": [
+    {
+      "native_path": [
+        "travel",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:295:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users plan business trips, including hotel bookings, restaurant arrangements, and car rentals. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"get_hotels_prices\", \"description\": \"Retrieve the price range for specified hotels. Returns per-night pricing including dates and room configuration if provided; otherwise returns general price ranges.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"hotel_names\": { \"type\": \"array\", \"items\": { \"type\": \"string\" }, \"description\": \"List of hotel names to get price information for\" }, \"check_in_date\": { \" ... [middle omitted] ... type\": \"array\", \"items\": { \"type\": \"string\" }, \"description\": \"Optional list of locations (e.g., city names) corresponding to each hotel name for improved disambiguation. Must match the order and length of 'hotel_names' if provided.\" } }, \"required\": [ \"hotel_names\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:295:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "I'm planning a business trip to New York next month and need to find a well-reviewed hotel near the conference venue, arrange dinner at a highly-rated Italian restaurant nearby on the first night, and rent a car for local transportation during my stay.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "report",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:295:2",
+      "ordinal": 2,
+      "source_summary": {
+        "content": "To help with your hotel search, I need specific hotel names or the conference venue details because my tools can only retrieve information using exact hotel names. Please share the hotels you're considering or the venue location so I can proceed.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:295:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "I've researched a few options: The Ritz-Carlton New York, Conrad New York Downtown, and Four Seasons Hotel New York.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_rating_reviews_for_hotels",
+        "unknown"
+      ],
+      "operation_id": "test:295:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"get_rating_reviews_for_hotels\", \"arguments\": {\"hotel_names\": [\"The Ritz-Carlton New York\", \"Conrad New York Downtown\", \"Four Seasons Hotel New York\"], \"locations\": [\"New York\", \"New York\", \"New York\"]}}",
+        "role": "agent",
+        "thought": "I'll retrieve the ratings and reviews for The Ritz-Carlton New York, Conrad New York Downtown, and Four Seasons Hotel New York to help the user evaluate their options."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_rating_reviews_for_hotels",
+        "unknown"
+      ],
+      "operation_id": "test:295:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"ratings\": {\"The Ritz-Carlton New York\": 4.7, \"Conrad New York Downtown\": 4.5, \"Four Seasons Hotel New York\": 4.8}, \"review_counts\": {\"The Ritz-Carlton New York\": 1200, \"Conrad New York Downtown\": 950, \"Four Seasons Hotel New York\": 1500}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_hotels_address",
+        "unknown"
+      ],
+      "operation_id": "test:295:6",
+      "ordinal": 6,
+      "source_summary": {
+        "action": "{\"name\": \"get_hotels_address\", \"arguments\": {\"hotel_name\": \"The Ritz-Carlton New York\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve the address for The Ritz-Carlton New York to help the user evaluate its proximity to the conference venue."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_hotels_address",
+        "unknown"
+      ],
+      "operation_id": "test:295:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "{\"address\": \"50 Central Park S, New York, NY 10019, United States\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_hotels_address",
+        "unknown"
+      ],
+      "operation_id": "test:295:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"get_hotels_address\", \"arguments\": {\"hotel_name\": \"Conrad New York Downtown\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve the address for Conrad New York Downtown to help the user evaluate its proximity to the conference venue."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_hotels_address",
+        "unknown"
+      ],
+      "operation_id": "test:295:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"address\": \"102 North End Ave, New York, NY 10282, United States\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_hotels_address",
+        "unknown"
+      ],
+      "operation_id": "test:295:10",
+      "ordinal": 10,
+      "source_summary": {
+        "action": "{\"name\": \"get_hotels_address\", \"arguments\": {\"hotel_name\": \"Four Seasons Hotel New York\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve the address for the remaining hotel option to help the user evaluate its proximity to the conference venue."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_hotels_address",
+        "unknown"
+      ],
+      "operation_id": "test:295:11",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "{\"address\": \"57 E 57th St, New York, NY 10022, United States\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_hotels_prices",
+        "unknown"
+      ],
+      "operation_id": "test:295:12",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"get_hotels_prices\", \"arguments\": {\"hotel_names\": [\"The Ritz-Carlton New York\", \"Conrad New York Downtown\", \"Four Seasons Hotel New York\"]}}",
+        "role": "agent",
+        "thought": "I'll retrieve the prices for the three hotels the user is considering to help them evaluate costs."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_hotels_prices",
+        "unknown"
+      ],
+      "operation_id": "test:295:13",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"The Ritz-Carlton New York\": {\"min_price\": 795, \"max_price\": 1200, \"currency\": \"USD\"}, \"Conrad New York Downtown\": {\"min_price\": 625, \"max_price\": 950, \"currency\": \"USD\"}, \"Four Seasons Hotel New York\": {\"min_price\": 1100, \"max_price\": 2500, \"currency\": \"USD\"}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "report",
+        "get_hotels_prices",
+        "unknown"
+      ],
+      "operation_id": "test:295:14",
+      "ordinal": 14,
+      "source_summary": {
+        "content": "Based on your criteria, here are the hotel options: The Four Seasons Hotel New York has the highest rating (4.8) at 57 E 57th St, with prices from $1100-$2500 per night. The Ritz-Carlton (4.7 rating, 50 Central Park S) ranges from $795-$1200, while Conrad New York Downtown (4.5 rating, 102 North End Ave) offers $625-$950 rates. To proceed with finding a highly-rated Italian restaurant near your chosen hotel, could you confirm which of these hotels you'll be staying at? This will help me narrow down nearby dining options for your first night.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:295:16",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "I'll stay at The Ritz-Carlton New York.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "report",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:295:17",
+      "ordinal": 16,
+      "source_summary": {
+        "content": "For the Italian restaurant dinner, I can provide ratings and details if you give me specific names. Could you research a few highly-rated Italian options near The Ritz-Carlton New York and share them with me?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:295:18",
+      "ordinal": 17,
+      "source_summary": {
+        "content": "I've researched some options near The Ritz-Carlton: Carbone, Lilia, and Marea.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_cuisine_type_for_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:295:19",
+      "ordinal": 18,
+      "source_summary": {
+        "action": "{\"name\": \"get_cuisine_type_for_restaurants\", \"arguments\": {\"restaurant_names\": [\"Carbone\", \"Lilia\", \"Marea\"]}}",
+        "role": "agent",
+        "thought": "I'll verify that Carbone, Lilia, and Marea serve Italian cuisine since the user specifically requested a highly-rated Italian restaurant near their hotel."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_cuisine_type_for_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:295:20",
+      "ordinal": 19,
+      "source_summary": {
+        "content": "{\"Carbone\": \"Italian\", \"Lilia\": \"Italian\", \"Marea\": \"Italian\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_rating_reviews_for_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:295:21",
+      "ordinal": 20,
+      "source_summary": {
+        "action": "{\"name\": \"get_rating_reviews_for_restaurants\", \"arguments\": {\"restaurant_names\": [\"Carbone\", \"Lilia\", \"Marea\"], \"location\": \"New York\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve the ratings and reviews for Carbone, Lilia, and Marea since the user requested highly-rated Italian restaurants near their hotel."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_rating_reviews_for_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:295:22",
+      "ordinal": 21,
+      "source_summary": {
+        "content": "{\"Carbone\": {\"rating\": 4.8, \"review_count\": 1240}, \"Lilia\": {\"rating\": 4.7, \"review_count\": 980}, \"Marea\": {\"rating\": 4.6, \"review_count\": 1560}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "check_restaurant_opening_hours",
+        "unknown"
+      ],
+      "operation_id": "test:295:23",
+      "ordinal": 22,
+      "source_summary": {
+        "action": "{\"name\": \"check_restaurant_opening_hours\", \"arguments\": {\"restaurant_names\": [\"Carbone\", \"Lilia\", \"Marea\"]}}",
+        "role": "agent",
+        "thought": "I'll check the opening hours for Carbone, Lilia, and Marea to see if they're open when the user plans to dine on the first night."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "check_restaurant_opening_hours",
+        "unknown"
+      ],
+      "operation_id": "test:295:24",
+      "ordinal": 23,
+      "source_summary": {
+        "content": "{\"Carbone\": {\"schedule\": \"Mon-Sun: 17:00-23:00\", \"status_now\": \"open\"}, \"Lilia\": {\"schedule\": \"Tue-Sun: 17:30-22:00\", \"status_now\": \"closed\"}, \"Marea\": {\"schedule\": \"Mon-Sat: 12:00-14:30, 17:30-22:30\", \"status_now\": \"open\"}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_contact_information_for_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:295:25",
+      "ordinal": 24,
+      "source_summary": {
+        "action": "{\"name\": \"get_contact_information_for_restaurants\", \"arguments\": {\"restaurant_names\": [\"Carbone\", \"Lilia\", \"Marea\"], \"location\": \"New York\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve contact information for Carbone, Lilia, and Marea in New York to provide the user with reservation options for their Italian dinner arrangements."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_contact_information_for_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:295:26",
+      "ordinal": 25,
+      "source_summary": {
+        "content": "{\"Carbone\": {\"address\": \"181 Thompson St, New York\", \"phone\": \"+12129999999\"}, \"Lilia\": {\"address\": \"567 Union Ave, Brooklyn\", \"phone\": \"+17185555555\"}, \"Marea\": {\"address\": \"240 Central Park S, New York\", \"phone\": \"+12128888888\"}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "report",
+        "get_contact_information_for_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:295:27",
+      "ordinal": 26,
+      "source_summary": {
+        "content": "For Italian dining near The Ritz-Carlton, your options are: Carbone (4.8★, 1240 reviews) open daily 5PM-11PM at 181 Thompson St (phone +12129999999), Lilia (4.7★, 980 reviews) open Tue-Sun 5:30PM-10PM at 567 Union Ave, Brooklyn (phone +17185555555), and Marea (4.6★, 1560 reviews) open Mon-Sat lunch/dinner at 240 Central Park S (phone +12128888888). To help arrange your car rental, could you please provide the start and end dates in YYYY-MM-DD format and any specific rental companies you're considering?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:295:29",
+      "ordinal": 27,
+      "source_summary": {
+        "content": "For the car rental, I need it from 2024-02-15 to 2024-02-20 and am considering Hertz, Avis, or Enterprise.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_rating_reviews_for_car_rental",
+        "unknown"
+      ],
+      "operation_id": "test:295:30",
+      "ordinal": 28,
+      "source_summary": {
+        "action": "{\"name\": \"get_rating_reviews_for_car_rental\", \"arguments\": {\"company_name\": [\"Hertz\", \"Avis\", \"Enterprise\"]}}",
+        "role": "agent",
+        "thought": "I'll retrieve the ratings and reviews for Hertz, Avis, and Enterprise to help the user compare their car rental options."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_rating_reviews_for_car_rental",
+        "unknown"
+      ],
+      "operation_id": "test:295:31",
+      "ordinal": 29,
+      "source_summary": {
+        "content": "{\"ratings\": {\"Hertz\": 4.3, \"Avis\": 4.2, \"Enterprise\": 4.5}, \"reviews\": {\"Hertz\": [\"Review 1\", \"Review 2\"], \"Avis\": [\"Review 1\", \"Review 2\"], \"Enterprise\": [\"Review 1\", \"Review 2\"]}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_car_types_available",
+        "unknown"
+      ],
+      "operation_id": "test:295:32",
+      "ordinal": 30,
+      "source_summary": {
+        "action": "{\"name\": \"get_car_types_available\", \"arguments\": {\"company_name\": [\"Hertz\", \"Avis\", \"Enterprise\"]}}",
+        "role": "agent",
+        "thought": "I'll retrieve the available car types for the specified rental companies to help the user compare their vehicle options."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_car_types_available",
+        "unknown"
+      ],
+      "operation_id": "test:295:33",
+      "ordinal": 31,
+      "source_summary": {
+        "content": "{\"Hertz\": [\"Sedan\", \"SUV\", \"Truck\"], \"Avis\": [\"Sedan\", \"Convertible\", \"SUV\"], \"Enterprise\": [\"Sedan\", \"SUV\", \"Minivan\"]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_car_fuel_options",
+        "unknown"
+      ],
+      "operation_id": "test:295:34",
+      "ordinal": 32,
+      "source_summary": {
+        "action": "{\"name\": \"get_car_fuel_options\", \"arguments\": {\"company_name\": [\"Hertz\", \"Avis\", \"Enterprise\"]}}",
+        "role": "agent",
+        "thought": "I'll retrieve the fuel options available from Hertz, Avis, and Enterprise to help the user compare their policies for the car rental."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_car_fuel_options",
+        "unknown"
+      ],
+      "operation_id": "test:295:35",
+      "ordinal": 33,
+      "source_summary": {
+        "content": "{\"Hertz\": [\"Regular\", \"Premium\", \"Diesel\"], \"Avis\": [\"Regular\", \"Premium\", \"Electric\"], \"Enterprise\": [\"Regular\", \"Diesel\", \"Hybrid\"]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_car_price_per_day",
+        "unknown"
+      ],
+      "operation_id": "test:295:36",
+      "ordinal": 34,
+      "source_summary": {
+        "action": "{\"name\": \"get_car_price_per_day\", \"arguments\": {\"company_name\": [\"Hertz\", \"Avis\", \"Enterprise\"], \"location\": \"Chicago\", \"start_date\": \"2024-02-15\", \"end_date\": \"2024-02-20\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve the daily prices for Hertz, Avis, and Enterprise in Chicago during the exact requested rental period (2024-02-15 to 2024-02-20) to compare costs."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_car_price_per_day",
+        "unknown"
+      ],
+      "operation_id": "test:295:37",
+      "ordinal": 35,
+      "source_summary": {
+        "content": "{\"Hertz\": 85.0, \"Avis\": 90.0, \"Enterprise\": 80.0}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "report",
+        "get_car_price_per_day",
+        "unknown"
+      ],
+      "operation_id": "test:295:38",
+      "ordinal": 36,
+      "source_summary": {
+        "content": "For car rentals in Chicago from 2024-02-15 to 2024-02-20, your options are: Hertz (4.3★) offers Sedan/SUV/Truck with Regular/Premium/Diesel fuel at $85/day; Avis (4.2★) provides Sedan/Convertible/SUV with Regular/Premium/Electric at $90/day; Enterprise (4.5★) has Sedan/SUV/Minivan with Regular/Diesel/Hybrid at $80/day. I can't book the car rental automatically, so you'll need to reserve it yourself by visiting the websites of Hertz, Avis, or Enterprise directly.",
+        "role": "agent"
+      }
+    }
+  ],
+  "task": "I'm planning a business trip to New York next month and need to find a well-reviewed hotel near the conference venue, arrange dinner at a highly-rated Italian restaurant nearby on the first night, and rent a car for local transportation during my stay."
+}

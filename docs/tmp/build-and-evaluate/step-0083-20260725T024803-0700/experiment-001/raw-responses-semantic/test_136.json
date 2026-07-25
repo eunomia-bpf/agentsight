@@ -1,0 +1,213 @@
+{
+  "completed_ranking": [
+    "test:136:7",
+    "test:136:20",
+    "test:136:8",
+    "test:136:6",
+    "test:136:19",
+    "test:136:21",
+    "test:136:14",
+    "test:136:17",
+    "test:136:0",
+    "test:136:1",
+    "test:136:2",
+    "test:136:3",
+    "test:136:4",
+    "test:136:5",
+    "test:136:9",
+    "test:136:10",
+    "test:136:11",
+    "test:136:12",
+    "test:136:13",
+    "test:136:15",
+    "test:136:16",
+    "test:136:18"
+  ],
+  "condition": "semantic_skeleton_reader",
+  "group_count": 18,
+  "largest_group_size": 3,
+  "operation_count": 22,
+  "prompt_tokens_o200k": 5891,
+  "query_id": "test:136",
+  "reader_ranked_operation_ids": [
+    "test:136:7",
+    "test:136:20",
+    "test:136:8",
+    "test:136:6",
+    "test:136:19",
+    "test:136:21",
+    "test:136:14",
+    "test:136:17"
+  ],
+  "selected_evidence_operation_count": 5,
+  "selected_group_path_keys": [
+    "aviationmaritime › execute workflow › execute result › execute target › observe › flag_suspicious_target › error",
+    "aviationmaritime › execute workflow › execute result › execute target › act › flag_suspicious_target › unknown",
+    "aviationmaritime › execute workflow › collect work › plan work › report › flag_suspicious_target › error",
+    "aviationmaritime › execute workflow › communicate result › communicate work › observe › broadcast_maritime_safety_alert › error",
+    "aviationmaritime › execute workflow › communicate result › communicate work › act › broadcast_maritime_safety_alert › unknown"
+  ],
+  "selected_group_paths": [
+    [
+      "aviationmaritime",
+      "execute workflow",
+      "execute result",
+      "execute target",
+      "observe",
+      "flag_suspicious_target",
+      "error"
+    ],
+    [
+      "aviationmaritime",
+      "execute workflow",
+      "execute result",
+      "execute target",
+      "act",
+      "flag_suspicious_target",
+      "unknown"
+    ],
+    [
+      "aviationmaritime",
+      "execute workflow",
+      "collect work",
+      "plan work",
+      "report",
+      "flag_suspicious_target",
+      "error"
+    ],
+    [
+      "aviationmaritime",
+      "execute workflow",
+      "communicate result",
+      "communicate work",
+      "observe",
+      "broadcast_maritime_safety_alert",
+      "error"
+    ],
+    [
+      "aviationmaritime",
+      "execute workflow",
+      "communicate result",
+      "communicate work",
+      "act",
+      "broadcast_maritime_safety_alert",
+      "unknown"
+    ]
+  ],
+  "stage1_attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 9448,
+        "prompt_tokens_o200k": 2585,
+        "returncode": 0,
+        "stderr_tail": "• The task: track vessel, flag suspicious, update voyage plan, broadcast alert. Errors occurred at flag_suspicious_target (ordinals 7, 8) and broadcast_maritime_safety_alert (ordinals 20, 21). The decisive mistake likely in flag_suspicious_target execution and the final broadcast. Also possibly the plan/diagnosis. Select up to 5 groups.\n\n  Pick:\n  1. execute result / flag_suspicious_target observe error (ordinal 7)\n  2. execute result / flag_suspicious_target act (ordinal 6)\n  3. collect work / plan work / report flag_suspicious_target error (ordinal 8)\n  4. communicate result / broadcast act (19)\n  5. communicate result / broadcast observe error (20)\n\n  That's 5. Alternatively include report completion 21. But 5 max. The flag error is decisive; broadcast error also. The agent may have continued despite flag error — the decisive mistake is proceeding without flagging. I'll select the error groups and their act counterparts.\n\nTo resume this session: kimi -r session_7fbfa000-b98a-4dcf-81cc-1d71a0b27e44\n"
+      },
+      "parsed": [
+        [
+          "aviationmaritime",
+          "execute workflow",
+          "execute result",
+          "execute target",
+          "observe",
+          "flag_suspicious_target",
+          "error"
+        ],
+        [
+          "aviationmaritime",
+          "execute workflow",
+          "execute result",
+          "execute target",
+          "act",
+          "flag_suspicious_target",
+          "unknown"
+        ],
+        [
+          "aviationmaritime",
+          "execute workflow",
+          "collect work",
+          "plan work",
+          "report",
+          "flag_suspicious_target",
+          "error"
+        ],
+        [
+          "aviationmaritime",
+          "execute workflow",
+          "communicate result",
+          "communicate work",
+          "observe",
+          "broadcast_maritime_safety_alert",
+          "error"
+        ],
+        [
+          "aviationmaritime",
+          "execute workflow",
+          "communicate result",
+          "communicate work",
+          "act",
+          "broadcast_maritime_safety_alert",
+          "unknown"
+        ]
+      ],
+      "raw_response": "• {\"selected_group_paths\": [[\"aviationmaritime\", \"execute workflow\", \"execute result\", \"execute target\", \"observe\", \"flag_suspicious_target\", \"error\"], [\"aviationmaritime\", \"execute workflow\", \"execute result\", \"execute target\", \"act\", \"flag_suspicious_target\", \"unknown\"], [\"aviationmaritime\", \"execute workflow\", \"collect work\", \"plan work\", \"report\", \"flag_suspicious_target\", \"error\"], [\"aviationmaritime\", \"execute workflow\", \"communicate result\", \"communicate work\", \"observe\", \"broadcast_maritime_safety_alert\", \"error\"], [\"aviationmaritime\", \"execute workflow\", \"communicate result\", \"communicate work\", \"act\", \"broadcast_maritime_safety_alert\", \"unknown\"]]}\n\n",
+      "wall_seconds": 20.686540952010546
+    }
+  ],
+  "stage1_chars": 8355,
+  "stage1_largest_groups_fallback": false,
+  "stage1_status": "ok",
+  "stage1_wall_seconds": 20.686540952010546,
+  "stage2_attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 12170,
+        "prompt_tokens_o200k": 3306,
+        "returncode": 0,
+        "stderr_tail": "• This is an analysis task — return strict JSON only.\n\n  The failures: flag_suspicious_target timed out (op 7), and broadcast timed out (op 20). The task's failure is likely due to environment timeouts. But ranking responsibility among agent operations: op 6 act led to timeout; op 8 is the agent's response after flag failure — instead of retrying the flag, the agent moved on to voyage plan (which succeeded). The broadcast (op 19) timed out too.\n\n  Which operations are responsible for failure/incorrect solution? Environment timeouts at op 7 and op 20 are the direct failures. But op 8 — after the flag failed with a timeout, the agent just proceeded without retrying or reporting the failure; that's a recovery failure. Rank: test:136:7 (flag timeout error), test:136:20 (broadcast timeout), test:136:8 (failed to handle flag error/retry), test:136:6, test:136:19.\n\nTo resume this session: kimi -r session_0d57fe5b-c340-47c8-af6d-fb36541be123\n"
+      },
+      "parsed": [
+        "test:136:7",
+        "test:136:20",
+        "test:136:8",
+        "test:136:6",
+        "test:136:19",
+        "test:136:21",
+        "test:136:14",
+        "test:136:17"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:136:7\", \"test:136:20\", \"test:136:8\", \"test:136:6\", \"test:136:19\", \"test:136:21\", \"test:136:14\", \"test:136:17\"]}\n\n",
+      "wall_seconds": 15.462323392974213
+    }
+  ],
+  "stage2_chars": 11122,
+  "stage2_scored_as_original_order_failure": false,
+  "stage2_status": "ok",
+  "stage2_wall_seconds": 15.462323392974213,
+  "wall_seconds_total": 36.14886434498476
+}

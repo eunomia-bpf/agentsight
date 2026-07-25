@@ -1,0 +1,112 @@
+{
+  "opened_operations": [
+    {
+      "operation_id": "swe-agent-runs-swe-bench/astropy__astropy-13236#step-1",
+      "ordinal": 0,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"cache_control\":{\"type\":\"ephemeral\"},\"text\":\"<uploaded_files>\\n/testbed\\n</uploaded_files>\\nI've uploaded a python code repository in the directory /testbed. Consider the following PR description:\\n\\n<pr_description>\\nConsider removing auto-transform of structured column into NdarrayMixin\\n<!-- This comments are hidden when you submit the issue,\\r\\nso you do not need to remove them! -->\\r\\n\\r\\n<!-- Please be sure to check out our contributing guidelines,\\r\\nhttps://github.com/astropy/astropy/blob/main/CONTRIBUTING.md .\\r\\nPlease be sure to check out our code of conduct,\\r\\nhttps:/ ... [middle omitted] ... de of the repo to resolve the issue\\n4. Rerun your reproduce script and confirm that the error is fixed!\\n5. Think about edgecases and make sure your fix handles them as well\\nYour thinking should be thorough and so it's fine if it's very long.\",\"type\":\"text\"}],\"role\":\"user\"}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_oZx8AJwBP9FIX2JCHFbCJz05\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_oZx8AJwBP9FIX2JCHFbCJz05\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/astropy__astropy-13236#step-2",
+      "ordinal": 1,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nHere's the files and directories up to 2 levels deep in /testbed, excluding hidden items:\\n/testbed\\n/testbed/pyproject.toml\\n/testbed/setup.cfg\\n/testbed/README.rst\\n/testbed/conftest.py\\n/testbed/examples\\n/testbed/examples/README.rst\\n/testbed/examples/io\\n/testbed/examples/template\\n/testbed/examples/coordinates\\n/testbed/cextern\\n/testbed/cextern/trim_cfitsio.sh\\n/testbed/cextern/README.rst\\n/testbed/cextern/wcslib\\n/testbed/cextern/trim_wcslib.sh\\n/testbed/cextern/cfitsio\\n/testbed/cextern/trim_expat.sh\\n/testbed/cextern/expat\\n/testbed/setup.py\\n/testb ... [middle omitted] ... URA_LICENSE.rst\\n/testbed/licenses/DATATABLES_LICENSE.rst\\n/testbed/licenses/PLY_LICENSE.rst\\n/testbed/licenses/ERFA.rst\\n/testbed/pip-requirements\\n/testbed/CITATION\\n/testbed/codecov.yml\\n\\n\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_oZx8AJwBP9FIX2JCHFbCJz05\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed/astropy/table\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_wf7PnlvPombLZZl1DXVPP7Tp\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed/astropy/table\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_wf7PnlvPombLZZl1DXVPP7Tp\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/astropy__astropy-13236#step-7",
+      "ordinal": 6,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nHere's the result of running `cat -n` on /testbed/astropy/table/table.py:\\n 1240\\t 'did not return a valid mixin column')\\n 1241\\t\\n 1242\\t # Structured ndarray gets viewed as a mixin unless already a valid\\n 1243\\t # mixin class\\n 1244\\t if (not isinstance(data, Column) and not data_is_mixin\\n 1245\\t and isinstance(data, np.ndarray) and len(data.dtype) > 1):\\n 1246\\t data = data.view(NdarrayMixin)\\n 1247\\t data_is_mixin = True\\n 1248\\t\\n 1249\\t # Get the ...[fixed middle excerpt omitted]... fo as a side effect.\\n 1251\\t if not name:\\n 1252\\t if isinstance(da ... [middle omitted] ...  default_name\\n 1256\\t else:\\n 1257\\t name = default_name\\n 1258\\t\\n 1259\\t if isinstance(data, Column):\\n 1260\\t # If self.ColumnClass is a subclass of col, then \\\"upgrade\\\" to ColumnClass,\\n\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_5jsgOstQszO3xyj1rStgbyjj\"]}",
+        "response": "",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"str_replace\\\",\\\"path\\\":\\\"/testbed/astropy/table/table.py\\\",\\\"old_str\\\":\\\" if (not isinstance(data, Column) and not data_is_mixin\\\\n and isinstance(data, np.ndarray) and len(data.dtype) > 1):\\\\n data = data.view(NdarrayMixin)\\\\n data_is_mixin = True\\\",\\\"new_str\\\":\\\" if (not isinstance(data, Column) and not ...[fixed middle excerpt omitted]... \\\\\\\"In the future (5.2), structured arrays will be added as a Column. \\\\\\\"\\\\n \\\\ ... [middle omitted] ... ure future compatibility.\\\\\\\",\\\\n FutureWarning\\\\n )\\\\n data = data.view(NdarrayMixin)\\\\n data_is_mixin = True\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_GVauXnFfidKVlNY4SxOwrwoM\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/astropy__astropy-13236#step-12",
+      "ordinal": 11,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nThank you for your work on this issue. Please carefully follow the steps below to help review your changes.\\n\\n1. If you made any changes to your code after running the reproduction script, please run the reproduction script again.\\n If the reproduction script is failing, please revisit your changes and make sure they are correct.\\n If you have already removed your reproduction script, please ignore this step.\\n2. Remove your reproduction script (if you haven't done so already).\\n3. If you have modified any TEST files, please revert them to the state they h . ... [middle omitted] ... ('y', float)]\\n+data = np.array([(1, 2.0), (3, 4.0)], dtype=dtype)\\n+\\n+# Add the structured array to a Table, triggering the warning\\n+Table([data])\\n\\\\ No newline at end of file\\n\\n</diff>\\n\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_XEN8JbKrz86Ppnhdx1eleYjQ\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_OOrwTVLQ3kf1WwYTWinZN4Zj\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_OOrwTVLQ3kf1WwYTWinZN4Zj\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/astropy__astropy-13236#step-14",
+      "ordinal": 13,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nHere's the result of running `cat -n` on /testbed/reproduce_warning.py:\\n 1\\timport numpy as np\\n 2\\tfrom astropy.table import Table\\n 3\\timport warnings\\n 4\\t\\n 5\\t# Enable the display of FutureWarnings\\n 6\\twarnings.simplefilter('always', FutureWarning)\\n 7\\t\\n 8\\t# Create a structured numpy array\\n 9\\tdtype = [('x', int), ('y', float)]\\n 10\\tdata = np.array([(1, 2.0), (3, 4.0)], dtype=dtype)\\n 11\\t\\n 12\\t# Add the structured array to a Table, triggering the warning\\n 13\\tTable([data])\\n\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_PxTge8EHCzidbsMN1qzv2RNd\"]}",
+        "response": "",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"str_replace\\\",\\\"path\\\":\\\"/testbed/reproduce_warning.py\\\",\\\"old_str\\\":\\\"import numpy as np\\\\nfrom astropy.table import Table\\\\nimport warnings\\\\n\\\\n# Enable the display of FutureWarnings\\\\nwarnings.simplefilter('always', FutureWarning)\\\\n\\\\n# Create a structured numpy array\\\\ndtype = [('x', int), ('y', float)]\\\\ndata = np.array([(1, 2.0), (3, 4.0)], dtype=dtype)\\\\n\\\\n# Add the structured array to a Table, triggering the warning\\\\nTable([data])\\\",\\\"new_str\\\":\\\"\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_7QJcmYEFEnNUiNsBEbblKf6A\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/astropy__astropy-13236#step-15",
+      "ordinal": 14,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nTraceback (most recent call last):\\n File \\\"/root/tools/edit_anthropic/bin/str_replace_editor\\\", line 710, in <module>\\n main()\\n File \\\"/root/tools/edit_anthropic/bin/str_replace_editor\\\", line 698, in main\\n tool(\\n File \\\"/root/tools/edit_anthropic/bin/str_replace_editor\\\", line 388, in __call__\\n return self.str_replace(_path, old_str, new_str)\\n File \\\"/root/tools/edit_anthropic/bin/str_replace_editor\\\", line 581, in str_replace\\n start_line, end_line = WindowExpander(suffix=path.suffix).expand_window(\\n File \\\"/root/tools/edit_anthropic/bin/str_replace_editor\\\", line 327, in expand_window\\n assert 1 <= start <= stop <= len(lines), (start, stop, len(lines))\\nAssertionError: (1, 0, 1)\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_7QJcmYEFEnNUiNsBEbblKf6A\"]}",
+        "response": "",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"str_replace\\\",\\\"path\\\":\\\"/testbed/reproduce_warning.py\\\",\\\"old_str\\\":\\\"import numpy as np\\\\nfrom astropy.table import Table\\\\nimport warnings\\\\n\\\\n# Enable the display of FutureWarnings\\\\nwarnings.simplefilter('always', FutureWarning)\\\\n\\\\n# Create a structured numpy array\\\\ndtype = [('x', int), ('y', float)]\\\\ndata = np.array([(1, 2.0), (3, 4.0)], dtype=dtype)\\\\n\\\\n# Add the structured array to a Table, triggering the warning\\\\nTable([data])\\\\n\\\",\\\"new_str\\\":\\\"\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_5QW80Jv07gVQHmI8RhMH6B8f\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/astropy__astropy-13236#step-16",
+      "ordinal": 15,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nNo replacement was performed, old_str `import numpy as np\\nfrom astropy.table import Table\\nimport warnings\\n\\n# Enable the display of FutureWarnings\\nwarnings.simplefilter('always', FutureWarning)\\n\\n# Create a structured numpy array\\ndtype = [('x', int), ('y', float)]\\ndata = np.array([(1, 2.0), (3, 4.0)], dtype=dtype)\\n\\n# Add the structured array to a Table, triggering the warning\\nTable([data])\\n` did not appear verbatim in /testbed/reproduce_warning.py.\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_5QW80Jv07gVQHmI8RhMH6B8f\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed/reproduce_warning.py\\\",\\\"view_range\\\":[1,13]}\",\"name\":\"str_replace_editor\"},\"id\":\"call_NN54nvj8FPcsURnOJbMbpsEU\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed/reproduce_warning.py\\\",\\\"view_range\\\":[1,13]}\",\"name\":\"str_replace_editor\"},\"id\":\"call_NN54nvj8FPcsURnOJbMbpsEU\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/astropy__astropy-13236#step-17",
+      "ordinal": 16,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nInvalid `view_range`: [1, 13]. Its second element `13` should be smaller than the number of lines in the file: `1`\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_NN54nvj8FPcsURnOJbMbpsEU\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed/reproduce_warning.py\\\",\\\"view_range\\\":[1,13]}\",\"name\":\"str_replace_editor\"},\"id\":\"call_BNBLH0W60OpbrzuDH5VbNrUU\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed/reproduce_warning.py\\\",\\\"view_range\\\":[1,13]}\",\"name\":\"str_replace_editor\"},\"id\":\"call_BNBLH0W60OpbrzuDH5VbNrUU\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/astropy__astropy-13236#step-19",
+      "ordinal": 18,
+      "source_summary": {
+        "agent_name": "str_replace_editor",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nHere's the result of running `cat -n` on /testbed/reproduce_warning.py:\\n 1\\t\\n\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_MwppiCd9zyMRSgv6Q9ufIH7T\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_VbWIkgrphDcVD57ruQTln8Me\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"view\\\",\\\"path\\\":\\\"/testbed\\\"}\",\"name\":\"str_replace_editor\"},\"id\":\"call_VbWIkgrphDcVD57ruQTln8Me\",\"index\":0,\"type\":\"function\"}]"
+      }
+    },
+    {
+      "operation_id": "swe-agent-runs-swe-bench/astropy__astropy-13236#step-20",
+      "ordinal": 19,
+      "source_summary": {
+        "agent_name": "bash",
+        "last_input": "{\"content\":[{\"text\":\"OBSERVATION:\\nHere's the files and directories up to 2 levels deep in /testbed, excluding hidden items:\\n/testbed\\n/testbed/pyproject.toml\\n/testbed/astropy\\n/testbed/astropy/nddata\\n/testbed/astropy/_erfa\\n/testbed/astropy/logger.py\\n/testbed/astropy/tests\\n/testbed/astropy/cosmology\\n/testbed/astropy/version.py\\n/testbed/astropy/convolution\\n/testbed/astropy/table\\n/testbed/astropy/conftest.py\\n/testbed/astropy/compiler_version.cpython-39-x86_64-linux-gnu.so\\n/testbed/astropy/config\\n/testbed/astropy/utils\\n/testbed/astropy/io\\n/testbed/astropy/units\\n/testbed/astropy/_c ... [middle omitted] ... URA_LICENSE.rst\\n/testbed/licenses/DATATABLES_LICENSE.rst\\n/testbed/licenses/PLY_LICENSE.rst\\n/testbed/licenses/ERFA.rst\\n/testbed/pip-requirements\\n/testbed/CITATION\\n/testbed/codecov.yml\\n\\n\\n\",\"type\":\"text\"}],\"role\":\"tool\",\"tool_call_ids\":[\"call_VbWIkgrphDcVD57ruQTln8Me\"]}",
+        "response": "",
+        "tool_calls": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"rm /testbed/reproduce_warning.py\\\"}\",\"name\":\"bash\"},\"id\":\"call_flp2TBgJfMbysFFUM2TovZ2u\",\"index\":0,\"type\":\"function\"}]",
+        "tool_logs": "[{\"function\":{\"arguments\":\"{\\\"command\\\":\\\"rm /testbed/reproduce_warning.py\\\"}\",\"name\":\"bash\"},\"id\":\"call_flp2TBgJfMbysFFUM2TovZ2u\",\"index\":0,\"type\":\"function\"}]"
+      }
+    }
+  ],
+  "task": "Consider removing auto-transform of structured column into NdarrayMixin <!-- This comments are hidden when you submit the issue, so you do not need to remove them! --> <!-- Please be sure to check out our contributing guidelines, https://github.com/astropy/astropy/blob/main/CONTRIBUTING.md . Please be sure to check out our code of conduct, https://github.com/astropy/astropy/blob/main/CODE_OF_CONDUCT.md . --> <!-- Please have a search on our GitHub repository to see if a similar issue has already been posted. If a similar issue is closed, have a quick look to see if you are satisfied by the resolution. If not please go ahead and open an issue! --> ### Description <!-- Provide a general description of the feature you would like. --> <!-- If you want to, you can suggest a draft design or API. --> <!-- This way we have a deeper discussion on the feature. --> Currently if you add a structured `np.array` to a Table, it gets turned into an `NdarrayMixin` (via the code below). While this mostly works, I am not sure this is necessary or desirable any more aft ... [middle omitted] ... and not data_is_mixin and isinstance(data, np.ndarray) and len(data.dtype) > 1): data = data.view(NdarrayMixin) data_is_mixin = True ``` Proposal: - Add a FutureWarning here telling the user to wrap `data` in `Column` and that in the future (5.2) the structured array will be added as a `Column`. - Change the behavior in 5.2 by removing this clause. This is not critical for 5.1 but if we have the opportunity due to other (critical) bugfixes it might be nice to save 6 months in the change process. cc: @mhvk"
+}

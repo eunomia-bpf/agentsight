@@ -1,0 +1,373 @@
+{
+  "operation_count": 24,
+  "operations": [
+    {
+      "native_path": [
+        "travel_v10",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:468:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users with travel planning, restaurant and hotel reservations, and calendar management. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"get_car_types_available\", \"description\": \"Retrieves available car types (e.g., Sedan, SUV, Convertible, Truck) for specified car rental companies. Returns a mapping of each company to their currently offered vehicle categories.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"company_name\": { \"type\": \"array\", \"items\": { \"type\": \"string\" }, \"description\": \"List of car rental company names to retrieve availab ... [middle omitted] ... etails including title, start/end times, location, and description.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"day\": { \"type\": \"string\", \"description\": \"The target day for retrieving events in YYYY-MM-DD format (e.g., 2023-12-31).\" } }, \"required\": [ \"day\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:468:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "I'm planning a romantic getaway to San Francisco from October 10-12. Please help me find a highly-rated French restaurant with vegan options for dinner on the 11th, book a luxury downtown hotel after reviewing its ratings, and cancel a conflicting calendar event for that evening.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "get_all_restaurants_in_city",
+        "unknown"
+      ],
+      "operation_id": "test:468:2",
+      "ordinal": 2,
+      "source_summary": {
+        "action": "{\"name\": \"get_all_restaurants_in_city\", \"arguments\": {\"city\": \"San Francisco\", \"limit\": 50}}",
+        "role": "agent",
+        "thought": "I'll call the tool to retrieve restaurant data in the specified city since the user needs a highly-rated French restaurant with vegan options for their romantic getaway dinner."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "get_all_restaurants_in_city",
+        "unknown"
+      ],
+      "operation_id": "test:468:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "{\"restaurants\": [{\"name\": \"Bistro A\", \"address\": \"123 Main St\", \"cuisine_type\": \"Italian\", \"rating\": 4.2}, {\"name\": \"Café de Paris\", \"address\": \"456 Elm St\", \"cuisine_type\": \"French\", \"rating\": 4.8}, {\"name\": \"Le Jardin\", \"address\": \"789 Oak St\", \"cuisine_type\": \"French\", \"rating\": 4.6}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "get_dietary_restrictions_for_all_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:468:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"get_dietary_restrictions_for_all_restaurants\", \"arguments\": {\"restaurant_names\": [\"Café de Paris\", \"Le Jardin\"]}}",
+        "role": "agent",
+        "thought": "I'll call the tool to check dietary restrictions for the identified French restaurants to ensure they offer vegan options as required for the romantic dinner."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "get_dietary_restrictions_for_all_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:468:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"restaurants\": [{\"name\": \"Café de Paris\", \"dietary_restrictions\": [\"Vegetarian\", \"Gluten-Free\"]}, {\"name\": \"Le Jardin\", \"dietary_restrictions\": [\"Vegan\", \"Vegetarian\"]}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "report",
+        "get_dietary_restrictions_for_all_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:468:6",
+      "ordinal": 6,
+      "source_summary": {
+        "content": "I found Le Jardin as a highly-rated French restaurant offering vegan options for your October 11th dinner, with a 4.6-star rating.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:468:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "Yes, Le Jardin sounds perfect for our dinner on the 11th.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "report",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:468:8",
+      "ordinal": 8,
+      "source_summary": {
+        "content": "Could you please confirm the year for your October 11th dinner reservation?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:468:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "Yes, the year is 2023.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "reserve_restaurant",
+        "unknown"
+      ],
+      "operation_id": "test:468:10",
+      "ordinal": 10,
+      "source_summary": {
+        "action": "{\"name\": \"reserve_restaurant\", \"arguments\": {\"restaurant\": \"Le Jardin\", \"start_time\": \"2023-10-11 20:00\", \"party_size\": 4}}",
+        "role": "agent",
+        "thought": "I'll reserve the restaurant with the provided arguments now that the user has confirmed the year for the dinner date."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "reserve_restaurant",
+        "unknown"
+      ],
+      "operation_id": "test:468:11",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "{\"confirmation_number\": \"RES-12345\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "get_rating_reviews_for_hotels",
+        "unknown"
+      ],
+      "operation_id": "test:468:12",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"get_rating_reviews_for_hotels\", \"arguments\": {\"hotel_names\": [\"St. Regis San Francisco\"]}}",
+        "role": "agent",
+        "thought": "I'll get the rating and reviews for the hotel to proceed with the luxury hotel booking as requested."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "get_rating_reviews_for_hotels",
+        "unknown"
+      ],
+      "operation_id": "test:468:13",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"hotels\": [{\"name\": \"St. Regis San Francisco\", \"average_rating\": 4.7, \"review_count\": 420, \"sample_reviews\": [\"Luxurious and impeccable service.\", \"Best hotel in SF!\"]}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "report",
+        "get_rating_reviews_for_hotels",
+        "unknown"
+      ],
+      "operation_id": "test:468:14",
+      "ordinal": 14,
+      "source_summary": {
+        "content": "The St. Regis San Francisco has outstanding reviews with a 4.7 rating from 420 guests, including praise like \"Luxurious and impeccable service\" and \"Best hotel in SF!\" - shall I book this hotel for 4 people during your October 10-12 stay?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:468:15",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "Yes, please book the St. Regis San Francisco for our stay from October 10th to 12th.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "reserve_hotel",
+        "unknown"
+      ],
+      "operation_id": "test:468:16",
+      "ordinal": 16,
+      "source_summary": {
+        "action": "{\"name\": \"reserve_hotel\", \"arguments\": {\"hotel\": \"St. Regis San Francisco\", \"start_day\": \"2023-10-10\", \"end_day\": \"2023-10-12\"}}",
+        "role": "agent",
+        "thought": "I'll reserve the St. Regis San Francisco as confirmed by the user for the exact dates specified in the arguments."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "reserve_hotel",
+        "unknown"
+      ],
+      "operation_id": "test:468:17",
+      "ordinal": 17,
+      "source_summary": {
+        "content": "{\"confirmation_number\": \"HOTEL-67890\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "get_day_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:468:18",
+      "ordinal": 18,
+      "source_summary": {
+        "action": "{\"name\": \"get_day_calendar_events\", \"arguments\": {\"day\": \"2023-10-11\"}}",
+        "role": "agent",
+        "thought": "I need to retrieve the calendar events for the specified date (2023-10-11) to identify and cancel the conflicting event mentioned by the user."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "get_day_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:468:19",
+      "ordinal": 19,
+      "source_summary": {
+        "content": "{\"events\": [{\"title\": \"Team Meeting\", \"start_time\": \"2023-10-11T19:30:00\", \"end_time\": \"2023-10-11T20:30:00\", \"event_id\": \"cal_event_123\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "report",
+        "get_day_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:468:20",
+      "ordinal": 20,
+      "source_summary": {
+        "content": "I found a conflicting event titled \"Team Meeting\" scheduled for 7:30 PM on October 11th - would you like me to proceed with canceling it?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:468:21",
+      "ordinal": 21,
+      "source_summary": {
+        "content": "Yes, please cancel the Team Meeting event so we can enjoy our dinner at Le Jardin without any conflicts.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "cancel_calendar_event",
+        "unknown"
+      ],
+      "operation_id": "test:468:22",
+      "ordinal": 22,
+      "source_summary": {
+        "action": "{\"name\": \"cancel_calendar_event\", \"arguments\": {\"event_id\": \"cal_event_123\"}}",
+        "role": "agent",
+        "thought": "I'll cancel the calendar event using the provided event ID since the user has confirmed the cancellation."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "cancel_calendar_event",
+        "unknown"
+      ],
+      "operation_id": "test:468:23",
+      "ordinal": 23,
+      "source_summary": {
+        "content": "{\"message\": \"Event 'Team Meeting' canceled successfully\"}",
+        "role": "environment"
+      }
+    }
+  ],
+  "task": "I'm planning a romantic getaway to San Francisco from October 10-12. Please help me find a highly-rated French restaurant with vegan options for dinner on the 11th, book a luxury downtown hotel after reviewing its ratings, and cancel a conflicting calendar event for that evening."
+}

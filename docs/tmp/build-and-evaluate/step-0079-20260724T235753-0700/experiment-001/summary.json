@@ -1,0 +1,77 @@
+{
+  "benchmark": "TraceElephant",
+  "bootstrap_seeds": {
+    "local_agentprof": 20260924,
+    "local_only": 20260923
+  },
+  "cost": {
+    "max_packet_chars": 153291,
+    "mean_packet_chars": 44589.240909090906,
+    "mean_wall_seconds": 29.88177357456496,
+    "median_wall_seconds": 25.68185145800817,
+    "min_packet_chars": 8713,
+    "queries": 220,
+    "total_packet_chars": 9809633,
+    "total_wall_seconds": 6573.990186404291
+  },
+  "failure_tally": {
+    "ok": 217,
+    "ok_after_retry": 3,
+    "original_order_failures": 0
+  },
+  "map": {
+    "direct_reader": 0.5019667175243024,
+    "local_agentprof": 0.32550420747157927,
+    "local_only": 0.20871255669979352
+  },
+  "metric": "sklearn.metrics.average_precision_score per target-bearing trajectory; arithmetic MAP; paired cluster bootstrap within strata",
+  "mode": "score-only",
+  "operations": 5960,
+  "paired_comparisons": {
+    "local_agentprof": {
+      "clusters": 220,
+      "interval_95": [
+        0.12958188302878143,
+        0.22407139652097102
+      ],
+      "median": 0.17651392323173315,
+      "nonpositive_draws": 0,
+      "point_effect": 0.17646251005272318,
+      "repetitions": 10000,
+      "seed": 20260924,
+      "strata": 5
+    },
+    "local_only": {
+      "clusters": 220,
+      "interval_95": [
+        0.23654477431209306,
+        0.3499767610604269
+      ],
+      "median": 0.2928294304196643,
+      "nonpositive_draws": 0,
+      "point_effect": 0.29325416082450895,
+      "repetitions": 10000,
+      "seed": 20260923,
+      "strata": 5
+    }
+  },
+  "provenance": {
+    "baseline_per_query": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-current-agent-local-first-v1/full/per-query.jsonl",
+    "packets": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-a0-v1/full/trace/packets",
+    "projections": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/traceelephant-rq2-v1/operations/projection.jsonl",
+    "step_0072_conditions": {
+      "Direct+AgentProf": "local_agentprof",
+      "Direct-only": "local_only"
+    },
+    "targets": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/traceelephant-rq2-v1/scorer/targets.jsonl"
+  },
+  "reader": {
+    "agentpprof_hierarchy_once_built_and_replayed": true,
+    "cli": "grok -p <packet+instruction> --output-format plain --max-turns 3 (--prompt-file used when prompt exceeds ~100KB ARG_MAX headroom)",
+    "model_family": "external grok (CLI default)",
+    "query_specific": true
+  },
+  "target_bearing_queries": 220,
+  "wall_seconds_harness": 1.2686025180155411,
+  "zero_positive_queries": 0
+}

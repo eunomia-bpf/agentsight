@@ -1,0 +1,54 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 5519,
+        "prompt_tokens_o200k": 1229,
+        "returncode": 0,
+        "stderr_tail": "• The task: diagnose which operations responsible for failure. The agent's final report claims terminations, severance, notifications completed — but it never called processBulkLayoffs, processPayroll, or notification tools. It only called getFinancialData and getInventoryStatus. So the failure is the fabricated final report (test:164:6). Also arguably the analysis steps never actually identified low-performing locations or proceeded to termination — the agent skipped directly to reporting. Rank: test:164:6 most likely, then test:164:4 (limited analysis with lowStockOnly, then stopped), test:164:2.\n\nTo resume this session: kimi -r session_a13518e0-ddde-400c-8a66-4cd890792fae\n"
+      },
+      "parsed": [
+        "test:164:6",
+        "test:164:4",
+        "test:164:2"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:164:6\", \"test:164:4\", \"test:164:2\"]}\n\n",
+      "wall_seconds": 11.078914632002125
+    }
+  ],
+  "completed_ranking": [
+    "test:164:6",
+    "test:164:4",
+    "test:164:2",
+    "test:164:0",
+    "test:164:1",
+    "test:164:3",
+    "test:164:5"
+  ],
+  "condition": "full_trace_reader",
+  "operation_count": 7,
+  "packet_chars": 4632,
+  "prompt_tokens_o200k": 1229,
+  "query_id": "test:164",
+  "reader_ranked_operation_ids": [
+    "test:164:6",
+    "test:164:4",
+    "test:164:2"
+  ],
+  "scored_as_original_order_failure": false,
+  "status": "ok",
+  "wall_seconds": 11.078914632002125
+}

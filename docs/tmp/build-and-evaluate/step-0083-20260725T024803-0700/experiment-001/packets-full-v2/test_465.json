@@ -1,0 +1,345 @@
+{
+  "operation_count": 22,
+  "operations": [
+    {
+      "native_path": [
+        "travel_v10",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:465:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users with business trip planning, including hotel bookings, car rentals, and restaurant arrangements. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"get_all_hotels_in_city\", \"description\": \"Retrieve a list of available hotels in a specified city. Returns hotel details such as name, address, and rating. Use 'limit' to control the number of results.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"city\": { \"type\": \"string\", \"description\": \"The name of the city to search for hotels\" }, \"limit\": { \"type\": \"integer\", \"description\": \"Maximum nu ... [middle omitted] ... { \"query\": { \"type\": \"string\", \"description\": \"The search query to match in event titles and descriptions\" }, \"date\": { \"type\": \"string\", \"description\": \"Optional date to filter events (YYYY-MM-DD format). If omitted, searches all events.\" } }, \"required\": [ \"query\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:465:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "I'm organizing a business trip to Boston from August 5-9 and need assistance with accommodations and transportation. First, find the top-rated hotels downtown and book the highest-rated one, then reserve a premium fuel car rental from either Enterprise or Avis for the entire stay after comparing their daily rates and customer feedback, and finally locate the address of 'Legal Sea Foods' restaurant and schedule a team dinner calendar event for August 7 at 7 PM.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "get_all_hotels_in_city",
+        "unknown"
+      ],
+      "operation_id": "test:465:2",
+      "ordinal": 2,
+      "source_summary": {
+        "action": "{\"name\": \"get_all_hotels_in_city\", \"arguments\": {\"city\": \"Boston\", \"limit\": 10}}",
+        "role": "agent",
+        "thought": "I'll call get_all_hotels_in_city to retrieve hotel options in Boston as the first step toward booking the highest-rated downtown accommodation."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "get_all_hotels_in_city",
+        "unknown"
+      ],
+      "operation_id": "test:465:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "{\"hotels\": [{\"name\": \"Hotel A\", \"address\": \"123 St\", \"rating\": 4.8}, {\"name\": \"Hotel B\", \"address\": \"456 Ave\", \"rating\": 4.9}, {\"name\": \"Hotel C\", \"address\": \"789 Rd\", \"rating\": 4.7}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "get_hotels_prices",
+        "unknown"
+      ],
+      "operation_id": "test:465:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"get_hotels_prices\", \"arguments\": {\"hotel_names\": [\"Hotel A\", \"Hotel B\", \"Hotel C\"], \"check_in_date\": \"2024-08-05\", \"check_out_date\": \"2024-08-09\"}}",
+        "role": "agent",
+        "thought": "I'll call get_hotels_prices to obtain rates for the retrieved hotels during the specified trip dates so I can book the highest-rated one."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "get_hotels_prices",
+        "unknown"
+      ],
+      "operation_id": "test:465:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"prices\": [{\"hotel_name\": \"Hotel A\", \"price_per_night\": 300, \"currency\": \"USD\"}, {\"hotel_name\": \"Hotel B\", \"price_per_night\": 350, \"currency\": \"USD\"}, {\"hotel_name\": \"Hotel C\", \"price_per_night\": 280, \"currency\": \"USD\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "reserve_hotel",
+        "unknown"
+      ],
+      "operation_id": "test:465:6",
+      "ordinal": 6,
+      "source_summary": {
+        "action": "{\"name\": \"reserve_hotel\", \"arguments\": {\"hotel\": \"Hotel B\", \"start_day\": \"2024-08-05\", \"end_day\": \"2024-08-09\"}}",
+        "role": "agent",
+        "thought": "I'll reserve the highest-rated hotel, Hotel B, for the exact dates provided in the user's request to complete this booking step."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "reserve_hotel",
+        "unknown"
+      ],
+      "operation_id": "test:465:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "{\"confirmation_number\": \"HB20240805\", \"hotel\": \"Hotel B\", \"start_day\": \"2024-08-05\", \"end_day\": \"2024-08-09\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "get_car_price_per_day",
+        "unknown"
+      ],
+      "operation_id": "test:465:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"get_car_price_per_day\", \"arguments\": {\"company_name\": [\"Enterprise\", \"Avis\"], \"location\": \"Boston\", \"start_date\": \"2024-08-05\", \"end_date\": \"2024-08-09\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve the daily rental rates for Enterprise and Avis in Boston during the specified dates to compare their pricing as requested."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "get_car_price_per_day",
+        "unknown"
+      ],
+      "operation_id": "test:465:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"prices\": [{\"company\": \"Enterprise\", \"price_per_day\": 75.0, \"currency\": \"USD\"}, {\"company\": \"Avis\", \"price_per_day\": 80.0, \"currency\": \"USD\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "get_rating_reviews_for_car_rental",
+        "unknown"
+      ],
+      "operation_id": "test:465:10",
+      "ordinal": 10,
+      "source_summary": {
+        "action": "{\"name\": \"get_rating_reviews_for_car_rental\", \"arguments\": {\"company_name\": [\"Enterprise\", \"Avis\"]}}",
+        "role": "agent",
+        "thought": "I'll retrieve customer feedback ratings and reviews for Enterprise and Avis to complete the comparison required before reserving the car rental."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "get_rating_reviews_for_car_rental",
+        "unknown"
+      ],
+      "operation_id": "test:465:11",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "{\"ratings\": [{\"company\": \"Enterprise\", \"average_rating\": 4.5, \"reviews\": [\"...\"]}, {\"company\": \"Avis\", \"average_rating\": 4.3, \"reviews\": [\"...\"]}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "get_car_fuel_options",
+        "unknown"
+      ],
+      "operation_id": "test:465:12",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"get_car_fuel_options\", \"arguments\": {\"company_name\": [\"Enterprise\", \"Avis\"]}}",
+        "role": "agent",
+        "thought": "I need to check the fuel options for Enterprise and Avis to confirm premium fuel availability as specified in the request."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "get_car_fuel_options",
+        "unknown"
+      ],
+      "operation_id": "test:465:13",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"fuel_options\": {\"Enterprise\": [\"Regular\", \"Premium\", \"Diesel\"], \"Avis\": [\"Regular\", \"Diesel\"]}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "reserve_car_rental",
+        "unknown"
+      ],
+      "operation_id": "test:465:14",
+      "ordinal": 14,
+      "source_summary": {
+        "action": "{\"name\": \"reserve_car_rental\", \"arguments\": {\"company\": \"Enterprise\", \"start_time\": \"2024-08-05 10:00\", \"end_time\": \"2024-08-09 18:00\", \"pickup_location\": \"Boston Logan Airport\"}}",
+        "role": "agent",
+        "thought": "I'll reserve the Enterprise car rental with premium fuel at Boston Logan Airport from August 5 at 10:00 to August 9 at 18:00 as it meets all requirements."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "reserve_car_rental",
+        "unknown"
+      ],
+      "operation_id": "test:465:15",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "{\"confirmation_number\": \"ENT123456\", \"company\": \"Enterprise\", \"start_time\": \"2024-08-05 10:00\", \"end_time\": \"2024-08-09 18:00\", \"pickup_location\": \"Boston Logan Airport\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "get_restaurants_address",
+        "unknown"
+      ],
+      "operation_id": "test:465:16",
+      "ordinal": 16,
+      "source_summary": {
+        "action": "{\"name\": \"get_restaurants_address\", \"arguments\": {\"restaurant_names\": [\"Legal Sea Foods\"]}}",
+        "role": "agent",
+        "thought": "I need to get the address of Legal Sea Foods to prepare for scheduling the team dinner event on the specified date."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "get_restaurants_address",
+        "unknown"
+      ],
+      "operation_id": "test:465:17",
+      "ordinal": 17,
+      "source_summary": {
+        "content": "{\"addresses\": [\"255 State St, Boston, MA 02109, USA\"]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "report",
+        "get_restaurants_address",
+        "unknown"
+      ],
+      "operation_id": "test:465:18",
+      "ordinal": 18,
+      "source_summary": {
+        "content": "To schedule the team dinner at Legal Sea Foods on August 7 at 7 PM, please provide the event's end time or duration along with email addresses for all attendees.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:465:19",
+      "ordinal": 19,
+      "source_summary": {
+        "content": "The team dinner should last 2 hours, and please invite team1@company.com and team2@company.com to the event.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "agent",
+        "act",
+        "create_calendar_event",
+        "unknown"
+      ],
+      "operation_id": "test:465:20",
+      "ordinal": 20,
+      "source_summary": {
+        "action": "{\"name\": \"create_calendar_event\", \"arguments\": {\"title\": \"Team Dinner at Legal Sea Foods\", \"start_time\": \"2024-08-07 19:00\", \"end_time\": \"2024-08-07 21:00\", \"participants\": [\"team1@company.com\", \"team2@company.com\"], \"location\": \"255 State St, Boston, MA 02109, USA\"}}",
+        "role": "agent",
+        "thought": "I'll create the calendar event for the team dinner at Legal Sea Foods with the provided attendees, duration, and location."
+      }
+    },
+    {
+      "native_path": [
+        "travel_v10",
+        "environment",
+        "observe",
+        "create_calendar_event",
+        "success"
+      ],
+      "operation_id": "test:465:21",
+      "ordinal": 21,
+      "source_summary": {
+        "content": "{\"event_id\": \"cal_evt_12345\", \"status\": \"confirmed\"}",
+        "role": "environment"
+      }
+    }
+  ],
+  "task": "I'm organizing a business trip to Boston from August 5-9 and need assistance with accommodations and transportation. First, find the top-rated hotels downtown and book the highest-rated one, then reserve a premium fuel car rental from either Enterprise or Avis for the entire stay after comparing their daily rates and customer feedback, and finally locate the address of 'Legal Sea Foods' restaurant and schedule a team dinner calendar event for August 7 at 7 PM."
+}

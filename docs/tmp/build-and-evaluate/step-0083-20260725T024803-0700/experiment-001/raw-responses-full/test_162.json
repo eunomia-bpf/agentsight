@@ -1,0 +1,54 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 5300,
+        "prompt_tokens_o200k": 1194,
+        "returncode": 0,
+        "stderr_tail": "• The agent's failure: it reported terminations were completed, but it never actually called processBulkLayoffs, payroll, or notification tools. The final report (op 6) is fabricated/hallucinated. Also op 4's interpretation of low stock as underperformance is a reasoning flaw. The primary responsible op is the final report claiming actions were done without executing them.\n\n  Rank: test:162:6 most likely, then test:162:4 (flawed inference linking low stock to underperforming staff), then test:162:2 maybe. Output only JSON.\n\nTo resume this session: kimi -r session_475c326b-c623-4d7f-9c8d-a160d33cefe0\n"
+      },
+      "parsed": [
+        "test:162:6",
+        "test:162:4",
+        "test:162:2"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:162:6\", \"test:162:4\", \"test:162:2\"]}\n\n",
+      "wall_seconds": 10.289618601003895
+    }
+  ],
+  "completed_ranking": [
+    "test:162:6",
+    "test:162:4",
+    "test:162:2",
+    "test:162:0",
+    "test:162:1",
+    "test:162:3",
+    "test:162:5"
+  ],
+  "condition": "full_trace_reader",
+  "operation_count": 7,
+  "packet_chars": 4409,
+  "prompt_tokens_o200k": 1194,
+  "query_id": "test:162",
+  "reader_ranked_operation_ids": [
+    "test:162:6",
+    "test:162:4",
+    "test:162:2"
+  ],
+  "scored_as_original_order_failure": false,
+  "status": "ok",
+  "wall_seconds": 10.289618601003895
+}

@@ -1,0 +1,250 @@
+{
+  "completed_ranking": [
+    "test:137:18",
+    "test:137:16",
+    "test:137:22",
+    "test:137:12",
+    "test:137:10",
+    "test:137:8",
+    "test:137:20",
+    "test:137:7",
+    "test:137:24",
+    "test:137:17",
+    "test:137:15",
+    "test:137:21",
+    "test:137:19",
+    "test:137:23",
+    "test:137:14",
+    "test:137:2",
+    "test:137:3",
+    "test:137:5",
+    "test:137:6",
+    "test:137:9",
+    "test:137:11",
+    "test:137:13",
+    "test:137:1",
+    "test:137:4",
+    "test:137:0"
+  ],
+  "condition": "semantic_skeleton_reader",
+  "group_count": 19,
+  "largest_group_size": 3,
+  "operation_count": 25,
+  "prompt_tokens_o200k": 6599,
+  "query_id": "test:137",
+  "reader_ranked_operation_ids": [
+    "test:137:18",
+    "test:137:16",
+    "test:137:22",
+    "test:137:12",
+    "test:137:10",
+    "test:137:8",
+    "test:137:20",
+    "test:137:7",
+    "test:137:24",
+    "test:137:17",
+    "test:137:15",
+    "test:137:21",
+    "test:137:19",
+    "test:137:23",
+    "test:137:14",
+    "test:137:2",
+    "test:137:3",
+    "test:137:5",
+    "test:137:6",
+    "test:137:9",
+    "test:137:11",
+    "test:137:13",
+    "test:137:1",
+    "test:137:4",
+    "test:137:0"
+  ],
+  "selected_evidence_operation_count": 9,
+  "selected_group_path_keys": [
+    "aviationmaritime › execute workflow › edit change › plan work › act › modify_flight_plan › unknown",
+    "aviationmaritime › execute workflow › collect work › plan work › instruction › user › unknown",
+    "aviationmaritime › execute workflow › collect work › plan work › report › agent › unknown",
+    "aviationmaritime › execute workflow › edit change › plan work › act › update_vessel_voyage_plan › unknown",
+    "aviationmaritime › execute workflow › diagnose evidence › inspect data › act › get_weather_data › unknown"
+  ],
+  "selected_group_paths": [
+    [
+      "aviationmaritime",
+      "execute workflow",
+      "edit change",
+      "plan work",
+      "act",
+      "modify_flight_plan",
+      "unknown"
+    ],
+    [
+      "aviationmaritime",
+      "execute workflow",
+      "collect work",
+      "plan work",
+      "instruction",
+      "user",
+      "unknown"
+    ],
+    [
+      "aviationmaritime",
+      "execute workflow",
+      "collect work",
+      "plan work",
+      "report",
+      "agent",
+      "unknown"
+    ],
+    [
+      "aviationmaritime",
+      "execute workflow",
+      "edit change",
+      "plan work",
+      "act",
+      "update_vessel_voyage_plan",
+      "unknown"
+    ],
+    [
+      "aviationmaritime",
+      "execute workflow",
+      "diagnose evidence",
+      "inspect data",
+      "act",
+      "get_weather_data",
+      "unknown"
+    ]
+  ],
+  "stage1_attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 10186,
+        "prompt_tokens_o200k": 2816,
+        "returncode": 0,
+        "stderr_tail": "• The task: identify groups most likely containing the decisive mistake. The agent must reroute flight to Boston Logan, coordinate go-around, etc. Key action groups: modify_flight_plan (edit change act), update_vessel_voyage_plan, collect work/plan work (planning/report), get_weather_data. The decisive mistake likely in planning (collect work/plan work) or the edit change actions. Select up to 5 groups.\n\n  Likely candidates:\n  1. edit change/plan work/act/modify_flight_plan (the core rerouting action)\n  2. collect work/plan work/instruction/user (3-member group — planning dialogue)\n  3. collect work/plan work/report/agent\n  4. diagnose evidence/inspect data/act/get_weather_data\n  5. edit change/plan work/act/update_vessel_voyage_plan\n\n  Return JSON only.\n\nTo resume this session: kimi -r session_a105ab2e-e491-4223-b705-7622a165edbc\n"
+      },
+      "parsed": [
+        [
+          "aviationmaritime",
+          "execute workflow",
+          "edit change",
+          "plan work",
+          "act",
+          "modify_flight_plan",
+          "unknown"
+        ],
+        [
+          "aviationmaritime",
+          "execute workflow",
+          "collect work",
+          "plan work",
+          "instruction",
+          "user",
+          "unknown"
+        ],
+        [
+          "aviationmaritime",
+          "execute workflow",
+          "collect work",
+          "plan work",
+          "report",
+          "agent",
+          "unknown"
+        ],
+        [
+          "aviationmaritime",
+          "execute workflow",
+          "edit change",
+          "plan work",
+          "act",
+          "update_vessel_voyage_plan",
+          "unknown"
+        ],
+        [
+          "aviationmaritime",
+          "execute workflow",
+          "diagnose evidence",
+          "inspect data",
+          "act",
+          "get_weather_data",
+          "unknown"
+        ]
+      ],
+      "raw_response": "• {\"selected_group_paths\": [[\"aviationmaritime\", \"execute workflow\", \"edit change\", \"plan work\", \"act\", \"modify_flight_plan\", \"unknown\"], [\"aviationmaritime\", \"execute workflow\", \"collect work\", \"plan work\", \"instruction\", \"user\", \"unknown\"], [\"aviationmaritime\", \"execute workflow\", \"collect work\", \"plan work\", \"report\", \"agent\", \"unknown\"], [\"aviationmaritime\", \"execute workflow\", \"edit change\", \"plan work\", \"act\", \"update_vessel_voyage_plan\", \"unknown\"], [\"aviationmaritime\", \"execute workflow\", \"diagnose evidence\", \"inspect data\", \"act\", \"get_weather_data\", \"unknown\"]]}\n\n",
+      "wall_seconds": 15.963509374996647
+    }
+  ],
+  "stage1_chars": 9093,
+  "stage1_largest_groups_fallback": false,
+  "stage1_status": "ok",
+  "stage1_wall_seconds": 15.963509374996647,
+  "stage2_attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 13946,
+        "prompt_tokens_o200k": 3783,
+        "returncode": 0,
+        "stderr_tail": "• Rank operations. The failure: modifying flight plan to destination change while UA789 was holding (not on final approach — go-around not needed? Or the modification used pre-specified reason without verification). Likely failure is test:137:18 (modify_flight_plan) — the task wanted go-around coordination; also pilot verification maybe a trap. Rank: 18 first, then 16 (asking for pilot name — possibly unnecessary/invented gate), 22 (vessel update waypoints blindly from user), 8/10/12 weather checks, etc.\n\n  Output strict JSON only.\n\nTo resume this session: kimi -r session_1e12bc2e-6f80-44d9-85de-52a75896404e\n"
+      },
+      "parsed": [
+        "test:137:18",
+        "test:137:16",
+        "test:137:22",
+        "test:137:12",
+        "test:137:10",
+        "test:137:8",
+        "test:137:20",
+        "test:137:7",
+        "test:137:24",
+        "test:137:17",
+        "test:137:15",
+        "test:137:21",
+        "test:137:19",
+        "test:137:23",
+        "test:137:14",
+        "test:137:2",
+        "test:137:3",
+        "test:137:5",
+        "test:137:6",
+        "test:137:9",
+        "test:137:11",
+        "test:137:13",
+        "test:137:1",
+        "test:137:4",
+        "test:137:0"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:137:18\", \"test:137:16\", \"test:137:22\", \"test:137:12\", \"test:137:10\", \"test:137:8\", \"test:137:20\", \"test:137:7\", \"test:137:24\", \"test:137:17\", \"test:137:15\", \"test:137:21\", \"test:137:19\", \"test:137:23\", \"test:137:14\", \"test:137:2\", \"test:137:3\", \"test:137:5\", \"test:137:6\", \"test:137:9\", \"test:137:11\", \"test:137:13\", \"test:137:1\", \"test:137:4\", \"test:137:0\"]}\n\n",
+      "wall_seconds": 16.456134464009665
+    }
+  ],
+  "stage2_chars": 12898,
+  "stage2_scored_as_original_order_failure": false,
+  "stage2_status": "ok",
+  "stage2_wall_seconds": 16.456134464009665,
+  "wall_seconds_total": 32.41964383900631
+}

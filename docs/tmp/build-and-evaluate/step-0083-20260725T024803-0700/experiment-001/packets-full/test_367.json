@@ -1,0 +1,437 @@
+{
+  "operation_count": 28,
+  "operations": [
+    {
+      "native_path": [
+        "dailylife",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:367:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant that manages emails, downloads and organizes attachments, and coordinates calendar events to optimize travel planning. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"copy_node\", \"description\": \"Copies a local file or directory from the source path to the destination path. Returns the absolute path of the successfully copied item.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"source_path\": { \"type\": \"string\", \"description\": \"Absolute or relative path of the source file or directory to copy\" }, \"destination_path\": { \"type\": \"string\", \"description ... [middle omitted] ...  in YYYY-MM-DD HH:MM format\" }, \"new_end_time\": { \"type\": \"string\", \"description\": \"The updated end time in YYYY-MM-DD HH:MM format. If omitted, the original event duration is preserved relative to the new start time.\" } }, \"required\": [ \"event_id\", \"new_start_time\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:367:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "I received a flight booking confirmation from travel@airlines.com with an e-ticket PDF attachment. Please save it to my 'Trips/Paris' folder, check my calendar for conflicts between June 15-20, and reschedule any June 16 team meeting to the 14th while notifying attendees.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "act",
+        "get_received_emails",
+        "unknown"
+      ],
+      "operation_id": "test:367:2",
+      "ordinal": 2,
+      "source_summary": {
+        "action": "{\"name\": \"get_received_emails\", \"arguments\": {\"sender\": \"travel@airlines.com\", \"limit\": 1}}",
+        "role": "agent",
+        "thought": "I need to retrieve the most recent email from the provided sender address to access the e-ticket PDF attachment mentioned in the user's request."
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "environment",
+        "observe",
+        "get_received_emails",
+        "unknown"
+      ],
+      "operation_id": "test:367:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "{\"emails\": [{\"sender\": \"travel@airlines.com\", \"subject\": \"Your Flight Booking Confirmation\", \"body\": \"...\", \"attachments\": [{\"file_id\": \"ATT123456\", \"filename\": \"e-ticket.pdf\"}]}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "act",
+        "create_dir",
+        "unknown"
+      ],
+      "operation_id": "test:367:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"create_dir\", \"arguments\": {\"path\": \"Trips/Paris\"}}",
+        "role": "agent",
+        "thought": "I'll create the specified directory to ensure the e-ticket can be saved in the correct location as requested by the user."
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "environment",
+        "observe",
+        "create_dir",
+        "success"
+      ],
+      "operation_id": "test:367:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"created_path\": \"/user/Trips/Paris\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "act",
+        "download_file_through_id",
+        "unknown"
+      ],
+      "operation_id": "test:367:6",
+      "ordinal": 6,
+      "source_summary": {
+        "action": "{\"name\": \"download_file_through_id\", \"arguments\": {\"file_id\": \"ATT123456\", \"save_dir\": \"/user/Trips/Paris\"}}",
+        "role": "agent",
+        "thought": "I'll download the e-ticket using the provided file ID to the specified directory to fulfill the user's request to save the attachment."
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "environment",
+        "observe",
+        "download_file_through_id",
+        "unknown"
+      ],
+      "operation_id": "test:367:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "{\"file_path\": \"/user/Trips/Paris/e-ticket.pdf\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "act",
+        "download_file_through_id",
+        "unknown"
+      ],
+      "operation_id": "test:367:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"download_file_through_id\", \"arguments\": {\"file_id\": \"ATT123456\", \"save_dir\": \"/user/Trips/Paris\"}}",
+        "role": "agent",
+        "thought": "I'll download the e-ticket using the provided file ID ATT123456 to the specified save directory /user/Trips/Paris to complete the attachment saving task from the user's request."
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "environment",
+        "observe",
+        "download_file_through_id",
+        "unknown"
+      ],
+      "operation_id": "test:367:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"file_path\": \"/user/Trips/Paris/e-ticket.pdf\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "report",
+        "download_file_through_id",
+        "unknown"
+      ],
+      "operation_id": "test:367:10",
+      "ordinal": 10,
+      "source_summary": {
+        "content": "To ensure I schedule everything correctly, could you please confirm the year for your trip dates of June 15th to 20th?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:367:11",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "The trip dates are for June 2024.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "act",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:12",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"search_calendar_events\", \"arguments\": {\"query\": \"\", \"date\": \"2024-06-15\"}}",
+        "role": "agent",
+        "thought": "I need to search for calendar events on the provided date to check for trip conflicts."
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "environment",
+        "observe",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:13",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"events\": []}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "act",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:14",
+      "ordinal": 14,
+      "source_summary": {
+        "action": "{\"name\": \"search_calendar_events\", \"arguments\": {\"query\": \"\", \"date\": \"2024-06-16\"}}",
+        "role": "agent",
+        "thought": "I'll check for calendar events on the requested date to continue verifying trip availability as specified in the user's range."
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "environment",
+        "observe",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:15",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "{\"events\": [{\"title\": \"Team Meeting\", \"description\": \"Quarterly planning\", \"date\": \"2024-06-16\", \"time\": \"14:00-15:30\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "act",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:16",
+      "ordinal": 16,
+      "source_summary": {
+        "action": "{\"name\": \"search_calendar_events\", \"arguments\": {\"query\": \"\", \"date\": \"2024-06-17\"}}",
+        "role": "agent",
+        "thought": "I'll check for calendar events on the provided date to continue verifying trip availability as specified in the user's range."
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "environment",
+        "observe",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:17",
+      "ordinal": 17,
+      "source_summary": {
+        "content": "{\"events\": []}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "act",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:18",
+      "ordinal": 18,
+      "source_summary": {
+        "action": "{\"name\": \"search_calendar_events\", \"arguments\": {\"query\": \"\", \"date\": \"2024-06-18\"}}",
+        "role": "agent",
+        "thought": "I need to check for calendar events on the provided date to continue verifying trip availability during the user's specified range."
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "environment",
+        "observe",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:19",
+      "ordinal": 19,
+      "source_summary": {
+        "content": "{\"events\": []}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "act",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:20",
+      "ordinal": 20,
+      "source_summary": {
+        "action": "{\"name\": \"search_calendar_events\", \"arguments\": {\"query\": \"\", \"date\": \"2024-06-19\"}}",
+        "role": "agent",
+        "thought": "I need to check for calendar events on the provided date to continue verifying trip availability during the user's specified range."
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "environment",
+        "observe",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:21",
+      "ordinal": 21,
+      "source_summary": {
+        "content": "{\"events\": []}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "act",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:22",
+      "ordinal": 22,
+      "source_summary": {
+        "action": "{\"name\": \"search_calendar_events\", \"arguments\": {\"query\": \"\", \"date\": \"2024-06-20\"}}",
+        "role": "agent",
+        "thought": "I need to check for calendar events on the provided date to complete the trip conflict verification for the user's specified range."
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "environment",
+        "observe",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:23",
+      "ordinal": 23,
+      "source_summary": {
+        "content": "{\"events\": []}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "report",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:367:24",
+      "ordinal": 24,
+      "source_summary": {
+        "content": "To proceed with rescheduling your team meeting on June 16, 2024, could you please provide the calendar event ID?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:367:25",
+      "ordinal": 25,
+      "source_summary": {
+        "content": "The event ID for the team meeting on June 16 is cal_event_789.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "agent",
+        "act",
+        "reschedule_calendar_event",
+        "unknown"
+      ],
+      "operation_id": "test:367:26",
+      "ordinal": 26,
+      "source_summary": {
+        "action": "{\"name\": \"reschedule_calendar_event\", \"arguments\": {\"event_id\": \"cal_event_789\", \"new_start_time\": \"2024-06-14 14:00\"}}",
+        "role": "agent",
+        "thought": "I'll reschedule the meeting with the provided event ID to the new date as requested by the user."
+      }
+    },
+    {
+      "native_path": [
+        "dailylife",
+        "environment",
+        "observe",
+        "reschedule_calendar_event",
+        "success"
+      ],
+      "operation_id": "test:367:27",
+      "ordinal": 27,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"updated_event\": {\"event_id\": \"cal_event_789\", \"title\": \"Team Meeting\", \"new_start_time\": \"2024-06-14 14:00\", \"new_end_time\": \"2024-06-14 15:30\"}}",
+        "role": "environment"
+      }
+    }
+  ],
+  "task": "I received a flight booking confirmation from travel@airlines.com with an e-ticket PDF attachment. Please save it to my 'Trips/Paris' folder, check my calendar for conflicts between June 15-20, and reschedule any June 16 team meeting to the 14th while notifying attendees."
+}

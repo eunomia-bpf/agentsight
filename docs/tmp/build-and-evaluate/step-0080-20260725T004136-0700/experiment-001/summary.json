@@ -1,0 +1,116 @@
+{
+  "benchmark": "TraceElephant",
+  "bootstrap_seeds": {
+    "direct_reader": 20260925,
+    "local_agentprof": 20260924,
+    "local_only": 20260923
+  },
+  "cost": {
+    "max_total_chars": 187729,
+    "mean_content_opened_fraction": 0.5301224683014941,
+    "mean_group_count": 13.695454545454545,
+    "mean_selected_evidence_ops": 14.168181818181818,
+    "mean_stage1_chars": 12122.618181818181,
+    "mean_stage2_chars": 34406.96363636364,
+    "mean_stage2_evidence_chars": 21526.96818181818,
+    "mean_total_chars": 46529.58181818182,
+    "mean_wall_seconds": 50.21416138649153,
+    "median_content_opened_fraction": 0.515138968803555,
+    "median_total_chars": 38339.5,
+    "median_wall_seconds": 47.04106955250609,
+    "min_total_chars": 14528,
+    "queries": 220,
+    "total_wall_seconds": 11047.115505028138
+  },
+  "cost_step0079": {
+    "mean_packet_chars": 44589.240909090906,
+    "mean_wall_seconds": 29.88177357456496,
+    "median_wall_seconds": 25.68185145800817,
+    "queries": 220,
+    "total_packet_chars": 9809633,
+    "total_wall_seconds": 6573.990186404291
+  },
+  "failure_tally": {
+    "stage1_largest_groups_fallback": 0,
+    "stage1_ok": 220,
+    "stage1_ok_after_retry": 0,
+    "stage2_ok": 219,
+    "stage2_ok_after_retry": 1,
+    "stage2_original_order_failures": 0
+  },
+  "map": {
+    "direct_reader": 0.5019667175243024,
+    "local_agentprof": 0.32550420747157927,
+    "local_only": 0.20871255669979352,
+    "profile_reader": 0.4553334084291099
+  },
+  "metric": "sklearn.metrics.average_precision_score per target-bearing trajectory; arithmetic MAP; paired cluster bootstrap within strata",
+  "mode": "full",
+  "operations": 5960,
+  "paired_comparisons": {
+    "direct_reader": {
+      "clusters": 220,
+      "interval_95": [
+        -0.08311148839428924,
+        -0.011589636448150833
+      ],
+      "median": -0.04625659232699075,
+      "nonpositive_draws": 9961,
+      "point_effect": -0.04663330909519253,
+      "repetitions": 10000,
+      "seed": 20260925,
+      "strata": 5
+    },
+    "local_agentprof": {
+      "clusters": 220,
+      "interval_95": [
+        0.07972213849159875,
+        0.17906667013687683
+      ],
+      "median": 0.13011166369315375,
+      "nonpositive_draws": 0,
+      "point_effect": 0.12982920095753064,
+      "repetitions": 10000,
+      "seed": 20260924,
+      "strata": 5
+    },
+    "local_only": {
+      "clusters": 220,
+      "interval_95": [
+        0.18914526924520364,
+        0.30413052793630424
+      ],
+      "median": 0.24633768162698294,
+      "nonpositive_draws": 0,
+      "point_effect": 0.2466208517293164,
+      "repetitions": 10000,
+      "seed": 20260923,
+      "strata": 5
+    }
+  },
+  "provenance": {
+    "baseline_per_query": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-current-agent-local-first-v1/full/per-query.jsonl",
+    "group_key": "source_preserving_agent",
+    "group_mapping": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-canonical-tags-v2-current/trace/results/fixed-groups.jsonl",
+    "packets": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-a0-v1/full/trace/packets",
+    "projections": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/traceelephant-rq2-v1/operations/projection.jsonl",
+    "step_0072_conditions": {
+      "Direct+AgentProf": "local_agentprof",
+      "Direct-only": "local_only"
+    },
+    "step_0079_raw": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0079-20260724T235753-0700/experiment-001/raw-results.json",
+    "targets": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/traceelephant-rq2-v1/scorer/targets.jsonl"
+  },
+  "reader": {
+    "cli": "grok -p/--prompt-file --output-format plain --max-turns 3 --tools '' --no-subagents --verbatim",
+    "model_family": "external grok (CLI default)",
+    "profile_once_built": true,
+    "query_specific": true,
+    "stage1": "profile skeleton group selection (≤5)",
+    "stage2": "focused source_summary ranking",
+    "stages": 2
+  },
+  "target_bearing_queries": 220,
+  "wall_seconds_harness": 1853.098768646014,
+  "zero_positive_queries": 0
+}

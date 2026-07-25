@@ -1,0 +1,358 @@
+{
+  "operation_count": 23,
+  "operations": [
+    {
+      "native_path": [
+        "publicTransit",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:316:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users manage public transportation disruptions and accessibility issues, including maintenance coordination, passenger communication, and operational monitoring. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"openMaintenanceTicket\", \"description\": \"Creates a maintenance ticket for transit assets (stations, vehicles, elevators, or ticket machines) and returns a unique ticket ID for tracking. Requires asset details, priority level, and problem description.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"assetId\": { \"type\": \"string\", \"descri ... [middle omitted] ...  Supported values: 'accessibility' (general accessibility features), 'ticket_machines', 'elevators', 'platforms'.\" }, \"stationId\": { \"type\": \"string\", \"description\": \"Required. Unique identifier of the transit station.\" } }, \"required\": [ \"facilityType\", \"stationId\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:316:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "I'm managing disruptions caused by multiple elevator failures at Union Station affecting Red Line passengers with mobility issues. Check current elevator statuses and service impacts, plan accessible alternative routes for affected commuters, notify them about options, create urgent maintenance tickets for all faulty elevators, and monitor if delays worsen over the next hour.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "getInfrastructureStatus",
+        "unknown"
+      ],
+      "operation_id": "test:316:2",
+      "ordinal": 2,
+      "source_summary": {
+        "action": "{\"name\": \"getInfrastructureStatus\", \"arguments\": {\"facilityType\": \"elevators\", \"stationId\": \"Union Station\"}}",
+        "role": "agent",
+        "thought": "I need to call getInfrastructureStatus to retrieve current statuses and service impacts for the specified facility type at the provided station, as this directly addresses the first requested action."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "getInfrastructureStatus",
+        "unknown"
+      ],
+      "operation_id": "test:316:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "{\"stationId\": \"Union Station\", \"facilityType\": \"elevators\", \"statusReport\": [{\"facilityId\": \"elevatorA\", \"status\": \"out_of_service\", \"lastUpdated\": \"2024-01-15T08:30:00Z\", \"issueDescription\": \"Mechanical failure\"}, {\"facilityId\": \"elevatorB\", \"status\": \"out_of_service\", \"lastUpdated\": \"2024-01-15T09:15:00Z\", \"issueDescription\": \"Electrical fault\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "getOperationalMetrics",
+        "unknown"
+      ],
+      "operation_id": "test:316:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"getOperationalMetrics\", \"arguments\": {\"metricType\": \"performance\", \"lineId\": \"Red Line\", \"timeframeDays\": 1}}",
+        "role": "agent",
+        "thought": "I need to call getOperationalMetrics with the provided arguments to gather baseline performance metrics for the Red Line so I can monitor for worsening delays as requested."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "getOperationalMetrics",
+        "unknown"
+      ],
+      "operation_id": "test:316:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"metricType\": \"performance\", \"lineId\": \"Red Line\", \"timeframeDays\": 1, \"data\": {\"averageDelayMinutes\": 15.2, \"onTimePerformance\": 68.4, \"serviceAlerts\": [\"Elevator outages at Union Station affecting accessibility\"]}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "report",
+        "getOperationalMetrics",
+        "unknown"
+      ],
+      "operation_id": "test:316:6",
+      "ordinal": 6,
+      "source_summary": {
+        "content": "To help plan accessible alternative routes for passengers affected by the elevator outages at Union Station, could you please provide the specific origin and destination points for these commuters?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:316:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "Origin: Union Station, Destination: Downtown Crossing",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "getTripPlanningData",
+        "unknown"
+      ],
+      "operation_id": "test:316:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"getTripPlanningData\", \"arguments\": {\"origin\": \"Union Station\", \"destination\": \"Downtown Crossing\", \"passengerType\": \"adult\"}}",
+        "role": "agent",
+        "thought": "I need to call getTripPlanningData with the provided origin and destination to retrieve accessible route alternatives for affected commuters now that the user has specified both locations."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "getTripPlanningData",
+        "unknown"
+      ],
+      "operation_id": "test:316:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"trips\": [{\"duration\": \"25 min\", \"fare\": 2.4, \"steps\": [\"Bus #7 to Central Square\", \"Transfer to Green Line\"], \"accessibility\": \"elevator_available\"}, {\"duration\": \"32 min\", \"fare\": 2.75, \"steps\": [\"Accessible shuttle to Park St\", \"Red Line transfer\"], \"accessibility\": \"step_free\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "report",
+        "getTripPlanningData",
+        "unknown"
+      ],
+      "operation_id": "test:316:10",
+      "ordinal": 10,
+      "source_summary": {
+        "content": "For accessible travel from Union Station to Downtown Crossing, I found two options: Option 1 via Bus #7 and Green Line takes 25 minutes at $2.40 fare with elevators available, while Option 2 via accessible shuttle and Red Line takes 32 minutes at $2.75 fare with step-free access. The first option is both quicker and more affordable. To send notifications about alternative routes, please specify the passenger segment identifier (e.g., \"Red Line users with mobility needs at Union Station\") and preferred notification channel (SMS, email, or app push).",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:316:12",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "Use audience red_line_union_affected and channel app_push for sending the alternative route notifications.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "report",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:316:13",
+      "ordinal": 12,
+      "source_summary": {
+        "content": "Elevator outages at Union Station affecting Red Line. Accessible alternatives to Downtown Crossing: 1) Bus #7 to Central Square + Green Line (25min, $2.40) 2) Accessible shuttle to Park St + Red Line (32min, $2.75)",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:316:14",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "Yes, please send the notification to the red_line_union_affected audience via app push immediately.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "sendPassengerNotification",
+        "unknown"
+      ],
+      "operation_id": "test:316:15",
+      "ordinal": 14,
+      "source_summary": {
+        "action": "{\"name\": \"sendPassengerNotification\", \"arguments\": {\"channel\": \"app_push\", \"audience\": \"red_line_union_affected\", \"message\": \"Elevator outages at Union Station affecting Red Line. Accessible alternatives to Downtown Crossing: 1) Bus #7 to Central Square + Green Line (25min, $2.40) 2) Accessible shuttle to Park St + Red Line (32min, $2.75)\"}}",
+        "role": "agent",
+        "thought": "I'll call sendPassengerNotification immediately because the user explicitly confirmed sending to the specified audience via the specified channel in their latest message."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "sendPassengerNotification",
+        "unknown"
+      ],
+      "operation_id": "test:316:16",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "{\"deliveryStatus\": \"success\", \"totalRecipients\": 1500, \"failedRecipients\": 10}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "openMaintenanceTicket",
+        "unknown"
+      ],
+      "operation_id": "test:316:17",
+      "ordinal": 16,
+      "source_summary": {
+        "action": "{\"name\": \"openMaintenanceTicket\", \"arguments\": {\"assetId\": \"elevatorA\", \"assetType\": \"elevator\", \"priority\": \"high\", \"problemSummary\": \"Mechanical failure - affecting Red Line passengers with mobility issues at Union Station\"}}",
+        "role": "agent",
+        "thought": "I need to open a maintenance ticket for elevatorA with high priority using the provided problem summary to resolve this critical outage."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "openMaintenanceTicket",
+        "unknown"
+      ],
+      "operation_id": "test:316:18",
+      "ordinal": 17,
+      "source_summary": {
+        "content": "{\"ticketId\": \"MT_12345\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "openMaintenanceTicket",
+        "unknown"
+      ],
+      "operation_id": "test:316:19",
+      "ordinal": 18,
+      "source_summary": {
+        "action": "{\"name\": \"openMaintenanceTicket\", \"arguments\": {\"assetId\": \"elevatorB\", \"assetType\": \"elevator\", \"priority\": \"high\", \"problemSummary\": \"Electrical fault - affecting Red Line passengers with mobility issues at Union Station\"}}",
+        "role": "agent",
+        "thought": "I need to open a maintenance ticket for elevatorB with high priority using the provided problem summary to resolve the remaining critical outage."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "openMaintenanceTicket",
+        "unknown"
+      ],
+      "operation_id": "test:316:20",
+      "ordinal": 19,
+      "source_summary": {
+        "content": "{\"ticketId\": \"MT_12346\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "act",
+        "getOperationalMetrics",
+        "unknown"
+      ],
+      "operation_id": "test:316:21",
+      "ordinal": 20,
+      "source_summary": {
+        "action": "{\"name\": \"getOperationalMetrics\", \"arguments\": {\"delay\": \"60 minutes\", \"scope\": \"Union Station elevators\"}}",
+        "role": "agent",
+        "thought": "I need to call getOperationalMetrics with the provided arguments to monitor if delays have worsened over the last 60 minutes specifically for the Union Station elevators as originally requested."
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "environment",
+        "observe",
+        "getOperationalMetrics",
+        "error"
+      ],
+      "operation_id": "test:316:22",
+      "ordinal": 21,
+      "source_summary": {
+        "content": "{\"error\": \"Invalid parameter: 'delay'. This tool only supports real-time queries.\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "publicTransit",
+        "agent",
+        "report",
+        "getOperationalMetrics",
+        "error"
+      ],
+      "operation_id": "test:316:23",
+      "ordinal": 22,
+      "source_summary": {
+        "content": "I encountered an error scheduling the operational impact reassessment: the tool doesn't support delayed execution, so we'll need to manually monitor the situation after one hour.",
+        "role": "agent"
+      }
+    }
+  ],
+  "task": "I'm managing disruptions caused by multiple elevator failures at Union Station affecting Red Line passengers with mobility issues. Check current elevator statuses and service impacts, plan accessible alternative routes for affected commuters, notify them about options, create urgent maintenance tickets for all faulty elevators, and monitor if delays worsen over the next hour."
+}

@@ -1,0 +1,376 @@
+{
+  "operation_count": 24,
+  "operations": [
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:374:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users with maritime vessel operations and aviation route management, including emergency coordination and voyage planning. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"update_vessel_voyage_plan\", \"description\": \"Updates a vessel's voyage plan (ETA, destination, route, or cargo) in the maritime traffic system, affecting port scheduling and traffic management. Returns a confirmation with transaction ID and updated voyage details.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"vessel_id\": { \"type\": \"string\", \"description\": \"MMSI or IMO nu ... [middle omitted] ... g., issue resolved, no longer applicable)\" }, \"authorized_by\": { \"type\": \"string\", \"description\": \"Unique identifier of the authority (e.g., air traffic control unit) authorizing the cancellation\" } }, \"required\": [ \"notam_id\", \"cancellation_reason\", \"authorized_by\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:374:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "Our vessel Voyager Star is experiencing severe engine trouble near the Java Sea and requires immediate diversion. Please find the closest suitable port with calm weather, update our voyage plan to that port, and broadcast a PAN-PAN distress alert to nearby vessels.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "agent",
+        "act",
+        "get_vessel_info",
+        "unknown"
+      ],
+      "operation_id": "test:374:2",
+      "ordinal": 2,
+      "source_summary": {
+        "action": "{\"name\": \"get_vessel_info\", \"arguments\": {\"vessel_id\": \"Voyager Star\"}}",
+        "role": "agent",
+        "thought": "I need to retrieve the vessel information for Voyager Star to proceed with the emergency diversion and distress alert."
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "environment",
+        "observe",
+        "get_vessel_info",
+        "unknown"
+      ],
+      "operation_id": "test:374:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "{\"vessel_id\": \"Voyager Star\", \"current_position\": {\"latitude\": -5.0, \"longitude\": 110.0}, \"voyage_details\": {\"destination\": \"Singapore\", \"eta\": \"2024-01-20T08:00:00Z\"}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "agent",
+        "act",
+        "get_weather_data",
+        "unknown"
+      ],
+      "operation_id": "test:374:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"get_weather_data\", \"arguments\": {\"location\": \"-5.0,110.0\"}}",
+        "role": "agent",
+        "thought": "I need to retrieve current weather data at the vessel's position (-5.0,110.0) to assess conditions before identifying suitable ports nearby."
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "environment",
+        "observe",
+        "get_weather_data",
+        "unknown"
+      ],
+      "operation_id": "test:374:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"location\": \"-5.0,110.0\", \"current\": {\"wind_speed\": 15, \"wave_height\": 2.5, \"conditions\": \"moderate\"}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "agent",
+        "act",
+        "get_vessel_info",
+        "unknown"
+      ],
+      "operation_id": "test:374:6",
+      "ordinal": 6,
+      "source_summary": {
+        "action": "{\"name\": \"get_vessel_info\", \"arguments\": {\"vessel_id\": \"Voyager Star\"}}",
+        "role": "agent",
+        "thought": "I need to retrieve the vessel information again for Voyager Star to ensure we have the most current operational status."
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "environment",
+        "observe",
+        "get_vessel_info",
+        "unknown"
+      ],
+      "operation_id": "test:374:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "{\"vessel_id\": \"Voyager Star\", \"current_position\": {\"latitude\": -5.0, \"longitude\": 110.0}, \"voyage_details\": {\"destination\": \"Singapore\", \"eta\": \"2024-01-20T08:00:00Z\"}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "agent",
+        "act",
+        "get_vessel_info",
+        "unknown"
+      ],
+      "operation_id": "test:374:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"get_vessel_info\", \"arguments\": {\"vessel_id\": \"Voyager Star\"}}",
+        "role": "agent",
+        "thought": "I need to retrieve the vessel information again for Voyager Star to confirm the current position and operational status before proceeding with the emergency diversion and distress alert actions."
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "environment",
+        "observe",
+        "get_vessel_info",
+        "unknown"
+      ],
+      "operation_id": "test:374:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"vessel_id\": \"Voyager Star\", \"current_position\": {\"latitude\": -5.0, \"longitude\": 110.0}, \"voyage_details\": {\"destination\": \"Singapore\", \"eta\": \"2024-01-20T08:00:00Z\"}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "agent",
+        "act",
+        "search_location",
+        "unknown"
+      ],
+      "operation_id": "test:374:10",
+      "ordinal": 10,
+      "source_summary": {
+        "action": "{\"name\": \"search_location\", \"arguments\": {\"query\": \"-5.0,110.0\", \"search_type\": \"coordinates\"}}",
+        "role": "agent",
+        "thought": "I need to search for nearby ports using the provided coordinates to find a suitable diversion port."
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "environment",
+        "observe",
+        "search_location",
+        "unknown"
+      ],
+      "operation_id": "test:374:11",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "{\"locations\": [{\"name\": \"Jakarta\", \"coordinates\": \"-6.2,106.8\", \"type\": \"maritime_port\"}, {\"name\": \"Surabaya\", \"coordinates\": \"-7.25,112.75\", \"type\": \"maritime_port\"}, {\"name\": \"Semarang\", \"coordinates\": \"-6.95,110.42\", \"type\": \"maritime_port\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "agent",
+        "act",
+        "get_weather_data",
+        "unknown"
+      ],
+      "operation_id": "test:374:12",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"get_weather_data\", \"arguments\": {\"location\": \"-6.2,106.8\", \"data_type\": \"hourly_forecast\"}}",
+        "role": "agent",
+        "thought": "I need to retrieve the hourly weather forecast for the candidate port location at -6.2,106.8 to evaluate its calmness suitability for emergency diversion."
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "environment",
+        "observe",
+        "get_weather_data",
+        "unknown"
+      ],
+      "operation_id": "test:374:13",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"location\": \"-6.2,106.8\", \"hourly_forecast\": [{\"time\": \"2024-01-15T14:00:00Z\", \"wind_speed\": 8, \"wave_height\": 1.2, \"conditions\": \"calm\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "agent",
+        "act",
+        "get_weather_data",
+        "unknown"
+      ],
+      "operation_id": "test:374:14",
+      "ordinal": 14,
+      "source_summary": {
+        "action": "{\"name\": \"get_weather_data\", \"arguments\": {\"location\": \"-7.25,112.75\", \"data_type\": \"hourly_forecast\"}}",
+        "role": "agent",
+        "thought": "I need to retrieve the hourly weather forecast for the next candidate port to evaluate its calmness suitability for emergency diversion."
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "environment",
+        "observe",
+        "get_weather_data",
+        "unknown"
+      ],
+      "operation_id": "test:374:15",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "{\"location\": \"-7.25,112.75\", \"hourly_forecast\": [{\"time\": \"2024-01-15T14:00:00Z\", \"wind_speed\": 12, \"wave_height\": 2.5, \"conditions\": \"moderate\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "agent",
+        "act",
+        "get_weather_data",
+        "unknown"
+      ],
+      "operation_id": "test:374:16",
+      "ordinal": 16,
+      "source_summary": {
+        "action": "{\"name\": \"get_weather_data\", \"arguments\": {\"location\": \"-6.95,110.42\", \"data_type\": \"hourly_forecast\"}}",
+        "role": "agent",
+        "thought": "I need to retrieve the hourly weather forecast for the next candidate port at the specified coordinates to evaluate calmness suitability for emergency diversion."
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "environment",
+        "observe",
+        "get_weather_data",
+        "unknown"
+      ],
+      "operation_id": "test:374:17",
+      "ordinal": 17,
+      "source_summary": {
+        "content": "{\"location\": \"-6.95,110.42\", \"hourly_forecast\": [{\"time\": \"2024-01-15T14:00:00Z\", \"wind_speed\": 18, \"wave_height\": 3.8, \"conditions\": \"rough\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "agent",
+        "report",
+        "get_weather_data",
+        "unknown"
+      ],
+      "operation_id": "test:374:18",
+      "ordinal": 18,
+      "source_summary": {
+        "content": "Based on the assessment, Jakarta port has been selected as the nearest suitable diversion point with calm conditions: wind speed at 8 knots and wave height of 1.2 meters. To proceed with the Jakarta diversion and PAN-PAN alert, please provide: Jakarta port UN/LOCODE, vessel MMSI, master's name, persons on board count, and specific assistance required.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:374:20",
+      "ordinal": 19,
+      "source_summary": {
+        "content": "Here are the requested details: Jakarta UN/LOCODE is IDJKT, master's name is Captain Smith, MMSI is 987654321, we have 25 persons on board, and we require engine repair assistance.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "agent",
+        "act",
+        "update_vessel_voyage_plan",
+        "unknown"
+      ],
+      "operation_id": "test:374:21",
+      "ordinal": 20,
+      "source_summary": {
+        "action": "{\"name\": \"update_vessel_voyage_plan\", \"arguments\": {\"vessel_id\": \"987654321\", \"update_type\": \"destination_change\", \"new_destination_port\": \"IDJKT\", \"reason\": \"severe engine issues\", \"master_name\": \"Captain Smith\"}}",
+        "role": "agent",
+        "thought": "I need to update the voyage plan to divert to port IDJKT due to severe engine issues using the provided master's name and vessel MMSI."
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "environment",
+        "observe",
+        "update_vessel_voyage_plan",
+        "unknown"
+      ],
+      "operation_id": "test:374:22",
+      "ordinal": 21,
+      "source_summary": {
+        "content": "{\"transaction_id\": \"VOY-UPD-556677\", \"updated_voyage_details\": {\"destination\": \"IDJKT\", \"eta\": \"2024-01-15T18:00:00Z\"}}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "agent",
+        "act",
+        "send_distress_signal",
+        "unknown"
+      ],
+      "operation_id": "test:374:23",
+      "ordinal": 22,
+      "source_summary": {
+        "action": "{\"name\": \"send_distress_signal\", \"arguments\": {\"distress_type\": \"PAN_PAN\", \"asset_type\": \"vessel\", \"asset_identifier\": \"987654321\", \"position\": {\"latitude\": -5.0, \"longitude\": 110.0}, \"nature_of_distress\": \"other\", \"persons_on_board\": 25, \"assistance_required\": \"engine repair\"}}",
+        "role": "agent",
+        "thought": "I need to send the PAN_PAN distress alert with the provided MMSI 987654321, current position, and engine repair requirement to notify nearby vessels of our emergency."
+      }
+    },
+    {
+      "native_path": [
+        "aviationMaritime_v8",
+        "environment",
+        "observe",
+        "send_distress_signal",
+        "success"
+      ],
+      "operation_id": "test:374:24",
+      "ordinal": 23,
+      "source_summary": {
+        "content": "{\"incident_reference\": \"PAN-JAVA-2024-001\", \"status\": \"transmitted\"}",
+        "role": "environment"
+      }
+    }
+  ],
+  "task": "Our vessel Voyager Star is experiencing severe engine trouble near the Java Sea and requires immediate diversion. Please find the closest suitable port with calm weather, update our voyage plan to that port, and broadcast a PAN-PAN distress alert to nearby vessels."
+}

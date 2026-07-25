@@ -1,0 +1,66 @@
+{
+  "default_model": "glm-5.2",
+  "mean_ap_full_trace": 0.6777777777777777,
+  "mode": "validate",
+  "note": "Harness validation only; not a paper result. Recipe passes iff >=2/3 queries produced parseable JSON.",
+  "parse_ok": 3,
+  "parse_ok_fraction": 1.0,
+  "path_provenance": {
+    "path_construction": "(task_family.casefold(), 'raw:' + raw_fields.action.casefold(), *suffix) — identical to script/rq2_current_agent_local_first.py construct_scores for local_raw_evidence / raw_source_evidence",
+    "raw_identity_field": "raw_fields.action",
+    "raw_identity_note": "HINTBench equivalent of method-index methods.raw.operation_leaves: load_hint_sources in script/rq2_current_agent_local_first.py reads raw_identity from raw_fields.action of the same frozen projection.",
+    "raw_identity_source": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/cycle-0003-20260713T121925-0700/01-experiment-gate/loop-001-rq2-hintbench/results/full/operations/test-projection.jsonl",
+    "semantic_identity_field": "groups.source_preserving_agent",
+    "semantic_identity_source": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-canonical-tags-v2-current/hint/results/fixed-groups.jsonl",
+    "source_suffix_source": "fixed-groups.jsonl groups[source_preserving_agent] after automatic_agent prefix (exactly 3 frames: source-kind, source-call/tool, outcome)",
+    "step_0072_condition": "local_raw_evidence",
+    "step_0072_script": "script/rq2_current_agent_local_first.py",
+    "unique_raw_actions": 412
+  },
+  "queries": 3,
+  "query_ids": [
+    "test:136",
+    "test:137",
+    "test:138"
+  ],
+  "reader": "opencode run --pure",
+  "recipe_pass": true,
+  "rows": [
+    {
+      "ap_reader": 0.7222222222222222,
+      "condition": "full_trace_reader",
+      "packet_chars": 10579,
+      "prompt_tokens_o200k": 3069,
+      "query_id": "test:136",
+      "reader_rank_of_target": 1,
+      "scored_as_original_order_failure": false,
+      "status": "ok",
+      "total_chars": 10579,
+      "wall_seconds": 11.4149654119974
+    },
+    {
+      "ap_reader": 0.4777777777777778,
+      "condition": "full_trace_reader",
+      "packet_chars": 12295,
+      "prompt_tokens_o200k": 3511,
+      "query_id": "test:137",
+      "reader_rank_of_target": 3,
+      "scored_as_original_order_failure": false,
+      "status": "ok",
+      "total_chars": 12295,
+      "wall_seconds": 61.19373630799237
+    },
+    {
+      "ap_reader": 0.8333333333333333,
+      "condition": "full_trace_reader",
+      "packet_chars": 12495,
+      "prompt_tokens_o200k": 3557,
+      "query_id": "test:138",
+      "reader_rank_of_target": 1,
+      "scored_as_original_order_failure": false,
+      "status": "ok",
+      "total_chars": 12495,
+      "wall_seconds": 45.403512046992546
+    }
+  ]
+}

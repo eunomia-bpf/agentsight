@@ -1,0 +1,572 @@
+{
+  "operation_count": 37,
+  "operations": [
+    {
+      "native_path": [
+        "talentSignal",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:290:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant supporting recruitment operations. You can create requisitions and candidate records, add recruiter notes, generate offer letters, and route offers for approval. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"create_requisition\", \"description\": \"Creates a new headcount requisition with role details, department, headcount, compensation parameters, and hiring manager assignment. Returns the generated requisition ID upon success.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"title\": { \"type\": \"STRING\", \"description\": \"Official job title for the re ... [middle omitted] ...  \"type\": \"STRING\", \"description\": \"Interview end timestamp (ISO 8601 format recommended)\" }, \"mode\": { \"type\": \"STRING\", \"description\": \"Interview format: 'Virtual', 'Onsite', or 'Phone'\" } }, \"required\": [ \"candidate_id\", \"interviewer_ids\", \"start_time\", \"end_time\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:290:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "We're opening a new UX Designer role in the Design team. Please create the headcount requisition and publish the job posting, then create a candidate profile for Emily Rodriguez, update her status to interview, and schedule her interview with the design leads. After the interview, record feedback and if positive, advance her to offer stage, generate the offer letter, route it for approval, and initiate background and reference checks.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "report",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:290:2",
+      "ordinal": 2,
+      "source_summary": {
+        "content": "To proceed with creating the headcount requisition for the UX Designer role, could you please provide the salary band and specify the hiring manager?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:290:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "The salary band for the UX Designer role is $90,000-$110,000, and the hiring manager is John Smith.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "act",
+        "create_requisition",
+        "unknown"
+      ],
+      "operation_id": "test:290:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"create_requisition\", \"arguments\": {\"title\": \"UX Designer\", \"department\": \"Design team\", \"headcount\": 1, \"salary_band\": \"$90,000-$110,000\", \"hiring_manager\": \"John Smith\"}}",
+        "role": "agent",
+        "thought": "I'll create the headcount requisition with the provided salary band and hiring manager details since we now have the required information to proceed."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "environment",
+        "observe",
+        "create_requisition",
+        "success"
+      ],
+      "operation_id": "test:290:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"requisition_id\": \"req123\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "report",
+        "create_requisition",
+        "success"
+      ],
+      "operation_id": "test:290:6",
+      "ordinal": 6,
+      "source_summary": {
+        "content": "Could you please confirm if the requisition req123 for the UX Designer role has been approved, and let me know which job boards or career sites we should publish this posting to?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:290:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "The requisition req123 for the UX Designer role has been approved. Please publish the job posting to our career site and LinkedIn.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "act",
+        "publish_job_posting",
+        "unknown"
+      ],
+      "operation_id": "test:290:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"publish_job_posting\", \"arguments\": {\"job_id\": \"req123\", \"channels\": [\"career_site\", \"linkedin\"]}}",
+        "role": "agent",
+        "thought": "I'll publish the job posting for req123 to career_site and linkedin since the user confirmed the requisition is approved and specified these exact publishing channels."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "environment",
+        "observe",
+        "publish_job_posting",
+        "success"
+      ],
+      "operation_id": "test:290:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"job_id\": \"req123\", \"channels\": [\"career_site\", \"linkedin\"], \"start_date\": \"2024-01-15\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "report",
+        "publish_job_posting",
+        "success"
+      ],
+      "operation_id": "test:290:10",
+      "ordinal": 10,
+      "source_summary": {
+        "content": "To create Emily Rodriguez's candidate profile and proceed, please provide her email address and application source (e.g., referral, inbound, agency, or outbound). Her phone number is optional but helpful to include if available.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:290:11",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "Emily Rodriguez's email is emily.rodriguez@example.com, she applied through our inbound channel, and her phone number is 555-1234.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "act",
+        "create_candidate_record",
+        "unknown"
+      ],
+      "operation_id": "test:290:12",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"create_candidate_record\", \"arguments\": {\"full_name\": \"Emily Rodriguez\", \"email\": \"emily.rodriguez@example.com\", \"phone\": \"555-1234\", \"source\": \"inbound\", \"job_id\": \"req123\"}}",
+        "role": "agent",
+        "thought": "I'll create Emily Rodriguez's candidate record now that we have her contact details, application source, and assigned job ID from the user's latest message."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "environment",
+        "observe",
+        "create_candidate_record",
+        "success"
+      ],
+      "operation_id": "test:290:13",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"candidate_id\": \"cand456\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "act",
+        "update_candidate_stage",
+        "unknown"
+      ],
+      "operation_id": "test:290:14",
+      "ordinal": 14,
+      "source_summary": {
+        "action": "{\"name\": \"update_candidate_stage\", \"arguments\": {\"candidate_id\": \"cand456\", \"new_stage\": \"interview\"}}",
+        "role": "agent",
+        "thought": "I'll update the candidate stage to interview for Emily Rodriguez as requested by the user since we now have her candidate record."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "environment",
+        "observe",
+        "update_candidate_stage",
+        "success"
+      ],
+      "operation_id": "test:290:15",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"candidate_id\": \"cand456\", \"new_stage\": \"interview\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "report",
+        "update_candidate_stage",
+        "success"
+      ],
+      "operation_id": "test:290:16",
+      "ordinal": 16,
+      "source_summary": {
+        "content": "To schedule Emily Rodriguez's interview with the design leads, please provide the interviewer IDs, preferred time slot (start and end time), and interview mode (Virtual, Onsite, or Phone).",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:290:17",
+      "ordinal": 17,
+      "source_summary": {
+        "content": "The interviewers are lead1 and lead2. Schedule Emily Rodriguez's interview on 2024-01-18 from 14:00 to 15:00 virtually.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "act",
+        "create_interview_schedule",
+        "unknown"
+      ],
+      "operation_id": "test:290:18",
+      "ordinal": 18,
+      "source_summary": {
+        "action": "{\"name\": \"create_interview_schedule\", \"arguments\": {\"candidate_id\": \"cand456\", \"interviewer_ids\": [\"lead1\", \"lead2\"], \"start_time\": \"2024-01-18T14:00:00\", \"end_time\": \"2024-01-18T15:00:00\", \"mode\": \"Virtual\"}}",
+        "role": "agent",
+        "thought": "I'll schedule the interview for candidate cand456 with the provided interviewer IDs, start time, end time, and virtual mode as specified in the latest user message."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "environment",
+        "observe",
+        "create_interview_schedule",
+        "success"
+      ],
+      "operation_id": "test:290:19",
+      "ordinal": 19,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"schedule_id\": \"sched789\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "report",
+        "create_interview_schedule",
+        "success"
+      ],
+      "operation_id": "test:290:20",
+      "ordinal": 20,
+      "source_summary": {
+        "content": "Could you please provide the interview feedback for Emily Rodriguez now that her interview with the design leads has concluded? This will determine our next steps in her application process.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:290:21",
+      "ordinal": 21,
+      "source_summary": {
+        "content": "The feedback for Emily Rodriguez is positive from all interviewers. They highlighted her strong design skills and excellent cultural fit.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "act",
+        "add_recruiter_note",
+        "unknown"
+      ],
+      "operation_id": "test:290:22",
+      "ordinal": 22,
+      "source_summary": {
+        "action": "{\"name\": \"add_recruiter_note\", \"arguments\": {\"candidate_id\": \"cand456\", \"note\": \"Positive feedback from all interviewers. Strong design skills and cultural fit.\"}}",
+        "role": "agent",
+        "thought": "I'll add a recruiter note for candidate cand456 to record the positive interview feedback provided in the latest user message."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "environment",
+        "observe",
+        "add_recruiter_note",
+        "success"
+      ],
+      "operation_id": "test:290:23",
+      "ordinal": 23,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"note_id\": \"note101\", \"timestamp\": \"2024-01-18T16:30:00Z\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "act",
+        "update_candidate_stage",
+        "unknown"
+      ],
+      "operation_id": "test:290:24",
+      "ordinal": 24,
+      "source_summary": {
+        "action": "{\"name\": \"update_candidate_stage\", \"arguments\": {\"candidate_id\": \"cand456\", \"new_stage\": \"offer\"}}",
+        "role": "agent",
+        "thought": "I'll update the candidate stage to offer since the interview feedback was positive as confirmed in the latest user message."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "environment",
+        "observe",
+        "update_candidate_stage",
+        "success"
+      ],
+      "operation_id": "test:290:25",
+      "ordinal": 25,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"candidate_id\": \"cand456\", \"new_stage\": \"offer\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "report",
+        "update_candidate_stage",
+        "success"
+      ],
+      "operation_id": "test:290:26",
+      "ordinal": 26,
+      "source_summary": {
+        "content": "To generate Emily Rodriguez's offer letter and proceed with background and reference checks, please provide her base salary amount, start date (YYYY-MM-DD), list of approver IDs, background check package type, and referee email addresses.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:290:27",
+      "ordinal": 27,
+      "source_summary": {
+        "content": "For Emily Rodriguez, set her base salary to $100,000 with a start date of March 15, 2024. The approver IDs are mgr123 and mgr456, use the standard background check package, and send reference requests to ref1@example.com and ref2@example.com.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "act",
+        "generate_offer_letter",
+        "unknown"
+      ],
+      "operation_id": "test:290:28",
+      "ordinal": 28,
+      "source_summary": {
+        "action": "{\"name\": \"generate_offer_letter\", \"arguments\": {\"candidate_id\": \"cand456\", \"job_id\": \"req123\", \"base_salary\": 100000, \"start_date\": \"2024-03-15\"}}",
+        "role": "agent",
+        "thought": "I'll generate the offer letter for candidate cand456 with the provided base salary and start date since we now have all the required details."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "environment",
+        "observe",
+        "generate_offer_letter",
+        "success"
+      ],
+      "operation_id": "test:290:29",
+      "ordinal": 29,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"offer_id\": \"offer789\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "act",
+        "route_offer_for_approval",
+        "unknown"
+      ],
+      "operation_id": "test:290:30",
+      "ordinal": 30,
+      "source_summary": {
+        "action": "{\"name\": \"route_offer_for_approval\", \"arguments\": {\"offer_id\": \"offer789\", \"approver_ids\": [\"mgr123\", \"mgr456\"]}}",
+        "role": "agent",
+        "thought": "I'll route the offer for approval with the provided approver IDs since the offer letter has been generated and the approvers were specified in the latest user message."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "environment",
+        "observe",
+        "route_offer_for_approval",
+        "success"
+      ],
+      "operation_id": "test:290:31",
+      "ordinal": 31,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"approval_request_id\": \"appr456\", \"approval_status\": \"pending\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "act",
+        "initiate_background_check",
+        "unknown"
+      ],
+      "operation_id": "test:290:32",
+      "ordinal": 32,
+      "source_summary": {
+        "action": "{\"name\": \"initiate_background_check\", \"arguments\": {\"candidate_id\": \"cand456\", \"package_type\": \"standard\"}}",
+        "role": "agent",
+        "thought": "I'll initiate the background check for the candidate with the provided package type as specified in the latest user instructions."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "environment",
+        "observe",
+        "initiate_background_check",
+        "success"
+      ],
+      "operation_id": "test:290:33",
+      "ordinal": 33,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"request_id\": \"bg_check123\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "act",
+        "request_reference_check",
+        "unknown"
+      ],
+      "operation_id": "test:290:34",
+      "ordinal": 34,
+      "source_summary": {
+        "action": "{\"name\": \"request_reference_check\", \"arguments\": {\"candidate_id\": \"cand456\", \"referee_emails\": [\"ref1@example.com\", \"ref2@example.com\"]}}",
+        "role": "agent",
+        "thought": "I'll request reference checks for candidate cand456 using the provided referee emails since the user specified them and we've initiated the other post-interview steps."
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "environment",
+        "observe",
+        "request_reference_check",
+        "success"
+      ],
+      "operation_id": "test:290:35",
+      "ordinal": 35,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"reference_request_id\": \"ref_req789\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "talentSignal",
+        "agent",
+        "report",
+        "request_reference_check",
+        "success"
+      ],
+      "operation_id": "test:290:36",
+      "ordinal": 36,
+      "source_summary": {
+        "content": "I've initiated the background check and reference checks for Emily Rodriguez, but please note her offer is still pending approval so she may receive offer details before approvals are finalized.",
+        "role": "agent"
+      }
+    }
+  ],
+  "task": "We're opening a new UX Designer role in the Design team. Please create the headcount requisition and publish the job posting, then create a candidate profile for Emily Rodriguez, update her status to interview, and schedule her interview with the design leads. After the interview, record feedback and if positive, advance her to offer stage, generate the offer letter, route it for approval, and initiate background and reference checks."
+}

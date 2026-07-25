@@ -1,0 +1,82 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 14232,
+        "prompt_tokens_o200k": 3665,
+        "returncode": 0,
+        "stderr_tail": "• The key failure: op 10 misreports threat intelligence — environment said severity \"critical\" but agent reported \"low-severity risk\". This cascades: op 13 asks authorization for \"low-severity threat\", op 15 blocks with reason \"low-severity\", op 17 isolates as \"low-severity compromised server\", op 22 triggers incident response with severity \"low\". Also op 4 mentions srv-app-02 in thought but called srv-app-01 — minor.\n\n  Rank: op 10 (severity misstatement, root cause) first, then op 22 (incident severity \"low\" in the IR action — actual incorrect execution), then op 13, op 15, op 17 (propagated low-severity framing), maybe op 4 (typo thought).\n\nTo resume this session: kimi -r session_50f602b4-85e3-4205-84ae-882fe751c95c\n"
+      },
+      "parsed": [
+        "test:157:10",
+        "test:157:22",
+        "test:157:13",
+        "test:157:15",
+        "test:157:17",
+        "test:157:19",
+        "test:157:4"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:157:10\", \"test:157:22\", \"test:157:13\", \"test:157:15\", \"test:157:17\", \"test:157:19\", \"test:157:4\"]}\n\n",
+      "wall_seconds": 13.78291762000299
+    }
+  ],
+  "completed_ranking": [
+    "test:157:10",
+    "test:157:22",
+    "test:157:13",
+    "test:157:15",
+    "test:157:17",
+    "test:157:19",
+    "test:157:4",
+    "test:157:0",
+    "test:157:1",
+    "test:157:2",
+    "test:157:3",
+    "test:157:5",
+    "test:157:6",
+    "test:157:7",
+    "test:157:8",
+    "test:157:9",
+    "test:157:11",
+    "test:157:12",
+    "test:157:14",
+    "test:157:16",
+    "test:157:18",
+    "test:157:21",
+    "test:157:23",
+    "test:157:24",
+    "test:157:25",
+    "test:157:26",
+    "test:157:27"
+  ],
+  "condition": "full_trace_reader",
+  "operation_count": 27,
+  "packet_chars": 13345,
+  "prompt_tokens_o200k": 3665,
+  "query_id": "test:157",
+  "reader_ranked_operation_ids": [
+    "test:157:10",
+    "test:157:22",
+    "test:157:13",
+    "test:157:15",
+    "test:157:17",
+    "test:157:19",
+    "test:157:4"
+  ],
+  "scored_as_original_order_failure": false,
+  "status": "ok",
+  "wall_seconds": 13.78291762000299
+}

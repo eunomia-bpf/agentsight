@@ -1,0 +1,183 @@
+{
+  "additive_measure": "operation_count",
+  "additive_measure_note": "Frozen projection.jsonl and source packets expose no per-operation token mass field; pprof count units equal 1 per operation. Group additive mass is therefore member operation count only (ops=N).",
+  "benchmark": "TraceElephant",
+  "bootstrap_seeds": {
+    "direct_reader": 20260925,
+    "local_agentprof": 20260924,
+    "local_only": 20260923,
+    "profile_reader": 20260926,
+    "raw_action_reader": 20260927
+  },
+  "cost": {
+    "max_total_chars": 174221,
+    "mean_content_opened_fraction": 0.5338285191675436,
+    "mean_group_count": 13.695454545454545,
+    "mean_selected_evidence_ops": 14.381818181818181,
+    "mean_stage1_chars": 23662.1,
+    "mean_stage1_tokens": 8648.054545454546,
+    "mean_stage2_chars": 22013.804545454546,
+    "mean_stage2_evidence_chars": 21547.227272727272,
+    "mean_stage2_tokens": 6182.327272727272,
+    "mean_total_chars": 45675.90454545455,
+    "mean_total_tokens": 14830.381818181819,
+    "mean_wall_seconds": 44.95227686622741,
+    "median_content_opened_fraction": 0.5348807113908511,
+    "median_stage1_tokens": 7186.5,
+    "median_stage2_tokens": 4975.5,
+    "median_total_chars": 38352.0,
+    "median_total_tokens": 12445.5,
+    "median_wall_seconds": 41.27334685048845,
+    "min_total_chars": 14812,
+    "queries": 220,
+    "ref_tokens_step0079": 12615,
+    "ref_tokens_step0080": 15991,
+    "tiktoken_encoding": "o200k_base",
+    "token_ratio_vs_step0079": 1.1756148884805246,
+    "token_ratio_vs_step0080": 0.9274205376888136,
+    "total_wall_seconds": 9889.50091057003
+  },
+  "cost_step0079": {
+    "mean_packet_chars": 44589.240909090906,
+    "mean_wall_seconds": 29.88177357456496,
+    "median_wall_seconds": 25.68185145800817,
+    "queries": 220,
+    "total_packet_chars": 9809633,
+    "total_wall_seconds": 6573.990186404291
+  },
+  "failure_tally": {
+    "stage1_largest_groups_fallback": 0,
+    "stage1_ok": 219,
+    "stage1_ok_after_retry": 1,
+    "stage2_ok": 220,
+    "stage2_ok_after_retry": 0,
+    "stage2_original_order_failures": 0
+  },
+  "index_hit": {
+    "definition": "every target operation's group among selected groups (step-0080 analysis-001)",
+    "hits": 159,
+    "queries": 220,
+    "rate": 0.7227272727272728,
+    "step0080_hits": 154,
+    "step0080_rate": 0.7
+  },
+  "map": {
+    "direct_reader": 0.5019667175243024,
+    "local_agentprof": 0.32550420747157927,
+    "local_only": 0.20871255669979352,
+    "profile_reader": 0.4553334084291099,
+    "profile_reader_v2": 0.4471703373778639,
+    "raw_action_reader": 0.4651286099436219
+  },
+  "metric": "sklearn.metrics.average_precision_score per target-bearing trajectory; arithmetic MAP; paired cluster bootstrap within strata",
+  "mode": "full",
+  "operations": 5960,
+  "paired_comparisons": {
+    "direct_reader": {
+      "clusters": 220,
+      "interval_95": [
+        -0.0904849691226884,
+        -0.020990126093662742
+      ],
+      "median": -0.054584339482278636,
+      "nonpositive_draws": 9991,
+      "point_effect": -0.05479638014643856,
+      "repetitions": 10000,
+      "seed": 20260925,
+      "strata": 5
+    },
+    "local_agentprof": {
+      "clusters": 220,
+      "interval_95": [
+        0.07058882973533091,
+        0.17203228314939945
+      ],
+      "median": 0.12182395987786307,
+      "nonpositive_draws": 0,
+      "point_effect": 0.12166612990628461,
+      "repetitions": 10000,
+      "seed": 20260924,
+      "strata": 5
+    },
+    "local_only": {
+      "clusters": 220,
+      "interval_95": [
+        0.18335899445809606,
+        0.2942335242280243
+      ],
+      "median": 0.23801965334406333,
+      "nonpositive_draws": 0,
+      "point_effect": 0.23845778067807036,
+      "repetitions": 10000,
+      "seed": 20260923,
+      "strata": 5
+    },
+    "profile_reader": {
+      "clusters": 220,
+      "interval_95": [
+        -0.041613475588450036,
+        0.02505097983424384
+      ],
+      "median": -0.008596684442924385,
+      "nonpositive_draws": 6941,
+      "point_effect": -0.00816307105124603,
+      "repetitions": 10000,
+      "seed": 20260926,
+      "strata": 5
+    },
+    "raw_action_reader": {
+      "clusters": 220,
+      "interval_95": [
+        -0.05817379523402692,
+        0.021965865859128037
+      ],
+      "median": -0.017934590559314362,
+      "nonpositive_draws": 8128,
+      "point_effect": -0.017958272565757993,
+      "repetitions": 10000,
+      "seed": 20260927,
+      "strata": 5
+    }
+  },
+  "provenance": {
+    "baseline_per_query": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-current-agent-local-first-v1/full/per-query.jsonl",
+    "group_key": "source_preserving_agent",
+    "group_mapping": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-canonical-tags-v2-current/trace/results/fixed-groups.jsonl",
+    "packets": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-a0-v1/full/trace/packets",
+    "projections": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/traceelephant-rq2-v1/operations/projection.jsonl",
+    "step_0072_conditions": {
+      "Direct+AgentProf": "local_agentprof",
+      "Direct-only": "local_only"
+    },
+    "step_0079_raw": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0079-20260724T235753-0700/experiment-001/raw-results.json",
+    "step_0080_raw": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0080-20260725T004136-0700/experiment-001/raw-results.json",
+    "step_0081_raw": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0081-20260725T012438-0700/experiment-001/raw-results.json",
+    "targets": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/traceelephant-rq2-v1/scorer/targets.jsonl"
+  },
+  "reader": {
+    "changes_vs_0080": [
+      "width-annotated stage-1 groups (ops mass)",
+      "lean stage-2 (no skeleton re-send)"
+    ],
+    "cli": "grok -p/--prompt-file --output-format plain --max-turns 3 --tools '' --no-subagents --verbatim",
+    "model_family": "external grok (CLI default)",
+    "profile_once_built": true,
+    "protocol_version": "v2",
+    "query_specific": true,
+    "stage1": "width-annotated profile skeleton group selection (≤5)",
+    "stage2": "lean source_summary ranking (opened ops only)",
+    "stages": 2
+  },
+  "registered_targets": {
+    "all_met": false,
+    "content_opened_met": false,
+    "content_opened_threshold": 0.53,
+    "map_met": false,
+    "map_threshold": 0.48,
+    "tokens_met": false,
+    "tokens_threshold": 12615
+  },
+  "target_bearing_queries": 220,
+  "wall_seconds_harness": 1669.306073476997,
+  "zero_positive_queries": 0
+}

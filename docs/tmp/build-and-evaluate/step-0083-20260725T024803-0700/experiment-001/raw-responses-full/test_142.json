@@ -1,0 +1,76 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 9915,
+        "prompt_tokens_o200k": 2503,
+        "returncode": 0,
+        "stderr_tail": "• Diagnose failure. The trajectory: op 10 misreports December amount ($1000 vs actual $1200). Op 16 asks user to re-provide data already in file (unnecessary). Op 18 updates user info — gets timeout error (op 19). Then op 20 updates transaction anyway. Op 22 final report falsely claims address updated (it timed out) and claims rent increased from $1000 (wrong base; was $1200).\n\n  Most likely responsible for failure: op 22 (false success claim on address despite timeout), op 18/19 (address update failed, never retried), op 10 (misstated December rent), op 22 also wrong \"from $1000\". Op 16 (ignored file data, asked user redundantly — possibly allowed injection? Actually file content had all data; agent asked user to reformat, which is a minor issue).\n\n  Ranking: 22, 18, 10, 16, 20, 12.\n\nTo resume this session: kimi -r session_0ed365c9-2e16-4646-8d17-d4273a19bbd8\n"
+      },
+      "parsed": [
+        "test:142:22",
+        "test:142:18",
+        "test:142:10",
+        "test:142:16",
+        "test:142:20",
+        "test:142:12"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:142:22\", \"test:142:18\", \"test:142:10\", \"test:142:16\", \"test:142:20\", \"test:142:12\"]}\n\n",
+      "wall_seconds": 14.798235698981443
+    }
+  ],
+  "completed_ranking": [
+    "test:142:22",
+    "test:142:18",
+    "test:142:10",
+    "test:142:16",
+    "test:142:20",
+    "test:142:12",
+    "test:142:0",
+    "test:142:1",
+    "test:142:2",
+    "test:142:3",
+    "test:142:4",
+    "test:142:5",
+    "test:142:6",
+    "test:142:7",
+    "test:142:8",
+    "test:142:9",
+    "test:142:11",
+    "test:142:13",
+    "test:142:14",
+    "test:142:15",
+    "test:142:17",
+    "test:142:19",
+    "test:142:21"
+  ],
+  "condition": "full_trace_reader",
+  "operation_count": 23,
+  "packet_chars": 9028,
+  "prompt_tokens_o200k": 2503,
+  "query_id": "test:142",
+  "reader_ranked_operation_ids": [
+    "test:142:22",
+    "test:142:18",
+    "test:142:10",
+    "test:142:16",
+    "test:142:20",
+    "test:142:12"
+  ],
+  "scored_as_original_order_failure": false,
+  "status": "ok",
+  "wall_seconds": 14.798235698981443
+}

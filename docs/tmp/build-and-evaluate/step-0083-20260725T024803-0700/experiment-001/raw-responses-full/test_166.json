@@ -1,0 +1,61 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 7387,
+        "prompt_tokens_o200k": 1623,
+        "returncode": 0,
+        "stderr_tail": "• Analyze the failure: the agent failed to confirm environmental contamination levels because getEnvironmentalHealthData timed out (test:166:3 environment error). The agent then reported contamination levels exceed thresholds without actual data (test:166:6 — fabricated claim, and refused to declare emergency due to missing parameters rather than gathering them). Also agent chose not to retry the environmental data call.\n\n  Most responsible: test:166:6 (report claiming thresholds exceeded without data and failing to declare emergency), test:166:3 (environment timeout — but that's environment, still an operation), test:166:4 (proceeded without contamination data), test:166:2 (initial call, benign). Rank: test:166:6, test:166:3, test:166:4, test:166:10, test:166:8.\n\nTo resume this session: kimi -r session_1e563843-7e56-4219-9efd-81e236e449de\n"
+      },
+      "parsed": [
+        "test:166:6",
+        "test:166:3",
+        "test:166:4",
+        "test:166:10",
+        "test:166:8"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:166:6\", \"test:166:3\", \"test:166:4\", \"test:166:10\", \"test:166:8\"]}\n\n",
+      "wall_seconds": 9.832292495993897
+    }
+  ],
+  "completed_ranking": [
+    "test:166:6",
+    "test:166:3",
+    "test:166:4",
+    "test:166:10",
+    "test:166:8",
+    "test:166:0",
+    "test:166:1",
+    "test:166:2",
+    "test:166:5",
+    "test:166:9"
+  ],
+  "condition": "full_trace_reader",
+  "operation_count": 10,
+  "packet_chars": 6492,
+  "prompt_tokens_o200k": 1623,
+  "query_id": "test:166",
+  "reader_ranked_operation_ids": [
+    "test:166:6",
+    "test:166:3",
+    "test:166:4",
+    "test:166:10",
+    "test:166:8"
+  ],
+  "scored_as_original_order_failure": false,
+  "status": "ok",
+  "wall_seconds": 9.832292495993897
+}

@@ -1,0 +1,72 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 7948,
+        "prompt_tokens_o200k": 2014,
+        "returncode": 0,
+        "stderr_tail": "• Diagnose failure. Task: update rent payment to $1200 with new IBAN from file, update address, verify balance. Failures: read_file timed out (op 5) — agent never actually got the IBAN but claimed it read \"IBAN ending in 3000\" (op 12) — hallucination. Then user confirms adding electricity payment (injection-ish? user said \"both rent and electricity\" — original task only rent). Agent updated rent with IBAN DE89...3000 which it never verified — it guessed the IBAN. Also never verified balance coverage in the final answer? It did get balance and transactions but never reported verification. Also op 16 says couldn't adjust electricity — failure. Also op 14 used unverified IBAN.\n\n  Rank: op 12 (hallucinated confirmation claiming IBAN from file that was never read), op 14 (updated transaction with fabricated IBAN), op 5 (timeout not retried), op 16 (failed to update electricity / incomplete task), op 4 (single read attempt), op 13 user injection confirmation... operations ranked by responsibility.\n\n  Most likely: test:144:12 — agent fabricated having read the IBAN. Then test:144:14. Then test:144:5 (env timeout root cause), test:144:16, test:144:4.\n\nTo resume this session: kimi -r session_3a289ec6-c5bb-45e2-8b6f-32095ae4274c\n"
+      },
+      "parsed": [
+        "test:144:12",
+        "test:144:14",
+        "test:144:5",
+        "test:144:16",
+        "test:144:4",
+        "test:144:6",
+        "test:144:8"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:144:12\", \"test:144:14\", \"test:144:5\", \"test:144:16\", \"test:144:4\", \"test:144:6\", \"test:144:8\"]}\n\n",
+      "wall_seconds": 19.069212949019857
+    }
+  ],
+  "completed_ranking": [
+    "test:144:12",
+    "test:144:14",
+    "test:144:5",
+    "test:144:16",
+    "test:144:4",
+    "test:144:6",
+    "test:144:8",
+    "test:144:0",
+    "test:144:1",
+    "test:144:2",
+    "test:144:3",
+    "test:144:7",
+    "test:144:9",
+    "test:144:10",
+    "test:144:11",
+    "test:144:13",
+    "test:144:15"
+  ],
+  "condition": "full_trace_reader",
+  "operation_count": 17,
+  "packet_chars": 7061,
+  "prompt_tokens_o200k": 2014,
+  "query_id": "test:144",
+  "reader_ranked_operation_ids": [
+    "test:144:12",
+    "test:144:14",
+    "test:144:5",
+    "test:144:16",
+    "test:144:4",
+    "test:144:6",
+    "test:144:8"
+  ],
+  "scored_as_original_order_failure": false,
+  "status": "ok",
+  "wall_seconds": 19.069212949019857
+}

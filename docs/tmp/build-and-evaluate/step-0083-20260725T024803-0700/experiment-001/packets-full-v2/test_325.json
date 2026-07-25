@@ -1,0 +1,327 @@
+{
+  "operation_count": 21,
+  "operations": [
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:325:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users with influencer marketing campaign execution and public relations crisis management for product launches. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"archiveCampaignAsset\", \"description\": \"Archives a specified asset (video, screenshot, draft, document, or evidence) into the designated campaign storage. Returns a confirmation record with archive ID and status upon success.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"assetName\": { \"type\": \"string\", \"description\": \"Name of the file or asset to archive.\" }, \"assetType\": { \"type\": ... [middle omitted] ... anguage code (e.g., 'en', 'es') to filter posts. Default: all languages if omitted.\" }, \"sentiment\": { \"type\": \"string\", \"description\": \"Filter posts by sentiment: 'positive', 'negative', 'neutral', or 'all'. Default: 'all' if omitted.\" } }, \"required\": [ \"keywords\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:325:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "We're launching a new gaming headset next month and need to execute an influencer campaign. Help me: find gaming influencers on Twitch and Twitter with loyal audiences, finalize and distribute the campaign brief to selected creators, monitor real-time sentiment around the product launch, and escalate any emerging hardware defect controversies with evidence preservation.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "agent",
+        "act",
+        "searchInfluencers",
+        "unknown"
+      ],
+      "operation_id": "test:325:2",
+      "ordinal": 2,
+      "source_summary": {
+        "action": "{\"name\": \"searchInfluencers\", \"arguments\": {\"platforms\": [\"Twitch\", \"Twitter\"], \"category\": \"gaming\", \"min_engagement_rate\": 0.05}}",
+        "role": "agent",
+        "thought": "I'll use the searchInfluencers tool to find gaming influencers on Twitch and Twitter with loyal audiences meeting the 0.05 engagement rate threshold as requested in the campaign setup."
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "environment",
+        "observe",
+        "searchInfluencers",
+        "unknown"
+      ],
+      "operation_id": "test:325:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "{\"influencers\": []}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "agent",
+        "report",
+        "searchInfluencers",
+        "unknown"
+      ],
+      "operation_id": "test:325:4",
+      "ordinal": 4,
+      "source_summary": {
+        "content": "Since we found no influencers via the search, please provide the campaign brief details so I can create the brief, and manually specify the influencers you'd like to reach out to by providing their channel, recipient, subject, and body for the outreach.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:325:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "Here's the campaign brief: name 'Gaming Headset X Launch', content 'Target audience: hardcore gamers. Key message: immersive sound. Deliverables: 1 video review + 2 social posts.', ownerId 'campaign_owner_123'. Please send outreach to influencer via channel 'email' to recipient 'pro_gamer@example.com' with subject 'New Gaming Headset Collaboration' and body 'We invite you to our exclusive launch campaign'.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "agent",
+        "act",
+        "createCampaignBrief",
+        "unknown"
+      ],
+      "operation_id": "test:325:6",
+      "ordinal": 6,
+      "source_summary": {
+        "action": "{\"name\": \"createCampaignBrief\", \"arguments\": {\"actionType\": \"brief\", \"campaignName\": \"Gaming Headset X Launch\", \"details\": \"Target audience: hardcore gamers. Key message: immersive sound. Deliverables: 1 video review + 2 social posts.\", \"ownerId\": \"campaign_owner_123\"}}",
+        "role": "agent",
+        "thought": "I'll create the campaign brief exactly as provided to ensure the influencer outreach can proceed with the correct specifications."
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "environment",
+        "observe",
+        "createCampaignBrief",
+        "success"
+      ],
+      "operation_id": "test:325:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"brief_id\": \"brief_2024_789\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "agent",
+        "act",
+        "sendCreatorOutreach",
+        "unknown"
+      ],
+      "operation_id": "test:325:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"sendCreatorOutreach\", \"arguments\": {\"channel\": \"email\", \"recipient\": \"pro_gamer@example.com\", \"subject\": \"New Gaming Headset Collaboration\", \"body\": \"We invite you to our exclusive launch campaign\"}}",
+        "role": "agent",
+        "thought": "I'll now send the creator outreach via the specified channel to the provided recipient using the exact subject and body from the user's latest message to initiate the influencer collaboration."
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "environment",
+        "observe",
+        "sendCreatorOutreach",
+        "success"
+      ],
+      "operation_id": "test:325:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"message_id\": \"msg_456ABC\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "agent",
+        "report",
+        "sendCreatorOutreach",
+        "success"
+      ],
+      "operation_id": "test:325:10",
+      "ordinal": 10,
+      "source_summary": {
+        "content": "The campaign brief (ID: brief_2024_789) has been successfully created and the outreach message (ID: msg_456ABC) was delivered. Since the initial influencer search returned no results, I'm ready to repeat the search for additional influencers with new parameters—please provide updated criteria. To set up social media monitoring for the product launch, please provide the campaign hashtags and specific keywords related to the gaming headset that we should track.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:325:12",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "For the social media monitoring, track the hashtags #HeadsetX and #GamingX, along with product terms 'Gaming Headset X' and 'Headset X'.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "agent",
+        "act",
+        "monitorSocialStream",
+        "unknown"
+      ],
+      "operation_id": "test:325:13",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"monitorSocialStream\", \"arguments\": {\"keywords\": [\"HeadsetX\", \"GamingX\", \"Gaming Headset X\", \"Headset X\"], \"sentiment\": \"negative\", \"platforms\": [\"instagram\", \"tiktok\", \"youtube\", \"twitter\", \"twitch\"]}}",
+        "role": "agent",
+        "thought": "I'll call the monitorSocialStream tool now to track negative sentiment for the provided hashtags and product terms across the specified platforms, as the user just supplied the required keywords for launch monitoring."
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "environment",
+        "observe",
+        "monitorSocialStream",
+        "unknown"
+      ],
+      "operation_id": "test:325:14",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"posts\": [{\"id\": \"post_123\", \"platform\": \"twitter\", \"text\": \"My Gaming Headset X stopped working after 2 days! Defective unit?\", \"sentiment\": \"negative\", \"timestamp\": \"2024-01-15T10:30:00Z\", \"metadata\": {\"author\": \"@gamer123\", \"url\": \"https://twitter.com/gamer123/status/123456\"}}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "agent",
+        "report",
+        "monitorSocialStream",
+        "unknown"
+      ],
+      "operation_id": "test:325:15",
+      "ordinal": 14,
+      "source_summary": {
+        "content": "Monitoring is now active across Instagram, TikTok, YouTube, Twitter, and Twitch for your product launch terms. We've detected 1 negative post on Twitter requiring attention - note that automatic spike detection and defect classification require manual review. Example flagged post: \"My Gaming Headset X stopped working after 2 days! Defective unit? We've identified a concerning post: \"My Gaming Headset X stopped working after 2 days! Defective unit?\" which may indicate a hardware defect. Please confirm if we should escalate this as a hardware defect crisis and provide: campaign ID, severity level (low/medium/high/critical), recommended actions, escalation targets, reporter ID, and confirmation code.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:325:17",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "Yes, escalate this hardware defect crisis immediately. Use campaignId 'campaign_789', severity 'high', recommended actions 'Investigate defect' and 'Issue recall notice', escalate to 'exec_team_1' and 'legal_team_2', with reporterId 'user_123' and confirmation code 'ESC-123'.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "agent",
+        "act",
+        "archiveCampaignAsset",
+        "unknown"
+      ],
+      "operation_id": "test:325:18",
+      "ordinal": 16,
+      "source_summary": {
+        "action": "{\"name\": \"archiveCampaignAsset\", \"arguments\": {\"assetName\": \"Twitter post by @gamer123 at 2024-01-15T10:30:00Z\", \"assetType\": \"evidence\", \"sourceUrl\": \"https://twitter.com/gamer123/status/123456\", \"campaignId\": \"campaign_789\"}}",
+        "role": "agent",
+        "thought": "I'll archive the Twitter post evidence using the provided source URL and campaign ID to preserve it for the hardware defect crisis escalation as requested."
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "environment",
+        "observe",
+        "archiveCampaignAsset",
+        "success"
+      ],
+      "operation_id": "test:325:19",
+      "ordinal": 17,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"archive_id\": \"arch_12345\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "agent",
+        "act",
+        "escalatePRCrisis",
+        "unknown"
+      ],
+      "operation_id": "test:325:20",
+      "ordinal": 18,
+      "source_summary": {
+        "action": "{\"name\": \"escalatePRCrisis\", \"arguments\": {\"incidentTitle\": \"Hardware defect in Gaming Headset X\", \"severity\": \"high\", \"incidentSummary\": \"Twitter user @gamer123 reports hardware failure after 2 days: 'My Gaming Headset X stopped working after 2 days! Defective unit?'\", \"affectedCampaigns\": [\"campaign_789\"], \"recommendedActions\": [\"Investigate defect\", \"Issue recall notice\"], \"escalationTargets\": [\"exec_team_1\", \"legal_team_2\"], \"reporterId\": \"user_123\", \"confirmationCode\": \"ESC-123\"}}",
+        "role": "agent",
+        "thought": "I'll escalate the hardware defect crisis now using the provided severity, recommended actions, escalation targets, reporter ID, and confirmation code as explicitly instructed by the user."
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "environment",
+        "observe",
+        "escalatePRCrisis",
+        "success"
+      ],
+      "operation_id": "test:325:21",
+      "ordinal": 19,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"incident_tracking_id\": \"inc_123\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "socialMediaAnalytics",
+        "agent",
+        "report",
+        "escalatePRCrisis",
+        "success"
+      ],
+      "operation_id": "test:325:22",
+      "ordinal": 20,
+      "source_summary": {
+        "content": "The hardware defect crisis has been successfully escalated with tracking ID inc_123, and the evidence has been preserved in archive ID arch_12345.",
+        "role": "agent"
+      }
+    }
+  ],
+  "task": "We're launching a new gaming headset next month and need to execute an influencer campaign. Help me: find gaming influencers on Twitch and Twitter with loyal audiences, finalize and distribute the campaign brief to selected creators, monitor real-time sentiment around the product launch, and escalate any emerging hardware defect controversies with evidence preservation."
+}

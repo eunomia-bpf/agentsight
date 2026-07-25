@@ -1,0 +1,156 @@
+{
+  "benchmark": "TraceElephant",
+  "bootstrap_seeds": {
+    "direct_reader": 20260925,
+    "local_agentprof": 20260924,
+    "local_only": 20260923,
+    "profile_reader": 20260926
+  },
+  "cost": {
+    "max_total_chars": 202466,
+    "mean_content_opened_fraction": 0.6501447550607522,
+    "mean_group_count": 9.822727272727272,
+    "mean_selected_evidence_ops": 16.963636363636365,
+    "mean_stage1_chars": 13335.063636363637,
+    "mean_stage2_chars": 40065.94545454546,
+    "mean_stage2_evidence_chars": 25716.145454545454,
+    "mean_total_chars": 53401.009090909094,
+    "mean_wall_seconds": 55.94210869678182,
+    "median_content_opened_fraction": 0.6628201176102491,
+    "median_total_chars": 43297.0,
+    "median_wall_seconds": 50.571855527479784,
+    "min_total_chars": 15209,
+    "queries": 220,
+    "total_wall_seconds": 12307.263913292001
+  },
+  "cost_step0079": {
+    "mean_packet_chars": 44589.240909090906,
+    "mean_wall_seconds": 29.88177357456496,
+    "median_wall_seconds": 25.68185145800817,
+    "queries": 220,
+    "total_packet_chars": 9809633,
+    "total_wall_seconds": 6573.990186404291
+  },
+  "cost_step0080": {
+    "mean_content_opened_fraction": 0.5301224683014941,
+    "mean_group_count": 13.695454545454545,
+    "mean_selected_evidence_ops": 14.168181818181818,
+    "mean_total_chars": 46529.58181818182,
+    "mean_wall_seconds": 50.21416138649153
+  },
+  "failure_tally": {
+    "stage1_largest_groups_fallback": 0,
+    "stage1_ok": 220,
+    "stage1_ok_after_retry": 0,
+    "stage2_ok": 219,
+    "stage2_ok_after_retry": 1,
+    "stage2_original_order_failures": 0
+  },
+  "group_stats": {
+    "max_largest_group_size": 77,
+    "mean_group_count": 9.822727272727272,
+    "mean_largest_group_size": 9.236363636363636,
+    "median_group_count": 9.0,
+    "median_largest_group_size": 7.0,
+    "step_0080_mean_group_count": 13.7
+  },
+  "map": {
+    "direct_reader": 0.5019667175243024,
+    "local_agentprof": 0.32550420747157927,
+    "local_only": 0.20871255669979352,
+    "profile_reader": 0.4553334084291099,
+    "raw_action_reader": 0.4651286099436219
+  },
+  "metric": "sklearn.metrics.average_precision_score per target-bearing trajectory; arithmetic MAP; paired cluster bootstrap within strata",
+  "mode": "full",
+  "operations": 5960,
+  "paired_comparisons": {
+    "direct_reader": {
+      "clusters": 220,
+      "interval_95": [
+        -0.07031736084126858,
+        -0.0037387893239417837
+      ],
+      "median": -0.036749011422074374,
+      "nonpositive_draws": 9850,
+      "point_effect": -0.03683810758068057,
+      "repetitions": 10000,
+      "seed": 20260925,
+      "strata": 5
+    },
+    "local_agentprof": {
+      "clusters": 220,
+      "interval_95": [
+        0.09200333649769285,
+        0.18792823525874497
+      ],
+      "median": 0.13922314484277515,
+      "nonpositive_draws": 0,
+      "point_effect": 0.1396244024720426,
+      "repetitions": 10000,
+      "seed": 20260924,
+      "strata": 5
+    },
+    "local_only": {
+      "clusters": 220,
+      "interval_95": [
+        0.19997945050657623,
+        0.3124343142549508
+      ],
+      "median": 0.2560551423790362,
+      "nonpositive_draws": 0,
+      "point_effect": 0.2564160532438283,
+      "repetitions": 10000,
+      "seed": 20260923,
+      "strata": 5
+    },
+    "profile_reader": {
+      "clusters": 220,
+      "interval_95": [
+        -0.020766708280934017,
+        0.04241655345832627
+      ],
+      "median": 0.009440752896995539,
+      "nonpositive_draws": 2822,
+      "point_effect": 0.009795201514511964,
+      "repetitions": 10000,
+      "seed": 20260926,
+      "strata": 5
+    }
+  },
+  "provenance": {
+    "baseline_per_query": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-current-agent-local-first-v1/full/per-query.jsonl",
+    "fixed_groups": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-canonical-tags-v2-current/trace/results/fixed-groups.jsonl",
+    "not_used": "projection.raw_fields.raw_action alone is NOT the step-0072 TraceElephant raw identity; the frozen leaf is the composite encoded system;component;raw_action string from method-index",
+    "packets": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-a0-v1/full/trace/packets",
+    "path_construction": "(task_family.casefold(), 'raw:' + leaf.casefold(), *source_suffix) — identical to script/rq2_current_agent_local_first.py construct_scores for local_raw_evidence / raw_source_evidence",
+    "projections": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/traceelephant-rq2-v1/operations/projection.jsonl",
+    "raw_identity_field": "methods[\"raw\"][\"operation_leaves\"]",
+    "raw_identity_join": "zip(projection.jsonl file order, operation_leaves) → operation_id",
+    "raw_identity_source": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/traceelephant-rq2-v1/profiles/method-index.json",
+    "source_suffix_source": "fixed-groups.jsonl groups[source_preserving_agent] after automatic_agent prefix (exactly 3 frames: source-kind, source-call/tool, outcome)",
+    "step_0072_condition": "local_raw_evidence",
+    "step_0072_conditions": {
+      "Direct+AgentProf": "local_agentprof",
+      "Direct+Raw+Evidence": "local_raw_evidence",
+      "Direct-only": "local_only"
+    },
+    "step_0072_script": "script/rq2_current_agent_local_first.py",
+    "step_0079_raw": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0079-20260724T235753-0700/experiment-001/raw-results.json",
+    "step_0080_raw": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0080-20260725T004136-0700/experiment-001/raw-results.json",
+    "targets": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/traceelephant-rq2-v1/scorer/targets.jsonl",
+    "unique_raw_leaves": 143
+  },
+  "reader": {
+    "cli": "grok -p/--prompt-file --output-format plain --max-turns 3 --tools '' --no-subagents --verbatim",
+    "manipulated_variable": "group path = step-0072 information-matched raw+evidence path instead of source_preserving_agent semantic path",
+    "model_family": "external grok (CLI default)",
+    "query_specific": true,
+    "stage1": "raw-action profile skeleton group selection (≤5)",
+    "stage2": "focused source_summary ranking",
+    "stages": 2
+  },
+  "target_bearing_queries": 220,
+  "wall_seconds_harness": 2112.433157200023,
+  "zero_positive_queries": 0
+}

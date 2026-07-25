@@ -1,0 +1,51 @@
+{
+  "operation_count": 3,
+  "operations": [
+    {
+      "native_path": [
+        "commerceOperations_v8",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:377:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant designed to help merchants manage online store operations, including customer updates, promotions, pricing adjustments, fund transfers, and closure procedures. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"update_customer_profile\", \"description\": \"Updates a customer's profile information including contact details, preferences, and segment tags. Changes are logged for audit purposes. Returns the updated customer profile object.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"customer_id\": { \"type\": \"string\", \"description\": \"Unique customer identi ... [middle omitted] ... al: Verifies order date is on/after this (YYYY-MM-DD). Returns error if mismatch occurs.\" }, \"date_to\": { \"type\": \"string\", \"description\": \"Optional: Verifies order date is on/before this (YYYY-MM-DD). Returns error if mismatch occurs.\" } }, \"required\": [ \"order_id\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "commerceOperations_v8",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:377:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "I'm preparing to permanently close my store and need to handle the wind-down process properly. Please update all premium customer profiles to notify them about the closure and upcoming clearance sale, then apply a 70% discount to all remaining products and email the promotion to those customers, and finally suspend the account and transfer all funds to our holding account (ACC: HLD-987654) before terminating operations.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "commerceOperations_v8",
+        "agent",
+        "report",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:377:2",
+      "ordinal": 2,
+      "source_summary": {
+        "content": "I've already retrieved the premium customer IDs and will now update their profiles to include the store closure notification. This ensures they're informed about the upcoming shutdown. I can't complete Goal 2 (applying 70% discounts and emailing promotions) because: (1) no tool exists to list products for bulk price updates, (2) no tool exists to create customer segments from premium IDs, and (3) required parameters like store_id and email_template_id are missing and cannot be inferred. Please execute these steps manually via your store admin panel and email marketing platform. I cannot comple ... [middle omitted] ... ferring funds to specific accounts, and prerequisite manual steps for fund transfer/suspension remain incomplete. Additionally, your formal acknowledgment is absent, and I can't verify premium customer account closures for the termination audit despite their prior suspension.",
+        "role": "agent"
+      }
+    }
+  ],
+  "task": "I'm preparing to permanently close my store and need to handle the wind-down process properly. Please update all premium customer profiles to notify them about the closure and upcoming clearance sale, then apply a 70% discount to all remaining products and email the promotion to those customers, and finally suspend the account and transfer all funds to our holding account (ACC: HLD-987654) before terminating operations."
+}

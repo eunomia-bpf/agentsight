@@ -1,0 +1,312 @@
+{
+  "operation_count": 20,
+  "operations": [
+    {
+      "native_path": [
+        "enterpriseErp",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:310:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users with supply chain operations and financial management, including inventory assessment, budget verification, and team communications. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"processBulkLayoffs\", \"description\": \"Processes mass layoffs for specified employees after verifying legal and executive approvals. Returns a transaction ID and summary of affected employees with severance details.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"employeeIds\": { \"type\": \"array\", \"description\": \"Required. Array of unique employee IDs to termi ... [middle omitted] ... uct SKU. Omit to return all products.\" }, \"warehouseCode\": { \"type\": \"string\", \"description\": \"Filter results by specific warehouse location.\" }, \"lowStockOnly\": { \"type\": \"boolean\", \"description\": \"Return only items below reorder level when true.\" } }, \"required\": [] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:310:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "We're facing critical shortages for medical device components SKU MD-555 and MD-556 across all regional warehouses. I need to assess current inventory levels for these SKUs, verify if the procurement budget allows a bulk purchase, approve the emergency CAPEX-789 request if funds are available, and notify supply chain teams about incoming restocks.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "agent",
+        "act",
+        "getInventoryStatus",
+        "unknown"
+      ],
+      "operation_id": "test:310:2",
+      "ordinal": 2,
+      "source_summary": {
+        "action": "{\"name\": \"getInventoryStatus\", \"arguments\": {\"sku\": \"MD-555\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve the inventory status for MD-555 to assess current levels as specified in the emergency request."
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "environment",
+        "observe",
+        "getInventoryStatus",
+        "unknown"
+      ],
+      "operation_id": "test:310:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "{\"sku\": \"MD-555\", \"productName\": \"Medical Device Component 555\", \"warehouses\": [{\"warehouseCode\": \"WH-NY\", \"stockLevel\": 15, \"reorderLevel\": 20, \"lowStockAlert\": true}, {\"warehouseCode\": \"WH-LA\", \"stockLevel\": 25, \"reorderLevel\": 20, \"lowStockAlert\": false}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "agent",
+        "act",
+        "getInventoryStatus",
+        "unknown"
+      ],
+      "operation_id": "test:310:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"getInventoryStatus\", \"arguments\": {\"sku\": \"MD-556\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve the inventory status for MD-556 to complete the assessment of both critical SKUs as requested."
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "environment",
+        "observe",
+        "getInventoryStatus",
+        "unknown"
+      ],
+      "operation_id": "test:310:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"sku\": \"MD-556\", \"productName\": \"Medical Device Component 556\", \"warehouses\": [{\"warehouseCode\": \"WH-NY\", \"stockLevel\": 5, \"reorderLevel\": 15, \"lowStockAlert\": true}, {\"warehouseCode\": \"WH-LA\", \"stockLevel\": 10, \"reorderLevel\": 15, \"lowStockAlert\": true}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "agent",
+        "report",
+        "getInventoryStatus",
+        "unknown"
+      ],
+      "operation_id": "test:310:6",
+      "ordinal": 6,
+      "source_summary": {
+        "content": "To proceed with budget validation for the CAPEX-789 approval, please provide the expenditure amount and fiscal year for this request.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:310:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "The emergency CAPEX-789 request amount is 300,000 and the fiscal year is 2024.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "agent",
+        "act",
+        "getFinancialData",
+        "unknown"
+      ],
+      "operation_id": "test:310:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"getFinancialData\", \"arguments\": {\"queryType\": \"budget\", \"departmentName\": \"Procurement\", \"fiscalYear\": 2024}}",
+        "role": "agent",
+        "thought": "I'll retrieve the procurement budget for fiscal year 2024 to verify if the CAPEX-789 request amount can be accommodated."
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "environment",
+        "observe",
+        "getFinancialData",
+        "unknown"
+      ],
+      "operation_id": "test:310:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"department\": \"Procurement\", \"fiscalYear\": 2024, \"totalAnnualBudget\": 1000000, \"q3\": {\"allocated\": 250000, \"committed\": 100000, \"available\": 150000}, \"q4\": {\"allocated\": 250000, \"committed\": 50000, \"available\": 200000}, \"emergencyExpenditureApproved\": true}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "agent",
+        "report",
+        "getFinancialData",
+        "unknown"
+      ],
+      "operation_id": "test:310:10",
+      "ordinal": 10,
+      "source_summary": {
+        "content": "Based on the procurement budget data, Q3 has $150,000 available and Q4 has $200,000 available, totaling $350,000 - which sufficiently covers the $300,000 CAPEX-789 emergency request. The budget validation is successful for this expenditure. To finalize the CAPEX-789 approval after budget pre-approval, please provide the business justification, budget account code, approver ID, confirmation code, and confirm the expenditure category.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:310:12",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "Here are the approval details for CAPEX-789: business case is 'Emergency restock for critical components MD-555/MD-556 to prevent $1.2M production loss. ROI: 4 months. Aligns with patient safety initiative.', budget source BUDGET-PROC-2024-Q4, approver ID exec-12345, confirmation code AUDIT-789, and category confirmed as equipment.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "agent",
+        "act",
+        "approveCapitalExpenditure",
+        "unknown"
+      ],
+      "operation_id": "test:310:13",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"approveCapitalExpenditure\", \"arguments\": {\"requestId\": \"CAPEX-789\", \"amount\": 300000, \"category\": \"equipment\", \"businessCase\": \"Emergency restock for critical components MD-555/MD-556 to prevent $1.2M production loss. ROI: 4 months. Aligns with patient safety initiative.\", \"budgetSource\": \"BUDGET-PROC-2024-Q4\", \"approverId\": \"exec-12345\", \"confirmationCode\": \"AUDIT-789\"}}",
+        "role": "agent",
+        "thought": "I'll approve the CAPEX-789 expenditure with the provided arguments since budget validation succeeded and all required approval details are now available."
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "environment",
+        "observe",
+        "approveCapitalExpenditure",
+        "success"
+      ],
+      "operation_id": "test:310:14",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"status\": \"approved\", \"transactionId\": \"TXN-98765\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "agent",
+        "report",
+        "approveCapitalExpenditure",
+        "success"
+      ],
+      "operation_id": "test:310:15",
+      "ordinal": 14,
+      "source_summary": {
+        "content": "The emergency CAPEX-789 request is fully approved under transaction ID TXN-98765. I will now proceed to notify the supply chain teams about the incoming restocks for SKUs MD-555 and MD-556. To proceed with the broadcast announcement about the restocks, please provide the supply chain department name, finance department name, restocking timelines for MD-555 and MD-556, your sender ID, a confirmation code, and the required priority levels.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:310:17",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "Please use these broadcast parameters: supply chain department is 'Global Supply Chain', finance department is 'Finance Department', restocking timelines are '2024-02-15', my sender ID is 'user-67890', confirmation code is 'BROADCAST-2024-123', priority for supply chain is 'urgent', and for finance it's 'important'.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "agent",
+        "act",
+        "broadcastCompanyAnnouncement",
+        "unknown"
+      ],
+      "operation_id": "test:310:18",
+      "ordinal": 16,
+      "source_summary": {
+        "action": "{\"name\": \"broadcastCompanyAnnouncement\", \"arguments\": {\"targetAudience\": \"Global Supply Chain\", \"subject\": \"Critical Restock Update: MD-555/MD-556\", \"messageBody\": \"Financial validation confirms MD-555/MD-556 restock approval. Components arriving 2024-02-15. Prepare for warehouse intake. CAPEX-789 reference: TXN-98765.\", \"priority\": \"urgent\", \"senderId\": \"user-67890\", \"confirmationCode\": \"BROADCAST-2024-123\"}}",
+        "role": "agent",
+        "thought": "I'll broadcast the restock announcement to the Global Supply Chain department with the provided parameters and confirmed transaction details as requested."
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "environment",
+        "observe",
+        "broadcastCompanyAnnouncement",
+        "success"
+      ],
+      "operation_id": "test:310:19",
+      "ordinal": 17,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"broadcastId\": \"BROAD-2024-001\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "agent",
+        "act",
+        "broadcastCompanyAnnouncement",
+        "unknown"
+      ],
+      "operation_id": "test:310:20",
+      "ordinal": 18,
+      "source_summary": {
+        "action": "{\"name\": \"broadcastCompanyAnnouncement\", \"arguments\": {\"targetAudience\": \"Finance Department\", \"subject\": \"CAPEX-789 Validation: TXN-98765\", \"messageBody\": \"Financial data confirms CAPEX-789 ($300,000) authorization for MD-555/MD-556 restock. Funds drawn from BUDGET-PROC-2024-Q4. Transaction ID: TXN-98765.\", \"priority\": \"important\", \"senderId\": \"user-67890\", \"confirmationCode\": \"BROADCAST-2024-123\"}}",
+        "role": "agent",
+        "thought": "I'll broadcast the financial approval details to the Finance Department using the provided parameters to complete the required notifications."
+      }
+    },
+    {
+      "native_path": [
+        "enterpriseErp",
+        "environment",
+        "observe",
+        "broadcastCompanyAnnouncement",
+        "success"
+      ],
+      "operation_id": "test:310:21",
+      "ordinal": 19,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"broadcastId\": \"BROAD-2024-002\"}",
+        "role": "environment"
+      }
+    }
+  ],
+  "task": "We're facing critical shortages for medical device components SKU MD-555 and MD-556 across all regional warehouses. I need to assess current inventory levels for these SKUs, verify if the procurement budget allows a bulk purchase, approve the emergency CAPEX-789 request if funds are available, and notify supply chain teams about incoming restocks."
+}

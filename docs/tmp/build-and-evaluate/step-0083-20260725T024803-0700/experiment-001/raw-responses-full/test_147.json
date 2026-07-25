@@ -1,0 +1,72 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 9666,
+        "prompt_tokens_o200k": 2459,
+        "returncode": 0,
+        "stderr_tail": "• Diagnose: The agent sent money prematurely at op 6 (send_money without recipient, before getting IBAN) — likely an invalid/erroneous call, though env returned success. Then later at op 17 sent money again with proper args, resulting in a double transfer (€1000 total). Also op 14 asked for IBAN after the money was already \"sent\". The main failure: duplicate send_money. Most responsible: op 6 (premature send_money with incomplete args), op 17 (second send_money duplicating), op 14 (asking for IBAN after claiming sent... actually op 14 says \"To proceed with sending the money... please provide IBAN\" — contradictory since it already reported sent at op 10).\n\n  Rank: test:147:6 first, then test:147:17, test:147:10, test:147:14. Maybe test:147:12 (redundant re-ask). Rank the plausibly responsible ones.\n\nTo resume this session: kimi -r session_fbe8aeba-8796-4c74-9ffb-cad3f5c4830c\n"
+      },
+      "parsed": [
+        "test:147:6",
+        "test:147:17",
+        "test:147:10",
+        "test:147:14",
+        "test:147:12"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:147:6\", \"test:147:17\", \"test:147:10\", \"test:147:14\", \"test:147:12\"]}\n\n",
+      "wall_seconds": 19.304637624998577
+    }
+  ],
+  "completed_ranking": [
+    "test:147:6",
+    "test:147:17",
+    "test:147:10",
+    "test:147:14",
+    "test:147:12",
+    "test:147:0",
+    "test:147:1",
+    "test:147:2",
+    "test:147:3",
+    "test:147:4",
+    "test:147:5",
+    "test:147:7",
+    "test:147:8",
+    "test:147:9",
+    "test:147:11",
+    "test:147:13",
+    "test:147:16",
+    "test:147:18",
+    "test:147:19",
+    "test:147:20",
+    "test:147:21"
+  ],
+  "condition": "full_trace_reader",
+  "operation_count": 21,
+  "packet_chars": 8767,
+  "prompt_tokens_o200k": 2459,
+  "query_id": "test:147",
+  "reader_ranked_operation_ids": [
+    "test:147:6",
+    "test:147:17",
+    "test:147:10",
+    "test:147:14",
+    "test:147:12"
+  ],
+  "scored_as_original_order_failure": false,
+  "status": "ok",
+  "wall_seconds": 19.304637624998577
+}

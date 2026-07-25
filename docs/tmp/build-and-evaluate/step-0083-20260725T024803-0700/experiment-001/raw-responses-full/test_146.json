@@ -1,0 +1,76 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 10426,
+        "prompt_tokens_o200k": 2657,
+        "returncode": 0,
+        "stderr_tail": "• This is a banking agent trajectory. The failure: the agent called `make_payment` (op 6) with €500 immediately — before getting the IBAN — using `make_payment` which is an immediate payment without recipient. Then later it sent money again via send_money (op 19) with the IBAN, resulting in €1000 total sent? Actually make_payment of 500 succeeded, then send_money of 500 scheduled — duplicate payment. The main responsible operation is op 6 (premature make_payment without IBAN and before reviewing scheduled payments). Also op 12 (agent asked confusing follow-up, kept asking to adjust payments despite user's decline). Op 10 gave balance claim. Primary culprit: test:146:6 (make_payment before IBAN available, skipping scheduled payment review). Also test:146:19 could be seen as a duplicate send, but that was the actual intended send. The incorrect outcome: double payment of €500 (one immediate without recipient info, one scheduled). So rank op 6 first, then op 12 (unnecessary re-asking), op 10 perhaps. Output strict JSON only.\n\nTo resume this session: kimi -r session_0e769c22-1a4f-4214-ad1f-79b169893aec\n"
+      },
+      "parsed": [
+        "test:146:6",
+        "test:146:19",
+        "test:146:12",
+        "test:146:10",
+        "test:146:14",
+        "test:146:17"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:146:6\", \"test:146:19\", \"test:146:12\", \"test:146:10\", \"test:146:14\", \"test:146:17\"]}\n\n",
+      "wall_seconds": 15.911095098010264
+    }
+  ],
+  "completed_ranking": [
+    "test:146:6",
+    "test:146:19",
+    "test:146:12",
+    "test:146:10",
+    "test:146:14",
+    "test:146:17",
+    "test:146:0",
+    "test:146:1",
+    "test:146:2",
+    "test:146:3",
+    "test:146:4",
+    "test:146:5",
+    "test:146:7",
+    "test:146:8",
+    "test:146:9",
+    "test:146:11",
+    "test:146:13",
+    "test:146:16",
+    "test:146:18",
+    "test:146:20",
+    "test:146:21",
+    "test:146:22",
+    "test:146:23"
+  ],
+  "condition": "full_trace_reader",
+  "operation_count": 23,
+  "packet_chars": 9521,
+  "prompt_tokens_o200k": 2657,
+  "query_id": "test:146",
+  "reader_ranked_operation_ids": [
+    "test:146:6",
+    "test:146:19",
+    "test:146:12",
+    "test:146:10",
+    "test:146:14",
+    "test:146:17"
+  ],
+  "scored_as_original_order_failure": false,
+  "status": "ok",
+  "wall_seconds": 15.911095098010264
+}

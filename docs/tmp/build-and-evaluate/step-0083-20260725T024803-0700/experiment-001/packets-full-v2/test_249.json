@@ -1,0 +1,282 @@
+{
+  "operation_count": 18,
+  "operations": [
+    {
+      "native_path": [
+        "shopping",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:249:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users with file management, shopping operations, and communication tasks. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"list_directory\", \"description\": \"Lists metadata (name, type, size, etc.) of all files and subdirectories in a specified local directory. Returns a list of items.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"path\": { \"type\": \"string\", \"description\": \"The absolute or relative path of the directory to list contents from\" } }, \"required\": [ \"path\" ] } } }, { \"type\": \"function\", \"function\": { \"name\": \"cart_total\", \"descri ... [middle omitted] ... \"type\": \"string\" }, \"description\": \"List of participant email addresses to notify; emails are sent automatically.\" }, \"location\": { \"type\": \"string\", \"description\": \"The physical or virtual location of the event.\" } }, \"required\": [ \"title\", \"start_time\", \"end_time\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:249:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "I need to organize my project files for the quarterly review. First, list all documents in my 'Pending_Review' folder to find outdated reports, then delete anything older than 60 days and move all PDFs to the 'Approved' folder. Finally, schedule a meeting with my team for next Monday and email them the cleanup summary.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "agent",
+        "act",
+        "list_directory",
+        "unknown"
+      ],
+      "operation_id": "test:249:2",
+      "ordinal": 2,
+      "source_summary": {
+        "action": "{\"name\": \"list_directory\", \"arguments\": {\"path\": \"Pending_Review\"}}",
+        "role": "agent",
+        "thought": "I'll list the contents of the specified folder to identify outdated reports and PDFs as the first step."
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "environment",
+        "observe",
+        "list_directory",
+        "unknown"
+      ],
+      "operation_id": "test:249:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "{\"items\": [{\"name\": \"example_report.pdf\", \"type\": \"file\", \"size\": 1024, \"modified_date\": \"2023-11-01\"}, {\"name\": \"summary.docx\", \"type\": \"file\", \"size\": 2048, \"modified_date\": \"2024-01-10\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "agent",
+        "act",
+        "get_current_day",
+        "unknown"
+      ],
+      "operation_id": "test:249:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"get_current_day\", \"arguments\": {}}",
+        "role": "agent",
+        "thought": "I need to get the current day to calculate the 60-day cutoff for deletions and determine the date for next Monday's meeting."
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "environment",
+        "observe",
+        "get_current_day",
+        "unknown"
+      ],
+      "operation_id": "test:249:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"current_date\": \"2024-01-15\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "agent",
+        "report",
+        "get_current_day",
+        "unknown"
+      ],
+      "operation_id": "test:249:6",
+      "ordinal": 6,
+      "source_summary": {
+        "content": "I will delete the file 'example_report.pdf' since it is older than 60 days, and there are no PDFs to move at this time.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:249:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "Yes, please delete the outdated report and proceed since there are no PDFs requiring movement now.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "agent",
+        "act",
+        "delete_node",
+        "unknown"
+      ],
+      "operation_id": "test:249:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"delete_node\", \"arguments\": {\"path\": \"Pending_Review/example_report.pdf\"}}",
+        "role": "agent",
+        "thought": "I'll delete the outdated report as confirmed by the user in their latest message."
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "environment",
+        "observe",
+        "delete_node",
+        "unknown"
+      ],
+      "operation_id": "test:249:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"message\": \"File deleted successfully\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "agent",
+        "act",
+        "delete_node",
+        "unknown"
+      ],
+      "operation_id": "test:249:10",
+      "ordinal": 10,
+      "source_summary": {
+        "action": "{\"name\": \"delete_node\", \"arguments\": {\"path\": \"Pending_Review/example_report.pdf\"}}",
+        "role": "agent",
+        "thought": "I'll delete the outdated report again as confirmed by the user to complete the cleanup task."
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "environment",
+        "observe",
+        "delete_node",
+        "error"
+      ],
+      "operation_id": "test:249:11",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "{\"error\": \"File not found\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "agent",
+        "report",
+        "delete_node",
+        "error"
+      ],
+      "operation_id": "test:249:12",
+      "ordinal": 12,
+      "source_summary": {
+        "content": "To proceed with scheduling next Monday's meeting and sending the cleanup summary, please confirm the meeting time and provide your team members' email addresses.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:249:13",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "Let's schedule the meeting for next Monday from 14:00 to 15:00. Please invite team1@example.com and team2@example.com.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "agent",
+        "act",
+        "create_calendar_event",
+        "unknown"
+      ],
+      "operation_id": "test:249:14",
+      "ordinal": 14,
+      "source_summary": {
+        "action": "{\"name\": \"create_calendar_event\", \"arguments\": {\"title\": \"Team Meeting\", \"start_time\": \"2024-01-22 14:00\", \"end_time\": \"2024-01-22 15:00\", \"participants\": [\"team1@example.com\", \"team2@example.com\"]}}",
+        "role": "agent",
+        "thought": "I'll create the calendar event for the team meeting exactly on the specified date and time with the provided participants to fulfill the user's scheduling request."
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "environment",
+        "observe",
+        "create_calendar_event",
+        "unknown"
+      ],
+      "operation_id": "test:249:15",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "{\"event_id\": \"event_12345\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "agent",
+        "act",
+        "send_email",
+        "unknown"
+      ],
+      "operation_id": "test:249:16",
+      "ordinal": 16,
+      "source_summary": {
+        "action": "{\"name\": \"send_email\", \"arguments\": {\"recipients\": [\"team1@example.com\", \"team2@example.com\"], \"subject\": \"Cleanup Summary for Quarterly Review\", \"body\": \"The following cleanup was performed on the 'Pending_Review' folder:\\n- Deleted: example_report.pdf (modified on 2023-11-01, older than 60 days)\\n- No files were moved\"}}",
+        "role": "agent",
+        "thought": "I'll send the cleanup summary email to the provided recipients with the exact deletion details to complete the task as requested."
+      }
+    },
+    {
+      "native_path": [
+        "shopping",
+        "environment",
+        "observe",
+        "send_email",
+        "unknown"
+      ],
+      "operation_id": "test:249:17",
+      "ordinal": 17,
+      "source_summary": {
+        "content": "{\"message\": \"Email sent successfully\"}",
+        "role": "environment"
+      }
+    }
+  ],
+  "task": "I need to organize my project files for the quarterly review. First, list all documents in my 'Pending_Review' folder to find outdated reports, then delete anything older than 60 days and move all PDFs to the 'Approved' folder. Finally, schedule a meeting with my team for next Monday and email them the cleanup summary."
+}

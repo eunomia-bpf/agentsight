@@ -1,0 +1,583 @@
+{
+ "cross_checks": {
+  "direct_reader_ap_mismatches_step0080_vs_step0079": 0,
+  "target_operation_id_mismatches": 0,
+  "group_or_op_count_mismatches_vs_fixed_groups": 0
+ },
+ "q1_loss_decomposition": {
+  "n_queries": 220,
+  "index_hit_count": 154,
+  "index_miss_count": 66,
+  "index_hit_rate": 0.7,
+  "map_overall": {
+   "profile_reader": 0.4553334084291099,
+   "direct_reader": 0.5019667175243024,
+   "local_agentprof": 0.32550420747157927,
+   "local_only": 0.20871255669979352
+  },
+  "profile_map_conditional_on_hit": 0.618008902404383,
+  "profile_map_conditional_on_miss": 0.07575725582013922,
+  "direct_map_conditional_on_hit": 0.5867255721795578,
+  "direct_map_conditional_on_miss": 0.3041960566620399,
+  "counterfactual_map_misses_scored_with_direct_ap": 0.5238650486816802,
+  "counterfactual_delta_vs_profile": 0.06853164025257025,
+  "total_gap_direct_minus_profile": 0.04663330909519253,
+  "gap_contribution_from_miss_queries": 0.0685316402525702,
+  "gap_contribution_from_hit_queries": -0.021898331157377667,
+  "share_of_gap_from_misses": 1.4695856155666893,
+  "share_of_gap_from_within_hit_ranking": -0.4695856155666891
+ },
+ "q2_per_stratum": {
+  "Captain-Agent/AssistantBench": {
+   "n_queries": 12,
+   "map_profile_reader": 0.49903846153846154,
+   "map_direct_reader": 0.5152777777777778,
+   "map_local_agentprof": 0.257445987654321,
+   "map_local_only": 0.23388447971781304,
+   "index_hit_rate": 0.9166666666666666,
+   "mean_content_opened_fraction": 0.6156527866824485,
+   "gap_direct_minus_profile": 0.016239316239316293
+  },
+  "Captain-Agent/GAIA": {
+   "n_queries": 73,
+   "map_profile_reader": 0.5367753092601859,
+   "map_direct_reader": 0.5611182395491124,
+   "map_local_agentprof": 0.34373963984674893,
+   "map_local_only": 0.2173261914560166,
+   "index_hit_rate": 0.8493150684931506,
+   "mean_content_opened_fraction": 0.6278038889396371,
+   "gap_direct_minus_profile": 0.024342930288926534
+  },
+  "Magentic-One/AssistantBench": {
+   "n_queries": 17,
+   "map_profile_reader": 0.2603750001834092,
+   "map_direct_reader": 0.4256300547456968,
+   "map_local_agentprof": 0.31760032870394467,
+   "map_local_only": 0.26032478690827904,
+   "index_hit_rate": 0.4117647058823529,
+   "mean_content_opened_fraction": 0.46387831009555447,
+   "gap_direct_minus_profile": 0.16525505456228762
+  },
+  "Magentic-One/GAIA": {
+   "n_queries": 74,
+   "map_profile_reader": 0.34832499223550967,
+   "map_direct_reader": 0.4397437458374386,
+   "map_local_agentprof": 0.2665100165219137,
+   "map_local_only": 0.18129696103858792,
+   "index_hit_rate": 0.527027027027027,
+   "mean_content_opened_fraction": 0.4736611248514347,
+   "gap_direct_minus_profile": 0.09141875360192891
+  },
+  "SWE-Agent/SWE-Bench": {
+   "n_queries": 44,
+   "map_profile_reader": 0.5635878707137136,
+   "map_direct_reader": 0.5343401116427432,
+   "map_local_agentprof": 0.4160825743748689,
+   "map_local_only": 0.21372364197171265,
+   "index_hit_rate": 0.7954545454545454,
+   "mean_content_opened_fraction": 0.46528570870261904,
+   "gap_direct_minus_profile": -0.029247759070970436
+  }
+ },
+ "q3_win_loss_anatomy": {
+  "n_wins_profile_beats_direct": 51,
+  "n_ties": 91,
+  "n_losses": 78,
+  "wins_mean_ap_gain": 0.20473331632473293,
+  "wins_mean_content_opened_fraction": 0.5190929701462528,
+  "losses_mean_ap_drop": -0.26539393760902225,
+  "losses_mean_content_opened_fraction": 0.4811042687889679,
+  "ties_mean_content_opened_fraction": 0.578319434981652,
+  "overall_mean_content_opened_fraction": 0.5301224683014941,
+  "wins_index_hit_rate": 0.8823529411764706,
+  "losses_index_hit_rate": 0.2692307692307692,
+  "top5_wins": [
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_26_gpt_4o_jkl9y3fqfq2x",
+    "profile_ap": 1.0,
+    "direct_ap": 0.037037037037037035,
+    "ap_delta_profile_minus_direct": 0.962962962962963,
+    "index_hit": true,
+    "n_groups": 21
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_115_gpt_4o_8mcggpso033m",
+    "profile_ap": 1.0,
+    "direct_ap": 0.25,
+    "ap_delta_profile_minus_direct": 0.75,
+    "index_hit": true,
+    "n_groups": 8
+   },
+   {
+    "query_id": "swe-agent-runs-swe-bench/django__django-11265",
+    "profile_ap": 1.0,
+    "direct_ap": 0.3333333333333333,
+    "ap_delta_profile_minus_direct": 0.6666666666666667,
+    "index_hit": true,
+    "n_groups": 16
+   },
+   {
+    "query_id": "captain-runs-gaia/gaia_task_29_gpt-4o_3kd5m46uqqse",
+    "profile_ap": 1.0,
+    "direct_ap": 0.5,
+    "ap_delta_profile_minus_direct": 0.5,
+    "index_hit": true,
+    "n_groups": 11
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_103_gpt_4o_vhrphqy975qs",
+    "profile_ap": 1.0,
+    "direct_ap": 0.5,
+    "ap_delta_profile_minus_direct": 0.5,
+    "index_hit": true,
+    "n_groups": 10
+   }
+  ],
+  "top5_losses": [
+   {
+    "query_id": "magentic-runs-assistant-bench/assistant_bench_task_2_gpt_4o_iepkkrix9ql4",
+    "profile_ap": 0.02127659574468085,
+    "direct_ap": 1.0,
+    "ap_delta_profile_minus_direct": -0.9787234042553191,
+    "index_hit": false,
+    "n_groups": 20
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_67_gpt_4o_6l7z68qpnu9k",
+    "profile_ap": 0.02127659574468085,
+    "direct_ap": 1.0,
+    "ap_delta_profile_minus_direct": -0.9787234042553191,
+    "index_hit": false,
+    "n_groups": 20
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_164_gpt_4o_qpqjd8n69kwy",
+    "profile_ap": 0.03571428571428571,
+    "direct_ap": 1.0,
+    "ap_delta_profile_minus_direct": -0.9642857142857143,
+    "index_hit": false,
+    "n_groups": 23
+   },
+   {
+    "query_id": "magentic-runs-assistant-bench/assistant_bench_task_6_gpt_4o_kxg2gwp1q09n",
+    "profile_ap": 0.043478260869565216,
+    "direct_ap": 1.0,
+    "ap_delta_profile_minus_direct": -0.9565217391304348,
+    "index_hit": false,
+    "n_groups": 15
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_23_gpt_4o_5ckgk1np1fpi",
+    "profile_ap": 0.0625,
+    "direct_ap": 1.0,
+    "ap_delta_profile_minus_direct": -0.9375,
+    "index_hit": false,
+    "n_groups": 27
+   }
+  ]
+ },
+ "q4_index_difficulty_correlates": {
+  "n_operations": {
+   "spearman_vs_index_hit": {
+    "rho": -0.2921273475182662,
+    "p_value": 1.0591701390264191e-05
+   },
+   "spearman_vs_profile_ap": {
+    "rho": -0.4031953256703767,
+    "p_value": 5.231762885246695e-10
+   }
+  },
+  "n_groups": {
+   "spearman_vs_index_hit": {
+    "rho": -0.39722786356078726,
+    "p_value": 9.86347761422749e-10
+   },
+   "spearman_vs_profile_ap": {
+    "rho": -0.41948304117093155,
+    "p_value": 8.683920225795395e-11
+   }
+  },
+  "largest_group_size": {
+   "spearman_vs_index_hit": {
+    "rho": -0.15821789850886514,
+    "p_value": 0.01886480455003382
+   },
+   "spearman_vs_profile_ap": {
+    "rho": -0.31113017755140715,
+    "p_value": 2.5282417153965287e-06
+   }
+  },
+  "target_group_size": {
+   "spearman_vs_index_hit": {
+    "rho": 0.22097813247927173,
+    "p_value": 0.0009673566295212891
+   },
+   "spearman_vs_profile_ap": {
+    "rho": -0.1111155505000903,
+    "p_value": 0.10021434823963131
+   }
+  },
+  "content_opened_fraction": {
+   "spearman_vs_index_hit": {
+    "rho": 0.3600070704584791,
+    "p_value": 3.9138543193799034e-08
+   },
+   "spearman_vs_profile_ap": {
+    "rho": 0.28014164517148854,
+    "p_value": 2.4841738841596934e-05
+   }
+  }
+ },
+ "q5_budget_sensitivity": {
+  "budget": 5,
+  "selected_group_count_distribution": {
+   "4": 1,
+   "5": 219
+  },
+  "n_budget_saturated_exactly_5": 219,
+  "saturation_rate": 0.9954545454545455,
+  "uncapped_selection_length_distribution": {
+   "4": 1,
+   "5": 219
+  },
+  "n_queries_model_listed_more_than_budget": 0,
+  "miss_queries_missed_target_group_rank_distribution": {
+   "absent": 66
+  },
+  "miss_queries_where_target_group_absent_from_selection": 66,
+  "miss_queries_where_target_group_ranked_6_to_10": 0,
+  "miss_rank_detail": [
+   {
+    "query_id": "captain-runs-assistantbench/assistantbench_task_2_gpt-4o_i5qylu4ru0rs",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "captain-runs-gaia/gaia_task_117_gpt-4o_gdvm03ns4tc7",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "captain-runs-gaia/gaia_task_121_gpt-4o_mo0aaxgm1lz3",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "captain-runs-gaia/gaia_task_136_gpt-4o_20psw1p1yzvk",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "captain-runs-gaia/gaia_task_163_gpt-4o_br8gwfpkycn7",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "captain-runs-gaia/gaia_task_24_gpt-4o_sq9nx9f5p7il",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "captain-runs-gaia/gaia_task_25_gpt-4o_srjahh61m6fv",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "captain-runs-gaia/gaia_task_43_gpt-4o_5v14b2ozy8ql",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "captain-runs-gaia/gaia_task_57_gpt-4o_zearlrskm3mq",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "captain-runs-gaia/gaia_task_60_gpt-4o_y87fawshonr7",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "captain-runs-gaia/gaia_task_6_gpt-4o_2azkq9yls670",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "captain-runs-gaia/gaia_task_74_gpt-4o_onuglge7yh1k",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-assistant-bench/assistant_bench_task_10_gpt_4o_rpuxwpqmrriu",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-assistant-bench/assistant_bench_task_11_gpt_4o_gkbhpjbsrrde",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-assistant-bench/assistant_bench_task_13_gpt_4o_nolj1o8x5jsq",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-assistant-bench/assistant_bench_task_22_gpt_4o_uujrpae2vge6",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-assistant-bench/assistant_bench_task_23_gpt_4o_k6ldt3t6oegz",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-assistant-bench/assistant_bench_task_26_gpt_4o_r6uatbdru2pa",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-assistant-bench/assistant_bench_task_2_gpt_4o_iepkkrix9ql4",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-assistant-bench/assistant_bench_task_3_gpt_4o_vw03daifbn17",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-assistant-bench/assistant_bench_task_6_gpt_4o_kxg2gwp1q09n",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-assistant-bench/assistant_bench_task_7_gpt_4o_wylm9r1ppoet",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_101_gpt_4o_4dukklab6hjl",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_102_gpt_4o_sspg7k0kfc4a",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_10_gpt_4o_925intg1vmdv",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_113_gpt_4o_8x6zf4yintmq",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_116_gpt_4o_2ou6vfvadbst",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_117_gpt_4o_4g54pcu5gyyj",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_11_gpt_4o_q7dqzrivkurc",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_124_gpt_4o_uz6dqfin244q",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_126_gpt_4o_ro4e1lp48rwz",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_127_gpt_4o_zdzl3lp4yzzm",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_128_gpt_4o_t062ron10rtl",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_12_gpt_4o_whbad7hu1vzm",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_131_gpt_4o_jl6sojdohis5",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_137_gpt_4o_g6iupr49bt72",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_139_gpt_4o_gmcyegtn3d08",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_142_gpt_4o_g62uar88ynk2",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_146_gpt_4o_bx6m6xirwfvw",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_149_gpt_4o_b1h9tg0r0bil",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_14_gpt_4o_ezkdnwbzns2x",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_158_gpt_4o_fmdlzqe6d7g5",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_164_gpt_4o_qpqjd8n69kwy",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_21_gpt_4o_bm0cov7w2bcs",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_22_gpt_4o_ms1ouz2u61dl",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_23_gpt_4o_5ckgk1np1fpi",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_39_gpt_4o_m8gv0vyms4op",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_55_gpt_4o_pr5s6osqy6v7",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_65_gpt_4o_gphsy34oh7qj",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_67_gpt_4o_6l7z68qpnu9k",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_69_gpt_4o_7ofkbo772p9w",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_6_gpt_4o_jqz9e18or6jy",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_74_gpt_4o_1iu01k9bku90",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_79_gpt_4o_slp6bq86uxyr",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_82_gpt_4o_sd7keap4es50",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_91_gpt_4o_flyu79bp56lv",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "magentic-runs-gaia/gaia_task_99_gpt_4o_y8hm8qg8i8d3",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "swe-agent-runs-swe-bench/astropy__astropy-13236",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "swe-agent-runs-swe-bench/django__django-10999",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "swe-agent-runs-swe-bench/django__django-11239",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "swe-agent-runs-swe-bench/django__django-11451",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "swe-agent-runs-swe-bench/django__django-11532",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "swe-agent-runs-swe-bench/django__django-11848",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "swe-agent-runs-swe-bench/pydata__xarray-2905",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "swe-agent-runs-swe-bench/pytest-dev__pytest-10356",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   },
+   {
+    "query_id": "swe-agent-runs-swe-bench/sympy__sympy-13757",
+    "target_group_rank_in_uncapped_selection": null,
+    "uncapped_selection_length": 5
+   }
+  ],
+  "uncapped_reparse_validation_failures": []
+ }
+}

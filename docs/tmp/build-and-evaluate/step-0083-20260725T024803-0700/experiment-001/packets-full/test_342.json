@@ -1,0 +1,250 @@
+{
+  "operation_count": 16,
+  "operations": [
+    {
+      "native_path": [
+        "urbanMobility",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:342:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users with transit payment discrepancies and account support requests. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"getFareAndPaymentData\", \"description\": \"Retrieves fare rules, customer payment records, invoices, or refund status based on query type. Returns requested data; customer-specific queries require customerId, invoice details need invoiceId.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"queryType\": { \"type\": \"string\", \"description\": \"Required. Query type: 'fare_rules' (general fare policies), 'payment_history' (customer paym ... [middle omitted] ... ies refund eligibility for a transaction and automatically processes refund if eligible\", \"parameters\": { \"type\": \"object\", \"properties\": { \"transaction_id\": { \"type\": \"string\", \"description\": \"Transaction ID to check eligibility\" } }, \"required\": [ \"transaction_id\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:342:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "My transit card was charged twice for yesterday's 5:15 PM trip from Maple Station to Downtown Terminal. Please confirm both transactions, verify if my monthly pass was active then, process a refund for the duplicate charge, update my support case, email me when resolved, and set up notifications for future payment errors on my account.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "agent",
+        "report",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:342:2",
+      "ordinal": 2,
+      "source_summary": {
+        "content": "To confirm your payment history and proceed with the refund, I'll need your customer ID. Please share it so I can look up your transactions.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:342:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "My customer ID is CUST45678.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "agent",
+        "act",
+        "getFareAndPaymentData",
+        "unknown"
+      ],
+      "operation_id": "test:342:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"getFareAndPaymentData\", \"arguments\": {\"queryType\": \"payment_history\", \"customerId\": \"CUST45678\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve the payment history for customer ID CUST45678 to confirm both transactions and monthly pass status for the requested trip."
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "environment",
+        "observe",
+        "getFareAndPaymentData",
+        "unknown"
+      ],
+      "operation_id": "test:342:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"payments\": [{\"transaction_id\": \"TXN20240115A1\", \"date\": \"2024-01-15\", \"time\": \"17:15:00\", \"from_station\": \"Maple Station\", \"to_station\": \"Downtown Terminal\", \"amount\": 3.2, \"monthly_pass_active\": true}, {\"transaction_id\": \"TXN20240115A2\", \"date\": \"2024-01-15\", \"time\": \"17:15:00\", \"from_station\": \"Maple Station\", \"to_station\": \"Downtown Terminal\", \"amount\": 3.2, \"monthly_pass_active\": true}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "agent",
+        "report",
+        "getFareAndPaymentData",
+        "unknown"
+      ],
+      "operation_id": "test:342:6",
+      "ordinal": 6,
+      "source_summary": {
+        "content": "To link the refund to your existing support case, could you please provide your support conversation ID?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:342:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "My support conversation ID is CONV12345.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "agent",
+        "act",
+        "checkRefundEligibility",
+        "unknown"
+      ],
+      "operation_id": "test:342:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"checkRefundEligibility\", \"arguments\": {\"transaction_id\": \"TXN20240115A2\"}}",
+        "role": "agent",
+        "thought": "I'll verify if the duplicate transaction TXN20240115A2 is eligible for a refund before processing it."
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "environment",
+        "observe",
+        "checkRefundEligibility",
+        "unknown"
+      ],
+      "operation_id": "test:342:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"eligible\": true, \"refund_id\": \"REF789012\", \"amount\": 3.2, \"message\": \"Refund automatically processed\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "agent",
+        "act",
+        "updateConversationThread",
+        "unknown"
+      ],
+      "operation_id": "test:342:10",
+      "ordinal": 10,
+      "source_summary": {
+        "action": "{\"name\": \"updateConversationThread\", \"arguments\": {\"conversationId\": \"CONV12345\", \"customerId\": \"CUST45678\", \"message\": \"Refund processed for duplicate charge (TXN20240115A2). Refund ID: REF789012. Amount: $3.20\"}}",
+        "role": "agent",
+        "thought": "I'll update the support case CONV12345 to document the refund outcome as requested by the user."
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "environment",
+        "observe",
+        "updateConversationThread",
+        "success"
+      ],
+      "operation_id": "test:342:11",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "{\"conversationId\": \"CONV12345\", \"status\": \"updated\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "agent",
+        "report",
+        "updateConversationThread",
+        "success"
+      ],
+      "operation_id": "test:342:12",
+      "ordinal": 12,
+      "source_summary": {
+        "content": "To set up payment error alerts, please note they require a webhook endpoint as email/SMS notifications aren't supported. For resolution confirmation of this refund, could you provide your email address?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:342:13",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "My email address for the refund resolution notification is user@example.com.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "agent",
+        "act",
+        "sendRiderNotification",
+        "unknown"
+      ],
+      "operation_id": "test:342:14",
+      "ordinal": 14,
+      "source_summary": {
+        "action": "{\"name\": \"sendRiderNotification\", \"arguments\": {\"channel\": \"email\", \"recipients\": [\"user@example.com\"], \"subject\": \"Duplicate Charge Resolution\", \"message\": \"Your duplicate charge for the trip on 2024-01-15 at 17:15 from Maple Station to Downtown Terminal has been resolved. Refund ID: REF789012 for $3.20 has been processed. Support case: CONV12345.\"}}",
+        "role": "agent",
+        "thought": "I'll send the resolution notification to the provided email address as requested by the user for this refund case."
+      }
+    },
+    {
+      "native_path": [
+        "urbanMobility",
+        "environment",
+        "observe",
+        "sendRiderNotification",
+        "success"
+      ],
+      "operation_id": "test:342:15",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "{\"status\": \"delivered\", \"confirmation_id\": \"NOTIF-789XYZ\"}",
+        "role": "environment"
+      }
+    }
+  ],
+  "task": "My transit card was charged twice for yesterday's 5:15 PM trip from Maple Station to Downtown Terminal. Please confirm both transactions, verify if my monthly pass was active then, process a refund for the duplicate charge, update my support case, email me when resolved, and set up notifications for future payment errors on my account."
+}

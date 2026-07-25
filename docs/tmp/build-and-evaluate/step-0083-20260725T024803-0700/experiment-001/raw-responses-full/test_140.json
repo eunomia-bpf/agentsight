@@ -1,0 +1,74 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 10091,
+        "prompt_tokens_o200k": 2549,
+        "returncode": 0,
+        "stderr_tail": "• Let me analyze the trajectory. Failure: the address update timed out (test:140:19), but the agent's final report (test:140:22) claims \"Your address has been successfully updated\" — false claim. Also test:140:10 misreports rent amounts: says \"$1300 for January\" when transactions show both 1200 — hallucination. And test:140:16 falsely claims transaction ID non-numeric.\n\n  Most likely responsible for the failure: test:140:22 (final report claims address updated despite timeout), test:140:18 (address update timed out — but that's an env error; the agent action itself was fine). The env error at 19 is the environment. The agent should have retried or reported the failure. So ranking: 22, 18/19, 10.\n\n  Rank: test:140:22, test:140:18, test:140:19, test:140:10. Also maybe test:140:16 (false claim about transaction ID). Rank those plausibly responsible.\n\nTo resume this session: kimi -r session_87f9c15c-0cdb-41c7-8723-93a4a4de0e95\n"
+      },
+      "parsed": [
+        "test:140:22",
+        "test:140:18",
+        "test:140:19",
+        "test:140:10",
+        "test:140:16"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:140:22\", \"test:140:18\", \"test:140:19\", \"test:140:10\", \"test:140:16\"]}\n\n",
+      "wall_seconds": 18.640663395024603
+    }
+  ],
+  "completed_ranking": [
+    "test:140:22",
+    "test:140:18",
+    "test:140:19",
+    "test:140:10",
+    "test:140:16",
+    "test:140:0",
+    "test:140:1",
+    "test:140:2",
+    "test:140:3",
+    "test:140:4",
+    "test:140:5",
+    "test:140:6",
+    "test:140:7",
+    "test:140:8",
+    "test:140:9",
+    "test:140:11",
+    "test:140:12",
+    "test:140:13",
+    "test:140:14",
+    "test:140:15",
+    "test:140:17",
+    "test:140:20",
+    "test:140:21"
+  ],
+  "condition": "full_trace_reader",
+  "operation_count": 23,
+  "packet_chars": 9204,
+  "prompt_tokens_o200k": 2549,
+  "query_id": "test:140",
+  "reader_ranked_operation_ids": [
+    "test:140:22",
+    "test:140:18",
+    "test:140:19",
+    "test:140:10",
+    "test:140:16"
+  ],
+  "scored_as_original_order_failure": false,
+  "status": "ok",
+  "wall_seconds": 18.640663395024603
+}

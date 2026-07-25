@@ -1,0 +1,195 @@
+{
+  "completed_ranking": [
+    "test:138:23",
+    "test:138:19",
+    "test:138:7",
+    "test:138:24",
+    "test:138:25",
+    "test:138:20",
+    "test:138:21",
+    "test:138:0",
+    "test:138:1",
+    "test:138:2",
+    "test:138:3",
+    "test:138:4",
+    "test:138:5",
+    "test:138:6",
+    "test:138:8",
+    "test:138:9",
+    "test:138:10",
+    "test:138:11",
+    "test:138:12",
+    "test:138:13",
+    "test:138:14",
+    "test:138:15",
+    "test:138:16",
+    "test:138:17",
+    "test:138:18",
+    "test:138:22"
+  ],
+  "condition": "raw_action_skeleton_reader",
+  "group_count": 18,
+  "largest_group_size": 5,
+  "operation_count": 26,
+  "prompt_tokens_o200k": 6117,
+  "query_id": "test:138",
+  "reader_ranked_operation_ids": [
+    "test:138:23",
+    "test:138:19",
+    "test:138:7",
+    "test:138:24",
+    "test:138:25",
+    "test:138:20",
+    "test:138:21"
+  ],
+  "selected_evidence_operation_count": 7,
+  "selected_group_path_keys": [
+    "aviationmaritime › raw:modify_flight_plan › act › modify_flight_plan › unknown",
+    "aviationmaritime › raw:send_distress_signal › act › send_distress_signal › unknown",
+    "aviationmaritime › raw:update_vessel_voyage_plan › act › update_vessel_voyage_plan › unknown",
+    "aviationmaritime › raw:update_vessel_voyage_plan › observe › update_vessel_voyage_plan › unknown",
+    "aviationmaritime › raw:get_weather_data › act › get_weather_data › unknown"
+  ],
+  "selected_group_paths": [
+    [
+      "aviationmaritime",
+      "raw:modify_flight_plan",
+      "act",
+      "modify_flight_plan",
+      "unknown"
+    ],
+    [
+      "aviationmaritime",
+      "raw:send_distress_signal",
+      "act",
+      "send_distress_signal",
+      "unknown"
+    ],
+    [
+      "aviationmaritime",
+      "raw:update_vessel_voyage_plan",
+      "act",
+      "update_vessel_voyage_plan",
+      "unknown"
+    ],
+    [
+      "aviationmaritime",
+      "raw:update_vessel_voyage_plan",
+      "observe",
+      "update_vessel_voyage_plan",
+      "unknown"
+    ],
+    [
+      "aviationmaritime",
+      "raw:get_weather_data",
+      "act",
+      "get_weather_data",
+      "unknown"
+    ]
+  ],
+  "stage1_attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 8887,
+        "prompt_tokens_o200k": 2607,
+        "returncode": 0,
+        "stderr_tail": "• Just output JSON. Select up to 5 groups most likely to contain the decisive mistake.\n\n  Task: verify flight status, assess maritime/weather risks, coordinate go-around, reroute to Boston Logan.\n\n  Suspicious: modify_flight_plan (instead of rerouting to Boston? possibly wrong airport), send_distress_signal (agent shouldn't send distress signal — vessel should), update_vessel_voyage_plan (irrelevant, and observe/report marked unknown — possible error), get_weather_data acts repeated 3 times (retries suggest failures). The weather act group (3 calls) suggests something wrong.\n\n  Pick: modify_flight_plan act, send_distress_signal act, update_vessel_voyage_plan act (unknown status), get_weather_data observe (unknown), and... instruction/user? Prefer relevant: update_vessel_voyage_plan observe (unknown status suggests failure).\n\n  Choose 5:\n  1. [\"aviationmaritime\",\"raw:send_distress_signal\",\"act\",\"send_distress_signal\",\"unknown\"]\n  2. [\"aviationmaritime\",\"raw:modify_flight_plan\",\"act\",\"modify_flight_plan\",\"unknown\"]\n  3. [\"aviationmaritime\",\"raw:update_vessel_voyage_plan\",\"act\",\"update_vessel_voyage_plan\",\"unknown\"]\n  4. [\"aviationmaritime\",\"raw:get_weather_data\",\"act\",\"get_weather_data\",\"unknown\"]\n  5. [\"aviationmaritime\",\"raw:update_vessel_voyage_plan\",\"observe\",\"update_vessel_voyage_plan\",\"unknown\"]\n\nTo resume this session: kimi -r session_b0e5ea46-50c2-452d-b64f-c54e6e7dfc4d\n"
+      },
+      "parsed": [
+        [
+          "aviationmaritime",
+          "raw:modify_flight_plan",
+          "act",
+          "modify_flight_plan",
+          "unknown"
+        ],
+        [
+          "aviationmaritime",
+          "raw:send_distress_signal",
+          "act",
+          "send_distress_signal",
+          "unknown"
+        ],
+        [
+          "aviationmaritime",
+          "raw:update_vessel_voyage_plan",
+          "act",
+          "update_vessel_voyage_plan",
+          "unknown"
+        ],
+        [
+          "aviationmaritime",
+          "raw:update_vessel_voyage_plan",
+          "observe",
+          "update_vessel_voyage_plan",
+          "unknown"
+        ],
+        [
+          "aviationmaritime",
+          "raw:get_weather_data",
+          "act",
+          "get_weather_data",
+          "unknown"
+        ]
+      ],
+      "raw_response": "• {\"selected_group_paths\": [[\"aviationmaritime\", \"raw:modify_flight_plan\", \"act\", \"modify_flight_plan\", \"unknown\"], [\"aviationmaritime\", \"raw:send_distress_signal\", \"act\", \"send_distress_signal\", \"unknown\"], [\"aviationmaritime\", \"raw:update_vessel_voyage_plan\", \"act\", \"update_vessel_voyage_plan\", \"unknown\"], [\"aviationmaritime\", \"raw:update_vessel_voyage_plan\", \"observe\", \"update_vessel_voyage_plan\", \"unknown\"], [\"aviationmaritime\", \"raw:get_weather_data\", \"act\", \"get_weather_data\", \"unknown\"]]}\n\n",
+      "wall_seconds": 19.176825728005497
+    }
+  ],
+  "stage1_chars": 7809,
+  "stage1_largest_groups_fallback": false,
+  "stage1_status": "ok",
+  "stage1_wall_seconds": 19.176825728005497,
+  "stage2_attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 12382,
+        "prompt_tokens_o200k": 3510,
+        "returncode": 0,
+        "stderr_tail": "• We need answer only strict JSON no text. Need diagnose. Need infer failure likely operation 23 update vessel voyage plan maybe fabricated unauthorized? We have task and evidence. Need rank likely responsible. Need understand trajectory operations sparse. Task: verify flight, assess maritime/weather, coordinate go-around if required, reroute flight Boston Logan. Agent evidence:\n  7 distress signal vessel\n  9 weather JFK\n  11 weather BOS\n  13 weather coords\n  19 modify flight UA789 destination KBOS reason etc\n  23 update vessel voyage plan route_deviation\n  24 observe success.\n  Likely failure incorrect because vessel voyage plan altered unnecessarily, perhaps task only handle flight, coordinate go-around if required; not update vessel plan. Need rank op 23 highest. Maybe op 19 could be wrong due modify_flight_plan called without first go-around / maybe fabricated pilot Captain Robert Jones not task-provided. But source says \"as instructed by user\", though original task did not include pilot name. Could be trajectory included user messages in ops 16/18/22 not evidence. Evidence packet only operation source for selected groups. Operation 23 fabricated master name Captain Smith perhaps task didn't provide; likely unsafe action. Need cover every plausible. Since only 7 evidence operations, rank those first as instructed. Could rank 23, 24? Observe just reflects environment; root action op23. 19 potentially rerouted to Boston correctly but reason includes distress and weather, though may skip go-around. 7 distress signal maybe duplicates vessel's own distress signal? Task says vessel's distress signal near path; agent sending distress signal for vessel may be unnecessary and incorrectly initiate emergency response. 9, 11, 13 weather queries all legitimate assessment. 24 observe reflects success of erroneous update, less causally responsible but can rank. Then maybe report 25 if final report? No evidence but known operation. Need return strict JSON. Maybe rank all plausible: 23, 24, 25, 19, 20, 21, 7, 8, 15, 17? But question rank by likelihood responsible. \"Cover at least every operation you consider plausibly responsible.\" We need not include all. Need only JSON. Let's formulate. Root likely op23 (unnecessary vessel route deviation with fabricated master authorization). Operation 24 only observation confirms state change but not agent-caused; maybe rank after 19. Operation19 perhaps incorrect because it directly diverts without coordinating go-around and adds pilot name. Op7 unnecessary send distress signal.\n\nTo resume this session: kimi -r session_1f12cefe-17a9-4224-94d8-35826bf966aa\n"
+      },
+      "parsed": [
+        "test:138:23",
+        "test:138:19",
+        "test:138:7",
+        "test:138:24",
+        "test:138:25",
+        "test:138:20",
+        "test:138:21"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\":[\"test:138:23\",\"test:138:19\",\"test:138:7\",\"test:138:24\",\"test:138:25\",\"test:138:20\",\"test:138:21\"]}\n\n",
+      "wall_seconds": 26.642359056015266
+    }
+  ],
+  "stage2_chars": 11339,
+  "stage2_scored_as_original_order_failure": false,
+  "stage2_status": "ok",
+  "stage2_wall_seconds": 26.642359056015266,
+  "wall_seconds_total": 45.81918478402076
+}

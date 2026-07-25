@@ -1,0 +1,58 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 5755,
+        "prompt_tokens_o200k": 1370,
+        "returncode": 0,
+        "stderr_tail": "• The failure: the plagiarism check failed with DocumentNotFound, but the agent reported \"no matching content (0% similarity)\" — misrepresenting a failed check as a clean result. The most responsible operation is test:159:8 (false report). Also test:159:6 passed a URL as documentId. And test:159:5 reported a converted PDF URL that apparently didn't exist (tool result missing — agent fabricated the URL?). Actually there's no tool response for convertDocument; agent report at :5 states URL. The checkPlagiarism failed because PDF doesn't exist — possibly the agent fabricated the URL in :5 since no environment observation for convertDocument is shown. Ranking: :8 most likely (fabricating clean result despite error), then :6 (wrong arg passing URL as documentId), then :5 (fabricated PDF URL).\n\nTo resume this session: kimi -r session_1b6fa2a5-3eda-4950-be72-f8b65de2e465\n"
+      },
+      "parsed": [
+        "test:159:8",
+        "test:159:6",
+        "test:159:5",
+        "test:159:4"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:159:8\", \"test:159:6\", \"test:159:5\", \"test:159:4\"]}\n\n",
+      "wall_seconds": 13.25207113698707
+    }
+  ],
+  "completed_ranking": [
+    "test:159:8",
+    "test:159:6",
+    "test:159:5",
+    "test:159:4",
+    "test:159:0",
+    "test:159:1",
+    "test:159:2",
+    "test:159:3",
+    "test:159:7"
+  ],
+  "condition": "full_trace_reader",
+  "operation_count": 9,
+  "packet_chars": 4862,
+  "prompt_tokens_o200k": 1370,
+  "query_id": "test:159",
+  "reader_ranked_operation_ids": [
+    "test:159:8",
+    "test:159:6",
+    "test:159:5",
+    "test:159:4"
+  ],
+  "scored_as_original_order_failure": false,
+  "status": "ok",
+  "wall_seconds": 13.25207113698707
+}

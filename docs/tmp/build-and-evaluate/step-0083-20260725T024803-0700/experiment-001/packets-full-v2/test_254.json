@@ -1,0 +1,252 @@
+{
+  "operation_count": 16,
+  "operations": [
+    {
+      "native_path": [
+        "slack",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:254:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant helping users with Slack workspace management and team onboarding tasks, including inviting new members, adding them to channels, and posting announcements. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"get_webpage\", \"description\": \"Retrieves the raw content (typically HTML) of a webpage at the specified URL. Returns a '404 Not Found' error message if the page cannot be accessed.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"url\": { \"type\": \"string\", \"description\": \"The absolute URL of the webpage to fetch, including the protocol (e.g., https: ... [middle omitted] ... r\": { \"type\": \"string\", \"description\": \"The full name of the user to invite, which will appear in the workspace\" }, \"user_email\": { \"type\": \"string\", \"description\": \"The email address where the Slack invitation should be sent\" } }, \"required\": [ \"user\", \"user_email\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:254:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "Hi, we have a new engineering team member, Alex Chen (email: alex.chen@example.com), starting next Monday. Please invite him to Slack, add him to the engineering-general, project-nexus, and new-hires channels, and post a welcome announcement in engineering-general.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "agent",
+        "act",
+        "invite_user_to_slack",
+        "unknown"
+      ],
+      "operation_id": "test:254:2",
+      "ordinal": 2,
+      "source_summary": {
+        "action": "{\"name\": \"invite_user_to_slack\", \"arguments\": {\"user\": \"Alex Chen\", \"user_email\": \"alex.chen@example.com\"}}",
+        "role": "agent",
+        "thought": "I'll start by inviting Alex Chen to Slack using the provided email address to fulfill the user's request."
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "environment",
+        "observe",
+        "invite_user_to_slack",
+        "success"
+      ],
+      "operation_id": "test:254:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"message\": \"Invitation sent to alex.chen@example.com\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "agent",
+        "act",
+        "invite_user_to_slack",
+        "unknown"
+      ],
+      "operation_id": "test:254:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"invite_user_to_slack\", \"arguments\": {\"user\": \"Alex Chen\", \"user_email\": \"alex.chen@example.com\"}}",
+        "role": "agent",
+        "thought": "I'll send another invitation to ensure Alex Chen receives access using the exact email provided."
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "environment",
+        "observe",
+        "invite_user_to_slack",
+        "success"
+      ],
+      "operation_id": "test:254:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"message\": \"Invitation sent to alex.chen@example.com\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "agent",
+        "report",
+        "invite_user_to_slack",
+        "success"
+      ],
+      "operation_id": "test:254:6",
+      "ordinal": 6,
+      "source_summary": {
+        "content": "Could you please provide Alex Chen's Slack username? I need it to add him to the specified channels.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:254:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "Alex Chen's Slack username is alexchen.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "agent",
+        "act",
+        "add_user_to_channel",
+        "unknown"
+      ],
+      "operation_id": "test:254:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"add_user_to_channel\", \"arguments\": {\"user\": \"alexchen\", \"channel\": \"engineering-general\"}}",
+        "role": "agent",
+        "thought": "Now that I have Alex Chen's Slack username, I'll add him to the first requested channel using the provided identifier."
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "environment",
+        "observe",
+        "add_user_to_channel",
+        "success"
+      ],
+      "operation_id": "test:254:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"message\": \"User added to engineering-general\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "agent",
+        "act",
+        "add_user_to_channel",
+        "unknown"
+      ],
+      "operation_id": "test:254:10",
+      "ordinal": 10,
+      "source_summary": {
+        "action": "{\"name\": \"add_user_to_channel\", \"arguments\": {\"user\": \"alexchen\", \"channel\": \"project-nexus\"}}",
+        "role": "agent",
+        "thought": "I'll add Alex Chen to the next requested channel using the provided Slack username to continue fulfilling the onboarding steps."
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "environment",
+        "observe",
+        "add_user_to_channel",
+        "success"
+      ],
+      "operation_id": "test:254:11",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"message\": \"User added to project-nexus\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "agent",
+        "act",
+        "add_user_to_channel",
+        "unknown"
+      ],
+      "operation_id": "test:254:12",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"add_user_to_channel\", \"arguments\": {\"user\": \"alexchen\", \"channel\": \"new-hires\"}}",
+        "role": "agent",
+        "thought": "I'll add Alex Chen to the next requested channel using the provided Slack username to complete the channel additions."
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "environment",
+        "observe",
+        "add_user_to_channel",
+        "success"
+      ],
+      "operation_id": "test:254:13",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"message\": \"User added to new-hires\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "agent",
+        "act",
+        "send_channel_message",
+        "unknown"
+      ],
+      "operation_id": "test:254:14",
+      "ordinal": 14,
+      "source_summary": {
+        "action": "{\"name\": \"send_channel_message\", \"arguments\": {\"channel\": \"engineering-general\", \"body\": \"Please welcome our new engineering team member Alex Chen (Slack: @alexchen) who starts next Monday! 🎉\"}}",
+        "role": "agent",
+        "thought": "I'll now post the welcome announcement in the specified channel using the provided body to complete the onboarding process."
+      }
+    },
+    {
+      "native_path": [
+        "slack",
+        "environment",
+        "observe",
+        "send_channel_message",
+        "success"
+      ],
+      "operation_id": "test:254:15",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"ts\": \"1678901234.123456\"}",
+        "role": "environment"
+      }
+    }
+  ],
+  "task": "Hi, we have a new engineering team member, Alex Chen (email: alex.chen@example.com), starting next Monday. Please invite him to Slack, add him to the engineering-general, project-nexus, and new-hires channels, and post a welcome announcement in engineering-general."
+}

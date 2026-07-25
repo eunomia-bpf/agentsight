@@ -1,0 +1,481 @@
+{
+  "operation_count": 31,
+  "operations": [
+    {
+      "native_path": [
+        "travel",
+        "system",
+        "system",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:303:0",
+      "ordinal": 0,
+      "source_summary": {
+        "content": "You are an AI assistant for business travel arrangements, helping users manage calendars, book hotels and restaurants using ratings and reviews, and resolve scheduling conflicts. ## Available Tools [ { \"type\": \"function\", \"function\": { \"name\": \"search_calendar_events\", \"description\": \"Searches calendar events matching the query in their title or description, optionally filtered by date. Returns a list of matching events.\", \"parameters\": { \"type\": \"object\", \"properties\": { \"query\": { \"type\": \"string\", \"description\": \"The search query to match in event titles and descriptions\" }, \"date\": { \"type ... [middle omitted] ... , \"start_time\": { \"type\": \"string\", \"description\": \"The reservation start time in ISO format YYYY-MM-DD HH:MM\" }, \"party_size\": { \"type\": \"integer\", \"description\": \"The number of people for the reservation\" } }, \"required\": [ \"restaurant\", \"start_time\", \"party_size\" ] } } } ]",
+        "role": "system"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:303:1",
+      "ordinal": 1,
+      "source_summary": {
+        "content": "I'm planning a business trip to London next month and need to arrange accommodations and a client dinner. First, find my trip dates from the calendar, then book a highly-rated hotel near the city center for those dates, and finally make a dinner reservation at The Ivy for the first evening, while ensuring any conflicting personal events are cleared from my calendar.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:303:2",
+      "ordinal": 2,
+      "source_summary": {
+        "action": "{\"name\": \"search_calendar_events\", \"arguments\": {\"query\": \"business trip London\"}}",
+        "role": "agent",
+        "thought": "I'll search for calendar events related to the business trip to London to retrieve the specific dates before proceeding with hotel and dinner arrangements."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:303:3",
+      "ordinal": 3,
+      "source_summary": {
+        "content": "{\"events\": [{\"id\": \"cal123\", \"title\": \"Business Trip to Paris\", \"start\": \"2024-02-15T09:00:00Z\", \"end\": \"2024-02-20T18:00:00Z\", \"location\": \"Paris, France\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:303:4",
+      "ordinal": 4,
+      "source_summary": {
+        "action": "{\"name\": \"search_calendar_events\", \"arguments\": {\"query\": \"personal\", \"date\": \"2024-02-15\"}}",
+        "role": "agent",
+        "thought": "I need to search for personal events on the provided date (2024-02-15) to identify conflicts requiring clearance per the user's instruction."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:303:5",
+      "ordinal": 5,
+      "source_summary": {
+        "content": "{\"events\": [{\"id\": \"cal456\", \"title\": \"Personal Dinner\", \"start\": \"2024-02-15T19:00:00Z\", \"end\": \"2024-02-15T21:00:00Z\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "report",
+        "search_calendar_events",
+        "unknown"
+      ],
+      "operation_id": "test:303:6",
+      "ordinal": 6,
+      "source_summary": {
+        "content": "I found a conflicting personal event titled \"Personal Dinner\" scheduled for 2024-02-15 at 7 PM. Should I cancel this event to proceed with your client dinner reservation at The Ivy?",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:303:7",
+      "ordinal": 7,
+      "source_summary": {
+        "content": "Yes, please cancel the personal dinner event to make room for the client dinner at The Ivy.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "cancel_calendar_event",
+        "unknown"
+      ],
+      "operation_id": "test:303:8",
+      "ordinal": 8,
+      "source_summary": {
+        "action": "{\"name\": \"cancel_calendar_event\", \"arguments\": {\"event_id\": \"cal456\"}}",
+        "role": "agent",
+        "thought": "I'll cancel the personal event with the provided event ID as the user confirmed to resolve the scheduling conflict for The Ivy dinner."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "cancel_calendar_event",
+        "success"
+      ],
+      "operation_id": "test:303:9",
+      "ordinal": 9,
+      "source_summary": {
+        "content": "{\"status\": \"success\", \"message\": \"Event 'Personal Dinner' canceled\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_all_hotels_in_city",
+        "unknown"
+      ],
+      "operation_id": "test:303:10",
+      "ordinal": 10,
+      "source_summary": {
+        "action": "{\"name\": \"get_all_hotels_in_city\", \"arguments\": {\"city\": \"Paris\", \"limit\": 10}}",
+        "role": "agent",
+        "thought": "I'll retrieve hotels in Paris as the calendar event indicates the business trip is there, now that the personal event conflict is resolved."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_all_hotels_in_city",
+        "unknown"
+      ],
+      "operation_id": "test:303:11",
+      "ordinal": 11,
+      "source_summary": {
+        "content": "{\"hotels\": [{\"name\": \"Hôtel Ritz Paris\", \"address\": \"15 Place Vendôme\", \"rating\": 4.9}, {\"name\": \"Le Meurice\", \"address\": \"228 Rue de Rivoli\", \"rating\": 4.8}, {\"name\": \"Four Seasons George V\", \"address\": \"31 Avenue George V\", \"rating\": 4.9}, {\"name\": \"Shangri-La Paris\", \"address\": \"10 Avenue d'Iéna\", \"rating\": 4.7}, {\"name\": \"Hôtel de Crillon\", \"address\": \"10 Place de la Concorde\", \"rating\": 4.8}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_rating_reviews_for_hotels",
+        "unknown"
+      ],
+      "operation_id": "test:303:12",
+      "ordinal": 12,
+      "source_summary": {
+        "action": "{\"name\": \"get_rating_reviews_for_hotels\", \"arguments\": {\"hotel_names\": [\"Hôtel Ritz Paris\", \"Le Meurice\", \"Four Seasons George V\", \"Shangri-La Paris\", \"Hôtel de Crillon\"]}}",
+        "role": "agent",
+        "thought": "I'll retrieve the rating reviews for these hotels to select a highly-rated option as requested."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_rating_reviews_for_hotels",
+        "unknown"
+      ],
+      "operation_id": "test:303:13",
+      "ordinal": 13,
+      "source_summary": {
+        "content": "{\"ratings\": [{\"hotel_name\": \"Hôtel Ritz Paris\", \"average_rating\": 4.9, \"review_count\": 2100}, {\"hotel_name\": \"Le Meurice\", \"average_rating\": 4.8, \"review_count\": 1800}, {\"hotel_name\": \"Four Seasons George V\", \"average_rating\": 4.9, \"review_count\": 2500}, {\"hotel_name\": \"Shangri-La Paris\", \"average_rating\": 4.7, \"review_count\": 1700}, {\"hotel_name\": \"Hôtel de Crillon\", \"average_rating\": 4.8, \"review_count\": 1900}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_hotels_prices",
+        "unknown"
+      ],
+      "operation_id": "test:303:14",
+      "ordinal": 14,
+      "source_summary": {
+        "action": "{\"name\": \"get_hotels_prices\", \"arguments\": {\"hotel_names\": [\"Hôtel Ritz Paris\", \"Le Meurice\", \"Four Seasons George V\", \"Shangri-La Paris\", \"Hôtel de Crillon\"], \"check_in_date\": \"2024-02-15\", \"check_out_date\": \"2024-02-20\"}}",
+        "role": "agent",
+        "thought": "I'll get the prices for the shortlisted hotels on the specified dates to proceed with booking."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_hotels_prices",
+        "unknown"
+      ],
+      "operation_id": "test:303:15",
+      "ordinal": 15,
+      "source_summary": {
+        "content": "{\"prices\": [{\"hotel_name\": \"Hôtel Ritz Paris\", \"price_per_night\": 800, \"currency\": \"EUR\"}, {\"hotel_name\": \"Le Meurice\", \"price_per_night\": 750, \"currency\": \"EUR\"}, {\"hotel_name\": \"Four Seasons George V\", \"price_per_night\": 820, \"currency\": \"EUR\"}, {\"hotel_name\": \"Shangri-La Paris\", \"price_per_night\": 680, \"currency\": \"EUR\"}, {\"hotel_name\": \"Hôtel de Crillon\", \"price_per_night\": 780, \"currency\": \"EUR\"}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "report",
+        "get_hotels_prices",
+        "unknown"
+      ],
+      "operation_id": "test:303:16",
+      "ordinal": 16,
+      "source_summary": {
+        "content": "For your Paris trip from February 15 to 20, 2024, here are the top hotel options with their ratings, review counts, and nightly prices: Hôtel Ritz Paris (4.9 rating, 2100 reviews, €800), Le Meurice (4.8 rating, 1800 reviews, €750), Four Seasons George V (4.9 rating, 2500 reviews, €820), Shangri-La Paris (4.7 rating, 1700 reviews, €680), and Hôtel de Crillon (4.8 rating, 1900 reviews, €780). Please select your preferred hotel for booking.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:303:17",
+      "ordinal": 17,
+      "source_summary": {
+        "content": "Please book the Four Seasons George V for my Paris trip.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "report",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:303:18",
+      "ordinal": 18,
+      "source_summary": {
+        "content": "I will now proceed to book your stay at the Four Seasons George V for the dates February 15 to 20, 2024.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:303:19",
+      "ordinal": 19,
+      "source_summary": {
+        "content": "Yes, please proceed with booking the Four Seasons George V for my Paris trip.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "reserve_hotel",
+        "unknown"
+      ],
+      "operation_id": "test:303:20",
+      "ordinal": 20,
+      "source_summary": {
+        "action": "{\"name\": \"reserve_hotel\", \"arguments\": {\"hotel\": \"Four Seasons George V\", \"start_day\": \"2024-02-15\", \"end_day\": \"2024-02-20\"}}",
+        "role": "agent",
+        "thought": "I'll reserve the hotel as confirmed by the user for the specified dates."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "reserve_hotel",
+        "unknown"
+      ],
+      "operation_id": "test:303:21",
+      "ordinal": 21,
+      "source_summary": {
+        "content": "{\"confirmation_number\": \"HCN789012\", \"reservation_details\": \"Four Seasons George V: 2024-02-15 to 2024-02-20\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_hotels_address",
+        "unknown"
+      ],
+      "operation_id": "test:303:22",
+      "ordinal": 22,
+      "source_summary": {
+        "action": "{\"name\": \"get_hotels_address\", \"arguments\": {\"hotel_name\": \"Four Seasons George V\"}}",
+        "role": "agent",
+        "thought": "I'll retrieve the address of the booked hotel to provide complete booking information to the user."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_hotels_address",
+        "unknown"
+      ],
+      "operation_id": "test:303:23",
+      "ordinal": 23,
+      "source_summary": {
+        "content": "{\"address\": \"31 Avenue George V, 75008 Paris, France\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "get_rating_reviews_for_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:303:24",
+      "ordinal": 24,
+      "source_summary": {
+        "action": "{\"name\": \"get_rating_reviews_for_restaurants\", \"arguments\": {\"restaurant_names\": [\"The Ivy\"], \"location\": \"London\"}}",
+        "role": "agent",
+        "thought": "I'll get the rating reviews for The Ivy restaurant in London to verify it meets the high standards requested for the client dinner."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "get_rating_reviews_for_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:303:25",
+      "ordinal": 25,
+      "source_summary": {
+        "content": "{\"ratings\": [{\"restaurant_name\": \"The Ivy\", \"average_rating\": 4.5, \"reviews\": [\"Excellent service\", \"Great ambiance for business dinners\"]}]}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "report",
+        "get_rating_reviews_for_restaurants",
+        "unknown"
+      ],
+      "operation_id": "test:303:26",
+      "ordinal": 26,
+      "source_summary": {
+        "content": "The Ivy in London has a 4.5 average rating with reviews praising its excellent service and great ambiance for business dinners. To complete your reservation for February 15th, please confirm your preferred dining time and the number of guests.",
+        "role": "agent"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "user",
+        "instruction",
+        "none",
+        "unknown"
+      ],
+      "operation_id": "test:303:27",
+      "ordinal": 27,
+      "source_summary": {
+        "content": "7:30 PM for 4 people, please confirm The Ivy reservation for the first evening.",
+        "role": "user"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "act",
+        "reserve_restaurant",
+        "unknown"
+      ],
+      "operation_id": "test:303:28",
+      "ordinal": 28,
+      "source_summary": {
+        "action": "{\"name\": \"reserve_restaurant\", \"arguments\": {\"restaurant\": \"The Ivy\", \"start_time\": \"2024-02-15 19:30\", \"party_size\": 4}}",
+        "role": "agent",
+        "thought": "I'll reserve The Ivy at 2024-02-15 19:30 for 4 people as confirmed in the user's latest message."
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "environment",
+        "observe",
+        "reserve_restaurant",
+        "unknown"
+      ],
+      "operation_id": "test:303:29",
+      "ordinal": 29,
+      "source_summary": {
+        "content": "{\"confirmation_number\": \"RES-7890-ABCD\"}",
+        "role": "environment"
+      }
+    },
+    {
+      "native_path": [
+        "travel",
+        "agent",
+        "report",
+        "reserve_restaurant",
+        "unknown"
+      ],
+      "operation_id": "test:303:30",
+      "ordinal": 30,
+      "source_summary": {
+        "content": "Your dinner reservation at The Ivy in London for 4 people on February 15, 2024 at 7:30 PM is confirmed with booking reference RES-7890-ABCD.",
+        "role": "agent"
+      }
+    }
+  ],
+  "task": "I'm planning a business trip to London next month and need to arrange accommodations and a client dinner. First, find my trip dates from the calendar, then book a highly-rated hotel near the city center for those dates, and finally make a dinner reservation at The Ivy for the first evening, while ensuring any conflicting personal events are cleared from my calendar."
+}

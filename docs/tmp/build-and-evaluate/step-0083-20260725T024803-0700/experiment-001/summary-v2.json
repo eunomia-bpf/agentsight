@@ -1,0 +1,341 @@
+{
+  "benchmark": "HINTBench",
+  "bootstrap_seeds": {
+    "full_trace_reader - local_agentprof": 20260924,
+    "full_trace_reader - local_only": 20260923,
+    "full_trace_reader - raw_action_skeleton_reader": 20260932,
+    "full_trace_reader - semantic_skeleton_reader": 20260931,
+    "local_agentprof - local_only": 20260938,
+    "raw_action_skeleton_reader - local_agentprof": 20260936,
+    "raw_action_skeleton_reader - local_only": 20260937,
+    "semantic_skeleton_reader - local_agentprof": 20260934,
+    "semantic_skeleton_reader - local_only": 20260935,
+    "semantic_skeleton_reader - raw_action_skeleton_reader": 20260933
+  },
+  "clean_queries": 136,
+  "content_delta_seed": 20260927,
+  "content_deltas_raw_minus_semantic": {
+    "content_opened_fraction": {
+      "direction": "raw_action_skeleton - semantic_skeleton",
+      "interval_95": [
+        0.009014529382188621,
+        0.01950824009366302
+      ],
+      "median": 0.014237359397085104,
+      "nonpositive_draws": 0,
+      "point_effect": 0.0142816792877052,
+      "repetitions": 10000,
+      "seed": 20260927
+    },
+    "selected_evidence_operation_count": {
+      "direction": "raw_action_skeleton - semantic_skeleton",
+      "interval_95": [
+        0.38,
+        0.7225
+      ],
+      "median": 0.5475,
+      "nonpositive_draws": 0,
+      "point_effect": 0.55,
+      "repetitions": 10000,
+      "seed": 20260927
+    },
+    "stage2_evidence_chars": {
+      "direction": "raw_action_skeleton - semantic_skeleton",
+      "interval_95": [
+        89.8375,
+        218.205
+      ],
+      "median": 154.03625,
+      "nonpositive_draws": 0,
+      "point_effect": 154.36,
+      "repetitions": 10000,
+      "seed": 20260927
+    }
+  },
+  "cost": {
+    "full_trace_reader": {
+      "mean_prompt_tokens_o200k": 3097.82,
+      "mean_total_chars": 11382.0525,
+      "mean_wall_seconds": 30.44977522842688,
+      "median_prompt_tokens_o200k": 3055.0,
+      "median_total_chars": 11192.5,
+      "median_wall_seconds": 21.16852275900601,
+      "queries": 400,
+      "total_chars": 4552821,
+      "total_prompt_tokens_o200k": 1239128,
+      "total_wall_seconds": 12179.910091370752
+    },
+    "raw_action_skeleton_reader": {
+      "mean_prompt_tokens_o200k": 5736.19,
+      "mean_total_chars": 18101.6925,
+      "mean_wall_seconds": 56.95804428670977,
+      "median_prompt_tokens_o200k": 5748.0,
+      "median_total_chars": 18064.0,
+      "median_wall_seconds": 44.45331806401373,
+      "queries": 400,
+      "total_chars": 7240677,
+      "total_prompt_tokens_o200k": 2294476,
+      "total_wall_seconds": 22783.21771468391
+    },
+    "semantic_skeleton_reader": {
+      "mean_prompt_tokens_o200k": 6453.8925,
+      "mean_total_chars": 21672.82,
+      "mean_wall_seconds": 60.50314896684664,
+      "median_prompt_tokens_o200k": 6502.5,
+      "median_total_chars": 21591.0,
+      "median_wall_seconds": 47.54151893951348,
+      "queries": 400,
+      "total_chars": 8669128,
+      "total_prompt_tokens_o200k": 2581557,
+      "total_wall_seconds": 24201.259586738655
+    }
+  },
+  "failure_tally": {
+    "full_ok": 399,
+    "full_ok_after_retry": 1,
+    "full_original_order_failures": 0,
+    "raw_stage1_largest_groups_fallback": 0,
+    "raw_stage1_ok": 399,
+    "raw_stage1_ok_after_retry": 1,
+    "raw_stage2_ok": 399,
+    "raw_stage2_ok_after_retry": 1,
+    "raw_stage2_original_order_failures": 0,
+    "semantic_stage1_largest_groups_fallback": 0,
+    "semantic_stage1_ok": 400,
+    "semantic_stage1_ok_after_retry": 0,
+    "semantic_stage2_ok": 400,
+    "semantic_stage2_ok_after_retry": 0,
+    "semantic_stage2_original_order_failures": 0
+  },
+  "group_stats": {
+    "raw": {
+      "index_hit_rate": 0.855,
+      "index_hits": 342,
+      "max_largest_group_size": 10,
+      "mean_content_opened_fraction": 0.25760616120477736,
+      "mean_group_count": 17.4275,
+      "mean_largest_group_size": 4.5375,
+      "mean_selected_evidence_ops": 7.035,
+      "median_content_opened_fraction": 0.24701726780478642,
+      "median_group_count": 18.0,
+      "median_largest_group_size": 4.0
+    },
+    "semantic": {
+      "index_hit_rate": 0.83,
+      "index_hits": 332,
+      "max_largest_group_size": 7,
+      "mean_content_opened_fraction": 0.24332448191707218,
+      "mean_group_count": 20.5175,
+      "mean_largest_group_size": 2.2475,
+      "mean_selected_evidence_ops": 6.485,
+      "median_content_opened_fraction": 0.23346967890061635,
+      "median_group_count": 21.0,
+      "median_largest_group_size": 2.0
+    }
+  },
+  "harness": "hint_index_study_eval_v2.py",
+  "map": {
+    "full_trace_reader": 0.6234664156724956,
+    "local_agentprof": 0.5174888725910552,
+    "local_only": 0.4105587754001585,
+    "raw_action_skeleton_reader": 0.5545394945492302,
+    "semantic_skeleton_reader": 0.5272815727376802
+  },
+  "metric": "sklearn.metrics.average_precision_score per target-bearing query; arithmetic MAP over the 400 target-bearing queries; paired trajectory-cluster bootstrap within HINTBench environment strata",
+  "mode": "score-only",
+  "operations": 12877,
+  "paired_comparisons": {
+    "full_trace_reader__minus__local_agentprof": {
+      "clusters": 400,
+      "first": "full_trace_reader",
+      "interval_95": [
+        0.08011790825182803,
+        0.1318254457916628
+      ],
+      "median": 0.10607028023313658,
+      "nonpositive_draws": 0,
+      "point_effect": 0.10597754308144036,
+      "repetitions": 10000,
+      "second": "local_agentprof",
+      "seed": 20260924,
+      "strata": 44
+    },
+    "full_trace_reader__minus__local_only": {
+      "clusters": 400,
+      "first": "full_trace_reader",
+      "interval_95": [
+        0.18801380401950885,
+        0.2370971535762902
+      ],
+      "median": 0.2128667642043685,
+      "nonpositive_draws": 0,
+      "point_effect": 0.2129076402723371,
+      "repetitions": 10000,
+      "second": "local_only",
+      "seed": 20260923,
+      "strata": 44
+    },
+    "full_trace_reader__minus__raw_action_skeleton_reader": {
+      "clusters": 400,
+      "first": "full_trace_reader",
+      "interval_95": [
+        0.04382305526017376,
+        0.09390347610259539
+      ],
+      "median": 0.0687058573118215,
+      "nonpositive_draws": 0,
+      "point_effect": 0.06892692112326537,
+      "repetitions": 10000,
+      "second": "raw_action_skeleton_reader",
+      "seed": 20260932,
+      "strata": 44
+    },
+    "full_trace_reader__minus__semantic_skeleton_reader": {
+      "clusters": 400,
+      "first": "full_trace_reader",
+      "interval_95": [
+        0.06898964071555985,
+        0.12372363613687161
+      ],
+      "median": 0.09606515794452898,
+      "nonpositive_draws": 0,
+      "point_effect": 0.09618484293481544,
+      "repetitions": 10000,
+      "second": "semantic_skeleton_reader",
+      "seed": 20260931,
+      "strata": 44
+    },
+    "local_agentprof__minus__local_only": {
+      "clusters": 400,
+      "first": "local_agentprof",
+      "interval_95": [
+        0.09347886258879512,
+        0.12096158285569127
+      ],
+      "median": 0.1069093468202726,
+      "nonpositive_draws": 0,
+      "point_effect": 0.10693009719089674,
+      "repetitions": 10000,
+      "second": "local_only",
+      "seed": 20260938,
+      "strata": 44
+    },
+    "raw_action_skeleton_reader__minus__local_agentprof": {
+      "clusters": 400,
+      "first": "raw_action_skeleton_reader",
+      "interval_95": [
+        0.007740846641153531,
+        0.06578602875648268
+      ],
+      "median": 0.036858568357655316,
+      "nonpositive_draws": 68,
+      "point_effect": 0.03705062195817499,
+      "repetitions": 10000,
+      "second": "local_agentprof",
+      "seed": 20260936,
+      "strata": 44
+    },
+    "raw_action_skeleton_reader__minus__local_only": {
+      "clusters": 400,
+      "first": "raw_action_skeleton_reader",
+      "interval_95": [
+        0.11538975301434336,
+        0.17222706986361228
+      ],
+      "median": 0.14398764576338252,
+      "nonpositive_draws": 0,
+      "point_effect": 0.14398071914907173,
+      "repetitions": 10000,
+      "second": "local_only",
+      "seed": 20260937,
+      "strata": 44
+    },
+    "semantic_skeleton_reader__minus__local_agentprof": {
+      "clusters": 400,
+      "first": "semantic_skeleton_reader",
+      "interval_95": [
+        -0.019353365659519534,
+        0.038784870361320875
+      ],
+      "median": 0.010062735518869728,
+      "nonpositive_draws": 2579,
+      "point_effect": 0.009792700146624922,
+      "repetitions": 10000,
+      "second": "local_agentprof",
+      "seed": 20260934,
+      "strata": 44
+    },
+    "semantic_skeleton_reader__minus__local_only": {
+      "clusters": 400,
+      "first": "semantic_skeleton_reader",
+      "interval_95": [
+        0.0861966727169184,
+        0.14612181889323847
+      ],
+      "median": 0.11693498610880951,
+      "nonpositive_draws": 0,
+      "point_effect": 0.11672279733752167,
+      "repetitions": 10000,
+      "second": "local_only",
+      "seed": 20260935,
+      "strata": 44
+    },
+    "semantic_skeleton_reader__minus__raw_action_skeleton_reader": {
+      "clusters": 400,
+      "first": "semantic_skeleton_reader",
+      "interval_95": [
+        -0.05306612806308197,
+        -0.0021926367119042005
+      ],
+      "median": -0.027493782548100778,
+      "nonpositive_draws": 9833,
+      "point_effect": -0.027257921811550068,
+      "repetitions": 10000,
+      "second": "raw_action_skeleton_reader",
+      "seed": 20260933,
+      "strata": 44
+    }
+  },
+  "provenance": {
+    "baseline_per_query": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-current-agent-local-first-v1/full/per-query.jsonl",
+    "fixed_groups": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-canonical-tags-v2-current/hint/results/fixed-groups.jsonl",
+    "packets": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-a0-v1/full/hint/packets",
+    "path_construction": "(task_family.casefold(), 'raw:' + raw_fields.action.casefold(), *suffix) — identical to script/rq2_current_agent_local_first.py construct_scores for local_raw_evidence / raw_source_evidence",
+    "projection": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/cycle-0003-20260713T121925-0700/01-experiment-gate/loop-001-rq2-hintbench/results/full/operations/test-projection.jsonl",
+    "raw_identity_field": "raw_fields.action",
+    "raw_identity_note": "HINTBench equivalent of method-index methods.raw.operation_leaves: load_hint_sources in script/rq2_current_agent_local_first.py reads raw_identity from raw_fields.action of the same frozen projection.",
+    "raw_identity_source": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/cycle-0003-20260713T121925-0700/01-experiment-gate/loop-001-rq2-hintbench/results/full/operations/test-projection.jsonl",
+    "semantic_identity_field": "groups.source_preserving_agent",
+    "semantic_identity_source": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-canonical-tags-v2-current/hint/results/fixed-groups.jsonl",
+    "source_suffix_source": "fixed-groups.jsonl groups[source_preserving_agent] after automatic_agent prefix (exactly 3 frames: source-kind, source-call/tool, outcome)",
+    "sources_test": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/cycle-0003-20260713T121925-0700/01-experiment-gate/loop-001-rq2-hintbench/results/full/sources/test.json",
+    "step_0072_condition": "local_raw_evidence",
+    "step_0072_conditions": {
+      "Direct+AgentProf": "local_agentprof",
+      "Direct-only": "local_only"
+    },
+    "step_0072_script": "script/rq2_current_agent_local_first.py",
+    "unique_raw_actions": 412
+  },
+  "reader": {
+    "cli": "opencode run --pure <packet+instruction>",
+    "cwd": "reader-jail (fresh empty directory; no project context)",
+    "default_model": "glm-5.2",
+    "delivery": "argv (single positional argument)",
+    "fallbacks": "stage-1 fail -> largest 5 groups; stage-2/full fail -> original-order ranking; all tallied",
+    "instruction_closing": "Answer directly in strict JSON only. Do not use any tools, do not read or write any files, do not run any commands.",
+    "model_family": "opencode/glm-5.2 — differs from the TraceElephant study (grok) and from the kimi attempt; disclosed, no cross-workload pooling",
+    "model_source": "observed stderr banner '> build · glm-5.2'",
+    "no_flags_added": "no -m/--agent/--command/--format; addendum-002 forbids invented flags and any config/agent-file touch",
+    "one_format_retry_per_call": true,
+    "parser": "FIRST JSON object in stdout (balanced-brace scan, ANSI stripped)",
+    "stdin": "/dev/null",
+    "workers": 1
+  },
+  "scored_target_queries": 400,
+  "target_queries": 400,
+  "trajectories": 536,
+  "v2_note": "Per addendum-001/002: kimi partials in raw-responses-* (no -v2) are set aside, not scored and not deleted; only these -v2 opencode responses are scored.",
+  "wall_seconds_harness": 12.66474187001586,
+  "zero_positive_queries_consumed_but_excluded_from_map": 136
+}

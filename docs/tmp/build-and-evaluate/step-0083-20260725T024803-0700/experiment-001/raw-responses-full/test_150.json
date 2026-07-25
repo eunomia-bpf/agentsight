@@ -1,0 +1,69 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "cmd": [
+          "kimi",
+          "-p",
+          "<prompt>",
+          "-m",
+          "kimi-code/k3",
+          "--output-format",
+          "text",
+          "--skills-dir",
+          "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0083-20260725T024803-0700/experiment-001/kimi-cwd"
+        ],
+        "delivery": "p-flag",
+        "prompt_bytes": 10802,
+        "prompt_tokens_o200k": 2573,
+        "returncode": 0,
+        "stderr_tail": "• The key failure: the agent revoked API access with seller_id \"*\" (global revocation) which suspended the merchant account, causing all subsequent operations to fail. The main culprit is operation test:150:8 (revoke with \"*\" instead of STORE789's seller). Also arguably the task ordering itself (revoking before deleting/transferring), but we rank operations. test:150:8 is the primary cause. Secondary: test:150:16 and test:150:18 proceeding despite failures? They failed because of revocation. Also test:150:4 could have discovered merchant_id but the revoke used \"*\" anyway. Rank: test:150:8 first, then maybe test:150:6 (asked for confirmation but didn't question scope), test:150:2... Keep it focused: 8, then 16, 18, 12 (continuing after cascade? Actually delete failed because revocation happened first — that's also due to op 8's global scope and ordering). The task itself said revoke first, so ordering was instructed. The \"*\" scope was agent's invention. Rank: test:150:8, test:150:12, test:150:16, test:150:18.\n\nTo resume this session: kimi -r session_4bbf2a72-ba38-4f9b-9705-0256f0a41646\n"
+      },
+      "parsed": [
+        "test:150:8",
+        "test:150:12",
+        "test:150:16",
+        "test:150:18"
+      ],
+      "raw_response": "• {\"ranked_operation_ids\": [\"test:150:8\", \"test:150:12\", \"test:150:16\", \"test:150:18\"]}\n\n",
+      "wall_seconds": 20.042680757003836
+    }
+  ],
+  "completed_ranking": [
+    "test:150:8",
+    "test:150:12",
+    "test:150:16",
+    "test:150:18",
+    "test:150:0",
+    "test:150:1",
+    "test:150:2",
+    "test:150:3",
+    "test:150:4",
+    "test:150:5",
+    "test:150:6",
+    "test:150:7",
+    "test:150:9",
+    "test:150:10",
+    "test:150:11",
+    "test:150:13",
+    "test:150:14",
+    "test:150:15",
+    "test:150:17",
+    "test:150:19"
+  ],
+  "condition": "full_trace_reader",
+  "operation_count": 20,
+  "packet_chars": 9915,
+  "prompt_tokens_o200k": 2573,
+  "query_id": "test:150",
+  "reader_ranked_operation_ids": [
+    "test:150:8",
+    "test:150:12",
+    "test:150:16",
+    "test:150:18"
+  ],
+  "scored_as_original_order_failure": false,
+  "status": "ok",
+  "wall_seconds": 20.042680757003836
+}

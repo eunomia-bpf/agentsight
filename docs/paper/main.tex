@@ -59,11 +59,15 @@ population case studies, and four public cost workloads.
 % 我们在 405 条带人工 stage 的 CodeTraceBench 轨迹、三个完整公开 localization benchmark、287 个 OSWorld-Human session、两个 population case study 和四个公开成本 workload 上评估 \sys。
 Automatic Agent annotation raises ordinary B$^3$ F1 against human stages from
 0.541 for raw action and 0.663 for recurrence to 0.704. On three complete
-localization workloads used for protocol development, AgentProf raises MAP over
-benchmark-native direct diagnostics by 0.031, 0.107, and 0.117, but is
-statistically indistinguishable from an information-matched raw-action plus
-source-evidence refinement.
-% 自动 Agent 标注将相对人工 stage partition 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.704。在用于协议开发的三个完整 localization workload 上，AgentProf 相对 benchmark-native direct diagnostic 将 MAP 分别提高 0.031、0.107 和 0.117，但与信息量匹配的 raw-action 加 source-evidence refinement 在统计上不可区分。
+localization workloads, AgentProf raises MAP over benchmark-native direct
+diagnostics by 0.031, 0.107, and 0.117. Used as a reading index on
+TraceElephant, the semantic hierarchy guides a strong trajectory reader to
+equal ranking quality while opening 53.0\% of the source evidence, versus
+65.0\% under an information-matched raw-action grouping, and skeleton-guided
+drilldown remains available beyond the context-window bound where whole-trace
+reading fails.
+% 在三个完整 localization workload 上，AgentProf 相对 benchmark-native direct diagnostic 将 MAP 分别提高 0.031、0.107 和 0.117。
+% 在 TraceElephant 上作为阅读索引时，语义层次引导强 trajectory reader 达到同等排名质量，只打开 53.0\% 的 source evidence，而信息匹配的 raw-action 分组需打开 65.0\%；且骨架引导的下钻可超越整条轨迹阅读失效的上下文窗口边界。
 Evaluated task-family and action backends reach 0.695 and 0.498 macro-F1,
 label-free recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1 on
 OSWorld-Human, and, after marks are fixed, \sys constructs a
@@ -191,9 +195,12 @@ action.
 Across three complete public workloads used for protocol development,
 AgentProf refines benchmark-native direct diagnostic ties and raises MAP by
 0.031, 0.107, and 0.117, respectively~\cite{agentprocessbench,hintbench,traceelephant}.
-An information-matched raw-action plus source-evidence refinement is
-statistically tied on all three workloads.
-% 在用于协议开发的三个完整公开 workload 上，AgentProf 细化 benchmark-native direct diagnostic 的并列，并将 MAP 分别提高 0.031、0.107 和 0.117；信息量匹配的 raw-action 加 source-evidence refinement 在三个 workload 上均与其统计持平。
+On TraceElephant, the same fixed hierarchy also serves as a reading index:
+a strong reader reaches statistically equal ranking quality while opening
+significantly less source evidence (53.0\% versus 65.0\%) than with an
+information-matched raw-action grouping.
+% 在用于协议开发的三个完整公开 workload 上，AgentProf 细化 benchmark-native direct diagnostic 的并列，并将 MAP 分别提高 0.031、0.107 和 0.117。
+% 在 TraceElephant 上，同一固定层次也作为阅读索引：强 reader 达到统计持平的排名质量，同时打开的 source evidence 明显更少（53.0\% 对 65.0\%）。
 On 287 OSWorld-Human development sessions~\cite{osworldhuman}, label-free
 recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1. On the AgentBoard and
 ASE populations, task-family and action backends reach 0.695 and 0.498
@@ -654,6 +661,22 @@ the selected additive measure changes its attributed importance. We do not
 claim that one resource measure universally dominates another.
 % 固定层次显示出 operation count 明显低估的瓶颈：SSH 诊断约占五分之一 operation，却接近一半 token；source 下钻同时表明该高成本路径并未建立请求的终局条件。这个重复的真实任务支持 RQ1 的多资源归因假设：一个共享 responsibility path 跨执行重聚 SSH 工作，而所选可加度量会改变其归因重要性；我们不声称某一种资源度量普遍支配其他度量。
 
+The same population-scale behavior holds on the frozen 440-session
+AgentRewardBench hierarchy (7{,}229 operations and 51{,}904{,}621
+provider-reported tokens, both conserved exactly): replaying it ranks the same
+operations once by operation count and once by tokens. Over the 77 of 125 tasks
+with at least three distinct operations, mean per-task Kendall's
+tau-b~\cite{kendall1938} is 0.886 (10{,}000-draw task-cluster bootstrap 95\%
+interval [0.857, 0.915]) and Spearman's rho~\cite{spearman1904} is 0.935
+[0.917, 0.953]; the pooled population ranking agrees at tau-b 0.929. One fixed
+hierarchy therefore replays across measures with exact conservation and stable
+dominant responsibilities for most web-scale tasks. The agreement is not
+perfect: 10 of the 77 rankable tasks fall below tau-b 0.7, and the long-horizon
+Git case above shifts attributed importance by more than a factor of two. The
+regimes where selecting the measure changes the engineering decision are
+exactly where multi-measure replay pays.
+% 在 frozen 的 440-session AgentRewardBench 层次（7,229 个 operation 与 51,904,621 个 provider-reported token，两者均精确保守）上，同一固定层次在两种度量下重放：分别按 operation count 与 token 对相同 operation 排序。在 125 个 task 中至少有三个不同 operation 的 77 个上，mean per-task Kendall's tau-b 为 0.886（10,000 次 task-cluster bootstrap 95% 区间 [0.857, 0.915]），Spearman's rho 为 0.935 [0.917, 0.953]；pooled population ranking 的 tau-b 为 0.929。因此一个固定层次可跨度量重放且精确保守，多数 web-scale task 的主导职责保持稳定。但一致性并不完美：77 个可排序 task 中有 10 个 tau-b 低于 0.7，且上述 long-horizon Git case 的归因重要性变化超过两倍——度量选择会改变工程决策的情形，正是 multi-measure replay 的价值所在。
+
 
 %% Flamegraph figure appears with the RQ1 multi-weight evidence.
 
@@ -729,12 +752,56 @@ Candidate-minus-baseline intervals are [-.0003,.0029], [-.0116,.0103], and
 semantic-operation prefix ranks targets better when both views retain the same
 source evidence. The matched result attributes the ranking gain to
 group/evidence refinement in the complete profile, not specifically to its
-semantic prefix. Separately, that prefix supplies the cross-run hierarchy and
+semantic prefix. This tie is the expected mechanism boundary: per-operation
+anomaly signal resides in the retained source evidence, which both views share
+by construction.
+% 这一持平是预期的机制边界：per-operation 异常信号位于保留的 source evidence 中，两种视图在构造上共享这些 evidence。
+The semantic prefix's distinct, separately measured roles are cross-run
+attribution (RQ1) and directing a reader's attention, which the following
+study measures.
+% semantic prefix 的独立、分别测量的角色是 cross-run attribution（RQ1）与引导读者注意力，后者由下文研究测量。
+Separately, that prefix supplies the cross-run hierarchy and
 source drilldown illustrated below. Because
 the local-first rule and fixed source-only paths were developed on these
 populations, this is adaptive mechanism evidence rather than untouched backend
 generalization.
 % Direct+AgentProf 相对 Direct-only trajectory judge/localizer 在三个完整 workload 上分别提高 MAP .031、.107 与 .117，区间均为正；与保留相同 source evidence 的 raw-action refinement 统计上不可区分。因此该实验支持 profiling 补充 direct trajectory diagnosis，但不声称 semantic prefix 在这三个已观察 population 上具有额外的 target-ranking 优势。
+
+\paragraph{Profile-guided reading on TraceElephant.}
+On the complete 220 target-bearing TraceElephant queries, a fixed external
+Grok-family CLI reader receives target-blind packets---task text, operation
+IDs, and source-visible content---with unranked operations appended in
+original order deterministically and one single-turn call per stage.
+% 在完整的 220 个带 target 的 TraceElephant query 上，一个固定的外部 Grok 家族 CLI reader 接收 target-blind packet——任务文本、operation ID 与 source-visible 内容——未排名 operation 按原始顺序确定性附加，每个 stage 单轮调用。
+Full-trace reading reaches MAP .502 versus .209 for the benchmark's
+Direct-only diagnostic and .326 for Direct+AgentProf, at a mean 12{,}615
+input tokens per query.
+% 全 trace 阅读达到 MAP .502，而 benchmark 的 Direct-only 诊断为 .209、Direct+AgentProf 为 .326，平均每个 query 12,615 输入 token。
+A two-stage profile-guided variant first shows only the semantic operation
+skeleton, with no source content, and the reader selects at most five groups;
+stage two then opens only the selected groups' evidence.
+% 两阶段 profile-guided 变体首先只展示 semantic operation 骨架（无 source 内容），reader 最多选择 5 个 group；第二阶段只打开所选 group 的 evidence。
+It reaches MAP .455 while opening 53.0\% of the source content, and its
+stage-one selections never fell back to a default.
+% 它达到 MAP .455，同时只打开 53.0\% 的 source 内容，且第一阶段选择从未回退到默认值。
+Under an information-matched raw-action skeleton, ranking quality is
+statistically unchanged (MAP .465; paired delta $+.010$ [$-.021$, $+.042$]).
+% 在信息匹配的 raw-action 骨架下，排名质量在统计上不变（MAP .465；配对差异 +.010 [-.021, +.042]）。
+But the reader opens significantly more content: 65.0\% versus 53.0\%, paired
+delta $+.120$ [$+.103$, $+.137$], and $2.80$ [$1.96$, $3.60$] more evidence
+operations.
+% 但 reader 打开显著更多的内容：65.0\% 对 53.0\%，配对差异 +.120 [+.103, +.137]，且多 2.80 [1.96, 3.60] 个 evidence operation。
+Semantic naming's measured contribution in this regime is attention
+concentration at equal quality.
+% 在此机制下 semantic naming 测得的贡献是同等质量下的注意力集中。
+A per-query full read is bounded by the model context window: populations
+such as the 4{,}558{,}192-token repeated Git task cannot be read whole,
+whereas skeleton-guided drilldown remains available at any trace length.
+% 单 query 全量阅读受限于模型上下文窗口：诸如 4,558,192-token 的重复 Git 任务这类种群无法整体阅读，而骨架引导的下钻在任何 trace 长度下都可用。
+The reader is query-specific---it re-reads each trajectory per
+question---whereas the hierarchy is constructed once and replayed across
+queries and measures.
+% reader 是 query-specific——每个问题都重新阅读整条轨迹——而层次结构只构造一次，跨 query 与 measure 复用。
 
 \subsection{Case Study 2: Differential Profiling at Scale}
 % 案例研究 2：大规模差分 profiling。
@@ -1020,15 +1087,30 @@ reconstructed population and A2 artifact is byte-identical across runs; all
 profiles load in stock pprof and conserve exact mass.
 % 在全部 405 条 CodeTrace session 上，A2 source-packet reconstruction 的中位时间为 501.64 秒，deterministic assembly/root repair/name canonicalization 为 3.54 秒；随后 operation 与 token profile 均以 1.17 秒中位重放，并精确保守质量。
 
+A fully instrumented end-to-end automatic annotation now exists. On the
+complete 440-session AgentRewardBench population, the fixed automatic backend
+completes all 12 outcome-blind batches in 3{,}521.6\,s end-to-end on a fixed
+two-worker schedule (58.7 minutes; summed worker time 6{,}661.7\,s), consuming
+12{,}039{,}417 actual input tokens (10{,}929{,}408 reported cached) and
+312{,}433 output tokens---27{,}362 input and 710 output tokens per session. On
+the three-session Git population, one fresh complete pass takes 466.9\,s and
+832{,}544 actual input tokens. Deterministic materialization of the full
+440-session population takes 0.26\,s (operations) and 0.25\,s (tokens):
+construction cost is dominated by the automatic backend, and replay remains
+sub-second.
+% 现已存在完整插桩的端到端 automatic annotation：在完整 440-session AgentRewardBench population 上，固定 automatic backend 在固定双 worker 调度下以 3,521.6 秒端到端完成全部 12 个 outcome-blind batch（58.7 分钟；worker 时间合计 6,661.7 秒），消耗 12,039,417 个实际输入 token（其中报告缓存 10,929,408）与 312,433 个输出 token——每 session 27,362 输入、710 输出 token。在三 session 的 Git population 上，一次全新完整 pass 需 466.9 秒与 832,544 个实际输入 token。完整 440-session population 的确定性 materialization 需 0.26 秒（operations）/ 0.25 秒（tokens）：构建成本由 automatic backend 主导，replay 仍为亚秒级。
+
 The existing automatic-Agent annotations were produced in two disjoint
 workflow waves whose packet-manifest-to-final-artifact spans sum to 54.36
-minutes. We report this only as an artifact-time workflow envelope: retained
-telemetry cannot separate model inference from orchestration, idle time, and
-file writing or recover provider token usage. Thus 1.17\,s is replay latency,
+minutes. The instrumented AgentRewardBench pass above supersedes this envelope
+as the reportable annotation cost; we retain it only as an artifact-time
+workflow envelope, since retained telemetry cannot separate model inference
+from orchestration, idle time, and file writing or recover provider token
+usage. Thus 1.17\,s is replay latency,
 not annotation latency; the measured deterministic first-construction
 components total 506.35\,s, while model/provider inference remains outside the
 instrumented timing.
-% 两个自动 Agent annotation wave 的 artifact 时间窗合计 54.36 分钟，但该窗口混合 inference、调度、空闲与写文件，不能当作模型计时；因此 1.17 秒是 replay 而非 annotation latency，deterministic first-construction 组件合计 506.35 秒。
+% 两个自动 Agent annotation wave 的 artifact 时间窗合计 54.36 分钟，但该窗口混合 inference、调度、空闲与写文件，不能当作模型计时；上述插桩的 AgentRewardBench pass 已取代该 envelope 成为可报告的 annotation 成本；因此 1.17 秒是 replay 而非 annotation latency，deterministic first-construction 组件合计 506.35 秒。
 
 \subsection{Scope and Limitations}
 
@@ -1038,10 +1120,11 @@ OSWorld-Human separately evaluates recurrence and supervised boundary backends.
 RQ2 scores released localizer predictions over complete public workloads; it
 does not measure end-user diagnosis time. RQ4 measures fixed-input replay and
 the deterministic A2 path from normalized operations plus released raw
-archives. It excludes capture, raw-to-normalized conversion, live-agent
-overhead, and instrumented model/provider annotation timing; the reported
+archives. It excludes capture, raw-to-normalized conversion, and live-agent
+overhead; automatic annotation cost is instrumented on the complete
+AgentRewardBench and Git populations, while the reported
 54.36-minute artifact envelope is not model latency.
-% 结果适用于声明的 population 与 annotation protocol；CodeTraceBench 是 Agent-assisted constructor 的完整开发 population，OSWorld-Human 独立评估其他 boundary backend。RQ4 测量 fixed-input replay 与 deterministic A2 path，但不含 capture、raw-to-normalized conversion、live-agent overhead 和 instrumented model/provider annotation timing。
+% 结果适用于声明的 population 与 annotation protocol；CodeTraceBench 是 Agent-assisted constructor 的完整开发 population，OSWorld-Human 独立评估其他 boundary backend。RQ4 测量 fixed-input replay 与 deterministic A2 path，不包含 capture、raw-to-normalized conversion 与 live-agent overhead；automatic annotation 成本已在完整的 AgentRewardBench 与 Git population 上插桩测量，54.36 分钟的 artifact envelope 并非模型时延。
 
 
 %% ===================================================================
