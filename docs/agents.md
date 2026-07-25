@@ -176,11 +176,6 @@ the standalone `stdiocap` BPF tool:
 sudo ./bpf/stdiocap -p <mcp_server_pid>
 ```
 
-AgentSight also includes a minimal MCP fixture for local testing under
-[`docs/mcp-test/README.md`](https://github.com/eunomia-bpf/agentsight/blob/master/docs/experiment/mcp-test/README.md). It provides both `stdio`
-and HTTP test modes so you can generate predictable MCP traffic before wiring
-it into the Rust collector.
-
 ## Advanced Monitoring
 
 ```bash
