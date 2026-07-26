@@ -305,9 +305,7 @@ All events follow a common base schema with event-specific fields:
 
 **SSL Event Fields:**
 - `uid`: User ID of the process (uint32)
-- `connection_id`: Stable TLS connection identity when available (uint64)
 - `data`: SSL traffic data (string, bounded by `MAX_BUF_SIZE`)
-- `data_hex`: Exact bytes for binary HTTP/2 or WebSocket payloads (string, optional)
 - `data_len`: Length of data captured (uint32)
 - `truncated`: Whether data was truncated due to size limits (boolean)
 

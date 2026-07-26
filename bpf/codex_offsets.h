@@ -59,59 +59,6 @@ static const uint8_t grok_rustls_buffer_plaintext_prefix[] = {
 	0x00, 0x00, 0x80,
 };
 
-/* rustls 0.23.36 CommonState::buffer_plaintext, as emitted by rustc 1.95
- * for Codex 0.145. The later blocks validate its rustc 1.95 OutboundChunks
- * layout ({data, count, start, end} for Multiple) and send path. */
-static const uint8_t codex_rustls_buffer_plaintext_prefix[] = {
-	0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41,
-	0x54, 0x53, 0x48, 0x83, 0xec, 0x28, 0x49, 0x89,
-	0xd6, 0x48, 0x89, 0xf3, 0x4c, 0x8b, 0xa7, 0x08,
-	0x03, 0x00, 0x00, 0x48, 0xb8, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x80,
-};
-#define CODEX_RUSTLS_OUTBOUND_RANGE_OFFSET 0xd5
-#define CODEX_RUSTLS_SEND_PLAIN_OFFSET 0x870
-#define CODEX_RUSTLS_SEND_DATA_OFFSET 0xb78
-static const uint8_t codex_rustls_outbound_range[] = {
-	0x48, 0x8b, 0x43, 0x10, 0x48, 0x8b, 0x4b, 0x18,
-	0x48, 0x29, 0xc1, 0x48, 0x83, 0x3b, 0x00, 0x48,
-	0x0f, 0x44, 0xc8,
-};
-static const uint8_t codex_rustls_send_plain_prefix[] = {
-	0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41,
-	0x54, 0x53, 0x48, 0x83, 0xec, 0x38, 0x49, 0x89,
-	0xfc, 0x85, 0xd2, 0x74, 0x23, 0x4c, 0x8b, 0x16,
-	0x4d, 0x85, 0xd2,
-};
-static const uint8_t codex_rustls_send_data_pointer[] = {
-	0x48, 0x8b, 0x06,
-};
-
-/* Validate the OutboundChunks ABI used by the probe, not just the function
- * prologue. These blocks load the enum tag/count at +0, range at +16/+24,
- * and data pointer at +8. */
-#define GROK_RUSTLS_OUTBOUND_TAG_OFFSET 0xd7
-#define GROK_RUSTLS_OUTBOUND_RANGE_OFFSET 0xe7
-#define GROK_RUSTLS_OUTBOUND_DATA_OFFSET 0x3f1
-static const uint8_t grok_rustls_outbound_tag[] = {
-	0x4c, 0x8b, 0x26,
-};
-static const uint8_t grok_rustls_outbound_range[] = {
-	0x4c, 0x8b, 0x7e, 0x10, 0x48, 0x8b, 0x7e, 0x18,
-	0x48, 0x89, 0xfb, 0x4c, 0x29, 0xfb, 0x4d, 0x85,
-	0xe4, 0x49, 0x0f, 0x44, 0xdf,
-};
-static const uint8_t grok_rustls_outbound_data[] = {
-	0x48, 0x8b, 0x46, 0x08, 0x4d, 0x85, 0xe4, 0x74,
-	0x1d, 0x4c, 0x8d, 0x3c, 0x3b,
-};
-
-struct rustls_signature_block {
-	size_t offset;
-	const uint8_t *data;
-	size_t len;
-};
-
 static size_t codex_find_pattern(const uint8_t *data, size_t data_len,
 				 const uint8_t *pattern, size_t pattern_len)
 {
@@ -201,25 +148,14 @@ static bool codex_find_rustls_offsets(const char *binary_path,
 	return out->count > 0;
 }
 
-static bool rustls_find_plaintext_offset(
-	const char *binary_path, const uint8_t *prefix, size_t prefix_len,
-	const struct rustls_signature_block *blocks, size_t block_count,
-	size_t *offset)
+static bool grok_find_rustls_buffer_plaintext_offset(const char *binary_path,
+						      size_t *offset)
 {
 	struct stat st;
 	uint8_t *data;
-	size_t required_len = prefix_len;
-	size_t search = 0;
+	size_t found;
 	int fd;
 
-	for (size_t i = 0; i < block_count; i++) {
-		if (blocks[i].offset > SIZE_MAX - blocks[i].len)
-			return false;
-		size_t end = blocks[i].offset + blocks[i].len;
-
-		if (end > required_len)
-			required_len = end;
-	}
 	fd = open(binary_path, O_RDONLY);
 	if (fd < 0)
 		return false;
@@ -232,91 +168,15 @@ static bool rustls_find_plaintext_offset(
 		close(fd);
 		return false;
 	}
-	while (search <= (size_t)st.st_size
-	       && required_len <= (size_t)st.st_size - search) {
-		size_t relative = codex_find_pattern(
-			data + search, (size_t)st.st_size - search,
-			prefix, prefix_len);
-		size_t found;
-		bool matches = true;
-
-		if (relative == (size_t)-1)
-			break;
-		found = search + relative;
-		if (required_len > (size_t)st.st_size - found)
-			break;
-		for (size_t i = 0; i < block_count; i++) {
-			if (memcmp(data + found + blocks[i].offset,
-				   blocks[i].data, blocks[i].len) != 0) {
-				matches = false;
-				break;
-			}
-		}
-		if (matches) {
-			*offset = found;
-			munmap(data, (size_t)st.st_size);
-			close(fd);
-			return true;
-		}
-		search = found + 1;
-	}
+	found = codex_find_pattern(data, (size_t)st.st_size,
+				   grok_rustls_buffer_plaintext_prefix,
+				   sizeof(grok_rustls_buffer_plaintext_prefix));
 	munmap(data, (size_t)st.st_size);
 	close(fd);
-	return false;
-}
-
-static bool grok_find_rustls_buffer_plaintext_offset(const char *binary_path,
-						      size_t *offset)
-{
-	const struct rustls_signature_block blocks[] = {
-		{
-			.offset = GROK_RUSTLS_OUTBOUND_TAG_OFFSET,
-			.data = grok_rustls_outbound_tag,
-			.len = sizeof(grok_rustls_outbound_tag),
-		},
-		{
-			.offset = GROK_RUSTLS_OUTBOUND_RANGE_OFFSET,
-			.data = grok_rustls_outbound_range,
-			.len = sizeof(grok_rustls_outbound_range),
-		},
-		{
-			.offset = GROK_RUSTLS_OUTBOUND_DATA_OFFSET,
-			.data = grok_rustls_outbound_data,
-			.len = sizeof(grok_rustls_outbound_data),
-		},
-	};
-
-	return rustls_find_plaintext_offset(
-		binary_path, grok_rustls_buffer_plaintext_prefix,
-		sizeof(grok_rustls_buffer_plaintext_prefix), blocks,
-		sizeof(blocks) / sizeof(blocks[0]), offset);
-}
-
-static bool codex_find_rustls_buffer_plaintext_offset(const char *binary_path,
-						       size_t *offset)
-{
-	const struct rustls_signature_block blocks[] = {
-		{
-			.offset = CODEX_RUSTLS_OUTBOUND_RANGE_OFFSET,
-			.data = codex_rustls_outbound_range,
-			.len = sizeof(codex_rustls_outbound_range),
-		},
-		{
-			.offset = CODEX_RUSTLS_SEND_PLAIN_OFFSET,
-			.data = codex_rustls_send_plain_prefix,
-			.len = sizeof(codex_rustls_send_plain_prefix),
-		},
-		{
-			.offset = CODEX_RUSTLS_SEND_DATA_OFFSET,
-			.data = codex_rustls_send_data_pointer,
-			.len = sizeof(codex_rustls_send_data_pointer),
-		},
-	};
-
-	return rustls_find_plaintext_offset(
-		binary_path, codex_rustls_buffer_plaintext_prefix,
-		sizeof(codex_rustls_buffer_plaintext_prefix), blocks,
-		sizeof(blocks) / sizeof(blocks[0]), offset);
+	if (found == (size_t)-1)
+		return false;
+	*offset = found;
+	return true;
 }
 
 static bool codex_buf_contains(const uint8_t *buf, size_t len,

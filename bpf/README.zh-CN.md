@@ -297,9 +297,7 @@ make clean
 
 **SSL 事件字段：**
 - `uid`：进程的用户 ID（uint32）
-- `connection_id`：可用时用于标识 TLS 连接的稳定 ID（uint64）
 - `data`：SSL 流量数据（字符串，受 `MAX_BUF_SIZE` 限制）
-- `data_hex`：二进制 HTTP/2 或 WebSocket 负载的精确字节（字符串，可选）
 - `data_len`：捕获的数据长度（uint32）
 - `truncated`：数据是否因大小限制被截断（布尔值）
 

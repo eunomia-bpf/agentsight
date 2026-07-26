@@ -145,7 +145,7 @@ static const struct argp_option opts[] = {
 static bool verbose = false;
 static struct bpf_link *codex_rustls_links[CODEX_MAX_RUSTLS_OFFSETS];
 static size_t codex_rustls_link_count;
-static struct bpf_link *rustls_plaintext_link;
+static struct bpf_link *grok_rustls_link;
 
 /*
  * BoringSSL function offset detection for stripped binaries.
@@ -458,19 +458,19 @@ static int attach_codex_rustls(struct sslsniff_bpf *skel, const char *binary,
 	return 0;
 }
 
-static int attach_rustls_plaintext(struct sslsniff_bpf *skel,
-				    const char *binary, size_t offset)
+static int attach_grok_rustls(struct sslsniff_bpf *skel, const char *binary,
+			      size_t offset)
 {
 	LIBBPF_OPTS(bpf_uprobe_opts, opts, .retprobe = false);
 
-	rustls_plaintext_link = bpf_program__attach_uprobe_opts(
+	grok_rustls_link = bpf_program__attach_uprobe_opts(
 		skel->progs.probe_rustls_buffer_plaintext, env.pid, binary, offset,
 		&opts);
-	long err = rustls_plaintext_link
-		? libbpf_get_error(rustls_plaintext_link)
+	long err = grok_rustls_link
+		? libbpf_get_error(grok_rustls_link)
 		: -(errno ? errno : EIO);
 	if (err) {
-		rustls_plaintext_link = NULL;
+		grok_rustls_link = NULL;
 		return (int)err;
 	}
 	return 0;
@@ -554,24 +554,6 @@ char *find_library_path(const char *libname) {
 static char *event_buf = NULL;
 
 // Function to print the event from the perf buffer in JSON format
-static bool needs_exact_data_hex(const char *data, unsigned int size)
-{
-	static const char http2_preface[] = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
-	bool masked_websocket = size >= 2
-		&& ((unsigned char)data[0] & 0x80)
-		&& !((unsigned char)data[0] & 0x30)
-		&& ((unsigned char)data[0] & 0x0f) <= 2
-		&& ((unsigned char)data[1] & 0x80);
-	bool http2_frame = size >= 9
-		&& (unsigned char)data[3] <= 9
-		&& !((unsigned char)data[5] & 0x80);
-
-	return masked_websocket
-		|| (size >= sizeof(http2_preface) - 1
-		    && memcmp(data, http2_preface, sizeof(http2_preface) - 1) == 0)
-		|| http2_frame;
-}
-
 void print_event(struct probe_SSL_data_t *event, const char *evt) {
 	static unsigned long long start = 0;  // Use static to retain value across function calls
 	unsigned int buf_size;
@@ -628,7 +610,6 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 	// Always include extra fields (UID, TID)
 	printf("\"uid\":%d,", event->uid);
 	printf("\"tid\":%d,", event->tid);
-	printf("\"connection_id\":%llu,", event->connection_id);
 
 	// Always include latency field
 	if (event->delta_ns) {
@@ -640,13 +621,14 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 	// Always include handshake field
 	printf("\"is_handshake\":%s,", event->is_handshake ? "true" : "false");
 
-	// Preserve exact bytes for binary protocols such as HTTP/2 and WebSocket.
+	// Preserve exact bytes for masked WebSocket frames alongside readable text.
 	if (buf_size > 0) {
 		// Text data
 		printf("\"data\":");
 		json_print_escaped_quoted(event_buf, buf_size);
 		printf(",");
-		if (needs_exact_data_hex(event_buf, buf_size)) {
+		if (buf_size >= 2 && (event_buf[0] & 0x80) && !(event_buf[0] & 0x30)
+		    && (event_buf[0] & 0x0f) <= 2 && (event_buf[1] & 0x80)) {
 			printf("\"data_hex\":\"");
 			for (unsigned int i = 0; i < buf_size; i++)
 				printf("%02x", (unsigned char)event_buf[i]);
@@ -690,8 +672,6 @@ int main(int argc, char **argv) {
 	struct codex_rustls_offsets codex_offsets = {};
 	bool is_codex = false;
 	bool codex_rustls = false;
-	size_t codex_rustls_buffer_offset = 0;
-	bool codex_rustls_buffer = false;
 	size_t grok_rustls_offset = 0;
 	bool is_grok = false;
 	bool grok_rustls = false;
@@ -702,10 +682,7 @@ int main(int argc, char **argv) {
 		return err;
 	if (env.extra_lib) {
 		is_codex = codex_binary_has_tls_markers(env.extra_lib);
-		codex_rustls_buffer = is_codex
-				&& codex_find_rustls_buffer_plaintext_offset(
-					env.extra_lib, &codex_rustls_buffer_offset);
-		codex_rustls = is_codex && !codex_rustls_buffer
+		codex_rustls = is_codex
 				&& codex_find_rustls_offsets(env.extra_lib, &codex_offsets);
 		is_grok = grok_binary_has_tls_markers(env.extra_lib);
 		grok_rustls = is_grok
@@ -727,13 +704,12 @@ int main(int argc, char **argv) {
 		bpf_program__set_autoload(obj->progs.probe_rustls_write, false);
 		bpf_program__set_autoload(obj->progs.probe_rustls_write_vectored, false);
 	}
-	if (!codex_rustls_buffer && !grok_rustls)
+	if (!grok_rustls)
 		bpf_program__set_autoload(
 			obj->progs.probe_rustls_buffer_plaintext, false);
 
 	obj->rodata->targ_uid = env.uid;
 	obj->rodata->targ_pid = env.pid == INVALID_PID ? 0 : env.pid;
-	obj->rodata->rustls_chunks_pointer_first = codex_rustls_buffer;
 
 	err = sslsniff_bpf__load(obj);
 	if (err) {
@@ -816,14 +792,7 @@ int main(int argc, char **argv) {
 		} else {
 			// Some stripped static clients use rustls; other clients use
 			// the existing generic BoringSSL detector.
-			if (codex_rustls_buffer) {
-				fprintf(stderr,
-					"Codex/rustls plaintext buffer pattern detected in %s. "
-					"Attaching offset 0x%zx...\n",
-					env.extra_lib, codex_rustls_buffer_offset);
-				err = attach_rustls_plaintext(
-					obj, env.extra_lib, codex_rustls_buffer_offset);
-			} else if (codex_rustls) {
+			if (codex_rustls) {
 				fprintf(stderr,
 					"Codex/rustls plaintext write patterns detected in %s. "
 					"Attaching %zu offsets...\n",
@@ -834,7 +803,7 @@ int main(int argc, char **argv) {
 					"Grok/rustls plaintext buffer pattern detected in %s. "
 					"Attaching offset 0x%zx...\n",
 					env.extra_lib, grok_rustls_offset);
-				err = attach_rustls_plaintext(
+				err = attach_grok_rustls(
 					obj, env.extra_lib, grok_rustls_offset);
 			} else {
 				struct boringssl_offsets offsets = find_boringssl_offsets(env.extra_lib);
@@ -885,8 +854,8 @@ int main(int argc, char **argv) {
 	}
 
 cleanup:
-	if (rustls_plaintext_link)
-		bpf_link__destroy(rustls_plaintext_link);
+	if (grok_rustls_link)
+		bpf_link__destroy(grok_rustls_link);
 	destroy_codex_rustls_links();
 	if (event_buf) {
 		free(event_buf);

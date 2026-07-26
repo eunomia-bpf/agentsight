@@ -21,11 +21,6 @@
 #define MAX_BUF_SIZE (256 * 1024)
 #define RING_BUFFER_SIZE (16 * 1024 * 1024)  // 16MB ring buffer
 #define TASK_COMM_LEN 16
-#define MAX_RUSTLS_IOVECS 8
-#define RUSTLS_MAX_CAPTURE_SIZE (64 * 1024)
-_Static_assert((RUSTLS_MAX_CAPTURE_SIZE
-		& (RUSTLS_MAX_CAPTURE_SIZE - 1)) == 0,
-	       "rustls verifier mask requires a power-of-two capture size");
 
 struct probe_SSL_data_t {
     __u64 timestamp_ns;
@@ -33,7 +28,6 @@ struct probe_SSL_data_t {
     __u32 pid;
     __u32 tid;
     __u32 uid;
-    __u64 connection_id;    // Stable TLS connection identity when available
     __u32 len;
     __u32 buf_size;         // Actual bytes copied to buf
     int buf_filled;

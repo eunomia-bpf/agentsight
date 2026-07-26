@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
 #include <stdbool.h>
-#include <linux/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "codex_offsets.h"
-#include "sslsniff.h"
 
 static int tests_run;
 static int tests_failed;
@@ -111,7 +109,7 @@ static void test_marker_detection(void)
 static void test_grok_signature_detection(void)
 {
 	char template[] = "/tmp/agentsight-grok-offset-test.XXXXXX";
-	uint8_t data[2048] = {};
+	uint8_t data[1024] = {};
 	size_t offset = 0;
 	int fd = mkstemp(template);
 
@@ -121,12 +119,6 @@ static void test_grok_signature_detection(void)
 	memcpy(data + 32, "grok-cli rustls", sizeof("grok-cli rustls"));
 	memcpy(data + 256, grok_rustls_buffer_plaintext_prefix,
 	       sizeof(grok_rustls_buffer_plaintext_prefix));
-	memcpy(data + 256 + GROK_RUSTLS_OUTBOUND_TAG_OFFSET,
-	       grok_rustls_outbound_tag, sizeof(grok_rustls_outbound_tag));
-	memcpy(data + 256 + GROK_RUSTLS_OUTBOUND_RANGE_OFFSET,
-	       grok_rustls_outbound_range, sizeof(grok_rustls_outbound_range));
-	memcpy(data + 256 + GROK_RUSTLS_OUTBOUND_DATA_OFFSET,
-	       grok_rustls_outbound_data, sizeof(grok_rustls_outbound_data));
 	check(write(fd, data, sizeof(data)) == sizeof(data),
 	      "wrote Grok signature fixture");
 	close(fd);
@@ -137,7 +129,7 @@ static void test_grok_signature_detection(void)
 		      && offset == 256,
 	      "finds Grok/rustls buffer_plaintext signature");
 
-	data[256 + GROK_RUSTLS_OUTBOUND_DATA_OFFSET] ^= 0xff;
+	data[256 + sizeof(grok_rustls_buffer_plaintext_prefix) - 1] ^= 0xff;
 	fd = open(template, O_WRONLY | O_TRUNC);
 	check(fd >= 0, "opened Grok fixture for corruption");
 	if (fd >= 0) {
@@ -145,126 +137,9 @@ static void test_grok_signature_detection(void)
 		      "wrote corrupted Grok fixture");
 		close(fd);
 		check(!grok_find_rustls_buffer_plaintext_offset(template, &offset),
-		      "rejects a Grok signature with a changed ABI block");
-	}
-
-	memset(data, 0, sizeof(data));
-	memcpy(data + 32, "grok-cli rustls", sizeof("grok-cli rustls"));
-	memcpy(data + sizeof(data)
-		     - sizeof(grok_rustls_buffer_plaintext_prefix),
-	       grok_rustls_buffer_plaintext_prefix,
-	       sizeof(grok_rustls_buffer_plaintext_prefix));
-	fd = open(template, O_WRONLY | O_TRUNC);
-	check(fd >= 0, "opened Grok fixture for near-EOF signature");
-	if (fd >= 0) {
-		check(write(fd, data, sizeof(data)) == sizeof(data),
-		      "wrote near-EOF Grok signature fixture");
-		close(fd);
-		check(!grok_find_rustls_buffer_plaintext_offset(template, &offset),
-		      "rejects a near-EOF Grok signature safely");
+		      "rejects a partial Grok signature match");
 	}
 	unlink(template);
-}
-
-static void test_codex_buffer_signature_detection(void)
-{
-	char template[] = "/tmp/agentsight-codex-buffer-offset-test.XXXXXX";
-	uint8_t data[4096] = {};
-	size_t offset = 0;
-	const size_t fixture_offset = 256;
-	int fd = mkstemp(template);
-
-	check(fd >= 0, "created Codex buffer signature fixture");
-	if (fd < 0)
-		return;
-	memcpy(data + 32, "codex-cli rustls", sizeof("codex-cli rustls"));
-	memcpy(data + fixture_offset, codex_rustls_buffer_plaintext_prefix,
-	       sizeof(codex_rustls_buffer_plaintext_prefix));
-	memcpy(data + fixture_offset + CODEX_RUSTLS_OUTBOUND_RANGE_OFFSET,
-	       codex_rustls_outbound_range,
-	       sizeof(codex_rustls_outbound_range));
-	memcpy(data + fixture_offset + CODEX_RUSTLS_SEND_PLAIN_OFFSET,
-	       codex_rustls_send_plain_prefix,
-	       sizeof(codex_rustls_send_plain_prefix));
-	memcpy(data + fixture_offset + CODEX_RUSTLS_SEND_DATA_OFFSET,
-	       codex_rustls_send_data_pointer,
-	       sizeof(codex_rustls_send_data_pointer));
-	check(write(fd, data, sizeof(data)) == sizeof(data),
-	      "wrote Codex buffer signature fixture");
-	close(fd);
-
-	check(codex_find_rustls_buffer_plaintext_offset(template, &offset)
-		      && offset == fixture_offset,
-	      "finds Codex/rustls buffer_plaintext signature");
-
-	data[fixture_offset + CODEX_RUSTLS_SEND_DATA_OFFSET] ^= 0xff;
-	fd = open(template, O_WRONLY | O_TRUNC);
-	check(fd >= 0, "opened Codex buffer fixture for corruption");
-	if (fd >= 0) {
-		check(write(fd, data, sizeof(data)) == sizeof(data),
-		      "wrote corrupted Codex buffer fixture");
-		close(fd);
-		check(!codex_find_rustls_buffer_plaintext_offset(template, &offset),
-		      "rejects a Codex buffer signature with a changed ABI block");
-	}
-	unlink(template);
-}
-
-static size_t planned_rustls_iovec_capture(const size_t *lengths, size_t count)
-{
-	size_t copied = 0;
-
-	for (size_t i = 0; i < count && i < MAX_RUSTLS_IOVECS; i++) {
-		size_t copy_size;
-		size_t capacity;
-
-		if (copied >= RUSTLS_MAX_CAPTURE_SIZE)
-			break;
-		capacity = RUSTLS_MAX_CAPTURE_SIZE - copied;
-		copy_size = lengths[i] > RUSTLS_MAX_CAPTURE_SIZE
-			? RUSTLS_MAX_CAPTURE_SIZE : lengths[i];
-		if (copy_size > capacity)
-			copy_size = capacity;
-		copied += copy_size;
-	}
-	return copied;
-}
-
-static bool rustls_iovec_prefix_within_end(const size_t *lengths, size_t count,
-					   size_t end)
-{
-	size_t inspected = 0;
-
-	for (size_t i = 0; i < count && i < MAX_RUSTLS_IOVECS; i++) {
-		if (inspected > end || lengths[i] > end - inspected)
-			return false;
-		inspected += lengths[i];
-	}
-	return true;
-}
-
-static void test_rustls_iovec_capture_plan(void)
-{
-	const size_t three_slices[] = { 20 * 1024, 1024, 32 };
-	const size_t full_buffer[] = { RUSTLS_MAX_CAPTURE_SIZE };
-	const size_t split_at_boundary[] = {
-		RUSTLS_MAX_CAPTURE_SIZE - 2 * 1024,
-		2 * 1024,
-	};
-	const size_t end_inside_last_slice[] = { 2 * 1024, 2 * 1024 };
-
-	check(planned_rustls_iovec_capture(three_slices, 3)
-		      == 21 * 1024 + 32,
-	      "captures a third slice after a 20 KiB first slice");
-	check(planned_rustls_iovec_capture(full_buffer, 1)
-		      == RUSTLS_MAX_CAPTURE_SIZE,
-	      "fills the rustls capture budget from one large slice");
-	check(planned_rustls_iovec_capture(split_at_boundary, 2)
-		      == RUSTLS_MAX_CAPTURE_SIZE,
-	      "fills the capture budget across a non-chunk-aligned split");
-	check(!rustls_iovec_prefix_within_end(
-		      end_inside_last_slice, 2, 3 * 1024),
-	      "rejects a rustls Multiple end cursor inside a slice");
 }
 
 int main(void)
@@ -273,8 +148,6 @@ int main(void)
 	test_signature_detection();
 	test_marker_detection();
 	test_grok_signature_detection();
-	test_codex_buffer_signature_detection();
-	test_rustls_iovec_capture_plan();
 	printf("Tests passed: %d\n", tests_run - tests_failed);
 	printf("Tests failed: %d\n", tests_failed);
 	return tests_failed == 0 ? 0 : 1;

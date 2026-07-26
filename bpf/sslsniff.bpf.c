@@ -50,15 +50,15 @@ struct {
 
 const volatile pid_t targ_pid = 0;
 const volatile uid_t targ_uid = -1;
-const volatile bool rustls_chunks_pointer_first = false;
-
-#define MAX_RUSTLS_WRITE_IOVECS 2
+#define MAX_RUSTLS_IOVECS 2
+#define MAX_GROK_IOVECS 8
+#define GROK_MAX_CAPTURE_SIZE (64 * 1024)
 #define RUSTLS_COPY_CHUNK_SIZE (16 * 1024)
 #define MAX_RUSTLS_CHUNKS_PER_IOV 8
 
 _Static_assert(RUSTLS_COPY_CHUNK_SIZE <= MAX_BUF_SIZE,
                "Rustls copy chunks must fit the event buffer");
-_Static_assert(RUSTLS_MAX_CAPTURE_SIZE * 2 <= MAX_BUF_SIZE,
+_Static_assert(GROK_MAX_CAPTURE_SIZE * 2 <= MAX_BUF_SIZE,
                "Rustls plaintext verifier bounds must fit the event buffer");
 
 struct rustls_iovec {
@@ -67,9 +67,8 @@ struct rustls_iovec {
 };
 
 /* rustls::msgs::message::OutboundChunks is passed indirectly by the Rust ABI.
- * Single stores { 0, data, len }. Rustc 1.92 stores Multiple as
- * { chunk_count, data, start, end }, while rustc 1.95 stores it as
- * { data, chunk_count, start, end }. Userspace selects the detected ABI. */
+ * Single stores { 0, data, len }; Multiple stores
+ * { chunk_count, data, start, end }. */
 struct rustls_outbound_chunks {
     size_t count;
     const void *data;
@@ -92,15 +91,13 @@ static __always_inline bool trace_allowed(u32 uid, u32 pid)
 
 static __always_inline void submit_rustls_write(struct probe_SSL_data_t *data,
                                                  u32 pid, u32 tid, u32 uid,
-                                                 u64 connection_id, u64 total,
-                                                 u32 copied)
+                                                 u64 total, u32 copied)
 {
     data->timestamp_ns = bpf_ktime_get_ns();
     data->delta_ns = 0;
     data->pid = pid;
     data->tid = tid;
     data->uid = uid;
-    data->connection_id = connection_id;
     data->len = total > (__u32)-1 ? (__u32)-1 : (__u32)total;
     data->buf_size = copied;
     data->buf_filled = copied > 0;
@@ -113,35 +110,28 @@ static __always_inline void submit_rustls_write(struct probe_SSL_data_t *data,
 static __always_inline u32 copy_rustls_iovec(
     struct probe_SSL_data_t *data, const struct rustls_iovec *iovec, u32 copied)
 {
-    size_t remaining = iovec->len;
-    const char *source = iovec->base;
     size_t copy_size;
     u32 capacity;
     u32 destination;
 
-    if (remaining == 0 || copied >= RUSTLS_MAX_CAPTURE_SIZE)
+    if (iovec->len == 0 || copied >= GROK_MAX_CAPTURE_SIZE)
         return copied;
-    capacity = RUSTLS_MAX_CAPTURE_SIZE - copied;
+    capacity = GROK_MAX_CAPTURE_SIZE - copied;
     destination = copied;
-    /* Keep the mask visible so the verifier retains a scalar bound after
-     * states from unrolled iovec loops merge. MAX_BUF_SIZE deliberately leaves
-     * two plaintext capture windows available for the independently bounded
-     * destination and copy size. */
+    /* Keep independent bounds visible across merged verifier states. */
     barrier_var(destination);
-    destination &= RUSTLS_MAX_CAPTURE_SIZE - 1;
-    copy_size = remaining;
-    if (copy_size > RUSTLS_MAX_CAPTURE_SIZE)
-        copy_size = RUSTLS_MAX_CAPTURE_SIZE;
+    destination &= GROK_MAX_CAPTURE_SIZE - 1;
+    copy_size = iovec->len;
+    if (copy_size > GROK_MAX_CAPTURE_SIZE)
+        copy_size = GROK_MAX_CAPTURE_SIZE;
     if (copy_size > capacity)
         copy_size = capacity;
-    /* Reassert the independent size bound after the capacity assignment;
-     * the verifier does not retain capacity <= capture size here. */
     barrier_var(copy_size);
-    if (copy_size > RUSTLS_MAX_CAPTURE_SIZE)
-        copy_size = RUSTLS_MAX_CAPTURE_SIZE;
+    if (copy_size > GROK_MAX_CAPTURE_SIZE)
+        copy_size = GROK_MAX_CAPTURE_SIZE;
     if (copy_size == 0)
         return copied;
-    if (bpf_probe_read_user(data->buf + destination, copy_size, source))
+    if (bpf_probe_read_user(data->buf + destination, copy_size, iovec->base))
         return copied;
     copied += copy_size;
     return copied;
@@ -158,15 +148,14 @@ int BPF_UPROBE(probe_rustls_write, void *conn, const void *buf, size_t len)
 
     if (!trace_allowed(uid, pid) || !buf || len == 0)
         return 0;
-    struct probe_SSL_data_t *data =
-        bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
+    struct probe_SSL_data_t *data = bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
     if (!data)
         return 0;
     if (bpf_probe_read_user(data->buf, copied, buf)) {
         bpf_ringbuf_discard(data, 0);
         return 0;
     }
-    submit_rustls_write(data, pid, tid, uid, (u64)conn, len, copied);
+    submit_rustls_write(data, pid, tid, uid, len, copied);
     return 0;
 }
 
@@ -184,13 +173,12 @@ int BPF_UPROBE(probe_rustls_write_vectored, void *conn,
     if (!trace_allowed(uid, pid) || !iovecs || iovcnt == 0)
         return 0;
 
-    struct probe_SSL_data_t *data =
-        bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
+    struct probe_SSL_data_t *data = bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
     if (!data)
         return 0;
 
 #pragma unroll
-    for (int i = 0; i < MAX_RUSTLS_WRITE_IOVECS; i++) {
+    for (int i = 0; i < MAX_RUSTLS_IOVECS; i++) {
         struct rustls_iovec iovec = {};
         size_t remaining;
         const char *source;
@@ -220,14 +208,15 @@ int BPF_UPROBE(probe_rustls_write_vectored, void *conn,
         }
     }
 
-    if (iovcnt > MAX_RUSTLS_WRITE_IOVECS && total <= copied)
+    if (iovcnt > MAX_RUSTLS_IOVECS && total <= copied)
         total = (__u64)copied + 1;
-    submit_rustls_write(data, pid, tid, uid, (u64)conn, total, copied);
+    submit_rustls_write(data, pid, tid, uid, total, copied);
     return 0;
 }
 
-static __always_inline int capture_rustls_plaintext_chunks(
-    const struct rustls_outbound_chunks *chunks, u64 connection_id)
+SEC("uprobe/rustls_buffer_plaintext")
+int BPF_UPROBE(probe_rustls_buffer_plaintext, void *state,
+               const struct rustls_outbound_chunks *chunks, void *sendable)
 {
     u64 pid_tgid = bpf_get_current_pid_tgid();
     u32 pid = pid_tgid >> 32;
@@ -243,19 +232,12 @@ static __always_inline int capture_rustls_plaintext_chunks(
     if (bpf_probe_read_user(&outbound, sizeof(outbound), chunks))
         return 0;
 
-    if (rustls_chunks_pointer_first && outbound.count != 0) {
-        size_t count = (size_t)outbound.data;
-
-        outbound.data = (const void *)outbound.count;
-        outbound.count = count;
-    }
-
     if (outbound.count == 0) {
         total = outbound.start_or_len;
         if (!outbound.data || total == 0)
             return 0;
-        copied = total > RUSTLS_MAX_CAPTURE_SIZE
-            ? RUSTLS_MAX_CAPTURE_SIZE : (u32)total;
+        copied = total > GROK_MAX_CAPTURE_SIZE
+            ? GROK_MAX_CAPTURE_SIZE : (u32)total;
         struct probe_SSL_data_t *data =
             bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
         if (!data)
@@ -264,7 +246,7 @@ static __always_inline int capture_rustls_plaintext_chunks(
             bpf_ringbuf_discard(data, 0);
             return 0;
         }
-        submit_rustls_write(data, pid, tid, uid, connection_id, total, copied);
+        submit_rustls_write(data, pid, tid, uid, total, copied);
         return 0;
     }
 
@@ -274,31 +256,13 @@ static __always_inline int capture_rustls_plaintext_chunks(
         return 0;
     total = outbound.end;
 
-    /* OutboundChunks::Multiple may describe a sub-range ending inside a
-     * slice. This probe supports the start=0, whole-slice prefix used by the
-     * CLI. Reject any inspected slice that crosses end rather than reporting
-     * stale bytes past the plaintext range. */
-#pragma unroll
-    for (int i = 0; i < MAX_RUSTLS_IOVECS; i++) {
-        struct rustls_iovec iovec = {};
-
-        if ((size_t)i >= outbound.count)
-            break;
-        if (bpf_probe_read_user(&iovec, sizeof(iovec),
-                                &((const struct rustls_iovec *)outbound.data)[i]))
-            return 0;
-        if (inspected_total > total || iovec.len > total - inspected_total)
-            return 0;
-        inspected_total += iovec.len;
-    }
-
     struct probe_SSL_data_t *data =
         bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
     if (!data)
         return 0;
 
 #pragma unroll
-    for (int i = 0; i < MAX_RUSTLS_IOVECS; i++) {
+    for (int i = 0; i < MAX_GROK_IOVECS; i++) {
         struct rustls_iovec iovec = {};
 
         if ((size_t)i >= outbound.count)
@@ -306,21 +270,19 @@ static __always_inline int capture_rustls_plaintext_chunks(
         if (bpf_probe_read_user(&iovec, sizeof(iovec),
                                 &((const struct rustls_iovec *)outbound.data)[i]))
             break;
+        if (inspected_total > total || iovec.len > total - inspected_total) {
+            copied = 0;
+            break;
+        }
+        inspected_total += iovec.len;
         copied = copy_rustls_iovec(data, &iovec, copied);
     }
     if (copied == 0) {
         bpf_ringbuf_discard(data, 0);
         return 0;
     }
-    submit_rustls_write(data, pid, tid, uid, connection_id, total, copied);
+    submit_rustls_write(data, pid, tid, uid, total, copied);
     return 0;
-}
-
-SEC("uprobe/rustls_buffer_plaintext")
-int BPF_UPROBE(probe_rustls_buffer_plaintext, void *state,
-               const struct rustls_outbound_chunks *chunks, void *sendable)
-{
-    return capture_rustls_plaintext_chunks(chunks, (u64)state);
 }
 
 SEC("uprobe/do_handshake")
@@ -377,7 +339,6 @@ static int SSL_exit(struct pt_regs *ctx, int rw) {
     data->pid = pid;
     data->tid = tid;
     data->uid = uid;
-    data->connection_id = 0;
     data->len = (u32)len;
     data->buf_filled = 0;
     data->buf_size = 0;
@@ -491,7 +452,6 @@ static int ex_SSL_exit(struct pt_regs *ctx, int rw, int len) {
     data->pid = pid;
     data->tid = tid;
     data->uid = uid;
-    data->connection_id = 0;
     data->len = (u32)len;
     data->buf_filled = 0;
     data->buf_size = 0;
@@ -614,7 +574,6 @@ int BPF_URETPROBE(probe_SSL_do_handshake_exit) {
     data->pid = pid;
     data->tid = tid;
     data->uid = uid;
-    data->connection_id = 0;
     data->len = ret;
     data->buf_filled = 0;
     data->buf_size = 0;

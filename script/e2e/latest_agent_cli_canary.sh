@@ -255,10 +255,8 @@ run_codex_offset_canary() {
     status=$?
     set -e
 
-    if ! grep -Eq "Codex/rustls plaintext (buffer pattern|write patterns) detected" \
-            "$stderr" \
-        || ! grep -Eq "Attaching (SSL_write_ex at|[1-9][0-9]* offsets|offset 0x[0-9a-f]+)" \
-            "$stderr"; then
+    if ! grep -Fq "Codex/rustls plaintext write patterns detected" "$stderr" \
+        || ! grep -Eq "Attaching [1-9][0-9]* offsets" "$stderr"; then
         echo "Codex sslsniff output did not prove signature attachment" >&2
         sed -n '1,160p' "$stderr" >&2 || true
         return 1
@@ -277,7 +275,7 @@ run_codex_offset_canary() {
             ;;
     esac
 
-    echo "sslsniff Codex TLS canary matched latest native binary: $native"
+    echo "sslsniff Codex signature canary matched latest native binary: $native"
 }
 
 assert_codex_ssl_prompt() {
@@ -417,17 +415,6 @@ record_real_agent() {
     echo "$name real-agent canary captured prompt into $db"
 }
 
-record_real_agent_with_retry() {
-    local name="$1"
-    shift
-
-    if record_real_agent "$name" "$@"; then
-        return 0
-    fi
-    echo "$name real-agent canary failed once; retrying capture" >&2
-    record_real_agent "$name" "$@"
-}
-
 run_real_agent_mock_canary() {
     if ! sudo_available; then
         die "real agent canary requires passwordless sudo"
@@ -435,7 +422,7 @@ run_real_agent_mock_canary() {
 
     local failures=()
 
-    if ! record_real_agent_with_retry codex \
+    if ! record_real_agent codex \
         "$CODEX_BIN" exec --skip-git-repo-check --ignore-user-config \
         -c "model_provider=\"agentsight-mock\"" \
         -c "model_providers.agentsight-mock.name=\"AgentSight Mock\"" \
@@ -449,13 +436,13 @@ run_real_agent_mock_canary() {
         failures+=("codex")
     fi
 
-    if ! record_real_agent_with_retry claude \
+    if ! record_real_agent claude \
         "$CLAUDE_BIN" --bare -p "$PROMPT" --output-format json \
         --model claude-agentsight-mock; then
         failures+=("claude")
     fi
 
-    if ! record_real_agent_with_retry opencode \
+    if ! record_real_agent opencode \
         "$OPENCODE_BIN" run --pure --model agentsight-mock/gpt-agentsight-mock \
         --format json "$PROMPT"; then
         failures+=("opencode")

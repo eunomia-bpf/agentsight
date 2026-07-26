@@ -493,12 +493,6 @@ impl HTTP2State {
             .get("tid")
             .and_then(|v| v.as_u64())
             .unwrap_or(0);
-        let connection_id = original_event
-            .data
-            .get("connection_id")
-            .and_then(|v| v.as_u64())
-            .filter(|id| *id != 0)
-            .unwrap_or(tid);
         let direction = direction_from_function(
             original_event
                 .data
@@ -510,7 +504,7 @@ impl HTTP2State {
         let mut events = Vec::new();
 
         for frame in frames {
-            let key = (connection_id, frame.stream_id);
+            let key = (tid, frame.stream_id);
             match frame.frame_type {
                 0x0 => {
                     if frame.stream_id == 0 {
@@ -931,24 +925,13 @@ mod tests {
     use std::io::Write;
 
     fn ssl_event(timestamp: u64, function: &str, bytes: Vec<u8>) -> Event {
-        ssl_event_on_connection(timestamp, function, bytes, 7, 0)
-    }
-
-    fn ssl_event_on_connection(
-        timestamp: u64,
-        function: &str,
-        bytes: Vec<u8>,
-        tid: u64,
-        connection_id: u64,
-    ) -> Event {
         Event::new_with_timestamp(
             timestamp,
             "ssl".to_string(),
             4242,
             "node".to_string(),
             json!({
-                "tid": tid,
-                "connection_id": connection_id,
+                "tid": 7,
                 "function": function,
                 "data": bytes_to_ssl_json_string(&bytes),
                 "data_hex": hex::encode(&bytes),
@@ -1123,30 +1106,6 @@ sec-websocket-extensions: permessage-deflate\r\n\r\n"
             .map(|row| row.total_tokens)
             .sum::<i64>();
         assert_eq!(total, 15);
-    }
-
-    #[tokio::test]
-    async fn tracks_http2_stream_across_thread_handoffs() {
-        let mut encoder = HpackEncoder::new();
-        let headers = [
-            (&b":method"[..], &b"POST"[..]),
-            (&b":scheme"[..], &b"https"[..]),
-            (&b":authority"[..], &b"127.0.0.1"[..]),
-            (&b":path"[..], &b"/v1/responses"[..]),
-        ];
-        let prompt = "agentsight rustls thread handoff prompt";
-        let header_frame = frame(0x1, 0x4, 1, &encoder.encode(headers));
-        let body_frame = frame(0x0, 0x1, 1, format!(r#"{{"input":"{prompt}"}}"#).as_bytes());
-        let input: EventStream = Box::pin(stream::iter(vec![
-            ssl_event_on_connection(1, "WRITE/SEND", header_frame, 7, 0x1234),
-            ssl_event_on_connection(2, "WRITE/SEND", body_frame, 19, 0x1234),
-        ]));
-        let mut parser = HTTPParser::new().disable_raw_data();
-        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
-
-        assert_eq!(output.len(), 1);
-        assert_eq!(output[0].data["path"], "/v1/responses");
-        assert!(output[0].data["body"].as_str().unwrap().contains(prompt));
     }
 
     #[tokio::test]
