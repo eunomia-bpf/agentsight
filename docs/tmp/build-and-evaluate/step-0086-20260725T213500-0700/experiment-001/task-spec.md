@@ -80,3 +80,27 @@ needs only: source-relative path, byte length at freeze time (practical cut
 point for still-growing session files), and agent kind. No hashing, no
 freeze ceremony, no "no rescan" audit language — just the simple session
 list. If you already computed hashes, leave them; do not compute more.
+
+## Continuation (after the Phase 2 stop)
+
+The stop was correct; the missing path is now authorized as PRODUCT work:
+
+1. Implement in the `agentpprof` crate a way to write the annotation
+   workspace `trace.jsonl` from local-session inputs (the existing
+   `--session-file`/`--codex-root`/`--claude-root` parsing), e.g. a
+   `--workspace-out <dir>` option in local-session mode. Follow the
+   existing TraceNode schema exactly as used by
+   `docs/visexp/out/agentreward-diff-pprof-v1/recursive-annotation-v1/trace.jsonl`
+   (node kinds session/prompt/llm/tool, parent links, stable IDs, data
+   previews, metrics: tokens on llm nodes, operations=1 on tool nodes).
+   Reuse the agent-session IR; no parallel parser. Add a cargo test;
+   `cargo test -p agentpprof` must pass. Do not add any new output format
+   beyond the existing workspace files and pprof.
+2. Rebuild and rerun Phase 2 on the frozen copies (read-only), then
+   continue Phases 3 and 4 exactly as originally specified (with the
+   no-hashing amendment). The empty-annotation bootstrap issue noted in
+   results.md may be fixed as part of the same product change if needed
+   (workspace init writes an empty-but-valid annotation file).
+3. Editing product source under `agentpprof/` (and tests) is allowed for
+   this continuation; still never touch docs/paper/, the submodule, or
+   session files. Update results.md in place when phases complete.

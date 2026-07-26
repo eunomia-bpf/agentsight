@@ -391,6 +391,125 @@ def write_jsonl(path: Path, records: Iterable[dict[str, Any]]) -> None:
             handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
 
 
+def load_annotated_trace(
+    path: Path,
+) -> tuple[dict[str, dict[str, list[dict[str, Any]]]], str]:
+    """Project one terminal annotation workspace into the existing diff harness."""
+    nodes = [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    by_id = {str(node["id"]): node for node in nodes}
+    if len(by_id) != len(nodes):
+        raise RuntimeError("annotated trace contains duplicate source node IDs")
+    projected: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(
+        lambda: {"operations": [], "tokens": []}
+    )
+    evidence_ids: set[tuple[str, str, str]] = set()
+    max_depth = max((len(node.get("path") or []) for node in nodes), default=0)
+    stack_fields = ["agent", *(f"operation_{depth}" for depth in range(1, max_depth + 1))]
+    stack_fields.extend(["llm", "tool"])
+
+    for node in nodes:
+        metrics = node.get("metrics") or {}
+        operation_value = int(metrics.get("operations") or 0)
+        token_value = int(metrics.get("tokens") or 0)
+        if operation_value <= 0 and token_value <= 0:
+            continue
+        if not node.get("path"):
+            raise RuntimeError(
+                f"metric-bearing annotated trace node {node['id']!r} has no applied operation path"
+            )
+
+        ancestry = [node]
+        current = node
+        seen_ancestors = {str(node["id"])}
+        while current.get("parent") is not None:
+            parent_id = str(current["parent"])
+            if parent_id not in by_id:
+                raise RuntimeError(f"annotated trace node {current['id']!r} has unknown parent {parent_id!r}")
+            if parent_id in seen_ancestors:
+                raise RuntimeError(f"annotated trace ancestry contains a cycle at {parent_id!r}")
+            seen_ancestors.add(parent_id)
+            current = by_id[parent_id]
+            ancestry.append(current)
+        ancestry.reverse()
+        root = ancestry[0]
+        if root.get("parent") is not None or root.get("kind") != "session":
+            raise RuntimeError(
+                f"annotated trace node {node['id']!r} does not descend from a session root"
+            )
+        source_session = str(
+            (root.get("data") or {}).get("source_session")
+            or str(root["id"]).removeprefix("session:")
+        )
+        agent = clean_frame((root.get("data") or {}).get("agent"), 120)
+        fields: dict[str, str] = {
+            "agent": agent,
+            "source_session": source_session,
+            "source_kind": str(node.get("kind") or "unknown"),
+            "evidence_id": str((node.get("data") or {}).get("evidence_id") or node["id"]),
+        }
+        for depth, tag in enumerate(node.get("path") or [], 1):
+            fields[f"operation_{depth}"] = clean_frame(tag, 120)
+        for source in ancestry:
+            source_kind = str(source.get("kind") or "")
+            if source_kind in {"llm", "tool"}:
+                source_name = clean_frame(
+                    (source.get("data") or {}).get("name") or source["id"],
+                    120,
+                )
+                if source_kind == "llm" and re.fullmatch(
+                    r"step\s+\d+", source_name, flags=re.I
+                ):
+                    source_name = "call"
+                fields[source_kind] = source_name
+        fields = {key: value for key, value in fields.items() if value}
+        if operation_value > 0:
+            identity = (source_session, "operations", fields["evidence_id"])
+            if identity in evidence_ids:
+                raise RuntimeError(
+                    f"annotated trace contains duplicate operation evidence {identity!r}"
+                )
+            evidence_ids.add(identity)
+            projected[source_session]["operations"].append(
+                {"value": operation_value, "fields": fields}
+            )
+        if token_value > 0:
+            identity = (source_session, "tokens", fields["evidence_id"])
+            if identity in evidence_ids:
+                raise RuntimeError(
+                    f"annotated trace contains duplicate token evidence {identity!r}"
+                )
+            evidence_ids.add(identity)
+            projected[source_session]["tokens"].append(
+                {"value": token_value, "fields": fields}
+            )
+
+    return dict(projected), ",".join(stack_fields)
+
+
+def apply_annotated_records(
+    summary: TraceSummary,
+    records: dict[str, list[dict[str, Any]]],
+) -> None:
+    operation_mass = sum(int(record["value"]) for record in records["operations"])
+    token_mass = sum(int(record["value"]) for record in records["tokens"])
+    if operation_mass != summary.steps:
+        raise RuntimeError(
+            f"annotated trace operation mass mismatch for {summary.label.key!r}: "
+            f"{operation_mass} != {summary.steps}"
+        )
+    if token_mass != summary.tokens:
+        raise RuntimeError(
+            f"annotated trace token mass mismatch for {summary.label.key!r}: "
+            f"{token_mass} != {summary.tokens}"
+        )
+    summary.operation_records = records["operations"]
+    summary.token_records = records["tokens"]
+
+
 def auc(labels: list[bool], scores: list[float]) -> float | None:
     positives = [score for label, score in zip(labels, scores) if label]
     negatives = [score for label, score in zip(labels, scores) if not label]
@@ -426,9 +545,10 @@ def invoke_agentpprof(
     base: Path,
     view: str,
     output: Path,
+    stack: str = STACK,
 ) -> dict[str, Any]:
     output.parent.mkdir(parents=True, exist_ok=True)
-    command = agentpprof_command(binary, candidate, base, view, output)
+    command = agentpprof_command(binary, candidate, base, view, output, stack)
     run = subprocess.run(command, check=False, capture_output=True, text=True)
     if run.returncode != 0:
         raise RuntimeError(f"AgentPProf failed: {' '.join(command)}\n{run.stderr}")
@@ -453,13 +573,14 @@ def agentpprof_command(
     base: Path,
     view: str,
     output: Path,
+    stack: str = STACK,
 ) -> list[str]:
     return [
         str(binary),
         "--operation-file", str(candidate),
         "--diff-base-operation-file", str(base),
         "--view", view,
-        "--stack", STACK,
+        "--stack", stack,
         "--deterministic-output",
         "--output", str(output),
     ]
@@ -489,6 +610,14 @@ def main() -> int:
         action="store_true",
         help="Build the complete pair-occurrence aggregate without regenerating per-pair profiles.",
     )
+    parser.add_argument(
+        "--annotated-trace",
+        type=Path,
+        help=(
+            "Reuse a terminal AgentPProf workspace trace.jsonl. Outcome labels still "
+            "select pairs only; the operation paths come exclusively from this trace."
+        ),
+    )
     args = parser.parse_args()
 
     dataset_root = args.dataset_root.resolve()
@@ -510,9 +639,20 @@ def main() -> int:
             raise RuntimeError("fixed VisualWebArena 512 preflight pair is unavailable")
         groups = {case_key: [bad, good]}
     eligible = [label for values in groups.values() for label in values]
+    annotated_records = None
+    stack = STACK
+    if args.annotated_trace is not None:
+        annotated_records, stack = load_annotated_trace(args.annotated_trace.resolve())
     summaries: dict[str, TraceSummary] = {}
     for number, label in enumerate(eligible, 1):
         summary = trace_to_summary(label)
+        if annotated_records is not None:
+            records = annotated_records.get(label.key)
+            if records is None:
+                raise RuntimeError(
+                    f"terminal annotated trace is missing eligible session {label.key!r}"
+                )
+            apply_annotated_records(summary, records)
         summaries[label.key] = summary
         trace_dir = out_dir / "traces" / label.key
         write_jsonl(trace_dir / "operations.jsonl", summary.operation_records)
@@ -544,6 +684,7 @@ def main() -> int:
                                 out_dir / "traces" / good.label.key / f"{view}.jsonl",
                                 view,
                                 pair_dir / f"bad-minus-good-{view}.pb.gz",
+                                stack,
                             )
                             profile_count += 1
                     except Exception as error:  # recorded and reported; never silently drop a pair
@@ -588,6 +729,7 @@ def main() -> int:
         aggregate_base,
         "operations",
         aggregate_output,
+        stack,
     )
     profile_count += 1
     aggregate_command = agentpprof_command(
@@ -596,6 +738,35 @@ def main() -> int:
         aggregate_base,
         "operations",
         aggregate_output,
+        stack,
+    )
+    aggregate_token_candidate = aggregate_dir / "bad.tokens.jsonl"
+    aggregate_token_base = aggregate_dir / "good.tokens.jsonl"
+    aggregate_token_output = aggregate_dir / "bad-minus-good.tokens.pb.gz"
+    write_jsonl(
+        aggregate_token_candidate,
+        (record for bad, _ in pairs for record in bad.token_records),
+    )
+    write_jsonl(
+        aggregate_token_base,
+        (record for _, good in pairs for record in good.token_records),
+    )
+    aggregate_token_status = invoke_agentpprof(
+        binary,
+        aggregate_token_candidate,
+        aggregate_token_base,
+        "tokens",
+        aggregate_token_output,
+        stack,
+    )
+    profile_count += 1
+    aggregate_token_command = agentpprof_command(
+        binary,
+        aggregate_token_candidate,
+        aggregate_token_base,
+        "tokens",
+        aggregate_token_output,
+        stack,
     )
 
     score_names = ("steps", "tokens", "error_rate", "repeat_rate", "nonprogress_rate")
@@ -676,7 +847,8 @@ def main() -> int:
             "revision": "b6d17e646009d6cb63d5dd7be78807b680693f61",
             **coverage,
         },
-        "stack": STACK,
+        "stack": stack,
+        "annotated_trace": str(args.annotated_trace.resolve()) if args.annotated_trace else None,
         "oracle_policy": "success and looping annotations are scorer-only",
         "eligible": {
             "canonical_mixed_tasks": len(groups),
@@ -685,19 +857,43 @@ def main() -> int:
             "by_benchmark": dict(Counter(key[0] for key in groups)),
         },
         "profiles": {
-            "attempted": 1 if args.aggregate_only else len(pairs) * 2 + 1,
+            "attempted": 2 if args.aggregate_only else len(pairs) * 2 + 2,
             "decoded_by_go_tool_pprof": profile_count,
             "failures": profile_failures,
         },
         "aggregate_profile": {
             "pair_occurrence_weighting": True,
-            "bad_operation_occurrences": sum(bad.steps for bad, _ in pairs),
-            "good_operation_occurrences": sum(good.steps for _, good in pairs),
+            "bad_operation_occurrences": sum(
+                int(record["value"])
+                for bad, _ in pairs
+                for record in bad.operation_records
+            ),
+            "good_operation_occurrences": sum(
+                int(record["value"])
+                for _, good in pairs
+                for record in good.operation_records
+            ),
             "candidate_input": str(aggregate_candidate),
             "base_input": str(aggregate_base),
             "output": str(aggregate_output),
             "command": aggregate_command,
             "status": aggregate_status,
+        },
+        "aggregate_profiles": {
+            "operations": {
+                "candidate_input": str(aggregate_candidate),
+                "base_input": str(aggregate_base),
+                "output": str(aggregate_output),
+                "command": aggregate_command,
+                "status": aggregate_status,
+            },
+            "tokens": {
+                "candidate_input": str(aggregate_token_candidate),
+                "base_input": str(aggregate_token_base),
+                "output": str(aggregate_token_output),
+                "command": aggregate_token_command,
+                "status": aggregate_token_status,
+            },
         },
         "metrics": metrics,
         "looping_repeat_rate_auc": looping_auc,

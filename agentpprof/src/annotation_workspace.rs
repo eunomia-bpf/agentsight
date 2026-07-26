@@ -1004,11 +1004,20 @@ fn source_ancestry<'a>(
 }
 
 fn source_frame(node: &TraceNode) -> (String, String) {
-    let label = ["name", "tool", "title"]
+    let mut label = ["name", "tool", "title"]
         .iter()
         .find_map(|key| node.data.get(*key).and_then(Value::as_str))
         .filter(|value| !value.trim().is_empty())
         .unwrap_or(&node.id);
+    if node.kind == "llm" {
+        let words = label.split_whitespace().collect::<Vec<_>>();
+        if words.len() == 2
+            && words[0].eq_ignore_ascii_case("step")
+            && words[1].parse::<usize>().is_ok()
+        {
+            label = "call";
+        }
+    }
     (node.kind.clone(), label.to_string())
 }
 
@@ -1494,6 +1503,22 @@ mod tests {
         assert_ne!(
             stable_fingerprint("same local context"),
             stable_fingerprint("changed local context")
+        );
+    }
+
+    #[test]
+    fn source_frame_does_not_cross_session_aggregate_llm_step_ordinals() {
+        let mut node = nodes()[2].clone();
+        node.data
+            .insert("name".to_string(), Value::String("step 22".to_string()));
+        assert_eq!(source_frame(&node), ("llm".to_string(), "call".to_string()));
+        node.data.insert(
+            "name".to_string(),
+            Value::String("summarize result".to_string()),
+        );
+        assert_eq!(
+            source_frame(&node),
+            ("llm".to_string(), "summarize result".to_string())
         );
     }
 

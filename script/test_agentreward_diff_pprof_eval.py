@@ -1,6 +1,9 @@
 import importlib.util
+import json
 import sys
 from pathlib import Path
+
+import pytest
 
 
 SCRIPT = Path(__file__).with_name("agentreward_diff_pprof_eval.py")
@@ -60,3 +63,151 @@ def test_repeat_signature_requires_exact_native_action_and_visible_state():
     assert first == same
     assert first != different_target
     assert first != changed_state
+
+
+def test_load_annotated_trace_preserves_operations_tokens_and_evidence(tmp_path):
+    trace = tmp_path / "trace.jsonl"
+    nodes = [
+        {
+            "id": "session:s1",
+            "parent": None,
+            "kind": "session",
+            "data": {"agent": "agent-a", "source_session": "s1"},
+            "metrics": {},
+            "path": ["repair regression"],
+        },
+        {
+            "id": "prompt:s1",
+            "parent": "session:s1",
+            "kind": "prompt",
+            "data": {"name": "user request"},
+            "metrics": {},
+            "path": ["repair regression", "reproduce issue"],
+        },
+        {
+            "id": "llm:s1:0",
+            "parent": "prompt:s1",
+            "kind": "llm",
+            "data": {"name": "step 22"},
+            "metrics": {"tokens": 123},
+            "path": ["repair regression", "reproduce issue", "run reproducer"],
+        },
+        {
+            "id": "tool:s1:0",
+            "parent": "llm:s1:0",
+            "kind": "tool",
+            "data": {"name": "bash", "evidence_id": "ev-1"},
+            "metrics": {"operations": 1},
+            "path": ["repair regression", "reproduce issue", "run reproducer"],
+        },
+    ]
+    trace.write_text(
+        "".join(json.dumps(node) + "\n" for node in nodes),
+        encoding="utf-8",
+    )
+
+    projected, stack = MODULE.load_annotated_trace(trace)
+
+    assert stack == "agent,operation_1,operation_2,operation_3,llm,tool"
+    assert projected["s1"]["tokens"] == [
+        {
+            "value": 123,
+            "fields": {
+                "agent": "agent-a",
+                "source_session": "s1",
+                "source_kind": "llm",
+                "evidence_id": "llm:s1:0",
+                "operation_1": "repair regression",
+                "operation_2": "reproduce issue",
+                "operation_3": "run reproducer",
+                "llm": "call",
+            },
+        }
+    ]
+    assert projected["s1"]["operations"] == [
+        {
+            "value": 1,
+            "fields": {
+                "agent": "agent-a",
+                "source_session": "s1",
+                "source_kind": "tool",
+                "evidence_id": "ev-1",
+                "operation_1": "repair regression",
+                "operation_2": "reproduce issue",
+                "operation_3": "run reproducer",
+                "llm": "call",
+                "tool": "bash",
+            },
+        }
+    ]
+
+
+def test_load_annotated_trace_rejects_duplicate_ids_and_unapplied_metric_nodes(tmp_path):
+    duplicate = tmp_path / "duplicate.jsonl"
+    root = {
+        "id": "session:s1",
+        "parent": None,
+        "kind": "session",
+        "data": {"source_session": "s1"},
+        "metrics": {},
+        "path": ["repair regression"],
+    }
+    duplicate.write_text(
+        json.dumps(root) + "\n" + json.dumps(root) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(RuntimeError, match="duplicate source node IDs"):
+        MODULE.load_annotated_trace(duplicate)
+
+    missing_path = tmp_path / "missing-path.jsonl"
+    llm = {
+        "id": "llm:s1:0",
+        "parent": "session:s1",
+        "kind": "llm",
+        "data": {"name": "step 0"},
+        "metrics": {"tokens": 10},
+        "path": [],
+    }
+    missing_path.write_text(
+        json.dumps(root) + "\n" + json.dumps(llm) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(RuntimeError, match="has no applied operation path"):
+        MODULE.load_annotated_trace(missing_path)
+
+
+def test_apply_annotated_records_rejects_mass_mismatch():
+    label = MODULE.Label(
+        benchmark="bench",
+        task_id="task",
+        canonical_task="task",
+        model="model",
+        experiment="experiment",
+        success=False,
+        looping=None,
+        source=Path("/unused"),
+    )
+    summary = MODULE.TraceSummary(
+        label=label,
+        goal="goal",
+        operation_records=[],
+        token_records=[],
+        steps=2,
+        tokens=20,
+        errors=0,
+        repeats=0,
+        nonprogress=0,
+        finished=False,
+        evidence=[],
+    )
+    records = {
+        "operations": [{"value": 1, "fields": {}}],
+        "tokens": [{"value": 20, "fields": {}}],
+    }
+    with pytest.raises(RuntimeError, match="operation mass mismatch"):
+        MODULE.apply_annotated_records(summary, records)
+
+    records["operations"] = [{"value": 2, "fields": {}}]
+    records["tokens"] = [{"value": 19, "fields": {}}]
+    with pytest.raises(RuntimeError, match="token mass mismatch"):
+        MODULE.apply_annotated_records(summary, records)
