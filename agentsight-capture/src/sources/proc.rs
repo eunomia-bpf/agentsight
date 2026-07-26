@@ -11,47 +11,47 @@ use sysinfo::{Pid, Process, ProcessRefreshKind, ProcessesToUpdate, System, Updat
 #[cfg(target_os = "linux")]
 use std::fs;
 
-pub(crate) use agent_session::{ProcessKey, ProcessTree};
+pub use agent_session::{ProcessKey, ProcessTree};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct PidSeed {
-    pub(crate) pid: u32,
-    pub(crate) ppid: u32,
+pub struct PidSeed {
+    pub pid: u32,
+    pub ppid: u32,
 }
 
 impl PidSeed {
-    pub(crate) fn arg_value(self) -> String {
+    pub fn arg_value(self) -> String {
         format!("{}:{}", self.pid, self.ppid)
     }
 }
 
 #[derive(Debug, Clone, Default)]
-pub(crate) struct ProcInfo {
-    pub(crate) pid: u32,
-    pub(crate) ppid: u32,
-    pub(crate) session_id: u32,
-    pub(crate) comm: String,
-    pub(crate) command: String,
-    pub(crate) cwd: Option<PathBuf>,
-    pub(crate) ticks: u64,
-    pub(crate) starttime_ticks: u64,
-    pub(crate) rss_kb: u64,
-    pub(crate) rss_mb: u64,
-    pub(crate) vsz_kb: u64,
-    pub(crate) threads: u32,
-    pub(crate) read_bytes: u64,
-    pub(crate) write_bytes: u64,
+pub struct ProcInfo {
+    pub pid: u32,
+    pub ppid: u32,
+    pub session_id: u32,
+    pub comm: String,
+    pub command: String,
+    pub cwd: Option<PathBuf>,
+    pub ticks: u64,
+    pub starttime_ticks: u64,
+    pub rss_kb: u64,
+    pub rss_mb: u64,
+    pub vsz_kb: u64,
+    pub threads: u32,
+    pub read_bytes: u64,
+    pub write_bytes: u64,
 }
 
 impl ProcInfo {
-    pub(crate) fn seed(&self) -> PidSeed {
+    pub fn seed(&self) -> PidSeed {
         PidSeed {
             pid: self.pid,
             ppid: self.ppid,
         }
     }
 
-    pub(crate) fn process_key(&self) -> ProcessKey {
+    pub fn process_key(&self) -> ProcessKey {
         ProcessKey {
             pid: self.pid,
             starttime_ticks: self.starttime_ticks,
@@ -60,10 +60,10 @@ impl ProcInfo {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct ProcSnapshot {
-    pub(crate) at: Instant,
-    pub(crate) uptime_s: f64,
-    pub(crate) procs: BTreeMap<u32, ProcInfo>,
+pub struct ProcSnapshot {
+    pub at: Instant,
+    pub uptime_s: f64,
+    pub procs: BTreeMap<u32, ProcInfo>,
 }
 
 impl Default for ProcSnapshot {
@@ -77,7 +77,7 @@ impl Default for ProcSnapshot {
 }
 
 impl ProcSnapshot {
-    pub(crate) fn collect() -> io::Result<Self> {
+    pub fn collect() -> io::Result<Self> {
         let mut system = System::new();
         system.refresh_processes_specifics(ProcessesToUpdate::All, true, process_refresh_kind());
         let boot_time_s = System::boot_time();
@@ -97,26 +97,26 @@ impl ProcSnapshot {
         })
     }
 
-    pub(crate) fn children_by_ppid(&self) -> HashMap<u32, Vec<u32>> {
+    pub fn children_by_ppid(&self) -> HashMap<u32, Vec<u32>> {
         children_by_ppid(&self.procs)
     }
 
-    pub(crate) fn process_family(&self, root: u32) -> Vec<u32> {
+    pub fn process_family(&self, root: u32) -> Vec<u32> {
         process_family(root, &self.children_by_ppid(), &self.procs)
     }
 
-    pub(crate) fn seeds_for_all(&self) -> Vec<PidSeed> {
+    pub fn seeds_for_all(&self) -> Vec<PidSeed> {
         self.procs.values().map(ProcInfo::seed).collect()
     }
 
-    pub(crate) fn seeds_for_pid_family(&self, root: u32) -> Vec<PidSeed> {
+    pub fn seeds_for_pid_family(&self, root: u32) -> Vec<PidSeed> {
         self.process_family(root)
             .into_iter()
             .filter_map(|pid| self.procs.get(&pid).map(ProcInfo::seed))
             .collect()
     }
 
-    pub(crate) fn seeds_for_session(&self, session_id: u32) -> Vec<PidSeed> {
+    pub fn seeds_for_session(&self, session_id: u32) -> Vec<PidSeed> {
         self.procs
             .values()
             .filter(|proc_info| proc_info.session_id == session_id)
@@ -124,7 +124,7 @@ impl ProcSnapshot {
             .collect()
     }
 
-    pub(crate) fn pids_in_session(&self, session_id: u32) -> Vec<u32> {
+    pub fn pids_in_session(&self, session_id: u32) -> Vec<u32> {
         self.procs
             .values()
             .filter(|proc_info| proc_info.session_id == session_id)
@@ -133,9 +133,7 @@ impl ProcSnapshot {
     }
 }
 
-pub(crate) fn collect_fd_paths(
-    process_trees: &[ProcessTree],
-) -> HashMap<ProcessKey, BTreeSet<PathBuf>> {
+pub fn collect_fd_paths(process_trees: &[ProcessTree]) -> HashMap<ProcessKey, BTreeSet<PathBuf>> {
     let mut out = HashMap::new();
 
     for tree in process_trees {
@@ -170,7 +168,7 @@ fn process_key_is_current_impl(_key: ProcessKey) -> bool {
     true
 }
 
-pub(crate) fn children_by_ppid(procs: &BTreeMap<u32, ProcInfo>) -> HashMap<u32, Vec<u32>> {
+pub fn children_by_ppid(procs: &BTreeMap<u32, ProcInfo>) -> HashMap<u32, Vec<u32>> {
     let mut children: HashMap<u32, Vec<u32>> = HashMap::new();
     for proc_info in procs.values() {
         children
@@ -181,7 +179,7 @@ pub(crate) fn children_by_ppid(procs: &BTreeMap<u32, ProcInfo>) -> HashMap<u32, 
     children
 }
 
-pub(crate) fn process_family(
+pub fn process_family(
     root: u32,
     children: &HashMap<u32, Vec<u32>>,
     procs: &BTreeMap<u32, ProcInfo>,
@@ -189,7 +187,7 @@ pub(crate) fn process_family(
     process_family_excluding(root, children, procs, &HashSet::new())
 }
 
-pub(crate) fn process_family_excluding(
+pub fn process_family_excluding(
     root: u32,
     children: &HashMap<u32, Vec<u32>>,
     procs: &BTreeMap<u32, ProcInfo>,
@@ -215,7 +213,7 @@ pub(crate) fn process_family_excluding(
     out
 }
 
-pub(crate) fn process_cpu_percent(
+pub fn process_cpu_percent(
     proc_info: &ProcInfo,
     previous: Option<&ProcSnapshot>,
     sample: &ProcSnapshot,
@@ -236,7 +234,7 @@ pub(crate) fn process_cpu_percent(
     (proc_info.ticks as f64 / ticks_per_second) / elapsed_s * 100.0
 }
 
-pub(crate) fn process_age_s(proc_info: &ProcInfo, sample: &ProcSnapshot) -> f64 {
+pub fn process_age_s(proc_info: &ProcInfo, sample: &ProcSnapshot) -> f64 {
     let process_start_s = proc_info.starttime_ticks as f64 / ticks_per_second();
     (sample.uptime_s - process_start_s).max(0.0)
 }
@@ -293,7 +291,7 @@ fn process_command(process: &Process, fallback: &str) -> String {
     }
 }
 
-pub(crate) fn process_starttime_ticks(pid: u32) -> Option<u64> {
+pub fn process_starttime_ticks(pid: u32) -> Option<u64> {
     platform_starttime_ticks(pid).or_else(|| {
         let sys_pid = Pid::from_u32(pid);
         let mut system = System::new();
@@ -308,7 +306,7 @@ pub(crate) fn process_starttime_ticks(pid: u32) -> Option<u64> {
     })
 }
 
-pub(crate) fn scan_proc_fd_paths(pid: u32) -> BTreeSet<PathBuf> {
+pub fn scan_proc_fd_paths(pid: u32) -> BTreeSet<PathBuf> {
     let mut out = BTreeSet::new();
     scan_proc_fd_paths_into(pid, &mut out);
     out
@@ -412,13 +410,13 @@ fn starttime_ticks_from_epoch(start_time_s: u64, boot_time_s: u64) -> u64 {
     ((since_boot_s as f64) * ticks_per_second()).round() as u64
 }
 
-pub(crate) fn process_start_timestamp_ms(starttime_ticks: u64) -> Option<u64> {
+pub fn process_start_timestamp_ms(starttime_ticks: u64) -> Option<u64> {
     let boot_ms = u64::try_from(crate::time::get_boot_time_secs().saturating_mul(1000)).ok()?;
     let process_offset_ms = ((starttime_ticks as f64 / ticks_per_second()) * 1000.0).round() as u64;
     Some(boot_ms.saturating_add(process_offset_ms))
 }
 
-pub(crate) fn process_cpu_ms_delta(proc_info: &ProcInfo, previous: Option<&ProcSnapshot>) -> u64 {
+pub fn process_cpu_ms_delta(proc_info: &ProcInfo, previous: Option<&ProcSnapshot>) -> u64 {
     let Some(previous) = previous else {
         return 0;
     };

@@ -6,24 +6,23 @@
 #ifndef __SSLSNIFF_H
 #define __SSLSNIFF_H
 
-// A TLS record is at most 16KB, but rustls can accept several HTTP/2 frames in
-// one plaintext write before fragmenting them into TLS records. 64KB covers
-// those writes without returning to the old, verifier-hostile 256KB bound.
-// This value is load-bearing: the conventional SSL probes call
+// TLS-library reads are normally record-sized, but the Rustls uprobes run before
+// record framing and can observe much larger plaintext writes. Keep the prior
+// 256KB Rustls capture ceiling while using the larger ring introduced to avoid
+// the original three-event limit. This value is load-bearing: the probes call
 //     bpf_ringbuf_reserve(&rb, sizeof(*data), 0)
-// and struct probe_SSL_data_t embeds buf[MAX_BUF_SIZE], so each such event
-// reserves the worst case regardless of payload. At 512KB per event a 2MB ring
-// held only 3 concurrent events; the 4th reserve returned NULL and the handler
-// dropped the event silently. 64KB against a 16MB ring gives 255 conventional
-// SSL events. Rustls vectored probes reserve an additional 64KB verifier
-// window, leaving 127 concurrent events. Oversized reads take the existing
-// truncation path instead of vanishing.
-#define MAX_BUF_SIZE (64 * 1024)
+// and struct probe_SSL_data_t embeds buf[MAX_BUF_SIZE], so EVERY event reserves
+// the worst case regardless of payload. At 512KB per event a 2MB ring held only
+// 3 concurrent events; the 4th reserve returned NULL and the handler dropped the
+// event silently (no truncated flag, since the event is never created). Responses
+// whose HTTP headers alone filled those slots lost their body with no signal.
+// 256KB against a 16MB ring allows 63 concurrent worst-case events, and larger
+// writes take the existing truncation path instead of vanishing.
+#define MAX_BUF_SIZE (256 * 1024)
 #define RING_BUFFER_SIZE (16 * 1024 * 1024)  // 16MB ring buffer
 #define TASK_COMM_LEN 16
 #define MAX_RUSTLS_IOVECS 8
-#define RUSTLS_MAX_CAPTURE_SIZE MAX_BUF_SIZE
-#define RUSTLS_VERIFIER_SLACK_SIZE RUSTLS_MAX_CAPTURE_SIZE
+#define RUSTLS_MAX_CAPTURE_SIZE (64 * 1024)
 _Static_assert((RUSTLS_MAX_CAPTURE_SIZE
 		& (RUSTLS_MAX_CAPTURE_SIZE - 1)) == 0,
 	       "rustls verifier mask requires a power-of-two capture size");

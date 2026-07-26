@@ -82,6 +82,12 @@ jobs:
         cd collector
         cargo build --verbose
 
+    - name: Check standalone agentsight-capture
+      run: |
+        cargo clippy --manifest-path agentsight-capture/Cargo.toml --all-targets -- -D warnings
+        cargo test --manifest-path agentsight-capture/Cargo.toml --verbose
+        cargo package --manifest-path agentsight-capture/Cargo.toml
+
     - name: Check standalone agentvis
       run: |
         cargo clippy --manifest-path agentvis/Cargo.toml --all-targets -- -D warnings
@@ -250,6 +256,8 @@ jobs:
             echo "::notice::Git tag ${TAG} already exists; trying next patch version."
           elif crates_io_version_exists "agentsight" "$VERSION"; then
             echo "::notice::crates.io agentsight ${VERSION} already exists; trying next patch version."
+          elif crates_io_version_exists "agentsight-capture" "$VERSION"; then
+            echo "::notice::crates.io agentsight-capture ${VERSION} already exists; trying next patch version."
           elif crates_io_version_exists "agentpprof" "$VERSION"; then
             echo "::notice::crates.io agentpprof ${VERSION} already exists; trying next patch version."
           elif crates_io_version_exists "agentvis" "$VERSION"; then
@@ -262,6 +270,7 @@ jobs:
         done
 
         sed -i "s/^version = \".*\"/version = \"$VERSION\"/" collector/Cargo.toml
+        sed -i "s/^version = \".*\"/version = \"$VERSION\"/" agentsight-capture/Cargo.toml
         AGENT_SESSION_BASE_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' agent-session/Cargo.toml | head -1)"
         IFS=. read -r AGENT_SESSION_MAJOR AGENT_SESSION_MINOR AGENT_SESSION_PATCH <<EOF
         $AGENT_SESSION_BASE_VERSION
@@ -277,11 +286,13 @@ jobs:
         sed -i "s/^version = \".*\"/version = \"$AGENT_SESSION_VERSION\"/" agent-session/Cargo.toml
         sed -i "s/^version = \".*\"/version = \"$VERSION\"/" agentvis/Cargo.toml
         sed -i "s/agent-session = { version = \"[^\"]*\", path = \"..\\/agent-session\" }/agent-session = { version = \"$AGENT_SESSION_VERSION\", path = \"..\\/agent-session\" }/" agentvis/Cargo.toml
-        sed -i "s/agent-session = { version = \"[^\"]*\", path = \"..\\/agent-session\" }/agent-session = { version = \"$AGENT_SESSION_VERSION\", path = \"..\\/agent-session\" }/" collector/Cargo.toml
+        sed -i "s/agent-session = { version = \"[^\"]*\", path = \"..\\/agent-session\" }/agent-session = { version = \"$AGENT_SESSION_VERSION\", path = \"..\\/agent-session\" }/" agentsight-capture/Cargo.toml
+        sed -i "s/agentsight-capture = { version = \"[^\"]*\", path = \"..\\/agentsight-capture\"/agentsight-capture = { version = \"$VERSION\", path = \"..\\/agentsight-capture\"/" collector/Cargo.toml
         sed -i "s/agentvis = { version = \"[^\"]*\", path = \"..\\/agentvis\" }/agentvis = { version = \"$VERSION\", path = \"..\\/agentvis\" }/" collector/Cargo.toml
         sed -i "s/^version = \".*\"/version = \"$VERSION\"/" agentpprof/Cargo.toml
         sed -i "s/agent-session = { version = \"[^\"]*\", path = \"..\\/agent-session\" }/agent-session = { version = \"$AGENT_SESSION_VERSION\", path = \"..\\/agent-session\" }/" agentpprof/Cargo.toml
         cargo generate-lockfile --manifest-path agent-session/Cargo.toml
+        cargo generate-lockfile --manifest-path agentsight-capture/Cargo.toml
         cargo generate-lockfile --manifest-path agentvis/Cargo.toml
         cd collector
         cargo generate-lockfile
@@ -291,10 +302,12 @@ jobs:
         echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
         echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
         echo "agent_session_version=${AGENT_SESSION_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "agentsight_capture_version=${VERSION}" >> "$GITHUB_OUTPUT"
         echo "agentvis_version=${VERSION}" >> "$GITHUB_OUTPUT"
         echo "agentpprof_version=${VERSION}" >> "$GITHUB_OUTPUT"
         echo "Using release version v${VERSION}"
         echo "Using agent-session version ${AGENT_SESSION_VERSION}"
+        echo "Using agentsight-capture version ${VERSION}"
         echo "Using agentvis version ${VERSION}"
         echo "Using agentpprof version ${VERSION}"
 
@@ -324,10 +337,11 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
 
-        # build.rs vendors generated BPF/frontend assets into collector/vendor.
+        # build.rs vendors generated BPF assets into agentsight-capture/vendor
+        # and frontend assets into collector/vendor.
         # Commit the full release snapshot before tagging or publishing so the
         # GitHub release, crates.io package, and master source agree.
-        git add agent-session/Cargo.toml agent-session/Cargo.lock agentvis/Cargo.toml agentvis/Cargo.lock agentvis/vendor collector/Cargo.toml collector/Cargo.lock collector/vendor agentpprof/Cargo.toml agentpprof/Cargo.lock
+        git add agent-session/Cargo.toml agent-session/Cargo.lock agentsight-capture/Cargo.toml agentsight-capture/Cargo.lock agentsight-capture/vendor agentvis/Cargo.toml agentvis/Cargo.lock agentvis/vendor collector/Cargo.toml collector/Cargo.lock collector/vendor agentpprof/Cargo.toml agentpprof/Cargo.lock
         if git diff --cached --quiet; then
           echo "Release snapshot already matches ${VERSION}; no commit needed."
         else
@@ -335,9 +349,9 @@ jobs:
           git push origin "HEAD:${GITHUB_REF#refs/heads/}"
         fi
 
-        if [ -n "$(git status --porcelain --untracked-files=all -- agent-session agentvis collector agentpprof)" ]; then
+        if [ -n "$(git status --porcelain --untracked-files=all -- agent-session agentsight-capture agentvis collector agentpprof)" ]; then
           echo "::error::release snapshot has uncommitted files after commit."
-          git status --short --untracked-files=all -- agent-session agentvis collector agentpprof
+          git status --short --untracked-files=all -- agent-session agentsight-capture agentvis collector agentpprof
           exit 1
         fi
 
@@ -352,10 +366,12 @@ jobs:
         echo "Using Cargo package version: $VERSION_NO_V"
         grep "^version" collector/Cargo.toml
         grep -q "^version = \"$VERSION_NO_V\"" collector/Cargo.toml
+        grep -q "^version = \"$VERSION_NO_V\"" agentsight-capture/Cargo.toml
         grep -q "^version = \"${{ steps.set_version.outputs.agent_session_version }}\"" agent-session/Cargo.toml
         grep -q "^version = \"$VERSION_NO_V\"" agentvis/Cargo.toml
         grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" agentvis/Cargo.toml
-        grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" collector/Cargo.toml
+        grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" agentsight-capture/Cargo.toml
+        grep -q "agentsight-capture = { version = \"$VERSION_NO_V\", path = \"../agentsight-capture\" }" collector/Cargo.toml
         grep -q "agentvis = { version = \"$VERSION_NO_V\", path = \"../agentvis\" }" collector/Cargo.toml
         grep -q "^version = \"$VERSION_NO_V\"" agentpprof/Cargo.toml
         grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" agentpprof/Cargo.toml
@@ -459,6 +475,34 @@ jobs:
           sleep $((attempt * 10))
         done
         echo "::error::agentvis ${VERSION} was not visible on crates.io after publish."
+        exit 1
+
+    - name: Verify agentsight-capture Cargo package
+      run: |
+        CARGO_TARGET_DIR=/tmp/agentsight-capture-package \
+          cargo package --manifest-path agentsight-capture/Cargo.toml
+
+    - name: Publish agentsight-capture crate to crates.io
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      run: |
+        set -euo pipefail
+        CRATES_IO_USER_AGENT="agentsight-release-ci (${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}; run ${GITHUB_RUN_ID})"
+        if [ -z "${CARGO_REGISTRY_TOKEN:-}" ]; then
+          echo "::error::CARGO_REGISTRY_TOKEN is not set; cannot publish to crates.io."
+          exit 1
+        fi
+
+        VERSION="${{ steps.set_version.outputs.agentsight_capture_version }}"
+        cargo publish --manifest-path agentsight-capture/Cargo.toml
+        for attempt in 1 2 3 4 5 6; do
+          if curl --retry 3 --retry-delay 2 -A "$CRATES_IO_USER_AGENT" -fsS \
+            "https://crates.io/api/v1/crates/agentsight-capture/${VERSION}" >/dev/null; then
+            exit 0
+          fi
+          sleep $((attempt * 10))
+        done
+        echo "::error::agentsight-capture ${VERSION} was not visible on crates.io after publish."
         exit 1
 
     - name: Verify agentsight Cargo package

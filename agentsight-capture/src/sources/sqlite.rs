@@ -12,11 +12,11 @@ use std::path::Path;
 
 const PROMPT_DEDUP_WINDOW_MS: u64 = 10_000;
 #[cfg_attr(not(test), allow(dead_code))]
-pub(crate) fn load_view(path: impl AsRef<Path>) -> ViewResult<MaterializedView> {
+pub fn load_view(path: impl AsRef<Path>) -> ViewResult<MaterializedView> {
     load_view_inner(path, false)
 }
 
-pub(crate) fn load_view_with_observed_session_prompts(
+pub fn load_view_with_observed_session_prompts(
     path: impl AsRef<Path>,
 ) -> ViewResult<MaterializedView> {
     load_view_inner(path, true)

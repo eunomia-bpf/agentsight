@@ -22,7 +22,7 @@
 ///
 /// Returns the canonical path of the underlying ELF executable, or an error
 /// describing why discovery failed.
-pub(crate) fn resolve_binary_path(command: &str) -> Result<String, String> {
+pub fn resolve_binary_path(command: &str) -> Result<String, String> {
     // Limit shebang chasing so a pathological wrapper chain cannot loop forever.
     resolve_binary_path_inner(command, 0)
 }
@@ -34,7 +34,7 @@ pub(crate) fn resolve_binary_path(command: &str) -> Result<String, String> {
 /// platform-native `@openai/codex-linux-*` binary. Prefer that native binary
 /// before following the launcher's shebang to `node`; otherwise `record -- codex`
 /// attaches to the wrapper and misses Codex's TLS traffic.
-pub(crate) fn resolve_binary_path_for_ssl(command: &str) -> Result<Option<String>, String> {
+pub fn resolve_binary_path_for_ssl(command: &str) -> Result<Option<String>, String> {
     let launcher = resolve_command_path(command)?;
     if is_openai_codex_native_binary(&launcher) {
         return Ok(Some(canonicalize_path(&launcher)));
@@ -194,7 +194,7 @@ fn newest_nvm_bin(home: &std::path::Path) -> Option<std::path::PathBuf> {
 /// CPython call into a separate `libssl.so` (via `_ssl.so`) and do NOT contain
 /// these markers in the executable, so they keep using sslsniff's system-libssl
 /// attachment with comm filtering intact.
-pub(crate) fn binary_embeds_ssl(path: &str) -> bool {
+pub fn binary_embeds_ssl(path: &str) -> bool {
     use std::io::Read;
     const NEEDLES: &[&[u8]] = &[b"SSL_write", b"BoringSSLError", b"OPENSSL_internal"];
     const GROK_MARKER: &[u8] = b"grok-cli";
@@ -371,7 +371,7 @@ struct RuntimeContainerRef {
 /// Strip a `docker://<ref>` or `docker:<ref>` scheme from a `--binary-path`
 /// value, returning the container reference (name or id). Returns `None` for
 /// ordinary filesystem paths, which are passed through to sslsniff unchanged.
-pub(crate) fn parse_container_ref(binary_path: &str) -> Option<&str> {
+pub fn parse_container_ref(binary_path: &str) -> Option<&str> {
     binary_path
         .strip_prefix("docker://")
         .or_else(|| binary_path.strip_prefix("docker:"))
@@ -428,7 +428,7 @@ fn has_kubernetes_scheme(binary_path: &str) -> bool {
         || binary_path.starts_with("kubernetes:")
 }
 
-pub(crate) fn resolve_container_binary_arg(
+pub fn resolve_container_binary_arg(
     binary_path: Option<&str>,
 ) -> Result<Option<(String, String)>, String> {
     let Some(binary_path) = binary_path else {
@@ -472,7 +472,7 @@ pub(crate) fn resolve_container_binary_arg(
 /// often a wrapper such as `tini` (OpenClaw's image uses `tini -s -- node …`).
 /// That wrapper does not embed SSL, so we walk its descendant process tree and
 /// require an actual SSL target.
-pub(crate) fn resolve_container_binary_path(reference: &str) -> Result<String, String> {
+pub fn resolve_container_binary_path(reference: &str) -> Result<String, String> {
     let init_pid = resolve_docker_container_pid(reference)?;
 
     find_ssl_target_in_tree(init_pid).ok_or_else(|| {

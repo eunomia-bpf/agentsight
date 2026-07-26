@@ -10,6 +10,7 @@ use futures::stream::StreamExt;
 use serde_json::{Value, json};
 use std::io::{Cursor, Read};
 
+#[derive(Default)]
 pub struct HTTPDecompressor;
 
 impl HTTPDecompressor {

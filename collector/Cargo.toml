@@ -1,6 +1,6 @@
 [package]
 name = "agentsight"
-version = "0.2.65"
+version = "0.2.66"
 edition = "2024"
 rust-version = "1.87"
 description = "eBPF-based observability for AI agent sessions, prompts, process trees, files, network activity, and token usage."
@@ -18,38 +18,25 @@ include = [
     "build.rs",
     "src/**",
     "tests/**",
-    "vendor/bpf/process",
-    "vendor/bpf/sslsniff",
-    "vendor/bpf/stdiocap",
     "vendor/frontend/dist/**",
 ]
 
 [dependencies]
-async-stream = "0.3"
-async-trait = "0.1"
+agentsight-capture = { version = "0.2.66", path = "../agentsight-capture" }
 agent-session = { version = "0.4.35", path = "../agent-session" }
-agentvis = { version = "0.2.65", path = "../agentvis" }
+agentvis = { version = "0.2.66", path = "../agentvis" }
 chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "4.5.41", features = ["derive"] }
 futures = "0.3"
-hex = "0.4"
-hpack = "0.3"
-flate2 = "1.0"
-brotli = "7.0"
-zstd = "0.13"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 tempfile = "3.10"
 tokio = { version = "1.0", features = ["full"] }
-tokio-stream = "0.1"
 uuid = { version = "1.0", features = ["v4"] }
 log = "0.4"
 env_logger = "0.10"
 dirs = "6"
 libc = "0.2"
-sysinfo = { version = "0.36.1", default-features = false, features = ["system"] }
-chunked_transfer = "1.5"
-num_cpus = "1.16"
 rusqlite = { version = "0.32", features = ["bundled"] }
 ratatui = { version = "0.30", default-features = false, features = ["crossterm_0_29"] }
 crossterm = "0.29"
@@ -60,3 +47,6 @@ hyper-util = { version = "0.1", features = ["full"] }
 http-body-util = "0.1"
 rust-embed = { version = "8.7", features = ["debug-embed", "compression", "include-exclude"] }
 mime_guess = "2.0"
+
+[dev-dependencies]
+agentsight-capture = { version = "0.2.66", path = "../agentsight-capture", features = ["test-support"] }

@@ -7,15 +7,15 @@ use serde_json::Value;
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
-pub(crate) use agent_session::{LiveProcessCandidate, SessionProcessMatch, SessionProcessMatches};
+pub use agent_session::{LiveProcessCandidate, SessionProcessMatch, SessionProcessMatches};
 
 #[derive(Default)]
-pub(crate) struct SessionProcessMatcher {
+pub struct SessionProcessMatcher {
     inner: agent_session::SessionProcessMatcher,
 }
 
 impl SessionProcessMatcher {
-    pub(crate) fn match_sessions(
+    pub fn match_sessions(
         &mut self,
         sessions: &[SessionRow],
         processes: &[LiveProcessCandidate],
@@ -37,7 +37,7 @@ impl SessionProcessMatcher {
     }
 }
 
-pub(crate) fn session_path_from_raw_path(path: &Path) -> Option<PathBuf> {
+pub fn session_path_from_raw_path(path: &Path) -> Option<PathBuf> {
     agent_session::session_log_path_from_str(&path.to_string_lossy())
 }
 

@@ -9,19 +9,19 @@ use crate::model::{
 use rusqlite::{Connection, OpenFlags, params};
 use std::path::Path;
 
-pub(crate) struct SqliteStore {
+pub struct SqliteStore {
     conn: Connection,
 }
 
 impl SqliteStore {
-    pub(crate) fn open(path: impl AsRef<Path>) -> ViewResult<Self> {
+    pub fn open(path: impl AsRef<Path>) -> ViewResult<Self> {
         let conn = Connection::open(path)?;
         let mut store = Self { conn };
         store.init()?;
         Ok(store)
     }
 
-    pub(crate) fn open_readonly(path: impl AsRef<Path>) -> ViewResult<Self> {
+    pub fn open_readonly(path: impl AsRef<Path>) -> ViewResult<Self> {
         let conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
         Ok(Self { conn })
     }
@@ -32,8 +32,8 @@ impl SqliteStore {
             .is_ok()
     }
 
-    #[cfg(test)]
-    pub(crate) fn connection(&self) -> &Connection {
+    #[cfg(any(test, feature = "test-support"))]
+    pub fn connection(&self) -> &Connection {
         &self.conn
     }
 
@@ -271,7 +271,7 @@ impl SqliteStore {
         Ok(())
     }
 
-    pub(crate) fn all_llm_call_rows(&self) -> ViewResult<Vec<LlmCallRow>> {
+    pub fn all_llm_call_rows(&self) -> ViewResult<Vec<LlmCallRow>> {
         let optional_cols = [
             ("session_id", "NULL AS session_id"),
             ("conversation_id", "NULL AS conversation_id"),
@@ -302,7 +302,7 @@ impl SqliteStore {
         collect_rows(rows)
     }
 
-    pub(crate) fn token_usage_rows(&self) -> ViewResult<Vec<TokenUsageRow>> {
+    pub fn token_usage_rows(&self) -> ViewResult<Vec<TokenUsageRow>> {
         let has_view_source = self.has_column("token_usage", "view_source");
         let extra_cols = if has_view_source {
             ", view_source, confidence"
@@ -346,7 +346,7 @@ impl SqliteStore {
         collect_rows(rows)
     }
 
-    pub(crate) fn tool_call_rows(&self) -> ViewResult<Vec<ToolCallRow>> {
+    pub fn tool_call_rows(&self) -> ViewResult<Vec<ToolCallRow>> {
         let has_view_source = self.has_column("tool_calls", "view_source");
         let extra_cols = if has_view_source {
             ", view_source, confidence"
@@ -391,7 +391,7 @@ impl SqliteStore {
         collect_rows(rows)
     }
 
-    pub(crate) fn resource_sample_rows(&self) -> ViewResult<Vec<ResourceSampleRow>> {
+    pub fn resource_sample_rows(&self) -> ViewResult<Vec<ResourceSampleRow>> {
         let mut stmt = self.conn.prepare(
             "SELECT timestamp_ms, pid, comm, cpu_percent, rss_mb
              FROM resource_samples
@@ -409,7 +409,7 @@ impl SqliteStore {
         collect_rows(rows)
     }
 
-    pub(crate) fn network_target_rows(&self) -> ViewResult<Vec<NetworkTargetRow>> {
+    pub fn network_target_rows(&self) -> ViewResult<Vec<NetworkTargetRow>> {
         let mut stmt = self.conn.prepare(
             "SELECT pid, comm, host, path, count, error_count, first_timestamp_ms, last_timestamp_ms
              FROM network_targets
@@ -430,7 +430,7 @@ impl SqliteStore {
         collect_rows(rows)
     }
 
-    pub(crate) fn all_audit_event_rows(&self) -> ViewResult<Vec<AuditEventRow>> {
+    pub fn all_audit_event_rows(&self) -> ViewResult<Vec<AuditEventRow>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, timestamp_ms, audit_type, pid, comm, subject, action,
                     target, status, summary, details_json
@@ -441,7 +441,7 @@ impl SqliteStore {
         collect_rows(rows)
     }
 
-    pub(crate) fn process_node_rows(&self) -> ViewResult<Vec<ProcessNodeRow>> {
+    pub fn process_node_rows(&self) -> ViewResult<Vec<ProcessNodeRow>> {
         let has_view_source = self.has_column("process_nodes", "view_source");
         let extra_cols = if has_view_source {
             ", view_source, confidence"

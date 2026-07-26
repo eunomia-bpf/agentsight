@@ -19,6 +19,7 @@ build-rust:
 
 clean:
 	make -C bpf clean
+	cd agentsight-capture && cargo clean
 	cd agentvis && cargo clean
 	cd collector && cargo clean
 	cd frontend && rm -rf .next node_modules dist
@@ -44,6 +45,7 @@ install:
 
 test: test-vis
 	make -C bpf test
+	cd agentsight-capture && cargo test
 	cd agentvis && cargo test
 	cd collector && cargo test
 	cd frontend && npm run build

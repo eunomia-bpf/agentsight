@@ -3,14 +3,14 @@
 
 use serde_json::Value;
 
-pub(crate) fn sanitize_ascii_identifier(value: &str) -> String {
+pub fn sanitize_ascii_identifier(value: &str) -> String {
     value
         .chars()
         .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
         .collect()
 }
 
-pub(crate) fn truncate_text(text: &str, max: usize) -> String {
+pub fn truncate_text(text: &str, max: usize) -> String {
     if text.chars().count() <= max {
         text.to_string()
     } else {
@@ -18,7 +18,7 @@ pub(crate) fn truncate_text(text: &str, max: usize) -> String {
     }
 }
 
-pub(crate) fn truncate_with_ellipsis(text: &str, max: usize) -> String {
+pub fn truncate_with_ellipsis(text: &str, max: usize) -> String {
     if text.chars().count() <= max {
         text.to_string()
     } else {
@@ -29,7 +29,7 @@ pub(crate) fn truncate_with_ellipsis(text: &str, max: usize) -> String {
     }
 }
 
-pub(crate) fn clean_prompt_text(text: &str) -> Option<String> {
+pub fn clean_prompt_text(text: &str) -> Option<String> {
     let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
     let text = text
         .strip_prefix("<session>")
@@ -39,7 +39,7 @@ pub(crate) fn clean_prompt_text(text: &str) -> Option<String> {
     (!text.is_empty()).then(|| text.to_string())
 }
 
-pub(crate) fn extract_prompt_text(value: &Value) -> Option<String> {
+pub fn extract_prompt_text(value: &Value) -> Option<String> {
     if let Some(prompt) = value.get("prompt").and_then(Value::as_str) {
         return clean_prompt_text(prompt);
     }

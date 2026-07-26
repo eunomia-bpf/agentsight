@@ -5,11 +5,7 @@ use crate::sources::proc::{PidSeed, ProcInfo, ProcSnapshot};
 use std::collections::HashSet;
 use std::path::Path;
 
-pub(crate) fn live_root_pids(
-    snapshot: &ProcSnapshot,
-    pid: Option<u32>,
-    comm: Option<&str>,
-) -> Vec<u32> {
+pub fn live_root_pids(snapshot: &ProcSnapshot, pid: Option<u32>, comm: Option<&str>) -> Vec<u32> {
     if let Some(pid) = pid {
         return snapshot
             .procs
@@ -25,11 +21,11 @@ pub(crate) fn live_root_pids(
     root_pids_for_known_agents(snapshot)
 }
 
-pub(crate) fn seeds_for_comm(snapshot: &ProcSnapshot, comm: &str) -> Vec<PidSeed> {
+pub fn seeds_for_comm(snapshot: &ProcSnapshot, comm: &str) -> Vec<PidSeed> {
     seeds_for_roots(snapshot, root_pids_matching_comm(snapshot, comm))
 }
 
-pub(crate) fn process_seeds(
+pub fn process_seeds(
     snapshot: &ProcSnapshot,
     session_id: Option<u32>,
     pid: Option<u32>,
@@ -49,7 +45,7 @@ pub(crate) fn process_seeds(
     }
 }
 
-pub(crate) fn pids_matching_comm(snapshot: &ProcSnapshot, comm: &str) -> Vec<u32> {
+pub fn pids_matching_comm(snapshot: &ProcSnapshot, comm: &str) -> Vec<u32> {
     snapshot
         .procs
         .values()
@@ -58,7 +54,7 @@ pub(crate) fn pids_matching_comm(snapshot: &ProcSnapshot, comm: &str) -> Vec<u32
         .collect()
 }
 
-pub(crate) fn agent_label_from_command(comm: &str, command: &str) -> String {
+pub fn agent_label_from_command(comm: &str, command: &str) -> String {
     known_agent_label(comm, command)
         .map(str::to_string)
         .unwrap_or_else(|| {
@@ -74,7 +70,7 @@ pub(crate) fn agent_label_from_command(comm: &str, command: &str) -> String {
         })
 }
 
-pub(crate) fn known_agent_label(comm: &str, command: &str) -> Option<&'static str> {
+pub fn known_agent_label(comm: &str, command: &str) -> Option<&'static str> {
     label_from_exec_token(comm).or_else(|| label_from_command_argv(command))
 }
 
@@ -243,7 +239,7 @@ fn label_from_known_package_path(path: &str) -> Option<&'static str> {
     }
 }
 
-pub(crate) fn is_codex_exec_invocation(proc_info: &ProcInfo) -> bool {
+pub fn is_codex_exec_invocation(proc_info: &ProcInfo) -> bool {
     known_agent_label(&proc_info.comm, &proc_info.command) == Some("codex")
         && has_codex_exec_subcommand(&proc_info.command)
 }
