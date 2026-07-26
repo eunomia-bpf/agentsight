@@ -57,9 +57,10 @@ Automatic Agent annotation raises ordinary B$^3$ F1 against human stages from
 localization workloads, AgentProf raises MAP over benchmark-native direct
 diagnostics by 0.031, 0.107, and 0.117. As a reading index on TraceElephant,
 the semantic hierarchy guides a strong trajectory reader to equal ranking
-quality while opening 53.0\% of the source evidence, versus 65.0\% under an
-information-matched raw-action grouping, and skeleton-guided drilldown remains
-available beyond the context window where whole-trace reading fails.
+quality statistically equal to an information-matched raw-action grouping
+while opening 53.0\% of the source evidence versus 65.0\%, and
+skeleton-guided drilldown remains available beyond the context window where
+whole-trace reading fails.
 % 自动 Agent 标注将相对人工 stage 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.704。在三个完整 localization workload 上，AgentProf 相对 benchmark-native direct diagnostic 将 MAP 分别提高 0.031、0.107 和 0.117。在 TraceElephant 上作为阅读索引时，语义层次引导强 trajectory reader 达到同等排名质量，只打开 53.0\% 的 source evidence，而信息匹配的 raw-action 分组需打开 65.0\%；骨架引导的下钻可超越整条轨迹阅读失效的上下文窗口边界。
 Evaluated task-family and action backends reach 0.695 and 0.498 macro-F1,
 label-free recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1 on
@@ -181,9 +182,8 @@ Across three complete public workloads, AgentProf refines benchmark-native
 direct diagnostic ties and raises MAP by 0.031, 0.107, and 0.117,
 respectively~\cite{agentprocessbench,hintbench,traceelephant}.
 On TraceElephant, the same fixed hierarchy serves as a reading index:
-a strong reader reaches statistically equal ranking quality while opening
-less source evidence (53.0\% versus 65.0\%) than with an information-matched
-raw-action grouping.
+a strong reader matches an information-matched raw-action grouping's ranking
+quality while opening less source evidence (53.0\% versus 65.0\%).
 % 在用于协议开发的三个完整公开 workload 上，AgentProf 细化 benchmark-native direct diagnostic 的并列，并将 MAP 分别提高 0.031、0.107 和 0.117。
 % 在 TraceElephant 上，同一固定层次也作为阅读索引：强 reader 达到统计持平的排名质量，同时打开的 source evidence 更少（53.0\% 对 65.0\%）。
 On 287 OSWorld-Human development sessions~\cite{osworldhuman}, label-free
@@ -682,10 +682,10 @@ Candidate-minus-baseline intervals are [-.0003,.0029], [-.0116,.0103], and
 semantic-operation prefix ranks targets better when both views retain the same
 source evidence. The matched result attributes the ranking gain to
 group/evidence refinement in the complete profile, not specifically to its
-semantic prefix. This tie is the expected mechanism boundary: per-operation
+semantic prefix. This tie has a direct mechanism explanation: per-operation
 anomaly signal resides in the retained source evidence, which both views share
 by construction.
-% 这一持平是预期的机制边界：per-operation 异常信号位于保留的 source evidence 中，两种视图在构造上共享这些 evidence。
+% 这一持平有直接的机制解释：per-operation 异常信号位于保留的 source evidence 中，两种视图在构造上共享这些 evidence。
 The semantic prefix's distinct, separately measured roles are cross-run
 attribution (RQ1) and directing a reader's attention, which the following
 study measures.
@@ -973,23 +973,28 @@ For the 27{,}765-operation union, semantic construction completes in 1.16
 seconds, reaches 465.2\,MiB peak RSS, and incurs 190\,ms (19.6\%) more time and
 5.25\,MiB (1.14\%) more peak RSS than raw-action grouping.
 % 因此，RQ4 表明当前 binary 在测试范围内具有实用的构建开销：最大的 27,765-operation profile 在 1.16 秒内完成，使用 465.2 MiB，相对 raw action 增加 19.6% 时间和 1.14% 内存。
+The table's AgentRewardBench row profiles a fixed 729-operation public
+release sample used by the cost harness; Case Study 2's 7{,}229-operation
+mixed-outcome population is a different, larger workload.
+% 表中 AgentRewardBench 行 profile 的是 cost harness 使用的固定 729-operation 公开 release 样本；Case Study 2 的 7,229-operation mixed-outcome population 是另一个更大的 workload。
 Deterministic A2 first-construction components total 506.35\,s on all 405
 sessions, and both profile widths replay in 1.17\,s median with byte-identical
 artifacts (Appendix~\ref{app:a2-reconstruction}).
 % deterministic A2 first-construction 组件在全部 405 session 上合计 506.35 秒，两种 profile 宽度均以 1.17 秒中位重放且产物逐字节一致（附录）。
 
-A fully instrumented end-to-end automatic annotation now exists. On the
+A fully instrumented fresh-pass automatic annotation now exists. On the
 complete 440-session AgentRewardBench population, the fixed automatic backend
-completes all 12 outcome-blind batches in 3{,}521.6\,s end-to-end on a fixed
+completes all 12 outcome-blind batches in 3{,}521.6\,s of wall time
+(including aggregate provider waiting) on a fixed
 two-worker schedule (58.7 minutes; summed worker time 6{,}661.7\,s), consuming
 12{,}039{,}417 actual input tokens (10{,}929{,}408 reported cached) and
 312{,}433 output tokens---27{,}362 input and 710 output tokens per session. On
 the three-session Git population, one fresh complete pass takes 466.9\,s and
 832{,}544 actual input tokens. Deterministic materialization of the full
 440-session population takes 0.26\,s (operations) and 0.25\,s (tokens):
-construction cost is dominated by the automatic backend, and replay remains
-sub-second.
-% 现已存在完整插桩的端到端 automatic annotation：在完整 440-session AgentRewardBench population 上，固定 automatic backend 在固定双 worker 调度下以 3,521.6 秒端到端完成全部 12 个 outcome-blind batch（58.7 分钟；worker 时间合计 6,661.7 秒），消耗 12,039,417 个实际输入 token（其中报告缓存 10,929,408）与 312,433 个输出 token——每 session 27,362 输入、710 输出 token。在三 session 的 Git population 上，一次全新完整 pass 需 466.9 秒与 832,544 个实际输入 token。完整 440-session population 的确定性 materialization 需 0.26 秒（operations）/ 0.25 秒（tokens）：构建成本由 automatic backend 主导，replay 仍为亚秒级。
+construction cost is dominated by the automatic backend, materialization
+remains sub-second, and the A2 replay above takes 1.17\,s.
+% 现已存在完整插桩的 fresh-pass automatic annotation：在完整 440-session AgentRewardBench population 上，固定 automatic backend 在固定双 worker 调度下以 3,521.6 秒 wall time（含 provider 等待）完成全部 12 个 outcome-blind batch（58.7 分钟；worker 时间合计 6,661.7 秒），消耗 12,039,417 个实际输入 token（其中报告缓存 10,929,408）与 312,433 个输出 token——每 session 27,362 输入、710 输出 token。在三 session 的 Git population 上，一次全新完整 pass 需 466.9 秒与 832,544 个实际输入 token。完整 440-session population 的确定性 materialization 需 0.26 秒（operations）/ 0.25 秒（tokens）：构建成本由 automatic backend 主导，materialization 保持亚秒级，上述 A2 replay 为 1.17 秒。
 
 The existing automatic-Agent annotations were produced in two disjoint
 workflow waves whose packet-manifest-to-final-artifact spans sum to 54.36
@@ -998,9 +1003,9 @@ as the reportable annotation cost; we retain it only as an artifact-time
 workflow envelope, since retained telemetry cannot separate model inference
 from orchestration, idle time, and file writing or recover provider token
 usage. Thus 1.17\,s is replay latency,
-not annotation latency, while model/provider inference remains outside the
-instrumented timing.
-% 两个自动 Agent annotation wave 的 artifact 时间窗合计 54.36 分钟，但该窗口混合 inference、调度、空闲与写文件，不能当作模型计时；上述插桩的 AgentRewardBench pass 已取代该 envelope 成为可报告的 annotation 成本；因此 1.17 秒是 replay 而非 annotation latency，而 model/provider inference 仍在插桩计时之外。
+not annotation latency; the fresh-pass wall clock includes aggregate provider
+waiting without isolating it.
+% 两个自动 Agent annotation wave 的 artifact 时间窗合计 54.36 分钟，但该窗口混合 inference、调度、空闲与写文件，不能当作模型计时；上述插桩的 AgentRewardBench pass 已取代该 envelope 成为可报告的 annotation 成本；因此 1.17 秒是 replay 而非 annotation latency，fresh-pass wall clock 含未单独隔离的 provider 等待。
 
 \subsection{Scope and Limitations}
 
