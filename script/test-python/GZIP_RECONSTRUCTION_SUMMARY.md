@@ -534,7 +534,7 @@ brotli = "3.3"   # brotli
 ### Remaining Considerations
 
 1. **Chunked encoding edge cases**: Some responses have multiple chunks
-2. **Buffer size limits**: MAX_BUF_SIZE is 512KB - large responses may be truncated
+2. **Buffer size limits**: `MAX_BUF_SIZE` bounds each event, so large responses may be truncated
 3. **Connection tracking**: pid+tid works but socket FD would be more accurate
 4. **Timeout handling**: Need configurable timeout for incomplete streams
 

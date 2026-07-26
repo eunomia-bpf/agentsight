@@ -91,7 +91,7 @@ const char argp_program_doc[] =
 	"USAGE: sslsniff [OPTIONS]\n"
 	"\n"
 	"OUTPUT: Each SSL event is output as a JSON object on a separate line.\n"
-	"eBPF capture is limited to 32KB per event due to kernel constraints.\n"
+	"eBPF capture is bounded per event; oversized reads are truncated.\n"
 	"\n"
 	"EXAMPLES:\n"
 	"    ./sslsniff              # sniff OpenSSL and GnuTLS functions\n"

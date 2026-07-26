@@ -610,9 +610,9 @@ submitted to capture the POST /v1/messages request and SSE response stream.
    encoding. The collector's HTTP decompressor should handle these.
 
 3. **Large message reassembly**: Conversation context can be very large (the
-   full message history is sent with each request). The 512KB MAX_BUF_SIZE
-   in sslsniff.h may truncate large requests. Multiple SSL_write calls may
-   need to be reassembled.
+   full message history is sent with each request). The fixed-size
+   `MAX_BUF_SIZE` in `sslsniff.h` may truncate large requests. Multiple
+   SSL_write calls may need to be reassembled.
 
 ### Files modified
 

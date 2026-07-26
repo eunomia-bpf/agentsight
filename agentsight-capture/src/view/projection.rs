@@ -20,7 +20,7 @@ const PENDING_REQUEST_TTL_MS: u64 = 5 * 60 * 1000;
 const MAX_PENDING_REQUESTS_PER_STREAM: usize = 16;
 
 impl MaterializedView {
-    pub(crate) fn ingest_event(&mut self, event: &Event) -> ViewResult<()> {
+    pub fn ingest_event(&mut self, event: &Event) -> ViewResult<()> {
         self.next_seq += 1;
         let raw_id = format!(
             "event-{}-{}-{}-{}",

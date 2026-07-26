@@ -31,16 +31,41 @@ name = "agentsight"
 version = "0.2.65"
 dependencies = [
  "agent-session",
+ "agentsight-capture",
  "agentvis",
+ "chrono",
+ "clap",
+ "crossterm",
+ "dirs",
+ "env_logger",
+ "futures",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "libc",
+ "log 0.4.33",
+ "mime_guess",
+ "ratatui",
+ "rusqlite",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "agentsight-capture"
+version = "0.2.65"
+dependencies = [
+ "agent-session",
  "async-stream",
  "async-trait",
  "brotli",
  "chrono",
  "chunked_transfer",
- "clap",
- "crossterm",
  "dirs",
- "env_logger",
  "flate2",
  "futures",
  "hex",
@@ -50,17 +75,13 @@ dependencies = [
  "hyper-util",
  "libc",
  "log 0.4.33",
- "mime_guess",
  "num_cpus",
- "ratatui",
  "rusqlite",
- "rust-embed",
  "serde",
  "serde_json",
  "sysinfo",
  "tempfile",
  "tokio",
- "tokio-stream",
  "uuid",
  "zstd",
 ]
@@ -2494,17 +2515,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
-]
-
-[[package]]
-name = "tokio-stream"
-version = "0.1.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3d06f0b082ba57c26b79407372e57cf2a1e28124f78e9479fe80322cf53420b"
-dependencies = [
- "futures-core",
- "pin-project-lite",
- "tokio",
 ]
 
 [[package]]

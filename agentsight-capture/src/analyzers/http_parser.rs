@@ -104,6 +104,12 @@ pub struct HTTPMessage {
     pub status_text: Option<String>,
 }
 
+impl Default for HTTPParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HTTPParser {
     /// Create a new HTTPParser with default settings (raw data included)
     pub fn new() -> Self {

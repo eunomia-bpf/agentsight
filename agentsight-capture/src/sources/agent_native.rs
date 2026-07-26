@@ -10,7 +10,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-support"))]
 use std::fs;
 
 use crate::model::{
@@ -20,8 +20,8 @@ use crate::model::{
 use crate::text::{sanitize_ascii_identifier as sanitize_id, truncate_text};
 use crate::view::MaterializedView;
 
-pub(crate) type LocalSession = AgentSession;
-pub(crate) type SessionCache = agent_session::SessionCache;
+pub type LocalSession = AgentSession;
+pub type SessionCache = agent_session::SessionCache;
 const CODEX_EXEC_DEDUPE_WINDOW_MS: u64 = 2_000;
 const CODEX_FALLBACK_TIME_SLOP_MS: u64 = 30_000;
 const CODEX_ROLLOUT_TAIL_BYTES: u64 = 1024 * 1024;
@@ -36,7 +36,7 @@ struct ObservedCodexPrompt {
     target: Option<String>,
 }
 
-pub(crate) fn snapshot(
+pub fn snapshot(
     cache: &mut SessionCache,
     pid_filter: Option<u32>,
     text_filter: Option<&str>,
@@ -47,7 +47,7 @@ pub(crate) fn snapshot(
     materialized_view(&filtered).export_snapshot(SnapshotOptions { audit_limit: 0 })
 }
 
-pub(crate) fn discover_sessions(
+pub fn discover_sessions(
     cache: &mut SessionCache,
     pid_filter: Option<u32>,
     text_filter: Option<&str>,
@@ -246,19 +246,19 @@ fn view_id(session: &LocalSession) -> String {
     format!("local:{}:{}", session.agent_type, session.display_id)
 }
 
-pub(crate) fn materialized_view(sessions: &[LocalSession]) -> MaterializedView {
+pub fn materialized_view(sessions: &[LocalSession]) -> MaterializedView {
     let mut view = MaterializedView::new();
     view.set_source(AGENT_NATIVE_SOURCE);
     import_into_view(&mut view, sessions);
     view
 }
 
-pub(crate) fn import_recent(view: &mut MaterializedView, limit: usize) {
+pub fn import_recent(view: &mut MaterializedView, limit: usize) {
     let sessions = SessionCache::new().discover_cached(limit, Duration::ZERO);
     import_into_view(view, &sessions);
 }
 
-pub(crate) fn import_into_view(view: &mut MaterializedView, sessions: &[LocalSession]) {
+pub fn import_into_view(view: &mut MaterializedView, sessions: &[LocalSession]) {
     for session in sessions {
         view.upsert_session(&session_row(session));
         for row in llm_rows(session) {
@@ -361,7 +361,7 @@ fn llm_row_for_session(
     }
 }
 
-pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEventRow> {
+pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEventRow> {
     let mut rows = Vec::new();
     let mut seen = HashSet::new();
     let observed_exec_prompts = observed_codex_exec_prompts(audit_rows);
@@ -451,7 +451,7 @@ pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<
     rows
 }
 
-pub(crate) fn observed_sessions_from_audit_rows(audit_rows: &[AuditEventRow]) -> Vec<LocalSession> {
+pub fn observed_sessions_from_audit_rows(audit_rows: &[AuditEventRow]) -> Vec<LocalSession> {
     let mut direct_paths = HashSet::new();
     let mut codex_session_dirs = HashSet::new();
     let observed_codex_prompts = observed_codex_exec_prompts(audit_rows);
@@ -807,8 +807,8 @@ fn matches_filter(
             .contains(&filter)
 }
 
-#[cfg(test)]
-pub(crate) fn create_temp_session_path(agent: &str) -> (tempfile::TempDir, PathBuf) {
+#[cfg(any(test, feature = "test-support"))]
+pub fn create_temp_session_path(agent: &str) -> (tempfile::TempDir, PathBuf) {
     let temp = tempfile::tempdir().unwrap();
     let path = agent_session::fixture_session_path(agent, temp.path()).unwrap();
     fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -816,8 +816,8 @@ pub(crate) fn create_temp_session_path(agent: &str) -> (tempfile::TempDir, PathB
     (temp, path)
 }
 
-#[cfg(test)]
-pub(crate) fn parse_content_for_test(
+#[cfg(any(test, feature = "test-support"))]
+pub fn parse_content_for_test(
     agent: &str,
     path: &std::path::Path,
     updated: std::time::SystemTime,
@@ -826,8 +826,8 @@ pub(crate) fn parse_content_for_test(
     agent_session::parse_session_content(agent, path, updated, content)
 }
 
-#[cfg(test)]
-pub(crate) fn write_codex_state_db_for_test(home: &Path) {
+#[cfg(any(test, feature = "test-support"))]
+pub fn write_codex_state_db_for_test(home: &Path) {
     let codex_dir = home.join(".codex");
     fs::create_dir_all(&codex_dir).unwrap();
     let conn = rusqlite::Connection::open(codex_dir.join("state_5.sqlite")).unwrap();

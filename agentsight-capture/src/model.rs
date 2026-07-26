@@ -7,7 +7,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub type ViewResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
-pub(crate) const AGENT_NATIVE_SOURCE: &str = "agent_native_session";
+pub const AGENT_NATIVE_SOURCE: &str = "agent_native_session";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenSummary {
@@ -85,7 +85,7 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
-    pub(crate) fn empty(source: impl Into<String>) -> Self {
+    pub fn empty(source: impl Into<String>) -> Self {
         Self {
             schema_version: 1,
             generated_at: String::new(),
@@ -118,7 +118,7 @@ pub struct SnapshotSummary {
 }
 
 impl SnapshotSummary {
-    pub(crate) fn empty(source: impl Into<String>) -> Self {
+    pub fn empty(source: impl Into<String>) -> Self {
         Self {
             source: source.into(),
             view_events: 0,
@@ -135,7 +135,7 @@ impl SnapshotSummary {
         }
     }
 
-    pub(crate) fn duration_s(&self) -> f64 {
+    pub fn duration_s(&self) -> f64 {
         match (self.start_timestamp_ms, self.end_timestamp_ms) {
             (Some(start), Some(end)) if end > start => (end - start) as f64 / 1000.0,
             _ => 0.0,
@@ -180,20 +180,18 @@ pub struct AuditEventRow {
 }
 
 #[derive(Debug, Clone, Default)]
-pub(crate) struct AuditCounters {
-    pub(crate) process_execs: usize,
-    pub(crate) process_exits: usize,
-    pub(crate) process_exit_success: usize,
-    pub(crate) process_exit_failure: usize,
-    pub(crate) file_events: usize,
-    pub(crate) network_events: usize,
-    pub(crate) unique_files: BTreeSet<String>,
+pub struct AuditCounters {
+    pub process_execs: usize,
+    pub process_exits: usize,
+    pub process_exit_success: usize,
+    pub process_exit_failure: usize,
+    pub file_events: usize,
+    pub network_events: usize,
+    pub unique_files: BTreeSet<String>,
 }
 
 impl AuditCounters {
-    pub(crate) fn by_pid<'a>(
-        rows: impl IntoIterator<Item = &'a AuditEventRow>,
-    ) -> BTreeMap<u32, Self> {
+    pub fn by_pid<'a>(rows: impl IntoIterator<Item = &'a AuditEventRow>) -> BTreeMap<u32, Self> {
         let mut by_pid = BTreeMap::new();
         for row in rows {
             if let Some(pid) = row.pid {
