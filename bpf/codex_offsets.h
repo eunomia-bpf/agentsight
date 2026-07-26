@@ -59,6 +59,25 @@ static const uint8_t grok_rustls_buffer_plaintext_prefix[] = {
 	0x00, 0x00, 0x80,
 };
 
+/* Validate the OutboundChunks ABI used by the probe, not just the function
+ * prologue. These blocks load the enum tag/count at +0, range at +16/+24,
+ * and data pointer at +8. */
+#define GROK_RUSTLS_OUTBOUND_TAG_OFFSET 0xd7
+#define GROK_RUSTLS_OUTBOUND_RANGE_OFFSET 0xe7
+#define GROK_RUSTLS_OUTBOUND_DATA_OFFSET 0x3f1
+static const uint8_t grok_rustls_outbound_tag[] = {
+	0x4c, 0x8b, 0x26,
+};
+static const uint8_t grok_rustls_outbound_range[] = {
+	0x4c, 0x8b, 0x7e, 0x10, 0x48, 0x8b, 0x7e, 0x18,
+	0x48, 0x89, 0xfb, 0x4c, 0x29, 0xfb, 0x4d, 0x85,
+	0xe4, 0x49, 0x0f, 0x44, 0xdf,
+};
+static const uint8_t grok_rustls_outbound_data[] = {
+	0x48, 0x8b, 0x46, 0x08, 0x4d, 0x85, 0xe4, 0x74,
+	0x1d, 0x4c, 0x8d, 0x3c, 0x3b,
+};
+
 static size_t codex_find_pattern(const uint8_t *data, size_t data_len,
 				 const uint8_t *pattern, size_t pattern_len)
 {
@@ -153,7 +172,7 @@ static bool grok_find_rustls_buffer_plaintext_offset(const char *binary_path,
 {
 	struct stat st;
 	uint8_t *data;
-	size_t found;
+	size_t search = 0;
 	int fd;
 
 	fd = open(binary_path, O_RDONLY);
@@ -168,15 +187,36 @@ static bool grok_find_rustls_buffer_plaintext_offset(const char *binary_path,
 		close(fd);
 		return false;
 	}
-	found = codex_find_pattern(data, (size_t)st.st_size,
-				   grok_rustls_buffer_plaintext_prefix,
-				   sizeof(grok_rustls_buffer_plaintext_prefix));
+	while (search + GROK_RUSTLS_OUTBOUND_DATA_OFFSET
+	       + sizeof(grok_rustls_outbound_data) <= (size_t)st.st_size) {
+		size_t relative = codex_find_pattern(
+			data + search, (size_t)st.st_size - search,
+			grok_rustls_buffer_plaintext_prefix,
+			sizeof(grok_rustls_buffer_plaintext_prefix));
+		size_t found;
+
+		if (relative == (size_t)-1)
+			break;
+		found = search + relative;
+		if (memcmp(data + found + GROK_RUSTLS_OUTBOUND_TAG_OFFSET,
+			   grok_rustls_outbound_tag,
+			   sizeof(grok_rustls_outbound_tag)) == 0
+		    && memcmp(data + found + GROK_RUSTLS_OUTBOUND_RANGE_OFFSET,
+			      grok_rustls_outbound_range,
+			      sizeof(grok_rustls_outbound_range)) == 0
+		    && memcmp(data + found + GROK_RUSTLS_OUTBOUND_DATA_OFFSET,
+			      grok_rustls_outbound_data,
+			      sizeof(grok_rustls_outbound_data)) == 0) {
+			*offset = found;
+			munmap(data, (size_t)st.st_size);
+			close(fd);
+			return true;
+		}
+		search = found + 1;
+	}
 	munmap(data, (size_t)st.st_size);
 	close(fd);
-	if (found == (size_t)-1)
-		return false;
-	*offset = found;
-	return true;
+	return false;
 }
 
 static bool codex_buf_contains(const uint8_t *buf, size_t len,

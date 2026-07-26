@@ -51,11 +51,6 @@ struct {
 const volatile pid_t targ_pid = 0;
 const volatile uid_t targ_uid = -1;
 
-#define MAX_RUSTLS_IOVECS 2
-#define RUSTLS_COPY_CHUNK_SIZE (16 * 1024)
-#define RUSTLS_MAX_CAPTURE_SIZE MAX_BUF_SIZE
-#define MAX_RUSTLS_CHUNKS_PER_IOV 8
-
 struct rustls_iovec {
     const void *base;
     size_t len;
@@ -102,6 +97,40 @@ static __always_inline void submit_rustls_write(struct probe_SSL_data_t *data,
     bpf_ringbuf_submit(data, 0);
 }
 
+static __always_inline u32 copy_rustls_iovec(
+    struct probe_SSL_data_t *data, const struct rustls_iovec *iovec, u32 copied)
+{
+    size_t remaining = iovec->len;
+    const char *source = iovec->base;
+
+#pragma unroll
+    for (int chunk = 0; chunk < MAX_RUSTLS_CHUNKS_PER_IOV; chunk++) {
+        size_t copy_size;
+        u32 destination;
+
+        if (remaining == 0
+            || copied > RUSTLS_MAX_CAPTURE_SIZE - RUSTLS_COPY_CHUNK_SIZE)
+            break;
+        destination = copied;
+        /* The guard above makes this clamp an identity at runtime. Keep it
+         * visible so the verifier can prove destination + copy_size is
+         * bounded even after states from unrolled iovec loops merge. */
+        barrier_var(destination);
+        destination &= RUSTLS_MAX_CAPTURE_SIZE - 1;
+        if (destination > RUSTLS_MAX_CAPTURE_SIZE - RUSTLS_COPY_CHUNK_SIZE)
+            destination = RUSTLS_MAX_CAPTURE_SIZE - RUSTLS_COPY_CHUNK_SIZE;
+        copy_size = remaining;
+        if (copy_size > RUSTLS_COPY_CHUNK_SIZE)
+            copy_size = RUSTLS_COPY_CHUNK_SIZE;
+        if (bpf_probe_read_user(data->buf + destination, copy_size, source))
+            break;
+        copied += copy_size;
+        source += copy_size;
+        remaining -= copy_size;
+    }
+    return copied;
+}
+
 SEC("uprobe/rustls_write")
 int BPF_UPROBE(probe_rustls_write, void *conn, const void *buf, size_t len)
 {
@@ -146,32 +175,13 @@ int BPF_UPROBE(probe_rustls_write_vectored, void *conn,
 #pragma unroll
     for (int i = 0; i < MAX_RUSTLS_IOVECS; i++) {
         struct rustls_iovec iovec = {};
-        size_t remaining;
-        const char *source;
 
         if ((size_t)i >= iovcnt)
             break;
         if (bpf_probe_read_user(&iovec, sizeof(iovec), &iovecs[i]))
             break;
         total += iovec.len;
-        remaining = iovec.len;
-        source = iovec.base;
-#pragma unroll
-        for (int chunk = 0; chunk < MAX_RUSTLS_CHUNKS_PER_IOV; chunk++) {
-            size_t copy_size;
-
-            if (remaining == 0
-                || copied > RUSTLS_MAX_CAPTURE_SIZE - RUSTLS_COPY_CHUNK_SIZE)
-                break;
-            copy_size = remaining;
-            if (copy_size > RUSTLS_COPY_CHUNK_SIZE)
-                copy_size = RUSTLS_COPY_CHUNK_SIZE;
-            if (bpf_probe_read_user(data->buf + copied, copy_size, source))
-                break;
-            copied += copy_size;
-            source += copy_size;
-            remaining -= copy_size;
-        }
+        copied = copy_rustls_iovec(data, &iovec, copied);
     }
 
     if (iovcnt > MAX_RUSTLS_IOVECS && total <= copied)
@@ -229,32 +239,13 @@ int BPF_UPROBE(probe_rustls_buffer_plaintext, void *state,
 #pragma unroll
     for (int i = 0; i < MAX_RUSTLS_IOVECS; i++) {
         struct rustls_iovec iovec = {};
-        size_t remaining;
-        const char *source;
 
         if ((size_t)i >= outbound.count)
             break;
         if (bpf_probe_read_user(&iovec, sizeof(iovec),
                                 &((const struct rustls_iovec *)outbound.data)[i]))
             break;
-        remaining = iovec.len;
-        source = iovec.base;
-#pragma unroll
-        for (int chunk = 0; chunk < MAX_RUSTLS_CHUNKS_PER_IOV; chunk++) {
-            size_t copy_size;
-
-            if (remaining == 0
-                || copied > RUSTLS_MAX_CAPTURE_SIZE - RUSTLS_COPY_CHUNK_SIZE)
-                break;
-            copy_size = remaining;
-            if (copy_size > RUSTLS_COPY_CHUNK_SIZE)
-                copy_size = RUSTLS_COPY_CHUNK_SIZE;
-            if (bpf_probe_read_user(data->buf + copied, copy_size, source))
-                break;
-            copied += copy_size;
-            source += copy_size;
-            remaining -= copy_size;
-        }
+        copied = copy_rustls_iovec(data, &iovec, copied);
     }
     if (copied == 0) {
         bpf_ringbuf_discard(data, 0);

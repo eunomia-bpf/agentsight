@@ -19,6 +19,10 @@
 #define MAX_BUF_SIZE (32 * 1024)
 #define RING_BUFFER_SIZE (16 * 1024 * 1024)  // 16MB ring buffer
 #define TASK_COMM_LEN 16
+#define MAX_RUSTLS_IOVECS 8
+#define RUSTLS_COPY_CHUNK_SIZE (4 * 1024)
+#define RUSTLS_MAX_CAPTURE_SIZE MAX_BUF_SIZE
+#define MAX_RUSTLS_CHUNKS_PER_IOV 8
 
 struct probe_SSL_data_t {
     __u64 timestamp_ns;

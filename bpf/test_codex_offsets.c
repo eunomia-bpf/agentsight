@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: (LGPL-2.1 OR BSD-2-Clause)
 #include <stdbool.h>
+#include <linux/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "codex_offsets.h"
+#include "sslsniff.h"
 
 static int tests_run;
 static int tests_failed;
@@ -109,7 +111,7 @@ static void test_marker_detection(void)
 static void test_grok_signature_detection(void)
 {
 	char template[] = "/tmp/agentsight-grok-offset-test.XXXXXX";
-	uint8_t data[1024] = {};
+	uint8_t data[2048] = {};
 	size_t offset = 0;
 	int fd = mkstemp(template);
 
@@ -119,6 +121,12 @@ static void test_grok_signature_detection(void)
 	memcpy(data + 32, "grok-cli rustls", sizeof("grok-cli rustls"));
 	memcpy(data + 256, grok_rustls_buffer_plaintext_prefix,
 	       sizeof(grok_rustls_buffer_plaintext_prefix));
+	memcpy(data + 256 + GROK_RUSTLS_OUTBOUND_TAG_OFFSET,
+	       grok_rustls_outbound_tag, sizeof(grok_rustls_outbound_tag));
+	memcpy(data + 256 + GROK_RUSTLS_OUTBOUND_RANGE_OFFSET,
+	       grok_rustls_outbound_range, sizeof(grok_rustls_outbound_range));
+	memcpy(data + 256 + GROK_RUSTLS_OUTBOUND_DATA_OFFSET,
+	       grok_rustls_outbound_data, sizeof(grok_rustls_outbound_data));
 	check(write(fd, data, sizeof(data)) == sizeof(data),
 	      "wrote Grok signature fixture");
 	close(fd);
@@ -129,7 +137,7 @@ static void test_grok_signature_detection(void)
 		      && offset == 256,
 	      "finds Grok/rustls buffer_plaintext signature");
 
-	data[256 + sizeof(grok_rustls_buffer_plaintext_prefix) - 1] ^= 0xff;
+	data[256 + GROK_RUSTLS_OUTBOUND_DATA_OFFSET] ^= 0xff;
 	fd = open(template, O_WRONLY | O_TRUNC);
 	check(fd >= 0, "opened Grok fixture for corruption");
 	if (fd >= 0) {
@@ -137,9 +145,46 @@ static void test_grok_signature_detection(void)
 		      "wrote corrupted Grok fixture");
 		close(fd);
 		check(!grok_find_rustls_buffer_plaintext_offset(template, &offset),
-		      "rejects a partial Grok signature match");
+		      "rejects a Grok signature with a changed ABI block");
 	}
 	unlink(template);
+}
+
+static size_t planned_rustls_iovec_capture(const size_t *lengths, size_t count)
+{
+	size_t copied = 0;
+
+	for (size_t i = 0; i < count && i < MAX_RUSTLS_IOVECS; i++) {
+		size_t remaining = lengths[i];
+
+		for (int chunk = 0;
+		     chunk < MAX_RUSTLS_CHUNKS_PER_IOV && remaining > 0;
+		     chunk++) {
+			size_t copy_size;
+
+			if (copied > RUSTLS_MAX_CAPTURE_SIZE
+				     - RUSTLS_COPY_CHUNK_SIZE)
+				break;
+			copy_size = remaining > RUSTLS_COPY_CHUNK_SIZE
+				? RUSTLS_COPY_CHUNK_SIZE : remaining;
+			copied += copy_size;
+			remaining -= copy_size;
+		}
+	}
+	return copied;
+}
+
+static void test_rustls_iovec_capture_plan(void)
+{
+	const size_t three_slices[] = { 20 * 1024, 1024, 32 };
+	const size_t full_buffer[] = { RUSTLS_MAX_CAPTURE_SIZE };
+
+	check(planned_rustls_iovec_capture(three_slices, 3)
+		      == 21 * 1024 + 32,
+	      "captures a third slice after a 20 KiB first slice");
+	check(planned_rustls_iovec_capture(full_buffer, 1)
+		      == RUSTLS_MAX_CAPTURE_SIZE,
+	      "fills the rustls capture budget from one large slice");
 }
 
 int main(void)
@@ -148,6 +193,7 @@ int main(void)
 	test_signature_detection();
 	test_marker_detection();
 	test_grok_signature_detection();
+	test_rustls_iovec_capture_plan();
 	printf("Tests passed: %d\n", tests_run - tests_failed);
 	printf("Tests failed: %d\n", tests_failed);
 	return tests_failed == 0 ? 0 : 1;
