@@ -21,7 +21,7 @@ truth remain excluded. The full Chinese study contract is
 | RQ1 artifact consolidation/revival | Final survival for confirmed introductions, lineage reuse/revival, first/repeat-observed mutation and identity concentration. | Six-case reuse/repetition evidence complete. The 2026-07-25 HEAD recompute (after the projection hardening) lifts confirmed-create persistence from coverage-only 3/6 to 6/6; sessions are now counted as 551 native roots (2,049 source files before dedup). | Add dormant-to-revived state transitions without converting repeated activity into a progress score. |
 | RQ2 validation response | Recognized success/failure cadence, mutation backlog and event-distance response around validation. | F5 evidence complete for 6/6 source-covered projects after the HEAD recompute (was 3/6); the cross-case stop is lifted and its re-review is open. | Re-review the cross-case response question over the six covered cases. |
 | RQ3 workspace focus evolution | Artifact-class allocation, same-artifact/same-module/cross-module transitions, hotspot turnover and return gaps. | F8a/F8b complete; all six cases now carry return evidence (eunomia.dev cross-session repeat episodes 1 to 29 after session-join repair); pooled unknown-create births 790 to 0. | Add rank-turnover/cooling curves; keep action order distinct from time or internal attention. |
-| RQ4 cross-session continuity | Native-root/source-stream structure, adjacent non-overlapping components, pre-mutation re-grounding and prior artifact/module overlap. | F7 is coverage/within-case evidence. Recomputed with corrected native-root/subagent identity: the four-project estimator gate still stops, now established as data-limited (3/6 projects reach 20 boundaries), not identity-limited. | Estimating continuity requires more eligible boundaries, not further identity repair. |
+| RQ4 cross-session continuity | Native-root/source-stream structure, adjacent non-overlapping components, pre-mutation re-grounding and prior artifact/module overlap. | F7 is coverage/within-case evidence. The final-HEAD projection forms 121 components/111 boundaries: agentsight 31/28, ActPlane 24/22, bpf-developer-tutorial 29/28, eunomia.dev 18/16, agentskill-observability-paper 2/1, and academic-writing-skills 17/16. The four-project estimator gate still stops, established as data-limited (3/6 projects reach 20 boundaries), not identity-limited. | Estimating continuity requires more eligible boundaries, not further identity repair. |
 | RQ5 Skill/instruction footprints | Exact Skill name/arguments and source attribution blocked by native root session; separate instruction focal events. | Fresh six-case run and independent 2,063-stream checker pass. Five exact-context Skill strata qualify, but only one project supports a two-Skill comparison: same/different JSD 0.116/0.123, exact root-block p=0.750 over 12 admissible assignments. | Report source-attributed coverage and no supported repeatable Skill separation; make no fingerprint or causal harness claim. |
 | RQ6 external boundary | Replicate compatible within-attempt relations separately in public coding and scientific-process traces; mark persistence/re-grounding N/A without persistent lineage. | Complete over 64 independent task instances per Open-SWE stratum (256 selections, 255 unique IDs across strata) and 64 IdeaTrail topics. All five strata pass the 64-unit gate and the independent checker reconciles 31,249 Tool calls and 22,113 transitions without mismatch. Cross-module movement is 18.0--30.0% publicly versus 2.1--20.2% locally; median intervening calls before module return are 2--3 versus 2--4. | Report path locality/return recurrence and the magnitude difference; keep persistent lineage, cross-session re-grounding, and Skill attribution N/A. |
 | Separate measurement capability | Compare source-verifiable factual coverage and abstention for Final State, Counts, ProcGrep, bounded Raw-log reader and artifact-linked trajectories. | Repaired. On 2026-07-23 the frozen implementation scored 32/60 B+C against the frozen source-direct oracle. After root-cause repair (session join, failed-call effects, shell path extraction, event workdir) and oracle correction to v4, the current implementation scores B 30/30, C 30/30, D 30/30, A 12/30 against the corrected oracle: 60/60 B+C on this corpus. Raw remains N/A after a retrieval-engaged preflight boundary stop. No general exact-fact capability claim; the A gap is a deliberate grammar difference (trajectory preserves ProcGrep's action spine, v4 re-derives atoms source-direct). | Keep conformance as a standing gate for any future projection change. |
@@ -53,18 +53,18 @@ associated with a preceding mutation only when it occurs before that artifact
 is superseded; it does not prove coverage or correctness of the change.
 
 **Reviewed outcome.** As frozen on 2026-07-22, the authoritative cutoff admits
-2,049 native session files and 206,249 Tool actions; 1,825 sessions and
-175,850 actions are worktree-attributed. The extraction yields 7,154 observed
+2,049 native session files and 206,249 Tool actions; 1,825 sessions are
+worktree-attributed. The extraction yields 7,154 observed
 artifact identities and 13,152 confirmed mutation rows.
 
-**Recomputed outcome (2026-07-25, after the projection hardening).** The same
+**Final-HEAD recomputed outcome (2026-07-25, after the projection hardening).** The same
 cutoff and inclusion contract now admit 551 native root sessions (the 2,049
 source files minus subagent/continuation duplicates; a counting-semantics
-change, not data loss: attributed actions are stable at 175,619 versus
-175,850, −0.13%) and 181,303 Tool actions. The extraction yields 5,792
-observed artifact identities and 13,905 confirmed mutation rows (+5.7%, mostly
+change, not data loss: all 551 roots and 176,288 actions are worktree-attributed,
+with attributed actions +0.25% versus the frozen run) and 181,303 Tool actions.
+The extraction yields 5,746 observed artifact identities and 13,906 confirmed mutation rows (+5.7%, mostly
 eunomia.dev's recovered Claude activity: 170 to 739). All six projects pass
-the longitudinal gate. Later reuse is observed for 89.29--97.02% of eligible
+the longitudinal gate. Later reuse is observed for 89.29--97.11% of eligible
 mutations, and its descriptive association with action volume is Spearman rho
 0.2000 (was 0.0857). All six projects now have an eligible confirmed create
 and a recognized successful validation, so persistence and validation move

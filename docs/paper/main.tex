@@ -45,7 +45,7 @@ research projects through introduced-artifact persistence, later reuse,
 validation association, repeated mutation, workspace-activity migration, and
 cross-session continuity.  Under the admitted local projection, across 551
 native root sessions and 181,303 Tool actions,
-89.3--97.0\% of eligible mutations are later revisited, yet action volume only
+89.3--97.1\% of eligible mutations are later revisited, yet action volume only
 weakly orders the cross-project reuse relation ($\rho=0.20$).  Repeat-observed
 episodes account for 74.5--90.8\% of mutation episodes, with 42.0--86.7\% of
 episodes concentrated in the most-mutated 10\% of identities.  Source coverage
@@ -75,6 +75,10 @@ progress.  Final state omits reads, failed validations, transient artifacts,
 overwritten attempts, and the work of re-establishing context after a session
 boundary.  Raw logs preserve these events but not the cross-session artifact
 lineage needed to connect them.
+We use ``progress'' strictly in the descriptive sense of this paper: whether
+observed activity consolidates into persistent, revisited, and
+validation-associated artifacts---not as a judgment of outcome quality,
+correctness, or developer productivity.
 
 Trajectory studies already characterize action sequences, validation behavior,
 and destructive revision in benchmark attempts
@@ -108,7 +112,7 @@ coordinates never enter the measurements.  Independent source-direct checkers
 test the projection rather than accepting its rows as truth.
 
 Across 551 native root sessions and 181,303 Tool actions in six projects,
-eligible-mutation reuse is 89.3--97.0\% but action volume only weakly orders
+eligible-mutation reuse is 89.3--97.1\% but action volume only weakly orders
 the six-case reuse relation ($\rho=0.20$).  Repeat-observed mutations are
 common and concentrated; recognized successful validation covers all 6/6
 cases after repair.  The only eligible Skill comparison shows no repeatable
@@ -239,9 +243,9 @@ matches are a separate sensitivity source because they omit surrounding
 no-file calls.
 
 The corpus comprises 551 native root sessions, deduplicated from 2,049 source
-transcript files, and 181,303 Tool actions; 550 roots and 175,619 actions
-resolve to retained worktrees.  The repaired projection yields 5,792 artifact
-identities and 13,905 confirmed mutation rows.  All six cases pass the
+transcript files, and 181,303 Tool actions; 551 roots and 176,288 actions
+resolve to retained worktrees.  The repaired projection yields 5,746 artifact
+identities and 13,906 confirmed mutation rows.  All six cases pass the
 longitudinal gate, but each estimand retains its own source-coverage
 denominator.  Primary outputs are project-level effect sizes, distributions,
 cumulative-incidence curves, and explicit coverage.  Model-derived motifs or
@@ -263,7 +267,7 @@ mutated lineages, and whether activity volume orders those outcomes.
 All six cases contain eligible confirmed introductions after projection repair
 and therefore support introduced-artifact persistence: the project proportions
 are 974/1043, 28/245, 18/30, 8/18, 18/18, and 1/1.  Later reuse appears for
-89.29--97.02\% of eligible mutations.  Its descriptive cross-project
+89.29--97.11\% of eligible mutations.  Its descriptive cross-project
 association with worktree-attributed action volume is only Spearman
 $\rho=0.2000$, so action count weakly orders even this widely covered relation
 in the selected cases (Figure~\ref{fig:rq1-activity}).  Repeat-observed episodes
@@ -325,7 +329,7 @@ Streams sharing a native root remain one independent block, and transitive
 concurrency components prevent us from inventing order among overlapping
 sessions.  Only adjacent non-overlapping components are compared for
 pre-mutation re-grounding and prior artifact/module overlap.  The projection
-forms 121 components and 108 boundaries, but timing is defined only when a
+forms 121 components and 111 boundaries, but timing is defined only when a
 first mutation is observed and empty denominators remain undefined.  After
 corrected root/subagent joining, only three of six projects reach 20 eligible boundaries;
 the preregistered four-project estimator gate therefore still stops.  RQ4 is a
@@ -488,6 +492,13 @@ traces reproduce path locality and short module returns but not longitudinal
 lineage.  Finally, a frozen 32/60 B+C conformance failure led to root-cause
 repair and 60/60 on the corrected corpus oracle, without implying a general
 exact-fact capability.
+
+\paragraph{Data availability.}
+Exported source-linked rows, the 120-question conformance benchmark with
+expected answers, and all analysis code are released in the anonymized
+repository (link on OpenReview).  Raw native session records contain private
+prompts and filesystem paths and are not redistributable; every reported
+statistic is recomputable from the released rows without them.
 
 \clearpage
 \bibliography{references}

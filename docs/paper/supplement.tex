@@ -49,7 +49,7 @@ research projects through introduced-artifact persistence, later reuse,
 validation association, repeated mutation, workspace-activity migration, and
 cross-session continuity.  Under the admitted local projection, across 551
 native root sessions and 181,303 Tool actions,
-89.3--97.0\% of eligible mutations are later revisited, yet action volume only
+89.3--97.1\% of eligible mutations are later revisited, yet action volume only
 weakly orders the cross-project reuse relation ($\rho=0.20$).  Repeat-observed
 episodes account for 74.5--90.8\% of mutation episodes, with 42.0--86.7\% of
 episodes concentrated in the most-mutated 10\% of identities.  Source coverage
@@ -460,9 +460,9 @@ sessions and retains actions with no file effect.  We report source coverage by
 project, vendor, session, effect, status, and path presence.  Global path-only
 matches form a separate sensitivity analysis.  The corpus contains
 551 admitted native root sessions (2,049 source transcript files before
-subagent and continuation deduplication) and 181,303 Tool actions; 550 roots
-and 175,619 actions resolve to retained worktrees.  It yields 5,792 observed
-artifact identities and 13,905 confirmed mutation rows.  All six projects pass
+subagent and continuation deduplication) and 181,303 Tool actions; 551 roots
+and 176,288 actions resolve to retained worktrees.  It yields 5,746 observed
+artifact identities and 13,906 confirmed mutation rows.  All six projects pass
 the longitudinal gate, although source coverage for individual measurements
 varies substantially.
 
@@ -489,7 +489,7 @@ Existing-file writes have unknown content durability unless native diffs,
 snapshots, or Git line evidence establish it independently.
 
 Figure~\ref{fig:rq1-progress} separates the three dimensions.  All six projects
-support later-reuse analysis: 89.3--97.0\% of eligible mutations receive a
+support later-reuse analysis: 89.3--97.1\% of eligible mutations receive a
 later observed access, with delete before reuse treated as a competing outcome.
 After projection repair, all six projects also expose an eligible
 confirmed create and an adapter-recognized successful validation, so the
@@ -575,8 +575,8 @@ revision and module switching remain open facets of the broader question.
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/rq3-rework-structure.pdf}
-  \caption{RQ1 repeated-mutation structure for 5,792 observed identities,
-  2,440 mutated identities, and 13,859 mutation episodes (13,905 source rows).
+  \caption{RQ1 repeated-mutation structure for 5,746 observed identities,
+  2,431 mutated identities, and 13,860 mutation episodes (13,906 source rows).
   The all-identity zero mass is separated from the conditional CCDF; the
   concentration curve uses the exact fractional 10\% boundary; and the repeat
   fraction evolves as an action-atomic post-action step function.}
@@ -589,7 +589,7 @@ Native records expose root/subagent identity unevenly across vendors, and many
 source streams share one native root session or overlap in time.  RQ4 therefore
 keeps shared-root streams in one independent block and forms transitive concurrency components
 within each worktree lane and compares only adjacent non-overlapping
-components.  Figure~\ref{fig:rq4-continuity} reports 121 components and 108
+components.  Figure~\ref{fig:rq4-continuity} reports 121 components and 111
 boundaries, including mutation-observed prefix composition and defined
 artifact/module overlap.  Fewer than four projects reach 20 eligible boundaries
 for every estimator; the preregistered gate stops.  A recompute with corrected
