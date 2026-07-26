@@ -53,8 +53,10 @@ const volatile uid_t targ_uid = -1;
 
 #define MAX_RUSTLS_IOVECS 2
 #define RUSTLS_COPY_CHUNK_SIZE (16 * 1024)
-#define RUSTLS_MAX_CAPTURE_SIZE (256 * 1024)
 #define MAX_RUSTLS_CHUNKS_PER_IOV 8
+
+_Static_assert(RUSTLS_COPY_CHUNK_SIZE <= MAX_BUF_SIZE,
+               "Rustls copy chunks must fit the event buffer");
 
 struct rustls_iovec {
     const void *base;
@@ -99,8 +101,7 @@ int BPF_UPROBE(probe_rustls_write, void *conn, const void *buf, size_t len)
     u32 pid = pid_tgid >> 32;
     u32 tid = (u32)pid_tgid;
     u32 uid = bpf_get_current_uid_gid();
-    u32 copied = len > RUSTLS_MAX_CAPTURE_SIZE
-        ? RUSTLS_MAX_CAPTURE_SIZE : (u32)len;
+    u32 copied = len > MAX_BUF_SIZE ? MAX_BUF_SIZE : (u32)len;
 
     if (!trace_allowed(uid, pid) || !buf || len == 0)
         return 0;
@@ -151,7 +152,7 @@ int BPF_UPROBE(probe_rustls_write_vectored, void *conn,
             size_t copy_size;
 
             if (remaining == 0
-                || copied > RUSTLS_MAX_CAPTURE_SIZE - RUSTLS_COPY_CHUNK_SIZE)
+                || copied > MAX_BUF_SIZE - RUSTLS_COPY_CHUNK_SIZE)
                 break;
             copy_size = remaining;
             if (copy_size > RUSTLS_COPY_CHUNK_SIZE)
