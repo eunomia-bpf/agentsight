@@ -552,32 +552,28 @@ with deeper children under several diagnostic paths.}
 \end{figure*}
 
 The focused task contains 489 operations and 4{,}558{,}192 provider-reported
-tokens from OpenHands/Claude, OpenHands/DeepSeek, and Terminus2/DeepSeek.
-% 该聚焦任务包含来自 OpenHands/Claude、OpenHands/DeepSeek 与 Terminus2/DeepSeek 的 489 个 operation 和 4,558,192 个 provider-reported token。
-By count, Terminus2 contributes 56.24\% and OpenHands 43.76\%; by tokens,
-OpenHands contributes 86.62\%.
-% 按 operation 数量，Terminus2 占 56.24\%，OpenHands 占 43.76\%；按 token，OpenHands 占 86.62\%。
-The repeated \texttt{diagnose authentication} operation directly contains 97
-operations and 1{,}936{,}828 tokens; its complete
-recursive subtree contains 105 operations and 2{,}103{,}587 tokens (21.47\%
-and 46.15\% of the focused task).
-% 重复的“诊断 SSH 密码认证失败”frame 直接包含 97 个 operation 和 1,936,828 个 token；其完整递归子树包含 105 个 operation 和 2,103,587 个 token，分别占聚焦任务的 21.47\% 和 46.15\%。
-Source drilldown shows both OpenHands executions returning to this
-responsibility after control or fallback attempts; all three executions verify
-web deployment or substitute transport paths, but none establishes the
-requested password-authenticated \texttt{git@localhost} path.
-% Source drilldown 显示两条 OpenHands 执行在 control 或 fallback 尝试后都返回该职责；三条执行均验证了 web 部署或替代 transport 路径，但没有一条建立所要求的密码认证 \texttt{git@localhost} 路径。
+tokens from OpenHands/Claude, OpenHands/DeepSeek, and Terminus2/DeepSeek:
+by count, Terminus2 contributes 56.24\% and OpenHands 43.76\%, while by tokens
+OpenHands contributes 86.62\%. The repeated \texttt{diagnose authentication}
+operation directly contains 97 operations and 1{,}936{,}828 tokens, and its
+complete recursive subtree contains 105 operations and 2{,}103{,}587 tokens
+(21.47\% and 46.15\% of the focused task); source drilldown shows both OpenHands
+executions returning to this responsibility after control or fallback attempts,
+and although all three executions verify web deployment or substitute transport
+paths, none establishes the requested password-authenticated \texttt{git@localhost}
+path.
+% 该聚焦任务包含来自 OpenHands/Claude、OpenHands/DeepSeek 与 Terminus2/DeepSeek 的 489 个 operation 和 4,558,192 个 provider-reported token：按数量 Terminus2 占 56.24%、OpenHands 占 43.76%，按 token OpenHands 占 86.62%。重复的 \texttt{diagnose authentication} operation 直接包含 97 个 operation 和 1,936,828 个 token，其完整递归子树包含 105 个 operation 和 2,103,587 个 token（占聚焦任务的 21.47\% 和 46.15%）；source drilldown 显示两条 OpenHands 执行在 control 或 fallback 尝试后都返回该职责，三条执行虽均验证 web 部署或替代 transport 路径，但没有一条建立所要求的密码认证 \texttt{git@localhost} 路径。
 As a post-hoc organization control, we replay the same 489 source operations and
 both weights over common \texttt{project, agent} prefixes and \texttt{call, tool}
 leaves with three middles---native \texttt{session, prompt}, coarse
 \texttt{action kind, raw action}, or semantic---so all six profiles conserve
 exact mass and open in stock pprof. The SSH members scatter across 105 native
-calls and span six coarse action kinds (largest branch 39.42\% of their tokens);
-102 of 105 are merely \texttt{run} with 97 unrelated operations. Only the
-semantic organization yields one focusable cross-run responsibility, exposing a
-bottleneck an operation-count view understates; the responsibility itself was
-fixed from the prior case, so this control measures organization.
-% 作为 post-hoc 同输入组织对照，我们用相同 489 个 operation、相同权重，在固定 project/agent prefix 与 call/tool leaf 下重放 native、coarse 与 semantic 三种中间组织，所得六个 profile 均精确保守质量。SSH responsibility 在 native 中分散到 105 个 call，在 coarse 中跨六个 action kind（最大分支仅 39.42%），且 102/105 仅为 run 并混入 97 个无关 operation；只有 semantic 组织给出单一可聚焦的跨运行责任，暴露 operation count 明显低估的瓶颈。该对照说明组织差异，不是独立发现准确率。
+calls and span six coarse action kinds (largest branch 39.42\% of their tokens),
+with 102 of 105 merely \texttt{run} alongside 97 unrelated operations. Only the
+semantic organization yields one focusable cross-run responsibility that an
+operation-count view understates; fixed from the prior case, this control
+measures organization.
+% 作为 post-hoc 同输入组织对照，我们用相同 489 个 operation 与权重，在固定 project/agent prefix 与 call/tool leaf 下重放 native、coarse、semantic 三种中间组织，所得六个 profile 均精确保守质量。SSH responsibility 在 native 中分散到 105 个 call，在 coarse 中跨六个 action kind（最大分支仅 39.42%），且 102/105 仅为 run 并混入 97 个无关 operation；只有 semantic 组织给出单一可聚焦的跨运行责任，暴露 operation count 明显低估的瓶颈。该 responsibility 取自前一案例，故此对照衡量组织差异。
 This repeated real task supports RQ1's multi-resource attribution hypothesis:
 one shared responsibility path reunites the SSH work across executions, while
 the selected additive measure changes its attributed importance.
@@ -610,12 +606,10 @@ RQ2 asks whether target-blind profiles place independently annotated problems
 in groups a developer can inspect early. We run complete AgentProcessBench,
 HINTBench, and TraceElephant workloads~\cite{agentprocessbench,hintbench,traceelephant}.
 
-Within each workload, we fix operations, target-blind paths, benchmark
-judge/localizer predictions, and scoring rules before loading test targets.
-Group scores aggregate frozen benchmark-judge predictions per operation group
-(Wilson lower bound for HINTBench/TraceElephant; vote averaging for
-AgentProcessBench)~\cite{wilson1927}, with snapshot details in the appendix.
-% group score 在每个 operation group 上聚合冻结的 benchmark-judge 预测（HINTBench/TraceElephant 用 Wilson 下界，AgentProcessBench 用投票平均），snapshot 细节见附录。
+Within each workload, operations, target-blind paths, benchmark predictions,
+and scoring are fixed before loading test targets
+(Appendix~\ref{app:rq2-scoring}).
+% 各 workload 中，operation、target-blind path、benchmark 预测与评分规则均在加载 test target 前固定（细节见附录~\ref{app:rq2-scoring}）。
 
 The main test asks whether the profile adds information beyond the
 \emph{direct diagnostic}---the per-operation output of a benchmark-native
@@ -727,10 +721,10 @@ all 338 good members into one signed operation-count pprof, preserving the same
 source occurrences on both the recursive and fixed-chain projections.
 % 在读取 outcome 或专家 annotation 之前，三个 automatic Agent worker 为全部 7,229 个 source operation 生成 2,131 个稀疏递归 annotation；所得层次在 LLM-call 与 tool-call evidence leaf 之前达到 semantic depth 4。随后我们将全部 338 个 bad member 和 338 个 good member 折叠进一个 signed operation-count pprof，并保证递归投影与 fixed-chain 投影使用完全相同的 source occurrence。
 
-\begin{figure*}[t]
+\begin{figure}[tb]
 \centering
-\includegraphics[width=.65\linewidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-recovery-bad-excess.operations.png}\\[2pt]
-\includegraphics[width=.65\linewidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-completion-good-excess.operations.png}
+\includegraphics[width=\columnwidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-recovery-bad-excess.operations.png}\\[2pt]
+\includegraphics[width=\columnwidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-completion-good-excess.operations.png}
 \caption{Focused paper renderings of the signed pprof profile over all
 338 bad--good pairs. The top panel selects positive samples under
 \texttt{recover interaction}: 3{,}286 bad-side versus 455 good-side
@@ -742,7 +736,7 @@ descends from browser-task responsibilities into recovery and specific retry
 or inspection operations. The lower graph descends through task completion to
 source LLM and tool calls.}
 \label{fig:agentreward-diff}
-\end{figure*}
+\end{figure}
 
 The aggregate contains 7{,}366 bad-side and 3{,}780 good-side operation
 occurrences. Recovery accounts for 44.6\% of bad-side occurrences but only
@@ -925,15 +919,8 @@ not annotation latency; the annotation pass's wall clock includes provider
 waiting without isolating it.
 % 两个自动 Agent annotation wave 的 artifact 时间窗合计 54.36 分钟，但该窗口混合 inference、调度、空闲与写文件，不能当作模型计时；上述插桩的 AgentRewardBench pass 已取代该 envelope 成为可报告的 annotation 成本；因此 1.17 秒是 replay 而非 annotation latency，fresh-pass wall clock 含未单独隔离的 provider 等待。
 
-\subsection{Scope and Limitations}
-
-Results apply to the named populations and annotation protocols.
-RQ4 measures fixed-input replay and the deterministic A2 path from normalized
-operations plus released raw archives. It excludes capture, raw-to-normalized
-conversion, and live-agent overhead; automatic annotation cost is instrumented
-on the complete AgentRewardBench and Git populations, while the reported
-54.36-minute artifact envelope is not model latency.
-% 结果适用于声明的 population 与 annotation protocol。RQ4 测量 fixed-input replay 与 deterministic A2 path，不包含 capture、raw-to-normalized conversion 与 live-agent overhead；automatic annotation 成本已在完整的 AgentRewardBench 与 Git population 上插桩测量，54.36 分钟的 artifact envelope 并非模型时延。
+Scope details appear in Appendix~\ref{app:scope}.
+% 范围细节见附录~\ref{app:scope}。
 
 
 %% ===================================================================
@@ -1048,6 +1035,13 @@ eliminating artificial leaf groups without reading a stage label.
 
 \subsection{RQ2 Scoring Details}
 \label{app:rq2-scoring}
+
+Within each workload, we fix operations, target-blind paths, benchmark
+judge/localizer predictions, and scoring rules before loading test targets.
+Group scores aggregate frozen benchmark-judge predictions per operation group
+(Wilson lower bound for HINTBench/TraceElephant; vote averaging for
+AgentProcessBench)~\cite{wilson1927}.
+% 各 workload 中，operation、target-blind path、benchmark judge/localizer 预测与评分规则均在加载 test target 前固定；group score 在每个 operation group 上聚合冻结的 benchmark-judge 预测（HINTBench/TraceElephant 用 Wilson 下界，AgentProcessBench 用投票平均）。
 
 Of HINTBench's reported 629 trajectories, the released test snapshot used here
 contains 536. A separate 80-trajectory validation snapshot selects one of 24
@@ -1191,6 +1185,14 @@ positive comparison to majority is unchanged.
 
 \subsection{Extended Scope and Limitations}
 \label{app:scope}
+
+Results apply to the named populations and annotation protocols.
+RQ4 measures fixed-input replay and the deterministic A2 path from normalized
+operations plus released raw archives. It excludes capture, raw-to-normalized
+conversion, and live-agent overhead; automatic annotation cost is instrumented
+on the complete AgentRewardBench and Git populations, while the reported
+54.36-minute artifact envelope is not model latency.
+% 结果适用于声明的 population 与 annotation protocol。RQ4 测量 fixed-input replay 与 deterministic A2 path，不包含 capture、raw-to-normalized conversion 与 live-agent overhead；automatic annotation 成本已在完整的 AgentRewardBench 与 Git population 上插桩测量，54.36 分钟的 artifact envelope 并非模型时延。
 
 CodeTraceBench is the complete development population for the Agent-assisted
 constructor; OSWorld-Human separately evaluates recurrence and supervised
