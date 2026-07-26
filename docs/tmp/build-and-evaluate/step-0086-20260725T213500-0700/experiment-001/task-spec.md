@@ -72,3 +72,11 @@ checks (coverage, conservation, stock-pprof load).
 If the workspace tooling cannot ingest these local sessions directly,
 STOP after Phase 2 and write results.md describing the exact gap — do not
 improvise a parallel parser.
+
+## Amendment (binding, from the orchestrator)
+
+Drop every SHA-256/checksum requirement in this spec. `frozen-population.json`
+needs only: source-relative path, byte length at freeze time (practical cut
+point for still-growing session files), and agent kind. No hashing, no
+freeze ceremony, no "no rescan" audit language — just the simple session
+list. If you already computed hashes, leave them; do not compute more.
