@@ -176,7 +176,7 @@ When `--binary-path` is specified, sslsniff:
 
 **Output Format:**
 - Each SSL event is output as a JSON object
-- eBPF capture is limited to 32KB per event due to kernel constraints
+- eBPF capture is bounded by `MAX_BUF_SIZE` per event; oversized reads are marked truncated
 - Events include timestamps, process info, and SSL data
 - Handshake events show SSL negotiation details
 
@@ -305,7 +305,7 @@ All events follow a common base schema with event-specific fields:
 
 **SSL Event Fields:**
 - `uid`: User ID of the process (uint32)
-- `data`: SSL traffic data (string, max 32KB)
+- `data`: SSL traffic data (string, bounded by `MAX_BUF_SIZE`)
 - `data_len`: Length of data captured (uint32)
 - `truncated`: Whether data was truncated due to size limits (boolean)
 
