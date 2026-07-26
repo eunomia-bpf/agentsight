@@ -1,6 +1,6 @@
 # RQ2 Recognized-Validation Dynamics
 
-Supporting coverage and within-case evidence only; 3/6 projects expose a recognized successful validation.
+Supporting coverage and within-case evidence only; 6/6 projects expose a recognized successful validation.
 
 | Project | Attributed actions | Success/fail/observed | Co-observed mutation rows | Complete worktree-local intervals |
 |---|---:|---:|---:|---:|
