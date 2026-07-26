@@ -52,8 +52,8 @@ We evaluate \sys on 405 human-staged CodeTraceBench trajectories, three
 complete public localization benchmarks, 287 OSWorld-Human sessions, three
 population case studies, and four public cost workloads.
 % 我们在 405 条带人工 stage 的 CodeTraceBench 轨迹、三个完整公开 localization benchmark、287 个 OSWorld-Human session、三个 population case study 和四个公开成本 workload 上评估 \sys。
-Automatic Agent annotation raises ordinary B$^3$ F1 against human stages from
-0.541 for raw action and 0.663 for recurrence to 0.704. On three complete
+Direct Agent annotation raises ordinary B$^3$ F1 against human stages from
+0.541 for raw action and 0.663 for recurrence to 0.764. On three complete
 localization workloads, AgentProf raises MAP over benchmark-native direct
 diagnostics by 0.031, 0.107, and 0.117. As a reading index on TraceElephant,
 the semantic hierarchy guides a strong trajectory reader to equal ranking
@@ -61,7 +61,7 @@ quality while opening only 53.0\% of the source evidence---versus 65.0\% for
 an information-matched raw-action grouping at the same quality---and
 skeleton-guided drilldown remains available beyond the context window where
 whole-trace reading fails.
-% 自动 Agent 标注将相对人工 stage 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.704。在三个完整 localization workload 上，AgentProf 相对 benchmark-native direct diagnostic 将 MAP 分别提高 0.031、0.107 和 0.117。在 TraceElephant 上作为阅读索引时，语义层次引导强 trajectory reader 达到同等排名质量，只打开 53.0\% 的 source evidence，而信息匹配的 raw-action 分组需打开 65.0\%；骨架引导的下钻可超越整条轨迹阅读失效的上下文窗口边界。
+% 直接 Agent 标注将相对人工 stage 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.764。在三个完整 localization workload 上，AgentProf 相对 benchmark-native direct diagnostic 将 MAP 分别提高 0.031、0.107 和 0.117。在 TraceElephant 上作为阅读索引时，语义层次引导强 trajectory reader 达到同等排名质量，只打开 53.0\% 的 source evidence，而信息匹配的 raw-action 分组需打开 65.0\%；骨架引导的下钻可超越整条轨迹阅读失效的上下文窗口边界。
 Evaluated task-family and action backends reach 0.695 and 0.498 macro-F1,
 label-free recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1 on
 OSWorld-Human, and, after marks are fixed, \sys constructs a
@@ -169,10 +169,10 @@ call, retaining raw session and prompt identities as pprof labels for drilldown.
 %% ¶7: Results
 Across 405 released CodeTraceBench trajectories reconstructable from
 source~\cite{li2026codetracer},
-automatic Agent annotation reaches 0.704 ordinary B$^3$ F1 against human
+direct Agent annotation reaches 0.764 ordinary B$^3$ F1 against human
 stages, vs.\ 0.663 for multi-resolution recurrence and 0.541 for raw
 action.
-% 在 released source 能生成官方 operation sequence 的全部 405 条 CodeTraceBench 轨迹上，自动 Agent 标注相对人工 stage 的普通 B$^3$ F1 为 0.704，高于 multi-resolution recurrence 的 0.663 和 raw action 的 0.541。
+% 在 released source 能生成官方 operation sequence 的全部 405 条 CodeTraceBench 轨迹上，直接 Agent 标注相对人工 stage 的普通 B$^3$ F1 为 0.764，高于 multi-resolution recurrence 的 0.663 和 raw action 的 0.541。
 Across three complete public workloads, AgentProf refines benchmark-native
 direct diagnostic ties and raises MAP by 0.031, 0.107, and 0.117,
 respectively~\cite{agentprocessbench,hintbench,traceelephant}.
@@ -404,31 +404,23 @@ methods, and the label-free recurrence constructor use the same annotation
 contract, so the profiler does not depend on one model or inference service.
 % 默认的 Agent-assisted backend 读取 source content 与当前 path 做出这些决策；普通语言模型、确定性规则、change-point 方法和无标签 recurrence constructor 使用相同 annotation contract，因此 profiler 不依赖单一模型或推理服务。
 
-The evaluated Agent backend instantiates this contract with a fixed binary
-recursive policy. For an interval, it receives target-blind task text, the
-active ancestor path, and every source-visible turn summary in that interval,
-then returns either \textsc{Stop} or
-\textsc{Split}(\emph{non-first turn}, \emph{left name}, \emph{right name}).
-A child name equal to the current frame stays, one equal to an ancestor pops
-to that frame, and a new name pushes one frame; equal resolved children fail
-closed. A one-turn interval, \textsc{Stop}, or a split whose sides both
-resolve to the unchanged path terminates the branch; otherwise nonempty
-children recurse independently. There is no depth cap, leaf cap, length
-threshold, or score-tuned contraction, and after recursion the materializer
-emits a sparse mark only when the complete path changes, merging adjacent
-identical paths but never nonadjacent or unequal ones.
-% 评测的 Agent backend 使用固定二元递归策略实例化该 contract：对每个 interval，它只读取 target-blind task text、active ancestor path 及 interval 内全部 source-visible turn summary，并输出 Stop 或 Split(非首 turn、左右名称)；名称匹配当前 frame 时 stay，匹配 ancestor 时 pop，新名称时 push；两侧解析成同一路径则 fail closed。one-turn、Stop 或两侧均解析成未变路径时终止分支，否则非空子区间独立递归。算法没有深度、叶子数、长度阈值或 score-tuned contraction；materializer 仅在完整 path 改变时发出 sparse mark，合并相邻相同 path 但不合并非相邻或不等者。
+The evaluated Agent backend reads each trajectory's complete source-only packet
+once and directly emits sparse complete-path marks at the transition points it
+identifies, naming every enclosing responsibility. It chooses depth freely per
+branch, with no cap or threshold. One ordinary format retry is allowed, after
+which the deterministic root-prefix repair and canonicalization replay remain
+unchanged downstream. An earlier interval-recursive protocol is retained in the
+research record and was outperformed by this direct protocol.
+% 评测的 Agent backend 对每条轨迹只读取一次完整的 source-only packet，并在它识别出的 transition point 直接发出 sparse complete-path mark，同时命名每一层 enclosing responsibility。每个 branch 的深度可自由选择，不设上限或阈值。协议允许一次普通 format retry，之后的确定性 root-prefix repair 与 canonicalization replay 保持不变。更早的 interval-recursive protocol 保留在研究记录中，但其表现低于这一直接协议。
 
-The complete CodeTraceBench A2 run uses independent Codex Agent workers under
-one fixed source-only annotation instruction, followed by root merge,
-validation, and one deterministic source-only representation repair
-(Appendix~\ref{app:canonicalization}), with official stages, outcomes,
-recurrence assignments, and scores hidden until all 405 trajectories are
-materialized. Before folding, a fixed source-only action--object map
-canonicalizes display identities (5{,}537 open-vocabulary names to 1{,}434
-two- or three-word IDs with zero adjacent collision) while preserving every
-temporal mark.
-% 完整 CodeTraceBench A2 运行由多个独立 Codex Agent worker 按同一份固定 source-only annotation instruction 执行，再由 root merge、验证与一个确定性 source-only 表示修复完成（附录），全部 405 条轨迹物化前不读取官方 stage、outcome、recurrence assignment 或 score。折叠前，固定的 source-only action--object 映射规范化显示 identity（5,537 个开放名称压缩为 1,434 个二到三词 ID，零相邻碰撞），并保留全部时间 mark。
+The complete CodeTraceBench direct-backend run uses independent Codex Agent
+workers under one fixed source-only annotation instruction. Each worker reads
+its trajectory once, with official stages and outcomes unavailable until all
+405 trajectories are materialized; recurrence assignments and scores are
+likewise hidden. Validation is followed by the unchanged deterministic
+root-prefix representation repair (Appendix~\ref{app:canonicalization}) and
+source-only canonicalization replay before folding.
+% 完整 CodeTraceBench direct-backend 运行由多个独立 Codex Agent worker 按同一份固定 source-only annotation instruction 执行。每个 worker 只读取一次自己的轨迹；全部 405 条轨迹物化前，官方 stage 与 outcome 均不可见，recurrence assignment 与 score 同样隐藏。验证后沿用不变的确定性 root-prefix 表示修复（附录）与 source-only canonicalization replay，再进行折叠。
 
 %% ===================================================================
 \section{Implementation}
@@ -835,23 +827,25 @@ group into the same interval-annotation contract before \sys folds the
 original additive weights.
 % RQ3 按各 protocol 明确声明的输入边界评估自动 backend 是否恢复独立标注；字面标签使用 macro-F1 与 accuracy，partition 使用 V-measure 或普通 B$^3$，相邻 boundary 使用精确 precision、recall 与 F1。
 
-We first evaluate the default Agent-assisted backend on all 405 reconstructable
+We first evaluate the direct Agent-assisted backend on all 405 reconstructable
 CodeTraceBench trajectories~\cite{li2026codetracer}: 20{,}866 operations and
-2{,}948 human-verified contiguous stages across four agent frameworks. Automatic
-Agents receive source-only packets and emit sparse complete-path marks over
-17{,}148 source-native turns. A deterministic representation repair attaches a
+2{,}948 human-verified contiguous stages across four agent frameworks. Direct
+Agents read complete source-only packets once and emit sparse complete-path
+marks over 17{,}148 source-native turns, without access to official stages or
+outcomes before materialization. For continuity, the prior A2 artifact used the
+same downstream representation path: a deterministic repair attached a
 one-turn task-root-only prefix to its first nested responsibility, eliminating
-149 artificial leaf groups without reading a stage label. The final 5{,}752
-marks have semantic depth one (51 marks), two (5{,}608), or three (93); no
-prompt requests a depth.
-% Automatic Agent 仅接收 source packet；确定性的表示修复把一步长的 task-root-only prefix 归入首个嵌套 responsibility，在不读取 stage label 的情况下消除 149 个伪 leaf，得到 5,752 个可变深度 mark。
-The current name replay maps 5{,}537 open-vocabulary operation IDs to 1{,}434
+149 artificial leaf groups without reading a stage label. Its final 5{,}752
+marks had semantic depth one (51 marks), two (5{,}608), or three (93); no
+prompt requested a depth.
+% 直接 Agent 对完整 source-only packet 只读取一次，并在 17,148 个 source-native turn 上发出 sparse complete-path mark；物化前不读取官方 stage 或 outcome。为保持连续性，先前 A2 artifact 使用同一下游表示路径：确定性修复把一步长的 task-root-only prefix 归入首个嵌套 responsibility，在不读取 stage label 的情况下消除 149 个伪 leaf；其 5,752 个 mark 具有可变深度。
+The prior artifact's name replay maps 5{,}537 open-vocabulary operation IDs to 1{,}434
 action-first two- or three-word canonical IDs, independently re-expanding all
 operations from the unchanged marks, preserving the temporal occurrence and
 adjacent-boundary vectors exactly, and leaving no adjacent display-path
 collision. Nonadjacent and cross-session equal names intentionally merge so
 recurring work folds in pprof.
-% 当前名称重放把 5,537 个开放 operation ID 映射为 1,434 个 action-first、二到三词 canonical ID，从未改变的 mark 独立展开全部 operation，精确保留 temporal occurrence 与相邻 boundary 且无相邻碰撞；并有意合并非相邻及跨 session 的同名工作。
+% 先前 artifact 的名称重放把 5,537 个开放 operation ID 映射为 1,434 个 action-first、二到三词 canonical ID，从未改变的 mark 独立展开全部 operation，精确保留 temporal occurrence 与相邻 boundary 且无相邻碰撞；并有意合并非相邻及跨 session 的同名工作。
 
 Ordinary operation-level B$^3$ measures the induced leaf partition, while exact
 adjacent-boundary F1 measures transition placement. Both are standard metrics
@@ -865,7 +859,7 @@ controls receive the same operation sequence.
 \toprule
 Method & B$^3$ P & B$^3$ R & B$^3$ F1 & Bound. F1 \\
 \midrule
-Automatic Agent (A2) & 0.839 & 0.607 & \textbf{0.704} & \textbf{0.394} \\
+Direct Agent annotation & 0.793 & 0.736 & \textbf{0.764} & \textbf{0.480} \\
 Multi-resolution recurrence & 0.782 & 0.575 & 0.663 & 0.266 \\
 Native source tree & 0.975 & 0.249 & 0.397 & 0.259 \\
 Source-native turn & 0.983 & 0.221 & 0.361 & 0.246 \\
@@ -878,12 +872,16 @@ transitions.}
 \label{tab:rq3-codetrace}
 \end{table}
 
-Automatic Agent annotation reaches 0.704 B$^3$ F1, improving over recurrence by
-0.0414 (task-clustered bootstrap 95\% interval [0.0214, 0.0606]) and over raw
-action by 0.163. Its boundary F1 is 0.394 versus 0.266 for recurrence. Thus the
-Agent-assisted backend is the strongest tested automatic constructor on this
-complete population, and its marks preserve exactly 20{,}866 operation counts
-and 494{,}862{,}929 provider-reported tokens when replayed at either width.
+Direct Agent annotation reaches 0.764 B$^3$ F1, improving over recurrence by
+0.101 (task-clustered bootstrap 95\% interval [0.087, 0.116]) and over the
+prior interval-protocol Agent artifact (0.704) by 0.059 (95\% interval
+[0.048, 0.073]). Its boundary F1 is 0.480 versus 0.266 for recurrence. The
+earlier Agent protocol reached 0.704 B$^3$ F1 and 0.394 boundary F1; we retain
+this historical result for continuity. Thus the direct Agent backend is the
+strongest tested automatic constructor on this complete population, and its
+marks conserve exactly 20{,}866 operations and 494{,}862{,}929
+provider-reported tokens.
+% 直接 Agent 标注达到 0.764 B$^3$ F1，相对 recurrence 提高 0.101（task-clustered bootstrap 95\% 区间 [0.087, 0.116]），相对先前 interval-protocol Agent artifact（0.704）提高 0.059（95\% 区间 [0.048, 0.073]）；其 boundary F1 为 0.480，而 recurrence 为 0.266。先前 Agent protocol 的 B$^3$ F1 与 boundary F1 分别为 0.704 和 0.394，本文保留这一历史结果以维持连续性。直接 Agent backend 是该完整 population 上最强的已测自动 constructor，其 mark 精确保守 20,866 个 operation 与 494,862,929 个 provider-reported token。
 
 On all 287 OSWorld-Human task-instance sessions~\cite{osworldhuman} with
 complete group annotations, the supervised predictor reaches 0.739 boundary
@@ -904,13 +902,13 @@ bouzenia-pradel-2025-trajectories} at 0.498 macro-F1 and 0.628 accuracy versus
 0.061 / 0.323 for the majority baseline (Appendix~\ref{app:literal}).
 % 闭标签 literal 评估中，固定仅供评测的 Qwen3.6-27B backend 将 1,012 个 AgentBoard goal 分到 9 个 task family，macro-F1 与 accuracy 为 0.695/0.733，majority 为 0.044/0.248；backend-level adapter 将来自 120 条 AutoCodeRover/OpenHands/RepairAgent 轨迹的 2,737 个 ASE action label 分类，macro-F1 与 accuracy 为 0.498/0.628，majority 为 0.061/0.323（细节见附录）。
 
-Thus, across the named public populations, the automatic Agent constructor
-reaches 0.704 B$^3$ and 0.394 boundary F1 on CodeTraceBench, the label-free
+Thus, across the named public populations, the direct Agent constructor
+reaches 0.764 B$^3$ and 0.480 boundary F1 on CodeTraceBench, the label-free
 recurrence backend reaches 0.786 B$^3$ and 0.680 boundary F1 on OSWorld-Human,
 and closed-label task-family and action backends reach 0.695 and 0.498
 macro-F1, evaluating complementary structural and literal outputs rather than
 one bespoke score.
-% 因此，在声明的公开 population 上，automatic Agent、label-free recurrence 和 closed-label backend 分别以标准 partition、boundary 与 literal-label metric 回答互补的结构质量问题。
+% 因此，在声明的公开 population 上，direct Agent constructor 在 CodeTraceBench 上达到 0.764 B$^3$ 与 0.480 boundary F1；它与 label-free recurrence 和 closed-label backend 分别以标准 partition、boundary 与 literal-label metric 回答互补的结构质量问题。
 
 %% -------------------------------------------------------------------
 \subsection{RQ4: What Is the Profiling Cost?}
@@ -924,7 +922,7 @@ stacks, folding weights, and serializing the profile---by comparing the fixed se
 \texttt{project, agent, action, status} on identical inputs over three runs.
 Measurements use \texttt{agentpprof 0.2.37} on a 24-core Intel Core Ultra 9
 285K with 125\,GiB RAM and Linux 6.15.11.
-% RQ4 区分 fixed-input replay 与首次 profile 构建的可观测组件。我们先在四个完整公开 workload 及其 union 上各运行三次，比较固定 semantic hierarchy 与相同输入的 raw action，再分解完整 A2 deterministic path。
+% RQ4 区分 fixed-input replay 与首次 profile 构建的可观测组件。我们先在四个完整公开 workload 及其 union 上各运行三次，比较固定 semantic hierarchy 与相同输入的 raw action，再分解先前 A2 artifact 的完整 deterministic path。
 
 Both time curves are monotonic across the five input sizes, and the semantic
 curve has a descriptive slope of 0.0418\,ms per operation ($R^2=0.9997$),
@@ -939,10 +937,15 @@ The table's AgentRewardBench row profiles a fixed 729-operation public
 release sample used by the cost harness; Case Study 2's 7{,}229-operation
 mixed-outcome population is a different, larger workload.
 % 表中 AgentRewardBench 行 profile 的是 cost harness 使用的固定 729-operation 公开 release 样本；Case Study 2 的 7,229-operation mixed-outcome population 是另一个更大的 workload。
-Deterministic A2 first-construction components total 506.35\,s on all 405
+Deterministic first-construction components for the prior A2 artifact total
+506.35\,s on all 405
 sessions, and both profile widths replay in 1.17\,s median with byte-identical
 artifacts (Appendix~\ref{app:a2-reconstruction}).
-% deterministic A2 first-construction 组件在全部 405 session 上合计 506.35 秒，两种 profile 宽度均以 1.17 秒中位重放且产物逐字节一致（附录）。
+% 先前 A2 artifact 的 deterministic first-construction 组件在全部 405 session 上合计 506.35 秒，两种 profile 宽度均以 1.17 秒中位重放且产物逐字节一致（附录）。
+For the complete 405-trajectory CodeTraceBench population, direct annotation
+consumes 12{,}050{,}384 input and 231{,}886 output tokens, with
+2{,}215.858\,s of active backend wall time.
+% 对完整的 405-trajectory CodeTraceBench population，直接标注消耗 12,050,384 个输入 token 与 231,886 个输出 token，active backend wall time 为 2,215.858 秒。
 
 A fully instrumented end-to-end annotation pass now exists. On the
 complete 440-session AgentRewardBench population, the fixed automatic backend
@@ -955,18 +958,18 @@ the three-session Git population, one fresh complete pass takes 466.9\,s and
 440-session population takes 0.26\,s (operations) and 0.25\,s (tokens):
 construction cost is dominated by the automatic backend, and materializing
 this population remains sub-second.
-% 现已存在完整插桩的 fresh-pass automatic annotation：在完整 440-session AgentRewardBench population 上，固定 automatic backend 在固定双 worker 调度下以 3,521.6 秒 wall time（含 provider 等待）完成全部 12 个 outcome-blind batch（58.7 分钟；worker 时间合计 6,661.7 秒），消耗 12,039,417 个实际输入 token（其中报告缓存 10,929,408）与 312,433 个输出 token——每 session 27,362 输入、710 输出 token。在三 session 的 Git population 上，一次全新完整 pass 需 466.9 秒与 832,544 个实际输入 token。完整 440-session population 的确定性 materialization 需 0.26 秒（operations）/ 0.25 秒（tokens）：构建成本由 automatic backend 主导，materialization 保持亚秒级，上述 A2 replay 为 1.17 秒。
+% 现已存在完整插桩的 fresh-pass automatic annotation：在完整 440-session AgentRewardBench population 上，固定 automatic backend 在固定双 worker 调度下以 3,521.6 秒 wall time（含 provider 等待）完成全部 12 个 outcome-blind batch（58.7 分钟；worker 时间合计 6,661.7 秒），消耗 12,039,417 个实际输入 token（其中报告缓存 10,929,408）与 312,433 个输出 token——每 session 27,362 输入、710 输出 token。在三 session 的 Git population 上，一次全新完整 pass 需 466.9 秒与 832,544 个实际输入 token。完整 440-session population 的确定性 materialization 需 0.26 秒（operations）/ 0.25 秒（tokens）：构建成本由 automatic backend 主导，materialization 保持亚秒级，上述先前 A2 artifact replay 为 1.17 秒。
 
-The existing automatic-Agent annotations were produced in two disjoint
+The prior A2 automatic-Agent annotations were produced in two disjoint
 workflow waves whose packet-manifest-to-final-artifact spans sum to 54.36
 minutes. The instrumented AgentRewardBench pass above supersedes this envelope
 as the reportable annotation cost; we retain it only as an artifact-time
 workflow envelope, since retained telemetry cannot separate model inference
 from orchestration, idle time, and file writing or recover provider token
-usage. Thus 1.17\,s is replay latency,
+usage. Thus the prior A2 artifact's 1.17\,s is replay latency,
 not annotation latency; the annotation pass's wall clock includes provider
 waiting without isolating it.
-% 两个自动 Agent annotation wave 的 artifact 时间窗合计 54.36 分钟，但该窗口混合 inference、调度、空闲与写文件，不能当作模型计时；上述插桩的 AgentRewardBench pass 已取代该 envelope 成为可报告的 annotation 成本；因此 1.17 秒是 replay 而非 annotation latency，fresh-pass wall clock 含未单独隔离的 provider 等待。
+% 先前 A2 的两个自动 Agent annotation wave 的 artifact 时间窗合计 54.36 分钟，但该窗口混合 inference、调度、空闲与写文件，不能当作模型计时；上述插桩的 AgentRewardBench pass 已取代该 envelope 成为可报告的 annotation 成本；因此先前 A2 artifact 的 1.17 秒是 replay 而非 annotation latency，fresh-pass wall clock 含未单独隔离的 provider 等待。
 
 Scope details appear in Appendix~\ref{app:scope}.
 % 范围细节见附录~\ref{app:scope}。
@@ -1067,20 +1070,20 @@ $k$-means remains the default.
 \subsection{Operation-Identity Canonicalization}
 \label{app:canonicalization}
 
-Before folding, one fixed source-only action--object map canonicalizes the A2
+Before folding, one fixed source-only action--object map canonicalizes the prior A2
 display identity. A boundary-safe refinement retains a canonical action and
 the minimum source words needed whenever two adjacent paths would otherwise
 become equal; unresolved collisions fail closed. Equal canonical names receive
 one stable operation ID across sessions. The complete replay reduces 5{,}537
 open-vocabulary names to 1{,}434 two- or three-word identities with zero
 adjacent path collision, while preserving every temporal mark occurrence.
-% 折叠前，一个固定且仅使用 source 的 action--object 映射规范化 A2 的显示 identity；若相邻路径将变成相同，boundary-safe refinement 保留 canonical action 与最少的 source 区分词，无法区分则 fail closed；相同 canonical 名称在跨 session 共享稳定 operation ID。完整重放将 5,537 个开放名称压缩为 1,434 个二到三词 identity，且不删除任何时间边界。
+% 折叠前，一个固定且仅使用 source 的 action--object 映射规范化先前 A2 artifact 的显示 identity；若相邻路径将变成相同，boundary-safe refinement 保留 canonical action 与最少的 source 区分词，无法区分则 fail closed；相同 canonical 名称在跨 session 共享稳定 operation ID。完整重放将 5,537 个开放名称压缩为 1,434 个二到三词 identity，且不删除任何时间边界。
 
-The A2 representation repair attaches a one-turn root-only prefix to its first
+The prior A2 representation repair attaches a one-turn root-only prefix to its first
 nested responsibility: when such a mark is immediately followed by its first
 responsibility, the first turn receives the complete root--responsibility path,
 eliminating artificial leaf groups without reading a stage label.
-% A2 的表示修复把 one-turn root-only prefix 归入其首个嵌套 responsibility：当该 mark 紧邻其第一个 responsibility 时，首 turn 直接采用完整 root--responsibility path，从而在不读取 stage label 的情况下消除伪 leaf group。
+% 先前 A2 artifact 的表示修复把 one-turn root-only prefix 归入其首个嵌套 responsibility：当该 mark 紧邻其第一个 responsibility 时，首 turn 直接采用完整 root--responsibility path，从而在不读取 stage label 的情况下消除伪 leaf group。
 
 \subsection{RQ2 Scoring Details}
 \label{app:rq2-scoring}
@@ -1101,19 +1104,19 @@ TraceElephant assign each root-to-frame prefix the 95\% Wilson lower
 bound~\cite{wilson1927} of its frozen positive-prediction fraction; an
 operation receives the maximum score over prefixes containing it.
 
-\subsection{A2 Reconstruction Cost Detail}
+\subsection{Prior A2 Reconstruction Cost Detail}
 \label{app:a2-reconstruction}
 
-We then reconstruct the adopted A2 path three times on all 405 CodeTrace
+We reconstruct the prior adopted A2 path three times on all 405 CodeTrace
 sessions (17{,}148 source-native turns and 20{,}866 operations). Joining the
 fixed target operations to released raw archives and constructing source-only
 Agent packets takes 501.64\,s median. Deterministic annotation assembly,
 root-prefix repair, validation, and name canonicalization take 3.54\,s.
 Afterward, the current source-preserving stack constructs either the
 operation-count or 494{,}862{,}929-token profile in 1.17\,s median. Every
-reconstructed population and A2 artifact is byte-identical across runs; all
+reconstructed population and prior A2 artifact is byte-identical across runs; all
 profiles load in stock pprof and conserve exact mass.
-% 在全部 405 条 CodeTrace session 上，A2 source-packet reconstruction 的中位时间为 501.64 秒，deterministic assembly/root repair/name canonicalization 为 3.54 秒；随后 operation 与 token profile 均以 1.17 秒中位重放，并精确保守质量。
+% 在全部 405 条 CodeTrace session 上，先前 A2 artifact 的 source-packet reconstruction 中位时间为 501.64 秒，deterministic assembly/root repair/name canonicalization 为 3.54 秒；随后 operation 与 token profile 均以 1.17 秒中位重放，并精确保守质量。
 
 \subsection{Cost Scaling Table}
 \label{app:cost}
@@ -1236,12 +1239,12 @@ positive comparison to majority is unchanged.
 \label{app:scope}
 
 Results apply to the named populations and annotation protocols.
-RQ4 measures fixed-input replay and the deterministic A2 path from normalized
+RQ4 measures fixed-input replay and the deterministic path of the prior A2 artifact from normalized
 operations plus released raw archives. It excludes capture, raw-to-normalized
 conversion, and live-agent overhead; automatic annotation cost is instrumented
 on the complete AgentRewardBench and Git populations, while the reported
 54.36-minute artifact envelope is not model latency.
-% 结果适用于声明的 population 与 annotation protocol。RQ4 测量 fixed-input replay 与 deterministic A2 path，不包含 capture、raw-to-normalized conversion 与 live-agent overhead；automatic annotation 成本已在完整的 AgentRewardBench 与 Git population 上插桩测量，54.36 分钟的 artifact envelope 并非模型时延。
+% 结果适用于声明的 population 与 annotation protocol。RQ4 测量 fixed-input replay 与先前 A2 artifact 的 deterministic path，不包含 capture、raw-to-normalized conversion 与 live-agent overhead；automatic annotation 成本已在完整的 AgentRewardBench 与 Git population 上插桩测量，54.36 分钟的 artifact envelope 并非模型时延。
 
 CodeTraceBench is the complete development population for the Agent-assisted
 constructor; OSWorld-Human separately evaluates recurrence and supervised
