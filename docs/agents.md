@@ -12,6 +12,8 @@ after `record --`; AgentSight handles everything else:
 ```bash
 sudo ./agentsight record -- claude
 sudo ./agentsight record -- claude -p "review my last commit"
+sudo ./agentsight record -- kimi
+sudo ./agentsight record -- grok
 sudo ./agentsight record -- python my_agent.py
 sudo ./agentsight record -- node ./cli.js
 ```
@@ -64,6 +66,49 @@ This captures:
 > thread, not the main "claude" thread. When `--binary-path` is specified,
 > the `--comm` filter is automatically skipped for SSL monitoring (but still
 > applied for process monitoring) to ensure traffic is captured correctly.
+
+## Kimi Code
+
+Kimi Code embeds OpenSSL in its native executable and retains the standard
+`SSL_read`/`SSL_write` symbols. `record` follows the user-local launcher symlink,
+recognizes the embedded library, and attaches to the resolved binary:
+
+```bash
+# Launch and record a new Kimi Code session
+sudo ./agentsight record -- kimi
+
+# Attach to an existing Kimi Code process
+sudo ./agentsight record -c kimi
+```
+
+No explicit `--binary-path` is normally needed. If multiple installations are
+present, pin the one selected by your shell:
+
+```bash
+sudo ./agentsight record -c kimi \
+  --binary-path "$(readlink -f "$(command -v kimi)")"
+```
+
+## Grok Build
+
+Grok Build is a stripped static executable that uses rustls, so it has no
+`SSL_read`/`SSL_write` symbols to attach. AgentSight recognizes the Grok/rustls
+markers and attaches an outgoing plaintext probe to rustls's internal buffer:
+
+```bash
+# Launch and record a new Grok Build session
+sudo ./agentsight record -- grok
+
+# Attach to an existing Grok Build process
+sudo ./agentsight record -c grok
+```
+
+The signature is verified against x86_64 releases 0.2.103, 0.2.111, and
+0.2.112. Because stripped Rust function layouts can change between compiler
+releases, AgentSight fails explicitly with `signature was not recognized`
+instead of silently falling back to partial capture. Grok capture currently
+covers outgoing TLS plaintext; standard OpenSSL agents such as Kimi retain
+bidirectional request/response capture.
 
 ## Python AI Tools (aider, open-interpreter, etc.)
 
