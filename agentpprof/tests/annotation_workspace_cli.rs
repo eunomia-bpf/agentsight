@@ -26,6 +26,108 @@ fn run(binary: &str, args: &[&str]) -> std::process::Output {
 }
 
 #[test]
+fn local_session_workspace_adapter_writes_stable_three_file_workspace() {
+    let tmp = tempfile::tempdir().unwrap();
+    let first = tmp.path().join("first");
+    let second = tmp.path().join("second");
+    let fixture = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl"
+    );
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+
+    let initialize = |workspace: &std::path::Path| {
+        run(
+            binary,
+            &[
+                "--workspace-out",
+                workspace.to_str().unwrap(),
+                "--session-file",
+                fixture,
+            ],
+        )
+    };
+    let output = initialize(&first);
+    assert!(
+        output.status.success(),
+        "stdout={}\nstderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let status: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(status["sessions"], 1);
+    assert_eq!(status["nodes"], 8);
+    assert_eq!(status["node_kinds"]["session"], 1);
+    assert_eq!(status["node_kinds"]["prompt"], 2);
+    assert_eq!(status["node_kinds"]["llm"], 2);
+    assert_eq!(status["node_kinds"]["tool"], 3);
+    assert_eq!(status["operations"], 3);
+    assert_eq!(status["tokens"], 166);
+    assert_eq!(
+        fs::read_to_string(first.join("annotation.json")).unwrap(),
+        "{}\n"
+    );
+    assert_eq!(fs::read_to_string(first.join("stacks.folded")).unwrap(), "");
+
+    let trace = fs::read_to_string(first.join("trace.jsonl")).unwrap();
+    let rows = trace
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    let mut seen = std::collections::HashMap::new();
+    for row in &rows {
+        let id = row["id"].as_str().unwrap();
+        if let Some(parent) = row["parent"].as_str() {
+            assert!(
+                seen.contains_key(parent),
+                "parent {parent:?} must precede {id:?}"
+            );
+        }
+        seen.insert(id, row["kind"].as_str().unwrap());
+    }
+    let llm_rows = rows
+        .iter()
+        .filter(|row| row["kind"] == "llm")
+        .collect::<Vec<_>>();
+    assert_eq!(
+        llm_rows
+            .iter()
+            .map(|row| row["metrics"]["tokens"].as_u64().unwrap())
+            .sum::<u64>(),
+        166
+    );
+    for row in llm_rows {
+        assert!(row["data"]["text"].as_str().is_some());
+    }
+    for row in rows.iter().filter(|row| row["kind"] == "tool") {
+        assert_eq!(row["metrics"]["operations"], 1);
+        let parent = row["parent"].as_str().unwrap();
+        assert_eq!(seen[parent], "llm");
+        assert!(row["data"]["arguments_preview"].as_str().is_some());
+        assert!(row["data"]["result_preview"].as_str().is_some());
+    }
+
+    let second_output = initialize(&second);
+    assert!(
+        second_output.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&second_output.stderr)
+    );
+    assert_eq!(
+        fs::read(first.join("trace.jsonl")).unwrap(),
+        fs::read(second.join("trace.jsonl")).unwrap()
+    );
+
+    let overwrite = initialize(&first);
+    assert!(!overwrite.status.success());
+    assert!(
+        String::from_utf8_lossy(&overwrite.stderr).contains("refusing to overwrite"),
+        "{}",
+        String::from_utf8_lossy(&overwrite.stderr)
+    );
+}
+
+#[test]
 fn annotation_workspace_updates_trace_and_folded_and_writes_pprof() {
     let tmp = tempfile::tempdir().unwrap();
     let workspace = tmp.path().join("workspace");

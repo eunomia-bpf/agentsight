@@ -6,6 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::profile::{Profile, ProfileView, profile_to_stacks, safe_frame, write_pprof_projection};
+use crate::session::{SessionRecord, short_hash, truncate_clean};
 
 const TRACE_FILE: &str = "trace.jsonl";
 const FOLDED_FILE: &str = "stacks.folded";
@@ -59,6 +60,19 @@ pub struct WorkspaceSummary {
     pub near_name_candidates: Vec<NearNameCandidate>,
     pub issues: Vec<HierarchyIssue>,
     pub warnings: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct WorkspaceInitSummary {
+    pub workspace: PathBuf,
+    pub trace_file: PathBuf,
+    pub annotation_file: PathBuf,
+    pub folded_file: PathBuf,
+    pub sessions: usize,
+    pub nodes: usize,
+    pub node_kinds: BTreeMap<String, usize>,
+    pub operations: u64,
+    pub tokens: u64,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -147,6 +161,371 @@ impl RangeFingerprints {
         let hash = self.prefix[end]
             .wrapping_sub(self.prefix[start].wrapping_mul(self.powers[end - start]));
         format!("{hash:016x}")
+    }
+}
+
+pub fn initialize_annotation_workspace(
+    workspace: &Path,
+    sessions: &[SessionRecord],
+) -> Result<WorkspaceInitSummary> {
+    if sessions.is_empty() {
+        bail!("cannot initialize an annotation workspace without sessions");
+    }
+
+    let trace_file = workspace.join(TRACE_FILE);
+    let annotation_file = workspace.join("annotation.json");
+    let folded_file = workspace.join(FOLDED_FILE);
+    for path in [&trace_file, &annotation_file, &folded_file] {
+        if path.exists() {
+            bail!(
+                "refusing to overwrite existing annotation workspace file {}",
+                path.display()
+            );
+        }
+    }
+
+    let nodes = trace_nodes_from_sessions(sessions)?;
+    validate_source_tree(&nodes)?;
+    let mut node_kinds = BTreeMap::new();
+    let mut operations = 0_u64;
+    let mut tokens = 0_u64;
+    for node in &nodes {
+        *node_kinds.entry(node.kind.clone()).or_default() += 1;
+        operations =
+            operations.saturating_add(node.metrics.get("operations").copied().unwrap_or(0));
+        tokens = tokens.saturating_add(node.metrics.get("tokens").copied().unwrap_or(0));
+    }
+
+    fs::create_dir_all(workspace)
+        .with_context(|| format!("failed to create workspace {}", workspace.display()))?;
+    atomic_replace(&trace_file, &serialize_trace(&nodes)?)?;
+    atomic_replace(&annotation_file, b"{}\n")?;
+    atomic_replace(&folded_file, b"")?;
+
+    Ok(WorkspaceInitSummary {
+        workspace: workspace.to_path_buf(),
+        trace_file,
+        annotation_file,
+        folded_file,
+        sessions: sessions.len(),
+        nodes: nodes.len(),
+        node_kinds,
+        operations,
+        tokens,
+    })
+}
+
+fn trace_nodes_from_sessions(sessions: &[SessionRecord]) -> Result<Vec<TraceNode>> {
+    let mut ordered = sessions.iter().collect::<Vec<_>>();
+    ordered.sort_by(|left, right| {
+        (
+            left.source.as_str(),
+            left.session_id.as_str(),
+            left.path.as_os_str(),
+        )
+            .cmp(&(
+                right.source.as_str(),
+                right.session_id.as_str(),
+                right.path.as_os_str(),
+            ))
+    });
+
+    let mut nodes = Vec::new();
+    let mut seen_session_ids = HashSet::new();
+    for session in ordered {
+        let session_key = format!("{}\u{1f}{}", session.source, session.session_id);
+        let base_session_node_id = format!(
+            "session:{}:{}",
+            safe_frame(&session.source, None),
+            short_hash(&session_key, 16)
+        );
+        let session_node_id = if seen_session_ids.contains(&base_session_node_id) {
+            format!(
+                "{}:{}",
+                base_session_node_id,
+                short_hash(&session.path.to_string_lossy(), 8)
+            )
+        } else {
+            base_session_node_id
+        };
+        if !seen_session_ids.insert(session_node_id.clone()) {
+            bail!(
+                "local-session workspace input contains a duplicate session identity {:?}",
+                session.session_id
+            );
+        }
+
+        let mut session_data = Map::new();
+        insert_string(&mut session_data, "agent", &session.source);
+        insert_string(&mut session_data, "name", "local session");
+        insert_string(&mut session_data, "source_session", &session.session_id);
+        insert_string(&mut session_data, "model", &session.model);
+        if let Some(start) = session.start_ts_ms {
+            session_data.insert("timestamp_ms".to_string(), Value::from(start));
+        }
+        nodes.push(TraceNode {
+            id: session_node_id.clone(),
+            parent: None,
+            kind: "session".to_string(),
+            data: session_data,
+            metrics: BTreeMap::new(),
+            path: Vec::new(),
+        });
+
+        let prompt_count = session.user_requests.len();
+        for (prompt_ordinal, prompt) in session.user_requests.iter().enumerate() {
+            let prompt_node_id = format!("{session_node_id}:prompt:{prompt_ordinal:04}");
+            let mut prompt_data = Map::new();
+            insert_string(
+                &mut prompt_data,
+                "name",
+                &format!("prompt {}", prompt_ordinal + 1),
+            );
+            insert_string(&mut prompt_data, "text", &prompt.preview);
+            insert_string(&mut prompt_data, "text_hash", &prompt.text_hash);
+            if let Some(timestamp) = prompt.ts_ms {
+                prompt_data.insert("timestamp_ms".to_string(), Value::from(timestamp));
+            }
+            nodes.push(TraceNode {
+                id: prompt_node_id.clone(),
+                parent: Some(session_node_id.clone()),
+                kind: "prompt".to_string(),
+                data: prompt_data,
+                metrics: BTreeMap::new(),
+                path: Vec::new(),
+            });
+
+            append_prompt_events(
+                &mut nodes,
+                session,
+                prompt_count,
+                prompt_ordinal,
+                &prompt_node_id,
+            );
+        }
+    }
+    Ok(nodes)
+}
+
+fn append_prompt_events(
+    nodes: &mut Vec<TraceNode>,
+    session: &SessionRecord,
+    prompt_count: usize,
+    prompt_ordinal: usize,
+    prompt_node_id: &str,
+) {
+    let belongs_to_prompt = |index: usize| {
+        if prompt_count == 0 {
+            false
+        } else {
+            index.min(prompt_count - 1) == prompt_ordinal
+        }
+    };
+    let llm_indices = session
+        .llm_calls
+        .iter()
+        .enumerate()
+        .filter(|(_, call)| belongs_to_prompt(call.prompt_index))
+        .map(|(index, _)| index)
+        .collect::<Vec<_>>();
+    let tool_indices = session
+        .tools
+        .iter()
+        .enumerate()
+        .filter(|(_, tool)| belongs_to_prompt(tool.prompt_index))
+        .map(|(index, _)| index)
+        .collect::<Vec<_>>();
+
+    let mut tool_parent = vec![None; session.tools.len()];
+    for tool_index in &tool_indices {
+        tool_parent[*tool_index] = nearest_llm_for_tool(
+            &session.tools[*tool_index],
+            &llm_indices,
+            &session.llm_calls,
+        );
+    }
+
+    #[derive(Clone, Copy)]
+    enum Event {
+        Llm(usize),
+        Tool(usize),
+    }
+    let mut events = llm_indices
+        .iter()
+        .copied()
+        .map(Event::Llm)
+        .chain(
+            tool_indices
+                .iter()
+                .copied()
+                .filter(|index| tool_parent[*index].is_none())
+                .map(Event::Tool),
+        )
+        .collect::<Vec<_>>();
+    events.sort_by_key(|event| match event {
+        Event::Llm(index) => (
+            session.llm_calls[*index].ts_ms.is_none(),
+            session.llm_calls[*index].ts_ms.unwrap_or_default(),
+            0_u8,
+            *index,
+        ),
+        Event::Tool(index) => (
+            session.tools[*index].ts_ms.is_none(),
+            session.tools[*index].ts_ms.unwrap_or_default(),
+            1_u8,
+            *index,
+        ),
+    });
+
+    for event in events {
+        match event {
+            Event::Llm(llm_index) => {
+                let llm_node_id = append_llm_node(
+                    nodes,
+                    &session.llm_calls[llm_index],
+                    prompt_node_id,
+                    llm_index,
+                );
+                let mut children = tool_indices
+                    .iter()
+                    .copied()
+                    .filter(|tool_index| tool_parent[*tool_index] == Some(llm_index))
+                    .collect::<Vec<_>>();
+                children.sort_by_key(|index| {
+                    (
+                        session.tools[*index].ts_ms.is_none(),
+                        session.tools[*index].ts_ms.unwrap_or_default(),
+                        *index,
+                    )
+                });
+                for tool_index in children {
+                    append_tool_node(nodes, &session.tools[tool_index], &llm_node_id, tool_index);
+                }
+            }
+            Event::Tool(tool_index) => {
+                append_tool_node(
+                    nodes,
+                    &session.tools[tool_index],
+                    prompt_node_id,
+                    tool_index,
+                );
+            }
+        }
+    }
+}
+
+fn nearest_llm_for_tool(
+    tool: &crate::session::ToolEvent,
+    llm_indices: &[usize],
+    llm_calls: &[crate::session::LlmEvent],
+) -> Option<usize> {
+    let tool_ts = tool.ts_ms?;
+    llm_indices
+        .iter()
+        .copied()
+        .filter_map(|index| {
+            let llm_ts = llm_calls[index].ts_ms?;
+            Some((
+                llm_ts.abs_diff(tool_ts),
+                u8::from(llm_ts > tool_ts),
+                llm_ts,
+                index,
+            ))
+        })
+        .min()
+        .map(|(_, _, _, index)| index)
+}
+
+fn append_llm_node(
+    nodes: &mut Vec<TraceNode>,
+    call: &crate::session::LlmEvent,
+    prompt_node_id: &str,
+    llm_index: usize,
+) -> String {
+    let id = format!("{prompt_node_id}:llm:{llm_index:05}");
+    let mut data = Map::new();
+    insert_string(&mut data, "name", &format!("call {}", llm_index + 1));
+    insert_string(&mut data, "text", &call.preview);
+    insert_string(&mut data, "text_hash", &call.text_hash);
+    insert_string(&mut data, "model", &call.model);
+    insert_string(&mut data, "response_phase", &call.response_phase);
+    if let Some(timestamp) = call.ts_ms {
+        data.insert("timestamp_ms".to_string(), Value::from(timestamp));
+    }
+    data.insert("input_tokens".to_string(), Value::from(call.input_tokens));
+    data.insert("output_tokens".to_string(), Value::from(call.output_tokens));
+    data.insert("cache_tokens".to_string(), Value::from(call.cache_tokens));
+    data.insert(
+        "reported_total_tokens".to_string(),
+        Value::from(call.total_tokens),
+    );
+    let tokens = call
+        .token_components()
+        .into_iter()
+        .map(|(_, value)| value)
+        .sum::<u64>();
+    nodes.push(TraceNode {
+        id: id.clone(),
+        parent: Some(prompt_node_id.to_string()),
+        kind: "llm".to_string(),
+        data,
+        metrics: BTreeMap::from([("tokens".to_string(), tokens)]),
+        path: Vec::new(),
+    });
+    id
+}
+
+fn append_tool_node(
+    nodes: &mut Vec<TraceNode>,
+    tool: &crate::session::ToolEvent,
+    parent: &str,
+    tool_index: usize,
+) {
+    let id = format!("{parent}:tool:{tool_index:05}");
+    let mut data = Map::new();
+    insert_string(&mut data, "name", &tool.tool_name);
+    insert_string(&mut data, "tool", &tool.tool_name);
+    insert_string(
+        &mut data,
+        "arguments_preview",
+        &truncate_clean(&tool.command, 600),
+    );
+    insert_string(&mut data, "command_name", &tool.command_name);
+    insert_string(&mut data, "category", &tool.category);
+    insert_string(&mut data, "effect", &tool.effect);
+    insert_string(&mut data, "status", &tool.status);
+    insert_string(&mut data, "result_preview", &tool.status);
+    if let Some(call_id) = tool.call_id.as_deref() {
+        insert_string(&mut data, "call_id", call_id);
+    }
+    if !tool.path_groups.is_empty() {
+        data.insert(
+            "path_groups".to_string(),
+            Value::Array(tool.path_groups.iter().cloned().map(Value::from).collect()),
+        );
+    }
+    if !tool.domains.is_empty() {
+        data.insert(
+            "domains".to_string(),
+            Value::Array(tool.domains.iter().cloned().map(Value::from).collect()),
+        );
+    }
+    if let Some(timestamp) = tool.ts_ms {
+        data.insert("timestamp_ms".to_string(), Value::from(timestamp));
+    }
+    nodes.push(TraceNode {
+        id,
+        parent: Some(parent.to_string()),
+        kind: "tool".to_string(),
+        data,
+        metrics: BTreeMap::from([("operations".to_string(), 1)]),
+        path: Vec::new(),
+    });
+}
+
+fn insert_string(data: &mut Map<String, Value>, key: &str, value: &str) {
+    if !value.trim().is_empty() {
+        data.insert(key.to_string(), Value::String(value.to_string()));
     }
 }
 

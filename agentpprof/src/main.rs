@@ -13,7 +13,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use annotation_workspace::export_annotation_workspace;
+use annotation_workspace::{export_annotation_workspace, initialize_annotation_workspace};
 use profile::{
     OperationStackConfig, OperationStackInductionConfig, ProfileView,
     build_profile_from_operation_records, build_profile_with_options, parse_operation_filters,
@@ -120,6 +120,10 @@ struct Cli {
     /// stacks.folded, and emit one standard pprof profile.
     #[arg(long = "annotation-file", value_name = "PATH")]
     annotation_file: Option<PathBuf>,
+    /// Initialize trace.jsonl, annotation.json, and stacks.folded from local
+    /// Codex/Claude sessions without creating another product output format.
+    #[arg(long = "workspace-out", value_name = "DIR")]
+    workspace_out: Option<PathBuf>,
     /// Load a reusable JSON profile specification. Later specs override scalar
     /// fields, while list fields are appended. CLI flags override spec defaults.
     #[arg(long = "profile-spec", value_name = "PATH")]
@@ -348,6 +352,9 @@ fn main() -> Result<()> {
 }
 
 fn command_export(args: Cli) -> Result<()> {
+    if let Some(workspace_out) = args.workspace_out.as_ref() {
+        return command_initialize_workspace(&args, workspace_out);
+    }
     let spec = load_profile_specs(&args.profile_specs)?;
     let output = args.output.clone().or_else(|| spec.output.clone());
     let output = output
@@ -807,6 +814,117 @@ fn command_export(args: Cli) -> Result<()> {
     }
 
     println!("{}", serde_json::to_string_pretty(&result)?);
+    Ok(())
+}
+
+fn command_initialize_workspace(args: &Cli, workspace_out: &Path) -> Result<()> {
+    validate_workspace_init_mode(args)?;
+    validate_input_modes(
+        &[],
+        &[],
+        &args.session_files,
+        &args.trace_files,
+        &args.standard_trace_files,
+    )?;
+
+    let project_root = args
+        .project_root
+        .canonicalize()
+        .unwrap_or(args.project_root.clone());
+    let codex_root = args.codex_root.clone().unwrap_or_else(|| {
+        dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(".codex/sessions")
+    });
+    let claude_root = if let Some(root) = args.claude_root.clone() {
+        root
+    } else {
+        default_claude_root(&project_root)?
+    };
+    let mut agent_sessions = if !args.trace_files.is_empty() {
+        load_agent_trace_files(&args.trace_files)?
+    } else {
+        discover_agent_sessions(
+            &project_root,
+            &codex_root,
+            &claude_root,
+            &args.session_files,
+            args.scan_files,
+            args.max_sessions,
+        )?
+    };
+    filter_agent_sessions_before_export(&mut agent_sessions, args);
+    if agent_sessions.is_empty() {
+        bail!(
+            "no local Codex/Claude sessions or imported traces matched {}",
+            project_root.display()
+        );
+    }
+    let sessions = session_records_from_agent_sessions(&agent_sessions);
+    if sessions.is_empty() {
+        bail!(
+            "no local Codex/Claude sessions or imported traces matched {}",
+            project_root.display()
+        );
+    }
+    let summary = initialize_annotation_workspace(workspace_out, &sessions)?;
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&json!({
+            "status": "ok",
+            "workspace": summary.workspace,
+            "trace_file": summary.trace_file,
+            "annotation_file": summary.annotation_file,
+            "folded_file": summary.folded_file,
+            "sessions": summary.sessions,
+            "nodes": summary.nodes,
+            "node_kinds": summary.node_kinds,
+            "operations": summary.operations,
+            "tokens": summary.tokens,
+            "annotation_status": "empty",
+        }))?
+    );
+    Ok(())
+}
+
+fn validate_workspace_init_mode(args: &Cli) -> Result<()> {
+    let conflicting = args.output.is_some()
+        || args.project_name.is_some()
+        || args.format.is_some()
+        || args.view.is_some()
+        || args.annotation_file.is_some()
+        || !args.profile_specs.is_empty()
+        || args.stack.is_some()
+        || !args.stack_rules.is_empty()
+        || !args.op_maps.is_empty()
+        || !args.where_rules.is_empty()
+        || args.operation_mark_file.is_some()
+        || args.induce_operation_stack
+        || args.induce_task_stack
+        || args.induce_allow_session
+        || args.induce_max_depth.is_some()
+        || !args.induce_query_terms.is_empty()
+        || !args.induce_reference_operation_files.is_empty()
+        || !args.induce_calibration_operation_files.is_empty()
+        || args.deterministic_output
+        || !args.op_map_files.is_empty()
+        || args.tagger.is_some()
+        || !args.tag_rules.is_empty()
+        || !args.task_choices.is_empty()
+        || args.preset
+        || !args.standard_trace_files.is_empty()
+        || !args.operation_files.is_empty()
+        || !args.diff_base_operation_files.is_empty()
+        || args.include_standard_trace_args
+        || args.session_tag.is_some()
+        || args.prompt_tag.is_some()
+        || args.cache.is_some()
+        || args.no_cache;
+    if conflicting {
+        bail!(
+            "--workspace-out initializes the annotation workspace from local-session inputs and cannot be combined with pprof output, annotation replay, profile specs, normalized trace inputs, tagging, mappings, filters, marks, induction, or stack overrides"
+        );
+    }
     Ok(())
 }
 

@@ -1,102 +1,186 @@
 # Execution log
 
-Run date: 2026-07-25 (America/Vancouver)
+Run date: 2026-07-25 (America/Vancouver)  
+Continuation completed: 2026-07-25
 
 ## Constraints honored
 
 - No Git command was run.
-- No existing session file was modified or deleted.
-- No file under `docs/agentpprof-paper/` or `docs/paper/` was touched.
-- All generated files and build artifacts were placed in this experiment
-  directory.
-- After freezing, every session-content read used the frozen copies.
-- The automatic annotation phase was not started after Phase 2 hit the
-  task-specified stop condition.
-
-The pre-existing `task-spec.md` and `codex-stdout.log` were not modified.
+- No source session file was modified or deleted.
+- Every post-freeze session read used the copies under `frozen-sessions/`.
+- No file under `docs/agentpprof-paper/` or `docs/paper/` was read for this
+  continuation or touched.
+- Product edits were limited to `agentpprof/` source and tests as authorized by
+  the Continuation section.
+- Experiment outputs and build artifacts stayed in this experiment directory.
+- The backend edited only each batch's `annotation.json`; orchestration created
+  and validated the other standard workspace files.
 
 ## Required inputs read
 
-1. `task-spec.md`
-2. `docs/user-instruction.md`
-3. `docs/idea-story.md`
-4. `docs/design/visexp/agentpprof-annotation-workspace.md`
-5. the fixed step-0077 automatic-backend instruction
-6. the step-0084 inventory, inventory scanner, and session-key definition
-7. AgentPProf and agent-session CLI/source documentation needed to determine
-   the supported ingestion paths
+The continuation reread the complete `task-spec.md`, including the binding
+amendment and Continuation, and the complete prior `results.md` gap analysis.
+It also read the complete required research context:
 
-## Phase 1
+1. `docs/user-instruction.md`;
+2. `docs/idea-story.md`, from the Initial Narrative through the final invariant;
+3. `docs/evaluation.md`;
+4. `docs/background-related-work.md`;
+5. `docs/design/visexp/agentpprof-annotation-workspace.md`;
+6. the fixed Step 0077 automatic-backend instruction; and
+7. the relevant `agentpprof` and `agent-session` source and tests.
 
-`freeze_population.py` reconstructed inventory keys as the first 16
-hexadecimal characters of SHA-256 over
-`<agent>:<source-relative-path>`, exactly matching step 0084. For every
-selected file it:
+## Phase 1 retained
 
-1. opened the source read-only;
-2. fixed the byte boundary from the open file descriptor;
-3. copied exactly that many bytes;
-4. computed SHA-256 while copying; and
-5. wrote the manifest only after all 42 copies completed.
+The prior run validly selected and copied 42 sessions: 18 Codex and 24 Claude,
+55,000,887 bytes total. The later no-hashing amendment makes the retained
+checksums unnecessary but does not invalidate the simple session list or byte
+cut points in `frozen-population.json`.
 
-Freeze completed at `2026-07-26T04:20:50Z` in about 0.92 seconds.
+## Product implementation
 
-Independent readback of the frozen copies found:
+The continuation added `--workspace-out DIR` for local-session mode.
+Implementation details:
+
+- reuse `discover_agent_sessions` / `load_agent_trace_files` and the existing
+  `SessionRecord` conversion over the `agent-session` IR;
+- deterministically emit session, prompt, LLM, and tool `TraceNode` records;
+- retain source previews and timestamps available in the IR;
+- assign bounded token components to LLM nodes and one operation unit to every
+  tool node;
+- attach a tool to the nearest same-prompt LLM node when timestamp evidence is
+  available, otherwise retain it under its prompt;
+- write `{}` as an empty valid annotation bootstrap and an empty
+  `stacks.folded`; and
+- refuse to overwrite any existing workspace file.
+
+The integration test checks the three-file contract, all four node kinds,
+stable trace bytes/IDs, parent-before-child order, metric ownership, previews,
+tool-to-LLM attachment, and overwrite refusal.
+
+Commands:
+
+```text
+cargo fmt --manifest-path agentpprof/Cargo.toml -- --check
+CARGO_TARGET_DIR=<experiment>/cargo-target \
+  cargo test -p agentpprof --manifest-path agentpprof/Cargo.toml
+CARGO_TARGET_DIR=<experiment>/cargo-target \
+  cargo build -p agentpprof --manifest-path agentpprof/Cargo.toml \
+  --release --locked
+```
+
+The complete suite passed: 90 tests, zero failures.
+
+## Phase 2: workspace construction
+
+The release binary initialized the final workspace directly from the frozen
+Codex and Claude roots:
+
+```text
+<experiment>/cargo-target/release/agentpprof \
+  --workspace-out <experiment>/workspace \
+  --project-root <repository> \
+  --codex-root <experiment>/frozen-sessions/codex \
+  --claude-root <experiment>/frozen-sessions/claude
+```
+
+Terminal result:
 
 ```text
 sessions=42
-unique_keys=42
-codex=18
-claude=24
-bytes=55000887
-hash_or_length_problems=0
+nodes=10423
+session=42
+prompt=1252
+llm=5620
+tool=3509
+operations=3509
+tokens=1380863014
 ```
 
-## Phase 2
+These parsed counts exactly match the prior direct-ingestion probes. The
+documented differences from the coarse inventory remain +120 prompts, +80 LLM
+calls, and +58 tools. The token construct remains the bounded per-LLM component
+sum, not the inventory's cumulative provider-total construct.
 
-AgentPProf was built from the checked source with:
+## Phase 3: fixed automatic annotation
+
+`prepare_annotation_batches.py` copied the product-generated contiguous
+TraceNode blocks into 42 deterministic one-session standard workspaces. It is
+a trace splitter and annotation merger, not a session parser.
+
+The first setup attempt tried explicit frozen `--session-file` lists. Frozen
+Claude paths do not contain the native `/.claude/` or `/claude/projects/`
+markers needed for automatic source detection, so the first three attempted
+groups parsed no sessions and three later groups parsed only their Codex
+members. Those unused workspaces remain under `annotation-batches/`; they
+received no backend annotation and are not part of the final run.
+
+The fixed Step 0077 instruction was passed verbatim to `codex-cli 0.145.0`
+using model `gpt-5.6-sol`. A one-session real preflight completed first. The
+remaining 41 batches then ran with three isolated parallel workers. Each
+worker:
+
+1. read only its standard batch workspace;
+2. edited only `annotation.json`;
+3. received no labels, outcomes, prior figures, aggregate summary, or expected
+   focal path;
+4. completed one pass with no aggregate-aware revision; and
+5. was immediately validated by release AgentPProf in operation view.
+
+Every batch passed on its first backend call. `annotation-pass/run-records.jsonl`
+contains the complete wall-time, token, annotation, depth, warning, and
+validation record. The deterministic merge produced 1,737 annotations in the
+final `workspace/annotation.json`.
+
+## Phase 4: materialization and checks
+
+The final profiles were generated with:
 
 ```text
-CARGO_TARGET_DIR=<experiment>/cargo-target
-cargo run -p agentpprof --release --locked -- --help
+agentpprof --annotation-file workspace/annotation.json \
+  --view operations --deterministic-output -o operation-count.pb.gz
+
+agentpprof --annotation-file workspace/annotation.json \
+  --view tokens --deterministic-output -o token-width.pb.gz
 ```
 
-The first attempt from the repository root failed because that directory has
-no root `Cargo.toml`; it wrote no source or session file. The command was then
-run from `agentpprof/` and completed in 21.66 seconds. The target directory
-remained inside this experiment directory.
+Final checks:
 
-The complete frozen population was passed through the existing local-session
-input using the frozen Codex and Claude roots. The operations probe completed
-in about 0.45 seconds; the token probe completed in about 0.85 seconds. Both
-reported 42 parsed sessions. Stock `go tool pprof -top` opened both files in
-about 0.37 seconds total.
+| Check | Operation profile | Token profile |
+| --- | ---: | ---: |
+| Nodes | 10,423 | 10,423 |
+| Annotations | 1,737 | 1,737 |
+| Exact mass | 3,509 | 1,380,863,014 |
+| Unique stacks | 3,236 | 5,620 |
+| Semantic depth | 2--4 | 2--4 |
+| `go tool pprof -top` | loads | loads |
 
-The CLI/source audit then confirmed that no supported command materializes the
-annotation workspace's `trace.jsonl` from those parsed local sessions. Per the
-last sentence of `task-spec.md`, execution stopped after Phase 2.
+The final validation reports 72 advisory warnings and 70 issue intervals.
+They do not affect mandatory coverage, interval nesting, or mass. They were
+retained without revision as required.
 
-## Files created
+## Deliverables
 
-- `freeze_population.py`
-- `frozen-population.json`
-- `frozen-sessions/`
-- `cargo-target/`
-- `phase2-direct-ingestion-probe.pb.gz`
-- `phase2-direct-ingestion-token-probe.pb.gz`
-- `results.md`
-- `execution-log.md`
+- retained Phase 1: `frozen-population.json`, `frozen-sessions/`;
+- product workspace: `workspace/trace.jsonl`,
+  `workspace/annotation.json`, `workspace/stacks.folded`;
+- final profiles: `operation-count.pb.gz`, `token-width.pb.gz`;
+- summaries: `aggregate-summary.md`, `cost-record.md`;
+- raw automatic-pass records: `annotation-pass/`;
+- orchestration: `prepare_annotation_batches.py`,
+  `run_annotation_batches.py`;
+- experiment reports: `execution-log.md`, `results.md`, and the independent
+  result review.
 
-The two pprof files are parser/readback probes only, not the requested final
-annotated profiles.
+The earlier `phase2-direct-ingestion-*.pb.gz` files remain diagnostic
+pre-continuation probes and are not final annotated profiles.
 
-## Not run
+## Independent result review
 
-- no annotation batches;
-- no annotation backend calls or token usage;
-- no CLI annotation validation;
-- no annotated count/token profile materialization;
-- no aggregate responsibility summary; and
-- no annotation cost record.
-
-Reason: the mandatory Phase 2 stop condition, detailed in `results.md`.
+A fresh read-only reviewer independently recomputed workspace counts,
+mandatory coverage, batch uniqueness and merge identity, both pprof masses,
+usage totals, aggregate tables, depth and agent splits, longest-session facts,
+and critical-path cost. The reviewer judged the run valid, the operational
+hypothesis supported, and the research value supporting. Its boundary
+conditions and paper-level disposition are recorded in
+`independent-result-review.md`.
