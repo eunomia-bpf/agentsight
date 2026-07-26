@@ -36,11 +36,13 @@ RAW_EVENTS = EXPERIMENT / "raw-events"
 RUN_RECORDS = EXPERIMENT / "annotation-run-records.jsonl"
 RAW_ANNOTATIONS = EXPERIMENT / "raw-annotations"
 PREFLIGHT = EXPERIMENT / "preflight"
+PILOT = EXPERIMENT / "pilot"
 
 MODEL = "gpt-5.6-sol"
 EXPECTED_SESSIONS = 405
 EXPECTED_TURNS = 17_148
 EXPECTED_OPERATIONS = 20_866
+PILOT_SESSIONS = 40
 DEFAULT_WORKERS = 4
 DEFAULT_TIMEOUT_SECONDS = 1_200
 LABEL_PATTERN = re.compile(
@@ -389,10 +391,74 @@ def existing_ok(row: PacketRow) -> bool:
     return not validate_response(row.packet, response)
 
 
+def recover_orphan_attempt(row: PacketRow) -> dict[str, Any] | None:
+    event_path = RAW_EVENTS / f"{row.ordinal:04d}-attempt-1.jsonl"
+    stderr_path = RAW_EVENTS / f"{row.ordinal:04d}-attempt-1.stderr.txt"
+    if row.raw_path.is_file() or not event_path.is_file():
+        return None
+    stdout = event_path.read_text(encoding="utf-8")
+    stderr = (
+        stderr_path.read_text(encoding="utf-8")
+        if stderr_path.is_file()
+        else ""
+    )
+    response, usage, event_errors = parse_codex_events(stdout)
+    errors = list(event_errors)
+    if usage is None:
+        errors.append("missing Codex usage counters")
+    if response is not None:
+        errors.extend(validate_response(row.packet, response))
+
+    completed_at = event_path.stat().st_mtime
+    prior_ends: list[float] = []
+    if RUN_RECORDS.is_file():
+        for line in RUN_RECORDS.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            if int(record.get("ordinal", 0)) >= row.ordinal:
+                continue
+            for attempt in record.get("attempt_records", []):
+                started = attempt.get("started_unix")
+                wall = attempt.get("wall_seconds")
+                if isinstance(started, (int, float)) and isinstance(
+                    wall, (int, float)
+                ):
+                    end = float(started) + float(wall)
+                    if end <= completed_at:
+                        prior_ends.append(end)
+    started_at = min(prior_ends) if prior_ends else completed_at
+    wall_seconds = max(0.0, completed_at - started_at)
+    return {
+        "attempt": 1,
+        "returncode": 0,
+        "started_unix": started_at,
+        "wall_seconds": wall_seconds,
+        "stdout": stdout,
+        "stderr": stderr,
+        "response": response,
+        "usage": usage,
+        "errors": errors,
+        "recovered_after_interruption": True,
+        "timing_basis": (
+            "artifact completion mtime minus earliest prior worker completion"
+            if prior_ends
+            else "duration unavailable; artifact completion mtime only"
+        ),
+    }
+
+
 def annotate_one(row: PacketRow, timeout_seconds: int) -> dict[str, Any]:
     attempts: list[dict[str, Any]] = []
-    retry_errors = None
-    for attempt_number in (1, 2):
+    recovered = recover_orphan_attempt(row)
+    if recovered is not None:
+        attempts.append(recovered)
+        if not recovered["errors"]:
+            write_json(row.raw_path, recovered["response"])
+    retry_errors = list(attempts[-1]["errors"]) if attempts else None
+    for attempt_number in range(len(attempts) + 1, 3):
+        if attempts and not attempts[-1]["errors"]:
+            break
         attempt = run_attempt(row, attempt_number, retry_errors, timeout_seconds)
         write_attempt_artifacts(row, attempt)
         attempts.append(attempt)
@@ -421,6 +487,10 @@ def annotate_one(row: PacketRow, timeout_seconds: int) -> dict[str, Any]:
                 "wall_seconds": round(float(attempt["wall_seconds"]), 6),
                 "usage": attempt["usage"],
                 "errors": attempt["errors"],
+                "recovered_after_interruption": bool(
+                    attempt.get("recovered_after_interruption")
+                ),
+                "timing_basis": attempt.get("timing_basis", "direct monotonic timer"),
             }
             for attempt in attempts
         ],
@@ -518,56 +588,67 @@ def run_population(
     )
 
 
-def package_annotations(preflight: bool) -> None:
+def package_annotations(mode: str) -> None:
     rows = load_packets()
-    selected = (
-        [min(rows, key=lambda row: (int(row.packet["turn_count"]), row.session))]
-        if preflight
-        else rows
-    )
+    if mode == "preflight":
+        selected = [
+            min(rows, key=lambda row: (int(row.packet["turn_count"]), row.session))
+        ]
+    elif mode == "pilot":
+        selected = rows[:PILOT_SESSIONS]
+    else:
+        selected = rows
     missing = [row.session for row in selected if not existing_ok(row)]
     if missing:
         raise RuntimeError(f"cannot package missing annotations: {missing[:3]}")
     sessions = [read_json(row.raw_path) for row in selected]
-    annotation_dir = PREFLIGHT / "annotations" if preflight else RAW_ANNOTATIONS
+    annotation_dir = (
+        PREFLIGHT / "annotations"
+        if mode == "preflight"
+        else PILOT / "annotations"
+        if mode == "pilot"
+        else RAW_ANNOTATIONS
+    )
     write_json(
         annotation_dir / "batch-01.json",
         {"batch": "batch-01", "sessions": sessions},
     )
-    if preflight:
-        packet_dir = PREFLIGHT / "packets"
-        source_payload = None
-        selected_row = selected[0]
-        for batch_path in sorted(SOURCE_PACKETS.glob("batch-*.json")):
-            payload = read_json(batch_path)
-            if any(
-                str(packet["session"]) == selected_row.session
-                for packet in payload["sessions"]
-            ):
-                source_payload = payload
-                break
-        if source_payload is None:
-            raise RuntimeError("preflight source packet not found")
+    if mode in {"preflight", "pilot"}:
+        packet_dir = PREFLIGHT / "packets" if mode == "preflight" else PILOT / "packets"
+        source_payload = {
+            "schema": "agentsight.agent-operation-annotation-packet.v1",
+            "sessions": [row.packet for row in selected],
+        }
         source_payload = {
             **source_payload,
-            "sessions": [selected_row.packet],
+            "sessions": [row.packet for row in selected],
         }
         write_json(packet_dir / "batch-01.json", source_payload)
         write_json(
             packet_dir / "manifest.json",
             {
                 "schema": "agentsight.agent-operation-annotation-packet.manifest.v1",
-                "selection": "one smallest real trajectory; recipe validation only",
-                "sessions": 1,
-                "turns": int(selected_row.packet["turn_count"]),
-                "operations": int(selected_row.packet["operation_count"]),
+                "selection": (
+                    "one smallest real trajectory; recipe validation only"
+                    if mode == "preflight"
+                    else "first 40 trajectory IDs in sorted order; binding pilot"
+                ),
+                "sessions": len(selected),
+                "turns": sum(int(row.packet["turn_count"]) for row in selected),
+                "operations": sum(
+                    int(row.packet["operation_count"]) for row in selected
+                ),
                 "batches": [
                     {
                         "file": "batch-01.json",
-                        "sessions": 1,
-                        "turns": int(selected_row.packet["turn_count"]),
-                        "operations": int(selected_row.packet["operation_count"]),
-                        "session_ids": [selected_row.session],
+                        "sessions": len(selected),
+                        "turns": sum(
+                            int(row.packet["turn_count"]) for row in selected
+                        ),
+                        "operations": sum(
+                            int(row.packet["operation_count"]) for row in selected
+                        ),
+                        "session_ids": [row.session for row in selected],
                     }
                 ],
             },
@@ -576,7 +657,7 @@ def package_annotations(preflight: bool) -> None:
         json.dumps(
             {
                 "status": "ok",
-                "preflight": preflight,
+                "mode": mode,
                 "sessions": len(selected),
                 "annotations": sum(len(row["marks"]) for row in sessions),
                 "output": str(annotation_dir.relative_to(EXPERIMENT)),
@@ -593,11 +674,15 @@ def parse_args() -> argparse.Namespace:
     commands.add_parser("prepare")
     preflight = commands.add_parser("preflight")
     preflight.add_argument("--timeout-seconds", type=int, default=DEFAULT_TIMEOUT_SECONDS)
+    pilot = commands.add_parser("pilot")
+    pilot.add_argument("--workers", type=int, default=DEFAULT_WORKERS)
+    pilot.add_argument("--timeout-seconds", type=int, default=DEFAULT_TIMEOUT_SECONDS)
     full = commands.add_parser("full")
     full.add_argument("--workers", type=int, default=DEFAULT_WORKERS)
     full.add_argument("--timeout-seconds", type=int, default=DEFAULT_TIMEOUT_SECONDS)
     package = commands.add_parser("package")
     package.add_argument("--preflight", action="store_true")
+    package.add_argument("--pilot", action="store_true")
     return parser.parse_args()
 
 
@@ -609,7 +694,12 @@ def main() -> None:
     elif args.command == "preflight":
         selected = [min(rows, key=lambda row: (int(row.packet["turn_count"]), row.session))]
         run_population(selected, 1, args.timeout_seconds)
-        package_annotations(preflight=True)
+        package_annotations(mode="preflight")
+    elif args.command == "pilot":
+        if args.workers < 1:
+            raise SystemExit("--workers must be positive")
+        run_population(rows[:PILOT_SESSIONS], args.workers, args.timeout_seconds)
+        package_annotations(mode="pilot")
     elif args.command == "full":
         if args.workers < 1:
             raise SystemExit("--workers must be positive")
@@ -617,7 +707,11 @@ def main() -> None:
     else:
         if args.command != "package":
             raise RuntimeError("unknown command")
-        package_annotations(preflight=args.preflight)
+        if args.preflight and args.pilot:
+            raise SystemExit("--preflight and --pilot are mutually exclusive")
+        package_annotations(
+            mode="preflight" if args.preflight else "pilot" if args.pilot else "full"
+        )
 
 
 if __name__ == "__main__":

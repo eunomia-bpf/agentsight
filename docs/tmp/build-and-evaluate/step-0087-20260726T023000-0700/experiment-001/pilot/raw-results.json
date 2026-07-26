@@ -1,0 +1,191 @@
+{
+  "annotation": {
+    "canonical_unique_names": 132,
+    "raw_marks": 493,
+    "raw_path_depths": {
+      "2": 290,
+      "3": 202,
+      "4": 1
+    },
+    "raw_unique_names": 457
+  },
+  "cost": {
+    "active_backend_wall_seconds": 232.99327182769775,
+    "attempt_limit_valid": true,
+    "backend": "codex-cli 0.145.0",
+    "failed_after_retry": 0,
+    "format_retries": 1,
+    "interrupted_elapsed_span_seconds": 862.2695724964142,
+    "model": "gpt-5.6-sol",
+    "retry_reason_counts": {
+      "mark starts are not strictly ordered and unique": 1
+    },
+    "successful_trajectories": 40,
+    "summed_backend_wall_seconds": 858.8461610000003,
+    "total_codex_calls": 41,
+    "trajectory_calls": 40,
+    "usage": {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 306432,
+      "input_tokens": 1088544,
+      "output_tokens": 25310,
+      "reasoning_output_tokens": 13092
+    },
+    "worker_pattern": "isolated one-trajectory calls, up to 4 parallel workers; valid interrupted outputs reused"
+  },
+  "gate": {
+    "direct_minus_a2_bcubed_f1": 0.09040994633010013,
+    "full_run_authorized": true,
+    "passed": true,
+    "rule": "direct B-cubed F1 >= same-slice A2 B-cubed F1 - 0.03"
+  },
+  "methods": {
+    "a2_same_slice": {
+      "bcubed": {
+        "f1": 0.6618249218802396,
+        "official_groups": 249,
+        "operations": 1338,
+        "precision": 0.950021353833013,
+        "predicted_groups": 593,
+        "recall": 0.5077845072998067
+      },
+      "boundary": {
+        "f1": 0.44356955380577423,
+        "fn": 40,
+        "fp": 384,
+        "precision": 0.30560578661844484,
+        "recall": 0.8086124401913876,
+        "tp": 169
+      }
+    },
+    "direct_multilevel": {
+      "bcubed": {
+        "f1": 0.7522348682103397,
+        "official_groups": 249,
+        "operations": 1338,
+        "precision": 0.9172589667066718,
+        "predicted_groups": 493,
+        "recall": 0.6375357797970564
+      },
+      "boundary": {
+        "f1": 0.5166163141993958,
+        "false_negative": 38,
+        "false_positive": 282,
+        "pairs": 1298,
+        "precision": 0.37748344370860926,
+        "recall": 0.8181818181818182,
+        "true_negative": 807,
+        "true_positive": 171
+      }
+    },
+    "multi_resolution_recurrence": {
+      "bcubed": {
+        "f1": 0.6756337766772366,
+        "official_groups": 249,
+        "operations": 1338,
+        "precision": 0.7708085549181587,
+        "predicted_groups": 435,
+        "recall": 0.6013791202593629
+      },
+      "boundary": {
+        "f1": 0.271523178807947,
+        "false_negative": 127,
+        "false_positive": 313,
+        "pairs": 1298,
+        "precision": 0.20759493670886076,
+        "recall": 0.3923444976076555,
+        "true_negative": 776,
+        "true_positive": 82
+      }
+    }
+  },
+  "paired_direct_minus_a2": {
+    "a2_metrics": {
+      "bcubed": {
+        "f1": 0.6618249218802396,
+        "official_groups": 249,
+        "operations": 1338,
+        "precision": 0.950021353833013,
+        "predicted_groups": 593,
+        "recall": 0.5077845072998067
+      },
+      "boundary": {
+        "f1": 0.44356955380577423,
+        "fn": 40,
+        "fp": 384,
+        "precision": 0.30560578661844484,
+        "recall": 0.8086124401913876,
+        "tp": 169
+      }
+    },
+    "bcubed_f1": {
+      "baseline": "a2",
+      "candidate": "direct",
+      "ci95": [
+        0.04844255441682311,
+        0.1289383146716666
+      ],
+      "mean_delta": 0.08998764548235001,
+      "positive_fraction": 1.0,
+      "resamples": 10000,
+      "task_clusters": 32
+    },
+    "boundary_f1": {
+      "baseline": "a2",
+      "candidate": "direct",
+      "ci95": [
+        0.03380262964986418,
+        0.11246945488721809
+      ],
+      "mean_delta": 0.07287320761799439,
+      "positive_fraction": 0.9998,
+      "resamples": 10000,
+      "task_clusters": 32
+    },
+    "operation_rows": 1338,
+    "pair_rows": 1298,
+    "population_equal": true
+  },
+  "paired_direct_minus_recurrence": {
+    "baseline": "multires_recurrence",
+    "candidate": "candidate",
+    "ci95": [
+      0.037371261683989986,
+      0.11487821509788379
+    ],
+    "mean_delta": 0.07659652671714846,
+    "positive_fraction": 0.9998,
+    "resamples": 10000,
+    "task_clusters": 32
+  },
+  "population": {
+    "frameworks": {
+      "mini-SWE-agent": 40
+    },
+    "official_stages": 249,
+    "operations": 1338,
+    "pairs": 1298,
+    "sessions": 40,
+    "task_clusters": 32,
+    "turns": 1338
+  },
+  "schema": "agentsight.direct-multilevel-codetrace-pilot.v1",
+  "selection": "first 40 trajectory IDs in sorted order",
+  "status": "complete",
+  "validity": {
+    "all_trajectories_successful": true,
+    "canonical_prediction_coverage": true,
+    "deterministic_first_40_sorted_ids": true,
+    "one_format_retry_limit": true,
+    "operation_mass_conserved": true,
+    "operations_covered": true,
+    "paired_a2_population_equal": true,
+    "sessions": true,
+    "stock_pprof_operation_load": true,
+    "stock_pprof_token_load": true,
+    "token_mass_conserved": true,
+    "turns_covered": true,
+    "zero_adjacent_display_path_collisions": true,
+    "zero_failures_after_retry": true
+  }
+}
