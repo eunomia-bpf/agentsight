@@ -388,7 +388,7 @@ make clean
 | `latency_ms` | float | SSL_read/SSL_write 进入到退出之间的时间，毫秒 |
 | `is_handshake` | bool | 如果是握手事件则为 `true` |
 | `data` | string\|null | 解密的明文内容（JSON 转义），无数据时为 `null` |
-| `truncated` | bool | 如果 `buf_size < len`（数据超过 512KB 缓冲区）则为 `true` |
+| `truncated` | bool | 如果 `buf_size < len`（数据超过配置的事件缓冲区）则为 `true` |
 | `bytes_lost` | int | 仅在 `truncated` 为 `true` 时出现：`len - buf_size` |
 
 **SSL 读写事件：**
@@ -424,7 +424,7 @@ make clean
 }
 ```
 
-**截断事件**（数据超过 512KB 缓冲区时）：
+**截断事件**（数据超过配置的事件缓冲区时）：
 ```json
 {
   "function": "WRITE/SEND",
@@ -434,12 +434,12 @@ make clean
   "tid": 959035,
   "uid": 1000,
   "len": 600000,
-  "buf_size": 524288,
+  "buf_size": 262144,
   "latency_ms": 0.100,
   "is_handshake": false,
-  "data": "POST /v1/messages ...(前 512KB)...",
+  "data": "POST /v1/messages ...(截断后的载荷)...",
   "truncated": true,
-  "bytes_lost": 75712
+  "bytes_lost": 337856
 }
 ```
 
@@ -464,7 +464,7 @@ make clean
 **注意事项：**
 - `comm` 是 `bpf_get_current_comm()` 返回的**线程名**，而非进程名。例如，Claude Code 的 SSL 流量显示 `"HTTP Client"`，而非 `"claude"`。
 - `data` 包含解密的明文。控制字符会被 JSON 转义（`\n`、`\r`、`\t`、`\uXXXX`）。有效的 UTF-8 序列直接传递。
-- `len` 是 SSL_read/SSL_write 返回的值。`buf_size` 是实际复制的量（上限 512KB）。
+- `len` 是 SSL_read/SSL_write 返回的值。`buf_size` 是实际复制的量（上限为 `MAX_BUF_SIZE`）。
 
 ### 常见使用模式
 

@@ -396,7 +396,7 @@ Each SSL event is a single JSON line with the following schema:
 | `latency_ms` | float | Time between entry and exit of SSL_read/SSL_write, in milliseconds |
 | `is_handshake` | bool | `true` if this is a handshake event |
 | `data` | string\|null | Decrypted plaintext content (JSON-escaped), or `null` if no data |
-| `truncated` | bool | `true` if `buf_size < len` (data exceeded 512KB buffer) |
+| `truncated` | bool | `true` if `buf_size < len` (data exceeded the configured event buffer) |
 | `bytes_lost` | int | Only present when `truncated` is `true`: `len - buf_size` |
 
 **SSL Read/Write Events:**
@@ -432,7 +432,7 @@ Each SSL event is a single JSON line with the following schema:
 }
 ```
 
-**Truncated event** (when data exceeds 512KB buffer):
+**Truncated event** (when data exceeds the configured event buffer):
 ```json
 {
   "function": "WRITE/SEND",
@@ -442,12 +442,12 @@ Each SSL event is a single JSON line with the following schema:
   "tid": 959035,
   "uid": 1000,
   "len": 600000,
-  "buf_size": 524288,
+  "buf_size": 262144,
   "latency_ms": 0.100,
   "is_handshake": false,
-  "data": "POST /v1/messages ...(first 512KB)...",
+  "data": "POST /v1/messages ...(truncated payload)...",
   "truncated": true,
-  "bytes_lost": 75712
+  "bytes_lost": 337856
 }
 ```
 
@@ -472,7 +472,7 @@ Each SSL event is a single JSON line with the following schema:
 **Notes:**
 - `comm` is the **thread name** from `bpf_get_current_comm()`, not the process name. For example, Claude Code's SSL traffic shows `"HTTP Client"`, not `"claude"`.
 - `data` contains the decrypted plaintext. Control characters are JSON-escaped (`\n`, `\r`, `\t`, `\uXXXX`). Valid UTF-8 sequences are passed through.
-- `len` is what SSL_read/SSL_write returned. `buf_size` is what was actually copied (capped at 512KB).
+- `len` is what SSL_read/SSL_write returned. `buf_size` is what was actually copied (capped at `MAX_BUF_SIZE`).
 
 ### Common Usage Patterns
 
