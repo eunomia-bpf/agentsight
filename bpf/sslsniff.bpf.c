@@ -53,12 +53,22 @@ const volatile uid_t targ_uid = -1;
 
 #define MAX_RUSTLS_IOVECS 2
 #define RUSTLS_COPY_CHUNK_SIZE (16 * 1024)
-#define RUSTLS_MAX_CAPTURE_SIZE (256 * 1024)
+#define RUSTLS_MAX_CAPTURE_SIZE MAX_BUF_SIZE
 #define MAX_RUSTLS_CHUNKS_PER_IOV 8
 
 struct rustls_iovec {
     const void *base;
     size_t len;
+};
+
+/* rustls::msgs::message::OutboundChunks is passed indirectly by the Rust ABI.
+ * Single stores { 0, data, len }; Multiple stores
+ * { chunk_count, &[&[u8]], start, end }. */
+struct rustls_outbound_chunks {
+    size_t count;
+    const void *data;
+    size_t start_or_len;
+    size_t end;
 };
 
 static __always_inline bool trace_allowed(u32 uid, u32 pid)
@@ -166,6 +176,90 @@ int BPF_UPROBE(probe_rustls_write_vectored, void *conn,
 
     if (iovcnt > MAX_RUSTLS_IOVECS && total <= copied)
         total = (__u64)copied + 1;
+    submit_rustls_write(data, pid, tid, uid, total, copied);
+    return 0;
+}
+
+SEC("uprobe/rustls_buffer_plaintext")
+int BPF_UPROBE(probe_rustls_buffer_plaintext, void *state,
+               const struct rustls_outbound_chunks *chunks, void *sendable)
+{
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    u32 pid = pid_tgid >> 32;
+    u32 tid = (u32)pid_tgid;
+    u32 uid = bpf_get_current_uid_gid();
+    struct rustls_outbound_chunks outbound = {};
+    u64 total;
+    u32 copied = 0;
+
+    if (!trace_allowed(uid, pid) || !chunks)
+        return 0;
+    if (bpf_probe_read_user(&outbound, sizeof(outbound), chunks))
+        return 0;
+
+    if (outbound.count == 0) {
+        total = outbound.start_or_len;
+        if (!outbound.data || total == 0)
+            return 0;
+        copied = total > RUSTLS_MAX_CAPTURE_SIZE
+            ? RUSTLS_MAX_CAPTURE_SIZE : (u32)total;
+        struct probe_SSL_data_t *data =
+            bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
+        if (!data)
+            return 0;
+        if (bpf_probe_read_user(data->buf, copied, outbound.data)) {
+            bpf_ringbuf_discard(data, 0);
+            return 0;
+        }
+        submit_rustls_write(data, pid, tid, uid, total, copied);
+        return 0;
+    }
+
+    /* PlaintextSink constructs Multiple with start=0 and end=total length.
+     * Skip any other layout instead of risking a shifted capture. */
+    if (!outbound.data || outbound.start_or_len != 0 || outbound.end == 0)
+        return 0;
+    total = outbound.end;
+
+    struct probe_SSL_data_t *data =
+        bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
+    if (!data)
+        return 0;
+
+#pragma unroll
+    for (int i = 0; i < MAX_RUSTLS_IOVECS; i++) {
+        struct rustls_iovec iovec = {};
+        size_t remaining;
+        const char *source;
+
+        if ((size_t)i >= outbound.count)
+            break;
+        if (bpf_probe_read_user(&iovec, sizeof(iovec),
+                                &((const struct rustls_iovec *)outbound.data)[i]))
+            break;
+        remaining = iovec.len;
+        source = iovec.base;
+#pragma unroll
+        for (int chunk = 0; chunk < MAX_RUSTLS_CHUNKS_PER_IOV; chunk++) {
+            size_t copy_size;
+
+            if (remaining == 0
+                || copied > RUSTLS_MAX_CAPTURE_SIZE - RUSTLS_COPY_CHUNK_SIZE)
+                break;
+            copy_size = remaining;
+            if (copy_size > RUSTLS_COPY_CHUNK_SIZE)
+                copy_size = RUSTLS_COPY_CHUNK_SIZE;
+            if (bpf_probe_read_user(data->buf + copied, copy_size, source))
+                break;
+            copied += copy_size;
+            source += copy_size;
+            remaining -= copy_size;
+        }
+    }
+    if (copied == 0) {
+        bpf_ringbuf_discard(data, 0);
+        return 0;
+    }
     submit_rustls_write(data, pid, tid, uid, total, copied);
     return 0;
 }

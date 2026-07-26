@@ -106,11 +106,48 @@ static void test_marker_detection(void)
 	unlink(template);
 }
 
+static void test_grok_signature_detection(void)
+{
+	char template[] = "/tmp/agentsight-grok-offset-test.XXXXXX";
+	uint8_t data[1024] = {};
+	size_t offset = 0;
+	int fd = mkstemp(template);
+
+	check(fd >= 0, "created Grok signature fixture");
+	if (fd < 0)
+		return;
+	memcpy(data + 32, "grok-cli rustls", sizeof("grok-cli rustls"));
+	memcpy(data + 256, grok_rustls_buffer_plaintext_prefix,
+	       sizeof(grok_rustls_buffer_plaintext_prefix));
+	check(write(fd, data, sizeof(data)) == sizeof(data),
+	      "wrote Grok signature fixture");
+	close(fd);
+
+	check(grok_binary_has_tls_markers(template),
+	      "requires Grok and rustls markers");
+	check(grok_find_rustls_buffer_plaintext_offset(template, &offset)
+		      && offset == 256,
+	      "finds Grok/rustls buffer_plaintext signature");
+
+	data[256 + sizeof(grok_rustls_buffer_plaintext_prefix) - 1] ^= 0xff;
+	fd = open(template, O_WRONLY | O_TRUNC);
+	check(fd >= 0, "opened Grok fixture for corruption");
+	if (fd >= 0) {
+		check(write(fd, data, sizeof(data)) == sizeof(data),
+		      "wrote corrupted Grok fixture");
+		close(fd);
+		check(!grok_find_rustls_buffer_plaintext_offset(template, &offset),
+		      "rejects a partial Grok signature match");
+	}
+	unlink(template);
+}
+
 int main(void)
 {
 	printf("===== Codex offset tests =====\n");
 	test_signature_detection();
 	test_marker_detection();
+	test_grok_signature_detection();
 	printf("Tests passed: %d\n", tests_run - tests_failed);
 	printf("Tests failed: %d\n", tests_failed);
 	return tests_failed == 0 ? 0 : 1;

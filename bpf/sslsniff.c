@@ -145,6 +145,7 @@ static const struct argp_option opts[] = {
 static bool verbose = false;
 static struct bpf_link *codex_rustls_links[CODEX_MAX_RUSTLS_OFFSETS];
 static size_t codex_rustls_link_count;
+static struct bpf_link *grok_rustls_link;
 
 /*
  * BoringSSL function offset detection for stripped binaries.
@@ -457,6 +458,23 @@ static int attach_codex_rustls(struct sslsniff_bpf *skel, const char *binary,
 	return 0;
 }
 
+static int attach_grok_rustls(struct sslsniff_bpf *skel, const char *binary,
+			      size_t offset)
+{
+	LIBBPF_OPTS(bpf_uprobe_opts, opts, .retprobe = false);
+
+	grok_rustls_link = bpf_program__attach_uprobe_opts(
+		skel->progs.probe_rustls_buffer_plaintext, env.pid, binary, offset,
+		&opts);
+	long err = grok_rustls_link
+		? libbpf_get_error(grok_rustls_link) : -(errno ? errno : EIO);
+	if (err) {
+		grok_rustls_link = NULL;
+		return (int)err;
+	}
+	return 0;
+}
+
 int attach_openssl_by_offset(struct sslsniff_bpf *skel, const char *lib,
 							 struct boringssl_offsets *offsets) {
 	if (offsets->write_is_ex) {
@@ -653,6 +671,9 @@ int main(int argc, char **argv) {
 	struct codex_rustls_offsets codex_offsets = {};
 	bool is_codex = false;
 	bool codex_rustls = false;
+	size_t grok_rustls_offset = 0;
+	bool is_grok = false;
+	bool grok_rustls = false;
 	int err;
 
 	err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
@@ -662,6 +683,10 @@ int main(int argc, char **argv) {
 		is_codex = codex_binary_has_tls_markers(env.extra_lib);
 		codex_rustls = is_codex
 				&& codex_find_rustls_offsets(env.extra_lib, &codex_offsets);
+		is_grok = grok_binary_has_tls_markers(env.extra_lib);
+		grok_rustls = is_grok
+				&& grok_find_rustls_buffer_plaintext_offset(
+					env.extra_lib, &grok_rustls_offset);
 	}
 
 	// Set locale for UTF-8 support
@@ -678,6 +703,9 @@ int main(int argc, char **argv) {
 		bpf_program__set_autoload(obj->progs.probe_rustls_write, false);
 		bpf_program__set_autoload(obj->progs.probe_rustls_write_vectored, false);
 	}
+	if (!grok_rustls)
+		bpf_program__set_autoload(
+			obj->progs.probe_rustls_buffer_plaintext, false);
 
 	obj->rodata->targ_uid = env.uid;
 	obj->rodata->targ_pid = env.pid == INVALID_PID ? 0 : env.pid;
@@ -761,14 +789,21 @@ int main(int argc, char **argv) {
 			warn("Failed to probe SSL_write in %s: libbpf error %ld\n",
 				 env.extra_lib, test_err);
 		} else {
-			// Codex API traffic uses rustls; other stripped static clients
-			// use the existing generic BoringSSL detector.
+			// Some stripped static clients use rustls; other clients use
+			// the existing generic BoringSSL detector.
 			if (codex_rustls) {
 				fprintf(stderr,
 					"Codex/rustls plaintext write patterns detected in %s. "
 					"Attaching %zu offsets...\n",
 					env.extra_lib, codex_offsets.count);
 				err = attach_codex_rustls(obj, env.extra_lib, &codex_offsets);
+			} else if (grok_rustls) {
+				fprintf(stderr,
+					"Grok/rustls plaintext buffer pattern detected in %s. "
+					"Attaching offset 0x%zx...\n",
+					env.extra_lib, grok_rustls_offset);
+				err = attach_grok_rustls(
+					obj, env.extra_lib, grok_rustls_offset);
 			} else {
 				struct boringssl_offsets offsets = find_boringssl_offsets(env.extra_lib);
 				if (offsets.found) {
@@ -778,6 +813,9 @@ int main(int argc, char **argv) {
 				} else if (is_codex) {
 					warn("Failed to attach to %s: Codex/rustls plaintext write "
 					     "signatures were not recognized\n", env.extra_lib);
+				} else if (is_grok) {
+					warn("Failed to attach to %s: Grok/rustls plaintext buffer "
+					     "signature was not recognized\n", env.extra_lib);
 				} else {
 					warn("Failed to attach to %s: no SSL symbols or BoringSSL patterns found\n",
 					     env.extra_lib);
@@ -815,6 +853,8 @@ int main(int argc, char **argv) {
 	}
 
 cleanup:
+	if (grok_rustls_link)
+		bpf_link__destroy(grok_rustls_link);
 	destroy_codex_rustls_links();
 	if (event_buf) {
 		free(event_buf);

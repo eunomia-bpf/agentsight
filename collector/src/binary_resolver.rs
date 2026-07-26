@@ -184,18 +184,21 @@ fn newest_nvm_bin(home: &std::path::Path) -> Option<std::path::PathBuf> {
     entries.last().map(|p| p.join("bin"))
 }
 
-/// Heuristic: does this ELF statically embed its own SSL implementation?
+/// Heuristic: does this ELF statically embed its own TLS implementation?
 ///
 /// Node.js bundles OpenSSL directly into the `node` binary, so there is no
 /// system `libssl.so` for sslsniff to hook — it must attach to the binary
-/// itself. We detect this by scanning for static OpenSSL/BoringSSL marker
-/// strings in the file. Dynamically-linked runtimes like CPython call into a
-/// separate `libssl.so` (via `_ssl.so`) and do NOT contain these markers in the
-/// executable, so they keep using sslsniff's system-libssl attachment with comm
-/// filtering intact.
+/// itself. Stripped Grok binaries similarly embed rustls and need an
+/// agent-specific plaintext probe. We detect these cases by scanning for
+/// implementation and agent marker strings. Dynamically-linked runtimes like
+/// CPython call into a separate `libssl.so` (via `_ssl.so`) and do NOT contain
+/// these markers in the executable, so they keep using sslsniff's system-libssl
+/// attachment with comm filtering intact.
 pub(crate) fn binary_embeds_ssl(path: &str) -> bool {
     use std::io::Read;
     const NEEDLES: &[&[u8]] = &[b"SSL_write", b"BoringSSLError", b"OPENSSL_internal"];
+    const GROK_MARKER: &[u8] = b"grok-cli";
+    const RUSTLS_MARKER: &[u8] = b"rustls";
     let mut f = match std::fs::File::open(path) {
         Ok(f) => f,
         Err(_) => return false,
@@ -205,10 +208,14 @@ pub(crate) fn binary_embeds_ssl(path: &str) -> bool {
     let mut carry: Vec<u8> = Vec::new();
     let keep = NEEDLES
         .iter()
+        .copied()
+        .chain([GROK_MARKER, RUSTLS_MARKER])
         .map(|needle| needle.len())
         .max()
         .unwrap_or(1)
         .saturating_sub(1);
+    let mut has_grok = false;
+    let mut has_rustls = false;
     loop {
         let n = match f.read(&mut buf) {
             Ok(0) => break,
@@ -220,6 +227,15 @@ pub(crate) fn binary_embeds_ssl(path: &str) -> bool {
             .iter()
             .any(|needle| carry.windows(needle.len()).any(|w| w == *needle))
         {
+            return true;
+        }
+        has_grok |= carry
+            .windows(GROK_MARKER.len())
+            .any(|window| window == GROK_MARKER);
+        has_rustls |= carry
+            .windows(RUSTLS_MARKER.len())
+            .any(|window| window == RUSTLS_MARKER);
+        if has_grok && has_rustls {
             return true;
         }
         if carry.len() > keep {
@@ -1044,6 +1060,24 @@ mod tests {
         std::fs::write(&path, b"prefix BoringSSLError suffix").unwrap();
 
         assert!(binary_embeds_ssl(path.to_str().unwrap()));
+    }
+
+    #[test]
+    fn detects_grok_rustls_markers_in_static_binary() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("grok-like");
+        std::fs::write(&path, b"prefix grok-cli data rustls suffix").unwrap();
+
+        assert!(binary_embeds_ssl(path.to_str().unwrap()));
+    }
+
+    #[test]
+    fn rejects_grok_marker_without_rustls() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("grok-without-rustls");
+        std::fs::write(&path, b"prefix grok-cli suffix").unwrap();
+
+        assert!(!binary_embeds_ssl(path.to_str().unwrap()));
     }
 
     #[test]
