@@ -277,7 +277,12 @@ def parse_codex_events(stdout: str) -> tuple[Any, dict[str, Any] | None, list[st
     return response, usage, prohibited
 
 
-def prompt_for(packet: dict[str, Any], retry_errors: list[str] | None) -> str:
+def prompt_for(
+    packet: dict[str, Any],
+    retry_errors: list[str] | None,
+    *,
+    exact_session_copy: bool = False,
+) -> str:
     retry = ""
     if retry_errors:
         retry = (
@@ -286,9 +291,21 @@ def prompt_for(packet: dict[str, Any], retry_errors: list[str] | None) -> str:
             + "\n- ".join(retry_errors)
             + "\nReturn a corrected complete object from the same source packet.\n"
         )
+    session_copy = ""
+    if exact_session_copy:
+        session_copy = (
+            "\nAMENDMENT 2 ORDINAL-53 REPAIR. Copy the session ID string exactly, "
+            "character for character, including its trailing suffix. Do not shorten, "
+            "truncate, normalize, or reconstruct it. The exact required JSON string "
+            "value is:\n"
+            + json.dumps(packet["session"], ensure_ascii=False)
+            + "\nBefore returning, verify that the response's `session` value ends "
+            "with `-f7c2004c` and is byte-for-byte identical to that complete string.\n"
+        )
     return (
         SYSTEM_INSTRUCTION
         + retry
+        + session_copy
         + "\nSOURCE_PACKET\n"
         + json.dumps(packet, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         + "\n"
@@ -296,7 +313,12 @@ def prompt_for(packet: dict[str, Any], retry_errors: list[str] | None) -> str:
 
 
 def run_attempt(
-    row: PacketRow, attempt: int, retry_errors: list[str] | None, timeout_seconds: int
+    row: PacketRow,
+    attempt: int,
+    retry_errors: list[str] | None,
+    timeout_seconds: int,
+    *,
+    exact_session_copy: bool = False,
 ) -> dict[str, Any]:
     temporary = Path(tempfile.mkdtemp(prefix="direct-annotation-backend-"))
     command = [
@@ -323,7 +345,11 @@ def run_attempt(
     try:
         result = subprocess.run(
             command,
-            input=prompt_for(row.packet, retry_errors),
+            input=prompt_for(
+                row.packet,
+                retry_errors,
+                exact_session_copy=exact_session_copy,
+            ),
             text=True,
             encoding="utf-8",
             capture_output=True,
@@ -499,6 +525,120 @@ def annotate_one(row: PacketRow, timeout_seconds: int) -> dict[str, Any]:
         with RUN_RECORDS.open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(record, sort_keys=True) + "\n")
     return record
+
+
+def repair_ordinal_53(timeout_seconds: int) -> None:
+    row = next(row for row in load_packets() if row.ordinal == 53)
+    if existing_ok(row):
+        print(
+            json.dumps(
+                {
+                    "status": "already-complete",
+                    "ordinal": row.ordinal,
+                    "session": row.session,
+                },
+                sort_keys=True,
+            ),
+            flush=True,
+        )
+        return
+
+    attempt_three_path = RAW_EVENTS / "0053-attempt-3.jsonl"
+    if attempt_three_path.exists():
+        raise RuntimeError(
+            "ordinal 53 attempt 3 already exists but no valid raw mark is present"
+        )
+    records = [
+        json.loads(line)
+        for line in RUN_RECORDS.read_text(encoding="utf-8").splitlines()
+        if line.strip() and int(json.loads(line)["ordinal"]) == row.ordinal
+    ]
+    if not records:
+        raise RuntimeError("ordinal 53 has no preceding terminal record")
+    preceding = records[-1]
+    if (
+        int(preceding.get("attempts", 0)) != 2
+        or preceding.get("status") != "failed"
+        or any(
+            attempt.get("errors") != ["session does not exactly match the packet"]
+            for attempt in preceding.get("attempt_records", [])
+        )
+    ):
+        raise RuntimeError("ordinal 53 does not have the Amendment-2 prerequisite")
+
+    attempt_two_stdout = (
+        RAW_EVENTS / "0053-attempt-2.jsonl"
+    ).read_text(encoding="utf-8")
+    attempt_two_response, _usage, attempt_two_event_errors = parse_codex_events(
+        attempt_two_stdout
+    )
+    if attempt_two_event_errors or not isinstance(attempt_two_response, dict):
+        raise RuntimeError("ordinal 53 attempt 2 is not otherwise normalizable")
+    normalized_attempt_two = dict(attempt_two_response)
+    normalized_attempt_two["session"] = row.session
+    normalization_errors = validate_response(row.packet, normalized_attempt_two)
+    if normalization_errors:
+        raise RuntimeError(
+            "ordinal 53 attempt 2 is not otherwise valid after session replacement: "
+            + "; ".join(normalization_errors)
+        )
+
+    attempt = run_attempt(
+        row,
+        3,
+        ["session does not exactly match the packet"],
+        timeout_seconds,
+        exact_session_copy=True,
+    )
+    write_attempt_artifacts(row, attempt)
+    if attempt["errors"]:
+        response = normalized_attempt_two
+        repair_method = "deterministic_attempt_2_session_normalization"
+    else:
+        response = attempt["response"]
+        repair_method = "authorized_backend_attempt_3"
+    write_json(row.raw_path, response)
+
+    attempt_record = {
+        "attempt": attempt["attempt"],
+        "returncode": attempt["returncode"],
+        "started_unix": attempt["started_unix"],
+        "wall_seconds": round(float(attempt["wall_seconds"]), 6),
+        "usage": attempt["usage"],
+        "errors": attempt["errors"],
+        "recovered_after_interruption": False,
+        "timing_basis": "direct monotonic timer",
+    }
+    record = {
+        "ordinal": row.ordinal,
+        "session": row.session,
+        "framework": row.packet["framework"],
+        "turns": row.packet["turn_count"],
+        "operations": row.packet["operation_count"],
+        "status": "ok",
+        "attempts": 3,
+        "format_retry": True,
+        "amendment_2_additional_attempt": True,
+        "repair_method": repair_method,
+        "worker_pattern": "isolated one-trajectory Codex CLI calls",
+        "model": MODEL,
+        "attempt_records": [*preceding["attempt_records"], attempt_record],
+    }
+    with RUN_RECORDS.open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps(record, sort_keys=True) + "\n")
+    print(
+        json.dumps(
+            {
+                "status": "ok",
+                "ordinal": row.ordinal,
+                "session": row.session,
+                "repair_method": repair_method,
+                "attempt_3_errors": attempt["errors"],
+            },
+            sort_keys=True,
+        ),
+        flush=True,
+    )
 
 
 def completed_ordinals() -> set[int]:
@@ -680,6 +820,10 @@ def parse_args() -> argparse.Namespace:
     full = commands.add_parser("full")
     full.add_argument("--workers", type=int, default=DEFAULT_WORKERS)
     full.add_argument("--timeout-seconds", type=int, default=DEFAULT_TIMEOUT_SECONDS)
+    amendment_2 = commands.add_parser("amendment-2")
+    amendment_2.add_argument(
+        "--timeout-seconds", type=int, default=DEFAULT_TIMEOUT_SECONDS
+    )
     package = commands.add_parser("package")
     package.add_argument("--preflight", action="store_true")
     package.add_argument("--pilot", action="store_true")
@@ -704,6 +848,8 @@ def main() -> None:
         if args.workers < 1:
             raise SystemExit("--workers must be positive")
         run_population(rows, args.workers, args.timeout_seconds)
+    elif args.command == "amendment-2":
+        repair_ordinal_53(args.timeout_seconds)
     else:
         if args.command != "package":
             raise RuntimeError("unknown command")

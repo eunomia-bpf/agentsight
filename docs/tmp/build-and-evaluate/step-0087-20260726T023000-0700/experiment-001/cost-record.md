@@ -4,41 +4,39 @@
 
 - backend: `codex-cli 0.145.0`, model `gpt-5.6-sol`;
 - one isolated call per trajectory, up to four workers;
-- one format retry permitted per trajectory;
+- one ordinary format retry per trajectory;
+- one additional Amendment-2 backend attempt authorized only for ordinal 53;
 - interrupted valid outputs reused after schema validation.
 
-## Complete backend-call accounting
+## Complete backend and pipeline accounting
 
 | Measure | Value |
 |---|---:|
-| Planned / terminal trajectories | 405 / 405 |
-| Valid / failed-after-retry trajectories | 404 / 1 |
-| Total Codex calls | 414 |
-| Format retries | 9 |
-| Summed backend wall | 8676.599 s |
-| Active backend wall across interrupted/resumed waves | 2203.052 s |
-| Elapsed span including interruption | 2947.097 s |
-| Input tokens | 12,022,984 |
-| Cached input tokens | 5,992,192 |
-| Output tokens | 231,572 |
-| Reasoning output tokens | 116,763 |
+| Planned / valid trajectories | 405 / 405 |
+| Total Codex calls | 415 |
+| Calls after each trajectory's first | 10 |
+| Amendment-2 additional attempts | 1 |
+| Summed backend wall | 8689.405 s |
+| Active backend wall across interrupted/resumed waves | 2215.858 s |
+| Full deterministic downstream pipeline wall | 11.516 s |
+| Input tokens | 12,050,384 |
+| Cached input tokens | 6,008,320 |
+| Output tokens | 231,886 |
+| Reasoning output tokens | 116,909 |
 
-The active-wall value is the union of recorded backend-call intervals, so it
-does not count the interruption gap twice or pretend that summed parallel call
-time is elapsed wall time. The recovered ordinal-5 attempt uses its raw-event
-completion mtime minus the earliest preceding worker completion as its timing
-basis; that basis is explicit in `annotation-run-records.jsonl`.
+Ordinal 53 completed through `authorized_backend_attempt_3`. The deterministic session-ID
+normalization fallback was
+`not used`.
+The active-wall value is the union of recorded backend-call intervals and does
+not count the interruption gap as inference time.
 
 ## Context
 
 | Backend/run | Population | Inference/workflow wall evidence | Input / output tokens |
 |---|---:|---:|---:|
-| Direct multi-level (this run) | 405 terminal, 404 valid | 2203.052 s active backend wall | 12,022,984 / 231,572 |
+| Direct multi-level (this run) | 405 | 2215.858 s active backend wall | 12,050,384 / 231,886 |
 | A2 historical waves | 405 | 3,261.89 s artifact-time envelope; model time unavailable | unavailable |
 | Step 0086 automatic pass | 42 records | 7,740.107 s summed; 2,674.314 s reconstructed three-worker critical path | 15,231,328 / 311,097 |
 
 The A2 envelope mixes inference, scheduling, idle time, and file writing and is
-not directly comparable to backend request wall. This run's full pipeline cost
-is unavailable because the fixed format policy left one trajectory uncovered,
-so assembly, canonicalization, pprof replay, and scoring were correctly not run
-on a partial population.
+not directly comparable to backend request wall.

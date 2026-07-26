@@ -1,210 +1,271 @@
 {
+  "annotation": {
+    "canonical_unique_names": 783,
+    "canonicalization": {
+      "adjacent_boundary_vector_sha256": "a7ee31050467c6d6404e6c1a567eb04acc5a4a0ec571aadf80e74f5128f940ff",
+      "algorithm": "action-object-lexicon-with-boundary-safe-refinement-v1",
+      "canonical_ids_merge_equal_display_names": true,
+      "canonical_semantic_operation_ids": 783,
+      "distinguishing_refinements": 0,
+      "initial_adjacent_collisions": 329,
+      "inputs_not_opened": [
+        "target stages",
+        "outcomes",
+        "score rows"
+      ],
+      "inputs_opened": [
+        "operation_names",
+        "sparse marks",
+        "normalized operations",
+        "accepted source-only predictions for equality check"
+      ],
+      "marks": 4496,
+      "new_unique_names": 783,
+      "old_semantic_operation_ids": 3895,
+      "old_unique_names": 3895,
+      "one_word_names": 0,
+      "predictions": 20866,
+      "reference_temporal_partition_equal": true,
+      "remaining_adjacent_collisions": 0,
+      "schema": "agentsight.operation-mark-canonicalization.v1",
+      "specific_refinements": 503,
+      "structural_sha256_after": "fc703056043c9c197008bff1bc7689b4bc1058cf658c38393600281ee84cd660",
+      "structural_sha256_before": "fc703056043c9c197008bff1bc7689b4bc1058cf658c38393600281ee84cd660",
+      "temporal_occurrence_partition_sha256": "279f05a9e2a25f0ab91f6dbdb3aa1fa6d090b7861705002d4d507cd353b80c3d",
+      "three_word_names": 477,
+      "two_word_names": 3418
+    },
+    "raw_marks": 4496,
+    "raw_path_depths": {
+      "1": 3,
+      "2": 2873,
+      "3": 1588,
+      "4": 32
+    },
+    "raw_unique_names": 3895
+  },
   "artifacts": {
-    "pilot_raw_results": "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/pilot/raw-results.json",
-    "pilot_results": "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/pilot-results.md",
+    "assembled_marks": "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/assembled/operation-marks.json",
+    "canonical_marks": "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/canonical/operation-marks.json",
+    "operation_profile": "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/profiles/direct-operation.pb.gz",
     "raw_marks": "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/raw-marks",
-    "run_records": "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/annotation-run-records.jsonl"
+    "score": "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/score/summary.json",
+    "token_profile": "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/profiles/direct-tokens.pb.gz"
   },
   "cost": {
-    "active_backend_wall_seconds": 2203.0522286891937,
+    "active_backend_wall_seconds": 2215.8581767082214,
+    "amendment_2_additional_attempts": 1,
     "attempt_limit_valid": true,
     "backend": "codex-cli 0.145.0",
-    "failed_after_retry": 1,
-    "format_retries": 9,
-    "interrupted_elapsed_span_seconds": 2947.09671831131,
+    "failed_after_retry": 0,
+    "format_retries": 10,
+    "interrupted_elapsed_span_seconds": 3615.095726251602,
     "model": "gpt-5.6-sol",
     "retry_reason_counts": {
       "adjacent marks repeat an unchanged complete path": 5,
       "mark starts are not strictly ordered and unique": 2,
       "session does not exactly match the packet": 3
     },
-    "successful_trajectories": 404,
-    "summed_backend_wall_seconds": 8676.59878200001,
-    "total_codex_calls": 414,
+    "successful_trajectories": 405,
+    "summed_backend_wall_seconds": 8689.40473000001,
+    "total_codex_calls": 415,
     "trajectory_calls": 405,
     "usage": {
       "cache_write_input_tokens": 0,
-      "cached_input_tokens": 5992192,
-      "input_tokens": 12022984,
-      "output_tokens": 231572,
-      "reasoning_output_tokens": 116763
+      "cached_input_tokens": 6008320,
+      "input_tokens": 12050384,
+      "output_tokens": 231886,
+      "reasoning_output_tokens": 116909
     },
-    "worker_pattern": "isolated one-trajectory calls, up to 4 parallel workers; valid interrupted outputs reused"
+    "worker_pattern": "isolated one-trajectory calls, up to 4 parallel workers; valid interrupted outputs reused; Amendment 2 adds one ordinal-53 call"
   },
-  "full_backend_run": {
-    "expected_operations": 20866,
-    "expected_tokens": 494862929,
-    "expected_turns": 17148,
-    "failed_after_retry": 1,
-    "missing_operations": 22,
-    "missing_tokens": 329246,
-    "missing_turns": 22,
-    "planned_trajectories": 405,
-    "raw_marks": 4492,
-    "raw_path_depths": {
-      "1": 3,
-      "2": 2869,
-      "3": 1588,
-      "4": 32
-    },
-    "raw_unique_names": 3897,
-    "retained_operations": 20844,
-    "retained_tokens": 494533683,
-    "retained_turns": 17126,
-    "terminal_trajectories": 405,
-    "valid_raw_marks": 404
+  "hypothesis": "A strong backend that directly writes multi-level transition marks in one pass per trajectory matches or beats evaluated A2.",
+  "hypothesis_verdict": "supported",
+  "comparator_provenance": {
+    "a2": "Stored adopted Step-0067 automatic complete-path Agent marks plus deterministic root-only repair; not a binary-recursive policy.",
+    "multi_resolution_recurrence": "Deterministic source-visible multi-resolution recurrence assignments."
   },
-  "next_paper_decision": "Do not use the pilot as the paper result and do not score the 404-trajectory subset. The fixed one-retry backend protocol ended with one terminal format failure.",
-  "paper_impact": "none; no full-population number is authorized",
-  "pilot": {
-    "gate": {
-      "direct_minus_a2_bcubed_f1": 0.09040994633010013,
-      "full_run_authorized": true,
-      "passed": true,
-      "rule": "direct B-cubed F1 >= same-slice A2 B-cubed F1 - 0.03"
-    },
-    "methods": {
-      "a2_same_slice": {
-        "bcubed": {
-          "f1": 0.6618249218802396,
-          "official_groups": 249,
-          "operations": 1338,
-          "precision": 0.950021353833013,
-          "predicted_groups": 593,
-          "recall": 0.5077845072998067
-        },
-        "boundary": {
-          "f1": 0.44356955380577423,
-          "fn": 40,
-          "fp": 384,
-          "precision": 0.30560578661844484,
-          "recall": 0.8086124401913876,
-          "tp": 169
-        }
+  "methods": {
+    "a2": {
+      "bcubed": {
+        "f1": 0.7041128865079661,
+        "official_groups": 2948,
+        "operations": 20866,
+        "precision": 0.8390252759129282,
+        "predicted_groups": 5752,
+        "recall": 0.6065773302682256
       },
-      "direct_multilevel": {
-        "bcubed": {
-          "f1": 0.7522348682103397,
-          "official_groups": 249,
-          "operations": 1338,
-          "precision": 0.9172589667066718,
-          "predicted_groups": 493,
-          "recall": 0.6375357797970564
-        },
-        "boundary": {
-          "f1": 0.5166163141993958,
-          "false_negative": 38,
-          "false_positive": 282,
-          "pairs": 1298,
-          "precision": 0.37748344370860926,
-          "recall": 0.8181818181818182,
-          "true_negative": 807,
-          "true_positive": 171
-        }
-      },
-      "multi_resolution_recurrence": {
-        "bcubed": {
-          "f1": 0.6756337766772366,
-          "official_groups": 249,
-          "operations": 1338,
-          "precision": 0.7708085549181587,
-          "predicted_groups": 435,
-          "recall": 0.6013791202593629
-        },
-        "boundary": {
-          "f1": 0.271523178807947,
-          "false_negative": 127,
-          "false_positive": 313,
-          "pairs": 1298,
-          "precision": 0.20759493670886076,
-          "recall": 0.3923444976076555,
-          "true_negative": 776,
-          "true_positive": 82
-        }
+      "boundary": {
+        "f1": 0.39391634980988594,
+        "fn": 989,
+        "fp": 3793,
+        "precision": 0.29063025995885544,
+        "recall": 0.6110892646480535,
+        "tp": 1554
       }
     },
-    "paired_direct_minus_a2": {
-      "a2_metrics": {
-        "bcubed": {
-          "f1": 0.6618249218802396,
-          "official_groups": 249,
-          "operations": 1338,
-          "precision": 0.950021353833013,
-          "predicted_groups": 593,
-          "recall": 0.5077845072998067
-        },
-        "boundary": {
-          "f1": 0.44356955380577423,
-          "fn": 40,
-          "fp": 384,
-          "precision": 0.30560578661844484,
-          "recall": 0.8086124401913876,
-          "tp": 169
-        }
+    "direct_multilevel": {
+      "bcubed": {
+        "f1": 0.7635386005210981,
+        "official_groups": 2948,
+        "operations": 20866,
+        "precision": 0.7934088008883166,
+        "predicted_groups": 4496,
+        "recall": 0.7358359007669576
       },
-      "bcubed_f1": {
-        "baseline": "a2",
-        "candidate": "direct",
-        "ci95": [
-          0.04844255441682311,
-          0.1289383146716666
-        ],
-        "mean_delta": 0.08998764548235001,
-        "positive_fraction": 1.0,
-        "resamples": 10000,
-        "task_clusters": 32
-      },
-      "boundary_f1": {
-        "baseline": "a2",
-        "candidate": "direct",
-        "ci95": [
-          0.03380262964986418,
-          0.11246945488721809
-        ],
-        "mean_delta": 0.07287320761799439,
-        "positive_fraction": 0.9998,
-        "resamples": 10000,
-        "task_clusters": 32
-      },
-      "operation_rows": 1338,
-      "pair_rows": 1298,
-      "population_equal": true
+      "boundary": {
+        "f1": 0.47995176364184505,
+        "false_negative": 951,
+        "false_positive": 2499,
+        "pairs": 20461,
+        "precision": 0.3891469078464923,
+        "recall": 0.6260322453794731,
+        "true_negative": 15419,
+        "true_positive": 1592
+      }
     },
-    "status": "complete"
+    "multi_resolution_recurrence": {
+      "bcubed": {
+        "f1": 0.6627403051024359,
+        "official_groups": 2948,
+        "operations": 20866,
+        "precision": 0.7820256342151227,
+        "predicted_groups": 6018,
+        "recall": 0.5750289617071443
+      },
+      "boundary": {
+        "f1": 0.2655713585090731,
+        "false_negative": 1460,
+        "false_positive": 4530,
+        "pairs": 20461,
+        "precision": 0.19294494922501337,
+        "recall": 0.4258749508454581,
+        "true_negative": 13388,
+        "true_positive": 1083
+      }
+    }
   },
-  "research_value": "dependency-only full-run failure record; valid supporting pilot",
-  "run_status": "invalid_for_full_population_scoring",
-  "schema": "agentsight.direct-multilevel-codetrace-result.v1",
-  "status": "incomplete",
-  "terminal_failure": {
-    "attempts": 2,
-    "errors": [
-      [
-        "session does not exactly match the packet"
+  "next_paper_decision": "Adopt direct multi-level annotation over the stored adopted A2 artifact as the evaluated CodeTrace backend.",
+  "ordinal_53_repair": {
+    "additional_backend_attempt_authorized": true,
+    "attempt": 3,
+    "attempt_valid": true,
+    "deterministic_normalization_used": false,
+    "method": "authorized_backend_attempt_3",
+    "raw_event": "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/raw-events/0053-attempt-3.jsonl"
+  },
+  "paired_direct_minus_a2": {
+    "a2_metrics": {
+      "bcubed": {
+        "f1": 0.7041128865079661,
+        "official_groups": 2948,
+        "operations": 20866,
+        "precision": 0.8390252759129282,
+        "predicted_groups": 5752,
+        "recall": 0.6065773302682256
+      },
+      "boundary": {
+        "f1": 0.39391634980988594,
+        "fn": 989,
+        "fp": 3793,
+        "precision": 0.29063025995885544,
+        "recall": 0.6110892646480535,
+        "tp": 1554
+      }
+    },
+    "bcubed_f1": {
+      "baseline": "a2",
+      "candidate": "direct",
+      "ci95": [
+        0.047665091784348544,
+        0.07257995344843453
       ],
-      [
-        "session does not exactly match the packet"
-      ]
-    ],
-    "format_retry": true,
-    "framework": "mini-SWE-agent",
-    "ordinal": 53,
-    "raw_events": [
-      "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/raw-events/0053-attempt-1.jsonl",
-      "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/raw-events/0053-attempt-2.jsonl"
-    ],
-    "session": "miniswe-OpenAI__GPT-5-instance_ansible__ansible-7e1a347695c7987ae56ef1b6919156d9254010ad-v390e508d27db7a51eece36bb6d9698b63a5b638a-f7c2004c"
+      "mean_delta": 0.05964524954864722,
+      "positive_fraction": 1.0,
+      "resamples": 10000,
+      "task_clusters": 251
+    },
+    "boundary_f1": {
+      "baseline": "a2",
+      "candidate": "direct",
+      "ci95": [
+        0.07010542693109344,
+        0.10259255139837906
+      ],
+      "mean_delta": 0.08609481652274054,
+      "positive_fraction": 1.0,
+      "resamples": 10000,
+      "task_clusters": 251
+    },
+    "operation_rows": 20866,
+    "pair_rows": 20461,
+    "population_equal": true
   },
-  "tested_hypothesis": "not_tested_on_complete_population",
+  "paired_direct_minus_recurrence": {
+    "bcubed_f1": {
+      "baseline": "multires_recurrence",
+      "candidate": "candidate",
+      "ci95": [
+        0.08666927326720478,
+        0.11572444386707448
+      ],
+      "mean_delta": 0.10075752725659766,
+      "positive_fraction": 1.0,
+      "resamples": 10000,
+      "task_clusters": 251
+    },
+    "boundary_f1": {
+      "baseline": "multires_recurrence",
+      "candidate": "candidate",
+      "ci95": [
+        0.19332051172890213,
+        0.23508319990693302
+      ],
+      "mean_delta": 0.21434329117266543,
+      "positive_fraction": 1.0,
+      "resamples": 10000,
+      "task_clusters": 251
+    },
+    "operation_rows": 20866,
+    "pair_rows": 20461,
+    "population_equal": true
+  },
+  "paper_impact": "additional RQ3 evidence",
+  "pipeline_wall_seconds": 11.515914128976874,
+  "population": {
+    "frameworks": {
+      "OpenHands": 213,
+      "SWE-agent": 28,
+      "Terminus2": 93,
+      "mini-SWE-agent": 71
+    },
+    "official_stages": 2948,
+    "operations": 20866,
+    "pairs": 20461,
+    "sessions": 405,
+    "task_clusters": 251,
+    "turns": 17148
+  },
+  "research_value": "decisive backend comparison",
+  "run_status": "valid",
+  "schema": "agentsight.direct-multilevel-codetrace-result.v1",
+  "status": "complete",
+  "tested_hypothesis": "supported",
   "validity": {
-    "404_cached_marks_individually_valid": true,
-    "all_405_backend_calls_terminal": true,
-    "complete_trajectory_coverage": false,
-    "full_downstream_pipeline_executed": false,
-    "full_score_reported": false,
-    "one_format_retry_limit": true,
-    "operation_mass_conserved": false,
-    "partial_subset_not_reported_as_result": true,
-    "token_mass_conserved": false
+    "all_trajectories_successful": true,
+    "attempt_limit_valid_with_amendment_2": true,
+    "canonical_prediction_coverage": true,
+    "official_stages_scored": true,
+    "operation_mass_conserved": true,
+    "operations_covered": true,
+    "paired_a2_population_equal": true,
+    "sessions": true,
+    "stock_pprof_operation_load": true,
+    "stock_pprof_token_load": true,
+    "task_clusters_scored": true,
+    "token_mass_conserved": true,
+    "turns_covered": true,
+    "zero_adjacent_display_path_collisions": true,
+    "zero_failures_after_retry": true
   }
 }

@@ -66,3 +66,17 @@ fail coverage or score an unauthorized partial population.
 This command validates all retained raw marks, recomputes call/cost totals, and
 writes the terminal machine-readable and Markdown reports. It does not open
 official stages or compute a partial scientific score.
+
+## Amendment 2 completion
+
+```text
+/usr/bin/python3 direct_annotation/annotate.py amendment-2 --timeout-seconds 1200
+/usr/bin/python3 direct_annotation/annotate.py package
+/usr/bin/python3 direct_annotation/postprocess.py full
+```
+
+The one authorized ordinal-53 call passed with the exact session ID. Repair
+method: `authorized_backend_attempt_3`; deterministic normalization was not used. Packaging
+then covered all 405 annotations. The unchanged root repair, fixed
+canonicalization, operation/token profile replay, stock-pprof readback, RQ3
+scorer, and task-clustered paired comparisons completed on the full population.

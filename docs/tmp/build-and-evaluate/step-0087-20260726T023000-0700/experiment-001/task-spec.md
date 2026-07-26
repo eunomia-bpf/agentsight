@@ -53,3 +53,16 @@ first attempt (packet index, preflight, raw marks) may be reused as cache.
 Gate: if pilot B3 F1 is within 0.03 of A2 on the slice (or better),
 proceed directly to the full 405-trajectory run. If worse, STOP after
 pilot-results.md; the orchestrator decides.
+
+## Amendment 2: completion phase for ordinal 53 (binding)
+
+Authorize ONE additional backend attempt for ordinal 53 only, with the
+format instruction strengthened to require copying the session ID string
+exactly, character for character, including its trailing suffix. If the
+response is valid, package/canonicalize/score the COMPLETE 405-trajectory
+population with all originally specified comparisons, conservation and
+collision checks, and paired intervals vs A2 and recurrence; update
+results.md and raw-results.json in place. If it fails again, apply one
+documented deterministic normalization (replace only the session-id
+string in the otherwise-valid attempt-2 marks with the known correct
+string), disclose it in results.md, and score the complete population.
