@@ -101,41 +101,40 @@ OSWorld-Human, and, after marks are fixed, \sys constructs a
 
 %% ¶1: Background + context
 AI agents~\cite{sweagent,codex,claudecode,osworld} orchestrate multi-step
-activities across a high-level intent layer (prompts, LLM calls, and tool
-invocations) and a low-level system-effects layer (process spawns and file and
-network I/O), and production teams accumulate many such trajectories.
-% AI 智能体~\cite{sweagent,codex,claudecode,osworld}编排跨越两层的多步骤活动（高层意图：提示词、LLM 调用、工具调用；低层系统副作用：进程创建、文件与网络 I/O），生产团队会积累大量此类轨迹。
+activities across a high-level intent layer (prompts, LLM calls, tool
+invocations) and a low-level system-effects layer (process, file, and network
+I/O), and production teams accumulate many such trajectories.
+% AI 智能体~\cite{sweagent,codex,claudecode,osworld}编排跨越两层的多步骤活动（高层意图：提示词、LLM 调用、工具调用；低层系统副作用：进程、文件与网络 I/O），生产团队会积累大量此类轨迹。
 
 %% ¶2: Problem
 Developers lack population-level answers about agent quality, safety, and cost:
 which task categories consume the most token budget, where failures concentrate
 across workflows, and which behavioral patterns trigger unsafe system effects.
 % 开发者缺少关于智能体质量、安全与成本的群体级答案：哪类任务消耗最多 token 预算、故障跨工作流集中在哪里、哪些行为模式触发不安全系统副作用。
-Manual trajectory inspection is slow and expensive~\cite{agentrewardbench},
-and LLM judging requires a separate evaluator pass per
-trajectory~\cite{agentrewardbench,llm-as-judge}.
-% 人工轨迹检查缓慢且昂贵，而逐轨迹 LLM judging 需要为每次运行单独执行一次 evaluator。
+Manual trajectory inspection is slow and costly~\cite{agentrewardbench}, and
+LLM judging needs a separate evaluator pass per
+run~\cite{agentrewardbench,llm-as-judge}.
+% 人工轨迹检查缓慢且昂贵，而逐次运行的 LLM judging 需要单独执行一次 evaluator。
 
 %% ¶3: Structural cause
-Agent trajectories lack two structures needed for cross-run profiling.
-% 智能体轨迹缺乏跨运行 profiling 所需的两个结构。
-Responsibility lies in semantic categories such as task intent and tool
+Agent trajectories lack two structures needed for cross-run profiling:
+responsibility lies in semantic categories such as task intent and tool
 operation rather than stable function names, and natural-language prompts
 provide no common identifier for shared intent.
-% 负责实体是任务意图和工具操作等语义类别而非稳定函数名，且自然语言提示词不为共享意图提供共同标识符。
+% 智能体轨迹缺乏跨运行 profiling 所需的两个结构：负责实体是任务意图和工具操作等语义类别而非稳定函数名，且自然语言提示词不为共享意图提供共同标识符。
 Native execution nesting may exist but provides no reusable cross-run hierarchy
 of semantic responsibility: one prompt sequence may represent multiple tasks,
 and one task may belong to a larger one.
 % 原生执行嵌套可以存在，但不提供可跨运行复用的语义责任层次：一段提示序列可能表示多个任务，一个任务又可能属于更大任务。
 
 %% ¶4: Existing solutions
-Existing agent observability lacks this profiling abstraction.
-Tools provide rich tracing, metadata aggregation, and population
+Existing agent observability lacks this profiling abstraction: tools provide
+rich tracing, metadata aggregation, and population
 dashboards~\cite{langsmith,langfuse,otel,datadog-llmobs};
 some derive hierarchical categories across traces and aggregate latency, cost,
 or evaluation metrics~\cite{langsmith-insights,datadog-patterns}, and recent
-research canonicalizes actions into process profiles or cross-run graphs for
-monitoring and recovery~\cite{traceprobe2026,graphectory2026,hodoscope2026,
+research canonicalizes actions into process profiles or cross-run
+graphs~\cite{traceprobe2026,graphectory2026,hodoscope2026,
 tracegraph2026,actonomy2026,chief2026}. None combines recursively annotated
 semantic responsibility, source-linked LLM/tool evidence, conserved additive
 measures, and standard profiler output over the same histories.
@@ -144,17 +143,15 @@ measures, and standard profiler output over the same histories.
 %% ¶5: Model
 Agent observability needs profiling, not only debugging.
 % 智能体可观测性需要 profiling，而不仅仅是 debugging。
-Profiling applies to agents once a profiler projects resource measures onto
-stable semantic tags in an attribution hierarchy.
-% 一旦 profiler 把资源度量投影到归因层次中的稳定语义标签上，profiling 即可迁移到智能体。
-Our \emph{semantic operation stack model} provides this structure: source nodes
-retain native session, prompt, LLM-call, and tool-call relations and additive
-measures; an interchangeable backend names the session scope, each user-prompt
-scope, and recursively refined intervals as operations; an \emph{operation
-stack} emits the agent, those semantic operations, and the covered LLM/tool
-evidence. Raw session and prompt IDs remain labels rather than visible frames
-that fragment aggregation (Figure~\ref{fig:flamegraph}).
-% 我们的语义 operation stack 模型提供该结构：source node 保留原生 session、prompt、LLM call、tool call relation 与可加度量；可替换 backend 将 session scope、每个 user-prompt scope 与递归细分区间命名为 operation；operation stack 输出 agent、这些语义 operation 及其覆盖的 LLM/tool evidence，raw session/prompt ID 仅作为 label，不作为打碎聚合的可见 frame。
+Our \emph{semantic operation stack model} provides this structure by projecting
+resource measures onto stable semantic tags in an attribution hierarchy: source
+nodes retain native session, prompt, LLM-call, and tool-call relations and
+additive measures; an interchangeable backend names the session scope, each
+user-prompt scope, and recursively refined intervals as operations; an
+\emph{operation stack} emits the agent, those operations, and covered LLM/tool
+evidence. Raw session and prompt IDs stay labels, not visible frames that
+fragment aggregation (Figure~\ref{fig:flamegraph}).
+% 我们的语义 operation stack 模型通过把资源度量投影到归因层次中的稳定语义标签上来提供该结构：source node 保留原生 session、prompt、LLM call、tool call relation 与可加度量；可替换 backend 将 session scope、每个 user-prompt scope 与递归细分区间命名为 operation；operation stack 输出 agent、这些 operation 及其覆盖的 LLM/tool evidence，raw session/prompt ID 仅作为 label，不作为打碎聚合的可见 frame。
 
 %% ¶6: System
 We implement this model in \sys, an offline profiler compiling local agent
@@ -162,28 +159,26 @@ trajectories into pprof-compatible profiles~\cite{pprof}
 (Figure~\ref{fig:architecture}).
 % 我们在 \sys 中实现此模型，这是一个把本地智能体轨迹编译为 pprof 兼容 profile 的离线 profiler（Figure~\ref{fig:architecture}）。
 \emph{Operation annotation} lets an Agent, language model, or non-LLM backend
-mark nested source intervals with shared semantic names.
-% Operation annotation 允许 Agent、语言模型或非 LLM backend 用共享语义名称标记嵌套的 source interval。
-\emph{Stack construction} deterministically emits
+mark nested source intervals with shared semantic names, and \emph{stack
+construction} deterministically emits
 \texttt{agent}$\rightarrow$session-level operation$\rightarrow$prompt-level
 operation$\rightarrow$recursive operations$\rightarrow$LLM call$\rightarrow$tool
-call, with raw session and prompt identities retained as pprof labels for
-drilldown.
-% 栈构造确定性地输出 agent→session-level operation→prompt-level operation→recursive operations→LLM call→tool call，raw session 与 prompt identity 作为 pprof label 保留供下钻。
+call, retaining raw session and prompt identities as pprof labels for drilldown.
+% Operation annotation 允许 Agent、语言模型或非 LLM backend 用共享语义名称标记嵌套 source interval；栈构造确定性地输出 agent→session-level operation→prompt-level operation→recursive operations→LLM call→tool call，raw session 与 prompt identity 作为 pprof label 保留供下钻。
 
 %% ¶7: Results
 Across 405 released CodeTraceBench trajectories reconstructable from
 source~\cite{li2026codetracer},
 automatic Agent annotation reaches 0.704 ordinary B$^3$ F1 against human
-stages, compared with 0.663 for multi-resolution recurrence and 0.541 for raw
+stages, vs.\ 0.663 for multi-resolution recurrence and 0.541 for raw
 action.
 % 在 released source 能生成官方 operation sequence 的全部 405 条 CodeTraceBench 轨迹上，自动 Agent 标注相对人工 stage 的普通 B$^3$ F1 为 0.704，高于 multi-resolution recurrence 的 0.663 和 raw action 的 0.541。
 Across three complete public workloads, AgentProf refines benchmark-native
 direct diagnostic ties and raises MAP by 0.031, 0.107, and 0.117,
 respectively~\cite{agentprocessbench,hintbench,traceelephant}.
 On TraceElephant, the same fixed hierarchy serves as a reading index:
-a strong reader reaches the same ranking quality while opening materially
-less source evidence than an information-matched raw-action grouping
+a strong reader reaches the same ranking quality while opening less
+source evidence than an information-matched raw-action grouping
 (53.0\% versus 65.0\%).
 % 在用于协议开发的三个完整公开 workload 上，AgentProf 细化 benchmark-native direct diagnostic 的并列，并将 MAP 分别提高 0.031、0.107 和 0.117。
 % 在 TraceElephant 上，同一固定层次也作为阅读索引：强 reader 达到统计持平的排名质量，同时打开的 source evidence 更少（53.0\% 对 65.0\%）。
@@ -242,33 +237,29 @@ trajectories~\cite{agentsight}.
 % 系统 Profiling
 
 Unlike single-execution debugging, profiling aggregates measurements to
-attribute resources to responsible entities.
-% Profiling 通过聚合将资源消耗归因到负责实体，区别于单次执行调试和 tracing。
-Traditional profilers sample execution, attach each sample to its call stack,
-and fold identical stacks~\cite{pprof,flamegraphs}.
-% 在传统软件中，profiling 管线如下工作：profiler 周期性采样执行状态，将每个样本附加到当前调用栈，合并具有相同栈的样本。
+attribute resources to responsible entities: traditional profilers sample
+execution, attach each sample to its call stack, and fold identical
+stacks~\cite{pprof,flamegraphs}.
+% Profiling 通过聚合将资源消耗归因到负责实体，区别于单次执行调试：传统 profiler 采样执行、把每个样本附加到调用栈、并折叠相同栈。
 Flame graphs~\cite{flamegraphs} and pprof~\cite{pprof} call graphs visualize
-aggregate cost by width or node size, and Pivot Tracing~\cite{pivottracing}
-groups causally related measurements.
-% 火焰图~\cite{flamegraphs}和 pprof~\cite{pprof} 调用图以宽度或节点大小表示聚合开销，Pivot Tracing~\cite{pivottracing} 则对有因果关系的测量分组。
-These tools start from stable code identifiers and runtime stacks, although
-pprof can also promote \texttt{tagroot}/\texttt{tagleaf} values to
-pseudo-frames~\cite{pprof}.
-% 这些工具通常从稳定的代码标识符和运行时栈开始；pprof 也可以聚合标签，并将 \texttt{tagroot}/\texttt{tagleaf} 值提升为伪帧。
+aggregate cost by width or node size, Pivot Tracing~\cite{pivottracing} groups
+causally related measurements, and these tools start from stable code
+identifiers and runtime stacks, although pprof can also promote
+\texttt{tagroot}/\texttt{tagleaf} values to pseudo-frames~\cite{pprof}.
+% 火焰图和 pprof 调用图以宽度或节点大小表示聚合开销，Pivot Tracing 对因果测量分组；这些工具从稳定代码标识符与运行时栈出发，pprof 也可将 \texttt{tagroot}/\texttt{tagleaf} 提升为伪帧。
 Agent profiles must instead derive stable semantic fields and connect them to
 downstream effects.
-% 智能体轨迹则必须先获得稳定的语义责任字段，并将其连接到下游副作用，之后才能形成这类 profile 视图。
+% 智能体 profile 则必须先推导稳定语义字段并连接到下游副作用。
 
 \subsection{Challenges for Agent Profiling}
 % 智能体 Profiling 的挑战
 
 Existing tools~\cite{langsmith,langfuse,otel} record agent events as
-per-execution span trees for single-run debugging.
-% 现有工具~\cite{langsmith,langfuse,otel}将智能体事件记录为按执行划分的 span 树，有效调试单次运行。
-AgentSight~\cite{agentsight} bridges intent and system-effect layers by
-correlating extended Berkeley Packet Filter (eBPF) system events with intercepted LLM
-traffic, but the resulting recordings still lack aggregate profiling.
-% AgentSight~\cite{agentsight} 通过关联 eBPF 捕获的系统事件与拦截的 LLM 流量来桥接意图层和系统副作用层，但生成的记录仍缺乏聚合分析能力。
+per-execution span trees for single-run debugging; AgentSight~\cite{agentsight}
+bridges intent and system-effect layers by correlating extended Berkeley Packet
+Filter (eBPF) system events with intercepted LLM traffic, but the resulting
+recordings still lack aggregate profiling.
+% 现有工具~\cite{langsmith,langfuse,otel}将智能体事件记录为按执行划分的 span 树以调试单次运行；AgentSight~\cite{agentsight} 通过关联 eBPF 捕获的系统事件与拦截的 LLM 流量来桥接意图层和系统副作用层，但生成的记录仍缺乏聚合分析能力。
 
 
 Agent profiling faces two challenges. First, responsibility lies in semantic
@@ -362,17 +353,15 @@ they never encode an inferred semantic operation.
 % Source node 是有序森林中的 $n=(id,parent,kind,data,m)$。kind 表示 session、prompt、LLM call、tool call、effect 或 adapter 定义的原子事件；data 保留解释事件所需的 source content；$m$ 将资源名称映射到非负可加度量。Source-parent link 编码观察到的执行结构，而不编码推断出的语义 operation。
 
 Recursive annotation covers every source node with exactly one active semantic
-leaf and its enclosing operation ancestors; let this path be $A(n)$. Let
-$g(n)$ be the agent identity inherited from the source root, and let $E(n)$ be
-the retained evidence ancestry after removing raw session and prompt
-containers---normally the covered LLM call, tool call, and effect. The emitted
-operation stack is
-$\sigma(n)=\langle\textit{agent}:g(n)\rangle\mathbin{\|}A(n)\mathbin{\|}E(n)$,
-where $\|$ denotes concatenation. Raw session and prompt IDs are attached as
-labels $\lambda(n)$ rather than visible frames. Equal semantic prefixes can
-therefore aggregate across sessions without losing the evidence needed to
-locate a contributing call or tool event.
-% 递归 annotation 使用唯一 active semantic leaf 及其外层 operation ancestor 覆盖每个 source node，形成 $A(n)$；$g(n)$ 是从 source root 继承的 agent identity；$E(n)$ 是去除 raw session 与 prompt container 后保留的 evidence ancestry，通常包含被覆盖的 LLM call、tool call 与 effect。输出 operation stack 为 $\sigma(n)=\langle\textit{agent}:g(n)\rangle\mathbin{\|}A(n)\mathbin{\|}E(n)$；raw session 与 prompt ID 作为 label $\lambda(n)$ 保留，而不是可见 frame。相同语义前缀因此可以跨 session 聚合，同时仍能定位贡献权重的 call 或 tool event。
+leaf and its enclosing operation ancestors; let this path be $A(n)$, $g(n)$ the
+agent identity inherited from the source root, and $E(n)$ the retained evidence
+ancestry after removing raw session and prompt containers---normally the covered
+LLM call, tool call, and effect. The emitted operation stack is
+$\sigma(n)=\langle\textit{agent}:g(n)\rangle\mathbin{\|}A(n)\mathbin{\|}E(n)$
+($\|$ denotes concatenation), with raw session and prompt IDs as labels
+$\lambda(n)$ rather than visible frames, so equal prefixes aggregate across
+sessions without losing the evidence to locate a contributing call or tool event.
+% 递归 annotation 使用唯一 active semantic leaf 及其外层 operation ancestor 覆盖每个 source node，形成 $A(n)$；$g(n)$ 是从 source root 继承的 agent identity；$E(n)$ 是去除 raw session 与 prompt container 后保留的 evidence ancestry，通常包含被覆盖的 LLM call、tool call 与 effect。输出 operation stack 为 $\sigma(n)=\langle\textit{agent}:g(n)\rangle\mathbin{\|}A(n)\mathbin{\|}E(n)$（$\|$ 表示连接），raw session 与 prompt ID 作为 label $\lambda(n)$ 保留而不是可见 frame，因此相同前缀可跨 session 聚合，同时仍能定位贡献权重的 call 或 tool event。
 
 \label{sec:stacks}
 We formalize a resource profile as $(\varphi,\sigma,w_r)$: predicate
@@ -433,13 +422,13 @@ identical paths but never nonadjacent or unequal ones.
 The complete CodeTraceBench A2 run uses independent Codex Agent workers under
 one fixed source-only annotation instruction, followed by root merge,
 validation, and one deterministic source-only representation repair
-(Appendix~\ref{app:canonicalization}). Official stages, outcomes, recurrence
-assignments, and scores remain hidden until all 405 trajectories are
+(Appendix~\ref{app:canonicalization}), with official stages, outcomes,
+recurrence assignments, and scores hidden until all 405 trajectories are
 materialized. Before folding, a fixed source-only action--object map
 canonicalizes display identities (5{,}537 open-vocabulary names to 1{,}434
 two- or three-word IDs with zero adjacent collision) while preserving every
 temporal mark.
-% 完整 CodeTraceBench A2 运行由多个独立 Codex Agent worker 按同一份固定 source-only annotation instruction 执行，再由 root merge、验证与一个确定性 source-only 表示修复完成（附录）；全部 405 条轨迹物化前不读取官方 stage、outcome、recurrence assignment 或 score。折叠前，固定的 source-only action--object 映射规范化显示 identity（5,537 个开放名称压缩为 1,434 个二到三词 ID，零相邻碰撞），并保留全部时间 mark。
+% 完整 CodeTraceBench A2 运行由多个独立 Codex Agent worker 按同一份固定 source-only annotation instruction 执行，再由 root merge、验证与一个确定性 source-only 表示修复完成（附录），全部 405 条轨迹物化前不读取官方 stage、outcome、recurrence assignment 或 score。折叠前，固定的 source-only action--object 映射规范化显示 identity（5,537 个开放名称压缩为 1,434 个二到三词 ID，零相邻碰撞），并保留全部时间 mark。
 
 %% ===================================================================
 \section{Implementation}
@@ -957,10 +946,9 @@ otel,datadog-llmobs}; Datadog Patterns and LangSmith Insights derive
 cross-trace hierarchies and roll up metrics, NeMo profiles instrumented
 workflows, and OpenTelemetry Profiles links profiles to traces~\cite{datadog-patterns,
 langsmith-insights,nemo-agent-toolkit-profiler,otel-profiles}. \sys complements
-these grouping, rollup, and trace-linkage systems by recursively assigning
-shared semantic responsibility over a preserved source-call tree and folding
-conserved resource measures into standard pprof profiles.
-% Agent observability 平台聚合 span、metadata 与 evaluation；\sys 在保留的 source-call tree 上递归分配共享语义责任，并把守恒的资源度量折叠为标准 pprof profile，补充这些 grouping/rollup/trace-linkage 系统。
+them by recursively assigning shared semantic responsibility over a preserved
+source-call tree and folding conserved resource measures into standard pprof.
+% Agent observability 平台聚合 span、metadata 与 evaluation；\sys 在保留的 source-call tree 上递归分配共享语义责任，并把守恒的资源度量折叠为标准 pprof，补充这些系统。
 
 \textbf{Cross-run agent analysis.}
 TraceProbe normalizes coding traces into canonical actions and process
@@ -970,10 +958,9 @@ a fixed three-level behavior taxonomy, CHIEF builds task/subtask causal graphs
 for oracle-guided failure attribution~\cite{actonomy2026,chief2026}, Hodoscope
 compares behavior distributions to human review, and TraceGraph builds shared
 decision landscapes that guide recovery~\cite{hodoscope2026,tracegraph2026}.
-\sys complements these canonical-action, recurring-structure, and
-analysis-to-decision systems with shared variable-depth responsibility
-annotations that cover native call evidence, fold across runs, and replay the
-same boundaries under different additive measures in a standard profiler.
+\sys complements them with shared variable-depth responsibility annotations
+that cover native call evidence, fold across runs, and replay the same
+boundaries under different additive measures in a standard profiler.
 % TraceProbe、Graphectory、Actonomy、CHIEF、Hodoscope 与 TraceGraph 建立了 canonical action、跨运行结构与 decision 导向分析；\sys 用覆盖原生 call evidence、跨运行折叠、可跨度量重放的共享变深 responsibility annotation 补充它们。
 
 \textbf{Profiling and diagnosis.}
@@ -983,9 +970,9 @@ flamegraphs,pivottracing}. AgentRx diagnoses failures, CodeTracer reconstructs
 per-run states, and localization benchmarks score faulty steps, agents, or
 expert-supported perspectives~\cite{agentrx,li2026codetracer,agentprocessbench,
 hintbench,traceelephant,mpbench2026}. \sys applies the profiler's
-population-level principle to agents by annotating recurring semantic
-responsibility over completed trajectories without requiring code identity or
-treating runtime nesting as semantic truth.
+population-level principle to agents, annotating recurring semantic
+responsibility over completed trajectories without code identity or treating
+runtime nesting as semantic truth.
 % pprof/flame graphs 折叠运行时栈，Pivot Tracing 跨因果事件分组；AgentRx、CodeTracer 与 localization benchmark 关注单次诊断；\sys 把 profiler 的群体级原则用于智能体：在完整轨迹上标注重复语义责任并折叠，不要求代码 identity，也不把运行时嵌套当作语义真相。
 
 %% ===================================================================
@@ -993,16 +980,15 @@ treating runtime nesting as semantic truth.
 % 结论
 
 Agent observability needs profiling, not only debugging. \sys recursively
-annotates semantic responsibility over source-native traces and folds covered
-source evidence under shared operation stacks across runs. Its profiles expose
+annotates semantic responsibility over source-native traces, folding covered
+evidence under shared cross-run operation stacks. Its profiles expose
 resource-dependent bottlenecks and success--failure differences, improve
-stage-partition agreement on CodeTraceBench, supplement benchmark-native direct
+CodeTraceBench stage-partition agreement, supplement benchmark-native direct
 diagnostics on all three localization workloads, and recover OSWorld-Human
-groups at 0.680 boundary F1 and 0.786
-B$^3$ F1. After marks are fixed, \sys builds a 27{,}765-operation profile in
-1.16 seconds, making
-population profiling practical alongside per-run debugging.
-% 在真实与公开轨迹上，这些 profile 相比 raw action identity 改善归因、在三个完整 workload 上提高 localization MAP、恢复有用的 task、action 与 group 结构，并在固定 mark 后用 1.16 秒构建最大的已评估 profile。
+groups at 0.680 boundary F1 and 0.786 B$^3$ F1. With marks fixed, \sys builds a
+27{,}765-operation profile in 1.16 seconds, making population profiling
+practical alongside per-run debugging.
+% 智能体可观测性需要 profiling，而不仅仅是 debugging。\sys 在 source-native 轨迹上递归标注语义责任，把被覆盖 evidence 折叠到跨运行共享的 operation stack 下。其 profile 暴露依赖资源的瓶颈与成功--失败差异，改进 CodeTraceBench stage-partition agreement，在三个完整 localization workload 上补充 benchmark-native direct diagnostic，并在 OSWorld-Human 上恢复 0.680 boundary F1 与 0.786 B$^3$ F1。固定 mark 后，\sys 用 1.16 秒构建 27,765-operation profile，使群体级 profiling 与逐次调试并存。
 
 \bibliography{references}
 
