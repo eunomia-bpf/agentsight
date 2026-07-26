@@ -509,19 +509,17 @@ Each RQ subsection pairs its protocol with the strongest answer its evidence
 supports.
 % 后续每个小节都陈述其协议、报告相应证据，并给出该证据所支持的最强答案。
 
-We evaluate three data classes separately. \textbf{Real inputs (RQ1 and case
-studies)} include 41 long-horizon coding-agent sessions and 440 real
-mixed-outcome web-agent trajectories. \textbf{Annotated trajectories (RQ3 and
-RQ4)} include 15 real-agent or human web, API, coding, and mobile/GUI execution
-families, plus 405 CodeTraceBench trajectories with 20{,}866
-operations~\cite{weblinx,mind2web,agenttrek,webshop,
-apibank,toolbench,taubench,sweagent,androidcontrol,guiodyssey,scalecua,
-agentrewardbench,safactory,agentnet,osworldhuman}. \textbf{Problem-localization
-benchmarks (RQ2)} provide independent targets over 27{,}346
-operations~\cite{agentprocessbench,hintbench,traceelephant}. The RQ4 union
-contains 27{,}765 operations~\cite{agentrewardbench,safactory,osworldhuman,
+We evaluate three data classes: \textbf{real inputs (RQ1, cases)}---41
+long-horizon coding-agent sessions and 440 mixed-outcome web-agent
+trajectories; \textbf{annotated trajectories (RQ3, RQ4)}---15 real-agent or
+human execution families and 405 CodeTraceBench trajectories (20{,}866
+operations)~\cite{weblinx,mind2web,agenttrek,webshop,apibank,toolbench,taubench,
+sweagent,androidcontrol,guiodyssey,scalecua,agentrewardbench,safactory,
+agentnet,osworldhuman}; and \textbf{problem-localization benchmarks (RQ2)} over
+27{,}346 operations~\cite{agentprocessbench,hintbench,traceelephant}, with the
+RQ4 union at 27{,}765 operations~\cite{agentrewardbench,safactory,osworldhuman,
 agentnet}.
-% 三类数据分开评估：RQ1 与案例使用真实 long-horizon coding-agent session 和 mixed-outcome web-agent trajectory；RQ3/RQ4 使用公开标注 trajectory；RQ2 使用独立问题定位 benchmark。
+% 三类数据：真实输入（RQ1 与案例）含 41 条 long-horizon coding-agent session 与 440 条 mixed-outcome web-agent trajectory；标注轨迹（RQ3/RQ4）含 15 个执行 family 与 405 条 CodeTraceBench 轨迹（20,866 operation）；问题定位 benchmark（RQ2）覆盖 27,346 operation；RQ4 union 为 27,765 operation。
 
 %% -------------------------------------------------------------------
 \subsection{RQ1: Multi-Resource Attribution}
@@ -531,12 +529,12 @@ RQ1 asks whether semantic profiling improves resource attribution. We test one
 necessary consequence: whether a fixed semantic hierarchy reveals materially
 different bottlenecks when the additive resource measure changes. The source
 population contains 41 real long-horizon agent trajectories, 3{,}146
-source-native turns, and 5{,}750 operations. Within it, three independent
-executions repeat the same Git-deployment task. The automatic Agent backend
-assigns 96 recursive annotations to their 735 source nodes. The resulting
-hierarchy reaches semantic depth five without a fixed limit. The CLI reports no
-unary or flat-fan-out warning and 27 advisory coarse-leaf warnings.
-% RQ1 问 semantic profiling 是否改善资源归因。这里测试一个必要后果：固定语义层次在切换可加资源度量时是否暴露实质不同的瓶颈；source population 含 41 条真实 long-horizon agent 轨迹、3,146 个 source-native turn 和 5,750 个 operation，其中三条独立执行重复同一个 Git 部署任务。Automatic Agent backend 为其 735 个 source node 生成 96 个递归 annotation；层次在没有固定上限的情况下达到 semantic depth 5，CLI 不再报告 unary 或 flat-fan-out warning，并给出 27 个仅供诊断的 coarse-leaf warning。
+source-native turns, and 5{,}750 operations, including three independent
+executions of one Git-deployment task whose 735 source nodes receive 96
+recursive annotations; the resulting hierarchy reaches semantic depth five
+without a fixed limit, and the CLI reports no unary or flat-fan-out warning and
+27 advisory coarse-leaf warnings.
+% RQ1 问 semantic profiling 是否改善资源归因。这里测试一个必要后果：固定语义层次在切换可加资源度量时是否暴露实质不同的瓶颈；source population 含 41 条真实 long-horizon agent 轨迹、3,146 个 source-native turn 和 5,750 个 operation，其中包含同一 Git 部署任务的三次独立执行（其 735 个 source node 获得 96 个递归 annotation）；所得层次在无固定上限下达到 semantic depth 5，CLI 不报告 unary 或 flat-fan-out warning，并给出 27 个 coarse-leaf warning。
 This establishes the multi-resource attribution capability on a repeated
 real task.
 % 该实验在一个重复真实任务上建立了多资源 attribution 能力。
@@ -551,12 +549,11 @@ executions of one repeated Git-deployment task rather than selecting one trace.
 \includegraphics[width=.70\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.tokens.png}\\[1pt]
 \includegraphics[width=.70\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-authentication.tokens.png}
 \caption{All three real \texttt{git-multibranch} executions under one fixed
-operation hierarchy. Width is operation count (top) or provider-reported
-tokens (middle); the bottom panel focuses the shared
-\texttt{diagnose authentication} operation and exposes its recursively nested
-hypotheses, controls, LLM calls, and tool leaves. AgentPProf emits only standard
-pprof; a paper-only renderer reads the same \texttt{.pb.gz} through
-\texttt{go tool pprof} without introducing a product frontend.}
+operation hierarchy. Width is operation count (top) or provider-reported tokens
+(middle); the bottom panel focuses the shared \texttt{diagnose authentication}
+operation. AgentPProf emits only standard pprof; a paper-only renderer reads
+the same \texttt{.pb.gz} through \texttt{go tool pprof} without introducing a
+product frontend.}
 \Description{Three operation flame graphs over the same Git-deployment traces.
 The count view is dominated by Terminus2, whereas the token view is dominated
 by OpenHands and repeated SSH diagnosis. A focused panel expands the SSH path
@@ -606,12 +603,12 @@ tau-b~\cite{kendall1938} is 0.886 (10{,}000-draw task-cluster bootstrap 95\%
 interval [0.857, 0.915]) and Spearman's rho~\cite{spearman1904} is 0.935
 [0.917, 0.953]; the pooled population ranking agrees at tau-b 0.929. One fixed
 hierarchy therefore replays across measures with exact conservation and stable
-dominant responsibilities for most web-scale tasks. The agreement is not
-perfect: 10 of the 77 rankable tasks fall below tau-b 0.7, and the long-horizon
-Git case above shifts attributed importance by more than a factor of two. The
-regimes where selecting the measure changes the engineering decision are
-exactly where multi-measure replay pays.
-% 在 frozen 的 440-session AgentRewardBench 层次（7,229 个 operation 与 51,904,621 个 provider-reported token，两者均精确保守）上，同一固定层次在两种度量下重放：分别按 operation count 与 token 对相同 operation 排序。在 125 个 task 中至少有三个不同 operation 的 77 个上，mean per-task Kendall's tau-b 为 0.886（10,000 次 task-cluster bootstrap 95% 区间 [0.857, 0.915]），Spearman's rho 为 0.935 [0.917, 0.953]；pooled population ranking 的 tau-b 为 0.929。因此一个固定层次可跨度量重放且精确保守，多数 web-scale task 的主导职责保持稳定。但一致性并不完美：77 个可排序 task 中有 10 个 tau-b 低于 0.7，且上述 long-horizon Git case 的归因重要性变化超过两倍——度量选择会改变工程决策的情形，正是 multi-measure replay 的价值所在。
+dominant responsibilities for most web-scale tasks, though 10 of the 77
+rankable tasks fall below tau-b 0.7 and the long-horizon Git case above shifts
+attributed importance by more than a factor of two. The regimes where selecting
+the measure changes the engineering decision are exactly where multi-measure
+replay pays.
+% 在 frozen 的 440-session AgentRewardBench 层次（7,229 个 operation 与 51,904,621 个 provider-reported token，两者均精确保守）上，同一固定层次在两种度量下重放：分别按 operation count 与 token 对相同 operation 排序。在 125 个 task 中至少有三个不同 operation 的 77 个上，mean per-task Kendall's tau-b 为 0.886（10,000 次 task-cluster bootstrap 95% 区间 [0.857, 0.915]），Spearman's rho 为 0.935 [0.917, 0.953]；pooled population ranking 的 tau-b 为 0.929。因此一个固定层次可跨度量重放且精确保守，多数 web-scale task 的主导职责保持稳定，但 77 个可排序 task 中有 10 个 tau-b 低于 0.7，且上述 long-horizon Git case 的归因重要性变化超过两倍——度量选择会改变工程决策的情形，正是 multi-measure replay 的价值所在。
 
 
 %% Flamegraph figure appears with the RQ1 multi-weight evidence.
@@ -694,12 +691,10 @@ study measures.
 On the complete 220 target-bearing TraceElephant queries, a fixed external
 Grok-family CLI reader receives target-blind packets---task text, operation
 IDs, and source-visible content---with unranked operations appended in
-original order deterministically and one single-turn call per stage.
-% 在完整的 220 个带 target 的 TraceElephant query 上，一个固定的外部 Grok 家族 CLI reader 接收 target-blind packet——任务文本、operation ID 与 source-visible 内容——未排名 operation 按原始顺序确定性附加，每个 stage 单轮调用。
-Full-trace reading reaches MAP .502 versus .209 for the benchmark's
-Direct-only diagnostic and .326 for Direct+AgentProf, at a mean 12{,}615
-input tokens per query.
-% 全 trace 阅读达到 MAP .502，而 benchmark 的 Direct-only 诊断为 .209、Direct+AgentProf 为 .326，平均每个 query 12,615 输入 token。
+original order deterministically and one single-turn call per stage; full-trace
+reading reaches MAP .502 versus .209 for the benchmark's Direct-only diagnostic
+and .326 for Direct+AgentProf at a mean 12{,}615 input tokens per query.
+% 在完整的 220 个带 target 的 TraceElephant query 上，固定的外部 Grok 家族 CLI reader 接收 target-blind packet（任务文本、operation ID、source-visible 内容），未排名 operation 按原始顺序确定性附加、每个 stage 单轮调用；全 trace 阅读达到 MAP .502，而 benchmark 的 Direct-only 诊断为 .209、Direct+AgentProf 为 .326，平均每个 query 12,615 输入 token。
 A two-stage profile-guided variant first shows only the semantic operation
 skeleton, with no source content, and the reader selects at most five groups;
 stage two then opens only the selected groups' evidence.
@@ -731,9 +726,9 @@ queries and measures.
 
 We aggregate AgentRewardBench's~\cite{agentrewardbench} complete mixed-outcome population,
 not one favorable trace pair: 440 real trajectories over 125 tasks yield 338 bad--good
-pairs (24/102/144/68 from AssistantBench, VisualWebArena, WebArena, WorkArena); the 202
-successful and 238 unsuccessful sessions reuse across pairs (pair-occurrence weighted).
-% 我们聚合 AgentRewardBench 的完整 mixed-outcome population（而非单个有利 trace pair）：125 个任务的 440 条真实轨迹产生 338 个 bad--good pair（AssistantBench/VisualWebArena/WebArena/WorkArena 分别贡献 24/102/144/68）；202 条成功与 238 条失败 session 跨 pair 复用，因此 profile 按 pair occurrence 加权。
+pairs (24/102/144/68 from AssistantBench, VisualWebArena, WebArena, WorkArena), with the
+202 successful and 238 unsuccessful sessions reusing across pairs (pair-occurrence weighted).
+% 我们聚合 AgentRewardBench 的完整 mixed-outcome population（而非单个有利 trace pair）：125 个任务的 440 条真实轨迹产生 338 个 bad--good pair（AssistantBench/VisualWebArena/WebArena/WorkArena 分别贡献 24/102/144/68），202 条成功与 238 条失败 session 跨 pair 复用，profile 按 pair occurrence 加权。
 
 Before opening outcomes or expert annotations, three automatic Agent workers
 produce 2{,}131 sparse recursive annotations over all 7{,}229 source
@@ -752,8 +747,7 @@ source occurrences on both the recursive and fixed-chain projections.
 \texttt{recover interaction}: 3{,}286 bad-side versus 455 good-side
 occurrences. The bottom selects negative samples under
 \texttt{report completion}: 135 bad-side versus 191 good-side occurrences.
-Each path descends from shared responsibilities to contributing LLM and tool
-calls. These are aggregate diagnostic differences, not causal effects.}
+These are aggregate diagnostic differences, not causal effects.}
 \Description{Two paper renderings of stock-pprof stacks. The upper graph
 descends from browser-task responsibilities into recovery and specific retry
 or inspection operations. The lower graph descends through task completion to
@@ -763,12 +757,12 @@ source LLM and tool calls.}
 
 The aggregate contains 7{,}366 bad-side and 3{,}780 good-side operation
 occurrences. Recovery accounts for 44.6\% of bad-side occurrences but only
-12.0\% of good-side occurrences; completion accounts for 1.8\% and 5.1\%,
-respectively. The recursive recovery focus separates verification challenges,
-repeated searches, mistaken navigation, product or record retries, and
-repository inspection beneath the same responsibility, while source labels
-identify the contributing session and call.
-% 聚合 profile 包含 7,366 个 bad-side 与 3,780 个 good-side operation occurrence。Recovery 占 bad side 的 44.6\%，而仅占 good side 的 12.0\%；completion 分别占 1.8\% 与 5.1\%。递归 recovery focus 在同一职责下区分 verification challenge、重复搜索、误导航、产品或记录重试以及 repository inspection，并通过 source label 定位贡献这些宽度的 session 与 call。
+12.0\% of good-side occurrences (completion: 1.8\% and 5.1\%), and the recursive
+recovery focus separates verification challenges, repeated searches, mistaken
+navigation, product or record retries, and repository inspection beneath the
+same responsibility, with source labels identifying the contributing session
+and call.
+% 聚合 profile 包含 7,366 个 bad-side 与 3,780 个 good-side operation occurrence。Recovery 占 bad side 的 44.6\%、仅占 good side 的 12.0\%（completion 分别为 1.8\% 与 5.1\%）；递归 recovery focus 在同一职责下区分 verification challenge、重复搜索、误导航、产品或记录重试以及 repository inspection，并通过 source label 定位贡献这些宽度的 session 与 call。
 
 We test whether this visible recovery structure corresponds to an independent
 problem rather than merely reflecting more steps. For each trajectory, recovery
@@ -819,13 +813,13 @@ one-turn task-root-only prefix to its first nested responsibility, eliminating
 marks have semantic depth one (51 marks), two (5{,}608), or three (93); no
 prompt requests a depth.
 % Automatic Agent 仅接收 source packet；确定性的表示修复把一步长的 task-root-only prefix 归入首个嵌套 responsibility，在不读取 stage label 的情况下消除 149 个伪 leaf，得到 5,752 个可变深度 mark。
-The current name replay then maps 5{,}537 open-vocabulary operation IDs to
-1{,}434 action-first two- or three-word canonical IDs. It independently
-re-expands all operations from the unchanged marks, preserves the temporal
-occurrence and adjacent-boundary vectors exactly, and leaves no adjacent
-display-path collision. Nonadjacent and cross-session equal names intentionally
-merge so recurring work folds in pprof.
-% 当前名称重放把 5,537 个开放 operation ID 映射为 1,434 个 action-first、二到三词 canonical ID；它从未改变的 mark 独立展开全部 operation，精确保留 temporal occurrence 与相邻 boundary，并有意合并非相邻及跨 session 的同名工作。
+The current name replay maps 5{,}537 open-vocabulary operation IDs to 1{,}434
+action-first two- or three-word canonical IDs, independently re-expanding all
+operations from the unchanged marks, preserving the temporal occurrence and
+adjacent-boundary vectors exactly, and leaving no adjacent display-path
+collision. Nonadjacent and cross-session equal names intentionally merge so
+recurring work folds in pprof.
+% 当前名称重放把 5,537 个开放 operation ID 映射为 1,434 个 action-first、二到三词 canonical ID，从未改变的 mark 独立展开全部 operation，精确保留 temporal occurrence 与相邻 boundary 且无相邻碰撞；并有意合并非相邻及跨 session 的同名工作。
 
 Ordinary operation-level B$^3$ measures the induced leaf partition, while exact
 adjacent-boundary F1 measures transition placement. Both are standard metrics
@@ -958,10 +952,10 @@ resident set size (RSS) is the largest peak observed for the semantic profile.}
 \label{tab:rq4-cost}
 \end{table}
 
-Both time curves are monotonic across the five input sizes. The semantic curve
-has a descriptive slope of 0.0418\,ms per operation ($R^2=0.9997$), reaching
-23{,}935 operations/s on the union.
-% 两条时间曲线在五个自然输入规模上均单调增长。语义曲线的描述性斜率为每个 operation 0.0418 毫秒（R 方为 0.9997），在并集上达到每秒 23,935 个 operation。
+Both time curves are monotonic across the five input sizes, and the semantic
+curve has a descriptive slope of 0.0418\,ms per operation ($R^2=0.9997$),
+reaching 23{,}935 operations/s on the union.
+% 两条时间曲线在五个自然输入规模上均单调增长，语义曲线的描述性斜率为每个 operation 0.0418 毫秒（R 方为 0.9997），在并集上达到每秒 23,935 个 operation。
 For the 27{,}765-operation union, semantic construction completes in 1.16
 seconds, reaches 465.2\,MiB peak RSS, and incurs 190\,ms (19.6\%) more time and
 5.25\,MiB (1.14\%) more peak RSS than raw-action grouping.
