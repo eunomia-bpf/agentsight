@@ -40,3 +40,16 @@ direct_annotation harness/scripts, raw marks, raw-results.json,
 results.md (hypothesis verdict with paired intervals), cost-record.md,
 execution-log.md. Complete population only; a <=3-trajectory recipe
 validation is never reported as a result.
+
+## Amendment: staged pilot first (binding)
+
+Phase A (pilot): run the direct-annotation backend on a deterministic
+40-trajectory slice (the first 40 trajectory IDs in sorted order). Score
+the slice with the unchanged pipeline against A2's stored per-trajectory
+scores on the SAME 40 trajectories. Write pilot-results.md with paired
+B3/boundary deltas and pilot cost. Existing outputs from the interrupted
+first attempt (packet index, preflight, raw marks) may be reused as cache.
+
+Gate: if pilot B3 F1 is within 0.03 of A2 on the slice (or better),
+proceed directly to the full 405-trajectory run. If worse, STOP after
+pilot-results.md; the orchestrator decides.
