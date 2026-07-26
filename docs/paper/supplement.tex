@@ -534,6 +534,63 @@ repair, also admitting cross-case persistence and validation description.
   \label{fig:rq1-activity}
 \end{figure*}
 
+\subsection{RQ1 Extension: Dormant-to-Revived Transitions}
+
+We replay confirmed, non-scope artifact touches in native action order,
+collapsing compound effects from one action on one identity.  An identity
+becomes dormant when consecutive touches are separated by strictly more than
+100 intervening Tool actions or strictly more than 24 elapsed hours; its first
+subsequent touch is a revival.  This observed lifecycle relation is distinct
+from later mutation reuse and is not a progress score.
+
+Table~\ref{tab:rq1-dormancy} reports both thresholds.  Under the action-gap
+definition, revived identities account for 8.3--48.3\% of all observed
+artifacts and 42.9--75.1\% of artifacts with at least two touches.  The
+time-gap definition yields 0.0--40.0\% and 0.0--60.0\%, respectively.  The two
+definitions identify 11,271 and 2,285 revival transitions; only 348 and 41
+revivals, respectively, are mutations, so revival denotes renewed access
+rather than necessarily renewed editing.
+
+\begin{table*}[t]
+  \centering
+  \footnotesize
+  \setlength{\tabcolsep}{3.5pt}
+  \begin{tabular}{@{}lrrr rrr@{}}
+    \toprule
+    & \multicolumn{3}{c}{$>100$ intervening Tool actions}
+    & \multicolumn{3}{c}{$>24$ elapsed hours} \\
+    \cmidrule(lr){2-4}\cmidrule(l){5-7}
+    Project & Revived $n/N$ (\%) & Transitions & Gap med./p90
+            & Revived $n/N$ (\%) & Transitions & Gap med./p90 \\
+    \midrule
+    AgentSight
+      & $1{,}271/3{,}267$ (38.9) & 6,856 & 349/4,965.5
+      & $526/3{,}267$ (16.1) & 1,086 & 83.1/409.6 \\
+    ActPlane
+      & $662/1{,}809$ (36.6) & 3,518 & 469.5/5,014
+      & $382/1{,}809$ (21.1) & 801 & 81.0/279.2 \\
+    bpf-developer-tutorial
+      & $42/170$ (24.7) & 73 & 271/661.2
+      & $21/170$ (12.4) & 26 & 682.9/3,234.8 \\
+    eunomia.dev
+      & $174/360$ (48.3) & 805 & 449/2,339
+      & $144/360$ (40.0) & 349 & 267.8/1,800.4 \\
+    agentskill-observability-paper
+      & $2/24$ (8.3) & 3 & 105/120.2
+      & $0/24$ (0.0) & 0 & --- \\
+    academic-writing-skills
+      & $13/116$ (11.2) & 16 & 167.5/360.5
+      & $18/116$ (15.5) & 23 & 60.2/605.3 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Per-project dormant-to-revived results under both strict
+  thresholds.  Revived identities are reported over all observed identities;
+  one identity may contribute multiple transitions.  Gap columns give
+  median/p90 intervening Tool actions on the left and elapsed hours on the
+  right (Hyndman--Fan type-7 percentiles).}
+  \label{tab:rq1-dormancy}
+\end{table*}
+
 \subsection{RQ2: Validation Response}
 
 RQ2 measures mutation bursts, recognized successful and failed validation
@@ -624,8 +681,9 @@ Across the six cases, successive path-resolved calls remain on the same
 artifact 29.3--81.6\% of the time, move within the same module 17.5--64.6\%,
 and cross modules 0.9--20.8\%.  Five cases meet the return-gap gate, with
 median return gaps of 2--4 intervening calls; the AgentSkill case has only three returns
-and is N/A.  These measurements do not imply duration, internal attention,
-importance, productivity, entropy, cooling, or forgetting.
+and is N/A.  These path-transition and return measurements do not imply
+duration, internal attention, importance, productivity, entropy, or
+forgetting; rank-set cooling is analyzed separately below.
 
 \begin{figure*}[t]
   \centering
@@ -646,6 +704,30 @@ importance, productivity, entropy, cooling, or forgetting.
   keys are reported separately, and low-support estimates remain N/A.}
   \label{fig:rq5-migration}
 \end{figure*}
+
+\subsection{RQ3 Extension: Rank Turnover and Cooling}
+
+We rank the five most-touched artifacts and top-level modules in 100-action
+windows, using a 50-action stride as the primary view and non-overlapping
+100-action windows as a sensitivity view.  Across 3,372 nonempty adjacent
+primary-window pairs, transition-weighted top-1 changes occur in 49.6\% of
+artifact pairs but 13.6\% of module pairs; any top-5 membership change occurs
+in 91.5\% versus 42.0\%, and mean membership replacement is 43.5\% versus
+17.4\%.  Project medians are similar (50.8\% versus 12.5\%, 88.7\% versus
+40.8\%, and 42.9\% versus 20.6\%); the non-overlapping sensitivity preserves
+the artifact--module ordering while raising top-1 change to 72.1\% versus
+19.1\% and any top-5 change to 97.5\% versus 60.4\%.
+
+For each origin hot-set membership, endpoint retention asks whether the entity
+is still hot after a lag, while continuous retention requires membership in
+every intervening window.  In the primary view, membership-weighted artifact
+endpoint retention falls from 57.0\% at one window to 20.4\% at eight windows,
+compared with 84.9\% to 62.7\% for modules; at eight windows, continuous
+retention is 4.5\% for artifacts and 41.1\% for modules.  The non-overlapping
+eight-window sensitivity gives endpoint retention of 17.1\% versus 58.5\% and
+continuous retention of 1.9\% versus 32.1\%.  These are rank-set ``cooling''
+curves in Agent action order, not elapsed-time, attention, importance,
+productivity, or forgetting measurements.
 
 \subsection{RQ5: Skill and Instruction Footprints}
 
@@ -793,6 +875,11 @@ share one project-loop measurement.
   boundary and is not scored as wrong or abstain.}
   \label{fig:rq7-capability}
 \end{figure*}
+
+\subsection{Projection Robustness Spot-Checks}
+
+The encoded-Claude-root spot-check covered the one dotted project and all 98 candidate transcript files, found no cwd-less or filter-reliant file and no missing pre-cutoff Tool call, and therefore reports \texttt{corpus\_impact=false}.
+The \texttt{plausible\_path\_token} spot-check traced all 652 unique high-confidence rejected event operands to source edges and found zero unmatched operands and zero dropped file-action edges, because this filter gates event path groups rather than the shell-derived file edges.
 
 \section{Threats to Validity}
 
