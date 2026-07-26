@@ -49,9 +49,9 @@ ordered source tree, operation stacks compose them with native evidence, and
 additive resource views emit pprof-compatible profiles.
 % \sys 通过语义 operation stack 模型实现这一洞见：backend-neutral 递归 annotation 在有序 source tree 上识别共享责任，operation stack 将其与原生证据组合，可加资源视图输出 pprof-compatible profile。
 We evaluate \sys on 405 human-staged CodeTraceBench trajectories, three
-complete public localization benchmarks, 287 OSWorld-Human sessions, two
+complete public localization benchmarks, 287 OSWorld-Human sessions, three
 population case studies, and four public cost workloads.
-% 我们在 405 条带人工 stage 的 CodeTraceBench 轨迹、三个完整公开 localization benchmark、287 个 OSWorld-Human session、两个 population case study 和四个公开成本 workload 上评估 \sys。
+% 我们在 405 条带人工 stage 的 CodeTraceBench 轨迹、三个完整公开 localization benchmark、287 个 OSWorld-Human session、三个 population case study 和四个公开成本 workload 上评估 \sys。
 Automatic Agent annotation raises ordinary B$^3$ F1 against human stages from
 0.541 for raw action and 0.663 for recurrence to 0.704. On three complete
 localization workloads, AgentProf raises MAP over benchmark-native direct
@@ -492,15 +492,15 @@ The evaluation addresses four research questions:
 % 评估回答四个固定的论文级研究问题：
 \textbf{RQ1:} Does semantic profiling improve resource attribution?
 \textbf{RQ2:} Does profiler output correspond to real problems?
-\textbf{RQ3:} How accurately do automatic backends recover operation structure?
-\textbf{RQ4:} What is the cost of constructing a semantic profile?
+\textbf{RQ3:} How accurate are the tags?
+\textbf{RQ4:} What is the profiling cost?
 Each RQ subsection pairs its protocol with the strongest answer its evidence
 supports.
 % 后续每个小节都陈述其协议、报告相应证据，并给出该证据所支持的最强答案。
 
 We evaluate three data classes: \textbf{real inputs (RQ1, cases)}---41
-long-horizon coding-agent sessions and 440 mixed-outcome web-agent
-trajectories; \textbf{annotated trajectories (RQ3, RQ4)}---15 real-agent or
+long-horizon coding-agent sessions, 440 mixed-outcome web-agent
+trajectories, and 42 development sessions from the authors' workstation; \textbf{annotated trajectories (RQ3, RQ4)}---15 real-agent or
 human execution families and 405 CodeTraceBench trajectories (20{,}866
 operations)~\cite{weblinx,mind2web,agenttrek,webshop,apibank,toolbench,taubench,
 sweagent,androidcontrol,guiodyssey,scalecua,agentrewardbench,safactory,
@@ -511,7 +511,7 @@ agentnet}.
 % 三类数据：真实输入（RQ1 与案例）含 41 条 long-horizon coding-agent session 与 440 条 mixed-outcome web-agent trajectory；标注轨迹（RQ3/RQ4）含 15 个执行 family 与 405 条 CodeTraceBench 轨迹（20,866 operation）；问题定位 benchmark（RQ2）覆盖 27,346 operation；RQ4 union 为 27,765 operation。
 
 %% -------------------------------------------------------------------
-\subsection{RQ1: Multi-Resource Attribution}
+\subsection{RQ1: Does Semantic Profiling Improve Resource Attribution?}
 % RQ1：多资源归因。
 
 RQ1 asks whether semantic profiling improves resource attribution. We test one
@@ -599,7 +599,7 @@ replay pays.
 %% Flamegraph figure appears with the RQ1 multi-weight evidence.
 
 %% -------------------------------------------------------------------
-\subsection{RQ2: Problem Correspondence}
+\subsection{RQ2: Does Profiler Output Correspond to Real Problems?}
 % RQ2：分析器输出是否对应真实问题？
 
 RQ2 asks whether target-blind profiles place independently annotated problems
@@ -769,10 +769,10 @@ annotated real problem.
 \subsection{Case Study 3: Profiling the Agents that Built This Profiler}
 % 案例研究 3：分析构建该 profiler 的智能体。
 
-We profile all 42 long-horizon development sessions recorded on the authors'
-workstation for this project---18 Codex and 24 Claude Code sessions produced
-by the agents that built \sys and this paper.
-% 我们分析作者工作站上为本项目记录的全部 42 条长程开发 session，其中 18 条来自 Codex、24 条来自 Claude Code；这些正是构建 \sys 与本文的智能体所产生的 session。
+We profile all 42 development sessions recorded on the authors' workstation
+for this project---18 Codex and 24 Claude Code sessions produced by the
+agents that built \sys and this paper, including ten long-horizon sessions.
+% 我们分析作者工作站上为本项目记录的全部 42 条开发 session——18 条来自 Codex、24 条来自 Claude Code，其中含十条 long-horizon session；这些正是构建 \sys 与本文的智能体所产生的 session。
 The longest sessions span tens of hours and hundreds of prompts.
 % 最长的 session 跨越数十小时与数百个 prompt。
 In this native no-sudo local-history scenario, one
@@ -816,7 +816,7 @@ without outcome labels.
 % 该案例在没有 outcome label 的真实长程 session 上建立描述性可行性证据。
 
 %% -------------------------------------------------------------------
-\subsection{RQ3: Automatic Operation Structure}
+\subsection{RQ3: How Accurate Are the Tags?}
 % RQ3：自动 operation 结构。
 
 RQ3 evaluates automatic backend outputs against independent annotations under
@@ -913,7 +913,7 @@ one bespoke score.
 % 因此，在声明的公开 population 上，automatic Agent、label-free recurrence 和 closed-label backend 分别以标准 partition、boundary 与 literal-label metric 回答互补的结构质量问题。
 
 %% -------------------------------------------------------------------
-\subsection{RQ4: Profiling Cost}
+\subsection{RQ4: What Is the Profiling Cost?}
 % RQ4：分析开销是多少？
 
 RQ4 separates fixed-input replay from the observable components of first
