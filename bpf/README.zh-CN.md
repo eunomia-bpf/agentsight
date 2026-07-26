@@ -170,7 +170,7 @@ sudo ./sslsniff --binary-path ~/.local/share/claude/versions/2.1.39 --verbose
 
 **输出格式：**
 - 每个 SSL 事件以 JSON 对象输出
-- 受内核限制，eBPF 捕获每个事件最大 32KB
+- 受内核限制，eBPF 捕获每个事件最大 64KB
 - 事件包含时间戳、进程信息和 SSL 数据
 - 握手事件显示 SSL 协商详情
 
@@ -297,7 +297,9 @@ make clean
 
 **SSL 事件字段：**
 - `uid`：进程的用户 ID（uint32）
-- `data`：SSL 流量数据（字符串，最大 32KB）
+- `connection_id`：可用时用于标识 TLS 连接的稳定 ID（uint64）
+- `data`：SSL 流量数据（字符串，最大 64KB）
+- `data_hex`：二进制 HTTP/2 或 WebSocket 负载的精确字节（字符串，可选）
 - `data_len`：捕获的数据长度（uint32）
 - `truncated`：数据是否因大小限制被截断（布尔值）
 
