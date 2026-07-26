@@ -109,7 +109,7 @@ static void test_marker_detection(void)
 static void test_grok_signature_detection(void)
 {
 	char template[] = "/tmp/agentsight-grok-offset-test.XXXXXX";
-	uint8_t data[1024] = {};
+	uint8_t data[2048] = {};
 	size_t offset = 0;
 	int fd = mkstemp(template);
 
@@ -119,6 +119,12 @@ static void test_grok_signature_detection(void)
 	memcpy(data + 32, "grok-cli rustls", sizeof("grok-cli rustls"));
 	memcpy(data + 256, grok_rustls_buffer_plaintext_prefix,
 	       sizeof(grok_rustls_buffer_plaintext_prefix));
+	memcpy(data + 256 + GROK_RUSTLS_OUTBOUND_TAG_OFFSET,
+	       grok_rustls_outbound_tag, sizeof(grok_rustls_outbound_tag));
+	memcpy(data + 256 + GROK_RUSTLS_OUTBOUND_RANGE_OFFSET,
+	       grok_rustls_outbound_range, sizeof(grok_rustls_outbound_range));
+	memcpy(data + 256 + GROK_RUSTLS_OUTBOUND_DATA_OFFSET,
+	       grok_rustls_outbound_data, sizeof(grok_rustls_outbound_data));
 	check(write(fd, data, sizeof(data)) == sizeof(data),
 	      "wrote Grok signature fixture");
 	close(fd);
@@ -129,7 +135,7 @@ static void test_grok_signature_detection(void)
 		      && offset == 256,
 	      "finds Grok/rustls buffer_plaintext signature");
 
-	data[256 + sizeof(grok_rustls_buffer_plaintext_prefix) - 1] ^= 0xff;
+	data[256 + GROK_RUSTLS_OUTBOUND_DATA_OFFSET] ^= 0xff;
 	fd = open(template, O_WRONLY | O_TRUNC);
 	check(fd >= 0, "opened Grok fixture for corruption");
 	if (fd >= 0) {
@@ -137,7 +143,7 @@ static void test_grok_signature_detection(void)
 		      "wrote corrupted Grok fixture");
 		close(fd);
 		check(!grok_find_rustls_buffer_plaintext_offset(template, &offset),
-		      "rejects a partial Grok signature match");
+		      "rejects a Grok signature with a changed ABI block");
 	}
 	unlink(template);
 }

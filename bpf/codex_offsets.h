@@ -59,6 +59,22 @@ static const uint8_t grok_rustls_buffer_plaintext_prefix[] = {
 	0x00, 0x00, 0x80,
 };
 
+/* Also verify the OutboundChunks fields consumed by the probe: tag/count at
+ * +0, data at +8, and the Multiple range at +16/+24. */
+#define GROK_RUSTLS_OUTBOUND_TAG_OFFSET 0xd7
+#define GROK_RUSTLS_OUTBOUND_RANGE_OFFSET 0xe7
+#define GROK_RUSTLS_OUTBOUND_DATA_OFFSET 0x3f1
+static const uint8_t grok_rustls_outbound_tag[] = { 0x4c, 0x8b, 0x26 };
+static const uint8_t grok_rustls_outbound_range[] = {
+	0x4c, 0x8b, 0x7e, 0x10, 0x48, 0x8b, 0x7e, 0x18,
+	0x48, 0x89, 0xfb, 0x4c, 0x29, 0xfb, 0x4d, 0x85,
+	0xe4, 0x49, 0x0f, 0x44, 0xdf,
+};
+static const uint8_t grok_rustls_outbound_data[] = {
+	0x48, 0x8b, 0x46, 0x08, 0x4d, 0x85, 0xe4, 0x74,
+	0x1d, 0x4c, 0x8d, 0x3c, 0x3b,
+};
+
 static size_t codex_find_pattern(const uint8_t *data, size_t data_len,
 				 const uint8_t *pattern, size_t pattern_len)
 {
@@ -171,6 +187,22 @@ static bool grok_find_rustls_buffer_plaintext_offset(const char *binary_path,
 	found = codex_find_pattern(data, (size_t)st.st_size,
 				   grok_rustls_buffer_plaintext_prefix,
 				   sizeof(grok_rustls_buffer_plaintext_prefix));
+	if (found == (size_t)-1
+	    || (size_t)st.st_size < GROK_RUSTLS_OUTBOUND_DATA_OFFSET
+				 + sizeof(grok_rustls_outbound_data)
+	    || found > (size_t)st.st_size
+		       - sizeof(grok_rustls_outbound_data)
+		       - GROK_RUSTLS_OUTBOUND_DATA_OFFSET
+	    || memcmp(data + found + GROK_RUSTLS_OUTBOUND_TAG_OFFSET,
+		      grok_rustls_outbound_tag,
+		      sizeof(grok_rustls_outbound_tag)) != 0
+	    || memcmp(data + found + GROK_RUSTLS_OUTBOUND_RANGE_OFFSET,
+		      grok_rustls_outbound_range,
+		      sizeof(grok_rustls_outbound_range)) != 0
+	    || memcmp(data + found + GROK_RUSTLS_OUTBOUND_DATA_OFFSET,
+		      grok_rustls_outbound_data,
+		      sizeof(grok_rustls_outbound_data)) != 0)
+		found = (size_t)-1;
 	munmap(data, (size_t)st.st_size);
 	close(fd);
 	if (found == (size_t)-1)
