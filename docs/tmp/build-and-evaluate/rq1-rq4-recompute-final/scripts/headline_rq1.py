@@ -3,7 +3,7 @@
 import csv, math
 from pathlib import Path
 
-REPO = Path("/home/yunwei37/workspace/agentsight-agent-nebula-research")
+REPO = Path(__file__).resolve().parents[5]
 FROZEN = REPO/"docs/tmp/build-and-evaluate/step-0002-20260722T003659-0700/experiment-rq1-20260722T003659-0700/full-six-projects/raw/rq1-summary.csv"
 HEAD = REPO/"docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/rq1-summary.csv"
 

@@ -37,8 +37,10 @@ LABEL_OFFSETS = {
 ACTIVITY_OFFSETS = {
     "introduced_persisted": {
         "agentsight": (-64, -34),
-        "ActPlane": (-54, -26),
+        "ActPlane": (-52, 10),
         "eunomia.dev": (6, -34),
+        "agentskill-observability-paper": (6, -18),
+        "academic-writing-skills": (6, -46),
     },
     "reuse_observed": {
         "agentsight": (-70, -15),
@@ -50,8 +52,11 @@ ACTIVITY_OFFSETS = {
     },
     "validation_observed": {
         "agentsight": (-82, -10),
-        "ActPlane": (-62, 8),
-        "eunomia.dev": (6, -25),
+        "ActPlane": (-62, 10),
+        "bpf-developer-tutorial": (8, -24),
+        "eunomia.dev": (6, -30),
+        "agentskill-observability-paper": (8, -10),
+        "academic-writing-skills": (-42, 10),
     },
 }
 
@@ -287,7 +292,7 @@ def plot_activity(summaries: list[dict[str, str]], output: Path) -> None:
                 label=label,
                 zorder=3,
             )
-            if numerator == "reuse_observed":
+            if numerator in {"reuse_observed", "validation_observed"}:
                 continue
             axis.annotate(
                 f"{SHORT.get(row['project'], row['project'])}\n"
@@ -305,11 +310,22 @@ def plot_activity(summaries: list[dict[str, str]], output: Path) -> None:
                 ncol=1,
                 frameon=False,
             )
+        elif numerator == "validation_observed":
+            axis.legend(
+                fontsize=7,
+                loc="center",
+                bbox_to_anchor=(0.5, 0.68),
+                ncol=2,
+                frameon=False,
+            )
         rho = spearman([float(value) for value in xs], ys)
         rho_text = (f"descriptive Spearman ρ={rho:.2f}" if len(xs) >= 4
                     else f"Coverage only ({len(xs)}/6 cases); correlation stopped")
-        axis.text(0.03, 0.94 if len(xs) < 4 else 0.04, rho_text,
-                  transform=axis.transAxes, va="top" if len(xs) < 4 else "bottom", fontsize=8)
+        rho_at_top = len(xs) < 4 or numerator == "validation_observed"
+        axis.text(0.03, 0.94 if rho_at_top else 0.04, rho_text,
+                  transform=axis.transAxes,
+                  va="top" if rho_at_top else "bottom",
+                  fontsize=8)
         axis.set_xscale("log")
         axis.set_ylim(-0.02, 1.08)
         axis.yaxis.set_major_formatter(PercentFormatter(1.0))

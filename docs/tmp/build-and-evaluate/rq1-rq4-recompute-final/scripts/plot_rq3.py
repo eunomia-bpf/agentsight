@@ -41,6 +41,10 @@ def read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(stream))
 
 
+def bool_text(value: object) -> bool:
+    return value is True or str(value).lower() == "true"
+
+
 def write_csv(path: Path, rows: list[dict[str, object]], fields: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as stream:
@@ -298,7 +302,7 @@ def plot(loads: list[dict[str, object]], episodes: list[dict[str, object]], summ
         xs, ys = [], []
         for event_index in sorted(by_event):
             event_rows = by_event[event_index]
-            repeats += sum(bool(row["repeat_observed"]) for row in event_rows)
+            repeats += sum(bool_text(row["repeat_observed"]) for row in event_rows)
             total += len(event_rows)
             xs.append(event_index)
             ys.append(repeats / total)
@@ -461,9 +465,23 @@ def write_result(path: Path, summaries: list[dict[str, object]]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--rq1-root", type=Path, required=True)
+    inputs = parser.add_mutually_exclusive_group(required=True)
+    inputs.add_argument("--rq1-root", type=Path)
+    inputs.add_argument(
+        "--input-raw",
+        type=Path,
+        help="render from released rq3 artifact-load/episodes/summary CSV files",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    if args.input_raw is not None:
+        loads = read_csv(args.input_raw / "rq3-artifact-load.csv")
+        episodes = read_csv(args.input_raw / "rq3-episodes.csv")
+        summaries = read_csv(args.input_raw / "rq3-summary.csv")
+        plot(loads, episodes, summaries, args.output / "figures")
+        plot_birth_sensitivity(loads, summaries, args.output / "figures")
+        print(f"wrote RQ3 figures from released CSV rows to {args.output / 'figures'}")
+        return
 
     artifacts = read_csv(args.rq1_root / "rq1-artifacts.csv")
     mutations = read_csv(args.rq1_root / "rq1-mutations.csv")

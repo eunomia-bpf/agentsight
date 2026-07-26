@@ -407,9 +407,20 @@ def write_result(path: Path, coverage: list[dict[str, object]], cycles: list[dic
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--rq1-root", type=Path, required=True)
+    inputs = parser.add_mutually_exclusive_group(required=True)
+    inputs.add_argument("--rq1-root", type=Path)
+    inputs.add_argument(
+        "--input-raw",
+        type=Path,
+        help="render from released rq2-trajectory/cycles/coverage CSV files",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    if args.input_raw is not None:
+        plot_from_csv(args.input_raw, args.output / "figures")
+        print(f"wrote RQ2 figure from released CSV rows to {args.output / 'figures'}")
+        return
+
     verify_inputs(args.rq1_root)
     self_check()
     projects = load_projects(args.rq1_root)
