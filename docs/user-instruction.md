@@ -668,3 +668,11 @@ review 也尽量 kimi / grok 来. 你看 report. 你负责调度和决策就好
 ---
 
 opencode (GLM 5.2) 也行.
+
+---
+
+codex 可以不用 sanbox, 默认用 gpt5.6 sol
+
+---
+
+做一步就 push 一步.
