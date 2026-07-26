@@ -147,6 +147,22 @@ static void test_grok_signature_detection(void)
 		check(!grok_find_rustls_buffer_plaintext_offset(template, &offset),
 		      "rejects a Grok signature with a changed ABI block");
 	}
+
+	memset(data, 0, sizeof(data));
+	memcpy(data + 32, "grok-cli rustls", sizeof("grok-cli rustls"));
+	memcpy(data + sizeof(data)
+		     - sizeof(grok_rustls_buffer_plaintext_prefix),
+	       grok_rustls_buffer_plaintext_prefix,
+	       sizeof(grok_rustls_buffer_plaintext_prefix));
+	fd = open(template, O_WRONLY | O_TRUNC);
+	check(fd >= 0, "opened Grok fixture for near-EOF signature");
+	if (fd >= 0) {
+		check(write(fd, data, sizeof(data)) == sizeof(data),
+		      "wrote near-EOF Grok signature fixture");
+		close(fd);
+		check(!grok_find_rustls_buffer_plaintext_offset(template, &offset),
+		      "rejects a near-EOF Grok signature safely");
+	}
 	unlink(template);
 }
 
@@ -155,29 +171,40 @@ static size_t planned_rustls_iovec_capture(const size_t *lengths, size_t count)
 	size_t copied = 0;
 
 	for (size_t i = 0; i < count && i < MAX_RUSTLS_IOVECS; i++) {
-		size_t remaining = lengths[i];
+		size_t copy_size;
+		size_t capacity;
 
-		for (int chunk = 0;
-		     chunk < MAX_RUSTLS_CHUNKS_PER_IOV && remaining > 0;
-		     chunk++) {
-			size_t copy_size;
-
-			if (copied > RUSTLS_MAX_CAPTURE_SIZE
-				     - RUSTLS_COPY_CHUNK_SIZE)
-				break;
-			copy_size = remaining > RUSTLS_COPY_CHUNK_SIZE
-				? RUSTLS_COPY_CHUNK_SIZE : remaining;
-			copied += copy_size;
-			remaining -= copy_size;
-		}
+		if (copied >= RUSTLS_MAX_CAPTURE_SIZE)
+			break;
+		capacity = RUSTLS_MAX_CAPTURE_SIZE - copied;
+		copy_size = lengths[i] > RUSTLS_MAX_CAPTURE_SIZE
+			? RUSTLS_MAX_CAPTURE_SIZE : lengths[i];
+		if (copy_size > capacity)
+			copy_size = capacity;
+		copied += copy_size;
 	}
 	return copied;
+}
+
+static bool rustls_iovec_prefix_within_end(const size_t *lengths, size_t count,
+					   size_t end)
+{
+	size_t inspected = 0;
+
+	for (size_t i = 0; i < count && i < MAX_RUSTLS_IOVECS; i++) {
+		if (inspected > end || lengths[i] > end - inspected)
+			return false;
+		inspected += lengths[i];
+	}
+	return true;
 }
 
 static void test_rustls_iovec_capture_plan(void)
 {
 	const size_t three_slices[] = { 20 * 1024, 1024, 32 };
 	const size_t full_buffer[] = { RUSTLS_MAX_CAPTURE_SIZE };
+	const size_t split_at_boundary[] = { 30 * 1024, 2 * 1024 };
+	const size_t end_inside_last_slice[] = { 2 * 1024, 2 * 1024 };
 
 	check(planned_rustls_iovec_capture(three_slices, 3)
 		      == 21 * 1024 + 32,
@@ -185,6 +212,12 @@ static void test_rustls_iovec_capture_plan(void)
 	check(planned_rustls_iovec_capture(full_buffer, 1)
 		      == RUSTLS_MAX_CAPTURE_SIZE,
 	      "fills the rustls capture budget from one large slice");
+	check(planned_rustls_iovec_capture(split_at_boundary, 2)
+		      == RUSTLS_MAX_CAPTURE_SIZE,
+	      "fills the capture budget across a non-chunk-aligned split");
+	check(!rustls_iovec_prefix_within_end(
+		      end_inside_last_slice, 2, 3 * 1024),
+	      "rejects a rustls Multiple end cursor inside a slice");
 }
 
 int main(void)

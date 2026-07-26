@@ -198,6 +198,10 @@ static bool grok_find_rustls_buffer_plaintext_offset(const char *binary_path,
 		if (relative == (size_t)-1)
 			break;
 		found = search + relative;
+		if (found > (size_t)st.st_size
+			    - GROK_RUSTLS_OUTBOUND_DATA_OFFSET
+			    - sizeof(grok_rustls_outbound_data))
+			break;
 		if (memcmp(data + found + GROK_RUSTLS_OUTBOUND_TAG_OFFSET,
 			   grok_rustls_outbound_tag,
 			   sizeof(grok_rustls_outbound_tag)) == 0

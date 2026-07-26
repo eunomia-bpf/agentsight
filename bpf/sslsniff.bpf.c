@@ -66,6 +66,17 @@ struct rustls_outbound_chunks {
     size_t end;
 };
 
+/* Variable-size verifier proofs do not retain the relationship between a
+ * dynamic destination and copy length after unrolled iovec states merge.
+ * Rustls events reserve one extra capture window so the verifier can accept
+ * destination + copy_size independently; the runtime capacity clamp keeps
+ * every reported byte inside event.buf. The userspace event ABI is unchanged
+ * because event remains the first member. */
+struct rustls_probe_data_t {
+    struct probe_SSL_data_t event;
+    __u8 verifier_slack[RUSTLS_VERIFIER_SLACK_SIZE];
+};
+
 static __always_inline bool trace_allowed(u32 uid, u32 pid)
 {
     /* filters */
@@ -102,32 +113,35 @@ static __always_inline u32 copy_rustls_iovec(
 {
     size_t remaining = iovec->len;
     const char *source = iovec->base;
+    size_t copy_size;
+    u32 capacity;
+    u32 destination;
 
-#pragma unroll
-    for (int chunk = 0; chunk < MAX_RUSTLS_CHUNKS_PER_IOV; chunk++) {
-        size_t copy_size;
-        u32 destination;
-
-        if (remaining == 0
-            || copied > RUSTLS_MAX_CAPTURE_SIZE - RUSTLS_COPY_CHUNK_SIZE)
-            break;
-        destination = copied;
-        /* The guard above makes this clamp an identity at runtime. Keep it
-         * visible so the verifier can prove destination + copy_size is
-         * bounded even after states from unrolled iovec loops merge. */
-        barrier_var(destination);
-        destination &= RUSTLS_MAX_CAPTURE_SIZE - 1;
-        if (destination > RUSTLS_MAX_CAPTURE_SIZE - RUSTLS_COPY_CHUNK_SIZE)
-            destination = RUSTLS_MAX_CAPTURE_SIZE - RUSTLS_COPY_CHUNK_SIZE;
-        copy_size = remaining;
-        if (copy_size > RUSTLS_COPY_CHUNK_SIZE)
-            copy_size = RUSTLS_COPY_CHUNK_SIZE;
-        if (bpf_probe_read_user(data->buf + destination, copy_size, source))
-            break;
-        copied += copy_size;
-        source += copy_size;
-        remaining -= copy_size;
-    }
+    if (remaining == 0 || copied >= RUSTLS_MAX_CAPTURE_SIZE)
+        return copied;
+    capacity = RUSTLS_MAX_CAPTURE_SIZE - copied;
+    destination = copied;
+    /* Keep the mask visible so the verifier retains a scalar bound after
+     * states from unrolled iovec loops merge. rustls_probe_data_t provides
+     * one verifier-only capture window after event.buf; the runtime capacity
+     * clamp still keeps copied and buf_size within the public 32 KiB. */
+    barrier_var(destination);
+    destination &= RUSTLS_MAX_CAPTURE_SIZE - 1;
+    copy_size = remaining;
+    if (copy_size > RUSTLS_MAX_CAPTURE_SIZE)
+        copy_size = RUSTLS_MAX_CAPTURE_SIZE;
+    if (copy_size > capacity)
+        copy_size = capacity;
+    /* Reassert the independent size bound after the capacity assignment;
+     * the verifier does not retain capacity <= capture size here. */
+    barrier_var(copy_size);
+    if (copy_size > RUSTLS_MAX_CAPTURE_SIZE)
+        copy_size = RUSTLS_MAX_CAPTURE_SIZE;
+    if (copy_size == 0)
+        return copied;
+    if (bpf_probe_read_user(data->buf + destination, copy_size, source))
+        return copied;
+    copied += copy_size;
     return copied;
 }
 
@@ -143,9 +157,11 @@ int BPF_UPROBE(probe_rustls_write, void *conn, const void *buf, size_t len)
 
     if (!trace_allowed(uid, pid) || !buf || len == 0)
         return 0;
-    struct probe_SSL_data_t *data = bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
-    if (!data)
+    struct rustls_probe_data_t *storage =
+        bpf_ringbuf_reserve(&rb, sizeof(*storage), 0);
+    if (!storage)
         return 0;
+    struct probe_SSL_data_t *data = &storage->event;
     if (bpf_probe_read_user(data->buf, copied, buf)) {
         bpf_ringbuf_discard(data, 0);
         return 0;
@@ -168,9 +184,11 @@ int BPF_UPROBE(probe_rustls_write_vectored, void *conn,
     if (!trace_allowed(uid, pid) || !iovecs || iovcnt == 0)
         return 0;
 
-    struct probe_SSL_data_t *data = bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
-    if (!data)
+    struct rustls_probe_data_t *storage =
+        bpf_ringbuf_reserve(&rb, sizeof(*storage), 0);
+    if (!storage)
         return 0;
+    struct probe_SSL_data_t *data = &storage->event;
 
 #pragma unroll
     for (int i = 0; i < MAX_RUSTLS_IOVECS; i++) {
@@ -200,6 +218,7 @@ int BPF_UPROBE(probe_rustls_buffer_plaintext, void *state,
     u32 uid = bpf_get_current_uid_gid();
     struct rustls_outbound_chunks outbound = {};
     u64 total;
+    u64 inspected_total = 0;
     u32 copied = 0;
 
     if (!trace_allowed(uid, pid) || !chunks)
@@ -213,10 +232,11 @@ int BPF_UPROBE(probe_rustls_buffer_plaintext, void *state,
             return 0;
         copied = total > RUSTLS_MAX_CAPTURE_SIZE
             ? RUSTLS_MAX_CAPTURE_SIZE : (u32)total;
-        struct probe_SSL_data_t *data =
-            bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
-        if (!data)
+        struct rustls_probe_data_t *storage =
+            bpf_ringbuf_reserve(&rb, sizeof(*storage), 0);
+        if (!storage)
             return 0;
+        struct probe_SSL_data_t *data = &storage->event;
         if (bpf_probe_read_user(data->buf, copied, outbound.data)) {
             bpf_ringbuf_discard(data, 0);
             return 0;
@@ -231,10 +251,29 @@ int BPF_UPROBE(probe_rustls_buffer_plaintext, void *state,
         return 0;
     total = outbound.end;
 
-    struct probe_SSL_data_t *data =
-        bpf_ringbuf_reserve(&rb, sizeof(*data), 0);
-    if (!data)
+    /* OutboundChunks::Multiple may describe a sub-range ending inside a
+     * slice. This probe supports the start=0, whole-slice prefix used by the
+     * CLI. Reject any inspected slice that crosses end rather than reporting
+     * stale bytes past the plaintext range. */
+#pragma unroll
+    for (int i = 0; i < MAX_RUSTLS_IOVECS; i++) {
+        struct rustls_iovec iovec = {};
+
+        if ((size_t)i >= outbound.count)
+            break;
+        if (bpf_probe_read_user(&iovec, sizeof(iovec),
+                                &((const struct rustls_iovec *)outbound.data)[i]))
+            return 0;
+        if (inspected_total > total || iovec.len > total - inspected_total)
+            return 0;
+        inspected_total += iovec.len;
+    }
+
+    struct rustls_probe_data_t *storage =
+        bpf_ringbuf_reserve(&rb, sizeof(*storage), 0);
+    if (!storage)
         return 0;
+    struct probe_SSL_data_t *data = &storage->event;
 
 #pragma unroll
     for (int i = 0; i < MAX_RUSTLS_IOVECS; i++) {
