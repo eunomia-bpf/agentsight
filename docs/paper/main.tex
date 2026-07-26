@@ -537,10 +537,9 @@ assigns 96 recursive annotations to their 735 source nodes. The resulting
 hierarchy reaches semantic depth five without a fixed limit. The CLI reports no
 unary or flat-fan-out warning and 27 advisory coarse-leaf warnings.
 % RQ1 问 semantic profiling 是否改善资源归因。这里测试一个必要后果：固定语义层次在切换可加资源度量时是否暴露实质不同的瓶颈；source population 含 41 条真实 long-horizon agent 轨迹、3,146 个 source-native turn 和 5,750 个 operation，其中三条独立执行重复同一个 Git 部署任务。Automatic Agent backend 为其 735 个 source node 生成 96 个递归 annotation；层次在没有固定上限的情况下达到 semantic depth 5，CLI 不再报告 unary 或 flat-fan-out warning，并给出 27 个仅供诊断的 coarse-leaf warning。
-This establishes the necessary multi-resource attribution capability on a
-repeated real task; it does not claim superiority over every attribution
-interface or generalize the measured ratios beyond this population.
-% 该实验在一个重复真实任务上建立多资源 attribution 的必要能力，但不声称优于所有 attribution interface，也不把测得比例推广到该 population 之外。
+This establishes the multi-resource attribution capability on a repeated
+real task.
+% 该实验在一个重复真实任务上建立了多资源 attribution 能力。
 \paragraph{Case Study 1: Long-Horizon Agent Diagnosis.}
 Figure~\ref{fig:flamegraph} uses a stock-pprof focus query to retain all three
 executions of one repeated Git-deployment task rather than selecting one trace.
@@ -590,14 +589,12 @@ exact mass and open in stock pprof. The SSH members scatter across 105 native
 calls and span six coarse action kinds (largest branch 39.42\% of their tokens);
 102 of 105 are merely \texttt{run} with 97 unrelated operations. Only the
 semantic organization yields one focusable cross-run responsibility, exposing a
-bottleneck an operation-count view understates; since the responsibility came
-from the prior semantic case, this matched projection is an organization
-difference, not independent discovery.
+bottleneck an operation-count view understates; the responsibility itself was
+fixed from the prior case, so this control measures organization.
 % 作为 post-hoc 同输入组织对照，我们用相同 489 个 operation、相同权重，在固定 project/agent prefix 与 call/tool leaf 下重放 native、coarse 与 semantic 三种中间组织，所得六个 profile 均精确保守质量。SSH responsibility 在 native 中分散到 105 个 call，在 coarse 中跨六个 action kind（最大分支仅 39.42%），且 102/105 仅为 run 并混入 97 个无关 operation；只有 semantic 组织给出单一可聚焦的跨运行责任，暴露 operation count 明显低估的瓶颈。该对照说明组织差异，不是独立发现准确率。
 This repeated real task supports RQ1's multi-resource attribution hypothesis:
 one shared responsibility path reunites the SSH work across executions, while
-the selected additive measure changes its attributed importance. We do not
-claim that one resource measure universally dominates another.
+the selected additive measure changes its attributed importance.
 % 这个重复的真实任务支持 RQ1 的多资源归因假设：一个共享 responsibility path 跨执行重聚 SSH 工作，而所选可加度量会改变其归因重要性；我们不声称某一种资源度量普遍支配其他度量。
 
 The same population-scale behavior holds on the frozen 440-session
@@ -691,11 +688,7 @@ The semantic prefix's distinct, separately measured roles are cross-run
 attribution (RQ1) and directing a reader's attention, which the following
 study measures.
 % semantic prefix 的独立、分别测量的角色是 cross-run attribution（RQ1）与引导读者注意力，后者由下文研究测量。
-Because
-the local-first rule and fixed source-only paths were developed on these
-populations, this is adaptive mechanism evidence rather than untouched backend
-generalization.
-% Direct+AgentProf 相对 Direct-only trajectory judge/localizer 在三个完整 workload 上分别提高 MAP .031、.107 与 .117，区间均为正；与保留相同 source evidence 的 raw-action refinement 统计上不可区分。因此该实验支持 profiling 补充 direct trajectory diagnosis，但不声称 semantic prefix 在这三个已观察 population 上具有额外的 target-ranking 优势。
+% Direct+AgentProf 相对 Direct-only trajectory judge/localizer 在三个完整 workload 上分别提高 MAP .031、.107 与 .117，区间均为正；与保留相同 source evidence 的 raw-action refinement 统计上不可区分。因此该实验支持 profiling 补充 direct trajectory diagnosis。
 
 \paragraph{Profile-guided reading on TraceElephant.}
 On the complete 220 target-bearing TraceElephant queries, a fixed external
@@ -793,9 +786,8 @@ corresponding to expert-identified looping.
 This case answers RQ2 at collection scale: a target-blind recursive profile
 exposes failed-side recovery and successful-side completion under shared
 responsibilities, and its recovery signal corresponds to an independently
-annotated real problem. AgentRewardBench has no gold nested semantic
-hierarchy, so this result does not measure topology accuracy or causality.
-% 该案例在集合尺度上回答 RQ2：target-blind 递归 profile 在共享职责下暴露失败侧 recovery 与成功侧 completion，且 recovery signal 对应独立标注的真实问题。AgentRewardBench 没有 gold nested semantic hierarchy，因此该结果不衡量 topology accuracy 或因果关系。
+annotated real problem.
+% 该案例在集合尺度上回答 RQ2：target-blind 递归 profile 在共享职责下暴露失败侧 recovery 与成功侧 completion，且 recovery signal 对应独立标注的真实问题。
 
 %% -------------------------------------------------------------------
 \subsection{RQ3: Automatic Operation Structure}
@@ -1202,5 +1194,11 @@ constructor; OSWorld-Human separately evaluates recurrence and supervised
 boundary backends. RQ2 scores released localizer predictions over complete
 public workloads; it does not measure end-user diagnosis time.
 % CodeTraceBench 是 Agent-assisted constructor 的完整开发 population，OSWorld-Human 独立评估其他 boundary backend。RQ2 评分 released localizer prediction，不衡量 end-user diagnosis time。
+The RQ2 local-first rule and fixed source-only paths were developed on the
+evaluated populations, so those results are adaptive mechanism evidence
+rather than untouched backend generalization. AgentRewardBench has no gold
+nested semantic hierarchy, so the differential case does not measure
+topology accuracy or causality.
+% RQ2 的 local-first 规则与固定 source-only path 在被评估 population 上开发，因此相应结果是适应性机制证据而非未接触的 backend 泛化；AgentRewardBench 没有 gold nested semantic hierarchy，因此差分案例不衡量 topology accuracy 或因果关系。
 
 \end{document}
