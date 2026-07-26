@@ -545,9 +545,9 @@ executions of one repeated Git-deployment task rather than selecting one trace.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=.70\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.operations.png}\\[1pt]
-\includegraphics[width=.70\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.tokens.png}\\[1pt]
-\includegraphics[width=.70\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-authentication.tokens.png}
+\includegraphics[width=.65\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.operations.png}\\[1pt]
+\includegraphics[width=.65\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.tokens.png}\\[1pt]
+\includegraphics[width=.65\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-authentication.tokens.png}
 \caption{All three real \texttt{git-multibranch} executions under one fixed
 operation hierarchy. Width is operation count (top) or provider-reported tokens
 (middle); the bottom panel focuses the shared \texttt{diagnose authentication}
@@ -740,8 +740,8 @@ source occurrences on both the recursive and fixed-chain projections.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=.70\linewidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-recovery-bad-excess.operations.png}\\[2pt]
-\includegraphics[width=.70\linewidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-completion-good-excess.operations.png}
+\includegraphics[width=.65\linewidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-recovery-bad-excess.operations.png}\\[2pt]
+\includegraphics[width=.65\linewidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-completion-good-excess.operations.png}
 \caption{Focused paper renderings of the signed pprof profile over all
 338 bad--good pairs. The top panel selects positive samples under
 \texttt{recover interaction}: 3{,}286 bad-side versus 455 good-side
@@ -853,70 +853,31 @@ Agent-assisted backend is the strongest tested automatic constructor on this
 complete population, and its marks preserve exactly 20{,}866 operation counts
 and 494{,}862{,}929 provider-reported tokens when replayed at either width.
 
-We test all 287 OSWorld-Human task-instance sessions~\cite{osworldhuman} with
-complete group annotations (Appendix~\ref{app:osworld}). This population
-contains 3{,}978 operations, 3{,}691 adjacent pairs, and 2{,}042 groups.
-% 我们首先测试所有具有完整人工分组标注的 OSWorld-Human session：287 个 task-instance session 中的 3,978 个 operation，共 3,691 个相邻对和 2,042 个人工独立标注的动作组（细节见附录）。
-
-\begin{table}[tb]
-\centering\small
-\setlength{\tabcolsep}{2.0pt}
-\begin{tabular}{@{}lrrrr@{}}
-\toprule
-Method & Prec. & Recall & Bound. F1 & B$^3$ F1 \\
-\midrule
-Supervised predictor & 0.700 & 0.782 & \textbf{0.739} & \textbf{0.816} \\
-Reference-calibrated recurrence & 0.610 & 0.922 & 0.734 & 0.801 \\
-Label-free recurrence & 0.592 & 0.799 & 0.680 & 0.786 \\
-Always boundary & 0.476 & 1.000 & 0.645 & 0.678 \\
-Action change & 0.386 & 0.626 & 0.477 & 0.659 \\
-Phase change & 0.441 & 0.268 & 0.334 & 0.665 \\
-\bottomrule
-\end{tabular}
-\caption{RQ3 boundary and partition agreement on OSWorld-Human. Boundary F1 scores
-exact adjacent-pair decisions. B$^3$ scores predicted--human partitions.}
-\label{tab:rq3-boundary}
-\end{table}
-
-The supervised predictor reaches 0.739 boundary F1 and 0.816 B$^3$ F1 versus
-0.645/0.678 for the strongest controls; label-free recurrence reaches
-0.680/0.786 and reference-calibrated recurrence 0.734/0.801, the latter using
-group annotations the default label-free method avoids. Every method conserves
-the total projected weight.
-% 监督 predictor 的 boundary 与 B$^3$ F1 为 0.739 和 0.816，最强对照为 0.645/0.678；无标签 recurrence 为 0.680/0.786，reference calibration 为 0.734/0.801（后者使用额外 group 标注）。所有投影权重均保持守恒。
+On all 287 OSWorld-Human task-instance sessions~\cite{osworldhuman} with
+complete group annotations, the supervised predictor reaches 0.739 boundary
+F1 and 0.816 B$^3$ F1, label-free recurrence reaches 0.680 / 0.786, and the
+strongest control reaches 0.645 / 0.678 (Appendix~\ref{app:osworld}).
+% 在全部 287 个具有完整 group 标注的 OSWorld-Human task-instance session 上，监督 predictor 的 boundary F1 与 B$^3$ F1 为 0.739 和 0.816，无标签 recurrence 为 0.680 / 0.786，最强对照为 0.645 / 0.678（细节见附录）。
 
 A target-blind TF-IDF/K-Means backend reaches V-measure~\cite{rosenberg-hirschberg-2007-v-measure} 0.557 on nine Mind2Web sessions and 0.815 on 100 ScienceWorld sessions~\cite{mind2web,scienceworld} (Appendix~\ref{app:partition}).
 % 目标盲 TF-IDF/K-Means backend 在 9 个 Mind2Web session 与 100 个 ScienceWorld session 上的标准 V-measure 为 0.557 和 0.815（细节见附录）。
 
-For task-family tags, we use a fixed evaluation-only Qwen3.6-27B llama.cpp
-backend distinct from the 3B CLI backend. Using only goals and declared family
-descriptions, it classifies all 1{,}012 AgentBoard goals into nine
-families~\cite{qwen36,agentboard}. The backend reaches 0.695 macro-F1 and 0.733
-accuracy, compared with 0.044 macro-F1 and 0.248 accuracy for the majority-class
-baseline, and produces identical assignments across three runs.
-% 对于 task-family 标签，一个与上述 3B CLI backend 不同、固定且仅供评测的 Qwen3.6-27B llama.cpp backend 通过 AgentProf 的 declared-task 字段接口，仅根据 goal 与已声明 family 描述将 AgentBoard 发布的全部 1,012 个 goal 指派到九个 family；macro-F1 与 accuracy 分别为 0.695 和 0.733，majority control 为 0.044 和 0.248，三次完整运行的指派完全一致。
-
-For action tags, a standalone backend-level adapter runs the fixed Qwen3.6-27B
-closed-label configuration using only the current thought/action and eight
-action definitions operationalized by TraceView~\cite{qwen36,traceview-2026}.
-The adapter classifies all 2{,}737 published annotations from 120 AutoCodeRover,
-OpenHands, and RepairAgent trajectories~\cite{bouzenia-pradel-2025-trajectories}.
-% 在独立的 action-label backend 评估中，standalone adapter 使用固定 Qwen3.6-27B closed-label 配置，仅读取当前 thought/action 与八个已声明定义，在 AutoCodeRover、OpenHands 和 RepairAgent 的 120 条轨迹上测试全部 2,737 个公开标注；它不是已集成的 AgentProf CLI 路径。
-The model reaches 0.498 macro-F1 and 0.628 accuracy, compared with 0.061
-macro-F1 and 0.323 accuracy for the majority-class baseline. Its 0.437 macro-F1 gain has a whole-trajectory 95\% bootstrap
-interval of [0.380, 0.494], and both complete runs agree exactly.
-% 其 macro-F1 与 accuracy 分别为 0.498 和 0.628，majority 为 0.061 和 0.323；macro-F1 增量为 0.437，整条轨迹 bootstrap 的 95% 区间为 [0.380, 0.494]，两次完整运行结果完全一致。
-Thirty-nine AutoCodeRover inputs contain the target word
-\texttt{Locate}. Excluding them leaves 0.490 macro-F1 and 0.622 accuracy, so the
-positive comparison to majority is unchanged.
-% 39 个 AutoCodeRover 可见输入字面包含目标词 \texttt{Locate}；排除它们后 macro-F1 与 accuracy 仍为 0.490 和 0.622，因此相对 majority 的正向比较不变。
+For closed-label literal tags, a fixed evaluation-only Qwen3.6-27B
+backend~\cite{qwen36} classifies all 1{,}012 AgentBoard
+goals~\cite{agentboard} into nine task families at 0.695 macro-F1 and 0.733
+accuracy versus 0.044 / 0.248 for the majority baseline, and a backend-level
+adapter classifies all 2{,}737 published ASE action labels from 120 AutoCodeRover,
+OpenHands, and RepairAgent trajectories~\cite{traceview-2026,
+bouzenia-pradel-2025-trajectories} at 0.498 macro-F1 and 0.628 accuracy versus
+0.061 / 0.323 for the majority baseline (Appendix~\ref{app:literal}).
+% 闭标签 literal 评估中，固定仅供评测的 Qwen3.6-27B backend 将 1,012 个 AgentBoard goal 分到 9 个 task family，macro-F1 与 accuracy 为 0.695/0.733，majority 为 0.044/0.248；backend-level adapter 将来自 120 条 AutoCodeRover/OpenHands/RepairAgent 轨迹的 2,737 个 ASE action label 分类，macro-F1 与 accuracy 为 0.498/0.628，majority 为 0.061/0.323（细节见附录）。
 
 Thus, across the named public populations, the automatic Agent constructor
-reaches 0.704 B$^3$ and 0.394 boundary F1 on CodeTraceBench; the label-free
-recurrence backend reaches 0.786 B$^3$ and 0.680 boundary F1 on OSWorld-Human;
-and closed-label task-family and action backends reach 0.695 and 0.498 macro-F1.
-These protocols evaluate complementary structural and literal outputs rather
-than collapsing them into one bespoke score.
+reaches 0.704 B$^3$ and 0.394 boundary F1 on CodeTraceBench, the label-free
+recurrence backend reaches 0.786 B$^3$ and 0.680 boundary F1 on OSWorld-Human,
+and closed-label task-family and action backends reach 0.695 and 0.498
+macro-F1, evaluating complementary structural and literal outputs rather than
+one bespoke score.
 % 因此，在声明的公开 population 上，automatic Agent、label-free recurrence 和 closed-label backend 分别以标准 partition、boundary 与 literal-label metric 回答互补的结构质量问题。
 
 %% -------------------------------------------------------------------
@@ -933,29 +894,11 @@ Measurements use \texttt{agentpprof 0.2.37} on a 24-core Intel Core Ultra 9
 285K with 125\,GiB RAM and Linux 6.15.11.
 % RQ4 区分 fixed-input replay 与首次 profile 构建的可观测组件。我们先在四个完整公开 workload 及其 union 上各运行三次，比较固定 semantic hierarchy 与相同输入的 raw action，再分解完整 A2 deterministic path。
 
-\begin{table}[h]
-\centering\small
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{@{}lrrrr@{}}
-\toprule
-Workload & Ops & \shortstack{Semantic\\(s)} & \shortstack{Raw action\\(s)} & \shortstack{Peak RSS\\(MiB)} \\
-\midrule
-AgentRewardBench & 729 & 0.04 & 0.03 & 19.3 \\
-SATraj-OS & 4{,}285 & 0.17 & 0.14 & 73.9 \\
-OSWorld-Human & 6{,}010 & 0.24 & 0.21 & 109.1 \\
-AgentNet & 16{,}741 & 0.70 & 0.58 & 279.3 \\
-Union & 27{,}765 & 1.16 & 0.97 & 465.2 \\
-\bottomrule
-\end{tabular}
-\caption{RQ4 profile-construction cost. Times are three-run medians, and
-resident set size (RSS) is the largest peak observed for the semantic profile.}
-\label{tab:rq4-cost}
-\end{table}
-
 Both time curves are monotonic across the five input sizes, and the semantic
 curve has a descriptive slope of 0.0418\,ms per operation ($R^2=0.9997$),
-reaching 23{,}935 operations/s on the union.
-% 两条时间曲线在五个自然输入规模上均单调增长，语义曲线的描述性斜率为每个 operation 0.0418 毫秒（R 方为 0.9997），在并集上达到每秒 23,935 个 operation。
+reaching 23{,}935 operations/s on the union (Table~\ref{tab:rq4-cost} in
+Appendix~\ref{app:cost}).
+% 两条时间曲线在五个自然输入规模上均单调增长，语义曲线的描述性斜率为每个 operation 0.0418 毫秒（R 方为 0.9997），在并集上达到每秒 23,935 个 operation（表格见附录）。
 For the 27{,}765-operation union, semantic construction completes in 1.16
 seconds, reaches 465.2\,MiB peak RSS, and incurs 190\,ms (19.6\%) more time and
 5.25\,MiB (1.14\%) more peak RSS than raw-action grouping.
@@ -1143,8 +1086,62 @@ reconstructed population and A2 artifact is byte-identical across runs; all
 profiles load in stock pprof and conserve exact mass.
 % 在全部 405 条 CodeTrace session 上，A2 source-packet reconstruction 的中位时间为 501.64 秒，deterministic assembly/root repair/name canonicalization 为 3.54 秒；随后 operation 与 token profile 均以 1.17 秒中位重放，并精确保守质量。
 
+\subsection{Cost Scaling Table}
+\label{app:cost}
+
+\begin{table}[h]
+\centering\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Workload & Ops & \shortstack{Semantic\\(s)} & \shortstack{Raw action\\(s)} & \shortstack{Peak RSS\\(MiB)} \\
+\midrule
+AgentRewardBench & 729 & 0.04 & 0.03 & 19.3 \\
+SATraj-OS & 4{,}285 & 0.17 & 0.14 & 73.9 \\
+OSWorld-Human & 6{,}010 & 0.24 & 0.21 & 109.1 \\
+AgentNet & 16{,}741 & 0.70 & 0.58 & 279.3 \\
+Union & 27{,}765 & 1.16 & 0.97 & 465.2 \\
+\bottomrule
+\end{tabular}
+\caption{RQ4 profile-construction cost. Times are three-run medians, and
+resident set size (RSS) is the largest peak observed for the semantic profile.}
+\label{tab:rq4-cost}
+\end{table}
+
 \subsection{OSWorld-Human Boundary Study Detail}
 \label{app:osworld}
+
+We test all 287 OSWorld-Human task-instance sessions~\cite{osworldhuman} with
+complete group annotations. This population contains 3{,}978 operations,
+3{,}691 adjacent pairs, and 2{,}042 groups.
+% 我们首先测试所有具有完整人工分组标注的 OSWorld-Human session：287 个 task-instance session 中的 3,978 个 operation，共 3,691 个相邻对和 2,042 个人工独立标注的动作组。
+
+\begin{table}[h]
+\centering\small
+\setlength{\tabcolsep}{2.0pt}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Method & Prec. & Recall & Bound. F1 & B$^3$ F1 \\
+\midrule
+Supervised predictor & 0.700 & 0.782 & \textbf{0.739} & \textbf{0.816} \\
+Reference-calibrated recurrence & 0.610 & 0.922 & 0.734 & 0.801 \\
+Label-free recurrence & 0.592 & 0.799 & 0.680 & 0.786 \\
+Always boundary & 0.476 & 1.000 & 0.645 & 0.678 \\
+Action change & 0.386 & 0.626 & 0.477 & 0.659 \\
+Phase change & 0.441 & 0.268 & 0.334 & 0.665 \\
+\bottomrule
+\end{tabular}
+\caption{RQ3 boundary and partition agreement on OSWorld-Human. Boundary F1 scores
+exact adjacent-pair decisions. B$^3$ scores predicted--human partitions.}
+\label{tab:rq3-boundary}
+\end{table}
+
+The supervised predictor reaches 0.739 boundary F1 and 0.816 B$^3$ F1 versus
+0.645/0.678 for the strongest controls; label-free recurrence reaches
+0.680/0.786 and reference-calibrated recurrence 0.734/0.801, the latter using
+group annotations the default label-free method avoids. Every method conserves
+the total projected weight.
+% 监督 predictor 的 boundary 与 B$^3$ F1 为 0.739 和 0.816，最强对照为 0.645/0.678；无标签 recurrence 为 0.680/0.786，reference calibration 为 0.734/0.801（后者使用额外 group 标注）。所有投影权重均保持守恒。
 
 For the supervised Bernoulli Naive Bayes predictor~\cite{mccallum-nigam-1998},
 we fix the model family, nine input fields, adjacent-pair features, and training
@@ -1179,6 +1176,32 @@ ScienceWorld sessions (2{,}504 operations)~\cite{mind2web,scienceworld}.
 Every operation receives a prediction in both datasets, whereas a constant tag
 yields V-measure 0. Here, V-measure tests partitions, not literal names.
 % 对目标盲 TF-IDF/K-Means backend，在 9 个 Mind2Web session（49 个 operation）和 100 个 ScienceWorld session（2,504 个 operation）上，operation assignment 的标准 V-measure 为 0.557 和 0.815，coverage 为 100%，constant tag 为 0；V-measure 测试 partition 而非字面 tag 名。
+
+\subsection{Literal-Label Backend Detail}
+\label{app:literal}
+
+For task-family tags, we use a fixed evaluation-only Qwen3.6-27B llama.cpp
+backend distinct from the 3B CLI backend. Using only goals and declared family
+descriptions, it classifies all 1{,}012 AgentBoard goals into nine
+families~\cite{qwen36,agentboard}. The backend reaches 0.695 macro-F1 and 0.733
+accuracy, compared with 0.044 macro-F1 and 0.248 accuracy for the majority-class
+baseline, and produces identical assignments across three runs.
+% 对于 task-family 标签，一个与上述 3B CLI backend 不同、固定且仅供评测的 Qwen3.6-27B llama.cpp backend 通过 AgentProf 的 declared-task 字段接口，仅根据 goal 与已声明 family 描述将 AgentBoard 发布的全部 1,012 个 goal 指派到九个 family；macro-F1 与 accuracy 分别为 0.695 和 0.733，majority control 为 0.044 和 0.248，三次完整运行的指派完全一致。
+
+For action tags, a standalone backend-level adapter runs the fixed Qwen3.6-27B
+closed-label configuration using only the current thought/action and eight
+action definitions operationalized by TraceView~\cite{qwen36,traceview-2026}.
+The adapter classifies all 2{,}737 published annotations from 120 AutoCodeRover,
+OpenHands, and RepairAgent trajectories~\cite{bouzenia-pradel-2025-trajectories}.
+% 在独立的 action-label backend 评估中，standalone adapter 使用固定 Qwen3.6-27B closed-label 配置，仅读取当前 thought/action 与八个已声明定义，在 AutoCodeRover、OpenHands 和 RepairAgent 的 120 条轨迹上测试全部 2,737 个公开标注；它不是已集成的 AgentProf CLI 路径。
+The model reaches 0.498 macro-F1 and 0.628 accuracy, compared with 0.061
+macro-F1 and 0.323 accuracy for the majority-class baseline. Its 0.437 macro-F1 gain has a whole-trajectory 95\% bootstrap
+interval of [0.380, 0.494], and both complete runs agree exactly.
+% 其 macro-F1 与 accuracy 分别为 0.498 和 0.628，majority 为 0.061 和 0.323；macro-F1 增量为 0.437，整条轨迹 bootstrap 的 95% 区间为 [0.380, 0.494]，两次完整运行结果完全一致。
+Thirty-nine AutoCodeRover inputs contain the target word
+\texttt{Locate}. Excluding them leaves 0.490 macro-F1 and 0.622 accuracy, so the
+positive comparison to majority is unchanged.
+% 39 个 AutoCodeRover 可见输入字面包含目标词 \texttt{Locate}；排除它们后 macro-F1 与 accuracy 仍为 0.490 和 0.622，因此相对 majority 的正向比较不变。
 
 \subsection{Extended Scope and Limitations}
 \label{app:scope}
