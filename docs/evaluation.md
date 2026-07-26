@@ -18,13 +18,13 @@ truth remain excluded. The full Chinese study contract is
 
 | RQ | Evidence required | Status | Next decisive action |
 |---|---|---|---|
-| RQ1 artifact consolidation/revival | Final survival for confirmed introductions, lineage reuse/revival, first/repeat-observed mutation and identity concentration. | Six-case reuse/repetition evidence complete; confirmed-create persistence remains coverage-only at 3/6. | Add dormant-to-revived state transitions without converting repeated activity into a progress score. |
-| RQ2 validation response | Recognized success/failure cadence, mutation backlog and event-distance response around validation. | F5 complete for 3/6 source-covered projects; cross-case gate stopped. | Improve validation adapters before a six-case response claim. |
-| RQ3 workspace focus evolution | Artifact-class allocation, same-artifact/same-module/cross-module transitions, hotspot turnover and return gaps. | F8a/F8b complete; five cases pass the return gate and one remains N/A. | Add rank-turnover/cooling curves; keep action order distinct from time or internal attention. |
-| RQ4 cross-session continuity | Native-root/source-stream structure, adjacent non-overlapping components, pre-mutation re-grounding and prior artifact/module overlap. | F7 is coverage/within-case evidence; the four-project estimator gate stopped. | Recompute with corrected native root/subagent identity before estimating continuity. |
+| RQ1 artifact consolidation/revival | Final survival for confirmed introductions, lineage reuse/revival, first/repeat-observed mutation and identity concentration. | Six-case reuse/repetition evidence complete. The 2026-07-25 HEAD recompute (after the projection hardening) lifts confirmed-create persistence from coverage-only 3/6 to 6/6; sessions are now counted as 551 native roots (2,049 source files before dedup). | Add dormant-to-revived state transitions without converting repeated activity into a progress score. |
+| RQ2 validation response | Recognized success/failure cadence, mutation backlog and event-distance response around validation. | F5 evidence complete for 6/6 source-covered projects after the HEAD recompute (was 3/6); the cross-case stop is lifted and its re-review is open. | Re-review the cross-case response question over the six covered cases. |
+| RQ3 workspace focus evolution | Artifact-class allocation, same-artifact/same-module/cross-module transitions, hotspot turnover and return gaps. | F8a/F8b complete; all six cases now carry return evidence (eunomia.dev cross-session repeat episodes 1 to 29 after session-join repair); pooled unknown-create births 790 to 0. | Add rank-turnover/cooling curves; keep action order distinct from time or internal attention. |
+| RQ4 cross-session continuity | Native-root/source-stream structure, adjacent non-overlapping components, pre-mutation re-grounding and prior artifact/module overlap. | F7 is coverage/within-case evidence. Recomputed with corrected native-root/subagent identity: the four-project estimator gate still stops, now established as data-limited (3/6 projects reach 20 boundaries), not identity-limited. | Estimating continuity requires more eligible boundaries, not further identity repair. |
 | RQ5 Skill/instruction footprints | Exact Skill name/arguments and source attribution blocked by native root session; separate instruction focal events. | Fresh six-case run and independent 2,063-stream checker pass. Five exact-context Skill strata qualify, but only one project supports a two-Skill comparison: same/different JSD 0.116/0.123, exact root-block p=0.750 over 12 admissible assignments. | Report source-attributed coverage and no supported repeatable Skill separation; make no fingerprint or causal harness claim. |
 | RQ6 external boundary | Replicate compatible within-attempt relations separately in public coding and scientific-process traces; mark persistence/re-grounding N/A without persistent lineage. | Complete over 64 independent task instances per Open-SWE stratum (256 selections, 255 unique IDs across strata) and 64 IdeaTrail topics. All five strata pass the 64-unit gate and the independent checker reconciles 31,249 Tool calls and 22,113 transitions without mismatch. Cross-module movement is 18.0--30.0% publicly versus 2.1--20.2% locally; median intervening calls before module return are 2--3 versus 2--4. | Report path locality/return recurrence and the magnitude difference; keep persistent lineage, cross-session re-grounding, and Skill attribution N/A. |
-| Separate measurement capability | Compare source-verifiable factual coverage and abstention for Final State, Counts, ProcGrep, bounded Raw-log reader and artifact-linked trajectories. | Narrow negative/mixed result. A corrected source-direct oracle and 480-row deterministic matrix show that the current trajectory answers 32/60 B+C facts correctly and 28 incorrectly. Raw is N/A after a retrieval-engaged preflight boundary stop. | Remove the current capability claim; audit direct effects, shell/scope inference, artifact identity and native-root joins before rerunning. |
+| Separate measurement capability | Compare source-verifiable factual coverage and abstention for Final State, Counts, ProcGrep, bounded Raw-log reader and artifact-linked trajectories. | Repaired. On 2026-07-23 the frozen implementation scored 32/60 B+C against the frozen source-direct oracle. After root-cause repair (session join, failed-call effects, shell path extraction, event workdir) and oracle correction to v4, the current implementation scores B 30/30, C 30/30, D 30/30, A 12/30 against the corrected oracle: 60/60 B+C on this corpus. Raw remains N/A after a retrieval-engaged preflight boundary stop. No general exact-fact capability claim; the A gap is a deliberate grammar difference (trajectory preserves ProcGrep's action spine, v4 re-derives atoms source-direct). | Keep conformance as a standing gate for any future projection change. |
 
 ## RQ1 selected experiment
 
@@ -52,15 +52,24 @@ not enter the persistence numerator. A recognized successful validation is
 associated with a preceding mutation only when it occurs before that artifact
 is superseded; it does not prove coverage or correctness of the change.
 
-**Reviewed outcome.** The authoritative cutoff admits 2,049 native sessions and
-206,249 Tool actions; 1,825 sessions and 175,850 actions are worktree-attributed.
-The extraction yields 7,154 observed artifact identities and 13,152 confirmed
-mutation rows. All six projects pass the longitudinal gate. Later reuse is
-observed for 89.80--97.26% of eligible mutations, while its descriptive
-association with action volume is Spearman rho 0.0857. Only three projects have
-an eligible confirmed create and recognized successful validation, so the
-preregistered gate stops cross-case persistence and validation interpretation.
-The independent result audit regenerated both figures byte-identically.
+**Reviewed outcome.** As frozen on 2026-07-22, the authoritative cutoff admits
+2,049 native session files and 206,249 Tool actions; 1,825 sessions and
+175,850 actions are worktree-attributed. The extraction yields 7,154 observed
+artifact identities and 13,152 confirmed mutation rows.
+
+**Recomputed outcome (2026-07-25, after the projection hardening).** The same
+cutoff and inclusion contract now admit 551 native root sessions (the 2,049
+source files minus subagent/continuation duplicates; a counting-semantics
+change, not data loss: attributed actions are stable at 175,619 versus
+175,850, −0.13%) and 181,303 Tool actions. The extraction yields 5,792
+observed artifact identities and 13,905 confirmed mutation rows (+5.7%, mostly
+eunomia.dev's recovered Claude activity: 170 to 739). All six projects pass
+the longitudinal gate. Later reuse is observed for 89.29--97.02% of eligible
+mutations, and its descriptive association with action volume is Spearman rho
+0.2000 (was 0.0857). All six projects now have an eligible confirmed create
+and a recognized successful validation, so persistence and validation move
+from 3/6 coverage-only to 6/6 qualified. The independent result audit
+regenerated both figures byte-identically for the frozen run.
 
 ## Corpus and inclusion contract
 
@@ -125,7 +134,8 @@ Codex, and Gemini records, reconstructs 1,721 artifact edges, independently
 derives cutoff state from archived index/presence evidence, and reproduces all
 120 answers.
 
-The completed deterministic matrix contains 480 rows. Exact outcomes are:
+The completed deterministic matrix contains 480 rows. Exact outcomes of the
+frozen implementation on 2026-07-23:
 
 | Method | A action-only | B artifact-linked | C cross-session | D final-state |
 |---|---:|---:|---:|---:|
@@ -134,14 +144,29 @@ The completed deterministic matrix contains 480 rows. Exact outcomes are:
 | ProcGrep | 18 correct, 12 wrong | 0 correct, 30 abstain | 0 correct, 30 abstain | 0 correct, 30 abstain |
 | Artifact trajectory | 18 correct, 12 wrong | 16 correct, 14 wrong | 16 correct, 14 wrong | 28 correct, 2 abstain |
 
-Trajectory preserves ProcGrep's A answers exactly (30/30 identity), but the
-frozen source-direct action grammar differs from the official adapter grammar;
-the 18/30 agreement is not a failure to preserve
-ProcGrep. The decisive result is B+C: trajectory answers all 60 questions but
-gets 28 wrong. Its extra coverage therefore fails the correctness requirement
-and cannot support the proposed capability claim. Per-project B+C conditional
-accuracy is 1.000, 0.400, 0.700, 0.000, 0.600, and 0.500, so the result is not
-one isolated project defect.
+Trajectory preserves ProcGrep's A answers exactly (30/30 identity). The
+decisive frozen result is B+C: the frozen trajectory answers all 60 questions
+but gets 28 wrong, with per-project conditional accuracy 1.000, 0.400, 0.700,
+0.000, 0.600, and 0.500.
+
+The follow-up audit
+(`docs/tmp/build-and-evaluate/rq7-error-taxonomy-20260725/`) classified the 28
+errors: 14 deliberate broader shell/scope evidence, 14 genuine bugs (7
+native-root session join, 4 failed-call effect drop, 3 shell path
+extraction). The genuine classes plus one later event-workdir bug were fixed,
+and the oracle was corrected to v4 (24 of 120 expected answers changed, all
+justified per question). Outcomes of the current implementation against the
+corrected v4 oracle:
+
+| Method | A action-only | B artifact-linked | C cross-session | D final-state |
+|---|---:|---:|---:|---:|
+| Artifact trajectory | 12 correct, 18 wrong | 30/30 correct | 30/30 correct | 30/30 correct |
+
+The A-family gap is a deliberate grammar difference, not a new defect: the
+trajectory preserves ProcGrep's official action spine, while the v4 oracle
+re-derives atom counts under the source-direct grammar. B+C is 60/60 on this
+corpus; this is repair-corpus conformance, not a general exact-fact
+capability claim.
 
 The bounded Raw reader is N/A. The single registered Terra preflight made 11
 local evidence calls and retrieved 117,184 bytes, but the frozen boundary
@@ -153,15 +178,16 @@ claim is made. The all-project deterministic preflight is reused as the final
 incomplete because none of the 360 Raw rows ran. Likewise, deterministic timing
 is not method-specific and is not compared.
 
-This negative result changes the measurement boundary for the local empirical
-study. It does not automatically invalidate RQ1--RQ6, but it prevents treating
-the shared projection as source truth. RQ1, RQ3, and RQ4 need a raw-source error
-taxonomy; RQ2 needs the same audit where mutation linkage matters. RQ5 is better
+The frozen negative result changed the measurement boundary for the local
+empirical study, and the completed audit discharged it: the error taxonomy
+separated deliberately broader shell/scope evidence from genuine path,
+identity, and native-root join errors, all genuine bug classes were repaired,
+and RQ1--RQ4 were recomputed at the repaired revision
+(`docs/tmp/build-and-evaluate/rq1-rq4-recompute-20260725/`). RQ5 remains
 protected by its separate 2,063-stream checker, and RQ6 by an independent
-public-data reconstruction. Until the audit separates deliberately broader
-shell/scope evidence from genuine path, identity, and native-root join errors,
-local projection quantities are reported as measurements under the admitted
-projection rather than source-complete facts.
+public-data reconstruction. Local projection quantities are now measurements
+under the repaired projection, with B+C conformance at 60/60 against the
+corrected source-direct oracle on this corpus.
 
 ## Superseded intervention program
 
@@ -190,14 +216,20 @@ historical evidence, not the active evaluation:
 - Visualization design: `docs/repository-nebula.zh-CN.md`
 - Corrected measurement-capability experiment and independent result review:
   `docs/tmp/build-and-evaluate/step-0004-20260723T181008-0700/experiment-001/`
+- RQ7 error taxonomy, HEAD rerun, corrected v4 oracle, and workdir fix:
+  `docs/tmp/build-and-evaluate/rq7-error-taxonomy-20260725/`
+- RQ1--RQ4 HEAD recompute and delta report:
+  `docs/tmp/build-and-evaluate/rq1-rq4-recompute-20260725/`
 - Corrected Skill/instruction footprint run:
   `docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq5-skill-footprints/`
 - RQ6 public external-boundary run:
   `docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq6-external-boundary/full/`
 
-Local RQ1--RQ5 have executable figures with the coverage stops above. The
+Local RQ1--RQ5 have executable figures with the coverage notes above. The
 corrected RQ5 result replaces the old exporter-induced source-coverage stop,
 and RQ6 closes the compatible within-attempt external check without extending
-it to longitudinal lineage. The separate tool experiment now rejects the
-current projection's exact-fact capability claim; a Raw reader comparison
-remains N/A rather than open evidence of either method.
+it to longitudinal lineage. The separate tool experiment's frozen negative
+result (32/60 B+C, 2026-07-23) is repaired at the current revision (60/60 B+C
+against the corrected v4 oracle on this corpus), without a general exact-fact
+capability claim; a Raw reader comparison remains N/A rather than open
+evidence of either method.

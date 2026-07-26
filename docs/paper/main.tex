@@ -46,22 +46,24 @@ and session boundaries without introducing semantic labels or aligning the
 timeline to Git commits.  We use it to study six real software and autonomous-
 research projects through introduced-artifact persistence, later reuse,
 validation association, repeated mutation, workspace-activity migration, and
-cross-session continuity.  Under the admitted local projection, across 2,049
-sessions and 206,249 Tool actions,
-89.8--97.3\% of eligible mutations are later revisited, yet action volume does
-not reproduce the cross-project reuse ordering ($\rho=0.09$).  Repeat-observed
-episodes account for 71.8--91.8\% of mutation episodes, with 41.9--86.7\% of
+cross-session continuity.  Under the admitted local projection, across 551
+native root sessions and 181,303 Tool actions,
+89.3--97.0\% of eligible mutations are later revisited, yet action volume only
+weakly orders the cross-project reuse relation ($\rho=0.20$).  Repeat-observed
+episodes account for 74.5--90.8\% of mutation episodes, with 42.0--86.7\% of
 episodes concentrated in the most-mutated 10\% of identities.  Source coverage
-is itself consequential: recognized successful validation appears in only
-3/6 cases, and named Skills show no supported repeatable separation in the only
-eligible comparison.  In 320 stratum-specific public task/topic selections,
+is itself consequential: recognized successful validation appears in all six
+cases after projection repair, and named Skills show no supported repeatable
+separation in the only eligible comparison.  In 320 stratum-specific public
+task/topic selections,
 path-local transitions and 2--3-intervening-call module returns recur, but persistent
 artifact lineage and cross-session re-grounding remain unobservable.
-Finally, a source-direct 120-question conformance experiment rejects the
-current projection's exact-fact capability: it answers 32/60 artifact-linked
-and cross-session facts correctly and 28 incorrectly.  This negative result
-separates the workspace-centered research unit from an implementation that
-still requires source-conformance repair.
+Finally, a source-direct 120-question conformance experiment found the frozen
+implementation answering only 32/60 artifact-linked and cross-session facts
+correctly (2026-07-23).  Root-cause repair of session joins, failed-call
+effects, shell path extraction, and event workdir handling brings the current
+revision to 60/60 on the corrected benchmark---a repair-corpus conformance
+result, not a general exact-fact capability claim.
 \end{abstract}
 
 \section{Introduction}
@@ -127,8 +129,10 @@ This paper makes three contributions:
   continuity interact across six real coding and autonomous-research projects;
   \item a deterministic, source-linked measurement protocol for stable
   artifact identity and cross-session lineage, together with a source-direct
-  conformance benchmark that rejects the current implementation's exact-fact
-  capability rather than using its output as ground truth; and
+  conformance benchmark on which the frozen implementation failed (32/60
+  artifact-linked and cross-session facts, 2026-07-23) and the repaired
+  revision now answers 60/60, reported as repair-corpus conformance rather
+  than a general exact-fact capability claim; and
   \item a reproducible coverage discipline that separates measured results,
   coverage-only evidence, implementation disagreement, and N/A conditions
   instead of treating missing or projected trajectory evidence as observed
@@ -453,10 +457,11 @@ are not treated as independent projects.}
 The main corpus includes all repository-direct Claude, Codex, and Gemini
 sessions and retains actions with no file effect.  We report source coverage by
 project, vendor, session, effect, status, and path presence.  Global path-only
-matches form a separate sensitivity analysis.  The frozen corpus contains
-2,049 admitted native sessions and 206,249 Tool actions; 1,825 sessions and
-175,850 actions resolve to retained worktrees.  It yields 7,154 observed
-artifact identities and 13,152 confirmed mutation rows.  All six projects pass
+matches form a separate sensitivity analysis.  The corpus contains
+551 admitted native root sessions (2,049 source transcript files before
+subagent and continuation deduplication) and 181,303 Tool actions; 550 roots
+and 175,619 actions resolve to retained worktrees.  It yields 5,792 observed
+artifact identities and 13,905 confirmed mutation rows.  All six projects pass
 the longitudinal gate, although source coverage for individual measurements
 varies substantially.
 
@@ -483,16 +488,16 @@ Existing-file writes have unknown content durability unless native diffs,
 snapshots, or Git line evidence establish it independently.
 
 Figure~\ref{fig:rq1-progress} separates the three dimensions.  All six projects
-support later-reuse analysis: 89.8--97.3\% of eligible mutations receive a
+support later-reuse analysis: 89.3--97.0\% of eligible mutations receive a
 later observed access, with delete before reuse treated as a competing outcome.
-However, only AgentSight, ActPlane, and eunomia.dev expose an eligible
-confirmed create and an adapter-recognized successful validation.  The
-preregistered four-project gate therefore stops cross-case interpretation of
-persistence and validation; their panels are coverage descriptions, not
-population estimates.  The three observable persistence proportions are
-939/983, 3/50, and 4/10, and the corresponding observed
-validation-before-supersession proportions are 2077/6118, 873/5630, and
-32/157.
+After projection repair, all six projects also expose an eligible
+confirmed create and an adapter-recognized successful validation, so the
+preregistered four-project gate admits cross-case interpretation of
+persistence and validation (it stopped at 3/6 coverage before repair).  The
+six observable persistence proportions are
+974/1043, 28/245, 18/30, 8/18, 18/18, and 1/1, and the corresponding observed
+validation-before-supersession proportions are 2424/6111, 1212/5604, 141/694,
+47/282, 9/196, and 33/247.
 
 \begin{figure*}[t]
   \centering
@@ -502,28 +507,29 @@ validation-before-supersession proportions are 2077/6118, 873/5630, and
   Panels B and C use Aalen--Johansen cumulative incidence over native Agent
   action-event distance: deletion competes with later reuse, while the next
   same-artifact mutation/delete competes with recognized validation.  N/A is
-  source ineligibility, not zero progress.  Because persistence and validation
-  each cover only 3/6 cases, those panels stop at coverage description.}
+  source ineligibility, not zero progress.  After projection repair all 6/6
+  cases expose an eligible create and a recognized success (3/6 before
+  repair).}
   \label{fig:rq1-progress}
 \end{figure*}
 
 Figure~\ref{fig:rq1-activity} tests whether raw action volume is an adequate
-proxy for these outcomes.  Only reuse meets the cross-case coverage gate, and
+proxy for these outcomes.  Reuse covers all six cases, and
 its descriptive Spearman rank association with worktree-attributed Tool action
-volume is $\rho=0.086$ across six cases.  This near-zero six-case rank contrast
-does not estimate a population effect, but it demonstrates that action count
-alone does not reproduce the observed reuse ordering in this corpus.  RQ1 thus
-establishes measurable activity--progress separation for reuse while exposing
-a first-order adapter-coverage limit for persistence and validation.
+volume is $\rho=0.20$ across six cases.  This weak six-case rank contrast
+does not estimate a population effect, but it shows that action count
+alone only weakly orders the observed reuse relation in this corpus.  RQ1 thus
+establishes measurable activity--progress separation for reuse while, after
+repair, also admitting cross-case persistence and validation description.
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/rq1-activity-progress.pdf}
   \caption{Worktree-attributed Tool action volume versus exact observed RQ1
   proportions.  Labels show numerator/denominator rather than fitted values.
-  Persistence and validation fail the four-case gate, so no correlation is
-  computed.  Reuse includes all six projects and reports only a descriptive
-  rank correlation; actions are not treated as independent cases.}
+  All three dimensions cover six cases after projection repair; each panel
+  reports only a descriptive rank correlation, and actions are not treated as
+  independent cases.}
   \label{fig:rq1-activity}
 \end{figure*}
 
@@ -533,12 +539,12 @@ RQ2 measures mutation bursts, recognized successful and failed validation
 cadence, and worktree-local mutation accumulation between recognized
 successes.  It never calls a successful command proof that every preceding
 change was covered or correct.  Figure~\ref{fig:rq2-validation} shows the exact
-action-order trajectories and complete inter-success intervals.  Only
-AgentSight, ActPlane, and eunomia.dev expose a recognized successful
-validation, so the predeclared four-project gate stops a cross-case answer.
-Within those covered cases, complete intervals are strongly zero-inflated yet
-occasionally very large: the four eligible worktree lanes have 60.0--89.1\%
-zero-mutation intervals, while their maxima range from 32 to 1,144 mutations.
+action-order trajectories and complete inter-success intervals.  After
+projection repair, all six projects expose a recognized successful validation
+(3/6 before repair), so the predeclared four-project gate admits a cross-case
+answer.  Complete intervals are strongly zero-inflated yet
+occasionally very large: the seven eligible worktree lanes have 29.3--86.8\%
+zero-mutation intervals, while their maxima range from 1 to 817 mutations.
 This is evidence about adapter-recognized cadence, not redundant testing or
 mutation coverage.
 
@@ -549,9 +555,8 @@ mutation coverage.
   action order in every worktree lane; mutation effects project to the affected
   worktree while validation remains on the command worktree.  Panel B reports
   complete worktree-local intervals between recognized successful validations.
-  Panel C exposes project-level outcome coverage.  Only 3/6 cases contain a
-  recognized success, so the analysis stops at coverage and within-case
-  description.}
+  Panel C exposes project-level outcome coverage.  All 6/6 cases contain a
+  recognized success after projection repair (3/6 before repair).}
   \label{fig:rq2-validation}
 \end{figure*}
 
@@ -559,9 +564,9 @@ mutation coverage.
 
 RQ1 also treats each artifact's first observed mutation episode separately from
 later observed episodes.  Figure~\ref{fig:rq3-rework} shows that repeat-observed
-episodes account for 71.8--91.8\% of observed mutation episodes across all six
+episodes account for 74.5--90.8\% of observed mutation episodes across all six
 qualified cases.  Concentration differs substantially: the exact top 10\% of
-mutated identities account for 41.9--86.7\% of episodes.  These are descriptive
+mutated identities account for 42.0--86.7\% of episodes.  These are descriptive
 properties of the observed trajectories.  They do not identify a tail family,
 convergence, thrashing, defect repair, or wasted work; validation-followed
 revision and module switching remain open facets of the broader question.
@@ -569,8 +574,8 @@ revision and module switching remain open facets of the broader question.
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/rq3-rework-structure.pdf}
-  \caption{RQ1 repeated-mutation structure for 7,154 observed identities,
-  2,219 mutated identities, and 13,150 mutation episodes (13,152 source rows).
+  \caption{RQ1 repeated-mutation structure for 5,792 observed identities,
+  2,440 mutated identities, and 13,859 mutation episodes (13,905 source rows).
   The all-identity zero mass is separated from the conditional CCDF; the
   concentration curve uses the exact fractional 10\% boundary; and the repeat
   fraction evolves as an action-atomic post-action step function.}
@@ -583,10 +588,13 @@ Native records expose root/subagent identity unevenly across vendors, and many
 source streams share one native root session or overlap in time.  RQ4 therefore
 keeps shared-root streams in one independent block and forms transitive concurrency components
 within each worktree lane and compares only adjacent non-overlapping
-components.  Figure~\ref{fig:rq4-continuity} reports 120 components and 108
+components.  Figure~\ref{fig:rq4-continuity} reports 121 components and 108
 boundaries, including mutation-observed prefix composition and defined
 artifact/module overlap.  Fewer than four projects reach 20 eligible boundaries
-for every estimator; the preregistered gate stops.  The figure is thus a
+for every estimator; the preregistered gate stops.  A recompute with corrected
+native-root and subagent identity confirms the stop is data-limited (three of
+six projects reach 20 boundaries), not an artifact of session identity.  The
+figure is thus a
 source-coverage and within-case continuity audit, not evidence of session reset
 cost, resumption, model memory, comprehension, or forgetting.
 
@@ -739,17 +747,28 @@ files, reconstructs 1,721 artifact edges, independently verifies archived
 cutoff state, and reproduces every answer.  We then compare Final State,
 Counts, pinned ProcGrep, and the artifact trajectory on the common denominator.
 
-Figure~\ref{fig:rq7-capability} reports the complete 480-row deterministic
-matrix.  Final State answers all 30 final-state questions.  ProcGrep and
-Trajectory return identical answers on all 30 action questions; they agree
-with the experiment's different source-direct action grammar on 18.  This does
-not indicate failed ProcGrep preservation: the official adapter deliberately
-leaves some terminal reads unclassified.  The decisive result is
-artifact-linked plus cross-session correctness.  Trajectory answers all 60
-questions but returns only 32 correct and 28 wrong.  Conditional accuracy
-varies from 0.0 to 1.0 across the six projects.  Its additional coverage
-therefore fails the correctness requirement and cannot support an exact-fact
-capability claim.
+Figure~\ref{fig:rq7-capability} reports the deterministic matrix.  As frozen
+on 2026-07-23, Final State answers all 30 final-state questions, and ProcGrep
+and Trajectory return identical answers on all 30 action questions while
+agreeing with the experiment's different source-direct action grammar on 18.
+This does not indicate failed ProcGrep preservation: the official adapter
+deliberately leaves some terminal reads unclassified.  The decisive result is
+artifact-linked plus cross-session correctness.  The frozen trajectory answers
+all 60 questions but returns only 32 correct and 28 wrong, with conditional
+accuracy from 0.0 to 1.0 across the six projects.
+
+A follow-up audit classified the 28 errors: 14 were deliberately broader
+shell/scope evidence the frozen oracle excludes, and 14 were genuine bugs
+(native-root session joins, dropped failed-call effects, shell path
+extraction).  Those classes plus one event-workdir bug were repaired, and the
+oracle itself was corrected (v4; 24 of 120 expected answers changed, each
+justified from source rows).  The current revision answers all 60
+artifact-linked and cross-session questions correctly against the corrected
+oracle (B 30/30, C 30/30, D 30/30) and 12/30 action-only questions; the
+A-family gap is the deliberate grammar difference above, since the trajectory
+preserves ProcGrep's action spine while the corrected oracle re-derives atom
+counts source-direct.  We report this as repair-corpus conformance on the
+six-project benchmark, not as a general exact-fact capability claim.
 
 The bounded Raw-log reader is N/A.  Its single registered Terra preflight made
 11 local evidence calls and retrieved 117,184 bytes, but the frozen boundary
@@ -764,8 +783,11 @@ share one project-loop measurement.
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/rq7-measurement-capability.pdf}
-  \caption{Source-direct measurement conformance over 120 questions.  Each bar
+  \caption{Source-direct measurement conformance over 120 questions for the
+  repaired implementation against the corrected v4 oracle.  Each bar
   partitions the common 30-question family into correct, wrong, and abstain.
+  The frozen implementation scored 32/60 on artifact plus cross-session
+  families (2026-07-23); after root-cause repair they are 60/60.
   Raw is N/A after its retrieval-engaged preflight stopped at the frozen
   boundary and is not scored as wrong or abstain.}
   \label{fig:rq7-capability}
@@ -779,17 +801,20 @@ adapter and field coverage, and it does not convert missing effects into
 no-effect observations.  Optional system-level AgentSight evidence is a future
 coverage extension, not a second logic layer in the present analysis.
 
-The source-direct tool experiment also finds material disagreement between the
-current projection and native records.  Under its grammar, source/projection
-edge counts differ in every local project, and 28/60 answered artifact-linked
-or cross-session facts are wrong.  Some differences can be deliberate broader
-shell/scope admission; others may arise from path, artifact identity, or
-native-root session joins.  Until that taxonomy is complete, RQ1--RQ4
-quantities are measurements under the declared projection, not source-complete
-ground truth.  RQ5 is better protected by its separate 2,063-stream checker,
-and RQ6 by an independent public-data reconstruction.  This limitation
-prevents a current tool-capability claim but does not change N/A into observed
-absence.
+The source-direct tool experiment also found material disagreement between the
+frozen projection and native records: 28/60 answered artifact-linked or
+cross-session facts were wrong as of 2026-07-23.  The completed error taxonomy
+separated deliberately broader shell/scope admission (14 rows) from genuine
+path, artifact-identity, native-root join, and event-workdir errors (14 rows);
+the genuine classes were repaired and the oracle corrected.  The current
+revision matches the corrected oracle on all 60 B+C questions on this corpus,
+and RQ1--RQ4 were recomputed at that revision.  The action-only family still
+differs deliberately, because the trajectory preserves ProcGrep's action spine
+while the corrected oracle re-derives atom counts source-direct.
+RQ5 is better protected by its separate 2,063-stream checker,
+and RQ6 by an independent public-data reconstruction.  This repair
+removes the frozen conformance objection without turning N/A into observed
+absence and without a population-level capability claim.
 
 Final workspace state cannot prove content-level survival of every historical
 edit.  We therefore separate file existence, Git-tracked state, and independently
@@ -864,11 +889,13 @@ concentrated.  Validation, session-continuity, and skill analyses also expose
 hard source-coverage boundaries rather than portable success, reset, or causal
 harness effects.  Our workspace-centered analysis makes these process facts
 inspectable while keeping unsupported comparisons explicitly N/A.  A
-source-direct conformance experiment further shows that the current projection
-does not yet make exact artifact/session facts reliable: 28/60 answered facts
-are wrong.  The resulting research boundary is concrete---persistent
-workspace evolution remains the useful unit, while projection conformance must
-precede stronger measurement or tool claims.
+source-direct conformance experiment found the frozen projection answering
+only 32/60 artifact-linked and cross-session facts correctly (2026-07-23);
+root-cause repair brings the current revision to 60/60 against the corrected
+benchmark.  The resulting research boundary is concrete---persistent
+workspace evolution remains the useful unit, and the repaired projection now
+meets source-direct conformance on this corpus while stronger population-level
+or tool-capability claims remain out of scope.
 
 \bibliography{references}
 

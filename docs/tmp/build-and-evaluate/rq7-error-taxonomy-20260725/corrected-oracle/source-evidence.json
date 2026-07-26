@@ -1,0 +1,2386 @@
+{
+  "projects": {
+    "ActPlane": {
+      "action_v2_to_v4": {
+        "new_atom_counts": {
+          "edit": 471,
+          "lint": 3,
+          "other": 1526,
+          "package": 3,
+          "read_file": 331,
+          "run_code": 72,
+          "run_test": 457,
+          "search_repo": 400,
+          "version_control": 346
+        },
+        "old_atom_counts": {
+          "edit": 161,
+          "lint": 3,
+          "other": 2259,
+          "package": 3,
+          "read_file": 104,
+          "run_code": 42,
+          "run_test": 595,
+          "search_repo": 297,
+          "version_control": 228
+        },
+        "transitions": [
+          {
+            "count": 83,
+            "new_atom": "<excluded>",
+            "old_atom": "edit",
+            "samples": [
+              {
+                "call_id": "snapshot:1006",
+                "command": "",
+                "record_index": 1006,
+                "source_id": "S000-fedfe37c3d",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1012",
+                "command": "",
+                "record_index": 1012,
+                "source_id": "S000-fedfe37c3d",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1041",
+                "command": "",
+                "record_index": 1041,
+                "source_id": "S000-fedfe37c3d",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1048",
+                "command": "",
+                "record_index": 1048,
+                "source_id": "S000-fedfe37c3d",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1049",
+                "command": "",
+                "record_index": 1049,
+                "source_id": "S000-fedfe37c3d",
+                "tool": "file_snapshot"
+              }
+            ]
+          },
+          {
+            "count": 253,
+            "new_atom": "edit",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_03GVqApqDHyIS35KSSAKX6Pz",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/bpf/taint_engine.bpf.h\\n@@\\n-\\t(void)(flags); \\\\\\n-\\tif (__te_nr > MAX_TAINT_UPDATES) __te_nr = MAX_TAINT_UPDATES; \\\\\\n+\\t(void)(flags); if (__te_nr > MAX_TAINT_UPDATES) __te_nr = MAX_TAINT_UPDATES; \\\\\\n@@\\n {\\n-\\tif ",
+                "record_index": 15822,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_0GqioZZvvY7B8fTA3fCMfpis",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/bpf/process.bpf.c\\n@@\\n #define TE_READ_ARG_SLOT(slot) do { \\\\\\n \\tunsigned long used = pos - start; \\\\\\n+\\tif (pos >= end || used >= TAINT_ARGV_CAP) \\\\\\n+\\t\\treturn; \\\\\\n \\tn = bpf_probe_read_user_str(as->blob, TAINT",
+                "record_index": 5215,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_0dpCMQN3nb866TfooUdjmTs6",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/crates/actplane-ifc-compiler/src/dsl/lower.rs\\n@@\\n     endpoint_cache: HashMap<String, Vec<(u32, u32)>>,\\n     endpoint_resolutions: HashMap<String, Vec<String>>,\\n+    endpoint_compatibility_errors: BTreeSet<String>",
+                "record_index": 6779,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_0sg3w1BQfHHuEeqkRfZffbEC",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/bpf/taint_engine.bpf.h\\n@@\\n struct __taint_contains_ctx {\\n \\tconst char *text;\\n-\\tconst char *pat;\\n-\\tint pn;\\n+\\t__u64 pat_lo;\\n+\\t__u64 pat_hi;\\n+\\t__u64 mask_lo;\\n+\\t__u64 mask_hi;\\n \\tint max_pos;\\n \\tint foun",
+                "record_index": 4407,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_18cW035dI0Q47RINdPFNgGnu",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/bpf/src/lib.rs\\n@@\\n     #[test]\\n     fn legacy_hook_budget_selects_static_operation_hooks() {\\n+        fn spec(name: &str) -> &'static TracepointSpec {\\n+            TRACEPOINTS\\n+                .iter()\\n+        ",
+                "record_index": 3879,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 209,
+            "new_atom": "read_file",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_0C7RxvC2z1Ko0Hd7aFLWV4CQ",
+                "command": "nl -ba bpf/process.bpf.c | sed -n '3530,3575p'",
+                "record_index": 4145,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_0hp5xYZXb8b950PiDvaRMF5x",
+                "command": "sed -n '1575,1635p' bpf/src/lib.rs && sed -n '1715,1765p' bpf/src/lib.rs && sed -n '2145,2195p' bpf/src/lib.rs && sed -n '2220,2285p' bpf/src/lib.rs",
+                "record_index": 3142,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_0vh9KbescKB1zUFy3sZSWg4Q",
+                "command": "sed -n '2440,2515p' bpf/process.bpf.c; sed -n '4095,4280p' bpf/process.bpf.c; sed -n '840,900p' bpf/src/lib.rs; sed -n '1420,1470p' bpf/src/lib.rs",
+                "record_index": 3660,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_0wGfOIFMCNUFW6ppFGOcnS0E",
+                "command": "sed -n '1575,1665p' bpf/src/lib.rs && sed -n '1335,1425p' bpf/src/lib.rs && sed -n '2170,2240p' bpf/src/lib.rs && sed -n '3170,3215p' bpf/src/lib.rs",
+                "record_index": 2672,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_18A6ZfB2PUV1ChAP81M8xjzw",
+                "command": "sed -n '1,240p' /tmp/actplane-5.10-vng.zvxkuU",
+                "record_index": 4096,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 34,
+            "new_atom": "run_code",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_1VqrZSoOMkw2o4aVP42I2ZCM",
+                "command": "make -C bpf .output/process-legacy.bpf.o && cp bpf/.output/process-legacy.bpf.o bpf/prebuilt/process-legacy.bpf.o && cargo build --locked --release -p actplane",
+                "record_index": 3372,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_1y8A8q8FBKAdLJxdXjLY8hey",
+                "command": "make -C bpf process && cp bpf/.output/process-legacy.bpf.o bpf/prebuilt/process-legacy.bpf.o && cp bpf/.output/process.bpf.o bpf/prebuilt/process.bpf.o && sha256sum bpf/.output/process-legacy.bpf.o bpf/prebuilt/process-legacy.bpf.o bpf/.output/process.bpf.o bpf/prebuilt/process.bpf.o",
+                "record_index": 5602,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_6DRd1SoupRcrjp2XmsblmJap",
+                "command": "make -C bpf .output/process.bpf.o .output/process-legacy.bpf.o && cp bpf/.output/process.bpf.o bpf/prebuilt/process.bpf.o && cp bpf/.output/process-legacy.bpf.o bpf/prebuilt/process-legacy.bpf.o && cargo build --locked --release -p actplane",
+                "record_index": 4616,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_7YhowJ290azWqR2odIR97uFI",
+                "command": "make -B .output/process-legacy.bpf.o >/tmp/actplane-legacy-build.log && cp .output/process-legacy.bpf.o prebuilt/process-legacy.bpf.o",
+                "record_index": 13753,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_8KV303GNVHabqnRGG4qGb3dC",
+                "command": "make -C bpf process",
+                "record_index": 6274,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 125,
+            "new_atom": "search_repo",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_01rB1EdPvEeVlAxNIH0doqPQ",
+                "command": "rg -n \"static .*te_path_match|te_path_match\\(\" bpf/taint_engine.bpf.h | head -30 && sed -n '190,360p' bpf/taint.h && sed -n '120,205p' bpf/taint_engine.bpf.h && sed -n '105,125p' bpf/src/lib.rs",
+                "record_index": 2737,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_0WoeK5m9hXpz8v5Rp9Mka3at",
+                "command": "rg -n 'exec_scratch|exec_pipe' bpf/process.bpf.c | head -n 50",
+                "record_index": 9693,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_18SYQMq2s9d4cUaquwNLP2xW",
+                "command": "find /home/yunwei37 -maxdepth 4 -type d \\( -iname '*5.10*' -o -iname 'linux*' \\) 2>/dev/null | head -80 && ls -la target | tail -30",
+                "record_index": 14055,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_1KlTeBenytXCZiRKIvdOTfK7",
+                "command": "rg -n 'te_add_labels_domain\\(' bpf/taint_engine.bpf.h bpf/process.bpf.c",
+                "record_index": 9936,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_2EIs3XUaYD1pVVCn2DtrVvE6",
+                "command": "rg -n 'TAINT_UNROLL|MAX_TAINT_|bpf_loop\\(' bpf/taint.h bpf/taint_engine.bpf.h | head -n 240 && sed -n '50,180p' bpf/taint_engine.bpf.h && sed -n '1180,1425p' bpf/taint_engine.bpf.h && sed -n '2160,2335p' bpf/taint_engine.bpf.h",
+                "record_index": 385,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 121,
+            "new_atom": "version_control",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_0aIAeiDRPJ3oniyKaRy9Pb9U",
+                "command": "git show origin/master:bpf/process.bpf.c | sed -n '3030,3125p'",
+                "record_index": 10132,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_1CmXBizTK1YzKLI3frFAE2T1",
+                "command": "git diff origin/master --numstat | awk '$1~/^[0-9]+$/{a+=$1;d+=$2;if($3!=\"docs/papers\"){sa+=$1;sd+=$2} printf \"%4d %4d %s\\n\",$1,$2,$3} END{printf \"WORKTREE +%d -%d total=%d\\nPR_FILES +%d -%d total=%d\\n\",a,d,a+d,sa,sd,sa+sd}'",
+                "record_index": 14793,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_204cZ6ZmgJhL9hadbLjF1njA",
+                "command": "git show origin/master:bpf/process.bpf.c | sed -n '1290,1385p'",
+                "record_index": 9588,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_2yigsEMmwHow10JdT1F5BiH6",
+                "command": "gh run view 29580714004 --json status,conclusion,jobs,url,createdAt,updatedAt",
+                "record_index": 4953,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_3JZqODdCY85fsUolkZO0DhsG",
+                "command": "git diff origin/master --numstat | awk '$1~/^[0-9]+$/{a+=$1;d+=$2;printf \"%4d %4d %s\\n\",$1,$2,$3} END{printf \"TOTAL +%d -%d changed=%d\\n\",a,d,a+d}'",
+                "record_index": 14780,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 3,
+            "new_atom": "edit",
+            "old_atom": "run_code",
+            "samples": [
+              {
+                "call_id": "call_5J0NbsIYXwOc34CYyuGBRZP2",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /tmp/actplane-e1-isolate.yaml\\n@@\\n   - name: \\\"file source declassify only\\\"\\n@@\\n       notwant: '\\\"target\\\":\\\"1.1.1.2\\\"'\\n+  - name: \\\"python file source connect then declassify\\\"\\n+    policy: |-\\n+      source SECRET = file \\\"**/sec.env\\\"\\n+     ",
+                "record_index": 6203,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_YmoasmXbqa101NX7udTCmhkS",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/bpf/process.bpf.c\\n@@\\n SEC(\\\"tp/sched/sched_process_exec\\\")\\n int handle_exec_args(struct trace_event_raw_sched_process_exec *ctx)\\n {\\n \\tpid_t pid = bpf_get_current_pid_tgid() >> 32;\\n+#ifndef ACTPLANE_LEGACY_KERNE",
+                "record_index": 2192,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_vMAOQajLiJrGrytKyJwc6M03",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/bpf/process.bpf.c\\n@@\\n static __always_inline void copy_violation_provenance(struct event *v,\\n \\t\\t\\t\\t\\t\\t      struct te_prov *p)\\n@@\\n \\tv->prov_target[MAX_FILENAME_LEN - 1] = '\\\\0';\\n }\\n+\\n+#ifdef ACTPLANE_LEGA",
+                "record_index": 5179,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 4,
+            "new_atom": "search_repo",
+            "old_atom": "run_code",
+            "samples": [
+              {
+                "call_id": "call_9g6WEqBJWs3ovqvJ8bxhj35p",
+                "command": "set -euo pipefail\npin=/sys/fs/bpf/actplane/codex-linux510-modern-smoke\nsudo rm -rf \"$pin\"\ncleanup() { sudo rm -rf \"$pin\"; }\ntrap cleanup EXIT\nsudo -E env ACTPLANE_BPF_PIN_ROOT=\"$pin\" timeout 60 ./target/release/actplane --rule 'source COMMAND = exec \"**\"\nrule modern-smoke:\n  notify exec \"true\" if CO",
+                "record_index": 819,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_LJxRIM5mkzqUvUh7cx6t6LSK",
+                "command": "rg -n \"legacy|process-legacy\" bpf/Makefile Makefile && make -C bpf process-legacy.bpf.o && cp bpf/process-legacy.bpf.o bpf/prebuilt/process-legacy.bpf.o && cargo build --locked --release -p actplane",
+                "record_index": 2577,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_ckIm3Acs7VkBC5ElA7CIYpwn",
+                "command": "nl -ba bpf/taint_engine.bpf.h | sed -n '1460,1585p'; python3 - <<'PY'\nimport yaml,pprint\nx=yaml.safe_load(open('test/e2e_cases.yaml'))['cases'][1]\npprint.pp(x)\nPY\nrg -n \"declassify|ENDORSE|remove_mask|clear_mask|xform\" crates/actplane-ifc-compiler/src/dsl/lower.rs bpf/taint_engine.bpf.h bpf/process.",
+                "record_index": 11403,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_czFH7UrHQdR9PjREZwYvOaCY",
+                "command": "rg -n \"te_legacy_open_path\\(\" bpf/process.bpf.c && make -C bpf .output/process-legacy.bpf.o && cp bpf/.output/process-legacy.bpf.o bpf/prebuilt/process-legacy.bpf.o && cargo build --locked --release -p actplane",
+                "record_index": 3934,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 111,
+            "new_atom": "edit",
+            "old_atom": "run_test",
+            "samples": [
+              {
+                "call_id": "call_0O5Xg5Swj1I6OdCfR36Zpd1D",
+                "command": "script/test-kernel-5.10.sh /home/yunwei37/workspace/linux-5.10.260-actplane static-attach-mcp",
+                "record_index": 9199,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_0yTsJWfe9PpqzfK6pcWdKOA2",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/script/test-kernel-5.10.sh\\n@@\\n source COMMAND = exec \\\"**\\\"\\n+source PREFIX = exec \\\"tr*\\\"\\n rule linux-5-10-smoke:\\n   notify exec \\\"true\\\" if COMMAND\\n   because \\\"Linux 5.10 compatibility smoke matched\\\"\\n+rule l",
+                "record_index": 13006,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_1OWOl6rY9kzGDZbBmf8FbwFf",
+                "command": "const patch = \"*** Begin Patch\\n*** Add File: /home/yunwei37/workspace/ActPlane/script/test-kernel-5.10.sh\\n+#!/usr/bin/env bash\\n+# Build (when needed) and boot a Linux 5.10 tree, then run the host-built\\n+# ActPlane binary against a static compatibility policy inside the KVM guest.\\n+set -euo pipe",
+                "record_index": 683,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_2FT8yWZUVjgL5Kvc1YkQA6Jj",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/bpf/process.bpf.c\\n@@\\n int legacy_trace_connect(struct trace_event_raw_sys_enter *ctx)\\n {\\n \\t__u64 tid = bpf_get_current_pid_tgid();\\n \\tpid_t pid = bpf_get_current_pid_tgid() >> 32;\\n@@\\n-\\tif (!te_pid_active(pid)",
+                "record_index": 7990,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_2VW8TMFA3k13Cfm5db9LT913",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/script/test-kernel-5.10.sh\\n@@\\n source COMMAND = exec \\\"**\\\"\\n source PREFIX = exec \\\"tr*\\\"\\n-rule linux-5-10-smoke:\\n-  notify exec \\\"true\\\" if COMMAND\\n-  because \\\"Linux 5.10 compatibility smoke matched\\\"\\n rule l",
+                "record_index": 13083,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 5,
+            "new_atom": "other",
+            "old_atom": "run_test",
+            "samples": [
+              {
+                "call_id": "call_6S2tb0Y0wfWaVXeEPUTyvuIO",
+                "command": "cargo fmt --all -- --check",
+                "record_index": 9128,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_AcVbS1tjzqXH9c9mVIKQtHPm",
+                "command": "cargo fmt --check",
+                "record_index": 12490,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_E36tDUKHmOiPBW78pU0rc06A",
+                "command": "cargo fmt",
+                "record_index": 12072,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_LxIIxnrCWHLtJMXNa47WCyVp",
+                "command": "sudo env ACTPLANE_SKIP_BUILD=1 bash script/e2e_examples.sh",
+                "record_index": 9390,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_xIH6tjz2qL6ld4njtFe4l25W",
+                "command": "cargo fmt --check",
+                "record_index": 12327,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 10,
+            "new_atom": "read_file",
+            "old_atom": "run_test",
+            "samples": [
+              {
+                "call_id": "call_7wptg0XSY03GNXujqOoQ33qO",
+                "command": "sed -n '60,125p' crates/actplane-runtime/src/runtime.rs; sed -n '900,1120p' crates/actplane-runtime/src/runtime.rs; sed -n '1180,1415p' crates/actplane-runtime/src/runtime.rs; sed -n '1400,1635p' crates/actplane-runtime/src/runtime.rs",
+                "record_index": 9058,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_80sZ3Rj1Kco3rMulaNUEirLt",
+                "command": "sed -n '1,240p' docs/kernel-compatibility.md",
+                "record_index": 4844,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_DCpqy91XV485apLBBOf9nl7y",
+                "command": "sed -n '1,85p' crates/actplane-runtime/src/audit.rs; sed -n '1840,1880p' crates/actplane-runtime/src/mcp.rs; sed -n '250,295p' crates/actplane-runtime/src/control.rs",
+                "record_index": 10446,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_J2Txi8lFW6Myom2mHd9bcijN",
+                "command": "nl -ba crates/actplane-runtime/src/runtime.rs | sed -n '1240,1435p'",
+                "record_index": 11121,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_LPCDxmftc61q987DGUc9Z1rP",
+                "command": "sed -n '1,240p' docs/rule-language.md",
+                "record_index": 2043,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 2,
+            "new_atom": "run_code",
+            "old_atom": "run_test",
+            "samples": [
+              {
+                "call_id": "call_fC91QrhzEpinCiqfOfOOyHtP",
+                "command": "make -C bpf .output/process-legacy.bpf.o",
+                "record_index": 12960,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_m10xzisNoKKUn2rt4QDObIeZ",
+                "command": "./target/release/actplane --help | sed -n '1,240p'; ./target/release/actplane run --help | sed -n '1,220p'",
+                "record_index": 136,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 3,
+            "new_atom": "search_repo",
+            "old_atom": "run_test",
+            "samples": [
+              {
+                "call_id": "call_b3r7rOwNwDMta90LMKeAZZNf",
+                "command": "find /home/yunwei37/workspace/multikernel /home/yunwei37/workspace/namei_ext -maxdepth 4 -type f \\( -name AGENTS.md -o -name CLAUDE.md -o -name README.md \\) -print 2>/dev/null | sort",
+                "record_index": 38,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_g3WqWgOXwDE8TPd929JDIlQD",
+                "command": "rg -n -C 3 \"Linux 5\\.10|5\\.10-6\\.0|compatibility\" README.md CLAUDE.md bpf/README.md crates/actplane-cli/src/doctor.rs docs/support-matrix.md | head -260",
+                "record_index": 7984,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_pApRSGf46mdbKBIPsbNhsdrW",
+                "command": "rg -n \"pub struct Compiled|struct Compiled\" crates/actplane-ifc-compiler crates/actplane-runtime && sed -n '1,120p' crates/actplane-ifc-compiler/src/dsl/mod.rs; rg -n \"pub struct FeedbackPaths\" crates/actplane-runtime/src/config.rs && sed -n '35,80p' crates/actplane-runtime/src/config.rs",
+                "record_index": 9090,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 7,
+            "new_atom": "version_control",
+            "old_atom": "run_test",
+            "samples": [
+              {
+                "call_id": "call_62twfOzHhDP4hpENH1RZRS3T",
+                "command": "git status --short && git rev-parse HEAD && git symbolic-ref --short HEAD",
+                "record_index": 7314,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_ESo6ITxJk9Sv7I78UCj8u1IG",
+                "command": "cargo fmt --check && git diff --check && git status --short && git diff --stat HEAD -- . ':!docs/papers' && git diff --numstat HEAD -- . ':!docs/papers'",
+                "record_index": 11514,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_FP2iXKIdSzjFwcG8uUtjdJa3",
+                "command": "sha256sum bpf/.output/process.bpf.o bpf/prebuilt/process.bpf.o; git status --short; git diff --stat",
+                "record_index": 11398,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_HMZ5S3b59dH52oPtXxHNCbhO",
+                "command": "git pull --ff-only origin master && git status --short --branch && git log -1 --oneline --decorate",
+                "record_index": 28,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_HrJBDgAhoFDzdOXI6zqfkxvC",
+                "command": "git status --short --branch && git remote -v && git log -1 --oneline --decorate",
+                "record_index": 14,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 17,
+            "new_atom": "edit",
+            "old_atom": "search_repo",
+            "samples": [
+              {
+                "call_id": "call_3jJDqFMyXSkDHbgKl0dmnebV",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/README.md\\n@@\\n Linux 5.10-6.0 uses a static `run` compatibility path for exec, path-based file,\\n-and numeric IPv4 policies, including `notify`, `kill`, and BPF-LSM `block` for\\n-exec and IPv4 network operations. Fil",
+                "record_index": 8008,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_Bx1l6fr9AGiKU2dP08K0ytPL",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/docs/kernel-compatibility.md\\n@@\\n-- explicit rejection of file `block`, plus fd replacement and non-socket reads\\n+- explicit rejection of file `block` and unrepresentable endpoint patterns,\\n+  plus fd replacement a",
+                "record_index": 6952,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_CDtPt4mPqR6OjVAScTJAwzfV",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/README.md\\n@@\\n-6.1+ provides the full singleton, runtime-delta, MCP, watch, and attach paths.\\n-Linux 5.10-6.0 uses a static `run` compatibility path for exec, path-based file,\\n-and numeric IPv4 policies, including ",
+                "record_index": 9373,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_MdpJ0qwdKp4Vc2RoirOb6TES",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/bpf/src/lib.rs\\n@@\\n     fn load_legacy(config_blob: &[u8]) -> io::Result<Self> {\\n-        Self::load_inner(\\n-            config_blob,\\n-            HookReserve::default(),\\n-            None,\\n-            legacy_o",
+                "record_index": 14672,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_NbdEjvxr3KH2hNvBeFQc3Kyz",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/ActPlane/bpf/process.bpf.c\\n@@\\n \\t\\tstruct fd_ref *ref = te_lookup_fd(pid, fd);\\n \\t\\t__u32 *peer_ip = 0;\\n \\n-\\t\\tif (ref && (policy_features & TE_POLICY_FILE_FLOW))\\n+\\t\\tif (ref && (policy_features & TE_POLICY_FILE_FLOW)) ",
+                "record_index": 10063,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 2,
+            "new_atom": "other",
+            "old_atom": "search_repo",
+            "samples": [
+              {
+                "call_id": "call_YbmdkNs8mSXRdAXxXvyVJhvn",
+                "command": "llvm-objdump -d --section='tp/syscalls/sys_exit_openat' bpf/.output/process-legacy.bpf.o | tail -n 100",
+                "record_index": 2370,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_jMSwR1JGTqzOKqlsvUReeSBK",
+                "command": "printf 'soft='; ulimit -Sl; printf 'hard='; ulimit -Hl; sudo -n true && echo sudo-nopasswd-ok; sudo -n -E /home/yunwei37/.local/bin/vng --version",
+                "record_index": 155,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 4,
+            "new_atom": "read_file",
+            "old_atom": "search_repo",
+            "samples": [
+              {
+                "call_id": "call_cRz7Xx9UWK38shEgnCcplVqJ",
+                "command": "cat docs/kernel-compatibility.md",
+                "record_index": 7942,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_qmlfGpZxRTMEXIr4PQWWxEGW",
+                "command": "nl -ba bpf/src/lib.rs | sed -n '1840,1905p;2340,2485p'",
+                "record_index": 7924,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_uPNuyLrMfHnB6wwQQLMelqt5",
+                "command": "nl -ba crates/actplane-runtime/src/runtime.rs | sed -n '120,300p;1018,1190p;1280,1460p;1785,1845p'",
+                "record_index": 10442,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_x4V562FjGVo5KhJUGkETUDIS",
+                "command": "sed -n '1,260p' script/e2e_examples.sh",
+                "record_index": 11381,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 8,
+            "new_atom": "version_control",
+            "old_atom": "search_repo",
+            "samples": [
+              {
+                "call_id": "call_CcxplF4N10gJDLfokYmaeYYM",
+                "command": "git diff origin/master -- bpf/process.bpf.c bpf/src/lib.rs | rg '^\\+\\s*(/\\*|//|# )' | head -80",
+                "record_index": 14784,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_DU89xpIIR30XOJQtipDJZEwV",
+                "command": "git diff --check && rg -n 'exec-only|static exec-only|5\\.10.*exec only|5\\.10.*exec-only' README.md bpf/README.md bpf/src/lib.rs docs script || true",
+                "record_index": 4652,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_E2Ugln5XMEYLynSS5fKyJKh4",
+                "command": "git status --short && sed -n '1,180p' /home/yunwei37/workspace/my-paper-work/academic-writing-skills/skills/oss-change-workflow/SKILL.md && rg -n \"te_legacy_open_path|ACTPLANE_LEGACY_MAX_UPDATES|legacy_trace_open\" bpf/process.bpf.c bpf/taint_engine.bpf.h bpf/src/lib.rs && sed -n '1160,1325p' bpf/pro",
+                "record_index": 2562,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_IvjaZHLQriXmhoQQnqcYIJfK",
+                "command": "git ls-files --error-unmatch CLAUDE.md >/dev/null 2>&1 && rg -n '5\\.8|5\\.10' CLAUDE.md || true",
+                "record_index": 1591,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_JVzsF9XFZhMMlxpoZq7XqQrH",
+                "command": "git show origin/master:bpf/process.bpf.c | rg -n 'handle_open_exit|te_is_regular_or_dir'",
+                "record_index": 10136,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 9,
+            "new_atom": "edit",
+            "old_atom": "version_control",
+            "samples": [
+              {
+                "call_id": "call_3XlxuO8CTCHeU6XZF4JE4qWM",
+                "command": "cargo fmt && cargo check -p actplane-runtime && git diff --numstat && git diff --check",
+                "record_index": 11181,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_917YSmytA7t7xHSLheLgcnep",
+                "command": "cargo fmt && cargo check -p actplane-runtime && git diff --numstat && git diff --check",
+                "record_index": 11190,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_C0C7f1bQLJXkJThr6oVlJRM2",
+                "command": "cargo fmt && cargo check -p actplane-runtime && git diff --numstat && git diff --shortstat && git diff --check",
+                "record_index": 11230,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_CR0ckAzZnYQ5uaZlcpw3tP7v",
+                "command": "tmp=$(mktemp -d /tmp/actplane-master.XXXXXX) && git archive origin/master | tar -x -C \"$tmp\" && make -C \"$tmp/bpf\" process >/tmp/actplane-master-build.log && printf '%s\\n' \"$tmp\"",
+                "record_index": 11459,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_Fbaq6dMrZoPEwCh8xM8K3dwh",
+                "command": "cargo fmt && cargo check -p actplane-runtime && git diff --numstat && git diff --shortstat && git diff --check && git diff -- crates/actplane-runtime/src/runtime.rs | sed -n '1,260p'",
+                "record_index": 11245,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 2,
+            "new_atom": "other",
+            "old_atom": "version_control",
+            "samples": [
+              {
+                "call_id": "call_7u2aKedKVSr9Mr5uOeFLKyib",
+                "command": "vng --help | sed -n '1,280p'; printf '%s\\n' '== virtme-run help ==' ; virtme-run --help | sed -n '1,260p'",
+                "record_index": 48,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_sjkzL4oBHxPuQLj1eK8pPDrE",
+                "command": "cargo fmt --check",
+                "record_index": 11176,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 4,
+            "new_atom": "read_file",
+            "old_atom": "version_control",
+            "samples": [
+              {
+                "call_id": "call_iT7dP4i0gPan0mSzSQPVUik0",
+                "command": "nl -ba bpf/src/lib.rs | sed -n '1760,1905p'; nl -ba bpf/src/lib.rs | sed -n '1905,2045p'; nl -ba bpf/src/lib.rs | sed -n '2260,2390p'",
+                "record_index": 59,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_jKp65FSqo66l4miEJnL7NwuM",
+                "command": "sed -n '1,260p' /home/yunwei37/workspace/my-paper-work/academic-writing-skills/skills/oss-change-workflow/SKILL.md",
+                "record_index": 9049,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_nqiXQt0WsI6oTZHWTN9CJie0",
+                "command": "nl -ba bpf/capability.bpf.h | sed -n '1,360p'",
+                "record_index": 217,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_x0IjRD6tYhVWlrLICK8twVZS",
+                "command": "nl -ba bpf/src/lib.rs | sed -n '1480,1665p'; nl -ba crates/actplane-runtime/src/runtime.rs | sed -n '70,225p'; nl -ba crates/actplane-runtime/src/runtime.rs | sed -n '1360,1535p'",
+                "record_index": 195,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 1,
+            "new_atom": "run_code",
+            "old_atom": "version_control",
+            "samples": [
+              {
+                "call_id": "call_xTNujmKvv0UZE9AIAUmNO1I6",
+                "command": "python3 - <<'PY'\nimport yaml\nwith open('test/e2e_cases.yaml') as f: d=yaml.safe_load(f)\nfor i,c in enumerate(d['cases'],1):\n print(f\"E{i}: {c.get('name')}\")\n print(c.get('policy','').strip().replace('\\n',' | '))\n print('trigger:',c.get('trigger','').strip().replace('\\n','; '))\n print('expect:',c.get",
+                "record_index": 2049,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 2,
+            "new_atom": "search_repo",
+            "old_atom": "version_control",
+            "samples": [
+              {
+                "call_id": "call_8JoLejP4WpOeLCWq3B6RBhKy",
+                "command": "rg -n \"Pinned|Singleton|open_or_install|install|load_with_pinned|Loader|ReloadHandle|Engine\" crates/actplane-runtime/src bpf/src/lib.rs | head -n 320",
+                "record_index": 191,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_i7MTCR4tXElf6ycbIsdqdObL",
+                "command": "rg -n \"list_resources|read_resource|feedback|Resource\" crates/actplane-runtime/src/mcp.rs | head -100; nl -ba crates/actplane-runtime/src/mcp.rs | sed -n '700,930p'",
+                "record_index": 11209,
+                "source_id": "S001-dacddf675e",
+                "tool": "exec"
+              }
+            ]
+          }
+        ]
+      },
+      "frozen_anchors": [
+        {
+          "artifact_id": "docs/papers/sections/01-introduction.tex#0",
+          "call_count": 75,
+          "path": "docs/papers/sections/01-introduction.tex",
+          "path_id": "f6d0292686b9f5fe"
+        },
+        {
+          "artifact_id": "docs/papers/main.tex#0",
+          "call_count": 20,
+          "path": "docs/papers/main.tex",
+          "path_id": "219c7ef93f51e55d"
+        },
+        {
+          "artifact_id": "docs/papers/sections/05-evaluation.tex#0",
+          "call_count": 14,
+          "path": "docs/papers/sections/05-evaluation.tex",
+          "path_id": "c730f136a10103bd"
+        },
+        {
+          "artifact_id": "docs/papers/sections/02-motivation.tex#0",
+          "call_count": 9,
+          "path": "docs/papers/sections/02-motivation.tex",
+          "path_id": "88dfc6442c620b69"
+        },
+        {
+          "artifact_id": "docs/eval_scripts/agent_sdk_eval.py#0",
+          "call_count": 5,
+          "path": "docs/eval_scripts/agent_sdk_eval.py",
+          "path_id": "929164defd6f007a"
+        }
+      ],
+      "inline_cd_calls": 3,
+      "inline_cd_samples": [
+        {
+          "call_id": "toolu_01EiaZT1L7GDfRBRGq5Ek2uh",
+          "command": "cd /home/yunwei37/workspace/ActPlane/docs/papers && grep -oE '(policy|rule|constraint|directive)' sections/01-introduction.tex | sort | uniq -c",
+          "record_index": 36,
+          "source_id": "S000-fedfe37c3d"
+        },
+        {
+          "call_id": "toolu_01BdVMRzsSHXHPkPMBzrxkmX",
+          "command": "cd /home/yunwei37/workspace/ActPlane && git diff docs/papers/main.tex",
+          "record_index": 456,
+          "source_id": "S000-fedfe37c3d"
+        },
+        {
+          "call_id": "toolu_01BECZJQgwshBkf7jCaetJNk",
+          "command": "cd /home/yunwei37/workspace/ActPlane/docs/papers && git log --oneline -10",
+          "record_index": 1073,
+          "source_id": "S000-fedfe37c3d"
+        }
+      ],
+      "v3_answers": {
+        "A1": "331",
+        "A2": "78",
+        "A3": "567",
+        "A4": "3",
+        "A5": "0",
+        "B1": "75",
+        "B2": "22",
+        "B3": "53",
+        "B4": "read",
+        "B5": "2",
+        "C1": "3",
+        "C2": "3",
+        "C3": "0",
+        "C4": "1",
+        "C5": "12",
+        "D1": "untracked",
+        "D2": "untracked",
+        "D3": "untracked",
+        "D4": "untracked",
+        "D5": "absent"
+      },
+      "v3_edges": 953,
+      "v4_answers": {
+        "A1": "331",
+        "A2": "471",
+        "A3": "457",
+        "A4": "4",
+        "A5": "1",
+        "B1": "75",
+        "B2": "22",
+        "B3": "53",
+        "B4": "read",
+        "B5": "2",
+        "C1": "3",
+        "C2": "3",
+        "C3": "0",
+        "C4": "1",
+        "C5": "12",
+        "D1": "untracked",
+        "D2": "untracked",
+        "D3": "untracked",
+        "D4": "untracked",
+        "D5": "absent"
+      },
+      "v4_edges": 1435,
+      "v4_ranked_anchors": [
+        {
+          "artifact_id": "bpf/src/lib.rs#0",
+          "call_count": 222,
+          "path": "bpf/src/lib.rs",
+          "path_id": "be8e971440d9547a"
+        },
+        {
+          "artifact_id": "bpf/process.bpf.c#0",
+          "call_count": 212,
+          "path": "bpf/process.bpf.c",
+          "path_id": "6d5c74c0955c7ebe"
+        },
+        {
+          "artifact_id": "bpf/taint_engine.bpf.h#0",
+          "call_count": 143,
+          "path": "bpf/taint_engine.bpf.h",
+          "path_id": "2cefdff34d6f2413"
+        },
+        {
+          "artifact_id": "script/test-kernel-5.10.sh#1",
+          "call_count": 124,
+          "path": "script/test-kernel-5.10.sh",
+          "path_id": "5a1b527670a78b41"
+        },
+        {
+          "artifact_id": "crates/actplane-runtime/src/runtime.rs#0",
+          "call_count": 96,
+          "path": "crates/actplane-runtime/src/runtime.rs",
+          "path_id": "7234db28c46b3b79"
+        }
+      ],
+      "wrapped_patch_calls": 393,
+      "wrapped_patch_edges": 482,
+      "wrapped_patch_headers_by_access": {
+        "create": 13,
+        "delete": 3,
+        "write": 466
+      },
+      "wrapped_patch_samples": [
+        {
+          "call_id": "call_T3kUcdOGGsqFmd2XAkpjcIFq",
+          "record_index": 262,
+          "source_id": "S001-dacddf675e",
+          "status": "ok"
+        },
+        {
+          "call_id": "call_xvHg0Pvl289IrTHgrTMniQ69",
+          "record_index": 272,
+          "source_id": "S001-dacddf675e",
+          "status": "ok"
+        },
+        {
+          "call_id": "call_aqofXYFLjKpVqe4jjtsKUl6x",
+          "record_index": 277,
+          "source_id": "S001-dacddf675e",
+          "status": "ok"
+        }
+      ]
+    },
+    "academic-writing-skills": {
+      "action_v2_to_v4": {
+        "new_atom_counts": {
+          "edit": 250,
+          "other": 37,
+          "read_file": 112,
+          "run_code": 12,
+          "search_repo": 71,
+          "version_control": 67
+        },
+        "old_atom_counts": {
+          "edit": 357,
+          "other": 37,
+          "read_file": 112,
+          "run_code": 12,
+          "search_repo": 71,
+          "version_control": 67
+        },
+        "transitions": [
+          {
+            "count": 107,
+            "new_atom": "<excluded>",
+            "old_atom": "edit",
+            "samples": [
+              {
+                "call_id": "snapshot:1032",
+                "command": "",
+                "record_index": 1032,
+                "source_id": "S002-6294d762f0",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1047",
+                "command": "",
+                "record_index": 1047,
+                "source_id": "S002-6294d762f0",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1052",
+                "command": "",
+                "record_index": 1052,
+                "source_id": "S002-6294d762f0",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1054",
+                "command": "",
+                "record_index": 1054,
+                "source_id": "S002-6294d762f0",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1061",
+                "command": "",
+                "record_index": 1061,
+                "source_id": "S002-6294d762f0",
+                "tool": "file_snapshot"
+              }
+            ]
+          }
+        ]
+      },
+      "frozen_anchors": [
+        {
+          "artifact_id": "skills/auto-research-orchestrator/SKILL.md#0",
+          "call_count": 90,
+          "path": "skills/auto-research-orchestrator/SKILL.md",
+          "path_id": "cb30f02762578fe2"
+        },
+        {
+          "artifact_id": "skills/auto-research-orchestrator/references/hierarchical-research-state-machine.md#0",
+          "call_count": 75,
+          "path": "skills/auto-research-orchestrator/references/hierarchical-research-state-machine.md",
+          "path_id": "4d0962aad5b494b2"
+        },
+        {
+          "artifact_id": "skills/research-experiment-design/SKILL.md#0",
+          "call_count": 39,
+          "path": "skills/research-experiment-design/SKILL.md",
+          "path_id": "b032fe6a13c49fa5"
+        },
+        {
+          "artifact_id": "skills/iter-refine-ideas/SKILL.md#0",
+          "call_count": 22,
+          "path": "skills/iter-refine-ideas/SKILL.md",
+          "path_id": "c79ef79d3ccc3cdd"
+        },
+        {
+          "artifact_id": "skills/auto-research-orchestrator/references/bootstrap-research-project.md#0",
+          "call_count": 21,
+          "path": "skills/auto-research-orchestrator/references/bootstrap-research-project.md",
+          "path_id": "7723450b374228fc"
+        }
+      ],
+      "inline_cd_calls": 42,
+      "inline_cd_samples": [
+        {
+          "call_id": "toolu_01AtWodqU8sMb9tKf4hg7fxf",
+          "command": "cd /tmp/claude-1000/-home-yunwei37-workspace-my-paper-work/9bd74ea0-8319-445a-af76-f5fb28fc161f/scratchpad && cut -f1 user_msgs.tsv | sort | uniq -c | sort -rn && echo --- && grep -c \"\\[Request interrupted by user\" user_msgs.tsv",
+          "record_index": 16,
+          "source_id": "S000-0189845d9d"
+        },
+        {
+          "call_id": "toolu_0169FbyhDcaUd9ES7ZzNuMCr",
+          "command": "cd /tmp/claude-1000/-home-yunwei37-workspace-my-paper-work/9bd74ea0-8319-445a-af76-f5fb28fc161f/scratchpad && grep \"\\[Request interrupted by user\" user_msgs.tsv | cut -f1 | sort | uniq -c | sort -rn && echo === && grep -iE \"\u91cd\u65b0\u8dd1|\u6570\u636e\u4e0d\u5bf9|\u4e0d\u5bf9|\u9519\u4e86|fabricat|fake|\u7f16\u9020|\u778e\u7f16|\u9020\u5047|make up|didn't run|not real|\u91cd\u8dd1|\u518d\u8dd1|rerun|re-run\" user_msgs.tsv | wc -l",
+          "record_index": 19,
+          "source_id": "S000-0189845d9d"
+        },
+        {
+          "call_id": "toolu_0177FhPfc7Pz7bvDzxbYRJqn",
+          "command": "cd /tmp/claude-1000/-home-yunwei37-workspace-my-paper-work/9bd74ea0-8319-445a-af76-f5fb28fc161f/scratchpad && awk -F'\\t' '{print $1\"\\t\"$2\"\\t\"$3\"\\t\"substr($5,1,300)}' user_msgs.tsv | grep -v \"^\\[Request\" > brief.tsv && grep -iE \"\u91cd\u65b0\u8dd1|\u91cd\u8dd1|\u518d\u8dd1|rerun|re-run|\u6570\u636e\u4e0d\u5bf9|\u4e0d\u5bf9|\u9519\u4e86|\u7f16\u9020|\u778e\u7f16|\u9020\u5047|fabricat|fake|make up|didn.t (actually )?run|not real|hallucin\" brief.tsv | head -100",
+          "record_index": 21,
+          "source_id": "S000-0189845d9d"
+        },
+        {
+          "call_id": "toolu_015y87L11oon11eBFK9NoJ5X",
+          "command": "cd /tmp/claude-1000/-home-yunwei37-workspace-my-paper-work/9bd74ea0-8319-445a-af76-f5fb28fc161f/scratchpad && grep -iE \"\u91cd\u65b0\u8dd1|\u91cd\u8dd1|\u518d\u8dd1\u4e00|rerun|re-run|\u8dd1\u4e00\u904d|\u8dd1\u5b9e\u9a8c|\u91cd\u65b0\u8fd0\u884c|\u518drun\" brief.tsv | head -40",
+          "record_index": 25,
+          "source_id": "S000-0189845d9d"
+        },
+        {
+          "call_id": "toolu_01RLxpiBm2GN7WezLEX6e8pm",
+          "command": "cd /tmp/claude-1000/-home-yunwei37-workspace-my-paper-work/9bd74ea0-8319-445a-af76-f5fb28fc161f/scratchpad && grep -iE \"ssh|sudo|\u5bc6\u7801|password|\u673a\u5668\u4e0a|\u670d\u52a1\u5668|\u8fdc\u7a0b|GPU|\u663e\u5361|cuda|H100|A100|4090\" brief.tsv | grep -viE \"^\\S+\\t\\S+\\t\\S+\\t(check|verify|please)\" | head -60",
+          "record_index": 27,
+          "source_id": "S000-0189845d9d"
+        }
+      ],
+      "v3_answers": {
+        "A1": "112",
+        "A2": "250",
+        "A3": "0",
+        "A4": "5",
+        "A5": "0",
+        "B1": "90",
+        "B2": "16",
+        "B3": "74",
+        "B4": "read",
+        "B5": "6",
+        "C1": "6",
+        "C2": "9",
+        "C3": "2",
+        "C4": "11",
+        "C5": "23",
+        "D1": "tracked",
+        "D2": "tracked",
+        "D3": "tracked",
+        "D4": "tracked",
+        "D5": "tracked"
+      },
+      "v3_edges": 389,
+      "v4_answers": {
+        "A1": "112",
+        "A2": "250",
+        "A3": "0",
+        "A4": "5",
+        "A5": "0",
+        "B1": "90",
+        "B2": "16",
+        "B3": "74",
+        "B4": "read",
+        "B5": "6",
+        "C1": "6",
+        "C2": "8",
+        "C3": "2",
+        "C4": "11",
+        "C5": "23",
+        "D1": "tracked",
+        "D2": "tracked",
+        "D3": "tracked",
+        "D4": "tracked",
+        "D5": "tracked"
+      },
+      "v4_edges": 388,
+      "v4_ranked_anchors": [
+        {
+          "artifact_id": "skills/auto-research-orchestrator/SKILL.md#0",
+          "call_count": 90,
+          "path": "skills/auto-research-orchestrator/SKILL.md",
+          "path_id": "cb30f02762578fe2"
+        },
+        {
+          "artifact_id": "skills/auto-research-orchestrator/references/hierarchical-research-state-machine.md#0",
+          "call_count": 75,
+          "path": "skills/auto-research-orchestrator/references/hierarchical-research-state-machine.md",
+          "path_id": "4d0962aad5b494b2"
+        },
+        {
+          "artifact_id": "skills/research-experiment-design/SKILL.md#0",
+          "call_count": 39,
+          "path": "skills/research-experiment-design/SKILL.md",
+          "path_id": "b032fe6a13c49fa5"
+        },
+        {
+          "artifact_id": "skills/iter-refine-ideas/SKILL.md#0",
+          "call_count": 22,
+          "path": "skills/iter-refine-ideas/SKILL.md",
+          "path_id": "c79ef79d3ccc3cdd"
+        },
+        {
+          "artifact_id": "skills/auto-research-orchestrator/references/bootstrap-research-project.md#0",
+          "call_count": 21,
+          "path": "skills/auto-research-orchestrator/references/bootstrap-research-project.md",
+          "path_id": "7723450b374228fc"
+        }
+      ],
+      "wrapped_patch_calls": 0,
+      "wrapped_patch_edges": 0,
+      "wrapped_patch_headers_by_access": {},
+      "wrapped_patch_samples": []
+    },
+    "agentsight": {
+      "action_v2_to_v4": {
+        "new_atom_counts": {
+          "edit": 6,
+          "other": 46,
+          "read_file": 97,
+          "run_test": 13,
+          "search_repo": 32,
+          "version_control": 7
+        },
+        "old_atom_counts": {
+          "edit": 19,
+          "other": 67,
+          "read_file": 81,
+          "run_test": 13,
+          "search_repo": 27,
+          "version_control": 7
+        },
+        "transitions": [
+          {
+            "count": 13,
+            "new_atom": "<excluded>",
+            "old_atom": "edit",
+            "samples": [
+              {
+                "call_id": "snapshot:131",
+                "command": "",
+                "record_index": 131,
+                "source_id": "S000-007c5d5ec4",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:137",
+                "command": "",
+                "record_index": 137,
+                "source_id": "S000-007c5d5ec4",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:163",
+                "command": "",
+                "record_index": 163,
+                "source_id": "S000-007c5d5ec4",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:190",
+                "command": "",
+                "record_index": 190,
+                "source_id": "S000-007c5d5ec4",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:215",
+                "command": "",
+                "record_index": 215,
+                "source_id": "S000-007c5d5ec4",
+                "tool": "file_snapshot"
+              }
+            ]
+          },
+          {
+            "count": 16,
+            "new_atom": "read_file",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_PcORvrApv0et3hzDBgKFE3b4",
+                "command": "nl -ba docs/paper/main.tex | sed -n '781,1040p'",
+                "record_index": 34013,
+                "source_id": "S001-3defc7453e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_c5pTDd2MTTUQTcKmc815uKzo",
+                "command": "nl -ba docs/paper/main.tex | sed -n '261,520p'",
+                "record_index": 34007,
+                "source_id": "S001-3defc7453e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_naUspnblKtxwERFhPqRKtXbC",
+                "command": "nl -ba docs/paper/main.tex | sed -n '521,780p'",
+                "record_index": 34010,
+                "source_id": "S001-3defc7453e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_yndcollcJ9Xpuq4fhpzqVDj8",
+                "command": "nl -ba docs/paper/main.tex | sed -n '1,260p'",
+                "record_index": 34004,
+                "source_id": "S001-3defc7453e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_adyCi3oo56NDfSdotx0F6Nea",
+                "command": "sed -n '520,625p' docs/visexp/r114_live_record_suite.py && sed -n '730,840p' docs/visexp/r114_live_record_suite.py && sed -n '910,995p' docs/visexp/r114_live_record_suite.py && sed -n '180,215p' agentpprof/README.md && sed -n '310,335p' agentpprof/README.md",
+                "record_index": 18784,
+                "source_id": "S004-e5392e8d55",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 5,
+            "new_atom": "search_repo",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_QdtI3OYMT6Fvi7GltE45LGaM",
+                "command": "rg -n --no-heading \"\\b(It is|There (is|are)|This is|in order to|utiliz(e|ation)|it is important to note|it should be noted|due to the fact that|a number of|in the case of|is able to|has the ability to|prior to|subsequent to|with respect to|in terms of|the fact that|very|extremely|basically|actually|",
+                "record_index": 34027,
+                "source_id": "S001-3defc7453e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_gsXYwDjFFo6zmFHKoomTF6jD",
+                "command": "rg -n --no-heading \"AgentProf|\\bThis\\b|\\bThese\\b|\\bIt\\b|\\bThey\\b|\\bProduction\\b|\\bcurrent\\b|\\bliterally\\b|\\bversus\\b|\\bperforms?\\b|\\bprovides?\\b|\\buses?\\b\" docs/paper/main.tex",
+                "record_index": 34040,
+                "source_id": "S001-3defc7453e",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_mzFLY1wWxOiAZmE3LXlLX4Mq",
+                "command": "find docs/tmp/build-and-evaluate/step-0007-20260714T054617-0700/01-experiment-gate/loop-001-rq1-r114-current-profile -maxdepth 1 -type f -printf '%f\\n' | sort && sed -n '1,260p' docs/tmp/build-and-evaluate/step-0007-20260714T054617-0700/01-experiment-gate/loop-001-rq1-r114-current-profile/005-experi",
+                "record_index": 18772,
+                "source_id": "S004-e5392e8d55",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_5fjDe89nt84ULoVTrJ6P5jzT",
+                "command": "rg -n -- '---|;|:|\\bThis\\b|\\bThese\\b|\\bIt is\\b|\\bThere (is|are)\\b|\\bin order to\\b|\\butiliz|\\bprior to\\b|\\bwith respect to\\b|\\bin terms of\\b|\\bthe fact that\\b' docs/paper/main.tex",
+                "record_index": 14319,
+                "source_id": "S007-31dc055b4c",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_lRGhZaOPVgbg970XlhzKYp2T",
+                "command": "rg -n -i 'in order to|utiliz|due to the fact|it is important|it should be noted|a number of|in the case of|is able to|has the ability|prior to|subsequent to|with respect to|in terms of|the fact that|\\bvery\\b|\\bextremely\\b|\\bbasically\\b|\\bactually\\b|\\breally\\b|\\bsignificantly\\b|\\bThis\\b|\\bIt\\b|\\bThey",
+                "record_index": 534,
+                "source_id": "S009-4c4a903879",
+                "tool": "exec"
+              }
+            ]
+          }
+        ]
+      },
+      "frozen_anchors": [
+        {
+          "artifact_id": "collector/src/view/mod.rs#0",
+          "call_count": 21,
+          "path": "collector/src/view/mod.rs",
+          "path_id": "cc55bff1031d02de"
+        },
+        {
+          "artifact_id": "collector/src/cli_db.rs#0",
+          "call_count": 8,
+          "path": "collector/src/cli_db.rs",
+          "path_id": "c71640dc9851c8ab"
+        },
+        {
+          "artifact_id": "collector/src/server/web.rs#0",
+          "call_count": 3,
+          "path": "collector/src/server/web.rs",
+          "path_id": "1eb082f2941ac4cc"
+        },
+        {
+          "artifact_id": "collector/src/sources/sqlite.rs#0",
+          "call_count": 3,
+          "path": "collector/src/sources/sqlite.rs",
+          "path_id": "1ef4b70610d9f469"
+        },
+        {
+          "artifact_id": "collector/src/sources/session.rs#0",
+          "call_count": 3,
+          "path": "collector/src/sources/session.rs",
+          "path_id": "7d1f76431994dd71"
+        }
+      ],
+      "inline_cd_calls": 2,
+      "inline_cd_samples": [
+        {
+          "call_id": "toolu_01JzsA4JKCY95F4h1P1FpoAk",
+          "command": "cd collector && cargo test 2>&1 | tail -30",
+          "record_index": 271,
+          "source_id": "S000-007c5d5ec4"
+        },
+        {
+          "call_id": "toolu_01HotS4R1dcFaWWpvCvCFBxK",
+          "command": "cd collector && cargo test 2>&1 | tail -15",
+          "record_index": 286,
+          "source_id": "S000-007c5d5ec4"
+        }
+      ],
+      "v3_answers": {
+        "A1": "97",
+        "A2": "6",
+        "A3": "13",
+        "A4": "1",
+        "A5": "1",
+        "B1": "21",
+        "B2": "17",
+        "B3": "4",
+        "B4": "read",
+        "B5": "1",
+        "C1": "1",
+        "C2": "1",
+        "C3": "0",
+        "C4": "0",
+        "C5": "2",
+        "D1": "tracked",
+        "D2": "tracked",
+        "D3": "tracked",
+        "D4": "tracked",
+        "D5": "absent"
+      },
+      "v3_edges": 87,
+      "v4_answers": {
+        "A1": "97",
+        "A2": "6",
+        "A3": "13",
+        "A4": "1",
+        "A5": "1",
+        "B1": "21",
+        "B2": "17",
+        "B3": "4",
+        "B4": "read",
+        "B5": "1",
+        "C1": "1",
+        "C2": "1",
+        "C3": "0",
+        "C4": "0",
+        "C5": "2",
+        "D1": "tracked",
+        "D2": "tracked",
+        "D3": "tracked",
+        "D4": "tracked",
+        "D5": "absent"
+      },
+      "v4_edges": 87,
+      "v4_ranked_anchors": [
+        {
+          "artifact_id": "collector/src/view/mod.rs#0",
+          "call_count": 21,
+          "path": "collector/src/view/mod.rs",
+          "path_id": "cc55bff1031d02de"
+        },
+        {
+          "artifact_id": "collector/src/cli_db.rs#0",
+          "call_count": 8,
+          "path": "collector/src/cli_db.rs",
+          "path_id": "c71640dc9851c8ab"
+        },
+        {
+          "artifact_id": "collector/src/server/web.rs#0",
+          "call_count": 3,
+          "path": "collector/src/server/web.rs",
+          "path_id": "1eb082f2941ac4cc"
+        },
+        {
+          "artifact_id": "collector/src/sources/sqlite.rs#0",
+          "call_count": 3,
+          "path": "collector/src/sources/sqlite.rs",
+          "path_id": "1ef4b70610d9f469"
+        },
+        {
+          "artifact_id": "collector/src/sources/session.rs#0",
+          "call_count": 3,
+          "path": "collector/src/sources/session.rs",
+          "path_id": "7d1f76431994dd71"
+        }
+      ],
+      "wrapped_patch_calls": 0,
+      "wrapped_patch_edges": 0,
+      "wrapped_patch_headers_by_access": {},
+      "wrapped_patch_samples": []
+    },
+    "agentskill-observability-paper": {
+      "action_v2_to_v4": {
+        "new_atom_counts": {
+          "edit": 140,
+          "other": 41,
+          "read_file": 165,
+          "run_code": 2,
+          "search_repo": 107,
+          "version_control": 7
+        },
+        "old_atom_counts": {
+          "edit": 234,
+          "other": 41,
+          "read_file": 165,
+          "run_code": 2,
+          "search_repo": 107,
+          "version_control": 7
+        },
+        "transitions": [
+          {
+            "count": 94,
+            "new_atom": "<excluded>",
+            "old_atom": "edit",
+            "samples": [
+              {
+                "call_id": "snapshot:1060",
+                "command": "",
+                "record_index": 1060,
+                "source_id": "S007-d8320099e2",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1078",
+                "command": "",
+                "record_index": 1078,
+                "source_id": "S007-d8320099e2",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:112",
+                "command": "",
+                "record_index": 112,
+                "source_id": "S007-d8320099e2",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1132",
+                "command": "",
+                "record_index": 1132,
+                "source_id": "S007-d8320099e2",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1137",
+                "command": "",
+                "record_index": 1137,
+                "source_id": "S007-d8320099e2",
+                "tool": "file_snapshot"
+              }
+            ]
+          }
+        ]
+      },
+      "frozen_anchors": [
+        {
+          "artifact_id": "docs/paper/paper.tex#0",
+          "call_count": 237,
+          "path": "docs/paper/paper.tex",
+          "path_id": "d751a6709420e788"
+        },
+        {
+          "artifact_id": "docs/user-instruction.md#0",
+          "call_count": 9,
+          "path": "docs/user-instruction.md",
+          "path_id": "94e7645bc7b3b826"
+        },
+        {
+          "artifact_id": "docs/tmp/phase-0-framing/2026-07-11-system-rq-and-design-discussion-zh.md#0",
+          "call_count": 2,
+          "path": "docs/tmp/phase-0-framing/2026-07-11-system-rq-and-design-discussion-zh.md",
+          "path_id": "79449961faaaee14"
+        },
+        {
+          "artifact_id": "docs/tmp/iter-refine-writing-20260711T215000-0700/round-6-language-sentence.md#0",
+          "call_count": 1,
+          "path": "docs/tmp/iter-refine-writing-20260711T215000-0700/round-6-language-sentence.md",
+          "path_id": "085813b2d5280e57"
+        },
+        {
+          "artifact_id": "docs/paper/references.bib#0",
+          "call_count": 1,
+          "path": "docs/paper/references.bib",
+          "path_id": "0d3f0c27fa0e3dde"
+        }
+      ],
+      "inline_cd_calls": 4,
+      "inline_cd_samples": [
+        {
+          "call_id": "toolu_01HbD86EiqG1hchooSWQcpmU",
+          "command": "cd /home/yunwei37/workspace/agentskill-observability-paper/docs/paper && make 2>&1 | tail -20",
+          "record_index": 74,
+          "source_id": "S007-d8320099e2"
+        },
+        {
+          "call_id": "toolu_01WFnuyKyJHat64sn33wEXzG",
+          "command": "cd /home/yunwei37/workspace/agentskill-observability-paper/docs/paper && (latexmk -pdf -interaction=nonstopmode paper.tex 2>&1 || pdflatex -interaction=nonstopmode paper.tex 2>&1) | tail -20",
+          "record_index": 94,
+          "source_id": "S010-f5941f1f82"
+        },
+        {
+          "call_id": "toolu_01AB1eLLewsJhcWnt2JaS6e8",
+          "command": "TS=$(date +%Y%m%dT%H%M%S%z); mkdir -p /home/yunwei37/workspace/agentskill-observability-paper/docs/tmp/iter-refine-writing-$TS && echo $TS && cd /home/yunwei37/workspace/agentskill-observability-paper/docs/paper && make 2>&1 | tail -5",
+          "record_index": 26,
+          "source_id": "S011-37ef844e30"
+        },
+        {
+          "call_id": "toolu_015Kz3FBM3gcvKCQzYs4gn5Q",
+          "command": "cd /home/yunwei37/workspace/agentskill-observability-paper && git diff --stat docs/paper/paper.tex && md5sum docs/paper/paper.tex",
+          "record_index": 65,
+          "source_id": "S011-37ef844e30"
+        }
+      ],
+      "v3_answers": {
+        "A1": "165",
+        "A2": "140",
+        "A3": "0",
+        "A4": "3",
+        "A5": "0",
+        "B1": "237",
+        "B2": "125",
+        "B3": "112",
+        "B4": "read",
+        "B5": "10",
+        "C1": "8",
+        "C2": "9",
+        "C3": "1",
+        "C4": "11",
+        "C5": "2",
+        "D1": "tracked",
+        "D2": "tracked",
+        "D3": "tracked",
+        "D4": "tracked",
+        "D5": "tracked"
+      },
+      "v3_edges": 262,
+      "v4_answers": {
+        "A1": "165",
+        "A2": "140",
+        "A3": "0",
+        "A4": "3",
+        "A5": "0",
+        "B1": "237",
+        "B2": "125",
+        "B3": "112",
+        "B4": "read",
+        "B5": "10",
+        "C1": "8",
+        "C2": "9",
+        "C3": "1",
+        "C4": "11",
+        "C5": "2",
+        "D1": "tracked",
+        "D2": "tracked",
+        "D3": "tracked",
+        "D4": "tracked",
+        "D5": "tracked"
+      },
+      "v4_edges": 262,
+      "v4_ranked_anchors": [
+        {
+          "artifact_id": "docs/paper/paper.tex#0",
+          "call_count": 237,
+          "path": "docs/paper/paper.tex",
+          "path_id": "d751a6709420e788"
+        },
+        {
+          "artifact_id": "docs/user-instruction.md#0",
+          "call_count": 9,
+          "path": "docs/user-instruction.md",
+          "path_id": "94e7645bc7b3b826"
+        },
+        {
+          "artifact_id": "docs/tmp/phase-0-framing/2026-07-11-system-rq-and-design-discussion-zh.md#0",
+          "call_count": 2,
+          "path": "docs/tmp/phase-0-framing/2026-07-11-system-rq-and-design-discussion-zh.md",
+          "path_id": "79449961faaaee14"
+        },
+        {
+          "artifact_id": "docs/tmp/iter-refine-writing-20260711T215000-0700/round-6-language-sentence.md#0",
+          "call_count": 1,
+          "path": "docs/tmp/iter-refine-writing-20260711T215000-0700/round-6-language-sentence.md",
+          "path_id": "085813b2d5280e57"
+        },
+        {
+          "artifact_id": "docs/paper/references.bib#0",
+          "call_count": 1,
+          "path": "docs/paper/references.bib",
+          "path_id": "0d3f0c27fa0e3dde"
+        }
+      ],
+      "wrapped_patch_calls": 0,
+      "wrapped_patch_edges": 0,
+      "wrapped_patch_headers_by_access": {},
+      "wrapped_patch_samples": []
+    },
+    "bpf-developer-tutorial": {
+      "action_v2_to_v4": {
+        "new_atom_counts": {
+          "edit": 35,
+          "other": 185,
+          "read_file": 217,
+          "run_code": 34,
+          "run_test": 39,
+          "search_repo": 108,
+          "think": 4,
+          "version_control": 119
+        },
+        "old_atom_counts": {
+          "edit": 33,
+          "other": 201,
+          "read_file": 214,
+          "run_code": 35,
+          "run_test": 42,
+          "search_repo": 107,
+          "think": 4,
+          "version_control": 107
+        },
+        "transitions": [
+          {
+            "count": 2,
+            "new_atom": "<excluded>",
+            "old_atom": "edit",
+            "samples": [
+              {
+                "call_id": "snapshot:3",
+                "command": "",
+                "record_index": 3,
+                "source_id": "S011-17c4ccd099",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:7",
+                "command": "",
+                "record_index": 7,
+                "source_id": "S011-17c4ccd099",
+                "tool": "file_snapshot"
+              }
+            ]
+          },
+          {
+            "count": 1,
+            "new_atom": "edit",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_AiOR5Cc4vYGvnkQrep6jjWFn",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/bpf-developer-tutorial/src/54-exec-image-inspector/README.md\\n@@\\n-| Tested tooling | Repository-pinned bpftool `3be8ac3` with nested libbpf `fc064eb` | Builds the BPF object and generated skeleton used by this lesson |\\n+| Te",
+                "record_index": 682,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 3,
+            "new_atom": "read_file",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_oOPgyugDXMW9Ywm1DaDR4XQe",
+                "command": "sed -n '1,240p' /home/yunwei37/.codex/plugins/cache/openai-curated-remote/github/0.1.8-2841cf9749ae/skills/github/SKILL.md",
+                "record_index": 36,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_uFDECo92pwOpjKgQ02IjSvZQ",
+                "command": "sed -n '1,320p' /home/yunwei37/workspace/my-paper-work/academic-writing-skills/skills/oss-change-workflow/SKILL.md",
+                "record_index": 160,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_LRdGin57wA8DCWWL45yQx91B",
+                "command": "sed -n '1,260p' /home/yunwei37/workspace/my-paper-work/academic-writing-skills/skills/oss-change-workflow/SKILL.md",
+                "record_index": 79,
+                "source_id": "S006-20c93d73cf",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 1,
+            "new_atom": "search_repo",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_98pJgzRsEWkRuy8JLhWUe4hi",
+                "command": "rg -n \"sandbox.*profile|read.?only|workspace.?write\" /home/yunwei37/.local/share/grok /home/yunwei37/.local/bin/grok 2>/dev/null | head -100",
+                "record_index": 281,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 11,
+            "new_atom": "version_control",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_0judDzJ5P3moWu1ojtku6eGi",
+                "command": "gh pr checks 220 --repo eunomia-bpf/bpf-developer-tutorial --json name,state,link,workflow,bucket",
+                "record_index": 261,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_4tM2RIQ8rbaeyqYwRFT8z3p5",
+                "command": "gh pr checks 220 --repo eunomia-bpf/bpf-developer-tutorial --json name,state,link,workflow,bucket",
+                "record_index": 374,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_6cpEZ9oiomWUMfMVNu9IwMTx",
+                "command": "gh pr view 220 --repo eunomia-bpf/bpf-developer-tutorial --json title,body,url,headRefOid",
+                "record_index": 405,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_C3cNYIDPXnIP13hNrNMoRFpB",
+                "command": "gh run view 29709312689 --repo eunomia-bpf/bpf-developer-tutorial --json status,conclusion,url,jobs --jq '{status,conclusion,url,jobs:[.jobs[]|{name,status,conclusion,startedAt,completedAt,steps:[.steps[]|{name,status,conclusion}]}]}'",
+                "record_index": 470,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_PVS6WnTnam0RbjlfoE5bbB7m",
+                "command": "git merge --no-ff -m 'Merge fsession latency tutorial into PR 220' agent/fsession-slo",
+                "record_index": 126,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 1,
+            "new_atom": "search_repo",
+            "old_atom": "run_code",
+            "samples": [
+              {
+                "call_id": "call_uPhRDu2inA5ABXlQgjhN5qAf",
+                "command": "rg --files -g 'AGENTS.md' -g 'CLAUDE.md' -g 'CONTRIBUTING*' -g 'Makefile' -g 'pyproject.toml' -g 'package.json' -g 'README.md' | sed -n '1,120p' && sed -n '1,220p' CLAUDE.md 2>/dev/null || true && sed -n '1,220p' CONTRIBUTING.md 2>/dev/null || true && sed -n '1,220p' Makefile 2>/dev/null || true && ",
+                "record_index": 175,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 3,
+            "new_atom": "edit",
+            "old_atom": "run_test",
+            "samples": [
+              {
+                "call_id": "call_4kN48YJNa2qJ5yLEz1gPgvkk",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/bpf-developer-tutorial/.github/workflows/test-libbpf.yml\\n@@\\n-<<<<<<< HEAD\\n+    - name: test 51 TCP quarantine\\n+      run: |\\n+          make -C src/51-tcp-quarantine\\n+          sudo timeout 30 make -C src/51-tcp-quarantin",
+                "record_index": 117,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_4sop8FqBsNmoZudPVdwvXCXn",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/bpf-developer-tutorial/.github/workflows/test-libbpf.yml\\n@@\\n-<<<<<<< HEAD\\n-    - name: test 54 exec image inspector\\n-      run: |\\n-          make -C src/54-exec-image-inspector\\n-=======\\n     - name: test 53 egress pacer",
+                "record_index": 86,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_FSOIR64jKhoGTSoey9T7oZly",
+                "command": "const patch = \"*** Begin Patch\\n*** Update File: /home/yunwei37/workspace/bpf-developer-tutorial/.github/workflows/test-libbpf.yml\\n@@\\n-<<<<<<< HEAD\\n     - name: test 51 TCP quarantine\\n       run: |\\n           make -C src/51-tcp-quarantine\\n           sudo timeout 30 make -C src/51-tcp-quarantin",
+                "record_index": 134,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 1,
+            "new_atom": "version_control",
+            "old_atom": "search_repo",
+            "samples": [
+              {
+                "call_id": "call_n6Pkmcz9PoYX73UMDpxamoSC",
+                "command": "git -C /home/yunwei37/workspace/bpf-developer-tutorial-skills diff -- .agents/skills/bpf-tutorial-writing-style/SKILL.md .agents/skills/bpf-tutorial-writing-style/references/prose-and-bilingual-checklist.md .agents/skills/bpf-tutorial-writing-style/references/repository-house-style.md .agents/skills",
+                "record_index": 28,
+                "source_id": "S001-c4a632d03f",
+                "tool": "exec"
+              }
+            ]
+          }
+        ]
+      },
+      "frozen_anchors": [
+        {
+          "artifact_id": "src/features/bpf_token/README.md#0",
+          "call_count": 14,
+          "path": "src/features/bpf_token/README.md",
+          "path_id": "908fe439dd93695a"
+        },
+        {
+          "artifact_id": "src/features/bpf_token/token_userns_demo.c#0",
+          "call_count": 13,
+          "path": "src/features/bpf_token/token_userns_demo.c",
+          "path_id": "1db833f5e665e6c9"
+        },
+        {
+          "artifact_id": "src/52-fsession-latency/README.zh.md#0",
+          "call_count": 12,
+          "path": "src/52-fsession-latency/README.zh.md",
+          "path_id": "b6e75397c6716745"
+        },
+        {
+          "artifact_id": "src/features/bpf_token/README.zh.md#0",
+          "call_count": 12,
+          "path": "src/features/bpf_token/README.zh.md",
+          "path_id": "ea503161e3722876"
+        },
+        {
+          "artifact_id": "src/features/bpf_token/token_trace.c#0",
+          "call_count": 11,
+          "path": "src/features/bpf_token/token_trace.c",
+          "path_id": "38bdd75dada2d0c9"
+        }
+      ],
+      "inline_cd_calls": 2,
+      "inline_cd_samples": [
+        {
+          "call_id": "toolu_01XVsAodX1D5ZTygBE9u5FXf",
+          "command": "cd /home/yunwei37/workspace/bpf-developer-tutorial/src/third_party/bpftool && git log --oneline -5 && git describe --tags --always 2>/dev/null",
+          "record_index": 43,
+          "source_id": "S000-970fd150ed"
+        },
+        {
+          "call_id": "toolu_01XPikP6F31j6pXTfBayixxE",
+          "command": "cd /home/yunwei37/workspace/bpf-developer-tutorial/src/third_party/bpftool && git log --oneline 3be8ac3..4222ef1 | head -20",
+          "record_index": 45,
+          "source_id": "S000-970fd150ed"
+        }
+      ],
+      "v3_answers": {
+        "A1": "217",
+        "A2": "31",
+        "A3": "42",
+        "A4": "5",
+        "A5": "0",
+        "B1": "14",
+        "B2": "5",
+        "B3": "9",
+        "B4": "mutate",
+        "B5": "1",
+        "C1": "6",
+        "C2": "7",
+        "C3": "0",
+        "C4": "0",
+        "C5": "17",
+        "D1": "tracked",
+        "D2": "tracked",
+        "D3": "tracked",
+        "D4": "tracked",
+        "D5": "tracked"
+      },
+      "v3_edges": 265,
+      "v4_answers": {
+        "A1": "217",
+        "A2": "35",
+        "A3": "39",
+        "A4": "6",
+        "A5": "1",
+        "B1": "14",
+        "B2": "5",
+        "B3": "9",
+        "B4": "mutate",
+        "B5": "1",
+        "C1": "7",
+        "C2": "8",
+        "C3": "0",
+        "C4": "0",
+        "C5": "22",
+        "D1": "tracked",
+        "D2": "tracked",
+        "D3": "tracked",
+        "D4": "tracked",
+        "D5": "tracked"
+      },
+      "v4_edges": 280,
+      "v4_ranked_anchors": [
+        {
+          "artifact_id": "src/features/bpf_token/README.md#0",
+          "call_count": 14,
+          "path": "src/features/bpf_token/README.md",
+          "path_id": "908fe439dd93695a"
+        },
+        {
+          "artifact_id": "src/features/bpf_token/token_userns_demo.c#0",
+          "call_count": 13,
+          "path": "src/features/bpf_token/token_userns_demo.c",
+          "path_id": "1db833f5e665e6c9"
+        },
+        {
+          "artifact_id": "src/52-fsession-latency/README.zh.md#0",
+          "call_count": 12,
+          "path": "src/52-fsession-latency/README.zh.md",
+          "path_id": "b6e75397c6716745"
+        },
+        {
+          "artifact_id": "src/features/bpf_token/README.zh.md#0",
+          "call_count": 12,
+          "path": "src/features/bpf_token/README.zh.md",
+          "path_id": "ea503161e3722876"
+        },
+        {
+          "artifact_id": "src/features/bpf_token/token_trace.c#0",
+          "call_count": 11,
+          "path": "src/features/bpf_token/token_trace.c",
+          "path_id": "38bdd75dada2d0c9"
+        }
+      ],
+      "wrapped_patch_calls": 4,
+      "wrapped_patch_edges": 15,
+      "wrapped_patch_headers_by_access": {
+        "write": 15
+      },
+      "wrapped_patch_samples": [
+        {
+          "call_id": "call_4sop8FqBsNmoZudPVdwvXCXn",
+          "record_index": 86,
+          "source_id": "S001-c4a632d03f",
+          "status": "ok"
+        },
+        {
+          "call_id": "call_4kN48YJNa2qJ5yLEz1gPgvkk",
+          "record_index": 117,
+          "source_id": "S001-c4a632d03f",
+          "status": "ok"
+        },
+        {
+          "call_id": "call_FSOIR64jKhoGTSoey9T7oZly",
+          "record_index": 134,
+          "source_id": "S001-c4a632d03f",
+          "status": "ok"
+        }
+      ]
+    },
+    "eunomia.dev": {
+      "action_v2_to_v4": {
+        "new_atom_counts": {
+          "edit": 212,
+          "lint": 2,
+          "other": 740,
+          "package": 2,
+          "read_file": 229,
+          "run_code": 45,
+          "run_test": 103,
+          "search_repo": 215,
+          "think": 7,
+          "version_control": 284
+        },
+        "old_atom_counts": {
+          "edit": 268,
+          "lint": 2,
+          "other": 754,
+          "package": 2,
+          "read_file": 225,
+          "run_code": 46,
+          "run_test": 102,
+          "search_repo": 218,
+          "think": 7,
+          "version_control": 271
+        },
+        "transitions": [
+          {
+            "count": 56,
+            "new_atom": "<excluded>",
+            "old_atom": "edit",
+            "samples": [
+              {
+                "call_id": "snapshot:10",
+                "command": "",
+                "record_index": 10,
+                "source_id": "S008-abfd27d554",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1010",
+                "command": "",
+                "record_index": 1010,
+                "source_id": "S008-abfd27d554",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1161",
+                "command": "",
+                "record_index": 1161,
+                "source_id": "S008-abfd27d554",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1166",
+                "command": "",
+                "record_index": 1166,
+                "source_id": "S008-abfd27d554",
+                "tool": "file_snapshot"
+              },
+              {
+                "call_id": "snapshot:1223",
+                "command": "",
+                "record_index": 1223,
+                "source_id": "S008-abfd27d554",
+                "tool": "file_snapshot"
+              }
+            ]
+          },
+          {
+            "count": 4,
+            "new_atom": "read_file",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_J3TnWJpkcd1cn3KZH5pRbTbw",
+                "command": "sed -n '1,240p' /home/yunwei37/workspace/my-paper-work/academic-writing-skills/skills/oss-change-workflow/SKILL.md",
+                "record_index": 25,
+                "source_id": "S003-907f0c358f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_TRQR4TuuwfN9AGDMwvrzfWKF",
+                "command": "sed -n '1,260p' /home/yunwei37/workspace/my-paper-work/academic-writing-skills/skills/tech-blog-writer/SKILL.md",
+                "record_index": 466,
+                "source_id": "S007-77d7a1e43d",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_k0ooq2Cyd1baBTWX9ilqUgco",
+                "command": "nl -ba docs/blog/posts/agentcgroup-characterization.md | sed -n '1,360p'",
+                "record_index": 516,
+                "source_id": "S007-77d7a1e43d",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_fXQKO2LREfXfxNyLtQ1Xk8D9",
+                "command": "sed -n '1,260p' /home/yunwei37/workspace/my-paper-work/academic-writing-skills/skills/oss-change-workflow/SKILL.md",
+                "record_index": 29,
+                "source_id": "S009-3ca5d59395",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 10,
+            "new_atom": "version_control",
+            "old_atom": "other",
+            "samples": [
+              {
+                "call_id": "call_VXuGUwWrXokxHExwUw2EwjOV",
+                "command": "gh pr view 118 --repo eunomia-bpf/eunomia.dev --json number,title,state,isDraft,baseRefName,headRefName,headRefOid,url,files,additions,deletions,commits",
+                "record_index": 35,
+                "source_id": "S003-907f0c358f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_kuAcqkHz9IosXz8g0ZKX7pQu",
+                "command": "gh pr diff 118 --repo eunomia-bpf/eunomia.dev --patch | awk '\\n/^diff --git a\\/(app\\/scripts\\/generate-legacy-redirects\\.mjs|test\\/scripts\\/sitemap-parity\\.mjs)/ {keep=1}\\n/^diff --git / && $0 !~ /^diff --git a\\/(app\\/scripts\\/generate-legacy-redirects\\.mjs|test\\/scripts\\/sitemap-parity\\.mjs)/ {keep",
+                "record_index": 43,
+                "source_id": "S003-907f0c358f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_oQVn77loP9DBvfzk9j6AT47T",
+                "command": "gh pr diff 118 --repo eunomia-bpf/eunomia.dev --patch",
+                "record_index": 47,
+                "source_id": "S003-907f0c358f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_BhCPOlKgEaeIL9aKVqFhI3f8",
+                "command": "gh pr checks 109 --repo eunomia-bpf/eunomia.dev || true",
+                "record_index": 564,
+                "source_id": "S007-77d7a1e43d",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_NpDs5rU17y706pc9a3DvGIpY",
+                "command": "gh api repos/eunomia-bpf/agentcgroup/contents/analysis/characterization.py --jq '.content' | base64 -d | sed -n '1,220p'\ngh api repos/eunomia-bpf/agentcgroup/contents/docs/REPRODUCING.md --jq '.content' | base64 -d | sed -n '1,240p'",
+                "record_index": 500,
+                "source_id": "S007-77d7a1e43d",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 1,
+            "new_atom": "version_control",
+            "old_atom": "run_code",
+            "samples": [
+              {
+                "call_id": "call_lDAavBYs9ctR7bFcasUZdgb7",
+                "command": "git show origin/papers/central-library:app/scripts/generate-legacy-redirects.mjs | node --input-type=module --check",
+                "record_index": 101,
+                "source_id": "S003-907f0c358f",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 1,
+            "new_atom": "run_test",
+            "old_atom": "search_repo",
+            "samples": [
+              {
+                "call_id": "call_FK8FAem29lFh2YXPQIMQCsSy",
+                "command": "test -d app/out && find app/out -maxdepth 3 -type f | head -20 || true",
+                "record_index": 96,
+                "source_id": "S009-3ca5d59395",
+                "tool": "exec"
+              }
+            ]
+          },
+          {
+            "count": 2,
+            "new_atom": "version_control",
+            "old_atom": "search_repo",
+            "samples": [
+              {
+                "call_id": "call_omSD3X17Av4AjGn4cfaugPNw",
+                "command": "git grep -n -I -E '(^|[^[:alnum:]_-])/?others/papers(/|[^[:alnum:]_-]|$)' origin/papers/central-library -- . || true",
+                "record_index": 60,
+                "source_id": "S003-907f0c358f",
+                "tool": "exec"
+              },
+              {
+                "call_id": "call_GCZHClk2xmpWmecEOTkEi6GH",
+                "command": "gh api -H 'Accept: application/vnd.github.raw+json' 'repos/eunomia-bpf/schedcp/contents/mcp/src/lib.rs?ref=master' | rg -n 'tool\\(|fn [a-z_]+|system_monitor|create_and_verify|list_schedulers' | head -160\ngh api -H 'Accept: application/vnd.github.raw+json' 'repos/eunomia-bpf/schedcp/contents/README.m",
+                "record_index": 512,
+                "source_id": "S007-77d7a1e43d",
+                "tool": "exec"
+              }
+            ]
+          }
+        ]
+      },
+      "frozen_anchors": [
+        {
+          "artifact_id": "mkdocs.yaml#0",
+          "call_count": 43,
+          "path": "mkdocs.yaml",
+          "path_id": "7a5ba838e8b1764f"
+        },
+        {
+          "artifact_id": "app/tests/content.test.ts#0",
+          "call_count": 29,
+          "path": "app/tests/content.test.ts",
+          "path_id": "47288d06caa3b73c"
+        },
+        {
+          "artifact_id": "draft/seo-geo-plan.zh.md#0",
+          "call_count": 23,
+          "path": "draft/seo-geo-plan.zh.md",
+          "path_id": "7d5b0e063f6bcdfb"
+        },
+        {
+          "artifact_id": "app/lib/content/mkdocs-config.ts#0",
+          "call_count": 17,
+          "path": "app/lib/content/mkdocs-config.ts",
+          "path_id": "eb9a53faaa1fe345"
+        },
+        {
+          "artifact_id": ".claude/skills/blog-writing-style/SKILL.md#0",
+          "call_count": 13,
+          "path": ".claude/skills/blog-writing-style/SKILL.md",
+          "path_id": "c7c825e48b7d248c"
+        }
+      ],
+      "inline_cd_calls": 112,
+      "inline_cd_samples": [
+        {
+          "call_id": "toolu_01R1Fdq7V9TAXLAYocDz4CuB",
+          "command": "cd /home/yunwei37/workspace/eunomia.dev/app && grep -n \"isSitemapExcludedRoute\" lib/content/manifest.ts && echo \"===PAGEFACTORIES===\" && sed -n '110,150p' lib/page-factories.tsx",
+          "record_index": 25,
+          "source_id": "S000-4759f956bd"
+        },
+        {
+          "call_id": "toolu_01FanAgMFZDGFihuoWfTdTSH",
+          "command": "cd /home/yunwei37/workspace/eunomia.dev/app && grep -rn \"blog/\" lib/content/*.ts | grep -iE \"slug|route|date|posts\" | head -30",
+          "record_index": 35,
+          "source_id": "S000-4759f956bd"
+        },
+        {
+          "call_id": "toolu_01Fc9DQuXhHY7HshauonSDRL",
+          "command": "cd /home/yunwei37/workspace/eunomia.dev/app && grep -rn \"export function slugifyTitle\\|function slugifyTitle\\|slugifyTitle\" lib/ | grep -i \"function\\|=>\" | head; echo \"---DEF---\"; grep -rn \"slugifyTitle\" lib/**/*.ts | grep -v \"slugifyTitle(metadata\" | head",
+          "record_index": 43,
+          "source_id": "S000-4759f956bd"
+        },
+        {
+          "call_id": "toolu_01DLvUupcFQadwsmMJPY4WF3",
+          "command": "cd /home/yunwei37/workspace/eunomia.dev && head -12 docs/blog/posts/actplane.md && echo \"===GREP SLUG IN SITEMAP===\" ; grep -c \"/blogs/\" app/public/sitemap.xml 2>/dev/null || echo \"no built sitemap yet\"",
+          "record_index": 45,
+          "source_id": "S000-4759f956bd"
+        },
+        {
+          "call_id": "toolu_01EsMwwVHc7cNUZkGyqQEK74",
+          "command": "cd /home/yunwei37/workspace/eunomia.dev && git ls-files app/public/sitemap.xml app/public/og/ && echo \"---slug field check on a few posts---\" && for f in docs/blog/posts/agentsight_paper.md docs/blog/posts/runtime-security-for-opaque-ai-agents.md; do echo \"== $f ==\"; sed -n '1,8p' \"$f\" | grep -iE \"^slug:|^date:|^title:\" ; done",
+          "record_index": 50,
+          "source_id": "S000-4759f956bd"
+        }
+      ],
+      "v3_answers": {
+        "A1": "229",
+        "A2": "212",
+        "A3": "103",
+        "A4": "4",
+        "A5": "3",
+        "B1": "43",
+        "B2": "32",
+        "B3": "11",
+        "B4": "read",
+        "B5": "2",
+        "C1": "1",
+        "C2": "5",
+        "C3": "1",
+        "C4": "2",
+        "C5": "17",
+        "D1": "tracked",
+        "D2": "tracked",
+        "D3": "tracked",
+        "D4": "tracked",
+        "D5": "untracked"
+      },
+      "v3_edges": 503,
+      "v4_answers": {
+        "A1": "229",
+        "A2": "212",
+        "A3": "103",
+        "A4": "4",
+        "A5": "3",
+        "B1": "43",
+        "B2": "32",
+        "B3": "11",
+        "B4": "read",
+        "B5": "2",
+        "C1": "1",
+        "C2": "5",
+        "C3": "1",
+        "C4": "2",
+        "C5": "17",
+        "D1": "tracked",
+        "D2": "tracked",
+        "D3": "tracked",
+        "D4": "tracked",
+        "D5": "untracked"
+      },
+      "v4_edges": 492,
+      "v4_ranked_anchors": [
+        {
+          "artifact_id": "mkdocs.yaml#0",
+          "call_count": 43,
+          "path": "mkdocs.yaml",
+          "path_id": "7a5ba838e8b1764f"
+        },
+        {
+          "artifact_id": "app/tests/content.test.ts#0",
+          "call_count": 29,
+          "path": "app/tests/content.test.ts",
+          "path_id": "47288d06caa3b73c"
+        },
+        {
+          "artifact_id": "draft/seo-geo-plan.zh.md#0",
+          "call_count": 22,
+          "path": "draft/seo-geo-plan.zh.md",
+          "path_id": "7d5b0e063f6bcdfb"
+        },
+        {
+          "artifact_id": "app/lib/content/mkdocs-config.ts#0",
+          "call_count": 17,
+          "path": "app/lib/content/mkdocs-config.ts",
+          "path_id": "eb9a53faaa1fe345"
+        },
+        {
+          "artifact_id": "app/components/HomePageLanding.tsx#0",
+          "call_count": 13,
+          "path": "app/components/HomePageLanding.tsx",
+          "path_id": "c182b3a90132fe25"
+        }
+      ],
+      "wrapped_patch_calls": 0,
+      "wrapped_patch_edges": 0,
+      "wrapped_patch_headers_by_access": {},
+      "wrapped_patch_samples": []
+    }
+  },
+  "v3_revision": "69afb4866",
+  "v4_spec_version": "native-root-conformance-v4"
+}

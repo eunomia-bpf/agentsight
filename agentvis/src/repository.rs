@@ -1430,6 +1430,25 @@ mod tests {
     }
 
     #[test]
+    fn relative_operands_resolve_against_event_workdir_and_exclude_outside() {
+        // Frozen question spec: "Event workdir overrides session cwd. Resolve
+        // relative paths lexically inside the selected worktree; exclude
+        // outside paths."
+        let roots = vec![PathBuf::from("/repo")];
+        let event_workdir = Path::new("/repo/collector");
+        let resolved = resolve_path("collector/src/view/mod.rs", Some(event_workdir), &roots)
+            .expect("inside worktree");
+        assert_eq!(resolved.path, "collector/collector/src/view/mod.rs");
+        let resolved = resolve_path("src/view/mod.rs", Some(event_workdir), &roots)
+            .expect("inside worktree");
+        assert_eq!(resolved.path, "collector/src/view/mod.rs");
+        // A workdir outside every root excludes the operand entirely.
+        assert!(resolve_path("notes.md", Some(Path::new("/tmp/scratch")), &roots).is_none());
+        // Lexical normalization can still escape the root and is excluded.
+        assert!(resolve_path("../../outside.md", Some(event_workdir), &roots).is_none());
+    }
+
+    #[test]
     fn claude_candidate_cwd_handles_dotted_repository_names() {
         let path = std::env::temp_dir().join(format!(
             "agentsight-claude-cwd-{}.jsonl",

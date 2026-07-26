@@ -6,6 +6,12 @@ It reopens every selected native transcript, rebuilds action sequences and
 artifact/session relations, reselects P0--P4, and compares all 120 answers.
 """
 
+# Changelog:
+# - v4: decode and edit-classify static Codex exec/apply_patch JS wrappers;
+#   track lexical inline-cd state for later shell file operands.
+# - v3: use native-root identity, result-aware lifecycles, per-command option
+#   arity, and explicit sed-program handling.
+
 from __future__ import annotations
 
 import datetime as dt
@@ -22,7 +28,7 @@ from typing import Any
 
 
 SEED = "20260722"
-SPEC_VERSION = "native-root-conformance-v3"
+SPEC_VERSION = "native-root-conformance-v4"
 READERS = {"cat", "sed", "head", "tail", "nl", "less", "more"}
 MUTATORS = {"touch", "rm", "mv", "cp"}
 SHELL_TOOLS = {"bash", "exec", "exec_command", "shell_command", "run_shell_command", "shell"}
@@ -156,14 +162,54 @@ def command_of(name: str, args: dict[str, Any]) -> str:
     return value if isinstance(value, str) else ""
 
 
+def js_string_literal(text: str, opening: int) -> tuple[str, int] | None:
+    """Decode one static double-quoted JS string using its JSON-compatible form."""
+    if opening >= len(text) or text[opening] != '"':
+        return None
+    escaped = False
+    for offset in range(opening + 1, len(text)):
+        character = text[offset]
+        if escaped:
+            escaped = False
+        elif character == "\\":
+            escaped = True
+        elif character == '"':
+            try:
+                value = json.loads(text[opening : offset + 1])
+            except json.JSONDecodeError:
+                return None
+            return (value, offset + 1) if isinstance(value, str) else None
+    return None
+
+
+def wrapped_apply_patch(text: str) -> str | None:
+    """Return a statically assigned patch passed to tools.apply_patch()."""
+    assignment = re.compile(
+        r"\b(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*"
+    )
+    for match in assignment.finditer(text):
+        decoded = js_string_literal(text, match.end())
+        if decoded is None:
+            continue
+        value, _ = decoded
+        variable = re.escape(match.group(1))
+        if (
+            "*** Begin Patch" in value
+            and re.search(rf"\btools\.apply_patch\s*\(\s*{variable}\s*\)", text)
+        ):
+            return value
+    return None
+
+
 def unwrap_exec(name: str, args: dict[str, Any]) -> dict[str, Any]:
     if name.lower() != "exec":
         return args
     text = command_of(name, args)
+    patch = wrapped_apply_patch(text)
     marker = text.find("tools.exec_command(")
     opening = text.find("{", marker + 1) if marker >= 0 else -1
     if opening < 0:
-        return args
+        return {**args, "_wrapped_patch": patch} if patch is not None else args
     depth = 0
     in_string = False
     escaped = False
@@ -183,7 +229,7 @@ def unwrap_exec(name: str, args: dict[str, Any]) -> dict[str, Any]:
                 closing = offset + 1
                 break
     if closing < 0:
-        return args
+        return {**args, "_wrapped_patch": patch} if patch is not None else args
     raw = text[opening:closing]
     try:
         nested = json.loads(raw)
@@ -196,8 +242,10 @@ def unwrap_exec(name: str, args: dict[str, Any]) -> dict[str, Any]:
         try:
             nested = json.loads(raw)
         except json.JSONDecodeError:
-            return args
-    return nested if isinstance(nested, dict) else args
+            return {**args, "_wrapped_patch": patch} if patch is not None else args
+    if not isinstance(nested, dict):
+        nested = args
+    return {**nested, "_wrapped_patch": patch} if patch is not None else nested
 
 
 def command_atom(command: str) -> str:
@@ -231,6 +279,8 @@ def atom_for(name: str, args: dict[str, Any]) -> str:
     if lower in {"todowrite", "exitplanmode", "update_plan", "write_todos", "exit_plan_mode"}:
         return "think"
     if lower in SHELL_TOOLS:
+        if isinstance(args.get("_wrapped_patch"), str):
+            return "edit"
         return command_atom(command_of(name, args))
     return "other"
 
@@ -475,15 +525,52 @@ def path_operands(command: str, tokens: list[str]) -> list[str]:
     return values
 
 
-def shell_effects(command: str) -> list[tuple[str, str, str | None]]:
+def shell_effects(
+    command: str,
+    cwd: str = "",
+) -> list[tuple[str, str, str | None]]:
     effects: list[tuple[str, str, str | None]] = []
+    shell_cwd = cwd
+    cwd_known = True
     for tokens in shell_commands(command):
         if not tokens or any(token and set(token) <= {"<", ">"} for token in tokens):
             continue
         name = tokens[0].rsplit("/", 1)[-1].lower()
+        if name == "cd":
+            operands = [
+                token
+                for token in tokens[1:]
+                if token != "--" and not token.startswith("-")
+            ]
+            if (
+                len(operands) != 1
+                or any(char in operands[0] for char in "$*?[]{}<>")
+                or operands[0].startswith("~")
+            ):
+                cwd_known = False
+                continue
+            target = Path(operands[0])
+            if not target.is_absolute():
+                if not cwd_known:
+                    continue
+                target = Path(shell_cwd) / target if shell_cwd else target
+            shell_cwd = os.path.normpath(str(target))
+            cwd_known = True
+            continue
         if name not in READERS | MUTATORS:
             continue
         values = path_operands(name, tokens[1:])
+        qualified = []
+        for value in values:
+            if Path(value).is_absolute():
+                qualified.append(value)
+            elif cwd_known:
+                qualified.append(
+                    os.path.normpath(str(Path(shell_cwd) / value))
+                    if shell_cwd
+                    else value
+                )
+        values = qualified
         if name in {"mv", "cp"}:
             if len(values) < 2:
                 continue
@@ -504,11 +591,26 @@ def event_effects(event: dict[str, Any]) -> list[tuple[str, str, str | None]]:
     name = str(event.get("name") or "").lower()
     args = event.get("args") if isinstance(event.get("args"), dict) else {}
     command = command_of(name, args)
-    effects = shell_effects(command) if name in SHELL_TOOLS else []
-    if name == "apply_patch" or (
-        name in SHELL_TOOLS and "*** Begin Patch" in command
-    ):
-        patch = command or str(args.get("patch") or "")
+    wrapped_patch = args.get("_wrapped_patch")
+    is_patch = name == "apply_patch" or (
+        name in SHELL_TOOLS
+        and (
+            isinstance(wrapped_patch, str)
+            or "*** Begin Patch" in command
+        )
+    )
+    effects = (
+        shell_effects(command, str(event.get("cwd") or ""))
+        if name in SHELL_TOOLS
+        and not (isinstance(wrapped_patch, str) and "tools.apply_patch" in command)
+        else []
+    )
+    if is_patch:
+        patch = (
+            wrapped_patch
+            if isinstance(wrapped_patch, str)
+            else command or str(args.get("patch") or "")
+        )
         pending_update: str | None = None
         for raw_line in patch.splitlines():
             line = raw_line.strip()

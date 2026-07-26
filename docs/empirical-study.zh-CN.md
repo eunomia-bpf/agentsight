@@ -122,7 +122,7 @@ workspace-centered trajectory 是否比 Final workspace、Counts、ProcGrep 或 
 - **cross-session：** 新 session 是否回到上一 session 热点、首次 mutation 前重新读取了哪些既有 artifact。
 - **final-state：** 哪些 artifact 最终存在；Final Diff 应当足够。
 
-上述 capability comparison 已完成确定性部分。真值由与被测输出独立的 native record、workspace state 和 Git/source snapshot 校验程序生成；工具输出必须给出 source ID，没有足够源证据时正确行为是 abstain。Step 0004 冻结 72 份 native session 和 cutoff state，独立重建 1,721 条 edge 与 120 个答案，并执行 480 行确定性矩阵。Trajectory 的 B+C 为 32/60 正确、28/60 错误，因此当前 capability claim 被否定。Raw branch 在有真实本地检索的 preflight 中因边界契约停止，记为 N/A；840 行 integrated comparison 未完成，不比较 Raw 或确定性方法成本。
+上述 capability comparison 已完成确定性部分。真值由与被测输出独立的 native record、workspace state 和 Git/source snapshot 校验程序生成；工具输出必须给出 source ID，没有足够源证据时正确行为是 abstain。Step 0004 冻结 72 份 native session 和 cutoff state，独立重建 1,721 条 edge 与 120 个答案，并执行 480 行确定性矩阵。冻结实现的 Trajectory B+C 为 32/60 正确、28/60 错误（2026-07-23），当时的 capability claim 被否定。随后的错误分类把 28 个错误分成 14 个刻意放宽的 shell/scope 证据与 14 个真实缺陷（native-root session join、failed-call effect 丢失、shell 路径抽取），修复这些缺陷加一个 event workdir 缺陷并把 oracle 修正到 v4 后，当前修订在修正基准上达到 60/60 B+C（仅本语料的修复后一致性，不构成一般性 exact-fact capability claim）。Raw branch 在有真实本地检索的 preflight 中因边界契约停止，记为 N/A；840 行 integrated comparison 未完成，不比较 Raw 或确定性方法成本。
 
 ## 分析与报告规则
 

@@ -119,21 +119,27 @@ They produced no intervention-treatment claim and close no current RQ.
 
 ## Current evidence status
 
-The reviewed RQ1 run covers 2,049 admitted native sessions, 206,249 Tool
-actions, 7,154 observed artifact identities and 13,152 confirmed mutation rows.
-All source-ID, hash, cutoff, worktree, lifecycle, final-state and competing-risk
-checks passed independent reproduction. F3/F4 are generated from frozen CSVs
-and embedded in the paper. Reuse is measurable in 6/6 projects; persistence and
-recognized-validation panels remain coverage-only at 3/6.
+The reviewed RQ1 run (frozen 2026-07-22) covered 2,049 admitted native session
+files, 206,249 Tool actions, 7,154 observed artifact identities and 13,152
+confirmed mutation rows; all source-ID, hash, cutoff, worktree, lifecycle,
+final-state and competing-risk checks passed independent reproduction. The
+2026-07-25 HEAD recompute (after the projection hardening, same cutoff and
+contract) admits 551 native root sessions, 181,303 Tool actions, 5,792
+observed artifact identities and 13,905 confirmed mutation rows; F3/F4 are
+regenerated from those CSVs and embedded in the paper. Reuse is measurable in
+6/6 projects; persistence and recognized-validation coverage moved from 3/6 to
+6/6 after repair.
 
 Separate reviewed projections now produce:
 
-- F5: recognized-validation cadence, with 3/6 coverage and a cross-case stop;
+- F5: recognized-validation cadence, with 6/6 coverage after repair (was 3/6
+  with a cross-case stop);
 - F6: repeated-mutation structure across all six cases;
 - F7: source-session component continuity, with every cross-case estimator gate
-  stopped;
+  still stopped — established as data-limited (3/6 projects reach 20
+  boundaries), not identity-limited;
 - F8a/F8b: path-resolved workspace activity allocation, transitions and return
-  gaps, with one low-support N/A;
+  gaps, with all six cases carrying return evidence after repair;
 - F9: Skill/instruction source coverage and an explicit association stop; and
 - F10: a dependency-only benchmark-readiness audit. It finds the normalized
   spine present but native-prefix and cutoff-worktree contracts absent, so no

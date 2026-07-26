@@ -61,7 +61,7 @@ reports but no longer define the current frontier.
 | Days-long activity should be measured through artifact durability, validation association, handoff, action strategy, and pre-mutation inspection across native roots. | TRAJEVAL, AgingBench, Plans Don't Persist | Medium | Retain as central empirical question; do not interpret a long-lived native root as a context reset. |
 | Action–artifact provenance graphs and an Agent copilot make trajectories understandable and reusable. | AgentTrails | Very high | Reject as novelty. Treat as the closest system baseline and distinguish only empirically supported persistent-workspace/cross-session relations. |
 | Root-external exact-path access to a harness or instruction artifact can be separated from root-local evolution. | AgentTrails, Agentic Harness Engineering, RHO | Medium | Retain as a descriptive access footprint only. A root-external session may be a delegated mutator, and read actions are not independent consumers or causal use. |
-| Stable artifact identity and cross-session lineage add source-verifiable fact coverage beyond standard action-only procedures. | ProcGrep, OCEL/OCPM | Medium | Current implementation claim rejected: 32/60 B+C facts correct and 28 wrong. Retain only as a redesign hypothesis pending source-conformance. |
+| Stable artifact identity and cross-session lineage add source-verifiable fact coverage beyond standard action-only procedures. | ProcGrep, OCEL/OCPM | Medium | Frozen implementation claim rejected (32/60 B+C, 28 wrong; 2026-07-23); repaired revision reaches 60/60 B+C against the corrected v4 oracle on this corpus, reported as repair-corpus conformance only. |
 | Skill/harness use causes progress or waste. | HarnessFix and harness-optimization work | High without control | Do not claim causality from local cases; report temporal association only. |
 | Explicit named Skill/instruction mechanisms have recurring workspace footprints across natural contexts. | ProcGrep; HarnessFix | Medium | Only one selected project supports a two-Skill qualified exact-context comparison; same/different JSD is 0.116/0.123 and the exact root-block randomization does not support separation (p=0.750). Retain source-attributed coverage and a negative repeatability result, not a fingerprint claim. |
 | Six author-associated repositories estimate population behavior. | Persistent-research case study; public benchmark corpora | Very high | Reject. Treat local projects as natural longitudinal cases and use public task traces only to check within-session relation directions and coverage. |
@@ -202,10 +202,12 @@ The full query log and decision record is in
   pre-mutation inspection and exact Skill/instruction footprints as separate
   dimensions.
 - **Tool result:** stable artifact identity and session lineage create
-  additional answerable fields in the current implementation, but 28/60 B+C
-  answers are wrong under an independent source-direct oracle. The capability
-  claim is rejected until direct effects, shell/scope inference, identity, and
-  native-root joins pass conformance.
+  additional answerable fields in the current implementation. The frozen
+  revision failed an independent source-direct oracle at 32/60 B+C
+  (2026-07-23); after root-cause repair (session joins, failed-call effects,
+  shell path extraction, event workdir) and oracle correction to v4, the
+  current revision answers 60/60 B+C on the corrected benchmark — a
+  repair-corpus conformance result, not a general capability claim.
 - **Required scope discipline:** local cases support deep descriptive findings,
   not population rates or skill/harness causality. Broad AAAI claims require an
   independent public or prospective corpus.

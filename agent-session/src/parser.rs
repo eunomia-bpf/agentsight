@@ -251,6 +251,7 @@ fn parse_jsonl(
     let mut events = SessionEvents::default();
     let mut current_prompt_index = 0usize;
     let mut call_index = BTreeMap::<String, usize>::new();
+    let mut current_cwd: Option<String> = None;
 
     for line in content.lines() {
         let Ok(obj) = serde_json::from_str::<Value>(line) else {
@@ -297,13 +298,20 @@ fn parse_jsonl(
             }
             _ => {}
         }
-        if acc.cwd.is_none() {
-            acc.cwd = obj
-                .get("cwd")
-                .and_then(Value::as_str)
-                .or_else(|| obj.pointer("/payload/cwd").and_then(Value::as_str))
-                .filter(|s| !s.is_empty())
-                .map(ToString::to_string);
+        if let Some(row_cwd) = obj
+            .get("cwd")
+            .and_then(Value::as_str)
+            .or_else(|| obj.pointer("/payload/cwd").and_then(Value::as_str))
+            .filter(|s| !s.is_empty())
+        {
+            if acc.cwd.is_none() {
+                acc.cwd = Some(row_cwd.to_string());
+            }
+            // Per-record workdir: each native record may move the working
+            // directory (e.g. Claude rows carry `cwd`). The most recent
+            // record cwd overrides the session-initial cwd for tool events
+            // that do not set an explicit input workdir.
+            current_cwd = Some(row_cwd.to_string());
         }
         if let Some(ts) = obj.get("timestamp").and_then(Value::as_str) {
             acc.last_message_at = Some(ts.to_string());
@@ -371,7 +379,7 @@ fn parse_jsonl(
                         }
                         let call_id = item.get("id").and_then(Value::as_str).map(str::to_string);
                         let mut event = tool_event_from_input(
-                            acc.cwd.as_deref(),
+                            current_cwd.as_deref().or(acc.cwd.as_deref()),
                             ts_ms_from_event(&obj),
                             current_prompt_index,
                             name,
@@ -619,7 +627,7 @@ fn parse_jsonl(
                     .and_then(Value::as_str)
                     .map(str::to_string);
                 let mut event = tool_event_from_input(
-                    acc.cwd.as_deref(),
+                    current_cwd.as_deref().or(acc.cwd.as_deref()),
                     ts_ms_from_event(&obj),
                     current_prompt_index,
                     name,
@@ -2681,6 +2689,64 @@ mod tests {
     }
     use serde_json::json;
     use std::time::UNIX_EPOCH;
+
+    #[test]
+    fn claude_event_workdir_overrides_session_cwd_for_relative_paths() {
+        // Frozen question spec: "Event workdir overrides session cwd." A record
+        // carrying a new cwd must move relative path resolution; the
+        // session-initial cwd applies only when the record has none, and an
+        // explicit input workdir beats both.
+        let content = concat!(
+            r#"{"type":"user","cwd":"/repo","sessionId":"s","message":{"content":"go"}}"#,
+            "\n",
+            r#"{"type":"assistant","cwd":"/repo","timestamp":"2026-01-01T00:00:00Z","message":{"content":[{"type":"tool_use","id":"t0","name":"Bash","input":{"command":"cat README.md"}}]}}"#,
+            "\n",
+            r#"{"type":"assistant","cwd":"/repo/collector","timestamp":"2026-01-01T00:00:01Z","message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"cat -n collector/src/view/mod.rs"}}]}}"#,
+            "\n",
+            r#"{"type":"assistant","cwd":"/repo/collector","timestamp":"2026-01-01T00:00:02Z","message":{"content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"cat src/lib.rs","workdir":"/repo"}}]}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CLAUDE,
+            Path::new("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        let tools = &session.events.tools;
+        assert_eq!(tools.len(), 3);
+        // Session cwd used while records keep the initial cwd.
+        assert_eq!(tools[0].workdir.as_deref(), Some("/repo"));
+        assert_eq!(tools[0].paths[0].path, "README.md");
+        // Event workdir overrides the session-initial cwd; relative operands
+        // stay relative here and are joined against this workdir downstream
+        // (agentvis repository::resolve_path).
+        assert_eq!(tools[1].workdir.as_deref(), Some("/repo/collector"));
+        assert_eq!(tools[1].paths[0].path, "collector/src/view/mod.rs");
+        // Explicit input workdir overrides the event cwd.
+        assert_eq!(tools[2].workdir.as_deref(), Some("/repo"));
+        assert_eq!(tools[2].paths[0].path, "/repo/src/lib.rs");
+    }
+
+    #[test]
+    fn codex_turn_context_event_workdir_overrides_session_cwd() {
+        let content = concat!(
+            r#"{"type":"session_meta","payload":{"id":"s","cwd":"/repo"}}"#,
+            "\n",
+            r#"{"type":"turn_context","payload":{"cwd":"/repo/collector"}}"#,
+            "\n",
+            r#"{"timestamp":"2026-01-01T00:00:01Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c1","arguments":"{\"cmd\":\"cat -n collector/src/view/mod.rs\"}"}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            Path::new("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+        let event = &session.events.tools[0];
+        assert_eq!(event.workdir.as_deref(), Some("/repo/collector"));
+        assert_eq!(event.paths[0].path, "collector/src/view/mod.rs");
+    }
 
     #[test]
     fn local_session_ids_keep_distinct_conversation_id() {

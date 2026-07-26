@@ -74,3 +74,11 @@ The entries below preserve only verbatim user-authored research instructions.
 ## 2026-07-23
 
 > 能不能先把研究变得更好? 你可以随意改算法, 把论文先弄好? 去做
+
+## 2026-07-25
+
+> 不要考虑太多对账和追溯, 不要搞那么麻烦, 不要仪式性行为
+
+> 以后是不是记住 codex 的话有选择的听
+
+> 用 codex, 不要用你自己的 agent 了之后. codex 默认配置, 用它来写代码
