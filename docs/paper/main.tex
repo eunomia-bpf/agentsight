@@ -763,8 +763,25 @@ annotated real problem.
 
 We profile all 42 development sessions recorded on the authors' workstation
 for this project---18 Codex and 24 Claude Code sessions produced by the
-agents that built \sys and this paper, including ten long-horizon sessions.
-% 我们分析作者工作站上为本项目记录的全部 42 条开发 session——18 条来自 Codex、24 条来自 Claude Code，其中含十条 long-horizon session；这些正是构建 \sys 与本文的智能体所产生的 session。
+agents that built \sys and this paper, including ten long-horizon sessions
+(Figure~\ref{fig:selfprofile}).
+% 我们分析作者工作站上为本项目记录的全部 42 条开发 session——18 条来自 Codex、24 条来自 Claude Code，其中含十条 long-horizon session（Figure~\ref{fig:selfprofile}）；这些正是构建 \sys 与本文的智能体所产生的 session。
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=.70\linewidth]{../visexp/out/r221-pprof-renderer-v1/selfprofile.tokens.png}\\[1pt]
+\includegraphics[width=.70\linewidth]{../visexp/out/r221-pprof-renderer-v1/selfprofile.operations.png}
+\caption{The complete 42-session development population under one fixed
+semantic hierarchy. Width is provider-reported tokens (top) or operation
+count (bottom); second-level frames are the annotated responsibilities
+(\texttt{refine paper}, \texttt{develop manuscript}, \texttt{develop
+research}, ...), with deeper refinements and source labels available for
+drilldown in stock pprof.}
+\Description{Two flame graphs over the same 42 development sessions. Both
+show a claude root spanning most width, semantic responsibilities at the
+second level, and fragmented deeper refinements.}
+\label{fig:selfprofile}
+\end{figure*}
 The longest sessions span tens of hours and hundreds of prompts.
 % 最长的 session 跨越数十小时与数百个 prompt。
 In this native no-sudo local-history scenario, one
