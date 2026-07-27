@@ -46,8 +46,9 @@ Agent observability needs profiling, not only debugging.
 \sys realizes this insight through a \emph{semantic operation stack model}:
 backend-neutral recursive annotations identify shared responsibilities over an
 ordered source tree, operation stacks compose them with native evidence, and
-additive resource views emit pprof-compatible profiles.
-% \sys 通过语义 operation stack 模型实现这一洞见：backend-neutral 递归 annotation 在有序 source tree 上识别共享责任，operation stack 将其与原生证据组合，可加资源视图输出 pprof-compatible profile。
+count, time, token, file, and network views replay fixed hierarchies into
+pprof-compatible profiles.
+% \sys 通过语义 operation stack 模型实现这一洞见：backend-neutral 递归 annotation 在有序 source tree 上识别共享责任，operation stack 将其与原生证据组合，count、time、token、file 与 network 视图把固定层次重放为 pprof-compatible profile。
 We evaluate \sys on 405 human-staged CodeTraceBench trajectories, three
 complete public localization benchmarks, 287 OSWorld-Human sessions, three
 population case studies, and four public cost workloads.
@@ -638,12 +639,17 @@ by count, Terminus2 contributes 56.24\% and OpenHands 43.76\%, while by tokens
 OpenHands contributes 86.62\%. The repeated \texttt{diagnose authentication}
 operation directly contains 97 operations and 1{,}936{,}828 tokens, and its
 complete recursive subtree contains 105 operations and 2{,}103{,}587 tokens
-(21.47\% and 46.15\% of the focused task). Selecting the measure therefore
+(21.47\% and 46.15\% of the focused task). The same unchanged hierarchy maps
+all 489 evidence rows under a defined elapsed-time width and exactly conserves
+3{,}982 seconds; the subtree holds 1{,}492 seconds, or 37.47\% of elapsed time.
+Its attributed share therefore rises from 21.47\% by count through 37.47\% by
+time to 46.15\% by tokens: changing only the measure moves the share by more
+than a factor of two. Selecting the measure therefore
 changes which responsibility dominates: the count view attributes the task
 mainly to Terminus2, while the token view attributes nearly half of it to the
 authentication responsibility described in the Background and Motivation section, which
 source drilldown resolves to specific unfinished work.
-% 该聚焦任务包含来自 OpenHands/Claude、OpenHands/DeepSeek 与 Terminus2/DeepSeek 的 489 个 operation 和 4,558,192 个 provider-reported token：按数量 Terminus2 占 56.24%、OpenHands 占 43.76%，按 token OpenHands 占 86.62%。重复的 \texttt{diagnose authentication} operation 直接包含 97 个 operation 和 1,936,828 个 token，其完整递归子树包含 105 个 operation 和 2,103,587 个 token（占聚焦任务的 21.47\% 和 46.15%）。因此度量的选择改变了主导责任：count 视图把该任务主要归因于 Terminus2，而 token 视图把接近一半归因于背景与动机章节描述的认证责任，source drilldown 可将其定位到具体的未完成工作。
+% 该聚焦任务包含来自 OpenHands/Claude、OpenHands/DeepSeek 与 Terminus2/DeepSeek 的 489 个 operation 和 4,558,192 个 provider-reported token：按数量 Terminus2 占 56.24%、OpenHands 占 43.76%，按 token OpenHands 占 86.62%。重复的 \texttt{diagnose authentication} operation 直接包含 97 个 operation 和 1,936,828 个 token，其完整递归子树包含 105 个 operation 和 2,103,587 个 token（占聚焦任务的 21.47\% 和 46.15%）。同一未变层次还把全部 489 条 evidence row 映射到定义的 elapsed-time 宽度并精确保守 3,982 秒；该子树持有 1,492 秒，即 elapsed time 的 37.47%。其归因份额因此从 count 的 21.47% 经 time 的 37.47% 上升至 token 的 46.15%；仅改变度量就使该份额变化超过两倍。因此度量的选择改变了主导责任：count 视图把该任务主要归因于 Terminus2，而 token 视图把接近一半归因于背景与动机章节描述的认证责任，source drilldown 可将其定位到具体的未完成工作。
 As a post-hoc organization control, we replay the same 489 source operations and
 both weights over common \texttt{project, agent} prefixes and \texttt{call, tool}
 leaves with three middle organizations---native (\texttt{session, prompt}), coarse (\texttt{action kind, raw action}), or semantic---so all six profiles conserve
@@ -658,6 +664,11 @@ This repeated real task supports RQ1's multi-resource attribution hypothesis:
 one shared responsibility path reunites the SSH work across executions, while
 the selected additive measure changes its attributed importance.
 % 这个重复的真实任务支持 RQ1 的多资源归因假设：一个共享 responsibility path 跨执行重聚 SSH 工作，而所选可加度量会改变其归因重要性；我们不声称某一种资源度量普遍支配其他度量。
+Separately, real AgentSight eBPF recordings replay the same way: the R114
+population folds all 1{,}520 process/file effects under task responsibilities
+through the recorded wrapper tool with exact conservation, demonstrating the
+system-effect layer end to end.
+% 另外，真实 AgentSight eBPF recording 以相同方式重放：R114 population 通过记录的 wrapper tool，把全部 1,520 个 process/file effect 折叠到 task responsibility 下并精确保守，从而端到端展示 system-effect 层。
 
 The same population-scale behavior holds on the frozen 440-session
 AgentRewardBench hierarchy (7{,}229 operations and 51{,}904{,}621
@@ -909,6 +920,27 @@ failures across 42 batches.
 The operation-count and token profiles conserve exact mass---3{,}509 and
 1{,}380{,}863{,}014, respectively---and both load in stock pprof.
 % operation-count 与 token profile 分别精确守恒 3,509 与 1,380,863,014 的质量，并且都能由原生 pprof 加载。
+The same self-profile hierarchy also replays under FILE-READ, FILE-WRITE, and
+NETWORK-target widths with exact conservation of 737, 31, and 61 target
+references, respectively (Figure~\ref{fig:selfprofile-write}).
+% 同一 self-profile 层次还以 FILE-READ、FILE-WRITE 与 NETWORK-target 宽度重放，并分别精确保守 737、31 与 61 个 target reference（Figure~\ref{fig:selfprofile-write}）。
+In the FILE-WRITE view, source-linked LLM and tool frames remain beneath each
+semantic operation, and each created file appears as an exact drilldown leaf
+beneath the operation that created it.
+% 在 FILE-WRITE 视图中，source-linked LLM 与 tool frame 保留在各 semantic operation 之下，每个创建的文件都作为精确的 drilldown leaf 出现在创建它的 operation 之下。
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/selfprofile.file-write.png}
+\caption{FILE-WRITE view of the same self-profile hierarchy. Width is
+target-reference count, with each created file preserved along the semantic
+operation $\rightarrow$ LLM $\rightarrow$ tool $\rightarrow$ exact write-target
+path.}
+% 同一 self-profile 层次的 FILE-WRITE 视图。宽度为 target-reference count；每个创建的文件都沿 semantic operation → LLM → tool → exact write target 路径保留。
+\Description{A FILE-WRITE flame graph whose semantic-operation frames contain
+LLM and tool frames ending at exact file-write targets.}
+\label{fig:selfprofile-write}
+\end{figure*}
 
 Development work is broad rather than concentrated: the largest token path,
 \texttt{refine paper > align evaluation}, holds only 1.735\% of token mass.
