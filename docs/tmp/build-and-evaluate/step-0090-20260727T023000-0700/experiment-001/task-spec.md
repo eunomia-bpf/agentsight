@@ -46,3 +46,22 @@ demonstration on the R114 AgentSight population instead and say so.
 capability-inventory.md, the new .pb.gz profiles, rendered PNGs,
 results.md (per-measure conservation + subtree shares + provenance),
 execution-log.md. If product code changed: tests pass, changes listed.
+
+## Amendment (user direction, binding for the demonstration design)
+
+1. Split the file measure into FILE-READ and FILE-WRITE widths (two
+   additive measures, not one).
+2. The worked example must show WHAT FILES the agent created (write
+   targets as drilldown labels/leaves under the responsible semantic
+   operation) — "which operation created which files" is the explainable
+   form.
+3. Network: if the population's effects include network events, add a
+   network-connection width and, where a failing responsibility exists,
+   correlate the FAILURE CAUSE with its system events (e.g., repeated
+   connections/exec attempts under the failing semantic operation).
+4. One COMPLETE end-to-end example is required: semantic operation stack
+   -> LLM/tool evidence -> system-effect leaves with read/write/network
+   widths, on real data. If the Git-case sessions have no eBPF recording,
+   use the R114 AgentSight population for the system-effect example and
+   say so explicitly; Case Study 1 gains the system-level stack only if
+   its own recordings exist.
