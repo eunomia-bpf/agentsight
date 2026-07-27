@@ -1,0 +1,186 @@
+{
+  "arm_definition": {
+    "flat": "leaf tag (last path component) only, parent paths stripped, grouped by leaf",
+    "hierarchical": "full source_preserving_agent path grouped by full path (step-0080 style)",
+    "leaf_tag_vocabulary": [
+      "blocked",
+      "failure",
+      "progress",
+      "success",
+      "unclear"
+    ],
+    "leaf_unique_tags": 5
+  },
+  "benchmark": "TraceElephant",
+  "bootstrap_reps": 10000,
+  "bootstrap_seeds": {
+    "H_minus_F": 20260989,
+    "content_delta": 20260990
+  },
+  "content_deltas_h_minus_f": {
+    "content_opened_fraction": {
+      "direction": "hierarchical - flat",
+      "interval_95": [
+        -0.2744593086208663,
+        -0.21021243067348255
+      ],
+      "median": -0.24270058030900157,
+      "nonpositive_draws": 10000,
+      "point_effect": -0.2428946459001331,
+      "repetitions": 10000,
+      "seed": 20260990
+    },
+    "selected_evidence_operation_count": {
+      "direction": "hierarchical - flat",
+      "interval_95": [
+        -8.522727272727273,
+        -5.745454545454545
+      ],
+      "median": -7.095454545454546,
+      "nonpositive_draws": 10000,
+      "point_effect": -7.113636363636363,
+      "repetitions": 10000,
+      "seed": 20260990
+    },
+    "stage2_evidence_chars": {
+      "direction": "hierarchical - flat",
+      "interval_95": [
+        -13363.186363636363,
+        -9148.718181818182
+      ],
+      "median": -11236.86590909091,
+      "nonpositive_draws": 10000,
+      "point_effect": -11267.440909090908,
+      "repetitions": 10000,
+      "seed": 20260990
+    }
+  },
+  "cost": {
+    "flat": {
+      "mean_prompt_tokens_o200k": 13062.404545454545,
+      "mean_total_chars": 43161.336363636365,
+      "mean_wall_seconds": 51.005650822560845,
+      "median_prompt_tokens_o200k": 10911.5,
+      "median_total_chars": 34684.0,
+      "median_wall_seconds": 42.95030824103742,
+      "queries": 220,
+      "total_chars": 9495494,
+      "total_prompt_tokens_o200k": 2873729,
+      "total_wall_seconds": 11221.243180963385
+    },
+    "hierarchical": {
+      "mean_prompt_tokens_o200k": 13623.827272727272,
+      "mean_total_chars": 44704.663636363635,
+      "mean_wall_seconds": 65.21899219105941,
+      "median_prompt_tokens_o200k": 11716.5,
+      "median_total_chars": 37039.0,
+      "median_wall_seconds": 53.0515010060044,
+      "queries": 220,
+      "total_chars": 9835026,
+      "total_prompt_tokens_o200k": 2997242,
+      "total_wall_seconds": 14348.17828203307
+    }
+  },
+  "cost_step0079": {
+    "mean_packet_chars": 44589.240909090906,
+    "mean_wall_seconds": 29.88177357456496,
+    "median_wall_seconds": 25.68185145800817,
+    "queries": 220,
+    "total_wall_seconds": 6573.990186404291
+  },
+  "failure_tally": {
+    "flat": {
+      "stage1_largest_groups_fallback": 0,
+      "stage1_ok": 219,
+      "stage1_ok_after_retry": 1,
+      "stage2_ok": 218,
+      "stage2_ok_after_retry": 0,
+      "stage2_original_order_failures": 2
+    },
+    "hierarchical": {
+      "stage1_largest_groups_fallback": 0,
+      "stage1_ok": 215,
+      "stage1_ok_after_retry": 5,
+      "stage2_ok": 213,
+      "stage2_ok_after_retry": 5,
+      "stage2_original_order_failures": 2
+    }
+  },
+  "group_stats": {
+    "flat": {
+      "index_hit_rate": 0.7454545454545455,
+      "index_hits": 164,
+      "max_largest_group_size": 79,
+      "mean_content_opened_fraction": 0.7339428238331189,
+      "mean_group_count": 2.340909090909091,
+      "mean_largest_group_size": 17.213636363636365,
+      "mean_selected_evidence_ops": 20.272727272727273,
+      "median_content_opened_fraction": 0.9077348512283367,
+      "median_group_count": 2.0,
+      "median_largest_group_size": 15.0
+    },
+    "hierarchical": {
+      "index_hit_rate": 0.65,
+      "index_hits": 143,
+      "max_largest_group_size": 75,
+      "mean_content_opened_fraction": 0.4910481779329859,
+      "mean_group_count": 13.695454545454545,
+      "mean_largest_group_size": 6.040909090909091,
+      "mean_selected_evidence_ops": 13.159090909090908,
+      "median_content_opened_fraction": 0.4970107816207784,
+      "median_group_count": 12.0,
+      "median_largest_group_size": 4.0
+    }
+  },
+  "harness": "hier_vs_flat_eval.py",
+  "map": {
+    "direct_reader": 0.5019667175243024,
+    "flat": 0.3664084089369154,
+    "hierarchical": 0.4259647612429739,
+    "local_agentprof": 0.32550420747157927,
+    "local_only": 0.20871255669979352
+  },
+  "metric": "sklearn.metrics.average_precision_score per target-bearing query; arithmetic MAP over 220; paired trajectory-cluster bootstrap within TraceElephant strata",
+  "mode": "score-only",
+  "operations": 5960,
+  "paired_h_minus_f": {
+    "clusters": 220,
+    "direction": "hierarchical - flat",
+    "interval_95": [
+      0.01387946888307635,
+      0.10470200689697844
+    ],
+    "median": 0.05908582831523804,
+    "nonpositive_draws": 55,
+    "point_effect": 0.05955635230605849,
+    "repetitions": 10000,
+    "seed": 20260989,
+    "strata": 5
+  },
+  "provenance": {
+    "baseline_per_query": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-current-agent-local-first-v1/full/per-query.jsonl",
+    "group_key": "source_preserving_agent",
+    "group_mapping": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-canonical-tags-v2-current/trace/results/fixed-groups.jsonl",
+    "packets": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/rq2-a0-v1/full/trace/packets",
+    "projections": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/traceelephant-rq2-v1/operations/projection.jsonl",
+    "step_0079_raw": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0079-20260724T235753-0700/experiment-001/raw-results.json",
+    "targets": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/.agentsight/experiments/traceelephant-rq2-v1/scorer/targets.jsonl"
+  },
+  "reader": {
+    "cli": "opencode run --pure <packet+instruction>",
+    "cwd": "reader-jail (fresh empty directory; no project context)",
+    "default_model": "glm-5.2",
+    "delivery": "argv (single positional argument)",
+    "fallbacks": "stage-1 fail -> largest 5 groups; stage-2 fail -> original-order ranking; all tallied",
+    "instruction_closing": "Answer directly in strict JSON only. Do not use any tools, do not read or write any files, do not run any commands.",
+    "model_family": "opencode/glm-5.2 for BOTH arms (reader family held fixed); differs from the step-0080 grok reader, disclosed, not pooled with it",
+    "model_source": "observed stderr banner '> build · glm-5.2'",
+    "no_flags_added": "addendum-002 forbids invented flags / config / agent-file touch",
+    "one_format_retry_per_call": true,
+    "parser": "FIRST JSON object in stdout (balanced-brace scan, ANSI stripped)",
+    "stdin": "/dev/null",
+    "workers": 1
+  },
+  "target_bearing_queries": 220,
+  "wall_seconds_harness": 2.589868128998205
+}

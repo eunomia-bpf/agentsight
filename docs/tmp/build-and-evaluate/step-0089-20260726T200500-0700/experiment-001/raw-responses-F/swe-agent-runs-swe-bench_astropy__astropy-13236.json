@@ -1,0 +1,110 @@
+{
+  "arm": "flat",
+  "completed_ranking": [
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-14",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-15",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-16",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-17",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-7",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-1",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-2",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-3",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-4",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-5",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-6",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-8",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-9",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-10",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-11",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-12",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-13",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-18",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-19",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-20",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-21"
+  ],
+  "group_count": 2,
+  "largest_group_size": 17,
+  "operation_count": 21,
+  "prompt_tokens_o200k": 13070,
+  "query_id": "swe-agent-runs-swe-bench/astropy__astropy-13236",
+  "reader_ranked_operation_ids": [
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-14",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-15",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-16",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-17",
+    "swe-agent-runs-swe-bench/astropy__astropy-13236#step-7"
+  ],
+  "selected_evidence_operation_count": 21,
+  "selected_group_path_keys": [
+    "failure",
+    "success"
+  ],
+  "selected_group_paths": [
+    [
+      "failure"
+    ],
+    [
+      "success"
+    ]
+  ],
+  "stage1_attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "argv_fallback_triggered": false,
+        "delivery": "argv (opencode run --pure)",
+        "prompt_bytes": 7005,
+        "prompt_tokens_o200k": 2170,
+        "reader": "opencode run --pure",
+        "reader_default_model": "glm-5.2",
+        "returncode": 0,
+        "stderr_tail": "\u001b[0m\n> build · glm-5.2\n\u001b[0m\n"
+      },
+      "parsed": [
+        [
+          "failure"
+        ],
+        [
+          "success"
+        ]
+      ],
+      "raw_response": "{\"selected_group_paths\": [[\"failure\"], [\"success\"]]}\n",
+      "wall_seconds": 6.008623487956356
+    }
+  ],
+  "stage1_chars": 5762,
+  "stage1_largest_groups_fallback": false,
+  "stage1_status": "ok",
+  "stage1_wall_seconds": 6.008623487956356,
+  "stage2_attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "argv_fallback_triggered": false,
+        "delivery": "argv (opencode run --pure)",
+        "prompt_bytes": 35178,
+        "prompt_tokens_o200k": 10900,
+        "reader": "opencode run --pure",
+        "reader_default_model": "glm-5.2",
+        "returncode": 0,
+        "stderr_tail": "\u001b[0m\n> build · glm-5.2\n\u001b[0m\n"
+      },
+      "parsed": [
+        "swe-agent-runs-swe-bench/astropy__astropy-13236#step-14",
+        "swe-agent-runs-swe-bench/astropy__astropy-13236#step-15",
+        "swe-agent-runs-swe-bench/astropy__astropy-13236#step-16",
+        "swe-agent-runs-swe-bench/astropy__astropy-13236#step-17",
+        "swe-agent-runs-swe-bench/astropy__astropy-13236#step-7"
+      ],
+      "raw_response": "Looking at the trajectory, the task is to add a `FutureWarning` when structured arrays are auto-transformed into `NdarrayMixin`. The agent's code edit (step-7) appears functionally correct — the reproduction script confirmed the warning fires. The labeled \"failure\" group (steps 14–17) is where the agent demonstrably went wrong: after being told to remove the reproduction script, it attempted to empty the file via `str_replace` with an empty `new_str` (step-14), triggering an `AssertionError` (step-15), then a \"no replacement\" error (step-16), and finally an invalid `view_range` on a now-1-line file (step-17). These four operations constitute the failure sequence, with step-14 being the root cause (choosing `str_replace` to clear a file instead of `rm`). Step-7 is included as a secondary candidate in case the edit has a subtle defect not visible in the truncated evidence. {\"ranked_operation_ids\": [\"swe-agent-runs-swe-bench/astropy__astropy-13236#step-14\", \"swe-agent-runs-swe-bench/astropy__astropy-13236#step-15\", \"swe-agent-runs-swe-bench/astropy__astropy-13236#step-16\", \"swe-agent-runs-swe-bench/astropy__astropy-13236#step-17\", \"swe-agent-runs-swe-bench/astropy__astropy-13236#step-7\"]}\n",
+      "wall_seconds": 204.65606224100338
+    }
+  ],
+  "stage2_chars": 34013,
+  "stage2_scored_as_original_order_failure": false,
+  "stage2_status": "ok",
+  "stage2_wall_seconds": 204.65606224100338,
+  "step0079_packet_chars": 32048,
+  "wall_seconds_total": 210.66468572895974
+}
