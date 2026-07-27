@@ -300,10 +300,10 @@ control and fallback attempts, although none of the three runs ever
 establishes the password-authenticated \texttt{git@localhost} path the task
 asked for. Read as raw trace records, the same work is 105 separate calls
 spread over six action kinds, 102 of them merely \texttt{run}, interleaved
-with 97 unrelated operations. Section~\ref{sec:eval} measures this case, its
+with 97 unrelated operations. The Evaluation section measures this case, its
 same-input organization controls, and whether the effect holds at population
 scale.
-% 正是这个构造出来的名字让下图变得可回答：三次执行共消耗 456 万 token，其中接近一半落在同一个共享的认证责任下，两次 OpenHands 执行在 control 与 fallback 尝试之后都回到该责任，但三次执行都没有建立任务要求的密码认证 \texttt{git@localhost} 路径。若按 raw trace record 阅读，同一批工作是散落在六种 action kind 中的 105 个独立 call（其中 102 个仅为 \texttt{run}），并与 97 个无关 operation 交织。第~\ref{sec:eval} 节测量该案例、其同输入组织对照，以及该效应是否在 population 规模上成立。
+% 正是这个构造出来的名字让下图变得可回答：三次执行共消耗 456 万 token，其中接近一半落在同一个共享的认证责任下，两次 OpenHands 执行在 control 与 fallback 尝试之后都回到该责任，但三次执行都没有建立任务要求的密码认证 \texttt{git@localhost} 路径。若按 raw trace record 阅读，同一批工作是散落在六种 action kind 中的 105 个独立 call（其中 102 个仅为 \texttt{run}），并与 97 个无关 operation 交织。评估章节测量该案例、其同输入组织对照，以及该效应是否在 population 规模上成立。
 
 \subsection{Challenges for Agent Profiling}
 % 智能体 Profiling 的挑战
@@ -541,6 +541,14 @@ reference-calibrated mode fits one scalar cutoff on disjoint reference groups
 export format.
 % \sys 只输出一个供 \texttt{go tool pprof} 等现有工具读取的 pprof protobuf profile；它不增加可视化前端或第二种导出格式。
 
+\paragraph{Privacy.}
+% 隐私。
+\sys runs entirely offline on local histories; profiles carry only short
+semantic names, bounded text previews, and numeric measures as labels; no
+trajectory content leaves the machine unless the user shares the profile, and
+packet previews are truncated as disclosed in the appendix.
+% \sys 完全离线运行于本地历史之上；profile 仅携带短语义名称、有限文本预览与数值度量作为 label；除非用户主动分享 profile，否则任何轨迹内容都不离开本机，packet 预览按附录说明截断。
+
 %% ===================================================================
 \section{Evaluation}
 % 评估
@@ -574,6 +582,12 @@ agentnet,osworldhuman}; and \textbf{problem-localization benchmarks (RQ2)} over
 27{,}346 operations~\cite{agentprocessbench,hintbench,traceelephant}, with the
 RQ4 union at 27{,}765 operations~\cite{agentrewardbench,safactory,osworldhuman,
 agentnet}.
+Per-workload mean operations per trajectory are 8.5 (AgentProcessBench), 13.9
+(OSWorld-Human), 24.0 (HINTBench), 27.1 (TraceElephant), and 51.5
+(CodeTraceBench), so benchmark trajectories are short-to-medium horizon while
+the 42-session workstation population---whose longest sessions span tens of
+hours---supplies the long-horizon regime.
+% 各 workload 平均每条轨迹的 operation 数分别为 AgentProcessBench 8.5、OSWorld-Human 13.9、HINTBench 24.0、TraceElephant 27.1、CodeTraceBench 51.5；benchmark 轨迹为短到中 horizon，而 42-session 工作站群体（最长 session 跨越数十小时）提供长 horizon 区间。
 % 三类数据：真实输入（RQ1 与案例）含 41 条 long-horizon coding-agent session 与 440 条 mixed-outcome web-agent trajectory；标注轨迹（RQ3/RQ4）含 15 个执行 family 与 405 条 CodeTraceBench 轨迹（20,866 operation）；问题定位 benchmark（RQ2）覆盖 27,346 operation；RQ4 union 为 27,765 operation。
 
 %% -------------------------------------------------------------------
@@ -594,11 +608,11 @@ This establishes the multi-resource attribution capability on a repeated
 real task.
 % 该实验在一个重复真实任务上建立了多资源 attribution 能力。
 \paragraph{Case Study 1: Long-Horizon Agent Diagnosis.}
-This is the case previewed in Section~\ref{sec:background}. A stock-pprof focus
+This is the case previewed in the Background and Motivation section. A stock-pprof focus
 query retains all three executions of the repeated Git-deployment task rather
 than selecting one trace, and Figure~\ref{fig:flamegraph} replays that one
 fixed hierarchy under both additive measures.
-% 这是第~\ref{sec:background} 节预览的案例。stock pprof focus query 保留该重复 Git 部署任务的全部三次执行而非挑选单条轨迹，图~\ref{fig:flamegraph} 在两种可加度量下重放同一个固定层次。
+% 这是背景与动机章节预览的案例。stock pprof focus query 保留该重复 Git 部署任务的全部三次执行而非挑选单条轨迹，图~\ref{fig:flamegraph} 在两种可加度量下重放同一个固定层次。
 
 \begin{figure*}[t]
 \centering
@@ -609,7 +623,7 @@ operation hierarchy, replayed under two additive measures: width is operation
 count (top) or provider-reported tokens (bottom). The hierarchy, its
 boundaries, and its names are identical in both panels; only the measure
 changes. Figure~\ref{fig:motivating} focuses the shared \texttt{diagnose
-authentication} operation of the token view. AgentPProf emits only standard
+authentication} operation of the token view. \sys emits only standard
 pprof; a paper-only renderer reads the same \texttt{.pb.gz} through
 \texttt{go tool pprof} without introducing a product frontend.}
 \Description{Two operation flame graphs over the same Git-deployment traces.
@@ -627,9 +641,9 @@ complete recursive subtree contains 105 operations and 2{,}103{,}587 tokens
 (21.47\% and 46.15\% of the focused task). Selecting the measure therefore
 changes which responsibility dominates: the count view attributes the task
 mainly to Terminus2, while the token view attributes nearly half of it to the
-authentication responsibility described in Section~\ref{sec:background}, which
+authentication responsibility described in the Background and Motivation section, which
 source drilldown resolves to specific unfinished work.
-% 该聚焦任务包含来自 OpenHands/Claude、OpenHands/DeepSeek 与 Terminus2/DeepSeek 的 489 个 operation 和 4,558,192 个 provider-reported token：按数量 Terminus2 占 56.24%、OpenHands 占 43.76%，按 token OpenHands 占 86.62%。重复的 \texttt{diagnose authentication} operation 直接包含 97 个 operation 和 1,936,828 个 token，其完整递归子树包含 105 个 operation 和 2,103,587 个 token（占聚焦任务的 21.47\% 和 46.15%）。因此度量的选择改变了主导责任：count 视图把该任务主要归因于 Terminus2，而 token 视图把接近一半归因于第~\ref{sec:background} 节描述的认证责任，source drilldown 可将其定位到具体的未完成工作。
+% 该聚焦任务包含来自 OpenHands/Claude、OpenHands/DeepSeek 与 Terminus2/DeepSeek 的 489 个 operation 和 4,558,192 个 provider-reported token：按数量 Terminus2 占 56.24%、OpenHands 占 43.76%，按 token OpenHands 占 86.62%。重复的 \texttt{diagnose authentication} operation 直接包含 97 个 operation 和 1,936,828 个 token，其完整递归子树包含 105 个 operation 和 2,103,587 个 token（占聚焦任务的 21.47\% 和 46.15%）。因此度量的选择改变了主导责任：count 视图把该任务主要归因于 Terminus2，而 token 视图把接近一半归因于背景与动机章节描述的认证责任，source drilldown 可将其定位到具体的未完成工作。
 As a post-hoc organization control, we replay the same 489 source operations and
 both weights over common \texttt{project, agent} prefixes and \texttt{call, tool}
 leaves with three middle organizations---native (\texttt{session, prompt}), coarse (\texttt{action kind, raw action}), or semantic---so all six profiles conserve
@@ -671,7 +685,11 @@ engineering decision.
 
 RQ2 asks whether target-blind profiles place independently annotated problems
 in groups a developer can inspect early. We run complete AgentProcessBench,
-HINTBench, and TraceElephant workloads~\cite{agentprocessbench,hintbench,traceelephant}.
+HINTBench (the complete released test snapshot, 536 of the paper-reported 629
+trajectories), and TraceElephant workloads~\cite{agentprocessbench,hintbench,
+traceelephant}; all zero-positive trajectories are consumed for population
+coverage but excluded from MAP because AP is undefined without a relevant item.
+% RQ2 问 target-blind profile 是否把独立标注的问题放进开发者可优先检视的 group。我们在完整的 AgentProcessBench、HINTBench（完整的 released test snapshot，629 个论文报告轨迹中的 536 个）和 TraceElephant workload 上运行；所有 zero-positive 轨迹用于群体覆盖但因其使 AP 无定义而从 MAP 中排除。
 
 Within each workload, operations, target-blind paths, benchmark predictions,
 and scoring are fixed before loading test targets
@@ -752,8 +770,11 @@ stage two then opens only the selected groups' evidence.
 It reaches MAP .455 while opening 53.0\% of the source content, and its
 stage-one selections never fell back to a default; the five-group budget
 saturated on 99.5\% of queries, and every selection miss was an absence from
-the reader's ordered choices rather than a budget cutoff.
-% 它达到 MAP .455，同时只打开 53.0\% 的 source 内容，且第一阶段选择从未回退到默认值；五组预算在 99.5\% 的 query 上被用满，且所有选择遗漏都是 reader 排序中的整体缺席而非预算截断。
+the reader's ordered choices rather than a budget cutoff---re-parsing the
+uncapped stage-one responses shows the reader proposed more than five groups
+on zero of 220 queries, and every missed target group was entirely absent
+from its ordered selection.
+% 它达到 MAP .455，同时只打开 53.0\% 的 source 内容，且第一阶段选择从未回退到默认值；五组预算在 99.5\% 的 query 上被用满，且所有选择遗漏都是 reader 排序中的整体缺席而非预算截断——重新解析未截断的第一阶段响应显示，reader 在 220 个 query 中的 0 个上提出超过五组，且每个遗漏的 target group 都完全缺席于其有序选择。
 Under an information-matched raw-action skeleton, ranking quality is
 statistically unchanged (MAP .465; paired delta $+.010$ [$-.021$, $+.042$]).
 % 在信息匹配的 raw-action 骨架下，排名质量在统计上不变（MAP .465；配对差异 +.010 [-.021, +.042]）。
@@ -894,7 +915,11 @@ Development work is broad rather than concentrated: the largest token path,
 % 开发工作分布广泛而非集中：最大的 token path \texttt{refine paper > align evaluation} 仅占 token 总量的 1.735\%。
 Token mass remains mostly at the mandatory prompt depth (70.4\%), whereas
 operation mass resolves more deeply, with 43.9\% at depths three and four.
-% token 质量主要停留在必需的 prompt 深度（70.4\%），而 operation 质量的解析更深，其中 43.9\% 位于深度三和四。
+Most token mass staying at prompt depth reflects genuinely many-tasked
+development sessions under the fixed one-pass protocol; operation mass
+resolves deeper (43.9\% at depths three and four) exactly where repeated
+engineering work concentrates.
+% token 质量主要停留在必需的 prompt 深度（70.4\%），而 operation 质量的解析更深，其中 43.9\% 位于深度三和四；token 质量停留在 prompt 深度反映了固定一次通过协议下真正多任务的开发 session，operation 质量更深层（深度三与四占 43.9\%）正是重复工程工作集中的位置。
 The three longest sessions have distinct dominant responsibilities---evaluation
 alignment, evidence inspection, and merge/conflict resolution---so the profile
 preserves long-session responsibility structure rather than averaging it away.
@@ -976,13 +1001,14 @@ Direct Agent annotation reaches 0.764 B$^3$ F1, improving over recurrence by
 0.101 (task-clustered bootstrap 95\% interval [0.087, 0.116]). Its boundary
 F1 is 0.480 versus 0.266 for recurrence; the residual boundary error is
 over-segmentation rather than missed transitions (recall 0.626, precision
-0.389), the benign direction for profiling because extra splits subdivide
-work without merging unrelated responsibilities, as the 0.793 B$^3$ precision
-confirms. Thus the direct Agent backend is the
+0.389), so the error therefore skews toward extra splits: predicted groups
+remain largely pure subsets of gold stages (B$^3$ precision 0.793), so the
+dominant failure subdivides work rather than merging unrelated
+responsibilities. Thus the direct Agent backend is the
 strongest tested automatic constructor on this complete population, and its
 marks conserve exactly 20{,}866 operations and 494{,}862{,}929
 provider-reported tokens.
-% 直接 Agent 标注达到 0.764 B$^3$ F1，相对 recurrence 提高 0.101（task-clustered bootstrap 95\% 区间 [0.087, 0.116]）；其 boundary F1 为 0.480，而 recurrence 为 0.266。直接 Agent backend 是该完整 population 上最强的已测自动 constructor，其 mark 精确保守 20,866 个 operation 与 494,862,929 个 provider-reported token。
+% 直接 Agent 标注达到 0.764 B$^3$ F1，相对 recurrence 提高 0.101（task-clustered bootstrap 95\% 区间 [0.087, 0.116]）；其 boundary F1 为 0.480，而 recurrence 为 0.266。残余 boundary 误差来自过分割而非漏分割（recall 0.626，precision 0.389），因此误差偏向额外 split：预测 group 仍是 gold stage 较纯净的子集（B$^3$ precision 0.793），主导失败是把工作细分而非合并无关责任。直接 Agent backend 是该完整 population 上最强的已测自动 constructor，其 mark 精确保守 20,866 个 operation 与 494,862,929 个 provider-reported token。
 
 On all 287 OSWorld-Human task-instance sessions~\cite{osworldhuman} with
 complete group annotations, the supervised predictor reaches 0.739 boundary
