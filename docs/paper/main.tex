@@ -1081,7 +1081,12 @@ stacks, folding weights, and serializing the profile---by comparing the fixed se
 \texttt{project, agent, action, status} on identical inputs over three runs.
 Measurements use \texttt{agentpprof 0.2.37} on a 24-core Intel Core Ultra 9
 285K with 125\,GiB RAM and Linux 6.15.11.
+This microbenchmark exercises the generic parse/fold/serialize core on
+public field-stack workloads; the current annotation-mark representation's
+deterministic pipeline is timed separately below (11.516\,s end to end on
+all 405 CodeTrace trajectories, with sub-second materialization).
 % RQ4 区分 fixed-input replay 与首次 profile 构建的可观测组件。我们先在四个完整公开 workload 及其 union 上各运行三次，比较固定 semantic hierarchy 与相同输入的 raw action，再分解当前 Agent 标注的可观测构建路径。
+% 该 microbenchmark 测试的是通用 parse/fold/serialize 核心在公开 field-stack workload 上的表现；当前 annotation-mark 表示的确定性管线在下文单独计时（全部 405 条 CodeTrace 轨迹端到端 11.516 秒，materialization 亚秒级）。
 
 Both time curves are monotonic across the five input sizes, and the semantic
 curve has a descriptive slope of 0.0418\,ms per operation ($R^2=0.9997$),
