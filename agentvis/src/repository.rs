@@ -157,7 +157,6 @@ pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<Re
     if let Some(end_ms) = options.end_ms {
         events.retain(|event| event.ts_ms <= end_ms);
     }
-    annotate_directory_scopes(&mut events);
     events.sort_by(|left, right| {
         (
             left.ts_ms,
@@ -172,6 +171,10 @@ pub fn build_repository_trace(options: &RepositoryTraceOptions) -> io::Result<Re
                 &right.id,
             ))
     });
+    // Directory knowledge is action-time state, so it must follow the same
+    // global event order used by lifecycle and session projection rather than
+    // candidate-file scan order.
+    annotate_directory_scopes(&mut events);
     annotate_session_ordinals(&mut events);
     annotate_artifact_ids(&mut events);
     let session_count = events
@@ -932,7 +935,11 @@ fn annotate_directory_scopes(events: &mut [RepositoryEvent]) {
             }
         }
         let exact_file_tool = exact_file_tool(event);
-        let directory_tool = directory_tool(event);
+        // Shell ToolPaths are already restricted to exact file operands by
+        // agent-session. If the first segment is `ls`/`mkdir`, event-level
+        // command_name must not turn exact actions from a later cp/sed/mv
+        // segment into directory scopes.
+        let directory_tool = directory_tool(event) && event.category != "shell";
         for action in &mut event.actions {
             let key = (
                 action.worktree_id.clone(),
@@ -950,8 +957,11 @@ fn annotate_directory_scopes(events: &mut [RepositoryEvent]) {
                     path.trim_end_matches('/').to_string(),
                 ))
             });
-            action.scope = !exact_file_tool
-                && (directory_tool || directories.contains(&key) || previous_is_directory);
+            let recursive_delete =
+                action.access == "delete" && recursive_shell_delete(&event.command, &action.path);
+            action.scope = recursive_delete
+                || (!exact_file_tool
+                    && (directory_tool || directories.contains(&key) || previous_is_directory));
             if action.scope && action.access == "delete" {
                 directories.retain(|(worktree, path)| {
                     worktree != &key.0
@@ -960,6 +970,24 @@ fn annotate_directory_scopes(events: &mut [RepositoryEvent]) {
             }
         }
     }
+}
+
+fn recursive_shell_delete(command: &str, action_path: &str) -> bool {
+    command.split([';', '\n', '|', '&']).any(|clause| {
+        let words = clause
+            .split_whitespace()
+            .map(|word| word.trim_matches(['\'', '"']))
+            .collect::<Vec<_>>();
+        let is_remove = words
+            .iter()
+            .any(|word| Path::new(word).file_name().and_then(|value| value.to_str()) == Some("rm"));
+        is_remove
+            && words.contains(&action_path)
+            && words.iter().any(|word| {
+                *word == "--recursive"
+                    || (word.starts_with('-') && !word.starts_with("--") && word[1..].contains('r'))
+            })
+    })
 }
 
 fn exact_file_tool(event: &RepositoryEvent) -> bool {
@@ -1439,8 +1467,8 @@ mod tests {
         let resolved = resolve_path("collector/src/view/mod.rs", Some(event_workdir), &roots)
             .expect("inside worktree");
         assert_eq!(resolved.path, "collector/collector/src/view/mod.rs");
-        let resolved = resolve_path("src/view/mod.rs", Some(event_workdir), &roots)
-            .expect("inside worktree");
+        let resolved =
+            resolve_path("src/view/mod.rs", Some(event_workdir), &roots).expect("inside worktree");
         assert_eq!(resolved.path, "collector/src/view/mod.rs");
         // A workdir outside every root excludes the operand entirely.
         assert!(resolve_path("notes.md", Some(Path::new("/tmp/scratch")), &roots).is_none());
@@ -1721,6 +1749,170 @@ mod tests {
         assert!(!batch.0[0].actions[0].scope);
         assert!(!batch.0[1].actions[0].scope);
         assert!(!batch.0[2].actions[0].scope);
+    }
+
+    #[test]
+    fn recursive_git_rm_is_a_directory_scope_without_manifest_inference() {
+        let mut removal = tool(
+            1,
+            "ok",
+            vec![ToolPath {
+                path: "docs/corpus-rq1/smoke".into(),
+                access: "delete".into(),
+                previous_path: None,
+            }],
+        );
+        removal.tool_name = "exec_command".into();
+        removal.category = "shell".into();
+        removal.command_name = "git".into();
+        removal.command = "git rm -r --ignore-unmatch docs/corpus-rq1/smoke".into();
+        let mut batch = (Vec::new(), 0);
+        append_session(
+            &session(vec![removal]),
+            1,
+            &["/repo".into()],
+            true,
+            &mut batch,
+        );
+        annotate_directory_scopes(&mut batch.0);
+        assert_eq!(batch.0[0].actions.len(), 1);
+        assert!(batch.0[0].actions[0].scope);
+    }
+
+    #[test]
+    fn compound_directory_prefix_does_not_scope_later_exact_file_actions() {
+        let mut copy = tool(
+            1,
+            "ok",
+            vec![
+                ToolPath {
+                    path: "paper/a.pdf".into(),
+                    access: "read".into(),
+                    previous_path: None,
+                },
+                ToolPath {
+                    path: "paper/b.pdf".into(),
+                    access: "read".into(),
+                    previous_path: None,
+                },
+                ToolPath {
+                    path: "figs/a.pdf".into(),
+                    access: "create".into(),
+                    previous_path: None,
+                },
+                ToolPath {
+                    path: "figs/b.pdf".into(),
+                    access: "create".into(),
+                    previous_path: None,
+                },
+            ],
+        );
+        copy.tool_name = "Bash".into();
+        copy.category = "shell".into();
+        copy.command_name = "ls".into();
+        copy.command = "ls paper/a.pdf; cp paper/a.pdf paper/b.pdf figs/ 2>&1; ls figs/".into();
+        let mut batch = (Vec::new(), 0);
+        append_session(&session(vec![copy]), 1, &["/repo".into()], true, &mut batch);
+        annotate_directory_scopes(&mut batch.0);
+        assert!(batch.0[0].actions.iter().all(|action| !action.scope));
+    }
+
+    #[test]
+    fn recursive_delete_scope_applies_only_to_delete_actions() {
+        let mut compound = tool(
+            1,
+            "ok",
+            vec![
+                ToolPath {
+                    path: "cleanup.txt".into(),
+                    access: "read".into(),
+                    previous_path: None,
+                },
+                ToolPath {
+                    path: "build/cache".into(),
+                    access: "delete".into(),
+                    previous_path: None,
+                },
+            ],
+        );
+        compound.tool_name = "exec_command".into();
+        compound.category = "shell".into();
+        compound.command_name = "cat".into();
+        compound.command = "cat cleanup.txt; python3 -V && rm -rf build/cache".into();
+        let mut batch = (Vec::new(), 0);
+        append_session(
+            &session(vec![compound]),
+            1,
+            &["/repo".into()],
+            true,
+            &mut batch,
+        );
+        annotate_directory_scopes(&mut batch.0);
+        assert!(
+            !batch.0[0]
+                .actions
+                .iter()
+                .find(|action| action.access == "read")
+                .expect("read action")
+                .scope
+        );
+        assert!(
+            batch.0[0]
+                .actions
+                .iter()
+                .find(|action| action.access == "delete")
+                .expect("delete action")
+                .scope
+        );
+    }
+
+    #[test]
+    fn recursive_delete_scope_does_not_cross_shell_control_operators() {
+        let mut compound = tool(
+            1,
+            "ok",
+            vec![
+                ToolPath {
+                    path: "build/cache".into(),
+                    access: "delete".into(),
+                    previous_path: None,
+                },
+                ToolPath {
+                    path: "keep.txt".into(),
+                    access: "delete".into(),
+                    previous_path: None,
+                },
+            ],
+        );
+        compound.tool_name = "exec_command".into();
+        compound.category = "shell".into();
+        compound.command_name = "git".into();
+        compound.command = "git rm -r build/cache || git rm -f keep.txt".into();
+        let mut batch = (Vec::new(), 0);
+        append_session(
+            &session(vec![compound]),
+            1,
+            &["/repo".into()],
+            true,
+            &mut batch,
+        );
+        annotate_directory_scopes(&mut batch.0);
+        assert!(
+            batch.0[0]
+                .actions
+                .iter()
+                .find(|action| action.path == "build/cache")
+                .expect("recursive delete")
+                .scope
+        );
+        assert!(
+            !batch.0[0]
+                .actions
+                .iter()
+                .find(|action| action.path == "keep.txt")
+                .expect("exact delete")
+                .scope
+        );
     }
 
     #[test]

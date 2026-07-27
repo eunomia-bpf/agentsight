@@ -82,5 +82,141 @@
       "input": "*** Begin Patch\n*** Update File: src/lib.rs\n*** End Patch"
     },
     "actions": []
+  },
+  {
+    "name": "heldout-multi-source-cp-fd-redirection",
+    "tool": "Bash",
+    "args": {
+      "command": "ls paper/figures/sec-3-perf-gap-fig.pdf 2>/dev/null; cp paper/figures/sec-3-perf-gap-fig.pdf paper/figures/sec-4-pipeline-fig.pdf \"research/eBPF-Grant---eBPF-runtime-optimization/figs/\" 2>&1; ls \"research/eBPF-Grant---eBPF-runtime-optimization/figs/\""
+    },
+    "actions": [
+      {"path": "paper/figures/sec-3-perf-gap-fig.pdf", "access": "read", "previous_path": null},
+      {"path": "paper/figures/sec-4-pipeline-fig.pdf", "access": "read", "previous_path": null},
+      {"path": "research/eBPF-Grant---eBPF-runtime-optimization/figs/sec-3-perf-gap-fig.pdf", "access": "create", "previous_path": null},
+      {"path": "research/eBPF-Grant---eBPF-runtime-optimization/figs/sec-4-pipeline-fig.pdf", "access": "create", "previous_path": null}
+    ]
+  },
+  {
+    "name": "multi-source-cp-named-redirection-target-is-not-an-operand",
+    "tool": "Bash",
+    "args": {
+      "command": "cp paper/a.pdf paper/b.pdf figs/ &> logs/cp.log"
+    },
+    "actions": [
+      {"path": "figs/a.pdf", "access": "create", "previous_path": null},
+      {"path": "figs/b.pdf", "access": "create", "previous_path": null},
+      {"path": "paper/a.pdf", "access": "read", "previous_path": null},
+      {"path": "paper/b.pdf", "access": "read", "previous_path": null}
+    ]
+  },
+  {
+    "name": "heldout-git-rm-recursive-scope-source",
+    "tool": "exec_command",
+    "args": {
+      "cmd": "git rm -r --ignore-unmatch docs/corpus-rq1/smoke"
+    },
+    "actions": [],
+    "production_actions": [
+      {"path": "docs/corpus-rq1/smoke", "access": "delete", "previous_path": null}
+    ]
+  },
+  {
+    "name": "heldout-process-substitution-inner-reads",
+    "tool": "Bash",
+    "args": {
+      "command": "cd \"/home/yunwei37/workspace/bpf-benchmark/docs/research/eBPF-Grant---eBPF-runtime-optimization\" && diff <(sed 's/eBPF Runtime Optimization: Safely Closing the Performance Gap to Native Code/TITLE/' main.tex) <(sed 's/Extending Extended Berkeley Packet Filters for LLM Serving Observability/TITLE/' 2025/main.tex)"
+    },
+    "actions": [
+      {"path": "2025/main.tex", "access": "read", "previous_path": null},
+      {"path": "main.tex", "access": "read", "previous_path": null}
+    ],
+    "oracle_actions": [
+      {"path": "/home/yunwei37/workspace/bpf-benchmark/docs/research/eBPF-Grant---eBPF-runtime-optimization/2025/main.tex", "access": "read", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/bpf-benchmark/docs/research/eBPF-Grant---eBPF-runtime-optimization/main.tex", "access": "read", "previous_path": null}
+    ]
+  },
+  {
+    "name": "heldout-multiline-quoted-tail-after-copies",
+    "tool": "Bash",
+    "args": {
+      "command": "cp /tmp/academic-writing-skills/skills/paper-logic/SKILL.md /home/yunwei37/workspace/ActPlane/.claude/skills/paper-logic/SKILL.md && cp /tmp/academic-writing-skills/skills/paper-review/SKILL.md /home/yunwei37/workspace/ActPlane/.claude/skills/paper-review/SKILL.md && cp /tmp/academic-writing-skills/skills/paper-fix/SKILL.md /home/yunwei37/workspace/ActPlane/.claude/skills/paper-fix/SKILL.md && git commit -m \"Resolve internal rule conflicts\n\n- paper-logic: preserve the multiline message\n- paper-review: preserve quoted newlines\""
+    },
+    "actions": [
+      {"path": "/home/yunwei37/workspace/ActPlane/.claude/skills/paper-fix/SKILL.md", "access": "create", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/ActPlane/.claude/skills/paper-logic/SKILL.md", "access": "create", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/ActPlane/.claude/skills/paper-review/SKILL.md", "access": "create", "previous_path": null},
+      {"path": "/tmp/academic-writing-skills/skills/paper-fix/SKILL.md", "access": "read", "previous_path": null},
+      {"path": "/tmp/academic-writing-skills/skills/paper-logic/SKILL.md", "access": "read", "previous_path": null},
+      {"path": "/tmp/academic-writing-skills/skills/paper-review/SKILL.md", "access": "read", "previous_path": null}
+    ]
+  },
+  {
+    "name": "heldout-leading-backslash-wrapper-rejection",
+    "tool": "Bash",
+    "args": {
+      "command": "\\\n# Extract header from README.md and compare\nsed -n '/^```c$/,/^```$/p' src/52-fsession-latency/README.md | head -26 | tail -24 > /tmp/readme_header.c && \\\ndiff /tmp/readme_header.c src/52-fsession-latency/fsession_latency.h && echo \"Header matches\""
+    },
+    "actions": []
+  },
+  {
+    "name": "leading-backslash-shell-continuation-is-not-universally-rejected",
+    "tool": "exec_command",
+    "args": {
+      "cmd": "\\\ncat README.md"
+    },
+    "actions": [
+      {"path": "README.md", "access": "read", "previous_path": null}
+    ]
+  },
+  {
+    "name": "heldout-two-static-nested-exec-reads",
+    "tool": "exec",
+    "args": {
+      "command": "const rs=await Promise.all([\n  tools.exec_command({cmd:\"sed -n '1,180p' docs/blog/posts/ebpf-ai-agent-policy-enforcement.md\",workdir:\"/home/yunwei37/workspace/eunomia.dev\"}),\n  tools.exec_command({cmd:\"sed -n '1,180p' docs/blog/posts/ebpf-ai-agent-policy-enforcement.zh.md\",workdir:\"/home/yunwei37/workspace/eunomia.dev\"})\n]);"
+    },
+    "actions": [
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/ebpf-ai-agent-policy-enforcement.md", "access": "read", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/ebpf-ai-agent-policy-enforcement.zh.md", "access": "read", "previous_path": null}
+    ]
+  },
+  {
+    "name": "nested-exec-missing-workdir-falls-back-to-outer-cwd",
+    "tool": "exec",
+    "cwd": "/repo",
+    "args": {
+      "command": "const rs=await Promise.all([tools.exec_command({cmd:\"cat first.txt\",workdir:\"/repo/first\"}),tools.exec_command({cmd:\"cat second.txt\"})]);"
+    },
+    "actions": [
+      {"path": "/repo/first/first.txt", "access": "read", "previous_path": null},
+      {"path": "/repo/second.txt", "access": "read", "previous_path": null}
+    ],
+    "production_actions": [
+      {"path": "/repo/first/first.txt", "access": "read", "previous_path": null},
+      {"path": "second.txt", "access": "read", "previous_path": null}
+    ],
+    "oracle_actions": [
+      {"path": "/repo/first/first.txt", "access": "read", "previous_path": null},
+      {"path": "/repo/second.txt", "access": "read", "previous_path": null}
+    ]
+  },
+  {
+    "name": "heldout-multi-operand-git-rm",
+    "tool": "exec",
+    "args": {
+      "command": "const r = await tools.exec_command({cmd:\"rg -n 'actplane-.*\\\\.png' docs/blog/posts/ebpf-ai-agent-policy-enforcement.md || true && git rm -f docs/blog/posts/imgs/actplane-architecture.png docs/blog/posts/imgs/actplane-dsl-examples.png docs/blog/posts/imgs/actplane-empirical-context-by-enforcement.png docs/blog/posts/imgs/actplane-empirical-enforcement-profile-by-topic.png docs/blog/posts/imgs/actplane-empirical-topic-policy-ratio.png docs/blog/posts/imgs/actplane-evaluation-dcr.png docs/blog/posts/imgs/actplane-evaluation-octobench.png docs/blog/posts/imgs/actplane-evaluation-openagentsafety.png docs/blog/posts/imgs/actplane-evaluation-overhead.png docs/blog/posts/imgs/actplane-evaluation-pipeline.png docs/blog/posts/imgs/actplane-evaluation-trace-family.png\",workdir:\"/home/yunwei37/workspace/eunomia.dev\"});"
+    },
+    "actions": [
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/imgs/actplane-architecture.png", "access": "delete", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/imgs/actplane-dsl-examples.png", "access": "delete", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/imgs/actplane-empirical-context-by-enforcement.png", "access": "delete", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/imgs/actplane-empirical-enforcement-profile-by-topic.png", "access": "delete", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/imgs/actplane-empirical-topic-policy-ratio.png", "access": "delete", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/imgs/actplane-evaluation-dcr.png", "access": "delete", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/imgs/actplane-evaluation-octobench.png", "access": "delete", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/imgs/actplane-evaluation-openagentsafety.png", "access": "delete", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/imgs/actplane-evaluation-overhead.png", "access": "delete", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/imgs/actplane-evaluation-pipeline.png", "access": "delete", "previous_path": null},
+      {"path": "/home/yunwei37/workspace/eunomia.dev/docs/blog/posts/imgs/actplane-evaluation-trace-family.png", "access": "delete", "previous_path": null}
+    ]
   }
 ]

@@ -1299,7 +1299,9 @@ fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) ->
         }
     }
 
-    if is_shell && !has_patch {
+    let wrapper_rejected =
+        lower == "bash" && (command.starts_with("\\\n") || command.starts_with("\\\r\n"));
+    if is_shell && !has_patch && !wrapper_rejected {
         for (path, access, previous_path) in shell_file_actions(command, input) {
             rows.push(ToolPath {
                 path,
@@ -1504,10 +1506,16 @@ fn shell_file_actions(command: &str, input: &Value) -> Vec<(String, String, Opti
 
 fn shell_segment_actions(name: &str, operands: &[String]) -> Vec<(String, String, Option<String>)> {
     let mut rows = Vec::new();
-    if operands.iter().any(|value| is_redirection_token(value)) {
+    let has_redirection = operands.iter().any(|value| is_redirection_token(value));
+    if has_redirection && !matches!(name, "cp" | "mv") {
         return rows;
     }
-    let values = shell_file_operands(name, operands);
+    let operands = if has_redirection {
+        strip_shell_redirections(operands)
+    } else {
+        operands.to_vec()
+    };
+    let values = shell_file_operands(name, &operands);
     let paths = |items: &[String]| {
         items
             .iter()
@@ -1525,10 +1533,24 @@ fn shell_segment_actions(name: &str, operands: &[String]) -> Vec<(String, String
         "cp" => {
             let paths = paths(&values);
             if paths.len() >= 2 {
-                let source = paths[paths.len() - 2].clone();
                 let target = paths[paths.len() - 1].clone();
-                rows.push((source, "read".into(), None));
-                rows.push((target, "create".into(), None));
+                let sources = &paths[..paths.len() - 1];
+                for source in sources {
+                    rows.push((source.clone(), "read".into(), None));
+                    let destination = if sources.len() == 1 {
+                        target.clone()
+                    } else {
+                        Path::new(&target)
+                            .join(
+                                Path::new(source)
+                                    .file_name()
+                                    .unwrap_or_else(|| Path::new(source).as_os_str()),
+                            )
+                            .to_string_lossy()
+                            .into_owned()
+                    };
+                    rows.push((destination, "create".into(), None));
+                }
             }
         }
         "mv" => {
@@ -1558,6 +1580,38 @@ fn shell_segment_actions(name: &str, operands: &[String]) -> Vec<(String, String
         _ => {}
     }
     rows
+}
+
+fn strip_shell_redirections(operands: &[String]) -> Vec<String> {
+    let mut values = Vec::new();
+    let mut index = 0;
+    while index < operands.len() {
+        let token = &operands[index];
+        if is_redirection_token(token) {
+            index += 1;
+            if redirection_needs_operand(token) && index < operands.len() {
+                index += 1;
+            }
+        } else {
+            values.push(token.clone());
+            index += 1;
+        }
+    }
+    values
+}
+
+fn redirection_needs_operand(token: &str) -> bool {
+    let operator = token.trim_start_matches(|ch: char| ch.is_ascii_digit());
+    if operator.starts_with("&>") {
+        return true;
+    }
+    if let Some(target) = operator
+        .strip_prefix(">&")
+        .or_else(|| operator.strip_prefix("<&"))
+    {
+        return target.is_empty();
+    }
+    true
 }
 
 fn shell_file_operands(name: &str, operands: &[String]) -> Vec<String> {
@@ -1922,7 +1976,11 @@ fn shell_segments(command: &str) -> Vec<Vec<String>> {
         }
     }
 
-    let command = strip_heredoc_bodies(command);
+    // A backslash-newline is a POSIX shell line continuation once a command
+    // reaches the shell. Wrapper-specific pre-launch rejection is handled by
+    // the caller before this generic tokenizer.
+    let continued = command.replace("\\\r\n", "").replace("\\\n", "");
+    let command = strip_heredoc_bodies(&continued);
     let mut segments = Vec::new();
     let mut tokens = Vec::new();
     let mut current = String::new();
@@ -1970,10 +2028,22 @@ fn shell_segments(command: &str) -> Vec<Vec<String>> {
             }
             flush_segment(&mut segments, &mut tokens);
         } else if ch == '>' || ch == '<' {
-            flush_word(&mut tokens, &mut current);
-            let mut operator = ch.to_string();
+            let mut operator =
+                if !current.is_empty() && current.chars().all(|value| value.is_ascii_digit()) {
+                    std::mem::take(&mut current)
+                } else {
+                    flush_word(&mut tokens, &mut current);
+                    String::new()
+                };
+            operator.push(ch);
             while chars.peek() == Some(&ch) && operator.len() < 3 {
                 operator.push(chars.next().expect("peeked redirection"));
+            }
+            if chars.peek() == Some(&'&') {
+                operator.push(chars.next().expect("peeked fd duplication"));
+                while chars.peek().is_some_and(|value| value.is_ascii_digit()) {
+                    operator.push(chars.next().expect("peeked fd"));
+                }
             }
             tokens.push(operator);
         } else {
@@ -2046,7 +2116,8 @@ fn strip_heredoc_bodies(command: &str) -> String {
 }
 
 fn is_redirection_token(token: &str) -> bool {
-    [">", ">>", "&>", "&>>", "<", "<<", "<<<", "<>"].contains(&token)
+    let operator = token.trim_start_matches(|ch: char| ch.is_ascii_digit());
+    operator.starts_with('>') || operator.starts_with('<') || operator.starts_with("&>")
 }
 
 fn split_shell(command: &str) -> Vec<String> {
@@ -3152,8 +3223,13 @@ mod tests {
             let name = fixture["name"].as_str().expect("fixture name");
             let tool = fixture["tool"].as_str().expect("fixture tool");
             let args = &fixture["args"];
-            let expected: Vec<ToolPath> =
-                serde_json::from_value(fixture["actions"].clone()).expect("fixture actions");
+            let expected: Vec<ToolPath> = serde_json::from_value(
+                fixture
+                    .get("production_actions")
+                    .unwrap_or(&fixture["actions"])
+                    .clone(),
+            )
+            .expect("fixture actions");
             let event = tool_event_from_input(Some("/repo"), Some(1), 0, tool, args, None);
             assert_eq!(event.paths, expected, "fixture {name}");
         }

@@ -28,7 +28,7 @@ from typing import Any
 
 
 SEED = "20260722"
-SPEC_VERSION = "native-root-conformance-v4"
+SPEC_VERSION = "native-root-conformance-v5-repair-20260726"
 READERS = {"cat", "sed", "head", "tail", "nl", "less", "more"}
 MUTATORS = {"touch", "rm", "mv", "cp"}
 SHELL_TOOLS = {"bash", "exec", "exec_command", "shell_command", "run_shell_command", "shell"}
@@ -206,14 +206,53 @@ def unwrap_exec(name: str, args: dict[str, Any]) -> dict[str, Any]:
         return args
     text = command_of(name, args)
     patch = wrapped_apply_patch(text)
-    marker = text.find("tools.exec_command(")
-    opening = text.find("{", marker + 1) if marker >= 0 else -1
-    if opening < 0:
+    nested_execs = static_exec_objects(text)
+    if not nested_execs:
         return {**args, "_wrapped_patch": patch} if patch is not None else args
+    nested = dict(nested_execs[0])
+    nested["_nested_execs"] = nested_execs
+    return {**nested, "_wrapped_patch": patch} if patch is not None else nested
+
+
+def static_exec_objects(text: str) -> list[dict[str, Any]]:
+    """Decode every static tools.exec_command({...}) object in source order."""
+    nested_execs: list[dict[str, Any]] = []
+    marker = "tools.exec_command("
+    cursor = 0
+    while True:
+        found = text.find(marker, cursor)
+        if found < 0:
+            break
+        opening = text.find("{", found + len(marker))
+        if opening < 0:
+            break
+        closing = js_object_end(text, opening)
+        if closing < 0:
+            break
+        raw = text[opening:closing]
+        try:
+            nested = json.loads(raw)
+        except json.JSONDecodeError:
+            raw = re.sub(
+                r"([{,]\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:)",
+                r'\1"\2"\3',
+                raw,
+            )
+            try:
+                nested = json.loads(raw)
+            except json.JSONDecodeError:
+                cursor = closing
+                continue
+        if isinstance(nested, dict):
+            nested_execs.append(nested)
+        cursor = closing
+    return nested_execs
+
+
+def js_object_end(text: str, opening: int) -> int:
     depth = 0
     in_string = False
     escaped = False
-    closing = -1
     for offset, character in enumerate(text[opening:], start=opening):
         if escaped:
             escaped = False
@@ -226,26 +265,8 @@ def unwrap_exec(name: str, args: dict[str, Any]) -> dict[str, Any]:
         elif not in_string and character == "}":
             depth -= 1
             if depth == 0:
-                closing = offset + 1
-                break
-    if closing < 0:
-        return {**args, "_wrapped_patch": patch} if patch is not None else args
-    raw = text[opening:closing]
-    try:
-        nested = json.loads(raw)
-    except json.JSONDecodeError:
-        raw = re.sub(
-            r"([{,]\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:)",
-            r'\1"\2"\3',
-            raw,
-        )
-        try:
-            nested = json.loads(raw)
-        except json.JSONDecodeError:
-            return {**args, "_wrapped_patch": patch} if patch is not None else args
-    if not isinstance(nested, dict):
-        nested = args
-    return {**nested, "_wrapped_patch": patch} if patch is not None else nested
+                return offset + 1
+    return -1
 
 
 def command_atom(command: str) -> str:
@@ -344,6 +365,7 @@ def events_from_source(vendor: str, source: Any, default_cwd: str) -> list[dict[
                 if not isinstance(call, dict):
                     continue
                 args = call.get("args") if isinstance(call.get("args"), dict) else {}
+                outer_cwd = str(args.get("workdir") or default_cwd)
                 name = str(call.get("name") or "")
                 args = unwrap_exec(name, args)
                 events.append({
@@ -351,7 +373,7 @@ def events_from_source(vendor: str, source: Any, default_cwd: str) -> list[dict[
                     "name": name,
                     "args": args,
                     "id": str(call.get("id") or call.get("callId") or f"{record_index}:{call_index}"),
-                    "cwd": str(args.get("workdir") or default_cwd),
+                    "cwd": outer_cwd,
                     "atom": atom_for(name, args),
                     "ts": stamp,
                     "record": record_index,
@@ -397,12 +419,13 @@ def events_from_source(vendor: str, source: Any, default_cwd: str) -> list[dict[
                 if not isinstance(block, dict) or block.get("type") != "tool_use":
                     continue
                 args = block.get("input") if isinstance(block.get("input"), dict) else {}
+                outer_cwd = str(args.get("workdir") or cwd)
                 name = str(block.get("name") or "")
                 args = unwrap_exec(name, args)
                 events.append({
                     "kind": "tool", "name": name, "args": args,
                     "id": str(block.get("id") or f"{record_index}:{call_index}"),
-                    "cwd": str(args.get("workdir") or cwd), "atom": atom_for(name, args),
+                    "cwd": outer_cwd, "atom": atom_for(name, args),
                     "ts": stamp, "record": record_index, "call": call_index,
                     "status": "observed",
                 })
@@ -418,11 +441,12 @@ def events_from_source(vendor: str, source: Any, default_cwd: str) -> list[dict[
             ):
                 name = str(payload.get("name") or "")
                 args = arguments(payload.get("arguments", payload.get("input")))
+                outer_cwd = str(args.get("workdir") or cwd)
                 args = unwrap_exec(name, args)
                 events.append({
                     "kind": "tool", "name": name, "args": args,
                     "id": str(payload.get("call_id") or payload.get("id") or f"{record_index}:0"),
-                    "cwd": str(args.get("workdir") or cwd), "atom": atom_for(name, args),
+                    "cwd": outer_cwd, "atom": atom_for(name, args),
                     "ts": stamp, "record": record_index, "call": 0,
                     "status": "observed",
                 })
@@ -460,7 +484,9 @@ def nested_paths(value: Any) -> list[str]:
 
 
 def shell_commands(command: str) -> list[list[str]]:
+    command = command.replace("\\\r\n", "").replace("\\\n", "")
     commands: list[list[str]] = []
+    retained: list[str] = []
     delimiter: str | None = None
     for line in command.splitlines():
         if delimiter is not None:
@@ -470,23 +496,180 @@ def shell_commands(command: str) -> list[list[str]]:
         marker = re.search(r"<<-?\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?", line)
         if marker:
             delimiter = marker.group(1)
-        try:
-            lexer = shlex.shlex(line, posix=True, punctuation_chars=";&|<>")
-            lexer.whitespace_split = True
-            tokens = list(lexer)
-        except ValueError:
-            continue
-        current: list[str] = []
-        for token in tokens:
-            if token and set(token) <= {";", "&", "|"}:
-                if current:
-                    commands.append(current)
-                    current = []
-            else:
-                current.append(token)
-        if current:
-            commands.append(current)
+        retained.append(line)
+    source = shell_newlines_to_semicolons("\n".join(retained))
+    try:
+        lexer = shlex.shlex(source, posix=True, punctuation_chars="();&|<>")
+        lexer.whitespace_split = True
+        tokens = list(lexer)
+    except ValueError:
+        return []
+    current: list[str] = []
+    for token in tokens:
+        if token and set(token) <= {"(", ")", ";", "&", "|"}:
+            if current:
+                commands.append(current)
+                current = []
+        else:
+            current.append(token)
+    if current:
+        commands.append(current)
     return commands
+
+
+def shell_newlines_to_semicolons(command: str) -> str:
+    output: list[str] = []
+    quote: str | None = None
+    escaped = False
+    for character in command:
+        if escaped:
+            output.append(character)
+            escaped = False
+        elif character == "\\":
+            output.append(character)
+            escaped = True
+        elif quote == character:
+            output.append(character)
+            quote = None
+        elif quote is not None:
+            output.append(character)
+        elif character in {"'", '"'}:
+            output.append(character)
+            quote = character
+        elif character == "\n":
+            output.append(";")
+        else:
+            output.append(character)
+    return "".join(output)
+
+
+def process_substitutions(
+    command: str,
+) -> tuple[str, list[tuple[str, str]]]:
+    """Remove process-substitution envelopes and return their inner commands."""
+    bodies: list[tuple[str, str]] = []
+    output: list[str] = []
+    index = 0
+    quote: str | None = None
+    escaped = False
+    while index < len(command):
+        character = command[index]
+        if escaped:
+            output.append(character)
+            escaped = False
+            index += 1
+            continue
+        if character == "\\":
+            output.append(character)
+            escaped = True
+            index += 1
+            continue
+        if quote == character:
+            output.append(character)
+            quote = None
+            index += 1
+            continue
+        if quote is not None:
+            output.append(character)
+            index += 1
+            continue
+        if character in {"'", '"'}:
+            output.append(character)
+            quote = character
+            index += 1
+            continue
+        if character in {"<", ">"} and command[index + 1:index + 2] == "(":
+            end = balanced_parenthesis_end(command, index + 1)
+            if end > 0:
+                bodies.append(
+                    (command[index + 2:end - 1], command[:index])
+                )
+                output.append(" ")
+                index = end
+                continue
+        output.append(character)
+        index += 1
+    return "".join(output), bodies
+
+
+def independent_cwd_at_prefix(prefix: str, cwd: str) -> str | None:
+    prefix, _ = process_substitutions(prefix)
+    commands = shell_commands(prefix)
+    cd_positions = [
+        index
+        for index, tokens in enumerate(commands)
+        if tokens and tokens[0].rsplit("/", 1)[-1].lower() == "cd"
+    ]
+    if len(cd_positions) > 1 or (cd_positions and cd_positions[0] != 0):
+        return None
+    cd_commands = [commands[index] for index in cd_positions]
+    targets: list[Path] = []
+    for command in cd_commands:
+        literal = [
+            token
+            for token in command[1:]
+            if token != "--" and not token.startswith("-")
+        ]
+        if len(literal) != 1:
+            return None
+        candidate = literal[0]
+        if candidate.startswith("~") or re.search(r"[$*?\[\]{}<>`]", candidate):
+            return None
+        targets.append(Path(candidate))
+    shell_cwd = Path(cwd) if cwd else None
+    for target in targets:
+        if not target.is_absolute():
+            target = shell_cwd / target if shell_cwd is not None else target
+        shell_cwd = Path(os.path.normpath(str(target)))
+    return str(shell_cwd) if shell_cwd is not None else ""
+
+
+def balanced_parenthesis_end(text: str, opening: int) -> int:
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for index in range(opening, len(text)):
+        character = text[index]
+        if escaped:
+            escaped = False
+        elif character == "\\":
+            escaped = True
+        elif quote == character:
+            quote = None
+        elif quote is not None:
+            continue
+        elif character in {"'", '"'}:
+            quote = character
+        elif character == "(":
+            depth += 1
+        elif character == ")":
+            depth -= 1
+            if depth == 0:
+                return index + 1
+    return -1
+
+
+def redirection_token(token: str) -> bool:
+    operator = token.lstrip("0123456789")
+    return operator.startswith((">", "<", "&>"))
+
+
+def without_redirections(tokens: list[str]) -> list[str]:
+    values: list[str] = []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if redirection_token(token):
+            if values and values[-1].isdigit():
+                values.pop()
+            operator = token.lstrip("0123456789")
+            index += 1
+            if index < len(tokens):
+                index += 1
+        else:
+            values.append(token)
+            index += 1
+    return values
 
 
 def path_operands(command: str, tokens: list[str]) -> list[str]:
@@ -530,12 +713,38 @@ def shell_effects(
     cwd: str = "",
 ) -> list[tuple[str, str, str | None]]:
     effects: list[tuple[str, str, str | None]] = []
+    command, nested_commands = process_substitutions(command)
     shell_cwd = cwd
     cwd_known = True
     for tokens in shell_commands(command):
-        if not tokens or any(token and set(token) <= {"<", ">"} for token in tokens):
+        if not tokens:
             continue
         name = tokens[0].rsplit("/", 1)[-1].lower()
+        if name == "git":
+            subcommand = next(
+                (
+                    (index, token)
+                    for index, token in enumerate(tokens[1:], start=1)
+                    if not token.startswith("-")
+                ),
+                None,
+            )
+            if subcommand is None or subcommand[1] not in {"rm", "mv"}:
+                continue
+            name = subcommand[1]
+            tokens = [name, *tokens[subcommand[0] + 1:]]
+        has_redirection = any(redirection_token(token) for token in tokens)
+        if has_redirection:
+            if name not in {"cp", "mv"}:
+                continue
+            tokens = without_redirections(tokens)
+        if name == "rm" and any(
+            token == "--recursive"
+            or (token.startswith("-") and not token.startswith("--") and "r" in token[1:])
+            for token in tokens[1:]
+        ):
+            # Recursive operands are directory scopes, not exact artifacts.
+            continue
         if name == "cd":
             operands = [
                 token
@@ -544,7 +753,7 @@ def shell_effects(
             ]
             if (
                 len(operands) != 1
-                or any(char in operands[0] for char in "$*?[]{}<>")
+                or any(char in operands[0] for char in "$*?[]{}<>`")
                 or operands[0].startswith("~")
             ):
                 cwd_known = False
@@ -571,17 +780,35 @@ def shell_effects(
                     else value
                 )
         values = qualified
-        if name in {"mv", "cp"}:
+        if name == "mv":
             if len(values) < 2:
                 continue
             source, destination = values[-2:]
-            if name == "mv":
-                effects.extend([(source, "rename_from", None), (destination, "rename", source)])
-            else:
-                effects.extend([(source, "read", None), (destination, "create", None)])
+            effects.extend(
+                [
+                    (source, "rename_from", None),
+                    (destination, "rename", source),
+                ]
+            )
+            continue
+        if name == "cp":
+            if len(values) < 2:
+                continue
+            sources, destination = values[:-1], values[-1]
+            for source in sources:
+                target = (
+                    str(Path(destination) / Path(source).name)
+                    if len(sources) > 1
+                    else destination
+                )
+                effects.extend([(source, "read", None), (target, "create", None)])
             continue
         access = "read" if name in READERS else ("delete" if name == "rm" else "create")
         effects.extend((value, access, None) for value in values)
+    for nested, prefix in nested_commands:
+        nested_cwd = independent_cwd_at_prefix(prefix, cwd)
+        if nested_cwd is not None:
+            effects.extend(shell_effects(nested, nested_cwd))
     return effects
 
 
@@ -591,6 +818,8 @@ def event_effects(event: dict[str, Any]) -> list[tuple[str, str, str | None]]:
     name = str(event.get("name") or "").lower()
     args = event.get("args") if isinstance(event.get("args"), dict) else {}
     command = command_of(name, args)
+    if name == "bash" and command.startswith(("\\\n", "\\\r\n")):
+        return []
     wrapped_patch = args.get("_wrapped_patch")
     is_patch = name == "apply_patch" or (
         name in SHELL_TOOLS
@@ -600,7 +829,26 @@ def event_effects(event: dict[str, Any]) -> list[tuple[str, str, str | None]]:
         )
     )
     effects = (
-        shell_effects(command, str(event.get("cwd") or ""))
+        [
+            effect
+            for nested in args.get("_nested_execs", [])
+            if isinstance(nested, dict)
+            for effect in shell_effects(
+                command_of("exec_command", nested),
+                str(
+                    nested.get("workdir")
+                    or nested.get("cwd")
+                    or event.get("cwd")
+                    or event.get("workdir")
+                    or ""
+                ),
+            )
+        ]
+        if isinstance(args.get("_nested_execs"), list)
+        else shell_effects(
+            command,
+            str(event.get("cwd") or event.get("workdir") or ""),
+        )
         if name in SHELL_TOOLS
         and not (isinstance(wrapped_patch, str) and "tools.apply_patch" in command)
         else []
@@ -741,6 +989,45 @@ class Identities:
         return identity
 
 
+def artifact_parent_directories(path: str) -> set[str]:
+    parts = [part for part in path.strip("/").split("/") if part]
+    return {"/".join(parts[:depth]) for depth in range(1, len(parts))}
+
+
+def independent_directory_scope(
+    directories: set[str],
+    path: str,
+    access: str,
+    previous: str | None,
+    pending_sources: dict[tuple[str, str], str],
+    call_key: tuple[str, str],
+) -> bool:
+    if access == "rename_from":
+        if path in directories:
+            pending_sources[call_key] = path
+            return True
+        return False
+    if access == "rename":
+        source = previous or pending_sources.get(call_key)
+        if source not in directories:
+            return False
+        directories.difference_update(
+            directory
+            for directory in tuple(directories)
+            if directory == source or directory.startswith(f"{source}/")
+        )
+        directories.add(path)
+        return True
+    if access == "delete" and path in directories:
+        directories.difference_update(
+            directory
+            for directory in tuple(directories)
+            if directory == path or directory.startswith(f"{path}/")
+        )
+        return True
+    return False
+
+
 def path_id(path: str) -> str:
     key = hashlib.sha256(("rq7-path-salt-" + SEED).encode()).digest()
     return hmac.new(key, path.encode(), hashlib.sha256).hexdigest()[:16]
@@ -807,6 +1094,7 @@ def recompute_project(
     edges = []
     calls = []
     pending: dict[tuple[str, str], str] = {}
+    known_directories: set[str] = set()
     for event_ordinal, (_, _, _, _, session_ordinal, session, event) in enumerate(ordered):
         if event.get("kind") == "tool":
             calls.append({
@@ -836,8 +1124,22 @@ def recompute_project(
                 effect[2] or "",
             )
         )
+        for normalized, _, previous in normalized_effects:
+            known_directories.update(artifact_parent_directories(normalized))
+            if previous:
+                known_directories.update(artifact_parent_directories(previous))
+        directory_rename_source: dict[tuple[str, str], str] = {}
         for action_ordinal, (normalized, access, previous) in enumerate(normalized_effects):
             key = (session["semantic_session_id"], str(event["id"]))
+            if independent_directory_scope(
+                known_directories,
+                normalized,
+                access,
+                previous,
+                directory_rename_source,
+                key,
+            ):
+                continue
             if access == "rename_from":
                 pending[key] = normalized
             elif access == "rename" and previous is None:
@@ -872,16 +1174,45 @@ def recompute_project(
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for edge in edges:
         grouped[edge["artifact_id"]].append(edge)
-    anchors = []
-    for identity, rows in grouped.items():
-        anchors.append({
-            "artifact_id": identity,
-            "path": rows[-1]["display_path"],
-            "path_id": path_id(rows[-1]["display_path"]),
-            "call_count": len({(row["session_id"], row["call_id"]) for row in rows}),
-        })
-    anchors.sort(key=lambda row: (-row["call_count"], row["path_id"]))
-    anchors = anchors[:5]
+    if project.get("fixed_question_anchors"):
+        anchors = []
+        for frozen in project["anchors"]:
+            candidates = [
+                (identity, rows)
+                for identity, rows in grouped.items()
+                if identity == frozen["artifact_id"]
+                or rows[-1]["display_path"] == frozen["path"]
+                or any(row["path"] == frozen["path"] for row in rows)
+            ]
+            if not candidates:
+                raise RuntimeError(
+                    f"fixed anchor disappeared: {project['project']}:{frozen['path']}"
+                )
+            candidates.sort(
+                key=lambda pair: (
+                    pair[0] != frozen["artifact_id"],
+                    -len({(row["session_id"], row["call_id"]) for row in pair[1]}),
+                    pair[0],
+                )
+            )
+            identity, rows = candidates[0]
+            anchors.append({
+                "artifact_id": identity,
+                "path": rows[-1]["display_path"],
+                "path_id": path_id(rows[-1]["display_path"]),
+                "call_count": len({(row["session_id"], row["call_id"]) for row in rows}),
+            })
+    else:
+        anchors = []
+        for identity, rows in grouped.items():
+            anchors.append({
+                "artifact_id": identity,
+                "path": rows[-1]["display_path"],
+                "path_id": path_id(rows[-1]["display_path"]),
+                "call_count": len({(row["session_id"], row["call_id"]) for row in rows}),
+            })
+        anchors.sort(key=lambda row: (-row["call_count"], row["path_id"]))
+        anchors = anchors[:5]
     expected_anchors = [
         {key: row[key] for key in ("artifact_id", "path", "path_id", "call_count")}
         for row in project["anchors"]
@@ -1028,7 +1359,13 @@ def main() -> int:
         )
         if expected_calls != actual_calls:
             raise RuntimeError(f"complete call/status ledger mismatch: {project['project']}")
+        selected_templates = {
+            row["template"]
+            for row in project.get("questions") or []
+        } or set(answers)
         for template, answer in answers.items():
+            if template not in selected_templates:
+                continue
             recomputed[f"{project['project']}-{template}"] = answer
     expected = {row["id"]: row["answer"] for row in freeze["questions"]}
     if set(recomputed) != set(expected):

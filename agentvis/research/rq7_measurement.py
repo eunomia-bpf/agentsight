@@ -33,7 +33,7 @@ from typing import Any, Iterable
 
 
 SEED = "20260722"
-SPEC_VERSION = "native-root-conformance-v3"
+SPEC_VERSION = "native-root-conformance-v5-repair-20260726"
 FROZEN_SELECTION_SEED = "20260723-heldout-v3-001"
 FROZEN_SESSIONS_PER_PROJECT = 6
 FROZEN_PROJECT_COUNT = 6
@@ -481,51 +481,111 @@ def parse_arguments(value: Any) -> dict[str, Any]:
 
 
 def embedded_exec_arguments(text: str) -> dict[str, Any] | None:
-    marker = "tools.exec_command("
-    start = text.find(marker)
-    if start < 0:
+    rows = embedded_exec_argument_list(text)
+    return rows[0] if rows else None
+
+
+def primary_js_string(text: str, opening: int) -> tuple[str, int] | None:
+    if opening >= len(text) or text[opening] != '"':
         return None
-    opening = text.find("{", start + len(marker))
-    if opening < 0:
-        return None
-    depth = 0
-    quoted = False
     escaped = False
-    for index, character in enumerate(text[opening:], start=opening):
+    for index in range(opening + 1, len(text)):
+        character = text[index]
         if escaped:
             escaped = False
-        elif character == "\\" and quoted:
+        elif character == "\\":
             escaped = True
         elif character == '"':
-            quoted = not quoted
-        elif not quoted and character == "{":
-            depth += 1
-        elif not quoted and character == "}":
-            depth -= 1
-            if depth == 0:
-                raw = text[opening:index + 1]
-                try:
-                    value = json.loads(raw)
-                except json.JSONDecodeError:
-                    try:
-                        value = json.loads(
-                            re.sub(
-                                r"([{,]\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:)",
-                                r'\1"\2"\3',
-                                raw,
-                            )
-                        )
-                    except json.JSONDecodeError:
-                        return None
-                return value if isinstance(value, dict) else None
+            try:
+                value = json.loads(text[opening:index + 1])
+            except json.JSONDecodeError:
+                return None
+            return (value, index + 1) if isinstance(value, str) else None
     return None
+
+
+def primary_wrapped_patch(text: str) -> str | None:
+    assignment = re.compile(
+        r"\b(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*"
+    )
+    for match in assignment.finditer(text):
+        decoded = primary_js_string(text, match.end())
+        if decoded is None:
+            continue
+        value, _ = decoded
+        variable = re.escape(match.group(1))
+        if (
+            "*** Begin Patch" in value
+            and re.search(rf"\btools\.apply_patch\s*\(\s*{variable}\s*\)", text)
+        ):
+            return value
+    return None
+
+
+def embedded_exec_argument_list(text: str) -> list[dict[str, Any]]:
+    marker = "tools.exec_command("
+    rows: list[dict[str, Any]] = []
+    cursor = 0
+    while True:
+        start = text.find(marker, cursor)
+        if start < 0:
+            break
+        opening = text.find("{", start + len(marker))
+        if opening < 0:
+            break
+        depth = 0
+        quoted = False
+        escaped = False
+        closing = -1
+        for index, character in enumerate(text[opening:], start=opening):
+            if escaped:
+                escaped = False
+            elif character == "\\" and quoted:
+                escaped = True
+            elif character == '"':
+                quoted = not quoted
+            elif not quoted and character == "{":
+                depth += 1
+            elif not quoted and character == "}":
+                depth -= 1
+                if depth == 0:
+                    closing = index + 1
+                    break
+        if closing < 0:
+            break
+        raw = text[opening:closing]
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError:
+            try:
+                value = json.loads(
+                    re.sub(
+                        r"([{,]\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:)",
+                        r'\1"\2"\3',
+                        raw,
+                    )
+                )
+            except json.JSONDecodeError:
+                cursor = closing
+                continue
+        if isinstance(value, dict):
+            rows.append(value)
+        cursor = closing
+    return rows
 
 
 def normalized_tool_arguments(name: str, args: dict[str, Any]) -> dict[str, Any]:
     if name.lower() != "exec":
         return args
-    nested = embedded_exec_arguments(command_text(name, args))
-    return nested or args
+    text = command_text(name, args)
+    nested = embedded_exec_argument_list(text)
+    normalized = dict(nested[0] if nested else args)
+    if nested:
+        normalized["_nested_execs"] = nested
+    patch = primary_wrapped_patch(text)
+    if patch is not None:
+        normalized["_wrapped_patch"] = patch
+    return normalized
 
 
 def command_text(name: str, args: dict[str, Any]) -> str:
@@ -572,6 +632,8 @@ def tool_atom(name: str, args: dict[str, Any]) -> str:
     if lower in {"todowrite", "exitplanmode", "update_plan", "write_todos", "exit_plan_mode"}:
         return "think"
     if lower in {"bash", "exec", "exec_command", "shell_command", "run_shell_command", "shell"}:
+        if isinstance(args.get("_wrapped_patch"), str):
+            return "edit"
         return command_atom(command_text(name, args))
     return "other"
 
@@ -594,13 +656,14 @@ def native_events(vendor: str, path: Path, meta: dict[str, Any]) -> list[dict[st
                 if not isinstance(call, dict):
                     continue
                 args = call.get("args") if isinstance(call.get("args"), dict) else {}
+                outer_workdir = str(args.get("workdir") or cwd)
                 args = normalized_tool_arguments(str(call.get("name") or ""), args)
                 events.append({
                     "kind": "tool",
                     "tool": str(call.get("name") or ""),
                     "args": args,
                     "call_id": str(call.get("id") or call.get("callId") or f"{record_index}:{call_index}"),
-                    "workdir": str(args.get("workdir") or cwd),
+                    "workdir": outer_workdir,
                     "atom": tool_atom(str(call.get("name") or ""), args),
                     "ts_ms": stamp,
                     "record_index": record_index,
@@ -629,13 +692,14 @@ def native_events(vendor: str, path: Path, meta: dict[str, Any]) -> list[dict[st
                     if not isinstance(block, dict) or block.get("type") != "tool_use":
                         continue
                     args = block.get("input") if isinstance(block.get("input"), dict) else {}
+                    outer_workdir = str(args.get("workdir") or current_cwd)
                     args = normalized_tool_arguments(str(block.get("name") or ""), args)
                     events.append({
                         "kind": "tool",
                         "tool": str(block.get("name") or ""),
                         "args": args,
                         "call_id": str(block.get("id") or f"{record_index}:{call_index}"),
-                        "workdir": str(args.get("workdir") or current_cwd),
+                        "workdir": outer_workdir,
                         "atom": tool_atom(str(block.get("name") or ""), args),
                         "ts_ms": stamp,
                         "record_index": record_index,
@@ -665,13 +729,14 @@ def native_events(vendor: str, path: Path, meta: dict[str, Any]) -> list[dict[st
             if row.get("type") == "response_item" and payload.get("type") in {"function_call", "custom_tool_call"}:
                 name = str(payload.get("name") or "")
                 args = parse_arguments(payload.get("arguments", payload.get("input")))
+                outer_workdir = str(args.get("workdir") or current_cwd)
                 args = normalized_tool_arguments(name, args)
                 events.append({
                     "kind": "tool",
                     "tool": name,
                     "args": args,
                     "call_id": str(payload.get("call_id") or payload.get("id") or f"{record_index}:0"),
-                    "workdir": str(args.get("workdir") or current_cwd),
+                    "workdir": outer_workdir,
                     "atom": tool_atom(name, args),
                     "ts_ms": stamp,
                     "record_index": record_index,
@@ -723,8 +788,10 @@ def structured_paths(args: Any) -> list[str]:
 
 
 def shell_segments(command: str) -> list[list[str]]:
+    command = command.replace("\\\r\n", "").replace("\\\n", "")
     segments: list[list[str]] = []
     pending: list[str] = []
+    logical_line = ""
     for line in command.splitlines():
         if pending:
             if line.strip() == pending[0]:
@@ -734,15 +801,17 @@ def shell_segments(command: str) -> list[list[str]]:
             match.group(1)
             for match in re.finditer(r"<<-?\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?", line)
         )
+        logical_line = f"{logical_line}\n{line}" if logical_line else line
         try:
-            lexer = shlex.shlex(line, posix=True, punctuation_chars=";&|<>")
+            lexer = shlex.shlex(logical_line, posix=True, punctuation_chars="();&|<>")
             lexer.whitespace_split = True
             tokens = list(lexer)
         except ValueError:
             continue
+        logical_line = ""
         current: list[str] = []
         for token in tokens:
-            if token and set(token) <= {";", "&", "|"}:
+            if token and set(token) <= {"(", ")", ";", "&", "|"}:
                 if current:
                     segments.append(current)
                     current = []
@@ -751,6 +820,118 @@ def shell_segments(command: str) -> list[list[str]]:
         if current:
             segments.append(current)
     return segments
+
+
+def primary_process_substitutions(
+    command: str,
+) -> tuple[str, list[tuple[str, str]]]:
+    nested: list[tuple[str, str]] = []
+    output: list[str] = []
+    cursor = 0
+    index = 0
+    quote: str | None = None
+    escaped = False
+    while index < len(command):
+        character = command[index]
+        if escaped:
+            escaped = False
+        elif character == "\\":
+            escaped = True
+        elif quote == character:
+            quote = None
+        elif quote is not None:
+            pass
+        elif character in {"'", '"'}:
+            quote = character
+        elif character in {"<", ">"} and command[index + 1:index + 2] == "(":
+            closing = primary_process_substitution_end(command, index + 1)
+            if closing is not None:
+                output.append(command[cursor:index])
+                output.append(" ")
+                nested.append((command[index + 2:closing - 1], command[:index]))
+                index = closing
+                cursor = closing
+                escaped = False
+                continue
+        index += 1
+    output.append(command[cursor:])
+    return "".join(output), nested
+
+
+def primary_process_substitution_end(command: str, opening: int) -> int | None:
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for index in range(opening, len(command)):
+        character = command[index]
+        if escaped:
+            escaped = False
+        elif character == "\\":
+            escaped = True
+        elif quote == character:
+            quote = None
+        elif quote is not None:
+            continue
+        elif character in {"'", '"'}:
+            quote = character
+        elif character == "(":
+            depth += 1
+        elif character == ")":
+            depth -= 1
+            if depth == 0:
+                return index + 1
+    return None
+
+
+def primary_cwd_at_prefix(prefix: str, cwd: str) -> str | None:
+    prefix, _ = primary_process_substitutions(prefix)
+    segments = shell_segments(prefix)
+    cd_positions = [
+        index
+        for index, segment in enumerate(segments)
+        if segment and segment[0].rsplit("/", 1)[-1].lower() == "cd"
+    ]
+    if len(cd_positions) > 1 or (cd_positions and cd_positions[0] != 0):
+        return None
+    shell_cwd = cwd
+    for segment in segments:
+        if not segment or segment[0].rsplit("/", 1)[-1].lower() != "cd":
+            continue
+        operands = [
+            token
+            for token in segment[1:]
+            if token != "--" and not token.startswith("-")
+        ]
+        if (
+            len(operands) != 1
+            or operands[0].startswith("~")
+            or any(character in operands[0] for character in "$*?[]{}<>`")
+        ):
+            return None
+        target = Path(operands[0])
+        if not target.is_absolute():
+            target = Path(shell_cwd) / target if shell_cwd else target
+        shell_cwd = os.path.normpath(str(target))
+    return shell_cwd
+
+
+def primary_redirection(token: str) -> bool:
+    operator = token.lstrip("0123456789")
+    return operator.startswith((">", "<", "&>"))
+
+
+def primary_strip_redirections(tokens: list[str]) -> list[str]:
+    result: list[str] = []
+    index = 0
+    while index < len(tokens):
+        if primary_redirection(tokens[index]):
+            if result and result[-1].isdigit():
+                result.pop()
+            index += 2
+        else:
+            result.append(tokens[index])
+            index += 1
+    return result
 
 
 def file_operands(name: str, tokens: list[str]) -> list[str]:
@@ -789,33 +970,118 @@ def file_operands(name: str, tokens: list[str]) -> list[str]:
     return values
 
 
-def shell_path_actions(command: str) -> list[dict[str, str | None]]:
+def shell_path_actions(
+    command: str,
+    cwd: str = "",
+) -> list[dict[str, str | None]]:
     out: list[dict[str, str | None]] = []
+    command, nested_commands = primary_process_substitutions(command)
+    shell_cwd = cwd
+    cwd_known = True
     for segment in shell_segments(command):
-        # Redirections and heredocs are excluded from artifact extraction.  The
-        # command still contributes its action atom, but neither redirect
-        # targets nor heredoc bodies can become repository artifacts.
-        if not segment or any(token and set(token) <= {"<", ">"} for token in segment):
+        if not segment:
             continue
         name = segment[0].rsplit("/", 1)[-1].lower()
+        if name == "cd":
+            operands = [
+                token
+                for token in segment[1:]
+                if token != "--" and not token.startswith("-")
+            ]
+            if (
+                len(operands) != 1
+                or operands[0].startswith("~")
+                or any(character in operands[0] for character in "$*?[]{}<>`")
+            ):
+                cwd_known = False
+                continue
+            target = Path(operands[0])
+            if not target.is_absolute():
+                if not cwd_known:
+                    continue
+                target = Path(shell_cwd) / target if shell_cwd else target
+            shell_cwd = os.path.normpath(str(target))
+            cwd_known = True
+            continue
+        if name == "git":
+            subcommand = next(
+                (
+                    (index, token)
+                    for index, token in enumerate(segment[1:], start=1)
+                    if not token.startswith("-")
+                ),
+                None,
+            )
+            if subcommand is None or subcommand[1] not in {"rm", "mv"}:
+                continue
+            name = subcommand[1]
+            segment = [name, *segment[subcommand[0] + 1:]]
+        has_redirection = any(primary_redirection(token) for token in segment)
+        if has_redirection:
+            if name not in {"cp", "mv"}:
+                continue
+            segment = primary_strip_redirections(segment)
         args = segment[1:]
         if name not in READ_COMMANDS | MUTATE_COMMANDS:
             continue
+        if name == "rm" and any(
+            token == "--recursive"
+            or (token.startswith("-") and not token.startswith("--") and "r" in token[1:])
+            for token in args
+        ):
+            continue
         values = file_operands(name, args)
-        if name in {"mv", "cp"}:
+        qualified = []
+        for value in values:
+            path = Path(value)
+            if path.is_absolute():
+                qualified.append(value)
+            elif cwd_known:
+                qualified.append(
+                    os.path.normpath(str(Path(shell_cwd) / path))
+                    if shell_cwd
+                    else value
+                )
+        values = qualified
+        if name == "mv":
             if len(values) < 2:
                 continue
-            source, destination = values[-2], values[-1]
-            if name == "mv":
-                out.append({"path": source, "access": "rename_from", "previous_path": None})
-                out.append({"path": destination, "access": "rename", "previous_path": source})
-            else:
+            source, destination = values[-2:]
+            out.append(
+                {
+                    "path": source,
+                    "access": "rename_from",
+                    "previous_path": None,
+                }
+            )
+            out.append(
+                {
+                    "path": destination,
+                    "access": "rename",
+                    "previous_path": source,
+                }
+            )
+            continue
+        if name == "cp":
+            if len(values) < 2:
+                continue
+            sources, destination = values[:-1], values[-1]
+            for source in sources:
+                target = (
+                    str(PurePosixPath(destination) / PurePosixPath(source).name)
+                    if len(sources) > 1
+                    else destination
+                )
                 out.append({"path": source, "access": "read", "previous_path": None})
-                out.append({"path": destination, "access": "create", "previous_path": None})
+                out.append({"path": target, "access": "create", "previous_path": None})
             continue
         access = "read" if name in READ_COMMANDS else ("delete" if name == "rm" else "create")
         for value in values:
             out.append({"path": value, "access": access, "previous_path": None})
+    for nested, prefix in nested_commands:
+        nested_cwd = primary_cwd_at_prefix(prefix, cwd)
+        if nested_cwd is not None:
+            out.extend(shell_path_actions(nested, nested_cwd))
     return out
 
 
@@ -826,13 +1092,44 @@ def event_path_actions(event: dict[str, Any]) -> list[dict[str, str | None]]:
     args = event.get("args") if isinstance(event.get("args"), dict) else {}
     actions: list[dict[str, str | None]] = []
     command = command_text(name, args)
+    if name == "bash" and command.startswith(("\\\n", "\\\r\n")):
+        return []
+    wrapped_patch = args.get("_wrapped_patch")
     if name in {"bash", "exec", "exec_command", "shell_command", "run_shell_command", "shell"}:
-        actions.extend(shell_path_actions(command))
+        nested_execs = args.get("_nested_execs")
+        if isinstance(nested_execs, list):
+            for nested in nested_execs:
+                if not isinstance(nested, dict):
+                    continue
+                nested_cwd = str(
+                    nested.get("workdir")
+                    or nested.get("cwd")
+                    or event.get("workdir")
+                    or event.get("cwd")
+                    or ""
+                )
+                actions.extend(
+                    shell_path_actions(
+                        command_text("exec_command", nested),
+                        nested_cwd,
+                    )
+                )
+        elif not isinstance(wrapped_patch, str):
+            actions.extend(
+                shell_path_actions(
+                    command,
+                    str(event.get("workdir") or event.get("cwd") or ""),
+                )
+            )
     if name == "apply_patch" or (
         name in {"bash", "exec", "exec_command", "shell_command", "run_shell_command", "shell"}
-        and "*** Begin Patch" in command
+        and (isinstance(wrapped_patch, str) or "*** Begin Patch" in command)
     ):
-        patch = command or str(args.get("patch") or "")
+        patch = (
+            wrapped_patch
+            if isinstance(wrapped_patch, str)
+            else command or str(args.get("patch") or "")
+        )
         pending_update: str | None = None
         for raw_line in patch.splitlines():
             line = raw_line.strip()
@@ -962,6 +1259,11 @@ class ArtifactTracker:
         return identity
 
 
+def artifact_parent_directories(path: str) -> set[str]:
+    parts = [part for part in path.strip("/").split("/") if part]
+    return {"/".join(parts[:depth]) for depth in range(1, len(parts))}
+
+
 def artifact_edges(
     project: dict[str, Any],
     selected: list[dict[str, Any]],
@@ -1011,6 +1313,7 @@ def artifact_edges(
             ))
     ordered_events.sort(key=lambda row: row[:4])
     pending_rename: dict[tuple[str, str], str] = {}
+    known_directories: set[str] = set()
     for event_ordinal, (_, _, _, _, session_ordinal, session, event) in enumerate(ordered_events):
         if event.get("kind") == "tool":
             calls.append({
@@ -1046,14 +1349,46 @@ def artifact_edges(
                 row[2] or "",
             )
         )
+        for _, path, previous in normalized_actions:
+            known_directories.update(artifact_parent_directories(path))
+            if previous:
+                known_directories.update(artifact_parent_directories(previous))
+        directory_rename_source: dict[tuple[str, str], str] = {}
         for action_ordinal, (action, path, previous) in enumerate(normalized_actions):
             access = str(action["access"])
+            call_key = (
+                session["semantic_session_id"],
+                str(event["call_id"]),
+            )
+            if access == "rename_from" and path in known_directories:
+                directory_rename_source[call_key] = path
+                continue
+            directory_source = (
+                previous or directory_rename_source.get(call_key)
+                if access == "rename"
+                else None
+            )
+            if access == "rename" and directory_source in known_directories:
+                known_directories = {
+                    directory
+                    for directory in known_directories
+                    if directory != directory_source
+                    and not directory.startswith(f"{directory_source}/")
+                }
+                known_directories.add(path)
+                continue
+            if access == "delete" and path in known_directories:
+                known_directories = {
+                    directory
+                    for directory in known_directories
+                    if directory != path
+                    and not directory.startswith(f"{path}/")
+                }
+                continue
             if access == "rename_from":
-                pending_rename[(session["semantic_session_id"], str(event["call_id"]))] = path
+                pending_rename[call_key] = path
             if access == "rename" and previous is None:
-                previous = pending_rename.get(
-                    (session["semantic_session_id"], str(event["call_id"]))
-                )
+                previous = pending_rename.get(call_key)
             status = str(event.get("status") or "observed")
             identity = tracker.identity(path, access, previous, status == "ok")
             edges.append({
@@ -1368,6 +1703,7 @@ def proposed_edges(project: dict[str, Any], trace: dict[str, Any], frozen_home: 
             action
             for action in event.get("actions") or []
             if action.get("worktree_id") == target_worktree
+            and not action.get("scope")
         ]
         if not actions:
             continue
@@ -1477,7 +1813,7 @@ def production_projection(
             "session_ordinal": session_ordinal,
         })
         for action in event.get("actions") or []:
-            if action.get("worktree_id") != target_worktree:
+            if action.get("worktree_id") != target_worktree or action.get("scope"):
                 continue
             path = str(action.get("path") or "")
             if not path:
@@ -1663,9 +1999,9 @@ def projection_conformance(
 
 
 def question_spec() -> str:
-    return """# RQ7 Native-Root Conformance v3
+    return """# RQ7 Native-Root Conformance v5
 
-Specification ID: `native-root-conformance-v3`.
+Specification ID: `native-root-conformance-v5-repair-20260726`.
 
 All answers use only the complete native files and cutoff manifest in the
 prompt. A semantic session is one `(vendor, native_root_session_id)`; a source
@@ -1709,16 +2045,30 @@ notebook_path, old_path, and new_path. Event workdir overrides session cwd.
 Resolve relative paths lexically inside the
 selected worktree; exclude outside paths, variables, globs, symlink
 dereferencing, search scopes, and ambiguous shell syntax. In particular, any
-shell segment containing input/output redirection or a heredoc contributes no
-artifact edge; redirect tokens, targets, and bodies are never paths.
-Option arguments and sed programs are not file operands. Calls add one edge
-per distinct `(path, access, previous_path)` tuple, so different actions on the
-same path remain distinct. Shell extraction accepts only a direct declared
-file command at the start of a segment; cd state, command wrappers, and nested
-shell interpretation are excluded. A Codex `tools.exec_command({...})`
-transport envelope is unwrapped before applying that rule. Update plus Move
-patch headers are one rename pair, not an additional write. Actions within a
-call use the canonical order rename-source, rename-destination, then
+heredoc contributes no artifact edge; redirect tokens, targets, and bodies are
+never paths. A file command with redirection remains conservative except for
+`cp` and `mv`, where redirection syntax and its target are removed before
+extracting operands. Multi-source `cp S1 ... Sn DIR` reads every source and
+creates `DIR/basename(Si)` for each source. Non-recursive `git rm` contributes
+exact delete operands; recursive `rm`/`git rm` is directory scope and is
+excluded from the exact-artifact ledger.
+
+Option arguments and sed programs are not file operands. Shell input is parsed
+as one logical command across physical newlines. A single literal leading `cd`
+establishes the shell cwd, and balanced process-substitution bodies contribute
+their direct file actions under that cwd. The native Claude `Bash` wrapper
+command beginning with a bare
+backslash-newline and rejected before launch contributes no attempted action;
+generic shell transports retain POSIX backslash-newline continuation. A Codex
+`tools.exec_command({...})` transport envelope is unwrapped, and every
+supported JSON-like static nested exec object contributes path effects under
+its own workdir, falling back to the outer native cwd.
+
+Calls add one edge per distinct `(path, access, previous_path)` tuple, so
+different actions on the same path remain distinct. Update plus Move patch
+headers are one rename pair, not an additional write. Only exact non-scope
+actions enter the attempted and confirmed-effect artifact ledgers. Actions
+within a call use the canonical order rename-source, rename-destination, then
 lexicographic `(path, access, previous_path)`. Explicit rename preserves
 identity only when its Tool result is `ok`; confirmed delete followed by
 confirmed create starts a generation. A failed or unknown rename source and
@@ -2929,6 +3279,7 @@ def check_action_fixtures(args: argparse.Namespace) -> int:
             "kind": "tool",
             "tool": name,
             "args": primary_args,
+            "workdir": str(fixture.get("cwd") or ""),
         })
         independent = [
             {"path": path, "access": access, "previous_path": previous}
@@ -2936,9 +3287,11 @@ def check_action_fixtures(args: argparse.Namespace) -> int:
                 "kind": "tool",
                 "name": name,
                 "args": independent_args,
+                "cwd": str(fixture.get("cwd") or ""),
             })
         ]
-        if primary != fixture["actions"] or independent != fixture["actions"]:
+        expected = fixture.get("oracle_actions", fixture["actions"])
+        if primary != expected or independent != expected:
             raise RuntimeError(
                 f"action fixture mismatch {fixture['name']}: "
                 f"primary={primary}, independent={independent}"
