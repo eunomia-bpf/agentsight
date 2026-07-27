@@ -64,10 +64,12 @@ skeleton-guided drilldown remains available beyond the context window where
 whole-trace reading fails.
 % 直接 Agent 标注将相对人工 stage 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.764。在三个完整 localization workload 上，AgentProf 相对 benchmark-native direct diagnostic 将 MAP 分别提高 0.031、0.107 和 0.117。在 TraceElephant 上作为阅读索引时，语义层次引导强 trajectory reader 达到同等排名质量，只打开 53.0\% 的 source evidence，而信息匹配的 raw-action 分组需打开 65.0\%；骨架引导的下钻可超越整条轨迹阅读失效的上下文窗口边界。
 Evaluated task-family and action backends reach 0.695 and 0.498 macro-F1,
-label-free recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1 on
-OSWorld-Human, and, after marks are fixed, \sys constructs a
-27{,}765-operation profile in 1.16\,s.
-% 评估的 task-family 与 action backend 分别达到 0.695 和 0.498 macro-F1；在 OSWorld-Human 上，无标签 recurrence 达到 0.680 boundary F1 和 0.786 B$^3$ F1；固定 mark 后，\sys 在 1.16 秒内构建包含 27,765 个 operation 的 profile。
+and label-free recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1 on
+OSWorld-Human. Automatic annotation is a one-time cost (37 minutes of
+active backend time for all 405 CodeTraceBench trajectories); \sys then
+constructs a 27{,}765-operation profile in 1.16\,s and replays it across
+measures.
+% 评估的 task-family 与 action backend 分别达到 0.695 和 0.498 macro-F1；在 OSWorld-Human 上，无标签 recurrence 达到 0.680 boundary F1 和 0.786 B$^3$ F1。自动标注是一次性成本（全部 405 条 CodeTraceBench 轨迹 37 分钟活跃 backend 时间）；此后 \sys 在 1.16 秒内构建包含 27,765 个 operation 的 profile，并可跨度量重放。
 \end{abstract}
 
 % AI agents increasingly orchestrate long-running, multi-step
@@ -544,11 +546,14 @@ export format.
 
 \paragraph{Privacy.}
 % 隐私。
-\sys runs entirely offline on local histories; profiles carry only short
-semantic names, bounded text previews, and numeric measures as labels; no
-trajectory content leaves the machine unless the user shares the profile, and
-packet previews are truncated as disclosed in the appendix.
-% \sys 完全离线运行于本地历史之上；profile 仅携带短语义名称、有限文本预览与数值度量作为 label；除非用户主动分享 profile，否则任何轨迹内容都不离开本机，packet 预览按附录说明截断。
+Workspace construction, validation, folding, materialization, and replay
+run entirely on the local machine, and profiles carry only short semantic
+names, bounded text previews, and numeric measures as labels. Automatic
+annotation with a hosted model backend sends the preview-truncated packets
+to that provider; annotation with the local recurrence backend or a local
+model keeps every byte on the machine. Nothing else leaves the machine
+unless the user shares the profile.
+% Workspace 构建、校验、折叠、物化与重放完全在本机运行；profile 仅携带短语义名称、有限文本预览与数值度量作为 label。使用托管模型 backend 做自动标注时，截断后的 packet 会发送给该提供方；使用本地 recurrence backend 或本地模型则全程不出本机。除非用户主动分享 profile，任何其他内容都不离开本机。
 
 %% ===================================================================
 \section{Evaluation}
@@ -798,7 +803,9 @@ concentration at equal quality.
 % 在此机制下 semantic naming 测得的贡献是同等质量下的注意力集中。
 A per-query full read is bounded by the model context window: populations
 such as the 4{,}558{,}192-token repeated Git task cannot be read whole,
-whereas skeleton-guided drilldown remains available at any trace length.
+whereas skeleton-guided reading stays available at any trace length once
+the profile exists (construction itself proceeds per trajectory over
+preview-bounded packets).
 % 单 query 全量阅读受限于模型上下文窗口：诸如 4,558,192-token 的重复 Git 任务这类种群无法整体阅读，而骨架引导的下钻在任何 trace 长度下都可用。
 The reader is query-specific---it re-reads each trajectory per
 question---whereas the hierarchy is constructed once and replayed across
@@ -858,7 +865,8 @@ We test whether this visible recovery structure corresponds to an independent
 problem rather than merely reflecting more steps. For each trajectory, recovery
 exposure is the fraction of source operations whose path contains the shared
 recovery responsibility. Among 435 trajectories with consensus expert looping
-labels, this score obtains AP .634 at prevalence .398; a 10{,}000-draw
+labels, this score---computed per unique trajectory after deduplicating
+pair reuse, and therefore unaffected by pair-occurrence multiplicity---obtains AP .634 at prevalence .398; a 10{,}000-draw
 task-cluster bootstrap places AP minus prevalence in [.181,.293]. A registered
 fixed-chain repeated/error projection obtains AP .656, and the
 recursive-minus-fixed interval [-.107,.061] does not establish detector
