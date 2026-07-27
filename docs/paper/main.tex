@@ -417,7 +417,7 @@ workers under one fixed source-only annotation instruction. Each worker reads
 its trajectory once, with official stages and outcomes unavailable until all
 405 trajectories are materialized; recurrence assignments and scores are
 likewise hidden. Validation is followed by the unchanged deterministic
-root-prefix representation repair (Appendix~\ref{app:canonicalization}) and
+root-prefix representation repair (the appendix (\emph{Operation-Identity Canonicalization})) and
 source-only canonicalization replay before folding.
 % 完整 CodeTraceBench direct-backend 运行由多个独立 Codex Agent worker 按同一份固定 source-only annotation instruction 执行。每个 worker 只读取一次自己的轨迹；全部 405 条轨迹物化前，官方 stage 与 outcome 均不可见，recurrence assignment 与 score 同样隐藏。验证后沿用不变的确定性 root-prefix 表示修复（附录）与 source-only canonicalization replay，再进行折叠。
 
@@ -462,7 +462,7 @@ information~\cite{bouma2009npmi} and calibrates a label-free cutoff with
 occurrence-weighted two-means~\cite{macqueen1967}, treating detailed recurrence
 as continuity that can remove but never add a coarse boundary; an optional
 reference-calibrated mode fits one scalar cutoff on disjoint reference groups
-(Appendix~\ref{app:recurrence}).
+(the appendix (\emph{Recurrence Backend Details})).
 % inducer 用 NPMI 为相邻 action 转移评分，并用按出现次数加权的二均值校准无标签阈值；detail 连续性只能删除而不能新增粗边界；可选的 reference-calibrated 模式在不重叠参考分组上拟合单一阈值（附录）。
 
 \paragraph{Profile export.}
@@ -525,9 +525,9 @@ executions of one repeated Git-deployment task rather than selecting one trace.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=.65\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.operations.png}\\[1pt]
-\includegraphics[width=.65\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.tokens.png}\\[1pt]
-\includegraphics[width=.65\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-authentication.tokens.png}
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.operations.png}\\[1pt]
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.tokens.png}\\[1pt]
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-authentication.tokens.png}
 \caption{All three real \texttt{git-multibranch} executions under one fixed
 operation hierarchy. Width is operation count (top) or provider-reported tokens
 (middle); the bottom panel focuses the shared \texttt{diagnose authentication}
@@ -556,8 +556,7 @@ path.
 % 该聚焦任务包含来自 OpenHands/Claude、OpenHands/DeepSeek 与 Terminus2/DeepSeek 的 489 个 operation 和 4,558,192 个 provider-reported token：按数量 Terminus2 占 56.24%、OpenHands 占 43.76%，按 token OpenHands 占 86.62%。重复的 \texttt{diagnose authentication} operation 直接包含 97 个 operation 和 1,936,828 个 token，其完整递归子树包含 105 个 operation 和 2,103,587 个 token（占聚焦任务的 21.47\% 和 46.15%）；source drilldown 显示两条 OpenHands 执行在 control 或 fallback 尝试后都返回该职责，三条执行虽均验证 web 部署或替代 transport 路径，但没有一条建立所要求的密码认证 \texttt{git@localhost} 路径。
 As a post-hoc organization control, we replay the same 489 source operations and
 both weights over common \texttt{project, agent} prefixes and \texttt{call, tool}
-leaves with three middles---native \texttt{session, prompt}, coarse
-\texttt{action kind, raw action}, or semantic---so all six profiles conserve
+leaves with three middle organizations---native (\texttt{session, prompt}), coarse (\texttt{action kind, raw action}), or semantic---so all six profiles conserve
 exact mass and open in stock pprof. The SSH members scatter across 105 native
 calls and span six coarse action kinds (largest branch 39.42\% of their tokens),
 with 102 of 105 merely \texttt{run} alongside 97 unrelated operations. Only the
@@ -599,8 +598,8 @@ HINTBench, and TraceElephant workloads~\cite{agentprocessbench,hintbench,traceel
 
 Within each workload, operations, target-blind paths, benchmark predictions,
 and scoring are fixed before loading test targets
-(Appendix~\ref{app:rq2-scoring}).
-% 各 workload 中，operation、target-blind path、benchmark 预测与评分规则均在加载 test target 前固定（细节见附录~\ref{app:rq2-scoring}）。
+(the appendix (\emph{RQ2 Scoring Details})).
+% 各 workload 中，operation、target-blind path、benchmark 预测与评分规则均在加载 test target 前固定（细节见附录~the appendix (\emph{RQ2 Scoring Details})）。
 
 The main test asks whether the profile adds information beyond the
 \emph{direct diagnostic}---the per-operation output of a benchmark-native
@@ -712,10 +711,16 @@ all 338 good members into one signed operation-count pprof, preserving the same
 source occurrences on both the recursive and fixed-chain projections.
 % 在读取 outcome 或专家 annotation 之前，三个 automatic Agent worker 为全部 7,229 个 source operation 生成 2,131 个稀疏递归 annotation；所得层次在 LLM-call 与 tool-call evidence leaf 之前达到 semantic depth 4。随后我们将全部 338 个 bad member 和 338 个 good member 折叠进一个 signed operation-count pprof，并保证递归投影与 fixed-chain 投影使用完全相同的 source occurrence。
 
-\begin{figure}[tb]
+Formally, the signed profile is the difference of two nonnegative profiles,
+$(\varphi,\sigma,w_r)_{\text{bad}}-(\varphi,\sigma,w_r)_{\text{good}}$;
+each side satisfies the model's nonnegative additive-measure definition, and
+pprof renders the subtraction as positive and negative sample values.
+% 形式上，signed profile 是两个非负 profile 之差 $(\varphi,\sigma,w_r)_{bad}-(\varphi,\sigma,w_r)_{good}$：两侧各自满足模型的非负可加度量定义，pprof 将该差渲染为正负 sample 值。
+
+\begin{figure*}[t]
 \centering
-\includegraphics[width=\columnwidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-recovery-bad-excess.operations.png}\\[2pt]
-\includegraphics[width=\columnwidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-completion-good-excess.operations.png}
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-recovery-bad-excess.operations.png}\\[2pt]
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-completion-good-excess.operations.png}
 \caption{Focused paper renderings of the signed pprof profile over all
 338 bad--good pairs. The top panel selects positive samples under
 \texttt{recover interaction}: 3{,}286 bad-side versus 455 good-side
@@ -727,7 +732,7 @@ descends from browser-task responsibilities into recovery and specific retry
 or inspection operations. The lower graph descends through task completion to
 source LLM and tool calls.}
 \label{fig:agentreward-diff}
-\end{figure}
+\end{figure*}
 
 The aggregate contains 7{,}366 bad-side and 3{,}780 good-side operation
 occurrences. Recovery accounts for 44.6\% of bad-side occurrences but only
@@ -768,8 +773,8 @@ agents that built \sys and this paper, including ten long-horizon sessions
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=.70\linewidth]{../visexp/out/r221-pprof-renderer-v1/selfprofile.tokens.png}\\[1pt]
-\includegraphics[width=.70\linewidth]{../visexp/out/r221-pprof-renderer-v1/selfprofile.operations.png}
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/selfprofile.tokens.png}\\[1pt]
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/selfprofile.operations.png}
 \caption{The complete 42-session development population under one fixed
 semantic hierarchy. Width is provider-reported tokens (top) or operation
 count (bottom); second-level frames are the annotated responsibilities
@@ -896,10 +901,10 @@ provider-reported tokens.
 On all 287 OSWorld-Human task-instance sessions~\cite{osworldhuman} with
 complete group annotations, the supervised predictor reaches 0.739 boundary
 F1 and 0.816 B$^3$ F1, label-free recurrence reaches 0.680 / 0.786, and the
-strongest control reaches 0.645 / 0.678 (Appendix~\ref{app:osworld}).
+strongest control reaches 0.645 / 0.678 (the appendix (\emph{OSWorld-Human Boundary Study Detail})).
 % 在全部 287 个具有完整 group 标注的 OSWorld-Human task-instance session 上，监督 predictor 的 boundary F1 与 B$^3$ F1 为 0.739 和 0.816，无标签 recurrence 为 0.680 / 0.786，最强对照为 0.645 / 0.678（细节见附录）。
 
-A target-blind TF-IDF/K-Means backend reaches V-measure~\cite{rosenberg-hirschberg-2007-v-measure} 0.557 on nine Mind2Web sessions and 0.815 on 100 ScienceWorld sessions~\cite{mind2web,scienceworld} (Appendix~\ref{app:partition}).
+A target-blind TF-IDF/K-Means backend reaches V-measure~\cite{rosenberg-hirschberg-2007-v-measure} 0.557 on nine Mind2Web sessions and 0.815 on 100 ScienceWorld sessions~\cite{mind2web,scienceworld} (the appendix (\emph{Partition Backends Detail})).
 % 目标盲 TF-IDF/K-Means backend 在 9 个 Mind2Web session 与 100 个 ScienceWorld session 上的标准 V-measure 为 0.557 和 0.815（细节见附录）。
 
 For closed-label literal tags, a fixed evaluation-only Qwen3.6-27B
@@ -909,7 +914,7 @@ accuracy versus 0.044 / 0.248 for the majority baseline, and a backend-level
 adapter classifies all 2{,}737 published ASE action labels from 120 AutoCodeRover,
 OpenHands, and RepairAgent trajectories~\cite{traceview-2026,
 bouzenia-pradel-2025-trajectories} at 0.498 macro-F1 and 0.628 accuracy versus
-0.061 / 0.323 for the majority baseline (Appendix~\ref{app:literal}).
+0.061 / 0.323 for the majority baseline (the appendix (\emph{Literal-Label Backend Detail})).
 % 闭标签 literal 评估中，固定仅供评测的 Qwen3.6-27B backend 将 1,012 个 AgentBoard goal 分到 9 个 task family，macro-F1 与 accuracy 为 0.695/0.733，majority 为 0.044/0.248；backend-level adapter 将来自 120 条 AutoCodeRover/OpenHands/RepairAgent 轨迹的 2,737 个 ASE action label 分类，macro-F1 与 accuracy 为 0.498/0.628，majority 为 0.061/0.323（细节见附录）。
 
 Thus, across the named public populations, the direct Agent constructor
@@ -937,7 +942,7 @@ Measurements use \texttt{agentpprof 0.2.37} on a 24-core Intel Core Ultra 9
 Both time curves are monotonic across the five input sizes, and the semantic
 curve has a descriptive slope of 0.0418\,ms per operation ($R^2=0.9997$),
 reaching 23{,}935 operations/s on the union (Table~\ref{tab:rq4-cost} in
-Appendix~\ref{app:cost}).
+the appendix (\emph{Cost Scaling Table})).
 % 两条时间曲线在五个自然输入规模上均单调增长，语义曲线的描述性斜率为每个 operation 0.0418 毫秒（R 方为 0.9997），在并集上达到每秒 23,935 个 operation（表格见附录）。
 For the 27{,}765-operation union, semantic construction completes in 1.16
 seconds, reaches 465.2\,MiB peak RSS, and incurs 190\,ms (19.6\%) more time and
@@ -949,7 +954,7 @@ mixed-outcome population is a different, larger workload.
 % 表中 AgentRewardBench 行 profile 的是 cost harness 使用的固定 729-operation 公开 release 样本；Case Study 2 的 7,229-operation mixed-outcome population 是另一个更大的 workload。
 Constructing the 405 source-only CodeTrace packets used by the direct backend
 takes 501.64\,s median; after annotation, its full deterministic downstream
-pipeline takes 11.516\,s (Appendix~\ref{app:agent-mark-reconstruction}).
+pipeline takes 11.516\,s (the appendix (\emph{Agent-Mark Reconstruction Cost Detail})).
 % 为 direct backend 构造 405 个 source-only CodeTrace packet 的中位时间为 501.64 秒；标注完成后，其完整 deterministic downstream pipeline 耗时 11.516 秒（附录）。
 For the complete 405-trajectory CodeTraceBench population, direct annotation
 consumes 12{,}050{,}384 input and 231{,}886 output tokens, with
@@ -969,8 +974,8 @@ construction cost is dominated by the automatic backend, and materializing
 this population remains sub-second.
 % 现已存在完整插桩的 fresh-pass automatic annotation：在完整 440-session AgentRewardBench population 上，固定 automatic backend 在固定双 worker 调度下以 3,521.6 秒 wall time（含 provider 等待）完成全部 12 个 outcome-blind batch（58.7 分钟；worker 时间合计 6,661.7 秒），消耗 12,039,417 个实际输入 token（其中报告缓存 10,929,408）与 312,433 个输出 token——每 session 27,362 输入、710 输出 token。在三 session 的 Git population 上，一次全新完整 pass 需 466.9 秒与 832,544 个实际输入 token。完整 440-session population 的确定性 materialization 需 0.26 秒（operations）/ 0.25 秒（tokens）：构建成本由 automatic backend 主导，materialization 保持亚秒级。
 
-Scope details appear in Appendix~\ref{app:scope}.
-% 范围细节见附录~\ref{app:scope}。
+Scope details appear in the appendix (\emph{Extended Scope and Limitations}).
+% 范围细节见附录~the appendix (\emph{Extended Scope and Limitations})。
 
 
 %% ===================================================================
@@ -1104,6 +1109,12 @@ operation receives the maximum score over prefixes containing it.
 
 \subsection{Agent-Mark Reconstruction Cost Detail}
 \label{app:agent-mark-reconstruction}
+
+The direct annotation backend is the OpenAI Codex CLI (version 0.145.0,
+model \texttt{gpt-5.6-sol}, default decoding, sandboxed non-interactive
+mode): one call per trajectory over the source-only packet, at most one
+format retry, and independent workers with no shared state.
+% Direct annotation backend 为 OpenAI Codex CLI（版本 0.145.0，模型 \texttt{gpt-5.6-sol}，默认解码，沙箱非交互模式）：每条轨迹一次调用、至多一次格式重试、worker 相互独立且无共享状态。
 
 We reconstruct the source-only packet input three times on all 405 CodeTrace
 sessions (17{,}148 source-native turns and 20{,}866 operations). Joining the
