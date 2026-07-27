@@ -488,6 +488,12 @@ The evaluation addresses four research questions:
 Each RQ subsection pairs its protocol with the strongest answer its evidence
 supports.
 % 后续每个小节都陈述其协议、报告相应证据，并给出该证据所支持的最强答案。
+Together they form one chain: semantic responsibility can be recovered
+accurately (RQ3), the recovered hierarchy aggregates across runs while
+conserving every additive measure (RQ1), the aggregate corresponds to real
+problems and reduces the evidence a reader must open (RQ2), and construction
+and replay costs are measured and practical (RQ4).
+% 四个 RQ 构成一条链：语义责任可以被准确恢复（RQ3）；恢复的层次跨运行聚合并精确保守每种可加度量（RQ1）；聚合结果对应真实问题并减少 reader 需要打开的证据量（RQ2）；构建与重放成本可测且实用（RQ4）。
 
 We evaluate three data classes: \textbf{real inputs (RQ1, cases)}---41
 long-horizon coding-agent sessions, 440 mixed-outcome web-agent
@@ -580,9 +586,10 @@ interval [0.857, 0.915]) and Spearman's rho~\cite{spearman1904} is 0.935
 hierarchy therefore replays across measures with exact conservation and stable
 dominant responsibilities for most web-scale tasks, though 10 of the 77
 rankable tasks fall below tau-b 0.7 and the long-horizon Git case above shifts
-attributed importance by more than a factor of two. The regimes where selecting
-the measure changes the engineering decision are exactly where multi-measure
-replay pays.
+attributed importance by more than a factor of two. Multi-measure replay is
+thus stable in the common case and decision-changing in a material
+minority---exactly the regimes where selecting the measure changes the
+engineering decision.
 % 在 frozen 的 440-session AgentRewardBench 层次（7,229 个 operation 与 51,904,621 个 provider-reported token，两者均精确保守）上，同一固定层次在两种度量下重放：分别按 operation count 与 token 对相同 operation 排序。在 125 个 task 中至少有三个不同 operation 的 77 个上，mean per-task Kendall's tau-b 为 0.886（10,000 次 task-cluster bootstrap 95% 区间 [0.857, 0.915]），Spearman's rho 为 0.935 [0.917, 0.953]；pooled population ranking 的 tau-b 为 0.929。因此一个固定层次可跨度量重放且精确保守，多数 web-scale task 的主导职责保持稳定，但 77 个可排序 task 中有 10 个 tau-b 低于 0.7，且上述 long-horizon Git case 的归因重要性变化超过两倍——度量选择会改变工程决策的情形，正是 multi-measure replay 的价值所在。
 
 
@@ -753,9 +760,12 @@ labels, this score obtains AP .634 at prevalence .398; a 10{,}000-draw
 task-cluster bootstrap places AP minus prevalence in [.181,.293]. A registered
 fixed-chain repeated/error projection obtains AP .656, and the
 recursive-minus-fixed interval [-.107,.061] does not establish detector
-superiority. The recursive profile therefore contributes a source-drillable
-explanation of \emph{where} recovery accumulates while independently
-corresponding to expert-identified looping.
+superiority. The two projections answer different questions: the fixed
+indicator only flags where repeated/error steps occur, whereas the recursive
+profile decomposes the same responsibility into verification, search,
+navigation, retry, and inspection with session/call drilldown---a
+source-drillable explanation of \emph{where} recovery accumulates that
+independently corresponds to expert-identified looping.
 % 我们进一步检验该可见 recovery 结构是否对应独立问题，而不仅仅反映更多 step。每条轨迹的 recovery exposure 定义为路径中包含共享 recovery responsibility 的 source operation 比例。在 435 条具有一致专家 looping label 的轨迹上，该 score 的 AP 为 .634，prevalence 为 .398；10,000 次 task-cluster bootstrap 给出的 AP-minus-prevalence 区间为 [.181,.293]。注册的 fixed-chain repeated/error 投影 AP 为 .656，recursive-minus-fixed 区间 [-.107,.061] 不支持 detector superiority。因此递归 profile 的价值是可下钻地解释 recovery 在何处累积，并且该 exposure 独立对应专家识别的 looping。
 
 This case answers RQ2 at collection scale: a target-blind recursive profile
