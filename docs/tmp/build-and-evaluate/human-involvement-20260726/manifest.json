@@ -1,0 +1,343 @@
+{
+  "experiment": "human-involvement-20260726",
+  "frozen_definitions": {
+    "claude_human": "type=user after synthetic/tool-result/meta/sidechain exclusions",
+    "codex_human": "event_msg/user_message; response_item user fallback only; native session_meta.thread_source=subagent files excluded even when the event projection labels source_role=user",
+    "gemini_human": "messages[].type=user",
+    "guidance_density": "follow-up human messages per 100 projected Agent actions",
+    "guided": "at least two substantive human messages",
+    "immediate_change": "adjacent action before/after a follow-up in the same native human-bearing source file and source stream",
+    "reuse_validation_eligibility": "all non-delete mutation rows, retaining observed/competing/censored/missing outcomes",
+    "startup_only": "exactly one substantive human message",
+    "timing": "prompt-to-last-activity envelope and post-activity inactive gap; not human attention",
+    "turn_share": "human / (substantive human + assistant records with conversational text)",
+    "word_approximation": "Latin/digit runs plus individual Han characters"
+  },
+  "generated_at_utc": "2026-07-27T06:51:26.336755+00:00",
+  "inputs": {
+    "codex_subagent_files_excluded_from_human_measurement": 515,
+    "events": [
+      {
+        "bytes": 102239017,
+        "declared_sessions": 139,
+        "declared_source_events": 195535,
+        "events": 66238,
+        "paired_gzip_decompressed_sha256": "7b21f517813daf232ec39df30c82ba5e71086e1bc5c6c6bfdc1981fa69d371eb",
+        "paired_gzip_matches": true,
+        "paired_gzip_path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/ActPlane.json.gz",
+        "path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/ActPlane.json",
+        "project": "ActPlane",
+        "revision": "50a1619fae1c13553c13ea032f1dba67e7046879",
+        "sha256": "7b21f517813daf232ec39df30c82ba5e71086e1bc5c6c6bfdc1981fa69d371eb"
+      },
+      {
+        "bytes": 1598843,
+        "declared_sessions": 17,
+        "declared_source_events": 2920,
+        "events": 948,
+        "paired_gzip_decompressed_sha256": "01cb6eadbfa4091f0d2c072cfb9c8967864c7b4a11a58df2428a2deeb2851407",
+        "paired_gzip_matches": true,
+        "paired_gzip_path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/academic-writing-skills.json.gz",
+        "path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/academic-writing-skills.json",
+        "project": "academic-writing-skills",
+        "revision": "eb13203b199c694f20206dfebc2cf9f2995e7707",
+        "sha256": "01cb6eadbfa4091f0d2c072cfb9c8967864c7b4a11a58df2428a2deeb2851407"
+      },
+      {
+        "bytes": 178979577,
+        "declared_sessions": 301,
+        "declared_source_events": 859187,
+        "events": 97586,
+        "paired_gzip_decompressed_sha256": "d9fc07c61f09029d193b37ea614e8e070fba7b21f58369b4c56ea4cc1e952a13",
+        "paired_gzip_matches": true,
+        "paired_gzip_path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/agentsight.json.gz",
+        "path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/agentsight.json",
+        "project": "agentsight",
+        "revision": "273773d7cf5e94ffd27652e9357184e25ca7c9d0",
+        "sha256": "d9fc07c61f09029d193b37ea614e8e070fba7b21f58369b4c56ea4cc1e952a13"
+      },
+      {
+        "bytes": 1521256,
+        "declared_sessions": 8,
+        "declared_source_events": 4871,
+        "events": 991,
+        "paired_gzip_decompressed_sha256": "d155917232097f7ec81ba4088a0b769a069507c066d8f1f62093b84f4913f5c5",
+        "paired_gzip_matches": true,
+        "paired_gzip_path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/agentskill-observability-paper.json.gz",
+        "path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/agentskill-observability-paper.json",
+        "project": "agentskill-observability-paper",
+        "revision": "aa19f804ad293f87c3040d7b8a849509508957bf",
+        "sha256": "d155917232097f7ec81ba4088a0b769a069507c066d8f1f62093b84f4913f5c5"
+      },
+      {
+        "bytes": 2658241,
+        "declared_sessions": 35,
+        "declared_source_events": 4054,
+        "events": 1664,
+        "paired_gzip_decompressed_sha256": "fd6ac68746ed4433de48f663630527ff6a80bb1236acd190ad408e6d11711a56",
+        "paired_gzip_matches": true,
+        "paired_gzip_path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/bpf-developer-tutorial.json.gz",
+        "path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/bpf-developer-tutorial.json",
+        "project": "bpf-developer-tutorial",
+        "revision": "21e9d9996bf3097e888a764ef0d0b924a11d041a",
+        "sha256": "fd6ac68746ed4433de48f663630527ff6a80bb1236acd190ad408e6d11711a56"
+      },
+      {
+        "bytes": 21112046,
+        "declared_sessions": 51,
+        "declared_source_events": 27523,
+        "events": 13876,
+        "paired_gzip_decompressed_sha256": "68bc4fb4792573849413c41b90c1738415ab935a625f06543657bca7747de7b9",
+        "paired_gzip_matches": true,
+        "paired_gzip_path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/eunomia-dev.json.gz",
+        "path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/eunomia-dev.json",
+        "project": "eunomia.dev",
+        "revision": "62410ec4537956af0fd46fb71696e4c859a33bc1",
+        "sha256": "68bc4fb4792573849413c41b90c1738415ab935a625f06543657bca7747de7b9"
+      }
+    ],
+    "mutation_csv": {
+      "bytes": 5061775,
+      "path": "/home/yunwei37/workspace/agentsight-agent-nebula-research/docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/rq1-mutations.csv",
+      "rows": 13906,
+      "sha256": "e4c7407c1dcb8f9cfdae6647238345ce17cc1ae76fba324551665b10fe41c1a4"
+    },
+    "native_candidate_files_classified": 1048
+  },
+  "native_exclusion_counts": {
+    "assistant_without_conversational_text": 31262,
+    "codex_subagent_source_file": 515,
+    "continuation_summary": 78,
+    "injected": 485,
+    "interrupt_marker": 298,
+    "invalid_json": 57,
+    "meta": 306,
+    "missing_timestamp": 35041,
+    "response_item_assistant_duplicates_ignored": 49409,
+    "response_item_synthetic_user": 576,
+    "response_item_user_duplicates_ignored": 4455,
+    "tool_result": 24034
+  },
+  "native_record_type_counts": {
+    "claude": {
+      "agent-name": 159,
+      "ai-title": 6553,
+      "assistant": 44042,
+      "attachment": 10059,
+      "bridge-session": 5346,
+      "custom-title": 34,
+      "file-history-delta": 68,
+      "file-history-snapshot": 5131,
+      "last-prompt": 6494,
+      "mode": 5687,
+      "permission-mode": 5616,
+      "pr-link": 237,
+      "queue-operation": 3707,
+      "summary": 21,
+      "system": 4556,
+      "user": 29499
+    },
+    "codex": {
+      "compacted:": 698,
+      "event_msg:agent_message": 49410,
+      "event_msg:agent_reasoning": 10004,
+      "event_msg:context_compacted": 697,
+      "event_msg:mcp_tool_call_end": 81,
+      "event_msg:patch_apply_end": 13694,
+      "event_msg:sub_agent_activity": 1848,
+      "event_msg:task_complete": 2488,
+      "event_msg:task_started": 2867,
+      "event_msg:thread_goal_updated": 513,
+      "event_msg:thread_rolled_back": 52,
+      "event_msg:thread_settings_applied": 337,
+      "event_msg:token_count": 96370,
+      "event_msg:turn_aborted": 336,
+      "event_msg:user_message": 3501,
+      "event_msg:web_search_end": 1252,
+      "inter_agent_communication_metadata:": 1478,
+      "response_item:agent_message": 1478,
+      "response_item:custom_tool_call": 37443,
+      "response_item:custom_tool_call_output": 37437,
+      "response_item:function_call": 89077,
+      "response_item:function_call_output": 89054,
+      "response_item:message": 55034,
+      "response_item:reasoning": 82065,
+      "response_item:tool_search_call": 184,
+      "response_item:tool_search_output": 184,
+      "response_item:web_search_call": 578,
+      "session_meta:": 1181,
+      "turn_context:": 3572,
+      "world_state:": 701
+    },
+    "gemini": {
+      "gemini": 37,
+      "info": 2,
+      "user": 7
+    }
+  },
+  "outputs": [
+    {
+      "bytes": 111303,
+      "path": "analyze_human_involvement.py",
+      "sha256": "42b6095c4acd2bc65e5e1218436f010026bc3b70d509854df02378e628af8f0f"
+    },
+    {
+      "bytes": 59090,
+      "path": "approval_visibility.csv",
+      "sha256": "ef3ec0f67f3f5267e108bbdfae3946c37ee6a1c20082cf896f1f429b50ca99b9"
+    },
+    {
+      "bytes": 21133,
+      "path": "figures/01_session_involvement.pdf",
+      "sha256": "813e3a278f1ee9cdb95f47fba96546c7db60eb502c02bae5fd4be352707c0f22"
+    },
+    {
+      "bytes": 205740,
+      "path": "figures/01_session_involvement.png",
+      "sha256": "d9bdbe6ba3356bcc88f36d4a766b062ce3cb3b12d9c61718756117069e656d73"
+    },
+    {
+      "bytes": 34545,
+      "path": "figures/02_message_lengths.pdf",
+      "sha256": "0338787ee67a02ae96367b212a0882d29017181be4c1a813c3cc14aaaab67b05"
+    },
+    {
+      "bytes": 93481,
+      "path": "figures/02_message_lengths.png",
+      "sha256": "45b15a0ae3d5872259bfaf2c3d5789ce61d54e387b4ed4f7bfd9fd55db2a985d"
+    },
+    {
+      "bytes": 37435,
+      "path": "figures/03_attention_schedule.pdf",
+      "sha256": "de1fb3775807fee8248ad1ebb6e2cf18d8757f56d59392aba770bd9a300683e6"
+    },
+    {
+      "bytes": 103621,
+      "path": "figures/03_attention_schedule.png",
+      "sha256": "354ec34143b18d1729e724db6f259d1997685cf41c98be55cbe733fe2600f728"
+    },
+    {
+      "bytes": 27027,
+      "path": "figures/04_outcome_cooccurrence.pdf",
+      "sha256": "bf4c5490ad12c55e33292ee18a96192fddd364c737e50481d4dc26fd8811649f"
+    },
+    {
+      "bytes": 164932,
+      "path": "figures/04_outcome_cooccurrence.png",
+      "sha256": "28382c78b6a45303cea0d79d7321c62cb39e41846256c6c567a85f74a152351d"
+    },
+    {
+      "bytes": 13968,
+      "path": "figures/05_profile_ratios.pdf",
+      "sha256": "71e1df789c6ae2fa330a419ba3fcea35599883ca7806fef6b1fea78c325ce9e2"
+    },
+    {
+      "bytes": 94875,
+      "path": "figures/05_profile_ratios.png",
+      "sha256": "1fb2fec78dc5abae5b4694ec54a84bdc8815561e671ec5dfea7ab940de642a67"
+    },
+    {
+      "bytes": 2145433,
+      "path": "followup_transitions.csv",
+      "sha256": "ed632b00aa56cbac269c6d634f22dc11d896e023864be15984914374911827d8"
+    },
+    {
+      "bytes": 28703,
+      "path": "human_distributions.csv",
+      "sha256": "18fddba2e19e48e5ab1760a1d6a76b54305096a6c037a4a7c28c8f919ffbd19f"
+    },
+    {
+      "bytes": 1133395,
+      "path": "interaction_intervals.csv",
+      "sha256": "d13fdd73a4f598a5aece5d962ef6787b373da6c0be83eda882f77ca78b667168"
+    },
+    {
+      "bytes": 13782,
+      "path": "involvement_outcomes.csv",
+      "sha256": "5b8a524de1c7b948a759b4c842dd0d4c6298e842c921991e03deff1f14230ead"
+    },
+    {
+      "bytes": 298414,
+      "path": "native_coverage.csv",
+      "sha256": "84a366a112e8c95d11ceab56602b118f4c107a66a3f5f72cfaf10f06c36c41f9"
+    },
+    {
+      "bytes": 3731,
+      "path": "plan-review.md",
+      "sha256": "b52e300ca6fef6d0fef1d97896b2bb406da2eab49788bcc4a428d1be8bb6147c"
+    },
+    {
+      "bytes": 13592,
+      "path": "plan.md",
+      "sha256": "c3cba82999030525e6c5cbb4b6b3d0cdf29cbe835ae029da1db54510a307ed08"
+    },
+    {
+      "bytes": 3796,
+      "path": "preflight/preflight.json",
+      "sha256": "d722a8fc6be50aaffce5857ff718b40745e81c244e8f060124ea73cffaf48a92"
+    },
+    {
+      "bytes": 6649,
+      "path": "profile_summary.csv",
+      "sha256": "3f2498afb31e0619607547621ed88a506e90f3c2b3d6585ddead40ea32fec595"
+    },
+    {
+      "bytes": 13025,
+      "path": "report.md",
+      "sha256": "60ef9c21523f733e2039c6cca4795eba2434272f2cc6781a2d85f9450857350d"
+    },
+    {
+      "bytes": 3249,
+      "path": "result-review.md",
+      "sha256": "36c366ebf3bf40b8ce19fc5854c8c99256f3ba973eecc0c80e9e1b630a599e55"
+    },
+    {
+      "bytes": 1538,
+      "path": "run-deviations.md",
+      "sha256": "180d06623d1b3f0cb73121e317ae25f53967b8c9259a4d3f0e7b543cab209ad4"
+    },
+    {
+      "bytes": 26798,
+      "path": "schedule_hour.csv",
+      "sha256": "39c9e1243b5a0b9f00b83d4fbf1ec8f054cf6358a5c94993c256a633909f614a"
+    },
+    {
+      "bytes": 9017,
+      "path": "schedule_weekday.csv",
+      "sha256": "748b07a5fe8716e791d8bde5a8b4918a55356a464e4e4e74b6e0768c34d12743"
+    },
+    {
+      "bytes": 166188,
+      "path": "session_metrics.csv",
+      "sha256": "57b171617a5b86efa05e1c7d16f463878764c6ff4f1b2aa43517c51c29e0ffcb"
+    },
+    {
+      "bytes": 1995181,
+      "path": "user_messages.csv",
+      "sha256": "e0e6e0b9de40bcbc9cbf7c8ad25b096cb841d77f7117006c5bd6bc29a587374d"
+    }
+  ],
+  "privacy": {
+    "message_hash_exported": false,
+    "message_text_exported": false,
+    "source_paths_exported_for_provenance": true
+  },
+  "reconciliations": {
+    "exported_project_attributed_message_rows": 7852,
+    "followup_rows": 7319,
+    "interaction_interval_rows": 7319,
+    "project_attributed_human_messages": 7852,
+    "project_attributed_sessions": 551,
+    "project_vendor_grid_rows": 18,
+    "projected_event_rows": 181303,
+    "unique_projected_session_ids": 550
+  },
+  "software": {
+    "matplotlib": "3.6.3",
+    "numpy": "1.26.4",
+    "pandas": "2.3.3",
+    "platform": "Linux-6.15.11-061511-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]"
+  },
+  "timezone": "America/Vancouver"
+}
