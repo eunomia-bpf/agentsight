@@ -1,0 +1,149 @@
+{
+  "command": "python analysis.py",
+  "data_directory": "docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events",
+  "input_files": [
+    {
+      "path": "docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/ActPlane.json",
+      "bytes": 102239017,
+      "sha256": "7b21f517813daf232ec39df30c82ba5e71086e1bc5c6c6bfdc1981fa69d371eb"
+    },
+    {
+      "path": "docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/academic-writing-skills.json",
+      "bytes": 1598843,
+      "sha256": "01cb6eadbfa4091f0d2c072cfb9c8967864c7b4a11a58df2428a2deeb2851407"
+    },
+    {
+      "path": "docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/agentsight.json",
+      "bytes": 178979577,
+      "sha256": "d9fc07c61f09029d193b37ea614e8e070fba7b21f58369b4c56ea4cc1e952a13"
+    },
+    {
+      "path": "docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/agentskill-observability-paper.json",
+      "bytes": 1521256,
+      "sha256": "d155917232097f7ec81ba4088a0b769a069507c066d8f1f62093b84f4913f5c5"
+    },
+    {
+      "path": "docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/bpf-developer-tutorial.json",
+      "bytes": 2658241,
+      "sha256": "fd6ac68746ed4433de48f663630527ff6a80bb1236acd190ad408e6d11711a56"
+    },
+    {
+      "path": "docs/tmp/build-and-evaluate/rq1-rq4-recompute-final/rq1-raw/events/eunomia-dev.json",
+      "bytes": 21112046,
+      "sha256": "68bc4fb4792573849413c41b90c1738415ab935a625f06543657bca7747de7b9"
+    }
+  ],
+  "revisions": {
+    "ActPlane": "50a1619fae1c13553c13ea032f1dba67e7046879",
+    "academic-writing-skills": "eb13203b199c694f20206dfebc2cf9f2995e7707",
+    "agentsight": "273773d7cf5e94ffd27652e9357184e25ca7c9d0",
+    "agentskill-observability-paper": "aa19f804ad293f87c3040d7b8a849509508957bf",
+    "bpf-developer-tutorial": "21e9d9996bf3097e888a764ef0d0b924a11d041a",
+    "eunomia.dev": "62410ec4537956af0fd46fb71696e4c859a33bc1"
+  },
+  "python": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]",
+  "platform": "Linux-6.15.11-061511-generic-x86_64-with-glibc2.39",
+  "libraries": {
+    "numpy": "1.26.4",
+    "pandas": "2.3.3",
+    "scipy": "1.11.4",
+    "matplotlib": "3.6.3"
+  },
+  "definitions": {
+    "all_session_tertile_min_calls": 3,
+    "drift_primary_min_calls": 30,
+    "drift_length_sensitivities": [
+      60,
+      100
+    ],
+    "curve_min_calls": 30,
+    "startup_prefixes": [
+      5,
+      10,
+      20
+    ],
+    "startup_primary_prefix": 10,
+    "recent_reedit_window_calls": 10,
+    "failure_chain_min_consecutive_same_target_failures": 3,
+    "interleaved_cluster_max_intervening_calls": 2,
+    "root_flatten_order": [
+      "ts_ms",
+      "source_stream_id",
+      "source_tool_ordinal",
+      "id"
+    ],
+    "strict_failure_order": [
+      "repository",
+      "session_id",
+      "source_stream_id",
+      "source_tool_ordinal"
+    ]
+  },
+  "summary": {
+    "corpus": {
+      "projects": 6,
+      "project_root_memberships": 551,
+      "unique_session_ids": 550,
+      "project_event_rows": 181303,
+      "unique_events": 180764,
+      "duplicate_project_event_rows": 539,
+      "file_actions": 69922,
+      "vendors": {
+        "codex": 144433,
+        "claude": 36826,
+        "gemini": 44
+      }
+    },
+    "drift": {
+      "session_project_pairs_ge_3": 407,
+      "session_project_pairs_ge_30": 233
+    },
+    "startup": {
+      "sessions_with_10_calls": 362,
+      "sessions_with_predecessor": 348,
+      "median_narrow_proxy": 0.1,
+      "median_extended_proxy": 0.2,
+      "q25_extended_proxy": 0.1,
+      "q75_extended_proxy": 0.3,
+      "p90_extended_proxy": 0.6
+    },
+    "bookkeeping": {
+      "file_bookkeeping_calls_strict": 10147,
+      "file_bookkeeping_share_strict": 0.055967082728912376,
+      "control_plane_calls_strict": 11743,
+      "control_plane_share_strict": 0.06477002586829782,
+      "control_plane_calls_broad": 12756,
+      "control_plane_share_broad": 0.07035735757268219,
+      "exclusive_bookkeeping_share_strict": 0.059199241049513796,
+      "adjusted_control_plane_share_strict": 0.06259686822611871,
+      "unique_event_control_plane_share_strict": 0.06496315638069527,
+      "bookkeeping_reads": 9079,
+      "bookkeeping_writes": 3467,
+      "bookkeeping_write_read_ratio": 0.38187025002753605,
+      "ordinary_project_reads": 40613,
+      "ordinary_project_writes": 23401,
+      "ordinary_write_read_ratio": 0.5761948144682737,
+      "bookkeeping_write_revisit_share": 0.5051226327227569,
+      "ordinary_write_revisit_share": 0.5228938934983977,
+      "bookkeeping_h50_eligible_writes": 3221,
+      "ordinary_h50_eligible_writes": 22779
+    },
+    "failures": {
+      "chains": 16,
+      "failed_calls_in_chains": 58,
+      "strict_chain_call_share": 0.0003199064549400727,
+      "unique_event_chain_call_share": 0.00032086034829944014,
+      "interleaved_clusters": 39,
+      "outcomes": {
+        "exact_target_observed_unresolved": 2,
+        "exact_target_recovered": 13,
+        "modified_route_observed": 1
+      },
+      "patterns": {
+        "process_polling": 3,
+        "remote_lookup": 1,
+        "repeated_edit": 12
+      }
+    }
+  }
+}
