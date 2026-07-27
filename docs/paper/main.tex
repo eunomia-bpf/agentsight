@@ -150,7 +150,7 @@ additive measures; an interchangeable backend names the session scope, each
 user-prompt scope, and recursively refined intervals as operations; an
 \emph{operation stack} emits the agent, those operations, and covered LLM/tool
 evidence. Raw session and prompt IDs stay labels, not visible frames that
-fragment aggregation (Figure~\ref{fig:flamegraph}).
+fragment aggregation (Figure~\ref{fig:motivating}).
 % 我们的语义 operation stack 模型通过把资源度量投影到归因层次中的稳定语义标签上来提供该结构：source node 保留原生 session、prompt、LLM call、tool call relation 与可加度量；可替换 backend 将 session scope、每个 user-prompt scope 与递归细分区间命名为 operation；operation stack 输出 agent、这些 operation 及其覆盖的 LLM/tool evidence，raw session/prompt ID 仅作为 label，不作为打碎聚合的可见 frame。
 
 %% ¶6: System
@@ -250,6 +250,60 @@ identifiers and runtime stacks, although pprof can also promote
 Agent profiles must instead derive stable semantic fields and connect them to
 downstream effects.
 % 智能体 profile 则必须先推导稳定语义字段并连接到下游副作用。
+
+\subsection{A Motivating Case: Two Flame Graphs}
+% 动机案例：两张火焰图
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=.97\linewidth]{../visexp/out/traditional-cpu-baseline-v1/go-http-cpu.png}\\[2pt]
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-authentication.tokens.png}
+\caption{Two standard pprof profiles under one renderer. Top: CPU time in a Go
+HTTP service, recorded by stock \texttt{runtime/pprof} and truncated to twelve
+frames for display. Bottom: provider-reported tokens across three independent
+executions of one Git-deployment task, produced by \sys. In both panels width
+is aggregate cost, a parent's cost contains its children's, and identical
+stacks fold; only the frames' meaning differs---library and application
+functions above, constructed semantic responsibilities below.}
+\Description{Two flame graphs in the same visual style. The upper graph
+descends from the Go HTTP server's connection handler into the request
+handler and then into ranking, parsing, hashing, and runtime routines. The
+lower graph descends from the agent through a deployment task into a shared
+authentication-diagnosis responsibility that fans out into account, transport,
+credential, and retest operations.}
+\label{fig:motivating}
+\end{figure*}
+
+Figure~\ref{fig:motivating} draws two standard pprof profiles with one
+renderer. The upper profile is a Go HTTP service under load, captured by stock
+\texttt{runtime/pprof}. The lower profile aggregates three independent agent
+executions of one Git-deployment task, run by two agent frameworks over two
+models.
+% 图~\ref{fig:motivating} 用同一个渲染器绘制两个标准 pprof profile：上方是压测下的 Go HTTP 服务，由 stock \texttt{runtime/pprof} 采集；下方聚合了同一个 Git 部署任务的三次独立智能体执行，来自两个 agent framework 与两个模型。
+
+Both panels are read by the same rules: a frame's width is its aggregate cost,
+a parent's cost contains its children's, and identical stacks recorded at
+different moments fold into one frame. The upper panel folds repeated
+executions of \texttt{main.handleIngest} across thousands of requests; the
+lower panel folds one \texttt{diagnose authentication} responsibility across
+three separate runs. What differs is where the frame names come from. A call
+stack supplies \texttt{net/http.(*conn).serve} for free at every sample.
+Nothing in an agent trajectory supplies \texttt{diagnose authentication}: the
+three runs express that intent through different prompts and different shell
+commands, and the name exists only because the profiler constructed it.
+% 两张图的读法完全相同：frame 宽度是聚合开销，父 frame 的开销包含其子 frame，不同时刻记录的相同栈折叠为同一个 frame。上图把数千次请求中重复执行的 \texttt{main.handleIngest} 折叠在一起，下图把一个 \texttt{diagnose authentication} 责任跨三次独立执行折叠在一起。差别在于 frame 名字从哪里来：调用栈在每个样本上免费提供 \texttt{net/http.(*conn).serve}，而智能体轨迹不会提供 \texttt{diagnose authentication}——三次执行用不同的提示词和不同的 shell 命令表达同一意图，这个名字只因为 profiler 构造了它才存在。
+
+That constructed name is what makes the lower panel answerable. The three runs
+spend 4.56 million tokens, and nearly half of that mass falls under one shared
+authentication responsibility that both OpenHands executions return to after
+control and fallback attempts, although none of the three runs ever
+establishes the password-authenticated \texttt{git@localhost} path the task
+asked for. Read as raw trace records, the same work is 105 separate calls
+spread over six action kinds, 102 of them merely \texttt{run}, interleaved
+with 97 unrelated operations. Section~\ref{sec:eval} measures this case, its
+same-input organization controls, and whether the effect holds at population
+scale.
+% 正是这个构造出来的名字让下图变得可回答：三次执行共消耗 456 万 token，其中接近一半落在同一个共享的认证责任下，两次 OpenHands 执行在 control 与 fallback 尝试之后都回到该责任，但三次执行都没有建立任务要求的密码认证 \texttt{git@localhost} 路径。若按 raw trace record 阅读，同一批工作是散落在六种 action kind 中的 105 个独立 call（其中 102 个仅为 \texttt{run}），并与 97 个无关 operation 交织。第~\ref{sec:eval} 节测量该案例、其同输入组织对照，以及该效应是否在 population 规模上成立。
 
 \subsection{Challenges for Agent Profiling}
 % 智能体 Profiling 的挑战
@@ -411,6 +465,21 @@ branch, with no cap or threshold. One ordinary format retry is allowed, after
 which the deterministic root-prefix repair and canonicalization replay remain
 unchanged downstream.
 % 评测的 Agent backend 对每条轨迹只读取一次完整的 source-only packet，并在它识别出的 transition point 直接发出 sparse complete-path mark，同时命名每一层 enclosing responsibility。每个 branch 的深度可自由选择，不设上限或阈值。协议允许一次普通 format retry，之后的确定性 root-prefix repair 与 canonicalization replay 保持不变。
+The complete backend interface is this input/output contract:
+% 完整的 backend 接口就是如下输入/输出契约：
+\begin{quote}\small
+\emph{Input:} one trajectory's source-only packet---each turn's visible
+prompt, command, and output summary; no labels.\\
+\emph{Action:} read once; emit a mark wherever the responsibility changes.\\
+\emph{Output:} sparse complete-path marks, e.g.\\
+{\ttfamily turn 1: [deploy git server]\\
+turn 4: [deploy git server, diagnose SSH access]\\
+turn 9: [deploy git server, diagnose SSH access, test PAM]\\
+turn 15: [deploy git server, verify web endpoint]}\\
+---one line only where the path changes; free depth; names are one to
+three action-first words.
+\end{quote}
+% 输入：一条轨迹的 source-only packet——每个 turn 的可见 prompt、命令与输出摘要，无任何标签。动作：通读一遍，在责任变化处发出标记。输出：稀疏 complete-path mark（仅在路径变化处一行；深度自由；名字为 1--3 个动词优先的词）。
 
 The complete CodeTraceBench direct-backend run uses independent Codex Agent
 workers under one fixed source-only annotation instruction. Each worker reads
@@ -525,26 +594,27 @@ This establishes the multi-resource attribution capability on a repeated
 real task.
 % 该实验在一个重复真实任务上建立了多资源 attribution 能力。
 \paragraph{Case Study 1: Long-Horizon Agent Diagnosis.}
-Figure~\ref{fig:flamegraph} uses a stock-pprof focus query to retain all three
-executions of one repeated Git-deployment task rather than selecting one trace.
-% Figure~\ref{fig:flamegraph} 使用 stock pprof focus query 保留一个重复 Git 部署任务的全部三次执行，而不是挑选单条轨迹。
+This is the case previewed in Section~\ref{sec:background}. A stock-pprof focus
+query retains all three executions of the repeated Git-deployment task rather
+than selecting one trace, and Figure~\ref{fig:flamegraph} replays that one
+fixed hierarchy under both additive measures.
+% 这是第~\ref{sec:background} 节预览的案例。stock pprof focus query 保留该重复 Git 部署任务的全部三次执行而非挑选单条轨迹，图~\ref{fig:flamegraph} 在两种可加度量下重放同一个固定层次。
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.operations.png}\\[1pt]
-\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.tokens.png}\\[1pt]
-\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-authentication.tokens.png}
+\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/git-multibranch.tokens.png}
 \caption{All three real \texttt{git-multibranch} executions under one fixed
-operation hierarchy. Width is operation count (top) or provider-reported tokens
-(middle); the bottom panel focuses the shared \texttt{diagnose authentication}
-operation. AgentPProf emits only standard pprof; a paper-only renderer reads
-the same \texttt{.pb.gz} through \texttt{go tool pprof} without introducing a
-product frontend.}
-\Description{Three operation flame graphs over the same Git-deployment traces.
+operation hierarchy, replayed under two additive measures: width is operation
+count (top) or provider-reported tokens (bottom). The hierarchy, its
+boundaries, and its names are identical in both panels; only the measure
+changes. Figure~\ref{fig:motivating} focuses the shared \texttt{diagnose
+authentication} operation of the token view. AgentPProf emits only standard
+pprof; a paper-only renderer reads the same \texttt{.pb.gz} through
+\texttt{go tool pprof} without introducing a product frontend.}
+\Description{Two operation flame graphs over the same Git-deployment traces.
 The count view is dominated by Terminus2, whereas the token view is dominated
-by OpenHands and repeated SSH diagnosis. A focused panel expands the SSH path
-into hostname, PAM, account, credential, daemon-debug, and fresh-user tests,
-with deeper children under several diagnostic paths.}
+by OpenHands and repeated SSH diagnosis.}
 \label{fig:flamegraph}
 \end{figure*}
 
@@ -554,12 +624,12 @@ by count, Terminus2 contributes 56.24\% and OpenHands 43.76\%, while by tokens
 OpenHands contributes 86.62\%. The repeated \texttt{diagnose authentication}
 operation directly contains 97 operations and 1{,}936{,}828 tokens, and its
 complete recursive subtree contains 105 operations and 2{,}103{,}587 tokens
-(21.47\% and 46.15\% of the focused task); source drilldown shows both OpenHands
-executions returning to this responsibility after control or fallback attempts,
-and although all three executions verify web deployment or substitute transport
-paths, none establishes the requested password-authenticated \texttt{git@localhost}
-path.
-% 该聚焦任务包含来自 OpenHands/Claude、OpenHands/DeepSeek 与 Terminus2/DeepSeek 的 489 个 operation 和 4,558,192 个 provider-reported token：按数量 Terminus2 占 56.24%、OpenHands 占 43.76%，按 token OpenHands 占 86.62%。重复的 \texttt{diagnose authentication} operation 直接包含 97 个 operation 和 1,936,828 个 token，其完整递归子树包含 105 个 operation 和 2,103,587 个 token（占聚焦任务的 21.47\% 和 46.15%）；source drilldown 显示两条 OpenHands 执行在 control 或 fallback 尝试后都返回该职责，三条执行虽均验证 web 部署或替代 transport 路径，但没有一条建立所要求的密码认证 \texttt{git@localhost} 路径。
+(21.47\% and 46.15\% of the focused task). Selecting the measure therefore
+changes which responsibility dominates: the count view attributes the task
+mainly to Terminus2, while the token view attributes nearly half of it to the
+authentication responsibility described in Section~\ref{sec:background}, which
+source drilldown resolves to specific unfinished work.
+% 该聚焦任务包含来自 OpenHands/Claude、OpenHands/DeepSeek 与 Terminus2/DeepSeek 的 489 个 operation 和 4,558,192 个 provider-reported token：按数量 Terminus2 占 56.24%、OpenHands 占 43.76%，按 token OpenHands 占 86.62%。重复的 \texttt{diagnose authentication} operation 直接包含 97 个 operation 和 1,936,828 个 token，其完整递归子树包含 105 个 operation 和 2,103,587 个 token（占聚焦任务的 21.47\% 和 46.15%）。因此度量的选择改变了主导责任：count 视图把该任务主要归因于 Terminus2，而 token 视图把接近一半归因于第~\ref{sec:background} 节描述的认证责任，source drilldown 可将其定位到具体的未完成工作。
 As a post-hoc organization control, we replay the same 489 source operations and
 both weights over common \texttt{project, agent} prefixes and \texttt{call, tool}
 leaves with three middle organizations---native (\texttt{session, prompt}), coarse (\texttt{action kind, raw action}), or semantic---so all six profiles conserve
@@ -567,7 +637,7 @@ exact mass and open in stock pprof. The SSH members scatter across 105 native
 calls and span six coarse action kinds (largest branch 39.42\% of their tokens),
 with 102 of 105 merely \texttt{run} alongside 97 unrelated operations. Only the
 semantic organization yields one focusable cross-run responsibility that an
-operation-count view understates; fixed from the prior case, this control
+operation-count view understates; fixed from the case above, this control
 measures organization.
 % 作为 post-hoc 同输入组织对照，我们用相同 489 个 operation 与权重，在固定 project/agent prefix 与 call/tool leaf 下重放 native、coarse、semantic 三种中间组织，所得六个 profile 均精确保守质量。SSH responsibility 在 native 中分散到 105 个 call，在 coarse 中跨六个 action kind（最大分支仅 39.42%），且 102/105 仅为 run 并混入 97 个无关 operation；只有 semantic 组织给出单一可聚焦的跨运行责任，暴露 operation count 明显低估的瓶颈。该 responsibility 取自前一案例，故此对照衡量组织差异。
 This repeated real task supports RQ1's multi-resource attribution hypothesis:
