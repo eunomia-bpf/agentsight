@@ -82,3 +82,13 @@ The entries below preserve only verbatim user-authored research instructions.
 > 以后是不是记住 codex 的话有选择的听
 
 > 用 codex, 不要用你自己的 agent 了之后. codex 默认配置, 用它来写代码
+
+## 2026-07-26
+
+> 写作别折腾了
+
+> 你就把实验做好
+
+> 能并行就并行
+
+> 主要是分析我们的很长时间的 repo 演化记录, 说明这个是来自 10k star 的开源社区的 2-3 个 developer 横跨半年的数据集. 最好也能问一些关于 OS 工具调用行为相关的问题之前没有 empirical study 覆盖的? 比如统计一下工具调用方式, 行为, 甚至你可以 profile 几个常见的 agent toolcall 的 pattern 看看瓶颈是啥, 分析越详细越好, 比如 prefetch / 乱序执行, 推测执行 / increase 执行等等的优化有没有用, 为啥没有用, 有没有啥没有被注意到的优化点. 这些都可以让 codex 去并行探索, 不需要串行. 探索之后要记录报告, 越详细越有趣的越好. 也要尽可能去 servey 相关文献. 记录一下.
