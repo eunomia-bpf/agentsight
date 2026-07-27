@@ -3845,7 +3845,7 @@ def plot_deterministic_results(aggregate: list[dict[str, Any]], figure: Path) ->
     ax.text(
         0.01,
         -0.22,
-        "Bar order: 1 Final state · 2 Counts · 3 ProcGrep · 4 Trajectory; Raw model N/A after preflight",
+        "Bar order: 1 Final state · 2 Counts · 3 ProcGrep · 4 Trajectory; bounded Raw reported separately",
         transform=ax.transAxes,
         fontsize=7,
     )
