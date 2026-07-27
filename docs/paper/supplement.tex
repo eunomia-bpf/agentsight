@@ -431,27 +431,37 @@ inference cost?
 
 \subsection{Cases and Inclusion}
 
-We fix six local open-source repositories before computing process rates.
-They cover systems software, mixed documentation and code, autonomous research,
-and skill/harness development.
+We fix six author-associated local projects before computing process rates.
+Four are public MIT-licensed repositories from one open-source community; two
+are private repositories.  At a 2026-07-26 snapshot, the four public cases
+sum to 5,053 repository stars, while all 144 public repositories in their
+community sum to 9,924 stars.  The latter is an aggregate of repository star
+counts, not a count of unique users or a GitHub organization-level metric.
+Across the public cases, two or three currently authorized
+\texttt{admin}/\texttt{maintain} accounts have a GitHub-linked commit in the
+case's observation window; each private case has one.  We call these accounts
+verified active maintainers.  The admitted session starts span 191.8 days
+(about 6.3 months) overall.
 
 \begin{table}[t]
 \centering
-\small
-\begin{tabular}{@{}ll@{}}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llrr@{}}
 \toprule
-Repository & Dominant work type \\
+Case & Visibility and dominant work type & Active & Days \\
 \midrule
-AgentSight & systems software and research \\
-ActPlane & systems software and research \\
-bpf-developer-tutorial & tutorial, code, documentation \\
-eunomia.dev & content, documentation, software \\
-agentskill-observability-paper & paper, experiment, code \\
-academic-writing-skills & skills, prompts, tests, documents \\
+A & public; systems software/research & 2 & 136.17 \\
+B & public; systems software/research & 3 & 56.11 \\
+C & public; tutorial/code/documentation & 2 & 191.76 \\
+D & public; content/documentation/software & 2 & 134.35 \\
+E & private; paper/experiment/code & 1 & 0.13 \\
+F & private; skills/prompts/tests/documents & 1 & 32.40 \\
 \bottomrule
 \end{tabular}
-\caption{Fixed first-study cases.  Each project remains one case; its sessions
-are not treated as independent projects.}
+\caption{Anonymous fixed-case profiles.  Span is from the earliest to latest
+admitted native-root session start.  Each project remains one case; its
+sessions are not treated as independent projects.}
 \label{tab:cases}
 \end{table}
 
@@ -563,22 +573,22 @@ rather than necessarily renewed editing.
     Project & Revived $n/N$ (\%) & Transitions & Gap med./p90
             & Revived $n/N$ (\%) & Transitions & Gap med./p90 \\
     \midrule
-    AgentSight
+    Case A
       & $1{,}271/3{,}267$ (38.9) & 6,856 & 349/4,965.5
       & $526/3{,}267$ (16.1) & 1,086 & 83.1/409.6 \\
-    ActPlane
+    Case B
       & $662/1{,}809$ (36.6) & 3,518 & 469.5/5,014
       & $382/1{,}809$ (21.1) & 801 & 81.0/279.2 \\
-    bpf-developer-tutorial
+    Case C
       & $42/170$ (24.7) & 73 & 271/661.2
       & $21/170$ (12.4) & 26 & 682.9/3,234.8 \\
-    eunomia.dev
+    Case D
       & $174/360$ (48.3) & 805 & 449/2,339
       & $144/360$ (40.0) & 349 & 267.8/1,800.4 \\
-    agentskill-observability-paper
+    Case E
       & $2/24$ (8.3) & 3 & 105/120.2
       & $0/24$ (0.0) & 0 & --- \\
-    academic-writing-skills
+    Case F
       & $13/116$ (11.2) & 16 & 167.5/360.5
       & $18/116$ (15.5) & 23 & 60.2/605.3 \\
     \bottomrule
@@ -672,7 +682,7 @@ cost, resumption, model memory, comprehension, or forgetting.
 RQ3 analyzes path-resolved activity rather than latent attention or time spent.
 Figure~\ref{fig:rq5-allocation} separates access from mutation and retains both
 \texttt{ok} and \texttt{observed} statuses.  Status sensitivity is material:
-for example, eunomia.dev's mutation allocation to paper/docs is 39.2\% with all
+for example, Case D's mutation allocation to paper/docs is 39.2\% with all
 resolved statuses and 88.2\% with \texttt{ok} only.  Therefore neither stratum
 is silently promoted to ground truth.
 
@@ -747,7 +757,7 @@ We therefore aggregate native-attributed actions by project, vendor, model,
 source role, root session, and Skill instead of inventing per-invocation
 delegated episode boundaries. Five exact-context Skill strata meet the minimum
 of three distinct root sessions, but only
-agentskill-observability-paper contains two or more qualified Skills in one
+Case E contains two or more qualified Skills in one
 exact project/vendor/model/source-role stratum. Within that case, median
 Jensen--Shannon distance is 0.116 for 9 same-Skill pairs and 0.123 for 10
 different-Skill pairs.  The median difference is $-0.007$; the one-sided exact
