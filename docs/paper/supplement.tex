@@ -610,11 +610,16 @@ change was covered or correct.  Figure~\ref{fig:rq2-validation} shows the exact
 action-order trajectories and complete inter-success intervals.  After
 projection repair, all six projects expose a recognized successful validation
 (3/6 before repair), so the predeclared four-project gate admits a cross-case
-answer.  Complete intervals are strongly zero-inflated yet
-occasionally very large: the seven eligible worktree lanes have 29.3--86.1\%
-zero-mutation intervals, while their maxima range from 1 to 817 mutations.
-This is evidence about adapter-recognized cadence, not redundant testing or
-mutation coverage.
+answer.  Recognized success covers 6/6 projects, 5/6 form complete
+inter-success intervals, and 4/6 contain a recognized failure.  Across the
+seven eligible worktree lanes in those five projects, the observed
+zero-mutation fraction among complete intervals is 29.3--86.1\%, while their
+maxima range from 1 to 817 mutations.  We do not assign a distribution-family
+label without a count-model baseline.  Outcome-conditioned response has no
+consistent cross-case direction: the three higher-event-volume
+success/failure cases usually validate again before mutating after failure,
+whereas the sparse three-failure case mutates first.  This is evidence about
+adapter-recognized cadence, not redundant testing or mutation coverage.
 
 \begin{figure*}[t]
   \centering
@@ -829,6 +834,142 @@ descriptions, not stable-artifact replication.
   Skill attribution.}
   \label{fig:rq6-external}
 \end{figure*}
+
+\subsection{User-Originated Artifact Questions}
+
+We answer four user-originated questions with fixed path-classification,
+confirmed-effect, pairing, and stream--prompt--module rules.  Pooled values are
+micro-weighted over the six selected cases and do not turn them into a
+population sample.
+
+\paragraph{Created-document revisit.}
+Across 1,066 observation-born paper and documentation artifacts, 29.8\% had no
+later confirmed in-scope action and 62.4\% were subsequently read.  In
+comparison, 11.3\% of 124 created code artifacts had no later confirmed action
+and 78.2\% were subsequently read.  The document reread fraction varied from
+0\% to 72.2\% across the five cases with created documents, so the pooled rate
+does not describe a uniform practice.  Because the export does not identify
+which documents were explicitly required by an instruction, these values
+describe all created documents rather than a causal effect of documentation
+requirements.
+
+\paragraph{Source--test order.}
+Conservative source--test pairing yielded 28 mutation episodes, all in one
+case: 13 unambiguous normalized-basename pairs and 15 same-event module
+fallbacks.  Seven episodes (25.0\%) modified source first, none modified the
+test first, and 21 (75.0\%) modified both in the same Tool event.  The
+same-event fallback intentionally avoids inferring order from temporally
+distant mutations in a broad module.  Because five cases had no eligible
+pairs, this result is a within-case description rather than evidence for a
+general code-first strategy.
+
+\paragraph{Artifact-type allocation.}
+Confirmed read actions were nearly balanced between paper/document artifacts
+(43.5\%) and code (43.2\%), whereas confirmed writes were concentrated on
+paper/documents (69.8\%) rather than code (16.3\%).  Including actions with an
+\texttt{observed} rather than definite status preserved these directions but
+reduced the write contrast to 54.8\% versus 32.1\%.  Two cases had more code
+than document reads, but all six had more document than code writes in both
+status views.  These quantities count normalized file actions and do not
+estimate elapsed time, effort, importance, or progress.
+
+\paragraph{Test churn.}
+We observed 116 executable-test mutation episodes and 2,257 source-code
+episodes, with repeat-episode fractions of 71.6\% and 86.0\%, respectively.
+Within 31 test-bearing stream--prompt--module blocks, 16 contained repeated
+mutation of a test identity, but none of those 16 had zero source-code
+episodes.  Five blocks had no code mutation, yet none repeatedly mutated the
+same test identity; the only repeat-test block with more test than code
+episodes contained two versus one.  Test episodes had a higher temporal
+association with a recognized successful validation (61.2\% versus 48.7\%),
+which does not imply that the validation exercised or established the quality
+of those files.
+
+\subsection{Session Dynamics and Harness-Shaped Work}
+
+These analyses retain project--vendor strata and observable proxies rather
+than assigning latent cognitive states.  Among the 233 native roots with at
+least 30 calls, the five project--vendor strata with at least ten paired
+sessions all show a positive median late-minus-early resolved-artifact reread
+change, ranging from 16.7 to 28.9 percentage points.  The direction remains
+positive after excluding roots with an internal gap over eight hours, while
+failure rate and edit fragmentation do not show a common shift.  We therefore
+describe this as late-session re-grounding or reuse of seen artifacts, not
+context degradation.
+
+Startup context work has a right tail rather than a uniformly large tax.
+Across 362 roots with a complete ten-call prefix, the narrow instruction/Git
+proxy has median 10\% and IQR 0--10\%; an extended proxy that also includes
+repository README and predecessor-artifact rereads has median 20\%, IQR
+10--30\%, and p90 60\%.  None of the sufficiently supported project--vendor
+strata shows the hypothesized positive relation between predecessor gap and
+startup proxy.  Predecessor rereads may also be useful continuation, so the
+extended proxy is not labeled waste.
+
+Harness-shaped work is a stratified footprint, not causal overhead.  Strict
+gross, exclusive, and broad proxies account for 6.48\%, 5.92\%, and 7.04\% of
+181,303 project-event rows; deduplicating repeated project membership gives a
+6.50\% strict-gross sensitivity.  The gross share is about 2.5--2.6\% in the
+two ActPlane vendor strata, 9.7\% for AgentSight Codex, and 21.9\% in the
+AgentSkill paper case.  The 61.6\% value for the Skill-development case is a
+classification-boundary warning because Skill files are project products;
+excluding those in-repository product files lowers its adjusted share to
+20.0\%.
+
+Strict same-target failure chains are rare.  Sixteen chains contain 58 member
+calls, or 0.0320\% of the 181,303 project-event rows; 12 chains are repeated
+edits, three are process polling, and one is a remote lookup.  Thirteen of the
+16 eventually recover on the exact target, while interleaved diagnostic
+failure clusters remain a separate sensitivity.  This narrow result does not
+measure all diagnosis or recovery cost.
+
+\subsection{Tool-Call Workload and Optimization Bounds}
+
+We position these results as descriptive workload characterization over the
+same persistent-workspace corpus.  They jointly expose exact calls, workspace
+effects, recovery, and conservative system-opportunity bounds; they do not
+claim that tool distributions, retries, prefetch, speculation, caching, or
+concurrency are new mechanisms, nor do they report implemented speedups.
+
+\paragraph{Tool mix and repetition.}
+Shell tools account for 124,342/181,303 calls (68.6\%); search/text commands
+make up 50.1\% of the shell stratum, while native read/edit/write tools still
+account for 15.2\% of all calls.  Of 43,878 artifact-identity reads, 46.7\%
+repeat an identity within the same prompt and source stream, and 76.2\% of
+those repeats have no observed intervening mutation.  Exact shell-command
+reruns account for 15.4\% of shell calls, but only 0.6\% are immediate.  These
+are repetition indicators, not estimates of waste, because re-grounding,
+periodic status checks, and unobserved external changes remain possible.
+
+\paragraph{Existing and remaining concurrency.}
+Native batch reconstruction places 33.2\% of calls in multi-call batches.
+Among 172,346 adjacent episode edges in the deduplicated profile, 42,679
+(24.76\%) already start before the preceding result returns and another 1,801
+(1.05\%) are disjoint local reads already in one batch.  Only 5,132 edges
+(2.98\%) remain sequential, disjoint local-read candidates, while 49.47\% of
+edges have unknown semantic dependence.  Thus existing concurrency is
+evidence of instruction-level parallelism, not unclaimed acceleration
+headroom.
+
+\paragraph{Prediction and speculation.}
+A chronological actionable next-read predictor issued 2,911 prefetches and hit
+the exact next path 633 times, for 21.75\% precision and 78.26\% wasted
+prefetches; it did not predict range or formatting arguments.  For 2,738
+mutation-to-validation cycles, a last-test-command predictor matched 718
+(26.22\%) and could hide at most 1,564.511 seconds of observed test runtime.
+Running the eventual test after every edit would instead launch 11,206 stale
+versions among 13,944 edit-triggered executions, an 80.36\% waste scenario.
+These bounds motivate versioned, debounced admission rather than eager
+speculation.
+
+\paragraph{Event-driven control.}
+Wait-family tools account for 19,920 calls and 64.0\% of summed per-call tool
+runtime, but most of that duration is external waiting rather than computation.
+After requiring the same tool and handle, passive calls, consecutive
+no-progress results, and retaining one await per burst, an event-driven future
+could remove at most 1,456 calls/roundtrips, or 0.81\% of all calls.  This
+precision-oriented upper bound removes model wakeups and empty envelopes; it
+does not shorten the underlying process or subagent runtime.
 
 \subsection{Separate Tool Question: Measurement Capability}
 

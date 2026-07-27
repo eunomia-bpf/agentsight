@@ -296,15 +296,20 @@ We ask how recognized successes and failures interleave with mutation bursts
 and worktree-local mutation accumulation.
 Projection repair raises recognized-success coverage from three to all six
 projects, so the predeclared four-project gate now admits a cross-case
-description.  Across seven eligible worktree lanes, complete intervals between
-recognized successes are strongly zero-inflated: 29.3--86.1\% contain no
-mutation, while lane maxima range from 1 to 817 mutations.  The corresponding
+description.  Recognized success covers 6/6 projects, 5/6 form complete
+inter-success intervals, and 4/6 contain a recognized failure.  Across seven
+eligible worktree lanes in those five projects, 29.3--86.1\% of complete
+intervals contain no mutation, while lane maxima range from 1 to 817
+mutations.  The corresponding
 per-project validation-before-supersession proportions are 2450/6112,
 1210/5604, 141/694, 47/282, 9/196, and 33/247.  This measures recognized
 cadence, not redundant testing or validation coverage of each mutation.
 Mutation effects project to the affected worktree, whereas a validation stays
 on the command worktree; incomplete intervals at observation end are not
-silently counted as complete.  RQ2 therefore finds that many adjacent
+silently counted as complete.  Outcome-conditioned response has no consistent
+cross-case direction: the three higher-event-volume success/failure cases
+usually validate again before mutating after failure, whereas the sparse
+three-failure case mutates first.  RQ2 therefore finds that many adjacent
 recognized successes contain no intervening mutation, yet rare intervals
 accumulate long mutation bursts.
 
