@@ -44,10 +44,12 @@ instead make the persistent workspace the longitudinal unit of analysis.
 We introduce a source-linked projection that connects native Claude, Codex, and
 Gemini actions to stable artifact identities, lifecycle effects, event time,
 and session boundaries without introducing semantic labels or aligning the
-timeline to Git commits.  We use it to study six real software and autonomous-
-research projects through introduced-artifact persistence, later reuse,
-validation association, repeated mutation, workspace-activity migration, and
-cross-session continuity.  Under the admitted local projection, across 551
+timeline to Git commits.  We use it to study six longitudinal questions over
+six real software and autonomous-research projects---introduced-artifact
+persistence, later reuse, validation association, repeated mutation,
+workspace-activity migration, and cross-session continuity---plus a seventh
+question about tool-call workload and conservative optimization-opportunity
+bounds.  Under the admitted local projection, across 551
 native root sessions and 181,303 Tool actions,
 89.3--97.1\% of eligible mutations are later revisited, yet action volume only
 weakly orders the cross-project reuse relation ($\rho=0.20$).  Repeat-observed
@@ -59,12 +61,13 @@ separation in the only eligible comparison.  In 320 stratum-specific public
 task/topic selections,
 path-local transitions and 2--3-intervening-call module returns recur, but persistent
 artifact lineage and cross-session re-grounding remain unobservable.
-Finally, a source-direct 120-question conformance experiment found the frozen
-implementation answering only 32/60 artifact-linked and cross-session facts
-correctly (2026-07-23).  Root-cause repair of session joins, failed-call
-effects, shell path extraction, and event workdir handling brings the current
-revision to 60/60 on the corrected benchmark---a repair-corpus conformance
-result, not a general exact-fact capability claim.
+Native overlap already consumes 86.0\% of logical-parallel edges, while an
+actionable next-read prefetcher is only 21.75\% precise.  Finally, a
+source-direct experiment moves from 32/60 to 60/60 artifact-linked plus
+cross-session facts after repair on its corrected repair corpus; a
+preregistered 70-session held-out test instead obtains 54/58 and
+attempted-edge F1 0.9950.  These are corpus-specific conformance results, not
+a general exact-fact capability claim.
 \end{abstract}
 
 \section{Introduction}
@@ -126,14 +129,15 @@ This paper makes three contributions:
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
   \item a projection-conditioned longitudinal characterization of how Agent activity,
   artifact persistence, reuse, validation, repeated mutation, workspace
-  activity, and session
-  continuity interact across six real coding and autonomous-research projects;
+  activity, session continuity, and tool-call workload bounds interact across
+  six real coding and autonomous-research projects;
   \item a deterministic, source-linked measurement protocol for stable
   artifact identity and cross-session lineage, together with a source-direct
   conformance benchmark on which the frozen implementation failed (32/60
   artifact-linked and cross-session facts, 2026-07-23) and the repaired
-  revision now answers 60/60, reported as repair-corpus conformance rather
-  than a general exact-fact capability claim; and
+  revision now answers 60/60 as repair-corpus regression evidence, followed by
+  a separate preregistered root-disjoint held-out result of 54/58 rather than a
+  general exact-fact capability claim; and
   \item a reproducible coverage discipline that separates measured results,
   coverage-only evidence, implementation disagreement, and N/A conditions
   instead of treating missing or projected trajectory evidence as observed
@@ -421,6 +425,12 @@ instruction-file access?
 Which compatible within-attempt relations replicate in public coding and
 scientific-process traces, and which longitudinal claims remain N/A without
 persistent cross-session workspace lineage?
+
+\paragraph{RQ7---Tool-call workload and optimization bounds.}
+What composition, repetition, dependency, and waiting structure does the
+long-running tool-call workload exhibit, and what conservative bounds does
+that structure place on prefetch, concurrency, speculation, caching, and
+event-driven control?
 
 \paragraph{Separate tool question---Measurement capability.}
 Given the same frozen native evidence and an independent source-explicit
@@ -923,7 +933,8 @@ edits, three are process polling, and one is a remote lookup.  Thirteen of the
 failure clusters remain a separate sensitivity.  This narrow result does not
 measure all diagnosis or recovery cost.
 
-\subsection{Tool-Call Workload and Optimization Bounds}
+\subsection{RQ7: Tool-Call Workload and Optimization Bounds}
+\label{sec:rq7-workload}
 
 We position these results as descriptive workload characterization over the
 same persistent-workspace corpus.  They jointly expose exact calls, workspace
@@ -931,7 +942,7 @@ effects, recovery, and conservative system-opportunity bounds; they do not
 claim that tool distributions, retries, prefetch, speculation, caching, or
 concurrency are new mechanisms, nor do they report implemented speedups.
 
-\paragraph{Tool mix and repetition.}
+\paragraph{Composition, repetition, and timing observations.}
 Shell tools account for 124,342/181,303 calls (68.6\%); search/text commands
 make up 50.1\% of the shell stratum, while native read/edit/write tools still
 account for 15.2\% of all calls.  Of 43,878 artifact-identity reads, 46.7\%
@@ -940,6 +951,11 @@ those repeats have no observed intervening mutation.  Exact shell-command
 reruns account for 15.4\% of shell calls, but only 0.6\% are immediate.  These
 are repetition indicators, not estimates of waste, because re-grounding,
 periodic status checks, and unobserved external changes remain possible.
+Across 8,410 timing-complete episodes, tool-busy interval union covers 25.17\%
+of cumulative episode span and between-tool gaps cover 74.83\%.  Capping each
+gap at one hour or five minutes lowers the gap share to 69.57\% or 65.54\%.
+These episode-level observation bounds can overlap across concurrent lanes and
+do not estimate model computation or recoverable latency.
 
 \paragraph{Existing and remaining concurrency.}
 Native batch reconstruction places 33.2\% of calls in multi-call batches.
@@ -947,11 +963,12 @@ Among 172,346 adjacent episode edges in the deduplicated profile, 42,679
 (24.76\%) already start before the preceding result returns and another 1,801
 (1.05\%) are disjoint local reads already in one batch.  Only 5,132 edges
 (2.98\%) remain sequential, disjoint local-read candidates, while 49.47\% of
-edges have unknown semantic dependence.  Thus existing concurrency is
-evidence of instruction-level parallelism, not unclaimed acceleration
-headroom.
+edges have unknown semantic dependence.  The 42,679 native overlaps consume
+86.0\% of the 49,612 logical-parallel edges; this is an observation bound, not
+realized or remaining speedup.  Thus existing concurrency is evidence of
+instruction-level parallelism, not unclaimed acceleration headroom.
 
-\paragraph{Prediction and speculation.}
+\paragraph{Prediction, speculation, and event-driven opportunity bounds.}
 A chronological actionable next-read predictor issued 2,911 prefetches and hit
 the exact next path 633 times, for 21.75\% precision and 78.26\% wasted
 prefetches; it did not predict range or formatting arguments.  For 2,738
@@ -959,17 +976,15 @@ mutation-to-validation cycles, a last-test-command predictor matched 718
 (26.22\%) and could hide at most 1,564.511 seconds of observed test runtime.
 Running the eventual test after every edit would instead launch 11,206 stale
 versions among 13,944 edit-triggered executions, an 80.36\% waste scenario.
-These bounds motivate versioned, debounced admission rather than eager
-speculation.
-
-\paragraph{Event-driven control.}
 Wait-family tools account for 19,920 calls and 64.0\% of summed per-call tool
 runtime, but most of that duration is external waiting rather than computation.
 After requiring the same tool and handle, passive calls, consecutive
 no-progress results, and retaining one await per burst, an event-driven future
 could remove at most 1,456 calls/roundtrips, or 0.81\% of all calls.  This
 precision-oriented upper bound removes model wakeups and empty envelopes; it
-does not shorten the underlying process or subagent runtime.
+does not shorten the underlying process or subagent runtime.  These opportunity
+bounds motivate versioned, debounced admission rather than eager execution;
+none is an implemented speedup or causal estimate.
 
 \subsection{Separate Tool Question: Measurement Capability}
 
@@ -1026,6 +1041,105 @@ remain N/A on this matrix.
   \label{fig:rq7-capability}
 \end{figure*}
 
+\subsection{Root-Disjoint Held-Out Conformance}
+\label{sec:heldout-conformance}
+
+The preregistered held-out corpus contains 70 native-session roots and 116 new
+question instances: 29 each in A, B, C, and D.  The roots are disjoint from the
+repair corpus by file hash, native-root identity, and native-root/call identity;
+the questions have no exact-instance or full-row overlap with the earlier 120.
+Hamilton allocation assigns five questions per family to each project except
+\texttt{bpf-developer-tutorial}, which has four because only ten roots are
+eligible.  The trajectory scores A 13/29, B 25/29, C 29/29, and D 29/29, with
+no abstentions.  Thus the preregistered B+C decision is 54/58, a valid negative
+held-out result.  Table~\ref{tab:heldout-items} reports all 116 decisions; A is
+non-gating and retains the deliberate source-direct grammar difference.
+
+\begin{table*}[t]
+  \centering
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabularx}{\textwidth}{@{}llX@{}}
+    \toprule
+    Project & Family & Item-level oracle/trajectory pairs \\
+    \midrule
+    ActPlane & A & A1 354/375*, A2 303/303, A3 70/46*, A4 5/5, A5 3/2* \\
+    ActPlane & B & B1 119/119, B2 42/42, B3 77/77, B4 read/read, B5 2/2 \\
+    ActPlane & C & C1 4/4, C2 10/10, C3 1/1, C4 2/2, C5 26/26 \\
+    ActPlane & D & D1 untracked/untracked, D2 untracked/untracked, D3 untracked/untracked, D4 untracked/untracked, D5 absent/absent \\
+    agentsight & A & A1 39/40*, A2 8/8, A3 9/3*, A4 1/1, A5 0/0 \\
+    agentsight & B & B1 3/3, B2 1/1, B3 2/2, B4 read/read, B5 1/1 \\
+    agentsight & C & C1 0/0, C2 0/0, C3 0/0, C4 0/0, C5 0/0 \\
+    agentsight & D & D1 tracked/tracked, D2 tracked/tracked, D3 tracked/tracked, D4 tracked/tracked, D5 tracked/tracked \\
+    bpf-benchmark & A & A1 470/479*, A2 168/168, A3 30/7*, A4 9/9, A5 4/3* \\
+    bpf-benchmark & B & B1 96/96, B2 20/20, B3 76/76, B4 read/read, B5 3/3 \\
+    bpf-benchmark & C & C1 6/6, C2 8/8, C3 0/0, C4 2/2, C5 30/30 \\
+    bpf-benchmark & D & D1 tracked/tracked, D2 absent/absent, D3 tracked/tracked, D4 untracked/untracked, D5 absent/absent \\
+    bpf-dev-tutorial & A & A1 75/75, A2 73/73, A3 11/0*, A4 8/8 \\
+    bpf-dev-tutorial & B & B1 29/30*, B2 9/10*, B3 20/20, B4 read/read \\
+    bpf-dev-tutorial & C & C1 3/3, C2 5/5, C3 1/1, C4 4/4 \\
+    bpf-dev-tutorial & D & D1 tracked/tracked, D2 tracked/tracked, D3 tracked/tracked, D4 tracked/tracked \\
+    bpftime & A & A1 163/182*, A2 18/18, A3 52/8*, A4 3/3, A5 2/2 \\
+    bpftime & B & B1 10/10, B2 8/8, B3 2/2, B4 read/read, B5 2/2 \\
+    bpftime & C & C1 1/1, C2 5/5, C3 1/1, C4 11/11, C5 7/7 \\
+    bpftime & D & D1 tracked/tracked, D2 absent/absent, D3 tracked/tracked, D4 tracked/tracked, D5 tracked/tracked \\
+    eunomia.dev & A & A1 176/196*, A2 98/48*, A3 78/25*, A4 4/3*, A5 2/1* \\
+    eunomia.dev & B & B1 44/45*, B2 21/22*, B3 23/23, B4 read/read, B5 2/2 \\
+    eunomia.dev & C & C1 7/7, C2 9/9, C3 0/0, C4 1/1, C5 23/23 \\
+    eunomia.dev & D & D1 tracked/tracked, D2 tracked/tracked, D3 tracked/tracked, D4 tracked/tracked, D5 untracked/untracked \\
+    \bottomrule
+  \end{tabularx}
+  \caption{All 116 root-disjoint held-out question decisions.  Each item is
+  shown as oracle/trajectory; * marks a wrong answer.  All rows are answered,
+  with no abstentions.  The B+C gate contains four wrong B rows and no wrong C
+  rows.}
+  \label{tab:heldout-items}
+\end{table*}
+
+The full attempted-edge ledger has 1,999 oracle rows and 2,017 projection rows:
+1,998 match, one is missing, and 19 are extra.  The confirmed-effect ledger has
+1,845 oracle rows and 1,862 projection rows: 1,844 match, one is missing, and
+18 are extra.  Table~\ref{tab:heldout-ledgers} gives the registered metrics.
+The corrected session-order aggregate deduplicates production calls on
+\((\textit{native-session-id},\textit{session-ordinal})\); all 70 unique pairs
+match.  This reporting-layer correction does not change the negative decision,
+because B+C and both edge ledgers fail independently.
+
+\begin{table}[t]
+  \centering
+  \footnotesize
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    Ledger & Precision & Recall & F1 \\
+    \midrule
+    Attempted edges & 0.9906 & 0.9995 & 0.9950 \\
+    Confirmed-effect edges & 0.9903 & 0.9995 & 0.9949 \\
+    Edge-call statuses & 1.0000 & 1.0000 & 1.0000 \\
+    Session order & 1.0000 & 1.0000 & 1.0000 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Root-disjoint held-out ledger conformance.}
+  \label{tab:heldout-ledgers}
+\end{table}
+
+All 1,865 edge-call statuses match.  The four B errors are confined to two
+identities: one additional failed read in \texttt{bpf-developer-tutorial}
+changes B1/B2 from 29/9 to 30/10, and one additional wrapped read in
+\texttt{eunomia.dev} changes B1/B2 from 44/21 to 45/22.  The 20 row-level edge
+differences arise from seven native calls involving multi-source copy,
+recursive \texttt{git rm}, process substitution, a shell-rejected leading
+backslash, and static or custom \texttt{exec} wrappers.  This post-run
+localization identifies a compound shell/wrapper path-admission boundary; it
+does not revise the frozen oracle or scores.
+
+The earlier 60/60 and the held-out 54/58 have distinct source files, question
+instances, and denominators.  The former remains a repair-corpus regression
+after root-cause repair; it is not pooled, rescaled, or denominator-matched
+with the held-out result.  Exact C, D, call-status, and session-order results
+likewise do not erase the B and edge-ledger failures.  We therefore make no
+general exact-conformance claim.
+
 \subsection{Projection Robustness Spot-Checks}
 
 The encoded-Claude-root spot-check covered the one dotted project and all 98 candidate transcript files, found no cwd-less or filter-reliant file and no missing pre-cutoff Tool call, and therefore reports \texttt{corpus\_impact=false}.
@@ -1045,14 +1159,17 @@ cross-session facts were wrong as of 2026-07-23.  The completed error taxonomy
 separated deliberately broader shell/scope admission (14 rows) from genuine
 path, artifact-identity, native-root join, and event-workdir errors (14 rows);
 the genuine classes were repaired and the oracle corrected.  The current
-revision matches the corrected oracle on all 60 B+C questions on this corpus,
-and RQ1--RQ4 were recomputed at that revision.  The action-only family still
-differs deliberately, because the trajectory preserves ProcGrep's action spine
-while the corrected oracle re-derives atom counts source-direct.
-RQ5 is better protected by its separate 2,063-stream checker,
-and RQ6 by an independent public-data reconstruction.  This repair
-removes the frozen conformance objection without turning N/A into observed
-absence and without a population-level capability claim.
+revision matches the corrected repair-corpus oracle on all 60 B+C questions,
+and RQ1--RQ4 were recomputed at that revision.  A separate preregistered
+root-disjoint corpus scores 54/58 B+C and exposes residual compound
+shell/wrapper path-admission differences; it is neither combined with nor
+overridden by the 60/60 regression.  The action-only family still differs
+deliberately, because the trajectory preserves ProcGrep's action spine while
+the corrected oracle re-derives atom counts source-direct.  RQ5 is better
+protected by its separate 2,063-stream checker, and RQ6 by an independent
+public-data reconstruction.  These results do not turn N/A into observed
+absence and do not support general exact conformance or a population-level
+capability claim.
 
 Final workspace state cannot prove content-level survival of every historical
 edit.  We therefore separate file existence, Git-tracked state, and independently
@@ -1125,15 +1242,16 @@ workspace.  Across six projects, later reuse is consistently high but weakly
 ordered by action volume, while repeated mutation is both common and strongly
 concentrated.  Validation, session-continuity, and skill analyses also expose
 hard source-coverage boundaries rather than portable success, reset, or causal
-harness effects.  Our workspace-centered analysis makes these process facts
-inspectable while keeping unsupported comparisons explicitly N/A.  A
-source-direct conformance experiment found the frozen projection answering
-only 32/60 artifact-linked and cross-session facts correctly (2026-07-23);
-root-cause repair brings the current revision to 60/60 against the corrected
-benchmark.  The resulting research boundary is concrete---persistent
-workspace evolution remains the useful unit, and the repaired projection now
-meets source-direct conformance on this corpus while stronger population-level
-or tool-capability claims remain out of scope.
+harness effects.  The workload study also finds that native overlap consumes
+most explicit logical parallelism, leaving only conservative opportunity
+bounds.  Our workspace-centered analysis makes these process facts inspectable
+while keeping unsupported comparisons explicitly N/A.  Source-direct
+conformance moves from 32/60 to 60/60 on the corrected repair corpus, while a
+separate preregistered root-disjoint test obtains 54/58 and localizes residual
+mismatch to compound shell/wrapper paths.  The resulting research boundary is
+concrete---persistent workspace evolution remains the useful unit, but neither
+corpus supports general exact conformance or broader population-level and
+tool-capability claims.
 
 \bibliography{references}
 

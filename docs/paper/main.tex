@@ -40,10 +40,12 @@ instead make the persistent workspace the longitudinal unit of analysis.
 We introduce a source-linked projection that connects native Claude, Codex, and
 Gemini actions to stable artifact identities, lifecycle effects, event time,
 and session boundaries without introducing semantic labels or aligning the
-timeline to Git commits.  We use it to study six real software and autonomous-
-research projects through introduced-artifact persistence, later reuse,
-validation association, repeated mutation, workspace-activity migration, and
-cross-session continuity.  Under the admitted local projection, across 551
+timeline to Git commits.  We use it to study six longitudinal questions over
+six real software and autonomous-research projects---introduced-artifact
+persistence, later reuse, validation association, repeated mutation,
+workspace-activity migration, and cross-session continuity---plus a seventh
+question about tool-call workload and conservative optimization-opportunity
+bounds.  Under the admitted local projection, across 551
 native root sessions and 181,303 Tool actions,
 89.3--97.1\% of eligible mutations are later revisited, yet action volume only
 weakly orders the cross-project reuse relation ($\rho=0.20$).  Repeat-observed
@@ -55,12 +57,13 @@ separation in the only eligible comparison.  In 320 stratum-specific public
 task/topic selections,
 path-local transitions and 2--3-intervening-call module returns recur, but persistent
 artifact lineage and cross-session re-grounding remain unobservable.
-Finally, a source-direct 120-question conformance experiment found the frozen
-implementation answering only 32/60 artifact-linked and cross-session facts
-correctly (2026-07-23).  Root-cause repair of session joins, failed-call
-effects, shell path extraction, and event workdir handling brings the current
-revision to 60/60 on the corrected benchmark---a repair-corpus conformance
-result, not a general exact-fact capability claim.
+Native overlap already consumes 86.0\% of logical-parallel edges, while an
+actionable next-read prefetcher is only 21.75\% precise.  Finally, a
+source-direct experiment moves from 32/60 to 60/60 artifact-linked plus
+cross-session facts after repair on its corrected repair corpus; a
+preregistered 70-session held-out test instead obtains 54/58 and
+attempted-edge F1 0.9950.  These are corpus-specific conformance results, not
+a general exact-fact capability claim.
 \end{abstract}
 
 \section{Introduction}
@@ -117,16 +120,21 @@ the six-case reuse relation ($\rho=0.20$).  Repeat-observed mutations are
 common and concentrated; recognized successful validation covers all 6/6
 cases after repair.  The only eligible Skill comparison shows no repeatable
 fingerprint, while public traces reproduce path locality and 2--3-call module
-returns but not persistent lineage.  Finally, source-direct conformance moves
-from a frozen 32/60 artifact-linked and cross-session facts to 60/60 after
-root-cause repair against the corrected benchmark.
+returns but not persistent lineage.  Shell carries 68.6\% of calls, while
+native overlap already consumes 86.0\% of logical-parallel edges and actionable
+next-read prefetch is only 21.75\% precise.  Finally, source-direct conformance
+moves from 32/60 to 60/60 artifact-linked plus cross-session facts on the
+corrected repair corpus, but a preregistered 70-session held-out test obtains
+54/58.
 
 This paper contributes (1) a workspace-centered longitudinal characterization
-of artifact progress and continuity (Section~\ref{sec:evaluation}); (2) a
+of artifact progress, continuity, and tool-call workload bounds
+(Section~\ref{sec:evaluation}); (2) a
 deterministic, source-linked protocol with explicit measured, coverage-only,
 disagreement, and N/A states (Section~\ref{sec:method}); and (3) a conformance
 gate whose frozen 32/60 artifact-linked and cross-session result motivated
-root-cause repair to 60/60 against a corrected oracle on this corpus
+root-cause repair to 60/60 on its corrected repair corpus and a separate
+54/58 held-out test
 (Section~\ref{sec:conformance}).  The supplement contains complete
 definitions, per-project results, all moved figures, and the extended validity
 analysis.
@@ -228,6 +236,9 @@ whether workspace-action composition attributed to named Skills is repeatable
 across independent roots and what follows explicit instruction-file access.
 \textbf{RQ6} asks which compatible within-attempt relations recur in public
 coding and scientific-process traces and which longitudinal claims remain N/A.
+\textbf{RQ7} asks how tool-call composition, repetition, dependency, and
+waiting structure bound prefetch, concurrency, speculation, caching, and
+event-driven control in persistent workspaces.
 
 \paragraph{Cases and inclusion.}
 We fix six author-associated local projects before computing process rates.
@@ -385,9 +396,27 @@ harnesses shape action order, and recognized validation lacks a portable
 attempt/status pair.  Path concentration and staged revision are analogies,
 not stable-artifact replication.
 
+\paragraph{RQ7---Tool-call workload and optimization bounds.}
+We ask what composition, repetition, dependency, and waiting structure the
+long-running tool workload exhibits, and what conservative opportunity bounds
+that structure permits.  As observation bounds, shell accounts for 68.6\% of
+calls, 46.7\% of artifact-identity reads repeat within the same prompt and
+source stream, and 15.4\% of shell calls rerun the exact command; none is a
+claim of avoidable work.  As another observation bound, native overlap consumes
+86.0\% of logical-parallel edges.  As opportunity bounds, a chronological
+actionable next-read prefetcher is only 21.75\% precise, and replacing
+same-handle consecutive no-progress polls with one event-driven await could
+remove at most 1,456 calls.  Across timing-complete episodes, 74.8\% of
+observed span lies in between-tool gaps, which is an episode-level observation
+bound rather than model time or recoverable latency.  RQ7 therefore finds a
+shell- and repetition-heavy workload whose explicit parallelism is mostly
+already consumed and whose remaining opportunities are conservative
+structural bounds, not realized performance or utility effects.
+
 The supplement reports the full gate definitions, coverage tables,
 per-project denominators and curves, status sensitivities, checker procedures,
-and the nine empirical figures omitted here.
+the three detailed workload-estimator groups, and the nine empirical figures
+omitted here.
 
 \section{Measurement-Capability Conformance}
 \label{sec:conformance}
@@ -422,6 +451,18 @@ the trajectory deliberately preserves ProcGrep's action spine while v4
 re-derives atoms under a source-direct grammar.  The result is 60/60 B+C
 repair-corpus conformance, not a general exact-fact capability claim.
 
+\paragraph{Root-disjoint held-out conformance.}
+After that repair-corpus regression, a preregistered corpus instantiates 116
+new questions over 70 root-disjoint native-session roots.  B+C scores 54/58;
+attempted-edge precision/recall/F1 is 0.9906/0.9995/0.9950, and
+confirmed-edge precision/recall/F1 is 0.9903/0.9995/0.9949.  The four question
+errors and 20 row-level edge differences localize to compound shell and
+wrapper path-admission boundaries.  This valid negative held-out result is
+reported separately: the earlier 60/60 remains repair-corpus regression
+evidence, is not pooled with 54/58, and does not support general exact
+conformance.  The supplement gives every held-out B+C item and the complete
+ledger summary.
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/rq7-measurement-capability.pdf}
@@ -451,11 +492,14 @@ in this study.  Existing-file writes retain unknown content durability unless
 native diffs, snapshots, or Git evidence support it independently.
 
 The conformance audit found material disagreement rather than assuming the
-projection correct.  Genuine path, identity, root-join, failed-effect, and
-workdir errors were repaired; RQ1--RQ4 were then recomputed.  The repaired
-60/60 B+C result is limited to this corpus and corrected oracle, and the
-action-only grammar difference remains explicit.  RQ5 and RQ6 are independently
-reconstructed, but Skill, model, task, phase, and project remain confounded.
+projection correct.  The repair covers genuine path, identity, root-join,
+failed-effect, and workdir errors; we then recomputed RQ1--RQ4.  The repaired
+60/60 B+C result is a repair-corpus regression, while the separate
+root-disjoint held-out test scores 54/58 and exposes residual compound
+shell/wrapper path-admission boundaries.  The two results are not combined,
+and the action-only grammar difference remains explicit.  RQ5 and RQ6 are
+independently reconstructed, but Skill, model, task, phase, and project remain
+confounded.
 Repeated actions, unvisited artifacts, and long validation gaps are observable
 process facts, not automatic failure labels.
 
@@ -498,9 +542,12 @@ concentrates in repeatedly changed artifacts, and continues across session
 boundaries.  Six cases show high later reuse but weak ordering by action
 volume, alongside hard coverage limits for continuity and Skills.  Public
 traces reproduce path locality and short module returns but not longitudinal
-lineage.  Finally, a frozen 32/60 B+C conformance failure led to root-cause
-repair and 60/60 on the corrected corpus oracle, without implying a general
-exact-fact capability.
+lineage.  The workload study finds that native overlap already consumes most
+explicit logical parallelism, leaving only conservative opportunity bounds.
+Finally, a frozen 32/60 B+C failure led to 60/60 on the corrected repair
+corpus, while a separate preregistered root-disjoint test obtains 54/58 and
+localizes residual mismatch to compound shell/wrapper paths.  Neither result
+implies general exact conformance.
 
 \paragraph{Data availability.}
 Exported source-linked rows, the 120-question conformance benchmark with
