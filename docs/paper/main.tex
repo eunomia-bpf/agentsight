@@ -673,8 +673,10 @@ skeleton, with no source content, and the reader selects at most five groups;
 stage two then opens only the selected groups' evidence.
 % 两阶段 profile-guided 变体首先只展示 semantic operation 骨架（无 source 内容），reader 最多选择 5 个 group；第二阶段只打开所选 group 的 evidence。
 It reaches MAP .455 while opening 53.0\% of the source content, and its
-stage-one selections never fell back to a default.
-% 它达到 MAP .455，同时只打开 53.0\% 的 source 内容，且第一阶段选择从未回退到默认值。
+stage-one selections never fell back to a default; the five-group budget
+saturated on 99.5\% of queries, and every selection miss was an absence from
+the reader's ordered choices rather than a budget cutoff.
+% 它达到 MAP .455，同时只打开 53.0\% 的 source 内容，且第一阶段选择从未回退到默认值；五组预算在 99.5\% 的 query 上被用满，且所有选择遗漏都是 reader 排序中的整体缺席而非预算截断。
 Under an information-matched raw-action skeleton, ranking quality is
 statistically unchanged (MAP .465; paired delta $+.010$ [$-.021$, $+.042$]).
 % 在信息匹配的 raw-action 骨架下，排名质量在统计上不变（MAP .465；配对差异 +.010 [-.021, +.042]）。
@@ -892,7 +894,11 @@ transitions.}
 
 Direct Agent annotation reaches 0.764 B$^3$ F1, improving over recurrence by
 0.101 (task-clustered bootstrap 95\% interval [0.087, 0.116]). Its boundary
-F1 is 0.480 versus 0.266 for recurrence. Thus the direct Agent backend is the
+F1 is 0.480 versus 0.266 for recurrence; the residual boundary error is
+over-segmentation rather than missed transitions (recall 0.626, precision
+0.389), the benign direction for profiling because extra splits subdivide
+work without merging unrelated responsibilities, as the 0.793 B$^3$ precision
+confirms. Thus the direct Agent backend is the
 strongest tested automatic constructor on this complete population, and its
 marks conserve exactly 20{,}866 operations and 494{,}862{,}929
 provider-reported tokens.
@@ -1003,6 +1009,16 @@ decision landscapes that guide recovery~\cite{hodoscope2026,tracegraph2026}.
 \sys complements them with shared variable-depth responsibility annotations
 that cover native call evidence, fold across runs, and replay the same
 boundaries under different additive measures in a standard profiler.
+Concretely, four properties jointly separate \sys from each closest system:
+(i) variable-depth responsibility recovered from source content, where
+Act$\cdot$onomy fixes a three-level taxonomy and TraceProbe canonicalizes a
+single action level; (ii) exact conservation of additive measures replayed
+across metrics, which the graph and distribution aggregations above do not
+provide; (iii) native LLM/tool evidence retained as drilldown leaves beneath
+every semantic frame, where causal-graph and distribution summaries discard
+call-level evidence; and (iv) standard pprof output consumed by existing
+tooling instead of a bespoke viewer. No compared system provides all four.
+% 具体而言，四个性质共同将 \sys 与每个最近邻系统区分开：(i) 从 source 内容恢复的可变深度责任（Act$\cdot$onomy 固定三层 taxonomy，TraceProbe 只规范化单一 action 层）；(ii) 可跨度量重放的可加度量精确守恒（上述图与分布聚合不提供）；(iii) 每个语义 frame 下保留原生 LLM/tool 证据作为下钻叶（因果图与分布摘要丢弃调用级证据）；(iv) 现有工具直接可读的标准 pprof 输出而非自建查看器。没有任何被比较系统同时具备这四点。
 % TraceProbe、Graphectory、Actonomy、CHIEF、Hodoscope 与 TraceGraph 建立了 canonical action、跨运行结构与 decision 导向分析；\sys 用覆盖原生 call evidence、跨运行折叠、可跨度量重放的共享变深 responsibility annotation 补充它们。
 
 \textbf{Profiling and diagnosis.}
