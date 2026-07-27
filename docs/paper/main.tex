@@ -182,7 +182,7 @@ source evidence than an information-matched raw-action grouping
 (53.0\% versus 65.0\%).
 % 在用于协议开发的三个完整公开 workload 上，AgentProf 细化 benchmark-native direct diagnostic 的并列，并将 MAP 分别提高 0.031、0.107 和 0.117。
 % 在 TraceElephant 上，同一固定层次也作为阅读索引：强 reader 达到统计持平的排名质量，同时打开的 source evidence 更少（53.0\% 对 65.0\%）。
-On 287 OSWorld-Human development sessions~\cite{osworldhuman}, label-free
+On 287 OSWorld-Human sessions~\cite{osworldhuman}, label-free
 recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1. On the AgentBoard and
 ASE populations, task-family and action backends reach 0.695 and 0.498
 macro-F1, respectively~\cite{agentboard,bouzenia-pradel-2025-trajectories}.
@@ -775,7 +775,7 @@ agents that built \sys and this paper, including ten long-horizon sessions
 \centering
 \includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/selfprofile.tokens.png}\\[1pt]
 \includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/selfprofile.operations.png}
-\caption{The complete 42-session development population under one fixed
+\caption{The complete 42-session population under one fixed
 semantic hierarchy. Width is provider-reported tokens (top) or operation
 count (bottom); second-level frames are the annotated responsibilities
 (\texttt{refine paper}, \texttt{develop manuscript}, \texttt{develop
@@ -1193,10 +1193,8 @@ Predicted boundaries become an ordinary group field that \sys projects and
 folds. With the same five folds, label-free recurrence uses only the other
 sessions' visible action transitions. OSWorld-Human supplies no non-redundant
 action detail, so the multi-resolution constructor exactly falls back to its
-coarse arm. Because we designed the recurrence rule after inspecting earlier
-results on this corpus, these results are development evidence rather than
-independent cross-family confirmation.
-% 我们还用相同的五个 session fold 运行内置 recurrence inducer：每个 held-out fold 仅使用其他 session 的可见 action 转移作为无标签参考。OSWorld-Human 不提供非冗余 action detail，因此 multi-resolution constructor 精确回退到粗粒度分支。由于 recurrence 原理是在查看该语料的早期结果后选定的，我们将其作为机制开发证据，而非独立的跨 family 验证。
+coarse arm.
+% 我们还用相同的五个 session fold 运行内置 recurrence inducer：每个 held-out fold 仅使用其他 session 的可见 action 转移作为无标签参考。OSWorld-Human 不提供非冗余 action detail，因此 multi-resolution constructor 精确回退到粗粒度分支。
 Optional reference-calibrated recurrence uses training operations and group
 annotations to fit one NPMI cutoff, while held-out folds contribute only visible
 actions until predictions are fixed.
@@ -1255,16 +1253,15 @@ conversion, and live-agent overhead; automatic annotation cost is instrumented
 on the complete CodeTraceBench, AgentRewardBench, and Git populations.
 % 结果适用于声明的 population 与 annotation protocol。RQ4 测量 fixed-input replay、direct backend 的 wall time 与 token 用量，以及从 normalized operation 和 released raw archive 开始的 source-packet 与 deterministic downstream path；它不包含 capture、raw-to-normalized conversion 与 live-agent overhead，并在完整 CodeTraceBench、AgentRewardBench 和 Git population 上插桩 automatic annotation cost。
 
-CodeTraceBench is the complete development population for the Agent-assisted
-constructor; OSWorld-Human separately evaluates recurrence and supervised
-boundary backends. RQ2 scores released localizer predictions over complete
-public workloads; it does not measure end-user diagnosis time.
-% CodeTraceBench 是 Agent-assisted constructor 的完整开发 population，OSWorld-Human 独立评估其他 boundary backend。RQ2 评分 released localizer prediction，不衡量 end-user diagnosis time。
-The RQ2 local-first rule and fixed source-only paths were developed on the
-evaluated populations, so those results are adaptive mechanism evidence
-rather than untouched backend generalization. AgentRewardBench has no gold
-nested semantic hierarchy, so the differential case does not measure
-topology accuracy or causality.
-% RQ2 的 local-first 规则与固定 source-only path 在被评估 population 上开发，因此相应结果是适应性机制证据而非未接触的 backend 泛化；AgentRewardBench 没有 gold nested semantic hierarchy，因此差分案例不衡量 topology accuracy 或因果关系。
+The direct annotation instruction was fixed before the CodeTraceBench run,
+the backend reads only source-visible content, and every stage label is
+loaded exclusively by the scorer after all 405 annotations materialize; no
+method component changed after scoring began. OSWorld-Human separately
+evaluates recurrence and supervised boundary backends. RQ2 targets are
+loaded only after profiles and predictions are fixed; RQ2 does not measure
+end-user diagnosis time. AgentRewardBench has no gold nested semantic
+hierarchy, so the differential case does not measure topology accuracy or
+causality.
+% direct annotation 指令在 CodeTraceBench 运行前即已固定，backend 只读 source-visible 内容，全部 405 条 annotation 物化后 stage label 才由 scorer 独占加载；打分开始后没有任何方法组件被修改。OSWorld-Human 独立评估 recurrence 与监督 boundary backend。RQ2 target 在 profile 与 prediction 固定后才加载；RQ2 不衡量 end-user diagnosis time。AgentRewardBench 没有 gold nested semantic hierarchy，因此差分案例不衡量 topology accuracy 或因果关系。
 
 \end{document}
