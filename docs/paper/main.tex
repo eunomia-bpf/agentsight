@@ -1211,6 +1211,11 @@ model \texttt{gpt-5.6-sol}, default decoding, sandboxed non-interactive
 mode): one call per trajectory over the source-only packet, at most one
 format retry, and independent workers with no shared state.
 % Direct annotation backend 为 OpenAI Codex CLI（版本 0.145.0，模型 \texttt{gpt-5.6-sol}，默认解码，沙箱非交互模式）：每条轨迹一次调用、至多一次格式重试、worker 相互独立且无共享状态。
+Packet construction bounds every text preview---prompt and response fields
+to at most 1{,}800 characters, tool commands to 600, and status previews to
+200---while additive measures come from structured counters and are
+unaffected by preview truncation.
+% Packet 构建对所有文本 preview 限长——prompt 与响应字段至多 1,800 字符、工具命令 600 字符、状态 preview 200 字符——而可加度量取自结构化计数器，不受 preview 截断影响。
 
 We reconstruct the source-only packet input three times on all 405 CodeTrace
 sessions (17{,}148 source-native turns and 20{,}866 operations). Joining the

@@ -39,3 +39,18 @@ the nesting itself carries navigation value beyond the names.
 pilot note inside execution-log.md, packets-*/, raw-responses-*/,
 raw-results.json, results.md (hypothesis verdict, paired deltas, costs),
 execution-log.md.
+
+## Amendment: corrected flat arm F2 (binding)
+
+Arm F as executed grouped by the LAST path component, which is the outcome
+status frame (5 tags: blocked/failure/progress/success/unclear) — an
+orchestrator spec error. That arm is superseded as the flat control.
+
+Run arm F2: identical protocol, but the flat grouping key is the DEEPEST
+SEMANTIC frame — the path component immediately BEFORE the fixed
+three-frame source-kind/call-tool/outcome suffix documented in step 0081's
+provenance. Report the resulting tag-vocabulary size and group counts.
+Arm H is NOT rerun: pair F2 against the stored arm-H per-query results
+(same reader family, flags, jail recipe; document seeds). Update
+results.md in place with the F2 comparison as the authoritative flat
+control, keeping the superseded F(status) numbers labeled as such.

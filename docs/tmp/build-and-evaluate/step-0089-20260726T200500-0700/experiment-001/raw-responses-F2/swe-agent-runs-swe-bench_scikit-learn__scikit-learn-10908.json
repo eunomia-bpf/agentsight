@@ -1,0 +1,127 @@
+{
+  "arm": "flat2",
+  "completed_ranking": [
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-8",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-6",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-9",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-11",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-5",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-1",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-2",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-3",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-4",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-7",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-10",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-12",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-13",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-14",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-15",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-16",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-17"
+  ],
+  "group_count": 8,
+  "largest_group_size": 5,
+  "operation_count": 17,
+  "prompt_tokens_o200k": 9880,
+  "query_id": "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908",
+  "reader_ranked_operation_ids": [
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-8",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-6",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-9",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-11",
+    "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-5"
+  ],
+  "selected_evidence_operation_count": 12,
+  "selected_group_path_keys": [
+    "edit change",
+    "create artifact",
+    "resolve artifact",
+    "inspect artifact",
+    "execute artifact"
+  ],
+  "selected_group_paths": [
+    [
+      "edit change"
+    ],
+    [
+      "create artifact"
+    ],
+    [
+      "resolve artifact"
+    ],
+    [
+      "inspect artifact"
+    ],
+    [
+      "execute artifact"
+    ]
+  ],
+  "stage1_attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "argv_fallback_triggered": false,
+        "delivery": "argv (opencode run --pure)",
+        "prompt_bytes": 7396,
+        "prompt_tokens_o200k": 2174,
+        "reader": "opencode run --pure",
+        "reader_default_model": "glm-5.2",
+        "returncode": 0,
+        "stderr_tail": "\u001b[0m\n> build · glm-5.2\n\u001b[0m\n"
+      },
+      "parsed": [
+        [
+          "edit change"
+        ],
+        [
+          "create artifact"
+        ],
+        [
+          "resolve artifact"
+        ],
+        [
+          "inspect artifact"
+        ],
+        [
+          "execute artifact"
+        ]
+      ],
+      "raw_response": "{\"selected_group_paths\": [[\"edit change\"], [\"create artifact\"], [\"resolve artifact\"], [\"inspect artifact\"], [\"execute artifact\"]]}\n",
+      "wall_seconds": 24.169754959002603
+    }
+  ],
+  "stage1_chars": 6153,
+  "stage1_largest_groups_fallback": false,
+  "stage1_status": "ok",
+  "stage1_wall_seconds": 24.169754959002603,
+  "stage2_attempts": [
+    {
+      "attempt": 1,
+      "meta": {
+        "argv_fallback_triggered": false,
+        "delivery": "argv (opencode run --pure)",
+        "prompt_bytes": 25535,
+        "prompt_tokens_o200k": 7706,
+        "reader": "opencode run --pure",
+        "reader_default_model": "glm-5.2",
+        "returncode": 0,
+        "stderr_tail": "\u001b[0m\n> build · glm-5.2\n\u001b[0m\n"
+      },
+      "parsed": [
+        "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-8",
+        "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-6",
+        "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-9",
+        "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-11",
+        "swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-5"
+      ],
+      "raw_response": "Looking at the evidence, I need to identify which operations caused the agent to produce an incorrect fix for the CountVectorizer `get_feature_names` issue.\n\n**Key analysis of the edit (step-8):** The agent's fix `return list(self.vocabulary)` is incorrect — it doesn't sort feature names by their index for dict vocabularies (e.g., `{'foo': 2, 'bar': 0}` would return `['foo', 'bar']` instead of `['bar', 'foo']`), and it bypasses `_check_vocabulary()` validation. The correct fix should ensure `vocabulary_` is properly set from the provided `vocabulary` and then sort by index value.\n\n**Supporting failures:** The reproduction script (step-6) only tested a list vocabulary where insertion order coincidentally matches index order, masking the bug. The agent never tested a dict vocabulary with non-sequential indices.\n\n```json\n{\"ranked_operation_ids\": [\"swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-8\", \"swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-6\", \"swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-9\", \"swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-11\", \"swe-agent-runs-swe-bench/scikit-learn__scikit-learn-10908#step-5\"]}\n```\n",
+      "wall_seconds": 47.24570158595452
+    }
+  ],
+  "stage2_chars": 24370,
+  "stage2_scored_as_original_order_failure": false,
+  "stage2_status": "ok",
+  "stage2_wall_seconds": 47.24570158595452,
+  "step0079_packet_chars": 27518,
+  "wall_seconds_total": 71.41545654495712
+}
