@@ -1,0 +1,281 @@
+{
+  "annotation": {
+    "marks": 79,
+    "path_depths": {
+      "1": 21,
+      "2": 47,
+      "3": 10,
+      "4": 1
+    }
+  },
+  "cost": {
+    "active_backend_wall_seconds": 110.44984316825867,
+    "backend": "codex-cli 0.145.0",
+    "failed_after_retry": 0,
+    "format_retries": 0,
+    "model": "gpt-5.6-sol",
+    "sessions_selected": 40,
+    "successful_sessions": 40,
+    "summed_backend_wall_seconds": 418.63545199999993,
+    "total_codex_calls": 40,
+    "usage": {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 184320,
+      "input_tokens": 752427,
+      "output_tokens": 9249,
+      "reasoning_output_tokens": 6047
+    },
+    "worker_pattern": "isolated one-session calls, up to 4 parallel workers"
+  },
+  "gate": {
+    "direct_minus_recurrence_bcubed_f1": -0.04646388108334876,
+    "full_run_authorized": true,
+    "passed": true,
+    "rule": "pilot direct B3 F1 >= recurrence-on-slice B3 F1 - 0.05"
+  },
+  "metrics": {
+    "always_boundary": {
+      "bcubed": {
+        "f1": 0.6275862068965518,
+        "gold_groups": 182,
+        "items": 398,
+        "precision": 1.0,
+        "predicted_groups": 398,
+        "recall": 0.457286432160804
+      },
+      "boundary": {
+        "f1": 0.5680000000000001,
+        "false_negative": 0,
+        "false_positive": 216,
+        "precision": 0.39664804469273746,
+        "recall": 1.0,
+        "true_positive": 142
+      }
+    },
+    "direct_multilevel": {
+      "bcubed": {
+        "f1": 0.6568026158959439,
+        "gold_groups": 182,
+        "items": 398,
+        "precision": 0.5216932359852844,
+        "predicted_groups": 79,
+        "recall": 0.8863522796053095
+      },
+      "boundary": {
+        "f1": 0.20994475138121543,
+        "false_negative": 123,
+        "false_positive": 20,
+        "precision": 0.48717948717948717,
+        "recall": 0.13380281690140844,
+        "true_positive": 19
+      }
+    },
+    "label_free_recurrence": {
+      "bcubed": {
+        "f1": 0.7032664969792927,
+        "gold_groups": 182,
+        "items": 398,
+        "precision": 0.9482412060301508,
+        "predicted_groups": 311,
+        "recall": 0.5588814755382889
+      },
+      "boundary": {
+        "f1": 0.6101694915254237,
+        "false_negative": 16,
+        "false_positive": 145,
+        "precision": 0.46494464944649444,
+        "recall": 0.8873239436619719,
+        "true_positive": 126
+      }
+    },
+    "reference_calibrated": {
+      "bcubed": {
+        "f1": 0.7009100447141996,
+        "gold_groups": 182,
+        "items": 398,
+        "precision": 0.9551926298157455,
+        "predicted_groups": 316,
+        "recall": 0.5535492588995397
+      },
+      "boundary": {
+        "f1": 0.6076555023923446,
+        "false_negative": 15,
+        "false_positive": 149,
+        "precision": 0.4601449275362319,
+        "recall": 0.8943661971830986,
+        "true_positive": 127
+      }
+    },
+    "supervised_oof": {
+      "bcubed": {
+        "f1": 0.8115651056589208,
+        "gold_groups": 182,
+        "items": 398,
+        "precision": 0.9339614740368508,
+        "predicted_groups": 234,
+        "recall": 0.7175319876694396
+      },
+      "boundary": {
+        "f1": 0.7380952380952381,
+        "false_negative": 18,
+        "false_positive": 70,
+        "precision": 0.6391752577319587,
+        "recall": 0.8732394366197183,
+        "true_positive": 124
+      }
+    }
+  },
+  "paired_session_cluster_bootstrap": {
+    "always_boundary": {
+      "bcubed": {
+        "baseline": "always_boundary",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.12528452842731216,
+          0.17308160038368622
+        ],
+        "mean_delta": 0.024222645811056744,
+        "metric": "bcubed",
+        "positive_fraction": 0.6254,
+        "raw_draws": "bootstrap/pilot-direct-minus-always_boundary-bcubed.jsonl",
+        "resamples": 10000,
+        "session_clusters": 40
+      },
+      "boundary": {
+        "baseline": "always_boundary",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.49196313576870165,
+          -0.23088019670966908
+        ],
+        "mean_delta": -0.3614513752026243,
+        "metric": "boundary",
+        "positive_fraction": 0.0,
+        "raw_draws": "bootstrap/pilot-direct-minus-always_boundary-boundary.jsonl",
+        "resamples": 10000,
+        "session_clusters": 40
+      }
+    },
+    "label_free_recurrence": {
+      "bcubed": {
+        "baseline": "label_free_recurrence",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.18003813741166586,
+          0.08410957291550293
+        ],
+        "mean_delta": -0.049309259701362754,
+        "metric": "bcubed",
+        "positive_fraction": 0.2354,
+        "raw_draws": "bootstrap/pilot-direct-minus-label_free_recurrence-bcubed.jsonl",
+        "resamples": 10000,
+        "session_clusters": 40
+      },
+      "boundary": {
+        "baseline": "label_free_recurrence",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.5362884007229229,
+          -0.2676443711690895
+        ],
+        "mean_delta": -0.40290886057604647,
+        "metric": "boundary",
+        "positive_fraction": 0.0,
+        "raw_draws": "bootstrap/pilot-direct-minus-label_free_recurrence-boundary.jsonl",
+        "resamples": 10000,
+        "session_clusters": 40
+      }
+    },
+    "reference_calibrated": {
+      "bcubed": {
+        "baseline": "reference_calibrated",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.1796799554543325,
+          0.08687576693225324
+        ],
+        "mean_delta": -0.046820022041804875,
+        "metric": "bcubed",
+        "positive_fraction": 0.2498,
+        "raw_draws": "bootstrap/pilot-direct-minus-reference_calibrated-bcubed.jsonl",
+        "resamples": 10000,
+        "session_clusters": 40
+      },
+      "boundary": {
+        "baseline": "reference_calibrated",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.5114378551378127,
+          -0.28648270269096093
+        ],
+        "mean_delta": -0.4008057978106729,
+        "metric": "boundary",
+        "positive_fraction": 0.0,
+        "raw_draws": "bootstrap/pilot-direct-minus-reference_calibrated-boundary.jsonl",
+        "resamples": 10000,
+        "session_clusters": 40
+      }
+    },
+    "supervised_oof": {
+      "bcubed": {
+        "baseline": "supervised_oof",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.2748458733374344,
+          -0.043974377388130606
+        ],
+        "mean_delta": -0.15913699957906174,
+        "metric": "bcubed",
+        "positive_fraction": 0.003,
+        "raw_draws": "bootstrap/pilot-direct-minus-supervised_oof-bcubed.jsonl",
+        "resamples": 10000,
+        "session_clusters": 40
+      },
+      "boundary": {
+        "baseline": "supervised_oof",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.661514271415347,
+          -0.39739794376749676
+        ],
+        "mean_delta": -0.529984828399665,
+        "metric": "boundary",
+        "positive_fraction": 0.0,
+        "raw_draws": "bootstrap/pilot-direct-minus-supervised_oof-boundary.jsonl",
+        "resamples": 10000,
+        "session_clusters": 40
+      }
+    }
+  },
+  "phase": "pilot",
+  "population": {
+    "gold_groups": 182,
+    "operations": 398,
+    "pairs": 358,
+    "sessions": 40
+  },
+  "raw_paths": {
+    "operation_rows": "score/pilot/operation-score-rows.jsonl",
+    "pair_rows": "score/pilot/pair-score-rows.jsonl",
+    "raw_events": "raw-events",
+    "raw_marks": "raw-marks",
+    "raw_responses": "raw-responses"
+  },
+  "schema": "agentsight.direct-osworld-human-result.v1",
+  "selection": "first 40 lexicographically sorted session IDs",
+  "status": "complete",
+  "valid": true,
+  "validity": {
+    "all_backend_responses_valid": true,
+    "deterministic_sorted_selection": true,
+    "failed_after_retry": 0,
+    "gold_fields_excluded": true,
+    "model_visible_fields_exact": true,
+    "one_assignment_per_operation": true,
+    "one_format_retry_limit": true,
+    "operations_conserved": 398,
+    "pairs_conserved": 358,
+    "sessions_covered": 40,
+    "successful_backend_sessions": 40
+  }
+}

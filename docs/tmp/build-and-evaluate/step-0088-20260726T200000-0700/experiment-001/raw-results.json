@@ -1,0 +1,282 @@
+{
+  "annotation": {
+    "marks": 569,
+    "path_depths": {
+      "1": 156,
+      "2": 355,
+      "3": 54,
+      "4": 4
+    }
+  },
+  "cost": {
+    "active_backend_wall_seconds": 728.3600344657898,
+    "backend": "codex-cli 0.145.0",
+    "failed_after_retry": 0,
+    "format_retries": 1,
+    "model": "gpt-5.6-sol",
+    "sessions_selected": 287,
+    "successful_sessions": 287,
+    "summed_backend_wall_seconds": 2854.536138000001,
+    "total_codex_calls": 288,
+    "usage": {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 3838464,
+      "input_tokens": 5483576,
+      "output_tokens": 64231,
+      "reasoning_output_tokens": 40843
+    },
+    "worker_pattern": "isolated one-session calls, up to 4 parallel workers"
+  },
+  "gate": {
+    "direct_minus_recurrence_bcubed_f1": -0.3381002960724607,
+    "full_run_authorized": null,
+    "passed": null,
+    "rule": "pilot direct B3 F1 >= recurrence-on-slice B3 F1 - 0.05"
+  },
+  "hypothesis_verdict": "contradicted",
+  "metrics": {
+    "always_boundary": {
+      "bcubed": {
+        "f1": 0.6784053156146179,
+        "gold_groups": 2042,
+        "items": 3978,
+        "precision": 1.0,
+        "predicted_groups": 3978,
+        "recall": 0.5133232780291603
+      },
+      "boundary": {
+        "f1": 0.6445097319133308,
+        "false_negative": 0,
+        "false_positive": 1936,
+        "precision": 0.47548089948523437,
+        "recall": 1.0,
+        "true_positive": 1755
+      }
+    },
+    "direct_multilevel": {
+      "bcubed": {
+        "f1": 0.448069247675728,
+        "gold_groups": 2042,
+        "items": 3978,
+        "precision": 0.29342774365148705,
+        "predicted_groups": 569,
+        "recall": 0.9473269734681763
+      },
+      "boundary": {
+        "f1": 0.14923907707412862,
+        "false_negative": 1603,
+        "false_positive": 130,
+        "precision": 0.5390070921985816,
+        "recall": 0.08660968660968661,
+        "true_positive": 152
+      }
+    },
+    "label_free_recurrence": {
+      "bcubed": {
+        "f1": 0.7861695437481887,
+        "gold_groups": 2042,
+        "items": 3978,
+        "precision": 0.8558715354508236,
+        "predicted_groups": 2656,
+        "recall": 0.7269656216311345
+      },
+      "boundary": {
+        "f1": 0.6799224054316197,
+        "false_negative": 353,
+        "false_positive": 967,
+        "precision": 0.5918108906711693,
+        "recall": 0.7988603988603988,
+        "true_positive": 1402
+      }
+    },
+    "reference_calibrated": {
+      "bcubed": {
+        "f1": 0.8010872162705189,
+        "gold_groups": 2042,
+        "items": 3978,
+        "precision": 0.9169996283839914,
+        "predicted_groups": 2941,
+        "recall": 0.7111899666397933
+      },
+      "boundary": {
+        "f1": 0.7339532773871628,
+        "false_negative": 137,
+        "false_positive": 1036,
+        "precision": 0.6096458176337604,
+        "recall": 0.9219373219373219,
+        "true_positive": 1618
+      }
+    },
+    "supervised_oof": {
+      "bcubed": {
+        "f1": 0.8160191831297343,
+        "gold_groups": 2042,
+        "items": 3978,
+        "precision": 0.8358628222750994,
+        "predicted_groups": 2249,
+        "recall": 0.7970958829844462
+      },
+      "boundary": {
+        "f1": 0.7387678235135863,
+        "false_negative": 382,
+        "false_positive": 589,
+        "precision": 0.699796126401631,
+        "recall": 0.7823361823361823,
+        "true_positive": 1373
+      }
+    }
+  },
+  "paired_session_cluster_bootstrap": {
+    "always_boundary": {
+      "bcubed": {
+        "baseline": "always_boundary",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.3219863900846578,
+          -0.1398398843346678
+        ],
+        "mean_delta": -0.22847829400053243,
+        "metric": "bcubed",
+        "positive_fraction": 0.0,
+        "raw_draws": "bootstrap/full-direct-minus-always_boundary-bcubed.jsonl",
+        "resamples": 10000,
+        "session_clusters": 287
+      },
+      "boundary": {
+        "baseline": "always_boundary",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.5746748840459275,
+          -0.4109032804511018
+        ],
+        "mean_delta": -0.4929109967448119,
+        "metric": "boundary",
+        "positive_fraction": 0.0,
+        "raw_draws": "bootstrap/full-direct-minus-always_boundary-boundary.jsonl",
+        "resamples": 10000,
+        "session_clusters": 287
+      }
+    },
+    "label_free_recurrence": {
+      "bcubed": {
+        "baseline": "label_free_recurrence",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.4289749711964216,
+          -0.23402825171596667
+        ],
+        "mean_delta": -0.3339606811344595,
+        "metric": "bcubed",
+        "positive_fraction": 0.0,
+        "raw_draws": "bootstrap/full-direct-minus-label_free_recurrence-bcubed.jsonl",
+        "resamples": 10000,
+        "session_clusters": 287
+      },
+      "boundary": {
+        "baseline": "label_free_recurrence",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.6039227387405672,
+          -0.44365862062503464
+        ],
+        "mean_delta": -0.5272289886172001,
+        "metric": "boundary",
+        "positive_fraction": 0.0,
+        "raw_draws": "bootstrap/full-direct-minus-label_free_recurrence-boundary.jsonl",
+        "resamples": 10000,
+        "session_clusters": 287
+      }
+    },
+    "reference_calibrated": {
+      "bcubed": {
+        "baseline": "reference_calibrated",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.4429618708586708,
+          -0.25012464900740533
+        ],
+        "mean_delta": -0.3499194389625864,
+        "metric": "bcubed",
+        "positive_fraction": 0.0,
+        "raw_draws": "bootstrap/full-direct-minus-reference_calibrated-bcubed.jsonl",
+        "resamples": 10000,
+        "session_clusters": 287
+      },
+      "boundary": {
+        "baseline": "reference_calibrated",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.6476412269525479,
+          -0.5103278763136753
+        ],
+        "mean_delta": -0.58212553535737,
+        "metric": "boundary",
+        "positive_fraction": 0.0,
+        "raw_draws": "bootstrap/full-direct-minus-reference_calibrated-boundary.jsonl",
+        "resamples": 10000,
+        "session_clusters": 287
+      }
+    },
+    "supervised_oof": {
+      "bcubed": {
+        "baseline": "supervised_oof",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.4440157962245438,
+          -0.27995448109956
+        ],
+        "mean_delta": -0.3645522878379295,
+        "metric": "bcubed",
+        "positive_fraction": 0.0,
+        "raw_draws": "bootstrap/full-direct-minus-supervised_oof-bcubed.jsonl",
+        "resamples": 10000,
+        "session_clusters": 287
+      },
+      "boundary": {
+        "baseline": "supervised_oof",
+        "candidate": "direct_multilevel",
+        "ci95": [
+          -0.6410142722878395,
+          -0.5327549533398842
+        ],
+        "mean_delta": -0.5883843363426546,
+        "metric": "boundary",
+        "positive_fraction": 0.0,
+        "raw_draws": "bootstrap/full-direct-minus-supervised_oof-boundary.jsonl",
+        "resamples": 10000,
+        "session_clusters": 287
+      }
+    }
+  },
+  "phase": "full",
+  "population": {
+    "gold_groups": 2042,
+    "operations": 3978,
+    "pairs": 3691,
+    "sessions": 287
+  },
+  "raw_paths": {
+    "operation_rows": "score/full/operation-score-rows.jsonl",
+    "pair_rows": "score/full/pair-score-rows.jsonl",
+    "raw_events": "raw-events",
+    "raw_marks": "raw-marks",
+    "raw_responses": "raw-responses"
+  },
+  "schema": "agentsight.direct-osworld-human-result.v1",
+  "selection": "all 287 eligible sessions",
+  "status": "complete",
+  "valid": true,
+  "validity": {
+    "all_backend_responses_valid": true,
+    "deterministic_sorted_selection": true,
+    "failed_after_retry": 0,
+    "gold_fields_excluded": true,
+    "model_visible_fields_exact": true,
+    "one_assignment_per_operation": true,
+    "one_format_retry_limit": true,
+    "operations_conserved": 3978,
+    "pairs_conserved": 3691,
+    "sessions_covered": 287,
+    "successful_backend_sessions": 287
+  }
+}
