@@ -18,20 +18,26 @@ truth remain excluded. The full Chinese study contract is
 
 | RQ | Evidence required | Status | Next decisive action |
 |---|---|---|---|
-| RQ1 artifact consolidation/revival | Final survival for confirmed introductions, lineage reuse/revival, first/repeat-observed mutation and identity concentration. | Six-case reuse/repetition evidence complete. The 2026-07-25 HEAD recompute (after the projection hardening) lifts confirmed-create persistence from coverage-only 3/6 to 6/6; sessions are now counted as 551 native roots (2,049 source files before dedup). | Add dormant-to-revived state transitions without converting repeated activity into a progress score. |
-| RQ2 validation response | Recognized success/failure cadence, mutation backlog and event-distance response around validation. | Six-case re-review complete (2026-07-26): recognized success covers 6/6 projects, complete inter-success intervals cover 5/6, and recognized failures cover 4/6. Eligible lanes have 29.3--86.1% zero-mutation intervals with maxima of 1--817, but outcome-conditioned response has no consistent cross-case direction. | **Complete (2026-07-26):** retain the descriptive zero-mass/long-tail cadence result and the heterogeneous-response boundary; make no distribution-family, vendor-effect, or project-type-effect claim. |
-| RQ3 workspace focus evolution | Artifact-class allocation, same-artifact/same-module/cross-module transitions, hotspot turnover and return gaps. | F8a/F8b complete; all six cases now carry return evidence (eunomia.dev cross-session repeat episodes 1 to 29 after session-join repair); pooled unknown-create births 790 to 0. | Add rank-turnover/cooling curves; keep action order distinct from time or internal attention. |
-| RQ4 cross-session continuity | Native-root/source-stream structure, adjacent non-overlapping components, pre-mutation re-grounding and prior artifact/module overlap. | F7 is coverage/within-case evidence. The final-HEAD projection forms 121 components/111 boundaries: agentsight 31/28, ActPlane 24/22, bpf-developer-tutorial 29/28, eunomia.dev 18/16, agentskill-observability-paper 2/1, and academic-writing-skills 17/16. The four-project estimator gate still stops, established as data-limited (3/6 projects reach 20 boundaries), not identity-limited. | Estimating continuity requires more eligible boundaries, not further identity repair. |
-| RQ5 Skill/instruction footprints | Exact Skill name/arguments and source attribution blocked by native root session; separate instruction focal events. | Fresh six-case run and independent 2,063-stream checker pass. Five exact-context Skill strata qualify, but only one project supports a two-Skill comparison: same/different JSD 0.116/0.123, exact root-block p=0.750 over 12 admissible assignments. | Report source-attributed coverage and no supported repeatable Skill separation; make no fingerprint or causal harness claim. |
-| RQ6 external boundary | Replicate compatible within-attempt relations separately in public coding and scientific-process traces; mark persistence/re-grounding N/A without persistent lineage. | Complete over 64 independent task instances per Open-SWE stratum (256 selections, 255 unique IDs across strata) and 64 IdeaTrail topics. All five strata pass the 64-unit gate and the independent checker reconciles 31,249 Tool calls and 22,113 transitions without mismatch. Cross-module movement is 18.0--30.0% publicly versus 2.1--20.2% locally; median intervening calls before module return are 2--3 versus 2--4. | Report path locality/return recurrence and the magnitude difference; keep persistent lineage, cross-session re-grounding, and Skill attribution N/A. |
-| Separate measurement capability | Compare source-verifiable factual coverage and abstention for Final State, Counts, ProcGrep, bounded Raw-log reader and artifact-linked trajectories. | Repaired. On 2026-07-23 the frozen implementation scored 32/60 B+C against the frozen source-direct oracle. After root-cause repair (session join, failed-call effects, shell path extraction, event workdir) and oracle correction to v4, the current implementation scores B 30/30, C 30/30, D 30/30, A 12/30 against the corrected oracle: 60/60 B+C on this corpus. Raw remains N/A after a retrieval-engaged preflight boundary stop. No general exact-fact capability claim; the A gap is a deliberate grammar difference (trajectory preserves ProcGrep's action spine, v4 re-derives atoms source-direct). | Keep conformance as a standing gate for any future projection change. |
+| RQ1 artifact consolidation/revival | Final survival for confirmed introductions, lineage reuse/revival, first/repeat-observed mutation and identity concentration. | **Complete at repaired v2 (2026-07-27).** The fixed corpus has 5,676 identities, 13,809 confirmed mutation rows, and 13,766 artifact-event episodes. Persistence and validation remain 6/6; reuse is 89.29--96.94% with action-volume Spearman rho 0.0286. Repeat-observed episodes are 74.9--91.8%. Action/time dormancy revival ranges are 8.3--47.6% and 0.0--39.4%. | Preserve these as six-case descriptive results; any population claim needs independently selected longitudinal projects. |
+| RQ2 validation response | Recognized success/failure cadence, mutation backlog and event-distance response around validation. | **Complete at repaired v2.** Recognized success covers 6/6 projects, complete inter-success intervals 5/6, and recognized failures 4/6. Eligible lanes have 29.3--86.5% zero-mutation intervals with maxima of 1--817; outcome-conditioned response has no consistent cross-case direction. | Retain cadence and heterogeneity only; make no distribution-family, vendor-effect, or project-type-effect claim. |
+| RQ3 workspace focus evolution | Artifact-class allocation, same-artifact/same-module/cross-module transitions, hotspot turnover and return gaps. | **Complete at repaired v2.** Case D paper/docs mutation share is 60.7% over all resolved statuses and 86.8% for `ok` only. Transitions span 25.6--82.6% same artifact, 17.4--68.0% same module, and 0.0--23.2% cross module. Five cases qualify for 2--4-call returns; AgentSkill has zero returns and is N/A. Turnover/cooling values are synchronized to the 3,367-window-pair v2 run. | Keep rank turnover/cooling in Agent action order; do not reinterpret them as elapsed time, attention, or forgetting. |
+| RQ4 cross-session continuity | Native-root/source-stream structure, adjacent non-overlapping components, pre-mutation re-grounding and prior artifact/module overlap. | **Verified unchanged at repaired v2.** The projection still forms 121 components/111 boundaries with the same project breakdown and 3/6 projects reaching 20 boundaries. Conditional support changes to 65 boundaries with first mutation and 59 with defined overlap, but the four-project estimator gate still stops. | Estimating continuity requires more eligible boundaries, not further identity repair. |
+| RQ5 Skill/instruction footprints | Exact Skill name/arguments and source attribution blocked by native root session; separate instruction focal events. | **Complete.** The independent 2,063-stream checker passes. Five exact-context Skill strata qualify, but only one project supports a two-Skill comparison: same/different JSD 0.116/0.123, exact root-block p=0.750 over 12 admissible assignments. | Retain source-attributed coverage and no supported repeatable Skill separation; make no fingerprint or causal harness claim. |
+| RQ6 external boundary and invariance | Replicate compatible within-attempt relations in public coding/scientific traces; test local project×vendor stability; mark longitudinal facts N/A without lineage. | **Complete at repaired v2.** Public reconstruction still reconciles 31,249 Tool calls and 22,113 transitions. Local path locality is 76.8--100.0% versus public cross-module movement of 18.0--30.0%. Path locality is the sole invariant candidate (CV 0.088, LOO 1.0, all five public CIs positive); classification is 1 invariant / 8 vendor-shaped / 6 idiosyncratic / 0 project-shaped. No fitted tail supports a universal power law. | Replicate the invariant gate in additional independent organizations/vendors; keep vendor-shaped labels observational and lineage/Skill claims N/A publicly. |
+| RQ7 tool-call workload and bounds | Composition, repetition, dependency, timing, and conservative prefetch/concurrency/speculation/event-driven opportunity estimands. | **Complete; v2 identity count synchronized.** Shell is 68.6% of 181,303 calls. Among 43,889 artifact-identity reads, 46.7% repeat; native overlap consumes 86.0% of logical-parallel edges, actionable prefetch precision is 21.75%, and the event-driven bound is 1,456 calls (0.81%). | Any performance claim requires replay or implementation; retain current quantities as structural observation/opportunity bounds. |
+| Corpus human involvement | Source-native human messages, startup versus follow-up guidance, interruption response, and observable timing boundary. | **Complete (2026-07-26).** The 550 unique projected session IDs contain 7,804 substantive messages, one per 23.2 Agent actions; 63.3% of human-bearing sessions are startup-only. After explicit interruptions, 50.4% change exact tool and 49.6% tool family. Inactive gaps occupy 73.8% of the two-part envelope but do not measure attention. | Treat the cases as author-associated mixed-initiative traces; do not infer autonomy rates or causal guidance effects. |
+| Separate measurement capability | Compare source-verifiable factual coverage and abstention for Final State, Counts, ProcGrep, bounded Raw-log reader and artifact-linked trajectories. | **Two repair cycles complete.** Frozen B+C was 32/60; first-cycle repair reaches 60/60. A material compound-shell audit then fixes six shape families with 18 action fixtures; original regression remains 60/60 and the inspected 116-question corpus reaches B+C 58/58 with zero missing/extra in attempted, confirmed-effect, and edge/status ledgers. It is `repair-corpus-v2`, not held-out evidence. The bounded Raw matrix is complete but mixed/inconclusive. | Keep conformance as a standing gate. A general exact-conformance claim requires a third independently selected corpus. |
 
-## 2026-07-26 analysis wave
+## 2026-07-26--27 analysis and repair wave
 
 | Analysis directory | Core result | Paper status |
 |---|---|---|
-| `docs/tmp/build-and-evaluate/rq2-crosscase-20260726/` | Success coverage 6/6, complete inter-success coverage 5/6, failure coverage 4/6; eligible-lane zero-mutation fraction 29.3--86.1%, maxima 1--817; no consistent outcome-conditioned response. | Integrated into the main-paper RQ2 paragraph and synchronized in the supplement; descriptive cadence and heterogeneity only. |
-| `docs/tmp/build-and-evaluate/user-questions-20260726/` | Created-document no-revisit/reread 29.8%/62.4%; source--test order 0 test-first, 7 code-first, 21 same-event; confirmed read paper/code 43.5%/43.2% and write 69.8%/16.3%; 0/16 repeat-test blocks have zero code episodes. | Integrated as four supplement answers with proxy, one-case pairing, action-count, and temporal-association limits. |
+| `docs/tmp/build-and-evaluate/shell-boundary-audit-20260726/` and `shell-boundary-repair-20260726/` | Compound shell/wrapper exposure is material for RQ1/RQ3. Six shape families and 18 action fixtures close the known defects; original B+C remains 60/60, repair-corpus-v2 reaches 58/58, and all strict edge ledgers have zero missing/extra. | Integrated as the second standing-gate repair cycle. The former held-out corpus is explicitly downgraded; third-corpus generality remains open. |
+| `docs/tmp/build-and-evaluate/rq1-rq4-recompute-v2-20260727/` | Repaired v2 corpus: 5,676 identities, 13,809 mutation rows, 13,766 episodes; RQ1 rho 0.0286 and reuse 89.29--96.94%; RQ2 29.3--86.5%; RQ3 Case D 60.7/86.8%; RQ6 local anchor 76.8--100.0%; RQ4 121/111 unchanged. | Fully synchronized into both paper entries and all seven affected result figures. |
+| `docs/tmp/build-and-evaluate/user-questions-v2-20260727/` | Created-document no-revisit/reread 30.4%/62.4%; source--test order remains 0 test-first, 7 code-first, 21 same-event; confirmed read paper/code 43.5%/43.0% and write 70.2%/16.2%; 0/16 repeat-test blocks have zero code episodes. | Integrated as four v2 supplement answers with the repaired cross-path compound-episode contract. |
+| `docs/tmp/build-and-evaluate/invariance-v2-20260727/` | Path locality remains the sole invariant candidate (CV 0.088, LOO 1.0, public five-stratum direction replicated); classification becomes 1 invariant / 8 vendor-shaped / 6 idiosyncratic / 0 project-shaped. | Integrated into RQ6 with observational-vendor and no-universal-power-law boundaries. |
+| `docs/tmp/build-and-evaluate/human-involvement-20260726/` | 7,804 messages, 23.2 actions/message, 63.3% startup-only, about 50% immediate tool redirection after explicit interruption, and 73.8% inactive-gap share with an attention-time non-identifiability boundary. | Integrated as the mixed-initiative corpus limitation in main and a new supplement subsection. |
+| `docs/tmp/build-and-evaluate/rq2-crosscase-20260726/` | Success coverage 6/6, complete inter-success coverage 5/6, failure coverage 4/6; the v2 recompute updates eligible-lane zero-mutation fraction to 29.3--86.5%, maxima 1--817, with no consistent outcome-conditioned response. | Integrated into the main-paper RQ2 paragraph and supplement; descriptive cadence and heterogeneity only. |
 | `docs/tmp/build-and-evaluate/session-dynamics-20260726/` | Supported strata show +16.7--28.9 pp late reread; ten-call extended startup median/p90 20%/60%; strict-gross harness-shaped footprint 6.48%; strict failure-chain burden 0.0320%. | Integrated in the supplement as late-session re-grounding, startup distribution, stratified footprint, and rare strict chains; no degradation, waste, or causal-overhead claim. |
 | `docs/tmp/build-and-evaluate/toolcall-behavior-20260726/` | Shell 68.6% of 181,303 calls; artifact-identity repeated reads 46.7%, of which 76.2% have no observed intervening mutation; 33.2% of calls occur in reconstructed multi-call batches. | Integrated into the supplement as descriptive workload mix and repetition, not inefficiency. |
 | `docs/tmp/build-and-evaluate/toolcall-profile-20260726/` | 24.76% of adjacent edges already overlap and 2.98% are remaining sequential local-read candidates; actionable prefetch precision 21.75%; last-test match 26.22% versus 80.36% eager-test waste; event-driven bound 1,456 calls (0.81%). | Integrated into the supplement as conservative execution/roundtrip upper bounds, not replayed or causal speedups. |
@@ -68,19 +74,19 @@ is superseded; it does not prove coverage or correctness of the change.
 worktree-attributed. The extraction yields 7,154 observed
 artifact identities and 13,152 confirmed mutation rows.
 
-**Final-HEAD recomputed outcome (2026-07-25, after the projection hardening).** The same
-cutoff and inclusion contract now admit 551 native root sessions (the 2,049
-source files minus subagent/continuation duplicates; a counting-semantics
-change, not data loss: all 551 roots and 176,288 actions are worktree-attributed,
-with attributed actions +0.25% versus the frozen run) and 181,303 Tool actions.
-The extraction yields 5,746 observed artifact identities and 13,906 confirmed mutation rows (+5.7%, mostly
-eunomia.dev's recovered Claude activity: 170 to 739). All six projects pass
-the longitudinal gate. Later reuse is observed for 89.29--97.11% of eligible
-mutations, and its descriptive association with action volume is Spearman rho
-0.2000 (was 0.0857). All six projects now have an eligible confirmed create
-and a recognized successful validation, so persistence and validation move
-from 3/6 coverage-only to 6/6 qualified. The independent result audit
-regenerated both figures byte-identically for the frozen run.
+**Final v2 recomputed outcome (2026-07-27, after compound-shell repair).** The
+same cutoff and inclusion contract admit 551 native root sessions (the 2,049
+source files minus subagent/continuation duplicates) and 181,303 Tool actions;
+all 551 roots and 176,288 actions are worktree-attributed. The extraction
+yields 5,676 observed artifact identities, 13,809 confirmed mutation rows,
+2,318 mutated identities, and 13,766 artifact-event mutation episodes. All six
+projects pass the longitudinal gate. Later reuse is observed for
+89.29--96.94% of eligible mutations, and its descriptive association with
+action volume is Spearman rho 0.0286. BPF tutorial at 91.13% now narrowly
+exceeds AgentSight at 90.95%, reversing their adjacent pre-v2 order. All six
+projects retain an eligible confirmed create and a recognized successful
+validation, so persistence and validation remain 6/6 qualified. The v2 CSV
+rows regenerate every affected RQ1--RQ4 publication figure.
 
 ## Corpus and inclusion contract
 
@@ -179,26 +185,32 @@ re-derives atom counts under the source-direct grammar. B+C is 60/60 on this
 corpus; this is repair-corpus conformance, not a general exact-fact
 capability claim.
 
-The bounded Raw reader is N/A. The single registered Terra preflight made 11
-local evidence calls and retrieved 117,184 bytes, but the frozen boundary
-monitor stopped it when an original absolute path embedded in the evidence
-appeared in a command. That stop exposes a harness/contract incompatibility,
-not model performance. No Raw accuracy, token, cost, efficiency, or superiority
-claim is made. The all-project deterministic preflight is reused as the final
-480-row deterministic matrix; the planned 840-row integrated comparison is
-incomplete because none of the 360 Raw rows ran. Likewise, deterministic timing
-is not method-specific and is not compared.
+The bounded Raw reader later completed under the fixed-reader protocol. It
+obtains 191/360 (53.1%) overall exact coverage and 94/180 (52.2%) B+C coverage,
+with 260/360 scoreable rows and 191/260 (73.5%) exact accuracy among scoreable
+rows; 5/18 cells hit the registered 1 MiB return limit. This mixed result
+supports no trajectory superiority, necessity, speed, or cost claim.
 
-The frozen negative result changed the measurement boundary for the local
-empirical study, and the completed audit discharged it: the error taxonomy
-separated deliberately broader shell/scope evidence from genuine path,
-identity, and native-root join errors, all genuine bug classes were repaired,
-and RQ1--RQ4 were recomputed at the repaired revision
-(`docs/tmp/build-and-evaluate/rq1-rq4-recompute-20260725/`). RQ5 remains
-protected by its separate 2,063-stream checker, and RQ6 by an independent
-public-data reconstruction. Local projection quantities are now measurements
-under the repaired projection, with B+C conformance at 60/60 against the
-corrected source-direct oracle on this corpus.
+A second materiality audit found that compound shell/wrapper admission could
+move published RQ1/RQ3 quantities. Six audited shape families were repaired
+and frozen in 18 action fixtures shared as a specification across production
+and two separately implemented source-direct oracles. The original B+C
+regression remains 60/60. The fixed 116-question corpus reaches B+C 58/58 and
+D 29/29, while attempted (2,000), confirmed-effect (1,848), and
+edge/call-status (1,843) ledgers have zero missing and zero extra rows.
+Because that corpus was inspected during repair, it is `repair-corpus-v2`, not
+held-out generalization evidence. A third independently selected corpus is
+required for any general exact-conformance statement.
+
+The two negative findings changed the measurement boundary for the local
+empirical study. Each repair had to preserve the 60/60 regression; the second
+also had to close all strict ledgers before RQ1--RQ4, extensions, local anchor,
+user questions, invariance, and the RQ7 identity-dependent read count were
+recomputed from repaired v2 rows
+(`docs/tmp/build-and-evaluate/rq1-rq4-recompute-v2-20260727/`). RQ5 remains
+protected by its separate 2,063-stream checker, and public RQ6 by an
+independent reconstruction. This is conformance as a standing gate, not a
+one-time validation claim.
 
 ## Superseded intervention program
 
@@ -229,8 +241,17 @@ historical evidence, not the active evaluation:
   `docs/tmp/build-and-evaluate/step-0004-20260723T181008-0700/experiment-001/`
 - RQ7 error taxonomy, HEAD rerun, corrected v4 oracle, and workdir fix:
   `docs/tmp/build-and-evaluate/rq7-error-taxonomy-20260725/`
-- RQ1--RQ4 HEAD recompute and delta report:
-  `docs/tmp/build-and-evaluate/rq1-rq4-recompute-20260725/`
+- Compound-shell materiality audit and repair-corpus-v2 closure:
+  `docs/tmp/build-and-evaluate/shell-boundary-audit-20260726/` and
+  `docs/tmp/build-and-evaluate/shell-boundary-repair-20260726/`
+- Final RQ1--RQ4 repaired-v2 recompute and delta report:
+  `docs/tmp/build-and-evaluate/rq1-rq4-recompute-v2-20260727/`
+- Final user-question v2 recompute:
+  `docs/tmp/build-and-evaluate/user-questions-v2-20260727/`
+- Cross-stratum invariance v2 recompute:
+  `docs/tmp/build-and-evaluate/invariance-v2-20260727/`
+- Human-involvement profile:
+  `docs/tmp/build-and-evaluate/human-involvement-20260726/`
 - Corrected Skill/instruction footprint run:
   `docs/tmp/bootstrap/step-0002-20260722T182000-0700/experiment-rq5-skill-footprints/`
 - RQ6 public external-boundary run:
@@ -239,8 +260,10 @@ historical evidence, not the active evaluation:
 Local RQ1--RQ5 have executable figures with the coverage notes above. The
 corrected RQ5 result replaces the old exporter-induced source-coverage stop,
 and RQ6 closes the compatible within-attempt external check without extending
-it to longitudinal lineage. The separate tool experiment's frozen negative
-result (32/60 B+C, 2026-07-23) is repaired at the current revision (60/60 B+C
-against the corrected v4 oracle on this corpus), without a general exact-fact
-capability claim; a Raw reader comparison remains N/A rather than open
-evidence of either method.
+it to longitudinal lineage. The invariant grid identifies only path locality
+as a cross-project/vendor/public candidate and supports no universal power-law
+claim. The separate tool experiment's frozen 32/60 B+C result is repaired to
+60/60; the second cycle preserves that gate and closes repair-corpus-v2 at
+58/58 with exact ledgers. The bounded Raw comparison is complete but
+mixed/inconclusive. None of these repair-corpus results supports a general
+exact-fact capability claim.
