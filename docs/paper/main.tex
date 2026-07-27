@@ -1194,9 +1194,10 @@ evidence under shared cross-run operation stacks. Its profiles expose
 resource-dependent bottlenecks and success--failure differences, improve
 CodeTraceBench stage-partition agreement, supplement benchmark-native direct
 diagnostics on all three localization workloads, and recover OSWorld-Human
-groups at 0.680 boundary F1 and 0.786 B$^3$ F1. With marks fixed, \sys builds a
-27{,}765-operation profile in 1.16 seconds, making population profiling
-practical alongside per-run debugging.
+groups at 0.680 boundary F1 and 0.786 B$^3$ F1. After a one-time annotation
+pass (37 minutes of active backend time for 405 trajectories), \sys builds a
+27{,}765-operation profile in 1.16 seconds and replays it across measures,
+making population profiling practical alongside per-run debugging.
 % 智能体可观测性需要 profiling，而不仅仅是 debugging。\sys 在 source-native 轨迹上递归标注语义责任，把被覆盖 evidence 折叠到跨运行共享的 operation stack 下。其 profile 暴露依赖资源的瓶颈与成功--失败差异，改进 CodeTraceBench stage-partition agreement，在三个完整 localization workload 上补充 benchmark-native direct diagnostic，并在 OSWorld-Human 上恢复 0.680 boundary F1 与 0.786 B$^3$ F1。固定 mark 后，\sys 用 1.16 秒构建 27,765-operation profile，使群体级 profiling 与逐次调试并存。
 
 \bibliography{references}
