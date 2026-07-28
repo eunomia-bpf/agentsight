@@ -605,8 +605,8 @@ fn parse_jsonl(
                             tool.status = if is_error { "fail" } else { "ok" }.to_string();
                         }
                     }
-                } else if claude_user_starts_prompt(&obj, claude_prompt_id.as_deref())
-                    && let Some(text) = local_message_preview(content)
+                } else if let Some(text) = local_message_preview(content)
+                    && claude_user_starts_prompt(&obj, content, &text, claude_prompt_id.as_deref())
                 {
                     if acc.prompt_preview.is_none() {
                         acc.prompt_preview = Some(text.clone());
@@ -2122,15 +2122,42 @@ fn claude_usage_key(obj: &Value) -> String {
 fn claude_source_completion_id(obj: &Value) -> String {
     obj.pointer("/message/id")
         .or_else(|| obj.get("requestId"))
+        .or_else(|| obj.get("uuid"))
         .and_then(Value::as_str)
         .unwrap_or("")
         .to_string()
 }
 
-fn claude_user_starts_prompt(obj: &Value, active_prompt_id: Option<&str>) -> bool {
+fn claude_user_starts_prompt(
+    obj: &Value,
+    content: &Value,
+    text: &str,
+    active_prompt_id: Option<&str>,
+) -> bool {
     if obj.get("isMeta").and_then(Value::as_bool) == Some(true)
         || obj.get("sourceToolUseID").is_some()
         || obj.get("sourceToolAssistantUUID").is_some()
+        || ["attachment", "attachments", "image", "images"]
+            .iter()
+            .any(|key| obj.get(*key).is_some())
+        || content.as_array().is_some_and(|items| {
+            !items.is_empty()
+                && items.iter().all(|item| {
+                    matches!(
+                        item.get("type").and_then(Value::as_str),
+                        Some("attachment" | "document" | "file" | "image")
+                    )
+                })
+        })
+        || [
+            "<local-command-caveat>",
+            "<local-command-stdout>",
+            "<system-reminder>",
+            "<ide_opened_file>",
+            "<ide_selection>",
+        ]
+        .iter()
+        .any(|prefix| text.starts_with(prefix))
     {
         return false;
     }
@@ -2140,7 +2167,7 @@ fn claude_user_starts_prompt(obj: &Value, active_prompt_id: Option<&str>) -> boo
         .filter(|value| !value.is_empty())
     {
         Some(prompt_id) => active_prompt_id != Some(prompt_id),
-        None => true,
+        None => active_prompt_id.is_none(),
     }
 }
 
@@ -2442,6 +2469,15 @@ mod tests {
         assert_eq!(
             session
                 .events
+                .tools
+                .iter()
+                .map(|tool| tool.invoked_skill.as_str())
+                .collect::<Vec<_>>(),
+            ["check-paper-citations", "", "iter-refine-writing", ""]
+        );
+        assert_eq!(
+            session
+                .events
                 .llm_responses
                 .iter()
                 .map(|response| response.skill.as_str())
@@ -2466,7 +2502,8 @@ mod tests {
             r#"{"type":"assistant","requestId":"req-1","message":{"id":"msg-1","model":"claude-opus","content":[{"type":"text","text":"same completion after emitting Skill"}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
             r#"{"type":"user","promptId":"p1","isMeta":true,"sourceToolUseID":"s1","message":{"content":[{"type":"text","text":"skill payload"}]}}"#,
             r#"{"type":"last-prompt","lastPrompt":"review the paper"}"#,
-            r#"{"type":"user","promptId":"p1","message":{"content":"<local-command-stdout>metadata</local-command-stdout>"}}"#,
+            r#"{"type":"user","message":{"content":"<local-command-stdout>metadata</local-command-stdout>"}}"#,
+            r#"{"type":"user","promptId":"attachment-only","attachments":[{"file_name":"paper.pdf"}],"message":{"content":"attached context"}}"#,
             r#"{"type":"assistant","requestId":"req-2","message":{"id":"msg-2","model":"claude-opus","content":[{"type":"tool_use","id":"b1","name":"Bash","input":{"cmd":"rg citation paper.tex"}}],"usage":{"input_tokens":2,"cache_read_input_tokens":200,"output_tokens":20}}}"#,
             r#"{"type":"user","promptId":"p1","sourceToolAssistantUUID":"assistant-2","message":{"content":[{"type":"tool_result","tool_use_id":"b1","content":"ok"}]}}"#,
             r#"{"type":"assistant","requestId":"req-3","message":{"id":"msg-3","model":"claude-opus","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"paper.tex"}}],"usage":{"input_tokens":3,"cache_read_input_tokens":300,"output_tokens":30}}}"#,
@@ -2516,6 +2553,40 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["", "check-paper-citations", "check-paper-citations", ""]
         );
+    }
+
+    #[test]
+    fn claude_uuid_only_fragments_share_one_completion_identity() {
+        let claude = [
+            r#"{"type":"user","promptId":"p1","message":{"content":"review the paper"}}"#,
+            r#"{"type":"assistant","uuid":"completion-1","message":{"model":"claude-opus","content":[{"type":"text","text":"I will use a skill."}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
+            r#"{"type":"system","subtype":"internal-marker"}"#,
+            r#"{"type":"assistant","uuid":"completion-1","message":{"model":"claude-opus","content":[{"type":"tool_use","id":"s1","name":"Skill","input":{"skill":"paper-writing-style","args":""}}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
+            r#"{"type":"assistant","uuid":"completion-1","message":{"model":"claude-opus","content":[{"type":"text","text":"later fragment"}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CLAUDE,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &claude,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.llm_responses.len(), 1);
+        assert_eq!(session.events.llm_responses[0].source_id, "completion-1");
+        assert_eq!(session.events.llm_responses[0].skill, "");
+        assert_eq!(
+            session.events.llm_responses[0]
+                .token_components()
+                .into_iter()
+                .map(|(_, value)| value)
+                .sum::<u64>(),
+            113
+        );
+        assert_eq!(session.events.tools[0].skill, "paper-writing-style");
+        assert_eq!(session.events.tools[0].invoked_skill, "paper-writing-style");
     }
 
     #[test]

@@ -855,7 +855,8 @@ study measures.
 
 \paragraph{Profile-guided reading on TraceElephant.}
 On the complete 220 target-bearing TraceElephant queries, a fixed external
-Grok-family CLI reader receives target-blind packets---task text, operation
+Grok~4.5~\cite{grok45} CLI reader (the CLI default model, invoked
+single-turn with tools and subagents disabled) receives target-blind packets---task text, operation
 IDs, and source-visible content---with unranked operations appended in
 original order deterministically and one single-turn call per stage; full-trace
 reading reaches MAP .502 versus .209 for the benchmark's Direct-only diagnostic
@@ -1149,50 +1150,14 @@ Scope details appear in the appendix (\emph{Extended Scope and Limitations}).
 \section{Related Work}
 % 相关工作
 
-\textbf{Agent observability.}
-Platforms aggregate spans, metadata, and evaluations~\cite{langsmith,langfuse,
-otel,datadog-llmobs}; Datadog Patterns and LangSmith Insights derive
-cross-trace hierarchies and roll up metrics, NeMo profiles instrumented
-workflows, and OpenTelemetry Profiles links profiles to traces~\cite{datadog-patterns,
-langsmith-insights,nemo-agent-toolkit-profiler,otel-profiles}. \sys complements
-them by recursively assigning shared semantic responsibility over a preserved
-source-call tree and folding conserved resource measures into standard pprof.
-% Agent observability 平台聚合 span、metadata 与 evaluation；\sys 在保留的 source-call tree 上递归分配共享语义责任，并把守恒的资源度量折叠为标准 pprof，补充这些系统。
-
-\textbf{Cross-run agent analysis.}
-TraceProbe normalizes coding traces into canonical actions and process
-diagnostics, Graphectory builds cyclic action/navigation graphs and aggregates
-phase patterns~\cite{traceprobe2026,graphectory2026}, Act$\cdot$onomy supplies
-a fixed three-level behavior taxonomy, CHIEF builds task/subtask causal graphs
-for oracle-guided failure attribution~\cite{actonomy2026,chief2026}, Hodoscope
-compares behavior distributions to human review, and TraceGraph builds shared
-decision landscapes that guide recovery~\cite{hodoscope2026,tracegraph2026}.
-\sys complements them with shared variable-depth responsibility annotations
-that cover native call evidence, fold across runs, and replay the same
-boundaries under different additive measures in a standard profiler.
-Concretely, four properties jointly separate \sys from each closest system:
-(i) variable-depth responsibility recovered from source content, where
-Act$\cdot$onomy fixes a three-level taxonomy and TraceProbe canonicalizes a
-single action level; (ii) exact conservation of additive measures replayed
-across metrics, which the graph and distribution aggregations above do not
-provide; (iii) native LLM/tool evidence retained as drilldown leaves beneath
-every semantic frame, where causal-graph and distribution summaries discard
-call-level evidence; and (iv) standard pprof output consumed by existing
-tooling instead of a bespoke viewer. No compared system provides all four.
-% 具体而言，四个性质共同将 \sys 与每个最近邻系统区分开：(i) 从 source 内容恢复的可变深度责任（Act$\cdot$onomy 固定三层 taxonomy，TraceProbe 只规范化单一 action 层）；(ii) 可跨度量重放的可加度量精确守恒（上述图与分布聚合不提供）；(iii) 每个语义 frame 下保留原生 LLM/tool 证据作为下钻叶（因果图与分布摘要丢弃调用级证据）；(iv) 现有工具直接可读的标准 pprof 输出而非自建查看器。没有任何被比较系统同时具备这四点。
-% TraceProbe、Graphectory、Actonomy、CHIEF、Hodoscope 与 TraceGraph 建立了 canonical action、跨运行结构与 decision 导向分析；\sys 用覆盖原生 call evidence、跨运行折叠、可跨度量重放的共享变深 responsibility annotation 补充它们。
-
-\textbf{Profiling and diagnosis.}
-pprof and flame graphs fold runtime stacks, whereas Pivot Tracing dynamically
-groups measurements across causally related events~\cite{pprof,
-flamegraphs,pivottracing}. AgentRx diagnoses failures, CodeTracer reconstructs
-per-run states, and localization benchmarks score faulty steps, agents, or
-expert-supported perspectives~\cite{agentrx,li2026codetracer,agentprocessbench,
-hintbench,traceelephant,mpbench2026}. \sys applies the profiler's
-population-level principle to agents, annotating recurring semantic
-responsibility over completed trajectories without code identity or treating
-runtime nesting as semantic truth.
-% pprof/flame graphs 折叠运行时栈，Pivot Tracing 跨因果事件分组；AgentRx、CodeTracer 与 localization benchmark 关注单次诊断；\sys 把 profiler 的群体级原则用于智能体：在完整轨迹上标注重复语义责任并折叠，不要求代码 identity，也不把运行时嵌套当作语义真相。
+Classic profilers fold runtime call stacks over stable code identity, and Pivot Tracing groups causally related measurements~\cite{pprof,flamegraphs,pivottracing}.
+% 经典 profiler 折叠具有稳定代码身份的运行时调用栈，Pivot Tracing 对因果相关度量分组。
+Agent observability platforms record spans, metadata, and evaluations~\cite{langsmith,langfuse,otel,datadog-llmobs}, and analytics layers roll up cross-trace hierarchies and workflow profiles~\cite{datadog-patterns,langsmith-insights,nemo-agent-toolkit-profiler,otel-profiles}, but none constructs recursive semantic responsibility with conserved additive measures and retained call evidence in a standard profile.
+% 智能体可观测性平台记录 span、metadata 与 evaluation，分析层汇总跨 trace 层次与 workflow profile；但没有一个在标准 profile 中构造带守恒可加度量与保留调用证据的递归语义责任。
+Cross-run analyses (TraceProbe, Graphectory, Act$\cdot$onomy, CHIEF, Hodoscope, TraceGraph)~\cite{traceprobe2026,graphectory2026,actonomy2026,chief2026,hodoscope2026,tracegraph2026} and per-run diagnosis and localization~\cite{agentrx,li2026codetracer,agentprocessbench,hintbench,traceelephant,mpbench2026} answer what an agent did and which step went wrong.
+% 跨运行分析（TraceProbe、Graphectory、Act$\cdot$onomy、CHIEF、Hodoscope、TraceGraph）与单运行诊断和定位回答的都是"智能体做了什么、哪一步出了错"。
+\sys instead asks how much of an additive resource a semantic category is responsible for: it recovers variable-depth responsibility from source content (where Act$\cdot$onomy fixes three levels and TraceProbe one), conserves measures exactly across metrics, keeps LLM/tool evidence as drilldown leaves, and emits standard pprof---no compared system provides all four---while staying complementary to per-run diagnosis, as RQ2 measures directly.
+% \sys 提出的则是 profiler 的问题——某个语义类别对某种可加资源负有多少责任：从 source 内容恢复可变深度责任（Act$\cdot$onomy 固定三层、TraceProbe 仅一层）、跨度量精确守恒、保留 LLM/tool 下钻叶、输出标准 pprof——没有被比较系统同时具备这四点；且与单运行诊断互补，RQ2 直接测量了这一点。
 
 %% ===================================================================
 \section{Conclusion}
