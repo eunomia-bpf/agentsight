@@ -18,12 +18,12 @@ use profile::{
     OperationStackConfig, OperationStackInductionConfig, ProfileView,
     build_profile_from_operation_records, build_profile_with_options, parse_operation_filters,
     parse_operation_mark_file, parse_stack_rules, parse_stack_rules_with_flag, parse_stack_spec,
-    profile_to_stacks, read_operation_record_values, write_pprof_difference,
+    profile_to_stacks, read_operation_record_values, source_sample_total, write_pprof_difference,
     write_pprof_projection,
 };
 use session::{
     SessionRecord, default_claude_root, discover_agent_sessions, load_agent_trace_files,
-    session_records_from_agent_sessions,
+    session_records_from_agent_sessions, skill_invocation_summary,
 };
 use tagger::{
     LlamaTagger, RegexTagger, TagDiagnostics, annotate_sessions_regex,
@@ -708,7 +708,9 @@ fn command_export(args: Cli) -> Result<()> {
             args.max_sessions,
         )?
     };
+    let parsed_agent_sessions = agent_sessions.len();
     filter_agent_sessions_before_export(&mut agent_sessions, &args);
+    let agent_sessions_after_filters = agent_sessions.len();
     if agent_sessions.is_empty() {
         bail!(
             "no local Codex/Claude sessions or imported traces matched {}",
@@ -732,6 +734,8 @@ fn command_export(args: Cli) -> Result<()> {
     if sessions.is_empty() {
         bail!("sessions were found, but none matched the requested tag filters");
     }
+    let skill_summary = skill_invocation_summary(&sessions);
+    let source_samples_before_filters = source_sample_total(&sessions, &project_name, view);
     let profile = build_profile_with_options(&sessions, &project_name, view, &profile_options)?;
     let stacks = profile_to_stacks(&profile);
     if stacks.is_empty() {
@@ -764,6 +768,19 @@ fn command_export(args: Cli) -> Result<()> {
         "deterministic_output": deterministic_output,
         "stack_rules": stack_rules,
         "sessions": sessions.len(),
+        "session_inputs": {
+            "explicit_files": session_files.len(),
+            "parsed": parsed_agent_sessions,
+            "after_source_filters": agent_sessions_after_filters,
+            "emitted": sessions.len(),
+        },
+        "source_samples_before_filters": source_samples_before_filters,
+        "skills": {
+            "sessions": skill_summary.sessions,
+            "distinct": skill_summary.by_skill.len(),
+            "invocations": skill_summary.invocations,
+            "by_skill": skill_summary.by_skill,
+        },
         "session_files": session_files,
         "samples": stacks.values().sum::<u64>(),
         "unique_stacks": stacks.len(),
@@ -1699,6 +1716,8 @@ mod tests {
                     path_groups: Vec::new(),
                     domains: Vec::new(),
                     call_id: None,
+                    invoked_skill: String::new(),
+                    skill: String::new(),
                     task_path: Vec::new(),
                 },
                 ToolEvent {
@@ -1714,6 +1733,8 @@ mod tests {
                     path_groups: Vec::new(),
                     domains: Vec::new(),
                     call_id: None,
+                    invoked_skill: String::new(),
+                    skill: String::new(),
                     task_path: Vec::new(),
                 },
             ],
@@ -1722,6 +1743,7 @@ mod tests {
                     ts_ms: Some(5),
                     prompt_index: 0,
                     model: "claude".to_string(),
+                    source_id: String::new(),
                     text_hash: "l0".to_string(),
                     preview: "review answer".to_string(),
                     input_tokens: 1,
@@ -1730,12 +1752,14 @@ mod tests {
                     total_tokens: 0,
                     tag: "answer".to_string(),
                     response_phase: "final_answer".to_string(),
+                    skill: String::new(),
                     task_path: Vec::new(),
                 },
                 LlmEvent {
                     ts_ms: Some(6),
                     prompt_index: 1,
                     model: "claude".to_string(),
+                    source_id: String::new(),
                     text_hash: "l1".to_string(),
                     preview: "test answer".to_string(),
                     input_tokens: 2,
@@ -1744,6 +1768,7 @@ mod tests {
                     total_tokens: 0,
                     tag: "answer".to_string(),
                     response_phase: "final_answer".to_string(),
+                    skill: String::new(),
                     task_path: Vec::new(),
                 },
             ],

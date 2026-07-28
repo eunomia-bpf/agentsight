@@ -83,10 +83,10 @@ pub struct OperationStackSpec {
 impl OperationStackSpec {
     fn default_for_view(view: ProfileView) -> Self {
         let raw = match view {
-            ProfileView::Operations => "task,phase,action,object,repeat,result,outcome",
-            ProfileView::Tokens => "task,phase,action,object,repeat,result,outcome,token",
+            ProfileView::Operations => "task,skill,phase,action,object,repeat,result,outcome",
+            ProfileView::Tokens => "task,skill,phase,action,object,repeat,result,outcome,token",
             ProfileView::Files | ProfileView::Network | ProfileView::Time => {
-                "task,phase,action,object,repeat,result,outcome"
+                "task,skill,phase,action,object,repeat,result,outcome"
             }
         };
         parse_stack_spec(raw).expect("default stack spec is valid")
@@ -536,6 +536,7 @@ const PPROF_EVIDENCE_LABEL_FIELDS: &[&str] = &[
     "prompt_hash",
     "response_hash",
     "timestamp_ms",
+    "skill",
     "comparison_side",
 ];
 
@@ -2059,6 +2060,18 @@ fn session_samples(
     }
 }
 
+pub fn source_sample_total(
+    sessions: &[SessionRecord],
+    project_name: &str,
+    view: ProfileView,
+) -> u64 {
+    sessions
+        .iter()
+        .flat_map(|session| session_samples(session, project_name, view))
+        .map(|sample| sample.value)
+        .sum()
+}
+
 fn operation_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
     let terminal_paths = terminal_task_paths(session);
     let mut events = Vec::<(Option<i64>, u8, usize, Option<String>, Operation)>::new();
@@ -2099,6 +2112,7 @@ fn operation_samples(session: &SessionRecord, project_name: &str) -> Vec<Operati
     for (idx, call) in session.llm_calls.iter().enumerate() {
         let mut sample = base_sample(session, project_name, call.prompt_index, 1);
         replace_task_path(&mut sample, &call.task_path);
+        replace_skill_scope(&mut sample, &call.skill);
         sample.insert("op", "llm");
         sample.insert("phase", llm_phase_label(call));
         sample.insert("action", "reason or report");
@@ -2228,6 +2242,7 @@ fn token_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> 
         for (kind, value) in call.token_components() {
             let mut sample = base_sample(session, project_name, call.prompt_index, value);
             replace_task_path(&mut sample, &call.task_path);
+            replace_skill_scope(&mut sample, &call.skill);
             sample.insert("op", "llm");
             sample.insert("phase", llm_phase_label(call));
             sample.insert("action", "reason or report");
@@ -2341,6 +2356,7 @@ fn time_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
         if let Some(ts) = call.ts_ms {
             let mut sample = base_sample(session, project_name, call.prompt_index, 0);
             replace_task_path(&mut sample, &call.task_path);
+            replace_skill_scope(&mut sample, &call.skill);
             sample.insert("op", "llm");
             sample.insert("phase", llm_phase_label(call));
             sample.insert("action", "reason or report");
@@ -2396,6 +2412,7 @@ fn base_sample(
     sample.insert("session", session.session_tag.clone());
     sample.insert("source_session", session.session_id.clone());
     sample.extend("task", request_task_path(session, prompt_index));
+    sample.insert("skill", "unscoped");
     sample.insert("prompt", req.tag.clone());
     sample.insert("prompt_hash", req.text_hash.clone());
     sample.insert("prompt_preview", req.preview.clone());
@@ -2408,6 +2425,15 @@ fn replace_task_path(sample: &mut Operation, task_path: &[String]) {
     }
     sample.fields.remove("task");
     sample.extend("task", task_path.iter().cloned());
+}
+
+fn replace_skill_scope(sample: &mut Operation, skill: &str) {
+    if skill.is_empty() {
+        return;
+    }
+    sample
+        .fields
+        .insert("skill".to_string(), vec![skill.to_string()]);
 }
 
 fn tool_action_label(event: &crate::session::ToolEvent) -> String {
@@ -2471,6 +2497,7 @@ fn tool_sample(
 ) -> Operation {
     let mut sample = base_sample(session, project_name, event.prompt_index, value);
     replace_task_path(&mut sample, &event.task_path);
+    replace_skill_scope(&mut sample, &event.skill);
     sample.insert("op", "tool");
     sample.insert("phase", tool_phase_label(event));
     sample.insert("action", tool_action_label(event));
@@ -2910,6 +2937,8 @@ mod tests {
             path_groups: paths.into_iter().map(str::to_string).collect(),
             domains: Vec::new(),
             call_id: Some("call-1".to_string()),
+            invoked_skill: String::new(),
+            skill: String::new(),
             task_path: Vec::new(),
         }
     }
@@ -2928,6 +2957,8 @@ mod tests {
             path_groups: paths.into_iter().map(str::to_string).collect(),
             domains: Vec::new(),
             call_id: Some("call-read".to_string()),
+            invoked_skill: String::new(),
+            skill: String::new(),
             task_path: Vec::new(),
         }
     }
@@ -2937,6 +2968,7 @@ mod tests {
             ts_ms: Some(ts_ms),
             prompt_index,
             model: model.to_string(),
+            source_id: String::new(),
             text_hash: "l0".to_string(),
             preview: "answer".to_string(),
             input_tokens: 1,
@@ -2945,6 +2977,7 @@ mod tests {
             total_tokens: 0,
             tag: tag.to_string(),
             response_phase: "final_answer".to_string(),
+            skill: String::new(),
             task_path: Vec::new(),
         }
     }
@@ -2998,19 +3031,19 @@ mod tests {
         let stacks = profile_to_stacks(&profile);
         // prompt at 1000ms, tool at 3000ms -> 2 seconds
         assert_eq!(
-            stacks.get("task:fix_rust_tests;phase:prompt;action:state_task;object:task_request;result:task_received;outcome:source-visible_terminal_response_at_exact_task"),
+            stacks.get("task:fix_rust_tests;skill:unscoped;phase:prompt;action:state_task;object:task_request;result:task_received;outcome:source-visible_terminal_response_at_exact_task"),
             Some(&2)
         );
         // tool at 3000ms, llm at 8000ms -> 5 seconds
         assert_eq!(
             stacks.get(
-                "task:fix_rust_tests;phase:test;action:run_validation;object:repo;result:completed;outcome:source-visible_terminal_response_at_exact_task"
+                "task:fix_rust_tests;skill:unscoped;phase:test;action:run_validation;object:repo;result:completed;outcome:source-visible_terminal_response_at_exact_task"
             ),
             Some(&5)
         );
         // last event gets 1 second
         assert_eq!(
-            stacks.get("task:fix_rust_tests;phase:summarize;action:reason_or_report;object:current_task;result:terminal_response_reported;outcome:source-visible_terminal_response_at_exact_task"),
+            stacks.get("task:fix_rust_tests;skill:unscoped;phase:summarize;action:reason_or_report;object:current_task;result:terminal_response_reported;outcome:source-visible_terminal_response_at_exact_task"),
             Some(&1)
         );
     }
@@ -3035,13 +3068,13 @@ mod tests {
 
         assert_eq!(
             stacks.get(
-                "task:fix_rust_tests;phase:read;action:read_or_search;object:src;result:completed;outcome:no_source-visible_terminal_response_for_task"
+                "task:fix_rust_tests;skill:unscoped;phase:read;action:read_or_search;object:src;result:completed;outcome:no_source-visible_terminal_response_for_task"
             ),
             Some(&1)
         );
         assert_eq!(
             stacks.get(
-                "task:fix_rust_tests;phase:test;action:run_validation;object:tests;result:completed;outcome:no_source-visible_terminal_response_for_task"
+                "task:fix_rust_tests;skill:unscoped;phase:test;action:run_validation;object:tests;result:completed;outcome:no_source-visible_terminal_response_for_task"
             ),
             Some(&1)
         );
@@ -3099,11 +3132,11 @@ mod tests {
         let stacks = profile_to_stacks(&profile);
 
         assert_eq!(
-            stacks.get("task:write_a_paper;task:write_abstract;phase:read;action:read_or_search;object:paper.tex;result:completed;outcome:no_source-visible_terminal_response_for_task"),
+            stacks.get("task:write_a_paper;task:write_abstract;skill:unscoped;phase:read;action:read_or_search;object:paper.tex;result:completed;outcome:no_source-visible_terminal_response_for_task"),
             Some(&1)
         );
         assert_eq!(
-            stacks.get("task:write_a_paper;task:write_abstract;phase:read;action:read_or_search;object:paper.tex;repeat:consecutive_exact_repeat;result:completed;outcome:no_source-visible_terminal_response_for_task"),
+            stacks.get("task:write_a_paper;task:write_abstract;skill:unscoped;phase:read;action:read_or_search;object:paper.tex;repeat:consecutive_exact_repeat;result:completed;outcome:no_source-visible_terminal_response_for_task"),
             Some(&1)
         );
     }
@@ -3136,7 +3169,7 @@ mod tests {
         let stacks = profile_to_stacks(&profile);
 
         assert_eq!(
-            stacks.get("task:write_a_paper;task:write_abstract;phase:read;action:read_or_search;object:paper.tex;result:completed;outcome:no_source-visible_terminal_response_for_task"),
+            stacks.get("task:write_a_paper;task:write_abstract;skill:unscoped;phase:read;action:read_or_search;object:paper.tex;result:completed;outcome:no_source-visible_terminal_response_for_task"),
             Some(&2)
         );
         assert!(
@@ -4142,6 +4175,77 @@ mod tests {
                 && labels.contains(&("response_hash", "l0"))
                 && labels.contains(&("response_phase", "final_answer"))
         }));
+    }
+
+    #[test]
+    fn skill_frames_and_labels_conserve_operation_and_token_totals() {
+        use flate2::read::GzDecoder;
+        use std::io::Read;
+
+        let mut tool = shell_tool(2000, 0, "ok", vec!["repo"]);
+        tool.skill = "check-paper-citations".to_string();
+        let mut named_llm = llm(3000, 0, "gpt-5", "continue");
+        named_llm.skill = "check-paper-citations".to_string();
+        let unscoped_llm = llm(4000, 0, "gpt-5", "finish");
+        let session = test_session(
+            "claude",
+            "skill-scope",
+            vec![prompt(0, 1000, "prompt-hash", "check citations", "inspect")],
+            vec![tool],
+            vec![named_llm, unscoped_llm],
+        );
+
+        for view in [ProfileView::Operations, ProfileView::Tokens] {
+            let options = OperationStackConfig::for_view(view).with_stack(
+                parse_stack_spec("project,agent,task,skill,phase,op,tool,call,token").unwrap(),
+            );
+            let source_total =
+                source_sample_total(std::slice::from_ref(&session), "agentsight", view);
+            let profile = build_profile_with_options(
+                std::slice::from_ref(&session),
+                "agentsight",
+                view,
+                &options,
+            )
+            .unwrap();
+            let folded_total = profile_to_stacks(&profile).values().sum::<u64>();
+            assert_eq!(folded_total, source_total);
+            assert!(profile_to_stacks(&profile).keys().any(|stack| {
+                stack.contains(
+                    "project:agentsight;agent:claude;task:check_citations;skill:check-paper-citations;phase:",
+                )
+            }));
+            assert!(profile.pprof_samples.iter().any(|sample| {
+                sample
+                    .labels
+                    .contains(&("skill".to_string(), "check-paper-citations".to_string()))
+            }));
+            assert!(profile.pprof_samples.iter().any(|sample| {
+                sample
+                    .labels
+                    .contains(&("skill".to_string(), "unscoped".to_string()))
+            }));
+
+            let dir = tempfile::tempdir().unwrap();
+            let view_name = match view {
+                ProfileView::Operations => "operations",
+                ProfileView::Tokens => "tokens",
+                _ => unreachable!(),
+            };
+            let path = dir.path().join(format!("skill-{view_name}.pb.gz"));
+            write_pprof_projection(&profile, &path, true).unwrap();
+            let bytes = fs::read(path).unwrap();
+            let mut decoder = GzDecoder::new(&bytes[..]);
+            let mut decoded = Vec::new();
+            decoder.read_to_end(&mut decoded).unwrap();
+            let decoded = PprofProfile::decode(&decoded[..]).unwrap();
+            let pprof_total = decoded
+                .sample
+                .iter()
+                .map(|sample| sample.value.first().copied().unwrap_or_default())
+                .sum::<i64>();
+            assert_eq!(pprof_total, source_total as i64);
+        }
     }
 
     #[test]

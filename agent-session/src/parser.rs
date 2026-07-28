@@ -329,6 +329,8 @@ fn parse_jsonl(
     let mut current_prompt_index = 0usize;
     let mut call_index = BTreeMap::<String, usize>::new();
     let mut task_stack = SemanticTaskStack::default();
+    let mut active_skill: Option<String> = None;
+    let mut claude_prompt_id: Option<String> = None;
     let mut codex_meta_seen = false;
     let mut codex_owns_events = true;
     let mut codex_session_started_at = 0.0_f64;
@@ -441,6 +443,7 @@ fn parse_jsonl(
                 }
             }
             (AGENT_CLAUDE, "assistant") => {
+                let response_skill = active_skill.clone().unwrap_or_default();
                 if let Some(name) = obj.pointer("/message/model").and_then(Value::as_str) {
                     acc.model.get_or_insert_with(|| name.to_string());
                 }
@@ -474,6 +477,11 @@ fn parse_jsonl(
                         .filter(|item| item.get("type").and_then(Value::as_str) == Some("tool_use"))
                     {
                         let name = item.get("name").and_then(Value::as_str).unwrap_or("?");
+                        let input = item.get("input").unwrap_or(&Value::Null);
+                        let invoked_skill = exact_claude_skill_invocation(name, input);
+                        if let Some(skill) = invoked_skill.as_ref() {
+                            active_skill = Some(skill.clone());
+                        }
                         acc.add_tool(name);
                         if let Some(fp) = item
                             .pointer("/input/file_path")
@@ -488,11 +496,13 @@ fn parse_jsonl(
                             ts_ms_from_event(&obj),
                             current_prompt_index,
                             name,
-                            item.get("input").unwrap_or(&Value::Null),
+                            input,
                             call_id.clone(),
-                            task_stack
-                                .path_for_tool(name, item.get("input").unwrap_or(&Value::Null)),
+                            task_stack.path_for_tool(name, input),
                         );
+                        let mut event = event;
+                        event.invoked_skill = invoked_skill.unwrap_or_default();
+                        event.skill = active_skill.clone().unwrap_or_default();
                         if let Some(id) = call_id {
                             call_index.insert(id, events.tools.len());
                         }
@@ -528,6 +538,7 @@ fn parse_jsonl(
                         ts_ms: ts_ms_from_event(&obj),
                         prompt_index: current_prompt_index,
                         model,
+                        source_id: claude_source_completion_id(&obj),
                         text_hash: short_hash(&(text.clone() + &usage.to_string()), 12),
                         preview: truncate_clean(
                             if preview_text.is_empty() {
@@ -553,6 +564,7 @@ fn parse_jsonl(
                         } else {
                             "assistant_message".to_string()
                         },
+                        skill: response_skill,
                         task_path: task_stack.path(),
                     });
                 }
@@ -593,20 +605,19 @@ fn parse_jsonl(
                             tool.status = if is_error { "fail" } else { "ok" }.to_string();
                         }
                     }
-                } else if let Some(text) = local_message_preview(content) {
+                } else if claude_user_starts_prompt(&obj, claude_prompt_id.as_deref())
+                    && let Some(text) = local_message_preview(content)
+                {
                     if acc.prompt_preview.is_none() {
                         acc.prompt_preview = Some(text.clone());
                     }
                     task_stack.observe_user(&text);
-                    current_prompt_index =
-                        events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
-                }
-            }
-            (AGENT_CLAUDE, "last-prompt") => {
-                if let Some(text) = obj.get("lastPrompt").and_then(Value::as_str)
-                    && let Some(text) = clean_prompt_text(text)
-                {
-                    task_stack.observe_user(&text);
+                    active_skill = None;
+                    claude_prompt_id = obj
+                        .get("promptId")
+                        .and_then(Value::as_str)
+                        .filter(|value| !value.is_empty())
+                        .map(str::to_string);
                     current_prompt_index =
                         events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                 }
@@ -690,6 +701,7 @@ fn parse_jsonl(
                             } else {
                                 codex_model.clone()
                             },
+                            source_id: String::new(),
                             text_hash: short_hash(&text, 12),
                             preview: truncate_clean(&text, 180),
                             input_tokens: 0,
@@ -702,6 +714,7 @@ fn parse_jsonl(
                                 .and_then(Value::as_str)
                                 .unwrap_or("assistant_message")
                                 .to_string(),
+                            skill: String::new(),
                             task_path: task_stack.path(),
                         });
                     }
@@ -840,6 +853,7 @@ fn parse_jsonl(
                         } else {
                             codex_model.clone()
                         },
+                        source_id: String::new(),
                         text_hash: short_hash(&text, 12),
                         preview: truncate_clean(&text, 180),
                         input_tokens: 0,
@@ -852,6 +866,7 @@ fn parse_jsonl(
                             .and_then(Value::as_str)
                             .unwrap_or("assistant_message")
                             .to_string(),
+                        skill: String::new(),
                         task_path: task_stack.path(),
                     });
                 }
@@ -885,30 +900,53 @@ fn parse_jsonl(
 
 fn deduplicate_llm_responses(events: &mut SessionEvents) {
     let mut unique: Vec<LlmResponse> = Vec::with_capacity(events.llm_responses.len());
+    let mut by_source_id = BTreeMap::<(usize, String), usize>::new();
     for response in events.llm_responses.drain(..) {
-        let duplicate = unique.last_mut().filter(|previous| {
-            previous.prompt_index == response.prompt_index
-                && previous.text_hash == response.text_hash
-                && previous
-                    .ts_ms
-                    .zip(response.ts_ms)
-                    .is_some_and(|(left, right)| left.abs_diff(right) <= 1_000)
-        });
-        if let Some(previous) = duplicate {
-            previous.input_tokens = previous.input_tokens.max(response.input_tokens);
-            previous.output_tokens = previous.output_tokens.max(response.output_tokens);
-            previous.cache_tokens = previous.cache_tokens.max(response.cache_tokens);
-            previous.total_tokens = previous.total_tokens.max(response.total_tokens);
-            if response_phase_priority(&response.response_phase)
-                > response_phase_priority(&previous.response_phase)
-            {
-                previous.response_phase = response.response_phase;
-            }
+        let source_key = (!response.source_id.is_empty())
+            .then(|| (response.prompt_index, response.source_id.clone()));
+        let duplicate_index = source_key
+            .as_ref()
+            .and_then(|key| by_source_id.get(key).copied())
+            .or_else(|| {
+                unique.len().checked_sub(1).filter(|index| {
+                    let previous = &unique[*index];
+                    response.source_id.is_empty()
+                        && previous.source_id.is_empty()
+                        && previous.prompt_index == response.prompt_index
+                        && previous.text_hash == response.text_hash
+                        && previous
+                            .ts_ms
+                            .zip(response.ts_ms)
+                            .is_some_and(|(left, right)| left.abs_diff(right) <= 1_000)
+                })
+            });
+        if let Some(index) = duplicate_index {
+            merge_llm_response(&mut unique[index], response);
             continue;
+        }
+        let index = unique.len();
+        if let Some(key) = source_key {
+            by_source_id.insert(key, index);
         }
         unique.push(response);
     }
     events.llm_responses = unique;
+}
+
+fn merge_llm_response(previous: &mut LlmResponse, response: LlmResponse) {
+    previous.input_tokens = previous.input_tokens.max(response.input_tokens);
+    previous.output_tokens = previous.output_tokens.max(response.output_tokens);
+    previous.cache_tokens = previous.cache_tokens.max(response.cache_tokens);
+    previous.total_tokens = previous.total_tokens.max(response.total_tokens);
+    if response_phase_priority(&response.response_phase)
+        > response_phase_priority(&previous.response_phase)
+    {
+        previous.response_phase = response.response_phase;
+    }
+    if previous.preview.starts_with("tool: ") && !response.preview.starts_with("tool: ") {
+        previous.preview = response.preview;
+        previous.text_hash = response.text_hash;
+    }
 }
 
 fn response_phase_priority(phase: &str) -> u8 {
@@ -1013,6 +1051,7 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                         ts_ms,
                         prompt_index: current_prompt_index,
                         model: llm_model,
+                        source_id: String::new(),
                         text_hash: short_hash(&(text.clone() + &tokens.to_string()), 12),
                         preview: truncate_clean(
                             if text.trim().is_empty() {
@@ -1036,6 +1075,7 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                         } else {
                             "final_answer".to_string()
                         },
+                        skill: String::new(),
                         task_path: task_stack.path(),
                     });
                 }
@@ -1336,8 +1376,19 @@ fn tool_event_from_input(
         path_groups,
         domains,
         call_id,
+        invoked_skill: String::new(),
+        skill: String::new(),
         task_path,
     }
+}
+
+fn exact_claude_skill_invocation(name: &str, input: &Value) -> Option<String> {
+    (name == "Skill")
+        .then(|| input.get("skill").and_then(Value::as_str))
+        .flatten()
+        .map(str::trim)
+        .filter(|skill| !skill.is_empty())
+        .map(str::to_string)
 }
 
 fn codex_custom_tool_input(outer_name: &str, raw: &str) -> (String, Value) {
@@ -2060,12 +2111,37 @@ fn strip_codex_exec_option(args: &str) -> Option<&str> {
 }
 
 fn claude_usage_key(obj: &Value) -> String {
-    obj.get("requestId")
-        .or_else(|| obj.pointer("/message/id"))
+    obj.pointer("/message/id")
+        .or_else(|| obj.get("requestId"))
         .or_else(|| obj.get("uuid"))
         .and_then(Value::as_str)
         .unwrap_or("usage")
         .to_string()
+}
+
+fn claude_source_completion_id(obj: &Value) -> String {
+    obj.pointer("/message/id")
+        .or_else(|| obj.get("requestId"))
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_string()
+}
+
+fn claude_user_starts_prompt(obj: &Value, active_prompt_id: Option<&str>) -> bool {
+    if obj.get("isMeta").and_then(Value::as_bool) == Some(true)
+        || obj.get("sourceToolUseID").is_some()
+        || obj.get("sourceToolAssistantUUID").is_some()
+    {
+        return false;
+    }
+    match obj
+        .get("promptId")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+    {
+        Some(prompt_id) => active_prompt_id != Some(prompt_id),
+        None => true,
+    }
 }
 
 fn local_message_preview(value: &Value) -> Option<String> {
@@ -2325,6 +2401,121 @@ mod tests {
                 .max(usage.input_tokens + usage.output_tokens + usage.cache_tokens);
             assert_eq!(total, tokens);
         }
+    }
+
+    #[test]
+    fn claude_exact_skill_calls_create_prompt_bounded_latest_wins_scopes() {
+        let claude = [
+            r#"{"type":"system","skill_listing":["availability only"]}"#,
+            r#"{"type":"user","message":{"content":"review the paper"}}"#,
+            r#"{"type":"assistant","message":{"model":"claude-opus","content":[{"type":"tool_use","id":"s1","name":"Skill","input":{"skill":"check-paper-citations","args":""}}],"usage":{"input_tokens":10,"output_tokens":1}}}"#,
+            r#"{"type":"assistant","message":{"model":"claude-opus","content":[{"type":"tool_use","id":"b1","name":"Bash","input":{"cmd":"rg citation paper.tex"}}],"usage":{"input_tokens":20,"output_tokens":2}}}"#,
+            r#"{"type":"assistant","message":{"model":"claude-opus","content":[{"type":"tool_use","id":"s2","name":"Skill","input":{"skill":"iter-refine-writing","args":""}}],"usage":{"input_tokens":30,"output_tokens":3}}}"#,
+            r#"{"type":"assistant","message":{"model":"claude-opus","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"paper.tex"}}],"usage":{"input_tokens":40,"output_tokens":4}}}"#,
+            r#"{"type":"user","message":{"content":"now summarize"}}"#,
+            r#"{"type":"assistant","message":{"model":"claude-opus","content":[{"type":"text","text":"summary"}],"usage":{"input_tokens":50,"output_tokens":5}}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CLAUDE,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &claude,
+        )
+        .expect("session");
+
+        assert_eq!(
+            session
+                .events
+                .tools
+                .iter()
+                .map(|tool| (tool.tool_name.as_str(), tool.skill.as_str()))
+                .collect::<Vec<_>>(),
+            [
+                ("Skill", "check-paper-citations"),
+                ("Bash", "check-paper-citations"),
+                ("Skill", "iter-refine-writing"),
+                ("Read", "iter-refine-writing"),
+            ]
+        );
+        assert_eq!(
+            session
+                .events
+                .llm_responses
+                .iter()
+                .map(|response| response.skill.as_str())
+                .collect::<Vec<_>>(),
+            [
+                "",
+                "check-paper-citations",
+                "check-paper-citations",
+                "iter-refine-writing",
+                "",
+            ]
+        );
+    }
+
+    #[test]
+    fn claude_skill_scope_ignores_metadata_and_deduplicates_split_completion() {
+        let claude = [
+            r#"{"type":"system","skill_listing":["availability only"]}"#,
+            r#"{"type":"user","promptId":"p1","message":{"content":"review the paper"}}"#,
+            r#"{"type":"assistant","requestId":"req-1","message":{"id":"msg-1","model":"claude-opus","content":[{"type":"text","text":"I will apply the citation skill."}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
+            r#"{"type":"assistant","requestId":"req-1","message":{"id":"msg-1","model":"claude-opus","content":[{"type":"tool_use","id":"s1","name":"Skill","input":{"skill":"check-paper-citations","args":""}}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
+            r#"{"type":"assistant","requestId":"req-1","message":{"id":"msg-1","model":"claude-opus","content":[{"type":"text","text":"same completion after emitting Skill"}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
+            r#"{"type":"user","promptId":"p1","isMeta":true,"sourceToolUseID":"s1","message":{"content":[{"type":"text","text":"skill payload"}]}}"#,
+            r#"{"type":"last-prompt","lastPrompt":"review the paper"}"#,
+            r#"{"type":"user","promptId":"p1","message":{"content":"<local-command-stdout>metadata</local-command-stdout>"}}"#,
+            r#"{"type":"assistant","requestId":"req-2","message":{"id":"msg-2","model":"claude-opus","content":[{"type":"tool_use","id":"b1","name":"Bash","input":{"cmd":"rg citation paper.tex"}}],"usage":{"input_tokens":2,"cache_read_input_tokens":200,"output_tokens":20}}}"#,
+            r#"{"type":"user","promptId":"p1","sourceToolAssistantUUID":"assistant-2","message":{"content":[{"type":"tool_result","tool_use_id":"b1","content":"ok"}]}}"#,
+            r#"{"type":"assistant","requestId":"req-3","message":{"id":"msg-3","model":"claude-opus","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"paper.tex"}}],"usage":{"input_tokens":3,"cache_read_input_tokens":300,"output_tokens":30}}}"#,
+            r#"{"type":"user","promptId":"p2","message":{"content":"now summarize"}}"#,
+            r#"{"type":"assistant","requestId":"req-4","message":{"id":"msg-4","model":"claude-opus","content":[{"type":"text","text":"summary"}],"usage":{"input_tokens":4,"cache_read_input_tokens":400,"output_tokens":40}}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CLAUDE,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &claude,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.prompts.len(), 2);
+        assert_eq!(session.events.llm_responses.len(), 4);
+        assert_eq!(session.events.llm_responses[0].source_id, "msg-1");
+        assert_eq!(
+            session.events.llm_responses[0]
+                .token_components()
+                .into_iter()
+                .map(|(_, value)| value)
+                .sum::<u64>(),
+            113
+        );
+        assert_eq!(
+            session
+                .events
+                .tools
+                .iter()
+                .map(|tool| (tool.tool_name.as_str(), tool.skill.as_str()))
+                .collect::<Vec<_>>(),
+            [
+                ("Skill", "check-paper-citations"),
+                ("Bash", "check-paper-citations"),
+                ("Read", "check-paper-citations"),
+            ]
+        );
+        assert_eq!(
+            session
+                .events
+                .llm_responses
+                .iter()
+                .map(|response| response.skill.as_str())
+                .collect::<Vec<_>>(),
+            ["", "check-paper-citations", "check-paper-citations", ""]
+        );
     }
 
     #[test]

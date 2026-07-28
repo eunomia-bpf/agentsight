@@ -449,6 +449,7 @@ fn append_llm_node(
     insert_string(&mut data, "text_hash", &call.text_hash);
     insert_string(&mut data, "model", &call.model);
     insert_string(&mut data, "response_phase", &call.response_phase);
+    insert_string(&mut data, "skill", &call.skill);
     if let Some(timestamp) = call.ts_ms {
         data.insert("timestamp_ms".to_string(), Value::from(timestamp));
     }
@@ -494,6 +495,7 @@ fn append_tool_node(
     insert_string(&mut data, "category", &tool.category);
     insert_string(&mut data, "effect", &tool.effect);
     insert_string(&mut data, "status", &tool.status);
+    insert_string(&mut data, "skill", &tool.skill);
     insert_string(&mut data, "result_preview", &tool.status);
     if let Some(call_id) = tool.call_id.as_deref() {
         insert_string(&mut data, "call_id", call_id);
@@ -1336,6 +1338,13 @@ fn build_profile(nodes: &[TraceNode], view: ProfileView) -> Result<Profile> {
                 .iter()
                 .map(|tag| ("operation".to_string(), tag.clone())),
         );
+        let skill = node
+            .data
+            .get("skill")
+            .and_then(Value::as_str)
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or("unscoped");
+        frames.push(("skill".to_string(), skill.to_string()));
         for source in ancestry
             .iter()
             .filter(|source| source.kind != "session" && source.kind != "prompt")
@@ -1359,6 +1368,7 @@ fn build_profile(nodes: &[TraceNode], view: ProfileView) -> Result<Profile> {
             ),
             ("source_kind".to_string(), node.kind.clone()),
             ("evidence_id".to_string(), node.id.clone()),
+            ("skill".to_string(), skill.to_string()),
         ];
         profile.sample(frames, value, labels);
     }

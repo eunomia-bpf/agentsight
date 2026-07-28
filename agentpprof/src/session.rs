@@ -1,6 +1,7 @@
 use agent_session::{AgentSession, AgentTrace, SessionCandidate};
 use anyhow::{Context, Result, anyhow};
 use rayon::prelude::*;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -32,6 +33,13 @@ pub struct SessionRecord {
     pub task_tag: String,
 }
 
+#[derive(Debug, Default)]
+pub struct SkillInvocationSummary {
+    pub sessions: usize,
+    pub invocations: usize,
+    pub by_skill: BTreeMap<String, usize>,
+}
+
 impl SessionRecord {
     pub fn request_by_index(&self, index: usize) -> &UserRequest {
         self.user_requests
@@ -52,6 +60,26 @@ impl SessionRecord {
             });
         }
     }
+}
+
+pub fn skill_invocation_summary(sessions: &[SessionRecord]) -> SkillInvocationSummary {
+    let mut summary = SkillInvocationSummary::default();
+    for session in sessions {
+        let mut session_has_skill = false;
+        for tool in &session.tools {
+            if tool.tool_name != "Skill" || tool.invoked_skill.is_empty() {
+                continue;
+            }
+            session_has_skill = true;
+            summary.invocations += 1;
+            *summary
+                .by_skill
+                .entry(tool.invoked_skill.clone())
+                .or_default() += 1;
+        }
+        summary.sessions += usize::from(session_has_skill);
+    }
+    summary
 }
 
 pub fn discover_agent_sessions(
@@ -227,6 +255,8 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                         .collect(),
                     domains: Vec::new(),
                     call_id: None,
+                    invoked_skill: String::new(),
+                    skill: String::new(),
                     task_path: Vec::new(),
                 });
             }
@@ -241,6 +271,7 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                 ts_ms: record.start_ts_ms,
                 prompt_index: 0,
                 model: model.clone(),
+                source_id: String::new(),
                 text_hash: short_hash(&format!("{}:{:?}", session.session_id, usage), 12),
                 preview: "session token summary".to_string(),
                 input_tokens: nonnegative_u64(usage.input_tokens),
@@ -250,6 +281,7 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                 total_tokens: nonnegative_u64(usage.total_tokens),
                 tag: String::new(),
                 response_phase: String::new(),
+                skill: String::new(),
                 task_path: Vec::new(),
             });
         }
