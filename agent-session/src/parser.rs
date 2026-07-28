@@ -1404,7 +1404,17 @@ fn codex_custom_tool_calls(raw: &str) -> Vec<String> {
         if !name.is_empty() && after_name.starts_with('(') {
             calls.push(name);
         }
-        offset = start + name_len.max(1);
+        offset = if name_len > 0 {
+            start + name_len
+        } else {
+            // "tools." was not followed by an identifier. Step past one
+            // character rather than one byte, so multibyte text in the
+            // surrounding source cannot leave offset inside a char.
+            raw[start..]
+                .chars()
+                .next()
+                .map_or(raw.len(), |ch| start + ch.len_utf8())
+        };
     }
     calls
 }

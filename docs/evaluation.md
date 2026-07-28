@@ -1411,6 +1411,26 @@ records 6.80M model tokens, 3,070.96 seconds summed model-request time, 503.42
 seconds source adaptation, and 12.44 seconds pprof materialization for the
 next backend-specific RQ4 accounting experiment.
 
+Step 0090 completes a deterministic RQ1-supporting multi-measure demonstration
+over retained real data without changing the product or paper story. The frozen
+Git workspace materializes all 489 tool operations as a 3,982-second time
+profile with exact hierarchy agreement; its fixed authentication-diagnosis
+focus accounts for 1,492 seconds (37.47%), 105 operations (21.47%), and
+2,103,587 tokens (46.15%). The retained AgentPProf self-profile separately
+materializes 737 file-read references, 31 file-write references (25 affected,
+2 created, and 4 updated), and 61 source-derived network-domain references
+whose 55 source tools all report `ok`. The R114 retained system-effect profile
+contains 1,520 effects and exposes the known failure task only through one
+outer wrapper plus 18 process-exec, 19 process-exit, and 2 coarse file-write
+rows. Thus read/write and exact created-file drilldown are demonstrated at the
+maximum retained granularity, while network-failure correlation is
+inconclusive because neither retained population contains a failed network
+event and the R114 failure archive lacks inner semantic or network identifiers.
+Independent review validates this bounded supporting demonstration; it does
+not establish live syscall attribution, causal correlation, or a new product
+capability. Complete records are under
+[`step-0090-20260727T023000-0700/experiment-001`](tmp/build-and-evaluate/step-0090-20260727T023000-0700/experiment-001/).
+
 ## Experiment History Policy
 
 Detailed plans, reviews, commands, results, and failures live in timestamped

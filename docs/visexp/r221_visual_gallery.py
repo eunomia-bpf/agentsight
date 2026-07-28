@@ -299,6 +299,7 @@ def render_flamegraph_svg(
     limit: int | None,
     width: int = 1320,
     min_width: float = 1.5,
+    depth_cap: int | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     root = build_tree(stack_rows, limit)
     if root.value <= 0 or not root.children:
@@ -307,7 +308,8 @@ def render_flamegraph_svg(
     top = 112
     graph_w = width - 76
     row_h = 27
-    max_depth = tree_depth(root)
+    full_depth = tree_depth(root)
+    max_depth = full_depth if depth_cap is None else min(full_depth, depth_cap)
     height = int(top + row_h * max_depth + 54)
     rects = flame_rects(root, left, top, graph_w, row_h, 0, max_depth, min_width)
     body: list[str] = [
@@ -335,6 +337,7 @@ def render_flamegraph_svg(
         "samples": len(stack_rows),
         "rendered_weight": root.value,
         "stack_depth": max_depth,
+        "full_stack_depth": full_depth,
         "frames": len(rects),
     }
 
@@ -492,6 +495,7 @@ def render_profile(
     sample_index: str | None,
     focus: str | None,
     sample_sign: str | None,
+    max_depth: int | None = None,
 ) -> dict[str, Any]:
     if output.suffix.lower() != ".svg":
         raise ValueError("profile rendering output must end in .svg")
@@ -512,6 +516,8 @@ def render_profile(
         f"width = {metric}; rectangles are collapsed pprof stack prefixes; "
         f"sample sign = {source['sample_sign']}"
     )
+    if max_depth is not None:
+        width_label += f"; display truncated to {max_depth} frames"
     _, rendered = render_flamegraph_svg(
         output,
         rows,
@@ -520,6 +526,7 @@ def render_profile(
         width_label=width_label,
         limit=None,
         min_width=0,
+        depth_cap=max_depth,
     )
     return {
         "status": "ok",
@@ -1454,6 +1461,11 @@ def main() -> None:
     parser.add_argument("--sample-index", help="pprof sample type, for example tokens or operations")
     parser.add_argument("--focus", help="pprof-compatible frame regular expression")
     parser.add_argument(
+        "--max-depth",
+        type=int,
+        help="display-only cap on rendered stack depth; omit to render every frame",
+    )
+    parser.add_argument(
         "--sample-sign",
         choices=("positive", "negative"),
         help="required for signed profiles; selects one direction without mixing it",
@@ -1471,6 +1483,7 @@ def main() -> None:
                 sample_index=args.sample_index,
                 focus=args.focus,
                 sample_sign=args.sample_sign,
+                max_depth=args.max_depth,
             )
             print(json.dumps(result, indent=2))
             return
@@ -1482,6 +1495,7 @@ def main() -> None:
                 args.sample_index,
                 args.focus,
                 args.sample_sign,
+                args.max_depth,
             )
         ):
             parser.error("profile rendering options require --profile")

@@ -59,10 +59,10 @@ localization workloads, AgentProf raises MAP over benchmark-native direct
 diagnostics by 0.031, 0.107, and 0.117. As a reading index on TraceElephant,
 the semantic hierarchy guides a strong trajectory reader to equal ranking
 quality while opening only 53.0\% of the source evidence---versus 65.0\% for
-an information-matched raw-action grouping at the same quality---and
+the information-matched raw-action ablation \sys-Raw at the same quality---and
 skeleton-guided drilldown remains available beyond the context window where
 whole-trace reading fails.
-% 直接 Agent 标注将相对人工 stage 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.764。在三个完整 localization workload 上，AgentProf 相对 benchmark-native direct diagnostic 将 MAP 分别提高 0.031、0.107 和 0.117。在 TraceElephant 上作为阅读索引时，语义层次引导强 trajectory reader 达到同等排名质量，只打开 53.0\% 的 source evidence，而信息匹配的 raw-action 分组需打开 65.0\%；骨架引导的下钻可超越整条轨迹阅读失效的上下文窗口边界。
+% 直接 Agent 标注将相对人工 stage 的普通 B$^3$ F1 从 raw action 的 0.541 和 recurrence 的 0.663 提升到 0.764。在三个完整 localization workload 上，AgentProf 相对 benchmark-native direct diagnostic 将 MAP 分别提高 0.031、0.107 和 0.117。在 TraceElephant 上作为阅读索引时，语义层次引导强 trajectory reader 达到同等排名质量，只打开 53.0\% 的 source evidence，而信息匹配的 raw-action 消融 \sys-Raw 需打开 65.0\%；骨架引导的下钻可超越整条轨迹阅读失效的上下文窗口边界。
 Evaluated task-family and action backends reach 0.695 and 0.498 macro-F1,
 and label-free recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1 on
 OSWorld-Human. Automatic annotation is a one-time cost (37 minutes of
@@ -181,7 +181,7 @@ direct diagnostic ties and raises MAP by 0.031, 0.107, and 0.117,
 respectively~\cite{agentprocessbench,hintbench,traceelephant}.
 On TraceElephant, the same fixed hierarchy serves as a reading index:
 a strong reader reaches the same ranking quality while opening less
-source evidence than an information-matched raw-action grouping
+source evidence than \sys-Raw, an information-matched raw-action ablation
 (53.0\% versus 65.0\%).
 % 在用于协议开发的三个完整公开 workload 上，AgentProf 细化 benchmark-native direct diagnostic 的并列，并将 MAP 分别提高 0.031、0.107 和 0.117。
 % 在 TraceElephant 上，同一固定层次也作为阅读索引：强 reader 达到统计持平的排名质量，同时打开的 source evidence 更少（53.0\% 对 65.0\%）。
@@ -211,13 +211,13 @@ This paper makes three contributions:
 \item \textbf{Evaluation.}
   Automatic operation structure improves human-stage agreement on
   CodeTraceBench, and operation profiles supplement benchmark-native direct
-  diagnostics on all three localization workloads while tying an
-  information-matched raw-evidence refinement. A repeated-task resource case
+  diagnostics on all three localization workloads while tying the
+  information-matched \sys-Raw ablation. A repeated-task resource case
   and a population-scale differential case expose high-cost unfinished work and
   success--failure differences. After marks are fixed, \sys profiles 27{,}765
   operations in 1.16 seconds
   (Evaluation).
-% 评估。自动 operation structure 相对 raw action 改进人工 stage agreement；operation profile 在三个 localization workload 上补充 benchmark-native direct diagnostic，但与信息量匹配的 raw-evidence refinement 持平；重复任务资源案例与 population-scale 差分案例暴露高成本未完成工作和成功--失败差异；固定 mark 后，AgentProf 在 1.16 秒内 profile 27,765 个 operation。
+% 评估。自动 operation structure 相对 raw action 改进人工 stage agreement；operation profile 在三个 localization workload 上补充 benchmark-native direct diagnostic，但与信息量匹配的 \sys-Raw 消融持平；重复任务资源案例与 population-scale 差分案例暴露高成本未完成工作和成功--失败差异；固定 mark 后，AgentProf 在 1.16 秒内 profile 27,765 个 operation。
 \end{enumerate}
 
 %% ===================================================================
@@ -699,120 +699,14 @@ engineering decision.
 \subsection{RQ2: Does Profiler Output Correspond to Real Problems?}
 % RQ2：分析器输出是否对应真实问题？
 
-RQ2 asks whether target-blind profiles place independently annotated problems
-in groups a developer can inspect early. We run complete AgentProcessBench,
-HINTBench (the complete released test snapshot, 536 of the paper-reported 629
-trajectories), and TraceElephant workloads~\cite{agentprocessbench,hintbench,
-traceelephant}; all zero-positive trajectories are consumed for population
-coverage but excluded from MAP because AP is undefined without a relevant item.
-% RQ2 问 target-blind profile 是否把独立标注的问题放进开发者可优先检视的 group。我们在完整的 AgentProcessBench、HINTBench（完整的 released test snapshot，629 个论文报告轨迹中的 536 个）和 TraceElephant workload 上运行；所有 zero-positive 轨迹用于群体覆盖但因其使 AP 无定义而从 MAP 中排除。
+RQ2 asks whether target-blind profiler output corresponds to independently
+annotated real problems. We answer at three levels: a population-scale
+differential case whose recovery signal matches expert looping labels, a
+supplement test over three complete localization benchmarks, and a
+reading-index study measuring how much source evidence a reader must open.
+% RQ2 问 target-blind profiler 输出是否对应独立标注的真实问题。我们在三个层次上回答：population 尺度的差分案例（其 recovery 信号对应专家 looping 标注）、三个完整 localization benchmark 上的补充测试，以及测量 reader 需要打开多少 source evidence 的阅读索引研究。
 
-Within each workload, operations, target-blind paths, benchmark predictions,
-and scoring are fixed before loading test targets
-(the appendix (\emph{RQ2 Scoring Details})).
-% 各 workload 中，operation、target-blind path、benchmark 预测与评分规则均在加载 test target 前固定（细节见附录~the appendix (\emph{RQ2 Scoring Details})）。
-
-The main test asks whether the profile adds information beyond the
-\emph{direct diagnostic}---the per-operation output of a benchmark-native
-process judge (AgentProcessBench risk units) or trajectory localizer (HINTBench,
-TraceElephant), which for TraceElephant reads the full trace and reference answer
-before naming the responsible agent and decisive step. The candidate
-(Direct+AgentProf) ranks operations lexicographically by (\emph{direct
-diagnostic}, \emph{Agent+Evidence group score}), so it can only refine exact
-diagnostic-score ties. The other conditions are Direct-only, AgentProf-only
-(profile without the direct diagnostic), and Direct+Raw+Evidence (raw-action
-prefix; identical source-kind, tool/call, and outcome suffix and aggregation).
-
-Each query is one trajectory containing an annotated target. We report
-non-interpolated per-query AP and arithmetic-mean MAP across 614, 400, and 220
-target-bearing queries, respectively~\cite{robertson2008ap}. All 522
-zero-positive trajectories are consumed for population coverage but excluded
-from MAP because AP is undefined without a relevant item.
-% RQ2 在完整的 AgentProcessBench、HINTBench 和 TraceElephant workload 上测试 target-blind profile 是否补充 operation-local diagnostic score。候选（Direct+AgentProf）按 (direct diagnostic, Agent+Evidence group score) 字典序排列，只能打破相同 diagnostic score 的并列；其余条件为 Direct-only、AgentProf-only（不含 direct diagnostic）与 Direct+Raw+Evidence（raw-action prefix，保留相同 source-kind、tool/call、outcome suffix 与聚合）。主指标为标准 per-query AP 与 MAP。
-
-\begin{table}[tb]
-\centering\small
-\setlength{\tabcolsep}{1.8pt}
-\begin{tabular}{@{}lrrrr@{}}
-\toprule
-Workload & \shortstack{Direct+\\AgentProf} & \shortstack{Direct+Raw\\+Evidence} & \shortstack{Direct\\only} & \shortstack{AgentProf\\only} \\
-\midrule
-AgentProcessBench & \textbf{.894} & .893 & .863 & .791 \\
-HINTBench & .517 & \textbf{.518} & .411 & .432 \\
-TraceElephant & \textbf{.326} & .324 & .209 & .259 \\
-\bottomrule
-\end{tabular}
-\caption{Standard per-query AP averaged as MAP over complete RQ2 populations.
-``Direct'' is the benchmark-native trajectory judge/localizer. Both
-direct-first methods preserve every strict diagnostic ordering and retain
-identical source evidence. Higher is better.}
-\label{tab:rq2-localization}
-\end{table}
-
-Direct+AgentProf raises MAP over Direct-only by .031 [.024,.039], .107
-[.093,.120], and .117 [.088,.148], using 10{,}000 paired resamples of
-trajectory clusters within benchmark-defined strata. Thus the profile adds
-clear ranking information after a fixed trajectory reader on all three
-complete workloads (Table~\ref{tab:rq2-localization}).
-
-The information-matched Direct+Raw+Evidence refinement reaches .893, .518, and .324.
-Candidate-minus-baseline intervals are [-.0003,.0029], [-.0116,.0103], and
-[-.0247,.0280], so this experiment does not establish that the
-semantic-operation prefix ranks targets better when both views retain the same
-source evidence. The matched result attributes the ranking gain to
-group/evidence refinement in the complete profile, not specifically to its
-semantic prefix. The tie follows from the mechanism: per-operation
-anomaly signal resides in the retained source evidence, which both views share
-by construction.
-% 这一持平源于机制本身：per-operation 异常信号位于保留的 source evidence 中，两种视图在构造上共享这些 evidence。
-The semantic prefix's distinct, separately measured roles are cross-run
-attribution (RQ1) and directing a reader's attention, which the following
-study measures.
-% semantic prefix 的独立、分别测量的角色是 cross-run attribution（RQ1）与引导读者注意力，后者由下文研究测量。
-% Direct+AgentProf 相对 Direct-only trajectory judge/localizer 在三个完整 workload 上分别提高 MAP .031、.107 与 .117，区间均为正；与保留相同 source evidence 的 raw-action refinement 统计上不可区分。因此该实验支持 profiling 补充 direct trajectory diagnosis。
-
-\paragraph{Profile-guided reading on TraceElephant.}
-On the complete 220 target-bearing TraceElephant queries, a fixed external
-Grok-family CLI reader receives target-blind packets---task text, operation
-IDs, and source-visible content---with unranked operations appended in
-original order deterministically and one single-turn call per stage; full-trace
-reading reaches MAP .502 versus .209 for the benchmark's Direct-only diagnostic
-and .326 for Direct+AgentProf at a mean 12{,}615 input tokens per query.
-% 在完整的 220 个带 target 的 TraceElephant query 上，固定的外部 Grok 家族 CLI reader 接收 target-blind packet（任务文本、operation ID、source-visible 内容），未排名 operation 按原始顺序确定性附加、每个 stage 单轮调用；全 trace 阅读达到 MAP .502，而 benchmark 的 Direct-only 诊断为 .209、Direct+AgentProf 为 .326，平均每个 query 12,615 输入 token。
-A two-stage profile-guided variant first shows only the semantic operation
-skeleton, with no source content, and the reader selects at most five groups;
-stage two then opens only the selected groups' evidence.
-% 两阶段 profile-guided 变体首先只展示 semantic operation 骨架（无 source 内容），reader 最多选择 5 个 group；第二阶段只打开所选 group 的 evidence。
-It reaches MAP .455 while opening 53.0\% of the source content, and its
-stage-one selections never fell back to a default; the five-group budget
-saturated on 99.5\% of queries, and every selection miss was an absence from
-the reader's ordered choices rather than a budget cutoff---re-parsing the
-uncapped stage-one responses shows the reader proposed more than five groups
-on zero of 220 queries, and every missed target group was entirely absent
-from its ordered selection.
-% 它达到 MAP .455，同时只打开 53.0\% 的 source 内容，且第一阶段选择从未回退到默认值；五组预算在 99.5\% 的 query 上被用满，且所有选择遗漏都是 reader 排序中的整体缺席而非预算截断——重新解析未截断的第一阶段响应显示，reader 在 220 个 query 中的 0 个上提出超过五组，且每个遗漏的 target group 都完全缺席于其有序选择。
-Under an information-matched raw-action skeleton, ranking quality is
-statistically unchanged (MAP .465; paired delta $+.010$ [$-.021$, $+.042$]).
-% 在信息匹配的 raw-action 骨架下，排名质量在统计上不变（MAP .465；配对差异 +.010 [-.021, +.042]）。
-But the reader opens significantly more content: 65.0\% versus 53.0\%, paired
-delta $+.120$ [$+.103$, $+.137$], and $2.80$ [$1.96$, $3.60$] more evidence
-operations.
-% 但 reader 打开显著更多的内容：65.0\% 对 53.0\%，配对差异 +.120 [+.103, +.137]，且多 2.80 [1.96, 3.60] 个 evidence operation。
-Semantic naming's measured contribution in this regime is attention
-concentration at equal quality.
-% 在此机制下 semantic naming 测得的贡献是同等质量下的注意力集中。
-A per-query full read is bounded by the model context window: populations
-such as the 4{,}558{,}192-token repeated Git task cannot be read whole,
-whereas skeleton-guided reading stays available at any trace length once
-the profile exists (construction itself proceeds per trajectory over
-preview-bounded packets).
-% 单 query 全量阅读受限于模型上下文窗口：诸如 4,558,192-token 的重复 Git 任务这类种群无法整体阅读，而骨架引导的下钻在任何 trace 长度下都可用。
-The reader is query-specific---it re-reads each trajectory per
-question---whereas the hierarchy is constructed once and replayed across
-queries and measures.
-% reader 是 query-specific——每个问题都重新阅读整条轨迹——而层次结构只构造一次，跨 query 与 measure 复用。
-
-\subsection{Case Study 2: Differential Profiling at Scale}
+\paragraph{Case Study 2: Differential Profiling at Scale.}
 % 案例研究 2：大规模差分 profiling。
 
 We aggregate AgentRewardBench's~\cite{agentrewardbench} complete mixed-outcome population,
@@ -883,6 +777,122 @@ exposes failed-side recovery and successful-side completion under shared
 responsibilities, and its recovery signal corresponds to an independently
 annotated real problem.
 % 该案例在集合尺度上回答 RQ2：target-blind 递归 profile 在共享职责下暴露失败侧 recovery 与成功侧 completion，且 recovery signal 对应独立标注的真实问题。
+
+\paragraph{Supplementing benchmark-native diagnostics.}
+% 补充 benchmark 原生诊断。
+We next test whether target-blind profiles supplement per-trajectory fault
+localization, a debugging-native task, on the complete AgentProcessBench,
+HINTBench (the complete released test snapshot, 536 of the paper-reported 629
+trajectories), and TraceElephant
+workloads~\cite{agentprocessbench,hintbench,traceelephant}.
+% 我们接着测试 target-blind profile 是否补充逐轨迹故障定位这一 debugging 原生任务，运行完整的 AgentProcessBench、HINTBench（完整的 released test snapshot，629 个论文报告轨迹中的 536 个）与 TraceElephant workload。
+Within each workload, operations, target-blind paths, benchmark predictions,
+and scoring are fixed before loading test targets
+(the appendix (\emph{RQ2 Scoring Details})).
+% 各 workload 中，operation、target-blind path、benchmark 预测与评分规则均在加载 test target 前固定（细节见附录~the appendix (\emph{RQ2 Scoring Details})）。
+
+The test asks whether the profile adds information beyond the
+\emph{direct diagnostic}---the per-operation output of a benchmark-native
+process judge (AgentProcessBench risk units) or trajectory localizer (HINTBench,
+TraceElephant), which for TraceElephant reads the full trace and reference answer
+before naming the responsible agent and decisive step. The candidate
+(Direct+AgentProf) ranks operations lexicographically by (\emph{direct
+diagnostic}, \emph{Agent+Evidence group score}), so it can only refine exact
+diagnostic-score ties. The other conditions are Direct-only, AgentProf-only
+(profile without the direct diagnostic), and Direct+\sys-Raw, an ablation of
+\sys that replaces the semantic prefix with raw-action names while keeping the
+identical source-kind, tool/call, and outcome suffix and aggregation.
+
+Each query is one trajectory containing an annotated target. We report
+non-interpolated per-query AP and arithmetic-mean MAP across 614, 400, and 220
+target-bearing queries, respectively~\cite{robertson2008ap}. All 522
+zero-positive trajectories are consumed for population coverage but excluded
+from MAP because AP is undefined without a relevant item.
+% RQ2 在完整的 AgentProcessBench、HINTBench 和 TraceElephant workload 上测试 target-blind profile 是否补充 operation-local diagnostic score。候选（Direct+AgentProf）按 (direct diagnostic, Agent+Evidence group score) 字典序排列，只能打破相同 diagnostic score 的并列；其余条件为 Direct-only、AgentProf-only（不含 direct diagnostic）与 Direct+\sys-Raw（\sys 的消融：把语义 prefix 换成 raw-action 名称，保留相同 source-kind、tool/call、outcome suffix 与聚合）。主指标为标准 per-query AP 与 MAP。
+
+\begin{table}[tb]
+\centering\small
+\setlength{\tabcolsep}{1.8pt}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Workload & \shortstack{Direct+\\\sys} & \shortstack{Direct+\\\sys-Raw} & \shortstack{Direct\\only} & \shortstack{\sys\\only} \\
+\midrule
+AgentProcessBench & \textbf{.894} & \textbf{.893} & .863 & .791 \\
+HINTBench & \textbf{.517} & \textbf{.518} & .411 & .432 \\
+TraceElephant & \textbf{.326} & \textbf{.324} & .209 & .259 \\
+\bottomrule
+\end{tabular}
+\caption{Standard per-query AP averaged as MAP over complete RQ2 populations.
+``Direct'' is the benchmark-native trajectory judge/localizer; \sys-Raw
+ablates only \sys's semantic prefix, so both direct-first methods preserve
+every strict diagnostic ordering and retain identical source evidence. Bold
+marks each workload's best methods; the two direct-first columns are
+statistically indistinguishable on every workload. Higher is better.}
+\label{tab:rq2-localization}
+\end{table}
+
+Direct+AgentProf raises MAP over Direct-only by .031 [.024,.039], .107
+[.093,.120], and .117 [.088,.148], using 10{,}000 paired resamples of
+trajectory clusters within benchmark-defined strata. Thus the profile adds
+clear ranking information after a fixed trajectory reader on all three
+complete workloads (Table~\ref{tab:rq2-localization}).
+
+The information-matched Direct+\sys-Raw ablation reaches .893, .518, and .324.
+Candidate-minus-baseline intervals are [-.0003,.0029], [-.0116,.0103], and
+[-.0247,.0280], so this experiment does not establish that the
+semantic-operation prefix ranks targets better when both views retain the same
+source evidence. The matched result attributes the ranking gain to
+group/evidence refinement in the complete profile, not specifically to its
+semantic prefix. The tie follows from the mechanism: per-operation
+anomaly signal resides in the retained source evidence, which both views share
+by construction.
+% 这一持平源于机制本身：per-operation 异常信号位于保留的 source evidence 中，两种视图在构造上共享这些 evidence。
+The semantic prefix's distinct, separately measured roles are cross-run
+attribution (RQ1) and directing a reader's attention, which the following
+study measures.
+% semantic prefix 的独立、分别测量的角色是 cross-run attribution（RQ1）与引导读者注意力，后者由下文研究测量。
+% Direct+AgentProf 相对 Direct-only trajectory judge/localizer 在三个完整 workload 上分别提高 MAP .031、.107 与 .117，区间均为正；与共享相同 source evidence 的 \sys-Raw 消融统计上不可区分。因此该实验支持 profiling 补充 direct trajectory diagnosis。
+
+\paragraph{Profile-guided reading on TraceElephant.}
+On the complete 220 target-bearing TraceElephant queries, a fixed external
+Grok-family CLI reader receives target-blind packets---task text, operation
+IDs, and source-visible content---with unranked operations appended in
+original order deterministically and one single-turn call per stage; full-trace
+reading reaches MAP .502 versus .209 for the benchmark's Direct-only diagnostic
+and .326 for Direct+AgentProf at a mean 12{,}615 input tokens per query.
+% 在完整的 220 个带 target 的 TraceElephant query 上，固定的外部 Grok 家族 CLI reader 接收 target-blind packet（任务文本、operation ID、source-visible 内容），未排名 operation 按原始顺序确定性附加、每个 stage 单轮调用；全 trace 阅读达到 MAP .502，而 benchmark 的 Direct-only 诊断为 .209、Direct+AgentProf 为 .326，平均每个 query 12,615 输入 token。
+A two-stage profile-guided variant first shows only the semantic operation
+skeleton, with no source content, and the reader selects at most five groups;
+stage two then opens only the selected groups' evidence.
+% 两阶段 profile-guided 变体首先只展示 semantic operation 骨架（无 source 内容），reader 最多选择 5 个 group；第二阶段只打开所选 group 的 evidence。
+It reaches MAP .455 while opening 53.0\% of the source content, and its
+stage-one selections never fell back to a default; the five-group budget
+saturated on 99.5\% of queries, and every selection miss was an absence from
+the reader's ordered choices rather than a budget cutoff---re-parsing the
+uncapped stage-one responses shows the reader proposed more than five groups
+on zero of 220 queries, and every missed target group was entirely absent
+from its ordered selection.
+% 它达到 MAP .455，同时只打开 53.0\% 的 source 内容，且第一阶段选择从未回退到默认值；五组预算在 99.5\% 的 query 上被用满，且所有选择遗漏都是 reader 排序中的整体缺席而非预算截断——重新解析未截断的第一阶段响应显示，reader 在 220 个 query 中的 0 个上提出超过五组，且每个遗漏的 target group 都完全缺席于其有序选择。
+Under the information-matched \sys-Raw skeleton, ranking quality is
+statistically unchanged (MAP .465; paired delta $+.010$ [$-.021$, $+.042$]).
+% 在信息匹配的 \sys-Raw 骨架下，排名质量在统计上不变（MAP .465；配对差异 +.010 [-.021, +.042]）。
+But the reader opens significantly more content: 65.0\% versus 53.0\%, paired
+delta $+.120$ [$+.103$, $+.137$], and $2.80$ [$1.96$, $3.60$] more evidence
+operations.
+% 但 reader 打开显著更多的内容：65.0\% 对 53.0\%，配对差异 +.120 [+.103, +.137]，且多 2.80 [1.96, 3.60] 个 evidence operation。
+Semantic naming's measured contribution in this regime is attention
+concentration at equal quality.
+% 在此机制下 semantic naming 测得的贡献是同等质量下的注意力集中。
+A per-query full read is bounded by the model context window: populations
+such as the 4{,}558{,}192-token repeated Git task cannot be read whole,
+whereas skeleton-guided reading stays available at any trace length once
+the profile exists (construction itself proceeds per trajectory over
+preview-bounded packets).
+% 单 query 全量阅读受限于模型上下文窗口：诸如 4,558,192-token 的重复 Git 任务这类种群无法整体阅读，而骨架引导的下钻在任何 trace 长度下都可用。
+The reader is query-specific---it re-reads each trajectory per
+question---whereas the hierarchy is constructed once and replayed across
+queries and measures.
+% reader 是 query-specific——每个问题都重新阅读整条轨迹——而层次结构只构造一次，跨 query 与 measure 复用。
 
 \subsection{Case Study 3: Profiling the Agents that Built This Profiler}
 % 案例研究 3：分析构建该 profiler 的智能体。
