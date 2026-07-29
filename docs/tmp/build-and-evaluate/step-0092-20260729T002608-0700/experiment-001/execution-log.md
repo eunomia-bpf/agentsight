@@ -72,11 +72,29 @@ Commands:
 /usr/bin/python3 flat_annotation/postprocess.py incomplete
 ```
 
-Because the full flat population was invalid, the official stages, scorer,
-full-population assembly/canonicalization, pprof materialization, and paired
-bootstrap were not run. No partial 404/405 result was interpreted. The terminal
-attempt is recorded in `raw-results.json` and `results.md` as incomplete and
-unscored.
+Because the full flat population was invalid, the full-population official
+stages/scorer, assembly/canonicalization, pprof materialization, and paired
+bootstrap were not run. The operational preflight scorer had run only after
+its one prediction was fixed. No partial 404/405 result was interpreted. The
+terminal attempt is recorded in `raw-results.json` and `results.md` as
+incomplete and unscored.
 
 No Git command was run. No prohibited paper, story, author-instruction, or
 paper-submodule path was edited.
+
+## Mechanical normalization amendment
+
+After the complete run, the author approved deleting redundant transition
+marks whose complete path is unchanged. This normalization is independent of
+CodeTraceBench stages and scores and is accepted only when the expanded path
+of every operation is identical before and after deletion. The full
+405-trajectory pipeline and paired comparison are rerun after normalization;
+no model response or per-operation semantic path changes. It removes only two
+contract-invalid no-op mark boundaries.
+
+The repair deleted starts 20 and 45 from ordinal 118, reducing its five sparse
+marks to three while preserving all 47 expanded operation paths. The complete
+pipeline then included all 405 trajectories. Direct hierarchy versus flat
+reached B-cubed F1 0.763539 versus 0.753791 and boundary F1 0.479952 versus
+0.468154. The paired hierarchy-minus-flat intervals were
+[-0.003361, 0.023660] and [-0.007351, 0.031698], respectively.

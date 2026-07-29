@@ -380,7 +380,7 @@ def run_pipeline(mode: str) -> None:
         "isolated one-trajectory calls, up to 4 parallel workers; "
         "one ordinary format retry"
     )
-    cost["format_only_session_repairs"] = (
+    cost["deterministic_repairs"] = (
         len(read_jsonl(EXPERIMENT / "format-repairs.jsonl"))
         if (EXPERIMENT / "format-repairs.jsonl").is_file()
         else 0
@@ -682,7 +682,7 @@ to four workers, a 1,200-second timeout, and one ordinary format retry.
 |---|---:|
 | Model calls | {cost['total_codex_calls']:,} |
 | Format retries | {cost['format_retries']:,} |
-| Format-only session repairs | {cost['format_only_session_repairs']:,} |
+| Deterministic mechanical repairs | {cost['deterministic_repairs']:,} |
 | Input tokens | {cost['usage'].get('input_tokens', 0):,} |
 | Cached input tokens | {cost['usage'].get('cached_input_tokens', 0):,} |
 | Output tokens | {cost['usage'].get('output_tokens', 0):,} |
@@ -749,10 +749,25 @@ def report_incomplete() -> None:
         "isolated one-trajectory calls, up to 4 parallel workers; "
         "one ordinary format retry"
     )
-    cost["format_only_session_repairs"] = (
+    cost["deterministic_repairs"] = (
         len(read_jsonl(EXPERIMENT / "format-repairs.jsonl"))
         if (EXPERIMENT / "format-repairs.jsonl").is_file()
         else 0
+    )
+    retry_first_errors = [
+        str(error)
+        for row in latest.values()
+        if int(row["attempts"]) > 1
+        for error in (row["attempt_records"][0].get("errors") or [])
+    ]
+    cost["total_ordinary_second_attempts"] = int(cost["format_retries"])
+    cost["format_failure_retries"] = sum(
+        error != "backend timeout after 1200 seconds"
+        for error in retry_first_errors
+    )
+    cost["timeout_retries"] = sum(
+        error == "backend timeout after 1200 seconds"
+        for error in retry_first_errors
     )
     backend_timing = read_json(EXPERIMENT / "full-backend-timing.json")
     population_started_unix = min(
@@ -777,7 +792,8 @@ def report_incomplete() -> None:
         "accepted_annotations_valid": set(raw_stats["invalid_annotations"])
         == {118},
         "full_population_pipeline_executed": False,
-        "oracle_or_score_rows_opened_for_flat_arm": False,
+        "oracle_or_score_rows_opened_for_full_population_flat_arm": False,
+        "preflight_scored_only_after_preflight_prediction_fixed": True,
         "partial_population_scored": False,
         "paired_bootstrap_executed": False,
     }
@@ -853,7 +869,9 @@ def report_incomplete() -> None:
                 "target",
                 "label",
             ],
-            "official_stages_opened_by_flat_pipeline": False,
+            "official_stages_opened_by_full_population_flat_pipeline": False,
+            "preflight_frozen_scorer_ran_after_prediction_fixed": True,
+            "oracle_fields_visible_to_model_backend": False,
         },
         "validity": validity,
         "artifacts": {
@@ -885,10 +903,10 @@ adjacent complete path on both attempts. That error is not the plan's sole
 permitted deterministic repair (an otherwise-valid top-level session-ID
 replacement). The response was therefore not altered.
 
-The frozen scorer, official stages, full-population assembly, canonicalization,
-pprof materialization, and paired bootstrap were not run. No 404/405 prefix was
-scored, so this experiment supplies no hierarchy-minus-flat estimate, precision,
-recall, F1, confidence interval, or paper-level RQ3 evidence.
+The full-population frozen scorer, official stages, assembly, canonicalization,
+pprof materialization, and paired bootstrap were not run. No 404/405 prefix
+was scored, so this experiment supplies no hierarchy-minus-flat estimate,
+precision, recall, F1, confidence interval, or paper-level RQ3 evidence.
 
 ## Mechanism and completion audit
 
@@ -899,13 +917,17 @@ recall, F1, confidence interval, or paper-level RQ3 evidence.
   is exactly the mandatory root plus one flat name;
 - accepted unique raw names including roots: {raw_stats['unique_raw_names']:,};
 - terminal failures after retry: {cost['failed_after_retry']};
-- ordinary retries: {cost['format_retries']};
-- deterministic format repairs: {cost['format_only_session_repairs']}.
+- ordinary second attempts: {cost['total_ordinary_second_attempts']} total
+  ({cost['format_failure_retries']} after format-contract failures and
+  {cost['timeout_retries']} after timeout);
+- deterministic mechanical repairs: {cost['deterministic_repairs']}.
 
 The exact Step 0087 source-packet audit found no stage, outcome, score, reward,
-target, or label fields. The flat pipeline did not open the official stages or
-score rows. The saved prompt diff and all 410 raw backend event streams remain
-available for audit.
+target, or label fields. The full-population flat pipeline did not open the
+official stages or score rows. The operational preflight ran the frozen scorer
+only after its one prediction was fixed; no oracle field was visible to any
+model request. The saved prompt diff and all 410 raw backend event streams
+remain available for audit.
 
 ## Reused direct-hierarchy control
 
@@ -927,7 +949,9 @@ distinct refined condition.
 | Measure | Flat attempt |
 |---|---:|
 | Model calls | {cost['total_codex_calls']:,} |
-| Format retries | {cost['format_retries']:,} |
+| Ordinary second attempts | {cost['total_ordinary_second_attempts']:,} |
+| After format-contract failure | {cost['format_failure_retries']:,} |
+| After timeout | {cost['timeout_retries']:,} |
 | Input tokens | {cost['usage'].get('input_tokens', 0):,} |
 | Cached input tokens | {cost['usage'].get('cached_input_tokens', 0):,} |
 | Output tokens | {cost['usage'].get('output_tokens', 0):,} |

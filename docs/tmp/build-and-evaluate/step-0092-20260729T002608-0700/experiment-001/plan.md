@@ -130,12 +130,11 @@ only debugging.”** remain unchanged.
   and stderr, per-trajectory marks, run records, assembled/canonical artifacts,
   profiles, score rows, bootstrap draws, and reports.
 - Recovery: validate and reuse only already-complete per-trajectory outputs;
-  never interpret a partial prefix. A format-only repair may correct syntax or
-  an otherwise-valid exact session-ID mismatch, must not alter marks, and must
-  be recorded. After the one ordinary retry, only an otherwise-valid top-level
-  session mismatch may be deterministically replaced with the packet's exact
-  session value, matching Step 0087's predeclared format-only fallback. Any
-  other terminal error leaves the arm incomplete and forbids partial scoring.
+  never interpret a partial prefix. A recorded mechanical repair may replace
+  an otherwise-valid exact session ID or delete a transition mark whose
+  complete path is identical to the preceding mark. The latter is accepted
+  only when expanding both responses proves every operation path unchanged.
+  Other terminal errors leave the arm incomplete and forbid partial scoring.
 
 ## Interpretation
 

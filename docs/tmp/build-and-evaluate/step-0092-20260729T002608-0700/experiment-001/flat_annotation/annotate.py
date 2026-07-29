@@ -182,6 +182,95 @@ def run_attempt(
 base.run_attempt = run_attempt
 
 
+def expanded_paths(
+    packet: dict[str, Any], marks: list[dict[str, Any]]
+) -> dict[str, tuple[str, ...]]:
+    path_by_start = {
+        str(mark["start_operation_id"]): tuple(
+            str(label) for label in mark["semantic_path"]
+        )
+        for mark in marks
+    }
+    current: tuple[str, ...] | None = None
+    expanded: dict[str, tuple[str, ...]] = {}
+    for turn in packet["turns"]:
+        for operation_id in turn["operation_ids"]:
+            operation_id = str(operation_id)
+            if operation_id in path_by_start:
+                current = path_by_start[operation_id]
+            if current is None:
+                raise RuntimeError("marks do not cover the first operation")
+            expanded[operation_id] = current
+    return expanded
+
+
+def repair_redundant_marks(ordinal: int) -> None:
+    row = next((row for row in base.load_packets() if row.ordinal == ordinal), None)
+    if row is None:
+        raise RuntimeError(f"unknown ordinal: {ordinal}")
+    records = [
+        json.loads(line)
+        for line in base.RUN_RECORDS.read_text(encoding="utf-8").splitlines()
+        if line.strip() and int(json.loads(line)["ordinal"]) == ordinal
+    ]
+    if not records or records[-1].get("status") != "failed":
+        raise RuntimeError(f"ordinal {ordinal} is not a terminal failed response")
+    attempt = int(records[-1]["attempts"])
+    event_path = base.RAW_EVENTS / f"{ordinal:04d}-attempt-{attempt}.jsonl"
+    response, _, event_errors = base.parse_codex_events(
+        event_path.read_text(encoding="utf-8")
+    )
+    if event_errors or not isinstance(response, dict):
+        raise RuntimeError(f"cannot parse terminal response: {event_errors}")
+    before_errors = validate_response(row.packet, response)
+    if before_errors != ["adjacent marks repeat an unchanged complete path"]:
+        raise RuntimeError(f"unexpected terminal errors: {before_errors}")
+
+    normalized = dict(response)
+    normalized_marks: list[dict[str, Any]] = []
+    removed_starts: list[str] = []
+    previous_path: tuple[str, ...] | None = None
+    for mark in response["marks"]:
+        path = tuple(str(label) for label in mark["semantic_path"])
+        if path == previous_path:
+            removed_starts.append(str(mark["start_operation_id"]))
+            continue
+        normalized_marks.append(mark)
+        previous_path = path
+    normalized["marks"] = normalized_marks
+    if not removed_starts:
+        raise RuntimeError("no redundant transition marks found")
+    if validate_response(row.packet, normalized):
+        raise RuntimeError("mechanically normalized response remains invalid")
+    if expanded_paths(row.packet, response["marks"]) != expanded_paths(
+        row.packet, normalized_marks
+    ):
+        raise RuntimeError("mechanical normalization changed an operation path")
+
+    base.write_json(row.raw_path, normalized)
+    repair = {
+        "ordinal": ordinal,
+        "attempt": attempt,
+        "repair": "delete-redundant-unchanged-transition-marks",
+        "removed_start_operation_ids": removed_starts,
+        "original_mark_count": len(response["marks"]),
+        "normalized_mark_count": len(normalized_marks),
+        "per_operation_paths_unchanged": True,
+        "removed_noop_mark_boundaries": len(removed_starts),
+        "official_stages_or_scores_opened": False,
+    }
+    with FORMAT_REPAIRS.open("a", encoding="utf-8") as stream:
+        stream.write(
+            json.dumps(repair, ensure_ascii=False, sort_keys=True) + "\n"
+        )
+    repaired_record = dict(records[-1])
+    repaired_record["status"] = "ok"
+    repaired_record["mechanical_repair"] = repair
+    with base.RUN_RECORDS.open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps(repaired_record, sort_keys=True) + "\n")
+    print(json.dumps(repair, sort_keys=True), flush=True)
+
+
 def prepare() -> None:
     rows = base.load_packets()
     version = subprocess.run(
@@ -249,6 +338,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("prepare")
+    repair = commands.add_parser("repair-redundant")
+    repair.add_argument("--ordinal", type=int, required=True)
     preflight = commands.add_parser("preflight")
     preflight.add_argument(
         "--timeout-seconds", type=int, default=base.DEFAULT_TIMEOUT_SECONDS
@@ -265,6 +356,8 @@ def main() -> None:
     rows = base.load_packets()
     if args.command == "prepare":
         prepare()
+    elif args.command == "repair-redundant":
+        repair_redundant_marks(args.ordinal)
     elif args.command == "preflight":
         selected = [
             min(rows, key=lambda row: (int(row.packet["turn_count"]), row.session))

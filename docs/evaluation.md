@@ -1431,6 +1431,27 @@ not establish live syscall attribution, causal correlation, or a new product
 capability. Complete records are under
 [`step-0090-20260727T023000-0700/experiment-001`](tmp/build-and-evaluate/step-0090-20260727T023000-0700/experiment-001/).
 
+Step 0093 completes a retrospective RQ3 cross-framework same-task retrieval
+audit over the frozen Step 0087 CodeTrace output. Among 405 sessions, 94 tasks
+and 240 queries have a same-task trajectory from another framework. Canonical
+full-path task-macro MAP is `.194854`, versus `.092723` for source
+action-kind and `.053992` for raw-action-key; both task-bootstrap intervals
+are wholly positive. The prompt/root controls reject the positive paper claim:
+full minus root-only is `+.055881` with interval
+`[-.000879,+.111849]`, root-stripped minus action-kind is `+.042392` with
+interval `[-.013652,+.100111]`, and root-stripped generic-removed minus
+action-kind is `+.029845` with interval `[-.021297,+.081823]`.
+Pre-canonical full paths also score higher than canonical paths
+(`.245238` versus `.194854`), with no positive canonicalization interval.
+An independent reviewer reconstructs all inputs, tie-aware AP values, and
+10,000 complete-task bootstrap intervals exactly and finds no remaining
+scoring or leakage defect. This valid negative/mixed result is not positive RQ3
+paper evidence; it shows only that prompt-conditioned complete paths retain
+task information. Further CodeTrace task-retrieval reanalysis is closed. The
+next RQ3 candidate must use an external programmatic subgoal/operation oracle.
+Complete records are under
+[`step-0093-20260729T013338-0700/experiment-001`](tmp/build-and-evaluate/step-0093-20260729T013338-0700/experiment-001/).
+
 ## Experiment History Policy
 
 Detailed plans, reviews, commands, results, and failures live in timestamped

@@ -1,17 +1,18 @@
 {
   "annotation": {
-    "accepted_flat_annotations": {
+    "flat": {
       "all_paths_root_plus_one_flat_name": true,
-      "invalid_annotations": {
-        "118": [
-          "missing raw mark"
-        ]
+      "assembled_path_depths": {
+        "2": 3420
       },
-      "marks": 3417,
+      "canonical_unique_names": 390,
+      "invalid_annotations": {},
+      "marks": 3420,
       "path_depths": {
-        "2": 3417
+        "2": 3420
       },
-      "unique_raw_names": 2394
+      "predicted_groups": 3420,
+      "unique_raw_names": 2395
     },
     "hierarchy_step_0087": {
       "canonical_unique_names": 783,
@@ -60,22 +61,23 @@
     }
   },
   "artifacts": {
-    "failed_attempt_1": "docs/tmp/build-and-evaluate/step-0092-20260729T002608-0700/experiment-001/raw-events/0118-attempt-1.jsonl",
-    "failed_attempt_2": "docs/tmp/build-and-evaluate/step-0092-20260729T002608-0700/experiment-001/raw-events/0118-attempt-2.jsonl",
+    "flat_canonical_marks": "docs/tmp/build-and-evaluate/step-0092-20260729T002608-0700/experiment-001/canonical/operation-marks.json",
+    "flat_operation_profile": "docs/tmp/build-and-evaluate/step-0092-20260729T002608-0700/experiment-001/profiles/flat-operation.pb.gz",
+    "flat_operation_rows": "docs/tmp/build-and-evaluate/step-0092-20260729T002608-0700/experiment-001/score/operation-score-rows.jsonl",
+    "flat_pair_rows": "docs/tmp/build-and-evaluate/step-0092-20260729T002608-0700/experiment-001/score/pair-score-rows.jsonl",
     "flat_raw_marks": "docs/tmp/build-and-evaluate/step-0092-20260729T002608-0700/experiment-001/raw-marks",
-    "flat_run_records": "docs/tmp/build-and-evaluate/step-0092-20260729T002608-0700/experiment-001/annotation-run-records.jsonl"
+    "flat_token_profile": "docs/tmp/build-and-evaluate/step-0092-20260729T002608-0700/experiment-001/profiles/flat-tokens.pb.gz",
+    "hierarchy_operation_rows": "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/score/operation-score-rows.jsonl",
+    "hierarchy_pair_rows": "docs/tmp/build-and-evaluate/step-0087-20260726T023000-0700/experiment-001/score/pair-score-rows.jsonl"
   },
   "cost": {
-    "flat_first_population_request_to_terminal_seconds": 2064.2835414409637,
-    "flat_pipeline_wall_seconds": null,
-    "flat_resumed_full_command_wall_seconds": 2030.2321112069767,
-    "flat_terminal_attempt": {
+    "flat": {
       "active_backend_wall_seconds": 2038.273181438446,
       "amendment_2_additional_attempts": 0,
       "attempt_limit_valid": true,
       "backend": "codex-cli 0.145.0",
-      "failed_after_retry": 1,
-      "format_only_session_repairs": 0,
+      "deterministic_repairs": 1,
+      "failed_after_retry": 0,
       "format_retries": 5,
       "interrupted_elapsed_span_seconds": 2064.098088979721,
       "model": "gpt-5.6-sol",
@@ -84,7 +86,7 @@
         "backend timeout after 1200 seconds": 1,
         "session does not exactly match the packet": 2
       },
-      "successful_trajectories": 404,
+      "successful_trajectories": 405,
       "summed_backend_wall_seconds": 8110.029482999999,
       "total_codex_calls": 410,
       "trajectory_calls": 405,
@@ -97,6 +99,9 @@
       },
       "worker_pattern": "isolated one-trajectory calls, up to 4 parallel workers; one ordinary format retry"
     },
+    "flat_backend_command_wall_seconds": 2030.2321112069767,
+    "flat_end_to_end_wall_seconds": 2829.4556822776794,
+    "flat_pipeline_wall_seconds": 7.081083327997476,
     "hierarchy_step_0087": {
       "active_backend_wall_seconds": 2215.8581767082214,
       "amendment_2_additional_attempts": 1,
@@ -123,20 +128,7 @@
         "reasoning_output_tokens": 116909
       },
       "worker_pattern": "isolated one-trajectory calls, up to 4 parallel workers; valid interrupted outputs reused; Amendment 2 adds one ordinal-53 call"
-    },
-    "population_cost_includes_reused_preflight_trajectory": true
-  },
-  "leakage": {
-    "official_stages_opened_by_flat_pipeline": false,
-    "prohibited_fields_absent": [
-      "stage",
-      "outcome",
-      "score",
-      "reward",
-      "target",
-      "label"
-    ],
-    "source_packet_audit": "passed before model calls"
+    }
   },
   "methods": {
     "direct_variable_depth_hierarchy_reused_step_0087": {
@@ -149,70 +141,104 @@
         "recall": 0.7358359007669576
       },
       "boundary": {
-        "f1": 0.47995176364184505,
-        "false_negative": 951,
-        "false_positive": 2499,
-        "pairs": 20461,
+        "f1": 0.479951763641845,
+        "fn": 951,
+        "fp": 2499,
         "precision": 0.3891469078464923,
         "recall": 0.6260322453794731,
-        "true_negative": 15419,
-        "true_positive": 1592
+        "tp": 1592
       }
     },
-    "same_model_flat": null
+    "same_model_flat": {
+      "bcubed": {
+        "f1": 0.7537912192200288,
+        "official_groups": 2948,
+        "operations": 20866,
+        "precision": 0.6981884228064539,
+        "predicted_groups": 3420,
+        "recall": 0.8190166117267169
+      },
+      "boundary": {
+        "f1": 0.4681540122346167,
+        "fn": 1242,
+        "fp": 1714,
+        "precision": 0.43150912106135986,
+        "recall": 0.511600471883602,
+        "tp": 1301
+      }
+    }
   },
-  "next_paper_decision": "Do not report hierarchy-minus-flat metrics from this run. Retain Step 0087 as the adopted direct-hierarchy result; if the reviewer control remains required, execute a new prospectively reviewed complete flat arm rather than repair or score this population post hoc.",
+  "next_paper_decision": "Do not claim that variable depth explains the adopted result on both registered metrics.",
   "paired_hierarchy_minus_flat": {
-    "planned_resamples": 10000,
-    "planned_seeds": {
+    "bcubed_f1": {
+      "baseline": "flat",
+      "candidate": "hierarchy",
+      "ci95": [
+        -0.0033614846756158745,
+        0.02366041083661135
+      ],
+      "mean_delta": 0.009688912628802419,
+      "positive_fraction": 0.9226,
+      "resamples": 10000,
+      "task_clusters": 251
+    },
+    "boundary_f1": {
+      "baseline": "flat",
+      "candidate": "hierarchy",
+      "ci95": [
+        -0.00735078593404246,
+        0.031697593294474274
+      ],
+      "mean_delta": 0.011676002835530918,
+      "positive_fraction": 0.8838,
+      "resamples": 10000,
+      "task_clusters": 251
+    },
+    "operation_rows": 20866,
+    "pair_rows": 20461,
+    "seeds": {
       "bcubed": 20260720,
       "boundary": 20260722
-    },
-    "reason": "One of 405 flat annotations remained invalid after the predeclared retry policy; partial scoring is forbidden.",
-    "reported": false
+    }
   },
-  "paper_impact": "none; the matched ablation is not reportable",
+  "paper_impact": "additional RQ3 evidence and hierarchy-mechanism boundary",
   "population": {
-    "invalid_sessions": 1,
+    "official_stages": 2948,
     "operations": 20866,
-    "requested_sessions": 405,
-    "terminal_sessions": 405,
-    "turns": 17148,
-    "valid_sessions": 404
+    "pairs": 20461,
+    "sessions": 405,
+    "task_clusters": 251,
+    "turns": 17148
   },
   "recursive_refined_minus_direct": {
-    "reason": "Step 0087 already is direct complete-hierarchy generation; no distinct recursive/refined adopted arm exists.",
+    "reason": "The adopted Step 0087 artifact is itself direct complete-hierarchy generation; no genuinely distinct recursive or iterative refined condition exists.",
     "reported": false
   },
-  "research_value": "retained operational evidence; no RQ3 score",
-  "run_status": "terminal_format_failure",
-  "schema": "agentsight.same-model-flat-ablation.incomplete.v1",
-  "status": "incomplete",
-  "terminal_failures": [
-    {
-      "attempt_errors": [
-        [
-          "adjacent marks repeat an unchanged complete path"
-        ],
-        [
-          "adjacent marks repeat an unchanged complete path"
-        ]
-      ],
-      "attempts": 2,
-      "ordinal": 118,
-      "session": "openhands-Anthropic__Claude-Sonnet-4-20250514-Thinking-path-tracing-8cc10d94"
-    }
-  ],
-  "tested_hypothesis": "not evaluated",
+  "research_value": "decisive mechanism ablation",
+  "run_status": "valid",
+  "schema": "agentsight.same-model-flat-ablation.v1",
+  "status": "complete",
+  "tested_hypothesis": "inconclusive",
   "validity": {
-    "accepted_annotations_valid": true,
-    "accepted_paths_root_plus_one_flat_name": true,
-    "all_405_trajectories_terminal": true,
-    "all_405_trajectories_valid": false,
-    "declared_attempt_limit_respected": true,
-    "full_population_pipeline_executed": false,
-    "oracle_or_score_rows_opened_for_flat_arm": false,
-    "paired_bootstrap_executed": false,
-    "partial_population_scored": false
+    "all_paths_root_plus_one_flat_name": true,
+    "all_trajectories_successful": true,
+    "canonical_partition_preserved": true,
+    "canonical_prediction_coverage": true,
+    "exact_step0087_packet_population": true,
+    "frozen_hierarchy_metrics_reconstructed": true,
+    "official_stages": true,
+    "operation_mass_conserved": true,
+    "operations": true,
+    "paired_hierarchy_population_equal": true,
+    "pairs": true,
+    "raw_annotations_valid": true,
+    "retry_policy_valid": true,
+    "sessions": true,
+    "stock_pprof_readback": true,
+    "task_clusters": true,
+    "token_mass_conserved": true,
+    "turns": true,
+    "zero_adjacent_display_path_collisions": true,
+    "zero_failures_after_retry": true
   }
 }

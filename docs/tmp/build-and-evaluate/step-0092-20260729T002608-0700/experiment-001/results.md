@@ -1,80 +1,88 @@
 # Same-model flat-segmentation ablation
 
-Status: **INCOMPLETE / UNSCORED**
+Status: **COMPLETE / VALID**
 
-## Outcome
+## Scientific result
 
-All 405 trajectories reached terminal status, but only 404 produced valid flat
-annotations under the registered initial-call plus one-format-retry policy.
-Ordinal 118 (`openhands-Anthropic__Claude-Sonnet-4-20250514-Thinking-path-tracing-8cc10d94`) repeated an unchanged
-adjacent complete path on both attempts. That error is not the plan's sole
-permitted deterministic repair (an otherwise-valid top-level session-ID
-replacement). The response was therefore not altered.
+| Method | B³ P | B³ R | B³ F1 | Boundary P | Boundary R | Boundary F1 | Groups |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Direct variable-depth hierarchy (Step 0087) | 0.793409 | 0.735836 | 0.763539 | 0.389147 | 0.626032 | 0.479952 | 4,496 |
+| Same-model flat partition | 0.698188 | 0.819017 | 0.753791 | 0.431509 | 0.511600 | 0.468154 | 3,420 |
 
-The frozen scorer, official stages, full-population assembly, canonicalization,
-pprof materialization, and paired bootstrap were not run. No 404/405 prefix was
-scored, so this experiment supplies no hierarchy-minus-flat estimate, precision,
-recall, F1, confidence interval, or paper-level RQ3 evidence.
+Hierarchy minus flat B³ F1 is
+`+0.009747`
+with a 10,000-resample paired task-cluster 95% interval of
+`[-0.003361, +0.023660]` (seed `20260720`).
+Hierarchy minus flat exact adjacent-boundary F1 is
+`+0.011798`
+with interval
+`[-0.007351, +0.031698]`
+(seed `20260722`).
 
-## Mechanism and completion audit
+The predeclared hierarchy-benefit hypothesis is **INCONCLUSIVE**.
 
-- requested/terminal/valid trajectories: 405 / 405 / 404;
-- accepted flat marks: 3,417 across the 404 valid trajectories;
-- accepted raw path-depth distribution:
-  `{"2": 3417}`; every accepted path
-  is exactly the mandatory root plus one flat name;
-- accepted unique raw names including roots: 2,394;
-- terminal failures after retry: 1;
-- ordinary retries: 5;
-- deterministic format repairs: 0.
+## Control-2 audit
 
-The exact Step 0087 source-packet audit found no stage, outcome, score, reward,
-target, or label fields. The flat pipeline did not open the official stages or
-score rows. The saved prompt diff and all 410 raw backend event streams remain
-available for audit.
+Step 0087 directly generated complete variable-depth paths in one isolated
+request per trajectory and explicitly prohibited STOP/SPLIT recursion. It had
+no external recursive controller or iterative semantic refinement. Its complete
+20,866 operation rows and 20,461 pair rows are therefore the requested direct
+hierarchy control and were reused without new calls. No
+recursive/refined-minus-direct comparison is reported because no distinct
+refined condition exists.
 
-## Reused direct-hierarchy control
+## Completion and mechanism engagement
 
-Step 0087 already directly emits complete variable-depth paths in one isolated
-request per trajectory, explicitly without STOP/SPLIT recursion or iterative
-semantic refinement. It remains the requested direct-hierarchy control and was
-not rerun under a second name. Its complete adopted result is B-cubed
-P/R/F1 `0.793409` /
-`0.735836` /
-`0.763539` and exact adjacent-boundary P/R/F1
-`0.389147` /
-`0.626032` /
-`0.479952` over 4,496 groups. No
-recursive/refined-minus-direct comparison exists because there is no genuinely
-distinct refined condition.
+- all 405 trajectories, 17,148 turns, 20,866 operations, 20,461 pairs, 2,948
+  stages, and 251 task clusters are included;
+- every raw flat path has exactly the mandatory root plus one non-root semantic
+  name;
+- the flat arm emits 3,420 marks/groups and its raw path-depth
+  distribution is `{"2": 3420}`;
+- the reused Step 0087 raw depth distribution is
+  `{"1": 3, "2": 2873, "3": 1588, "4": 32}`;
+- operation mass 20,866 and token mass 494,862,929
+  are conserved; canonicalization preserves the temporal partition and leaves
+  zero adjacent display-path collisions; both profiles load in stock pprof.
 
-## Backend cost to terminal status
+## Backend and cost
 
-| Measure | Flat attempt |
+The flat arm used pinned `codex-cli 0.145.0`, `gpt-5.6-sol`, ignored user
+configuration, default reasoning/decoding, read-only ephemeral isolation, up
+to four workers, a 1,200-second timeout, and one ordinary format retry.
+
+| Measure | Flat arm |
 |---|---:|
 | Model calls | 410 |
 | Format retries | 5 |
+| Deterministic mechanical repairs | 1 |
 | Input tokens | 11,885,715 |
 | Cached input tokens | 3,977,984 |
 | Output tokens | 183,961 |
 | Reasoning-output tokens | 101,215 |
 | Summed request time | 8110.029 s |
 | Union active request time | 2038.273 s |
-| First population request to terminal status | 2064.284 s |
-| Resumed full-command wall (excludes earlier reused preflight) | 2030.232 s |
-| Downstream full-population pipeline | not run |
+| Backend command wall | 2030.232 s |
+| Deterministic pipeline wall | 7.081 s |
+| End-to-end full-arm wall | 2829.456 s |
 
-The 410-call/token totals include the valid preflight trajectory because that
-annotation was reused as one of the 405 population members. The operational
-preflight completed that packet end to end; its score is not a paper result.
+Step 0087's reused hierarchy cost remains 415 calls, 12,050,384 input tokens,
+231,886 output tokens, 116,909 reasoning-output tokens, 8,689.405 seconds
+summed request time, 2,215.858 seconds union active request time, and 11.516
+seconds downstream pipeline wall.
 
-## Next paper decision
+## Scope and next paper decision
 
-Do not report a hierarchy-minus-flat effect from this run and do not normalize
-the failed marks after seeing the failure. Retain the Step 0087 direct-hierarchy
-result. If the reviewer control is still required, run a newly planned,
-prospectively reviewed complete flat arm; do not present this terminal attempt
-as a scored result.
+```text
+run status: valid
+tested hypothesis: inconclusive
+research value: decisive mechanism ablation
+paper impact: additional RQ3 evidence and hierarchy-mechanism boundary
+next paper decision: Do not claim that variable depth explains the adopted result on both registered metrics.
+```
 
-This outcome changes neither the four fixed RQs nor the thesis,
+This complete same-model ablation measures leaf-occurrence partition and exact
+boundary fidelity on CodeTraceBench. It does not validate nested topology,
+literal name accuracy, cross-run name equivalence, user utility, or other
+task/agent families. It changes neither the fixed RQs nor the thesis,
 “Agent observability needs profiling, not only debugging.”
