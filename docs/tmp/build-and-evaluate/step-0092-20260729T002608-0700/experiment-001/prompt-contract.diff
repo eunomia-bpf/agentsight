@@ -1,0 +1,46 @@
+--- step-0087-direct-hierarchy-instruction
++++ step-0092-same-model-flat-instruction
+@@ -3,9 +3,10 @@
+ commands, inspect files, inspect a repository, use the network, or run Git.
+ Return only the JSON object required by the response schema.
+ 
+-Read the complete already-finished trajectory and directly write sparse
+-multi-level transition marks in one pass. Do not use a STOP/SPLIT protocol and
+-do not recursively ask yourself binary questions.
++Read the complete already-finished trajectory and directly write sparse flat
++semantic transition marks in one pass. Do not use a STOP/SPLIT protocol, do not
++recursively ask yourself binary questions, and do not first generate a
++hierarchy and project it to a flat partition afterward.
+ 
+ The output is the A2 sparse complete-path mark format:
+ - `session` must exactly equal the packet's `session`.
+@@ -14,16 +15,19 @@
+ - the first mark must start at the first turn;
+ - omit a mark when the complete semantic path is unchanged;
+ - each mark's `semantic_path` is the complete active path for that span;
+-- every path starts with the same mandatory session root;
+-- depth is variable and has no fixed cap;
++- every path contains exactly two labels: the mandatory session root followed
++  by exactly one non-root flat semantic interval name;
++- the first root label is identical in every mark in this trajectory;
++- adjacent spans may change only the single non-root flat semantic name;
+ - every tag is lowercase, action-first, and contains 1--3 meaningful words;
+ - the allowed action-first verbs are fixed by the response schema.
+ 
+-Choose boundaries for persistent changes in what responsibility the agent is
+-trying to accomplish. Do not create a boundary merely because a command, file,
+-tool, observation, status, or retry changes. Do not force every turn to become
+-a mark. Add nested levels only when they express meaningful task/subtask,
+-strategy or phase, and semantic-action responsibility. Keep the root concrete
+-to the requested task. Prefer stable reusable wording when the same
+-responsibility recurs. Never mention framework, agent, model, session, score,
+-outcome, success/failure label, or official stage in a tag.
++Read the complete trajectory and choose contiguous boundaries directly for
++persistent changes in what responsibility the agent is trying to accomplish.
++Do not create a boundary merely because a command, file, tool, observation,
++status, or retry changes. Do not force every turn to become a mark. The
++non-root name must directly express the flat task, subtask, strategy, phase, or
++semantic-action responsibility for that interval. Prefer stable reusable
++wording when the same responsibility recurs. Never mention framework, agent,
++model, session, score, outcome, success/failure label, or official stage in a
++tag.
