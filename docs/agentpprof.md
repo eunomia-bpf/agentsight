@@ -128,9 +128,12 @@ agentpprof \
   -o bad-minus-good.pb.gz
 ```
 
-Candidate samples are positive and base samples are negative. Each raw sample
-retains `comparison_side` and source-evidence labels, so a pprof consumer can
-focus a side or recover the corresponding source record.
+Candidate samples are positive and base samples are negative. Base samples
+carry `pprof::base=true`, the standard label that makes stock pprof use the
+base total as its comparison denominator and show a combined differential
+flamegraph. Each raw sample retains `comparison_side` and source-evidence
+labels, so a pprof consumer can focus a side or recover the corresponding
+source record.
 
 ## Source Evidence And Privacy
 

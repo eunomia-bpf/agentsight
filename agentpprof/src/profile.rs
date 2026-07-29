@@ -2625,6 +2625,7 @@ pub fn write_pprof_difference(
     for sample in &base.pprof_samples {
         let mut labels = sample.labels.clone();
         labels.push(("comparison_side".to_string(), "base".to_string()));
+        labels.push(("pprof::base".to_string(), "true".to_string()));
         signed_samples.push((
             sample.stack.clone(),
             -i64::try_from(sample.value).unwrap_or(i64::MAX),
@@ -4316,9 +4317,12 @@ mod tests {
         assert!(labeled_sides.iter().any(|labels| {
             labels.contains(&("comparison_side", "candidate"))
                 && labels.contains(&("evidence_id", "c1"))
+                && !labels.contains(&("pprof::base", "true"))
         }));
         assert!(labeled_sides.iter().any(|labels| {
-            labels.contains(&("comparison_side", "base")) && labels.contains(&("evidence_id", "b1"))
+            labels.contains(&("comparison_side", "base"))
+                && labels.contains(&("pprof::base", "true"))
+                && labels.contains(&("evidence_id", "b1"))
         }));
     }
 

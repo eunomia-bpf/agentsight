@@ -146,11 +146,14 @@ go tool pprof -top bad-minus-good.pb.gz
 go tool pprof -http=:0 bad-minus-good.pb.gz
 ```
 
-The output is one signed `candidate-minus-base` pprof: positive samples are
-paths with more weight in the candidate, and negative samples are paths with
-more weight in the base. Both inputs use the same explicit stack fields and
-weighting view. The command intentionally rejects folded, JSON, and SVG output
-for comparisons; existing pprof tools provide the visualization surface.
+The output is one signed `candidate-minus-base` pprof: candidate observations
+are positive and base observations are negative. Base samples also carry the
+canonical `pprof::base=true` label, so stock pprof uses the base total as its
+comparison denominator and renders its combined differential flamegraph. In
+that view, box width is candidate plus base, while the colored inset is their
+net difference. Both inputs use the same explicit stack fields and weighting
+view. The command intentionally rejects folded, JSON, and SVG output for
+comparisons; existing pprof tools provide the visualization surface.
 
 ## Views
 

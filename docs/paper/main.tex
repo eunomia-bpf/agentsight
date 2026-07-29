@@ -731,18 +731,23 @@ pprof renders the subtraction as positive and negative sample values.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-recovery-bad-excess.operations.png}\\[2pt]
-\includegraphics[width=.97\linewidth]{../visexp/out/r221-pprof-renderer-v1/agentreward-completion-good-excess.operations.png}
-\caption{Focused paper renderings of the signed pprof profile over all
-338 bad--good pairs. The top panel selects positive samples under
-\texttt{recover interaction}: 3{,}286 bad-side versus 455 good-side
-occurrences. The bottom selects negative samples under
-\texttt{report completion}: 135 bad-side versus 191 good-side occurrences.
-These are aggregate diagnostic differences, not causal effects.}
-\Description{Two paper renderings of stock-pprof stacks. The upper graph
-descends from browser-task responsibilities into recovery and specific retry
-or inspection operations. The lower graph descends through task completion to
-source LLM and tool calls.}
+\textbf{(a) Recovery focus}\\[-2pt]
+\includegraphics[width=.97\linewidth]{figures/agentreward-recovery-differential.operations.pdf}\\[2pt]
+\textbf{(b) Completion focus}\\[-2pt]
+\includegraphics[width=.97\linewidth]{figures/agentreward-completion-differential.operations.pdf}
+\caption{Stock-pprof differential flamegraphs over all 338 bad--good pairs.
+Each box width is the sum of the good/base and bad/candidate contributions;
+the inset is their net bad-minus-good difference (rose: more in bad; green:
+more in good; gray: overlapping remainder). The arrow reports good
+$\rightarrow$ bad, with percentages relative to the 3{,}780-operation good
+diff base. Recovery grows from 455 to 3{,}286 occurrences (net $+2{,}831$);
+completion falls from 191 to 135 (net $-56$). Agent and source-call frames are
+hidden only in this display; the signed pprof retains them and their evidence
+labels. These are aggregate diagnostic differences, not causal effects.}
+\Description{Two stock-pprof differential flamegraphs. The recovery panel is
+dominated by rose bad-side growth beneath browser-task responsibilities. The
+completion panel has a green good-side excess through report-completion and
+send-message paths.}
 \label{fig:agentreward-diff}
 \end{figure*}
 
