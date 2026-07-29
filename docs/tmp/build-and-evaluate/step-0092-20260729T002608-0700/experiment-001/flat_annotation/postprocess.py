@@ -718,11 +718,253 @@ task/agent families. It changes neither the fixed RQs nor the thesis,
     print(json.dumps(raw_results, sort_keys=True), flush=True)
 
 
+def report_incomplete() -> None:
+    """Record a terminal but unscorable full run without opening the oracle."""
+    ordinals = set(range(1, EXPECTED_SESSIONS + 1))
+    records = read_jsonl(EXPERIMENT / "annotation-run-records.jsonl")
+    latest = {int(row["ordinal"]): row for row in records}
+    if set(latest) != ordinals:
+        missing = sorted(ordinals - set(latest))
+        raise RuntimeError(f"not all trajectories are terminal; missing {missing[:5]}")
+
+    failures = [
+        {
+            "ordinal": int(row["ordinal"]),
+            "session": str(row["session"]),
+            "attempts": int(row["attempts"]),
+            "attempt_errors": [
+                list(attempt.get("errors") or [])
+                for attempt in row["attempt_records"]
+            ],
+        }
+        for row in latest.values()
+        if row.get("status") != "ok"
+    ]
+    if not failures:
+        raise RuntimeError("full run has no terminal failures; use full mode")
+
+    raw_stats = raw_annotation_stats(ordinals)
+    cost = base.annotation_cost(ordinals, configured_workers=4)
+    cost["worker_pattern"] = (
+        "isolated one-trajectory calls, up to 4 parallel workers; "
+        "one ordinary format retry"
+    )
+    cost["format_only_session_repairs"] = (
+        len(read_jsonl(EXPERIMENT / "format-repairs.jsonl"))
+        if (EXPERIMENT / "format-repairs.jsonl").is_file()
+        else 0
+    )
+    backend_timing = read_json(EXPERIMENT / "full-backend-timing.json")
+    population_started_unix = min(
+        float(attempt["started_unix"])
+        for row in latest.values()
+        for attempt in row["attempt_records"]
+    )
+    population_first_request_to_terminal_seconds = (
+        float(backend_timing["finished_unix"]) - population_started_unix
+    )
+    hierarchy = read_json(HIERARCHY_RAW_RESULTS)
+    hierarchy_metrics = hierarchy["methods"]["direct_multilevel"]
+
+    validity = {
+        "all_405_trajectories_terminal": len(latest) == EXPECTED_SESSIONS,
+        "all_405_trajectories_valid": int(cost["successful_trajectories"])
+        == EXPECTED_SESSIONS,
+        "declared_attempt_limit_respected": bool(cost["attempt_limit_valid"]),
+        "accepted_paths_root_plus_one_flat_name": bool(
+            raw_stats["all_paths_root_plus_one_flat_name"]
+        ),
+        "accepted_annotations_valid": set(raw_stats["invalid_annotations"])
+        == {118},
+        "full_population_pipeline_executed": False,
+        "oracle_or_score_rows_opened_for_flat_arm": False,
+        "partial_population_scored": False,
+        "paired_bootstrap_executed": False,
+    }
+    raw_results = {
+        "schema": "agentsight.same-model-flat-ablation.incomplete.v1",
+        "status": "incomplete",
+        "run_status": "terminal_format_failure",
+        "tested_hypothesis": "not evaluated",
+        "research_value": "retained operational evidence; no RQ3 score",
+        "paper_impact": "none; the matched ablation is not reportable",
+        "next_paper_decision": (
+            "Do not report hierarchy-minus-flat metrics from this run. Retain "
+            "Step 0087 as the adopted direct-hierarchy result; if the reviewer "
+            "control remains required, execute a new prospectively reviewed "
+            "complete flat arm rather than repair or score this population "
+            "post hoc."
+        ),
+        "population": {
+            "requested_sessions": EXPECTED_SESSIONS,
+            "terminal_sessions": len(latest),
+            "valid_sessions": int(cost["successful_trajectories"]),
+            "invalid_sessions": int(cost["failed_after_retry"]),
+            "turns": EXPECTED_TURNS,
+            "operations": EXPECTED_OPERATIONS,
+        },
+        "terminal_failures": failures,
+        "methods": {
+            "direct_variable_depth_hierarchy_reused_step_0087": hierarchy_metrics,
+            "same_model_flat": None,
+        },
+        "paired_hierarchy_minus_flat": {
+            "reported": False,
+            "reason": (
+                "One of 405 flat annotations remained invalid after the "
+                "predeclared retry policy; partial scoring is forbidden."
+            ),
+            "planned_resamples": 10_000,
+            "planned_seeds": {
+                "bcubed": 20_260_720,
+                "boundary": 20_260_722,
+            },
+        },
+        "recursive_refined_minus_direct": {
+            "reported": False,
+            "reason": (
+                "Step 0087 already is direct complete-hierarchy generation; "
+                "no distinct recursive/refined adopted arm exists."
+            ),
+        },
+        "annotation": {
+            "accepted_flat_annotations": raw_stats,
+            "hierarchy_step_0087": hierarchy["annotation"],
+        },
+        "cost": {
+            "flat_terminal_attempt": cost,
+            "hierarchy_step_0087": hierarchy["cost"],
+            "flat_resumed_full_command_wall_seconds": backend_timing[
+                "command_wall_seconds"
+            ],
+            "flat_pipeline_wall_seconds": None,
+            "flat_first_population_request_to_terminal_seconds": (
+                population_first_request_to_terminal_seconds
+            ),
+            "population_cost_includes_reused_preflight_trajectory": True,
+        },
+        "leakage": {
+            "source_packet_audit": "passed before model calls",
+            "prohibited_fields_absent": [
+                "stage",
+                "outcome",
+                "score",
+                "reward",
+                "target",
+                "label",
+            ],
+            "official_stages_opened_by_flat_pipeline": False,
+        },
+        "validity": validity,
+        "artifacts": {
+            "flat_raw_marks": relative(EXPERIMENT / "raw-marks"),
+            "flat_run_records": relative(
+                EXPERIMENT / "annotation-run-records.jsonl"
+            ),
+            "failed_attempt_1": relative(
+                EXPERIMENT / "raw-events" / "0118-attempt-1.jsonl"
+            ),
+            "failed_attempt_2": relative(
+                EXPERIMENT / "raw-events" / "0118-attempt-2.jsonl"
+            ),
+        },
+    }
+    write_json(EXPERIMENT / "raw-results.json", raw_results)
+
+    failure = failures[0]
+    report = f"""# Same-model flat-segmentation ablation
+
+Status: **INCOMPLETE / UNSCORED**
+
+## Outcome
+
+All 405 trajectories reached terminal status, but only 404 produced valid flat
+annotations under the registered initial-call plus one-format-retry policy.
+Ordinal {failure['ordinal']} (`{failure['session']}`) repeated an unchanged
+adjacent complete path on both attempts. That error is not the plan's sole
+permitted deterministic repair (an otherwise-valid top-level session-ID
+replacement). The response was therefore not altered.
+
+The frozen scorer, official stages, full-population assembly, canonicalization,
+pprof materialization, and paired bootstrap were not run. No 404/405 prefix was
+scored, so this experiment supplies no hierarchy-minus-flat estimate, precision,
+recall, F1, confidence interval, or paper-level RQ3 evidence.
+
+## Mechanism and completion audit
+
+- requested/terminal/valid trajectories: 405 / 405 / 404;
+- accepted flat marks: {raw_stats['marks']:,} across the 404 valid trajectories;
+- accepted raw path-depth distribution:
+  `{json.dumps(raw_stats['path_depths'], sort_keys=True)}`; every accepted path
+  is exactly the mandatory root plus one flat name;
+- accepted unique raw names including roots: {raw_stats['unique_raw_names']:,};
+- terminal failures after retry: {cost['failed_after_retry']};
+- ordinary retries: {cost['format_retries']};
+- deterministic format repairs: {cost['format_only_session_repairs']}.
+
+The exact Step 0087 source-packet audit found no stage, outcome, score, reward,
+target, or label fields. The flat pipeline did not open the official stages or
+score rows. The saved prompt diff and all 410 raw backend event streams remain
+available for audit.
+
+## Reused direct-hierarchy control
+
+Step 0087 already directly emits complete variable-depth paths in one isolated
+request per trajectory, explicitly without STOP/SPLIT recursion or iterative
+semantic refinement. It remains the requested direct-hierarchy control and was
+not rerun under a second name. Its complete adopted result is B-cubed
+P/R/F1 `{hierarchy_metrics['bcubed']['precision']:.6f}` /
+`{hierarchy_metrics['bcubed']['recall']:.6f}` /
+`{hierarchy_metrics['bcubed']['f1']:.6f}` and exact adjacent-boundary P/R/F1
+`{hierarchy_metrics['boundary']['precision']:.6f}` /
+`{hierarchy_metrics['boundary']['recall']:.6f}` /
+`{hierarchy_metrics['boundary']['f1']:.6f}` over 4,496 groups. No
+recursive/refined-minus-direct comparison exists because there is no genuinely
+distinct refined condition.
+
+## Backend cost to terminal status
+
+| Measure | Flat attempt |
+|---|---:|
+| Model calls | {cost['total_codex_calls']:,} |
+| Format retries | {cost['format_retries']:,} |
+| Input tokens | {cost['usage'].get('input_tokens', 0):,} |
+| Cached input tokens | {cost['usage'].get('cached_input_tokens', 0):,} |
+| Output tokens | {cost['usage'].get('output_tokens', 0):,} |
+| Reasoning-output tokens | {cost['usage'].get('reasoning_output_tokens', 0):,} |
+| Summed request time | {cost['summed_backend_wall_seconds']:.3f} s |
+| Union active request time | {cost['active_backend_wall_seconds']:.3f} s |
+| First population request to terminal status | {population_first_request_to_terminal_seconds:.3f} s |
+| Resumed full-command wall (excludes earlier reused preflight) | {backend_timing['command_wall_seconds']:.3f} s |
+| Downstream full-population pipeline | not run |
+
+The 410-call/token totals include the valid preflight trajectory because that
+annotation was reused as one of the 405 population members. The operational
+preflight completed that packet end to end; its score is not a paper result.
+
+## Next paper decision
+
+Do not report a hierarchy-minus-flat effect from this run and do not normalize
+the failed marks after seeing the failure. Retain the Step 0087 direct-hierarchy
+result. If the reviewer control is still required, run a newly planned,
+prospectively reviewed complete flat arm; do not present this terminal attempt
+as a scored result.
+
+This outcome changes neither the four fixed RQs nor the thesis,
+“Agent observability needs profiling, not only debugging.”
+"""
+    (EXPERIMENT / "results.md").write_text(report, encoding="utf-8")
+    print(json.dumps(raw_results, sort_keys=True), flush=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("preflight", "full"))
+    parser.add_argument("mode", choices=("preflight", "full", "incomplete"))
     args = parser.parse_args()
-    run_pipeline(args.mode)
+    if args.mode == "incomplete":
+        report_incomplete()
+    else:
+        run_pipeline(args.mode)
 
 
 if __name__ == "__main__":
