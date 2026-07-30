@@ -920,82 +920,20 @@ queries and measures.
 
 \paragraph{Case Study 3: From Profile to Repair.}
 % 案例研究 3：从 profile 到修复。
-
 The preceding experiments establish correspondence and inspection value; this
-case asks whether acting on one profile finding changes later real agent
-executions. We run ToolSandbox's official stateful scenarios and evaluator
-with a local tool-using agent~\cite{toolsandbox}.
-% 前述实验建立了对应关系和检查价值；本案例进一步询问：依据一个 profile 发现采取行动，是否会改变后续真实 agent 执行。我们使用 ToolSandbox 的官方有状态场景与 evaluator 运行本地 tool-using agent。
-One standard AgentProf pprof over eight real no-policy BEFORE traces contains
-21 tool operations. Stock pprof shows that 5/21 carry
-\texttt{call\_id:invalid} and \texttt{result:invalid-call-id}; four of those
-failures are followed by an exact same-tool, same-argument recovery repeat.
-% 一个覆盖 8 条真实 no-policy BEFORE trace 的标准 AgentProf pprof 含 21 个 tool operation；stock pprof 显示其中 5/21 带有 call_id:invalid 与 result:invalid-call-id，且四个失败之后出现同 tool、同参数的精确恢复重试。
-An independent analyst given only this profile and the experiment plan
-prioritizes the compatibility-layer call-ID boundary rather than suppressing
-the useful retries.
-% 一个只获得该 profile 与实验计划的独立 analyst 将 compatibility-layer call-ID 边界列为修复重点，而不是禁止这些有用重试。
-
-Inspection of that boundary reveals that the compatibility converter
-interpolates an opaque protocol call ID into executable Python source.
-The repair retains the original ID in assistant/tool protocol history but
-derives a separate Python-identifier-safe internal variable for execution;
-it does not change tool names, arguments, order, scenario state, user,
-agent policy, or evaluator.
-% 检查该边界发现 compatibility converter 把 opaque protocol call ID 插入可执行 Python source。修复在 assistant/tool 协议历史中保留原 ID，但为执行推导独立的 Python-identifier-safe 内部变量；tool 名称、参数、顺序、场景状态、用户、agent policy 与 evaluator 均不变。
-Exact-state replay of all 21 profiled operations reproduces every original
-BEFORE response and post-state, removes all five affected syntax failures,
-preserves all 21 protocol IDs, and leaves the responses and post-states of all
-16 valid-ID controls unchanged.
-% 对全部 21 个 profiled operation 的 exact-state replay 重现每个原始 BEFORE response 与 post-state，消除全部 5 个受影响语法错误，保留 21 个 protocol ID，并使 16 个 valid-ID control 的 response 与 post-state 全部不变。
-
-After development on eight scenarios, the unchanged repair runs on 23
-disjoint confirmation scenarios, each repeated three times. All 69
-BEFORE/repair pairs complete with the official evaluator and enter the
-intention-to-treat analysis (Table~\ref{tab:rq2-repair}).
-% 在 8 个场景上完成开发后，未改变的修复在与开发集分离的 23 个确认场景上各重复三次；全部 69 个 BEFORE/repair pair 均由官方 evaluator 完成并进入 intention-to-treat 分析。
-
-\begin{table}[tb]
-\centering\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}lrr@{}}
-\toprule
-Metric & BEFORE & Repair \\
-\midrule
-Raw invalid IDs & 28 & 19 \\
-Python syntax failures & 28 & \textbf{0} \\
-Agent model tokens & 211{,}222 & \textbf{171{,}139} \\
-Agent model calls & 255 & \textbf{227} \\
-Tool calls & 159 & \textbf{137} \\
-Turns & 457 & \textbf{401} \\
-Official similarity & .831 & .857 \\
-\bottomrule
-\end{tabular}
-\caption{Profile-derived converter repair on 23 ToolSandbox confirmation
-scenarios with three repetitions each (69 pairs, 138 episodes). Agent-token
-AFTER/BEFORE ratio is .810 (scenario-cluster 95\% interval [.734,.921]);
-the official-similarity delta is +.026 [-.022,.076].}
-\label{tab:rq2-repair}
-\end{table}
-
-Agent-side model tokens fall by 19.0\%, and model calls, tool calls, and turns
-fall with them. Official similarity changes from .831 to .857; its
-scenario-cluster interval passes the fixed $-.05$ non-inferiority margin but
-crosses zero, so this is an efficiency-with-non-inferior-quality result rather
-than a significant outcome-improvement claim.
-% Agent-side model token 降低 19.0%，model call、tool call 与 turn 同时下降；官方 similarity 从 .831 变为 .857，其 scenario-cluster 区间通过预设的 -0.05 非劣效界限但跨越零，因此这是质量非劣下的效率结果，而非显著 outcome improvement。
-The server does not request-seed its opaque-ID allocator, so the two arms
-encounter different numbers of raw invalid IDs; the 19.0\% reduction is the
-complete-run intention-to-treat effect, not a per-invalid-ID saving.
-This one compatibility-layer case does not measure human diagnosis time,
-establish that AgentProf is uniquely necessary, or generalize to other
-models, benchmarks, and defect classes.
-% 服务器不会按 request seed 控制 opaque-ID allocator，因此两臂遇到的 raw invalid ID 数不同；19.0% 降低是完整运行的 intention-to-treat 效应，而不是每个 invalid ID 的固定节省。这个 compatibility-layer 案例不测量人工诊断时间、不证明 AgentProf 唯一必要，也不泛化到其他模型、benchmark 与缺陷类别。
-Within those bounds, the case closes the profile-to-action loop: a standard
-profile isolates a recurring execution defect, the profile-derived repair
-removes that mechanism, and later real executions consume fewer model tokens
-without a material official-quality loss.
-% 在这些边界内，该案例闭合了 profile-to-action 回路：标准 profile 隔离重复执行缺陷，由 profile 导出的修复消除该机制，后续真实执行在官方质量无实质损失下消耗更少 model token。
+case tests whether a profile finding can guide an effective repair.
+A standard \sys profile over eight ToolSandbox scenarios isolates a recurring
+call-ID syntax failure (5/21 tool operations).
+A profile-only analyst---receiving only the pprof output, not raw
+traces---identifies the compatibility-layer boundary as the repair target.
+The derived one-line fix removes all syntax failures and, on 23 held-out
+confirmation scenarios (69 BEFORE/repair pairs), reduces agent-model tokens
+by 19.0\% while passing a fixed $-.05$ non-inferiority margin on official
+similarity (details in Appendix~\ref{app:rq2-repair}).
+% 前述实验建立对应关系和检查价值；本案例检验 profile 发现能否指导有效修复。
+% 一个覆盖 8 个 ToolSandbox 场景的标准 \sys profile 隔离出重复的 call-ID 语法失败（5/21 tool operation）。
+% 一个只接收 pprof 输出、不接触原始 trace 的 profile-only analyst 将 compatibility-layer 边界定为修复目标。
+% 导出的单行修复消除所有语法失败，并在 23 个 held-out 确认场景（69 个 BEFORE/repair pair）上将 agent-model token 降低 19.0%，同时通过预设的 -0.05 官方 similarity 非劣效界限（详见附录）。
 
 \subsection{Case Study 4: Profiling the Agents that Built This Profiler}
 % 案例研究 4：分析构建该 profiler 的智能体。
@@ -1413,6 +1351,86 @@ AgentProcessBench averages judge votes within a group. HINTBench and
 TraceElephant assign each root-to-frame prefix the 95\% Wilson lower
 bound~\cite{wilson1927} of its frozen positive-prediction fraction; an
 operation receives the maximum score over prefixes containing it.
+
+\subsection{RQ2 Repair Case Details}
+\label{app:rq2-repair}
+
+\paragraph{Setup.}
+We run ToolSandbox's official stateful scenarios and evaluator with a local
+tool-using agent~\cite{toolsandbox}.
+One standard \sys pprof over eight real no-policy BEFORE traces contains 21
+tool operations. Stock pprof shows that 5/21 carry \texttt{call\_id:invalid}
+and \texttt{result:invalid-call-id}; four of those failures are followed by an
+exact same-tool, same-argument recovery repeat.
+% 我们使用 ToolSandbox 的官方有状态场景与 evaluator 运行本地 tool-using agent。
+% 一个覆盖 8 条真实 no-policy BEFORE trace 的标准 \sys pprof 含 21 个 tool operation；stock pprof 显示其中 5/21 带有 call_id:invalid 与 result:invalid-call-id，且四个失败之后出现同 tool、同参数的精确恢复重试。
+
+\paragraph{Analyst and repair.}
+An independent analyst---a profile-only Codex agent that receives only the
+pprof output and experiment plan, without access to the raw traces or
+ToolSandbox internals---prioritizes the compatibility-layer call-ID boundary
+as the repair target rather than suppressing the useful retries.
+% 一个只获得该 profile 与实验计划的独立 analyst——profile-only Codex agent——将 compatibility-layer call-ID 边界列为修复重点，而不是禁止这些有用重试。
+
+Inspection of that boundary reveals that the compatibility converter
+interpolates an opaque protocol call ID into executable Python source. The
+repair retains the original ID in assistant/tool protocol history but derives
+a separate Python-identifier-safe internal variable for execution; it does not
+change tool names, arguments, order, scenario state, user, agent policy, or
+evaluator.
+% 检查该边界发现 compatibility converter 把 opaque protocol call ID 插入可执行 Python source。修复在 assistant/tool 协议历史中保留原 ID，但为执行推导独立的 Python-identifier-safe 内部变量；tool 名称、参数、顺序、场景状态、用户、agent policy 与 evaluator 均不变。
+
+\paragraph{Validation.}
+Exact-state replay of all 21 profiled operations reproduces every original
+BEFORE response and post-state, removes all five affected syntax failures,
+preserves all 21 protocol IDs, and leaves the responses and post-states of all
+16 valid-ID controls unchanged.
+% 对全部 21 个 profiled operation 的 exact-state replay 重现每个原始 BEFORE response 与 post-state，消除全部 5 个受影响语法错误，保留 21 个 protocol ID，并使 16 个 valid-ID control 的 response 与 post-state 全部不变。
+
+After development on eight scenarios, the unchanged repair runs on 23 disjoint
+confirmation scenarios, each repeated three times. All 69 BEFORE/repair pairs
+complete with the official evaluator and enter the intention-to-treat analysis
+(Table~\ref{tab:rq2-repair}).
+% 在 8 个场景上完成开发后，未改变的修复在与开发集分离的 23 个确认场景上各重复三次；全部 69 个 BEFORE/repair pair 均由官方 evaluator 完成并进入 intention-to-treat 分析。
+
+\begin{table}[h]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Metric & BEFORE & Repair \\
+\midrule
+Raw invalid IDs & 28 & 19 \\
+Python syntax failures & 28 & \textbf{0} \\
+Agent model tokens & 211{,}222 & \textbf{171{,}139} \\
+Agent model calls & 255 & \textbf{227} \\
+Tool calls & 159 & \textbf{137} \\
+Turns & 457 & \textbf{401} \\
+Official similarity & .831 & .857 \\
+\bottomrule
+\end{tabular}
+\caption{Profile-derived converter repair on 23 ToolSandbox confirmation
+scenarios with three repetitions each (69 pairs, 138 episodes). Agent-token
+AFTER/BEFORE ratio is .810 (scenario-cluster 95\% interval [.734,.921]); the
+official-similarity delta is +.026 [-.022,.076].}
+\label{tab:rq2-repair}
+\end{table}
+
+\paragraph{Interpretation.}
+Agent-side model tokens fall by 19.0\%, and model calls, tool calls, and turns
+fall with them. Official similarity changes from .831 to .857; its
+scenario-cluster interval passes the fixed $-.05$ non-inferiority margin but
+crosses zero, so this is an efficiency-with-non-inferior-quality result rather
+than a significant outcome-improvement claim.
+% Agent-side model token 降低 19.0\%，model call、tool call 与 turn 同时下降；官方 similarity 从 .831 变为 .857，其 scenario-cluster 区间通过预设的 -0.05 非劣效界限但跨越零，因此这是质量非劣下的效率结果，而非显著 outcome improvement。
+
+The server does not request-seed its opaque-ID allocator, so the two arms
+encounter different numbers of raw invalid IDs; the 19.0\% reduction is the
+complete-run intention-to-treat effect, not a per-invalid-ID saving. This one
+compatibility-layer case does not measure human diagnosis time, establish that
+\sys is uniquely necessary, or generalize to other models, benchmarks, and
+defect classes.
+% 服务器不会按 request seed 控制 opaque-ID allocator，因此两臂遇到的 raw invalid ID 数不同；19.0\% 降低是完整运行的 intention-to-treat 效应，而不是每个 invalid ID 的固定节省。这个 compatibility-layer 案例不测量人工诊断时间、不证明 \sys 唯一必要，也不泛化到其他模型、benchmark 与缺陷类别。
 
 \subsection{Agent-Mark Reconstruction Cost Detail}
 \label{app:agent-mark-reconstruction}
