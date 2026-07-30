@@ -1,0 +1,15 @@
+{
+  "diagnosis": "Candidate/bad runs overrepeat unchanged actions after no state change, especially clicks, no-ops, and scrolling, instead of revising the approach.",
+  "expected_mechanism": "Detecting unchanged-state retries and forcing reassessment should break unproductive loops and improve task progress. Costs are state-comparison overhead and occasional premature strategy changes when repetition is actually necessary.",
+  "policy_text": "Track each attempted action, target, relevant state, and outcome. If the same attempt fails to change state twice, do not repeat it unchanged: inspect current state, revise the hypothesis, choose a materially different action, or stop and report the blocker.",
+  "quantitative_evidence": [
+    {
+      "command": "go tool pprof -top -focus='result:repeated' -nodecount=25 agentreward-338-pairs-bad-minus-good.operations.pb.gz",
+      "finding": "The differential profile contains +1,261 repeated-result operations in bad runs, 11.31% of the profile total. Associated excesses include click +639, noop +356, and scroll +277; negative values for fill (-12) and select_option (-21) confirm the signal is specifically concentrated in repetitive non-progress behavior."
+    },
+    {
+      "command": "go tool pprof -traces -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz | sed -n '1,180p'",
+      "finding": "Individual candidate-side traces reproduce multi-step loops: one run repeats the same search click on consecutive steps, while another repeatedly clicks buy_tickets across many steps, each labeled result:repeated."
+    }
+  ]
+}

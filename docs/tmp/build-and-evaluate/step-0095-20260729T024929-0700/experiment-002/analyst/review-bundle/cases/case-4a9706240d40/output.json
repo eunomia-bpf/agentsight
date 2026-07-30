@@ -1,0 +1,15 @@
+{
+  "diagnosis": "Candidate/bad runs overrepresent repeated actions, especially repeated clicks, no-ops, and scrolling.",
+  "expected_mechanism": "Detecting unchanged outcomes forces strategy changes instead of retry loops, improving progress while adding only small state-comparison and replanning costs.",
+  "policy_text": "Before repeating an action, compare the latest observable state with the state before the previous attempt. If the action produced no relevant change, do not retry it unchanged; inspect the obstacle, alter the target or method, or stop and report the blocker.",
+  "quantitative_evidence": [
+    {
+      "command": "go tool pprof -top -nodecount=20 -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz",
+      "finding": "Repeated operations have a net candidate/bad excess of 1,261, equal to 11.31% of the profile total (11,146). Within this excess, repeated click contributes +639, no-op +356, and scroll +277."
+    },
+    {
+      "command": "go tool pprof -traces -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz | head -n 100",
+      "finding": "Individual candidate-side traces show the same action recurring across successive steps—for example, search clicks at steps 0006–0007 and buy-tickets clicks at steps 0007 and 0014–0018."
+    }
+  ]
+}

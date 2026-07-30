@@ -1,0 +1,21 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*' | sort && sed -n '1,5p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md\njq -r '[.value, .labels.source_session[0], .stack_frames[]] | @tsv' samples.jsonl | awk -F '\\\\t' '{for(i=3;i<=NF;i++) s[\"'$i]+=$1} END{for(k in s) print s[k]\"'\"\\\\t\\\"k}' | sort -nr | head -80\njq -s '{samples:length, net:(map(.value)|add), positive:(map(select(.value>0)|.value)|add), negative:(map(select(.value<0)|.value)|add), sessions:(map(.labels.source_session[0])|unique|length)}' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r 'select(.stack_frames[]==\\\"result:repeated\\\") | [.value,.labels.source_session[0],(.stack_frames|map(select(startswith(\\\"action:\\\") or startswith(\\\"strategy:\\\") or startswith(\\\"object:\\\")))|join(\\\"|\\\"))] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0){p+=$1; ps[$2]=1; pk[$3]+=$1}else{n+=-$1; ns[$2]=1; nk[$3]+=-$1}} END{for(x in ps)pc++;for(x in ns)nc++;print \"positive_ops\",p,\"positive_sessions\",pc,\"negative_ops\",n,\"negative_sessions\",nc; print \"--positive patterns--\";for(x in pk)print pk[x],x; print \"--negative patterns--\";for(x in nk)print nk[x],x}'\"' | sort -nr | head -30\njq -r 'select(.stack_frames[]==\\\"result:repeated\\\") | [.value, (.stack_frames|map(select(startswith(\\\"action:\\\")))[0])] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0)p[$2]+=$1;else n[$2]+=-$1} END{for(k in p) print k,p[k],n[k]+0,p[k]-(n[k]+0)}'\"' | sort -k4,4nr\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r 'select(.stack_frames[]==\\\"result:repeated\\\") | [.value,.labels.source_session[0]] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0){p+=$1; ps[$2]=1}else{n+=-$1; ns[$2]=1}} END{for(x in ps)pc++;for(x in ns)nc++;printf \"bad_repeated_ops=%d bad_sessions=%d good_repeated_ops=%d good_sessions=%d net_excess=%d ratio=%.3f'\"\\\\n\\\",p,pc,n,nc,p-n,p/n}'\njq -r '[.value,.labels.source_session[0],(.stack_frames|map(select(startswith(\\\"result:\\\")))[0])] | @tsv' samples.jsonl | awk -F '\\\\t' '\"'$3==\"result:repeated\"{if($1>0)p+=$1;else n+=-$1} {if($1>0)tp+=$1;else tn+=-$1} END{printf \"bad_repeat_share=%.4f (%d/%d) good_repeat_share=%.4f (%d/%d) share_ratio=%.3f'\"\\\\n\\\",p/tp,p,tp,n/tn,n,tn,(p/tp)/(n/tn)}'\"",
+      "type": "command_execution"
+    }
+  ]
+}

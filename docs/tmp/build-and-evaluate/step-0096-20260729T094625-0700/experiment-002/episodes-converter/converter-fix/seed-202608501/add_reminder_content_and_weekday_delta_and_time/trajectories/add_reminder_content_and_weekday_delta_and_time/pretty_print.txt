@@ -1,0 +1,53 @@
+Note that User Simulator few shot messages have been omitted
+shape: (17, 8)
+┌────────────┬────────────┬────────────┬───────────┬───────────┬───────────┬───────────┬───────────┐
+│ sandbox_me ┆ sender     ┆ recipient  ┆ content   ┆ openai_fu ┆ tool_call ┆ tool_trac ┆ visible_t │
+│ ssage_inde ┆ ---        ┆ ---        ┆ ---       ┆ nction_na ┆ _exceptio ┆ e         ┆ o         │
+│ x          ┆ enum       ┆ enum       ┆ str       ┆ me        ┆ n         ┆ ---       ┆ ---       │
+│ ---        ┆            ┆            ┆           ┆ ---       ┆ ---       ┆ list[str] ┆ list[enum │
+│ i32        ┆            ┆            ┆           ┆ str       ┆ str       ┆           ┆ ]         │
+╞════════════╪════════════╪════════════╪═══════════╪═══════════╪═══════════╪═══════════╪═══════════╡
+│ 0          ┆ SYSTEM     ┆ EXECUTION_ ┆ import    ┆ null      ┆ null      ┆ null      ┆ null      │
+│            ┆            ┆ ENVIRONMEN ┆ json      ┆           ┆           ┆           ┆           │
+│            ┆            ┆ T          ┆ from tool ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ _sandbox. ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ …         ┆           ┆           ┆           ┆           │
+│ 1          ┆ SYSTEM     ┆ AGENT      ┆ Don't     ┆ null      ┆ null      ┆ null      ┆ null      │
+│            ┆            ┆            ┆ make assu ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ mptions   ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ about w…  ┆           ┆           ┆           ┆           │
+│ 14         ┆ SYSTEM     ┆ USER       ┆ You are   ┆ null      ┆ null      ┆ null      ┆ null      │
+│            ┆            ┆            ┆ no longer ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ an assist ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ ant…      ┆           ┆           ┆           ┆           │
+│ 15         ┆ USER       ┆ AGENT      ┆ Remind me ┆ null      ┆ null      ┆ null      ┆ null      │
+│            ┆            ┆            ┆ to buy    ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ chocolate ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ mil…      ┆           ┆           ┆           ┆           │
+│ 16         ┆ AGENT      ┆ USER       ┆ To set    ┆ null      ┆ null      ┆ null      ┆ ["AGENT", │
+│            ┆            ┆            ┆ this      ┆           ┆           ┆           ┆ "USER"]   │
+│            ┆            ┆            ┆ reminder, ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ I need t… ┆           ┆           ┆           ┆           │
+│ …          ┆ …          ┆ …          ┆ …         ┆ …         ┆ …         ┆ …         ┆ …         │
+│ 24         ┆ AGENT      ┆ EXECUTION_ ┆ call_2f5c ┆ add_remin ┆ null      ┆ null      ┆ ["AGENT", │
+│            ┆            ┆ ENVIRONMEN ┆ 14cb0c435 ┆ der       ┆           ┆           ┆ "EXECUTIO │
+│            ┆            ┆ T          ┆ 304b06d4b ┆           ┆           ┆           ┆ N_ENVIRON │
+│            ┆            ┆            ┆ f5_…      ┆           ┆           ┆           ┆ ME…       │
+│ 25         ┆ EXECUTION_ ┆ AGENT      ┆ 'c7e32803 ┆ add_remin ┆ null      ┆ ["{"tool_ ┆ ["EXECUTI │
+│            ┆ ENVIRONMEN ┆            ┆ -6a46-474 ┆ der       ┆           ┆ name":    ┆ ON_ENVIRO │
+│            ┆ T          ┆            ┆ c-becf-f7 ┆           ┆           ┆ "add_remi ┆ NMENT",   │
+│            ┆            ┆            ┆ 9e8…      ┆           ┆           ┆ nder"…    ┆ "AGE…     │
+│ 26         ┆ AGENT      ┆ USER       ┆ I've set  ┆ null      ┆ null      ┆ null      ┆ ["AGENT", │
+│            ┆            ┆            ┆ a         ┆           ┆           ┆           ┆ "USER"]   │
+│            ┆            ┆            ┆ reminder  ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ for you   ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ to…       ┆           ┆           ┆           ┆           │
+│ 27         ┆ USER       ┆ EXECUTION_ ┆ ci8ZOEMU1 ┆ null      ┆ null      ┆ null      ┆ ["USER",  │
+│            ┆            ┆ ENVIRONMEN ┆ MWwxnfERL ┆           ┆           ┆           ┆ "EXECUTIO │
+│            ┆            ┆ T          ┆ rDlZHUtbB ┆           ┆           ┆           ┆ N_ENVIRON │
+│            ┆            ┆            ┆ 4rY…      ┆           ┆           ┆           ┆ MEN…      │
+│ 28         ┆ EXECUTION_ ┆ USER       ┆ None      ┆ null      ┆ null      ┆ ["{"tool_ ┆ ["EXECUTI │
+│            ┆ ENVIRONMEN ┆            ┆           ┆           ┆           ┆ name":    ┆ ON_ENVIRO │
+│            ┆ T          ┆            ┆           ┆           ┆           ┆ "end_conv ┆ NMENT",   │
+│            ┆            ┆            ┆           ┆           ┆           ┆ ersat…    ┆ "USE…     │
+└────────────┴────────────┴────────────┴───────────┴───────────┴───────────┴───────────┴───────────┘

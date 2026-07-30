@@ -1,0 +1,12 @@
+{
+  "actual_commands": [
+    "/bin/bash -lc \"pwd && rg --files -g '*'\"",
+    "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,8p' samples.jsonl\"",
+    "/bin/bash -lc \"jq -r '[.stack_frames[0], .value] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0){p[$1]+=$2;pc[$1]++}else{n[$1]+=-$2;nc[$1]++}} END{for(k in p) printf \"%s'\"\\\\tbad=%d\\\\tgood=%d\\\\texcess=%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t= -k4,4nr | head -30\njq -r '[.stack_frames[2], .value] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0)p[$1]+=$2;else n[$1]+=-$2} END{for(k in p) printf \"%s'\"\\\\tbad=%d\\\\tgood=%d\\\\texcess=%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t= -k4,4nr | head -30\njq -r '[.stack_frames[0],.stack_frames[2],.value] | @tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$1\" | \"$2;if($3>0)p[k]+=$3;else n[k]+=-$3} END{for(k in p) printf \"%s'\"\\\\tbad=%d\\\\tgood=%d\\\\texcess=%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t= -k4,4nr | head -30\"",
+    "/bin/bash -lc \"jq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.labels.comparison_side[0],.labels.source_session[0],.value] | @tsv' samples.jsonl | awk -F '\\\\t' '{side=\"'$1; total[side]+=$3; seen[side SUBSEP $2]=1} END{for(k in seen){split(k,a,SUBSEP); sessions[a[1]]++} for(s in total) printf \"%s'\"\\\\toperations=%d\\\\tdistinct_sessions=%d\\\\n\\\",s,(total[s]<0?-total[s]:total[s]),sessions[s]}' | sort\njq -r '[.labels.comparison_side[0],.value] | @tsv' samples.jsonl | awk -F '\\\\t' '{v=\"'$2<0?-$2:$2; n[$1]+=v} END{for(s in n) print s,n[s]}'\"' | sort\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.labels.comparison_side[0],.stack_frames[2],.value] | @tsv' samples.jsonl | awk -F '\\\\t' '{v=\"'$3<0?-$3:$3; x[$1 SUBSEP $2]+=v} END{for(k in x){split(k,a,SUBSEP); print a[1],a[2],x[k]}}'\"' | sort -k1,1 -k3,3nr | head -20\""
+  ],
+  "exit_code": 0,
+  "instruction": "Every command was launched with the evidence directory as its working directory. Audit whether it attempted to read outside that directory.",
+  "schema": "agentsight.utility.analyst-review-execution.v1",
+  "status": "ok"
+}

@@ -1,0 +1,15 @@
+{
+  "diagnosis": "Candidate/bad runs overrepeat actions instead of changing strategy after ineffective attempts, especially clicks, no-ops, and scrolls.",
+  "expected_mechanism": "Tracking recent attempts and requiring a materially different next step after repetition should interrupt unproductive loops. This should improve progress and completion while adding only small state-tracking and replanning costs.",
+  "policy_text": "Track recent action–target–outcome tuples. Before acting, detect whether the proposed step repeats an ineffective tuple. After one retry, require a materially different strategy, target, or information-gathering step; if none exists, stop and report the blocker. Permit repetition only when new evidence makes success plausibly more likely.",
+  "quantitative_evidence": [
+    {
+      "command": "jq -s 'def side: if .value>0 then \"candidate/bad\" else \"base/good\" end; group_by(side) | map({side:(.[0]|side), operations:(map(.value|abs)|add), repeated:(map(select(.stack_frames[0]==\"result:repeated\")|.value|abs)|add // 0), repeated_rate_pct:((map(select(.stack_frames[0]==\"result:repeated\")|.value|abs)|add // 0)*100/(map(.value|abs)|add))})' samples.jsonl",
+      "finding": "Candidate/bad has 1,485 repeated operations out of 7,366 (20.16%); base/good has 224 out of 3,780 (5.93%). The candidate/bad repetition rate is 3.40× higher."
+    },
+    {
+      "command": "jq -r 'select(.stack_frames[0]==\"result:repeated\") | [(if .value>0 then \"bad\" else \"good\" end), .stack_frames[2], (.value|abs)]|@tsv' samples.jsonl | awk -F '\\t' '{k=$1 FS $2;n[k]+=$3} END{for(k in n) print k,n[k]}' | sort -k3,3nr | head -20",
+      "finding": "Repeated clicks are 679 in bad versus 40 in good, and repeated scrolls are 278 versus 1. Repeated no-ops are also elevated: 441 versus 85."
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "diagnosis": "Repeated passive waiting/no-op behavior is overrepresented in candidate/bad runs.",
+  "expected_mechanism": "A bounded wait budget prevents unproductive polling loops and forces a state-changing recovery action or termination. Expected benefit: fewer repeated operations and faster progress. Cost: premature recovery on genuinely slow interfaces and extra state bookkeeping.",
+  "policy_text": "Track consecutive waits or no-ops for each unchanged observable state. After two, do not wait again: inspect once, then choose a state-changing alternative, recover, or stop with the blocker. Reset the counter only when new evidence or state change appears.",
+  "quantitative_evidence": [
+    {
+      "command": "jq -r '[.value, .stack_frames[3]] | @tsv' samples.jsonl | awk -F '\\t' '$2==\"strategy:wait\"{if($1>0)p+=$1;else n+=-$1} END{printf \"candidate=%d base=%d net=%+d ratio=%.2f\\n\",p,n,p-n,p/n}'",
+      "finding": "Wait operations total 505 on the candidate/bad side versus 122 on the base/good side: +383 excess and 4.14× as many."
+    },
+    {
+      "command": "jq -r 'select(.stack_frames[3]==\"strategy:wait\") | [.value,.stack_frames[2]] | @tsv' samples.jsonl | awk -F '\\t' '{p+=($1>0?$1:0);n+=($1<0?-$1:0);a[$2]+=$1} END{printf \"candidate=%d base=%d net=%+d action_noop_net=%+d\\n\",p,n,p-n,a[\"action:noop\"]}'",
+      "finding": "Every wait is an action:noop; its signed excess is likewise +383."
+    },
+    {
+      "command": "jq -r 'select(.stack_frames[3]==\"strategy:wait\") | [.value,.stack_frames[0]] | @tsv' samples.jsonl | awk -F '\\t' '$2==\"result:repeated\"{if($1>0)p+=$1;else n+=-$1} END{printf \"candidate=%d base=%d net=%+d\\n\",p,n,p-n}'",
+      "finding": "Wait/no-op operations marked result:repeated total 441 candidate/bad versus 85 base/good, a +356 excess and 5.19× ratio."
+    }
+  ]
+}

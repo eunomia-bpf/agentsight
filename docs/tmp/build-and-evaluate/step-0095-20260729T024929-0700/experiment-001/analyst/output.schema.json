@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "diagnosis": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "expected_mechanism": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "policy_text": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "quantitative_evidence": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "command": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "finding": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "command",
+          "finding"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "diagnosis",
+    "quantitative_evidence",
+    "policy_text",
+    "expected_mechanism"
+  ],
+  "type": "object"
+}

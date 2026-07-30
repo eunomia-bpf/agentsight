@@ -1,0 +1,21 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*'\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,8p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.stack_frames[0], (if .value>0 then \\\"bad\\\" else \\\"good\\\" end), (.value|abs), .labels.source_session[0]] | @tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$1 FS $2; n[k]+=$3; s[k FS $4]=1} END {for(k in n){q=0; for(x in s) if(index(x,k FS)==1) q++; print k, n[k], q}}'\"' | sort -k1,1 -k2,2\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -s '{bad_total:([.[]|select(.value>0)|.value]|add),good_total:([.[]|select(.value<0)|-.value]|add),bad_repeated:([.[]|select(.value>0 and .stack_frames[0]==\\\"result:repeated\\\")|.value]|add),good_repeated:([.[]|select(.value<0 and .stack_frames[0]==\\\"result:repeated\\\")|-.value]|add),bad_sessions:([.[]|select(.value>0 and .stack_frames[0]==\\\"result:repeated\\\")|.labels.source_session[0]]|unique|length),good_sessions:([.[]|select(.value<0 and .stack_frames[0]==\\\"result:repeated\\\")|.labels.source_session[0]]|unique|length)}' samples.jsonl\njq -s '[.[]|select(.stack_frames[0]==\\\"result:repeated\\\")|.value]|add' samples.jsonl\"",
+      "type": "command_execution"
+    }
+  ]
+}

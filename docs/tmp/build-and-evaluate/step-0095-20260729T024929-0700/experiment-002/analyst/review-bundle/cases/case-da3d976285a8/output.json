@@ -1,0 +1,19 @@
+{
+  "diagnosis": "Candidate/bad runs overrepeat actions without gaining new state. Repeated operations are 3.40× as prevalent in candidate runs (20.16%) as in base runs (5.93%), with a signed excess of 1,261 operations. Clicking, no-op, and scrolling account for most of that excess.",
+  "expected_mechanism": "Detecting unchanged state after an action and requiring a materially different next step prevents retry loops. Expected benefit: fewer wasted operations and more progress. Expected cost: state comparison plus occasional premature abandonment of a retry that might have succeeded.",
+  "policy_text": "After any action, compare the resulting state with the prior state. If the same action or an equivalent action produces no material change twice, do not repeat it again; diagnose the blocker, change strategy or target, or stop and report the limitation.",
+  "quantitative_evidence": [
+    {
+      "command": "jq -s 'def side($p): map(select(if $p then .value>0 else .value<0 end)); {candidate_ops:(side(true)|map(.value)|add), base_ops:(side(false)|map(-.value)|add), candidate_repeated:(side(true)|map(select(.stack_frames[0]==\"result:repeated\")|.value)|add), base_repeated:(side(false)|map(select(.stack_frames[0]==\"result:repeated\")|-.value)|add)}' samples.jsonl",
+      "finding": "Candidate: 1,485 repeated of 7,366 operations (20.16%). Base: 224 repeated of 3,780 operations (5.93%). Ratio: 3.40×; signed candidate excess: +1,261."
+    },
+    {
+      "command": "jq -r 'select(.stack_frames[0]==\"result:repeated\") | [.stack_frames[2], (.value|tostring)] | @tsv' samples.jsonl | awk -F '\\t' '{sum[$1]+=$2; if($2>0)pos[$1]+=$2;else neg[$1]+=-$2} END{for(k in sum) printf \"%d\\t%d\\t%d\\t%s\\n\",sum[k],pos[k],neg[k],k}' | sort -nr | head -3",
+      "finding": "The leading repeated-action excesses are click: +639 (679 candidate versus 40 base), noop: +356 (441 versus 85), and scroll: +277 (278 versus 1)."
+    },
+    {
+      "command": "jq -s 'def side($p): map(select(if $p then .value>0 else .value<0 end)); {candidate_sessions_with_repeated:(side(true)|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length), candidate_sessions:(side(true)|map(.labels.source_session[0])|unique|length), base_sessions_with_repeated:(side(false)|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length), base_sessions:(side(false)|map(.labels.source_session[0])|unique|length)}' samples.jsonl",
+      "finding": "Repeated behavior appears in 88/238 candidate-labeled sessions (36.97%) versus 20/202 base-labeled sessions (9.90%), a 3.74× prevalence ratio."
+    }
+  ]
+}

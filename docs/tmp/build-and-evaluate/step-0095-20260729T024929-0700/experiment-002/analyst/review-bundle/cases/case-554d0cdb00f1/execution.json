@@ -1,0 +1,25 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*'\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,8p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.stack_frames[0], (.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{s[\"'$1]+=$2; if($2>0)p[$1]+=$2; else n[$1]+=-$2} END{for(k in s) print s[k],p[k]+0,n[k]+0,k}'\"' | sort -nr | head -30\njq -r '[.stack_frames[2], (.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{s[\"'$1]+=$2; if($2>0)p[$1]+=$2; else n[$1]+=-$2} END{for(k in s) print s[k],p[k]+0,n[k]+0,k}'\"' | sort -nr | head -30\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.labels.source_session[0],(.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{s[\"'$1]+=$2; if($2>0)p[$1]=1; else n[$1]=1} END{for(k in s){net+=s[k]; ps+=p[k]; ns+=n[k]; if(s[k]>0)npos++; else if(s[k]<0)nneg++} print \"net\",net,\"candidate_sessions\",ps,\"base_sessions\",ns,\"netpos_sessions\",npos,\"netneg_sessions\",nneg,\"all_sessions\",length(s)}'\"'\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.value, .stack_frames[0]]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0){P+=$1;if($2==\"result:repeated\")PR+=$1}else{N+=-$1;if($2==\"result:repeated\")NR+=-$1}} END{printf \"candidate_total=%d candidate_repeated=%d candidate_rate=%.4f base_total=%d base_repeated=%d base_rate=%.4f rate_ratio=%.2f net_excess=%d'\"\\\\n\\\",P,PR,PR/P,N,NR,NR/N,(PR/P)/(NR/N),PR-N}'\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.stack_frames[2],(.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{s[\"'$1]+=$2;p[$1]+=($2>0?$2:0);n[$1]+=($2<0?-$2:0)} END{for(k in s) print s[k],p[k]+0,n[k]+0,k}'\"' | sort -nr | head -12\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.stack_frames[1],(.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{s[\"'$1]+=$2;p[$1]+=($2>0?$2:0);n[$1]+=($2<0?-$2:0)} END{for(k in s) print s[k],p[k]+0,n[k]+0,k}'\"' | sort -nr | head -12\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -s '{candidate_total:(map(select(.value>0)|.value)|add),candidate_repeated:(map(select(.value>0 and .stack_frames[0]==\\\"result:repeated\\\")|.value)|add),base_total:(map(select(.value<0)|-.value)|add),base_repeated:(map(select(.value<0 and .stack_frames[0]==\\\"result:repeated\\\")|-.value)|add)} | . + {candidate_rate:(.candidate_repeated/.candidate_total),base_rate:(.base_repeated/.base_total),rate_ratio:((.candidate_repeated/.candidate_total)/(.base_repeated/.base_total)),net_excess:(.candidate_repeated-.base_repeated)}' samples.jsonl\njq -s 'map(select(.stack_frames[0]==\\\"result:repeated\\\")) | {candidate_distinct_sessions:(map(select(.value>0)|.labels.source_session[0])|unique|length),base_distinct_sessions:(map(select(.value<0)|.labels.source_session[0])|unique|length),candidate_count:(map(select(.value>0)|.value)|add),base_count:(map(select(.value<0)|-.value)|add)}' samples.jsonl\"",
+      "type": "command_execution"
+    }
+  ]
+}

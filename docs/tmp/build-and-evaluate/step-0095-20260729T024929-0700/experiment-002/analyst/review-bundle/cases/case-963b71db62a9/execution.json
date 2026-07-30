@@ -1,0 +1,17 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*' && wc -l samples.jsonl && sed -n '1,3p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md; jq -r '[.value, (.stack_frames[] | select(startswith(\\\"action:\\\"))), (.stack_frames[] | select(startswith(\\\"strategy:\\\"))), (.stack_frames[] | select(startswith(\\\"result:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$2\"'\"\\\\t\\\"\"'$3\"'\"\\\\t\\\"\"'$4; s[k]+=$1} END {for(k in s) print s[k],k}'\"' | sort -nr | head -40\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.value, (.stack_frames[]|select(startswith(\\\"result:\\\"))), (.stack_frames[]|select(startswith(\\\"action:\\\"))), .labels.source_session[0]]|@tsv' samples.jsonl | awk -F '\\\\t' '\"'$2==\"result:repeated\" {if($1>0){p+=$1; ps[$4]=1; pa[$3]+=$1}else{n+=-$1; ns[$4]=1; na[$3]+=-$1}} END {for(x in ps) pc++; for(x in ns) nc++; print \"positive_repeated\",p,\"sessions\",pc; print \"negative_repeated\",n,\"sessions\",nc; print \"net\",p-n; for(a in pa) print a,\"positive\",pa[a],\"negative\",na[a]+0,\"net\",pa[a]-na[a]}'\"' | sort -k1,1 -k2,2nr; jq -r '[.value, (.stack_frames[]|select(startswith(\\\"result:\\\")))]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0){p[$2]+=$1; tp+=$1}else{n[$2]+=-$1;tn+=-$1}} END {print \"all_positive\",tp,\"all_negative\",tn; for(k in p) print k,p[k],n[k]+0,p[k]-n[k]}'\"' | sort -k4,4nr | head -20\"",
+      "type": "command_execution"
+    }
+  ]
+}

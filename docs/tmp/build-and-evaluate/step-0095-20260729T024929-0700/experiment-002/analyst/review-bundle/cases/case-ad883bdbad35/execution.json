@@ -1,0 +1,21 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*' | sort | sed -n '1,120p'\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,8p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.stack_frames[0], (.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0)p[$1]+=$2;else n[$1]+=-$2} END {for(k in p) printf \"%s'\"\\\\tbad=%d\\\\tgood=%d\\\\texcess=%d\\\\tratio=%.3f\\\\n\\\",k,p[k],n[k],p[k]-n[k],n[k]?p[k]/n[k]:999}' | sort -t= -k4,4nr | head -30\njq -r '[.stack_frames[2], (.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0)p[$1]+=$2;else n[$1]+=-$2} END {for(k in p) printf \"%s'\"\\\\tbad=%d\\\\tgood=%d\\\\texcess=%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t= -k4,4nr | head -30\njq -s '{bad:([.[]|select(.value>0)|.value]|add),good:([.[]|select(.value<0)|-.value]|add),lines:length}' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [(.value|if .>0 then \\\"bad\\\" else \\\"good\\\" end), .labels.source_session[0], ((.value|abs)|tostring)] | @tsv' samples.jsonl | awk -F '\\\\t' '{sum[\"'$1]+=$3; seen[$1 SUBSEP $2]=1} END {for(s in sum){n=0;for(k in seen){split(k,a,SUBSEP);if(a[1]==s)n++} printf \"%s repeated_ops=%d sessions=%d'\"\\\\n\\\",s,sum[s],n}}'\njq -r '[if .value>0 then \\\"bad\\\" else \\\"good\\\" end, (.stack_frames[0]==\\\"result:repeated\\\"), ((.value|abs)|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{tot[\"'$1]+=$3;if($2==\"true\")rep[$1]+=$3} END{for(s in tot)printf \"%s repeated=%d total=%d rate=%.2f%%'\"\\\\n\\\",s,rep[s],tot[s],100*rep[s]/tot[s]}'\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.stack_frames[2],(.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0)p[$1]+=$2;else n[$1]+=-$2} END{for(k in p)printf \"%s'\"\\\\tbad=%d\\\\tgood=%d\\\\texcess=%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t= -k4,4nr\"",
+      "type": "command_execution"
+    }
+  ]
+}

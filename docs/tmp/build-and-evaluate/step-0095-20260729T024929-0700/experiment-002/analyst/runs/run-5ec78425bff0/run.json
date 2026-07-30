@@ -1,0 +1,98 @@
+{
+  "actual_tool_commands": [
+    {
+      "command": "/bin/bash -lc \"pwd && rg --files -g '\"'!.*'\"'\"",
+      "event_index": 4,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,12p' samples.jsonl\"",
+      "event_index": 6,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"jq -r '[.stack_frames[0], (.value|tostring)] | @tsv' samples.jsonl | awk -F '\\\\t' '{sum[\"'$1]+=$2; if($2>0)pos[$1]+=$2; else neg[$1]+=-$2} END {for(k in sum) printf \"%d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",sum[k],pos[k],neg[k],k}' | sort -nr | head -30\njq -r '[.stack_frames[2], .stack_frames[1], (.value|tostring)] | @tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$1\" | \"$2; sum[k]+=$3; if($3>0)pos[k]+=$3; else neg[k]+=-$3} END {for(k in sum) printf \"%d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",sum[k],pos[k],neg[k],k}' | sort -nr | head -30\"",
+      "event_index": 8,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"jq -s 'def side(\"'$p): map(select(if $p then .value>0 else .value<0 end)); {candidate_ops:(side(true)|map(.value)|add), base_ops:(side(false)|map(-.value)|add), candidate_repeated:(side(true)|map(select(.stack_frames[0]==\"result:repeated\")|.value)|add), base_repeated:(side(false)|map(select(.stack_frames[0]==\"result:repeated\")|-.value)|add), candidate_sessions_with_repeated:(side(true)|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length), base_sessions_with_repeated:(side(false)|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length), candidate_sessions:(side(true)|map(.labels.source_session[0])|unique|length), base_sessions:(side(false)|map(.labels.source_session[0])|unique|length)}'\"' samples.jsonl\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.stack_frames[2], (.value|tostring)] | @tsv' samples.jsonl | awk -F '\\\\t' '{sum[\"'$1]+=$2; if($2>0)pos[$1]+=$2;else neg[$1]+=-$2} END{for(k in sum) printf \"%d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",sum[k],pos[k],neg[k],k}' | sort -nr | head -15\"",
+      "event_index": 10,
+      "type": "command_execution"
+    }
+  ],
+  "command": [
+    "timeout",
+    "900",
+    "codex",
+    "exec",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-5.6-sol",
+    "--sandbox",
+    "read-only",
+    "--cd",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst-packages/RAW-OPERATIONS",
+    "--output-schema",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/output.schema.json",
+    "--json",
+    "--output-last-message",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/runs/run-5ec78425bff0/final.json",
+    "You are an independent agent-performance analyst.\n\nYour current directory is the complete and only evidence package you may\ninspect. Do not read, search, or infer from any path outside it. Do not use the\ninternet. Identify exactly one recurring behavior that is overrepresented in\ncandidate/bad agent runs relative to base/good runs. Cite reproducible commands\nand quantitative evidence from this package. Then propose one benchmark- and\ndomain-agnostic addition to an agent system policy, at most 60 English words,\nthat addresses the behavior. State the expected success/cost mechanism.\n\nDo not mention or speculate about any downstream evaluation. Do not modify\nfiles. Return only the JSON object required by the supplied output schema.\n\nEvidence format:\nThe evidence is a flat JSONL lossless decode of the\nsame differential pprof samples. Use shell, `jq`, or Python to aggregate\n`samples.jsonl`. Positive values are candidate/bad excess; negative values are\nbase/good excess."
+  ],
+  "event_count": 12,
+  "event_receipts_sha256": "5f9fb839d13f43125003603690495c7b3e5f1376f748f8b6551fa4ced21e1180",
+  "events_sha256": "5dcfbf0efbcb15a37a156b64f6d6ca9e6ce3610eeb00db041f0968c333e3ce83",
+  "exit_code": 0,
+  "final_exists": true,
+  "final_response_elapsed_seconds": 48.06809915904887,
+  "final_response_received_at": "2026-07-29T12:00:52.146658+00:00",
+  "final_sha256": "4660c6b3a7769386bbee8230dbe747756d94a0d090f443698ceeab3f7520b2a9",
+  "finished_at": "2026-07-29T12:00:52.462084+00:00",
+  "first_event_at": "2026-07-29T12:00:04.630681+00:00",
+  "first_event_elapsed_seconds": 0.5521354930242524,
+  "last_event_at": "2026-07-29T12:00:52.173245+00:00",
+  "last_event_elapsed_seconds": 48.09467518806923,
+  "model_turns": 1,
+  "provider_usage_events": [
+    {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 94208,
+      "input_tokens": 123822,
+      "output_tokens": 1877,
+      "reasoning_output_tokens": 226
+    }
+  ],
+  "provider_usage_totals": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 94208,
+    "input_tokens": 123822,
+    "output_tokens": 1877,
+    "reasoning_output_tokens": 226
+  },
+  "run": {
+    "arm": "RAW-OPERATIONS",
+    "arm_rank": 4,
+    "block_id": "block-83999ab0c9a5",
+    "block_index": 4,
+    "package": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst-packages/RAW-OPERATIONS",
+    "position": 7,
+    "prompt_file": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/prompts/run-5ec78425bff0.txt",
+    "prompt_sha256": "b048c33cb00a2aea12d0e6090a7e3534bfb30adfbf81bc9196a512201a2cebcf",
+    "run_id": "run-5ec78425bff0",
+    "within_block_order": 1
+  },
+  "schema": "agentsight.utility2.analyst-run.v1",
+  "started_at": "2026-07-29T12:00:04.078480+00:00",
+  "status": "ok",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "telemetry_error": null,
+  "tool_call_counts": {
+    "command_execution": 4
+  },
+  "tool_call_total": 4,
+  "wall_seconds": 48.38340946601238
+}

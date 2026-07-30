@@ -1,0 +1,17 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*' && sed -n '1,5p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md && jq -r '[.value,.stack_frames[0],.stack_frames[2],.stack_frames[3],.stack_frames[4]]|@tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$2\" | \"$3\" | \"$4; s[k]+=$1; n[k]++} END {for(k in s) print s[k],n[k],k}'\"' | sort -nr | head -30\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -s 'def stats: {operations:(map(.value)|add), tuples:length, sessions:(map(.labels.source_session[0])|unique|length)}; {repeated_bad:(map(select(.stack_frames[0]==\\\"result:repeated\\\" and .value>0))|stats), repeated_good:(map(select(.stack_frames[0]==\\\"result:repeated\\\" and .value<0)|.value=-.value)|stats), all_bad:(map(select(.value>0))|stats), all_good:(map(select(.value<0)|.value=-.value)|stats)}' samples.jsonl\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.stack_frames[2],.value] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0)p[$1]+=$2; else n[$1]-=$2} END {for(k in p) printf \"%s'\"\\\\tbad=%d\\\\tgood=%d\\\\texcess=%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t= -k4,4nr\"",
+      "type": "command_execution"
+    }
+  ]
+}

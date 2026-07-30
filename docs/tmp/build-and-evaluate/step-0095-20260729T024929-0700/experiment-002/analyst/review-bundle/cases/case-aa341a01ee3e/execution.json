@@ -1,0 +1,21 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*' && sed -n '1,3p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md\njq -r '[.value, (.stack_frames[]|select(startswith(\\\"action:\\\"))), (.stack_frames[]|select(startswith(\\\"strategy:\\\"))), (.stack_frames[]|select(startswith(\\\"subtask:\\\")))]|@tsv' samples.jsonl | awk -F '\\\\t' '{a[\"'$2]+=$1;s[$3]+=$1;u[$4]+=$1} END {for(k in a) print \"ACTION\",a[k],k; for(k in s) print \"STRATEGY\",s[k],k; for(k in u) print \"SUBTASK\",u[k],k}'\"' | sort -k2,2nr | head -80\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.value, (.stack_frames[]|select(startswith(\\\"action:\\\")))]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0)p[$2]+=$1; else n[$2]+=-$1} END{for(k in p) printf \"%s'\"\\\\t%d\\\\t%d\\\\t%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]; for(k in n) if(\"'!(k in p)) printf \"%s'\"\\\\t0\\\\t%d\\\\t%d\\\\n\\\",k,n[k],-n[k]}' | sort -t \"'$'\"'\\\\t' -k4,4nr\njq -r '[.value, (.stack_frames[]|select(startswith(\\\"strategy:\\\")))]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0)p[$2]+=$1; else n[$2]+=-$1} END{for(k in p) printf \"%s'\"\\\\t%d\\\\t%d\\\\t%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]; for(k in n) if(\"'!(k in p)) printf \"%s'\"\\\\t0\\\\t%d\\\\t%d\\\\n\\\",k,n[k],-n[k]}' | sort -t \"'$'\"'\\\\t' -k4,4nr\njq -r '.value' samples.jsonl | awk '{if(\"'$1>0)p+=$1;else n+=-$1}END{print \"TOTAL\",p,n,p-n}'\"'\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.value, (.stack_frames[]|select(startswith(\\\"result:\\\")))]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0)p[$2]+=$1; else n[$2]+=-$1} END{for(k in p) printf \"%s'\"\\\\t%d\\\\t%d\\\\t%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]; for(k in n) if(\"'!(k in p)) printf \"%s'\"\\\\t0\\\\t%d\\\\t%d\\\\n\\\",k,n[k],-n[k]}' | sort -t \"'$'\"'\\\\t' -k4,4nr\njq -r 'select(any(.stack_frames[]; .==\\\"strategy:inspect\\\" or .==\\\"strategy:navigate\\\")) | [.value, (.stack_frames[]|select(startswith(\\\"strategy:\\\")))]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0)p[$2]+=$1;else n[$2]+=-$1} END{for(k in p) printf \"%s %d %d %.2f'\"\\\\n\\\", k,p[k],n[k],p[k]/n[k]}'\"",
+      "type": "command_execution"
+    }
+  ]
+}

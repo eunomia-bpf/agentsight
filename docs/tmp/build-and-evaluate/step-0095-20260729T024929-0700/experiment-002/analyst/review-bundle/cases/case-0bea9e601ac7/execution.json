@@ -1,0 +1,13 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*.pb' -g '*.pb.gz' -g '\"'!**/.git/**'\"' && go tool pprof -top ./*.pb.gz\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"profile=agentreward-338-pairs-bad-minus-good.operations.pb.gz\ngo tool pprof -top -nodecount=20 -focus='result:repeated' \\\"\"'$profile\"\ngo tool pprof -top -nodecount=20 -focus='\"'strategy:(inspect|navigate|wait)' \\\"\"'$profile\"\ngo tool pprof -tags \"$profile\"\ngo tool pprof -traces -focus='\"'result:repeated' \\\"\"'$profile\"'",
+      "type": "command_execution"
+    }
+  ]
+}

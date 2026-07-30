@@ -4,9 +4,11 @@
 
 - **Fixed paper RQ:** RQ3 — “How Accurate Are the Tags?”
 - **Paper thesis preserved:** “Agent observability needs profiling, not only debugging.”
-- **Uncertainty:** Do current AgentProf canonical, root-stripped semantic leaf IDs
-  identify the same independently defined ToolSandbox milestone across fresh
-  runs better than the strongest source-native action signature?
+- **Uncertainty:** Within repeated executions of one official ToolSandbox
+  scenario, do current AgentProf canonical, root-stripped semantic leaf IDs
+  identify the same exact one-to-one action-linked achieved milestone across
+  fresh runs better than a predeclared value/result-aware source-native action
+  signature?
 - **Role:** external, programmatic cross-run identity test. This is not another
   CodeTrace retrieval analysis and does not reuse Step 0060's retired
   completion-boundary predictions.
@@ -26,29 +28,33 @@ until an offline official-oracle replay passes.
 
 ## Hypothesis and paper-value gate
 
-**Hypothesis.** Across repeated executions of the same official ToolSandbox
-scenario, current canonical root-stripped semantic leaf IDs align with achieved
-official milestone-node identities better than the source-native
-`tool name + argument-key signature + action kind` baseline.
+**Hypothesis.** Within repeated executions of each official ToolSandbox
+scenario, current canonical root-stripped semantic leaf IDs align with exact
+one-to-one action-linked achieved official milestone-node identities better
+than the source-native value/result-aware signature defined below.
 
-Paper admission requires the **complete 3,551-trajectory population** and all of:
+The balanced screen is a futility gate, not confirmatory evidence. Paper
+admission requires the **untouched 3,107-trajectory confirmatory remainder** and
+all of:
 
 1. exact offline replay succeeds without a heuristic subgoal parser on every
-   predeclared eligible milestone occurrence;
-2. candidate ordinary B-cubed F1 exceeds the strongest source-native baseline;
-3. the 95% complete-scenario bootstrap interval for the paired F1 difference is
-   wholly positive;
+   predeclared eligible exact action-linked milestone occurrence;
+2. candidate scenario-macro ordinary B-cubed F1 exceeds the frozen
+   value/result-aware source-native baseline and the conservative envelope of
+   every registered source-native baseline;
+3. the 95% complete-scenario bootstrap intervals for both paired differences
+   are wholly positive on the untouched remainder;
 4. candidate B-cubed precision and recall are both non-degenerate and neither
    root-only nor prompt-only identity matches the candidate;
-5. exact-visible-string exclusion, model/persona-condition, and trial-index
-   sensitivities preserve the direction;
+5. model/persona-condition and trial-index sensitivities preserve the direction,
+   and any registered pre-inference cue-masked sensitivity does not reverse it;
 6. a new independent reviewer reconstructs the oracle population, primary
    scores, and bootstrap without invoking the authoritative scorer.
 
-The balanced 444-trajectory screen described below can only authorize the full
-run. It cannot enter the paper. If its candidate-minus-baseline interval is not
-wholly positive, stop with a valid negative result and do not spend on the full
-population.
+The all-3,551 score is descriptive/secondary because the screen was observed
+before the remainder was authorized. If the screen interval is not wholly
+positive, stop with a valid negative result. If the untouched remainder fails
+either confirmatory interval, the result is not admitted to the paper.
 
 ## Frozen sources
 
@@ -98,16 +104,33 @@ Inference must not read:
 - Step 0060 gold or prediction fields;
 - replay results or scorer rows.
 
-The adapter writes inference packets and oracle rows in separate directories.
-The model-facing process receives only the packet directory. The scorer opens
-gold only after every selected response is frozen and hashed.
+The stages run as separate processes with auditable argv, working directory, and
+opened-file manifests:
 
-Gold labels are opaque `(scenario_id, official_milestone_node_index)` pairs, not
-literal taxonomy strings. Before inference, nevertheless enumerate exact
-official constraint-function, database-namespace, column, tool, and action
-strings and their occurrences in every model-visible field. Record a sensitivity
-that excludes milestone occurrences with an exact scorer-signature string in
-the active visible action.
+1. the packet/oracle builder may open raw trajectories and official scenarios;
+2. the annotator may open only opaque packets and the response schema;
+3. the canonicalizer may open only source operations and frozen marks;
+4. the scorer may open only frozen predictions and gold rows.
+
+The builder writes packets and oracle rows in separate directories. No
+`scenario_id`, source path, condition, trial, model, persona, outcome, official
+object, or gold-derived value may appear in an annotator-visible ID, filename,
+working directory, prompt, environment variable, or run-record field. The
+scorer opens gold only after every selected response is frozen and hashed.
+
+Here “model” means the source trajectory's model/condition. The annotator
+necessarily receives and records the fixed annotation backend
+`gpt-5.6-sol`; that backend identifier is not source metadata.
+
+Gold labels are opaque `(scenario_id, official_milestone_node_index)` pairs.
+Before inference, enumerate these exact literal strings in every model-visible
+field; their occurrence count must be zero. Separately inventory official
+constraint functions, namespaces, columns, tool names, argument keys/values,
+and target strings as **gold-definition features**, not target-label strings.
+Post-hoc removal of rows whose action contains such a feature is not a leakage
+test. Any optional feature sensitivity must instead build and hash a second
+packet population before inference, mask the same cue from both candidate and
+baselines, and pay for independent annotations of that population.
 
 ## Official offline replay
 
@@ -116,27 +139,88 @@ official ToolSandbox checkout.
 
 For each raw trajectory:
 
-1. reconstruct the initial databases from the first recorded state;
-2. replay ordered user, assistant, tool-call, tool-result, and database-update
-   records into a ToolSandbox `ExecutionContext` with exact source order and
-   snapshot indices;
-3. instantiate the official scenario and invoke its unchanged
-   `MilestoneMatcher`;
-4. verify the official DAG and mapping;
-5. retain only achieved milestone nodes whose score is mechanically exact and
-   whose matching snapshot maps to recorded source actions;
-6. exclude response-only nodes that require ROUGE or another textual similarity
-   oracle;
-7. map every retained milestone occurrence to exactly one visible atomic action.
+1. flatten the raw messages in exact source order;
+2. pair every call and result by exact call ID, never list position; abort an
+   ambiguous or duplicate pairing, including a reordered parallel-call case
+   that cannot be resolved exactly;
+3. reconstruct initial databases from the first recorded full state;
+4. replay user, assistant, call, result, and database-update records into a
+   ToolSandbox `ExecutionContext` with exact snapshot indices;
+5. reconstruct a successful `tool_trace` only when the raw result is reversibly
+   typed by the official representation (JSON or exact Python-literal
+   round-trip) and the reserialized value equals the source; otherwise classify
+   it as non-reversible and exclude trace-dependent action linkage;
+6. require exact equality for every primitive actually present in raw: flattened
+   role/content order, call ID/name/arguments, result, and database update;
+7. round-trip project the reconstructed `ExecutionContext` back to that frozen
+   raw primitive sequence and require exact equality; hash reconstructed native
+   SANDBOX rows and namespace snapshots as explicitly derived artifacts, never
+   claim that those native hashes independently existed in raw;
+8. instantiate the official scenario and invoke its unchanged
+   `MilestoneMatcher`; verify the official DAG and optimized mapping.
 
-Multiple milestone nodes may match one action; each remains a distinct gold
-occurrence and receives the same active predicted leaf. Unmatched actions are
-retained for boundary/coverage accounting but are not invented as labeled
-milestones.
+The unchanged matcher remains the **achievement oracle**, but its optimized
+snapshot is not silently reinterpreted as a causal first-achievement mapping.
+A separate frozen action-link eligibility predicate is applied to that selected
+snapshot:
+
+- every constraint composition for the node is on the predeclared exact
+  allowlist below, and matcher-selected node similarity is exactly 1;
+- for a constrained state namespace, similarity at the immediately preceding
+  source snapshot is 0, the selected index contains a delta in that namespace,
+  and exactly one call-ID-linked raw tool-result action records the complete
+  database update producing that delta;
+- for an accepted tool-trace constraint, the selected snapshot contains exactly
+  one exact call-ID-linked tool action and a reversible typed trace;
+- the selected physical action carries exactly one eligible official milestone
+  node.
+
+For a constraint that references a predecessor or another milestone, compute
+both selected- and prior-snapshot similarity using the unchanged matcher's
+already frozen selected mapping for every referenced node. Never recompute or
+remap a reference to make the `0→1` test pass.
+
+Eligibility is explicitly two-stage. First classify each node provisionally
+from its frozen composition, exact score transition, and unique action link.
+Then group provisional nodes by physical action and retain an occurrence only
+when that action has exactly one provisional node. This second stage removes
+zero-node and multi-node actions without circularly defining node eligibility.
+
+Exclude initial-state matches, persistent-state matches without a delta at the
+matcher-selected snapshot, response/user-selected snapshots, ambiguous
+parallel calls, non-reversible results, zero-node actions, and actions carrying
+multiple nodes. Do not remap a non-causal official snapshot to an earlier
+action. The retained items are named **exact one-to-one action-linked official
+milestone occurrences**. Unmatched actions and excluded milestones contribute
+only to eligibility/coverage accounting.
+
+Before any annotation, enumerate every official node's complete composition:
+snapshot constraint function, namespace, target columns, effective default or
+overridden column comparators, reference node, and guardrail. The allowlist is:
+
+- direct binary state comparisons whose every constrained column uses
+  `column_exact_match_similarity`;
+- direct tool-trace comparisons using
+  `column_tool_trace_exact_match_similarity`;
+- `addition_similarity`, `removal_similarity`, or `update_similarity` only when
+  all constrained target columns use exact comparators and every reference
+  snapshot is already exactly action-linked;
+- `tool_trace_dependant_similarity` only when both the reference trace and
+  derived target trace are reversible and the final comparison is exact;
+- binary `guardrail_similarity` only as a consistency condition, never as a
+  standalone occurrence.
+
+Exclude a node if any effective constraint uses ROUGE, substring/contains,
+continuous/tolerance, semantic/textual, or otherwise non-binary comparison,
+including SANDBOX `content`, MESSAGING/REMINDER `content`, and CONTACT
+`relationship` under their default comparators. `similarity == 1` does not
+override this exclusion. Freeze and hash the node inventory and report node and
+occurrence counts for every exclusion reason before annotations exist.
 
 Replay is invalid if it needs description parsing, task-prompt parsing, manual
-labels, fuzzy tool-name rules, hand-written per-scenario cases, or a changed
-official constraint. Invalid replay stops the experiment before inference.
+labels, fuzzy tool-name rules, hand-written per-scenario cases, a changed
+official constraint, or AgentReward `progress_rates`/`subgoal_validations`.
+Invalid replay stops the experiment before inference.
 
 ## Candidate and baselines
 
@@ -154,19 +238,43 @@ The scored candidate is the active canonical **root-stripped leaf ID** at the
 source action mapped to each official milestone occurrence. The root is never a
 candidate identity.
 
+The source packet preserves the current Step 0087 granularity: marks may start
+only at a packet user turn's `first_operation_id`. ToolSandbox user turns often
+contain several atomic actions, so all actions in such a turn receive the same
+active path. The builder must not atomize those actions into synthetic turns.
+This known construct mismatch is retained in primary identity scoring and
+reported as a limitation; the experiment makes no atomic boundary-accuracy
+claim.
+
 ### Main baseline
 
-The main source-native identity is:
+The frozen value/result-aware source-native identity is:
 
-`normalized tool name + sorted normalized argument-key set + action kind`
+`normalized tool name + canonical complete argument JSON + success/error class
++ changed database namespace/column set + action kind`
 
-It uses only fields visible to the candidate at that atomic action. Missing
-tools use the explicit response/action kind, never generated text content.
+Canonical JSON preserves typed argument values, recursively sorts object keys,
+preserves list order, and uses no gold, scenario, outcome, or model output.
+Success is assigned only by an exact reversible result round-trip; otherwise the
+source exception class or explicit non-reversible class is used. Database-delta
+features contain namespace and changed-column names, not gold target values.
+Missing tools use the explicit response/action kind and empty argument/result/
+delta sentinels, never generated response text. The normalization source and
+hash are frozen before outputs.
+
+For a conservative paper gate, each bootstrap replicate also forms a
+**source-native envelope** equal to the maximum scenario-macro F1 among all
+registered source-native baselines below. Candidate-minus-envelope must have a
+wholly positive confirmatory interval; no post-hoc baseline choice is allowed.
 
 ### Controls and ablations
 
 - tool name only;
 - action kind only;
+- tool name + sorted argument-key set + action kind;
+- tool name + canonical complete arguments + action kind;
+- success/error class + changed namespace/column set;
+- ordered source-native signatures for the containing user turn;
 - operation leaf before canonicalization;
 - canonical root only;
 - opaque prompt hash/root-only task identity;
@@ -188,7 +296,13 @@ The official scenario must expose six milestone nodes and edges
 `[(0,1),(0,2),(1,4),(2,3),(3,4),(4,5)]`. The preflight must:
 
 - rebuild the real `ExecutionContext`;
-- map only mechanically exact achieved nodes to source actions;
+- reconcile every flattened message, call-ID pairing, typed result, database
+  update, SANDBOX row, and namespace snapshot;
+- run the unchanged official matcher, then apply the separate frozen
+  one-to-one action-link eligibility predicate without remapping snapshots;
+- inventory the full comparator composition for all six nodes and exclude the
+  textual/fuzzy node(s) before annotation;
+- map only exact one-to-one action-linked achieved nodes to source actions;
 - reconcile source/tool/action counts;
 - create one opaque current-backend packet;
 - complete one real annotation call;
@@ -202,48 +316,71 @@ If any check fails, stop and report the concrete replay limitation.
 
 For every one of 37 scenarios and each of 12 model/persona conditions, choose
 the lowest trial index containing that scenario. This yields exactly 444
-trajectories, independent of outcomes and annotations. Freeze the selected
-sequence list before model calls.
+trajectories, independent of outcomes and annotations. Before any call, freeze
+and hash both the 444 screen manifest and its disjoint 3,107-trajectory
+remainder manifest.
 
 Run all 444 through the current backend. Score the complete screen and bootstrap
-whole scenario IDs 10,000 times with seed `20260729`. Stop as a valid negative
-unless the candidate-minus-main-baseline B-cubed F1 interval is wholly positive
-and the root/prompt controls do not match the candidate.
+whole eligible scenario IDs 10,000 times with seed `20260729`. Stop as a valid
+negative unless both candidate-minus-main-baseline and
+candidate-minus-source-native-envelope scenario-macro B-cubed F1 intervals are
+wholly positive and the root/prompt controls do not match the candidate.
 
-### Phase C: complete population
+### Phase C: untouched confirmatory remainder
 
-Only a passed balanced screen authorizes the remaining trajectories. Reuse the
-444 valid responses and annotate every other source trajectory, for 3,551 total.
-Paper admission uses only the full population and its independent review.
+Only a passed screen authorizes annotation of the already frozen disjoint 3,107
+remainder. Paper admission uses only this untouched remainder and its
+independent review. It must pass the same two wholly positive scenario-bootstrap
+intervals and all registered controls. After this decision, combine the frozen
+screen and remainder only for a descriptive all-3,551 estimate; the combined
+score cannot rescue a failed confirmation.
 
 ## Metrics
 
 Primary:
 
-- ordinary B-cubed precision, recall, and F1 over all retained official
-  milestone occurrences, with gold clusters
-  `(scenario_id, milestone_node_index)`;
-- candidate-minus-main-baseline B-cubed F1;
-- 10,000 paired percentile-bootstrap replicates over complete scenario IDs.
+- within each eligible scenario, ordinary B-cubed precision, recall, and F1 over
+  exact one-to-one action-linked occurrences, using official node index as the
+  task-relative gold cluster;
+- unweighted macro means of the per-scenario B-cubed precision, recall, and F1;
+- candidate-minus-frozen-main-baseline and candidate-minus-source-native-
+  envelope scenario-macro B-cubed F1;
+- 10,000 paired percentile-bootstrap replicates over complete eligible scenario
+  IDs, seed `20260729`.
+
+Primary inclusion requires a gold node cluster to occur in at least two
+distinct trajectories and at least two model/persona conditions, and an
+eligible scenario to contain at least two such node identities. Freeze this
+oracle-only inclusion before predictions. The estimand is identity conditional
+on exact one-to-one action-linked achievement; it is not milestone achievement
+or detection recall.
 
 Secondary:
 
 - homogeneity, completeness, and V-measure;
-- cross-session same-ID pair precision, recall, and F1, excluding within-run
-  pairs;
-- exact milestone-boundary precision, recall, and F1 over atomic actions;
+- within-scenario cross-session same-ID pair precision, recall, and F1, where
+  different nodes in the same scenario are negatives and cross-scenario pairs
+  are never treated as known non-equivalences;
+- population-global B-cubed over `(scenario_id, node_index)` as a clearly
+  misalignment-prone diagnostic only;
+- coarse turn-boundary diagnostics, explicitly not atomic boundary accuracy;
 - eligible milestone/action coverage;
 - per-scenario, condition, model/persona, and trial-index results;
 - all registered controls and sensitivities.
 
-No pairwise or operation bootstrap is permitted. The 37-scenario conditional
-interval does not imply a general population of arbitrary agent tasks.
+No pairwise, occurrence, operation, or within-scenario trajectory bootstrap is
+permitted. A duplicated scenario in a bootstrap draw contributes a duplicated
+precomputed scenario statistic; gold clusters are never merged across draws.
+The 37-scenario conditional interval does not imply a general population of
+arbitrary agent tasks or cross-scenario semantic equivalence.
 
 ## Cost and validity controls
 
 The Step 0087 complete run used 415 calls, 12.05M input tokens, 231,886 output
 tokens, and 2,215.9 seconds active backend wall for 405 trajectories. Phase B is
-similar in call count. Phase C is expected to be about 8.8 times that run.
+similar in call count. The untouched Phase C remainder is expected to be about
+7.7 times that run; screen plus remainder is about 8.8 times that run. Phase C
+is not authorized unless Phase B passes.
 
 One ordinary format retry per trajectory is permitted. A third attempt requires
 a concrete plan amendment before it runs. Concurrency is at most four. Partial
@@ -255,7 +392,9 @@ directories are not cleaned destructively.
 Research artifacts remain under this experiment directory:
 
 - plan and independent plan review;
-- input/source manifest and selected-screen manifest;
+- input/source, selected-screen, and untouched-remainder manifests;
+- per-process argv, working-directory, environment-key, and opened-file access
+  manifests;
 - replay audit, oracle rows, and model-visible packets;
 - raw annotations and run records;
 - source-only canonical marks/predictions;
@@ -268,9 +407,18 @@ experiment does not edit the paper, `docs/user-instruction.md`,
 
 The plan must receive independent `APPROVE` before adapter implementation.
 After Phase A, an independent reviewer must audit replay faithfulness before
-Phase B inference. After any full score, another reviewer independently
-recomputes the oracle population, primary scores, and bootstrap. Only an
-accepted full result may be summarized as positive evidence; all negative or
-invalid outcomes remain experiment records and are summarized only in
+Phase B inference. After the screen score, a reviewer must verify that the
+stopping decision and disjoint remainder were frozen without leakage. After any
+confirmatory score, another reviewer independently recomputes the oracle
+population, primary scores, baseline envelope, and bootstrap. Only an accepted
+untouched-remainder result may be summarized as positive evidence; all negative
+or invalid outcomes remain experiment records and are summarized only in
 `docs/evaluation.md`.
 
+The maximum admissible positive claim is: within repeated official ToolSandbox
+scenarios, and conditional on exact one-to-one action-linked milestone
+achievement, root-stripped AgentProf leaf IDs align with recurring task-relative
+milestone nodes better than the predeclared source-native signatures. The
+experiment does not establish global semantic equivalence, arbitrary-task
+generalization, causal first achievement, milestone detection recall, or atomic
+boundary accuracy.

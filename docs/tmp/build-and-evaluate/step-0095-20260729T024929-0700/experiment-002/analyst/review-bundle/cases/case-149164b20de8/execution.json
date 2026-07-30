@@ -1,0 +1,21 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '\"'!.*'\"' && sed -n '1,5p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '. as \"'$s | .stack_frames[] | [., $s.value] | @tsv'\"' samples.jsonl | awk -F '\\\\t' '{sum[\"'$1]+=$2; pos[$1]+=($2>0?$2:0); neg[$1]+=($2<0?-$2:0); n[$1]++} END {for(k in sum) printf \"%+d'\"\\\\t%d\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",sum[k],pos[k],neg[k],n[k],k}' | sort -nr | head -80\njq -r '[.value, (.labels.source_session[0]), (.stack_frames[3] // \\\"\\\"), (.stack_frames[2] // \\\"\\\"), (.stack_frames[1] // \\\"\\\"), (.stack_frames[0] // \\\"\\\")] | @tsv' samples.jsonl | awk -F '\\\\t' '{key=\"'$3; s[key]+=$1; p[key]+=($1>0?$1:0); n[key]+=($1<0?-$1:0); c[key]++} END{for(k in s) printf \"%+d'\"\\\\t%d\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",s[k],p[k],n[k],c[k],k}' | sort -nr\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md\njq -r '[.value, .stack_frames[3], .labels.source_session[0]] | @tsv' samples.jsonl | awk -F '\\\\t' '\"'$2==\"strategy:wait\"{if($1>0){p+=$1; ps[$3]+=$1}else{n+=-$1; ns[$3]+=-$1}} END{for(k in ps){u++; if(ns[k]>0)b++; if(ps[k]>ns[k])x++} for(k in ns) if(!(k in ps)) onlyn++; printf \"candidate_weight=%d base_weight=%d net=%+d sessions_candidate=%d sessions_both=%d sessions_candidate_excess=%d sessions_base_only=%d'\"\\\\n\\\",p,n,p-n,u,b,x,onlyn}'\njq -r '[.value, .stack_frames[3], .labels.source_session[0]] | @tsv' samples.jsonl | awk -F '\\\\t' '\"'$2==\"strategy:wait\"{s[$3]+=$1;p[$3]+=($1>0?$1:0);n[$3]+=($1<0?-$1:0)} END{for(k in s) printf \"%+d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",s[k],p[k],n[k],k}' | sort -nr | head -20\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r 'select(.stack_frames[3]==\\\"strategy:wait\\\") | [.value,.stack_frames[2],.stack_frames[0]] | @tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$2; s[k]+=$1;p[k]+=($1>0?$1:0);n[k]+=($1<0?-$1:0)} END{for(k in s) printf \"%+d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",s[k],p[k],n[k],k}' | sort -nr | head -20\njq -r 'select(.stack_frames[3]==\\\"strategy:wait\\\") | [.value,.stack_frames[0]] | @tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$2;s[k]+=$1;p[k]+=($1>0?$1:0);n[k]+=($1<0?-$1:0)} END{for(k in s) printf \"%+d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",s[k],p[k],n[k],k}' | sort -nr | head -20\"",
+      "type": "command_execution"
+    }
+  ]
+}

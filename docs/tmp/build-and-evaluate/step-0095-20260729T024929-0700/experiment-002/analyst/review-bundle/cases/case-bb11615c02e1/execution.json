@@ -1,0 +1,25 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '\"'!.*'\"'\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,5p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.stack_frames[0],.stack_frames[2],.stack_frames[3],(.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{for(i=1;i<=3;i++){k=\"'$i; s[k]+=$4; if($4>0)p[k]+=$4; else n[k]-=$4}} END{for(k in s) printf \"%+d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",s[k],p[k],n[k],k}' | sort -nr | head -40\njq -r '[.stack_frames[2],.stack_frames[1],.value]|@tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$1\" | \"$2;s[k]+=$3;if($3>0)p[k]+=$3;else n[k]-=$3} END{for(k in s)printf \"%+d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",s[k],p[k],n[k],k}' | sort -nr | head -30\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r 'select(.stack_frames[2]==\\\"action:scroll\\\" or .stack_frames[2]==\\\"action:noop\\\" or .stack_frames[2]==\\\"action:click\\\") | [.stack_frames[2],(if .value>0 then \\\"bad\\\" else \\\"good\\\" end),(.value|fabs),.labels.source_session[0]] | @tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$1 SUBSEP $2; ops[k]+=$3; seen[k SUBSEP $4]=1} END{for(k in ops){split(k,a,SUBSEP); ns=0; for(x in seen){split(x,b,SUBSEP);if(b[1]==a[1]&&b[2]==a[2])ns++} print a[1],a[2],ops[k],ns}}'\"' | sort\njq -r '[if .value>0 then \\\"bad\\\" else \\\"good\\\" end, (.value|fabs)]|@tsv' samples.jsonl | awk -F '\\\\t' '{s[\"'$1]+=$2;n[$1]++} END{for(k in s)print k,s[k],n[k]}'\"'\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[if .value>0 then \\\"bad\\\" else \\\"good\\\" end,.labels.source_session[0],(.value|fabs),(.stack_frames[2]==\\\"action:scroll\\\")]|@tsv' samples.jsonl | awk -F '\\\\t' '{key=\"'$1 SUBSEP $2; total[key]+=$3; side[key]=$1;if($4==\"true\")scroll[key]+=$3} END{for(k in total){s=side[k]; sessions[s]++; ops[s]+=total[k]; sc[s]+=scroll[k]; if(scroll[k]>=2) rep[s]++; if(scroll[k]>0) any[s]++} for(s in sessions) printf \"%s sessions=%d operations=%d scrolls=%d scroll_share=%.4f any_scroll=%d repeated_scroll_sessions=%d'\"\\\\n\\\",s,sessions[s],ops[s],sc[s],sc[s]/ops[s],any[s],rep[s]}' | sort\"",
+      "type": "command_execution"
+    }
+  ]
+}

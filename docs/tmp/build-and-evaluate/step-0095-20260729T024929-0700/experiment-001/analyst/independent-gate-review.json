@@ -1,0 +1,25 @@
+{
+  "schema": "agentsight.utility.independent-analyst-gate-review.v1",
+  "status": "FAIL",
+  "classification": "valid-negative",
+  "reviewer_task": "/root/utility_analyst_gate_review",
+  "recomputed": {
+    "profile_valid": 3,
+    "raw_operations_valid": 3,
+    "profile_median_valid_answer_seconds": 36.61417778907344,
+    "raw_operations_median_valid_answer_seconds": 52.547242522006854,
+    "profile_median_provider_tokens": 126571,
+    "raw_operations_median_provider_tokens": 126066,
+    "profile_minus_raw_median_tokens": 505,
+    "relative_token_difference": 0.004005838211730284
+  },
+  "literal_rule": "PROFILE validity no lower than RAW, lower PROFILE median time, and no higher PROFILE median provider tokens among valid outputs",
+  "failed_clause": "no higher PROFILE median provider tokens",
+  "conclusions": [
+    "PROFILE bounded analyst efficiency does not pass.",
+    "No 744-episode downstream result can make experiment-001 paper-eligible because admission rule 4 is conjunctive.",
+    "The 505-token excess cannot be ignored, assigned a tolerance post hoc, or traded against time under the current plan.",
+    "Stop experiment-001 before ToolSandbox preflight/full execution and preserve the negative finding.",
+    "Any continuation must be a clearly labeled prospectively preregistered iteration with fresh analyst runs and a scientifically justified efficiency rule."
+  ]
+}

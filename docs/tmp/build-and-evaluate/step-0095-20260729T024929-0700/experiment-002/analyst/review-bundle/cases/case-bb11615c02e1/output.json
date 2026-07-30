@@ -1,0 +1,15 @@
+{
+  "diagnosis": "Candidate/bad runs overuse scrolling: 661 scroll operations versus 141 in base/good runs. Scrolling represents 8.97% versus 3.73% of all operations, a 2.40× normalized overrepresentation. Repeated scrolling (at least twice per session) occurs in 39 bad versus 18 good sessions.",
+  "expected_mechanism": "The policy caps low-information repetition and forces state reassessment or a strategy change. Expected success is fewer wasted operations and less looping; expected cost is extra reasoning and occasional premature abandonment when further scrolling would have helped.",
+  "policy_text": "After two consecutive instances of the same exploratory action without new task-relevant information, stop repeating it. Reassess the current state, state what evidence is missing, and either choose a materially different action or terminate with the best supported result.",
+  "quantitative_evidence": [
+    {
+      "command": "jq -r '[if .value>0 then \"bad\" else \"good\" end,(.value|fabs),(.stack_frames[2]==\"action:scroll\")]|@tsv' samples.jsonl | awk -F '\\t' '{ops[$1]+=$2;if($3==\"true\")sc[$1]+=$2} END{for(s in ops)printf \"%s operations=%d scrolls=%d share=%.4f\\n\",s,ops[s],sc[s],sc[s]/ops[s]}' | sort",
+      "finding": "bad: 7,366 operations, 661 scrolls, share 0.0897; good: 3,780 operations, 141 scrolls, share 0.0373. The bad/good scroll-share ratio is 2.40."
+    },
+    {
+      "command": "jq -r '[if .value>0 then \"bad\" else \"good\" end,.labels.source_session[0],(.value|fabs),(.stack_frames[2]==\"action:scroll\")]|@tsv' samples.jsonl | awk -F '\\t' '{k=$1 SUBSEP $2;side[k]=$1;if($4==\"true\")sc[k]+=$3} END{for(k in side){s=side[k];if(sc[k]>0)any[s]++;if(sc[k]>=2)rep[s]++}for(s in any)printf \"%s any_scroll=%d repeated_scroll_sessions=%d\\n\",s,any[s],rep[s]}' | sort",
+      "finding": "Scrolling appears in 44 bad versus 23 good sessions; at least two scrolls occur in 39 bad versus 18 good sessions."
+    }
+  ]
+}

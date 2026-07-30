@@ -1,0 +1,123 @@
+{
+  "actual_tool_commands": [
+    {
+      "command": "/bin/bash -lc \"pwd && rg --files -g 'manifest.json' -g 'review-output.schema.json' -g 'output.json' -g 'execution.json' | sort | sed -n '1,120p'\"",
+      "event_index": 6,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"jq . manifest.json; jq . review-output.schema.json; find cases -maxdepth 3 -type f | sort | sed -n '1,160p'\"",
+      "event_index": 8,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc 'for f in cases/*/output.json; do echo \"$f\"; jq -c . \"$f\"; done'",
+      "event_index": 10,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc 'for f in cases/*/output.json; do c=${f%/output.json}; n=$(jq '\"'.policy_text|split(\\\" \\\")|length' \\\"\"'$f\"); printf '\"'%s\\\\twords=%s\\\\t' \\\"\"'${c#cases/}\" \"$n\"; jq -r '\"'[.diagnosis,.policy_text]|@tsv' \\\"\"'$f\"; done'",
+      "event_index": 12,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc 'for f in cases/*/execution.json; do echo \"### ${f#cases/}\"; jq -c . \"$f\"; done'",
+      "event_index": 14,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"rg -n -i 'redact|outside|endpoint|http|mcp|web|browser|/home|\\\\.\\\\./|private|hidden' cases/*/execution.json || true\"",
+      "event_index": 16,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc 'set +e\nfor f in cases/*/output.json; do case_dir=${f%/output.json}; evidence_dir=\"$case_dir/evidence\"; case_id=${case_dir#cases/}; count=$(jq '\"'.quantitative_evidence|length' \\\"\"'$f\"); i=0; while [ \"$i\" -lt \"$count\" ]; do cmd=$(jq -r \".quantitative_evidence[$i].command\" \"$f\"); (cd \"$evidence_dir\" && /bin/bash -lc \"$cmd\" >/dev/null 2>&1); rc=$?; printf '\"'%s\\\\t%d\\\\trc=%d\\\\n' \\\"\"'$case_id\" \"$i\" \"$rc\"; i=$((i+1)); done; done'",
+      "event_index": 18,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc 'for f in cases/*/output.json; do case_dir=${f%/output.json}; evidence_dir=\"$case_dir/evidence\"; case_id=${case_dir#cases/}; count=$(jq '\"'.quantitative_evidence|length' \\\"\"'$f\"); i=0; while [ \"$i\" -lt \"$count\" ]; do cmd=$(jq -r \".quantitative_evidence[$i].command\" \"$f\"); finding=$(jq -r \".quantitative_evidence[$i].finding\" \"$f\"); actual=$(cd \"$evidence_dir\" && /bin/bash -lc \"$cmd\" 2>&1 | tr '\"'\\\\n' ' ' | cut -c1-350); printf '%s[%d]\\\\nF: %s\\\\nA: %s\\\\n' \\\"\"'$case_id\" \"$i\" \"$finding\" \"$actual\"; i=$((i+1)); done; done'",
+      "event_index": 20,
+      "type": "command_execution"
+    }
+  ],
+  "command": [
+    "timeout",
+    "1800",
+    "codex",
+    "exec",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-5.6-sol",
+    "--sandbox",
+    "read-only",
+    "--cd",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/review-bundle",
+    "--output-schema",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/review-bundle/review-output.schema.json",
+    "--json",
+    "--output-last-message",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/review-run/decisions.json",
+    "You are the independent validity reviewer for 40 opaque\nagent-analysis cases.\n\nYour current directory is the complete and only review bundle you may inspect.\nDo not read, search, or infer from any path outside it. Do not use the internet.\nDo not seek a private mapping, prior outcomes, timing, usage, schedule, arm,\nrank, or a desired verdict.\n\nRead manifest.json and the bundle-internal review-output.schema.json. Inspect\nall 40 case directories. For every case:\n\n1. inspect output.json;\n2. rerun every cited quantitative-evidence command with that case's evidence\n   directory as the current directory;\n3. inspect execution.json and treat explicit redaction markers as evidence of\n   the represented assigned-path, outside-path, identifier, or endpoint use;\n4. decide each of the five registered booleans independently.\n\nAn unavailable-output marker is not a valid diagnosis or policy. Do not modify\nfiles. Return all 40 decisions, keyed only by case_id, as the single JSON object\nrequired by the supplied schema."
+  ],
+  "decisions_path": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/review-run/decisions.json",
+  "decisions_sha256": "1d3414eb22747cbac3fa2e385df47328f36c096e0e834604d5ce1ee706c3281a",
+  "event_count": 22,
+  "event_receipts_sha256": "cb3e8708256c9de55654f130fb02e1d9b66ae898483ccd2fe94cd9f11e51123d",
+  "events_sha256": "4452d55d9974a9262a368cc039dd92de1b37b9b2381f5cf97e4ad059c47d0a6c",
+  "exit_code": 0,
+  "final_response_elapsed_seconds": 238.73054195393343,
+  "final_response_received_at": "2026-07-29T12:29:14.785766+00:00",
+  "finished_at": "2026-07-29T12:29:15.134658+00:00",
+  "first_event_at": "2026-07-29T12:25:16.424234+00:00",
+  "first_event_elapsed_seconds": 0.36901190399657935,
+  "frozen_review_command_sha256": "99e463ce11ef531ef6149c0a6498beac0a8553a3423c490528a54bd6d25e165a",
+  "frozen_review_model_contract_sha256": "29e4e7726d4339c56d3b82c1a12a0eb3e174afef35bd9942e7a85e563ef56c05",
+  "frozen_review_prompt_sha256": "96108077c0320d883358715ee529d89b79361525279583c1ab7ece23b997f79b",
+  "last_event_at": "2026-07-29T12:29:14.817668+00:00",
+  "last_event_elapsed_seconds": 238.7624383639777,
+  "model_turns": 1,
+  "provider_usage_events": [
+    {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 412672,
+      "input_tokens": 507291,
+      "output_tokens": 11137,
+      "reasoning_output_tokens": 829
+    }
+  ],
+  "provider_usage_totals": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 412672,
+    "input_tokens": 507291,
+    "output_tokens": 11137,
+    "reasoning_output_tokens": 829
+  },
+  "review_bundle_manifest_sha256_after": "6168ec104e80fab72ab20189e008708ef986f85c4d3022535dc4def438d908c4",
+  "review_bundle_manifest_sha256_before": "6168ec104e80fab72ab20189e008708ef986f85c4d3022535dc4def438d908c4",
+  "review_bundle_manifest_unchanged": true,
+  "reviewer_command_identifier": "experiment-002-output-review-v1",
+  "reviewer_model_identifier": "gpt-5.6-sol",
+  "schema": "agentsight.utility2.output-review-run.v1",
+  "started_at": "2026-07-29T12:25:16.055074+00:00",
+  "status": "failed",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "tool_call_counts": {
+    "command_execution": 8
+  },
+  "tool_call_total": 8,
+  "validation_errors": [
+    "tool call 0 used an absolute path",
+    "tool call 1 used an absolute path",
+    "tool call 2 used an absolute path",
+    "tool call 3 used an absolute path",
+    "tool call 4 used an absolute path",
+    "tool call 5 used an absolute path",
+    "tool call 6 used an absolute path",
+    "tool call 7 used an absolute path"
+  ],
+  "wall_seconds": 239.07942673703656
+}

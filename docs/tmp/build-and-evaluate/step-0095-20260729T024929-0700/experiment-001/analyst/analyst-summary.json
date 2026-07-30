@@ -1,0 +1,231 @@
+{
+  "arm_summaries_before_validity_review": {
+    "PROFILE": {
+      "median_final_response_seconds": 36.61417778907344,
+      "median_provider_total_tokens": 126571,
+      "median_tool_calls": 3,
+      "run_count": 3,
+      "successful_run_count": 3
+    },
+    "RAW-OPERATIONS": {
+      "median_final_response_seconds": 52.547242522006854,
+      "median_provider_total_tokens": 126066,
+      "median_tool_calls": 4,
+      "run_count": 3,
+      "successful_run_count": 3
+    }
+  },
+  "faster_finding": "not-evaluated-before-independent-validity-review",
+  "records": [
+    {
+      "actual_commands": [
+        "/bin/bash -lc \"pwd && rg --files -g '*.pb.gz' -g '\"'!**/.git/**'\"' && rg --files | head -100\"",
+        "/bin/bash -lc 'go tool pprof -top agentreward-338-pairs-bad-minus-good.operations.pb.gz; go tool pprof -tags agentreward-338-pairs-bad-minus-good.operations.pb.gz; go tool pprof -traces agentreward-338-pairs-bad-minus-good.operations.pb.gz'",
+        "/bin/bash -lc \"go tool pprof -top -nodecount=20 -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz; go tool pprof -top -nodecount=20 -focus='result:repeated' -tagfocus='comparison_side=candidate' agentreward-338-pairs-bad-minus-good.operations.pb.gz; go tool pprof -top -nodecount=20 -focus='result:repeated' -tagfocus='comparison_side=base' agentreward-338-pairs-bad-minus-good.operations.pb.gz\""
+      ],
+      "arm": "PROFILE",
+      "artifact_sha256": {
+        "event-receipts.jsonl": "00672e5538a1f6fcb1cea68deffe89e71d8e225cbcc1e1f703744a81e0086f42",
+        "events.jsonl": "7153fac1830b459b2b5ba906ec24c9cea334ed535d607e064740982851134058",
+        "final.json": "e6c4552d79908538331f3c9c1c4fd9a9243740e4ce9cdda3ac713ae506955b60",
+        "run.json": "f8191f6a74e2751c002b3b7d8d7e5b34c8be253eef5e23a5c7173397b053cbc5"
+      },
+      "diagnosis": "Candidate/bad runs overrepeat actions without sufficient state change. They contain 1,485 repeated operations versus 224 in base/good runs (6.63\u00d7; net excess +1,261), dominated by repeated clicks (+639), no-ops (+356), and scrolls (+277).",
+      "exit_code": 0,
+      "final_response_elapsed_seconds": 36.61417778907344,
+      "model_turns": 1,
+      "order_position": 4,
+      "policy_text": "Before repeating an action, compare the current observable state with the state before the previous attempt. If no task-relevant change occurred, do not repeat the same action unchanged; revise the target, parameters, or strategy. Permit one retry only when a transient failure is explicitly indicated.",
+      "policy_word_count": 45,
+      "provider_total_tokens": 117777,
+      "provider_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 77056,
+        "input_tokens": 116574,
+        "output_tokens": 1203,
+        "reasoning_output_tokens": 282
+      },
+      "replicate": 1,
+      "run_id": "profile-1",
+      "status": "ok",
+      "tool_call_total": 3,
+      "wall_seconds": 36.91746377502568
+    },
+    {
+      "actual_commands": [
+        "/bin/bash -lc \"pwd && rg --files -g '*.pb.gz' -g '*' | sed -n '1,120p'\"",
+        "/bin/bash -lc \"sed -n '1,240p' README.md && go tool pprof -top agentreward-338-pairs-bad-minus-good.operations.pb.gz && go tool pprof -tags agentreward-338-pairs-bad-minus-good.operations.pb.gz\"",
+        "/bin/bash -lc \"go tool pprof -top -nodecount=30 -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz; go tool pprof -traces -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz | sed -n '1,220p'; go tool pprof -top -nodecount=20 -focus='strategy:(inspect|navigate|wait)' agentreward-338-pairs-bad-minus-good.operations.pb.gz\""
+      ],
+      "arm": "PROFILE",
+      "artifact_sha256": {
+        "event-receipts.jsonl": "030f0a989c37a613c68781f341c41f494609a2475b63bdf0e0f688246698bcfe",
+        "events.jsonl": "0410b1769b6e66823e4b45e7b63b3e2ce78bb41fd73599201d37c7e929621ccf",
+        "final.json": "7d5e7887053a4d67cca008e22602e0cfc61be98ac72da165bec8ae5291801796",
+        "run.json": "0219ae7525c2187925ddb1b1767478aed96c857652629c79d3367f73b86698c7"
+      },
+      "diagnosis": "Candidate/bad runs overrepeat unchanged interactions\u2014especially clicks, no-ops, and scrolling\u2014rather than changing strategy after an action fails to produce useful progress.",
+      "exit_code": 0,
+      "final_response_elapsed_seconds": 37.71245381899644,
+      "model_turns": 1,
+      "order_position": 1,
+      "policy_text": "Track recent actions and observed state. If the same or equivalent action is attempted twice without material state change, do not repeat it again. Re-observe, revise the plan, choose a materially different action, or stop and report the blocker when no justified alternative remains.",
+      "policy_word_count": 44,
+      "provider_total_tokens": 126571,
+      "provider_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 80128,
+        "input_tokens": 125408,
+        "output_tokens": 1163,
+        "reasoning_output_tokens": 313
+      },
+      "replicate": 2,
+      "run_id": "profile-2",
+      "status": "ok",
+      "tool_call_total": 3,
+      "wall_seconds": 38.03946099593304
+    },
+    {
+      "actual_commands": [
+        "/bin/bash -lc \"pwd && rg --files -g '*.pb.gz' -g '*' | sed -n '1,120p'\"",
+        "/bin/bash -lc \"sed -n '1,240p' README.md && go tool pprof -top agentreward-338-pairs-bad-minus-good.operations.pb.gz\"",
+        "/bin/bash -lc \"go tool pprof -top -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz; go tool pprof -traces -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz | sed -n '1,180p'; go tool pprof -tags -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz | sed -n '1,200p'\""
+      ],
+      "arm": "PROFILE",
+      "artifact_sha256": {
+        "event-receipts.jsonl": "302caa3aa5d8970aa114cb060392bb90d807e842e7b9005de265ccf4dbea3f6b",
+        "events.jsonl": "9fa75859df6eaba314c51fbef5dad335af37e4cfa2714961e60c9514f1aea223",
+        "final.json": "8955ec7839dba1a44bbeb45ce5e9de375c73fd3d85d41de1eeb695ff12719671",
+        "run.json": "1d5c73e8119413e2a3a4793963226013fb77e3b51af782c1b0145dff6ab297dc"
+      },
+      "diagnosis": "Candidate/bad runs overrepeat actions without obtaining new progress, especially clicks, no-ops/waits, and scrolling.",
+      "exit_code": 0,
+      "final_response_elapsed_seconds": 32.47135397605598,
+      "model_turns": 1,
+      "order_position": 5,
+      "policy_text": "Before repeating an action on the same target, compare the latest observation with the prior one. If no relevant state changed, diagnose the blocker and choose a materially different action, request missing information, or stop. Allow one retry only when a transient-failure hypothesis is recorded.",
+      "policy_word_count": 45,
+      "provider_total_tokens": 129031,
+      "provider_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 77056,
+        "input_tokens": 128004,
+        "output_tokens": 1027,
+        "reasoning_output_tokens": 330
+      },
+      "replicate": 3,
+      "run_id": "profile-3",
+      "status": "ok",
+      "tool_call_total": 3,
+      "wall_seconds": 32.777302257018164
+    },
+    {
+      "actual_commands": [
+        "/bin/bash -lc \"pwd && rg --files -g '\"'!**/.git/**'\"' && sed -n '1,5p' samples.jsonl\"",
+        "/bin/bash -lc \"sed -n '1,240p' README.md; jq -r '.stack_frames[] as \"'$f | [$f,.value] | @tsv'\"' samples.jsonl | awk -F '\\\\t' '{s[\"'$1]+=$2; n[$1]++} END{for(k in s) print s[k],n[k],k}'\"' | sort -nr | head -80\"",
+        "/bin/bash -lc \"jq -r 'select(.stack_frames[] == \\\"result:repeated\\\") | [.value, .labels.comparison_side[0], .labels.evidence_id[0], (.stack_frames[] | select(startswith(\\\"action:\\\") or startswith(\\\"strategy:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0){p+=$1; pn++; ps[$3]=1}else{n+=-$1; nn++; ns[$3]=1}; by[$4]+=$1} END{for(x in ps) pu++; for(x in ns) nu++; printf \"candidate=%d base=%d net=%d candidate_tuples=%d base_tuples=%d candidate_evidence_ids=%d base_evidence_ids=%d'\"\\\\n\\\",p,n,p-n,pn,nn,pu,nu; for(k in by) print by[k],k}' | sort -nr; jq -r 'select(.stack_frames[] == \\\"result:repeated\\\") | [.value, (.stack_frames[] | select(startswith(\\\"task:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '{s[\"'$2]+=$1; if($1>0)p[$2]=1; else n[$2]=1} END{for(k in s){if(s[k]>0)netpos++; if(p[k])pt++; if(n[k])nt++} print \"candidate_tasks=\"pt,\"base_tasks=\"nt,\"net_positive_tasks=\"netpos}'\"'\"",
+        "/bin/bash -lc \"jq -r '[.value, (if (.stack_frames[] == \\\"result:repeated\\\") then 1 else 0 end)] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0){allp+=$1;if($2)rp+=$1}else{alln+=-$1;if($2)rn+=-$1}} END{printf \"candidate repeated=%d/%d (%.2f%%); base repeated=%d/%d (%.2f%%); rate_ratio=%.2fx'\"\\\\n\\\",rp,allp,100*rp/allp,rn,alln,100*rn/alln,(rp/allp)/(rn/alln)}'\""
+      ],
+      "arm": "RAW-OPERATIONS",
+      "artifact_sha256": {
+        "event-receipts.jsonl": "e2723a7a60d2da7c0e6eaed230d8e7386e02c1fe533c0bee1fb44fccd618dadb",
+        "events.jsonl": "8bbdb992f472de43e78626291337eba5a76ac5667fb7e195690cd68b781f97fa",
+        "final.json": "520c3d183abcc87ba4587dac13840e97ccf33f22ebde44a0cf039cd9f806dc3b",
+        "run.json": "fcce0167649b00109eb43974caa458f2bd97aa5c1cb6abb91bc6d83eb9c45cda"
+      },
+      "diagnosis": "Candidate/bad runs overrepeat UI/tool actions without gaining new progress, especially clicks, no-ops, and scrolls.",
+      "exit_code": 0,
+      "final_response_elapsed_seconds": 52.547242522006854,
+      "model_turns": 1,
+      "order_position": 3,
+      "policy_text": "Before repeating an action, compare the current state and result with the previous attempt. If no material progress occurred, do not repeat unchanged: diagnose the blocker, alter the action or strategy, or stop and report the limitation. Track repeated attempts per objective and impose a small retry limit.",
+      "policy_word_count": 48,
+      "provider_total_tokens": 126066,
+      "provider_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 95232,
+        "input_tokens": 124134,
+        "output_tokens": 1932,
+        "reasoning_output_tokens": 367
+      },
+      "replicate": 1,
+      "run_id": "raw-operations-1",
+      "status": "ok",
+      "tool_call_total": 4,
+      "wall_seconds": 52.81712851207703
+    },
+    {
+      "actual_commands": [
+        "/bin/bash -lc \"pwd && rg --files -g '*'\"",
+        "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,8p' samples.jsonl\"",
+        "/bin/bash -lc \"jq -r '[.stack_frames[0], .value] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0){p[$1]+=$2;pc[$1]++}else{n[$1]+=-$2;nc[$1]++}} END{for(k in p) printf \"%s'\"\\\\tbad=%d\\\\tgood=%d\\\\texcess=%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t= -k4,4nr | head -30\njq -r '[.stack_frames[2], .value] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0)p[$1]+=$2;else n[$1]+=-$2} END{for(k in p) printf \"%s'\"\\\\tbad=%d\\\\tgood=%d\\\\texcess=%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t= -k4,4nr | head -30\njq -r '[.stack_frames[0],.stack_frames[2],.value] | @tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$1\" | \"$2;if($3>0)p[k]+=$3;else n[k]+=-$3} END{for(k in p) printf \"%s'\"\\\\tbad=%d\\\\tgood=%d\\\\texcess=%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t= -k4,4nr | head -30\"",
+        "/bin/bash -lc \"jq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.labels.comparison_side[0],.labels.source_session[0],.value] | @tsv' samples.jsonl | awk -F '\\\\t' '{side=\"'$1; total[side]+=$3; seen[side SUBSEP $2]=1} END{for(k in seen){split(k,a,SUBSEP); sessions[a[1]]++} for(s in total) printf \"%s'\"\\\\toperations=%d\\\\tdistinct_sessions=%d\\\\n\\\",s,(total[s]<0?-total[s]:total[s]),sessions[s]}' | sort\njq -r '[.labels.comparison_side[0],.value] | @tsv' samples.jsonl | awk -F '\\\\t' '{v=\"'$2<0?-$2:$2; n[$1]+=v} END{for(s in n) print s,n[s]}'\"' | sort\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.labels.comparison_side[0],.stack_frames[2],.value] | @tsv' samples.jsonl | awk -F '\\\\t' '{v=\"'$3<0?-$3:$3; x[$1 SUBSEP $2]+=v} END{for(k in x){split(k,a,SUBSEP); print a[1],a[2],x[k]}}'\"' | sort -k1,1 -k3,3nr | head -20\""
+      ],
+      "arm": "RAW-OPERATIONS",
+      "artifact_sha256": {
+        "event-receipts.jsonl": "167df48b0abcf305fb0ba87babf786a3b4d3dc2115d5e849abbb6fd56efd33d2",
+        "events.jsonl": "73f1915794f98179adf0d367764a83bdc394b9637c1c16d5073b55f7d580450f",
+        "final.json": "69a6bde731e54c52a132269df0ef683ef28e2a9250dfb9795e5568001cdcb754",
+        "run.json": "1d5d816f8852eeed552594df3ea47c340af1ca1582b75dcd35defc5bd6b7f65d"
+      },
+      "diagnosis": "Candidate/bad runs overrepeat actions that produce no observable state change, especially clicks, no-ops, and scrolls.",
+      "exit_code": 0,
+      "final_response_elapsed_seconds": 46.0969926759135,
+      "model_turns": 1,
+      "order_position": 6,
+      "policy_text": "After an action yields no observable state change, do not repeat the same or functionally equivalent action more than once. Re-observe state, diagnose the blocker, and switch strategy, target, or tool; if no materially different option exists, stop and report the constraint.",
+      "policy_word_count": 42,
+      "provider_total_tokens": 123457,
+      "provider_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 91136,
+        "input_tokens": 121463,
+        "output_tokens": 1994,
+        "reasoning_output_tokens": 466
+      },
+      "replicate": 2,
+      "run_id": "raw-operations-2",
+      "status": "ok",
+      "tool_call_total": 4,
+      "wall_seconds": 46.40368231199682
+    },
+    {
+      "actual_commands": [
+        "/bin/bash -lc \"pwd && rg --files -g '\"'!.*'\"' && sed -n '1,3p' samples.jsonl\"",
+        "/bin/bash -lc \"sed -n '1,240p' README.md\njq -r '[.value, (.stack_frames|join(\\\" | \\\"))] | @tsv' samples.jsonl | sort -nr | head -40\njq -r '.stack_frames[]' samples.jsonl | sort | uniq -c | sort -nr | head -50\"",
+        "/bin/bash -lc \"jq -s '\n def frame(\"'$p): [.stack_frames[]|select(startswith($p))][0];\n [group_by(frame(\"result:\"))[] | {frame:(.[0]|frame(\"result:\")), bad:([.[]|select(.value>0)|.value]|add//0), good:([.[]|select(.value<0)|(-.value)]|add//0), excess:(map(.value)|add), samples:length}] | sort_by(-.excess)[:20]'\"' samples.jsonl\njq -s '\n def frame(\"'$p): [.stack_frames[]|select(startswith($p))][0];\n [group_by(frame(\"action:\"))[] | {frame:(.[0]|frame(\"action:\")), bad:([.[]|select(.value>0)|.value]|add//0), good:([.[]|select(.value<0)|(-.value)]|add//0), excess:(map(.value)|add)}] | sort_by(-.excess)[:20]'\"' samples.jsonl\njq -s '\n def frame(\"'$p): [.stack_frames[]|select(startswith($p))][0];\n [group_by(frame(\"strategy:\"))[] | {frame:(.[0]|frame(\"strategy:\")), bad:([.[]|select(.value>0)|.value]|add//0), good:([.[]|select(.value<0)|(-.value)]|add//0), excess:(map(.value)|add)}] | sort_by(-.excess)'\"' samples.jsonl\"",
+        "/bin/bash -lc \"jq -s '\n def result: [.stack_frames[]|select(startswith(\\\"result:\\\"))][0];\n {total:{bad:([.[]|select(.value>0)|.value]|add),good:([.[]|select(.value<0)|(-.value)]|add)}, repeated:{bad:([.[]|select(.value>0 and result==\\\"result:repeated\\\")|.value]|add),good:([.[]|select(.value<0 and result==\\\"result:repeated\\\")|(-.value)]|add),bad_sessions:([.[]|select(.value>0 and result==\\\"result:repeated\\\")|.labels.source_session[]]|unique|length),good_sessions:([.[]|select(.value<0 and result==\\\"result:repeated\\\")|.labels.source_session[]]|unique|length),bad_tasks:([.[]|select(.value>0 and result==\\\"result:repeated\\\")|[.stack_frames[]|select(startswith(\\\"task:\\\"))][0]]|unique|length),good_tasks:([.[]|select(.value<0 and result==\\\"result:repeated\\\")|[.stack_frames[]|select(startswith(\\\"task:\\\"))][0]]|unique|length)}}' samples.jsonl\njq -s '\n def result: [.stack_frames[]|select(startswith(\\\"result:\\\"))][0]; def action: [.stack_frames[]|select(startswith(\\\"action:\\\"))][0];\n [.[]|select(result==\\\"result:repeated\\\")]|group_by(action)|map({action:(.[0]|action),bad:([.[]|select(.value>0)|.value]|add//0),good:([.[]|select(.value<0)|(-.value)]|add//0),excess:(map(.value)|add)})|sort_by(-.excess)' samples.jsonl\""
+      ],
+      "arm": "RAW-OPERATIONS",
+      "artifact_sha256": {
+        "event-receipts.jsonl": "e744b139eeaaa786050010d059994a78359b0b27b61aa93e6b7b342cfbf29577",
+        "events.jsonl": "55cba7143e5564920084d1868967425fa0417848c08825420908219e9f1aa373",
+        "final.json": "f70ce0e95164a86923158cc6723c463dfdd454806a91b1d57f82fa93c3e388a6",
+        "run.json": "621e8062be6074a68f123a6f93bb55c58112c2a610cbc11bb4d62d06b6a10964"
+      },
+      "diagnosis": "Candidate/bad runs overrepeat ineffective actions\u2014especially clicks, no-ops/waits, and scrolls\u2014rather than changing strategy after no progress.",
+      "exit_code": 0,
+      "final_response_elapsed_seconds": 57.60743962309789,
+      "model_turns": 1,
+      "order_position": 2,
+      "policy_text": "Before repeating an action after no observable progress, compare the current state with the prior state. If unchanged, do not retry unchanged parameters: inspect the failure, alter the target or method, or stop with a concise explanation. Permit repetition only with an explicit new hypothesis.",
+      "policy_word_count": 45,
+      "provider_total_tokens": 133326,
+      "provider_usage": {
+        "cache_write_input_tokens": 0,
+        "cached_input_tokens": 98304,
+        "input_tokens": 131148,
+        "output_tokens": 2178,
+        "reasoning_output_tokens": 411
+      },
+      "replicate": 3,
+      "run_id": "raw-operations-3",
+      "status": "ok",
+      "tool_call_total": 4,
+      "wall_seconds": 57.87858019804116
+    }
+  ],
+  "schema": "agentsight.utility.analyst-summary.v1",
+  "status": "awaiting-independent-validity-review",
+  "token_definition": "provider_total_tokens = input_tokens + output_tokens; cached_input_tokens and reasoning_output_tokens are reported details and are not double-counted"
+}

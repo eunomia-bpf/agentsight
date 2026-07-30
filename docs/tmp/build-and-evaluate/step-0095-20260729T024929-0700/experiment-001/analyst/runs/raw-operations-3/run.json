@@ -1,0 +1,72 @@
+{
+  "command": [
+    "timeout",
+    "900",
+    "codex",
+    "exec",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-5.6-sol",
+    "--sandbox",
+    "read-only",
+    "--cd",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-001/analyst-packages/RAW-OPERATIONS",
+    "--output-schema",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-001/analyst/output.schema.json",
+    "--json",
+    "--output-last-message",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-001/analyst/runs/raw-operations-3/final.json",
+    "You are an independent agent-performance analyst.\n\nYour current directory is the complete and only evidence package you may\ninspect. Do not read, search, or infer from any path outside it. Do not use the\ninternet. Identify exactly one recurring behavior that is overrepresented in\ncandidate/bad agent runs relative to base/good runs. Cite reproducible commands\nand quantitative evidence from this package. Then propose one benchmark- and\ndomain-agnostic addition to an agent system policy, at most 60 English words,\nthat addresses the behavior. State the expected success/cost mechanism.\n\nDo not mention or speculate about any downstream evaluation. Do not modify\nfiles. Return only the JSON object required by the supplied output schema.\n\nEvidence format:\nThe evidence is a flat JSONL lossless decode of the\nsame differential pprof samples. Use shell, `jq`, or Python to aggregate\n`samples.jsonl`. Positive values are candidate/bad excess; negative values are\nbase/good excess."
+  ],
+  "event_count": 12,
+  "event_receipts_sha256": "e744b139eeaaa786050010d059994a78359b0b27b61aa93e6b7b342cfbf29577",
+  "events_sha256": "55cba7143e5564920084d1868967425fa0417848c08825420908219e9f1aa373",
+  "exit_code": 0,
+  "final_exists": true,
+  "final_response_elapsed_seconds": 57.60743962309789,
+  "final_response_received_at": "2026-07-29T10:32:11.595514+00:00",
+  "final_sha256": "f70ce0e95164a86923158cc6723c463dfdd454806a91b1d57f82fa93c3e388a6",
+  "finished_at": "2026-07-29T10:32:11.866681+00:00",
+  "first_event_at": "2026-07-29T10:31:14.340827+00:00",
+  "first_event_elapsed_seconds": 0.3527495340676978,
+  "last_event_at": "2026-07-29T10:32:11.618764+00:00",
+  "last_event_elapsed_seconds": 57.630690965102986,
+  "model_turns": 1,
+  "provider_usage_events": [
+    {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 98304,
+      "input_tokens": 131148,
+      "output_tokens": 2178,
+      "reasoning_output_tokens": 411
+    }
+  ],
+  "provider_usage_totals": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 98304,
+    "input_tokens": 131148,
+    "output_tokens": 2178,
+    "reasoning_output_tokens": 411
+  },
+  "run": {
+    "arm": "RAW-OPERATIONS",
+    "package": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-001/analyst-packages/RAW-OPERATIONS",
+    "position": 2,
+    "prompt_file": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-001/analyst/prompts/raw-operations-3.txt",
+    "prompt_sha256": "b048c33cb00a2aea12d0e6090a7e3534bfb30adfbf81bc9196a512201a2cebcf",
+    "replicate": 3,
+    "run_id": "raw-operations-3"
+  },
+  "schema": "agentsight.utility.analyst-run.v1",
+  "started_at": "2026-07-29T10:31:13.988004+00:00",
+  "status": "ok",
+  "stderr_sha256": "1aa26269eb1cc57f86b235a03cda53c004edb5b1e9fc99d4da4f00843293d721",
+  "tool_call_counts": {
+    "command_execution": 4
+  },
+  "tool_call_total": 4,
+  "wall_seconds": 57.87858019804116
+}

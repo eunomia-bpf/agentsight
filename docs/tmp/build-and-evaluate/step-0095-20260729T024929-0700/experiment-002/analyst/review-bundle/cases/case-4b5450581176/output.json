@@ -1,0 +1,15 @@
+{
+  "diagnosis": "Candidate/bad runs overproduce repeated, non-progressing actions, especially repeated clicks, no-ops, and scrolling.",
+  "expected_mechanism": "Detecting unchanged state forces strategy revision before loops grow, improving task progress and reducing wasted actions. Cost: state comparisons and occasional unnecessary replanning.",
+  "policy_text": "Before repeating an action, compare the current state with the state before the previous attempt. If the action produced no relevant change, do not repeat it unchanged; diagnose the obstacle and choose a materially different action, target, or strategy.",
+  "quantitative_evidence": [
+    {
+      "command": "go tool pprof -top agentreward-338-pairs-bad-minus-good.operations.pb.gz",
+      "finding": "result:repeated has +1,261 operations of candidate/bad excess, representing 11.31% of the profile's 11,146 absolute differential operations."
+    },
+    {
+      "command": "go tool pprof -top -focus='result:repeated' -nodefraction=0 -nodecount=20 agentreward-338-pairs-bad-minus-good.operations.pb.gz",
+      "finding": "Within the repeated-result differential, action:click contributes +639, action:noop +356, and action:scroll +277 operations; positive values indicate candidate/bad excess."
+    }
+  ]
+}

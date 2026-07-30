@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "remove_start_operation_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "session": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "updates": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "semantic_path": {
+            "items": {
+              "pattern": "^(repeat|recover|understand|plan|search|locate|navigate|extract|compare|compute|diagnose|reproduce|test|edit|build|configure|verify|validate|coordinate|authenticate|update|create|remove|deploy|submit|escalate|communicate|report|resolve|collect|read|inspect|execute)( [a-z0-9-]+){0,2}$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "start_operation_id": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_operation_id",
+          "semantic_path"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "session",
+    "updates",
+    "remove_start_operation_ids"
+  ],
+  "type": "object"
+}

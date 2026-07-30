@@ -1,0 +1,15 @@
+{
+  "diagnosis": "Repeated no-op behavior is overrepresented in candidate/bad runs, especially operations labeled result:repeated.",
+  "expected_mechanism": "Detecting unchanged state prevents unproductive action loops and forces recovery or termination, improving task efficiency. The cost is a small state-comparison overhead and occasional premature strategy changes when progress is not immediately observable.",
+  "policy_text": "After any no-op or unchanged-state action, do not repeat the same action unchanged. Inspect the state, revise the action or strategy, and stop with a concise blocker report if two recovery attempts produce no observable progress.",
+  "quantitative_evidence": [
+    {
+      "command": "jq -r '[.value, (.stack_frames[] | select(startswith(\"action:\")))] | @tsv' samples.jsonl | awk -F '\\t' '$2==\"action:noop\" {if($1>0)p+=$1;else n+=-$1} {if($1>0)ap+=$1;else an+=-$1} END{printf \"noop bad=%d good=%d excess=%d raw_ratio=%.3f bad_share=%.3f%% good_share=%.3f%% share_ratio=%.3f\\n\",p,n,p-n,p/n,100*p/ap,100*n/an,(p/ap)/(n/an)}'",
+      "finding": "No-op operations: bad=505, good=122, candidate excess=383. They comprise 6.856% of bad operations versus 3.228% of good operations, a 2.124× normalized overrepresentation."
+    },
+    {
+      "command": "jq -r 'select(any(.stack_frames[]; .==\"action:noop\")) | [.value, (.stack_frames[]|select(startswith(\"result:\")))] | @tsv' samples.jsonl | awk -F '\\t' '{if($1>0)p[$2]+=$1;else n[$2]+=-$1} END{for(k in p) printf \"%s bad=%d good=%d excess=%+d\\n\",k,p[k],n[k],p[k]-n[k]}' | sort",
+      "finding": "For no-op operations labeled result:repeated, bad=441 and good=85, yielding +356 candidate excess and a 5.19× raw ratio."
+    }
+  ]
+}

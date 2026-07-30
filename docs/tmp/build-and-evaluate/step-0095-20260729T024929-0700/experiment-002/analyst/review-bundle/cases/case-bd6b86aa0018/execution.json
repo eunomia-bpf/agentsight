@@ -1,0 +1,17 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*' | sort && wc -l samples.jsonl && sed -n '1,3p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md; jq -r '.stack_frames[] + \\\"\\\\t\\\" + (.value|tostring)' samples.jsonl | awk -F '\\\\t' '{s[\"'$1]+=$2; n[$1]++} END {for(k in s) print s[k],n[k],k}'\"' | sort -nr | head -80\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.value, .labels.source_session[0], (.stack_frames[]|select(startswith(\\\"result:\\\"))), (.stack_frames[]|select(startswith(\\\"action:\\\"))), (.stack_frames[]|select(startswith(\\\"strategy:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '{v=\"'$1; side=(v>0?\"bad\":\"good\"); mag=(v<0?-v:v); key=side FS $3; val[key]+=mag; sess[key FS $2]=1; act[side FS $3 FS $4]+=mag} END {for(k in val){split(k,a,FS); ns=0; for(x in sess){split(x,b,FS); if(b[1]==a[1]&&b[2]==a[2])ns++} print val[k],ns,a[1],a[2]}}'\"' | sort -nr | head -30; jq -r 'select(any(.stack_frames[]; .==\\\"result:repeated\\\")) | [.value, .labels.source_session[0], (.stack_frames[]|select(startswith(\\\"action:\\\"))), (.stack_frames[]|select(startswith(\\\"strategy:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '{side=(\"'$1>0?\"bad\":\"good\"); v=($1<0?-$1:$1); n[side]+=$1; mag[side]+=v; sess[side FS $2]=1; act[side FS $3]+=v; strat[side FS $4]+=v} END {for(s in mag){ns=0;for(x in sess){split(x,a,FS);if(a[1]==s)ns++} print \"TOTAL\",s,\"signed\",n[s],\"magnitude\",mag[s],\"sessions\",ns}; for(x in act) print \"ACTION\",x,act[x]; for(x in strat) print \"STRATEGY\",x,strat[x]}'\"' | sort\"",
+      "type": "command_execution"
+    }
+  ]
+}

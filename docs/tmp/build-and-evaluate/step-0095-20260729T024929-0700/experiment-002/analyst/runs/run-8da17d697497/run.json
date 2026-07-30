@@ -1,0 +1,98 @@
+{
+  "actual_tool_commands": [
+    {
+      "command": "/bin/bash -lc \"pwd && rg --files -g '*' | sort\"",
+      "event_index": 4,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,8p' samples.jsonl\"",
+      "event_index": 6,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"jq -r '.stack_frames[]' samples.jsonl | sort | uniq -c | sort -nr | head -40\njq -r '[.value, .stack_frames[0], .stack_frames[2], .stack_frames[3]] | @tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$2; if($1>0){p[k]+=$1;pn[k]++}else{n[k]+=-$1;nn[k]++}} END{for(k in p) printf \"%s'\"\\\\tbad=%d\\\\tgood=%d\\\\tnet=%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t= -k4,4nr | head -30\"",
+      "event_index": 8,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"jq -s 'def side(\"'$s): map(select(if $s==\"bad\" then .value>0 else .value<0 end)); {bad_operations:(side(\"bad\")|map(.value)|add), good_operations:(side(\"good\")|map(-.value)|add), bad_repeated:(side(\"bad\")|map(select(.stack_frames[0]==\"result:repeated\")|.value)|add), good_repeated:(side(\"good\")|map(select(.stack_frames[0]==\"result:repeated\")|-.value)|add), bad_sessions_with_repeated:(side(\"bad\")|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length), good_sessions_with_repeated:(side(\"good\")|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length), all_bad_sessions:(side(\"bad\")|map(.labels.source_session[0])|unique|length), all_good_sessions:(side(\"good\")|map(.labels.source_session[0])|unique|length)}'\"' samples.jsonl\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.value,.stack_frames[2],.stack_frames[3]]|@tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$2\" | \"$3;if($1>0)p[k]+=$1;else n[k]+=-$1} END{for(k in p) printf \"%d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",p[k]-n[k],p[k],n[k],k}' | sort -nr | head -20\"",
+      "event_index": 10,
+      "type": "command_execution"
+    }
+  ],
+  "command": [
+    "timeout",
+    "900",
+    "codex",
+    "exec",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-5.6-sol",
+    "--sandbox",
+    "read-only",
+    "--cd",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst-packages/RAW-OPERATIONS",
+    "--output-schema",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/output.schema.json",
+    "--json",
+    "--output-last-message",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/runs/run-8da17d697497/final.json",
+    "You are an independent agent-performance analyst.\n\nYour current directory is the complete and only evidence package you may\ninspect. Do not read, search, or infer from any path outside it. Do not use the\ninternet. Identify exactly one recurring behavior that is overrepresented in\ncandidate/bad agent runs relative to base/good runs. Cite reproducible commands\nand quantitative evidence from this package. Then propose one benchmark- and\ndomain-agnostic addition to an agent system policy, at most 60 English words,\nthat addresses the behavior. State the expected success/cost mechanism.\n\nDo not mention or speculate about any downstream evaluation. Do not modify\nfiles. Return only the JSON object required by the supplied output schema.\n\nEvidence format:\nThe evidence is a flat JSONL lossless decode of the\nsame differential pprof samples. Use shell, `jq`, or Python to aggregate\n`samples.jsonl`. Positive values are candidate/bad excess; negative values are\nbase/good excess."
+  ],
+  "event_count": 12,
+  "event_receipts_sha256": "8f89f367773cc1ecbd2cea8a8dc4649ae058e688bf705e2ab0b9bcb2d2fe2c63",
+  "events_sha256": "35297b615f33fb3b609e76fc20dec329288971b823ff1f4aa5ee155c6e6e4722",
+  "exit_code": 0,
+  "final_exists": true,
+  "final_response_elapsed_seconds": 52.33107859606389,
+  "final_response_received_at": "2026-07-29T12:10:01.981030+00:00",
+  "final_sha256": "ebdd7c1b58cd337bd2d72b6e4ad755b6df7606b4a3d8033ffdc9a66cc44f9aab",
+  "finished_at": "2026-07-29T12:10:02.248602+00:00",
+  "first_event_at": "2026-07-29T12:09:09.994711+00:00",
+  "first_event_elapsed_seconds": 0.3447542790090665,
+  "last_event_at": "2026-07-29T12:10:02.001160+00:00",
+  "last_event_elapsed_seconds": 52.35120859905146,
+  "model_turns": 1,
+  "provider_usage_events": [
+    {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 91136,
+      "input_tokens": 120491,
+      "output_tokens": 1954,
+      "reasoning_output_tokens": 311
+    }
+  ],
+  "provider_usage_totals": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 91136,
+    "input_tokens": 120491,
+    "output_tokens": 1954,
+    "reasoning_output_tokens": 311
+  },
+  "run": {
+    "arm": "RAW-OPERATIONS",
+    "arm_rank": 10,
+    "block_id": "block-f0829aa037fa",
+    "block_index": 10,
+    "package": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst-packages/RAW-OPERATIONS",
+    "position": 20,
+    "prompt_file": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/prompts/run-8da17d697497.txt",
+    "prompt_sha256": "b048c33cb00a2aea12d0e6090a7e3534bfb30adfbf81bc9196a512201a2cebcf",
+    "run_id": "run-8da17d697497",
+    "within_block_order": 2
+  },
+  "schema": "agentsight.utility2.analyst-run.v1",
+  "started_at": "2026-07-29T12:09:09.649878+00:00",
+  "status": "ok",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "telemetry_error": null,
+  "tool_call_counts": {
+    "command_execution": 4
+  },
+  "tool_call_total": 4,
+  "wall_seconds": 52.59852521098219
+}

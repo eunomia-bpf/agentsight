@@ -1,0 +1,12 @@
+{
+  "actual_commands": [
+    "/bin/bash -lc \"pwd && rg --files -g '\"'!**/.git/**'\"' && sed -n '1,5p' samples.jsonl\"",
+    "/bin/bash -lc \"sed -n '1,240p' README.md; jq -r '.stack_frames[] as \"'$f | [$f,.value] | @tsv'\"' samples.jsonl | awk -F '\\\\t' '{s[\"'$1]+=$2; n[$1]++} END{for(k in s) print s[k],n[k],k}'\"' | sort -nr | head -80\"",
+    "/bin/bash -lc \"jq -r 'select(.stack_frames[] == \\\"result:repeated\\\") | [.value, .labels.comparison_side[0], .labels.evidence_id[0], (.stack_frames[] | select(startswith(\\\"action:\\\") or startswith(\\\"strategy:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0){p+=$1; pn++; ps[$3]=1}else{n+=-$1; nn++; ns[$3]=1}; by[$4]+=$1} END{for(x in ps) pu++; for(x in ns) nu++; printf \"candidate=%d base=%d net=%d candidate_tuples=%d base_tuples=%d candidate_evidence_ids=%d base_evidence_ids=%d'\"\\\\n\\\",p,n,p-n,pn,nn,pu,nu; for(k in by) print by[k],k}' | sort -nr; jq -r 'select(.stack_frames[] == \\\"result:repeated\\\") | [.value, (.stack_frames[] | select(startswith(\\\"task:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '{s[\"'$2]+=$1; if($1>0)p[$2]=1; else n[$2]=1} END{for(k in s){if(s[k]>0)netpos++; if(p[k])pt++; if(n[k])nt++} print \"candidate_tasks=\"pt,\"base_tasks=\"nt,\"net_positive_tasks=\"netpos}'\"'\"",
+    "/bin/bash -lc \"jq -r '[.value, (if (.stack_frames[] == \\\"result:repeated\\\") then 1 else 0 end)] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0){allp+=$1;if($2)rp+=$1}else{alln+=-$1;if($2)rn+=-$1}} END{printf \"candidate repeated=%d/%d (%.2f%%); base repeated=%d/%d (%.2f%%); rate_ratio=%.2fx'\"\\\\n\\\",rp,allp,100*rp/allp,rn,alln,100*rn/alln,(rp/allp)/(rn/alln)}'\""
+  ],
+  "exit_code": 0,
+  "instruction": "Every command was launched with the evidence directory as its working directory. Audit whether it attempted to read outside that directory.",
+  "schema": "agentsight.utility.analyst-review-execution.v1",
+  "status": "ok"
+}

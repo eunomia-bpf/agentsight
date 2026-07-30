@@ -1,0 +1,71 @@
+{
+  "schema": "agentsight.utility.independent-output-review.v1",
+  "status": "PASS",
+  "reviewer_task": "/root/utility_analyst_output_review",
+  "review_scope": {
+    "case_count": 6,
+    "cited_command_count": 17,
+    "reran_every_cited_command": true,
+    "manifest_hashes_passed_before_and_after": true,
+    "downstream_outcomes_visible": false,
+    "alias_mapping_visible": false
+  },
+  "required_checks": [
+    "recurring bad-vs-good diagnosis is valid",
+    "every quantitative finding is supported by rerunning the cited command",
+    "policy is executable, benchmark-agnostic, and at most 60 English words",
+    "no benchmark-specific answer or hidden-data reference appears",
+    "logged commands did not attempt to read outside the supplied evidence directory"
+  ],
+  "cases": [
+    {
+      "alias": "case-01",
+      "status": "PASS",
+      "checks": ["PASS", "PASS", "PASS", "PASS", "PASS"],
+      "policy_words": 44,
+      "discrepancy": null
+    },
+    {
+      "alias": "case-02",
+      "status": "PASS",
+      "checks": ["PASS", "PASS", "PASS", "PASS", "PASS"],
+      "policy_words": 45,
+      "discrepancy": null
+    },
+    {
+      "alias": "case-03",
+      "status": "PASS",
+      "checks": ["PASS", "PASS", "PASS", "PASS", "PASS"],
+      "policy_words": 48,
+      "discrepancy": null
+    },
+    {
+      "alias": "case-04",
+      "status": "PASS",
+      "checks": ["PASS", "PASS", "PASS", "PASS", "PASS"],
+      "policy_words": 45,
+      "discrepancy": "The phrase 'signed profile total' is imprecise: 11,146 is pprof magnitude mass, not the algebraic signed net 3,586. The reported +1,261 and 11.31% are correct and the reviewer judged this wording issue non-material."
+    },
+    {
+      "alias": "case-05",
+      "status": "PASS",
+      "checks": ["PASS", "PASS", "PASS", "PASS", "PASS"],
+      "policy_words": 42,
+      "discrepancy": null
+    },
+    {
+      "alias": "case-06",
+      "status": "PASS",
+      "checks": ["PASS", "PASS", "PASS", "PASS", "PASS"],
+      "policy_words": 45,
+      "discrepancy": null
+    }
+  ],
+  "unblinded_replicate_1_gate": {
+    "profile_replicate_1_alias": "case-06",
+    "profile_replicate_1_status": "PASS",
+    "raw_operations_replicate_1_alias": "case-03",
+    "raw_operations_replicate_1_status": "PASS",
+    "status": "PASS"
+  }
+}

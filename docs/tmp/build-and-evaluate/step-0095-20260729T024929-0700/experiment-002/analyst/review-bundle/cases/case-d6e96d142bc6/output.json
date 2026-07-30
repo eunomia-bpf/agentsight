@@ -1,0 +1,19 @@
+{
+  "diagnosis": "Candidate/bad runs overrepeat actions without obtaining new state evidence, especially repeated clicks, waits/no-ops, and scrolling.",
+  "expected_mechanism": "A state-change gate interrupts action loops and forces diagnosis, an alternative action, or termination. This should improve task progress and reduce wasted tool calls and latency, at the cost of lightweight state comparison and occasional premature switching when repetition was necessary.",
+  "policy_text": "Before repeating an action on the same target, compare the latest observable state with the prior state. If no relevant change occurred, do not repeat unchanged more than once; diagnose the blocker, choose a materially different action, request missing information, or stop with a concise explanation.",
+  "quantitative_evidence": [
+    {
+      "command": "go tool pprof -top agentreward-338-pairs-bad-minus-good.operations.pb.gz",
+      "finding": "result:repeated has +1,261 excess operations in bad runs, equal to 11.31% of the profile's signed total; by contrast, terminal and conclusion results are base/good-favored at -92 and -67."
+    },
+    {
+      "command": "go tool pprof -top -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz",
+      "finding": "Within repeated-result operations, the largest bad-run excesses are click +639, noop +356, and scroll +277. Repetition is also concentrated under inspect +602, wait +356, and navigate +306 strategies."
+    },
+    {
+      "command": "go tool pprof -traces -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz",
+      "finding": "Trace output reproduces recurring candidate-side sequences labeled result:repeated, including repeated navigation clicks on the same search target across consecutive steps."
+    }
+  ]
+}

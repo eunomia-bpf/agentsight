@@ -1,0 +1,21 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '\"'!.*'\"' && wc -l samples.jsonl && sed -n '1,3p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md\njq -r '[.stack_frames[0],.stack_frames[2],.stack_frames[3],.stack_frames[4],(.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$1 FS $2 FS $3 FS $4; s[k]+=$5; if($5>0)p[k]+=$5;else n[k]+=-$5} END {for(k in s) print s[k],p[k]+0,n[k]+0,k}'\"' | sort -nr | head -40\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.stack_frames[0],.stack_frames[2],.stack_frames[3],(.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$1 FS $2 FS $3;s[k]+=$4;if($4>0){p[k]+=$4;pc[k]++}else{n[k]+=-$4;nc[k]++}} END{for(k in s) printf \"%d'\"\\\\t%d\\\\t%d\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",s[k],p[k]+0,n[k]+0,pc[k]+0,nc[k]+0,k}' | sort -t \"'$'\"'\\\\t' -k1,1nr | head -30\njq -r '[(if .value>0 then \\\"bad\\\" else \\\"good\\\" end),.stack_frames[0],.stack_frames[2],.stack_frames[3],.labels.source_session[0]]|@tsv' samples.jsonl | awk -F '\\\\t' '\"'$2==\"result:repeated\"{k=$1 FS $3 FS $4; sum[k]++; sess[k FS $5]=1} END{for(k in sum){ns=0;for(x in sess)if(index(x,k FS)==1)ns++; print sum[k],ns,k}}'\"' | sort -nr | head -25\njq -r '[(if .value>0 then \\\"bad\\\" else \\\"good\\\" end),.stack_frames[0],(.value|if .<0 then -. else . end)]|@tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$1 FS $2;s[k]+=$3}END{for(k in s)print s[k],k}'\"' | sort -nr\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [(if .value>0 then \\\"candidate/bad\\\" else \\\"base/good\\\" end), ((.value|if .<0 then -. else . end)|tostring), .labels.source_session[0]] | @tsv' samples.jsonl | awk -F '\\\\t' '{ops[\"'$1]+=$2; seen[$1 SUBSEP $3]=1} END {for(k in ops){n=0; for(x in seen) if(index(x,k SUBSEP)==1)n++; printf \"%s'\"\\\\toperations=%d\\\\tdistinct_source_sessions=%d\\\\n\\\",k,ops[k],n}}' | sort\njq -r '[(if .value>0 then \\\"candidate/bad\\\" else \\\"base/good\\\" end), ((.value|if .<0 then -. else . end)|tostring)] | @tsv' samples.jsonl | awk -F '\\\\t' '{n[\"'$1]+=$2} END{for(k in n)print k,n[k]}'\"' | sort\"",
+      "type": "command_execution"
+    }
+  ]
+}

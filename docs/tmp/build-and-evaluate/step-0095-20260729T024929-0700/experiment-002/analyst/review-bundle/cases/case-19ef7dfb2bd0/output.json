@@ -1,0 +1,19 @@
+{
+  "diagnosis": "Candidate/bad runs overrepeat interactions after receiving unchanged results, especially repeated clicks, no-ops, and scrolling.",
+  "expected_mechanism": "Detecting unchanged state forces strategy revision before further actions, reducing loops and wasted operations. Cost: state comparison and occasional premature switching when repetition is legitimately necessary.",
+  "policy_text": "Track whether each action produces a material state change. After two equivalent actions or observations yield unchanged results, do not repeat them unchanged; explicitly revise the hypothesis, target, parameters, or strategy. Resume repetition only when new evidence explains why it should succeed.",
+  "quantitative_evidence": [
+    {
+      "command": "go tool pprof -top -nodecount=30 -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz",
+      "finding": "Repeated-result operations show +1,261 candidate/bad excess, 11.31% of the signed total. Within this excess, clicks contribute +639, no-ops +356, and scrolls +277."
+    },
+    {
+      "command": "go tool pprof -top -nodecount=30 -focus='strategy:inspect' agentreward-338-pairs-bad-minus-good.operations.pb.gz",
+      "finding": "Inspection has +1,531 net excess operations; repeated results account for +602, nearly matching its +672 progress results."
+    },
+    {
+      "command": "go tool pprof -traces -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz | sed -n '1,180p'",
+      "finding": "Traces reproduce consecutive candidate-side repetitions: the same search click appears at steps 0006–0007, while the same buy_tickets click recurs across many steps including 0014–0021."
+    }
+  ]
+}

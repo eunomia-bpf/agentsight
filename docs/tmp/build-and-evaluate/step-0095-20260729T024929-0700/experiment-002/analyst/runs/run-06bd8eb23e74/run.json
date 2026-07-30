@@ -1,0 +1,93 @@
+{
+  "actual_tool_commands": [
+    {
+      "command": "/bin/bash -lc \"pwd && rg --files -g '*.pb.gz' -g '*' | sed -n '1,120p'\"",
+      "event_index": 4,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"sed -n '1,240p' README.md && go tool pprof -top agentreward-338-pairs-bad-minus-good.operations.pb.gz && go tool pprof -tags agentreward-338-pairs-bad-minus-good.operations.pb.gz\"",
+      "event_index": 6,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"go tool pprof -top -focus='result:repeated' -nodecount=25 agentreward-338-pairs-bad-minus-good.operations.pb.gz; go tool pprof -top -focus='result:progress' -nodecount=15 agentreward-338-pairs-bad-minus-good.operations.pb.gz; go tool pprof -traces -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz | sed -n '1,180p'\"",
+      "event_index": 8,
+      "type": "command_execution"
+    }
+  ],
+  "command": [
+    "timeout",
+    "900",
+    "codex",
+    "exec",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-5.6-sol",
+    "--sandbox",
+    "read-only",
+    "--cd",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst-packages/PROFILE",
+    "--output-schema",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/output.schema.json",
+    "--json",
+    "--output-last-message",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/runs/run-06bd8eb23e74/final.json",
+    "You are an independent agent-performance analyst.\n\nYour current directory is the complete and only evidence package you may\ninspect. Do not read, search, or infer from any path outside it. Do not use the\ninternet. Identify exactly one recurring behavior that is overrepresented in\ncandidate/bad agent runs relative to base/good runs. Cite reproducible commands\nand quantitative evidence from this package. Then propose one benchmark- and\ndomain-agnostic addition to an agent system policy, at most 60 English words,\nthat addresses the behavior. State the expected success/cost mechanism.\n\nDo not mention or speculate about any downstream evaluation. Do not modify\nfiles. Return only the JSON object required by the supplied output schema.\n\nEvidence format:\nThe evidence is one standard differential pprof. Use stock\n`go tool pprof` commands such as `-top`, `-traces`, `-tags`, `-focus`, and\n`-ignore` against the `.pb.gz` file. Positive values are candidate/bad excess;\nnegative values are base/good excess."
+  ],
+  "event_count": 10,
+  "event_receipts_sha256": "c5839ec494bee6c5769f0ee91f11dc982326fb6b8eddae5fd6aaf267553bf2e8",
+  "events_sha256": "c3998e084753581117ebc5ef8914fff032d577cac4b038da1682ae56c5286d28",
+  "exit_code": 0,
+  "final_exists": true,
+  "final_response_elapsed_seconds": 36.64936061692424,
+  "final_response_received_at": "2026-07-29T12:19:28.940875+00:00",
+  "final_sha256": "4cf41c7922617fa01ff237c9bece5a47e42adb0376cdb72ace31f4e204ff1639",
+  "finished_at": "2026-07-29T12:19:29.230655+00:00",
+  "first_event_at": "2026-07-29T12:18:52.975476+00:00",
+  "first_event_elapsed_seconds": 0.6839588499860838,
+  "last_event_at": "2026-07-29T12:19:28.962317+00:00",
+  "last_event_elapsed_seconds": 36.670797510887496,
+  "model_turns": 1,
+  "provider_usage_events": [
+    {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 101376,
+      "input_tokens": 124307,
+      "output_tokens": 1115,
+      "reasoning_output_tokens": 342
+    }
+  ],
+  "provider_usage_totals": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 101376,
+    "input_tokens": 124307,
+    "output_tokens": 1115,
+    "reasoning_output_tokens": 342
+  },
+  "run": {
+    "arm": "PROFILE",
+    "arm_rank": 17,
+    "block_id": "block-d5e02815db09",
+    "block_index": 17,
+    "package": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst-packages/PROFILE",
+    "position": 33,
+    "prompt_file": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/prompts/run-06bd8eb23e74.txt",
+    "prompt_sha256": "8a239911920bc9789a9ed72b0b1f8d4bc93ec3542424b9adcf8865bd114c3fe7",
+    "run_id": "run-06bd8eb23e74",
+    "within_block_order": 1
+  },
+  "schema": "agentsight.utility2.analyst-run.v1",
+  "started_at": "2026-07-29T12:18:52.291433+00:00",
+  "status": "ok",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "telemetry_error": null,
+  "tool_call_counts": {
+    "command_execution": 3
+  },
+  "tool_call_total": 3,
+  "wall_seconds": 36.93901659396943
+}

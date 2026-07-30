@@ -1,0 +1,21 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '\"'!.*'\"' | sort && sed -n '1,5p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md; jq -r '.stack_frames[] | select(startswith(\\\"action:\\\"))' samples.jsonl | sort | uniq -c | sort -nr | head -30; jq -r '[.value, (.stack_frames[] | select(startswith(\\\"action:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '{s[\"'$2]+=$1; n[$2]++} END {for(k in s) print s[k],n[k],k}'\"' | sort -nr | head -30\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.value, (.stack_frames[] | select(startswith(\\\"action:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '\"'$2==\"action:click\" {if($1>0){p+=$1;pn++}else{n+=-$1;nn++}} END{printf \"click bad=%d good=%d excess=%d ratio=%.3f tuples_bad=%d tuples_good=%d'\"\\\\n\\\",p,n,p-n,p/n,pn,nn}'; jq -r '[.value, (.stack_frames[] | select(startswith(\\\"action:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0)p+=$1;else n+=-$1} END{printf \"all operations bad=%d good=%d ratio=%.3f'\"\\\\n\\\",p,n,p/n}'; jq -r 'select(any(.stack_frames[]; .==\\\"action:click\\\")) | [.value,.labels.source_session[0]] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0){bp[$2]=1}else{gp[$2]=1}} END{for(k in bp)b++;for(k in gp)g++;printf \"sessions with clicks bad=%d good=%d'\"\\\\n\\\",b,g}'\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.value, (.stack_frames[] | select(startswith(\\\"action:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '\"'$2==\"action:noop\" {if($1>0)p+=$1;else n+=-$1} {if($1>0)ap+=$1;else an+=-$1} END{printf \"noop bad=%d good=%d excess=%d raw_ratio=%.3f bad_share=%.3f%% good_share=%.3f%% share_ratio=%.3f'\"\\\\n\\\",p,n,p-n,p/n,100*p/ap,100*n/an,(p/ap)/(n/an)}'; jq -r 'select(any(.stack_frames[]; .==\\\"action:noop\\\")) | [.value,.labels.source_session[0]] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0)bp[$2]=1; else gp[$2]=1} END{for(k in bp)b++;for(k in gp)g++;printf \"sessions containing noop: bad=%d good=%d'\"\\\\n\\\",b,g}'; jq -r 'select(any(.stack_frames[]; .==\\\"action:noop\\\")) | [.value, (.stack_frames[]|select(startswith(\\\"result:\\\"))), (.stack_frames[]|select(startswith(\\\"object:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$2; if($1>0)p[k]+=$1; else n[k]+=-$1} END{for(k in p) printf \"%d %d %+d %s'\"\\\\n\\\",p[k],n[k],p[k]-n[k],k}' | sort -nr | head -20\"",
+      "type": "command_execution"
+    }
+  ]
+}

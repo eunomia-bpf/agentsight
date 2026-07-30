@@ -1,0 +1,19 @@
+{
+  "diagnosis": "Bad runs disproportionately repeat actions without progress: 1,485 repeated operations versus 224 in good runs (net +1,261). Repetition constitutes 20.2% of bad operations versus 5.9% of good operations, a 3.40× relative rate.",
+  "expected_mechanism": "Detecting unchanged outcomes interrupts unproductive loops and forces a state reassessment or strategy change. The cost is additional comparison/replanning and occasional premature abandonment when repetition would eventually succeed.",
+  "policy_text": "Before repeating an action, compare the latest state and result with the previous attempt. If they are materially unchanged, do not retry unchanged: reassess assumptions, inspect available state, and choose a different action or strategy. Permit one justified retry only when a concrete transient failure is evident.",
+  "quantitative_evidence": [
+    {
+      "command": "jq -r 'select(.stack_frames[0]==\"result:repeated\") | [.value, .labels.source_session[0]] | @tsv' samples.jsonl | awk -F '\\t' '{if($1>0){b+=$1;bs[$2]=1}else{g+=-$1;gs[$2]=1};net+=$1} END{for(x in bs)nb++;for(x in gs)ng++;printf \"bad_repeated=%d good_repeated=%d net=%+d bad_sessions=%d good_sessions=%d\\n\",b,g,net,nb,ng}'",
+      "finding": "bad_repeated=1485, good_repeated=224, net=+1261; repeated behavior appears in 88 bad-side sessions versus 20 good-side sessions."
+    },
+    {
+      "command": "jq -r '[.value, .labels.source_session[0]] | @tsv' samples.jsonl | awk -F '\\t' '{if($1>0)b+=$1;else g+=-$1} END{printf \"all_bad=%d all_good=%d bad_repeated_rate=%.2f%% good_repeated_rate=%.2f%% ratio=%.2fx\\n\",b,g,100*1485/b,100*224/g,(1485/b)/(224/g)}'",
+      "finding": "all_bad=7366 and all_good=3780; repeated-operation rates are 20.16% and 5.93%, respectively, yielding a 3.40× bad/good ratio."
+    },
+    {
+      "command": "jq -r 'select(.stack_frames[0]==\"result:repeated\") | [.stack_frames[2],.value] | @tsv' samples.jsonl | awk -F '\\t' '{if($2>0)b[$1]+=$2;else g[$1]+=-$2} END{for(k in b) printf \"%s bad=%d good=%d net=%+d\\n\",k,b[k],g[k],b[k]-g[k]}' | sort",
+      "finding": "Major excesses are repeated clicks (+639), no-ops (+356), and scrolls (+277), showing recurrence across several action types rather than one isolated command."
+    }
+  ]
+}

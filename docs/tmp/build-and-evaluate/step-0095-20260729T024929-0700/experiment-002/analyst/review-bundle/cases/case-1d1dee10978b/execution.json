@@ -1,0 +1,21 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '\"'!.*'\"' | sort\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,8p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.stack_frames[0], (if .value>0 then \\\"bad\\\" else \\\"good\\\" end), (.value|abs)]|@tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$1 FS $2; n[k]+=$3} END{for(k in n) print k,n[k]}'\"' | sort -t \"'$'\"'\\\\t' -k1,1 -k2,2 && jq -r '[.stack_frames[2], (if .value>0 then \\\"bad\\\" else \\\"good\\\" end), (.value|abs)]|@tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$1 FS $2; n[k]+=$3} END{for(k in n) print k,n[k]}'\"' | sort -t \"'$'\"'\\\\t' -k1,1 -k2,2\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -s 'def side: if .value>0 then \\\"candidate/bad\\\" else \\\"base/good\\\" end; group_by(side) | map({side:(.[0]|side), operations:(map(.value|abs)|add), repeated:(map(select(.stack_frames[0]==\\\"result:repeated\\\")|.value|abs)|add // 0), repeated_rate_pct:((map(select(.stack_frames[0]==\\\"result:repeated\\\")|.value|abs)|add // 0)*100/(map(.value|abs)|add)), sessions:(map(.labels.source_session[0])|unique|length), sessions_with_repeated:(map(select(.stack_frames[0]==\\\"result:repeated\\\")|.labels.source_session[0])|unique|length)})' samples.jsonl && jq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [(if .value>0 then \\\"bad\\\" else \\\"good\\\" end), .stack_frames[2], (.value|abs)]|@tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$1 FS $2;n[k]+=$3} END{for(k in n) print k,n[k]}'\"' | sort -k3,3nr | head -20\"",
+      "type": "command_execution"
+    }
+  ]
+}

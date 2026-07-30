@@ -1,0 +1,267 @@
+[
+  {
+    "role": "system",
+    "content": "Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous."
+  },
+  {
+    "role": "user",
+    "content": "Send a message to +12453344098 saying: How's the new album coming along"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "tfhkNyKUY4ddZziAbwr1eF30Rgg2hHoE",
+        "function": {
+          "arguments": "{\"phone_number\": \"+12453344098\", \"content\": \"How's the new album coming along\"}",
+          "name": "send_message_with_phone_number"
+        },
+        "type": "function"
+      }
+    ]
+  },
+  {
+    "tool_call_id": "tfhkNyKUY4ddZziAbwr1eF30Rgg2hHoE",
+    "role": "tool",
+    "name": "send_message_with_phone_number",
+    "content": "'8fc2a3fd-adb9-4a40-ab6e-2e15b925167d'",
+    "tool_details": {
+      "database_update": {
+        "MESSAGING": [
+          {
+            "message_id": "0d25dbb9-3737-5e0e-b0f0-7c1e359baccc",
+            "sender_person_id": null,
+            "sender_phone_number": "+18307976530",
+            "recipient_person_id": "3815cac9-3cab-5d75-89e2-fe12fe19779e",
+            "recipient_phone_number": "+11233344455",
+            "content": "Hey kid, you want some GPU?",
+            "creation_timestamp": 1785075030.97741
+          },
+          {
+            "message_id": "caaca9e8-7aa9-55a6-9d32-4b4aefed40d1",
+            "sender_person_id": "3815cac9-3cab-5d75-89e2-fe12fe19779e",
+            "sender_phone_number": "+11233344455",
+            "recipient_person_id": null,
+            "recipient_phone_number": "+18307976530",
+            "content": "No leave me alone",
+            "creation_timestamp": 1785078630.977427
+          },
+          {
+            "message_id": "0a0102dc-ceaf-5ebb-a665-63da99bf7c47",
+            "sender_person_id": "e3570ab6-0819-5032-be1e-2b366390c8ef",
+            "sender_phone_number": "+10000000000",
+            "recipient_person_id": "3815cac9-3cab-5d75-89e2-fe12fe19779e",
+            "recipient_phone_number": "+11233344455",
+            "content": "How's it going",
+            "creation_timestamp": 1785345153.977437
+          },
+          {
+            "message_id": "6c9382cb-720e-5f2c-8ac0-77e7ebdea446",
+            "sender_person_id": "3815cac9-3cab-5d75-89e2-fe12fe19779e",
+            "sender_phone_number": "+11233344455",
+            "recipient_person_id": "e3570ab6-0819-5032-be1e-2b366390c8ef",
+            "recipient_phone_number": "+10000000000",
+            "content": "Things are proceeding as expected",
+            "creation_timestamp": 1785345213.977446
+          },
+          {
+            "message_id": "0a0102dc-ceaf-5ebb-a665-63da99bf7c47",
+            "sender_person_id": "e3570ab6-0819-5032-be1e-2b366390c8ef",
+            "sender_phone_number": "+10000000000",
+            "recipient_person_id": "3815cac9-3cab-5d75-89e2-fe12fe19779e",
+            "recipient_phone_number": "+11233344455",
+            "content": "Good, keep me posted",
+            "creation_timestamp": 1785348874.977454
+          },
+          {
+            "message_id": "8fc2a3fd-adb9-4a40-ab6e-2e15b925167d",
+            "sender_person_id": "3815cac9-3cab-5d75-89e2-fe12fe19779e",
+            "sender_phone_number": "+11233344455",
+            "recipient_person_id": "9e137f06-916a-5310-8174-cf0b7e9f7054",
+            "recipient_phone_number": "+12453344098",
+            "content": "How's the new album coming along",
+            "creation_timestamp": 1785348940.616159
+          }
+        ]
+      },
+      "milestone_matches": [
+        {
+          "milestone_index": 0,
+          "milestone": {
+            "snapshot_constraints": [
+              {
+                "database_namespace": "MESSAGING",
+                "snapshot_constraint": "addition_similarity",
+                "reference_milestone_node_index": -1,
+                "target_dataframe": [
+                  {
+                    "recipient_phone_number": "+12453344098",
+                    "content": "How's the new album coming along"
+                  }
+                ],
+                "column_similarity_measure": {
+                  "sandbox_message_index": "column_exact_match_similarity",
+                  "message_id": "column_exact_match_similarity",
+                  "sender_person_id": "column_exact_match_similarity",
+                  "sender_phone_number": "column_exact_match_similarity",
+                  "recipient_person_id": "column_exact_match_similarity",
+                  "recipient_phone_number": "column_exact_match_similarity",
+                  "content": "column_rouge_l_similarity",
+                  "creation_timestamp": "column_exact_match_similarity"
+                }
+              },
+              {
+                "database_namespace": "REMINDER",
+                "snapshot_constraint": "guardrail_similarity",
+                "reference_milestone_node_index": -1,
+                "target_dataframe": null,
+                "column_similarity_measure": {
+                  "sandbox_message_index": "column_exact_match_similarity",
+                  "reminder_id": "column_exact_match_similarity",
+                  "content": "column_rouge_l_similarity",
+                  "creation_timestamp": "column_exact_match_similarity",
+                  "reminder_timestamp": "column_exact_match_similarity",
+                  "latitude": "column_exact_match_similarity",
+                  "longitude": "column_exact_match_similarity"
+                }
+              },
+              {
+                "database_namespace": "CONTACT",
+                "snapshot_constraint": "guardrail_similarity",
+                "reference_milestone_node_index": -1,
+                "target_dataframe": null,
+                "column_similarity_measure": {
+                  "sandbox_message_index": "column_exact_match_similarity",
+                  "person_id": "column_exact_match_similarity",
+                  "name": "column_exact_match_similarity",
+                  "phone_number": "column_exact_match_similarity",
+                  "relationship": "column_rouge_l_similarity",
+                  "is_self": "column_exact_match_similarity"
+                }
+              },
+              {
+                "database_namespace": "SETTING",
+                "snapshot_constraint": "guardrail_similarity",
+                "reference_milestone_node_index": -1,
+                "target_dataframe": null,
+                "column_similarity_measure": {
+                  "sandbox_message_index": "column_exact_match_similarity",
+                  "device_id": "column_exact_match_similarity",
+                  "cellular": "column_exact_match_similarity",
+                  "wifi": "column_exact_match_similarity",
+                  "location_service": "column_exact_match_similarity",
+                  "low_battery_mode": "column_exact_match_similarity",
+                  "latitude": "column_exact_match_similarity",
+                  "longitude": "column_exact_match_similarity"
+                }
+              }
+            ],
+            "guardrail_database_list": [
+              "SANDBOX",
+              "SETTING",
+              "CONTACT",
+              "MESSAGING",
+              "REMINDER"
+            ],
+            "guardrail_database_exclusion_list": null
+          },
+          "milestone_similarity": 1.0
+        }
+      ]
+    }
+  },
+  {
+    "role": "assistant",
+    "content": "The message has been sent successfully.",
+    "assistant_details": {
+      "milestone_matches": [
+        {
+          "milestone_index": 1,
+          "milestone": {
+            "snapshot_constraints": [
+              {
+                "database_namespace": "SANDBOX",
+                "snapshot_constraint": "snapshot_similarity",
+                "reference_milestone_node_index": null,
+                "target_dataframe": [
+                  {
+                    "sender": "AGENT",
+                    "recipient": "USER",
+                    "content": "Your message to +12453344098 has been sent saying: How's the new album coming along"
+                  }
+                ],
+                "column_similarity_measure": {
+                  "sandbox_message_index": "column_exact_match_similarity",
+                  "sender": "column_exact_match_similarity",
+                  "recipient": "column_exact_match_similarity",
+                  "content": "column_rouge_l_similarity",
+                  "openai_tool_call_id": "column_one_similarity",
+                  "openai_function_name": "column_one_similarity",
+                  "conversation_active": "column_exact_match_similarity",
+                  "tool_call_exception": "column_one_similarity",
+                  "tool_trace": "column_tool_trace_exact_match_similarity",
+                  "visible_to": "column_exact_match_similarity"
+                }
+              },
+              {
+                "database_namespace": "REMINDER",
+                "snapshot_constraint": "guardrail_similarity",
+                "reference_milestone_node_index": 0,
+                "target_dataframe": null,
+                "column_similarity_measure": {
+                  "sandbox_message_index": "column_exact_match_similarity",
+                  "reminder_id": "column_exact_match_similarity",
+                  "content": "column_rouge_l_similarity",
+                  "creation_timestamp": "column_exact_match_similarity",
+                  "reminder_timestamp": "column_exact_match_similarity",
+                  "latitude": "column_exact_match_similarity",
+                  "longitude": "column_exact_match_similarity"
+                }
+              },
+              {
+                "database_namespace": "CONTACT",
+                "snapshot_constraint": "guardrail_similarity",
+                "reference_milestone_node_index": 0,
+                "target_dataframe": null,
+                "column_similarity_measure": {
+                  "sandbox_message_index": "column_exact_match_similarity",
+                  "person_id": "column_exact_match_similarity",
+                  "name": "column_exact_match_similarity",
+                  "phone_number": "column_exact_match_similarity",
+                  "relationship": "column_rouge_l_similarity",
+                  "is_self": "column_exact_match_similarity"
+                }
+              },
+              {
+                "database_namespace": "SETTING",
+                "snapshot_constraint": "guardrail_similarity",
+                "reference_milestone_node_index": 0,
+                "target_dataframe": null,
+                "column_similarity_measure": {
+                  "sandbox_message_index": "column_exact_match_similarity",
+                  "device_id": "column_exact_match_similarity",
+                  "cellular": "column_exact_match_similarity",
+                  "wifi": "column_exact_match_similarity",
+                  "location_service": "column_exact_match_similarity",
+                  "low_battery_mode": "column_exact_match_similarity",
+                  "latitude": "column_exact_match_similarity",
+                  "longitude": "column_exact_match_similarity"
+                }
+              }
+            ],
+            "guardrail_database_list": [
+              "SANDBOX",
+              "SETTING",
+              "CONTACT",
+              "MESSAGING",
+              "REMINDER"
+            ],
+            "guardrail_database_exclusion_list": null
+          },
+          "milestone_similarity": 0.724920243633305
+        }
+      ]
+    }
+  }
+]

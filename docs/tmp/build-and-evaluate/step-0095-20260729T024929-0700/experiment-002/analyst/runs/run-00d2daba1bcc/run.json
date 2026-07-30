@@ -1,0 +1,98 @@
+{
+  "actual_tool_commands": [
+    {
+      "command": "/bin/bash -lc \"pwd && rg --files -g '\"'!.*'\"' | sort && git status --short 2>/dev/null || true\"",
+      "event_index": 5,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,8p' samples.jsonl\"",
+      "event_index": 7,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"jq -r '[.stack_frames[0], (.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0)p[$1]+=$2; else n[$1]+=-$2} END{for(k in p) printf \"%s'\"\\\\t%d\\\\t%d\\\\t%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]; for(k in n) if(\"'!(k in p)) printf \"%s'\"\\\\t0\\\\t%d\\\\t%d\\\\n\\\",k,n[k],-n[k]}' | sort -t \"'$'\"'\\\\t' -k4,4nr | head -30\njq -r '[.stack_frames[2], (.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0)p[$1]+=$2; else n[$1]+=-$2} END{for(k in p) printf \"%s'\"\\\\t%d\\\\t%d\\\\t%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t \"'$'\"'\\\\t' -k4,4nr | head -25\njq -s '{lines:length,bad_ops:map(select(.value>0)|.value)|add,good_ops:(map(select(.value<0)|-.value)|add),bad_sessions:([.[]|select(.value>0)|.labels.source_session[0]]|unique|length),good_sessions:([.[]|select(.value<0)|.labels.source_session[0]]|unique|length)}' samples.jsonl\"",
+      "event_index": 9,
+      "type": "command_execution"
+    },
+    {
+      "command": "/bin/bash -lc \"jq -s 'def side(\"'$sgn): [ .[] | select((.value*$sgn)>0) ]; (side(1)) as $b | (side(-1)) as $g | {bad:{all:($b|map(.value)|add),repeated:($b|map(select(.stack_frames[0]==\"result:repeated\")|.value)|add),sessions:($b|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length)},good:{all:($g|map(-.value)|add),repeated:($g|map(select(.stack_frames[0]==\"result:repeated\")|-.value)|add),sessions:($g|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length)}}'\"' samples.jsonl\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.stack_frames[2],(.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0)b[$1]+=$2;else g[$1]+=-$2} END{for(k in b)printf \"%s'\"\\\\t%d\\\\t%d\\\\t%d\\\\n\\\",k,b[k],g[k],b[k]-g[k]}' | sort -t \"'$'\"'\\\\t' -k4,4nr | head -10\"",
+      "event_index": 11,
+      "type": "command_execution"
+    }
+  ],
+  "command": [
+    "timeout",
+    "900",
+    "codex",
+    "exec",
+    "--ephemeral",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-5.6-sol",
+    "--sandbox",
+    "read-only",
+    "--cd",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst-packages/RAW-OPERATIONS",
+    "--output-schema",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/output.schema.json",
+    "--json",
+    "--output-last-message",
+    "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/runs/run-00d2daba1bcc/final.json",
+    "You are an independent agent-performance analyst.\n\nYour current directory is the complete and only evidence package you may\ninspect. Do not read, search, or infer from any path outside it. Do not use the\ninternet. Identify exactly one recurring behavior that is overrepresented in\ncandidate/bad agent runs relative to base/good runs. Cite reproducible commands\nand quantitative evidence from this package. Then propose one benchmark- and\ndomain-agnostic addition to an agent system policy, at most 60 English words,\nthat addresses the behavior. State the expected success/cost mechanism.\n\nDo not mention or speculate about any downstream evaluation. Do not modify\nfiles. Return only the JSON object required by the supplied output schema.\n\nEvidence format:\nThe evidence is a flat JSONL lossless decode of the\nsame differential pprof samples. Use shell, `jq`, or Python to aggregate\n`samples.jsonl`. Positive values are candidate/bad excess; negative values are\nbase/good excess."
+  ],
+  "event_count": 13,
+  "event_receipts_sha256": "c090ec55715626653e78daf0a55bbcc8394efc8292f3fbceaf1a235f9456d4fb",
+  "events_sha256": "c75051fb924d268134be7dab5c54931795384418396dcb012dff43c8c5b57889",
+  "exit_code": 0,
+  "final_exists": true,
+  "final_response_elapsed_seconds": 60.53146830399055,
+  "final_response_received_at": "2026-07-29T12:17:24.474203+00:00",
+  "final_sha256": "5d32e6f059b1cfa39394dd61c2af22582b0dc3f65584f872aca656cce5473f2d",
+  "finished_at": "2026-07-29T12:17:24.763730+00:00",
+  "first_event_at": "2026-07-29T12:16:24.297276+00:00",
+  "first_event_elapsed_seconds": 0.35453711193986237,
+  "last_event_at": "2026-07-29T12:17:24.497227+00:00",
+  "last_event_elapsed_seconds": 60.554493984906,
+  "model_turns": 1,
+  "provider_usage_events": [
+    {
+      "cache_write_input_tokens": 0,
+      "cached_input_tokens": 107264,
+      "input_tokens": 119993,
+      "output_tokens": 2126,
+      "reasoning_output_tokens": 449
+    }
+  ],
+  "provider_usage_totals": {
+    "cache_write_input_tokens": 0,
+    "cached_input_tokens": 107264,
+    "input_tokens": 119993,
+    "output_tokens": 2126,
+    "reasoning_output_tokens": 449
+  },
+  "run": {
+    "arm": "RAW-OPERATIONS",
+    "arm_rank": 15,
+    "block_id": "block-8a52664e31c3",
+    "block_index": 15,
+    "package": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst-packages/RAW-OPERATIONS",
+    "position": 30,
+    "prompt_file": "/home/yunwei37/workspace/agentsight-research-semantic-flamegraph/docs/tmp/build-and-evaluate/step-0095-20260729T024929-0700/experiment-002/analyst/prompts/run-00d2daba1bcc.txt",
+    "prompt_sha256": "b048c33cb00a2aea12d0e6090a7e3534bfb30adfbf81bc9196a512201a2cebcf",
+    "run_id": "run-00d2daba1bcc",
+    "within_block_order": 2
+  },
+  "schema": "agentsight.utility2.analyst-run.v1",
+  "started_at": "2026-07-29T12:16:23.942650+00:00",
+  "status": "ok",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "telemetry_error": null,
+  "tool_call_counts": {
+    "command_execution": 4
+  },
+  "tool_call_total": 4,
+  "wall_seconds": 60.820860446896404
+}

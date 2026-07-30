@@ -1,0 +1,19 @@
+{
+  "diagnosis": "Candidate/bad runs overrepeat ineffective operations without changing strategy or state, especially repeated waits, clicks, and scrolls.",
+  "expected_mechanism": "A retry budget detects stalled action-result loops and forces reassessment or strategy change. This should reduce wasted operations and cascading timeouts, at the cost of small bookkeeping overhead and occasional premature abandonment of a retry that might have succeeded.",
+  "policy_text": "Track recent action-object-result tuples. After the same ineffective or unchanged-result operation occurs twice, do not repeat it unchanged: inspect current state, revise the strategy or parameters, or stop with the blocker. Treat waiting as a retry. Reset the retry count only after observable progress.",
+  "quantitative_evidence": [
+    {
+      "command": "jq -s 'def side($s): map(select(if $s==\"bad\" then .value>0 else .value<0 end)); {bad_operations:(side(\"bad\")|map(.value)|add),good_operations:(side(\"good\")|map(-.value)|add),bad_repeated:(side(\"bad\")|map(select(.stack_frames[0]==\"result:repeated\")|.value)|add),good_repeated:(side(\"good\")|map(select(.stack_frames[0]==\"result:repeated\")|-.value)|add)}' samples.jsonl",
+      "finding": "Bad runs contain 1,485 repeated-result operations among 7,366 operations (20.2%); good runs contain 224 among 3,780 (5.9%). The bad rate is 3.40× the good rate, with a signed excess of 1,261 repeated operations."
+    },
+    {
+      "command": "jq -r 'select(.stack_frames[0]==\"result:repeated\") | [.value,.stack_frames[2],.stack_frames[3]]|@tsv' samples.jsonl | awk -F '\\t' '{k=$2\" | \"$3;if($1>0)p[k]+=$1;else n[k]+=-$1} END{for(k in p) printf \"%d\\t%d\\t%d\\t%s\\n\",p[k]-n[k],p[k],n[k],k}' | sort -nr | head -4",
+      "finding": "Leading repeated-operation excesses are noop/wait: +356 (441 bad vs 85 good), click/inspect: +336 (350 vs 14), click/navigate: +303 (329 vs 26), and scroll/inspect: +277 (278 vs 1)."
+    },
+    {
+      "command": "jq -s 'def side($s): map(select(if $s==\"bad\" then .value>0 else .value<0 end)); {bad_sessions_with_repeated:(side(\"bad\")|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length),good_sessions_with_repeated:(side(\"good\")|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length),all_bad_sessions:(side(\"bad\")|map(.labels.source_session[0])|unique|length),all_good_sessions:(side(\"good\")|map(.labels.source_session[0])|unique|length)}' samples.jsonl",
+      "finding": "Repeated results occur in 88 of 238 observed bad-side sessions (37.0%) versus 20 of 202 observed good-side sessions (9.9%), confirming recurrence across sessions rather than concentration in one trajectory."
+    }
+  ]
+}

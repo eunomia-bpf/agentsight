@@ -1,0 +1,94 @@
+[
+  {
+    "role": "system",
+    "content": "Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous."
+  },
+  {
+    "role": "user",
+    "content": "Remove phone number +12453344098 from my contact"
+  },
+  {
+    "role": "assistant",
+    "content": "",
+    "tool_calls": [
+      {
+        "id": "M40WtO7T2ob1n7qqfHouu4bTk9Z77iMe_0",
+        "function": {
+          "arguments": "{\"phone_number\": \"+12453344098\"}",
+          "name": "search_contacts"
+        },
+        "type": "function"
+      }
+    ]
+  },
+  {
+    "tool_call_id": "M40WtO7T2ob1n7qqfHouu4bTk9Z77iMe",
+    "role": "tool",
+    "name": "search_contacts",
+    "content": "[{'person_id': '9e137f06-916a-5310-8174-cf0b7e9f7054', 'name': 'Fredrik Thordendal', 'phone_number': '+12453344098', 'relationship': 'friend', 'is_self': False}]"
+  },
+  {
+    "role": "assistant",
+    "content": "The contact with the phone number +12453344098 is Fredrik Thordendal. Would you like me to remove this contact from your list?",
+    "assistant_details": {
+      "milestone_matches": [
+        {
+          "milestone_index": 0,
+          "milestone": {
+            "snapshot_constraints": [
+              {
+                "database_namespace": "SANDBOX",
+                "snapshot_constraint": "snapshot_similarity",
+                "reference_milestone_node_index": null,
+                "target_dataframe": [
+                  {
+                    "sender": "AGENT",
+                    "recipient": "USER",
+                    "content": "I cannot remove the phone number from your contact , because I don't have the tools available."
+                  }
+                ],
+                "column_similarity_measure": {
+                  "sandbox_message_index": "column_exact_match_similarity",
+                  "sender": "column_exact_match_similarity",
+                  "recipient": "column_exact_match_similarity",
+                  "content": "column_rouge_l_similarity",
+                  "openai_tool_call_id": "column_one_similarity",
+                  "openai_function_name": "column_one_similarity",
+                  "conversation_active": "column_exact_match_similarity",
+                  "tool_call_exception": "column_one_similarity",
+                  "tool_trace": "column_tool_trace_exact_match_similarity",
+                  "visible_to": "column_exact_match_similarity"
+                }
+              }
+            ],
+            "guardrail_database_list": [
+              "SANDBOX",
+              "SETTING",
+              "CONTACT",
+              "MESSAGING",
+              "REMINDER"
+            ],
+            "guardrail_database_exclusion_list": null
+          },
+          "milestone_similarity": 0.6408240387072407
+        }
+      ]
+    }
+  },
+  {
+    "role": "user",
+    "content": "I don't know who that is. Just delete the number."
+  },
+  {
+    "role": "assistant",
+    "content": "I cannot directly delete contacts from your system. However, I can guide you on how to do it:\n\n1. Open your contacts app.\n2. Search for the phone number **+12453344098** or the name **Fredrik Thordendal**.\n3. Select the contact and choose the option to delete or remove it.\n\nLet me know if you need further assistance!"
+  },
+  {
+    "role": "user",
+    "content": "Just do it for me."
+  },
+  {
+    "role": "assistant",
+    "content": "I'm sorry, but I don't have the capability to directly delete contacts from your system. You'll need to remove the contact manually through your device's contacts app. If you'd like, I can provide step-by-step instructions for your specific device (e.g., iPhone, Android, etc.). Let me know how I can assist further!"
+  }
+]

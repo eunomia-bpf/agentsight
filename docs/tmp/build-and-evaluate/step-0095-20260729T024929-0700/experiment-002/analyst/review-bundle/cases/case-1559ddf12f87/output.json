@@ -1,0 +1,19 @@
+{
+  "diagnosis": "Candidate/bad runs overrepeat actions without gaining new state, especially clicks, no-ops, and scrolling.",
+  "expected_mechanism": "Detecting unchanged outcomes forces strategy changes before loops grow, improving progress and reducing wasted operations. The cost is state-comparison overhead and occasional premature switching when repetition is genuinely necessary.",
+  "policy_text": "Track the outcome of each action. If the same or equivalent action produces no materially new state twice, do not repeat it unchanged; reassess the goal, inspect current evidence, and choose a different action, target, strategy, or explicit termination.",
+  "quantitative_evidence": [
+    {
+      "command": "go tool pprof -top -nodecount=20 -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz",
+      "finding": "Repeated-result operations have +1,261 bad-minus-good excess (11.31% of the profile). Within this behavior, clicks contribute +639, no-ops +356, and scrolling +277."
+    },
+    {
+      "command": "go tool pprof -tags -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz",
+      "finding": "Candidate/bad runs contain 1,485 repeated-result operations versus 224 in base/good runs: 1,261 net excess and 6.63 times as many candidate operations."
+    },
+    {
+      "command": "go tool pprof -traces -focus='result:repeated' agentreward-338-pairs-bad-minus-good.operations.pb.gz | sed -n '1,160p'",
+      "finding": "Traces reproduce repeated actions across distinct sessions and tasks, including repeated search clicks and repeated ticket-navigation clicks over many successive steps."
+    }
+  ]
+}

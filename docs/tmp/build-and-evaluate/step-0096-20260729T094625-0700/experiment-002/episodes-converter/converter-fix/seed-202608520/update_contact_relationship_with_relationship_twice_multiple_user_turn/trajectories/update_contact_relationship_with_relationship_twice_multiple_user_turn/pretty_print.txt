@@ -1,0 +1,51 @@
+Note that User Simulator few shot messages have been omitted
+shape: (29, 8)
+┌────────────┬────────────┬────────────┬───────────┬───────────┬───────────┬───────────┬───────────┐
+│ sandbox_me ┆ sender     ┆ recipient  ┆ content   ┆ openai_fu ┆ tool_call ┆ tool_trac ┆ visible_t │
+│ ssage_inde ┆ ---        ┆ ---        ┆ ---       ┆ nction_na ┆ _exceptio ┆ e         ┆ o         │
+│ x          ┆ enum       ┆ enum       ┆ str       ┆ me        ┆ n         ┆ ---       ┆ ---       │
+│ ---        ┆            ┆            ┆           ┆ ---       ┆ ---       ┆ list[str] ┆ list[enum │
+│ i32        ┆            ┆            ┆           ┆ str       ┆ str       ┆           ┆ ]         │
+╞════════════╪════════════╪════════════╪═══════════╪═══════════╪═══════════╪═══════════╪═══════════╡
+│ 0          ┆ SYSTEM     ┆ EXECUTION_ ┆ import    ┆ null      ┆ null      ┆ null      ┆ null      │
+│            ┆            ┆ ENVIRONMEN ┆ json      ┆           ┆           ┆           ┆           │
+│            ┆            ┆ T          ┆ from tool ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ _sandbox. ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ …         ┆           ┆           ┆           ┆           │
+│ 1          ┆ SYSTEM     ┆ AGENT      ┆ Don't     ┆ null      ┆ null      ┆ null      ┆ null      │
+│            ┆            ┆            ┆ make assu ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ mptions   ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ about w…  ┆           ┆           ┆           ┆           │
+│ 14         ┆ SYSTEM     ┆ USER       ┆ You are   ┆ null      ┆ null      ┆ null      ┆ null      │
+│            ┆            ┆            ┆ no longer ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ an assist ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ ant…      ┆           ┆           ┆           ┆           │
+│ 15         ┆ USER       ┆ AGENT      ┆ Who are   ┆ null      ┆ null      ┆ null      ┆ null      │
+│            ┆            ┆            ┆ my        ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ friends?  ┆           ┆           ┆           ┆           │
+│ 16         ┆ AGENT      ┆ EXECUTION_ ┆ fODeh1g8e ┆ search_co ┆ null      ┆ null      ┆ ["AGENT", │
+│            ┆            ┆ ENVIRONMEN ┆ YvmtwQf5K ┆ ntacts    ┆           ┆           ┆ "EXECUTIO │
+│            ┆            ┆ T          ┆ DGs9jv9lh ┆           ┆           ┆           ┆ N_ENVIRON │
+│            ┆            ┆            ┆ 8eJ…      ┆           ┆           ┆           ┆ ME…       │
+│ …          ┆ …          ┆ …          ┆ …         ┆ …         ┆ …         ┆ …         ┆ …         │
+│ 36         ┆ EXECUTION_ ┆ AGENT      ┆ None      ┆ modify_co ┆ null      ┆ ["{"tool_ ┆ ["EXECUTI │
+│            ┆ ENVIRONMEN ┆            ┆           ┆ ntact     ┆           ┆ name":    ┆ ON_ENVIRO │
+│            ┆ T          ┆            ┆           ┆           ┆           ┆ "modify_c ┆ NMENT",   │
+│            ┆            ┆            ┆           ┆           ┆           ┆ ontac…    ┆ "AGE…     │
+│ 37         ┆ EXECUTION_ ┆ AGENT      ┆ None      ┆ modify_co ┆ null      ┆ ["{"tool_ ┆ ["EXECUTI │
+│            ┆ ENVIRONMEN ┆            ┆           ┆ ntact     ┆           ┆ name":    ┆ ON_ENVIRO │
+│            ┆ T          ┆            ┆           ┆           ┆           ┆ "modify_c ┆ NMENT",   │
+│            ┆            ┆            ┆           ┆           ┆           ┆ ontac…    ┆ "AGE…     │
+│ 38         ┆ AGENT      ┆ USER       ┆ Fredrik   ┆ null      ┆ null      ┆ null      ┆ ["AGENT", │
+│            ┆            ┆            ┆ Thordenda ┆           ┆           ┆           ┆ "USER"]   │
+│            ┆            ┆            ┆ l and     ┆           ┆           ┆           ┆           │
+│            ┆            ┆            ┆ John Pe…  ┆           ┆           ┆           ┆           │
+│ 39         ┆ USER       ┆ EXECUTION_ ┆ aQO6nlQCX ┆ null      ┆ null      ┆ null      ┆ ["USER",  │
+│            ┆            ┆ ENVIRONMEN ┆ zH7CKgAT7 ┆           ┆           ┆           ┆ "EXECUTIO │
+│            ┆            ┆ T          ┆ iqFCRnL5D ┆           ┆           ┆           ┆ N_ENVIRON │
+│            ┆            ┆            ┆ pJ5…      ┆           ┆           ┆           ┆ MEN…      │
+│ 40         ┆ EXECUTION_ ┆ USER       ┆ None      ┆ null      ┆ null      ┆ ["{"tool_ ┆ ["EXECUTI │
+│            ┆ ENVIRONMEN ┆            ┆           ┆           ┆           ┆ name":    ┆ ON_ENVIRO │
+│            ┆ T          ┆            ┆           ┆           ┆           ┆ "end_conv ┆ NMENT",   │
+│            ┆            ┆            ┆           ┆           ┆           ┆ ersat…    ┆ "USE…     │
+└────────────┴────────────┴────────────┴───────────┴───────────┴───────────┴───────────┴───────────┘

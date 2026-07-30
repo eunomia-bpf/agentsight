@@ -1,0 +1,21 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '\"'!.*'\"' | sort && git status --short 2>/dev/null || true\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,8p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.stack_frames[0], (.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0)p[$1]+=$2; else n[$1]+=-$2} END{for(k in p) printf \"%s'\"\\\\t%d\\\\t%d\\\\t%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]; for(k in n) if(\"'!(k in p)) printf \"%s'\"\\\\t0\\\\t%d\\\\t%d\\\\n\\\",k,n[k],-n[k]}' | sort -t \"'$'\"'\\\\t' -k4,4nr | head -30\njq -r '[.stack_frames[2], (.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0)p[$1]+=$2; else n[$1]+=-$2} END{for(k in p) printf \"%s'\"\\\\t%d\\\\t%d\\\\t%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t \"'$'\"'\\\\t' -k4,4nr | head -25\njq -s '{lines:length,bad_ops:map(select(.value>0)|.value)|add,good_ops:(map(select(.value<0)|-.value)|add),bad_sessions:([.[]|select(.value>0)|.labels.source_session[0]]|unique|length),good_sessions:([.[]|select(.value<0)|.labels.source_session[0]]|unique|length)}' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -s 'def side(\"'$sgn): [ .[] | select((.value*$sgn)>0) ]; (side(1)) as $b | (side(-1)) as $g | {bad:{all:($b|map(.value)|add),repeated:($b|map(select(.stack_frames[0]==\"result:repeated\")|.value)|add),sessions:($b|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length)},good:{all:($g|map(-.value)|add),repeated:($g|map(select(.stack_frames[0]==\"result:repeated\")|-.value)|add),sessions:($g|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length)}}'\"' samples.jsonl\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.stack_frames[2],(.value|tostring)]|@tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0)b[$1]+=$2;else g[$1]+=-$2} END{for(k in b)printf \"%s'\"\\\\t%d\\\\t%d\\\\t%d\\\\n\\\",k,b[k],g[k],b[k]-g[k]}' | sort -t \"'$'\"'\\\\t' -k4,4nr | head -10\"",
+      "type": "command_execution"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*' | sort\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,8p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '.stack_frames[]' samples.jsonl | sort | uniq -c | sort -nr | head -40\njq -r '[.value, .stack_frames[0], .stack_frames[2], .stack_frames[3]] | @tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$2; if($1>0){p[k]+=$1;pn[k]++}else{n[k]+=-$1;nn[k]++}} END{for(k in p) printf \"%s'\"\\\\tbad=%d\\\\tgood=%d\\\\tnet=%d\\\\n\\\",k,p[k],n[k],p[k]-n[k]}' | sort -t= -k4,4nr | head -30\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -s 'def side(\"'$s): map(select(if $s==\"bad\" then .value>0 else .value<0 end)); {bad_operations:(side(\"bad\")|map(.value)|add), good_operations:(side(\"good\")|map(-.value)|add), bad_repeated:(side(\"bad\")|map(select(.stack_frames[0]==\"result:repeated\")|.value)|add), good_repeated:(side(\"good\")|map(select(.stack_frames[0]==\"result:repeated\")|-.value)|add), bad_sessions_with_repeated:(side(\"bad\")|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length), good_sessions_with_repeated:(side(\"good\")|map(select(.stack_frames[0]==\"result:repeated\")|.labels.source_session[0])|unique|length), all_bad_sessions:(side(\"bad\")|map(.labels.source_session[0])|unique|length), all_good_sessions:(side(\"good\")|map(.labels.source_session[0])|unique|length)}'\"' samples.jsonl\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.value,.stack_frames[2],.stack_frames[3]]|@tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$2\" | \"$3;if($1>0)p[k]+=$1;else n[k]+=-$1} END{for(k in p) printf \"%d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",p[k]-n[k],p[k],n[k],k}' | sort -nr | head -20\"",
+      "type": "command_execution"
+    }
+  ]
+}

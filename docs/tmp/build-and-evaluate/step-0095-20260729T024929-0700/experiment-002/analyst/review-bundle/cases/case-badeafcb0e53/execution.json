@@ -1,0 +1,25 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*' | sort\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md && sed -n '1,12p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.stack_frames[0], .value] | @tsv' samples.jsonl | awk -F '\\\\t' '{sum[\"'$1]+=$2; if($2>0){pos[$1]+=$2;pn[$1]++}else{neg[$1]+=-$2;nn[$1]++}} END{for(k in sum) printf \"%d'\"\\\\t%d\\\\t%d\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",sum[k],pos[k],neg[k],pn[k],nn[k],k}' | sort -nr | head -30\njq -r '[.stack_frames[2], .value] | @tsv' samples.jsonl | awk -F '\\\\t' '{sum[\"'$1]+=$2; if($2>0)pos[$1]+=$2;else neg[$1]+=-$2} END{for(k in sum) printf \"%d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",sum[k],pos[k],neg[k],k}' | sort -nr | head -30\njq -r '[.stack_frames[3], .value] | @tsv' samples.jsonl | awk -F '\\\\t' '{sum[\"'$1]+=$2; if($2>0)pos[$1]+=$2;else neg[$1]+=-$2} END{for(k in sum) printf \"%d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",sum[k],pos[k],neg[k],k}' | sort -nr\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.labels.comparison_side[0], .labels.source_session[0], .value] | @tsv' samples.jsonl | awk -F '\\\\t' '{ops[\"'$1]+=$3; seen[$1 SUBSEP $2]=1} END{for(k in seen){split(k,a,SUBSEP); sess[a[1]]++} for(k in ops) print k, \"operations=\" ops[k], \"sessions=\" sess[k]}'\"' | sort\njq -r '[.labels.comparison_side[0],.labels.source_session[0]]|@tsv' samples.jsonl | sort -u | awk -F '\\\\t' '{n[\"'$1]++}END{for(k in n) print k,n[k]}'\"' | sort\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.stack_frames[2],.value]|@tsv' samples.jsonl | awk -F '\\\\t' '{s[\"'$1]+=$2;p[$1]+=($2>0?$2:0);n[$1]+=($2<0?-$2:0)}END{for(k in s)printf \"%d'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",s[k],p[k],n[k],k}' | sort -nr | head -20\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.labels.comparison_side[0],.value]|@tsv' samples.jsonl | awk -F '\\\\t' '{v=\"'$2<0?-$2:$2; total[$1]+=v; if($1==\"candidate\") lines[$1]++; else lines[$1]++} END{for(k in total)print k,total[k],lines[k]}'\"' | sort\"",
+      "type": "command_execution"
+    }
+  ]
+}

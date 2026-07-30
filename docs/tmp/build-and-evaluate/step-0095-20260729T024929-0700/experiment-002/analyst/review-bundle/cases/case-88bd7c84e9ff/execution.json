@@ -1,0 +1,17 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*' . && sed -n '1,5p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"sed -n '1,240p' README.md\njq -r '.stack_frames[]' samples.jsonl | sort | uniq -c | sort -nr | head -80\njq -r '[.value,.labels.comparison_side[0],.stack_frames[0],.stack_frames[2],.stack_frames[3]]|@tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$3 FS $4 FS $5; s[k]+=$1; n[k]++} END {for(k in s) print s[k],n[k],k}'\"' | sort -nr | head -40\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.value,.stack_frames[0],.stack_frames[2],.stack_frames[3]]|@tsv' samples.jsonl | awk -F '\\\\t' '\n{v=\"'$1; total[v>0?\"bad\":\"good\"]+= (v>0?v:-v); if($2==\"result:repeated\"){rep[v>0?\"bad\":\"good\"]+=(v>0?v:-v)}; if($3==\"action:noop\"&&$4==\"strategy:wait\"){nw[v>0?\"bad\":\"good\"]+=(v>0?v:-v)}; if($2==\"result:repeated\"&&$3==\"action:noop\"&&$4==\"strategy:wait\"){rnw[v>0?\"bad\":\"good\"]+=(v>0?v:-v)}} END {for(s in total) printf \"%s total=%d repeated=%d repeated_rate=%.4f noop_wait=%d noop_wait_rate=%.4f repeated_noop_wait=%d'\"\\\\n\\\",s,total[s],rep[s],rep[s]/total[s],nw[s],nw[s]/total[s],rnw[s]}'\njq -r 'select(.stack_frames[0]==\\\"result:repeated\\\") | [.value,.stack_frames[2],.stack_frames[3]]|@tsv' samples.jsonl | awk -F '\\\\t' '{k=\"'$2\" + \"$3; if($1>0)p[k]+=$1;else n[k]+=-$1} END{for(k in p) printf \"%d'\"\\\\t%d\\\\t%+d\\\\t%s\\\\n\\\",p[k],n[k],p[k]-n[k],k}' | sort -nr | head -20\nwc -l samples.jsonl\"",
+      "type": "command_execution"
+    }
+  ]
+}

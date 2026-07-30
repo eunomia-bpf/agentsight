@@ -1,0 +1,17 @@
+{
+  "schema": "agentsight.utility2.blind-execution-audit.v1",
+  "tool_calls": [
+    {
+      "literal": "/bin/bash -lc \"pwd && rg --files -g '*' && sed -n '1,5p' samples.jsonl\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.value, .stack_frames[]] | @tsv' samples.jsonl | awk -F '\\\\t' '{for(i=2;i<=NF;i++) s[\"'$i]+=$1} END {for(k in s) print s[k], k}'\"' | sort -nr | head -40\njq -s '{rows:length, positive_rows:map(select(.value>0))|length, negative_rows:map(select(.value<0))|length, positive_total:map(select(.value>0)|.value)|add, negative_total:map(select(.value<0)|.value)|add, sessions:(map(.labels.source_session[0])|unique|length)}' samples.jsonl\nsed -n '1,200p' README.md\"",
+      "type": "command_execution"
+    },
+    {
+      "literal": "/bin/bash -lc \"jq -r '[.value, (.stack_frames[]|select(startswith(\\\"result:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0)p[$2]+=$1; else n[$2]+=-$1} END {for(k in p) printf \"%d'\"\\\\t%d\\\\t%+d\\\\t%s\\\\n\\\",p[k],n[k],p[k]-n[k],k; for(k in n) if(\"'!(k in p)) printf \"0'\"\\\\t%d\\\\t%d\\\\t%s\\\\n\\\",n[k],-n[k],k}' | sort -t \"'$'\"'\\\\t' -k3,3nr | head -25\njq -r 'select(any(.stack_frames[]; .==\\\"result:repeated\\\")) | [.labels.source_session[0], .value] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$2>0){p+=$2; ps[$1]=1}else{n+=-$2;ns[$1]=1}} END {for(k in ps)pc++;for(k in ns)nc++;printf \"bad_count=%d good_count=%d excess=%d bad_sessions=%d good_sessions=%d'\"\\\\n\\\",p,n,p-n,pc,nc}'\njq -r 'select(any(.stack_frames[]; .==\\\"result:repeated\\\")) | [.value, (.stack_frames[]|select(startswith(\\\"action:\\\")))] | @tsv' samples.jsonl | awk -F '\\\\t' '{if(\"'$1>0)p[$2]+=$1;else n[$2]+=-$1}END{for(k in p)printf \"%d'\"\\\\t%d\\\\t%+d\\\\t%s\\\\n\\\",p[k],n[k],p[k]-n[k],k}' | sort -t \"'$'\"'\\\\t' -k3,3nr | head -20\"",
+      "type": "command_execution"
+    }
+  ]
+}

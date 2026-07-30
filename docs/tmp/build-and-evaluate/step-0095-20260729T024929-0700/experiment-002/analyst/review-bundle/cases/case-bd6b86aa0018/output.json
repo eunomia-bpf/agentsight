@@ -1,0 +1,19 @@
+{
+  "diagnosis": "Candidate/bad runs overrepresent repeated, non-progressing UI operations, especially repeated clicks, waits/noops, and scrolling.",
+  "expected_mechanism": "Detecting unchanged state and limiting retries should force replanning before long repetition loops, improving task progress. The cost is extra state comparison and occasional premature abandonment of a retry that might eventually succeed.",
+  "policy_text": "After any action, compare the resulting state with the prior state. If the same action or equivalent interaction produces no meaningful change twice, stop retrying it, record the blockage, and replan using a different action, target, or strategy. Permit further retries only when new evidence predicts a different outcome.",
+  "quantitative_evidence": [
+    {
+      "command": "jq -r 'select(any(.stack_frames[]; .==\"result:repeated\")) | .value' samples.jsonl | awk '{if($1>0)b+=$1; else g+=-$1} END {print \"bad=\"b, \"good=\"g, \"excess=\"b-g}'",
+      "finding": "Repeated-result operations total 1,485 on the candidate/bad side versus 224 on the base/good side, a candidate excess of 1,261 (6.63× as many)."
+    },
+    {
+      "command": "jq -r 'select(any(.stack_frames[]; .==\"result:repeated\")) | [.value,.labels.source_session[0]] | @tsv' samples.jsonl | awk '$1>0{b[$2]=1}$1<0{g[$2]=1}END{print \"bad_sessions=\"length(b),\"good_sessions=\"length(g)}'",
+      "finding": "The behavior recurs across 88 candidate/bad source sessions versus 20 base/good source sessions."
+    },
+    {
+      "command": "jq -r 'select(any(.stack_frames[]; .==\"result:repeated\")) | [.value, (.stack_frames[]|select(startswith(\"action:\")))] | @tsv' samples.jsonl | awk '{s=($1>0?\"bad\":\"good\");v=($1<0?-$1:$1);a[s FS $2]+=v}END{for(k in a)print k,a[k]}' | sort",
+      "finding": "Within repeated-result operations, bad versus good magnitudes were: click 679 vs 40, noop 441 vs 85, and scroll 278 vs 1, showing that repeated interaction—not merely final-answer repetition—drives the excess."
+    }
+  ]
+}
