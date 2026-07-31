@@ -17,7 +17,7 @@
 /TemplateVersion (2027.1)
 }
 
-\newcommand{\sys}{\textsc{AgentProf}\xspace}
+\newcommand{\sys}{\textsc{AgentPProf}\xspace}
 \newcommand{\operation}{\texttt{operation}\xspace}
 \newcommand{\opstack}{\texttt{operation stack}\xspace}
 \providecommand{\Description}[1]{}
@@ -67,7 +67,7 @@ A profile-derived ToolSandbox repair reduces agent-side model tokens by
 selective annotation reduces provider token volume by 20.4\% with complete
 coverage and non-inferior structural quality; and, after marks are fixed,
 \sys constructs a 27{,}765-operation profile in 1.16\,s.
-% 由 profile 导出的 ToolSandbox 修复在 69 个确认 pair 上将 agent-side model token 降低 19.0%，且官方 similarity 非劣；选择性标注在完整覆盖和结构质量非劣下将 provider token volume 降低 20.4%；固定 mark 后，\sys 在 1.16 秒内构建 27,765-operation profile。
+% 由 profile 指导的 ToolSandbox 修复在 69 个确认 pair 上将 agent-side model token 降低 19.0%，且官方 similarity 非劣；选择性标注在完整覆盖和结构质量非劣下将 provider token volume 降低 20.4%；固定 mark 后，\sys 在 1.16 秒内构建 27,765-operation profile。
 \end{abstract}
 
 % AI agents increasingly orchestrate long-running, multi-step
@@ -91,7 +91,7 @@ coverage and non-inferior structural quality; and, after marks are fixed,
 % Second, we construct dynamic call stacks at query time by projecting 
 % these operations onto user-defined semantic fields (e.g., intent $\rightarrow$ phase $\rightarrow$ action), merging identical sequences to generate flame graphs.
 
-% We implement this model in AgentProf, an offline profiler 
+% We implement this model in AgentPProf, an offline profiler 
 % with pluggable algorithms for intent attribution and stack construction, 
 % compiling local agent trajectories into standard, pprof-compatible profiles. 
 
@@ -174,20 +174,19 @@ direct Agent annotation reaches 0.764 ordinary B$^3$ F1 against human
 stages, vs.\ 0.663 for multi-resolution recurrence and 0.541 for raw
 action.
 % 在 released source 能生成官方 operation sequence 的全部 405 条 CodeTraceBench 轨迹上，直接 Agent 标注相对人工 stage 的普通 B$^3$ F1 为 0.764，高于 multi-resolution recurrence 的 0.663 和 raw action 的 0.541。
-Across three complete public workloads, AgentProf refines benchmark-native
+Across three complete public workloads, AgentPProf refines benchmark-native
 direct diagnostic ties and raises MAP by 0.031, 0.107, and 0.117,
 respectively~\cite{agentprocessbench,hintbench,traceelephant}.
 On TraceElephant, the same fixed hierarchy serves as a reading index:
 a strong reader reaches the same ranking quality while opening less
 source evidence than \sys-Raw, an information-matched raw-action ablation
 (53.0\% versus 65.0\%).
-% 在用于协议开发的三个完整公开 workload 上，AgentProf 细化 benchmark-native direct diagnostic 的并列，并将 MAP 分别提高 0.031、0.107 和 0.117。
+% 在用于协议开发的三个完整公开 workload 上，AgentPProf 细化 benchmark-native direct diagnostic 的并列，并将 MAP 分别提高 0.031、0.107 和 0.117。
 % 在 TraceElephant 上，同一固定层次也作为阅读索引：强 reader 达到统计持平的排名质量，同时打开的 source evidence 更少（53.0\% 对 65.0\%）。
-In a ToolSandbox profile-to-repair case study, a converter repair derived
-from the profile reduces agent-side model token volume by 19.0\% across 69
-confirmation pairs while meeting a fixed official-similarity non-inferiority
-margin~\cite{toolsandbox}.
-% 在 ToolSandbox 的 profile-to-repair case study 中，一个由 profile 导出的 converter 修复在 69 个确认 pair 上将 agent-side model token volume 降低 19.0%，同时满足预设的官方相似度非劣效界限。
+In a ToolSandbox case study, a repair guided by a single profile reduces
+agent-side model token volume by 19.0\% across 69 confirmation pairs while
+meeting a fixed official-similarity non-inferiority margin~\cite{toolsandbox}.
+% 在 ToolSandbox 案例中，由单个 profile 指导的修复在 69 个确认 pair 上将 agent-side model token volume 降低 19.0%，同时满足预设的官方相似度非劣效界限。
 On 287 OSWorld-Human sessions~\cite{osworldhuman}, label-free
 recurrence reaches 0.680 boundary F1 and 0.786 B$^3$ F1. On the AgentBoard and
 ASE populations, task-family and action backends reach 0.695 and 0.498
@@ -225,7 +224,7 @@ This paper makes three contributions:
   complete coverage and non-inferior structural quality. After marks are fixed,
   \sys profiles 27{,}765 operations in 1.16 seconds
   (Evaluation).
-% 评估。自动 operation structure 相对 raw action 改进人工 stage agreement；operation profile 在三个 localization workload 上补充 benchmark-native direct diagnostic，但与信息量匹配的 \sys-Raw 消融持平；重复任务资源案例与 population-scale 差分案例暴露高成本未完成工作和成功--失败差异；profile-derived repair 在官方质量无实质损失下减少 19.0% agent-side model token，选择性标注在完整覆盖和结构质量非劣下减少 20.4% provider token；固定 mark 后，AgentProf 在 1.16 秒内 profile 27,765 个 operation。
+% 评估。自动 operation structure 相对 raw action 改进人工 stage agreement；operation profile 在三个 localization workload 上补充 benchmark-native direct diagnostic，但与信息量匹配的 \sys-Raw 消融持平；重复任务资源案例与 population-scale 差分案例暴露高成本未完成工作和成功--失败差异；profile-derived repair 在官方质量无实质损失下减少 19.0% agent-side model token，选择性标注在完整覆盖和结构质量非劣下减少 20.4% provider token；固定 mark 后，AgentPProf 在 1.16 秒内 profile 27,765 个 operation。
 \end{enumerate}
 
 %% ===================================================================
@@ -720,9 +719,9 @@ RQ2 asks whether target-blind profiler output corresponds to independently
 annotated real problems. We answer at four levels: a population-scale
 differential case whose recovery signal matches expert looping labels, a
 supplement test over three complete localization benchmarks, a reading-index
-study measuring how much source evidence a reader must open, and a
-profile-to-repair case with held-out before/after executions.
-% RQ2 问 target-blind profiler 输出是否对应独立标注的真实问题。我们在四个层次上回答：population 尺度的差分案例（其 recovery 信号对应专家 looping 标注）、三个完整 localization benchmark 上的补充测试、测量 reader 需要打开多少 source evidence 的阅读索引研究，以及包含隔离前后执行的 profile-to-repair 案例。
+study measuring how much source evidence a reader must open, and a repair case
+with held-out before/after executions.
+% RQ2 问 target-blind profiler 输出是否对应独立标注的真实问题。我们在四个层次上回答：population 尺度的差分案例（其 recovery 信号对应专家 looping 标注）、三个完整 localization benchmark 上的补充测试、测量 reader 需要打开多少 source evidence 的阅读索引研究，以及包含隔离前后执行的修复案例。
 
 \paragraph{Case Study 2: Differential Profiling at Scale.}
 % 案例研究 2：大规模差分 profiling。
@@ -819,9 +818,9 @@ The test asks whether the profile adds information beyond the
 process judge (AgentProcessBench risk units) or trajectory localizer (HINTBench,
 TraceElephant), which for TraceElephant reads the full trace and reference answer
 before naming the responsible agent and decisive step. The candidate
-(Direct+AgentProf) ranks operations lexicographically by (\emph{direct
+(Direct+AgentPProf) ranks operations lexicographically by (\emph{direct
 diagnostic}, \emph{Agent+Evidence group score}), so it can only refine exact
-diagnostic-score ties. The other conditions are Direct-only, AgentProf-only
+diagnostic-score ties. The other conditions are Direct-only, AgentPProf-only
 (profile without the direct diagnostic), and Direct+\sys-Raw, an ablation of
 \sys that replaces the semantic prefix with raw-action names while keeping the
 identical source-kind, tool/call, and outcome suffix and aggregation.
@@ -831,7 +830,7 @@ non-interpolated per-query AP and arithmetic-mean MAP across 614, 400, and 220
 target-bearing queries, respectively~\cite{robertson2008ap}. All 522
 zero-positive trajectories are consumed for population coverage but excluded
 from MAP because AP is undefined without a relevant item.
-% RQ2 在完整的 AgentProcessBench、HINTBench 和 TraceElephant workload 上测试 target-blind profile 是否补充 operation-local diagnostic score。候选（Direct+AgentProf）按 (direct diagnostic, Agent+Evidence group score) 字典序排列，只能打破相同 diagnostic score 的并列；其余条件为 Direct-only、AgentProf-only（不含 direct diagnostic）与 Direct+\sys-Raw（\sys 的消融：把语义 prefix 换成 raw-action 名称，保留相同 source-kind、tool/call、outcome suffix 与聚合）。主指标为标准 per-query AP 与 MAP。
+% RQ2 在完整的 AgentProcessBench、HINTBench 和 TraceElephant workload 上测试 target-blind profile 是否补充 operation-local diagnostic score。候选（Direct+AgentPProf）按 (direct diagnostic, Agent+Evidence group score) 字典序排列，只能打破相同 diagnostic score 的并列；其余条件为 Direct-only、AgentPProf-only（不含 direct diagnostic）与 Direct+\sys-Raw（\sys 的消融：把语义 prefix 换成 raw-action 名称，保留相同 source-kind、tool/call、outcome suffix 与聚合）。主指标为标准 per-query AP 与 MAP。
 
 \begin{table}[tb]
 \centering\small
@@ -854,7 +853,7 @@ statistically indistinguishable on every workload. Higher is better.}
 \label{tab:rq2-localization}
 \end{table}
 
-Direct+AgentProf raises MAP over Direct-only by .031 [.024,.039], .107
+Direct+AgentPProf raises MAP over Direct-only by .031 [.024,.039], .107
 [.093,.120], and .117 [.088,.148], using 10{,}000 paired resamples of
 trajectory clusters within benchmark-defined strata. Thus the profile adds
 clear ranking information after a fixed trajectory reader on all three
@@ -874,7 +873,7 @@ The semantic prefix's distinct, separately measured roles are cross-run
 attribution (RQ1) and directing a reader's attention, which the following
 study measures.
 % semantic prefix 的独立、分别测量的角色是 cross-run attribution（RQ1）与引导读者注意力，后者由下文研究测量。
-% Direct+AgentProf 相对 Direct-only trajectory judge/localizer 在三个完整 workload 上分别提高 MAP .031、.107 与 .117，区间均为正；与共享相同 source evidence 的 \sys-Raw 消融统计上不可区分。因此该实验支持 profiling 补充 direct trajectory diagnosis。
+% Direct+AgentPProf 相对 Direct-only trajectory judge/localizer 在三个完整 workload 上分别提高 MAP .031、.107 与 .117，区间均为正；与共享相同 source evidence 的 \sys-Raw 消融统计上不可区分。因此该实验支持 profiling 补充 direct trajectory diagnosis。
 
 \paragraph{Profile-guided reading on TraceElephant.}
 On the complete 220 target-bearing TraceElephant queries, a fixed external
@@ -883,8 +882,8 @@ single-turn with tools and subagents disabled) receives target-blind packets---t
 IDs, and source-visible content---with unranked operations appended in
 original order deterministically and one single-turn call per stage; full-trace
 reading reaches MAP .502 versus .209 for the benchmark's Direct-only diagnostic
-and .326 for Direct+AgentProf at a mean 12{,}615 input tokens per query.
-% 在完整的 220 个带 target 的 TraceElephant query 上，固定的外部 Grok 家族 CLI reader 接收 target-blind packet（任务文本、operation ID、source-visible 内容），未排名 operation 按原始顺序确定性附加、每个 stage 单轮调用；全 trace 阅读达到 MAP .502，而 benchmark 的 Direct-only 诊断为 .209、Direct+AgentProf 为 .326，平均每个 query 12,615 输入 token。
+and .326 for Direct+AgentPProf at a mean 12{,}615 input tokens per query.
+% 在完整的 220 个带 target 的 TraceElephant query 上，固定的外部 Grok 家族 CLI reader 接收 target-blind packet（任务文本、operation ID、source-visible 内容），未排名 operation 按原始顺序确定性附加、每个 stage 单轮调用；全 trace 阅读达到 MAP .502，而 benchmark 的 Direct-only 诊断为 .209、Direct+AgentPProf 为 .326，平均每个 query 12,615 输入 token。
 A two-stage profile-guided variant first shows only the semantic operation
 skeleton, with no source content, and the reader selects at most five groups;
 stage two then opens only the selected groups' evidence.
@@ -918,8 +917,8 @@ question---whereas the hierarchy is constructed once and replayed across
 queries and measures.
 % reader 是 query-specific——每个问题都重新阅读整条轨迹——而层次结构只构造一次，跨 query 与 measure 复用。
 
-\paragraph{Case Study 3: From Profile to Repair.}
-% 案例研究 3：从 profile 到修复。
+\paragraph{Case Study 3: Guiding a Real Repair.}
+% 案例研究 3：指导实际修复。
 The preceding experiments establish correspondence and inspection value; this
 case tests whether a profile finding can guide an effective repair.
 A standard \sys profile over eight ToolSandbox scenarios isolates a recurring
@@ -1579,14 +1578,14 @@ descriptions, it classifies all 1{,}012 AgentBoard goals into nine
 families~\cite{qwen36,agentboard}. The backend reaches 0.695 macro-F1 and 0.733
 accuracy, compared with 0.044 macro-F1 and 0.248 accuracy for the majority-class
 baseline, and produces identical assignments across three runs.
-% 对于 task-family 标签，一个与上述 3B CLI backend 不同、固定且仅供评测的 Qwen3.6-27B llama.cpp backend 通过 AgentProf 的 declared-task 字段接口，仅根据 goal 与已声明 family 描述将 AgentBoard 发布的全部 1,012 个 goal 指派到九个 family；macro-F1 与 accuracy 分别为 0.695 和 0.733，majority control 为 0.044 和 0.248，三次完整运行的指派完全一致。
+% 对于 task-family 标签，一个与上述 3B CLI backend 不同、固定且仅供评测的 Qwen3.6-27B llama.cpp backend 通过 AgentPProf 的 declared-task 字段接口，仅根据 goal 与已声明 family 描述将 AgentBoard 发布的全部 1,012 个 goal 指派到九个 family；macro-F1 与 accuracy 分别为 0.695 和 0.733，majority control 为 0.044 和 0.248，三次完整运行的指派完全一致。
 
 For action tags, a standalone backend-level adapter runs the fixed Qwen3.6-27B
 closed-label configuration using only the current thought/action and eight
 action definitions operationalized by TraceView~\cite{qwen36,traceview-2026}.
 The adapter classifies all 2{,}737 published annotations from 120 AutoCodeRover,
 OpenHands, and RepairAgent trajectories~\cite{bouzenia-pradel-2025-trajectories}.
-% 在独立的 action-label backend 评估中，standalone adapter 使用固定 Qwen3.6-27B closed-label 配置，仅读取当前 thought/action 与八个已声明定义，在 AutoCodeRover、OpenHands 和 RepairAgent 的 120 条轨迹上测试全部 2,737 个公开标注；它不是已集成的 AgentProf CLI 路径。
+% 在独立的 action-label backend 评估中，standalone adapter 使用固定 Qwen3.6-27B closed-label 配置，仅读取当前 thought/action 与八个已声明定义，在 AutoCodeRover、OpenHands 和 RepairAgent 的 120 条轨迹上测试全部 2,737 个公开标注；它不是已集成的 AgentPProf CLI 路径。
 The model reaches 0.498 macro-F1 and 0.628 accuracy, compared with 0.061
 macro-F1 and 0.323 accuracy for the majority-class baseline. Its 0.437 macro-F1 gain has a whole-trajectory 95\% bootstrap
 interval of [0.380, 0.494], and both complete runs agree exactly.
@@ -1636,7 +1635,7 @@ saving per invalid ID. Similarity and exact-success intervals cross zero;
 the result establishes non-inferiority, not significant outcome improvement.
 The exact-state replay isolates the converter mechanism only, and no human
 diagnosis-time or raw-log baseline establishes faster or uniquely
-AgentProf-enabled repair.
-% ToolSandbox 结果只覆盖一个 compatibility-layer 修复、一个模型与一个 benchmark。其 opaque-ID allocator 不由 request seed 控制，因此两臂 raw fault exposure 不同（28 对 19），报告的 19.0% 是完整 intention-to-treat token 效应，而非每个 invalid ID 的固定节省。Similarity 与 exact-success 区间跨越零；该结果建立非劣效，而非显著 outcome improvement。Exact-state replay 只隔离 converter 机制；没有 human diagnosis-time 或 raw-log baseline 证明更快或 AgentProf 独有的修复。
+AgentPProf-enabled repair.
+% ToolSandbox 结果只覆盖一个 compatibility-layer 修复、一个模型与一个 benchmark。其 opaque-ID allocator 不由 request seed 控制，因此两臂 raw fault exposure 不同（28 对 19），报告的 19.0% 是完整 intention-to-treat token 效应，而非每个 invalid ID 的固定节省。Similarity 与 exact-success 区间跨越零；该结果建立非劣效，而非显著 outcome improvement。Exact-state replay 只隔离 converter 机制；没有 human diagnosis-time 或 raw-log baseline 证明更快或 AgentPProf 独有的修复。
 
 \end{document}
