@@ -141,7 +141,7 @@ agentsight report token                      # token usage from latest DB, or lo
 agentsight report token --group-by dir       # token usage by session/process working directory
 agentsight report audit --json               # process spawns, file opens, API calls
 agentsight report serve                      # open the web UI for the latest session in this directory
-agentsight report export -o snapshot.json    # export for web dashboard
+agentsight report export -o snapshot.json    # export for web dashboard; see docs/snapshot-schema.md
 agentsight report --local                    # summarize native Claude/Codex/Gemini sessions
 ```
 
