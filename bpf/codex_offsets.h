@@ -47,6 +47,34 @@ static const uint8_t codex_rustls_writev_copy[] = {
 	0x24, 0x10,
 };
 
+/* rustls 0.23 CommonState::buffer_plaintext, as emitted by rustc 1.92.
+ * This stable prefix is shared by the supported stripped Grok binaries. */
+static const uint8_t grok_rustls_buffer_plaintext_prefix[] = {
+	0x55, 0x41, 0x57, 0x41, 0x56, 0x41, 0x55, 0x41,
+	0x54, 0x53, 0x48, 0x83, 0xec, 0x68, 0x49, 0x89,
+	0xd6, 0x48, 0x89, 0xfd, 0x48, 0x8b, 0x9f, 0x08,
+	0x03, 0x00, 0x00, 0x4c, 0x8b, 0xa7, 0x10, 0x03,
+	0x00, 0x00, 0x4c, 0x8b, 0xaf, 0x18, 0x03, 0x00,
+	0x00, 0x48, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x80,
+};
+
+/* Also verify the OutboundChunks fields consumed by the probe: tag/count at
+ * +0, data at +8, and the Multiple range at +16/+24. */
+#define GROK_RUSTLS_OUTBOUND_TAG_OFFSET 0xd7
+#define GROK_RUSTLS_OUTBOUND_RANGE_OFFSET 0xe7
+#define GROK_RUSTLS_OUTBOUND_DATA_OFFSET 0x3f1
+static const uint8_t grok_rustls_outbound_tag[] = { 0x4c, 0x8b, 0x26 };
+static const uint8_t grok_rustls_outbound_range[] = {
+	0x4c, 0x8b, 0x7e, 0x10, 0x48, 0x8b, 0x7e, 0x18,
+	0x48, 0x89, 0xfb, 0x4c, 0x29, 0xfb, 0x4d, 0x85,
+	0xe4, 0x49, 0x0f, 0x44, 0xdf,
+};
+static const uint8_t grok_rustls_outbound_data[] = {
+	0x48, 0x8b, 0x46, 0x08, 0x4d, 0x85, 0xe4, 0x74,
+	0x1d, 0x4c, 0x8d, 0x3c, 0x3b,
+};
+
 static size_t codex_find_pattern(const uint8_t *data, size_t data_len,
 				 const uint8_t *pattern, size_t pattern_len)
 {
@@ -136,6 +164,53 @@ static bool codex_find_rustls_offsets(const char *binary_path,
 	return out->count > 0;
 }
 
+static bool grok_find_rustls_buffer_plaintext_offset(const char *binary_path,
+						      size_t *offset)
+{
+	struct stat st;
+	uint8_t *data;
+	size_t found;
+	int fd;
+
+	fd = open(binary_path, O_RDONLY);
+	if (fd < 0)
+		return false;
+	if (fstat(fd, &st) < 0 || st.st_size <= 0) {
+		close(fd);
+		return false;
+	}
+	data = mmap(NULL, (size_t)st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (data == MAP_FAILED) {
+		close(fd);
+		return false;
+	}
+	found = codex_find_pattern(data, (size_t)st.st_size,
+				   grok_rustls_buffer_plaintext_prefix,
+				   sizeof(grok_rustls_buffer_plaintext_prefix));
+	if (found == (size_t)-1
+	    || (size_t)st.st_size < GROK_RUSTLS_OUTBOUND_DATA_OFFSET
+				 + sizeof(grok_rustls_outbound_data)
+	    || found > (size_t)st.st_size
+		       - sizeof(grok_rustls_outbound_data)
+		       - GROK_RUSTLS_OUTBOUND_DATA_OFFSET
+	    || memcmp(data + found + GROK_RUSTLS_OUTBOUND_TAG_OFFSET,
+		      grok_rustls_outbound_tag,
+		      sizeof(grok_rustls_outbound_tag)) != 0
+	    || memcmp(data + found + GROK_RUSTLS_OUTBOUND_RANGE_OFFSET,
+		      grok_rustls_outbound_range,
+		      sizeof(grok_rustls_outbound_range)) != 0
+	    || memcmp(data + found + GROK_RUSTLS_OUTBOUND_DATA_OFFSET,
+		      grok_rustls_outbound_data,
+		      sizeof(grok_rustls_outbound_data)) != 0)
+		found = (size_t)-1;
+	munmap(data, (size_t)st.st_size);
+	close(fd);
+	if (found == (size_t)-1)
+		return false;
+	*offset = found;
+	return true;
+}
+
 static bool codex_buf_contains(const uint8_t *buf, size_t len,
 			       const char *needle)
 {
@@ -146,10 +221,12 @@ static bool codex_buf_contains(const uint8_t *buf, size_t len,
 				     needle_len) != (size_t)-1;
 }
 
-static bool codex_binary_has_tls_markers(const char *binary_path)
+static bool binary_has_rustls_markers(const char *binary_path,
+				      const char *marker_a,
+				      const char *marker_b)
 {
 	uint8_t buf[8192 + 32];
-	bool has_codex = false;
+	bool has_agent = false;
 	bool has_rustls = false;
 	size_t carry = 0;
 	int fd = open(binary_path, O_RDONLY);
@@ -167,10 +244,11 @@ static bool codex_binary_has_tls_markers(const char *binary_path)
 		if (n == 0)
 			break;
 		size_t len = carry + (size_t)n;
-		has_codex |= codex_buf_contains(buf, len, "codex-cli")
-			     || codex_buf_contains(buf, len, "@openai/codex");
+		has_agent |= codex_buf_contains(buf, len, marker_a)
+			     || (marker_b
+				 && codex_buf_contains(buf, len, marker_b));
 		has_rustls |= codex_buf_contains(buf, len, "rustls");
-		if (has_codex && has_rustls) {
+		if (has_agent && has_rustls) {
 			close(fd);
 			return true;
 		}
@@ -179,6 +257,17 @@ static bool codex_binary_has_tls_markers(const char *binary_path)
 	}
 	close(fd);
 	return false;
+}
+
+static bool codex_binary_has_tls_markers(const char *binary_path)
+{
+	return binary_has_rustls_markers(binary_path, "codex-cli",
+					 "@openai/codex");
+}
+
+static bool grok_binary_has_tls_markers(const char *binary_path)
+{
+	return binary_has_rustls_markers(binary_path, "grok-cli", NULL);
 }
 
 #endif

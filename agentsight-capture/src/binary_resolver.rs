@@ -189,13 +189,19 @@ fn newest_nvm_bin(home: &std::path::Path) -> Option<std::path::PathBuf> {
 /// Node.js bundles OpenSSL directly into the `node` binary, so there is no
 /// system `libssl.so` for sslsniff to hook — it must attach to the binary
 /// itself. We detect this by scanning for static OpenSSL/BoringSSL marker
-/// strings in the file. Dynamically-linked runtimes like CPython call into a
-/// separate `libssl.so` (via `_ssl.so`) and do NOT contain these markers in the
-/// executable, so they keep using sslsniff's system-libssl attachment with comm
-/// filtering intact.
+/// strings in the file. Grok's native binary is also selected by its CLI
+/// marker; sslsniff performs the stricter rustls signature check. Dynamically-
+/// linked runtimes like CPython call into a separate `libssl.so` (via `_ssl.so`)
+/// and do NOT contain these markers in the executable, so they keep using
+/// sslsniff's system-libssl attachment with comm filtering intact.
 pub fn binary_embeds_ssl(path: &str) -> bool {
     use std::io::Read;
-    const NEEDLES: &[&[u8]] = &[b"SSL_write", b"BoringSSLError", b"OPENSSL_internal"];
+    const NEEDLES: &[&[u8]] = &[
+        b"SSL_write",
+        b"BoringSSLError",
+        b"OPENSSL_internal",
+        b"grok-cli",
+    ];
     let mut f = match std::fs::File::open(path) {
         Ok(f) => f,
         Err(_) => return false,
@@ -1042,6 +1048,15 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("claude-like");
         std::fs::write(&path, b"prefix BoringSSLError suffix").unwrap();
+
+        assert!(binary_embeds_ssl(path.to_str().unwrap()));
+    }
+
+    #[test]
+    fn detects_grok_static_binary_marker() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("grok-like");
+        std::fs::write(&path, b"prefix grok-cli suffix").unwrap();
 
         assert!(binary_embeds_ssl(path.to_str().unwrap()));
     }

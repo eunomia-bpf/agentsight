@@ -211,6 +211,8 @@ For a saved SQLite session, run `agentsight report serve --db run.db` and open t
 |-------|---------|
 | Claude Code | `sudo ./agentsight record -- claude` |
 | Gemini CLI | `sudo ./agentsight record -- gemini` |
+| Kimi Code | `sudo ./agentsight record -- kimi` |
+| Grok Build | `sudo ./agentsight record -- grok` |
 | Python (aider, open-interpreter, …) | `sudo ./agentsight record -c python` |
 | Docker containers (OpenClaw, …) | `sudo ./agentsight record -c node --binary-path docker://openclaw` |
 | Any command | `sudo ./agentsight record -- <command>` |
