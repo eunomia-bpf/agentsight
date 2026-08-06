@@ -324,12 +324,12 @@ fn command_export(args: Cli) -> Result<()> {
     Ok(())
 }
 
-
 fn load_op_map_rules(inline_rules: &[String], rule_files: &[PathBuf]) -> Result<Vec<String>> {
     let mut rules = inline_rules.to_vec();
     for path in rule_files {
-        let contents = std::fs::read_to_string(path)
-            .map_err(|error| anyhow::anyhow!("failed to read --op-map-file {}: {error}", path.display()))?;
+        let contents = std::fs::read_to_string(path).map_err(|error| {
+            anyhow::anyhow!("failed to read --op-map-file {}: {error}", path.display())
+        })?;
         for line in contents.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
@@ -553,7 +553,7 @@ mod tests {
                 },
             ],
             session_tag: "review".to_string(),
-        task_tag: String::new(),
+            task_tag: String::new(),
         };
 
         filter_session_by_prompt_tag(&mut session, "test");
