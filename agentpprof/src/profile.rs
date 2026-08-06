@@ -1,21 +1,15 @@
-#[allow(unused_imports)]
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 use chrono::Utc;
 use flate2::{Compression, write::GzEncoder};
 use prost::Message;
 use regex::Regex;
-#[cfg(test)]
-use serde::Deserialize;
 use serde::Serialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
 use std::io::Write;
-#[cfg(test)]
-use std::io::{BufRead, BufReader};
-#[allow(unused_imports)]
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::session::{
     SessionRecord, collapse_project_path, contains_private_marker, path_component_strings,
@@ -94,11 +88,6 @@ impl OperationStackSpec {
             }
         };
         parse_stack_spec(raw).expect("default stack spec is valid")
-    }
-
-    #[allow(dead_code)]
-    pub fn contains_frame(&self, frame: &str) -> bool {
-        self.frames.iter().any(|candidate| candidate == frame)
     }
 }
 
@@ -245,17 +234,6 @@ fn pprof_evidence_labels(operation: &Operation) -> Vec<(String, String)> {
                 .map(move |value| ((*field).to_string(), safe_frame(value, None)))
         })
         .collect()
-}
-
-#[cfg(test)]
-#[derive(Clone, Deserialize)]
-struct OperationRecord {
-    #[serde(default)]
-    value: Option<u64>,
-    #[serde(default)]
-    fields: BTreeMap<String, Value>,
-    #[serde(flatten)]
-    extra_fields: BTreeMap<String, Value>,
 }
 
 pub fn parse_stack_spec(raw: &str) -> Result<OperationStackSpec> {
@@ -467,17 +445,6 @@ impl StringInterner {
     }
 }
 
-#[allow(dead_code)]
-pub fn build_profile(sessions: &[SessionRecord], project_name: &str, view: ProfileView) -> Profile {
-    build_profile_with_options(
-        sessions,
-        project_name,
-        view,
-        &OperationStackConfig::for_view(view),
-    )
-    .expect("default operation-stack options are valid")
-}
-
 pub fn build_profile_with_options(
     sessions: &[SessionRecord],
     project_name: &str,
@@ -503,22 +470,6 @@ pub fn build_profile_with_options(
 }
 
 #[cfg(test)]
-pub fn build_profile_from_operation_files(
-    paths: &[PathBuf],
-    view: ProfileView,
-    options: &OperationStackConfig,
-) -> Result<Profile> {
-    let mut operations = Vec::new();
-    for path in paths {
-        operations.extend(read_operation_jsonl(path)?);
-    }
-    if operations.is_empty() {
-        bail!("operation input produced no samples");
-    }
-    build_profile_from_operations(&operations, view, options)
-}
-
-#[cfg(test)]
 fn build_profile_from_operations(
     operations: &[Operation],
     view: ProfileView,
@@ -538,74 +489,6 @@ fn build_profile_from_operations(
         profile.sample(frames, sample.value, labels);
     }
     Ok(profile)
-}
-
-#[cfg(test)]
-fn read_operation_jsonl(path: &Path) -> Result<Vec<Operation>> {
-    read_operation_records_jsonl(path)?
-        .into_iter()
-        .enumerate()
-        .map(|(index, record)| {
-            operation_from_record(record).map_err(|error| {
-                anyhow::anyhow!(
-                    "invalid operation fields at {}:{}: {error}",
-                    path.display(),
-                    index + 1
-                )
-            })
-        })
-        .collect()
-}
-
-#[cfg(test)]
-fn read_operation_records_jsonl(path: &Path) -> Result<Vec<OperationRecord>> {
-    let file = fs::File::open(path)?;
-    let mut records = Vec::new();
-    for (line_number, line) in BufReader::new(file).lines().enumerate() {
-        let line = line?;
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let record: OperationRecord = serde_json::from_str(line).map_err(|error| {
-            anyhow::anyhow!(
-                "invalid operation JSONL at {}:{}: {error}",
-                path.display(),
-                line_number + 1
-            )
-        })?;
-        records.push(record);
-    }
-    Ok(records)
-}
-
-#[cfg(test)]
-fn operation_from_record(record: OperationRecord) -> Result<Operation> {
-    let mut operation = Operation::new(record.value.unwrap_or(1));
-    for (key, value) in record.fields {
-        insert_json_field(&mut operation, &key, value)?;
-    }
-    for (key, value) in record.extra_fields {
-        insert_json_field(&mut operation, &key, value)?;
-    }
-    Ok(operation)
-}
-
-#[cfg(test)]
-fn insert_json_field(operation: &mut Operation, key: &str, value: Value) -> Result<()> {
-    match value {
-        Value::Null => {}
-        Value::Bool(value) => operation.insert(key, value.to_string()),
-        Value::Number(value) => operation.insert(key, value.to_string()),
-        Value::String(value) => operation.insert(key, value),
-        Value::Array(values) => {
-            for value in values {
-                insert_json_field(operation, key, value)?;
-            }
-        }
-        object @ Value::Object(_) => operation.insert(key, serde_json::to_string(&object)?),
-    }
-    Ok(())
 }
 
 fn view_metadata(view: ProfileView) -> (&'static str, &'static str, &'static str) {
@@ -2329,19 +2212,44 @@ mod tests {
         );
     }
 
+    fn operation_with(value: u64, fields: &[(&str, &str)]) -> Operation {
+        let mut operation = Operation::new(value);
+        for (key, value) in fields {
+            operation.insert(*key, (*value).to_string());
+        }
+        operation
+    }
+
     #[test]
-    fn operation_jsonl_input_uses_same_operation_stack_model() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("ops.jsonl");
-        fs::write(
-            &path,
-            r#"{"value":1,"fields":{"project":"external","agent":"human-demo","dataset":"weblinx","demo":"d1","action":"click","op":"action","target":"login","status":"gold"}}"#
-                .to_string()
-                + "\n"
-                + r#"{"value":1,"project":"external","agent":"human-demo","dataset":"weblinx","demo":"d1","action":"type","op":"action","target":"email","status":"gold"}"#
-                + "\n",
-        )
-        .unwrap();
+    fn operation_stack_rules_derive_task_and_phase_frames() {
+        let operations = vec![
+            operation_with(
+                1,
+                &[
+                    ("project", "external"),
+                    ("agent", "human-demo"),
+                    ("dataset", "weblinx"),
+                    ("demo", "d1"),
+                    ("action", "click"),
+                    ("op", "action"),
+                    ("target", "login"),
+                    ("status", "gold"),
+                ],
+            ),
+            operation_with(
+                1,
+                &[
+                    ("project", "external"),
+                    ("agent", "human-demo"),
+                    ("dataset", "weblinx"),
+                    ("demo", "d1"),
+                    ("action", "type"),
+                    ("op", "action"),
+                    ("target", "email"),
+                    ("status", "gold"),
+                ],
+            ),
+        ];
         let stack = parse_stack_spec("project,agent,task,phase,op,action,target,status").unwrap();
         let rules = parse_stack_rules(&[
             "task:authenticate=(target=login|target=email)".to_string(),
@@ -2353,7 +2261,7 @@ mod tests {
             .with_stack(stack)
             .with_rules(rules);
         let profile =
-            build_profile_from_operation_files(&[path], ProfileView::Files, &options).unwrap();
+            build_profile_from_operations(&operations, ProfileView::Files, &options).unwrap();
         let stacks = profile_to_stacks(&profile);
 
         assert_eq!(
@@ -2368,17 +2276,32 @@ mod tests {
 
     #[test]
     fn operation_field_rules_map_fields_before_stacking() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("ops.jsonl");
-        fs::write(
-            &path,
-            r#"{"value":1,"fields":{"project":"external","agent":"gold","dataset":"demo","op":"action","action":"click","target":"login","status":"gold"}}"#
-                .to_string()
-                + "\n"
-                + r#"{"value":1,"fields":{"project":"external","agent":"gold","dataset":"demo","op":"action","action":"type","target":"email","status":"gold"}}"#
-                + "\n",
-        )
-        .unwrap();
+        let operations = vec![
+            operation_with(
+                1,
+                &[
+                    ("project", "external"),
+                    ("agent", "gold"),
+                    ("dataset", "demo"),
+                    ("op", "action"),
+                    ("action", "click"),
+                    ("target", "login"),
+                    ("status", "gold"),
+                ],
+            ),
+            operation_with(
+                1,
+                &[
+                    ("project", "external"),
+                    ("agent", "gold"),
+                    ("dataset", "demo"),
+                    ("op", "action"),
+                    ("action", "type"),
+                    ("target", "email"),
+                    ("status", "gold"),
+                ],
+            ),
+        ];
         let stack = parse_stack_spec("project,agent,task,phase,op,action,status").unwrap();
         let field_rules = parse_stack_rules(&[
             "task:authenticate=(target=login|target=email)".to_string(),
@@ -2390,7 +2313,7 @@ mod tests {
             .with_stack(stack)
             .with_field_rules(field_rules);
         let profile =
-            build_profile_from_operation_files(&[path], ProfileView::Operations, &options).unwrap();
+            build_profile_from_operations(&operations, ProfileView::Operations, &options).unwrap();
         let stacks = profile_to_stacks(&profile);
 
         assert_eq!(
@@ -2405,17 +2328,32 @@ mod tests {
 
     #[test]
     fn operation_filters_select_after_field_mapping() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("ops.jsonl");
-        fs::write(
-            &path,
-            r#"{"value":1,"fields":{"project":"external","agent":"gold","dataset":"demo","op":"action","action":"click","target":"login","status":"gold"}}"#
-                .to_string()
-                + "\n"
-                + r#"{"value":1,"fields":{"project":"external","agent":"gold","dataset":"demo","op":"action","action":"type","target":"email","status":"gold"}}"#
-                + "\n",
-        )
-        .unwrap();
+        let operations = vec![
+            operation_with(
+                1,
+                &[
+                    ("project", "external"),
+                    ("agent", "gold"),
+                    ("dataset", "demo"),
+                    ("op", "action"),
+                    ("action", "click"),
+                    ("target", "login"),
+                    ("status", "gold"),
+                ],
+            ),
+            operation_with(
+                1,
+                &[
+                    ("project", "external"),
+                    ("agent", "gold"),
+                    ("dataset", "demo"),
+                    ("op", "action"),
+                    ("action", "type"),
+                    ("target", "email"),
+                    ("status", "gold"),
+                ],
+            ),
+        ];
         let stack = parse_stack_spec("project,agent,task,phase,op,action,status").unwrap();
         let field_rules = parse_stack_rules(&[
             "task:authenticate=(target=login|target=email)".to_string(),
@@ -2429,7 +2367,7 @@ mod tests {
             .with_field_rules(field_rules)
             .with_filters(filters);
         let profile =
-            build_profile_from_operation_files(&[path], ProfileView::Operations, &options).unwrap();
+            build_profile_from_operations(&operations, ProfileView::Operations, &options).unwrap();
         let stacks = profile_to_stacks(&profile);
 
         assert_eq!(stacks.len(), 1);
