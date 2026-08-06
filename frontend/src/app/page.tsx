@@ -9,11 +9,11 @@ import { Timeline as TimelineView } from '@/components/timeline/Timeline';
 import { ProcessTreeView } from '@/components/ProcessTreeView';
 import { ResourceMetricsView } from '@/components/ResourceMetricsView';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
+import { Dashboard, type ViewMode } from '@/components/dashboard/Dashboard';
 import { useTranslation } from '@/i18n';
 import { AgentSightSnapshot } from '@/types/event';
 import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
 
-type ViewMode = 'log' | 'timeline' | 'process-tree' | 'metrics';
 type AppMode = 'loading' | 'live' | 'demo';
 
 function viewModeFromPath(pathname: string): ViewMode {
@@ -21,14 +21,16 @@ function viewModeFromPath(pathname: string): ViewMode {
   if (path === '/logs') return 'log';
   if (path === '/tree') return 'process-tree';
   if (path === '/metrics') return 'metrics';
-  return 'timeline';
+  if (path === '/timeline') return 'timeline';
+  return 'overview';
 }
 
 function pathForViewMode(mode: ViewMode): string {
   if (mode === 'log') return '/logs';
   if (mode === 'process-tree') return '/tree';
   if (mode === 'metrics') return '/metrics';
-  return '/timeline';
+  if (mode === 'timeline') return '/timeline';
+  return '/overview';
 }
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
@@ -36,7 +38,7 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 export default function Home() {
   const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<AgentSightSnapshot | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('timeline');
+  const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string>('');
   const [mode, setMode] = useState<AppMode>('loading');
@@ -122,12 +124,13 @@ export default function Home() {
 
               <div className="flex flex-wrap items-center gap-2 lg:gap-4">
                 <div className="flex flex-wrap rounded-lg border border-gray-200 p-1">
-                  {(['log', 'timeline', 'process-tree', 'metrics'] as ViewMode[]).map(m => (
+                  {(['overview', 'timeline', 'process-tree', 'log', 'metrics'] as ViewMode[]).map(m => (
                     <button key={m} onClick={() => selectViewMode(m)}
                       className={`px-3 py-1 text-sm rounded-md transition-colors ${
                         viewMode === m ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
                       }`}>
-                      {m === 'log' ? t('app.logView')
+                      {m === 'overview' ? t('app.overview')
+                        : m === 'log' ? t('app.logView')
                         : m === 'timeline' ? t('app.timelineView')
                         : m === 'process-tree' ? t('app.processTree')
                         : t('app.metrics')}
@@ -158,7 +161,9 @@ export default function Home() {
           </div>
 
           {eventCount > 0 ? (
-            viewMode === 'log' ? (
+            viewMode === 'overview' ? (
+              <Dashboard snapshot={snapshot} onNavigate={selectViewMode} />
+            ) : viewMode === 'log' ? (
               <LogView events={displayEvents} />
             ) : viewMode === 'timeline' ? (
               <TimelineView events={displayEvents} />
