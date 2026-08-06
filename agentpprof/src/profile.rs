@@ -4,12 +4,16 @@ use chrono::Utc;
 use flate2::{Compression, write::GzEncoder};
 use prost::Message;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+#[cfg(test)]
+use serde::Deserialize;
+use serde::Serialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
-use std::io::{BufRead, BufReader, Write};
+#[cfg(test)]
+use std::io::{BufRead, BufReader};
+use std::io::Write;
 #[allow(unused_imports)]
 use std::path::{Path, PathBuf};
 
@@ -243,6 +247,7 @@ fn pprof_evidence_labels(operation: &Operation) -> Vec<(String, String)> {
         .collect()
 }
 
+#[cfg(test)]
 #[derive(Clone, Deserialize)]
 struct OperationRecord {
     #[serde(default)]
@@ -540,6 +545,7 @@ fn build_profile_from_operations(
     Ok(profile)
 }
 
+#[cfg(test)]
 fn read_operation_jsonl(path: &Path) -> Result<Vec<Operation>> {
     read_operation_records_jsonl(path)?
         .into_iter()
@@ -556,6 +562,7 @@ fn read_operation_jsonl(path: &Path) -> Result<Vec<Operation>> {
         .collect()
 }
 
+#[cfg(test)]
 fn read_operation_records_jsonl(path: &Path) -> Result<Vec<OperationRecord>> {
     let file = fs::File::open(path)?;
     let mut records = Vec::new();
@@ -577,15 +584,8 @@ fn read_operation_records_jsonl(path: &Path) -> Result<Vec<OperationRecord>> {
     Ok(records)
 }
 
-fn operation_record_to_value(record: OperationRecord) -> Value {
-    let mut fields = record.fields;
-    fields.extend(record.extra_fields);
-    json!({
-        "value": record.value.unwrap_or(1),
-        "fields": fields,
-    })
-}
 
+#[cfg(test)]
 fn operation_from_record(record: OperationRecord) -> Result<Operation> {
     let mut operation = Operation::new(record.value.unwrap_or(1));
     for (key, value) in record.fields {
@@ -597,6 +597,7 @@ fn operation_from_record(record: OperationRecord) -> Result<Operation> {
     Ok(operation)
 }
 
+#[cfg(test)]
 fn insert_json_field(operation: &mut Operation, key: &str, value: Value) -> Result<()> {
     match value {
         Value::Null => {}
@@ -716,6 +717,7 @@ fn session_samples(
     }
 }
 
+#[cfg(test)]
 pub fn source_sample_total(
     sessions: &[SessionRecord],
     project_name: &str,
@@ -1905,6 +1907,7 @@ pub fn infer_output_format(requested: OutputFormat, output: &Path) -> OutputForm
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::session::{LlmEvent, ToolEvent, UserRequest};
