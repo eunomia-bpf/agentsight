@@ -18,7 +18,7 @@ import { categoricalColor } from './colors';
 
 // Re-exported so panel drill-down callbacks stay typed against the app shell's
 // view switcher in page.tsx.
-export type ViewMode = 'overview' | 'log' | 'timeline' | 'process-tree' | 'metrics';
+export type ViewMode = 'overview' | 'log' | 'timeline' | 'process-tree' | 'metrics' | 'nebula';
 
 interface DashboardProps {
   snapshot: AgentSightSnapshot | null;

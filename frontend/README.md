@@ -18,8 +18,17 @@ The AgentSight Frontend provides intuitive visualization of:
 ### Overview Dashboard (landing view)
 - One-screen answer to *what happened and where to look next*
 - Token and model-call breakdown, process/file/network effect profile, CPU + RSS shape over time, and friction signals (repeated commands, failing exits, think-time gaps)
-- Every panel is derived from the materialized-view snapshot the collector serves, and drills into the existing Timeline / Process Tree / Log / Metrics views for inspection
+- Every panel is derived from the materialized-view snapshot the collector serves, and drills into the existing Timeline / Process Tree / Log / Metrics / Nebula views for inspection
 - Hand-authored SVG charts (no chart dependency): faint grid, area fill, emphasized endpoint, and hover tooltip
+
+### Agent Nebula
+- Repository file evolution: files as stars, path areas as stable colors, agent file actions as a timeline
+- **Server prepares the layout** (`GET /api/v1/nebula`): positions, colors, per-moment deltas, and frame bounds come from the collector; the browser only renders and owns playback/hover/selection
+- Source of truth is the materialized view: `audit_events` with `audit_type=file` (path in `target`, action usually `write`)
+- Payload is bounded (default max 1500 stars, 400 frames) with `meta.shown_*` / `meta.total_*` so the UI can say “showing N of M”
+- Empty sessions show an honest empty state, not a blank or fabricated canvas
+- Transport: play/pause, scrub, speed; hover a star for path detail; open the path in Logs / Timeline
+- Uses a tree-shaken ECharts scatter import (same chart surface as the CLI Agent Nebula renderer)
 
 ### Timeline View
 - Interactive event timeline with zoom and pan controls
@@ -49,6 +58,7 @@ The AgentSight Frontend provides intuitive visualization of:
 - **Styling**: Tailwind CSS with responsive design
 - **State Management**: React hooks and context
 - **Data Processing**: Real-time log parsing and event correlation
+- **Charts**: ECharts (scatter only, tree-shaken) for Agent Nebula; dashboard SVG remains dependency-free
 
 ## Quick Start
 

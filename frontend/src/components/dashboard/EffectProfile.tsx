@@ -25,7 +25,12 @@ export function EffectProfile({ snapshot, onNavigate }: EffectProfileProps) {
   );
 
   const action = (
-    <PanelDrillLink label={t('dash.openTree')} onClick={() => onNavigate('process-tree')} />
+    <div className="flex flex-wrap items-center gap-2">
+      {effects.topFiles.length > 0 && (
+        <PanelDrillLink label={t('dash.openNebula')} onClick={() => onNavigate('nebula')} />
+      )}
+      <PanelDrillLink label={t('dash.openTree')} onClick={() => onNavigate('process-tree')} />
+    </div>
   );
 
   if (effects.totalEffects === 0) {

@@ -27,7 +27,14 @@ agentvis . --global \
 
 HTML output is a self-contained interactive file. SVG and PNG are still
 artifacts; GIF and MP4 replay the same layout frames. AgentSight exposes the
-same implementation through `agentsight vis`.
+CLI path through `agentsight vis`.
+
+The AgentSight web UI also has an **Agent Nebula** view at `/nebula`. That path
+reads file audits from a recorded or live session database (`audit_events` with
+`audit_type=file`), runs the prepared layout in the collector
+(`agentvis::build_nebula_document` via `GET /api/v1/nebula`), and only renders
+in the browser. Use `agentsight vis` for offline GIF/HTML from native session
+logs; use the web Nebula view when inspecting a capture already in AgentSight.
 
 GIF/MP4 default to `--compact-rate 30s`: media frames are selected at uniform
 action intervals and encoded at 30 fps. Use `--compact-rate full` to encode

@@ -64,6 +64,15 @@ export function SummaryBand({ summary, onNavigate }: SummaryBandProps) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {summary.filesTouched > 0 && (
+            <button
+              type="button"
+              onClick={() => onNavigate('nebula')}
+              className="rounded-md border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-medium text-teal-800 hover:bg-teal-100"
+            >
+              {t('dash.openNebula')}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onNavigate('log')}

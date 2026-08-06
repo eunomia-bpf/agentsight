@@ -10,7 +10,9 @@ import { ProcessTreeView } from '@/components/ProcessTreeView';
 import { ResourceMetricsView } from '@/components/ResourceMetricsView';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { Dashboard, type ViewMode } from '@/components/dashboard/Dashboard';
+import { NebulaView } from '@/components/nebula/NebulaView';
 import { useTranslation } from '@/i18n';
+import type { TranslationKey } from '@/i18n';
 import { AgentSightSnapshot } from '@/types/event';
 import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
 
@@ -22,6 +24,7 @@ function viewModeFromPath(pathname: string): ViewMode {
   if (path === '/tree') return 'process-tree';
   if (path === '/metrics') return 'metrics';
   if (path === '/timeline') return 'timeline';
+  if (path === '/nebula') return 'nebula';
   return 'overview';
 }
 
@@ -30,8 +33,27 @@ function pathForViewMode(mode: ViewMode): string {
   if (mode === 'process-tree') return '/tree';
   if (mode === 'metrics') return '/metrics';
   if (mode === 'timeline') return '/timeline';
+  if (mode === 'nebula') return '/nebula';
   return '/overview';
 }
+
+const VIEW_MODES: ViewMode[] = [
+  'overview',
+  'timeline',
+  'process-tree',
+  'log',
+  'metrics',
+  'nebula',
+];
+
+const VIEW_MODE_LABEL: Record<ViewMode, TranslationKey> = {
+  overview: 'app.overview',
+  log: 'app.logView',
+  timeline: 'app.timelineView',
+  'process-tree': 'app.processTree',
+  metrics: 'app.metrics',
+  nebula: 'app.nebula',
+};
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
@@ -124,16 +146,12 @@ export default function Home() {
 
               <div className="flex flex-wrap items-center gap-2 lg:gap-4">
                 <div className="flex flex-wrap rounded-lg border border-gray-200 p-1">
-                  {(['overview', 'timeline', 'process-tree', 'log', 'metrics'] as ViewMode[]).map(m => (
+                  {VIEW_MODES.map(m => (
                     <button key={m} onClick={() => selectViewMode(m)}
                       className={`px-3 py-1 text-sm rounded-md transition-colors ${
                         viewMode === m ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
                       }`}>
-                      {m === 'overview' ? t('app.overview')
-                        : m === 'log' ? t('app.logView')
-                        : m === 'timeline' ? t('app.timelineView')
-                        : m === 'process-tree' ? t('app.processTree')
-                        : t('app.metrics')}
+                      {t(VIEW_MODE_LABEL[m])}
                     </button>
                   ))}
                 </div>
@@ -160,7 +178,9 @@ export default function Home() {
             )}
           </div>
 
-          {eventCount > 0 ? (
+          {viewMode === 'nebula' ? (
+            <NebulaView onNavigate={(view) => selectViewMode(view)} />
+          ) : eventCount > 0 ? (
             viewMode === 'overview' ? (
               <Dashboard snapshot={snapshot} onNavigate={selectViewMode} />
             ) : viewMode === 'log' ? (
