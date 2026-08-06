@@ -75,9 +75,9 @@ Each run shows diagnostics and warnings:
 Warning: 150/1000 prompts unmatched. Add prompt tag rules.
 ```
 
-Check detailed coverage:
+Check detailed coverage (tagging diagnostics are on stdout status JSON, not the profile file):
 ```bash
-agentpprof --project-root . -o out.json --format json 2>&1 | jq '.tagging'
+agentpprof --project-root . -o out.json --format json | jq '.tagging'
 ```
 
 **Definition of "well-tagged":**
@@ -111,7 +111,8 @@ Warnings are shown if metrics are poor:
 
 **Spot-check unmatched samples:**
 ```bash
-jq '.tagging.unmatched_samples | map(select(.kind == "prompt")) | .[0:10]' out.json
+agentpprof --project-root . -o out.json --format json \
+  | jq '.tagging.unmatched_samples | map(select(.kind == "prompt")) | .[0:10]'
 ```
 
 If unmatched prompts share patterns, add rules. **Continue iterating until ALL categories have < 5% unmatched.** Avoid vague catch-all tags like `misc` — use specific semantic tags that describe the activity.
