@@ -5,6 +5,8 @@ on:
   release:
     types: [published]
   push:
+    branches:
+      - "master"
     tags:
       - "v*"
 
@@ -15,6 +17,7 @@ permissions:
 jobs:
   publish:
     name: Publish @eunomia-bpf/agentsight
+    if: github.event_name != 'push' || startsWith(github.ref, 'refs/tags/') || contains(github.event.head_commit.message, '[publish npm]')
     runs-on: ubuntu-latest
 
     steps:
