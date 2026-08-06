@@ -35,6 +35,7 @@ jobs:
 
       - name: Build frontend
         run: |
+          npm install --package-lock-only --ignore-scripts --prefix frontend
           npm ci --prefix frontend
           node frontend/scripts/prepare-sample.mjs
           npm run build --prefix frontend
