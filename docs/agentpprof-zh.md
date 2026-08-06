@@ -22,8 +22,8 @@ Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**�
 
 | | 传统 CPU Flamegraph | 语义 Flamegraph |
 | --- | --- | --- |
-| **堆栈含义** | 函数调用链 | prompt → LLM → tool → effect 因果链 |
-| **聚合方式** | 相同函数名合并 | 相同语义标签合并 |
+| **堆栈含义** | 函数调用链 | task → skill → phase → action → object 因果链 |
+| **聚合方式** | 相同函数名合并 | 相同语义字段值合并 |
 | **宽度含义** | CPU 时间占比 | token / 时间 / 操作次数占比 |
 | **回答问题** | 程序在哪里花 CPU | agent 在哪类工作上花预算 |
 
@@ -185,9 +185,9 @@ agentpprof --project-root . --tag-cache tags.json -o flamegraph.svg
 
 操作的粒度在解析时就固定了，与视图无关。视图改变的是计量方式：一个操作可以展开成多个样本，tokens 视图把一次 LLM 调用按 input/output/cache 展开成三个样本，files 视图把一次工具调用按触碰的路径逐一展开。样本是视图相关的，操作不是。
 
-**定义 2（operation stack，操作栈）。** 栈化函数 σ 把操作映射为有序帧序列 σ(o) = [f₁; f₂; …; f_k]。低层帧是语义上下文（project → agent → session → prompt 意图），高层帧是机制与效果（LLM 调用、模型、工具、进程链、路径、域名、状态）。与 CPU 调用栈不同，操作栈表达的是**归因链**而非控制流：每一帧回答「这个活动发生在什么上下文里」。
+**定义 2（operation stack，操作栈）。** 栈化函数 σ 把操作映射为有序帧序列 σ(o) = [f₁; f₂; …; f_k]。默认低层帧是语义上下文（task → skill → phase → action），高层帧是对象与结果（object、repeat、result、outcome，tokens 视图另有 token）。`project` / `agent` / `session` 作为 pprof sample labels 导出，不在默认栈里。与 CPU 调用栈不同，操作栈表达的是**归因链**而非控制流：每一帧回答「这个活动发生在什么上下文里」。
 
-层级从哪里来？agent 历史本身是一条线性事件序列，没有现成的树。解析层按 prompt 把这条序列切成段：一条 prompt 开启一个跨度，直到下一条 prompt 出现，期间的 LLM 调用、工具调用和系统效果都嵌套在它之下。这一步把平坦的时间线折叠出了 task/subtask 式的结构：prompt 像任务，横跨它名下的多次调用和效果，宽度是这些原子操作的权重之和。但此时每个跨度还带着独一无二的 prompt 原文，只有经过意图识别把跨度换成稳定标签，不同 session 里做同类任务的跨度才能互相合并。折叠出结构在前，标签聚合在后。
+层级从哪里来？agent 历史本身是一条线性事件序列，没有现成的树。解析层从源可见状态派生 task_path / skill / response_phase 等字段，再由 `--stack` 决定哪些字段变成帧。字段可多值：深度为 N 的 task_path 会展开成 N 层嵌套的 `task:` 帧。`--op-map` 可在折叠前改写字段，`--where` 可选择子集。
 
 **定义 3（view，视图）。** 视图是三元组 V = (φ, σ, w)：谓词 φ 选择参与统计的操作子集，σ 决定栈结构，权重函数 w 把每个操作映射为非负数。视图的求值结果是 folded stacks，即按栈分组、权重求和的多重集：
 
@@ -205,7 +205,7 @@ eval(V, O) = { (s, w_s) : w_s = Σ w(o), 对所有 o ∈ O 满足 φ(o) 且 σ(o
 | `files` | 有路径效果的工具操作 | task; skill; phase; action; object; repeat; result; outcome | 事件次数 |
 | `network` | 有网络效果的工具操作 | task; skill; phase; action; object; repeat; result; outcome | 事件次数 |
 
-四个视图共享同一操作集合 O 和同一低层语义前缀，只在高层帧和权重函数上不同，因此跨视图对照是良定义的：`tokens` 视图里的 `prompt:review` 与 `files` 视图里的 `prompt:review` 指同一批操作在不同 (σ, w) 下的投影。flamegraph、pprof、folded 文本和 JSON 只是同一求值结果的不同序列化，各视图的具体栈示例见后文「调用栈模型」。
+五个视图共享同一操作集合 O 和同一默认语义栈骨架，只在权重函数和 tokens 视图的 `token` 叶帧上不同，因此跨视图对照是良定义的：`tokens` 视图里的 `task:fix_parser` 与 `files` 视图里的 `task:fix_parser` 指同一批操作在不同 (σ, w) 下的投影。flamegraph、pprof、folded 文本和 JSON 只是同一求值结果的不同序列化，各视图的具体栈示例见后文「调用栈模型」。
 
 ## 安装
 
@@ -280,34 +280,32 @@ agentpprof -o tokens.svg --prompt-tag review
 
 ## 调用栈模型
 
-语义 flamegraph 的调用栈是一种投影而非字面意义的函数调用栈：下层 frame 提供上下文（project、agent、prompt 类型），上层 frame 描述被计数的活动，具体形状由每个视图的 σ 决定。
+语义 flamegraph 的调用栈是对操作字段袋的投影，而非字面意义的函数调用栈。默认帧为 `task,skill,phase,action,object,repeat,result,outcome`（tokens 视图额外加 `token`）。`project` / `agent` / `session` 是 pprof sample labels（`go tool pprof -tags`），不是默认栈帧。可用 `--stack` / `--op-map` / `--where` 覆盖。
 
 `tokens` 视图以模型预算作为宽度：
 
 ```text
-project:agentsight;agent:claude;session:profile;prompt:debug;call:llm/debug;model:claude-opus-4-6;kind:input 4200
-project:agentsight;agent:claude;session:profile;prompt:debug;call:llm/debug;model:claude-opus-4-6;kind:output 980
-project:agentsight;agent:claude;session:profile;prompt:debug;call:llm/debug;model:claude-opus-4-6;kind:cache 150000
+task:fix_parser;skill:unscoped;phase:llm;action:reason_or_report;object:current_task;result:token_usage_reported;outcome:…;token:input 4200
+task:fix_parser;skill:unscoped;phase:llm;action:reason_or_report;object:current_task;result:token_usage_reported;outcome:…;token:output 980
 ```
 
 `time` 视图以 wall-clock 持续时间（秒）作为宽度：
 
 ```text
-project:agentsight;agent:claude;session:profile;prompt:debug;kind:llm 45
-project:agentsight;agent:claude;session:profile;prompt:debug;kind:tool 12
-project:agentsight;agent:claude;session:profile;prompt:debug;kind:prompt 2
+task:fix_parser;skill:unscoped;phase:llm;action:reason_or_report;object:current_task;result:…;outcome:… 45
+task:fix_parser;skill:unscoped;phase:test;action:run_validation;object:agentpprof/cargo.toml;result:completed;outcome:… 12
 ```
 
-`files` 视图以仓库区域作为主分支：
+`files` 视图以仓库路径作为 object 帧：
 
 ```text
-project:agentsight;agent:codex;session:release;prompt:docs;path:docs/flamegraph;effect:write;status:ok 1
+task:write_docs;skill:unscoped;phase:write;action:edit_files;object:docs/flamegraph;result:completed;outcome:… 1
 ```
 
-`network` 视图以域名为中心：
+`network` 视图以域名作为 object 帧：
 
 ```text
-project:agentsight;agent:codex;session:release;prompt:publish;domain:crates.io;process:cargo;status:ok 1
+task:publish;skill:unscoped;phase:network;action:collect_external_evidence;object:crates.io;result:completed;outcome:… 1
 ```
 
 ## 隐私与脱敏
