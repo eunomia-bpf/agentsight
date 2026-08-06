@@ -280,11 +280,9 @@ impl SpanInput {
                 .clone()
                 .unwrap_or_else(|| provider_from_host(host)),
             server_address: host.to_string(),
-            conversation_id: call
-                .conversation_id
-                .clone()
-                .filter(|id| !id.is_empty())
-                .or_else(|| conversation_id_from_request(request)),
+            // The materialized row may carry a per-response ID here, so only
+            // explicit request conversation/thread fields are safe to group.
+            conversation_id: conversation_id_from_request(request),
             model: call.model.clone().or_else(|| {
                 request
                     .get("model")
@@ -377,6 +375,37 @@ async fn post_otlp(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn completed_call(
+        id: &str,
+        session_id: Option<&str>,
+        conversation_id: Option<&str>,
+        request: Value,
+    ) -> LlmCallRow {
+        LlmCallRow {
+            id: id.to_string(),
+            session_id: session_id.map(str::to_string),
+            conversation_id: conversation_id.map(str::to_string),
+            start_timestamp_ms: 1,
+            end_timestamp_ms: Some(2),
+            pid: Some(1),
+            comm: Some("agent".to_string()),
+            provider: Some("openai".to_string()),
+            model: Some("model".to_string()),
+            call_kind: Some("chat".to_string()),
+            status: "complete".to_string(),
+            error_type: None,
+            finish_reason: None,
+            host: Some("api.openai.com".to_string()),
+            path: Some("/v1/chat/completions".to_string()),
+            status_code: Some(200),
+            input_tokens: 0,
+            output_tokens: 0,
+            total_tokens: 0,
+            request,
+            response: Value::Null,
+        }
+    }
 
     #[test]
     fn maps_providers() {
@@ -521,7 +550,7 @@ mod tests {
     }
 
     #[test]
-    fn correlates_trace_ids_by_conversation_then_session() {
+    fn correlates_trace_ids_by_explicit_conversation_then_session() {
         let mut exporter = OtelExporter::new(Some("http://localhost:4318".to_string()), false);
 
         let conversation_a = exporter.trace_id_for(Some("conversation-a"), Some("session-a"));
@@ -537,6 +566,27 @@ mod tests {
         let session_a = exporter.trace_id_for(None, Some("session-a"));
         assert_eq!(session_a, exporter.trace_id_for(None, Some("session-a")));
         assert_ne!(session_a, exporter.trace_id_for(None, Some("session-b")));
+    }
+
+    #[test]
+    fn per_response_conversation_ids_do_not_split_one_session() {
+        let mut exporter = OtelExporter::new(Some("http://localhost:4318".to_string()), false);
+        let first = completed_call("first", Some("session-a"), Some("chatcmpl-a"), json!({}));
+        let second = completed_call("second", Some("session-a"), Some("chatcmpl-b"), json!({}));
+
+        let first_input = SpanInput::from_call(&first, false);
+        let second_input = SpanInput::from_call(&second, false);
+        assert!(first_input.conversation_id.is_none());
+        assert_eq!(
+            exporter.trace_id_for(
+                first_input.conversation_id.as_deref(),
+                first.session_id.as_deref()
+            ),
+            exporter.trace_id_for(
+                second_input.conversation_id.as_deref(),
+                second.session_id.as_deref()
+            )
+        );
     }
 
     #[test]
