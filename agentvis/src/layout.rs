@@ -261,9 +261,11 @@ pub fn build_nebula_document(
                 .or_insert(frame_i as u16);
         }
     }
-    // Paths never hit after downsampling still get a birth at last frame if they had visits.
+    // Paths whose only hits fell between downsampled frames still surface on
+    // the final frame (endpoints of the sample always include the last moment).
+    let last_frame = frame_indices.len().saturating_sub(1) as u16;
     for (path, _) in &ranked {
-        birth_frame.entry(path.clone()).or_insert(0);
+        birth_frame.entry(path.clone()).or_insert(last_frame);
     }
 
     for (idx, (path, stats)) in ranked.iter().enumerate() {

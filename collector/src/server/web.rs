@@ -232,9 +232,19 @@ async fn serve_nebula_api(
     query: Option<&str>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
     // Pull a generous audit window; layout then bounds stars/frames itself.
-    let audit_limit = query_param_usize(query, "audit_limit").unwrap_or(100_000);
-    let max_stars = query_param_usize(query, "max_stars").unwrap_or(agentvis::DEFAULT_MAX_STARS);
-    let max_frames = query_param_usize(query, "max_frames").unwrap_or(agentvis::DEFAULT_MAX_FRAMES);
+    // Query overrides cannot defeat the hard caps (star/frame ids are u16).
+    const ABSOLUTE_MAX_STARS: usize = 8_000;
+    const ABSOLUTE_MAX_FRAMES: usize = 2_000;
+    const ABSOLUTE_MAX_AUDIT: usize = 200_000;
+    let audit_limit = query_param_usize(query, "audit_limit")
+        .unwrap_or(100_000)
+        .clamp(1, ABSOLUTE_MAX_AUDIT);
+    let max_stars = query_param_usize(query, "max_stars")
+        .unwrap_or(agentvis::DEFAULT_MAX_STARS)
+        .clamp(1, ABSOLUTE_MAX_STARS.min(u16::MAX as usize));
+    let max_frames = query_param_usize(query, "max_frames")
+        .unwrap_or(agentvis::DEFAULT_MAX_FRAMES)
+        .clamp(1, ABSOLUTE_MAX_FRAMES.min(u16::MAX as usize));
 
     let result = tokio::task::spawn_blocking(
         move || -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
@@ -371,6 +381,18 @@ mod tests {
 
         assert_eq!(query_param_usize(query, "audit_limit"), Some(9));
         assert_eq!(query_param_usize(query, "missing"), None);
+    }
+
+    #[test]
+    fn nebula_query_overrides_are_clamped() {
+        // Document the hard caps used by serve_nebula_api so they cannot
+        // silently drift from the u16 id space.
+        assert!(8_000 <= u16::MAX as usize);
+        assert!(2_000 <= u16::MAX as usize);
+        let huge = 10_000_000usize;
+        assert_eq!(huge.clamp(1, 8_000), 8_000);
+        assert_eq!(huge.clamp(1, 2_000), 2_000);
+        assert_eq!(huge.clamp(1, 200_000), 200_000);
     }
 
     #[test]

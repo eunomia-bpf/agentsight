@@ -113,7 +113,9 @@ function buildOption(
     xAxis: { type: 'value' as const, min: 0, max: 1, show: false },
     yAxis: { type: 'value' as const, min: 0, max: 1, show: false },
     tooltip: {
+      // richText avoids HTML injection from agent-observed path strings
       trigger: 'item' as const,
+      renderMode: 'richText' as const,
       backgroundColor: '#0b121c',
       borderColor: 'rgba(135,160,190,.28)',
       textStyle: { color: '#dce8f7', fontSize: 12 },
@@ -126,7 +128,7 @@ function buildOption(
           `${row.visits ?? 0} recorded file actions`,
           row.access ? `this moment: ${row.access}` : 'visible (not active this moment)',
         ];
-        return lines.join('<br/>');
+        return lines.join('\n');
       },
     },
     graphic: [
