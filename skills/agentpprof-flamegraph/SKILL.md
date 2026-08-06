@@ -152,14 +152,16 @@ labels (`go tool pprof -tags`), not default stack frames.
 ## Operation Stack Controls
 
 ```bash
-# Rewrite fields before stacking, filter the subset, then choose frames
+# Rewrite fields before stacking, filter the subset, then choose frames.
+# Use --view operations (or files/network): --op-map patterns that match
+# tool fields (cmd/effect) do not apply to tokens samples, which are LLM-only.
 agentpprof \
   --project-root /path/to/project \
   --op-map 'task:verify=(?i)cmd=cargo|effect=test' \
   --where 'task=verify' \
   --stack task,action,result,object \
   --stack-rule 'action:run_tests=(?i)cmd=cargo' \
-  --view tokens \
+  --view operations \
   -o verify.folded --format folded
 
 # Optional closed-set LLM task taxonomy (requires --tagger llm)
