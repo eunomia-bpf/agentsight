@@ -621,6 +621,9 @@ mod tests {
             paths,
             domains: Vec::new(),
             call_id: None,
+            invoked_skill: String::new(),
+            skill: String::new(),
+            task_path: Vec::new(),
         }
     }
 

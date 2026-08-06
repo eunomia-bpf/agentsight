@@ -8,8 +8,8 @@ pub type ToolEvent = agent_session::ToolEvent;
 pub type LlmEvent = agent_session::LlmResponse;
 
 pub use agent_session::{
-    collapse_project_path, contains_private_marker, path_component_strings, short_hash,
-    truncate_clean,
+    collapse_project_path, contains_private_marker, path_component_strings, semantic_task_label,
+    short_hash, truncate_clean,
 };
 
 #[derive(Debug, Clone)]
@@ -26,6 +26,7 @@ pub struct SessionRecord {
     pub tools: Vec<ToolEvent>,
     pub llm_calls: Vec<LlmEvent>,
     pub session_tag: String,
+    pub task_tag: String,
 }
 
 impl SessionRecord {
@@ -44,6 +45,7 @@ impl SessionRecord {
                 text_hash: "bootstrap".to_string(),
                 preview: "session bootstrap".to_string(),
                 tag: String::new(),
+                task_path: Vec::new(),
             });
         }
     }
@@ -174,6 +176,7 @@ fn record_from_agent_session(session: &AgentSession) -> SessionRecord {
         tools: session.events.tools.clone(),
         llm_calls: session.events.llm_responses.clone(),
         session_tag: String::new(),
+        task_tag: String::new(),
     }
 }
 
@@ -187,6 +190,7 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
             text_hash: short_hash(prompt, 12),
             preview: truncate_clean(prompt, 180),
             tag: String::new(),
+            task_path: Vec::new(),
         });
     }
     if record.tools.is_empty() {
@@ -210,6 +214,9 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                     paths: Vec::new(),
                     domains: Vec::new(),
                     call_id: None,
+                    invoked_skill: String::new(),
+                    skill: String::new(),
+                    task_path: Vec::new(),
                 });
             }
         }
@@ -223,6 +230,7 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                 ts_ms: record.start_ts_ms,
                 prompt_index: 0,
                 model: model.clone(),
+                source_id: String::new(),
                 text_hash: short_hash(&format!("{}:{:?}", session.session_id, usage), 12),
                 preview: "session token summary".to_string(),
                 input_tokens: nonnegative_u64(usage.input_tokens),
@@ -231,6 +239,9 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                     + nonnegative_u64(usage.cache_read_tokens),
                 total_tokens: nonnegative_u64(usage.total_tokens),
                 tag: String::new(),
+                response_phase: String::new(),
+                skill: String::new(),
+                task_path: Vec::new(),
             });
         }
     }

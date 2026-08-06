@@ -57,14 +57,15 @@ The value of flamegraphs is not just aggregation but also **stack-based causal
 linking**. Traditional CPU flamegraph stacks are function call chains:
 `main → parse → tokenize` means tokenize was called by parse, which was called
 by main. Semantic flamegraph stacks are agent behavior causal chains:
-`prompt:debug → call:llm/analysis → tool:bash → file:src/main.rs` means this
-file modification was triggered by bash, bash was decided by the LLM, and the
-LLM was responding to a debug-type prompt.
+`task:… → phase:read → action:read_or_search → object:src/main.rs` means this
+file read sits under a derived task, phase, and action. `project`, `agent`, and
+`session` are pprof sample labels (`go tool pprof -tags`), not default stack
+frames.
 
 | | Traditional CPU Flamegraph | Semantic Flamegraph |
 | --- | --- | --- |
-| **Stack meaning** | Function call chain | prompt → LLM → tool → effect causal chain |
-| **Aggregation** | Same function name merges | Same semantic tag merges |
+| **Stack meaning** | Function call chain | task → skill → phase → action → object causal chain |
+| **Aggregation** | Same function name merges | Same semantic field values merge |
 | **Width meaning** | CPU time share | token / time / operation count share |
 | **Question answered** | Where does the program spend CPU | Where does the agent spend budget by category |
 
@@ -78,13 +79,17 @@ different question:
 
 | View | Width means | Primary question |
 | --- | ---: | --- |
-| `tokens` | reported token count (input/output/cache) | Which prompts consumed the most model budget? |
-| `time` | duration in seconds | How long did each prompt/activity take? |
-| `files` | file/path effect count | Which prompts touched which parts of the repository? |
-| `network` | network/domain effect count | Which prompts contacted which domains? |
+| `operations` | one count per prompt/tool/LLM step | How many operations fall in each semantic path? |
+| `tokens` | reported token count (input/output/cache) | Which tasks/actions consumed the most model budget? |
+| `time` | duration in seconds | How long did each activity take? |
+| `files` | file/path effect count | Which paths were touched under which tasks? |
+| `network` | network/domain effect count | Which domains were contacted under which tasks? |
 
-Start with `tokens` to find cost hotspots, use `time` to trace where wall-clock
-time went, and use `files` and `network` for security audits.
+Default stack frames are
+`task,skill,phase,action,object,repeat,result,outcome` (plus `token` for the
+tokens view). Override with `--stack`, rewrite fields with `--op-map`, and
+subset samples with `--where`. Start with `tokens` for cost hotspots, use
+`time` for wall-clock, and use `files` / `network` for security audits.
 
 ## Example Flamegraphs
 
@@ -102,7 +107,9 @@ Paths end at different depths, producing an uneven outline.
 
 ![Tokens flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-tokens.svg)
 
-The token distribution shows that code review (`prompt:review`) dominated the model budget, followed by git operations (`prompt:git`), code work (`prompt:code`), editing (`prompt:edit`), and debugging (`prompt:debug`). Through the stack, you can trace which LLM calls each prompt category triggered: `call:llm/usage` for token statistics events, `call:llm/code` and `call:llm/test` for code-related responses, `call:llm/tool` for tool calls, and `call:llm/edit` for modification responses.
+The token distribution aggregates by semantic stack frames (task, phase, action,
+and so on). Historical gallery SVGs may still show older `prompt:` / `call:llm/`
+prefixes; current `agentpprof` defaults to the operation-stack frames above.
 
 ### Time View
 
@@ -323,36 +330,37 @@ agentpprof -o tokens.svg --prompt-tag review
 
 ## The stack model
 
-The semantic flamegraph stack is a projection, not a literal function call
-stack: lower frames provide context (project, agent, prompt type), upper frames
-describe the activity being counted, and the exact shape varies by view.
+The semantic flamegraph stack is a projection over operation field bags, not a
+literal function call stack. Default frames are
+`task,skill,phase,action,object,repeat,result,outcome` (plus `token` for the
+tokens view). `project`, `agent`, and `session` are pprof sample labels
+(`go tool pprof -tags`), not default stack frames. Override frames with
+`--stack`, rewrite fields with `--op-map`, and select subsets with `--where`.
 
 The `tokens` view uses model budget as the width:
 
 ```text
-project:agentsight;agent:claude;session:profile;prompt:debug;call:llm/debug;model:claude-opus-4-6;kind:input 4200
-project:agentsight;agent:claude;session:profile;prompt:debug;call:llm/debug;model:claude-opus-4-6;kind:output 980
-project:agentsight;agent:claude;session:profile;prompt:debug;call:llm/debug;model:claude-opus-4-6;kind:cache 150000
+task:fix_parser;skill:unscoped;phase:llm;action:reason_or_report;object:current_task;result:token_usage_reported;outcome:…;token:input 4200
+task:fix_parser;skill:unscoped;phase:llm;action:reason_or_report;object:current_task;result:token_usage_reported;outcome:…;token:output 980
 ```
 
 The `time` view uses wall-clock duration (seconds) as the width:
 
 ```text
-project:agentsight;agent:claude;session:profile;prompt:debug;kind:llm 45
-project:agentsight;agent:claude;session:profile;prompt:debug;kind:tool 12
-project:agentsight;agent:claude;session:profile;prompt:debug;kind:prompt 2
+task:fix_parser;skill:unscoped;phase:llm;action:reason_or_report;object:current_task;result:…;outcome:… 45
+task:fix_parser;skill:unscoped;phase:test;action:run_validation;object:agentpprof/cargo.toml;result:completed;outcome:… 12
 ```
 
-The `files` view makes repository areas the main branch:
+The `files` view makes repository paths the object frame:
 
 ```text
-project:agentsight;agent:codex;session:release;prompt:docs;path:docs/flamegraph;effect:write;status:ok 1
+task:write_docs;skill:unscoped;phase:write;action:edit_files;object:docs/flamegraph;result:completed;outcome:… 1
 ```
 
-The `network` view centers domains:
+The `network` view centers domains as the object frame:
 
 ```text
-project:agentsight;agent:codex;session:release;prompt:publish;domain:crates.io;process:cargo;status:ok 1
+task:publish;skill:unscoped;phase:network;action:collect_external_evidence;object:crates.io;result:completed;outcome:… 1
 ```
 
 Choose the view based on your question: tokens for cost analysis, time for

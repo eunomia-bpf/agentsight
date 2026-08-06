@@ -13,8 +13,15 @@ use std::time::Duration;
 use crate::session::{SessionRecord, short_hash, truncate_clean};
 
 const TAG_CACHE_VERSION: &str = "v3";
+const DECLARED_TAG_CACHE_VERSION: &str = "v1";
 const TAG_GRAMMAR: &str =
     "root ::= [a-z] [a-z] [a-z] [a-z]? [a-z]? [a-z]? [a-z]? [a-z]? [a-z]? [a-z]? [a-z]? [a-z]?";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeclaredTagChoice {
+    pub tag: String,
+    pub description: String,
+}
 
 #[derive(Default, Serialize, Clone)]
 pub struct TagStats {
@@ -126,11 +133,113 @@ impl LlamaTagger {
         Ok(tag)
     }
 
+    fn tag_declared(
+        &mut self,
+        kind: &str,
+        text: &str,
+        hints: &[String],
+        choices: &[DeclaredTagChoice],
+    ) -> Result<String> {
+        self.stats.requests += 1;
+        let source = truncate_clean(&format!("{} {}", hints.join(" "), text), 1800);
+        let grammar = declared_tag_grammar(choices);
+        let choice_fingerprint = choices
+            .iter()
+            .map(|choice| format!("{}={}", choice.tag, choice.description))
+            .collect::<Vec<_>>()
+            .join(
+                "
+",
+            );
+        let key = short_hash(
+            &format!(
+                "{}
+llama.cpp
+{}
+{}
+{}
+{}
+{}
+{}",
+                DECLARED_TAG_CACHE_VERSION,
+                self.base_url,
+                self.model,
+                kind,
+                grammar,
+                choice_fingerprint,
+                source
+            ),
+            32,
+        );
+        if let Some(entry) = self.cache.get(&key)
+            && choices.iter().any(|choice| choice.tag == entry.tag)
+        {
+            self.stats.cache_hits += 1;
+            return Ok(entry.tag.clone());
+        }
+        if self.max_uncached >= 0 && self.stats.llm_calls as isize >= self.max_uncached {
+            bail!(
+                "LLM tag budget exhausted after {} uncached calls",
+                self.stats.llm_calls
+            );
+        }
+
+        let mut previous = String::new();
+        let mut selected = None;
+        for attempt in 0..2 {
+            let prompt = declared_tag_prompt(
+                kind,
+                &source,
+                choices,
+                if attempt == 0 { "" } else { &previous },
+            );
+            let raw = self.call_llm(
+                &prompt,
+                "You assign exactly one declared lowercase tag.",
+                &grammar,
+            )?;
+            if let Some(tag) = sanitize_tag(&raw)
+                && choices.iter().any(|choice| choice.tag == tag)
+            {
+                selected = Some(tag);
+                self.stats.llm_successes += 1;
+                break;
+            }
+            previous = raw;
+        }
+        let tag = selected.ok_or_else(|| {
+            let detail = truncate_clean(&previous, 200);
+            self.stats.failures.push(format!(
+                "invalid_declared_output kind={kind} output={detail}"
+            ));
+            anyhow!("LLM returned a tag outside the declared choices for {kind}: {detail:?}")
+        })?;
+        self.cache.insert(
+            key,
+            TagEntry {
+                tag: tag.clone(),
+                kind: format!("{kind}:declared"),
+                source_hash: short_hash(&source, 24),
+                created_at: now_iso(),
+                llm: LlmInfo {
+                    provider: "llama.cpp".to_string(),
+                    base_url: self.base_url.clone(),
+                    model: self.model.clone(),
+                },
+            },
+        );
+        Ok(tag)
+    }
+
     fn tag_uncached(&mut self, kind: &str, source: &str) -> Result<String> {
         let mut previous = String::new();
         for attempt in 0..2 {
             let prompt = tag_prompt(kind, source, if attempt == 0 { "" } else { &previous });
-            let raw = self.call_llm(&prompt)?;
+            let raw = self.call_llm(
+                &prompt,
+                "You output exactly one lowercase English word.",
+                TAG_GRAMMAR,
+            )?;
             if let Some(tag) = sanitize_tag(&raw) {
                 if valid_tag(&tag) {
                     self.stats.llm_successes += 1;
@@ -146,18 +255,18 @@ impl LlamaTagger {
         bail!("LLM returned invalid one-word tag for {kind}: {detail:?}");
     }
 
-    fn call_llm(&mut self, prompt: &str) -> Result<String> {
+    fn call_llm(&mut self, prompt: &str, system: &str, grammar: &str) -> Result<String> {
         self.stats.llm_calls += 1;
         let url = format!("{}/v1/chat/completions", self.base_url);
         let body = json!({
             "model": self.model,
             "messages": [
-                {"role": "system", "content": "You output exactly one lowercase English word."},
+                {"role": "system", "content": system},
                 {"role": "user", "content": prompt}
             ],
             "temperature": 0,
             "max_tokens": 8,
-            "grammar": TAG_GRAMMAR,
+            "grammar": grammar,
             "stream": false
         });
         let response = self
@@ -329,6 +438,154 @@ fn parse_tag_rule(spec: &str) -> Result<TagRule> {
 
 pub const UNMATCHED_TAG: &str = "unmatched";
 
+pub fn parse_declared_tag_choices(specs: &[String]) -> Result<Vec<DeclaredTagChoice>> {
+    if specs.is_empty() {
+        return Ok(Vec::new());
+    }
+    let choices = specs
+        .iter()
+        .map(|spec| {
+            let (tag, description) = spec.split_once('=').ok_or_else(|| {
+                anyhow!("invalid --task-choice {spec:?}; expected TAG=DESCRIPTION")
+            })?;
+            Ok(DeclaredTagChoice {
+                tag: tag.trim().to_string(),
+                description: description.trim().to_string(),
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    validate_declared_tag_choices(&choices)?;
+    Ok(choices)
+}
+
+fn validate_declared_tag_choices(choices: &[DeclaredTagChoice]) -> Result<()> {
+    if choices.len() < 2 {
+        bail!("declared task taxonomy requires at least two --task-choice values");
+    }
+    let mut seen = BTreeMap::new();
+    for choice in choices {
+        if let Err(reason) = validate_tag(&choice.tag) {
+            bail!("invalid declared task tag {:?}; {reason}", choice.tag);
+        }
+        if choice.description.is_empty() {
+            bail!(
+                "declared task tag {:?} has an empty description",
+                choice.tag
+            );
+        }
+        if seen.insert(choice.tag.clone(), ()).is_some() {
+            bail!("duplicate declared task tag {:?}", choice.tag);
+        }
+    }
+    Ok(())
+}
+
+fn declared_tag_grammar(choices: &[DeclaredTagChoice]) -> String {
+    format!(
+        "root ::= {}",
+        choices
+            .iter()
+            .map(|choice| format!("\"{}\"", choice.tag))
+            .collect::<Vec<_>>()
+            .join(" | ")
+    )
+}
+
+fn declared_tag_prompt(
+    kind: &str,
+    source: &str,
+    choices: &[DeclaredTagChoice],
+    invalid_previous: &str,
+) -> String {
+    let retry = if invalid_previous.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "\nPrevious invalid answer: {invalid_previous:?}\nReturn only one declared tag now.\n"
+        )
+    };
+    let taxonomy = choices
+        .iter()
+        .map(|choice| format!("{}: {}", choice.tag, choice.description))
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!(
+        "Assign exactly one declared lowercase tag for this {kind} fragment.\n\
+         Use only a tag listed in the taxonomy.\n\
+         Do not invent new tags and do not explain the choice.\n\
+         {retry}\nTaxonomy:\n{taxonomy}\n\nInput:\n{}\n\nTag:",
+        truncate_clean(source, 1600)
+    )
+}
+
+struct RawTagRequest {
+    kind: &'static str,
+    text: String,
+    hints: Vec<String>,
+}
+
+fn raw_session_tag_request(
+    title: &str,
+    cwd: &str,
+    prompt_text: &str,
+    source: &str,
+    model: &str,
+) -> RawTagRequest {
+    RawTagRequest {
+        kind: "session",
+        text: truncate_clean(&format!("{title} {cwd} {prompt_text}"), 1500),
+        hints: vec![source.to_string(), model.to_string()],
+    }
+}
+
+pub fn annotate_sessions_with_declared_tasks(
+    sessions: &mut [SessionRecord],
+    tagger: &mut LlamaTagger,
+    task_choices: &[DeclaredTagChoice],
+) -> Result<()> {
+    for session in sessions {
+        let prompt_text = session
+            .user_requests
+            .iter()
+            .take(8)
+            .map(|req| req.preview.as_str())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let raw_request = raw_session_tag_request(
+            &session.title,
+            &session.cwd,
+            &prompt_text,
+            &session.source,
+            &session.model,
+        );
+        session.session_tag =
+            tagger.tag(raw_request.kind, &raw_request.text, &raw_request.hints)?;
+        if !task_choices.is_empty() {
+            session.task_tag = tagger.tag_declared("task", &prompt_text, &[], task_choices)?;
+        }
+        for req in &mut session.user_requests {
+            req.tag = tagger.tag(
+                "prompt",
+                &req.preview,
+                &[session.session_tag.clone(), session.source.clone()],
+            )?;
+        }
+        for idx in 0..session.llm_calls.len() {
+            let call = &session.llm_calls[idx];
+            session.llm_calls[idx].tag = tagger.tag(
+                "llm",
+                &call.preview,
+                &[
+                    session.session_tag.clone(),
+                    session.source.clone(),
+                    call.model.clone(),
+                ],
+            )?;
+        }
+    }
+    Ok(())
+}
+
 pub fn annotate_sessions_regex(
     sessions: &mut [SessionRecord],
     tagger: &RegexTagger,
@@ -417,10 +674,7 @@ pub fn annotate_sessions_regex(
     // Collect samples and tag counts (sequential)
     for session in sessions.iter() {
         if session.session_tag == UNMATCHED_TAG && diagnostics.unmatched_samples.len() < 30 {
-            let session_input = truncate_clean(
-                &format!("{} {}", session.cwd, session.title),
-                120,
-            );
+            let session_input = truncate_clean(&format!("{} {}", session.cwd, session.title), 120);
             diagnostics.unmatched_samples.push(UnmatchedSample {
                 kind: "session".to_string(),
                 preview: session_input,
@@ -530,7 +784,10 @@ fn print_distribution_analysis(kind: &str, tag_counts: &BTreeMap<String, usize>)
     sorted.sort_by_key(|item| std::cmp::Reverse(item.1));
 
     // Calculate distribution metrics
-    let top1_pct = sorted.first().map(|(_, v)| *v as f64 / total as f64 * 100.0).unwrap_or(0.0);
+    let top1_pct = sorted
+        .first()
+        .map(|(_, v)| *v as f64 / total as f64 * 100.0)
+        .unwrap_or(0.0);
     let top3_sum: usize = sorted.iter().take(3).map(|(_, v)| *v).sum();
     let top3_pct = top3_sum as f64 / total as f64 * 100.0;
     let top5_sum: usize = sorted.iter().take(5).map(|(_, v)| *v).sum();
@@ -545,7 +802,11 @@ fn print_distribution_analysis(kind: &str, tag_counts: &BTreeMap<String, usize>)
         })
         .sum();
     let max_entropy = (num_tags as f64).ln();
-    let normalized_entropy = if max_entropy > 0.0 { entropy / max_entropy } else { 0.0 };
+    let normalized_entropy = if max_entropy > 0.0 {
+        entropy / max_entropy
+    } else {
+        0.0
+    };
 
     // Print distribution summary
     eprintln!(
@@ -847,5 +1108,42 @@ mod tests {
         assert!(RegexTagger::new(&["prompt:two-words=review".to_string()], false).is_err());
         assert!(RegexTagger::new(&["tool:review=review".to_string()], false).is_err());
         assert!(RegexTagger::new(&["prompt:review=(".to_string()], false).is_err());
+    }
+
+    #[test]
+    fn declared_task_choices_build_exact_enumeration() {
+        let choices = parse_declared_tag_choices(&[
+            "alfworld=embodied household tasks".to_string(),
+            "webshop=product search and shopping tasks".to_string(),
+        ])
+        .unwrap();
+        assert_eq!(choices.len(), 2);
+        assert_eq!(
+            declared_tag_grammar(&choices),
+            "root ::= \"alfworld\" | \"webshop\""
+        );
+        let prompt = declared_tag_prompt("task", "buy a red mug", &choices, "");
+        assert!(prompt.contains("alfworld: embodied household tasks"));
+        assert!(prompt.contains("webshop: product search and shopping tasks"));
+        assert!(prompt.contains("buy a red mug"));
+    }
+
+    #[test]
+    fn declared_task_choices_reject_ambiguous_contracts() {
+        assert!(parse_declared_tag_choices(&["alfworld".to_string()]).is_err());
+        assert!(
+            parse_declared_tag_choices(&[
+                "alfworld=household".to_string(),
+                "alfworld=duplicate".to_string(),
+            ])
+            .is_err()
+        );
+        assert!(
+            parse_declared_tag_choices(&[
+                "bad-tag=invalid punctuation".to_string(),
+                "webshop=shopping".to_string(),
+            ])
+            .is_err()
+        );
     }
 }
