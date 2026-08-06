@@ -2215,7 +2215,7 @@ mod tests {
     fn operation_with(value: u64, fields: &[(&str, &str)]) -> Operation {
         let mut operation = Operation::new(value);
         for (key, value) in fields {
-            operation.insert(*key, (*value).to_string());
+            operation.insert(key, (*value).to_string());
         }
         operation
     }
