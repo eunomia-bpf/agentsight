@@ -2,17 +2,26 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 export interface SnapshotSummary {
+  source?: string;
   view_events?: number;
   llm_calls?: number;
   token_usage_rows?: number;
   audit_events?: number;
   sessions?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
+  start_timestamp_ms?: number | null;
+  end_timestamp_ms?: number | null;
+  audit_limit?: number;
 }
 
 export interface SnapshotTokenSummary {
   group: string;
   input_tokens?: number;
   output_tokens?: number;
+  cache_creation_tokens?: number;
+  cache_read_tokens?: number;
   total_tokens?: number;
   calls?: number;
 }
