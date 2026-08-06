@@ -280,9 +280,11 @@ impl SpanInput {
                 .clone()
                 .unwrap_or_else(|| provider_from_host(host)),
             server_address: host.to_string(),
-            // The materialized row may carry a per-response ID here, so only
-            // explicit request conversation/thread fields are safe to group.
-            conversation_id: conversation_id_from_request(request),
+            // The materialized row may carry a generic per-response ID here.
+            // Only fields explicitly identified as a conversation or thread
+            // are safe to use for grouping.
+            conversation_id: explicit_conversation_id(request)
+                .or_else(|| explicit_conversation_id(&call.response)),
             model: call.model.clone().or_else(|| {
                 request
                     .get("model")
@@ -339,14 +341,29 @@ impl ViewSink for OtelExporter {
     }
 }
 
-fn conversation_id_from_request(request: &Value) -> Option<String> {
-    ["conversation_id", "conversationId", "thread_id", "threadId"]
-        .iter()
-        .filter_map(|key| request.get(*key).and_then(Value::as_str))
-        .find(|value| !value.is_empty())
-        .or_else(|| request.pointer("/conversation/id").and_then(Value::as_str))
-        .filter(|value| !value.is_empty())
-        .map(str::to_string)
+fn explicit_conversation_id(body: &Value) -> Option<String> {
+    [
+        "/conversation_id",
+        "/conversationId",
+        "/thread_id",
+        "/threadId",
+        "/metadata/conversation_id",
+        "/metadata/conversationId",
+        "/metadata/thread_id",
+        "/metadata/threadId",
+        "/conversation/id",
+        "/thread/id",
+        "/response/conversation_id",
+        "/response/conversationId",
+        "/response/thread_id",
+        "/response/threadId",
+        "/response/conversation/id",
+        "/response/thread/id",
+    ]
+    .iter()
+    .filter_map(|path| body.pointer(path).and_then(Value::as_str))
+    .find(|value| !value.is_empty())
+    .map(str::to_string)
 }
 
 /// POST an OTLP/HTTP JSON trace payload to the collector.
@@ -506,12 +523,11 @@ mod tests {
             "conv_123"
         );
         assert_eq!(
-            conversation_id_from_request(&json!({ "conversation": { "id": "conv_123" } }))
-                .as_deref(),
+            explicit_conversation_id(&json!({ "conversation": { "id": "conv_123" } })).as_deref(),
             Some("conv_123")
         );
         assert_eq!(
-            conversation_id_from_request(&json!({ "session_id": "sid_123" })),
+            explicit_conversation_id(&json!({ "session_id": "sid_123" })),
             None
         );
         assert_eq!(
@@ -577,6 +593,37 @@ mod tests {
         let first_input = SpanInput::from_call(&first, false);
         let second_input = SpanInput::from_call(&second, false);
         assert!(first_input.conversation_id.is_none());
+        assert_eq!(
+            exporter.trace_id_for(
+                first_input.conversation_id.as_deref(),
+                first.session_id.as_deref()
+            ),
+            exporter.trace_id_for(
+                second_input.conversation_id.as_deref(),
+                second.session_id.as_deref()
+            )
+        );
+    }
+
+    #[test]
+    fn explicit_conversation_overrides_different_sessions() {
+        let mut exporter = OtelExporter::new(Some("http://localhost:4318".to_string()), false);
+        let first = completed_call(
+            "first",
+            Some("session-a"),
+            None,
+            json!({ "metadata": { "conversation_id": "conversation-a" } }),
+        );
+        let mut second = completed_call("second", Some("session-b"), None, json!({}));
+        second.response = json!({ "thread": { "id": "conversation-a" } });
+
+        let first_input = SpanInput::from_call(&first, false);
+        let second_input = SpanInput::from_call(&second, false);
+        assert_eq!(
+            first_input.conversation_id.as_deref(),
+            Some("conversation-a")
+        );
+        assert_eq!(first_input.conversation_id, second_input.conversation_id);
         assert_eq!(
             exporter.trace_id_for(
                 first_input.conversation_id.as_deref(),

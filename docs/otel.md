@@ -97,7 +97,7 @@ Per the GenAI agent/model span conventions:
 |-----------|--------|
 | `gen_ai.operation.name` | `chat` |
 | `gen_ai.provider.name` | derived from the API host (`openai`, `anthropic`, `gcp.gen_ai`, `azure.ai.openai`, …) |
-| `gen_ai.conversation.id` | real conversation/thread id from the provider request body when available; never synthesized |
+| `gen_ai.conversation.id` | real conversation/thread id from the provider request or response body when available; never synthesized |
 | `gen_ai.request.model` | request body `model` |
 | `gen_ai.request.max_tokens` / `temperature` / `top_p` | request body |
 | `gen_ai.response.model` / `gen_ai.response.id` | response body |
