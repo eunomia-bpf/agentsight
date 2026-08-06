@@ -964,6 +964,7 @@ fn parse_jsonl(
     if acc.model_usage.is_empty() {
         acc.model_usage = claude_message_models;
     }
+    deduplicate_llm_responses(&mut events);
     acc.finish_with_events(events)
 }
 
@@ -972,6 +973,67 @@ fn parse_jsonl(
 
 
 
+
+
+fn deduplicate_llm_responses(events: &mut SessionEvents) {
+    let mut unique: Vec<LlmResponse> = Vec::with_capacity(events.llm_responses.len());
+    let mut by_source_id = BTreeMap::<(usize, String), usize>::new();
+    for response in events.llm_responses.drain(..) {
+        let source_key = (!response.source_id.is_empty())
+            .then(|| (response.prompt_index, response.source_id.clone()));
+        let duplicate_index = source_key
+            .as_ref()
+            .and_then(|key| by_source_id.get(key).copied())
+            .or_else(|| {
+                unique.len().checked_sub(1).filter(|index| {
+                    let previous = &unique[*index];
+                    response.source_id.is_empty()
+                        && previous.source_id.is_empty()
+                        && previous.prompt_index == response.prompt_index
+                        && previous.text_hash == response.text_hash
+                        && previous
+                            .ts_ms
+                            .zip(response.ts_ms)
+                            .is_some_and(|(left, right)| left.abs_diff(right) <= 1_000)
+                })
+            });
+        if let Some(index) = duplicate_index {
+            merge_llm_response(&mut unique[index], response);
+            continue;
+        }
+        let index = unique.len();
+        if let Some(key) = source_key {
+            by_source_id.insert(key, index);
+        }
+        unique.push(response);
+    }
+    events.llm_responses = unique;
+}
+
+fn merge_llm_response(previous: &mut LlmResponse, response: LlmResponse) {
+    previous.input_tokens = previous.input_tokens.max(response.input_tokens);
+    previous.output_tokens = previous.output_tokens.max(response.output_tokens);
+    previous.cache_tokens = previous.cache_tokens.max(response.cache_tokens);
+    previous.total_tokens = previous.total_tokens.max(response.total_tokens);
+    if response_phase_priority(&response.response_phase)
+        > response_phase_priority(&previous.response_phase)
+    {
+        previous.response_phase = response.response_phase;
+    }
+    if previous.preview.starts_with("tool: ") && !response.preview.starts_with("tool: ") {
+        previous.preview = response.preview;
+        previous.text_hash = response.text_hash;
+    }
+}
+
+fn response_phase_priority(phase: &str) -> u8 {
+    match phase {
+        "final_answer" => 3,
+        "commentary" => 2,
+        "assistant_message" => 1,
+        _ => 0,
+    }
+}
 
 fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<AgentSession> {
     let root: Value = serde_json::from_str(content).ok()?;
@@ -3554,6 +3616,103 @@ mod tests {
                 .map(|path| (path.path.as_str(), path.access.as_str()))
                 .collect::<Vec<_>>(),
             vec![("/repo/src/lib.rs", "read"), ("/repo/src/main.rs", "write")]
+        );
+    }
+
+    #[test]
+    fn claude_uuid_only_fragments_share_one_completion_identity() {
+        let claude = [
+            r#"{"type":"user","promptId":"p1","message":{"content":"review the paper"}}"#,
+            r#"{"type":"assistant","uuid":"completion-1","message":{"model":"claude-opus","content":[{"type":"text","text":"I will use a skill."}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
+            r#"{"type":"system","subtype":"internal-marker"}"#,
+            r#"{"type":"assistant","uuid":"completion-1","message":{"model":"claude-opus","content":[{"type":"tool_use","id":"s1","name":"Skill","input":{"skill":"paper-writing-style","args":""}}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
+            r#"{"type":"assistant","uuid":"completion-1","message":{"model":"claude-opus","content":[{"type":"text","text":"later fragment"}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CLAUDE,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &claude,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.llm_responses.len(), 1);
+        assert_eq!(session.events.llm_responses[0].source_id, "completion-1");
+        assert_eq!(session.events.llm_responses[0].skill, "");
+        assert_eq!(
+            session.events.llm_responses[0]
+                .token_components()
+                .into_iter()
+                .map(|(_, value)| value)
+                .sum::<u64>(),
+            113
+        );
+        assert_eq!(session.events.tools[0].skill, "paper-writing-style");
+        assert_eq!(session.events.tools[0].invoked_skill, "paper-writing-style");
+    }
+
+    #[test]
+    fn claude_skill_scope_ignores_metadata_and_deduplicates_split_completion() {
+        let claude = [
+            r#"{"type":"system","skill_listing":["availability only"]}"#,
+            r#"{"type":"user","promptId":"p1","message":{"content":"review the paper"}}"#,
+            r#"{"type":"assistant","requestId":"req-1","message":{"id":"msg-1","model":"claude-opus","content":[{"type":"text","text":"I will apply the citation skill."}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
+            r#"{"type":"assistant","requestId":"req-1","message":{"id":"msg-1","model":"claude-opus","content":[{"type":"tool_use","id":"s1","name":"Skill","input":{"skill":"check-paper-citations","args":""}}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
+            r#"{"type":"assistant","requestId":"req-1","message":{"id":"msg-1","model":"claude-opus","content":[{"type":"text","text":"same completion after emitting Skill"}],"usage":{"input_tokens":1,"cache_read_input_tokens":100,"output_tokens":12}}}"#,
+            r#"{"type":"user","promptId":"p1","isMeta":true,"sourceToolUseID":"s1","message":{"content":[{"type":"text","text":"skill payload"}]}}"#,
+            r#"{"type":"last-prompt","lastPrompt":"review the paper"}"#,
+            r#"{"type":"user","message":{"content":"<local-command-stdout>metadata</local-command-stdout>"}}"#,
+            r#"{"type":"user","promptId":"attachment-only","attachments":[{"file_name":"paper.pdf"}],"message":{"content":"attached context"}}"#,
+            r#"{"type":"assistant","requestId":"req-2","message":{"id":"msg-2","model":"claude-opus","content":[{"type":"tool_use","id":"b1","name":"Bash","input":{"cmd":"rg citation paper.tex"}}],"usage":{"input_tokens":2,"cache_read_input_tokens":200,"output_tokens":20}}}"#,
+            r#"{"type":"user","promptId":"p1","sourceToolAssistantUUID":"assistant-2","message":{"content":[{"type":"tool_result","tool_use_id":"b1","content":"ok"}]}}"#,
+            r#"{"type":"assistant","requestId":"req-3","message":{"id":"msg-3","model":"claude-opus","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"paper.tex"}}],"usage":{"input_tokens":3,"cache_read_input_tokens":300,"output_tokens":30}}}"#,
+            r#"{"type":"user","promptId":"p2","message":{"content":"now summarize"}}"#,
+            r#"{"type":"assistant","requestId":"req-4","message":{"id":"msg-4","model":"claude-opus","content":[{"type":"text","text":"summary"}],"usage":{"input_tokens":4,"cache_read_input_tokens":400,"output_tokens":40}}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CLAUDE,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &claude,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.prompts.len(), 2);
+        assert_eq!(session.events.llm_responses.len(), 4);
+        assert_eq!(session.events.llm_responses[0].source_id, "msg-1");
+        assert_eq!(
+            session.events.llm_responses[0]
+                .token_components()
+                .into_iter()
+                .map(|(_, value)| value)
+                .sum::<u64>(),
+            113
+        );
+        assert_eq!(
+            session
+                .events
+                .tools
+                .iter()
+                .map(|tool| (tool.tool_name.as_str(), tool.skill.as_str()))
+                .collect::<Vec<_>>(),
+            [
+                ("Skill", "check-paper-citations"),
+                ("Bash", "check-paper-citations"),
+                ("Read", "check-paper-citations"),
+            ]
+        );
+        assert_eq!(
+            session
+                .events
+                .llm_responses
+                .iter()
+                .map(|response| response.skill.as_str())
+                .collect::<Vec<_>>(),
+            ["", "check-paper-citations", "check-paper-citations", ""]
         );
     }
 }
