@@ -119,7 +119,7 @@ If unmatched prompts share patterns, add rules. **Continue iterating until ALL c
 ### 5. Generate Final Flamegraphs
 
 ```bash
-for view in tokens files network; do
+for view in tokens files network time operations; do
   agentpprof \
     --project-root /path/to/project \
     "${TAG_RULES[@]}" \
@@ -131,13 +131,50 @@ done
 
 **SVG width**: Use `--svg-width` to adjust flamegraph width (default: 1200px). Narrower widths (800-1000) improve readability for deep flamegraphs; wider (1600-2000) for shallow ones with many tags.
 
+Output formats still work via `--format` or extension: `.pb.gz` / `.pb` (pprof),
+`.folded`, `.svg`, `.json`. Keep `-o/--output` required; use `--include-previews`
+only on sanitized sessions when writing JSON.
+
 ## Views
 
 | View | Width means | Use for |
 |------|-------------|---------|
+| `operations` | Operation count | How many prompt/tool/LLM steps? |
 | `tokens` | Token count | Where did model budget go? |
 | `files` | File effect count | Which paths were touched? |
 | `network` | Network effect count | Which domains were contacted? |
+| `time` | Duration (seconds) | Wall-clock time between events |
+
+Default stack frames: `task,skill,phase,action,object,repeat,result,outcome`
+(plus `token` for the tokens view). `project`/`agent`/`session` are pprof sample
+labels (`go tool pprof -tags`), not default stack frames.
+
+## Operation Stack Controls
+
+```bash
+# Rewrite fields before stacking, filter the subset, then choose frames
+agentpprof \
+  --project-root /path/to/project \
+  --op-map 'task:verify=(?i)cmd=cargo|effect=test' \
+  --where 'task=verify' \
+  --stack task,action,result,object \
+  --stack-rule 'action:run_tests=(?i)cmd=cargo' \
+  --view tokens \
+  -o verify.folded --format folded
+
+# Optional closed-set LLM task taxonomy (requires --tagger llm)
+agentpprof \
+  --project-root /path/to/project \
+  --tagger llm \
+  --task-choice 'debug=fix bugs and test failures' \
+  --task-choice 'review=code review and diffs' \
+  -o declared.pb.gz
+```
+
+- `--op-map` / `--op-map-file`: derive or overwrite operation fields (first match wins per field)
+- `--where FIELD=REGEX` or `FIELD!=REGEX`: AND filters after mapping
+- `--stack` / `--stack-rule`: choose and rewrite flamegraph frames
+- `--task-choice TAG=DESCRIPTION`: additional closed-set `session.task_tag` (does not replace free-form tags)
 
 ## Common Tag Patterns
 
