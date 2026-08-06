@@ -98,12 +98,42 @@ static inline bool pid_tracker_add(struct pid_tracker *tracker, pid_t pid, pid_t
 	return false;  /* Table full */
 }
 
-/* Remove a PID from the tracker */
+/* Remove a PID from the tracker.
+ * Clearing a slot in place breaks linear-probing find (it stops at the
+ * first inactive slot).  Rehash the rest of the cluster after delete.
+ * The walk is bounded so a full-table wrap cannot loop forever.
+ */
 static inline void pid_tracker_remove(struct pid_tracker *tracker, pid_t pid)
 {
-	struct tracked_pid_entry *entry = pid_tracker_find(tracker, pid);
-	if (entry) {
+	unsigned int hash = pid_hash(pid);
+	unsigned int i;
+
+	for (i = 0; i < TRACKED_PIDS_HASH_SIZE; i++) {
+		unsigned int idx = (hash + i) & TRACKED_PIDS_HASH_MASK;
+		struct tracked_pid_entry *entry = &tracker->entries[idx];
+
+		if (!entry->is_active)
+			return;
+
+		if (entry->pid != pid)
+			continue;
+
 		entry->is_active = false;
+
+		for (unsigned int n = 1; n < TRACKED_PIDS_HASH_SIZE; n++) {
+			unsigned int j = (idx + n) & TRACKED_PIDS_HASH_MASK;
+			if (!tracker->entries[j].is_active)
+				break;
+			struct tracked_pid_entry moved = tracker->entries[j];
+			tracker->entries[j].is_active = false;
+			/* is_tracked is always true for active entries today
+			 * (set only in pid_tracker_add); keep the guard so a
+			 * non-tracked occupancy is not promoted by re-insert.
+			 */
+			if (moved.is_tracked)
+				pid_tracker_add(tracker, moved.pid, moved.ppid);
+		}
+		return;
 	}
 }
 

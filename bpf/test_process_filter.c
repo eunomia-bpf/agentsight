@@ -139,6 +139,25 @@ void test_pid_tracker_remove() {
     // Test removing non-existent PID (should not crash)
     pid_tracker_remove(&tracker, 9999);
     test_assert(true, "removing non-existent PID should not crash");
+
+    // Regression: open-addressing delete must rehash the probe cluster.
+    // PIDs that differ by a multiple of TRACKED_PIDS_HASH_SIZE collide.
+    // Removing the head must leave later collisions findable.
+    pid_t base = 1000;
+    pid_t collision1 = base + TRACKED_PIDS_HASH_SIZE;      /* 1000+4096 */
+    pid_t collision2 = base + (2 * TRACKED_PIDS_HASH_SIZE); /* 1000+8192 */
+    pid_tracker_add(&tracker, base, 1);
+    pid_tracker_add(&tracker, collision1, base);
+    pid_tracker_add(&tracker, collision2, base);
+
+    pid_tracker_remove(&tracker, base);
+
+    test_assert(pid_tracker_find(&tracker, base) == NULL,
+                "removed collision head should be absent");
+    test_assert(pid_tracker_find(&tracker, collision1) != NULL,
+                "collision entry after removed head should remain findable");
+    test_assert(pid_tracker_find(&tracker, collision2) != NULL,
+                "second collision entry after removed head should remain findable");
 }
 
 void test_pid_tracker_is_tracked() {
