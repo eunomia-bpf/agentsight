@@ -240,7 +240,6 @@ fn codex_exec_option_arity(arg: &str) -> Option<usize> {
     }
 }
 
-
 fn shell_words(input: &str) -> Option<Vec<String>> {
     let mut words = Vec::new();
     let mut current = String::new();
@@ -272,7 +271,6 @@ fn shell_words(input: &str) -> Option<Vec<String>> {
     }
     Some(words)
 }
-
 
 // ---------------------------------------------------------------------------
 // Internal parsing implementation
@@ -968,13 +966,6 @@ fn parse_jsonl(
     acc.finish_with_events(events)
 }
 
-
-
-
-
-
-
-
 fn deduplicate_llm_responses(events: &mut SessionEvents) {
     let mut unique: Vec<LlmResponse> = Vec::with_capacity(events.llm_responses.len());
     let mut by_source_id = BTreeMap::<(usize, String), usize>::new();
@@ -1562,7 +1553,6 @@ fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) ->
         .collect()
 }
 
-
 fn embedded_json_objects(text: &str, marker: &str) -> Vec<Value> {
     let mut rows = Vec::new();
     let mut offset = 0;
@@ -2022,7 +2012,6 @@ fn shell_segments(command: &str) -> Vec<Vec<String>> {
     segments
 }
 
-
 fn codex_token_usage(value: &Value) -> TokenUsage {
     let input = json_i64(value, "input_tokens").max(0);
     let output = json_i64(value, "output_tokens").max(0);
@@ -2049,7 +2038,6 @@ pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
             .map(codex_token_usage)
     })
 }
-
 
 fn exact_claude_skill_invocation(name: &str, input: &Value) -> Option<String> {
     (name == "Skill")
@@ -2522,13 +2510,34 @@ fn extract_path_groups(
 
 fn plausible_path_token(part: &str) -> bool {
     let part = part.trim_matches(['"', '\'']);
+    let lower = part.to_ascii_lowercase();
+    let components = part.split('/').collect::<Vec<_>>();
+    let looks_like_sed_expression = part.starts_with("s/")
+        && part.rsplit('/').next().is_some_and(|flags| {
+            flags.is_empty() || flags.chars().all(|flag| "gimpe".contains(flag))
+        });
+    let looks_like_slash_separated_phrase = components.len() >= 3
+        && components.iter().all(|component| {
+            component.chars().all(char::is_alphabetic)
+                && component.chars().next().is_some_and(char::is_uppercase)
+        });
     if part.is_empty()
         || part.starts_with('-')
         || part.starts_with('$')
+        || part.starts_with('~')
         || part.starts_with("http://")
         || part.starts_with("https://")
+        || lower.starts_with("origin/")
+        || lower.starts_with("refs/")
+        || lower.starts_with("repos/")
+        || part == "HEAD"
+        || part.starts_with("HEAD.")
+        || part.contains("...")
+        || looks_like_slash_separated_phrase
+        || looks_like_sed_expression
         || part.len() > 140
-        || part.chars().any(|c| "{}()=;<>|`".contains(c))
+        || part.chars().any(char::is_whitespace)
+        || part.chars().any(|c| "{}()=;<>|`*?[]\"#$,:@^!".contains(c))
     {
         return false;
     }
@@ -2719,8 +2728,6 @@ fn claude_is_tool_result(content: &Value) -> bool {
     })
 }
 
-
-
 fn local_session_ids(obj: &Value) -> (Option<String>, Option<String>) {
     let session_id = first_json_string(
         obj,
@@ -2756,11 +2763,9 @@ fn first_json_string(obj: &Value, keys: &[&str], pointers: &[&str]) -> Option<St
         .map(str::to_string)
 }
 
-
-
 fn claude_usage_key(obj: &Value) -> String {
-    obj.pointer("/message/id")
-        .or_else(|| obj.get("requestId"))
+    obj.get("requestId")
+        .or_else(|| obj.pointer("/message/id"))
         .or_else(|| obj.get("uuid"))
         .and_then(Value::as_str)
         .unwrap_or("usage")
@@ -3139,10 +3144,6 @@ mod tests {
             ]
         );
     }
-
-    
-
-    
 
     #[test]
     fn codex_source_controls_build_sparse_semantic_task_paths() {

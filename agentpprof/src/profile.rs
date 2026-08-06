@@ -11,9 +11,9 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
+use std::io::Write;
 #[cfg(test)]
 use std::io::{BufRead, BufReader};
-use std::io::Write;
 #[allow(unused_imports)]
 use std::path::{Path, PathBuf};
 
@@ -467,13 +467,8 @@ impl StringInterner {
     }
 }
 
-
 #[allow(dead_code)]
-pub fn build_profile(
-    sessions: &[SessionRecord],
-    project_name: &str,
-    view: ProfileView,
-) -> Profile {
+pub fn build_profile(sessions: &[SessionRecord], project_name: &str, view: ProfileView) -> Profile {
     build_profile_with_options(
         sessions,
         project_name,
@@ -583,7 +578,6 @@ fn read_operation_records_jsonl(path: &Path) -> Result<Vec<OperationRecord>> {
     }
     Ok(records)
 }
-
 
 #[cfg(test)]
 fn operation_from_record(record: OperationRecord) -> Result<Operation> {
@@ -840,13 +834,15 @@ fn terminal_task_paths(session: &SessionRecord) -> BTreeSet<Vec<String>> {
 
 fn request_task_path(session: &SessionRecord, prompt_index: usize) -> Vec<String> {
     let request = session.request_by_index(prompt_index);
-    if !request.task_path.is_empty() {
-        request.task_path.clone()
-    } else if !session.task_tag.is_empty() {
-        vec![session.task_tag.clone()]
-    } else {
-        vec![semantic_task_label(&request.preview)]
+    // Declared --task-choice writes session.task_tag as a closed-set task label.
+    // Prefer it over free-form source task_path so the taxonomy is observable.
+    if !session.task_tag.is_empty() {
+        return vec![session.task_tag.clone()];
     }
+    if !request.task_path.is_empty() {
+        return request.task_path.clone();
+    }
+    vec![semantic_task_label(&request.preview)]
 }
 
 fn tool_repeat_signature(event: &crate::session::ToolEvent, sample: &Operation) -> String {
@@ -1250,7 +1246,6 @@ fn normalize_folded_frame(frame: String) -> String {
     }
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OutputFormat {
     Pprof,
@@ -1382,11 +1377,7 @@ pub fn write_pprof_projection(projection: &Profile, output: &Path) -> Result<()>
     )
 }
 
-fn write_pprof_samples<'a, I>(
-    projection: &Profile,
-    stacks: I,
-    output: &Path,
-) -> Result<()>
+fn write_pprof_samples<'a, I>(projection: &Profile, stacks: I, output: &Path) -> Result<()>
 where
     I: IntoIterator<Item = (&'a str, i64, &'a [(String, String)])>,
 {
@@ -2300,8 +2291,6 @@ mod tests {
         }));
     }
 
-    
-
     #[test]
     fn custom_operation_stack_rules_fold_recursively() {
         let session = test_session(
@@ -2377,10 +2366,6 @@ mod tests {
         );
     }
 
-    
-
-    
-
     #[test]
     fn operation_field_rules_map_fields_before_stacking() {
         let dir = tempfile::tempdir().unwrap();
@@ -2453,20 +2438,6 @@ mod tests {
             Some(&1)
         );
     }
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
 
     #[test]
     fn pprof_writer_emits_gzip_profile() {
@@ -2651,7 +2622,34 @@ mod tests {
         }
     }
 
-    
-
-    
+    #[test]
+    fn declared_task_tag_overrides_freeform_task_path() {
+        let mut session = test_session(
+            "codex",
+            "rawsession",
+            vec![prompt(0, 1000, "h1", "fix the flaky parser test", "debug")],
+            vec![shell_tool(2000, 0, "ok", vec!["agent-session"])],
+            vec![],
+        );
+        session.task_tag = "debug".to_string();
+        session.user_requests[0].task_path = vec!["fix the flaky parser test".to_string()];
+        let profile = build_profile_with_options(
+            &[session],
+            "agentsight",
+            ProfileView::Operations,
+            &OperationStackConfig::for_view(ProfileView::Operations),
+        )
+        .unwrap();
+        let stacks = profile_to_stacks(&profile);
+        assert!(
+            stacks.keys().any(|stack| stack.contains("task:debug")),
+            "expected declared task_tag in stacks, got {stacks:?}"
+        );
+        assert!(
+            stacks
+                .keys()
+                .all(|stack| !stack.contains("task:fix_the_flaky")),
+            "free-form task_path should not win over declared task_tag, got {stacks:?}"
+        );
+    }
 }
