@@ -49,6 +49,9 @@ pub struct UserPrompt {
     pub preview: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub tag: String,
+    /// Source-visible semantic responsibility path after applying this prompt.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub task_path: Vec<String>,
 }
 
 impl UserPrompt {
@@ -86,6 +89,15 @@ pub struct ToolEvent {
     pub paths: Vec<ToolPath>,
     pub domains: Vec<String>,
     pub call_id: Option<String>,
+    /// Exact nonempty `input.skill` on a source-native Skill tool call.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub invoked_skill: String,
+    /// Exact source-recorded skill scope active at this tool invocation.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub skill: String,
+    /// Source-visible semantic responsibility path active at this operation.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub task_path: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,6 +105,9 @@ pub struct LlmResponse {
     pub ts_ms: Option<i64>,
     pub prompt_index: usize,
     pub model: String,
+    /// Source-native completion identity used to merge split JSONL records.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub source_id: String,
     pub text_hash: String,
     pub preview: String,
     pub input_tokens: u64,
@@ -101,6 +116,16 @@ pub struct LlmResponse {
     pub total_tokens: u64,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub tag: String,
+    /// Source-native response lifecycle when the agent records one explicitly.
+    /// Examples are `commentary`, `final_answer`, and `assistant_message`.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub response_phase: String,
+    /// Exact source-recorded skill scope active when this response began.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub skill: String,
+    /// Source-visible semantic responsibility path active at this response.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub task_path: Vec<String>,
 }
 
 impl LlmResponse {

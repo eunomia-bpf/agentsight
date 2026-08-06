@@ -1020,43 +1020,51 @@ mod tests {
     fn prompt(index: usize, ts_ms: i64, hash: &str, preview: &str, tag: &str) -> UserRequest {
         UserRequest {
             index,
-            ts_ms: Some(ts_ms),
-            text_hash: hash.to_string(),
-            preview: preview.to_string(),
-            tag: tag.to_string(),
+        ts_ms: Some(ts_ms),
+        text_hash: hash.to_string(),
+        preview: preview.to_string(),
+        tag: tag.to_string(),
+        task_path: Vec::new(),
         }
     }
 
     fn shell_tool(ts_ms: i64, prompt_index: usize, status: &str, paths: Vec<&str>) -> ToolEvent {
         ToolEvent {
-            ts_ms: Some(ts_ms),
+        ts_ms: Some(ts_ms),
             prompt_index,
-            tool_name: "exec_command".to_string(),
-            category: "shell".to_string(),
-            command: "cargo test".to_string(),
-            command_name: "cargo".to_string(),
-            effect: "test".to_string(),
-            process_chain: vec!["cargo".to_string()],
-            status: status.to_string(),
-            path_groups: paths.into_iter().map(str::to_string).collect(),
-            paths: Vec::new(),
-            domains: Vec::new(),
-            call_id: Some("call-1".to_string()),
+        tool_name: "exec_command".to_string(),
+        category: "shell".to_string(),
+        command: "cargo test".to_string(),
+        command_name: "cargo".to_string(),
+        effect: "test".to_string(),
+        process_chain: vec!["cargo".to_string()],
+        status: status.to_string(),
+        path_groups: paths.into_iter().map(str::to_string).collect(),
+        paths: Vec::new(),
+        domains: Vec::new(),
+        call_id: Some("call-1".to_string()),
+        invoked_skill: String::new(),
+        skill: String::new(),
+        task_path: Vec::new(),
         }
     }
 
     fn llm(ts_ms: i64, prompt_index: usize, model: &str, tag: &str) -> LlmEvent {
         LlmEvent {
-            ts_ms: Some(ts_ms),
+        ts_ms: Some(ts_ms),
             prompt_index,
-            model: model.to_string(),
-            text_hash: "l0".to_string(),
-            preview: "answer".to_string(),
-            input_tokens: 1,
-            output_tokens: 1,
-            cache_tokens: 0,
-            total_tokens: 0,
-            tag: tag.to_string(),
+        model: model.to_string(),
+        source_id: String::new(),
+        text_hash: "l0".to_string(),
+        preview: "answer".to_string(),
+        input_tokens: 1,
+        output_tokens: 1,
+        cache_tokens: 0,
+        total_tokens: 0,
+        tag: tag.to_string(),
+        response_phase: String::new(),
+        skill: String::new(),
+        task_path: Vec::new(),
         }
     }
 

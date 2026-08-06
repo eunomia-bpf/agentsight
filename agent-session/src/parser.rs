@@ -234,6 +234,27 @@ pub fn codex_exec_prompt(command: &str) -> Option<String> {
         .and_then(|prompt| clean_prompt_text(&prompt))
 }
 
+/// Normalize free-form prompt or plan text into a short semantic task label.
+///
+/// Prefer an explicit goal payload when present (Codex request headers or
+/// `<objective>...</objective>` wrappers); otherwise truncate cleaned text.
+pub fn semantic_task_label(text: &str) -> String {
+    let mut selected = text.trim();
+    if let Some(start) = selected.rfind("## My request for Codex:") {
+        selected = &selected[start + "## My request for Codex:".len()..];
+    } else if let Some(start) = selected.find("<objective>")
+        && let Some(end) = selected[start + "<objective>".len()..].find("</objective>")
+    {
+        selected = &selected[start + "<objective>".len()..start + "<objective>".len() + end];
+    }
+    let label = truncate_clean(selected.trim_matches(['\'', '"']), 120);
+    if label.is_empty() {
+        "unnamed task".to_string()
+    } else {
+        label
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Internal parsing implementation
 // ---------------------------------------------------------------------------
@@ -379,6 +400,7 @@ fn parse_jsonl(
                         ts_ms: ts_ms_from_event(&obj),
                         prompt_index: current_prompt_index,
                         model,
+                        source_id: String::new(),
                         text_hash: short_hash(&(text.clone() + &usage.to_string()), 12),
                         preview: truncate_clean(
                             if preview_text.is_empty() {
@@ -394,6 +416,9 @@ fn parse_jsonl(
                             + json_u64(usage, "cache_read_input_tokens"),
                         total_tokens: 0,
                         tag: String::new(),
+                        response_phase: String::new(),
+                        skill: String::new(),
+                        task_path: Vec::new(),
                     });
                 }
             }
@@ -509,6 +534,7 @@ fn parse_jsonl(
                             } else {
                                 codex_model.clone()
                             },
+                            source_id: String::new(),
                             text_hash: short_hash(&token_usage.to_string(), 12),
                             preview: "token report".to_string(),
                             input_tokens,
@@ -516,6 +542,9 @@ fn parse_jsonl(
                             cache_tokens,
                             total_tokens,
                             tag: String::new(),
+                            response_phase: String::new(),
+                            skill: String::new(),
+                            task_path: Vec::new(),
                         });
                     }
                 }
@@ -545,6 +574,7 @@ fn parse_jsonl(
                             } else {
                                 codex_model.clone()
                             },
+                            source_id: String::new(),
                             text_hash: short_hash(&text, 12),
                             preview: truncate_clean(&text, 180),
                             input_tokens: 0,
@@ -552,6 +582,9 @@ fn parse_jsonl(
                             cache_tokens: 0,
                             total_tokens: 0,
                             tag: String::new(),
+                            response_phase: String::new(),
+                            skill: String::new(),
+                            task_path: Vec::new(),
                         });
                     }
                 }
@@ -626,6 +659,7 @@ fn parse_jsonl(
                         } else {
                             codex_model.clone()
                         },
+                        source_id: String::new(),
                         text_hash: short_hash(&text, 12),
                         preview: truncate_clean(&text, 180),
                         input_tokens: 0,
@@ -633,6 +667,9 @@ fn parse_jsonl(
                         cache_tokens: 0,
                         total_tokens: 0,
                         tag: String::new(),
+                        response_phase: String::new(),
+                        skill: String::new(),
+                        task_path: Vec::new(),
                     });
                 }
             }
@@ -768,6 +805,7 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                         ts_ms,
                         prompt_index: current_prompt_index,
                         model: llm_model,
+                        source_id: String::new(),
                         text_hash: short_hash(&(text.clone() + &tokens.to_string()), 12),
                         preview: truncate_clean(
                             if text.trim().is_empty() {
@@ -782,6 +820,9 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                         cache_tokens: json_u64(tokens, "cached"),
                         total_tokens: json_u64(tokens, "total"),
                         tag: String::new(),
+                        response_phase: String::new(),
+                        skill: String::new(),
+                        task_path: Vec::new(),
                     });
                 }
             }
@@ -1021,6 +1062,7 @@ impl SessionEvents {
             text_hash: hash,
             preview: truncate_clean(text, 180),
             tag: String::new(),
+            task_path: Vec::new(),
         });
         index
     }
@@ -1064,17 +1106,20 @@ fn tool_event_from_input(
     ToolEvent {
         ts_ms,
         prompt_index,
-        tool_name: name.to_string(),
+    tool_name: name.to_string(),
         category,
         command,
         command_name,
         effect,
         process_chain,
-        status: "observed".to_string(),
+    status: "observed".to_string(),
         path_groups,
         paths,
         domains,
         call_id,
+    invoked_skill: String::new(),
+    skill: String::new(),
+    task_path: Vec::new(),
     }
 }
 
@@ -2643,5 +2688,11 @@ mod tests {
                 .collect::<Vec<_>>();
             assert_eq!(statuses, expected);
         }
+    }
+
+    #[test]
+    fn semantic_task_label_prefers_explicit_goal_payload() {
+        let raw = "prefix <objective>write a paper and evaluate it</objective> suffix";
+        assert_eq!(semantic_task_label(raw), "write a paper and evaluate it");
     }
 }

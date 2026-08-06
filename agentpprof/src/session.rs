@@ -44,6 +44,7 @@ impl SessionRecord {
                 text_hash: "bootstrap".to_string(),
                 preview: "session bootstrap".to_string(),
                 tag: String::new(),
+                task_path: Vec::new(),
             });
         }
     }
@@ -187,6 +188,7 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
             text_hash: short_hash(prompt, 12),
             preview: truncate_clean(prompt, 180),
             tag: String::new(),
+            task_path: Vec::new(),
         });
     }
     if record.tools.is_empty() {
@@ -210,6 +212,9 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                     paths: Vec::new(),
                     domains: Vec::new(),
                     call_id: None,
+                    invoked_skill: String::new(),
+                    skill: String::new(),
+                    task_path: Vec::new(),
                 });
             }
         }
@@ -223,6 +228,7 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                 ts_ms: record.start_ts_ms,
                 prompt_index: 0,
                 model: model.clone(),
+                source_id: String::new(),
                 text_hash: short_hash(&format!("{}:{:?}", session.session_id, usage), 12),
                 preview: "session token summary".to_string(),
                 input_tokens: nonnegative_u64(usage.input_tokens),
@@ -231,6 +237,9 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                     + nonnegative_u64(usage.cache_read_tokens),
                 total_tokens: nonnegative_u64(usage.total_tokens),
                 tag: String::new(),
+                response_phase: String::new(),
+                skill: String::new(),
+                task_path: Vec::new(),
             });
         }
     }

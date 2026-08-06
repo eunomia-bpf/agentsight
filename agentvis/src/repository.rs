@@ -608,19 +608,22 @@ mod tests {
 
     fn tool(ts_ms: i64, status: &str, paths: Vec<ToolPath>) -> ToolEvent {
         ToolEvent {
-            ts_ms: Some(ts_ms),
-            prompt_index: 0,
-            tool_name: "Tool".into(),
-            category: "file".into(),
-            command: String::new(),
-            command_name: String::new(),
-            effect: String::new(),
-            process_chain: Vec::new(),
-            status: status.into(),
-            path_groups: Vec::new(),
+        ts_ms: Some(ts_ms),
+        prompt_index: 0,
+        tool_name: "Tool".into(),
+        category: "file".into(),
+        command: String::new(),
+        command_name: String::new(),
+        effect: String::new(),
+        process_chain: Vec::new(),
+        status: status.into(),
+        path_groups: Vec::new(),
             paths,
-            domains: Vec::new(),
-            call_id: None,
+        domains: Vec::new(),
+        call_id: None,
+        invoked_skill: String::new(),
+        skill: String::new(),
+        task_path: Vec::new(),
         }
     }
 
