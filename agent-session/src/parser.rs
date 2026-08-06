@@ -2657,18 +2657,7 @@ fn claude_is_tool_result(content: &Value) -> bool {
     })
 }
 
-fn claude_tool_result_ids(content: &Value) -> Vec<String> {
-    content
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|item| {
-            item.get("tool_use_id")
-                .and_then(Value::as_str)
-                .map(str::to_string)
-        })
-        .collect()
-}
+
 
 fn local_session_ids(obj: &Value) -> (Option<String>, Option<String>) {
     let session_id = first_json_string(

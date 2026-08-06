@@ -17,7 +17,7 @@ use profile::{
 use session::{SessionRecord, default_claude_root, discover_sessions};
 use tagger::{
     LlamaTagger, RegexTagger, TagDiagnostics, annotate_sessions, annotate_sessions_regex,
-    default_tag_cache_path,
+    annotate_sessions_with_declared_tasks, default_tag_cache_path, parse_declared_tag_choices,
 };
 
 const DEFAULT_LLAMA_URL: &str = "http://127.0.0.1:8080";
@@ -98,6 +98,9 @@ struct Cli {
     /// Rules are evaluated in order; first match wins.
     #[arg(long = "tag-rule", value_name = "KIND:TAG=REGEX")]
     tag_rules: Vec<String>,
+    /// Add one category to an optional LLM-assigned task taxonomy while preserving the raw tag.
+    #[arg(long = "task-choice", value_name = "TAG=DESCRIPTION")]
+    task_choices: Vec<String>,
     /// Enable built-in keyword rules (profile, debug, test, review, etc.).
     /// These are generic and may not match your project well. For testing only.
     #[arg(long)]
@@ -409,6 +412,9 @@ fn annotate_sessions_with(
 ) -> Result<Option<TagDiagnostics>> {
     match args.tagger {
         TaggerKind::Regex => {
+            if !args.task_choices.is_empty() {
+                bail!("--task-choice requires --tagger llm");
+            }
             let tagger = RegexTagger::new(&args.tag_rules, args.preset)?;
             let diagnostics = annotate_sessions_regex(sessions, &tagger);
             Ok(Some(diagnostics))
@@ -425,7 +431,12 @@ fn annotate_sessions_with(
                 Duration::from_secs(args.timeout),
                 args.max_uncached_tags,
             );
-            annotate_sessions(sessions, &mut tagger)?;
+            let task_choices = parse_declared_tag_choices(&args.task_choices)?;
+            if task_choices.is_empty() {
+                annotate_sessions(sessions, &mut tagger)?;
+            } else {
+                annotate_sessions_with_declared_tasks(sessions, &mut tagger, &task_choices)?;
+            }
             if !args.no_cache {
                 tagger.save()?;
             }
