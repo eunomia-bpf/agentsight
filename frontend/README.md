@@ -15,6 +15,12 @@ The AgentSight Frontend provides intuitive visualization of:
 
 ## Features
 
+### Overview Dashboard (landing view)
+- One-screen answer to *what happened and where to look next*
+- Token and model-call breakdown, process/file/network effect profile, CPU + RSS shape over time, and friction signals (repeated commands, failing exits, think-time gaps)
+- Every panel is derived from the materialized-view snapshot the collector serves, and drills into the existing Timeline / Process Tree / Log / Metrics views for inspection
+- Hand-authored SVG charts (no chart dependency): faint grid, area fill, emphasized endpoint, and hover tooltip
+
 ### Timeline View
 - Interactive event timeline with zoom and pan controls
 - Event grouping by type, source, and process
@@ -165,6 +171,7 @@ agentsight/frontend/
 │   │   ├── ProcessTreeView.tsx # Process hierarchy
 │   │   ├── UploadPanel.tsx   # File upload interface
 │   │   ├── common/           # Shared components
+│   │   ├── dashboard/        # Overview dashboard panels + SVG charts
 │   │   ├── log/              # Log view components
 │   │   ├── process-tree/     # Process tree components
 │   │   └── timeline/         # Timeline components

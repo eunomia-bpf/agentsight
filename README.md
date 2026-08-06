@@ -175,6 +175,7 @@ flamegraph examples, rendering, view selection, and deterministic tagging rules.
 ### Web Interface
 
 During a session, visit [http://127.0.0.1:7395](http://127.0.0.1:7395) for live traffic, process trees, and metrics:
+- **Overview Dashboard** (landing): http://127.0.0.1:7395/ — tokens, model calls, process/file/network effects, resource shape, and friction signals for the whole session, with drill-down into the detail views.
 - **Timeline View**: http://127.0.0.1:7395/timeline
 - **Process Tree**: http://127.0.0.1:7395/tree
 - **Event Log**: http://127.0.0.1:7395/logs
