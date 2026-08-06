@@ -111,19 +111,6 @@ pub fn parse_session_path(path: &Path) -> Option<AgentSession> {
     parse_session_file(&session_candidate_from_path(path)?)
 }
 
-pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
-    content.lines().rev().find_map(|line| {
-        let obj: Value = serde_json::from_str(line).ok()?;
-        let payload = obj.get("payload")?;
-        if payload.get("type").and_then(Value::as_str) != Some("token_count") {
-            return None;
-        }
-        payload
-            .pointer("/info/total_token_usage")
-            .map(codex_token_usage)
-    })
-}
-
 /// Parse session content given raw content string.
 pub fn parse_session_content(
     agent: &str,
@@ -234,10 +221,126 @@ pub fn codex_exec_prompt(command: &str) -> Option<String> {
         .and_then(|prompt| clean_prompt_text(&prompt))
 }
 
-/// Normalize free-form prompt or plan text into a short semantic task label.
-///
-/// Prefer an explicit goal payload when present (Codex request headers or
-/// `<objective>...</objective>` wrappers); otherwise truncate cleaned text.
+fn codex_exec_option_arity(arg: &str) -> Option<usize> {
+    if arg.contains('=') && arg.starts_with("--") {
+        return Some(1);
+    }
+
+    match arg {
+        "--json"
+        | "--skip-git-repo-check"
+        | "--ephemeral"
+        | "--ignore-user-config"
+        | "--full-auto"
+        | "--dangerously-bypass-approvals-and-sandbox" => Some(1),
+        "-C" | "-a" | "-s" | "-m" | "-c" | "-p" | "--cd" | "--model" | "--sandbox"
+        | "--profile" | "--config" | "--ask-for-approval" | "--approval-policy"
+        | "--output-format" | "--color" => Some(2),
+        _ => None,
+    }
+}
+
+
+fn shell_words(input: &str) -> Option<Vec<String>> {
+    let mut words = Vec::new();
+    let mut current = String::new();
+    let mut quote = None::<char>;
+    let mut chars = input.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        match (quote, ch) {
+            (None, c) if c.is_whitespace() => {
+                if !current.is_empty() {
+                    words.push(std::mem::take(&mut current));
+                }
+            }
+            (None, '\'' | '"') => quote = Some(ch),
+            (Some(q), c) if c == q => quote = None,
+            (_, '\\') => {
+                if let Some(next) = chars.next() {
+                    current.push(next);
+                }
+            }
+            _ => current.push(ch),
+        }
+    }
+    if quote.is_some() {
+        return None;
+    }
+    if !current.is_empty() {
+        words.push(current);
+    }
+    Some(words)
+}
+
+
+// ---------------------------------------------------------------------------
+// Internal parsing implementation
+// ---------------------------------------------------------------------------
+
+#[derive(Default)]
+struct SemanticTaskStack {
+    root: Option<String>,
+    active_plan: Option<String>,
+}
+
+impl SemanticTaskStack {
+    fn observe_user(&mut self, text: &str) {
+        let label = semantic_task_label(text);
+        if self.root.is_some() && is_continuation_prompt(&label) {
+            return;
+        }
+        self.root = Some(label);
+        self.active_plan = None;
+    }
+
+    fn observe_plan(&mut self, input: &Value) {
+        let active = input
+            .get("plan")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(|item| {
+                (item.get("status").and_then(Value::as_str) == Some("in_progress"))
+                    .then(|| item.get("step").and_then(Value::as_str))
+                    .flatten()
+                    .map(semantic_task_label)
+            })
+            .collect::<Vec<_>>();
+        self.active_plan = match active.as_slice() {
+            [] => None,
+            [only] => Some(only.clone()),
+            many => self
+                .active_plan
+                .as_ref()
+                .filter(|current| many.contains(current))
+                .cloned()
+                .or_else(|| many.first().cloned()),
+        };
+    }
+
+    fn path(&self) -> Vec<String> {
+        self.root
+            .iter()
+            .chain(self.active_plan.iter())
+            .cloned()
+            .collect()
+    }
+
+    fn path_for_tool(&self, name: &str, input: &Value) -> Vec<String> {
+        let mut path = self.path();
+        if name == "spawn_agent"
+            && let Some(label) = input
+                .get("task_name")
+                .or_else(|| input.get("message"))
+                .and_then(Value::as_str)
+        {
+            path.push(semantic_task_label(label));
+        }
+        path
+    }
+}
+
 pub fn semantic_task_label(text: &str) -> String {
     let mut selected = text.trim();
     if let Some(start) = selected.rfind("## My request for Codex:") {
@@ -255,9 +358,25 @@ pub fn semantic_task_label(text: &str) -> String {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Internal parsing implementation
-// ---------------------------------------------------------------------------
+fn is_continuation_prompt(text: &str) -> bool {
+    let lowered = text.trim().to_lowercase();
+    matches!(
+        lowered.as_str(),
+        "继续"
+            | "继续做"
+            | "去做"
+            | "开始"
+            | "嗯"
+            | "好"
+            | "好的"
+            | "continue"
+            | "go on"
+            | "proceed"
+            | "do it"
+            | "ok"
+            | "okay"
+    )
+}
 
 fn parse_jsonl(
     agent: &str,
@@ -272,11 +391,84 @@ fn parse_jsonl(
     let mut events = SessionEvents::default();
     let mut current_prompt_index = 0usize;
     let mut call_index = BTreeMap::<String, usize>::new();
+    let mut task_stack = SemanticTaskStack::default();
+    let mut active_skill: Option<String> = None;
+    let mut claude_prompt_id: Option<String> = None;
+    let mut codex_meta_seen = false;
+    let mut codex_owns_events = true;
+    let mut codex_session_started_at = 0.0_f64;
 
     for line in content.lines() {
         let Ok(obj) = serde_json::from_str::<Value>(line) else {
             continue;
         };
+        let typ = obj.get("type").and_then(Value::as_str).unwrap_or("");
+        if agent == AGENT_CODEX && typ == "session_meta" {
+            if !codex_meta_seen {
+                codex_meta_seen = true;
+                let payload = obj.get("payload").unwrap_or(&Value::Null);
+                if let Some(id) = payload
+                    .get("id")
+                    .or_else(|| payload.get("session_id"))
+                    .and_then(Value::as_str)
+                {
+                    acc.session_id = id.to_string();
+                }
+                acc.conversation_id = payload
+                    .get("session_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_string);
+                let parent = payload
+                    .get("parent_thread_id")
+                    .or_else(|| payload.get("forked_from_id"))
+                    .and_then(Value::as_str)
+                    .or_else(|| {
+                        payload
+                            .pointer("/source/subagent/thread_spawn/parent_thread_id")
+                            .and_then(Value::as_str)
+                    });
+                codex_owns_events = parent.is_none_or(str::is_empty);
+                codex_session_started_at = payload
+                    .get("timestamp")
+                    .or_else(|| obj.get("timestamp"))
+                    .and_then(Value::as_str)
+                    .and_then(rfc3339_seconds)
+                    .unwrap_or_default();
+                if acc.cwd.is_none() {
+                    acc.cwd = payload
+                        .get("cwd")
+                        .and_then(Value::as_str)
+                        .filter(|cwd| !cwd.is_empty())
+                        .map(str::to_string);
+                }
+            }
+            continue;
+        }
+        if agent == AGENT_CODEX && !codex_owns_events {
+            let payload = obj.get("payload").unwrap_or(&Value::Null);
+            if typ == "event_msg"
+                && payload.get("type").and_then(Value::as_str) == Some("task_started")
+            {
+                let source_start = payload
+                    .get("started_at")
+                    .and_then(Value::as_f64)
+                    .filter(|value| *value > 0.0)
+                    .or_else(|| {
+                        payload
+                            .get("turn_id")
+                            .and_then(Value::as_str)
+                            .and_then(uuid7_seconds)
+                    })
+                    .unwrap_or_default();
+                if source_start > 0.0
+                    && (codex_session_started_at == 0.0
+                        || source_start >= codex_session_started_at.floor())
+                {
+                    codex_owns_events = true;
+                }
+            }
+            continue;
+        }
         let (session_id, conversation_id) = local_session_ids(&obj);
         if let Some(id) = session_id {
             acc.session_id = id;
@@ -296,7 +488,6 @@ fn parse_jsonl(
             acc.last_message_at = Some(ts.to_string());
             acc.end_timestamp_ms = iso_ms(ts).or(acc.end_timestamp_ms);
         }
-        let typ = obj.get("type").and_then(Value::as_str).unwrap_or("");
         match (agent, typ) {
             (AGENT_CLAUDE, "result") => {
                 acc.duration_ms = json_u64(&obj, "duration_ms");
@@ -315,6 +506,7 @@ fn parse_jsonl(
                 }
             }
             (AGENT_CLAUDE, "assistant") => {
+                let response_skill = active_skill.clone().unwrap_or_default();
                 if let Some(name) = obj.pointer("/message/model").and_then(Value::as_str) {
                     acc.model.get_or_insert_with(|| name.to_string());
                 }
@@ -348,6 +540,11 @@ fn parse_jsonl(
                         .filter(|item| item.get("type").and_then(Value::as_str) == Some("tool_use"))
                     {
                         let name = item.get("name").and_then(Value::as_str).unwrap_or("?");
+                        let input = item.get("input").unwrap_or(&Value::Null);
+                        let invoked_skill = exact_claude_skill_invocation(name, input);
+                        if let Some(skill) = invoked_skill.as_ref() {
+                            active_skill = Some(skill.clone());
+                        }
                         acc.add_tool(name);
                         if let Some(fp) = item
                             .pointer("/input/file_path")
@@ -362,9 +559,13 @@ fn parse_jsonl(
                             ts_ms_from_event(&obj),
                             current_prompt_index,
                             name,
-                            item.get("input").unwrap_or(&Value::Null),
+                            input,
                             call_id.clone(),
+                            task_stack.path_for_tool(name, input),
                         );
+                        let mut event = event;
+                        event.invoked_skill = invoked_skill.unwrap_or_default();
+                        event.skill = active_skill.clone().unwrap_or_default();
                         if let Some(id) = call_id {
                             call_index.insert(id, events.tools.len());
                         }
@@ -400,7 +601,7 @@ fn parse_jsonl(
                         ts_ms: ts_ms_from_event(&obj),
                         prompt_index: current_prompt_index,
                         model,
-                        source_id: String::new(),
+                        source_id: claude_source_completion_id(&obj),
                         text_hash: short_hash(&(text.clone() + &usage.to_string()), 12),
                         preview: truncate_clean(
                             if preview_text.is_empty() {
@@ -416,9 +617,18 @@ fn parse_jsonl(
                             + json_u64(usage, "cache_read_input_tokens"),
                         total_tokens: 0,
                         tag: String::new(),
-                        response_phase: String::new(),
-                        skill: String::new(),
-                        task_path: Vec::new(),
+                        response_phase: if obj
+                            .pointer("/message/stop_reason")
+                            .and_then(Value::as_str)
+                            == Some("end_turn")
+                            && !text.trim().is_empty()
+                        {
+                            "final_answer".to_string()
+                        } else {
+                            "assistant_message".to_string()
+                        },
+                        skill: response_skill,
+                        task_path: task_stack.path(),
                     });
                 }
             }
@@ -428,7 +638,9 @@ fn parse_jsonl(
                     && let Some(text) = clean_prompt_text(text)
                 {
                     acc.prompt_preview = Some(text.clone());
-                    current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index =
+                        events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                 }
             }
             (AGENT_CLAUDE, "last-prompt") if acc.prompt_preview.is_none() => {
@@ -436,12 +648,14 @@ fn parse_jsonl(
                     && let Some(text) = clean_prompt_text(text)
                 {
                     acc.prompt_preview = Some(text.clone());
-                    current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index =
+                        events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                 }
             }
             (AGENT_CLAUDE, "user") => {
                 let content = obj.pointer("/message/content").unwrap_or(&Value::Null);
-                if is_claude_tool_result(&obj) {
+                if claude_is_tool_result(content) || is_claude_tool_result(&obj) {
                     let fallback = obj
                         .pointer("/toolUseResult/is_error")
                         .and_then(Value::as_bool)
@@ -460,18 +674,21 @@ fn parse_jsonl(
                             tool.status = if failed { "fail" } else { "ok" }.to_string();
                         }
                     }
-                } else if let Some(text) = local_message_preview(content) {
+                } else if let Some(text) = local_message_preview(content)
+                    && claude_user_starts_prompt(&obj, content, &text, claude_prompt_id.as_deref())
+                {
                     if acc.prompt_preview.is_none() {
                         acc.prompt_preview = Some(text.clone());
                     }
-                    current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
-                }
-            }
-            (AGENT_CLAUDE, "last-prompt") => {
-                if let Some(text) = obj.get("lastPrompt").and_then(Value::as_str)
-                    && let Some(text) = clean_prompt_text(text)
-                {
-                    current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                    task_stack.observe_user(&text);
+                    active_skill = None;
+                    claude_prompt_id = obj
+                        .get("promptId")
+                        .and_then(Value::as_str)
+                        .filter(|value| !value.is_empty())
+                        .map(str::to_string);
+                    current_prompt_index =
+                        events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                 }
             }
             (AGENT_CODEX, "turn_context") => {
@@ -516,36 +733,14 @@ fn parse_jsonl(
                     let total_tokens = json_u64(token_usage, "total_tokens")
                         .max(json_u64(info, "total_tokens"))
                         .max(json_u64(info, "tokens"));
-                    if total_tokens > 0 {
-                        if let Some(last) = events.llm_responses.last_mut()
-                            && last.total_tokens == 0
-                        {
-                            last.input_tokens = input_tokens;
-                            last.output_tokens = output_tokens;
-                            last.cache_tokens = cache_tokens;
-                            last.total_tokens = total_tokens;
-                            continue;
-                        }
-                        events.llm_responses.push(LlmResponse {
-                            ts_ms: ts_ms_from_event(&obj),
-                            prompt_index: current_prompt_index,
-                            model: if codex_model.is_empty() {
-                                AGENT_CODEX.to_string()
-                            } else {
-                                codex_model.clone()
-                            },
-                            source_id: String::new(),
-                            text_hash: short_hash(&token_usage.to_string(), 12),
-                            preview: "token report".to_string(),
-                            input_tokens,
-                            output_tokens,
-                            cache_tokens,
-                            total_tokens,
-                            tag: String::new(),
-                            response_phase: String::new(),
-                            skill: String::new(),
-                            task_path: Vec::new(),
-                        });
+                    if total_tokens > 0
+                        && let Some(last) = events.llm_responses.last_mut()
+                        && last.total_tokens == 0
+                    {
+                        last.input_tokens = input_tokens;
+                        last.output_tokens = output_tokens;
+                        last.cache_tokens = cache_tokens;
+                        last.total_tokens = total_tokens;
                     }
                 }
                 if ptype == "user_message" {
@@ -556,7 +751,9 @@ fn parse_jsonl(
                         .unwrap_or("");
                     if let Some(text) = clean_prompt_text(text) {
                         acc.prompt_preview = Some(text.clone());
-                        current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                        task_stack.observe_user(&text);
+                        current_prompt_index =
+                            events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                     }
                 }
                 if ptype == "agent_message" {
@@ -582,18 +779,66 @@ fn parse_jsonl(
                             cache_tokens: 0,
                             total_tokens: 0,
                             tag: String::new(),
-                            response_phase: String::new(),
+                            response_phase: payload
+                                .get("phase")
+                                .and_then(Value::as_str)
+                                .unwrap_or("assistant_message")
+                                .to_string(),
                             skill: String::new(),
-                            task_path: Vec::new(),
+                            task_path: task_stack.path(),
                         });
                     }
                 }
             }
             (AGENT_CODEX, "response_item")
-                if matches!(
-                    obj.pointer("/payload/type").and_then(Value::as_str),
-                    Some("function_call" | "custom_tool_call")
-                ) =>
+                if obj.pointer("/payload/type").and_then(Value::as_str)
+                    == Some("custom_tool_call") =>
+            {
+                let payload = obj.get("payload").unwrap_or(&Value::Null);
+                let outer_name = payload
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("tool");
+                let raw_input = payload.get("input").and_then(Value::as_str).unwrap_or("");
+                let (name, args) = codex_custom_tool_input(outer_name, raw_input);
+                acc.add_tool(&name);
+                let call_id = payload
+                    .get("call_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_string);
+                let event = tool_event_from_input(
+                    acc.cwd.as_deref(),
+                    ts_ms_from_event(&obj),
+                    current_prompt_index,
+                    &name,
+                    &args,
+                    call_id.clone(),
+                    task_stack.path_for_tool(&name, &args),
+                );
+                if name == "update_plan" {
+                    task_stack.observe_plan(&args);
+                }
+                if let Some(id) = call_id {
+                    call_index.insert(id, events.tools.len());
+                }
+                events.tools.push(event);
+            }
+            (AGENT_CODEX, "response_item")
+                if obj.pointer("/payload/type").and_then(Value::as_str)
+                    == Some("custom_tool_call_output") =>
+            {
+                if let Some(call_id) = obj.pointer("/payload/call_id").and_then(Value::as_str)
+                    && let Some(index) = call_index.get(call_id).copied()
+                    && let Some(tool) = events.tools.get_mut(index)
+                {
+                    let output =
+                        content_to_text(obj.pointer("/payload/output").unwrap_or(&Value::Null));
+                    tool.status = status_from_output(&output).to_string();
+                }
+            }
+            (AGENT_CODEX, "response_item")
+                if obj.pointer("/payload/type").and_then(Value::as_str)
+                    == Some("function_call") =>
             {
                 let name = obj
                     .pointer("/payload/name")
@@ -601,12 +846,7 @@ fn parse_jsonl(
                     .unwrap_or("?");
                 acc.add_tool(name);
                 let payload = obj.get("payload").unwrap_or(&Value::Null);
-                let args = parse_tool_args(
-                    payload
-                        .get("arguments")
-                        .or_else(|| payload.get("input"))
-                        .unwrap_or(&Value::Null),
-                );
+                let args = parse_tool_args(payload.get("arguments").unwrap_or(&Value::Null));
                 let call_id = payload
                     .get("call_id")
                     .and_then(Value::as_str)
@@ -618,17 +858,19 @@ fn parse_jsonl(
                     name,
                     &args,
                     call_id.clone(),
+                    task_stack.path_for_tool(name, &args),
                 );
+                if name == "update_plan" {
+                    task_stack.observe_plan(&args);
+                }
                 if let Some(id) = call_id {
                     call_index.insert(id, events.tools.len());
                 }
                 events.tools.push(event);
             }
             (AGENT_CODEX, "response_item")
-                if matches!(
-                    obj.pointer("/payload/type").and_then(Value::as_str),
-                    Some("function_call_output" | "custom_tool_call_output")
-                ) =>
+                if obj.pointer("/payload/type").and_then(Value::as_str)
+                    == Some("function_call_output") =>
             {
                 if let Some(call_id) = obj.pointer("/payload/call_id").and_then(Value::as_str)
                     && let Some(index) = call_index.get(call_id).copied()
@@ -647,10 +889,32 @@ fn parse_jsonl(
                 let payload = obj.get("payload").unwrap_or(&Value::Null);
                 let text = payload
                     .get("message")
-                    .or_else(|| payload.get("content"))
                     .and_then(Value::as_str)
-                    .unwrap_or("");
-                if let Some(text) = clean_prompt_text(text) {
+                    .map(str::to_string)
+                    .unwrap_or_else(|| {
+                        content_to_text(payload.get("content").unwrap_or(&Value::Null))
+                    });
+                if let Some(text) = clean_prompt_text(&text) {
+                    if payload.get("role").and_then(Value::as_str) == Some("user") {
+                        acc.prompt_preview = Some(text.clone());
+                        task_stack.observe_user(&text);
+                        current_prompt_index =
+                            events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
+                        continue;
+                    }
+                    let role = payload.get("role").and_then(Value::as_str);
+                    let legacy_assistant = role.is_none()
+                        && payload
+                            .get("content")
+                            .and_then(Value::as_array)
+                            .is_some_and(|items| {
+                                items.iter().any(|item| {
+                                    item.get("type").and_then(Value::as_str) == Some("output_text")
+                                })
+                            });
+                    if role != Some("assistant") && !legacy_assistant {
+                        continue;
+                    }
                     events.llm_responses.push(LlmResponse {
                         ts_ms: ts_ms_from_event(&obj),
                         prompt_index: current_prompt_index,
@@ -667,22 +931,30 @@ fn parse_jsonl(
                         cache_tokens: 0,
                         total_tokens: 0,
                         tag: String::new(),
-                        response_phase: String::new(),
+                        response_phase: payload
+                            .get("phase")
+                            .and_then(Value::as_str)
+                            .unwrap_or("assistant_message")
+                            .to_string(),
                         skill: String::new(),
-                        task_path: Vec::new(),
+                        task_path: task_stack.path(),
                     });
                 }
             }
             (AGENT_CODEX, "message" | "input" | "user") => {
                 if let Some(text) = local_message_preview(&obj) {
                     acc.prompt_preview = Some(text.clone());
-                    current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index =
+                        events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                 }
             }
             _ if acc.prompt_preview.is_none() && typ.contains("user") => {
                 if let Some(text) = local_message_preview(&obj) {
                     acc.prompt_preview = Some(text.clone());
-                    current_prompt_index = events.upsert_prompt(ts_ms_from_event(&obj), &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index =
+                        events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
                 }
             }
             _ => {}
@@ -695,25 +967,18 @@ fn parse_jsonl(
     acc.finish_with_events(events)
 }
 
-fn codex_token_usage(value: &Value) -> TokenUsage {
-    let input = json_i64(value, "input_tokens").max(0);
-    let output = json_i64(value, "output_tokens").max(0);
-    let cache = json_i64(value, "cached_input_tokens").max(0);
-    let input = input.saturating_sub(cache);
-    TokenUsage {
-        input_tokens: input,
-        output_tokens: output,
-        cache_creation_tokens: 0,
-        cache_read_tokens: cache,
-        total_tokens: input + output + cache,
-    }
-}
+
+
+
+
+
 
 fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<AgentSession> {
     let root: Value = serde_json::from_str(content).ok()?;
     let mut acc = SessionAccumulator::new(AGENT_GEMINI, path, updated);
     let mut events = SessionEvents::default();
     let mut current_prompt_index = 0usize;
+    let mut task_stack = SemanticTaskStack::default();
     if let Some(id) = root.get("sessionId").and_then(Value::as_str) {
         acc.session_id = id.to_string();
         acc.conversation_id = Some(id.to_string());
@@ -748,12 +1013,14 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
             Some("user") if acc.prompt_preview.is_none() => {
                 if let Some(text) = local_message_preview(msg.get("content").unwrap_or(msg)) {
                     acc.prompt_preview = Some(text.clone());
-                    current_prompt_index = events.upsert_prompt(ts_ms, &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index = events.upsert_prompt(ts_ms, &text, task_stack.path());
                 }
             }
             Some("user") => {
                 if let Some(text) = local_message_preview(msg.get("content").unwrap_or(msg)) {
-                    current_prompt_index = events.upsert_prompt(ts_ms, &text);
+                    task_stack.observe_user(&text);
+                    current_prompt_index = events.upsert_prompt(ts_ms, &text, task_stack.path());
                 }
             }
             Some("gemini") | Some("assistant") | Some("model") => {
@@ -787,13 +1054,21 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                             name,
                             call,
                             call.get("id").and_then(Value::as_str).map(str::to_string),
+                            task_stack.path_for_tool(name, call),
                         );
-                        event.status = match call.get("status").and_then(Value::as_str) {
-                            Some("success") => "ok",
-                            Some("error") => "fail",
-                            _ => "observed",
+                        if let Some(status) = call.get("status").and_then(Value::as_str) {
+                            let lowered = status.to_ascii_lowercase();
+                            event.status = if matches!(
+                                lowered.as_str(),
+                                "error" | "failed" | "fail" | "cancelled" | "canceled"
+                            ) {
+                                "fail".to_string()
+                            } else if matches!(lowered.as_str(), "success" | "ok" | "completed") {
+                                "ok".to_string()
+                            } else {
+                                status.to_string()
+                            };
                         }
-                        .into();
                         events.tools.push(event);
                     }
                 }
@@ -820,9 +1095,17 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                         cache_tokens: json_u64(tokens, "cached"),
                         total_tokens: json_u64(tokens, "total"),
                         tag: String::new(),
-                        response_phase: String::new(),
+                        response_phase: if msg
+                            .get("toolCalls")
+                            .and_then(Value::as_array)
+                            .is_some_and(|calls| !calls.is_empty())
+                        {
+                            "assistant_message".to_string()
+                        } else {
+                            "final_answer".to_string()
+                        },
                         skill: String::new(),
-                        task_path: Vec::new(),
+                        task_path: task_stack.path(),
                     });
                 }
             }
@@ -1046,13 +1329,19 @@ fn add_usage(
 }
 
 impl SessionEvents {
-    fn upsert_prompt(&mut self, ts_ms: Option<i64>, text: &str) -> usize {
+    fn upsert_prompt(&mut self, ts_ms: Option<i64>, text: &str, task_path: Vec<String>) -> usize {
         let hash = short_hash(text, 12);
-        if let Some(existing) = self
-            .prompts
-            .iter()
-            .position(|prompt| prompt.text_hash == hash)
-        {
+        if let Some(existing) = self.prompts.iter().rposition(|prompt| {
+            prompt.text_hash == hash
+                && match (prompt.ts_ms, ts_ms) {
+                    (Some(left), Some(right)) => left.abs_diff(right) <= 1_000,
+                    (None, None) => self
+                        .prompts
+                        .last()
+                        .is_some_and(|last| last.index == prompt.index),
+                    _ => false,
+                }
+        }) {
             return existing;
         }
         let index = self.prompts.len();
@@ -1062,7 +1351,7 @@ impl SessionEvents {
             text_hash: hash,
             preview: truncate_clean(text, 180),
             tag: String::new(),
-            task_path: Vec::new(),
+            task_path,
         });
         index
     }
@@ -1075,6 +1364,7 @@ fn tool_event_from_input(
     name: &str,
     input: &Value,
     call_id: Option<String>,
+    task_path: Vec<String>,
 ) -> ToolEvent {
     let command = command_from_tool_input(input);
     let category = tool_category(name, &command);
@@ -1106,20 +1396,20 @@ fn tool_event_from_input(
     ToolEvent {
         ts_ms,
         prompt_index,
-    tool_name: name.to_string(),
+        tool_name: name.to_string(),
         category,
         command,
         command_name,
         effect,
         process_chain,
-    status: "observed".to_string(),
+        status: "observed".to_string(),
         path_groups,
         paths,
         domains,
         call_id,
-    invoked_skill: String::new(),
-    skill: String::new(),
-    task_path: Vec::new(),
+        invoked_skill: String::new(),
+        skill: String::new(),
+        task_path,
     }
 }
 
@@ -1210,21 +1500,6 @@ fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) ->
         .collect()
 }
 
-fn embedded_json_string(text: &str, needle: &str) -> Option<String> {
-    let needle = text.find(needle)?;
-    let start = text[..needle].rfind('"')?;
-    let mut escaped = false;
-    for (offset, ch) in text[start + 1..].char_indices() {
-        if escaped {
-            escaped = false;
-        } else if ch == '\\' {
-            escaped = true;
-        } else if ch == '"' {
-            return serde_json::from_str(&text[start..start + offset + 2]).ok();
-        }
-    }
-    None
-}
 
 fn embedded_json_objects(text: &str, marker: &str) -> Vec<Value> {
     let mut rows = Vec::new();
@@ -1262,6 +1537,22 @@ fn embedded_json_objects(text: &str, marker: &str) -> Vec<Value> {
         offset = end;
     }
     rows
+}
+
+fn embedded_json_string(text: &str, needle: &str) -> Option<String> {
+    let needle = text.find(needle)?;
+    let start = text[..needle].rfind('"')?;
+    let mut escaped = false;
+    for (offset, ch) in text[start + 1..].char_indices() {
+        if escaped {
+            escaped = false;
+        } else if ch == '\\' {
+            escaped = true;
+        } else if ch == '"' {
+            return serde_json::from_str(&text[start..start + offset + 2]).ok();
+        }
+    }
+    None
 }
 
 fn shell_file_actions(
@@ -1503,6 +1794,353 @@ fn clean_path_token(value: &str) -> String {
         .to_string()
 }
 
+fn strip_heredoc_bodies(command: &str) -> String {
+    fn delimiters(line: &str) -> Vec<String> {
+        let bytes = line.as_bytes();
+        let mut output = Vec::new();
+        let mut index = 0;
+        while index + 1 < bytes.len() {
+            if bytes[index] != b'<' || bytes[index + 1] != b'<' {
+                index += 1;
+                continue;
+            }
+            index += 2;
+            if bytes.get(index) == Some(&b'<') {
+                index += 1;
+                continue;
+            }
+            if bytes.get(index) == Some(&b'-') {
+                index += 1;
+            }
+            while bytes.get(index).is_some_and(u8::is_ascii_whitespace) {
+                index += 1;
+            }
+            let quote = bytes
+                .get(index)
+                .copied()
+                .filter(|value| *value == b'\'' || *value == b'"');
+            if quote.is_some() {
+                index += 1;
+            }
+            let start = index;
+            while let Some(value) = bytes.get(index) {
+                if quote.is_some_and(|quote| *value == quote)
+                    || (quote.is_none()
+                        && (value.is_ascii_whitespace() || b";|&><".contains(value)))
+                {
+                    break;
+                }
+                index += 1;
+            }
+            if start < index {
+                output.push(line[start..index].to_string());
+            }
+        }
+        output
+    }
+
+    let mut pending = VecDeque::<String>::new();
+    let mut output = Vec::new();
+    for line in command.lines() {
+        if let Some(delimiter) = pending.front() {
+            if line.trim_start_matches('\t').trim_end() == delimiter {
+                pending.pop_front();
+            }
+            continue;
+        }
+        output.push(line);
+        pending.extend(delimiters(line));
+    }
+    output.join("\n")
+}
+
+fn is_redirection_token(token: &str) -> bool {
+    [">", ">>", "&>", "&>>", "<", "<<", "<<<", "<>"].contains(&token)
+}
+
+fn shell_command_index(parts: &[String]) -> Option<usize> {
+    let mut index = 0;
+    while index < parts.len() {
+        let part = parts[index].as_str();
+        if ["then", "do", "else"].contains(&part)
+            || part.split_once('=').is_some_and(|(name, _)| {
+                !name.is_empty()
+                    && name
+                        .chars()
+                        .all(|ch| ch == '_' || ch.is_ascii_alphanumeric())
+            })
+        {
+            index += 1;
+            continue;
+        }
+        if ["sudo", "env", "command", "time", "timeout", "nice", "nohup"].contains(&part) {
+            index += 1;
+            while index < parts.len() && parts[index].starts_with('-') {
+                index += 1;
+            }
+            continue;
+        }
+        return Some(index);
+    }
+    None
+}
+
+fn shell_segments(command: &str) -> Vec<Vec<String>> {
+    fn flush_word(tokens: &mut Vec<String>, current: &mut String) {
+        if !current.is_empty() {
+            tokens.push(std::mem::take(current));
+        }
+    }
+    fn flush_segment(segments: &mut Vec<Vec<String>>, tokens: &mut Vec<String>) {
+        if !tokens.is_empty() {
+            segments.push(std::mem::take(tokens));
+        }
+    }
+
+    let command = strip_heredoc_bodies(command);
+    let mut segments = Vec::new();
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+    let mut quote = None;
+    let mut escaped = false;
+    let mut chars = command.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if escaped {
+            current.push(ch);
+            escaped = false;
+        } else if ch == '\\' {
+            escaped = true;
+        } else if quote == Some(ch) {
+            quote = None;
+        } else if quote.is_some() {
+            current.push(ch);
+        } else if ch == '\'' || ch == '"' {
+            quote = Some(ch);
+        } else if ch == '#' && current.is_empty() {
+            for next in chars.by_ref() {
+                if next == '\n' {
+                    flush_segment(&mut segments, &mut tokens);
+                    break;
+                }
+            }
+        } else if ch.is_whitespace() {
+            flush_word(&mut tokens, &mut current);
+            if ch == '\n' {
+                flush_segment(&mut segments, &mut tokens);
+            }
+        } else if ch == '&' && chars.peek() == Some(&'>') {
+            flush_word(&mut tokens, &mut current);
+            chars.next();
+            let operator = if chars.peek() == Some(&'>') {
+                chars.next();
+                "&>>"
+            } else {
+                "&>"
+            };
+            tokens.push(operator.into());
+        } else if matches!(ch, ';' | '|' | '(' | ')') || ch == '&' {
+            flush_word(&mut tokens, &mut current);
+            if (ch == '|' || ch == '&') && chars.peek() == Some(&ch) {
+                chars.next();
+            }
+            flush_segment(&mut segments, &mut tokens);
+        } else if ch == '>' || ch == '<' {
+            flush_word(&mut tokens, &mut current);
+            let mut operator = ch.to_string();
+            while chars.peek() == Some(&ch) && operator.len() < 3 {
+                operator.push(chars.next().expect("peeked redirection"));
+            }
+            tokens.push(operator);
+        } else {
+            current.push(ch);
+        }
+    }
+    flush_word(&mut tokens, &mut current);
+    flush_segment(&mut segments, &mut tokens);
+    segments
+}
+
+
+fn codex_token_usage(value: &Value) -> TokenUsage {
+    let input = json_i64(value, "input_tokens").max(0);
+    let output = json_i64(value, "output_tokens").max(0);
+    let cache = json_i64(value, "cached_input_tokens").max(0);
+    let input = input.saturating_sub(cache);
+    TokenUsage {
+        input_tokens: input,
+        output_tokens: output,
+        cache_creation_tokens: 0,
+        cache_read_tokens: cache,
+        total_tokens: input + output + cache,
+    }
+}
+
+pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
+    content.lines().rev().find_map(|line| {
+        let obj: Value = serde_json::from_str(line).ok()?;
+        let payload = obj.get("payload")?;
+        if payload.get("type").and_then(Value::as_str) != Some("token_count") {
+            return None;
+        }
+        payload
+            .pointer("/info/total_token_usage")
+            .map(codex_token_usage)
+    })
+}
+
+
+fn exact_claude_skill_invocation(name: &str, input: &Value) -> Option<String> {
+    (name == "Skill")
+        .then(|| input.get("skill").and_then(Value::as_str))
+        .flatten()
+        .map(str::trim)
+        .filter(|skill| !skill.is_empty())
+        .map(str::to_string)
+}
+
+fn codex_custom_tool_input(outer_name: &str, raw: &str) -> (String, Value) {
+    let nested_calls = codex_custom_tool_calls(raw);
+    let nested_name = if raw.contains("Promise.all") || nested_calls.len() > 1 {
+        "composite".to_string()
+    } else {
+        nested_calls
+            .first()
+            .cloned()
+            .unwrap_or_else(|| outer_name.to_string())
+    };
+
+    let commands = extract_js_string_fields(raw, &["command", "cmd"]);
+    let paths = extract_js_string_fields(raw, &["file_path", "path"]);
+    let workdirs = extract_js_string_fields(raw, &["workdir"]);
+    let mut input = serde_json::Map::new();
+    if !commands.is_empty() {
+        input.insert("command".to_string(), Value::String(commands.join("\n")));
+    } else if !raw.trim().is_empty() {
+        input.insert("text".to_string(), Value::String(truncate_clean(raw, 600)));
+    }
+    if let Some(path) = paths.first() {
+        input.insert("path".to_string(), Value::String(path.clone()));
+    }
+    if let Some(workdir) = workdirs.first() {
+        input.insert("workdir".to_string(), Value::String(workdir.clone()));
+    }
+    for key in ["task_name", "target", "message"] {
+        if let Some(value) = extract_js_string_fields(raw, &[key]).first() {
+            input.insert(key.to_string(), Value::String(value.clone()));
+        }
+    }
+    if nested_name == "update_plan" {
+        let steps = extract_js_string_fields(raw, &["step"]);
+        let statuses = extract_js_string_fields(raw, &["status"]);
+        let plan = steps
+            .into_iter()
+            .enumerate()
+            .map(|(index, step)| {
+                serde_json::json!({
+                    "step": step,
+                    "status": statuses.get(index).map(String::as_str).unwrap_or("pending")
+                })
+            })
+            .collect::<Vec<_>>();
+        input.insert("plan".to_string(), Value::Array(plan));
+    }
+    (nested_name, Value::Object(input))
+}
+
+fn codex_custom_tool_calls(raw: &str) -> Vec<String> {
+    let mut calls = Vec::new();
+    let mut offset = 0usize;
+    while let Some(relative) = raw[offset..].find("tools.") {
+        let start = offset + relative + "tools.".len();
+        let tail = &raw[start..];
+        let name = tail
+            .chars()
+            .take_while(|ch| ch.is_ascii_alphanumeric() || *ch == '_')
+            .collect::<String>();
+        let name_len = name.len();
+        let after_name = tail[name.len()..].trim_start();
+        if !name.is_empty() && after_name.starts_with('(') {
+            calls.push(name);
+        }
+        offset = if name_len > 0 {
+            start + name_len
+        } else {
+            // "tools." was not followed by an identifier. Step past one
+            // character rather than one byte, so multibyte text in the
+            // surrounding source cannot leave offset inside a char.
+            raw[start..]
+                .chars()
+                .next()
+                .map_or(raw.len(), |ch| start + ch.len_utf8())
+        };
+    }
+    calls
+}
+
+fn extract_js_string_fields(raw: &str, keys: &[&str]) -> Vec<String> {
+    let mut values = Vec::new();
+    for key in keys {
+        let mut offset = 0usize;
+        while let Some(relative) = raw[offset..].find(key) {
+            let start = offset + relative;
+            let before = raw[..start].chars().next_back();
+            let after = raw[start + key.len()..].chars().next();
+            if before.is_some_and(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+                || after.is_some_and(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+            {
+                offset = start + key.len();
+                continue;
+            }
+            let tail = &raw[start + key.len()..];
+            let Some(colon) = tail.find(':').filter(|index| *index <= 4) else {
+                offset = start + key.len();
+                continue;
+            };
+            let value = tail[colon + 1..].trim_start();
+            let Some(quote) = value
+                .chars()
+                .next()
+                .filter(|ch| ['\'', '"', '`'].contains(ch))
+            else {
+                offset = start + key.len();
+                continue;
+            };
+            if let Some((decoded, consumed)) = parse_js_string(&value[quote.len_utf8()..], quote) {
+                if !decoded.is_empty() && !values.contains(&decoded) {
+                    values.push(decoded);
+                }
+                offset = start + key.len() + colon + 1 + consumed;
+            } else {
+                offset = start + key.len();
+            }
+        }
+    }
+    values
+}
+
+fn parse_js_string(raw: &str, quote: char) -> Option<(String, usize)> {
+    let mut decoded = String::new();
+    let mut escaped = false;
+    for (index, ch) in raw.char_indices() {
+        if escaped {
+            decoded.push(match ch {
+                'n' => '\n',
+                'r' => '\r',
+                't' => '\t',
+                other => other,
+            });
+            escaped = false;
+        } else if ch == '\\' {
+            escaped = true;
+        } else if ch == quote {
+            return Some((decoded, index + ch.len_utf8() + quote.len_utf8()));
+        } else {
+            decoded.push(ch);
+        }
+    }
+    None
+}
+
 fn command_from_tool_input(input: &Value) -> String {
     for key in ["cmd", "command", "pattern", "file_path", "path", "text"] {
         if let Some(value) = input.get(key).and_then(Value::as_str)
@@ -1532,21 +2170,56 @@ fn parse_tool_args(value: &Value) -> Value {
 
 fn status_from_output(output: &str) -> &'static str {
     let lowered = output.to_ascii_lowercase();
-    if lowered.contains("process exited with code 0") || lowered.contains("\"is_error\":false") {
-        "ok"
-    } else if lowered.contains("process exited with code")
-        || lowered.contains("\"is_error\":true")
-        || lowered.contains("error")
-    {
-        "fail"
-    } else {
-        "observed"
+    let exit_codes = explicit_exit_codes(&lowered);
+    if exit_codes.iter().any(|code| *code != 0) {
+        return "fail";
     }
+    if !exit_codes.is_empty() {
+        return "ok";
+    }
+    if lowered.contains("\"is_error\":false") || lowered.contains("\"success\":true") {
+        return "ok";
+    }
+    if lowered.contains("\"is_error\":true") || lowered.contains("\"success\":false") {
+        return "fail";
+    }
+    if lowered.lines().any(|line| line.trim() == "script failed") {
+        return "fail";
+    }
+    if lowered
+        .lines()
+        .any(|line| line.trim() == "script completed")
+    {
+        return "ok";
+    }
+    "observed"
+}
+
+fn explicit_exit_codes(output: &str) -> Vec<i32> {
+    output
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            let value = if let Some(rest) = line.strip_prefix("exit code:") {
+                rest
+            } else if let Some((_, rest)) = line.split_once("process exited with code") {
+                rest.strip_prefix(':').unwrap_or(rest)
+            } else {
+                return None;
+            };
+            let digits = value
+                .trim_start()
+                .chars()
+                .take_while(|ch| ch.is_ascii_digit() || *ch == '-')
+                .collect::<String>();
+            digits.parse().ok()
+        })
+        .collect()
 }
 
 pub fn tool_category(name: &str, command: &str) -> String {
     let n = name.to_ascii_lowercase();
-    if n.ends_with("exec_command") || n == "bash" {
+    if n.ends_with("exec_command") || n.ends_with("shell_command") || n == "bash" {
         "shell"
     } else if ["apply_patch", "edit", "write", "multiedit", "notebookedit"].contains(&n.as_str()) {
         "edit"
@@ -1702,174 +2375,6 @@ fn process_name_from_part(part: &str) -> Option<String> {
     Some(file_name.to_string())
 }
 
-/// Tokenize only the high-confidence shell subset needed for file evidence.
-/// Heredoc bodies are data, so they are removed before splitting commands.
-fn shell_segments(command: &str) -> Vec<Vec<String>> {
-    fn flush_word(tokens: &mut Vec<String>, current: &mut String) {
-        if !current.is_empty() {
-            tokens.push(std::mem::take(current));
-        }
-    }
-    fn flush_segment(segments: &mut Vec<Vec<String>>, tokens: &mut Vec<String>) {
-        if !tokens.is_empty() {
-            segments.push(std::mem::take(tokens));
-        }
-    }
-
-    let command = strip_heredoc_bodies(command);
-    let mut segments = Vec::new();
-    let mut tokens = Vec::new();
-    let mut current = String::new();
-    let mut quote = None;
-    let mut escaped = false;
-    let mut chars = command.chars().peekable();
-    while let Some(ch) = chars.next() {
-        if escaped {
-            current.push(ch);
-            escaped = false;
-        } else if ch == '\\' {
-            escaped = true;
-        } else if quote == Some(ch) {
-            quote = None;
-        } else if quote.is_some() {
-            current.push(ch);
-        } else if ch == '\'' || ch == '"' {
-            quote = Some(ch);
-        } else if ch == '#' && current.is_empty() {
-            for next in chars.by_ref() {
-                if next == '\n' {
-                    flush_segment(&mut segments, &mut tokens);
-                    break;
-                }
-            }
-        } else if ch.is_whitespace() {
-            flush_word(&mut tokens, &mut current);
-            if ch == '\n' {
-                flush_segment(&mut segments, &mut tokens);
-            }
-        } else if ch == '&' && chars.peek() == Some(&'>') {
-            flush_word(&mut tokens, &mut current);
-            chars.next();
-            let operator = if chars.peek() == Some(&'>') {
-                chars.next();
-                "&>>"
-            } else {
-                "&>"
-            };
-            tokens.push(operator.into());
-        } else if matches!(ch, ';' | '|' | '(' | ')') || ch == '&' {
-            flush_word(&mut tokens, &mut current);
-            if (ch == '|' || ch == '&') && chars.peek() == Some(&ch) {
-                chars.next();
-            }
-            flush_segment(&mut segments, &mut tokens);
-        } else if ch == '>' || ch == '<' {
-            flush_word(&mut tokens, &mut current);
-            let mut operator = ch.to_string();
-            while chars.peek() == Some(&ch) && operator.len() < 3 {
-                operator.push(chars.next().expect("peeked redirection"));
-            }
-            tokens.push(operator);
-        } else {
-            current.push(ch);
-        }
-    }
-    flush_word(&mut tokens, &mut current);
-    flush_segment(&mut segments, &mut tokens);
-    segments
-}
-
-fn strip_heredoc_bodies(command: &str) -> String {
-    fn delimiters(line: &str) -> Vec<String> {
-        let bytes = line.as_bytes();
-        let mut output = Vec::new();
-        let mut index = 0;
-        while index + 1 < bytes.len() {
-            if bytes[index] != b'<' || bytes[index + 1] != b'<' {
-                index += 1;
-                continue;
-            }
-            index += 2;
-            if bytes.get(index) == Some(&b'<') {
-                index += 1;
-                continue;
-            }
-            if bytes.get(index) == Some(&b'-') {
-                index += 1;
-            }
-            while bytes.get(index).is_some_and(u8::is_ascii_whitespace) {
-                index += 1;
-            }
-            let quote = bytes
-                .get(index)
-                .copied()
-                .filter(|value| *value == b'\'' || *value == b'"');
-            if quote.is_some() {
-                index += 1;
-            }
-            let start = index;
-            while let Some(value) = bytes.get(index) {
-                if quote.is_some_and(|quote| *value == quote)
-                    || (quote.is_none()
-                        && (value.is_ascii_whitespace() || b";|&><".contains(value)))
-                {
-                    break;
-                }
-                index += 1;
-            }
-            if start < index {
-                output.push(line[start..index].to_string());
-            }
-        }
-        output
-    }
-
-    let mut pending = VecDeque::<String>::new();
-    let mut output = Vec::new();
-    for line in command.lines() {
-        if let Some(delimiter) = pending.front() {
-            if line.trim_start_matches('\t').trim_end() == delimiter {
-                pending.pop_front();
-            }
-            continue;
-        }
-        output.push(line);
-        pending.extend(delimiters(line));
-    }
-    output.join("\n")
-}
-
-fn is_redirection_token(token: &str) -> bool {
-    [">", ">>", "&>", "&>>", "<", "<<", "<<<", "<>"].contains(&token)
-}
-
-fn shell_command_index(parts: &[String]) -> Option<usize> {
-    let mut index = 0;
-    while index < parts.len() {
-        let part = parts[index].as_str();
-        if ["then", "do", "else"].contains(&part)
-            || part.split_once('=').is_some_and(|(name, _)| {
-                !name.is_empty()
-                    && name
-                        .chars()
-                        .all(|ch| ch == '_' || ch.is_ascii_alphanumeric())
-            })
-        {
-            index += 1;
-            continue;
-        }
-        if ["sudo", "env", "command", "time", "timeout", "nice", "nohup"].contains(&part) {
-            index += 1;
-            while index < parts.len() && parts[index].starts_with('-') {
-                index += 1;
-            }
-            continue;
-        }
-        return Some(index);
-    }
-    None
-}
-
 fn split_shell(command: &str) -> Vec<String> {
     let mut parts = Vec::new();
     let mut current = String::new();
@@ -1955,34 +2460,13 @@ fn extract_path_groups(
 
 fn plausible_path_token(part: &str) -> bool {
     let part = part.trim_matches(['"', '\'']);
-    let lower = part.to_ascii_lowercase();
-    let components = part.split('/').collect::<Vec<_>>();
-    let looks_like_sed_expression = part.starts_with("s/")
-        && part.rsplit('/').next().is_some_and(|flags| {
-            flags.is_empty() || flags.chars().all(|flag| "gimpe".contains(flag))
-        });
-    let looks_like_slash_separated_phrase = components.len() >= 3
-        && components.iter().all(|component| {
-            component.chars().all(char::is_alphabetic)
-                && component.chars().next().is_some_and(char::is_uppercase)
-        });
     if part.is_empty()
         || part.starts_with('-')
         || part.starts_with('$')
-        || part.starts_with('~')
         || part.starts_with("http://")
         || part.starts_with("https://")
-        || lower.starts_with("origin/")
-        || lower.starts_with("refs/")
-        || lower.starts_with("repos/")
-        || part == "HEAD"
-        || part.starts_with("HEAD.")
-        || part.contains("...")
-        || looks_like_slash_separated_phrase
-        || looks_like_sed_expression
         || part.len() > 140
-        || part.chars().any(char::is_whitespace)
-        || part.chars().any(|c| "{}()=;<>|`*?[]\"#$,:@^!".contains(c))
+        || part.chars().any(|c| "{}()=;<>|`".contains(c))
     {
         return false;
     }
@@ -2164,6 +2648,28 @@ fn content_to_text(value: &Value) -> String {
     }
 }
 
+fn claude_is_tool_result(content: &Value) -> bool {
+    content.as_array().is_some_and(|items| {
+        !items.is_empty()
+            && items
+                .iter()
+                .all(|item| item.get("type").and_then(Value::as_str) == Some("tool_result"))
+    })
+}
+
+fn claude_tool_result_ids(content: &Value) -> Vec<String> {
+    content
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|item| {
+            item.get("tool_use_id")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
+        .collect()
+}
+
 fn local_session_ids(obj: &Value) -> (Option<String>, Option<String>) {
     let session_id = first_json_string(
         obj,
@@ -2199,64 +2705,67 @@ fn first_json_string(obj: &Value, keys: &[&str], pointers: &[&str]) -> Option<St
         .map(str::to_string)
 }
 
-fn codex_exec_option_arity(arg: &str) -> Option<usize> {
-    if arg.contains('=') && arg.starts_with("--") {
-        return Some(1);
-    }
 
-    match arg {
-        "--json"
-        | "--skip-git-repo-check"
-        | "--ephemeral"
-        | "--ignore-user-config"
-        | "--full-auto"
-        | "--dangerously-bypass-approvals-and-sandbox" => Some(1),
-        "-C" | "-a" | "-s" | "-m" | "-c" | "-p" | "--cd" | "--model" | "--sandbox"
-        | "--profile" | "--config" | "--ask-for-approval" | "--approval-policy"
-        | "--output-format" | "--color" => Some(2),
-        _ => None,
-    }
-}
-
-fn shell_words(input: &str) -> Option<Vec<String>> {
-    let mut words = Vec::new();
-    let mut current = String::new();
-    let mut quote = None::<char>;
-    let mut chars = input.chars().peekable();
-
-    while let Some(ch) = chars.next() {
-        match (quote, ch) {
-            (None, c) if c.is_whitespace() => {
-                if !current.is_empty() {
-                    words.push(std::mem::take(&mut current));
-                }
-            }
-            (None, '\'' | '"') => quote = Some(ch),
-            (Some(q), c) if c == q => quote = None,
-            (_, '\\') => {
-                if let Some(next) = chars.next() {
-                    current.push(next);
-                }
-            }
-            _ => current.push(ch),
-        }
-    }
-    if quote.is_some() {
-        return None;
-    }
-    if !current.is_empty() {
-        words.push(current);
-    }
-    Some(words)
-}
 
 fn claude_usage_key(obj: &Value) -> String {
-    obj.get("requestId")
-        .or_else(|| obj.pointer("/message/id"))
+    obj.pointer("/message/id")
+        .or_else(|| obj.get("requestId"))
         .or_else(|| obj.get("uuid"))
         .and_then(Value::as_str)
         .unwrap_or("usage")
         .to_string()
+}
+
+fn claude_source_completion_id(obj: &Value) -> String {
+    obj.pointer("/message/id")
+        .or_else(|| obj.get("requestId"))
+        .or_else(|| obj.get("uuid"))
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_string()
+}
+
+fn claude_user_starts_prompt(
+    obj: &Value,
+    content: &Value,
+    text: &str,
+    active_prompt_id: Option<&str>,
+) -> bool {
+    if obj.get("isMeta").and_then(Value::as_bool) == Some(true)
+        || obj.get("sourceToolUseID").is_some()
+        || obj.get("sourceToolAssistantUUID").is_some()
+        || ["attachment", "attachments", "image", "images"]
+            .iter()
+            .any(|key| obj.get(*key).is_some())
+        || content.as_array().is_some_and(|items| {
+            !items.is_empty()
+                && items.iter().all(|item| {
+                    matches!(
+                        item.get("type").and_then(Value::as_str),
+                        Some("attachment" | "document" | "file" | "image")
+                    )
+                })
+        })
+        || [
+            "<local-command-caveat>",
+            "<local-command-stdout>",
+            "<system-reminder>",
+            "<ide_opened_file>",
+            "<ide_selection>",
+        ]
+        .iter()
+        .any(|prefix| text.starts_with(prefix))
+    {
+        return false;
+    }
+    match obj
+        .get("promptId")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+    {
+        Some(prompt_id) => active_prompt_id != Some(prompt_id),
+        None => active_prompt_id.is_none(),
+    }
 }
 
 fn local_message_preview(value: &Value) -> Option<String> {
@@ -2423,6 +2932,25 @@ fn parse_ts_ms(value: &str) -> Option<i64> {
         .map(|ts| ts.timestamp_millis())
 }
 
+fn rfc3339_seconds(value: &str) -> Option<f64> {
+    chrono::DateTime::parse_from_rfc3339(value)
+        .ok()
+        .map(|ts| ts.timestamp_millis() as f64 / 1000.0)
+}
+
+fn uuid7_seconds(value: &str) -> Option<f64> {
+    let mut parts = value.split('-');
+    let high = parts.next()?;
+    let low = parts.next()?;
+    let version = parts.next()?;
+    if !version.starts_with('7') {
+        return None;
+    }
+    u64::from_str_radix(&format!("{high}{low}"), 16)
+        .ok()
+        .map(|milliseconds| milliseconds as f64 / 1000.0)
+}
+
 fn iso_ms(value: &str) -> Option<u64> {
     chrono::DateTime::parse_from_rfc3339(value)
         .ok()
@@ -2467,6 +2995,8 @@ mod tests {
             "\n",
             r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c1","arguments":"{\"cmd\":\"cargo test\"}"}}"#,
             "\n",
+            r#"{"type":"event_msg","payload":{"type":"agent_message","message":"tests passed"}}"#,
+            "\n",
             r#"{"type":"event_msg","payload":{"type":"token_count","info":{"last_token_usage":{"input_tokens":10,"output_tokens":5,"total_tokens":15}}}}"#,
         );
         let claude = concat!(
@@ -2498,41 +3028,344 @@ mod tests {
     }
 
     #[test]
-    fn codex_cumulative_usage_separates_cached_input() {
-        let content = concat!(
-            r#"{"type":"turn_context","payload":{"model":"gpt-5.6-sol"}}"#,
+    fn claude_exact_skill_calls_create_prompt_bounded_latest_wins_scopes() {
+        let claude = [
+            r#"{"type":"system","skill_listing":["availability only"]}"#,
+            r#"{"type":"user","message":{"content":"review the paper"}}"#,
+            r#"{"type":"assistant","message":{"model":"claude-opus","content":[{"type":"tool_use","id":"s1","name":"Skill","input":{"skill":"check-paper-citations","args":""}}],"usage":{"input_tokens":10,"output_tokens":1}}}"#,
+            r#"{"type":"assistant","message":{"model":"claude-opus","content":[{"type":"tool_use","id":"b1","name":"Bash","input":{"cmd":"rg citation paper.tex"}}],"usage":{"input_tokens":20,"output_tokens":2}}}"#,
+            r#"{"type":"assistant","message":{"model":"claude-opus","content":[{"type":"tool_use","id":"s2","name":"Skill","input":{"skill":"iter-refine-writing","args":""}}],"usage":{"input_tokens":30,"output_tokens":3}}}"#,
+            r#"{"type":"assistant","message":{"model":"claude-opus","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"paper.tex"}}],"usage":{"input_tokens":40,"output_tokens":4}}}"#,
+            r#"{"type":"user","message":{"content":"now summarize"}}"#,
+            r#"{"type":"assistant","message":{"model":"claude-opus","content":[{"type":"text","text":"summary"}],"usage":{"input_tokens":50,"output_tokens":5}}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CLAUDE,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &claude,
+        )
+        .expect("session");
+
+        assert_eq!(
+            session
+                .events
+                .tools
+                .iter()
+                .map(|tool| (tool.tool_name.as_str(), tool.skill.as_str()))
+                .collect::<Vec<_>>(),
+            [
+                ("Skill", "check-paper-citations"),
+                ("Bash", "check-paper-citations"),
+                ("Skill", "iter-refine-writing"),
+                ("Read", "iter-refine-writing"),
+            ]
+        );
+        assert_eq!(
+            session
+                .events
+                .tools
+                .iter()
+                .map(|tool| tool.invoked_skill.as_str())
+                .collect::<Vec<_>>(),
+            ["check-paper-citations", "", "iter-refine-writing", ""]
+        );
+        assert_eq!(
+            session
+                .events
+                .llm_responses
+                .iter()
+                .map(|response| response.skill.as_str())
+                .collect::<Vec<_>>(),
+            [
+                "",
+                "check-paper-citations",
+                "check-paper-citations",
+                "iter-refine-writing",
+                "",
+            ]
+        );
+    }
+
+    
+
+    
+
+    #[test]
+    fn codex_source_controls_build_sparse_semantic_task_paths() {
+        let codex = concat!(
+            r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"write a paper"}]}}"#,
             "\n",
-            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":19184,"cached_input_tokens":9984,"output_tokens":11,"total_tokens":19195}}}}"#,
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"update_plan","call_id":"p1","arguments":"{\"plan\":[{\"step\":\"write abstract\",\"status\":\"in_progress\"}]}"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c1","arguments":"{\"cmd\":\"sed -n 1,80p paper.tex\"}"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call_output","call_id":"c1","output":"Process exited with code 0\n0 tests failed"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"继续"}]}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c2","arguments":"{\"cmd\":\"rg error paper.tex\"}"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call_output","call_id":"c2","output":"review error handling documentation"}}"#,
         );
 
         let session = parse_session_content(
             AGENT_CODEX,
             &PathBuf::from("/tmp/session.jsonl"),
             UNIX_EPOCH,
-            content,
+            codex,
         )
         .expect("session");
 
-        assert_eq!(session.usage.input_tokens, 9_200);
-        assert_eq!(session.usage.cache_read_tokens, 9_984);
-        assert_eq!(session.usage.output_tokens, 11);
-        assert_eq!(session.usage.total_tokens, 19_195);
+        assert_eq!(session.events.prompts.len(), 2);
+        assert!(session.events.llm_responses.is_empty());
+        assert_eq!(session.events.tools[0].task_path, vec!["write a paper"]);
+        assert_eq!(
+            session.events.tools[1].task_path,
+            vec!["write a paper", "write abstract"]
+        );
+        assert_eq!(
+            session.events.tools[2].task_path,
+            session.events.tools[1].task_path
+        );
+        assert_eq!(session.events.tools[1].status, "ok");
+        assert_eq!(session.events.tools[2].status, "observed");
     }
 
     #[test]
-    fn codex_exec_prompt_handles_latest_cli_options() {
-        let command = concat!(
-            "/tmp/tools/bin/codex exec --skip-git-repo-check --ignore-user-config ",
-            "-c model_provider=\"agentsight-mock\" ",
-            "-c model_providers.agentsight-mock.name=\"AgentSight Mock\" ",
-            "--sandbox read-only --model gpt-agentsight-mock ",
-            "agentsight mock prompt collect this exact text"
+    fn codex_custom_exec_is_a_real_source_tool_event() {
+        let codex = [
+            json!({
+                "timestamp": "2026-07-21T00:00:00.000Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "message",
+                    "role": "user",
+                    "content": [{"type": "input_text", "text": "test the parser"}]
+                }
+            }),
+            json!({
+                "timestamp": "2026-07-21T00:00:01.000Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "custom_tool_call",
+                    "name": "exec",
+                    "call_id": "custom-1",
+                    "input": "const r = await tools.shell_command({command:\"cargo test\",workdir:\"/repo\"}); text(r);"
+                }
+            }),
+            json!({
+                "timestamp": "2026-07-21T00:00:02.000Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "custom_tool_call_output",
+                    "call_id": "custom-1",
+                    "output": [{"type": "input_text", "text": "Script completed\nExit code: 0\nOutput:\nall tests passed"}]
+                }
+            }),
+        ]
+        .into_iter()
+        .map(|line| line.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.tools.len(), 1);
+        let event = &session.events.tools[0];
+        assert_eq!(event.tool_name, "shell_command");
+        assert_eq!(event.category, "shell");
+        assert_eq!(event.effect, "test");
+        assert_eq!(event.command, "cargo test");
+        assert_eq!(event.status, "ok");
+        assert_eq!(event.task_path, vec!["test the parser"]);
+    }
+
+    #[test]
+    fn custom_update_plan_changes_only_later_operation_paths() {
+        let codex = [
+            json!({
+                "timestamp": "2026-07-21T00:00:00.000Z",
+                "type": "response_item",
+                "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "write a paper"}]}
+            }),
+            json!({
+                "timestamp": "2026-07-21T00:00:01.000Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "custom_tool_call",
+                    "name": "exec",
+                    "call_id": "plan-1",
+                    "input": "const r = await tools.update_plan({plan:[{step:\"write abstract\",status:\"in_progress\"},{step:\"write evaluation\",status:\"pending\"}]}); text(r);"
+                }
+            }),
+            json!({
+                "timestamp": "2026-07-21T00:00:02.000Z",
+                "type": "response_item",
+                "payload": {
+                    "type": "custom_tool_call",
+                    "name": "exec",
+                    "call_id": "shell-1",
+                    "input": "const r = await tools.shell_command({command:\"sed -n 1,80p paper.tex\",workdir:\"/repo\"}); text(r);"
+                }
+            }),
+        ]
+        .into_iter()
+        .map(|line| line.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.tools.len(), 2);
+        assert_eq!(session.events.tools[0].tool_name, "update_plan");
+        assert_eq!(session.events.tools[0].task_path, vec!["write a paper"]);
+        assert_eq!(
+            session.events.tools[1].task_path,
+            vec!["write a paper", "write abstract"]
+        );
+    }
+
+    #[test]
+    fn prompt_dedup_is_local_and_continuations_keep_the_current_task() {
+        let codex = [
+            ("2026-07-21T00:00:00.000Z", "write a paper"),
+            ("2026-07-21T00:00:00.500Z", "write a paper"),
+            ("2026-07-21T00:00:03.000Z", "write a paper"),
+            ("2026-07-21T00:00:06.000Z", "继续"),
+        ]
+        .into_iter()
+        .map(|(timestamp, text)| {
+            json!({
+                "timestamp": timestamp,
+                "type": "response_item",
+                "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": text}]}
+            })
+            .to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.prompts.len(), 3);
+        assert_eq!(session.events.prompts[2].preview, "继续");
+        assert_eq!(session.events.prompts[2].task_path, vec!["write a paper"]);
+    }
+
+    #[test]
+    fn developer_messages_are_not_agent_responses() {
+        let codex = concat!(
+            r#"{"timestamp":"2026-07-21T00:00:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"review"}]}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-21T00:00:01.000Z","type":"response_item","payload":{"type":"message","role":"developer","content":[{"type":"input_text","text":"internal instruction"}]}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-21T00:00:02.000Z","type":"response_item","payload":{"type":"message","role":"assistant","phase":"final_answer","content":[{"type":"output_text","text":"review complete"}]}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            codex,
+        )
+        .expect("session");
+        assert_eq!(session.events.llm_responses.len(), 1);
+        assert_eq!(session.events.llm_responses[0].preview, "review complete");
+    }
+
+    #[test]
+    fn mixed_batch_exit_codes_fail_if_any_command_failed() {
+        assert_eq!(
+            status_from_output("Script completed\nExit code: 0\nExit code: 7"),
+            "fail"
+        );
+        assert_eq!(
+            status_from_output(
+                "Process exited with code 0\nProcess exited with code 0\n0 tests failed"
+            ),
+            "ok"
+        );
+    }
+
+    #[test]
+    fn codex_preserves_commentary_and_final_response_phases() {
+        let codex = concat!(
+            r#"{"timestamp":"2026-07-21T00:00:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"review the code"}]}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-21T00:00:01.000Z","type":"response_item","payload":{"type":"message","role":"assistant","phase":"commentary","content":[{"type":"output_text","text":"I am checking it"}]}}"#,
+            "\n",
+            r#"{"timestamp":"2026-07-21T00:00:02.000Z","type":"response_item","payload":{"type":"message","role":"assistant","phase":"final_answer","content":[{"type":"output_text","text":"The code is correct"}]}}"#,
+        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            codex,
+        )
+        .expect("session");
+
+        assert_eq!(session.events.llm_responses.len(), 2);
+        assert_eq!(session.events.llm_responses[0].response_phase, "commentary");
+        assert_eq!(
+            session.events.llm_responses[1].response_phase,
+            "final_answer"
+        );
+    }
+
+    #[test]
+    fn semantic_task_label_prefers_explicit_goal_payload() {
+        let raw = "prefix <objective>write a paper and evaluate it</objective> suffix";
+        assert_eq!(semantic_task_label(raw), "write a paper and evaluate it");
+    }
+
+    #[test]
+    fn codex_fork_excludes_copied_parent_history_before_ownership_boundary() {
+        let codex = concat!(
+            r#"{"timestamp":"1970-01-01T00:00:01Z","type":"session_meta","payload":{"id":"child","session_id":"parent","parent_thread_id":"parent","timestamp":"1970-01-01T00:00:01Z","cwd":"/repo"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"user_message","message":"copied parent task"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"copied","arguments":"{\"cmd\":\"false\"}"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"task_started","started_at":2.0}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"user_message","message":"review child result"}}"#,
+            "\n",
+            r#"{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"owned","arguments":"{\"cmd\":\"cargo test\"}"}}"#,
         );
 
-        assert_eq!(
-            codex_exec_prompt(command).as_deref(),
-            Some("agentsight mock prompt collect this exact text")
-        );
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/child.jsonl"),
+            UNIX_EPOCH,
+            codex,
+        )
+        .expect("child session");
+
+        assert_eq!(session.session_id, "child");
+        assert_eq!(session.conversation_id.as_deref(), Some("parent"));
+        assert_eq!(session.events.prompts.len(), 1);
+        assert_eq!(session.events.prompts[0].preview, "review child result");
+        assert_eq!(session.events.tools.len(), 1);
+        assert_eq!(session.events.tools[0].call_id.as_deref(), Some("owned"));
     }
 
     #[test]
@@ -2544,6 +3377,7 @@ mod tests {
             "exec",
             &json!({"text": r#"const patch = "*** Begin Patch\n*** Update File: src/lib.rs\n+#!/bin/sh\n+docs/not-a-file.md\n*** End Patch"; tools.apply_patch(patch)"#}),
             None,
+            Vec::new(),
         );
         assert_eq!(
             patch.paths,
@@ -2561,29 +3395,10 @@ mod tests {
             "exec_command",
             &json!({"cmd": "cat <<'EOF'\n#!/bin/sh\nsrc/not-a-file.rs\nEOF\ncat src/real.rs"}),
             None,
+            Vec::new(),
         );
         assert_eq!(heredoc.paths.len(), 1);
         assert_eq!(heredoc.paths[0].path, "src/real.rs");
-    }
-
-    #[test]
-    fn codex_exec_wrapper_projects_nested_shell_actions() {
-        let event = tool_event_from_input(
-            Some("/repo"),
-            Some(1),
-            0,
-            "exec",
-            &json!({"text": r#"const r = await tools.exec_command({"cmd":"cat src/lib.rs && sed -i 's/a/b/' src/main.rs","workdir":"/repo"});"#}),
-            None,
-        );
-        assert_eq!(
-            event
-                .paths
-                .iter()
-                .map(|path| (path.path.as_str(), path.access.as_str()))
-                .collect::<Vec<_>>(),
-            vec![("/repo/src/lib.rs", "read"), ("/repo/src/main.rs", "write")]
-        );
     }
 
     #[test]
@@ -2595,6 +3410,7 @@ mod tests {
             "mcp_resource",
             &json!({"path": "src/not-a-file.rs"}),
             None,
+            Vec::new(),
         );
         assert!(unknown.paths.is_empty());
 
@@ -2605,6 +3421,7 @@ mod tests {
             "Write",
             &json!({"file_path": "src/existing.rs", "content": "changed"}),
             None,
+            Vec::new(),
         );
         assert_eq!(write.paths[0].access, "write");
     }
@@ -2618,6 +3435,7 @@ mod tests {
             "apply_patch",
             &json!({"patch": "*** Begin Patch\n*** Update File: src/a.rs\n*** Move to: src/b.rs\n*** Update File: src/c.rs\n*** End Patch"}),
             None,
+            Vec::new(),
         );
         assert!(event.paths.contains(&ToolPath {
             path: "src/b.rs".into(),
@@ -2637,6 +3455,7 @@ mod tests {
             "apply_patch",
             &json!({"patch": "*** Begin Patch\n*** Update File: a.rs\n*** Move to: x.rs\n*** Update File: b.rs\n*** Move to: y.rs\n*** End Patch"}),
             None,
+            Vec::new(),
         );
         assert_eq!(
             event
@@ -2691,8 +3510,61 @@ mod tests {
     }
 
     #[test]
-    fn semantic_task_label_prefers_explicit_goal_payload() {
-        let raw = "prefix <objective>write a paper and evaluate it</objective> suffix";
-        assert_eq!(semantic_task_label(raw), "write a paper and evaluate it");
+    fn codex_exec_prompt_handles_latest_cli_options() {
+        let command = concat!(
+            "/tmp/tools/bin/codex exec --skip-git-repo-check --ignore-user-config ",
+            "-c model_provider=\"agentsight-mock\" ",
+            "-c model_providers.agentsight-mock.name=\"AgentSight Mock\" ",
+            "--sandbox read-only --model gpt-agentsight-mock ",
+            "agentsight mock prompt collect this exact text"
+        );
+
+        assert_eq!(
+            codex_exec_prompt(command).as_deref(),
+            Some("agentsight mock prompt collect this exact text")
+        );
+    }
+
+    #[test]
+    fn codex_cumulative_usage_separates_cached_input() {
+        let content = concat!(
+            r#"{"type":"turn_context","payload":{"model":"gpt-5.6-sol"}}"#,
+            "\n",
+            r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":19184,"cached_input_tokens":9984,"output_tokens":11,"total_tokens":19195}}}}"#,
+        );
+
+        let session = parse_session_content(
+            AGENT_CODEX,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            content,
+        )
+        .expect("session");
+
+        assert_eq!(session.usage.input_tokens, 9_200);
+        assert_eq!(session.usage.cache_read_tokens, 9_984);
+        assert_eq!(session.usage.output_tokens, 11);
+        assert_eq!(session.usage.total_tokens, 19_195);
+    }
+
+    #[test]
+    fn codex_exec_wrapper_projects_nested_shell_actions() {
+        let event = tool_event_from_input(
+            Some("/repo"),
+            Some(1),
+            0,
+            "exec",
+            &json!({"text": r#"const r = await tools.exec_command({"cmd":"cat src/lib.rs && sed -i 's/a/b/' src/main.rs","workdir":"/repo"});"#}),
+            None,
+            Vec::new(),
+        );
+        assert_eq!(
+            event
+                .paths
+                .iter()
+                .map(|path| (path.path.as_str(), path.access.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("/repo/src/lib.rs", "read"), ("/repo/src/main.rs", "write")]
+        );
     }
 }
