@@ -10,8 +10,9 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use profile::{
-    OutputFormat, ProfileView, build_profile, infer_output_format, profile_to_stacks,
-    write_projection,
+    OperationStackConfig, OutputFormat, ProfileView, build_profile_with_options,
+    infer_output_format, parse_operation_filters, parse_stack_rules, parse_stack_rules_with_flag,
+    parse_stack_spec, profile_to_stacks, write_projection,
 };
 use session::{SessionRecord, default_claude_root, discover_sessions};
 use tagger::{
@@ -41,12 +42,24 @@ TAGGING WORKFLOW:
 
   --preset enables built-in keyword rules (profile, debug, test, etc.) for quick
   testing, but these are generic and unlikely to match your project's prompts well.
+
+OPERATION STACK:
+  Samples are field bags. --op-map derives/overwrites fields, --where filters them,
+  and --stack chooses how those fields become flamegraph frames.
+
+  Defaults: task,skill,phase,action,object,repeat,result,outcome[,token]
+
+  Examples:
+     agentpprof --project-root . -o out.pb.gz \
+       --op-map task:verify='(?i)cmd=cargo' \
+       --where 'task=verify' \
+       --stack task,action,result
 "#;
 
 #[derive(Parser)]
 #[command(name = "agentpprof")]
 #[command(version)]
-#[command(about = "pprof-compatible semantic profiler for local AI coding-agent sessions")]
+#[command(about = "pprof-compatible operation-stack profiler for local AI coding-agent sessions")]
 #[command(after_help = TAGGING_HELP)]
 struct Cli {
     /// Output file. Use .pb.gz for Go pprof, .folded for folded stacks, .svg for an SVG flamegraph, or .json.
@@ -60,6 +73,25 @@ struct Cli {
     format: CliOutputFormat,
     #[arg(long, value_enum, default_value_t = CliProfileView::Tokens)]
     view: CliProfileView,
+    /// Override the operation stack, e.g. task,skill,phase,action,object,repeat,result,outcome.
+    #[arg(long, value_name = "FRAME[,FRAME...]")]
+    stack: Option<String>,
+    /// Add a deterministic operation-stack rule, e.g. task:verify='(?i)effect=test|cmd=cargo'.
+    /// Rules are evaluated in order for each stack frame; first match wins.
+    #[arg(long = "stack-rule", value_name = "FRAME:LABEL=REGEX")]
+    stack_rules: Vec<String>,
+    /// Derive or overwrite an operation field before stacking, e.g. task:verify='(?i)cmd=cargo'.
+    /// Rules are evaluated in order against updated fields; first match wins for each field.
+    #[arg(long = "op-map", value_name = "FIELD:LABEL=REGEX")]
+    op_maps: Vec<String>,
+    /// Select operations after --op-map field derivation and before stacking, e.g. task=verify.
+    /// Multiple predicates are ANDed. Use FIELD!=REGEX to exclude matching operations.
+    #[arg(long = "where", value_name = "FIELD=REGEX")]
+    where_rules: Vec<String>,
+    /// Read operation-field mapping rules from a file. Blank lines and lines starting with '#' are ignored.
+    /// Inline --op-map rules run before file rules, so command-line rules can override defaults.
+    #[arg(long = "op-map-file", value_name = "PATH")]
+    op_map_files: Vec<PathBuf>,
     #[arg(long, value_enum, default_value_t = TaggerKind::Regex)]
     tagger: TaggerKind,
     /// Add a deterministic tag rule, for example prompt:review='(?i)review|diff'.
@@ -130,6 +162,7 @@ impl From<CliOutputFormat> for OutputFormat {
 
 #[derive(Clone, Copy, Debug, ValueEnum, PartialEq, Eq)]
 enum CliProfileView {
+    Operations,
     Tokens,
     Files,
     Network,
@@ -139,6 +172,7 @@ enum CliProfileView {
 impl From<CliProfileView> for ProfileView {
     fn from(val: CliProfileView) -> Self {
         match val {
+            CliProfileView::Operations => ProfileView::Operations,
             CliProfileView::Tokens => ProfileView::Tokens,
             CliProfileView::Files => ProfileView::Files,
             CliProfileView::Network => ProfileView::Network,
@@ -203,7 +237,17 @@ fn command_export(args: Cli) -> Result<()> {
     if sessions.is_empty() {
         bail!("sessions were found, but none matched the requested tag filters");
     }
-    let profile = build_profile(&sessions, &project_name, args.view.into());
+    let view = args.view.into();
+    let mut profile_options = OperationStackConfig::for_view(view);
+    if let Some(stack) = args.stack.as_deref() {
+        profile_options = profile_options.with_stack(parse_stack_spec(stack)?);
+    }
+    let op_maps = load_op_map_rules(&args.op_maps, &args.op_map_files)?;
+    profile_options = profile_options
+        .with_field_rules(parse_stack_rules_with_flag(&op_maps, "--op-map")?)
+        .with_filters(parse_operation_filters(&args.where_rules)?)
+        .with_rules(parse_stack_rules(&args.stack_rules)?);
+    let profile = build_profile_with_options(&sessions, &project_name, view, &profile_options)?;
     let stacks = profile_to_stacks(&profile);
     if stacks.is_empty() {
         bail!("selected view {:?} produced no samples", args.view);
@@ -275,6 +319,23 @@ fn command_export(args: Cli) -> Result<()> {
 
     println!("{}", serde_json::to_string_pretty(&result)?);
     Ok(())
+}
+
+
+fn load_op_map_rules(inline_rules: &[String], rule_files: &[PathBuf]) -> Result<Vec<String>> {
+    let mut rules = inline_rules.to_vec();
+    for path in rule_files {
+        let contents = std::fs::read_to_string(path)
+            .map_err(|error| anyhow::anyhow!("failed to read --op-map-file {}: {error}", path.display()))?;
+        for line in contents.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            rules.push(line.to_string());
+        }
+    }
+    Ok(rules)
 }
 
 fn filter_sessions_before_tagging(sessions: &mut Vec<SessionRecord>, args: &Cli) {
@@ -481,6 +542,7 @@ mod tests {
                 },
             ],
             session_tag: "review".to_string(),
+        task_tag: String::new(),
         };
 
         filter_session_by_prompt_tag(&mut session, "test");

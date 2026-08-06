@@ -8,8 +8,8 @@ pub type ToolEvent = agent_session::ToolEvent;
 pub type LlmEvent = agent_session::LlmResponse;
 
 pub use agent_session::{
-    collapse_project_path, contains_private_marker, path_component_strings, short_hash,
-    truncate_clean,
+    collapse_project_path, contains_private_marker, path_component_strings, semantic_task_label,
+    short_hash, truncate_clean,
 };
 
 #[derive(Debug, Clone)]
@@ -26,6 +26,7 @@ pub struct SessionRecord {
     pub tools: Vec<ToolEvent>,
     pub llm_calls: Vec<LlmEvent>,
     pub session_tag: String,
+    pub task_tag: String,
 }
 
 impl SessionRecord {
@@ -175,6 +176,7 @@ fn record_from_agent_session(session: &AgentSession) -> SessionRecord {
         tools: session.events.tools.clone(),
         llm_calls: session.events.llm_responses.clone(),
         session_tag: String::new(),
+        task_tag: String::new(),
     }
 }
 
