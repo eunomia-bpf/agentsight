@@ -214,10 +214,12 @@ impl Operation {
 }
 
 const PPROF_EVIDENCE_LABEL_FIELDS: &[&str] = &[
+    "project",
+    "agent",
+    "session",
     "source_kind",
     "evidence_id",
     "operation_start_id",
-    "agent",
     "status",
     "response_phase",
     "outcome",
@@ -227,7 +229,6 @@ const PPROF_EVIDENCE_LABEL_FIELDS: &[&str] = &[
     "response_hash",
     "timestamp_ms",
     "skill",
-    "comparison_side",
 ];
 
 fn pprof_evidence_labels(operation: &Operation) -> Vec<(String, String)> {
@@ -2560,6 +2561,11 @@ mod tests {
             labels.contains(&("source_session", "s1"))
                 && labels.contains(&("prompt_hash", "prompt-hash"))
                 && labels.iter().any(|(key, _)| *key == "timestamp_ms")
+        }));
+        assert!(label_sets.iter().any(|labels| {
+            labels.contains(&("project", "agentsight"))
+                && labels.contains(&("agent", "codex"))
+                && labels.contains(&("session", "evidence"))
         }));
         assert!(label_sets.iter().any(|labels| {
             labels.contains(&("source_kind", "tool")) && labels.contains(&("call_id", "call-read"))

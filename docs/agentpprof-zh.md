@@ -18,7 +18,7 @@ Agent trace 打破了这个假设。Prompt 是自然语言：非确定性的、�
 
 `agentpprof` 通过**意图识别**来恢复聚合能力：将自由格式的 prompt 归类为简短、稳定的意图标签，如 `debug`、`review`、`paper` 或 `misc`。打上标签之后，prompt 就获得了和函数名一样的性质：每条轨迹和它触发的活动被关联成堆栈折叠起来，相同的栈合并成更宽的条带，flamegraph 重新变得可读。
 
-Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**。传统 CPU flamegraph 的堆栈是函数调用链：`main → parse → tokenize`，表示 tokenize 是被 parse 调用的，parse 是被 main 调用的。语义 flamegraph 的堆栈是 agent 行为的因果链：`prompt:debug → call:llm/analysis → tool:bash → file:src/main.rs`，表示这次文件修改是由 bash 工具触发的，bash 是 LLM 决定调用的，LLM 是在响应一个 debug 类型的 prompt。
+Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**。传统 CPU flamegraph 的堆栈是函数调用链：`main → parse → tokenize`，表示 tokenize 是被 parse 调用的，parse 是被 main 调用的。语义 flamegraph 的堆栈是 agent 行为的因果链：`task:… → phase:read → action:read_or_search → object:src/main.rs`，表示这次文件读取落在某个派生任务、阶段与动作之下。`project` / `agent` / `session` 是 pprof sample labels（`go tool pprof -tags`），不是默认栈帧。
 
 | | 传统 CPU Flamegraph | 语义 Flamegraph |
 | --- | --- | --- |
@@ -33,12 +33,13 @@ Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**�
 
 | 视图 | 宽度含义 | 主要回答的问题 |
 | --- | ---: | --- |
-| `tokens` | 报告的 token 数量（input/output/cache） | 哪些 prompt 消耗了最多的模型预算？ |
-| `time` | 持续时间（秒） | 每个 prompt/活动花了多长时间？ |
-| `files` | 文件/路径操作次数 | 哪些 prompt 触及了仓库的哪些部分？ |
-| `network` | 网络/域名请求次数 | 哪些 prompt 联系了哪些域名？ |
+| `operations` | 每个 prompt/工具/LLM 步骤计 1 | 各语义路径上有多少操作？ |
+| `tokens` | 报告的 token 数量（input/output/cache） | 哪些任务/动作消耗了最多模型预算？ |
+| `time` | 持续时间（秒） | 每个活动花了多长时间？ |
+| `files` | 文件/路径操作次数 | 哪些任务触及了哪些路径？ |
+| `network` | 网络/域名请求次数 | 哪些任务联系了哪些域名？ |
 
-从 `tokens` 视图开始定位成本热点，再用 `time` 追踪 wall-clock 时间去向，`files` 和 `network` 则适合安全审计场景。
+默认栈帧为 `task,skill,phase,action,object,repeat,result,outcome`（tokens 视图额外加 `token`）。可用 `--stack` / `--op-map` / `--where` 覆盖。从 `tokens` 视图开始定位成本热点，再用 `time` 追踪 wall-clock 时间去向，`files` 和 `network` 则适合安全审计场景。
 
 ## Flamegraph 示例
 
@@ -54,7 +55,7 @@ Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**�
 
 ![Tokens flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-tokens.svg)
 
-Token 分布显示代码审查（`prompt:review`）主导了模型预算，其次是 git 操作（`prompt:git`）、代码工作（`prompt:code`）、编辑（`prompt:edit`）和调试（`prompt:debug`）。通过堆栈可以追溯每类 prompt 触发了哪些 LLM 调用：`call:llm/usage` 表示 token 统计事件，`call:llm/code` 和 `call:llm/test` 表示代码相关响应，`call:llm/tool` 表示工具调用，`call:llm/edit` 表示修改响应。
+Token 分布按语义栈帧（task、phase、action 等）聚合。历史 gallery SVG 可能仍展示旧的 `prompt:` / `call:llm/` 前缀；当前 `agentpprof` 默认使用上述 operation-stack 帧。
 
 ### Time 视图
 
@@ -198,10 +199,11 @@ eval(V, O) = { (s, w_s) : w_s = Σ w(o), 对所有 o ∈ O 满足 φ(o) 且 σ(o
 
 | 视图 | φ（选择哪些操作） | σ（栈结构） | w（权重） |
 | --- | --- | --- | --- |
-| `tokens` | LLM 调用 | project; agent; session; prompt; call; model; kind | token 数（input/output/cache 各为一个样本） |
-| `time` | 全部带时间戳的操作 | project; agent; session; prompt; kind; ⟨机制帧⟩ | 到下一事件的间隔秒数 |
-| `files` | 有路径效果的工具操作 | project; agent; session; prompt; path; effect; status | 事件次数 |
-| `network` | 有网络效果的工具操作 | project; agent; session; prompt; domain; ⟨进程链⟩; status | 事件次数 |
+| `operations` | prompt/工具/LLM 步骤 | task; skill; phase; action; object; repeat; result; outcome | 操作次数 |
+| `tokens` | LLM 调用 | task; skill; phase; action; object; repeat; result; outcome; token | token 数（input/output/cache 各为一个样本） |
+| `time` | 全部带时间戳的操作 | task; skill; phase; action; object; repeat; result; outcome | 到下一事件的间隔秒数 |
+| `files` | 有路径效果的工具操作 | task; skill; phase; action; object; repeat; result; outcome | 事件次数 |
+| `network` | 有网络效果的工具操作 | task; skill; phase; action; object; repeat; result; outcome | 事件次数 |
 
 四个视图共享同一操作集合 O 和同一低层语义前缀，只在高层帧和权重函数上不同，因此跨视图对照是良定义的：`tokens` 视图里的 `prompt:review` 与 `files` 视图里的 `prompt:review` 指同一批操作在不同 (σ, w) 下的投影。flamegraph、pprof、folded 文本和 JSON 只是同一求值结果的不同序列化，各视图的具体栈示例见后文「调用栈模型」。
 
