@@ -379,7 +379,12 @@ pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEv
                 && (!seen.native_exec || !observed.native_exec)
         }) {
             if prompt_provenance_is_stronger(&observed, &seen_exec_prompts[index]) {
+                let dedupe_native_exec =
+                    seen_exec_prompts[index].native_exec && observed.native_exec;
                 seen_exec_prompts[index] = observed.clone();
+                // Keep wrapper/native grouping sticky even when the stronger full
+                // observation is native, so a later native row cannot split the group.
+                seen_exec_prompts[index].native_exec = dedupe_native_exec;
                 rows[index] = observed_exec_prompt_row(observed);
             }
             continue;
@@ -471,7 +476,7 @@ fn prompt_provenance_is_stronger(
     current: &ObservedCodexPrompt,
 ) -> bool {
     let source_rank = |source: &str| match source {
-        "view" | AGENT_NATIVE_SOURCE => 3,
+        "view" => 3,
         "sqlite" => 2,
         "unknown" => 0,
         _ => 1,
@@ -1096,8 +1101,15 @@ mod tests {
             "codex",
             "/opt/codex/bin/codex exec agentsight provenance prompt",
         );
+        let repeated_native = exec_row(
+            "repeated-native",
+            1_002,
+            "codex",
+            "/opt/codex/bin/codex exec agentsight provenance prompt",
+        );
 
-        let projected = observed_session_prompt_rows(&[legacy_wrapper, captured_native]);
+        let projected =
+            observed_session_prompt_rows(&[legacy_wrapper, captured_native, repeated_native]);
 
         assert_eq!(projected.len(), 1);
         assert_eq!(projected[0].comm.as_deref(), Some("codex"));

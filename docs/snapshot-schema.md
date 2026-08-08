@@ -118,9 +118,10 @@ operation. Its values are `view` for rows emitted directly from captured events,
 `agent_native_session` for rows parsed from native session files, and `unknown`
 for legacy or otherwise unclassified evidence. One logical LLM call can therefore
 have a directly captured `call` row and a reconstructed `request` row with different
-sources. `confidence` is likewise row-specific: captured rows reflect event-correlation
-confidence, while reconstructed rows reflect extraction and lineage confidence. It
-must not be compared across sources as a global probability.
+sources. `confidence` is likewise row-specific: captured LLM rows reflect request/response
+correlation confidence, other captured event types carry canonical-event confidence, and
+reconstructed rows reflect extraction and lineage confidence. It must not be compared
+across sources as a global probability.
 
 ## `resource_samples[]`
 
