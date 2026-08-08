@@ -312,45 +312,6 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn db_prompt_reconstruction_marks_sqlite_provenance() {
-        let rows = llm_call_prompt_rows(&[ssl_call_row("claude-opus-4-6", "DB prompt")]);
-
-        assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0].view_source, "sqlite");
-        assert_eq!(rows[0].confidence, Some(0.5));
-    }
-
-    #[test]
-    fn local_prompt_reconstruction_marks_agent_native_provenance() {
-        let mut local = ssl_call_row("claude-opus-4-6", "Local prompt");
-        local.request["prompt_source"] = Value::String(AGENT_NATIVE_SOURCE.to_string());
-        let rows = llm_call_prompt_rows(&[local]);
-
-        assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0].view_source, AGENT_NATIVE_SOURCE);
-        assert_eq!(rows[0].confidence, Some(0.95));
-    }
-
-    #[test]
-    fn mixed_prompt_reconstruction_keeps_sources_distinct() {
-        let captured = ssl_call_row("claude-opus-4-6", "Captured prompt");
-        let mut local = ssl_call_row("claude-haiku-4-5", "Local prompt");
-        local.id = "local-call".to_string();
-        local.request["prompt_source"] = Value::String(AGENT_NATIVE_SOURCE.to_string());
-
-        let rows = llm_call_prompt_rows(&[captured, local]);
-        let sources = rows
-            .iter()
-            .map(|row| (row.view_source.as_str(), row.confidence))
-            .collect::<Vec<_>>();
-
-        assert_eq!(
-            sources,
-            vec![("sqlite", Some(0.5)), (AGENT_NATIVE_SOURCE, Some(0.95))]
-        );
-    }
-
-    #[test]
     fn dedupes_local_prompt_only_when_ssl_matches_model_and_text() {
         for (name, local_model, local_details, expected_rows) in [
             (
@@ -403,6 +364,24 @@ mod tests {
     }
 
     #[test]
+    fn captured_db_prompt_reconstruction_marks_sqlite_provenance() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("captured.db");
+        let mut store = SqliteStore::open(&db).unwrap();
+        store
+            .llm_call(&ssl_call_row("claude-opus-4-6", "Captured prompt"))
+            .unwrap();
+        drop(store);
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        let prompts = view.audit_rows(Some("llm"), 10);
+
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].view_source, "sqlite");
+        assert_eq!(prompts[0].confidence, Some(0.5));
+    }
+
+    #[test]
     fn observed_codex_exec_prompt_reprojects_as_llm_call() {
         let temp = tempfile::tempdir().unwrap();
         let db = temp.path().join("codex.db");
@@ -430,6 +409,10 @@ mod tests {
             rows[0].request.get("prompt").and_then(Value::as_str),
             Some("agentsight local codex prompt")
         );
+        let prompts = view.audit_rows(Some("llm"), 10);
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].view_source, "unknown");
+        assert_eq!(prompts[0].confidence, None);
     }
 
     #[test]
@@ -507,6 +490,43 @@ mod tests {
             Some("agentsight inferred codex home prompt")
         );
         assert_eq!(snapshot.sessions.len(), 1);
+        let prompts = view.audit_rows(Some("llm"), 10);
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].view_source, AGENT_NATIVE_SOURCE);
+        assert_eq!(prompts[0].confidence, Some(0.95));
+    }
+
+    #[test]
+    fn mixed_db_and_agent_native_prompts_keep_provenance_distinct() {
+        let temp = tempfile::tempdir().unwrap();
+        let state_path = write_codex_home(temp.path(), "agentsight mixed local prompt");
+        let db = temp.path().join("mixed.db");
+        let mut store = SqliteStore::open(&db).unwrap();
+        store
+            .llm_call(&ssl_call_row("claude-opus-4-6", "Captured prompt"))
+            .unwrap();
+        insert_exec_event(
+            &store,
+            current_epoch_ms(),
+            "/usr/bin/codex exec --skip-git-repo-check agentsight mixed local prompt",
+        );
+        insert_file_event(&store, current_epoch_ms() + 100, &state_path);
+        drop(store);
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        let prompts = view.audit_rows(Some("llm"), 10);
+
+        assert_eq!(prompts.len(), 2);
+        assert!(
+            prompts
+                .iter()
+                .any(|row| row.view_source == "sqlite" && row.confidence == Some(0.5))
+        );
+        assert!(
+            prompts.iter().any(|row| {
+                row.view_source == AGENT_NATIVE_SOURCE && row.confidence == Some(0.95)
+            })
+        );
     }
 
     #[test]

@@ -34,6 +34,8 @@ struct ObservedCodexPrompt {
     native_exec: bool,
     comm: Option<String>,
     target: Option<String>,
+    view_source: String,
+    confidence: Option<f32>,
 }
 
 pub fn snapshot(
@@ -398,8 +400,8 @@ pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEv
                 "text_content": observed.prompt,
                 "prompt_source": "local",
             }),
-            view_source: AGENT_NATIVE_SOURCE.to_string(),
-            confidence: Some(0.95),
+            view_source: observed.view_source,
+            confidence: observed.confidence,
         });
     }
     for row in audit_rows {
@@ -538,6 +540,8 @@ fn observed_codex_exec_prompts(audit_rows: &[AuditEventRow]) -> Vec<ObservedCode
                 native_exec: looks_like_native_codex_exec(row),
                 comm: row.comm.clone(),
                 target: row.target.clone(),
+                view_source: row.view_source.clone(),
+                confidence: row.confidence,
             })
         })
         .collect::<Vec<_>>();
@@ -1026,6 +1030,11 @@ mod tests {
         let projected = observed_session_prompt_rows(&rows);
         assert_eq!(projected[0].comm.as_deref(), Some("node"));
         assert_eq!(projected[0].target.as_deref(), Some("/usr/bin/node"));
+        assert!(
+            projected
+                .iter()
+                .all(|row| row.view_source == "view" && row.confidence == Some(0.75))
+        );
         let prompts = projected
             .into_iter()
             .map(|row| row.summary)
@@ -1065,6 +1074,8 @@ mod tests {
                 native_exec: true,
                 comm: Some("codex".to_string()),
                 target: Some("/usr/bin/codex".to_string()),
+                view_source: "view".to_string(),
+                confidence: Some(0.75),
             }]
         ));
         assert!(!session_is_in_observed_window(
