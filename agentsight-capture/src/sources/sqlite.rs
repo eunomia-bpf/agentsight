@@ -443,6 +443,43 @@ mod tests {
     }
 
     #[test]
+    fn captured_exec_prompt_loader_preserves_view_provenance() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("captured-exec.db");
+        let mut store = SqliteStore::open(&db).unwrap();
+        store
+            .audit_event(&AuditEventRow {
+                id: "captured-exec".to_string(),
+                timestamp_ms: 1_000,
+                audit_type: "process".to_string(),
+                pid: Some(42),
+                comm: Some("codex".to_string()),
+                subject: None,
+                action: Some("exec".to_string()),
+                target: Some("/usr/bin/codex".to_string()),
+                status: Some("observed".to_string()),
+                summary: None,
+                details: json!({
+                    "full_command": concat!(
+                        "/usr/bin/codex exec --skip-git-repo-check ",
+                        "agentsight captured provenance prompt"
+                    ),
+                }),
+                view_source: "view".to_string(),
+                confidence: Some(0.75),
+            })
+            .unwrap();
+        drop(store);
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        let prompts = view.audit_rows(Some("llm"), 10);
+
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].view_source, "view");
+        assert_eq!(prompts[0].confidence, Some(0.75));
+    }
+
+    #[test]
     fn codex_exec_prompt_dedupes_against_ssl_row_without_local_model() {
         let temp = tempfile::tempdir().unwrap();
         let db = temp.path().join("codex.db");
