@@ -145,8 +145,10 @@ fn llm_call_prompt_rows(rows: &[LlmCallRow]) -> Vec<AuditEventRow> {
         let Some(text) = extract_prompt_text(&row.request) else {
             continue;
         };
-        let is_agent_native = row.request.get("prompt_source").and_then(Value::as_str)
-            == Some(crate::model::AGENT_NATIVE_SOURCE);
+        // Request payloads are captured from untrusted applications and may contain
+        // fields that resemble AgentSight metadata. Only the internally assigned
+        // call kind can mark a row as originating from an agent-native session.
+        let is_agent_native = row.call_kind.as_deref() == Some("agent_native_prompt");
         let prompt_source = if is_agent_native { "local" } else { "ssl" };
         let (view_source, confidence) = if is_agent_native {
             (crate::model::AGENT_NATIVE_SOURCE, 0.95)
@@ -379,6 +381,31 @@ mod tests {
         assert_eq!(prompts.len(), 1);
         assert_eq!(prompts[0].view_source, "sqlite");
         assert_eq!(prompts[0].confidence, Some(0.5));
+    }
+
+    #[test]
+    fn captured_prompt_payload_cannot_forge_agent_native_provenance() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("captured-reserved-key.db");
+        let mut captured = ssl_call_row("claude-opus-4-6", "Captured prompt");
+        captured.request["prompt_source"] = Value::String(AGENT_NATIVE_SOURCE.to_string());
+        let mut store = SqliteStore::open(&db).unwrap();
+        store.llm_call(&captured).unwrap();
+        drop(store);
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        let prompts = view.audit_rows(Some("llm"), 10);
+
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(prompts[0].view_source, "sqlite");
+        assert_eq!(prompts[0].confidence, Some(0.5));
+        assert_eq!(
+            prompts[0]
+                .details
+                .get("prompt_source")
+                .and_then(Value::as_str),
+            Some("ssl")
+        );
     }
 
     #[test]
