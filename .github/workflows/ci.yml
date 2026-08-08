@@ -133,12 +133,6 @@ jobs:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: [release_binaries, publish_crates]
-    # Only run on push to master, not on PRs
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/master' &&
-      !contains(github.event.head_commit.message, '[skip ci]') &&
-      !contains(github.event.head_commit.message, '[ci skip]')
 
     steps:
     - name: Checkout code
@@ -397,11 +391,6 @@ jobs:
     name: Publish Cargo Packages
     needs: [release_prepare, release_binaries]
     runs-on: ubuntu-24.04
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/master' &&
-      !contains(github.event.head_commit.message, '[skip ci]') &&
-      !contains(github.event.head_commit.message, '[ci skip]')
 
     steps:
     - name: Checkout validated release snapshot
@@ -631,74 +620,29 @@ jobs:
           fi
         done
 
-  arm64_build:
-    name: Build ARM64 Release Candidate
-    runs-on: ubuntu-24.04-arm
-    if: github.event_name == 'pull_request'
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
-
-    - name: Setup Rust
-      uses: actions-rust-lang/setup-rust-toolchain@v1
-      with:
-        toolchain: stable
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          libelf1 libelf-dev zlib1g-dev libclang-dev \
-          make git clang llvm pkg-config build-essential
-
-    - name: Build release binaries
-      run: |
-        make build
-        cargo build --release --manifest-path agentpprof/Cargo.toml
-
-    - name: Smoke test ARM64 binaries
-      run: |
-        set -euo pipefail
-        file collector/target/release/agentsight | grep -F "ARM aarch64"
-        file agentpprof/target/release/agentpprof | grep -F "ARM aarch64"
-        collector/target/release/agentsight --version
-        agentpprof/target/release/agentpprof --version
-
   release_binaries:
     name: Build Release Binaries (${{ matrix.arch }})
     needs: release_prepare
     runs-on: ${{ matrix.runner }}
     if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/master' &&
-      !contains(github.event.head_commit.message, '[skip ci]') &&
-      !contains(github.event.head_commit.message, '[ci skip]')
+      !cancelled() &&
+      (
+        github.event_name == 'pull_request' ||
+        (
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/master' &&
+          needs.release_prepare.result == 'success'
+        )
+      )
     strategy:
       fail-fast: false
-      matrix:
-        include:
-        - arch: x86_64
-          docker_arch: amd64
-          runner: ubuntu-24.04
-          legacy_assets: true
-        - arch: aarch64
-          docker_arch: arm64
-          runner: ubuntu-24.04-arm
-          legacy_assets: false
+      matrix: ${{ fromJSON(github.event_name == 'pull_request' && '{"include":[{"arch":"aarch64","docker_arch":"arm64","runner":"ubuntu-24.04-arm","legacy_assets":false}]}' || '{"include":[{"arch":"x86_64","docker_arch":"amd64","runner":"ubuntu-24.04","legacy_assets":true},{"arch":"aarch64","docker_arch":"arm64","runner":"ubuntu-24.04-arm","legacy_assets":false}]}') }}
 
     steps:
     - name: Checkout release snapshot
       uses: actions/checkout@v4
       with:
-        ref: ${{ needs.release_prepare.outputs.publish_sha }}
+        ref: ${{ needs.release_prepare.outputs.publish_sha || github.sha }}
         submodules: 'recursive'
 
     - name: Setup Rust
@@ -747,6 +691,7 @@ jobs:
         fi
 
     - name: Upload release assets
+      if: github.event_name == 'push'
       uses: actions/upload-artifact@v4
       with:
         name: release-linux-${{ matrix.arch }}
@@ -755,6 +700,7 @@ jobs:
         retention-days: 1
 
     - name: Upload Docker binary
+      if: github.event_name == 'push'
       uses: actions/upload-artifact@v4
       with:
         name: docker-linux-${{ matrix.docker_arch }}
@@ -766,11 +712,6 @@ jobs:
     name: Assemble GitHub Release
     needs: [release_prepare, release_binaries, publish_crates]
     runs-on: ubuntu-24.04
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/master' &&
-      !contains(github.event.head_commit.message, '[skip ci]') &&
-      !contains(github.event.head_commit.message, '[ci skip]')
 
     steps:
     - name: Download release assets

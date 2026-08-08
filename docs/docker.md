@@ -5,6 +5,10 @@ Use Docker when you want a packaged AgentSight runtime for container, CI, or iso
 The published `ghcr.io/eunomia-bpf/agentsight` image supports both `linux/amd64`
 and `linux/arm64`.
 
+Release CI uses `script/Dockerfile.release` with architecture-specific binaries
+staged by the workflow. It is not a standalone source-build Dockerfile; local
+source builds continue to use the repository-root `dockerfile` after `make build`.
+
 For local day-to-day use, the release binary plus `agentsight top` or
 `sudo agentsight record -- ...` in [README.md](https://github.com/eunomia-bpf/agentsight#quick-start) is usually simpler.
 
