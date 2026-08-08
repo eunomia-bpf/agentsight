@@ -398,6 +398,8 @@ pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEv
                 "text_content": observed.prompt,
                 "prompt_source": "local",
             }),
+            view_source: AGENT_NATIVE_SOURCE.to_string(),
+            confidence: Some(0.95),
         });
     }
     for row in audit_rows {
@@ -446,6 +448,8 @@ pub fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEv
                 "conversation_id": session.conversation_id.as_deref(),
                 "agent_type": session.agent_type,
             }),
+            view_source: AGENT_NATIVE_SOURCE.to_string(),
+            confidence: Some(0.95),
         });
     }
     rows
@@ -1082,6 +1086,8 @@ mod tests {
             status: Some("observed".to_string()),
             summary: None,
             details: serde_json::json!({ "full_command": full_command }),
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         }
     }
 
@@ -1098,6 +1104,8 @@ mod tests {
             status: Some("observed".to_string()),
             summary: None,
             details: serde_json::json!({ "filepath": path.to_string_lossy() }),
+            view_source: "view".to_string(),
+            confidence: Some(0.75),
         }
     }
 

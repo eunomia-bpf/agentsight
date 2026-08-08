@@ -148,6 +148,11 @@ fn llm_call_prompt_rows(rows: &[LlmCallRow]) -> Vec<AuditEventRow> {
         let is_agent_native = row.request.get("prompt_source").and_then(Value::as_str)
             == Some(crate::model::AGENT_NATIVE_SOURCE);
         let prompt_source = if is_agent_native { "local" } else { "ssl" };
+        let (view_source, confidence) = if is_agent_native {
+            (crate::model::AGENT_NATIVE_SOURCE, 0.95)
+        } else {
+            ("sqlite", 0.5)
+        };
         prompts.push(AuditEventRow {
             id: format!("audit-{}-request", row.id),
             timestamp_ms: row.start_timestamp_ms,
@@ -167,6 +172,8 @@ fn llm_call_prompt_rows(rows: &[LlmCallRow]) -> Vec<AuditEventRow> {
                 "provider": row.provider,
                 "path": row.path,
             }),
+            view_source: view_source.to_string(),
+            confidence: Some(confidence),
         });
     }
     prompts
@@ -301,8 +308,47 @@ fn prompt_text_from_details(details: &Value) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::ViewSink;
+    use crate::model::{AGENT_NATIVE_SOURCE, ViewSink};
     use serde_json::json;
+
+    #[test]
+    fn db_prompt_reconstruction_marks_sqlite_provenance() {
+        let rows = llm_call_prompt_rows(&[ssl_call_row("claude-opus-4-6", "DB prompt")]);
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].view_source, "sqlite");
+        assert_eq!(rows[0].confidence, Some(0.5));
+    }
+
+    #[test]
+    fn local_prompt_reconstruction_marks_agent_native_provenance() {
+        let mut local = ssl_call_row("claude-opus-4-6", "Local prompt");
+        local.request["prompt_source"] = Value::String(AGENT_NATIVE_SOURCE.to_string());
+        let rows = llm_call_prompt_rows(&[local]);
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].view_source, AGENT_NATIVE_SOURCE);
+        assert_eq!(rows[0].confidence, Some(0.95));
+    }
+
+    #[test]
+    fn mixed_prompt_reconstruction_keeps_sources_distinct() {
+        let captured = ssl_call_row("claude-opus-4-6", "Captured prompt");
+        let mut local = ssl_call_row("claude-haiku-4-5", "Local prompt");
+        local.id = "local-call".to_string();
+        local.request["prompt_source"] = Value::String(AGENT_NATIVE_SOURCE.to_string());
+
+        let rows = llm_call_prompt_rows(&[captured, local]);
+        let sources = rows
+            .iter()
+            .map(|row| (row.view_source.as_str(), row.confidence))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            sources,
+            vec![("sqlite", Some(0.5)), (AGENT_NATIVE_SOURCE, Some(0.95))]
+        );
+    }
 
     #[test]
     fn dedupes_local_prompt_only_when_ssl_matches_model_and_text() {
@@ -415,6 +461,8 @@ mod tests {
                         "-c model=gpt agentsight local codex prompt"
                     ),
                 }),
+                view_source: "view".to_string(),
+                confidence: Some(0.75),
             })
             .unwrap();
         drop(store);
@@ -538,6 +586,8 @@ mod tests {
                 "text_content": text,
                 "prompt_source": "local"
             }),
+            view_source: crate::model::AGENT_NATIVE_SOURCE.to_string(),
+            confidence: Some(0.95),
         }
     }
 

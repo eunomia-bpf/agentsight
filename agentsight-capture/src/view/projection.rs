@@ -222,6 +222,7 @@ impl MaterializedView {
             },
             "LLM call",
             response_body.as_ref(),
+            confidence,
         )?;
         self.emit_llm_call(call_row)
     }
@@ -258,6 +259,7 @@ impl MaterializedView {
             "orphan_request",
             "LLM request",
             req.body_json.as_ref(),
+            0.75,
         )?;
         self.emit_llm_call(call_row)
     }
@@ -316,6 +318,7 @@ impl MaterializedView {
             "orphan_response",
             "LLM response",
             response_body.as_ref(),
+            0.35,
         )?;
         self.emit_llm_call(call_row)
     }
@@ -581,6 +584,8 @@ impl MaterializedView {
             status: Some(process_audit_status(action, &event.attributes).to_string()),
             summary: event.summary.clone(),
             details: event.attributes.clone(),
+            view_source: "view".to_string(),
+            confidence: event.confidence,
         })?;
         if let Some(row) = self
             .process_node_id(event, action)
@@ -628,6 +633,8 @@ impl MaterializedView {
             status: Some("observed".to_string()),
             summary: event.summary.clone(),
             details: event.attributes.clone(),
+            view_source: "view".to_string(),
+            confidence: event.confidence,
         })
     }
 
@@ -650,6 +657,8 @@ impl MaterializedView {
             status: Some("observed".to_string()),
             summary: event.summary.clone(),
             details: event.attributes.clone(),
+            view_source: "view".to_string(),
+            confidence: event.confidence,
         })
     }
 }
@@ -667,6 +676,7 @@ fn emit_llm_audit(
     status: &str,
     summary: &str,
     details: Option<&Value>,
+    confidence: f32,
 ) -> ViewResult<()> {
     view.emit_audit_event(AuditEventRow {
         id: format!("audit-{llm_call_id}-{action}"),
@@ -680,6 +690,8 @@ fn emit_llm_audit(
         status: Some(status.to_string()),
         summary: Some(summary.to_string()),
         details: details.cloned().unwrap_or_else(|| serde_json::json!({})),
+        view_source: "view".to_string(),
+        confidence: Some(confidence),
     })
 }
 
@@ -1104,14 +1116,22 @@ mod tests {
         view.ingest_event(&resp).expect("ingest response");
 
         let snapshot = view.export_snapshot(crate::model::SnapshotOptions { audit_limit: 100 });
-        let llm_actions = snapshot
+        let llm_audits = snapshot
             .audit_events
             .iter()
             .filter(|row| row.audit_type == "llm")
+            .collect::<Vec<_>>();
+        let llm_actions = llm_audits
+            .iter()
             .filter_map(|row| row.action.as_deref())
             .collect::<Vec<_>>();
         assert!(llm_actions.contains(&"request"));
         assert!(llm_actions.contains(&"call"));
+        assert!(
+            llm_audits
+                .iter()
+                .all(|row| row.view_source == "view" && row.confidence == Some(0.75))
+        );
     }
 
     #[test]

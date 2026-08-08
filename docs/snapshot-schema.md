@@ -109,6 +109,8 @@ Their totals are available through `summary` and `token_summary`.
 | `status` | string | Yes | Usually categorical metadata. |
 | `summary` | string | Yes | Yes; source-derived event summary. |
 | `details` | any JSON value | No | **Yes; arbitrary source event details.** |
+| `view_source` | string | No | No; identifies captured, reconstructed, agent-native, or legacy-unknown provenance. |
+| `confidence` | number | Yes | No. |
 
 ## `resource_samples[]`
 
