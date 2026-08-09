@@ -68,9 +68,6 @@ fn candidate_updated(agent: &str, path: &Path, meta: &fs::Metadata) -> SystemTim
     }
 }
 
-/// A Cursor candidate is the parent transcript, but its session includes any
-/// `subagents/*.jsonl` siblings, so `updated` is the max mtime across all of
-/// them. This is what lets a child-only write invalidate the cached session.
 fn cursor_candidate_updated(path: &Path, parent_updated: SystemTime) -> SystemTime {
     let mut updated = parent_updated;
     let Some(subagents) = path.parent().map(|dir| dir.join("subagents")) else {
@@ -89,10 +86,6 @@ fn cursor_candidate_updated(path: &Path, parent_updated: SystemTime) -> SystemTi
     updated
 }
 
-/// One Cursor session can appear under both its real workspace directory and
-/// `empty-window` (a stale fork left behind when a window later opened a
-/// folder). Keep one candidate per composer id: a real workspace beats
-/// `empty-window`, then the newer file wins.
 fn dedupe_cursor_candidates(out: &mut Vec<SessionCandidate>) {
     let mut best: BTreeMap<String, (bool, SystemTime, usize)> = BTreeMap::new();
     let mut drop = vec![false; out.len()];
@@ -213,10 +206,7 @@ fn parse_session_impl(
     if agent == AGENT_GEMINI {
         parse_gemini_json(path, updated, content)
     } else if agent == AGENT_CURSOR {
-        // Cursor splits one session across a parent transcript and a subagents/
-        // directory. Reading the siblings here keeps `parse_cursor_jsonl` a pure
-        // function of its inputs, so the folding stays unit-testable, while every
-        // caller that reaches this dispatch still gets the whole session.
+        // Read siblings here so the parser stays a pure function of its inputs.
         let children = read_cursor_subagents(path);
         parse_cursor_jsonl(path, updated, content, &children)
     } else {
@@ -263,20 +253,11 @@ pub fn agent_source_for_path(path: &Path) -> Option<&'static str> {
     }
 }
 
-/// Cursor transcripts live under `agent-transcripts/`; other `.jsonl` files in
-/// a project directory (vendored dependencies under `canvases/`, for example)
-/// are not sessions. Matches parent and subagent transcripts alike, so process
-/// matching can classify any fd path Cursor holds open.
 fn is_cursor_transcript(path: &Path) -> bool {
     path.extension().and_then(|ext| ext.to_str()) == Some("jsonl")
         && path.to_string_lossy().contains("/agent-transcripts/")
 }
 
-/// Discovery emits one candidate per Cursor session: the parent transcript,
-/// whose file stem equals its directory name (`<composerId>/<composerId>.jsonl`).
-/// A `subagents/<childId>.jsonl` file never matches, so delegated runs cannot
-/// surface as standalone sessions or crowd the session cache's parse window;
-/// the parser folds them into the parent instead.
 fn is_cursor_parent_transcript(path: &Path) -> bool {
     is_cursor_transcript(path)
         && path.file_stem().is_some_and(|stem| {
@@ -1288,9 +1269,6 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
     acc.finish_with_events(events)
 }
 
-/// Read the `subagents/*.jsonl` transcripts that sit beside a Cursor parent
-/// transcript. A missing directory is normal (plenty of sessions never delegate)
-/// and yields an empty list rather than an error.
 fn read_cursor_subagents(path: &Path) -> Vec<(PathBuf, String)> {
     let Some(dir) = path.parent().map(|parent| parent.join("subagents")) else {
         return Vec::new();
@@ -1312,13 +1290,6 @@ fn read_cursor_subagents(path: &Path) -> Vec<(PathBuf, String)> {
     out
 }
 
-/// Parse a Cursor agent transcript, folding in any delegated sub-agent
-/// transcripts so the session reflects everything it actually did.
-///
-/// Cursor decides per turn whether to delegate, so a single session mixes turns
-/// where the parent works directly with turns where it only issues `Task` calls
-/// and the children do the work. Reading the parent alone reports those sessions
-/// as having done nothing.
 fn parse_cursor_jsonl(
     path: &Path,
     updated: SystemTime,
@@ -1343,10 +1314,7 @@ fn parse_cursor_jsonl(
         &mut delegations,
     );
     for (_, child_content) in children {
-        // Attribute the child's work to the prompt that delegated it, not to
-        // whichever prompt happened to be last. A session that delegates early
-        // and works directly later would otherwise pin all delegated file
-        // activity on the final prompt.
+        // Attribute the child's work to the prompt that delegated it, not the last one.
         let mut index = cursor_delegating_prompt_index(child_content, &delegations)
             .unwrap_or(current_prompt_index);
         cursor_absorb_transcript(
@@ -1362,19 +1330,13 @@ fn parse_cursor_jsonl(
     acc.finish_with_events(events)
 }
 
-/// Which transcript in a Cursor session is being read.
-///
-/// A sub-agent's `role: user` records hold the `Task` prompt Cursor generated,
-/// not anything a person typed, so they must not become `UserPrompt`s. Their
-/// work still belongs to the session, and attributes to whichever human prompt
-/// was current when the delegation happened.
+// A sub-agent's user records hold the generated Task prompt, not a human one.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum CursorScope {
     Parent,
     Subagent,
 }
 
-/// Walk one Cursor transcript, adding its records to the running session.
 fn cursor_absorb_transcript(
     content: &str,
     scope: CursorScope,
@@ -1398,10 +1360,7 @@ fn cursor_absorb_transcript(
             continue;
         };
 
-        // Cursor records no per-tool result, so the only outcome signal is the
-        // turn marker. A failed turn marks every tool call it contained, which
-        // is the same shape as the other agents' tool_result handling, just at
-        // turn granularity rather than per call.
+        // Cursor writes no tool_result, so a failed turn is the only outcome signal.
         if record.get("type").and_then(Value::as_str) == Some("turn_ended") {
             let failed = record
                 .get("status")
@@ -1424,9 +1383,7 @@ fn cursor_absorb_transcript(
         match record.get("role").and_then(Value::as_str) {
             Some("user") => {
                 let raw = cursor_text_of(&record);
-                // The wrapper's timestamp is the only clock in the transcript,
-                // and sub-agent messages carry one too, so read it in both
-                // scopes even though only the parent contributes prompts.
+                // The only clock a transcript has, and children carry one too.
                 if let Some(ts) = cursor_wrapper_ts_ms(&raw) {
                     current_ts_ms = Some(ts);
                 }
@@ -1482,18 +1439,6 @@ fn cursor_absorb_transcript(
     }
 }
 
-/// Work out a Cursor session's working directory from its transcripts.
-///
-/// Cursor records no cwd field, unlike Claude and Codex. Two signals are
-/// available and both are exact: `Shell.working_directory`, present on some
-/// commands, and the absolute paths that file tools carry.
-///
-/// The project directory name is deliberately not used. It is a lossy encoding
-/// (`Users-alec-cursor-test`) that cannot be inverted, since a hyphen in a real
-/// directory name is indistinguishable from a separator, so un-collapsing it
-/// yields `/Users/alec/cursor/test` for a directory actually named
-/// `cursor-test`. A wrong cwd is worse than none, and the SQLite enrichment can
-/// supply the real path from `workspaceIdentifier`.
 fn cursor_session_cwd(content: &str, children: &[(PathBuf, String)]) -> Option<String> {
     let mut absolute: Vec<PathBuf> = Vec::new();
     for transcript in std::iter::once(content).chain(children.iter().map(|(_, body)| body.as_str()))
@@ -1525,7 +1470,6 @@ fn cursor_session_cwd(content: &str, children: &[(PathBuf, String)]) -> Option<S
     common_parent_dir(&absolute)
 }
 
-/// The deepest directory containing every one of the given absolute paths.
 fn common_parent_dir(paths: &[PathBuf]) -> Option<String> {
     let mut dirs = paths
         .iter()
@@ -1555,14 +1499,6 @@ fn common_parent_dir(paths: &[PathBuf]) -> Option<String> {
     })
 }
 
-/// Find which parent prompt delegated a given sub-agent transcript.
-///
-/// A `Task` call records no child id, but Cursor seeds the child's first user
-/// message with the `Task` prompt wrapped in `<timestamp>` and `<user_query>`
-/// metadata, so the prompt text appears verbatim inside it. Matching on
-/// containment recovered all eight parent-child pairs on a real session with no
-/// ambiguity. Falling back to the caller's current index keeps a session that
-/// changes this shape merely imprecise rather than broken.
 fn cursor_delegating_prompt_index(
     child_content: &str,
     delegations: &[(usize, String)],
@@ -1577,21 +1513,6 @@ fn cursor_delegating_prompt_index(
         .map(|(index, _)| *index)
 }
 
-/// Read the clock out of Cursor's user message wrapper.
-///
-/// Cursor writes no timestamp fields anywhere in a transcript. The one clock it
-/// does record is inside the wrapper on each user message:
-///
-/// ```text
-/// <timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>
-/// ```
-///
-/// Resolution is one minute, so several turns commonly share a value. Checked
-/// against `state.vscdb`, where the matching bubble records `createdAt` of
-/// `2026-08-08T03:11:58.512Z` against this parsing to `03:12:00Z`, so the value
-/// is right and simply rounded. The database is the better source when a
-/// consumer can reach it, but `agent-session` cannot, and without this every
-/// Cursor tool event is dropped by anything that requires a timestamp.
 fn cursor_wrapper_ts_ms(text: &str) -> Option<i64> {
     const OPEN: &str = "<timestamp>";
     const CLOSE: &str = "</timestamp>";
@@ -1615,21 +1536,6 @@ fn cursor_wrapper_ts_ms(text: &str) -> Option<i64> {
     Some(naive.and_utc().timestamp_millis() - offset_hours * 3_600_000)
 }
 
-/// Strip Cursor's user message wrapper.
-///
-/// Every user record Cursor writes, in parent and sub-agent transcripts alike,
-/// wraps what the person actually typed:
-///
-/// ```text
-/// <timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>
-/// <user_query>
-/// Create hello.py that prints Hello
-/// </user_query>
-/// ```
-///
-/// Without unwrapping, every prompt preview in `top` and in reports shows the
-/// timestamp header rather than the prompt. Text with no wrapper is returned
-/// unchanged, so this is safe if the format shifts.
 fn cursor_user_query(text: &str) -> String {
     const OPEN: &str = "<user_query>";
     const CLOSE: &str = "</user_query>";
@@ -1645,7 +1551,6 @@ fn cursor_user_query(text: &str) -> String {
     inner.trim().to_string()
 }
 
-/// The text of the first user record in a transcript.
 fn cursor_first_user_text(content: &str) -> Option<String> {
     content.lines().find_map(|line| {
         let record = serde_json::from_str::<Value>(line.trim()).ok()?;
@@ -1655,7 +1560,6 @@ fn cursor_first_user_text(content: &str) -> Option<String> {
     })
 }
 
-/// The `tool_use` parts of a Cursor message record.
 fn cursor_tool_uses(record: &Value) -> Vec<&Value> {
     record
         .get("message")
@@ -1670,12 +1574,6 @@ fn cursor_tool_uses(record: &Value) -> Vec<&Value> {
         .unwrap_or_default()
 }
 
-/// Turn one `tool_use` part into a `ToolEvent`.
-///
-/// Cursor's tool vocabulary isn't fixed. Two machines on the same version showed
-/// fifteen names with little overlap, tracking which features each person used,
-/// so an unrecognised name has to produce an event in the catch-all category
-/// rather than being dropped.
 fn cursor_push_tool_event(
     part: &Value,
     acc: &mut SessionAccumulator,
@@ -1695,9 +1593,7 @@ fn cursor_push_tool_event(
     acc.add_tool(name);
     let event = tool_event_from_input(
         acc.cwd.as_deref(),
-        // Inherited from the turn's user message wrapper, the only clock the
-        // transcript has. Cursor's tool_use parts carry only type, name and
-        // input, so there is still no call id.
+        // Inherited from the turn's wrapper. Cursor records no call id.
         ts_ms,
         prompt_index,
         name,
@@ -1711,7 +1607,6 @@ fn cursor_push_tool_event(
     events.tools.push(event);
 }
 
-/// Join the `text` parts of a Cursor message record.
 fn cursor_text_of(record: &Value) -> String {
     let Some(parts) = record
         .get("message")
@@ -3098,28 +2993,12 @@ fn extract_path_groups(
     groups.into_iter().filter(|v| v != "none").collect()
 }
 
-/// A token in a position where the command has already told us a path belongs.
-///
-/// `cp`, `mv`, `rm`, `touch`, `tee`, a redirection target, and the operands
-/// after a `find` root or a `sed`/`grep` expression are all path positions by
-/// definition, so anything that survives the shared rejections below is a path.
-/// Requiring a known file extension on top of that loses real work: `rm
-/// build.sh`, `mv notes.txt archive.txt` and `rm Dockerfile` all recorded
-/// nothing, which under-reports file activity for any project not written in
-/// the handful of languages the extension list happens to name.
 fn plausible_path_operand(part: &str) -> bool {
     let part = part.trim_matches(['"', '\'']);
-    // A bare number in operand position is a file descriptor, not a file. The
-    // tokenizer splits `cat x 2>&1` into `x` and `2` and `>&1`, so without this
-    // every redirected command records a read of a file called "2".
+    // A bare number here is a file descriptor: `cat x 2>&1` splits out a lone `2`.
     !part.is_empty() && !part.chars().all(|c| c.is_ascii_digit()) && !definitely_not_a_path(part)
 }
 
-/// A token found by scanning a whole command, where it could be anything.
-///
-/// Here the extension check earns its place: without it `curl example.com` or a
-/// bare version like `1.2.3` would register as paths. Evidence of being a path
-/// is required, either a separator or a recognised extension.
 fn plausible_path_token(part: &str) -> bool {
     let part = part.trim_matches(['"', '\'']);
     if definitely_not_a_path(part) {
@@ -3137,9 +3016,6 @@ fn plausible_path_token(part: &str) -> bool {
         .contains(&suffix)
 }
 
-/// Shapes that are never a path, whatever position they appear in: flags, shell
-/// variables, URLs, git refs and ranges, sed expressions, and anything carrying
-/// whitespace or shell metacharacters.
 fn definitely_not_a_path(part: &str) -> bool {
     let part = part.trim_matches(['"', '\'']);
     let lower = part.to_ascii_lowercase();
@@ -3649,9 +3525,7 @@ mod tests {
     use serde_json::json;
     use std::time::UNIX_EPOCH;
 
-    /// A Cursor parent transcript that both delegates and works directly.
-    /// Sessions mix the two per turn, so a fixture with only one pattern passes
-    /// while the other silently breaks.
+    // A parent transcript that both delegates and works directly, since Cursor mixes both.
     fn cursor_parent_fixture() -> String {
         [
             // Cursor wraps every user message, parent and child alike.
@@ -3665,12 +3539,10 @@ mod tests {
         .join("\n")
     }
 
-    /// The child spawned by the `Task` call above. All of the first turn's real
-    /// work lives here, none of it in the parent.
+    // The child spawned by the Task call above; all of that turn's real work is here.
     fn cursor_subagent_fixture() -> String {
         [
-            // Cursor seeds the child's first message with the Task prompt
-            // wrapped in metadata, which is the only link back to the parent.
+            // The Task prompt in the child's first message is the only link to the parent.
             r#"{"role":"user","message":{"content":[{"type":"text","text":"<timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>\n<user_query>\nmake it\n</user_query>"}]}}"#,
             r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"path":"/repo/hello.py","contents":"print(1)\n"}},{"type":"text","text":"written"}]}}"#,
             r#"{"type":"turn_ended","status":"success"}"#,
@@ -3826,10 +3698,7 @@ mod tests {
             session.events.tools[0].command,
             "cd /repo && mv hello.py greet.py"
         );
-        // command_name is the first token of a compound command, so Cursor's
-        // habit of prefixing with cd surfaces as "cd" rather than "mv". That is
-        // pre-existing behaviour shared with the other agents, not Cursor
-        // specific, so it stays as is here.
+        // command_name is the first token of a compound command, so `cd` wins here.
         assert_eq!(session.events.tools[0].command_name, "cd");
         assert!(
             !session.events.tools[0].process_chain.is_empty(),
@@ -3839,9 +3708,7 @@ mod tests {
 
     #[test]
     fn cursor_shell_working_directory_resolves_relative_paths() {
-        // Cursor names this key working_directory, where Claude and Codex use
-        // workdir or cwd. Without it the relative paths below resolve against
-        // nothing and the session records no files at all.
+        // Cursor names this working_directory where Claude and Codex use workdir.
         let content = [
             r#"{"role":"user","message":{"content":[{"type":"text","text":"move it"}]}}"#,
             r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"mv hello.py archive/greet.py","working_directory":"/repo","description":"move"}}]}}"#,
@@ -3946,7 +3813,7 @@ mod tests {
         .join("\n");
         let session = parse_session_content(
             AGENT_CURSOR,
-            &PathBuf::from("/tmp/projects/Users-alec-cursor-test/agent-transcripts/a/a.jsonl"),
+            &PathBuf::from("/tmp/projects/Users-user-cursor-test/agent-transcripts/a/a.jsonl"),
             UNIX_EPOCH,
             &bare,
         )

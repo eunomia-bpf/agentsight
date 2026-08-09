@@ -156,10 +156,7 @@ fn parse_candidates(candidates: &[SessionCandidate]) -> Vec<(AgentSession, usize
 }
 
 fn repository_session(candidate: &SessionCandidate) -> Option<(AgentSession, usize)> {
-    // Gemini and Cursor are read whole. The streaming filter below keys on a
-    // top-level "type" field, which neither writes on message records, so it
-    // would hand the parser an empty string. Their transcripts are small enough
-    // that parsing in full costs little, unlike Claude and Codex rollouts.
+    // Read whole: the filter below keys on a top-level "type" neither writes.
     if candidate.agent == AGENT_GEMINI || candidate.agent == AGENT_CURSOR {
         let content = std::fs::read_to_string(&candidate.path).ok()?;
         let session = parse_session_content(
@@ -278,9 +275,7 @@ fn append_session(
         }
         used = true;
         batch.0.push(RepositoryEvent {
-            // Zero padded because events are ordered by (ts_ms, id) and the id
-            // is compared as a string. Agents with coarse clocks tie often, and
-            // an unpadded ordinal would sort 1, 10, 11, 2 within a tie.
+            // Zero padded: ids compare as strings, so ties would sort 1, 10, 11, 2.
             id: format!("{session_id}:{ordinal:06}"),
             session_id: session_id.clone(),
             vendor: session.agent_type.clone(),
@@ -372,11 +367,6 @@ fn candidate_may_match_repo(
     }
 }
 
-/// Cursor names a project directory after the workspace path with separators
-/// replaced, the same scheme Claude uses without the leading separator. That
-/// encoding cannot be inverted, since a hyphen in a real directory name looks
-/// exactly like a separator, but it does not need to be: encoding the root and
-/// comparing works and stays unambiguous.
 fn encoded_cursor_root(root: &Path) -> String {
     root.to_string_lossy()
         .replace('/', "-")
@@ -384,8 +374,6 @@ fn encoded_cursor_root(root: &Path) -> String {
         .to_string()
 }
 
-/// The project directory of a Cursor transcript, from
-/// `~/.cursor/projects/<project>/agent-transcripts/<id>/...`.
 fn cursor_project_name(path: &Path) -> Option<String> {
     let mut components = path.components().peekable();
     while let Some(component) = components.next() {
@@ -763,9 +751,7 @@ mod tests {
         );
         assert_eq!(encoded_cursor_root(root), "home-user-my-repo");
 
-        // The encoding cannot be inverted, since the hyphen in `my-repo` is
-        // indistinguishable from a separator. Encoding the root and comparing
-        // sidesteps that, and still keeps a sibling directory from matching.
+        // The encoding cannot be inverted, so encode the root and compare instead.
         let sibling = Path::new(
             "/home/user/.cursor/projects/home-user-my-repo-x/agent-transcripts/abc/abc.jsonl",
         );
@@ -807,9 +793,7 @@ mod tests {
 
     #[test]
     fn tied_timestamps_keep_event_order() {
-        // Cursor's only clock is minute resolution, so many events share a
-        // timestamp and the id breaks the tie. Ids compare as strings, so an
-        // unpadded ordinal would order 1, 10, 11, 2.
+        // Minute-resolution clocks tie often, and ids compare as strings.
         let mut ids: Vec<String> = (0..12).map(|ordinal| format!("s:{ordinal:06}")).collect();
         let expected = ids.clone();
         ids.sort();

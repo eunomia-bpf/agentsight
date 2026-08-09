@@ -195,8 +195,6 @@ const CURSOR_STATE_DB_CANDIDATES: [&str; 3] = [
     "AppData/Roaming/Cursor/User/globalStorage/state.vscdb",
 ];
 
-/// Locate Cursor's state database under a home directory. Candidates are the
-/// macOS, Linux, and Windows layouts, in that order; first existing file wins.
 fn cursor_state_db_path(home: &Path) -> Option<PathBuf> {
     CURSOR_STATE_DB_CANDIDATES
         .iter()
@@ -204,8 +202,6 @@ fn cursor_state_db_path(home: &Path) -> Option<PathBuf> {
         .find(|path| path.is_file())
 }
 
-/// Cursor is usually running with an active WAL on this database, so open it
-/// strictly read-only and treat any failure as absence rather than an error.
 fn open_cursor_state_db(path: &Path) -> Option<rusqlite::Connection> {
     rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).ok()
 }
@@ -215,9 +211,6 @@ struct CursorComposerHeader {
     updated_at_ms: Option<u64>,
 }
 
-/// Read one composer's header row. `lastUpdatedAt` is NULL on every subagent
-/// header, so both timestamps stay optional. A missing row is normal:
-/// `composerHeaders` is not a 1:1 index of the transcripts on disk.
 fn cursor_composer_header(
     conn: &rusqlite::Connection,
     composer_id: &str,
@@ -237,8 +230,6 @@ fn cursor_composer_header(
     .ok()
 }
 
-/// `cursorDiskKV` values are BLOBs on real installs but land as TEXT when
-/// written from SQL literals, so accept either shape.
 fn cursor_kv_bytes(value: rusqlite::types::Value) -> Option<Vec<u8>> {
     match value {
         rusqlite::types::Value::Blob(bytes) => Some(bytes),
@@ -252,10 +243,6 @@ struct CursorComposerData {
     workspace_path: Option<String>,
 }
 
-/// Read the `composerData:<id>` blob. `modelName` is the literal string
-/// "default" when the user never pinned a model, which means unknown, not a
-/// model called "default". `workspaceIdentifier.uri.fsPath` carries the real
-/// working directory when present (a minority of records).
 fn cursor_composer_data(
     conn: &rusqlite::Connection,
     composer_id: &str,
@@ -284,10 +271,6 @@ fn cursor_composer_data(
     })
 }
 
-/// Sum legacy token counts for one composer's bubbles. The key range is
-/// `bubbleId:<id>:` to `bubbleId:<id>;` (';' is ':' + 1), which stays on the
-/// key index instead of scanning the table. Cursor stopped writing usage
-/// events around March 2026, so zero on a current session is the normal case.
 fn cursor_bubble_tokens(conn: &rusqlite::Connection, composer_id: &str) -> TokenUsage {
     let mut usage = TokenUsage::default();
     let Ok(mut stmt) = conn.prepare("SELECT value FROM cursorDiskKV WHERE key >= ?1 AND key < ?2")
@@ -324,9 +307,6 @@ fn cursor_bubble_tokens(conn: &rusqlite::Connection, composer_id: &str) -> Token
     usage
 }
 
-/// Composer ids of a parent transcript's delegated runs, read from the
-/// `subagents/` directory next to it. `Task` calls carry no child id, so the
-/// directory layout is the only parent-child link.
 fn cursor_subagent_ids(parent_transcript: &Path) -> Vec<String> {
     let Some(subagents) = parent_transcript.parent().map(|dir| dir.join("subagents")) else {
         return Vec::new();
@@ -348,10 +328,6 @@ fn cursor_subagent_ids(parent_transcript: &Path) -> Vec<String> {
     ids
 }
 
-/// Fill Cursor session metadata from Cursor's own state database. The
-/// transcript carries no model, tokens, or wall-clock session timing; those
-/// live in `state.vscdb`, joined on the transcript's composer id. A missing,
-/// locked, or unreadable database leaves the sessions exactly as parsed.
 fn enrich_cursor_sessions(sessions: &mut [LocalSession]) {
     if !sessions
         .iter()
@@ -402,9 +378,7 @@ fn enrich_cursor_session(conn: &rusqlite::Connection, session: &mut LocalSession
             session.cwd = data.workspace_path;
         }
     }
-    // Tokens roll up across the parent and its delegated runs; the sessions
-    // that delegated most would otherwise under-report worst. Zero stays zero:
-    // current Cursor versions record no usage events at all.
+    // Roll up across delegated runs, or the sessions that delegated most under-report.
     let mut usage = cursor_bubble_tokens(conn, &composer_id);
     for child_id in cursor_subagent_ids(&session.path) {
         let child = cursor_bubble_tokens(conn, &child_id);
@@ -1245,9 +1219,7 @@ mod tests {
 
     #[test]
     fn cursor_enrichment_reads_model_when_header_row_is_missing() {
-        // Real installs have composers with composerData but no
-        // composerHeaders row. The model must still come through, and the
-        // timestamps must stay on their transcript-derived fallbacks.
+        // Real installs have composerData with no composerHeaders row.
         let temp = tempfile::tempdir().unwrap();
         write_cursor_state_db_for_test(temp.path());
         let transcripts = temp
