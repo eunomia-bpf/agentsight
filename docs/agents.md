@@ -132,7 +132,41 @@ get in the way, and only the first one is obvious:
 For these agents, use the agent-native session path instead: AgentSight reads
 the session files the IDE itself writes on disk, the same way it reads local
 Claude Code, Codex, and Gemini CLI sessions. That route needs no eBPF, no
-`sudo`, and works on macOS and Windows.
+`sudo`, and works on macOS and Windows. Cursor is supported this way today;
+the next section covers it.
+
+## Cursor
+
+There is nothing to launch or attach. If Cursor has run on the machine, its
+agent sessions show up next to Claude Code, Codex, and Gemini CLI ones:
+
+```bash
+agentsight top             # live ranked view includes Cursor sessions
+agentsight report --local  # summarize native sessions without a recorded DB
+agentsight vis             # replay Cursor file activity in a repository
+```
+
+AgentSight reads two local sources, both strictly read-only and safe while
+Cursor is running:
+
+- **Transcripts** under `~/.cursor/projects/<workspace>/agent-transcripts/`:
+  prompts, assistant output, tool calls, file activity, and per-event
+  timestamps. When Cursor delegates work through its `Task` tool, the
+  delegated runs are folded into the parent session, so a session that split
+  its work across sub-agents still reports everything it did.
+- **Cursor's state database** (`state.vscdb` under Cursor's user data
+  directory): session start and end times, the model, and the working
+  directory when the transcript doesn't carry one.
+
+Two things not to expect:
+
+- **Live request and response bodies.** That is TLS capture, which does not
+  work on Electron IDEs for the reasons above. Cursor sessions show what the
+  agent did, not the raw API traffic.
+- **Token counts on current versions.** Cursor stopped recording per-turn
+  usage locally around March 2026. Sessions old enough to carry usage events
+  show token totals; newer ones show none, and that is expected rather than a
+  capture failure.
 
 ## Containers and Kubernetes Pods
 

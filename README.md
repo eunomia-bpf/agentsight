@@ -216,6 +216,7 @@ For a saved SQLite session, run `agentsight report serve --db run.db` and open t
 | Grok Build | `sudo ./agentsight record -- grok` |
 | Python (aider, open-interpreter, …) | `sudo ./agentsight record -c python` |
 | Docker containers (OpenClaw, …) | `sudo ./agentsight record -c node --binary-path docker://openclaw` |
+| Cursor (IDE) | `agentsight top` reads its local sessions, no sudo needed |
 | Any command | `sudo ./agentsight record -- <command>` |
 
 See [docs/agents.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/agents.md) for agent-specific setup, SSL quirks, browser capture, MCP stdio, and advanced flags.
