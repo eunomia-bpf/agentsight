@@ -212,6 +212,13 @@ fn parse_session_impl(
 ) -> Option<AgentSession> {
     if agent == AGENT_GEMINI {
         parse_gemini_json(path, updated, content)
+    } else if agent == AGENT_CURSOR {
+        // Cursor splits one session across a parent transcript and a subagents/
+        // directory. Reading the siblings here keeps `parse_cursor_jsonl` a pure
+        // function of its inputs, so the folding stays unit-testable, while every
+        // caller that reaches this dispatch still gets the whole session.
+        let children = read_cursor_subagents(path);
+        parse_cursor_jsonl(path, updated, content, &children)
     } else {
         parse_jsonl(agent, path, updated, content)
     }
@@ -1281,6 +1288,389 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
     acc.finish_with_events(events)
 }
 
+/// Read the `subagents/*.jsonl` transcripts that sit beside a Cursor parent
+/// transcript. A missing directory is normal (plenty of sessions never delegate)
+/// and yields an empty list rather than an error.
+fn read_cursor_subagents(path: &Path) -> Vec<(PathBuf, String)> {
+    let Some(dir) = path.parent().map(|parent| parent.join("subagents")) else {
+        return Vec::new();
+    };
+    let Ok(entries) = fs::read_dir(&dir) else {
+        return Vec::new();
+    };
+    let mut out: Vec<(PathBuf, String)> = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|child| child.extension().and_then(|ext| ext.to_str()) == Some("jsonl"))
+        .filter_map(|child| {
+            let content = fs::read_to_string(&child).ok()?;
+            Some((child, content))
+        })
+        .collect();
+    // Directory order is arbitrary; keep parses deterministic across runs.
+    out.sort_by(|left, right| left.0.cmp(&right.0));
+    out
+}
+
+/// Parse a Cursor agent transcript, folding in any delegated sub-agent
+/// transcripts so the session reflects everything it actually did.
+///
+/// Cursor decides per turn whether to delegate, so a single session mixes turns
+/// where the parent works directly with turns where it only issues `Task` calls
+/// and the children do the work. Reading the parent alone reports those sessions
+/// as having done nothing.
+fn parse_cursor_jsonl(
+    path: &Path,
+    updated: SystemTime,
+    content: &str,
+    children: &[(PathBuf, String)],
+) -> Option<AgentSession> {
+    let mut acc = SessionAccumulator::new(AGENT_CURSOR, path, updated);
+    acc.conversation_id = Some(acc.session_id.clone());
+    let mut events = SessionEvents::default();
+    let mut current_prompt_index = 0usize;
+
+    // Resolve cwd before the walk so tool events group their paths against it.
+    acc.cwd = cursor_session_cwd(content, children);
+
+    let mut delegations = Vec::new();
+    cursor_absorb_transcript(
+        content,
+        CursorScope::Parent,
+        &mut acc,
+        &mut events,
+        &mut current_prompt_index,
+        &mut delegations,
+    );
+    for (_, child_content) in children {
+        // Attribute the child's work to the prompt that delegated it, not to
+        // whichever prompt happened to be last. A session that delegates early
+        // and works directly later would otherwise pin all delegated file
+        // activity on the final prompt.
+        let mut index = cursor_delegating_prompt_index(child_content, &delegations)
+            .unwrap_or(current_prompt_index);
+        cursor_absorb_transcript(
+            child_content,
+            CursorScope::Subagent,
+            &mut acc,
+            &mut events,
+            &mut index,
+            &mut Vec::new(),
+        );
+    }
+
+    acc.finish_with_events(events)
+}
+
+/// Which transcript in a Cursor session is being read.
+///
+/// A sub-agent's `role: user` records hold the `Task` prompt Cursor generated,
+/// not anything a person typed, so they must not become `UserPrompt`s. Their
+/// work still belongs to the session, and attributes to whichever human prompt
+/// was current when the delegation happened.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum CursorScope {
+    Parent,
+    Subagent,
+}
+
+/// Walk one Cursor transcript, adding its records to the running session.
+fn cursor_absorb_transcript(
+    content: &str,
+    scope: CursorScope,
+    acc: &mut SessionAccumulator,
+    events: &mut SessionEvents,
+    current_prompt_index: &mut usize,
+    delegations: &mut Vec<(usize, String)>,
+) {
+    // Tools recorded since the last turn marker, so a failed turn can mark them.
+    let mut turn_start = events.tools.len();
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        // Cursor appends while a session runs, so a torn final line is expected
+        // rather than exceptional. Skip it and keep the records we already have.
+        let Ok(record) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+
+        // Cursor records no per-tool result, so the only outcome signal is the
+        // turn marker. A failed turn marks every tool call it contained, which
+        // is the same shape as the other agents' tool_result handling, just at
+        // turn granularity rather than per call.
+        if record.get("type").and_then(Value::as_str) == Some("turn_ended") {
+            let failed = record
+                .get("status")
+                .and_then(Value::as_str)
+                .is_some_and(|status| {
+                    matches!(status, "error" | "failed" | "fail" | "cancelled" | "canceled")
+                });
+            if failed {
+                for tool in events.tools.iter_mut().skip(turn_start) {
+                    tool.status = "fail".to_string();
+                }
+            }
+            turn_start = events.tools.len();
+            continue;
+        }
+
+        match record.get("role").and_then(Value::as_str) {
+            Some("user") if scope == CursorScope::Parent => {
+                let text = cursor_user_query(&cursor_text_of(&record));
+                if !text.is_empty() {
+                    *current_prompt_index = events.upsert_prompt(None, &text, Vec::new());
+                    if acc.prompt_preview.is_none() {
+                        acc.prompt_preview = Some(truncate_clean(&text, 180));
+                    }
+                }
+            }
+            Some("assistant") => {
+                for part in cursor_tool_uses(&record) {
+                    if scope == CursorScope::Parent
+                        && part.get("name").and_then(Value::as_str) == Some("Task")
+                        && let Some(prompt) = part
+                            .get("input")
+                            .and_then(|input| input.get("prompt"))
+                            .and_then(Value::as_str)
+                            .filter(|prompt| !prompt.trim().is_empty())
+                    {
+                        delegations.push((*current_prompt_index, prompt.trim().to_string()));
+                    }
+                    cursor_push_tool_event(part, acc, events, *current_prompt_index);
+                }
+                let text = cursor_text_of(&record);
+                if !text.is_empty() {
+                    events.llm_responses.push(LlmResponse {
+                        ts_ms: None,
+                        prompt_index: *current_prompt_index,
+                        // Model, tokens, and timestamps live in state.vscdb, not
+                        // the transcript. The SQLite enrichment fills them in.
+                        model: String::new(),
+                        source_id: String::new(),
+                        text_hash: short_hash(&text, 12),
+                        preview: truncate_clean(&text, 140),
+                        input_tokens: 0,
+                        output_tokens: 0,
+                        cache_tokens: 0,
+                        total_tokens: 0,
+                        tag: String::new(),
+                        response_phase: String::new(),
+                        skill: String::new(),
+                        task_path: Vec::new(),
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Work out a Cursor session's working directory from its transcripts.
+///
+/// Cursor records no cwd field, unlike Claude and Codex. Two signals are
+/// available and both are exact: `Shell.working_directory`, present on some
+/// commands, and the absolute paths that file tools carry.
+///
+/// The project directory name is deliberately not used. It is a lossy encoding
+/// (`Users-alec-cursor-test`) that cannot be inverted, since a hyphen in a real
+/// directory name is indistinguishable from a separator, so un-collapsing it
+/// yields `/Users/alec/cursor/test` for a directory actually named
+/// `cursor-test`. A wrong cwd is worse than none, and the SQLite enrichment can
+/// supply the real path from `workspaceIdentifier`.
+fn cursor_session_cwd(content: &str, children: &[(PathBuf, String)]) -> Option<String> {
+    let mut absolute: Vec<PathBuf> = Vec::new();
+    for transcript in std::iter::once(content).chain(children.iter().map(|(_, body)| body.as_str()))
+    {
+        for line in transcript.lines() {
+            let Ok(record) = serde_json::from_str::<Value>(line.trim()) else {
+                continue;
+            };
+            for part in cursor_tool_uses(&record) {
+                let Some(input) = part.get("input") else {
+                    continue;
+                };
+                if let Some(dir) = input.get("working_directory").and_then(Value::as_str)
+                    && Path::new(dir).is_absolute()
+                {
+                    return Some(dir.to_string());
+                }
+                for key in ["path", "paths"] {
+                    match input.get(key) {
+                        Some(Value::String(value)) => absolute.push(PathBuf::from(value)),
+                        Some(Value::Array(values)) => absolute
+                            .extend(values.iter().filter_map(Value::as_str).map(PathBuf::from)),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+    common_parent_dir(&absolute)
+}
+
+/// The deepest directory containing every one of the given absolute paths.
+fn common_parent_dir(paths: &[PathBuf]) -> Option<String> {
+    let mut dirs = paths
+        .iter()
+        .filter(|path| path.is_absolute())
+        .filter_map(|path| path.parent())
+        .map(|dir| {
+            dir.components()
+                .map(|part| part.as_os_str().to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+        });
+    let mut shared = dirs.next()?;
+    for candidate in dirs {
+        let keep = shared
+            .iter()
+            .zip(candidate.iter())
+            .take_while(|(left, right)| left == right)
+            .count();
+        shared.truncate(keep);
+    }
+    // A single leading "/" component means the paths share nothing useful.
+    (shared.len() > 1).then(|| {
+        let mut out = PathBuf::new();
+        for part in shared {
+            out.push(part);
+        }
+        out.to_string_lossy().into_owned()
+    })
+}
+
+/// Find which parent prompt delegated a given sub-agent transcript.
+///
+/// A `Task` call records no child id, but Cursor seeds the child's first user
+/// message with the `Task` prompt wrapped in `<timestamp>` and `<user_query>`
+/// metadata, so the prompt text appears verbatim inside it. Matching on
+/// containment recovered all eight parent-child pairs on a real session with no
+/// ambiguity. Falling back to the caller's current index keeps a session that
+/// changes this shape merely imprecise rather than broken.
+fn cursor_delegating_prompt_index(
+    child_content: &str,
+    delegations: &[(usize, String)],
+) -> Option<usize> {
+    if delegations.is_empty() {
+        return None;
+    }
+    let opening = cursor_first_user_text(child_content)?;
+    delegations
+        .iter()
+        .find(|(_, prompt)| opening.contains(prompt.as_str()))
+        .map(|(index, _)| *index)
+}
+
+/// Strip Cursor's user message wrapper.
+///
+/// Every user record Cursor writes, in parent and sub-agent transcripts alike,
+/// wraps what the person actually typed:
+///
+/// ```text
+/// <timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>
+/// <user_query>
+/// Create hello.py that prints Hello
+/// </user_query>
+/// ```
+///
+/// Without unwrapping, every prompt preview in `top` and in reports shows the
+/// timestamp header rather than the prompt. Text with no wrapper is returned
+/// unchanged, so this is safe if the format shifts.
+fn cursor_user_query(text: &str) -> String {
+    const OPEN: &str = "<user_query>";
+    const CLOSE: &str = "</user_query>";
+    let Some(start) = text.find(OPEN) else {
+        return text.trim().to_string();
+    };
+    let rest = &text[start + OPEN.len()..];
+    let inner = match rest.find(CLOSE) {
+        Some(end) => &rest[..end],
+        // A torn final line can cut the closing tag off.
+        None => rest,
+    };
+    inner.trim().to_string()
+}
+
+/// The text of the first user record in a transcript.
+fn cursor_first_user_text(content: &str) -> Option<String> {
+    content.lines().find_map(|line| {
+        let record = serde_json::from_str::<Value>(line.trim()).ok()?;
+        (record.get("role").and_then(Value::as_str) == Some("user"))
+            .then(|| cursor_text_of(&record))
+            .filter(|text| !text.is_empty())
+    })
+}
+
+/// The `tool_use` parts of a Cursor message record.
+fn cursor_tool_uses(record: &Value) -> Vec<&Value> {
+    record
+        .get("message")
+        .and_then(|message| message.get("content"))
+        .and_then(Value::as_array)
+        .map(|parts| {
+            parts
+                .iter()
+                .filter(|part| part.get("type").and_then(Value::as_str) == Some("tool_use"))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Turn one `tool_use` part into a `ToolEvent`.
+///
+/// Cursor's tool vocabulary isn't fixed. Two machines on the same version showed
+/// fifteen names with little overlap, tracking which features each person used,
+/// so an unrecognised name has to produce an event in the catch-all category
+/// rather than being dropped.
+fn cursor_push_tool_event(
+    part: &Value,
+    acc: &mut SessionAccumulator,
+    events: &mut SessionEvents,
+    prompt_index: usize,
+) {
+    let Some(name) = part.get("name").and_then(Value::as_str).filter(|n| !n.is_empty()) else {
+        return;
+    };
+    let input = part.get("input").cloned().unwrap_or(Value::Null);
+
+    acc.add_tool(name);
+    let event = tool_event_from_input(
+        acc.cwd.as_deref(),
+        // Cursor records no timestamps in the transcript, and its tool_use parts
+        // carry only type, name and input, so there is no call id either.
+        None,
+        prompt_index,
+        name,
+        &input,
+        None,
+        Vec::new(),
+    );
+    for path in &event.paths {
+        acc.add_file(&path.path);
+    }
+    events.tools.push(event);
+}
+
+/// Join the `text` parts of a Cursor message record.
+fn cursor_text_of(record: &Value) -> String {
+    let Some(parts) = record
+        .get("message")
+        .and_then(|message| message.get("content"))
+        .and_then(Value::as_array)
+    else {
+        return String::new();
+    };
+    parts
+        .iter()
+        .filter(|part| part.get("type").and_then(Value::as_str) == Some("text"))
+        .filter_map(|part| part.get("text").and_then(Value::as_str))
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim()
+        .to_string()
+}
+
 struct SessionAccumulator {
     agent_type: String,
     session_id: String,
@@ -1595,6 +1985,10 @@ fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) ->
         || lower.contains("patch")
     {
         "write"
+    } else if lower.contains("delete") {
+        // Cursor deletes files through a dedicated Delete tool rather than a
+        // patch or a shell rm, so without this the deletion records no path.
+        "delete"
     } else if is_shell {
         if effect == "read" { "read" } else { "write" }
     } else {
@@ -1729,7 +2123,9 @@ fn shell_file_actions(
     if depth > 2 {
         return Vec::new();
     }
-    let mut cwd = ["workdir", "cwd"]
+    // Cursor's Shell tool names this working_directory rather than workdir or
+    // cwd, and it is the only cwd signal on a command that has no leading cd.
+    let mut cwd = ["workdir", "cwd", "working_directory"]
         .iter()
         .find_map(|key| input.get(*key).and_then(Value::as_str))
         .map(PathBuf::from);
@@ -1937,6 +2333,17 @@ fn collect_path_fields(
                     let path = clean_path_token(path);
                     if !path.is_empty() {
                         out.insert(path, (access.to_string(), None));
+                    }
+                } else if matches!(key.as_str(), "paths" | "file_paths" | "filepaths")
+                    && let Some(items) = value.as_array()
+                {
+                    // Cursor's ReadLints takes a list rather than a single path.
+                    // Generic array recursion below never reaches bare strings.
+                    for item in items.iter().filter_map(Value::as_str) {
+                        let path = clean_path_token(item);
+                        if !path.is_empty() {
+                            out.insert(path, (access.to_string(), None));
+                        }
                     }
                 } else if value.is_object() || value.is_array() {
                     collect_path_fields(value, access, out);
@@ -2383,11 +2790,21 @@ fn explicit_exit_codes(output: &str) -> Vec<i32> {
 
 pub fn tool_category(name: &str, command: &str) -> String {
     let n = name.to_ascii_lowercase();
-    if n.ends_with("exec_command") || n.ends_with("shell_command") || n == "bash" {
+    if n.ends_with("exec_command") || n.ends_with("shell_command") || n == "bash" || n == "shell" {
         "shell"
-    } else if ["apply_patch", "edit", "write", "multiedit", "notebookedit"].contains(&n.as_str()) {
+    } else if [
+        "apply_patch",
+        "edit",
+        "write",
+        "multiedit",
+        "notebookedit",
+        "strreplace",
+        "delete",
+    ]
+    .contains(&n.as_str())
+    {
         "edit"
-    } else if ["read", "grep", "glob", "ls"].contains(&n.as_str()) {
+    } else if ["read", "grep", "glob", "ls", "readlints"].contains(&n.as_str()) {
         "read"
     } else if n.contains("web")
         || n.contains("browser")
@@ -3139,6 +3556,447 @@ mod tests {
     use super::*;
     use serde_json::json;
     use std::time::UNIX_EPOCH;
+
+    /// A Cursor parent transcript that both delegates and works directly.
+    /// Sessions mix the two per turn, so a fixture with only one pattern passes
+    /// while the other silently breaks.
+    fn cursor_parent_fixture() -> String {
+        [
+            // Cursor wraps every user message, parent and child alike.
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"<timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>\n<user_query>\ncreate hello.py\n</user_query>"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"text","text":"delegating"},{"type":"tool_use","name":"Task","input":{"description":"Create hello.py","prompt":"make it","subagent_type":"generalPurpose"}}]}}"#,
+            r#"{"type":"turn_ended","status":"success"}"#,
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"now delete it"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Delete","input":{"path":"/repo/hello.py"}},{"type":"text","text":"deleted"}]}}"#,
+            r#"{"type":"turn_ended","status":"success"}"#,
+        ]
+        .join("\n")
+    }
+
+    /// The child spawned by the `Task` call above. All of the first turn's real
+    /// work lives here, none of it in the parent.
+    fn cursor_subagent_fixture() -> String {
+        [
+            // Cursor seeds the child's first message with the Task prompt
+            // wrapped in metadata, which is the only link back to the parent.
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"<timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>\n<user_query>\nmake it\n</user_query>"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"path":"/repo/hello.py","contents":"print(1)\n"}},{"type":"text","text":"written"}]}}"#,
+            r#"{"type":"turn_ended","status":"success"}"#,
+        ]
+        .join("\n")
+    }
+
+
+
+
+    #[test]
+    fn cursor_transcript_counts_prompts_and_responses() {
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &cursor_parent_fixture(),
+        )
+        .expect("session");
+
+        assert_eq!(session.agent_type, AGENT_CURSOR);
+        assert_eq!(session.events.prompts.len(), 2);
+        assert_eq!(session.events.llm_responses.len(), 2);
+        // The <timestamp>/<user_query> wrapper is stripped, so previews show
+        // what the person typed rather than Cursor's header.
+        assert_eq!(session.events.prompts[0].preview, "create hello.py");
+        assert_eq!(session.events.prompts[1].preview, "now delete it");
+        assert_eq!(session.events.prompts[1].index, 1);
+        assert_eq!(session.events.llm_responses[1].prompt_index, 1);
+        assert_eq!(session.prompt_preview.as_deref(), Some("create hello.py"));
+    }
+
+    #[test]
+    fn cursor_tool_uses_become_events_and_unknown_names_are_kept() {
+        let content = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"do work"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"cargo test","description":"run tests"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"StrReplace","input":{"path":"/repo/a.rs","old_string":"x","new_string":"y"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"ReadLints","input":{"paths":["/repo/a.rs"]}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"SomeToolWeHaveNeverSeen","input":{"whatever":1}}]}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+
+        let named = |name: &str| {
+            session
+                .events
+                .tools
+                .iter()
+                .find(|tool| tool.tool_name == name)
+                .unwrap_or_else(|| panic!("{name} missing"))
+        };
+        assert_eq!(session.events.tools.len(), 4);
+        assert_eq!(named("Shell").category, "shell");
+        assert_eq!(named("Shell").command, "cargo test");
+        assert_eq!(named("Shell").command_name, "cargo");
+        assert_eq!(named("StrReplace").category, "edit");
+        assert_eq!(named("ReadLints").category, "read");
+        // An unfamiliar name still produces an event, in the catch-all category.
+        assert_eq!(named("SomeToolWeHaveNeverSeen").category, "tool");
+        // Cursor has no tool call ids, and no tool_result records to upgrade a
+        // call's status, so every Cursor tool event stays "observed".
+        assert!(named("Shell").call_id.is_none());
+        assert_eq!(named("Shell").status, "observed");
+        assert_eq!(session.tools.get("Shell"), Some(&1));
+    }
+
+    #[test]
+    fn cursor_file_tools_map_to_access_kinds() {
+        let content = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"work"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"path":"/repo/a.rs"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"path":"/repo/b.rs","contents":"fn main() {}"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"StrReplace","input":{"path":"/repo/c.rs","old_string":"x","new_string":"y"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Delete","input":{"path":"/repo/d.rs"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"ReadLints","input":{"paths":["/repo/e.rs","/repo/f.rs"]}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Grep","input":{"pattern":"timeout","path":"/repo","-i":true}}]}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+
+        let access_of = |path: &str| {
+            session
+                .events
+                .tools
+                .iter()
+                .flat_map(|tool| tool.paths.iter())
+                .find(|candidate| candidate.path == path)
+                .unwrap_or_else(|| panic!("{path} missing"))
+                .access
+                .clone()
+        };
+        assert_eq!(access_of("/repo/a.rs"), "read");
+        assert_eq!(access_of("/repo/b.rs"), "write");
+        assert_eq!(access_of("/repo/c.rs"), "write");
+        assert_eq!(access_of("/repo/d.rs"), "delete");
+        // ReadLints takes a list, not a single path.
+        assert_eq!(access_of("/repo/e.rs"), "read");
+        assert_eq!(access_of("/repo/f.rs"), "read");
+        // Flag-shaped keys such as "-i" are not paths.
+        assert_eq!(access_of("/repo"), "read");
+        assert_eq!(session.files.get("/repo/d.rs"), Some(&1));
+    }
+
+    #[test]
+    fn cursor_shell_mv_yields_rename_with_previous_path() {
+        // Rename never arrives as a dedicated Cursor tool. It only ever comes
+        // through Shell, and Cursor emits it as a compound command with a cd.
+        let content = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"tidy up"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"cd /repo && mv hello.py greet.py","description":"rename it"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"rm /repo/stale.txt","description":"drop it"}}]}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+
+        let all: Vec<&ToolPath> = session
+            .events
+            .tools
+            .iter()
+            .flat_map(|tool| tool.paths.iter())
+            .collect();
+        let renamed = all
+            .iter()
+            .find(|path| path.access == "rename")
+            .expect("rename");
+        assert_eq!(renamed.path, "/repo/greet.py");
+        assert_eq!(renamed.previous_path.as_deref(), Some("/repo/hello.py"));
+        assert!(
+            all.iter()
+                .any(|path| path.access == "delete" && path.path == "/repo/stale.txt")
+        );
+        assert_eq!(session.events.tools[0].category, "shell");
+        assert_eq!(
+            session.events.tools[0].command,
+            "cd /repo && mv hello.py greet.py"
+        );
+        // command_name is the first token of a compound command, so Cursor's
+        // habit of prefixing with cd surfaces as "cd" rather than "mv". That is
+        // pre-existing behaviour shared with the other agents, not Cursor
+        // specific, so it stays as is here.
+        assert_eq!(session.events.tools[0].command_name, "cd");
+        assert!(
+            !session.events.tools[0].process_chain.is_empty(),
+            "Shell events must carry a process chain"
+        );
+    }
+
+
+    #[test]
+    fn cursor_shell_working_directory_resolves_relative_paths() {
+        // Cursor names this key working_directory, where Claude and Codex use
+        // workdir or cwd. Without it the relative paths below resolve against
+        // nothing and the session records no files at all.
+        let content = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"move it"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"mv hello.py archive/greet.py","working_directory":"/repo","description":"move"}}]}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+
+        let renamed = session.events.tools[0]
+            .paths
+            .iter()
+            .find(|path| path.access == "rename")
+            .expect("rename");
+        assert_eq!(renamed.path, "/repo/archive/greet.py");
+        assert_eq!(renamed.previous_path.as_deref(), Some("/repo/hello.py"));
+    }
+
+    #[test]
+    fn cursor_subagent_work_folds_into_the_delegating_prompt() {
+        let children = vec![(
+            PathBuf::from("/tmp/subagents/child.jsonl"),
+            cursor_subagent_fixture(),
+        )];
+        let session = parse_cursor_jsonl(
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &cursor_parent_fixture(),
+            &children,
+        )
+        .expect("session");
+
+        // Counts span parent and children. Reading the parent alone would miss
+        // the Write entirely, since that turn only issued a Task.
+        assert_eq!(session.tools.get("Task"), Some(&1));
+        assert_eq!(session.tools.get("Delete"), Some(&1));
+        assert_eq!(session.tools.get("Write"), Some(&1));
+        // Exactly once: two calls in the parent, one in the child, no more.
+        assert_eq!(session.events.tools.len(), 3);
+        assert_eq!(session.tools.values().sum::<usize>(), 3);
+        assert_eq!(session.files.get("/repo/hello.py"), Some(&2));
+
+        let tool_at = |name: &str| {
+            session
+                .events
+                .tools
+                .iter()
+                .find(|tool| tool.tool_name == name)
+                .unwrap_or_else(|| panic!("{name} missing"))
+                .prompt_index
+        };
+        // The child ran under prompt 0, which delegated. Without the Task
+        // prompt match its work would land on prompt 1, the last one seen.
+        assert_eq!(tool_at("Write"), 0);
+        assert_eq!(tool_at("Delete"), 1);
+    }
+
+    #[test]
+    fn cursor_cwd_prefers_working_directory_then_common_path_prefix() {
+        let with_dir = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"go"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"ls","working_directory":"/repo/app"}}]}}"#,
+        ]
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &with_dir,
+        )
+        .expect("session");
+        assert_eq!(session.cwd.as_deref(), Some("/repo/app"));
+
+        // With no working_directory anywhere, fall back to the directory that
+        // contains every absolute path the tools touched.
+        let paths_only = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"go"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"path":"/repo/app/src/main.rs","contents":"x"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"path":"/repo/app/README.md"}}]}}"#,
+        ]
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &paths_only,
+        )
+        .expect("session");
+        assert_eq!(session.cwd.as_deref(), Some("/repo/app"));
+
+        // Nothing to go on leaves cwd unset rather than guessed. The project
+        // directory name is a lossy encoding and inverting it invents paths.
+        let bare = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"hello"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}"#,
+        ]
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/projects/Users-alec-cursor-test/agent-transcripts/a/a.jsonl"),
+            UNIX_EPOCH,
+            &bare,
+        )
+        .expect("session");
+        assert_eq!(session.cwd, None);
+    }
+
+    #[test]
+    fn cursor_truncated_and_empty_transcripts_degrade_without_error() {
+        // Cursor appends while a session runs, so the last line can be torn.
+        // Everything before it must still parse.
+        let torn = concat!(
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"start"}]}}"#,
+            "\n",
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"path":"/repo/a.rs"}}]}}"#,
+            "\n",
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_"#,
+        );
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            torn,
+        )
+        .expect("session");
+        assert_eq!(session.events.prompts.len(), 1);
+        assert_eq!(session.tools.get("Read"), Some(&1));
+
+        // A single record with no tool calls is still a real session and comes
+        // back valid, just with nothing in it.
+        let one_prompt =
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"just asking"}]}}"#;
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            one_prompt,
+        )
+        .expect("a lone prompt is still a session");
+        assert!(session.events.tools.is_empty());
+        assert_eq!(session.prompt_preview.as_deref(), Some("just asking"));
+
+        // A fragment with no user message at all is a different thing: nothing
+        // was asked, so there is no session to report. Same treatment every
+        // other agent gets, and it keeps blank rows out of `top`.
+        for empty in [
+            "",
+            "\n\n",
+            r#"{"type":"turn_ended","status":"error","error":"aborted"}"#,
+            "not json at all",
+        ] {
+            assert!(
+                parse_session_content(
+                    AGENT_CURSOR,
+                    &PathBuf::from("/tmp/session.jsonl"),
+                    UNIX_EPOCH,
+                    empty,
+                )
+                .is_none(),
+                "expected no session for {empty:?}"
+            );
+        }
+
+        // A child whose Task prompt no longer matches still contributes its
+        // work, attributed to the last prompt rather than dropped.
+        let orphan = vec![(
+            PathBuf::from("/tmp/subagents/orphan.jsonl"),
+            [
+                r#"{"role":"user","message":{"content":[{"type":"text","text":"unrelated wording"}]}}"#,
+                r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"path":"/repo/z.rs","contents":"x"}}]}}"#,
+            ]
+            .join("\n"),
+        )];
+        let session = parse_cursor_jsonl(
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &cursor_parent_fixture(),
+            &orphan,
+        )
+        .expect("session");
+        assert_eq!(session.tools.get("Write"), Some(&1));
+    }
+
+    #[test]
+    fn cursor_failed_turn_marks_its_tool_calls() {
+        let content = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"first"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"path":"/repo/ok.rs"}}]}}"#,
+            r#"{"type":"turn_ended","status":"success"}"#,
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"second"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"cat /repo/missing.rs"}}]}}"#,
+            r#"{"type":"turn_ended","status":"error","error":"command failed"}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+
+        let status_of = |name: &str| {
+            session
+                .events
+                .tools
+                .iter()
+                .find(|tool| tool.tool_name == name)
+                .unwrap_or_else(|| panic!("{name} missing"))
+                .status
+                .clone()
+        };
+        // Cursor has no per-tool results, so a failed turn is the only outcome
+        // signal there is, and it applies to that turn's calls only.
+        assert_eq!(status_of("Read"), "observed");
+        assert_eq!(status_of("Shell"), "fail");
+    }
+
+    #[test]
+    fn cursor_subagent_prompts_are_not_user_prompts() {
+        let children = vec![(
+            PathBuf::from("/tmp/subagents/child.jsonl"),
+            cursor_subagent_fixture(),
+        )];
+        let session = parse_cursor_jsonl(
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &cursor_parent_fixture(),
+            &children,
+        )
+        .expect("session");
+
+        // The child's own "user" record holds the Task prompt Cursor generated,
+        // so folding it in must not invent a third human prompt.
+        assert_eq!(session.events.prompts.len(), 2);
+        assert_eq!(session.events.llm_responses.len(), 3);
+    }
 
     #[test]
     fn cursor_paths_classify_but_only_parents_discover() {
