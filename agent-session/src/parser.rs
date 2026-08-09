@@ -1330,20 +1330,29 @@ fn parse_cursor_jsonl(
     let mut events = SessionEvents::default();
     let mut current_prompt_index = 0usize;
 
+    let mut delegations = Vec::new();
     cursor_absorb_transcript(
         content,
         CursorScope::Parent,
         &mut acc,
         &mut events,
         &mut current_prompt_index,
+        &mut delegations,
     );
     for (_, child_content) in children {
+        // Attribute the child's work to the prompt that delegated it, not to
+        // whichever prompt happened to be last. A session that delegates early
+        // and works directly later would otherwise pin all delegated file
+        // activity on the final prompt.
+        let mut index = cursor_delegating_prompt_index(child_content, &delegations)
+            .unwrap_or(current_prompt_index);
         cursor_absorb_transcript(
             child_content,
             CursorScope::Subagent,
             &mut acc,
             &mut events,
-            &mut current_prompt_index,
+            &mut index,
+            &mut Vec::new(),
         );
     }
 
@@ -1369,6 +1378,7 @@ fn cursor_absorb_transcript(
     acc: &mut SessionAccumulator,
     events: &mut SessionEvents,
     current_prompt_index: &mut usize,
+    delegations: &mut Vec<(usize, String)>,
 ) {
     for line in content.lines() {
         let line = line.trim();
@@ -1393,6 +1403,16 @@ fn cursor_absorb_transcript(
             }
             Some("assistant") => {
                 for part in cursor_tool_uses(&record) {
+                    if scope == CursorScope::Parent
+                        && part.get("name").and_then(Value::as_str) == Some("Task")
+                        && let Some(prompt) = part
+                            .get("input")
+                            .and_then(|input| input.get("prompt"))
+                            .and_then(Value::as_str)
+                            .filter(|prompt| !prompt.trim().is_empty())
+                    {
+                        delegations.push((*current_prompt_index, prompt.trim().to_string()));
+                    }
                     cursor_push_tool_event(part, acc, events, *current_prompt_index);
                 }
                 let text = cursor_text_of(&record);
@@ -1420,6 +1440,38 @@ fn cursor_absorb_transcript(
             _ => {}
         }
     }
+}
+
+/// Find which parent prompt delegated a given sub-agent transcript.
+///
+/// A `Task` call records no child id, but Cursor seeds the child's first user
+/// message with the `Task` prompt wrapped in `<timestamp>` and `<user_query>`
+/// metadata, so the prompt text appears verbatim inside it. Matching on
+/// containment recovered all eight parent-child pairs on a real session with no
+/// ambiguity. Falling back to the caller's current index keeps a session that
+/// changes this shape merely imprecise rather than broken.
+fn cursor_delegating_prompt_index(
+    child_content: &str,
+    delegations: &[(usize, String)],
+) -> Option<usize> {
+    if delegations.is_empty() {
+        return None;
+    }
+    let opening = cursor_first_user_text(child_content)?;
+    delegations
+        .iter()
+        .find(|(_, prompt)| opening.contains(prompt.as_str()))
+        .map(|(index, _)| *index)
+}
+
+/// The text of the first user record in a transcript.
+fn cursor_first_user_text(content: &str) -> Option<String> {
+    content.lines().find_map(|line| {
+        let record = serde_json::from_str::<Value>(line.trim()).ok()?;
+        (record.get("role").and_then(Value::as_str) == Some("user"))
+            .then(|| cursor_text_of(&record))
+            .filter(|text| !text.is_empty())
+    })
 }
 
 /// The `tool_use` parts of a Cursor message record.
@@ -3396,7 +3448,9 @@ mod tests {
     /// work lives here, none of it in the parent.
     fn cursor_subagent_fixture() -> String {
         [
-            r#"{"role":"user","message":{"content":[{"type":"text","text":"make it"}]}}"#,
+            // Cursor seeds the child's first message with the Task prompt
+            // wrapped in metadata, which is the only link back to the parent.
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"<timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>\n<user_query>\nmake it\n</user_query>"}]}}"#,
             r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"path":"/repo/hello.py","contents":"print(1)\n"}},{"type":"text","text":"written"}]}}"#,
             r#"{"type":"turn_ended","status":"success"}"#,
         ]
@@ -3582,6 +3636,42 @@ mod tests {
             .expect("rename");
         assert_eq!(renamed.path, "/repo/archive/greet.py");
         assert_eq!(renamed.previous_path.as_deref(), Some("/repo/hello.py"));
+    }
+
+    #[test]
+    fn cursor_subagent_work_folds_into_the_delegating_prompt() {
+        let children = vec![(
+            PathBuf::from("/tmp/subagents/child.jsonl"),
+            cursor_subagent_fixture(),
+        )];
+        let session = parse_cursor_jsonl(
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &cursor_parent_fixture(),
+            &children,
+        )
+        .expect("session");
+
+        // Counts span parent and children. Reading the parent alone would miss
+        // the Write entirely, since that turn only issued a Task.
+        assert_eq!(session.tools.get("Task"), Some(&1));
+        assert_eq!(session.tools.get("Delete"), Some(&1));
+        assert_eq!(session.tools.get("Write"), Some(&1));
+        assert_eq!(session.files.get("/repo/hello.py"), Some(&2));
+
+        let tool_at = |name: &str| {
+            session
+                .events
+                .tools
+                .iter()
+                .find(|tool| tool.tool_name == name)
+                .unwrap_or_else(|| panic!("{name} missing"))
+                .prompt_index
+        };
+        // The child ran under prompt 0, which delegated. Without the Task
+        // prompt match its work would land on prompt 1, the last one seen.
+        assert_eq!(tool_at("Write"), 0);
+        assert_eq!(tool_at("Delete"), 1);
     }
 
     #[test]
