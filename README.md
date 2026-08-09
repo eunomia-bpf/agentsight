@@ -247,6 +247,9 @@ A: `record` stores sessions as `agentsight-*.db` files in the current directory 
 **Q: Why doesn't AgentSight capture traffic from Claude Code, Node.js, or Gemini CLI?**
 A: These applications statically link their SSL library (BoringSSL for Claude/Bun, OpenSSL for **all** Node.js — both NVM and system installs) into their own binary instead of using system `libssl.so`, so there's nothing for sslsniff to hook by default. AgentSight handles this for you: `record -- <command>` always discovers the binary, and `record -c node` now auto-discovers the Node binary too. For Claude attach mode, pass `--binary-path`. See the "Zero-Config: record" and "Monitoring Node.js AI Tools" sections.
 
+**Q: Can AgentSight trace IDE agents like Cursor?**
+A: Not through eBPF. They are Electron apps that mostly run on macOS or Windows, their TLS sits inside a stripped framework binary and a helper process, and Cursor's API traffic is protobuf rather than JSON, so even a successful capture produces no LLM events. Support for these agents goes through the agent-native session path instead. See [IDE-Based Agents](https://github.com/eunomia-bpf/agentsight/blob/master/docs/agents.md#ide-based-agents-cursor-antigravity-windsurf) for the details.
+
 **Q: What should I check if tracing fails?**
 A: Verify you are on Linux with eBPF support, have `sudo` or `CAP_BPF`/`CAP_SYS_ADMIN`, and are using `record -- <command>` or the correct `--binary-path` for statically linked agents.
 
