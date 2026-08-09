@@ -104,6 +104,36 @@ sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/
 > Node process (the proxy only tunnels it), so AgentSight captures it the same
 > way — at the `SSL_read`/`SSL_write` calls before encryption.
 
+## IDE-Based Agents (Cursor, Antigravity, Windsurf)
+
+Agents built into Electron IDEs do not work with `record` or `debug trace`, and
+pointing `--binary-path` at the app does not change that. Three separate things
+get in the way, and only the first one is obvious:
+
+1. **Platform.** These are desktop apps, and most installs run on macOS or
+   Windows. The eBPF probes are Linux-only, so on those systems there is
+   nothing to attach to in the first place.
+
+2. **Attach.** Electron bundles BoringSSL inside its framework binary
+   (`Electron Framework`, hundreds of megabytes, stripped). The launcher that
+   `--binary-path` auto-discovery resolves is a small stub with no SSL code in
+   it, and the network stack runs in a helper process, so a `--comm` filter on
+   the app name drops the traffic. This is the same class of problem as the
+   Claude Code "HTTP Client" thread described above, only across processes
+   instead of threads.
+
+3. **Payload.** Even with probes attached to the right binary, capture alone
+   is not enough. Cursor, for example, talks to its backend over the Connect
+   protocol: HTTP/2 with protobuf message bodies. AgentSight handles HTTP/2
+   framing, but it recognizes LLM calls by their JSON bodies, so protobuf
+   traffic produces no LLM events. The capture succeeds and the timeline stays
+   empty anyway.
+
+For these agents, use the agent-native session path instead: AgentSight reads
+the session files the IDE itself writes on disk, the same way it reads local
+Claude Code, Codex, and Gemini CLI sessions. That route needs no eBPF, no
+`sudo`, and works on macOS and Windows.
+
 ## Containers and Kubernetes Pods
 
 For an agent running inside a Docker container, pass the container to
