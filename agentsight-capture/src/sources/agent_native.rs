@@ -1361,6 +1361,28 @@ mod tests {
     }
 
     #[test]
+    fn count_session_dirs_reports_cursor_root() {
+        let temp = tempfile::tempdir().unwrap();
+        assert!(agent_session::count_session_dirs_in_home(temp.path()).is_empty());
+
+        let transcripts = temp
+            .path()
+            .join(".cursor/projects/repo/agent-transcripts/abc");
+        fs::create_dir_all(transcripts.join("subagents")).unwrap();
+        fs::write(transcripts.join("abc.jsonl"), "{}\n").unwrap();
+        fs::write(transcripts.join("subagents/def.jsonl"), "{}\n").unwrap();
+
+        let stats = agent_session::count_session_dirs_in_home(temp.path());
+        assert_eq!(stats.len(), 1);
+        assert_eq!(stats[0].agent, agent_session::AGENT_CURSOR);
+        assert!(stats[0].dir.ends_with(".cursor/projects"));
+        // Parents only: the subagent file folds into its parent session, so it
+        // adds neither a session nor bytes.
+        assert_eq!(stats[0].sessions, 1);
+        assert_eq!(stats[0].bytes, 3);
+    }
+
+    #[test]
     fn cursor_discovery_emits_parent_candidates_only() {
         let temp = tempfile::tempdir().unwrap();
         let project = temp.path().join(".cursor/projects/repo");

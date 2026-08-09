@@ -133,9 +133,14 @@ fn cursor_is_empty_window(path: &Path) -> bool {
 
 /// Count sessions and bytes per agent directory.
 pub fn count_session_dirs() -> Vec<SessionDirStat> {
-    let Some(home) = user_home_dir() else {
-        return Vec::new();
-    };
+    user_home_dir()
+        .as_deref()
+        .map(count_session_dirs_in_home)
+        .unwrap_or_default()
+}
+
+/// Count sessions and bytes per agent directory under a specific home directory.
+pub fn count_session_dirs_in_home(home: &Path) -> Vec<SessionDirStat> {
     [
         (AGENT_CLAUDE, home.join(".claude/projects")),
         (AGENT_CODEX, home.join(".codex/sessions")),
