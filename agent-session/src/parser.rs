@@ -1943,7 +1943,9 @@ fn shell_file_actions(
     if depth > 2 {
         return Vec::new();
     }
-    let mut cwd = ["workdir", "cwd"]
+    // Cursor's Shell tool names this working_directory rather than workdir or
+    // cwd, and it is the only cwd signal on a command that has no leading cd.
+    let mut cwd = ["workdir", "cwd", "working_directory"]
         .iter()
         .find_map(|key| input.get(*key).and_then(Value::as_str))
         .map(PathBuf::from);
@@ -3504,6 +3506,82 @@ mod tests {
         // Flag-shaped keys such as "-i" are not paths.
         assert_eq!(access_of("/repo"), "read");
         assert_eq!(session.files.get("/repo/d.rs"), Some(&1));
+    }
+
+    #[test]
+    fn cursor_shell_mv_yields_rename_with_previous_path() {
+        // Rename never arrives as a dedicated Cursor tool. It only ever comes
+        // through Shell, and Cursor emits it as a compound command with a cd.
+        let content = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"tidy up"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"cd /repo && mv hello.py greet.py","description":"rename it"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"rm /repo/stale.txt","description":"drop it"}}]}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+
+        let all: Vec<&ToolPath> = session
+            .events
+            .tools
+            .iter()
+            .flat_map(|tool| tool.paths.iter())
+            .collect();
+        let renamed = all
+            .iter()
+            .find(|path| path.access == "rename")
+            .expect("rename");
+        assert_eq!(renamed.path, "/repo/greet.py");
+        assert_eq!(renamed.previous_path.as_deref(), Some("/repo/hello.py"));
+        assert!(
+            all.iter()
+                .any(|path| path.access == "delete" && path.path == "/repo/stale.txt")
+        );
+        assert_eq!(session.events.tools[0].category, "shell");
+        assert_eq!(
+            session.events.tools[0].command,
+            "cd /repo && mv hello.py greet.py"
+        );
+        // command_name is the first token of a compound command, so Cursor's
+        // habit of prefixing with cd surfaces as "cd" rather than "mv". That is
+        // pre-existing behaviour shared with the other agents, not Cursor
+        // specific, so it stays as is here.
+        assert_eq!(session.events.tools[0].command_name, "cd");
+    }
+
+
+    #[test]
+    fn cursor_shell_working_directory_resolves_relative_paths() {
+        // Cursor names this key working_directory, where Claude and Codex use
+        // workdir or cwd. Without it the relative paths below resolve against
+        // nothing and the session records no files at all.
+        let content = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"move it"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"mv hello.py archive/greet.py","working_directory":"/repo","description":"move"}}]}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+
+        let renamed = session.events.tools[0]
+            .paths
+            .iter()
+            .find(|path| path.access == "rename")
+            .expect("rename");
+        assert_eq!(renamed.path, "/repo/archive/greet.py");
+        assert_eq!(renamed.previous_path.as_deref(), Some("/repo/hello.py"));
     }
 
     #[test]
