@@ -3108,7 +3108,13 @@ fn extract_path_groups(
 /// nothing, which under-reports file activity for any project not written in
 /// the handful of languages the extension list happens to name.
 fn plausible_path_operand(part: &str) -> bool {
-    !definitely_not_a_path(part)
+    let part = part.trim_matches(['"', '\'']);
+    // A bare number in operand position is a file descriptor, not a file. The
+    // tokenizer splits `cat x 2>&1` into `x` and `2` and `>&1`, so without this
+    // every redirected command records a read of a file called "2".
+    !part.is_empty()
+        && !part.chars().all(|c| c.is_ascii_digit())
+        && !definitely_not_a_path(part)
 }
 
 /// A token found by scanning a whole command, where it could be anything.
@@ -4587,6 +4593,7 @@ mod tests {
         assert_eq!(heredoc.paths[0].path, "src/real.rs");
     }
 
+
     #[test]
     fn shell_path_operands_are_not_limited_to_known_extensions() {
         let paths_of = |command: &str| {
@@ -4627,6 +4634,28 @@ mod tests {
             "rm $TARGET",
             "rm -rf",
         ] {
+            assert!(
+                paths_of(command).is_empty(),
+                "{command} should record nothing, got {:?}",
+                paths_of(command)
+            );
+        }
+
+        // A redirected command splits into a bare file descriptor. Without the
+        // numeric guard, every `2>&1` recorded a read of a file called "2".
+        let redirected = paths_of("cat notes.txt 2>&1");
+        assert!(
+            redirected
+                .iter()
+                .any(|(path, _)| path == "/repo/notes.txt"),
+            "the real file should still be recorded, got {redirected:?}"
+        );
+        assert!(
+            !redirected.iter().any(|(path, _)| path.ends_with("/2")),
+            "a file descriptor is not a file, got {redirected:?}"
+        );
+
+        for command in ["rm 2", "cat 1"] {
             assert!(
                 paths_of(command).is_empty(),
                 "{command} should record nothing, got {:?}",
