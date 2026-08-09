@@ -17,6 +17,7 @@ import { AgentSightSnapshot } from '@/types/event';
 import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
 
 type AppMode = 'loading' | 'live' | 'demo';
+type ViewNavigationOptions = { path?: string };
 
 function viewModeFromPath(pathname: string): ViewMode {
   const path = pathname.replace(/\/$/, '');
@@ -64,6 +65,7 @@ export default function Home() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string>('');
   const [mode, setMode] = useState<AppMode>('loading');
+  const [viewSearchTerm, setViewSearchTerm] = useState('');
 
   const displayEvents = useMemo(() => displayEventsFromSnapshot(snapshot), [snapshot]);
   const eventCount = displayEvents.length;
@@ -92,11 +94,17 @@ export default function Home() {
   }, []);
 
   useEffect(() => { void syncData(); }, [syncData]);
-  useEffect(() => { setViewMode(viewModeFromPath(window.location.pathname)); }, []);
+  useEffect(() => {
+    setViewMode(viewModeFromPath(window.location.pathname));
+    setViewSearchTerm(new URLSearchParams(window.location.search).get('path') ?? '');
+  }, []);
 
-  const selectViewMode = (mode: ViewMode) => {
+  const selectViewMode = (mode: ViewMode, options?: ViewNavigationOptions) => {
+    const path = options?.path?.trim() ?? '';
     setViewMode(mode);
-    window.history.replaceState(null, '', `${basePath}${pathForViewMode(mode)}`);
+    setViewSearchTerm(path);
+    const query = path ? `?path=${encodeURIComponent(path)}` : '';
+    window.history.replaceState(null, '', `${basePath}${pathForViewMode(mode)}${query}`);
   };
 
   const isDemo = mode === 'demo';
@@ -179,14 +187,14 @@ export default function Home() {
           </div>
 
           {viewMode === 'nebula' ? (
-            <NebulaView onNavigate={(view) => selectViewMode(view)} />
+            <NebulaView onNavigate={selectViewMode} />
           ) : eventCount > 0 ? (
             viewMode === 'overview' ? (
               <Dashboard snapshot={snapshot} onNavigate={selectViewMode} />
             ) : viewMode === 'log' ? (
-              <LogView events={displayEvents} />
+              <LogView events={displayEvents} initialSearchTerm={viewSearchTerm} />
             ) : viewMode === 'timeline' ? (
-              <TimelineView events={displayEvents} />
+              <TimelineView events={displayEvents} initialSearchTerm={viewSearchTerm} />
             ) : viewMode === 'process-tree' ? (
               <ProcessTreeView snapshot={snapshot} />
             ) : (
