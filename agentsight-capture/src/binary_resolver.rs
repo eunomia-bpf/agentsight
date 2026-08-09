@@ -1032,6 +1032,7 @@ mod tests {
         assert_eq!(parse_crictl_pid(&json!({"info": {"pid": 0}})), None);
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn canonicalize_attach_path_resolves_proc_root_when_available() {
         assert_eq!(
