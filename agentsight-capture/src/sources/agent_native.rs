@@ -10,7 +10,6 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-#[cfg(any(test, feature = "test-support"))]
 use std::fs;
 
 use crate::model::{
@@ -70,6 +69,7 @@ pub fn discover_sessions(
     };
     let mut seen = HashSet::new();
     sessions.retain(|session| seen.insert(session.display_id.clone()));
+    enrich_cursor_sessions(&mut sessions);
     sessions
         .into_iter()
         .filter(|s| matches_filter(s, pid_filter, text_filter))
@@ -189,7 +189,6 @@ fn codex_rollout_usage(path: &Path) -> Option<TokenUsage> {
     agent_session::codex_total_token_usage(&String::from_utf8_lossy(&data))
 }
 
-#[cfg(any(test, feature = "test-support"))]
 const CURSOR_STATE_DB_CANDIDATES: [&str; 3] = [
     "Library/Application Support/Cursor/User/globalStorage/state.vscdb",
     ".config/Cursor/User/globalStorage/state.vscdb",
@@ -198,7 +197,6 @@ const CURSOR_STATE_DB_CANDIDATES: [&str; 3] = [
 
 /// Locate Cursor's state database under a home directory. Candidates are the
 /// macOS, Linux, and Windows layouts, in that order; first existing file wins.
-#[cfg(any(test, feature = "test-support"))]
 fn cursor_state_db_path(home: &Path) -> Option<PathBuf> {
     CURSOR_STATE_DB_CANDIDATES
         .iter()
@@ -208,12 +206,10 @@ fn cursor_state_db_path(home: &Path) -> Option<PathBuf> {
 
 /// Cursor is usually running with an active WAL on this database, so open it
 /// strictly read-only and treat any failure as absence rather than an error.
-#[cfg(any(test, feature = "test-support"))]
 fn open_cursor_state_db(path: &Path) -> Option<rusqlite::Connection> {
     rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).ok()
 }
 
-#[cfg(any(test, feature = "test-support"))]
 struct CursorComposerHeader {
     created_at_ms: Option<u64>,
     updated_at_ms: Option<u64>,
@@ -222,7 +218,6 @@ struct CursorComposerHeader {
 /// Read one composer's header row. `lastUpdatedAt` is NULL on every subagent
 /// header, so both timestamps stay optional. A missing row is normal:
 /// `composerHeaders` is not a 1:1 index of the transcripts on disk.
-#[cfg(any(test, feature = "test-support"))]
 fn cursor_composer_header(
     conn: &rusqlite::Connection,
     composer_id: &str,
@@ -244,7 +239,6 @@ fn cursor_composer_header(
 
 /// `cursorDiskKV` values are BLOBs on real installs but land as TEXT when
 /// written from SQL literals, so accept either shape.
-#[cfg(any(test, feature = "test-support"))]
 fn cursor_kv_bytes(value: rusqlite::types::Value) -> Option<Vec<u8>> {
     match value {
         rusqlite::types::Value::Blob(bytes) => Some(bytes),
@@ -253,7 +247,6 @@ fn cursor_kv_bytes(value: rusqlite::types::Value) -> Option<Vec<u8>> {
     }
 }
 
-#[cfg(any(test, feature = "test-support"))]
 struct CursorComposerData {
     model: Option<String>,
     workspace_path: Option<String>,
@@ -263,7 +256,6 @@ struct CursorComposerData {
 /// "default" when the user never pinned a model, which means unknown, not a
 /// model called "default". `workspaceIdentifier.uri.fsPath` carries the real
 /// working directory when present (a minority of records).
-#[cfg(any(test, feature = "test-support"))]
 fn cursor_composer_data(
     conn: &rusqlite::Connection,
     composer_id: &str,
@@ -296,7 +288,6 @@ fn cursor_composer_data(
 /// `bubbleId:<id>:` to `bubbleId:<id>;` (';' is ':' + 1), which stays on the
 /// key index instead of scanning the table. Cursor stopped writing usage
 /// events around March 2026, so zero on a current session is the normal case.
-#[cfg(any(test, feature = "test-support"))]
 fn cursor_bubble_tokens(conn: &rusqlite::Connection, composer_id: &str) -> TokenUsage {
     let mut usage = TokenUsage::default();
     let Ok(mut stmt) = conn.prepare("SELECT value FROM cursorDiskKV WHERE key >= ?1 AND key < ?2")
@@ -336,7 +327,6 @@ fn cursor_bubble_tokens(conn: &rusqlite::Connection, composer_id: &str) -> Token
 /// Composer ids of a parent transcript's delegated runs, read from the
 /// `subagents/` directory next to it. `Task` calls carry no child id, so the
 /// directory layout is the only parent-child link.
-#[cfg(any(test, feature = "test-support"))]
 fn cursor_subagent_ids(parent_transcript: &Path) -> Vec<String> {
     let Some(subagents) = parent_transcript.parent().map(|dir| dir.join("subagents")) else {
         return Vec::new();
@@ -356,6 +346,78 @@ fn cursor_subagent_ids(parent_transcript: &Path) -> Vec<String> {
         .collect();
     ids.sort();
     ids
+}
+
+/// Fill Cursor session metadata from Cursor's own state database. The
+/// transcript carries no model, tokens, or wall-clock session timing; those
+/// live in `state.vscdb`, joined on the transcript's composer id. A missing,
+/// locked, or unreadable database leaves the sessions exactly as parsed.
+fn enrich_cursor_sessions(sessions: &mut [LocalSession]) {
+    if !sessions
+        .iter()
+        .any(|session| session.agent_type == agent_session::AGENT_CURSOR)
+    {
+        return;
+    }
+    let Some(home) = user_home_dir() else {
+        return;
+    };
+    enrich_cursor_sessions_in_home(&home, sessions);
+}
+
+fn enrich_cursor_sessions_in_home(home: &Path, sessions: &mut [LocalSession]) {
+    let Some(db_path) = cursor_state_db_path(home) else {
+        return;
+    };
+    let Some(conn) = open_cursor_state_db(&db_path) else {
+        return;
+    };
+    for session in sessions
+        .iter_mut()
+        .filter(|session| session.agent_type == agent_session::AGENT_CURSOR)
+    {
+        enrich_cursor_session(&conn, session);
+    }
+}
+
+fn enrich_cursor_session(conn: &rusqlite::Connection, session: &mut LocalSession) {
+    let composer_id = session.session_id.clone();
+    if let Some(header) = cursor_composer_header(conn, &composer_id) {
+        if header.created_at_ms.is_some() {
+            session.start_timestamp_ms = header.created_at_ms;
+        }
+        if let Some(updated_ms) = header.updated_at_ms {
+            session.end_timestamp_ms = Some(updated_ms);
+            session.last_message_at = Some(iso_utc_from_ms(updated_ms));
+        }
+        if let (Some(start), Some(end)) = (session.start_timestamp_ms, session.end_timestamp_ms) {
+            session.duration_ms = end.saturating_sub(start);
+        }
+    }
+    if let Some(data) = cursor_composer_data(conn, &composer_id) {
+        if data.model.is_some() {
+            session.model = data.model;
+        }
+        if data.workspace_path.is_some() {
+            session.cwd = data.workspace_path;
+        }
+    }
+    // Tokens roll up across the parent and its delegated runs; the sessions
+    // that delegated most would otherwise under-report worst. Zero stays zero:
+    // current Cursor versions record no usage events at all.
+    let mut usage = cursor_bubble_tokens(conn, &composer_id);
+    for child_id in cursor_subagent_ids(&session.path) {
+        let child = cursor_bubble_tokens(conn, &child_id);
+        usage.input_tokens += child.input_tokens;
+        usage.output_tokens += child.output_tokens;
+        usage.total_tokens += child.total_tokens;
+    }
+    if usage.total_tokens > 0 {
+        if let Some(model) = session.model.as_deref() {
+            session.model_usage.insert(model.to_string(), usage.clone());
+        }
+        session.usage = usage;
+    }
 }
 
 fn user_home_dir() -> Option<PathBuf> {
@@ -1003,6 +1065,9 @@ pub fn write_cursor_state_db_for_test(home: &Path) {
     let db_dir = home.join("Library/Application Support/Cursor/User/globalStorage");
     fs::create_dir_all(&db_dir).unwrap();
     let conn = rusqlite::Connection::open(db_dir.join("state.vscdb")).unwrap();
+    // Real installs run WAL, which is what lets a read-only connection work
+    // while Cursor holds a write transaction.
+    conn.pragma_update(None, "journal_mode", "WAL").unwrap();
     conn.execute_batch(
         r#"CREATE TABLE composerHeaders (composerId TEXT PRIMARY KEY, workspaceId TEXT,
             createdAt INTEGER, lastUpdatedAt INTEGER, isArchived INTEGER,
@@ -1122,6 +1187,93 @@ mod tests {
             [],
         );
         assert!(denied.is_err());
+    }
+
+    fn cursor_fixture_transcripts(home: &Path) -> PathBuf {
+        let transcripts = home
+            .join(".cursor/projects/repo/agent-transcripts/abc00000-0000-0000-0000-000000000abc");
+        fs::create_dir_all(transcripts.join("subagents")).unwrap();
+        let parent = transcripts.join("abc00000-0000-0000-0000-000000000abc.jsonl");
+        fs::write(
+            &parent,
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"check the build"}]}}"#,
+        )
+        .unwrap();
+        fs::write(
+            transcripts.join("subagents/def00000-0000-0000-0000-000000000def.jsonl"),
+            "{}\n",
+        )
+        .unwrap();
+        parent
+    }
+
+    #[test]
+    fn cursor_enrichment_fills_metadata_and_rolls_up_subagents() {
+        let temp = tempfile::tempdir().unwrap();
+        write_cursor_state_db_for_test(temp.path());
+        let parent = cursor_fixture_transcripts(temp.path());
+
+        let mut sessions = vec![agent_session::parse_session_path(&parent).expect("parsed")];
+        enrich_cursor_sessions_in_home(temp.path(), &mut sessions);
+
+        let session = &sessions[0];
+        assert_eq!(session.model.as_deref(), Some("claude-sonnet-4-6"));
+        assert_eq!(session.start_timestamp_ms, Some(1_700_000));
+        assert_eq!(session.end_timestamp_ms, Some(1_900_000));
+        assert_eq!(session.duration_ms, 200_000);
+        assert_eq!(session.cwd.as_deref(), Some("/work/repo"));
+        assert_eq!(
+            session.last_message_at.as_deref(),
+            Some("1970-01-01T00:31:40.000Z")
+        );
+        // 140 from the parent's bubbles plus 10 from the delegated run.
+        assert_eq!(session.usage.total_tokens, 150);
+        assert_eq!(
+            session
+                .model_usage
+                .get("claude-sonnet-4-6")
+                .map(|usage| usage.total_tokens),
+            Some(150)
+        );
+    }
+
+    #[test]
+    fn cursor_enrichment_missing_db_changes_nothing() {
+        let temp = tempfile::tempdir().unwrap();
+        let parent = cursor_fixture_transcripts(temp.path());
+
+        let parsed = agent_session::parse_session_path(&parent).expect("parsed");
+        let mut sessions = vec![parsed.clone()];
+        enrich_cursor_sessions_in_home(temp.path(), &mut sessions);
+
+        assert_eq!(sessions[0].model, parsed.model);
+        assert_eq!(sessions[0].usage.total_tokens, parsed.usage.total_tokens);
+        assert_eq!(sessions[0].cwd, parsed.cwd);
+        assert_eq!(sessions[0].start_timestamp_ms, parsed.start_timestamp_ms);
+    }
+
+    #[test]
+    fn cursor_enrichment_reads_while_writer_holds_wal() {
+        let temp = tempfile::tempdir().unwrap();
+        write_cursor_state_db_for_test(temp.path());
+        let parent = cursor_fixture_transcripts(temp.path());
+
+        let writer =
+            rusqlite::Connection::open(cursor_state_db_path(temp.path()).unwrap()).unwrap();
+        writer.execute_batch("BEGIN IMMEDIATE;").unwrap();
+        writer
+            .execute(
+                "INSERT INTO cursorDiskKV (key, value) VALUES ('agentKv:x', 'held open')",
+                [],
+            )
+            .unwrap();
+
+        let mut sessions = vec![agent_session::parse_session_path(&parent).expect("parsed")];
+        enrich_cursor_sessions_in_home(temp.path(), &mut sessions);
+        writer.execute_batch("ROLLBACK;").unwrap();
+
+        assert_eq!(sessions[0].model.as_deref(), Some("claude-sonnet-4-6"));
+        assert_eq!(sessions[0].usage.total_tokens, 150);
     }
 
     #[test]
