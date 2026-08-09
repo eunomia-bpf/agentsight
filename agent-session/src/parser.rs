@@ -1453,39 +1453,23 @@ fn cursor_push_tool_event(
         return;
     };
     let input = part.get("input").cloned().unwrap_or(Value::Null);
-    // Only Shell carries a command; everything else leaves these empty.
-    let command = input
-        .get("command")
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-        .to_string();
 
     acc.add_tool(name);
-    events.tools.push(ToolEvent {
-        ts_ms: None,
+    let event = tool_event_from_input(
+        acc.cwd.as_deref(),
+        // Cursor records no timestamps in the transcript, and its tool_use parts
+        // carry only type, name and input, so there is no call id either.
+        None,
         prompt_index,
-        tool_name: name.to_string(),
-        category: tool_category(name, &command),
-        command_name: basename_from_command(&command),
-        effect: if command.is_empty() {
-            String::new()
-        } else {
-            command_effect(&command)
-        },
-        command,
-        process_chain: Vec::new(),
-        // Cursor writes no tool_result records. The only signal is turn-level
-        // turn_ended.status, so per-tool status stays unset rather than guessed.
-        status: String::new(),
-        path_groups: Vec::new(),
-        paths: Vec::new(),
-        domains: Vec::new(),
-        // Cursor's tool_use parts carry only type, name and input. No id.
-        call_id: None,
-        invoked_skill: String::new(),
-        skill: String::new(),
-        task_path: Vec::new(),
-    });
+        name,
+        &input,
+        None,
+        Vec::new(),
+    );
+    for path in &event.paths {
+        acc.add_file(&path.path);
+    }
+    events.tools.push(event);
 }
 
 /// Join the `text` parts of a Cursor message record.
@@ -1821,6 +1805,10 @@ fn extract_tool_paths(name: &str, input: &Value, command: &str, effect: &str) ->
         || lower.contains("patch")
     {
         "write"
+    } else if lower.contains("delete") {
+        // Cursor deletes files through a dedicated Delete tool rather than a
+        // patch or a shell rm, so without this the deletion records no path.
+        "delete"
     } else if is_shell {
         if effect == "read" { "read" } else { "write" }
     } else {
@@ -2163,6 +2151,17 @@ fn collect_path_fields(
                     let path = clean_path_token(path);
                     if !path.is_empty() {
                         out.insert(path, (access.to_string(), None));
+                    }
+                } else if matches!(key.as_str(), "paths" | "file_paths" | "filepaths")
+                    && let Some(items) = value.as_array()
+                {
+                    // Cursor's ReadLints takes a list rather than a single path.
+                    // Generic array recursion below never reaches bare strings.
+                    for item in items.iter().filter_map(Value::as_str) {
+                        let path = clean_path_token(item);
+                        if !path.is_empty() {
+                            out.insert(path, (access.to_string(), None));
+                        }
                     }
                 } else if value.is_object() || value.is_array() {
                     collect_path_fields(value, access, out);
@@ -3456,10 +3455,55 @@ mod tests {
         assert_eq!(named("ReadLints").category, "read");
         // An unfamiliar name still produces an event, in the catch-all category.
         assert_eq!(named("SomeToolWeHaveNeverSeen").category, "tool");
-        // Cursor has no per-tool result records and no tool call ids.
+        // Cursor has no tool call ids, and no tool_result records to upgrade a
+        // call's status, so every Cursor tool event stays "observed".
         assert!(named("Shell").call_id.is_none());
-        assert!(named("Shell").status.is_empty());
+        assert_eq!(named("Shell").status, "observed");
         assert_eq!(session.tools.get("Shell"), Some(&1));
+    }
+
+    #[test]
+    fn cursor_file_tools_map_to_access_kinds() {
+        let content = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"work"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"path":"/repo/a.rs"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"path":"/repo/b.rs","contents":"fn main() {}"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"StrReplace","input":{"path":"/repo/c.rs","old_string":"x","new_string":"y"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Delete","input":{"path":"/repo/d.rs"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"ReadLints","input":{"paths":["/repo/e.rs","/repo/f.rs"]}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Grep","input":{"pattern":"timeout","path":"/repo","-i":true}}]}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+
+        let access_of = |path: &str| {
+            session
+                .events
+                .tools
+                .iter()
+                .flat_map(|tool| tool.paths.iter())
+                .find(|candidate| candidate.path == path)
+                .unwrap_or_else(|| panic!("{path} missing"))
+                .access
+                .clone()
+        };
+        assert_eq!(access_of("/repo/a.rs"), "read");
+        assert_eq!(access_of("/repo/b.rs"), "write");
+        assert_eq!(access_of("/repo/c.rs"), "write");
+        assert_eq!(access_of("/repo/d.rs"), "delete");
+        // ReadLints takes a list, not a single path.
+        assert_eq!(access_of("/repo/e.rs"), "read");
+        assert_eq!(access_of("/repo/f.rs"), "read");
+        // Flag-shaped keys such as "-i" are not paths.
+        assert_eq!(access_of("/repo"), "read");
+        assert_eq!(session.files.get("/repo/d.rs"), Some(&1));
     }
 
     #[test]
