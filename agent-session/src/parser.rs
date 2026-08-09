@@ -1396,7 +1396,7 @@ fn cursor_absorb_transcript(
 
         match record.get("role").and_then(Value::as_str) {
             Some("user") if scope == CursorScope::Parent => {
-                let text = cursor_text_of(&record);
+                let text = cursor_user_query(&cursor_text_of(&record));
                 if !text.is_empty() {
                     *current_prompt_index = events.upsert_prompt(None, &text, Vec::new());
                     if acc.prompt_preview.is_none() {
@@ -1538,6 +1538,36 @@ fn cursor_delegating_prompt_index(
         .iter()
         .find(|(_, prompt)| opening.contains(prompt.as_str()))
         .map(|(index, _)| *index)
+}
+
+/// Strip Cursor's user message wrapper.
+///
+/// Every user record Cursor writes, in parent and sub-agent transcripts alike,
+/// wraps what the person actually typed:
+///
+/// ```text
+/// <timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>
+/// <user_query>
+/// Create hello.py that prints Hello
+/// </user_query>
+/// ```
+///
+/// Without unwrapping, every prompt preview in `top` and in reports shows the
+/// timestamp header rather than the prompt. Text with no wrapper is returned
+/// unchanged, so this is safe if the format shifts.
+fn cursor_user_query(text: &str) -> String {
+    const OPEN: &str = "<user_query>";
+    const CLOSE: &str = "</user_query>";
+    let Some(start) = text.find(OPEN) else {
+        return text.trim().to_string();
+    };
+    let rest = &text[start + OPEN.len()..];
+    let inner = match rest.find(CLOSE) {
+        Some(end) => &rest[..end],
+        // A torn final line can cut the closing tag off.
+        None => rest,
+    };
+    inner.trim().to_string()
 }
 
 /// The text of the first user record in a transcript.
@@ -3510,7 +3540,8 @@ mod tests {
     /// while the other silently breaks.
     fn cursor_parent_fixture() -> String {
         [
-            r#"{"role":"user","message":{"content":[{"type":"text","text":"create hello.py"}]}}"#,
+            // Cursor wraps every user message, parent and child alike.
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"<timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>\n<user_query>\ncreate hello.py\n</user_query>"}]}}"#,
             r#"{"role":"assistant","message":{"content":[{"type":"text","text":"delegating"},{"type":"tool_use","name":"Task","input":{"description":"Create hello.py","prompt":"make it","subagent_type":"generalPurpose"}}]}}"#,
             r#"{"type":"turn_ended","status":"success"}"#,
             r#"{"role":"user","message":{"content":[{"type":"text","text":"now delete it"}]}}"#,
@@ -3548,7 +3579,10 @@ mod tests {
         assert_eq!(session.agent_type, AGENT_CURSOR);
         assert_eq!(session.events.prompts.len(), 2);
         assert_eq!(session.events.llm_responses.len(), 2);
+        // The <timestamp>/<user_query> wrapper is stripped, so previews show
+        // what the person typed rather than Cursor's header.
         assert_eq!(session.events.prompts[0].preview, "create hello.py");
+        assert_eq!(session.events.prompts[1].preview, "now delete it");
         assert_eq!(session.events.prompts[1].index, 1);
         assert_eq!(session.events.llm_responses[1].prompt_index, 1);
         assert_eq!(session.prompt_preview.as_deref(), Some("create hello.py"));
