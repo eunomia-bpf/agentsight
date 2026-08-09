@@ -1079,6 +1079,8 @@ pub fn write_cursor_state_db_for_test(home: &Path) {
         ('def00000-0000-0000-0000-000000000def', 'ws1', 1750000, NULL, 1),
         ('aaa00000-0000-0000-0000-000000000aaa', 'ws2', 1600000, 1650000, 0);
         INSERT INTO cursorDiskKV (key, value) VALUES
+        ('composerData:bbb00000-0000-0000-0000-000000000bbb',
+         '{"composerId":"bbb00000-0000-0000-0000-000000000bbb","modelConfig":{"modelName":"claude-4.6-sonnet-medium-thinking","maxMode":false}}'),
         ('composerData:abc00000-0000-0000-0000-000000000abc',
          '{"composerId":"abc00000-0000-0000-0000-000000000abc","modelConfig":{"modelName":"claude-sonnet-4-6","maxMode":false},"workspaceIdentifier":{"uri":{"fsPath":"/work/repo"}}}'),
         ('composerData:aaa00000-0000-0000-0000-000000000aaa',
@@ -1235,6 +1237,38 @@ mod tests {
                 .map(|usage| usage.total_tokens),
             Some(150)
         );
+    }
+
+    #[test]
+    fn cursor_enrichment_reads_model_when_header_row_is_missing() {
+        // Real installs have composers with composerData but no
+        // composerHeaders row. The model must still come through, and the
+        // timestamps must stay on their transcript-derived fallbacks.
+        let temp = tempfile::tempdir().unwrap();
+        write_cursor_state_db_for_test(temp.path());
+        let transcripts = temp
+            .path()
+            .join(".cursor/projects/repo/agent-transcripts/bbb00000-0000-0000-0000-000000000bbb");
+        fs::create_dir_all(&transcripts).unwrap();
+        let parent = transcripts.join("bbb00000-0000-0000-0000-000000000bbb.jsonl");
+        fs::write(
+            &parent,
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"check the build"}]}}"#,
+        )
+        .unwrap();
+
+        let parsed = agent_session::parse_session_path(&parent).expect("parsed");
+        let mut sessions = vec![parsed.clone()];
+        enrich_cursor_sessions_in_home(temp.path(), &mut sessions);
+
+        assert_eq!(
+            sessions[0].model.as_deref(),
+            Some("claude-4.6-sonnet-medium-thinking")
+        );
+        assert_eq!(sessions[0].start_timestamp_ms, parsed.start_timestamp_ms);
+        assert_eq!(sessions[0].end_timestamp_ms, parsed.end_timestamp_ms);
+        assert_eq!(sessions[0].last_message_at, parsed.last_message_at);
+        assert_eq!(sessions[0].usage.total_tokens, parsed.usage.total_tokens);
     }
 
     #[test]
