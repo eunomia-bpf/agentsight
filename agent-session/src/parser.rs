@@ -1383,6 +1383,8 @@ fn cursor_absorb_transcript(
     current_prompt_index: &mut usize,
     delegations: &mut Vec<(usize, String)>,
 ) {
+    // Tools recorded since the last turn marker, so a failed turn can mark them.
+    let mut turn_start = events.tools.len();
     for line in content.lines() {
         let line = line.trim();
         if line.is_empty() {
@@ -1393,6 +1395,26 @@ fn cursor_absorb_transcript(
         let Ok(record) = serde_json::from_str::<Value>(line) else {
             continue;
         };
+
+        // Cursor records no per-tool result, so the only outcome signal is the
+        // turn marker. A failed turn marks every tool call it contained, which
+        // is the same shape as the other agents' tool_result handling, just at
+        // turn granularity rather than per call.
+        if record.get("type").and_then(Value::as_str) == Some("turn_ended") {
+            let failed = record
+                .get("status")
+                .and_then(Value::as_str)
+                .is_some_and(|status| {
+                    matches!(status, "error" | "failed" | "fail" | "cancelled" | "canceled")
+                });
+            if failed {
+                for tool in events.tools.iter_mut().skip(turn_start) {
+                    tool.status = "fail".to_string();
+                }
+            }
+            turn_start = events.tools.len();
+            continue;
+        }
 
         match record.get("role").and_then(Value::as_str) {
             Some("user") if scope == CursorScope::Parent => {
@@ -3566,6 +3588,7 @@ mod tests {
 
 
 
+
     #[test]
     fn cursor_transcript_counts_prompts_and_responses() {
         let session = parse_session_content(
@@ -3719,6 +3742,10 @@ mod tests {
         // pre-existing behaviour shared with the other agents, not Cursor
         // specific, so it stays as is here.
         assert_eq!(session.events.tools[0].command_name, "cd");
+        assert!(
+            !session.events.tools[0].process_chain.is_empty(),
+            "Shell events must carry a process chain"
+        );
     }
 
 
@@ -3769,6 +3796,9 @@ mod tests {
         assert_eq!(session.tools.get("Task"), Some(&1));
         assert_eq!(session.tools.get("Delete"), Some(&1));
         assert_eq!(session.tools.get("Write"), Some(&1));
+        // Exactly once: two calls in the parent, one in the child, no more.
+        assert_eq!(session.events.tools.len(), 3);
+        assert_eq!(session.tools.values().sum::<usize>(), 3);
         assert_eq!(session.files.get("/repo/hello.py"), Some(&2));
 
         let tool_at = |name: &str| {
@@ -3857,10 +3887,23 @@ mod tests {
         assert_eq!(session.events.prompts.len(), 1);
         assert_eq!(session.tools.get("Read"), Some(&1));
 
-        // A transcript holding nothing but a turn marker has no prompt, no
-        // tools and no tokens, so it yields None. That is the same treatment
-        // every other agent gets for an empty session, and it keeps abandoned
-        // sessions out of `top` rather than showing blank rows.
+        // A single record with no tool calls is still a real session and comes
+        // back valid, just with nothing in it.
+        let one_prompt =
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"just asking"}]}}"#;
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            one_prompt,
+        )
+        .expect("a lone prompt is still a session");
+        assert!(session.events.tools.is_empty());
+        assert_eq!(session.prompt_preview.as_deref(), Some("just asking"));
+
+        // A fragment with no user message at all is a different thing: nothing
+        // was asked, so there is no session to report. Same treatment every
+        // other agent gets, and it keeps blank rows out of `top`.
         for empty in [
             "",
             "\n\n",
@@ -3897,6 +3940,42 @@ mod tests {
         )
         .expect("session");
         assert_eq!(session.tools.get("Write"), Some(&1));
+    }
+
+    #[test]
+    fn cursor_failed_turn_marks_its_tool_calls() {
+        let content = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"first"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"path":"/repo/ok.rs"}}]}}"#,
+            r#"{"type":"turn_ended","status":"success"}"#,
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"second"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"cat /repo/missing.rs"}}]}}"#,
+            r#"{"type":"turn_ended","status":"error","error":"command failed"}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+
+        let status_of = |name: &str| {
+            session
+                .events
+                .tools
+                .iter()
+                .find(|tool| tool.tool_name == name)
+                .unwrap_or_else(|| panic!("{name} missing"))
+                .status
+                .clone()
+        };
+        // Cursor has no per-tool results, so a failed turn is the only outcome
+        // signal there is, and it applies to that turn's calls only.
+        assert_eq!(status_of("Read"), "observed");
+        assert_eq!(status_of("Shell"), "fail");
     }
 
     #[test]
