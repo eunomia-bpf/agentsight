@@ -1330,6 +1330,9 @@ fn parse_cursor_jsonl(
     let mut events = SessionEvents::default();
     let mut current_prompt_index = 0usize;
 
+    // Resolve cwd before the walk so tool events group their paths against it.
+    acc.cwd = cursor_session_cwd(content, children);
+
     let mut delegations = Vec::new();
     cursor_absorb_transcript(
         content,
@@ -1440,6 +1443,79 @@ fn cursor_absorb_transcript(
             _ => {}
         }
     }
+}
+
+/// Work out a Cursor session's working directory from its transcripts.
+///
+/// Cursor records no cwd field, unlike Claude and Codex. Two signals are
+/// available and both are exact: `Shell.working_directory`, present on some
+/// commands, and the absolute paths that file tools carry.
+///
+/// The project directory name is deliberately not used. It is a lossy encoding
+/// (`Users-alec-cursor-test`) that cannot be inverted, since a hyphen in a real
+/// directory name is indistinguishable from a separator, so un-collapsing it
+/// yields `/Users/alec/cursor/test` for a directory actually named
+/// `cursor-test`. A wrong cwd is worse than none, and the SQLite enrichment can
+/// supply the real path from `workspaceIdentifier`.
+fn cursor_session_cwd(content: &str, children: &[(PathBuf, String)]) -> Option<String> {
+    let mut absolute: Vec<PathBuf> = Vec::new();
+    for transcript in std::iter::once(content).chain(children.iter().map(|(_, body)| body.as_str()))
+    {
+        for line in transcript.lines() {
+            let Ok(record) = serde_json::from_str::<Value>(line.trim()) else {
+                continue;
+            };
+            for part in cursor_tool_uses(&record) {
+                let Some(input) = part.get("input") else {
+                    continue;
+                };
+                if let Some(dir) = input.get("working_directory").and_then(Value::as_str)
+                    && Path::new(dir).is_absolute()
+                {
+                    return Some(dir.to_string());
+                }
+                for key in ["path", "paths"] {
+                    match input.get(key) {
+                        Some(Value::String(value)) => absolute.push(PathBuf::from(value)),
+                        Some(Value::Array(values)) => absolute
+                            .extend(values.iter().filter_map(Value::as_str).map(PathBuf::from)),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+    common_parent_dir(&absolute)
+}
+
+/// The deepest directory containing every one of the given absolute paths.
+fn common_parent_dir(paths: &[PathBuf]) -> Option<String> {
+    let mut dirs = paths
+        .iter()
+        .filter(|path| path.is_absolute())
+        .filter_map(|path| path.parent())
+        .map(|dir| {
+            dir.components()
+                .map(|part| part.as_os_str().to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+        });
+    let mut shared = dirs.next()?;
+    for candidate in dirs {
+        let keep = shared
+            .iter()
+            .zip(candidate.iter())
+            .take_while(|(left, right)| left == right)
+            .count();
+        shared.truncate(keep);
+    }
+    // A single leading "/" component means the paths share nothing useful.
+    (shared.len() > 1).then(|| {
+        let mut out = PathBuf::new();
+        for part in shared {
+            out.push(part);
+        }
+        out.to_string_lossy().into_owned()
+    })
 }
 
 /// Find which parent prompt delegated a given sub-agent transcript.
@@ -3457,6 +3533,8 @@ mod tests {
         .join("\n")
     }
 
+
+
     #[test]
     fn cursor_transcript_counts_prompts_and_responses() {
         let session = parse_session_content(
@@ -3672,6 +3750,119 @@ mod tests {
         // prompt match its work would land on prompt 1, the last one seen.
         assert_eq!(tool_at("Write"), 0);
         assert_eq!(tool_at("Delete"), 1);
+    }
+
+    #[test]
+    fn cursor_cwd_prefers_working_directory_then_common_path_prefix() {
+        let with_dir = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"go"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"ls","working_directory":"/repo/app"}}]}}"#,
+        ]
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &with_dir,
+        )
+        .expect("session");
+        assert_eq!(session.cwd.as_deref(), Some("/repo/app"));
+
+        // With no working_directory anywhere, fall back to the directory that
+        // contains every absolute path the tools touched.
+        let paths_only = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"go"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"path":"/repo/app/src/main.rs","contents":"x"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"path":"/repo/app/README.md"}}]}}"#,
+        ]
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &paths_only,
+        )
+        .expect("session");
+        assert_eq!(session.cwd.as_deref(), Some("/repo/app"));
+
+        // Nothing to go on leaves cwd unset rather than guessed. The project
+        // directory name is a lossy encoding and inverting it invents paths.
+        let bare = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"hello"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}"#,
+        ]
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/projects/Users-alec-cursor-test/agent-transcripts/a/a.jsonl"),
+            UNIX_EPOCH,
+            &bare,
+        )
+        .expect("session");
+        assert_eq!(session.cwd, None);
+    }
+
+    #[test]
+    fn cursor_truncated_and_empty_transcripts_degrade_without_error() {
+        // Cursor appends while a session runs, so the last line can be torn.
+        // Everything before it must still parse.
+        let torn = concat!(
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"start"}]}}"#,
+            "\n",
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"path":"/repo/a.rs"}}]}}"#,
+            "\n",
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_"#,
+        );
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            torn,
+        )
+        .expect("session");
+        assert_eq!(session.events.prompts.len(), 1);
+        assert_eq!(session.tools.get("Read"), Some(&1));
+
+        // A transcript holding nothing but a turn marker has no prompt, no
+        // tools and no tokens, so it yields None. That is the same treatment
+        // every other agent gets for an empty session, and it keeps abandoned
+        // sessions out of `top` rather than showing blank rows.
+        for empty in [
+            "",
+            "\n\n",
+            r#"{"type":"turn_ended","status":"error","error":"aborted"}"#,
+            "not json at all",
+        ] {
+            assert!(
+                parse_session_content(
+                    AGENT_CURSOR,
+                    &PathBuf::from("/tmp/session.jsonl"),
+                    UNIX_EPOCH,
+                    empty,
+                )
+                .is_none(),
+                "expected no session for {empty:?}"
+            );
+        }
+
+        // A child whose Task prompt no longer matches still contributes its
+        // work, attributed to the last prompt rather than dropped.
+        let orphan = vec![(
+            PathBuf::from("/tmp/subagents/orphan.jsonl"),
+            [
+                r#"{"role":"user","message":{"content":[{"type":"text","text":"unrelated wording"}]}}"#,
+                r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"path":"/repo/z.rs","contents":"x"}}]}}"#,
+            ]
+            .join("\n"),
+        )];
+        let session = parse_cursor_jsonl(
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &cursor_parent_fixture(),
+            &orphan,
+        )
+        .expect("session");
+        assert_eq!(session.tools.get("Write"), Some(&1));
     }
 
     #[test]
