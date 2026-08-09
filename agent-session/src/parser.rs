@@ -212,6 +212,13 @@ fn parse_session_impl(
 ) -> Option<AgentSession> {
     if agent == AGENT_GEMINI {
         parse_gemini_json(path, updated, content)
+    } else if agent == AGENT_CURSOR {
+        // Cursor splits one session across a parent transcript and a subagents/
+        // directory. Reading the siblings here keeps `parse_cursor_jsonl` a pure
+        // function of its inputs, so the folding stays unit-testable, while every
+        // caller that reaches this dispatch still gets the whole session.
+        let children = read_cursor_subagents(path);
+        parse_cursor_jsonl(path, updated, content, &children)
     } else {
         parse_jsonl(agent, path, updated, content)
     }
@@ -1279,6 +1286,156 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
         }
     }
     acc.finish_with_events(events)
+}
+
+/// Read the `subagents/*.jsonl` transcripts that sit beside a Cursor parent
+/// transcript. A missing directory is normal (plenty of sessions never delegate)
+/// and yields an empty list rather than an error.
+fn read_cursor_subagents(path: &Path) -> Vec<(PathBuf, String)> {
+    let Some(dir) = path.parent().map(|parent| parent.join("subagents")) else {
+        return Vec::new();
+    };
+    let Ok(entries) = fs::read_dir(&dir) else {
+        return Vec::new();
+    };
+    let mut out: Vec<(PathBuf, String)> = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|child| child.extension().and_then(|ext| ext.to_str()) == Some("jsonl"))
+        .filter_map(|child| {
+            let content = fs::read_to_string(&child).ok()?;
+            Some((child, content))
+        })
+        .collect();
+    // Directory order is arbitrary; keep parses deterministic across runs.
+    out.sort_by(|left, right| left.0.cmp(&right.0));
+    out
+}
+
+/// Parse a Cursor agent transcript, folding in any delegated sub-agent
+/// transcripts so the session reflects everything it actually did.
+///
+/// Cursor decides per turn whether to delegate, so a single session mixes turns
+/// where the parent works directly with turns where it only issues `Task` calls
+/// and the children do the work. Reading the parent alone reports those sessions
+/// as having done nothing.
+fn parse_cursor_jsonl(
+    path: &Path,
+    updated: SystemTime,
+    content: &str,
+    children: &[(PathBuf, String)],
+) -> Option<AgentSession> {
+    let mut acc = SessionAccumulator::new(AGENT_CURSOR, path, updated);
+    acc.conversation_id = Some(acc.session_id.clone());
+    let mut events = SessionEvents::default();
+    let mut current_prompt_index = 0usize;
+
+    cursor_absorb_transcript(
+        content,
+        CursorScope::Parent,
+        &mut acc,
+        &mut events,
+        &mut current_prompt_index,
+    );
+    for (_, child_content) in children {
+        cursor_absorb_transcript(
+            child_content,
+            CursorScope::Subagent,
+            &mut acc,
+            &mut events,
+            &mut current_prompt_index,
+        );
+    }
+
+    acc.finish_with_events(events)
+}
+
+/// Which transcript in a Cursor session is being read.
+///
+/// A sub-agent's `role: user` records hold the `Task` prompt Cursor generated,
+/// not anything a person typed, so they must not become `UserPrompt`s. Their
+/// work still belongs to the session, and attributes to whichever human prompt
+/// was current when the delegation happened.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum CursorScope {
+    Parent,
+    Subagent,
+}
+
+/// Walk one Cursor transcript, adding its records to the running session.
+fn cursor_absorb_transcript(
+    content: &str,
+    scope: CursorScope,
+    acc: &mut SessionAccumulator,
+    events: &mut SessionEvents,
+    current_prompt_index: &mut usize,
+) {
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        // Cursor appends while a session runs, so a torn final line is expected
+        // rather than exceptional. Skip it and keep the records we already have.
+        let Ok(record) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+
+        match record.get("role").and_then(Value::as_str) {
+            Some("user") if scope == CursorScope::Parent => {
+                let text = cursor_text_of(&record);
+                if !text.is_empty() {
+                    *current_prompt_index = events.upsert_prompt(None, &text, Vec::new());
+                    if acc.prompt_preview.is_none() {
+                        acc.prompt_preview = Some(truncate_clean(&text, 180));
+                    }
+                }
+            }
+            Some("assistant") => {
+                let text = cursor_text_of(&record);
+                if !text.is_empty() {
+                    events.llm_responses.push(LlmResponse {
+                        ts_ms: None,
+                        prompt_index: *current_prompt_index,
+                        // Model, tokens, and timestamps live in state.vscdb, not
+                        // the transcript. The SQLite enrichment fills them in.
+                        model: String::new(),
+                        source_id: String::new(),
+                        text_hash: short_hash(&text, 12),
+                        preview: truncate_clean(&text, 140),
+                        input_tokens: 0,
+                        output_tokens: 0,
+                        cache_tokens: 0,
+                        total_tokens: 0,
+                        tag: String::new(),
+                        response_phase: String::new(),
+                        skill: String::new(),
+                        task_path: Vec::new(),
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Join the `text` parts of a Cursor message record.
+fn cursor_text_of(record: &Value) -> String {
+    let Some(parts) = record
+        .get("message")
+        .and_then(|message| message.get("content"))
+        .and_then(Value::as_array)
+    else {
+        return String::new();
+    };
+    parts
+        .iter()
+        .filter(|part| part.get("type").and_then(Value::as_str) == Some("text"))
+        .filter_map(|part| part.get("text").and_then(Value::as_str))
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim()
+        .to_string()
 }
 
 struct SessionAccumulator {
@@ -3139,6 +3296,71 @@ mod tests {
     use super::*;
     use serde_json::json;
     use std::time::UNIX_EPOCH;
+
+    /// A Cursor parent transcript that both delegates and works directly.
+    /// Sessions mix the two per turn, so a fixture with only one pattern passes
+    /// while the other silently breaks.
+    fn cursor_parent_fixture() -> String {
+        [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"create hello.py"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"text","text":"delegating"},{"type":"tool_use","name":"Task","input":{"description":"Create hello.py","prompt":"make it","subagent_type":"generalPurpose"}}]}}"#,
+            r#"{"type":"turn_ended","status":"success"}"#,
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"now delete it"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Delete","input":{"path":"/repo/hello.py"}},{"type":"text","text":"deleted"}]}}"#,
+            r#"{"type":"turn_ended","status":"success"}"#,
+        ]
+        .join("\n")
+    }
+
+    /// The child spawned by the `Task` call above. All of the first turn's real
+    /// work lives here, none of it in the parent.
+    fn cursor_subagent_fixture() -> String {
+        [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"make it"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"path":"/repo/hello.py","contents":"print(1)\n"}},{"type":"text","text":"written"}]}}"#,
+            r#"{"type":"turn_ended","status":"success"}"#,
+        ]
+        .join("\n")
+    }
+
+    #[test]
+    fn cursor_transcript_counts_prompts_and_responses() {
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &cursor_parent_fixture(),
+        )
+        .expect("session");
+
+        assert_eq!(session.agent_type, AGENT_CURSOR);
+        assert_eq!(session.events.prompts.len(), 2);
+        assert_eq!(session.events.llm_responses.len(), 2);
+        assert_eq!(session.events.prompts[0].preview, "create hello.py");
+        assert_eq!(session.events.prompts[1].index, 1);
+        assert_eq!(session.events.llm_responses[1].prompt_index, 1);
+        assert_eq!(session.prompt_preview.as_deref(), Some("create hello.py"));
+    }
+
+    #[test]
+    fn cursor_subagent_prompts_are_not_user_prompts() {
+        let children = vec![(
+            PathBuf::from("/tmp/subagents/child.jsonl"),
+            cursor_subagent_fixture(),
+        )];
+        let session = parse_cursor_jsonl(
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &cursor_parent_fixture(),
+            &children,
+        )
+        .expect("session");
+
+        // The child's own "user" record holds the Task prompt Cursor generated,
+        // so folding it in must not invent a third human prompt.
+        assert_eq!(session.events.prompts.len(), 2);
+        assert_eq!(session.events.llm_responses.len(), 3);
+    }
 
     #[test]
     fn cursor_paths_classify_but_only_parents_discover() {
