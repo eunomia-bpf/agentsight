@@ -485,7 +485,11 @@ pub fn materialized_view(sessions: &[LocalSession]) -> MaterializedView {
 }
 
 pub fn import_recent(view: &mut MaterializedView, limit: usize) {
-    let sessions = SessionCache::new().discover_cached(limit, Duration::ZERO);
+    let mut sessions = SessionCache::new().discover_cached(limit, Duration::ZERO);
+    // `discover_sessions` enriches on its way out, but this is a second entry
+    // point into the same data and every `report` subcommand without a --db
+    // goes through here, as does the snapshot the frontend renders.
+    enrich_cursor_sessions(&mut sessions);
     import_into_view(view, &sessions);
 }
 
