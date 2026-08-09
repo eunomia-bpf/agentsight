@@ -14,7 +14,7 @@ use crate::types::{
     AgentSession, LlmResponse, SessionCandidate, SessionDirStat, SessionEvents, TokenUsage,
     ToolEvent, ToolPath, UserPrompt,
 };
-use crate::{AGENT_CLAUDE, AGENT_CODEX, AGENT_GEMINI};
+use crate::{AGENT_CLAUDE, AGENT_CODEX, AGENT_CURSOR, AGENT_GEMINI};
 
 /// Discover all session files in the user's home directory.
 pub fn discover_session_files() -> Vec<SessionCandidate> {
@@ -30,6 +30,7 @@ pub fn discover_session_files_in_home(home: &Path) -> Vec<SessionCandidate> {
         (AGENT_CLAUDE, home.join(".claude/projects")),
         (AGENT_CODEX, home.join(".codex/sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
+        (AGENT_CURSOR, home.join(".cursor/projects")),
     ];
     let mut out = Vec::new();
     for (agent, dir) in roots {
@@ -37,10 +38,11 @@ pub fn discover_session_files_in_home(home: &Path) -> Vec<SessionCandidate> {
             out.push(SessionCandidate {
                 agent,
                 path: path.to_path_buf(),
-                updated: meta.modified().unwrap_or(UNIX_EPOCH),
+                updated: candidate_updated(agent, path, meta),
             });
         });
     }
+    dedupe_cursor_candidates(&mut out);
     out
 }
 
@@ -50,10 +52,90 @@ pub fn discover_session_files_in_dir(agent: &'static str, dir: &Path) -> Vec<Ses
         out.push(SessionCandidate {
             agent,
             path: path.to_path_buf(),
-            updated: meta.modified().unwrap_or(UNIX_EPOCH),
+            updated: candidate_updated(agent, path, meta),
         });
     });
+    dedupe_cursor_candidates(&mut out);
     out
+}
+
+fn candidate_updated(agent: &str, path: &Path, meta: &fs::Metadata) -> SystemTime {
+    let updated = meta.modified().unwrap_or(UNIX_EPOCH);
+    if agent == AGENT_CURSOR {
+        cursor_candidate_updated(path, updated)
+    } else {
+        updated
+    }
+}
+
+/// A Cursor candidate is the parent transcript, but its session includes any
+/// `subagents/*.jsonl` siblings, so `updated` is the max mtime across all of
+/// them. This is what lets a child-only write invalidate the cached session.
+fn cursor_candidate_updated(path: &Path, parent_updated: SystemTime) -> SystemTime {
+    let mut updated = parent_updated;
+    let Some(subagents) = path.parent().map(|dir| dir.join("subagents")) else {
+        return updated;
+    };
+    let Ok(entries) = fs::read_dir(subagents) else {
+        return updated;
+    };
+    for entry in entries.flatten() {
+        if entry.path().extension().and_then(|ext| ext.to_str()) == Some("jsonl")
+            && let Ok(meta) = entry.metadata()
+        {
+            updated = updated.max(meta.modified().unwrap_or(UNIX_EPOCH));
+        }
+    }
+    updated
+}
+
+/// One Cursor session can appear under both its real workspace directory and
+/// `empty-window` (a stale fork left behind when a window later opened a
+/// folder). Keep one candidate per composer id: a real workspace beats
+/// `empty-window`, then the newer file wins.
+fn dedupe_cursor_candidates(out: &mut Vec<SessionCandidate>) {
+    let mut best: BTreeMap<String, (bool, SystemTime, usize)> = BTreeMap::new();
+    let mut drop = vec![false; out.len()];
+    for (idx, candidate) in out.iter().enumerate() {
+        if candidate.agent != AGENT_CURSOR {
+            continue;
+        }
+        let Some(stem) = candidate.path.file_stem().and_then(|stem| stem.to_str()) else {
+            continue;
+        };
+        let rank = (
+            !cursor_is_empty_window(&candidate.path),
+            candidate.updated,
+            idx,
+        );
+        match best.get_mut(stem) {
+            None => {
+                best.insert(stem.to_string(), rank);
+            }
+            Some(entry) => {
+                if (rank.0, rank.1) > (entry.0, entry.1) {
+                    drop[entry.2] = true;
+                    *entry = rank;
+                } else {
+                    drop[idx] = true;
+                }
+            }
+        }
+    }
+    let mut drop = drop.into_iter();
+    out.retain(|_| !drop.next().unwrap_or_default());
+}
+
+fn cursor_is_empty_window(path: &Path) -> bool {
+    let mut previous = None;
+    for component in path.components() {
+        let name = component.as_os_str();
+        if name == "agent-transcripts" {
+            return previous.is_some_and(|project| project == "empty-window");
+        }
+        previous = Some(name);
+    }
+    false
 }
 
 /// Count sessions and bytes per agent directory.
@@ -65,6 +147,7 @@ pub fn count_session_dirs() -> Vec<SessionDirStat> {
         (AGENT_CLAUDE, home.join(".claude/projects")),
         (AGENT_CODEX, home.join(".codex/sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
+        (AGENT_CURSOR, home.join(".cursor/projects")),
     ]
     .into_iter()
     .filter_map(|(agent, dir)| {
@@ -166,9 +249,34 @@ pub fn agent_source_for_path(path: &Path) -> Option<&'static str> {
         && path.extension().and_then(|ext| ext.to_str()) == Some("json")
     {
         Some(AGENT_GEMINI)
+    } else if value.contains("/.cursor/") && is_cursor_transcript(path) {
+        Some(AGENT_CURSOR)
     } else {
         None
     }
+}
+
+/// Cursor transcripts live under `agent-transcripts/`; other `.jsonl` files in
+/// a project directory (vendored dependencies under `canvases/`, for example)
+/// are not sessions. Matches parent and subagent transcripts alike, so process
+/// matching can classify any fd path Cursor holds open.
+fn is_cursor_transcript(path: &Path) -> bool {
+    path.extension().and_then(|ext| ext.to_str()) == Some("jsonl")
+        && path.to_string_lossy().contains("/agent-transcripts/")
+}
+
+/// Discovery emits one candidate per Cursor session: the parent transcript,
+/// whose file stem equals its directory name (`<composerId>/<composerId>.jsonl`).
+/// A `subagents/<childId>.jsonl` file never matches, so delegated runs cannot
+/// surface as standalone sessions or crowd the session cache's parse window;
+/// the parser folds them into the parent instead.
+fn is_cursor_parent_transcript(path: &Path) -> bool {
+    is_cursor_transcript(path)
+        && path.file_stem().is_some_and(|stem| {
+            path.parent()
+                .and_then(|dir| dir.file_name())
+                .is_some_and(|dir| dir == stem)
+        })
 }
 
 fn loose_agent_source_for_path(path: &Path) -> Option<&'static str> {
@@ -177,6 +285,8 @@ fn loose_agent_source_for_path(path: &Path) -> Option<&'static str> {
         Some(AGENT_CODEX)
     } else if value.contains("/claude/") && value.contains("projects") {
         Some(AGENT_CLAUDE)
+    } else if value.contains("/cursor/") && value.contains("agent-transcripts") {
+        Some(AGENT_CURSOR)
     } else {
         None
     }
@@ -188,6 +298,9 @@ pub fn fixture_session_path(agent: &str, home: &Path) -> Option<PathBuf> {
         AGENT_CLAUDE => Some(home.join(".claude/projects/test/session.jsonl")),
         AGENT_CODEX => Some(home.join(".codex/sessions/2026/06/02/session.jsonl")),
         AGENT_GEMINI => Some(home.join(".gemini/tmp/test/chats/session-test.json")),
+        AGENT_CURSOR => {
+            Some(home.join(".cursor/projects/test/agent-transcripts/session/session.jsonl"))
+        }
         _ => None,
     }
 }
@@ -1344,6 +1457,7 @@ fn is_agent_file_for(agent: &str, path: &Path) -> bool {
                     .is_some_and(|name| name.starts_with("session-"))
                 && path.to_string_lossy().contains("/chats/")
         }
+        AGENT_CURSOR => is_cursor_parent_transcript(path),
         _ => false,
     }
 }
@@ -3025,6 +3139,37 @@ mod tests {
     use super::*;
     use serde_json::json;
     use std::time::UNIX_EPOCH;
+
+    #[test]
+    fn cursor_paths_classify_but_only_parents_discover() {
+        let home = PathBuf::from("/home/dev");
+        let parent = home.join(".cursor/projects/repo/agent-transcripts/abc/abc.jsonl");
+        let subagent = home.join(".cursor/projects/repo/agent-transcripts/abc/subagents/def.jsonl");
+        let vendored = home.join(".cursor/projects/repo/canvases/node_modules/pkg/data.jsonl");
+
+        // Classification accepts any transcript path: process matching hands
+        // it arbitrary fd paths, children included.
+        assert_eq!(agent_source_for_path(&parent), Some(AGENT_CURSOR));
+        assert_eq!(agent_source_for_path(&subagent), Some(AGENT_CURSOR));
+        assert_eq!(agent_source_for_path(&vendored), None);
+
+        // Discovery emits parents only: stem must equal the directory name.
+        assert!(is_agent_file_for(AGENT_CURSOR, &parent));
+        assert!(!is_agent_file_for(AGENT_CURSOR, &subagent));
+        assert!(!is_agent_file_for(AGENT_CURSOR, &vendored));
+        assert!(!is_agent_file_for(
+            AGENT_CURSOR,
+            &home.join(".cursor/projects/repo/agent-transcripts/abc/other.jsonl")
+        ));
+
+        assert!(cursor_is_empty_window(
+            &home.join(".cursor/projects/empty-window/agent-transcripts/abc/abc.jsonl")
+        ));
+        assert!(!cursor_is_empty_window(&parent));
+
+        let fixture = fixture_session_path(AGENT_CURSOR, &home).expect("fixture");
+        assert!(is_agent_file_for(AGENT_CURSOR, &fixture));
+    }
 
     #[test]
     fn local_session_ids_keep_distinct_conversation_id() {

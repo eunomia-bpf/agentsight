@@ -901,6 +901,78 @@ mod tests {
     }
 
     #[test]
+    fn cursor_discovery_emits_parent_candidates_only() {
+        let temp = tempfile::tempdir().unwrap();
+        let project = temp.path().join(".cursor/projects/repo");
+        let transcripts = project.join("agent-transcripts/abc");
+        fs::create_dir_all(transcripts.join("subagents")).unwrap();
+        fs::create_dir_all(project.join("canvases/node_modules/pkg")).unwrap();
+        fs::write(transcripts.join("abc.jsonl"), "{}\n").unwrap();
+        fs::write(transcripts.join("subagents/def.jsonl"), "{}\n").unwrap();
+        fs::write(project.join("canvases/node_modules/pkg/data.jsonl"), "{}\n").unwrap();
+
+        let candidates: Vec<_> = agent_session::discover_session_files_in_home(temp.path())
+            .into_iter()
+            .filter(|candidate| candidate.agent == agent_session::AGENT_CURSOR)
+            .collect();
+
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].path, transcripts.join("abc.jsonl"));
+    }
+
+    #[test]
+    fn cursor_candidate_updated_tracks_subagent_writes() {
+        let temp = tempfile::tempdir().unwrap();
+        let transcripts = temp
+            .path()
+            .join(".cursor/projects/repo/agent-transcripts/abc");
+        fs::create_dir_all(transcripts.join("subagents")).unwrap();
+        fs::write(transcripts.join("abc.jsonl"), "{}\n").unwrap();
+        let child = transcripts.join("subagents/def.jsonl");
+        fs::write(&child, "{}\n").unwrap();
+
+        // Bump only the child's mtime well past the parent's.
+        let bumped = std::time::SystemTime::now() + std::time::Duration::from_secs(120);
+        let handle = fs::File::options().write(true).open(&child).unwrap();
+        handle.set_modified(bumped).unwrap();
+
+        let candidates: Vec<_> = agent_session::discover_session_files_in_home(temp.path())
+            .into_iter()
+            .filter(|candidate| candidate.agent == agent_session::AGENT_CURSOR)
+            .collect();
+
+        assert_eq!(candidates.len(), 1);
+        let parent_mtime = fs::metadata(transcripts.join("abc.jsonl"))
+            .unwrap()
+            .modified()
+            .unwrap();
+        assert!(candidates[0].updated > parent_mtime);
+    }
+
+    #[test]
+    fn cursor_duplicate_composer_prefers_real_workspace() {
+        let temp = tempfile::tempdir().unwrap();
+        let real = temp
+            .path()
+            .join(".cursor/projects/repo/agent-transcripts/abc");
+        let stale = temp
+            .path()
+            .join(".cursor/projects/empty-window/agent-transcripts/abc");
+        fs::create_dir_all(&real).unwrap();
+        fs::create_dir_all(&stale).unwrap();
+        fs::write(real.join("abc.jsonl"), "{}\n").unwrap();
+        fs::write(stale.join("abc.jsonl"), "{}\n{}\n").unwrap();
+
+        let candidates: Vec<_> = agent_session::discover_session_files_in_home(temp.path())
+            .into_iter()
+            .filter(|candidate| candidate.agent == agent_session::AGENT_CURSOR)
+            .collect();
+
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].path, real.join("abc.jsonl"));
+    }
+
+    #[test]
     fn codex_state_db_uses_rollout_token_usage() {
         let temp = tempfile::tempdir().unwrap();
         write_codex_state_db_for_test(temp.path());
