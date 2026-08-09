@@ -189,6 +189,59 @@ fn codex_rollout_usage(path: &Path) -> Option<TokenUsage> {
     agent_session::codex_total_token_usage(&String::from_utf8_lossy(&data))
 }
 
+#[cfg(any(test, feature = "test-support"))]
+const CURSOR_STATE_DB_CANDIDATES: [&str; 3] = [
+    "Library/Application Support/Cursor/User/globalStorage/state.vscdb",
+    ".config/Cursor/User/globalStorage/state.vscdb",
+    "AppData/Roaming/Cursor/User/globalStorage/state.vscdb",
+];
+
+/// Locate Cursor's state database under a home directory. Candidates are the
+/// macOS, Linux, and Windows layouts, in that order; first existing file wins.
+#[cfg(any(test, feature = "test-support"))]
+fn cursor_state_db_path(home: &Path) -> Option<PathBuf> {
+    CURSOR_STATE_DB_CANDIDATES
+        .iter()
+        .map(|candidate| home.join(candidate))
+        .find(|path| path.is_file())
+}
+
+/// Cursor is usually running with an active WAL on this database, so open it
+/// strictly read-only and treat any failure as absence rather than an error.
+#[cfg(any(test, feature = "test-support"))]
+fn open_cursor_state_db(path: &Path) -> Option<rusqlite::Connection> {
+    rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).ok()
+}
+
+#[cfg(any(test, feature = "test-support"))]
+struct CursorComposerHeader {
+    created_at_ms: Option<u64>,
+    updated_at_ms: Option<u64>,
+}
+
+/// Read one composer's header row. `lastUpdatedAt` is NULL on every subagent
+/// header, so both timestamps stay optional. A missing row is normal:
+/// `composerHeaders` is not a 1:1 index of the transcripts on disk.
+#[cfg(any(test, feature = "test-support"))]
+fn cursor_composer_header(
+    conn: &rusqlite::Connection,
+    composer_id: &str,
+) -> Option<CursorComposerHeader> {
+    conn.query_row(
+        "SELECT createdAt, lastUpdatedAt FROM composerHeaders WHERE composerId = ?1",
+        [composer_id],
+        |row| {
+            let created: Option<i64> = row.get(0)?;
+            let updated: Option<i64> = row.get(1)?;
+            Ok(CursorComposerHeader {
+                created_at_ms: created.and_then(non_negative_i64_to_u64),
+                updated_at_ms: updated.and_then(non_negative_i64_to_u64),
+            })
+        },
+    )
+    .ok()
+}
+
 fn user_home_dir() -> Option<PathBuf> {
     std::env::var("SUDO_USER")
         .ok()
@@ -826,6 +879,39 @@ pub fn parse_content_for_test(
     agent_session::parse_session_content(agent, path, updated, content)
 }
 
+/// Fixture mirroring Cursor's `state.vscdb` on 3.15.6: one parent composer
+/// with model, workspace, and legacy token bubbles, one subagent composer with
+/// a NULL `lastUpdatedAt`, and one composer left on the "default" model.
+#[cfg(any(test, feature = "test-support"))]
+pub fn write_cursor_state_db_for_test(home: &Path) {
+    let db_dir = home.join("Library/Application Support/Cursor/User/globalStorage");
+    fs::create_dir_all(&db_dir).unwrap();
+    let conn = rusqlite::Connection::open(db_dir.join("state.vscdb")).unwrap();
+    conn.execute_batch(
+        r#"CREATE TABLE composerHeaders (composerId TEXT PRIMARY KEY, workspaceId TEXT,
+            createdAt INTEGER, lastUpdatedAt INTEGER, isArchived INTEGER,
+            isSubagent INTEGER, recency INTEGER, checkpointAt INTEGER, value TEXT);
+        CREATE TABLE cursorDiskKV (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB);
+        INSERT INTO composerHeaders (composerId, workspaceId, createdAt, lastUpdatedAt, isSubagent)
+        VALUES
+        ('abc00000-0000-0000-0000-000000000abc', 'ws1', 1700000, 1900000, 0),
+        ('def00000-0000-0000-0000-000000000def', 'ws1', 1750000, NULL, 1),
+        ('aaa00000-0000-0000-0000-000000000aaa', 'ws2', 1600000, 1650000, 0);
+        INSERT INTO cursorDiskKV (key, value) VALUES
+        ('composerData:abc00000-0000-0000-0000-000000000abc',
+         '{"composerId":"abc00000-0000-0000-0000-000000000abc","modelConfig":{"modelName":"claude-sonnet-4-6","maxMode":false},"workspaceIdentifier":{"uri":{"fsPath":"/work/repo"}}}'),
+        ('composerData:aaa00000-0000-0000-0000-000000000aaa',
+         '{"composerId":"aaa00000-0000-0000-0000-000000000aaa","modelConfig":{"modelName":"default","maxMode":false}}'),
+        ('bubbleId:abc00000-0000-0000-0000-000000000abc:b1',
+         '{"tokenCount":{"inputTokens":100,"outputTokens":40}}'),
+        ('bubbleId:abc00000-0000-0000-0000-000000000abc:b2',
+         '{"tokenCount":{"inputTokens":0,"outputTokens":0}}'),
+        ('bubbleId:def00000-0000-0000-0000-000000000def:b1',
+         '{"tokenCount":{"inputTokens":7,"outputTokens":3}}');"#,
+    )
+    .unwrap();
+}
+
 #[cfg(any(test, feature = "test-support"))]
 pub fn write_codex_state_db_for_test(home: &Path) {
     let codex_dir = home.join(".codex");
@@ -898,6 +984,47 @@ mod tests {
             sessions[0].last_message_at.as_deref(),
             Some("1970-01-01T00:31:40.000Z")
         );
+    }
+
+    #[test]
+    fn cursor_state_db_path_checks_platform_layouts() {
+        let temp = tempfile::tempdir().unwrap();
+        assert!(cursor_state_db_path(temp.path()).is_none());
+        write_cursor_state_db_for_test(temp.path());
+        let path = cursor_state_db_path(temp.path()).unwrap();
+        assert!(path.ends_with("Cursor/User/globalStorage/state.vscdb"));
+    }
+
+    #[test]
+    fn cursor_state_db_open_is_read_only_and_fails_closed() {
+        let temp = tempfile::tempdir().unwrap();
+        assert!(open_cursor_state_db(&temp.path().join("missing.vscdb")).is_none());
+        write_cursor_state_db_for_test(temp.path());
+        let conn = open_cursor_state_db(&cursor_state_db_path(temp.path()).unwrap()).unwrap();
+        let denied = conn.execute(
+            "INSERT INTO cursorDiskKV (key, value) VALUES ('x', 'y')",
+            [],
+        );
+        assert!(denied.is_err());
+    }
+
+    #[test]
+    fn cursor_composer_header_reads_parent_and_subagent_rows() {
+        let temp = tempfile::tempdir().unwrap();
+        write_cursor_state_db_for_test(temp.path());
+        let conn = open_cursor_state_db(&cursor_state_db_path(temp.path()).unwrap()).unwrap();
+
+        let parent = cursor_composer_header(&conn, "abc00000-0000-0000-0000-000000000abc")
+            .expect("parent header");
+        assert_eq!(parent.created_at_ms, Some(1_700_000));
+        assert_eq!(parent.updated_at_ms, Some(1_900_000));
+
+        let child = cursor_composer_header(&conn, "def00000-0000-0000-0000-000000000def")
+            .expect("subagent header");
+        assert_eq!(child.created_at_ms, Some(1_750_000));
+        assert_eq!(child.updated_at_ms, None);
+
+        assert!(cursor_composer_header(&conn, "not-a-composer").is_none());
     }
 
     #[test]
