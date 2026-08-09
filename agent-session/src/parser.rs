@@ -2242,7 +2242,7 @@ fn shell_segment_actions(
     while index < operands.len() {
         if is_redirection_token(&operands[index]) {
             if let Some(path) = operands.get(index + 1)
-                && plausible_path_token(path)
+                && plausible_path_operand(path)
             {
                 let access = if [">", ">>", "&>", "&>>"].contains(&operands[index].as_str()) {
                     "write"
@@ -2263,7 +2263,7 @@ fn shell_segment_actions(
     let paths = |items: &[String]| {
         items
             .iter()
-            .filter(|value| !value.starts_with('-') && plausible_path_token(value))
+            .filter(|value| !value.starts_with('-') && plausible_path_operand(value))
             .cloned()
             .collect::<Vec<_>>()
     };
@@ -2329,7 +2329,7 @@ fn shell_segment_actions(
                 }
                 if !script_seen {
                     script_seen = true;
-                } else if plausible_path_token(value) {
+                } else if plausible_path_operand(value) {
                     rows.push((
                         value.clone(),
                         if in_place { "write" } else { "read" }.into(),
@@ -2342,7 +2342,7 @@ fn shell_segment_actions(
             values
                 .iter()
                 .take_while(|value| !value.starts_with('-') && value.as_str() != "!")
-                .filter(|value| plausible_path_token(value))
+                .filter(|value| plausible_path_operand(value))
                 .cloned()
                 .map(|path| (path, "read".into(), None)),
         ),
@@ -2354,7 +2354,7 @@ fn shell_segment_actions(
                 }
                 if !expression_seen {
                     expression_seen = true;
-                } else if plausible_path_token(value) {
+                } else if plausible_path_operand(value) {
                     rows.push((value.clone(), "read".into(), None));
                 }
             }
@@ -3098,7 +3098,51 @@ fn extract_path_groups(
     groups.into_iter().filter(|v| v != "none").collect()
 }
 
+/// A token in a position where the command has already told us a path belongs.
+///
+/// `cp`, `mv`, `rm`, `touch`, `tee`, a redirection target, and the operands
+/// after a `find` root or a `sed`/`grep` expression are all path positions by
+/// definition, so anything that survives the shared rejections below is a path.
+/// Requiring a known file extension on top of that loses real work: `rm
+/// build.sh`, `mv notes.txt archive.txt` and `rm Dockerfile` all recorded
+/// nothing, which under-reports file activity for any project not written in
+/// the handful of languages the extension list happens to name.
+fn plausible_path_operand(part: &str) -> bool {
+    let part = part.trim_matches(['"', '\'']);
+    // A bare number in operand position is a file descriptor, not a file. The
+    // tokenizer splits `cat x 2>&1` into `x` and `2` and `>&1`, so without this
+    // every redirected command records a read of a file called "2".
+    !part.is_empty()
+        && !part.chars().all(|c| c.is_ascii_digit())
+        && !definitely_not_a_path(part)
+}
+
+/// A token found by scanning a whole command, where it could be anything.
+///
+/// Here the extension check earns its place: without it `curl example.com` or a
+/// bare version like `1.2.3` would register as paths. Evidence of being a path
+/// is required, either a separator or a recognised extension.
 fn plausible_path_token(part: &str) -> bool {
+    let part = part.trim_matches(['"', '\'']);
+    if definitely_not_a_path(part) {
+        return false;
+    }
+    let suffix = Path::new(part)
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or("");
+    part.contains('/')
+        || [
+            "rs", "py", "md", "json", "ts", "tsx", "toml", "lock", "js", "c", "h", "svg", "html",
+            "css",
+        ]
+        .contains(&suffix)
+}
+
+/// Shapes that are never a path, whatever position they appear in: flags, shell
+/// variables, URLs, git refs and ranges, sed expressions, and anything carrying
+/// whitespace or shell metacharacters.
+fn definitely_not_a_path(part: &str) -> bool {
     let part = part.trim_matches(['"', '\'']);
     let lower = part.to_ascii_lowercase();
     let components = part.split('/').collect::<Vec<_>>();
@@ -3129,18 +3173,9 @@ fn plausible_path_token(part: &str) -> bool {
         || part.chars().any(char::is_whitespace)
         || part.chars().any(|c| "{}()=;<>|`*?[]\"#$,:@^!".contains(c))
     {
-        return false;
+        return true;
     }
-    let suffix = Path::new(part)
-        .extension()
-        .and_then(|v| v.to_str())
-        .unwrap_or("");
-    part.contains('/')
-        || [
-            "rs", "py", "md", "json", "ts", "tsx", "toml", "lock", "js", "c", "h", "svg", "html",
-            "css",
-        ]
-        .contains(&suffix)
+    false
 }
 
 pub fn path_group(path: &str, project_root: &Path) -> String {
@@ -4556,6 +4591,98 @@ mod tests {
         );
         assert_eq!(heredoc.paths.len(), 1);
         assert_eq!(heredoc.paths[0].path, "src/real.rs");
+    }
+
+
+    #[test]
+    fn shell_path_operands_are_not_limited_to_known_extensions() {
+        let paths_of = |command: &str| {
+            shell_file_actions(command, &json!({"cwd": "/repo"}), 0)
+                .into_iter()
+                .map(|(path, access, _)| (path, access))
+                .collect::<Vec<_>>()
+        };
+
+        // A path operand is a path whatever it is called. Before this, only the
+        // fourteen extensions the list happened to name were recorded, so a Go,
+        // shell or SQL project got no file activity from its shell commands.
+        for (command, expected, access) in [
+            ("rm build.sh", "/repo/build.sh", "delete"),
+            ("rm main.go", "/repo/main.go", "delete"),
+            ("rm Dockerfile", "/repo/Dockerfile", "delete"),
+            ("mv notes.txt archive.txt", "/repo/archive.txt", "rename"),
+            ("mv conf.yaml conf.bak.yaml", "/repo/conf.bak.yaml", "rename"),
+            ("touch schema.sql", "/repo/schema.sql", "create"),
+        ] {
+            assert!(
+                paths_of(command)
+                    .iter()
+                    .any(|(path, kind)| path == expected && kind == access),
+                "{command} should record {expected} as {access}, got {:?}",
+                paths_of(command)
+            );
+        }
+
+        // The shared rejections still hold, so refs, ranges, globs, URLs and
+        // sed expressions do not become files.
+        for command in [
+            "rm origin/main",
+            "rm HEAD",
+            "rm *.log",
+            "rm https://example.com/x",
+            "rm s/foo/bar/g",
+            "rm $TARGET",
+            "rm -rf",
+        ] {
+            assert!(
+                paths_of(command).is_empty(),
+                "{command} should record nothing, got {:?}",
+                paths_of(command)
+            );
+        }
+
+        // A redirected command splits into a bare file descriptor. Without the
+        // numeric guard, every `2>&1` recorded a read of a file called "2".
+        let redirected = paths_of("cat notes.txt 2>&1");
+        assert!(
+            redirected
+                .iter()
+                .any(|(path, _)| path == "/repo/notes.txt"),
+            "the real file should still be recorded, got {redirected:?}"
+        );
+        assert!(
+            !redirected.iter().any(|(path, _)| path.ends_with("/2")),
+            "a file descriptor is not a file, got {redirected:?}"
+        );
+
+        for command in ["rm 2", "cat 1"] {
+            assert!(
+                paths_of(command).is_empty(),
+                "{command} should record nothing, got {:?}",
+                paths_of(command)
+            );
+        }
+    }
+
+    #[test]
+    fn scanned_command_tokens_still_need_evidence_of_being_a_path() {
+        // extract_path_groups walks every token of a command rather than a known
+        // path position, so there the extension check still earns its place. A
+        // bare hostname or version must not become a file.
+        let event = tool_event_from_input(
+            Some("/repo"),
+            Some(1),
+            0,
+            "exec_command",
+            &json!({"cmd": "curl example.com && echo 1.2.3"}),
+            None,
+            Vec::new(),
+        );
+        assert!(
+            event.path_groups.is_empty(),
+            "hostname and version should not become path groups, got {:?}",
+            event.path_groups
+        );
     }
 
     #[test]
