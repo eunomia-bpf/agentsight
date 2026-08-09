@@ -3112,9 +3112,7 @@ fn plausible_path_operand(part: &str) -> bool {
     // A bare number in operand position is a file descriptor, not a file. The
     // tokenizer splits `cat x 2>&1` into `x` and `2` and `>&1`, so without this
     // every redirected command records a read of a file called "2".
-    !part.is_empty()
-        && !part.chars().all(|c| c.is_ascii_digit())
-        && !definitely_not_a_path(part)
+    !part.is_empty() && !part.chars().all(|c| c.is_ascii_digit()) && !definitely_not_a_path(part)
 }
 
 /// A token found by scanning a whole command, where it could be anything.
@@ -4589,7 +4587,6 @@ mod tests {
         assert_eq!(heredoc.paths[0].path, "src/real.rs");
     }
 
-
     #[test]
     fn shell_path_operands_are_not_limited_to_known_extensions() {
         let paths_of = |command: &str| {
@@ -4607,7 +4604,11 @@ mod tests {
             ("rm main.go", "/repo/main.go", "delete"),
             ("rm Dockerfile", "/repo/Dockerfile", "delete"),
             ("mv notes.txt archive.txt", "/repo/archive.txt", "rename"),
-            ("mv conf.yaml conf.bak.yaml", "/repo/conf.bak.yaml", "rename"),
+            (
+                "mv conf.yaml conf.bak.yaml",
+                "/repo/conf.bak.yaml",
+                "rename",
+            ),
             ("touch schema.sql", "/repo/schema.sql", "create"),
         ] {
             assert!(
@@ -4641,9 +4642,7 @@ mod tests {
         // numeric guard, every `2>&1` recorded a read of a file called "2".
         let redirected = paths_of("cat notes.txt 2>&1");
         assert!(
-            redirected
-                .iter()
-                .any(|(path, _)| path == "/repo/notes.txt"),
+            redirected.iter().any(|(path, _)| path == "/repo/notes.txt"),
             "the real file should still be recorded, got {redirected:?}"
         );
         assert!(
