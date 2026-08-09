@@ -1392,6 +1392,9 @@ fn cursor_absorb_transcript(
                 }
             }
             Some("assistant") => {
+                for part in cursor_tool_uses(&record) {
+                    cursor_push_tool_event(part, acc, events, *current_prompt_index);
+                }
                 let text = cursor_text_of(&record);
                 if !text.is_empty() {
                     events.llm_responses.push(LlmResponse {
@@ -1417,6 +1420,72 @@ fn cursor_absorb_transcript(
             _ => {}
         }
     }
+}
+
+/// The `tool_use` parts of a Cursor message record.
+fn cursor_tool_uses(record: &Value) -> Vec<&Value> {
+    record
+        .get("message")
+        .and_then(|message| message.get("content"))
+        .and_then(Value::as_array)
+        .map(|parts| {
+            parts
+                .iter()
+                .filter(|part| part.get("type").and_then(Value::as_str) == Some("tool_use"))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Turn one `tool_use` part into a `ToolEvent`.
+///
+/// Cursor's tool vocabulary isn't fixed. Two machines on the same version showed
+/// fifteen names with little overlap, tracking which features each person used,
+/// so an unrecognised name has to produce an event in the catch-all category
+/// rather than being dropped.
+fn cursor_push_tool_event(
+    part: &Value,
+    acc: &mut SessionAccumulator,
+    events: &mut SessionEvents,
+    prompt_index: usize,
+) {
+    let Some(name) = part.get("name").and_then(Value::as_str).filter(|n| !n.is_empty()) else {
+        return;
+    };
+    let input = part.get("input").cloned().unwrap_or(Value::Null);
+    // Only Shell carries a command; everything else leaves these empty.
+    let command = input
+        .get("command")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+
+    acc.add_tool(name);
+    events.tools.push(ToolEvent {
+        ts_ms: None,
+        prompt_index,
+        tool_name: name.to_string(),
+        category: tool_category(name, &command),
+        command_name: basename_from_command(&command),
+        effect: if command.is_empty() {
+            String::new()
+        } else {
+            command_effect(&command)
+        },
+        command,
+        process_chain: Vec::new(),
+        // Cursor writes no tool_result records. The only signal is turn-level
+        // turn_ended.status, so per-tool status stays unset rather than guessed.
+        status: String::new(),
+        path_groups: Vec::new(),
+        paths: Vec::new(),
+        domains: Vec::new(),
+        // Cursor's tool_use parts carry only type, name and input. No id.
+        call_id: None,
+        invoked_skill: String::new(),
+        skill: String::new(),
+        task_path: Vec::new(),
+    });
 }
 
 /// Join the `text` parts of a Cursor message record.
@@ -2540,11 +2609,21 @@ fn explicit_exit_codes(output: &str) -> Vec<i32> {
 
 pub fn tool_category(name: &str, command: &str) -> String {
     let n = name.to_ascii_lowercase();
-    if n.ends_with("exec_command") || n.ends_with("shell_command") || n == "bash" {
+    if n.ends_with("exec_command") || n.ends_with("shell_command") || n == "bash" || n == "shell" {
         "shell"
-    } else if ["apply_patch", "edit", "write", "multiedit", "notebookedit"].contains(&n.as_str()) {
+    } else if [
+        "apply_patch",
+        "edit",
+        "write",
+        "multiedit",
+        "notebookedit",
+        "strreplace",
+        "delete",
+    ]
+    .contains(&n.as_str())
+    {
         "edit"
-    } else if ["read", "grep", "glob", "ls"].contains(&n.as_str()) {
+    } else if ["read", "grep", "glob", "ls", "readlints"].contains(&n.as_str()) {
         "read"
     } else if n.contains("web")
         || n.contains("browser")
@@ -3340,6 +3419,47 @@ mod tests {
         assert_eq!(session.events.prompts[1].index, 1);
         assert_eq!(session.events.llm_responses[1].prompt_index, 1);
         assert_eq!(session.prompt_preview.as_deref(), Some("create hello.py"));
+    }
+
+    #[test]
+    fn cursor_tool_uses_become_events_and_unknown_names_are_kept() {
+        let content = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"do work"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Shell","input":{"command":"cargo test","description":"run tests"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"StrReplace","input":{"path":"/repo/a.rs","old_string":"x","new_string":"y"}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"ReadLints","input":{"paths":["/repo/a.rs"]}}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"SomeToolWeHaveNeverSeen","input":{"whatever":1}}]}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+
+        let named = |name: &str| {
+            session
+                .events
+                .tools
+                .iter()
+                .find(|tool| tool.tool_name == name)
+                .unwrap_or_else(|| panic!("{name} missing"))
+        };
+        assert_eq!(session.events.tools.len(), 4);
+        assert_eq!(named("Shell").category, "shell");
+        assert_eq!(named("Shell").command, "cargo test");
+        assert_eq!(named("Shell").command_name, "cargo");
+        assert_eq!(named("StrReplace").category, "edit");
+        assert_eq!(named("ReadLints").category, "read");
+        // An unfamiliar name still produces an event, in the catch-all category.
+        assert_eq!(named("SomeToolWeHaveNeverSeen").category, "tool");
+        // Cursor has no per-tool result records and no tool call ids.
+        assert!(named("Shell").call_id.is_none());
+        assert!(named("Shell").status.is_empty());
+        assert_eq!(session.tools.get("Shell"), Some(&1));
     }
 
     #[test]
