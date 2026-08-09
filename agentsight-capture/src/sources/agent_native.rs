@@ -242,6 +242,122 @@ fn cursor_composer_header(
     .ok()
 }
 
+/// `cursorDiskKV` values are BLOBs on real installs but land as TEXT when
+/// written from SQL literals, so accept either shape.
+#[cfg(any(test, feature = "test-support"))]
+fn cursor_kv_bytes(value: rusqlite::types::Value) -> Option<Vec<u8>> {
+    match value {
+        rusqlite::types::Value::Blob(bytes) => Some(bytes),
+        rusqlite::types::Value::Text(text) => Some(text.into_bytes()),
+        _ => None,
+    }
+}
+
+#[cfg(any(test, feature = "test-support"))]
+struct CursorComposerData {
+    model: Option<String>,
+    workspace_path: Option<String>,
+}
+
+/// Read the `composerData:<id>` blob. `modelName` is the literal string
+/// "default" when the user never pinned a model, which means unknown, not a
+/// model called "default". `workspaceIdentifier.uri.fsPath` carries the real
+/// working directory when present (a minority of records).
+#[cfg(any(test, feature = "test-support"))]
+fn cursor_composer_data(
+    conn: &rusqlite::Connection,
+    composer_id: &str,
+) -> Option<CursorComposerData> {
+    let raw: rusqlite::types::Value = conn
+        .query_row(
+            "SELECT value FROM cursorDiskKV WHERE key = ?1",
+            [format!("composerData:{composer_id}")],
+            |row| row.get(0),
+        )
+        .ok()?;
+    let value: Value = serde_json::from_slice(&cursor_kv_bytes(raw)?).ok()?;
+    let model = value
+        .pointer("/modelConfig/modelName")
+        .and_then(Value::as_str)
+        .filter(|name| !name.is_empty() && *name != "default")
+        .map(str::to_string);
+    let workspace_path = value
+        .pointer("/workspaceIdentifier/uri/fsPath")
+        .and_then(Value::as_str)
+        .filter(|path| !path.is_empty())
+        .map(str::to_string);
+    Some(CursorComposerData {
+        model,
+        workspace_path,
+    })
+}
+
+/// Sum legacy token counts for one composer's bubbles. The key range is
+/// `bubbleId:<id>:` to `bubbleId:<id>;` (';' is ':' + 1), which stays on the
+/// key index instead of scanning the table. Cursor stopped writing usage
+/// events around March 2026, so zero on a current session is the normal case.
+#[cfg(any(test, feature = "test-support"))]
+fn cursor_bubble_tokens(conn: &rusqlite::Connection, composer_id: &str) -> TokenUsage {
+    let mut usage = TokenUsage::default();
+    let Ok(mut stmt) = conn.prepare("SELECT value FROM cursorDiskKV WHERE key >= ?1 AND key < ?2")
+    else {
+        return usage;
+    };
+    let lower = format!("bubbleId:{composer_id}:");
+    let upper = format!("bubbleId:{composer_id};");
+    let Ok(rows) = stmt.query_map([lower, upper], |row| {
+        row.get::<_, rusqlite::types::Value>(0)
+    }) else {
+        return usage;
+    };
+    for raw in rows.filter_map(Result::ok).filter_map(cursor_kv_bytes) {
+        let Ok(value) = serde_json::from_slice::<Value>(&raw) else {
+            continue;
+        };
+        let input = value
+            .pointer("/tokenCount/inputTokens")
+            .and_then(Value::as_i64)
+            .unwrap_or_default()
+            .max(0);
+        let output = value
+            .pointer("/tokenCount/outputTokens")
+            .and_then(Value::as_i64)
+            .unwrap_or_default()
+            .max(0);
+        if input + output > 0 {
+            usage.input_tokens += input;
+            usage.output_tokens += output;
+            usage.total_tokens += input + output;
+        }
+    }
+    usage
+}
+
+/// Composer ids of a parent transcript's delegated runs, read from the
+/// `subagents/` directory next to it. `Task` calls carry no child id, so the
+/// directory layout is the only parent-child link.
+#[cfg(any(test, feature = "test-support"))]
+fn cursor_subagent_ids(parent_transcript: &Path) -> Vec<String> {
+    let Some(subagents) = parent_transcript.parent().map(|dir| dir.join("subagents")) else {
+        return Vec::new();
+    };
+    let Ok(entries) = fs::read_dir(subagents) else {
+        return Vec::new();
+    };
+    let mut ids: Vec<String> = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().and_then(|ext| ext.to_str()) == Some("jsonl"))
+        .filter_map(|path| {
+            path.file_stem()
+                .and_then(|stem| stem.to_str())
+                .map(str::to_string)
+        })
+        .collect();
+    ids.sort();
+    ids
+}
+
 fn user_home_dir() -> Option<PathBuf> {
     std::env::var("SUDO_USER")
         .ok()
@@ -1006,6 +1122,61 @@ mod tests {
             [],
         );
         assert!(denied.is_err());
+    }
+
+    #[test]
+    fn cursor_composer_data_reads_model_and_workspace() {
+        let temp = tempfile::tempdir().unwrap();
+        write_cursor_state_db_for_test(temp.path());
+        let conn = open_cursor_state_db(&cursor_state_db_path(temp.path()).unwrap()).unwrap();
+
+        let pinned = cursor_composer_data(&conn, "abc00000-0000-0000-0000-000000000abc")
+            .expect("pinned composer");
+        assert_eq!(pinned.model.as_deref(), Some("claude-sonnet-4-6"));
+        assert_eq!(pinned.workspace_path.as_deref(), Some("/work/repo"));
+
+        let unpinned = cursor_composer_data(&conn, "aaa00000-0000-0000-0000-000000000aaa")
+            .expect("default composer");
+        assert_eq!(unpinned.model, None);
+        assert_eq!(unpinned.workspace_path, None);
+
+        assert!(cursor_composer_data(&conn, "not-a-composer").is_none());
+    }
+
+    #[test]
+    fn cursor_bubble_tokens_sums_by_bounded_range() {
+        let temp = tempfile::tempdir().unwrap();
+        write_cursor_state_db_for_test(temp.path());
+        let conn = open_cursor_state_db(&cursor_state_db_path(temp.path()).unwrap()).unwrap();
+
+        let parent = cursor_bubble_tokens(&conn, "abc00000-0000-0000-0000-000000000abc");
+        assert_eq!(parent.input_tokens, 100);
+        assert_eq!(parent.output_tokens, 40);
+        assert_eq!(parent.total_tokens, 140);
+
+        let child = cursor_bubble_tokens(&conn, "def00000-0000-0000-0000-000000000def");
+        assert_eq!(child.total_tokens, 10);
+
+        let none = cursor_bubble_tokens(&conn, "aaa00000-0000-0000-0000-000000000aaa");
+        assert_eq!(none.total_tokens, 0);
+    }
+
+    #[test]
+    fn cursor_subagent_ids_come_from_directory_layout() {
+        let temp = tempfile::tempdir().unwrap();
+        let transcripts = temp
+            .path()
+            .join(".cursor/projects/repo/agent-transcripts/abc");
+        fs::create_dir_all(transcripts.join("subagents")).unwrap();
+        let parent = transcripts.join("abc.jsonl");
+        fs::write(&parent, "{}\n").unwrap();
+        fs::write(transcripts.join("subagents/def.jsonl"), "{}\n").unwrap();
+        fs::write(transcripts.join("subagents/aaa.jsonl"), "{}\n").unwrap();
+        fs::write(transcripts.join("subagents/notes.txt"), "x").unwrap();
+
+        assert_eq!(cursor_subagent_ids(&parent), vec!["aaa", "def"]);
+        let no_subagents = temp.path().join("elsewhere/abc.jsonl");
+        assert!(cursor_subagent_ids(&no_subagents).is_empty());
     }
 
     #[test]
