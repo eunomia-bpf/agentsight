@@ -1407,7 +1407,10 @@ fn cursor_absorb_transcript(
                 .get("status")
                 .and_then(Value::as_str)
                 .is_some_and(|status| {
-                    matches!(status, "error" | "failed" | "fail" | "cancelled" | "canceled")
+                    matches!(
+                        status,
+                        "error" | "failed" | "fail" | "cancelled" | "canceled"
+                    )
                 });
             if failed {
                 for tool in events.tools.iter_mut().skip(turn_start) {
@@ -1450,13 +1453,7 @@ fn cursor_absorb_transcript(
                     {
                         delegations.push((*current_prompt_index, prompt.trim().to_string()));
                     }
-                    cursor_push_tool_event(
-                        part,
-                        acc,
-                        events,
-                        *current_prompt_index,
-                        current_ts_ms,
-                    );
+                    cursor_push_tool_event(part, acc, events, *current_prompt_index, current_ts_ms);
                 }
                 let text = cursor_text_of(&record);
                 if !text.is_empty() {
@@ -1614,8 +1611,7 @@ fn cursor_wrapper_ts_ms(text: &str) -> Option<i64> {
         }
         None => (raw, 0),
     };
-    let naive =
-        chrono::NaiveDateTime::parse_from_str(stamp, "%A, %b %d, %Y, %I:%M %p").ok()?;
+    let naive = chrono::NaiveDateTime::parse_from_str(stamp, "%A, %b %d, %Y, %I:%M %p").ok()?;
     Some(naive.and_utc().timestamp_millis() - offset_hours * 3_600_000)
 }
 
@@ -1687,7 +1683,11 @@ fn cursor_push_tool_event(
     prompt_index: usize,
     ts_ms: Option<i64>,
 ) {
-    let Some(name) = part.get("name").and_then(Value::as_str).filter(|n| !n.is_empty()) else {
+    let Some(name) = part
+        .get("name")
+        .and_then(Value::as_str)
+        .filter(|n| !n.is_empty())
+    else {
         return;
     };
     let input = part.get("input").cloned().unwrap_or(Value::Null);
@@ -3680,9 +3680,6 @@ mod tests {
         .join("\n")
     }
 
-
-
-
     #[test]
     fn cursor_transcript_counts_prompts_and_responses() {
         let session = parse_session_content(
@@ -3841,7 +3838,6 @@ mod tests {
             "Shell events must carry a process chain"
         );
     }
-
 
     #[test]
     fn cursor_shell_working_directory_resolves_relative_paths() {

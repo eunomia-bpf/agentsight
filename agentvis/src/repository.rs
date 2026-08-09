@@ -774,7 +774,8 @@ mod tests {
             Some(encoded_cursor_root(root))
         );
         assert_eq!(
-            cursor_project_name(Path::new("/home/user/.claude/projects/x/session.jsonl")).as_deref(),
+            cursor_project_name(Path::new("/home/user/.claude/projects/x/session.jsonl"))
+                .as_deref(),
             Some("x"),
             "helper reads the segment after `projects`, callers gate on agent"
         );
@@ -793,16 +794,12 @@ mod tests {
         // Before this, Cursor fell through to the catch-all arm and every
         // candidate was discarded before it was ever parsed.
         assert!(candidate_may_match_repo(
-            &candidate(
-                "/home/user/.cursor/projects/home-user-my-repo/agent-transcripts/a/a.jsonl"
-            ),
+            &candidate("/home/user/.cursor/projects/home-user-my-repo/agent-transcripts/a/a.jsonl"),
             &roots,
             None
         ));
         assert!(!candidate_may_match_repo(
-            &candidate(
-                "/home/user/.cursor/projects/home-user-other/agent-transcripts/a/a.jsonl"
-            ),
+            &candidate("/home/user/.cursor/projects/home-user-other/agent-transcripts/a/a.jsonl"),
             &roots,
             None
         ));
