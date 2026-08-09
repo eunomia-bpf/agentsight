@@ -1385,6 +1385,8 @@ fn cursor_absorb_transcript(
 ) {
     // Tools recorded since the last turn marker, so a failed turn can mark them.
     let mut turn_start = events.tools.len();
+    // Clock carried forward from the most recent user message wrapper.
+    let mut current_ts_ms: Option<i64> = None;
     for line in content.lines() {
         let line = line.trim();
         if line.is_empty() {
@@ -1417,12 +1419,22 @@ fn cursor_absorb_transcript(
         }
 
         match record.get("role").and_then(Value::as_str) {
-            Some("user") if scope == CursorScope::Parent => {
-                let text = cursor_user_query(&cursor_text_of(&record));
-                if !text.is_empty() {
-                    *current_prompt_index = events.upsert_prompt(None, &text, Vec::new());
-                    if acc.prompt_preview.is_none() {
-                        acc.prompt_preview = Some(truncate_clean(&text, 180));
+            Some("user") => {
+                let raw = cursor_text_of(&record);
+                // The wrapper's timestamp is the only clock in the transcript,
+                // and sub-agent messages carry one too, so read it in both
+                // scopes even though only the parent contributes prompts.
+                if let Some(ts) = cursor_wrapper_ts_ms(&raw) {
+                    current_ts_ms = Some(ts);
+                }
+                if scope == CursorScope::Parent {
+                    let text = cursor_user_query(&raw);
+                    if !text.is_empty() {
+                        *current_prompt_index =
+                            events.upsert_prompt(current_ts_ms, &text, Vec::new());
+                        if acc.prompt_preview.is_none() {
+                            acc.prompt_preview = Some(truncate_clean(&text, 180));
+                        }
                     }
                 }
             }
@@ -1438,12 +1450,18 @@ fn cursor_absorb_transcript(
                     {
                         delegations.push((*current_prompt_index, prompt.trim().to_string()));
                     }
-                    cursor_push_tool_event(part, acc, events, *current_prompt_index);
+                    cursor_push_tool_event(
+                        part,
+                        acc,
+                        events,
+                        *current_prompt_index,
+                        current_ts_ms,
+                    );
                 }
                 let text = cursor_text_of(&record);
                 if !text.is_empty() {
                     events.llm_responses.push(LlmResponse {
-                        ts_ms: None,
+                        ts_ms: current_ts_ms,
                         prompt_index: *current_prompt_index,
                         // Model, tokens, and timestamps live in state.vscdb, not
                         // the transcript. The SQLite enrichment fills them in.
@@ -1562,6 +1580,45 @@ fn cursor_delegating_prompt_index(
         .map(|(index, _)| *index)
 }
 
+/// Read the clock out of Cursor's user message wrapper.
+///
+/// Cursor writes no timestamp fields anywhere in a transcript. The one clock it
+/// does record is inside the wrapper on each user message:
+///
+/// ```text
+/// <timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>
+/// ```
+///
+/// Resolution is one minute, so several turns commonly share a value. Checked
+/// against `state.vscdb`, where the matching bubble records `createdAt` of
+/// `2026-08-08T03:11:58.512Z` against this parsing to `03:12:00Z`, so the value
+/// is right and simply rounded. The database is the better source when a
+/// consumer can reach it, but `agent-session` cannot, and without this every
+/// Cursor tool event is dropped by anything that requires a timestamp.
+fn cursor_wrapper_ts_ms(text: &str) -> Option<i64> {
+    const OPEN: &str = "<timestamp>";
+    const CLOSE: &str = "</timestamp>";
+    let start = text.find(OPEN)? + OPEN.len();
+    let rest = &text[start..];
+    let raw = rest[..rest.find(CLOSE)?].trim();
+
+    // Trailing "(UTC-5)" gives the offset the local time was written in.
+    let (stamp, offset_hours) = match raw.rfind("(UTC") {
+        Some(index) => {
+            let hours = raw[index + 4..]
+                .trim_end_matches(')')
+                .trim()
+                .parse::<i64>()
+                .unwrap_or(0);
+            (raw[..index].trim(), hours)
+        }
+        None => (raw, 0),
+    };
+    let naive =
+        chrono::NaiveDateTime::parse_from_str(stamp, "%A, %b %d, %Y, %I:%M %p").ok()?;
+    Some(naive.and_utc().timestamp_millis() - offset_hours * 3_600_000)
+}
+
 /// Strip Cursor's user message wrapper.
 ///
 /// Every user record Cursor writes, in parent and sub-agent transcripts alike,
@@ -1628,6 +1685,7 @@ fn cursor_push_tool_event(
     acc: &mut SessionAccumulator,
     events: &mut SessionEvents,
     prompt_index: usize,
+    ts_ms: Option<i64>,
 ) {
     let Some(name) = part.get("name").and_then(Value::as_str).filter(|n| !n.is_empty()) else {
         return;
@@ -1637,9 +1695,10 @@ fn cursor_push_tool_event(
     acc.add_tool(name);
     let event = tool_event_from_input(
         acc.cwd.as_deref(),
-        // Cursor records no timestamps in the transcript, and its tool_use parts
-        // carry only type, name and input, so there is no call id either.
-        None,
+        // Inherited from the turn's user message wrapper, the only clock the
+        // transcript has. Cursor's tool_use parts carry only type, name and
+        // input, so there is still no call id.
+        ts_ms,
         prompt_index,
         name,
         &input,
@@ -3976,6 +4035,49 @@ mod tests {
         // signal there is, and it applies to that turn's calls only.
         assert_eq!(status_of("Read"), "observed");
         assert_eq!(status_of("Shell"), "fail");
+    }
+
+    #[test]
+    fn cursor_wrapper_timestamp_becomes_the_event_clock() {
+        // Cursor writes no timestamp fields anywhere. The wrapper on each user
+        // message is the only clock, and without it every consumer that
+        // requires ts_ms drops all Cursor events. agentvis is one of those.
+        let content = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"<timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>\n<user_query>\ngo\n</user_query>"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"text","text":"reading it"},{"type":"tool_use","name":"Read","input":{"path":"/repo/a.rs"}}]}}"#,
+        ]
+        .join("\n");
+
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &content,
+        )
+        .expect("session");
+
+        // 10:12 PM at UTC-5 is 03:12 UTC the next day. Cross-checked against
+        // state.vscdb, where the matching bubble records 03:11:58.512Z, so the
+        // value is correct and simply rounded to the minute.
+        const EXPECTED_MS: i64 = 1_786_158_720_000;
+        assert_eq!(session.events.prompts[0].ts_ms, Some(EXPECTED_MS));
+        assert_eq!(session.events.tools[0].ts_ms, Some(EXPECTED_MS));
+        assert_eq!(session.events.llm_responses[0].ts_ms, Some(EXPECTED_MS));
+
+        // A message with no wrapper leaves the clock unset rather than guessing.
+        let bare = [
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"no wrapper here"}]}}"#,
+            r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"path":"/repo/b.rs"}}]}}"#,
+        ]
+        .join("\n");
+        let session = parse_session_content(
+            AGENT_CURSOR,
+            &PathBuf::from("/tmp/session.jsonl"),
+            UNIX_EPOCH,
+            &bare,
+        )
+        .expect("session");
+        assert_eq!(session.events.tools[0].ts_ms, None);
     }
 
     #[test]

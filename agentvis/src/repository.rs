@@ -4,7 +4,7 @@
 //! Repository-scoped file actions from native coding-agent sessions.
 
 use agent_session::{
-    AGENT_CLAUDE, AGENT_CODEX, AGENT_GEMINI, AgentSession, SessionCandidate,
+    AGENT_CLAUDE, AGENT_CODEX, AGENT_CURSOR, AGENT_GEMINI, AgentSession, SessionCandidate,
     discover_session_files, parse_session_content, session_candidate_from_path,
 };
 use serde::{Deserialize, Serialize};
@@ -156,7 +156,11 @@ fn parse_candidates(candidates: &[SessionCandidate]) -> Vec<(AgentSession, usize
 }
 
 fn repository_session(candidate: &SessionCandidate) -> Option<(AgentSession, usize)> {
-    if candidate.agent == AGENT_GEMINI {
+    // Gemini and Cursor are read whole. The streaming filter below keys on a
+    // top-level "type" field, which neither writes on message records, so it
+    // would hand the parser an empty string. Their transcripts are small enough
+    // that parsing in full costs little, unlike Claude and Codex rollouts.
+    if candidate.agent == AGENT_GEMINI || candidate.agent == AGENT_CURSOR {
         let content = std::fs::read_to_string(&candidate.path).ok()?;
         let session = parse_session_content(
             candidate.agent,
@@ -274,7 +278,10 @@ fn append_session(
         }
         used = true;
         batch.0.push(RepositoryEvent {
-            id: format!("{session_id}:{ordinal}"),
+            // Zero padded because events are ordered by (ts_ms, id) and the id
+            // is compared as a string. Agents with coarse clocks tie often, and
+            // an unpadded ordinal would sort 1, 10, 11, 2 within a tie.
+            id: format!("{session_id}:{ordinal:06}"),
             session_id: session_id.clone(),
             vendor: session.agent_type.clone(),
             ts_ms,
@@ -356,8 +363,39 @@ fn candidate_may_match_repo(
         }),
         AGENT_GEMINI => gemini_project_hash(&candidate.path)
             .is_some_and(|project| roots.iter().any(|root| repository_hash(root) == project)),
+        AGENT_CURSOR => cursor_project_name(&candidate.path).is_some_and(|project| {
+            roots
+                .iter()
+                .any(|root| encoded_cursor_root(root) == project)
+        }),
         _ => false,
     }
+}
+
+/// Cursor names a project directory after the workspace path with separators
+/// replaced, the same scheme Claude uses without the leading separator. That
+/// encoding cannot be inverted, since a hyphen in a real directory name looks
+/// exactly like a separator, but it does not need to be: encoding the root and
+/// comparing works and stays unambiguous.
+fn encoded_cursor_root(root: &Path) -> String {
+    root.to_string_lossy()
+        .replace('/', "-")
+        .trim_start_matches('-')
+        .to_string()
+}
+
+/// The project directory of a Cursor transcript, from
+/// `~/.cursor/projects/<project>/agent-transcripts/<id>/...`.
+fn cursor_project_name(path: &Path) -> Option<String> {
+    let mut components = path.components().peekable();
+    while let Some(component) = components.next() {
+        if component.as_os_str() == "projects"
+            && let Some(project) = components.peek()
+        {
+            return Some(project.as_os_str().to_string_lossy().into_owned());
+        }
+    }
+    None
 }
 
 fn encoded_claude_root(root: &Path) -> String {
@@ -711,6 +749,74 @@ mod tests {
             claude_project_name(sibling),
             Some(encoded_claude_root(root))
         );
+    }
+
+    #[test]
+    fn cursor_project_directories_match_roots_by_encoding_not_inversion() {
+        let root = Path::new("/home/user/my-repo");
+        let transcript = Path::new(
+            "/home/user/.cursor/projects/home-user-my-repo/agent-transcripts/abc/abc.jsonl",
+        );
+        assert_eq!(
+            cursor_project_name(transcript).as_deref(),
+            Some("home-user-my-repo")
+        );
+        assert_eq!(encoded_cursor_root(root), "home-user-my-repo");
+
+        // The encoding cannot be inverted, since the hyphen in `my-repo` is
+        // indistinguishable from a separator. Encoding the root and comparing
+        // sidesteps that, and still keeps a sibling directory from matching.
+        let sibling = Path::new(
+            "/home/user/.cursor/projects/home-user-my-repo-x/agent-transcripts/abc/abc.jsonl",
+        );
+        assert_ne!(
+            cursor_project_name(sibling),
+            Some(encoded_cursor_root(root))
+        );
+        assert_eq!(
+            cursor_project_name(Path::new("/home/user/.claude/projects/x/session.jsonl")).as_deref(),
+            Some("x"),
+            "helper reads the segment after `projects`, callers gate on agent"
+        );
+    }
+
+    #[test]
+    fn cursor_candidates_reach_the_repository_matcher() {
+        let root = PathBuf::from("/home/user/my-repo");
+        let roots = vec![root.clone()];
+        let candidate = |path: &str| SessionCandidate {
+            agent: AGENT_CURSOR,
+            path: PathBuf::from(path),
+            updated: SystemTime::UNIX_EPOCH,
+        };
+
+        // Before this, Cursor fell through to the catch-all arm and every
+        // candidate was discarded before it was ever parsed.
+        assert!(candidate_may_match_repo(
+            &candidate(
+                "/home/user/.cursor/projects/home-user-my-repo/agent-transcripts/a/a.jsonl"
+            ),
+            &roots,
+            None
+        ));
+        assert!(!candidate_may_match_repo(
+            &candidate(
+                "/home/user/.cursor/projects/home-user-other/agent-transcripts/a/a.jsonl"
+            ),
+            &roots,
+            None
+        ));
+    }
+
+    #[test]
+    fn tied_timestamps_keep_event_order() {
+        // Cursor's only clock is minute resolution, so many events share a
+        // timestamp and the id breaks the tie. Ids compare as strings, so an
+        // unpadded ordinal would order 1, 10, 11, 2.
+        let mut ids: Vec<String> = (0..12).map(|ordinal| format!("s:{ordinal:06}")).collect();
+        let expected = ids.clone();
+        ids.sort();
+        assert_eq!(ids, expected);
     }
 
     #[test]
