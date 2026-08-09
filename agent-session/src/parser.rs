@@ -3162,9 +3162,9 @@ mod tests {
             &home.join(".cursor/projects/repo/agent-transcripts/abc/other.jsonl")
         ));
 
-        assert!(cursor_is_empty_window(
-            &home.join(".cursor/projects/empty-window/agent-transcripts/abc/abc.jsonl")
-        ));
+        assert!(cursor_is_empty_window(&home.join(
+            ".cursor/projects/empty-window/agent-transcripts/abc/abc.jsonl"
+        )));
         assert!(!cursor_is_empty_window(&parent));
 
         let fixture = fixture_session_path(AGENT_CURSOR, &home).expect("fixture");
