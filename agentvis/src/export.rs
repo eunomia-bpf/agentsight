@@ -96,7 +96,7 @@ pub fn run_vis(
     let outputs = requested_outputs(outputs)?;
     eprintln!("[agentvis 1/5] repository  {}", repo.display());
     eprintln!(
-        "[agentvis 2/5] sessions    scanning Claude + Codex + Gemini{}",
+        "[agentvis 2/5] sessions    scanning Claude + Codex + Gemini + Cursor{}",
         if global { " globally" } else { "" }
     );
     let scan = Instant::now();

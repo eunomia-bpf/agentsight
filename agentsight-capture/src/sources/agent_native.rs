@@ -10,7 +10,6 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-#[cfg(any(test, feature = "test-support"))]
 use std::fs;
 
 use crate::model::{
@@ -25,6 +24,10 @@ pub type SessionCache = agent_session::SessionCache;
 const CODEX_EXEC_DEDUPE_WINDOW_MS: u64 = 2_000;
 const CODEX_FALLBACK_TIME_SLOP_MS: u64 = 30_000;
 const CODEX_ROLLOUT_TAIL_BYTES: u64 = 1024 * 1024;
+// Local copy of agent_session::AGENT_CURSOR. cargo package verifies this crate
+// against the published agent-session, which lags behind the workspace copy, so
+// production code here cannot reference constants the registry version lacks.
+const CURSOR_AGENT_TYPE: &str = "cursor";
 
 #[derive(Clone, Debug)]
 struct ObservedCodexPrompt {
@@ -70,6 +73,7 @@ pub fn discover_sessions(
     };
     let mut seen = HashSet::new();
     sessions.retain(|session| seen.insert(session.display_id.clone()));
+    enrich_cursor_sessions(&mut sessions);
     sessions
         .into_iter()
         .filter(|s| matches_filter(s, pid_filter, text_filter))
@@ -189,6 +193,211 @@ fn codex_rollout_usage(path: &Path) -> Option<TokenUsage> {
     agent_session::codex_total_token_usage(&String::from_utf8_lossy(&data))
 }
 
+const CURSOR_STATE_DB_CANDIDATES: [&str; 3] = [
+    "Library/Application Support/Cursor/User/globalStorage/state.vscdb",
+    ".config/Cursor/User/globalStorage/state.vscdb",
+    "AppData/Roaming/Cursor/User/globalStorage/state.vscdb",
+];
+
+fn cursor_state_db_path(home: &Path) -> Option<PathBuf> {
+    CURSOR_STATE_DB_CANDIDATES
+        .iter()
+        .map(|candidate| home.join(candidate))
+        .find(|path| path.is_file())
+}
+
+fn open_cursor_state_db(path: &Path) -> Option<rusqlite::Connection> {
+    rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY).ok()
+}
+
+struct CursorComposerHeader {
+    created_at_ms: Option<u64>,
+    updated_at_ms: Option<u64>,
+}
+
+fn cursor_composer_header(
+    conn: &rusqlite::Connection,
+    composer_id: &str,
+) -> Option<CursorComposerHeader> {
+    conn.query_row(
+        "SELECT createdAt, lastUpdatedAt FROM composerHeaders WHERE composerId = ?1",
+        [composer_id],
+        |row| {
+            let created: Option<i64> = row.get(0)?;
+            let updated: Option<i64> = row.get(1)?;
+            Ok(CursorComposerHeader {
+                created_at_ms: created.and_then(non_negative_i64_to_u64),
+                updated_at_ms: updated.and_then(non_negative_i64_to_u64),
+            })
+        },
+    )
+    .ok()
+}
+
+fn cursor_kv_bytes(value: rusqlite::types::Value) -> Option<Vec<u8>> {
+    match value {
+        rusqlite::types::Value::Blob(bytes) => Some(bytes),
+        rusqlite::types::Value::Text(text) => Some(text.into_bytes()),
+        _ => None,
+    }
+}
+
+struct CursorComposerData {
+    model: Option<String>,
+    workspace_path: Option<String>,
+}
+
+fn cursor_composer_data(
+    conn: &rusqlite::Connection,
+    composer_id: &str,
+) -> Option<CursorComposerData> {
+    let raw: rusqlite::types::Value = conn
+        .query_row(
+            "SELECT value FROM cursorDiskKV WHERE key = ?1",
+            [format!("composerData:{composer_id}")],
+            |row| row.get(0),
+        )
+        .ok()?;
+    let value: Value = serde_json::from_slice(&cursor_kv_bytes(raw)?).ok()?;
+    let model = value
+        .pointer("/modelConfig/modelName")
+        .and_then(Value::as_str)
+        .filter(|name| !name.is_empty() && *name != "default")
+        .map(str::to_string);
+    let workspace_path = value
+        .pointer("/workspaceIdentifier/uri/fsPath")
+        .and_then(Value::as_str)
+        .filter(|path| !path.is_empty())
+        .map(str::to_string);
+    Some(CursorComposerData {
+        model,
+        workspace_path,
+    })
+}
+
+fn cursor_bubble_tokens(conn: &rusqlite::Connection, composer_id: &str) -> TokenUsage {
+    let mut usage = TokenUsage::default();
+    let Ok(mut stmt) = conn.prepare("SELECT value FROM cursorDiskKV WHERE key >= ?1 AND key < ?2")
+    else {
+        return usage;
+    };
+    let lower = format!("bubbleId:{composer_id}:");
+    let upper = format!("bubbleId:{composer_id};");
+    let Ok(rows) = stmt.query_map([lower, upper], |row| {
+        row.get::<_, rusqlite::types::Value>(0)
+    }) else {
+        return usage;
+    };
+    for raw in rows.filter_map(Result::ok).filter_map(cursor_kv_bytes) {
+        let Ok(value) = serde_json::from_slice::<Value>(&raw) else {
+            continue;
+        };
+        let input = value
+            .pointer("/tokenCount/inputTokens")
+            .and_then(Value::as_i64)
+            .unwrap_or_default()
+            .max(0);
+        let output = value
+            .pointer("/tokenCount/outputTokens")
+            .and_then(Value::as_i64)
+            .unwrap_or_default()
+            .max(0);
+        if input + output > 0 {
+            usage.input_tokens += input;
+            usage.output_tokens += output;
+            usage.total_tokens += input + output;
+        }
+    }
+    usage
+}
+
+fn cursor_subagent_ids(parent_transcript: &Path) -> Vec<String> {
+    let Some(subagents) = parent_transcript.parent().map(|dir| dir.join("subagents")) else {
+        return Vec::new();
+    };
+    let Ok(entries) = fs::read_dir(subagents) else {
+        return Vec::new();
+    };
+    let mut ids: Vec<String> = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().and_then(|ext| ext.to_str()) == Some("jsonl"))
+        .filter_map(|path| {
+            path.file_stem()
+                .and_then(|stem| stem.to_str())
+                .map(str::to_string)
+        })
+        .collect();
+    ids.sort();
+    ids
+}
+
+fn enrich_cursor_sessions(sessions: &mut [LocalSession]) {
+    if !sessions
+        .iter()
+        .any(|session| session.agent_type == CURSOR_AGENT_TYPE)
+    {
+        return;
+    }
+    let Some(home) = user_home_dir() else {
+        return;
+    };
+    enrich_cursor_sessions_in_home(&home, sessions);
+}
+
+fn enrich_cursor_sessions_in_home(home: &Path, sessions: &mut [LocalSession]) {
+    let Some(db_path) = cursor_state_db_path(home) else {
+        return;
+    };
+    let Some(conn) = open_cursor_state_db(&db_path) else {
+        return;
+    };
+    for session in sessions
+        .iter_mut()
+        .filter(|session| session.agent_type == CURSOR_AGENT_TYPE)
+    {
+        enrich_cursor_session(&conn, session);
+    }
+}
+
+fn enrich_cursor_session(conn: &rusqlite::Connection, session: &mut LocalSession) {
+    let composer_id = session.session_id.clone();
+    if let Some(header) = cursor_composer_header(conn, &composer_id) {
+        if header.created_at_ms.is_some() {
+            session.start_timestamp_ms = header.created_at_ms;
+        }
+        if let Some(updated_ms) = header.updated_at_ms {
+            session.end_timestamp_ms = Some(updated_ms);
+            session.last_message_at = Some(iso_utc_from_ms(updated_ms));
+        }
+        if let (Some(start), Some(end)) = (session.start_timestamp_ms, session.end_timestamp_ms) {
+            session.duration_ms = end.saturating_sub(start);
+        }
+    }
+    if let Some(data) = cursor_composer_data(conn, &composer_id) {
+        if data.model.is_some() {
+            session.model = data.model;
+        }
+        if data.workspace_path.is_some() {
+            session.cwd = data.workspace_path;
+        }
+    }
+    // Roll up across delegated runs, or the sessions that delegated most under-report.
+    let mut usage = cursor_bubble_tokens(conn, &composer_id);
+    for child_id in cursor_subagent_ids(&session.path) {
+        let child = cursor_bubble_tokens(conn, &child_id);
+        usage.input_tokens += child.input_tokens;
+        usage.output_tokens += child.output_tokens;
+        usage.total_tokens += child.total_tokens;
+    }
+    if usage.total_tokens > 0 {
+        if let Some(model) = session.model.as_deref() {
+            session.model_usage.insert(model.to_string(), usage.clone());
+        }
+        session.usage = usage;
+    }
+}
+
 fn user_home_dir() -> Option<PathBuf> {
     std::env::var("SUDO_USER")
         .ok()
@@ -254,7 +463,11 @@ pub fn materialized_view(sessions: &[LocalSession]) -> MaterializedView {
 }
 
 pub fn import_recent(view: &mut MaterializedView, limit: usize) {
-    let sessions = SessionCache::new().discover_cached(limit, Duration::ZERO);
+    let mut sessions = SessionCache::new().discover_cached(limit, Duration::ZERO);
+    // `discover_sessions` enriches on its way out, but this is a second entry
+    // point into the same data and every `report` subcommand without a --db
+    // goes through here, as does the snapshot the frontend renders.
+    enrich_cursor_sessions(&mut sessions);
     import_into_view(view, &sessions);
 }
 
@@ -826,6 +1039,44 @@ pub fn parse_content_for_test(
     agent_session::parse_session_content(agent, path, updated, content)
 }
 
+/// Fixture mirroring Cursor's `state.vscdb` on 3.15.6: one parent composer
+/// with model, workspace, and legacy token bubbles, one subagent composer with
+/// a NULL `lastUpdatedAt`, and one composer left on the "default" model.
+#[cfg(any(test, feature = "test-support"))]
+pub fn write_cursor_state_db_for_test(home: &Path) {
+    let db_dir = home.join("Library/Application Support/Cursor/User/globalStorage");
+    fs::create_dir_all(&db_dir).unwrap();
+    let conn = rusqlite::Connection::open(db_dir.join("state.vscdb")).unwrap();
+    // Real installs run WAL, which is what lets a read-only connection work
+    // while Cursor holds a write transaction.
+    conn.pragma_update(None, "journal_mode", "WAL").unwrap();
+    conn.execute_batch(
+        r#"CREATE TABLE composerHeaders (composerId TEXT PRIMARY KEY, workspaceId TEXT,
+            createdAt INTEGER, lastUpdatedAt INTEGER, isArchived INTEGER,
+            isSubagent INTEGER, recency INTEGER, checkpointAt INTEGER, value TEXT);
+        CREATE TABLE cursorDiskKV (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB);
+        INSERT INTO composerHeaders (composerId, workspaceId, createdAt, lastUpdatedAt, isSubagent)
+        VALUES
+        ('abc00000-0000-0000-0000-000000000abc', 'ws1', 1700000, 1900000, 0),
+        ('def00000-0000-0000-0000-000000000def', 'ws1', 1750000, NULL, 1),
+        ('aaa00000-0000-0000-0000-000000000aaa', 'ws2', 1600000, 1650000, 0);
+        INSERT INTO cursorDiskKV (key, value) VALUES
+        ('composerData:bbb00000-0000-0000-0000-000000000bbb',
+         '{"composerId":"bbb00000-0000-0000-0000-000000000bbb","modelConfig":{"modelName":"claude-4.6-sonnet-medium-thinking","maxMode":false}}'),
+        ('composerData:abc00000-0000-0000-0000-000000000abc',
+         '{"composerId":"abc00000-0000-0000-0000-000000000abc","modelConfig":{"modelName":"claude-sonnet-4-6","maxMode":false},"workspaceIdentifier":{"uri":{"fsPath":"/work/repo"}}}'),
+        ('composerData:aaa00000-0000-0000-0000-000000000aaa',
+         '{"composerId":"aaa00000-0000-0000-0000-000000000aaa","modelConfig":{"modelName":"default","maxMode":false}}'),
+        ('bubbleId:abc00000-0000-0000-0000-000000000abc:b1',
+         '{"tokenCount":{"inputTokens":100,"outputTokens":40}}'),
+        ('bubbleId:abc00000-0000-0000-0000-000000000abc:b2',
+         '{"tokenCount":{"inputTokens":0,"outputTokens":0}}'),
+        ('bubbleId:def00000-0000-0000-0000-000000000def:b1',
+         '{"tokenCount":{"inputTokens":7,"outputTokens":3}}');"#,
+    )
+    .unwrap();
+}
+
 #[cfg(any(test, feature = "test-support"))]
 pub fn write_codex_state_db_for_test(home: &Path) {
     let codex_dir = home.join(".codex");
@@ -898,6 +1149,313 @@ mod tests {
             sessions[0].last_message_at.as_deref(),
             Some("1970-01-01T00:31:40.000Z")
         );
+    }
+
+    #[test]
+    fn cursor_state_db_path_checks_platform_layouts() {
+        let temp = tempfile::tempdir().unwrap();
+        assert!(cursor_state_db_path(temp.path()).is_none());
+        write_cursor_state_db_for_test(temp.path());
+        let path = cursor_state_db_path(temp.path()).unwrap();
+        assert!(path.ends_with("Cursor/User/globalStorage/state.vscdb"));
+    }
+
+    #[test]
+    fn cursor_state_db_open_is_read_only_and_fails_closed() {
+        let temp = tempfile::tempdir().unwrap();
+        assert!(open_cursor_state_db(&temp.path().join("missing.vscdb")).is_none());
+        write_cursor_state_db_for_test(temp.path());
+        let conn = open_cursor_state_db(&cursor_state_db_path(temp.path()).unwrap()).unwrap();
+        let denied = conn.execute(
+            "INSERT INTO cursorDiskKV (key, value) VALUES ('x', 'y')",
+            [],
+        );
+        assert!(denied.is_err());
+    }
+
+    fn cursor_fixture_transcripts(home: &Path) -> PathBuf {
+        let transcripts = home
+            .join(".cursor/projects/repo/agent-transcripts/abc00000-0000-0000-0000-000000000abc");
+        fs::create_dir_all(transcripts.join("subagents")).unwrap();
+        let parent = transcripts.join("abc00000-0000-0000-0000-000000000abc.jsonl");
+        fs::write(
+            &parent,
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"check the build"}]}}"#,
+        )
+        .unwrap();
+        fs::write(
+            transcripts.join("subagents/def00000-0000-0000-0000-000000000def.jsonl"),
+            "{}\n",
+        )
+        .unwrap();
+        parent
+    }
+
+    #[test]
+    fn cursor_enrichment_fills_metadata_and_rolls_up_subagents() {
+        let temp = tempfile::tempdir().unwrap();
+        write_cursor_state_db_for_test(temp.path());
+        let parent = cursor_fixture_transcripts(temp.path());
+
+        let mut sessions = vec![agent_session::parse_session_path(&parent).expect("parsed")];
+        enrich_cursor_sessions_in_home(temp.path(), &mut sessions);
+
+        let session = &sessions[0];
+        assert_eq!(session.model.as_deref(), Some("claude-sonnet-4-6"));
+        assert_eq!(session.start_timestamp_ms, Some(1_700_000));
+        assert_eq!(session.end_timestamp_ms, Some(1_900_000));
+        assert_eq!(session.duration_ms, 200_000);
+        assert_eq!(session.cwd.as_deref(), Some("/work/repo"));
+        assert_eq!(
+            session.last_message_at.as_deref(),
+            Some("1970-01-01T00:31:40.000Z")
+        );
+        // 140 from the parent's bubbles plus 10 from the delegated run.
+        assert_eq!(session.usage.total_tokens, 150);
+        assert_eq!(
+            session
+                .model_usage
+                .get("claude-sonnet-4-6")
+                .map(|usage| usage.total_tokens),
+            Some(150)
+        );
+    }
+
+    #[test]
+    fn cursor_enrichment_reads_model_when_header_row_is_missing() {
+        // Real installs have composerData with no composerHeaders row.
+        let temp = tempfile::tempdir().unwrap();
+        write_cursor_state_db_for_test(temp.path());
+        let transcripts = temp
+            .path()
+            .join(".cursor/projects/repo/agent-transcripts/bbb00000-0000-0000-0000-000000000bbb");
+        fs::create_dir_all(&transcripts).unwrap();
+        let parent = transcripts.join("bbb00000-0000-0000-0000-000000000bbb.jsonl");
+        fs::write(
+            &parent,
+            r#"{"role":"user","message":{"content":[{"type":"text","text":"check the build"}]}}"#,
+        )
+        .unwrap();
+
+        let parsed = agent_session::parse_session_path(&parent).expect("parsed");
+        let mut sessions = vec![parsed.clone()];
+        enrich_cursor_sessions_in_home(temp.path(), &mut sessions);
+
+        assert_eq!(
+            sessions[0].model.as_deref(),
+            Some("claude-4.6-sonnet-medium-thinking")
+        );
+        assert_eq!(sessions[0].start_timestamp_ms, parsed.start_timestamp_ms);
+        assert_eq!(sessions[0].end_timestamp_ms, parsed.end_timestamp_ms);
+        assert_eq!(sessions[0].last_message_at, parsed.last_message_at);
+        assert_eq!(sessions[0].usage.total_tokens, parsed.usage.total_tokens);
+    }
+
+    #[test]
+    fn cursor_enrichment_missing_db_changes_nothing() {
+        let temp = tempfile::tempdir().unwrap();
+        let parent = cursor_fixture_transcripts(temp.path());
+
+        let parsed = agent_session::parse_session_path(&parent).expect("parsed");
+        let mut sessions = vec![parsed.clone()];
+        enrich_cursor_sessions_in_home(temp.path(), &mut sessions);
+
+        assert_eq!(sessions[0].model, parsed.model);
+        assert_eq!(sessions[0].usage.total_tokens, parsed.usage.total_tokens);
+        assert_eq!(sessions[0].cwd, parsed.cwd);
+        assert_eq!(sessions[0].start_timestamp_ms, parsed.start_timestamp_ms);
+    }
+
+    #[test]
+    fn cursor_enrichment_reads_while_writer_holds_wal() {
+        let temp = tempfile::tempdir().unwrap();
+        write_cursor_state_db_for_test(temp.path());
+        let parent = cursor_fixture_transcripts(temp.path());
+
+        let writer =
+            rusqlite::Connection::open(cursor_state_db_path(temp.path()).unwrap()).unwrap();
+        writer.execute_batch("BEGIN IMMEDIATE;").unwrap();
+        writer
+            .execute(
+                "INSERT INTO cursorDiskKV (key, value) VALUES ('agentKv:x', 'held open')",
+                [],
+            )
+            .unwrap();
+
+        let mut sessions = vec![agent_session::parse_session_path(&parent).expect("parsed")];
+        enrich_cursor_sessions_in_home(temp.path(), &mut sessions);
+        writer.execute_batch("ROLLBACK;").unwrap();
+
+        assert_eq!(sessions[0].model.as_deref(), Some("claude-sonnet-4-6"));
+        assert_eq!(sessions[0].usage.total_tokens, 150);
+    }
+
+    #[test]
+    fn cursor_composer_data_reads_model_and_workspace() {
+        let temp = tempfile::tempdir().unwrap();
+        write_cursor_state_db_for_test(temp.path());
+        let conn = open_cursor_state_db(&cursor_state_db_path(temp.path()).unwrap()).unwrap();
+
+        let pinned = cursor_composer_data(&conn, "abc00000-0000-0000-0000-000000000abc")
+            .expect("pinned composer");
+        assert_eq!(pinned.model.as_deref(), Some("claude-sonnet-4-6"));
+        assert_eq!(pinned.workspace_path.as_deref(), Some("/work/repo"));
+
+        let unpinned = cursor_composer_data(&conn, "aaa00000-0000-0000-0000-000000000aaa")
+            .expect("default composer");
+        assert_eq!(unpinned.model, None);
+        assert_eq!(unpinned.workspace_path, None);
+
+        assert!(cursor_composer_data(&conn, "not-a-composer").is_none());
+    }
+
+    #[test]
+    fn cursor_bubble_tokens_sums_by_bounded_range() {
+        let temp = tempfile::tempdir().unwrap();
+        write_cursor_state_db_for_test(temp.path());
+        let conn = open_cursor_state_db(&cursor_state_db_path(temp.path()).unwrap()).unwrap();
+
+        let parent = cursor_bubble_tokens(&conn, "abc00000-0000-0000-0000-000000000abc");
+        assert_eq!(parent.input_tokens, 100);
+        assert_eq!(parent.output_tokens, 40);
+        assert_eq!(parent.total_tokens, 140);
+
+        let child = cursor_bubble_tokens(&conn, "def00000-0000-0000-0000-000000000def");
+        assert_eq!(child.total_tokens, 10);
+
+        let none = cursor_bubble_tokens(&conn, "aaa00000-0000-0000-0000-000000000aaa");
+        assert_eq!(none.total_tokens, 0);
+    }
+
+    #[test]
+    fn cursor_subagent_ids_come_from_directory_layout() {
+        let temp = tempfile::tempdir().unwrap();
+        let transcripts = temp
+            .path()
+            .join(".cursor/projects/repo/agent-transcripts/abc");
+        fs::create_dir_all(transcripts.join("subagents")).unwrap();
+        let parent = transcripts.join("abc.jsonl");
+        fs::write(&parent, "{}\n").unwrap();
+        fs::write(transcripts.join("subagents/def.jsonl"), "{}\n").unwrap();
+        fs::write(transcripts.join("subagents/aaa.jsonl"), "{}\n").unwrap();
+        fs::write(transcripts.join("subagents/notes.txt"), "x").unwrap();
+
+        assert_eq!(cursor_subagent_ids(&parent), vec!["aaa", "def"]);
+        let no_subagents = temp.path().join("elsewhere/abc.jsonl");
+        assert!(cursor_subagent_ids(&no_subagents).is_empty());
+    }
+
+    #[test]
+    fn cursor_composer_header_reads_parent_and_subagent_rows() {
+        let temp = tempfile::tempdir().unwrap();
+        write_cursor_state_db_for_test(temp.path());
+        let conn = open_cursor_state_db(&cursor_state_db_path(temp.path()).unwrap()).unwrap();
+
+        let parent = cursor_composer_header(&conn, "abc00000-0000-0000-0000-000000000abc")
+            .expect("parent header");
+        assert_eq!(parent.created_at_ms, Some(1_700_000));
+        assert_eq!(parent.updated_at_ms, Some(1_900_000));
+
+        let child = cursor_composer_header(&conn, "def00000-0000-0000-0000-000000000def")
+            .expect("subagent header");
+        assert_eq!(child.created_at_ms, Some(1_750_000));
+        assert_eq!(child.updated_at_ms, None);
+
+        assert!(cursor_composer_header(&conn, "not-a-composer").is_none());
+    }
+
+    #[test]
+    fn count_session_dirs_reports_cursor_root() {
+        let temp = tempfile::tempdir().unwrap();
+        assert!(agent_session::count_session_dirs_in_home(temp.path()).is_empty());
+
+        let transcripts = temp
+            .path()
+            .join(".cursor/projects/repo/agent-transcripts/abc");
+        fs::create_dir_all(transcripts.join("subagents")).unwrap();
+        fs::write(transcripts.join("abc.jsonl"), "{}\n").unwrap();
+        fs::write(transcripts.join("subagents/def.jsonl"), "{}\n").unwrap();
+
+        let stats = agent_session::count_session_dirs_in_home(temp.path());
+        assert_eq!(stats.len(), 1);
+        assert_eq!(stats[0].agent, agent_session::AGENT_CURSOR);
+        assert!(stats[0].dir.ends_with(".cursor/projects"));
+        // Parents only: the subagent file folds into its parent session, so it
+        // adds neither a session nor bytes.
+        assert_eq!(stats[0].sessions, 1);
+        assert_eq!(stats[0].bytes, 3);
+    }
+
+    #[test]
+    fn cursor_discovery_emits_parent_candidates_only() {
+        let temp = tempfile::tempdir().unwrap();
+        let project = temp.path().join(".cursor/projects/repo");
+        let transcripts = project.join("agent-transcripts/abc");
+        fs::create_dir_all(transcripts.join("subagents")).unwrap();
+        fs::create_dir_all(project.join("canvases/node_modules/pkg")).unwrap();
+        fs::write(transcripts.join("abc.jsonl"), "{}\n").unwrap();
+        fs::write(transcripts.join("subagents/def.jsonl"), "{}\n").unwrap();
+        fs::write(project.join("canvases/node_modules/pkg/data.jsonl"), "{}\n").unwrap();
+
+        let candidates: Vec<_> = agent_session::discover_session_files_in_home(temp.path())
+            .into_iter()
+            .filter(|candidate| candidate.agent == agent_session::AGENT_CURSOR)
+            .collect();
+
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].path, transcripts.join("abc.jsonl"));
+    }
+
+    #[test]
+    fn cursor_candidate_updated_tracks_subagent_writes() {
+        let temp = tempfile::tempdir().unwrap();
+        let transcripts = temp
+            .path()
+            .join(".cursor/projects/repo/agent-transcripts/abc");
+        fs::create_dir_all(transcripts.join("subagents")).unwrap();
+        fs::write(transcripts.join("abc.jsonl"), "{}\n").unwrap();
+        let child = transcripts.join("subagents/def.jsonl");
+        fs::write(&child, "{}\n").unwrap();
+
+        // Bump only the child's mtime well past the parent's.
+        let bumped = std::time::SystemTime::now() + std::time::Duration::from_secs(120);
+        let handle = fs::File::options().write(true).open(&child).unwrap();
+        handle.set_modified(bumped).unwrap();
+
+        let candidates: Vec<_> = agent_session::discover_session_files_in_home(temp.path())
+            .into_iter()
+            .filter(|candidate| candidate.agent == agent_session::AGENT_CURSOR)
+            .collect();
+
+        assert_eq!(candidates.len(), 1);
+        let parent_mtime = fs::metadata(transcripts.join("abc.jsonl"))
+            .unwrap()
+            .modified()
+            .unwrap();
+        assert!(candidates[0].updated > parent_mtime);
+    }
+
+    #[test]
+    fn cursor_duplicate_composer_prefers_real_workspace() {
+        let temp = tempfile::tempdir().unwrap();
+        let real = temp
+            .path()
+            .join(".cursor/projects/repo/agent-transcripts/abc");
+        let stale = temp
+            .path()
+            .join(".cursor/projects/empty-window/agent-transcripts/abc");
+        fs::create_dir_all(&real).unwrap();
+        fs::create_dir_all(&stale).unwrap();
+        fs::write(real.join("abc.jsonl"), "{}\n").unwrap();
+        fs::write(stale.join("abc.jsonl"), "{}\n{}\n").unwrap();
+
+        let candidates: Vec<_> = agent_session::discover_session_files_in_home(temp.path())
+            .into_iter()
+            .filter(|candidate| candidate.agent == agent_session::AGENT_CURSOR)
+            .collect();
+
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].path, real.join("abc.jsonl"));
     }
 
     #[test]
