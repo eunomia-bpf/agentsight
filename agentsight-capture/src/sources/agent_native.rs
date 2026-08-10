@@ -24,6 +24,10 @@ pub type SessionCache = agent_session::SessionCache;
 const CODEX_EXEC_DEDUPE_WINDOW_MS: u64 = 2_000;
 const CODEX_FALLBACK_TIME_SLOP_MS: u64 = 30_000;
 const CODEX_ROLLOUT_TAIL_BYTES: u64 = 1024 * 1024;
+// Local copy of agent_session::AGENT_CURSOR. cargo package verifies this crate
+// against the published agent-session, which lags behind the workspace copy, so
+// production code here cannot reference constants the registry version lacks.
+const CURSOR_AGENT_TYPE: &str = "cursor";
 
 #[derive(Clone, Debug)]
 struct ObservedCodexPrompt {
@@ -331,7 +335,7 @@ fn cursor_subagent_ids(parent_transcript: &Path) -> Vec<String> {
 fn enrich_cursor_sessions(sessions: &mut [LocalSession]) {
     if !sessions
         .iter()
-        .any(|session| session.agent_type == agent_session::AGENT_CURSOR)
+        .any(|session| session.agent_type == CURSOR_AGENT_TYPE)
     {
         return;
     }
@@ -350,7 +354,7 @@ fn enrich_cursor_sessions_in_home(home: &Path, sessions: &mut [LocalSession]) {
     };
     for session in sessions
         .iter_mut()
-        .filter(|session| session.agent_type == agent_session::AGENT_CURSOR)
+        .filter(|session| session.agent_type == CURSOR_AGENT_TYPE)
     {
         enrich_cursor_session(&conn, session);
     }
