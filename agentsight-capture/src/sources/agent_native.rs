@@ -478,6 +478,7 @@ fn prompt_provenance_is_stronger(
     let source_rank = |source: &str| match source {
         "view" => 3,
         "sqlite" => 2,
+        "unknown" => 1,
         _ => 0,
     };
     let candidate_rank = source_rank(&candidate.view_source);
@@ -1125,7 +1126,7 @@ mod tests {
             "/usr/bin/node /opt/codex/bin/codex exec agentsight provenance prompt",
         );
         legacy_wrapper.view_source = "unknown".to_string();
-        legacy_wrapper.confidence = Some(0.99);
+        legacy_wrapper.confidence = Some(0.01);
         let mut unrecognized_native = exec_row(
             "unrecognized-native",
             1_001,
@@ -1133,14 +1134,14 @@ mod tests {
             "/opt/codex/bin/codex exec agentsight provenance prompt",
         );
         unrecognized_native.view_source = "vieww".to_string();
-        unrecognized_native.confidence = Some(0.01);
+        unrecognized_native.confidence = Some(0.99);
 
         let projected = observed_session_prompt_rows(&[legacy_wrapper, unrecognized_native]);
 
         assert_eq!(projected.len(), 1);
         assert_eq!(projected[0].comm.as_deref(), Some("node"));
         assert_eq!(projected[0].view_source, "unknown");
-        assert_eq!(projected[0].confidence, Some(0.99));
+        assert_eq!(projected[0].confidence, Some(0.01));
     }
 
     #[test]
