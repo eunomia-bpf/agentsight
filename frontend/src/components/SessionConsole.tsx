@@ -4,7 +4,7 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { NodeClient, SessionDetail } from '@/lib/nodeClient';
+import { NodeRequestError, type NodeClient, type SessionDetail } from '@/lib/nodeClient';
 import type { AgentSightSnapshot, SnapshotSession } from '@/types/event';
 
 type Message = { ts: number; kind: 'user' | 'assistant' | 'tool'; text: string };
@@ -58,7 +58,9 @@ export function SessionConsole({
   const [busy, setBusy] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState('');
+  const [writeBlocked, setWriteBlocked] = useState('');
   const conversationRef = useRef<HTMLDivElement | null>(null);
+  const stickToBottom = useRef(true);
 
   useEffect(() => {
     if (!sessions.some((session) => sessionId(session) === selected)) {
@@ -81,6 +83,9 @@ export function SessionConsole({
     if (!selected || !client) return;
     setDetail(null);
     setError('');
+    setWriteBlocked('');
+    setMessage('');
+    stickToBottom.current = true;
     void loadDetail().catch((cause) => {
       setError(cause instanceof Error ? cause.message : 'Could not load session.');
     });
@@ -93,21 +98,30 @@ export function SessionConsole({
   const conversation = messages(detail);
   useEffect(() => {
     const element = conversationRef.current;
-    if (element) element.scrollTop = element.scrollHeight;
+    if (element && stickToBottom.current) element.scrollTop = element.scrollHeight;
   }, [conversation.length, detail]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const text = message.trim();
-    if (!selected || !text || busy || !client) return;
+    if (!selected || !text || busy || !client || writeBlocked) return;
     setBusy(true);
     setError('');
     try {
       await client.submitMessage(selected, text);
       setMessage('');
+      stickToBottom.current = true;
       window.setTimeout(() => { void loadDetail(true).catch(() => undefined); }, 350);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not send message.');
+      const reason = cause instanceof Error ? cause.message : 'Could not send message.';
+      if (cause instanceof NodeRequestError
+          && cause.status === 409
+          && reason.includes('running outside AgentSight')) {
+        setWriteBlocked(
+          'This session is already running in another agent process. AgentSight will not attach to it unsafely; stop that process or use a session resumed by AgentSight.',
+        );
+      }
+      setError(reason);
     } finally {
       setBusy(false);
     }
@@ -123,7 +137,7 @@ export function SessionConsole({
   }
 
   const selectedSession = sessions.find((session) => sessionId(session) === selected);
-  const canSend = !!client && !!selectedSession
+  const canSend = !!client && !!selectedSession && !writeBlocked
     && ['claude', 'codex', 'gemini'].includes(selectedSession.agent_type);
   const selectedActive = !!selectedSession && isActiveSession(selectedSession);
 
@@ -165,7 +179,12 @@ export function SessionConsole({
         </aside>
 
         <div className="flex min-w-0 flex-col bg-white">
-          <div ref={conversationRef} className="max-h-[620px] min-h-[420px] flex-1 space-y-3 overflow-y-auto p-5">
+          <div ref={conversationRef}
+            onScroll={(event) => {
+              const element = event.currentTarget;
+              stickToBottom.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+            }}
+            className="max-h-[620px] min-h-[420px] flex-1 space-y-3 overflow-y-auto p-5">
             {!client && (
               <p className="py-16 text-center text-sm text-slate-400">Open an online Node to inspect this conversation.</p>
             )}
@@ -190,7 +209,12 @@ export function SessionConsole({
           </div>
 
           <form onSubmit={submit} className="border-t border-slate-200 bg-white p-4">
-            {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
+            {writeBlocked && (
+              <p className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                {writeBlocked}
+              </p>
+            )}
+            {error && !writeBlocked && <p className="mb-2 text-xs text-red-600">{error}</p>}
             <div className="flex gap-2">
               <textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={2}
                 placeholder={canSend ? 'Send a follow-up to this session…' : 'This session is read-only.'}
