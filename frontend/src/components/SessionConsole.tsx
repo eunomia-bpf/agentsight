@@ -108,7 +108,7 @@ export function SessionConsole({ snapshot }: { snapshot: AgentSightSnapshot }) {
     [snapshot],
   );
   const visibleSessionIds = useMemo(() => snapshotSessionIds(snapshot), [snapshot]);
-  const connection = useMemo(() => loadLocalConnection(), [snapshot]);
+  const [connection] = useState<LocalConnection | null>(() => loadLocalConnection());
   const [connectionReady, setConnectionReady] = useState(false);
   const [selected, setSelected] = useState<string>('');
   const [detail, setDetail] = useState<SessionDetail | null>(null);
@@ -135,7 +135,7 @@ export function SessionConsole({ snapshot }: { snapshot: AgentSightSnapshot }) {
       if (!response.ok) throw new Error(`AgentSight Node returned ${response.status}.`);
       const liveSnapshot = await response.json() as AgentSightSnapshot;
       const liveIds = snapshotSessionIds(liveSnapshot);
-      const matches = [...visibleSessionIds].some((id) => liveIds.has(id));
+      const matches = Array.from(visibleSessionIds).some((id) => liveIds.has(id));
       if (!matches) {
         throw new Error('This page is not showing the Node currently bound to this browser.');
       }
