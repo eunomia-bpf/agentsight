@@ -23,6 +23,7 @@ pub(crate) use agentsight_capture::{
 };
 
 mod cli_db;
+mod cmd_bind;
 mod cmd_debug;
 mod cmd_exec;
 mod cmd_monitor;
@@ -42,6 +43,7 @@ use cli_db::{
     configured_db_path, run_audit_query, run_db_summary, run_export, run_prompts_query,
     run_token_query,
 };
+use cmd_bind::run_bind;
 use cmd_debug::{run_raw_process, run_raw_ssl, run_raw_stdio, run_system};
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
 use cmd_monitor::{install_monitor_service, run_monitor};
@@ -211,6 +213,18 @@ enum Commands {
         /// Compact GIF/MP4 uniformly by action to this duration, or use `full`.
         #[arg(long, default_value = "30s")]
         compact_rate: agentvis::CompactRate,
+    },
+    /// Bind this machine to the hosted AgentSight app.
+    Bind {
+        /// Print a QR code for binding from another device.
+        #[arg(long)]
+        qr: bool,
+        /// Print the binding URL without opening a browser.
+        #[arg(long)]
+        no_open: bool,
+        /// Local API port used while this device is bound.
+        #[arg(long, default_value = "7395")]
+        server_port: u16,
     },
     /// Show live agent sessions.
     Top {
@@ -597,6 +611,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             global,
             compact_rate,
         } => agentvis::run_vis(path, outputs, *global, *compact_rate)?,
+        Commands::Bind {
+            qr,
+            no_open,
+            server_port,
+        } => run_bind(&cli.listen, *server_port, *no_open, *qr).await?,
         Commands::Report { db, local, sub } => match sub {
             None | Some(ReportCommands::Summary { .. }) => {
                 let (db_ref, local_ref) = match sub {
@@ -952,7 +971,7 @@ async fn run_with_extractor(
 
 #[cfg(test)]
 mod tests {
-    use super::{Cli, top_uses_tui};
+    use super::{Cli, Commands, top_uses_tui};
 
     #[test]
     fn default_interactive_top_uses_tui() {
@@ -970,5 +989,26 @@ mod tests {
         assert!(
             <Cli as clap::Parser>::try_parse_from(["agentsight", "top", "--db", "run.db"]).is_err()
         );
+    }
+
+    #[test]
+    fn bind_cli_keeps_existing_commands_unchanged() {
+        let cli = <Cli as clap::Parser>::try_parse_from([
+            "agentsight",
+            "bind",
+            "--qr",
+            "--no-open",
+            "--server-port",
+            "7444",
+        ])
+        .unwrap();
+        assert!(matches!(
+            cli.command,
+            Commands::Bind {
+                qr: true,
+                no_open: true,
+                server_port: 7444
+            }
+        ));
     }
 }

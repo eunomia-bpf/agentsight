@@ -6,24 +6,83 @@ use crate::server::assets::FrontendAssets;
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
 use crate::sources::sqlite as sqlite_source;
 use crate::view::SharedMaterializedView;
-use http_body_util::Full;
+use http_body_util::{BodyExt, Full};
+use hyper::header::{AUTHORIZATION, CONTENT_LENGTH, HeaderValue, ORIGIN};
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode, body::Bytes};
 use hyper_util::rt::TokioIo;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashSet;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::net::TcpListener;
 
+const HOSTED_APP_ORIGIN: &str = "https://app.agentsight.us";
+const MAX_BIND_BODY_BYTES: usize = 4096;
+
+#[derive(Clone)]
+struct PairingAuth {
+    state: Arc<Mutex<PairingState>>,
+}
+
+struct PairingState {
+    code: Option<String>,
+    tokens: HashSet<String>,
+}
+
+impl PairingAuth {
+    fn new(code: String) -> Self {
+        Self {
+            state: Arc::new(Mutex::new(PairingState {
+                code: Some(code),
+                tokens: HashSet::new(),
+            })),
+        }
+    }
+
+    fn exchange(&self, code: &str) -> Option<String> {
+        let mut state = self.state.lock().ok()?;
+        if state.code.as_deref() != Some(code) {
+            return None;
+        }
+        state.code = None;
+        let token = format!(
+            "{}{}",
+            uuid::Uuid::new_v4().simple(),
+            uuid::Uuid::new_v4().simple()
+        );
+        state.tokens.insert(token.clone());
+        Some(token)
+    }
+
+    fn authorizes(&self, value: Option<&HeaderValue>) -> bool {
+        let Some(token) = value
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.strip_prefix("Bearer "))
+        else {
+            return false;
+        };
+        self.state
+            .lock()
+            .is_ok_and(|state| state.tokens.contains(token))
+    }
+}
+
+#[derive(Deserialize)]
+struct PairRequest {
+    code: String,
+}
+
 pub struct WebServer {
     assets: Arc<FrontendAssets>,
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
     db_path: Option<String>,
+    pairing_auth: Option<PairingAuth>,
 }
 
 impl WebServer {
@@ -37,7 +96,13 @@ impl WebServer {
             view,
             agent_native_sessions: Arc::new(Mutex::new(SessionCache::new())),
             db_path,
+            pairing_auth: None,
         })
+    }
+
+    pub fn with_pairing_code(mut self, code: String) -> Self {
+        self.pairing_auth = Some(PairingAuth::new(code));
+        self
     }
 
     pub async fn start(
@@ -71,6 +136,7 @@ impl WebServer {
             let view = Arc::clone(&self.view);
             let agent_native_sessions = Arc::clone(&self.agent_native_sessions);
             let db_path = self.db_path.clone();
+            let pairing_auth = self.pairing_auth.clone();
 
             tokio::spawn(async move {
                 let io = TokioIo::new(stream);
@@ -81,6 +147,7 @@ impl WebServer {
                         view.clone(),
                         agent_native_sessions.clone(),
                         db_path.clone(),
+                        pairing_auth.clone(),
                     )
                 });
 
@@ -98,24 +165,109 @@ async fn handle_request(
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
     db_path: Option<String>,
+    pairing_auth: Option<PairingAuth>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
-    let path = req.uri().path();
+    let path = req.uri().path().to_string();
     let query = req.uri().query().map(str::to_string);
+    let origin = req
+        .headers()
+        .get(ORIGIN)
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_string);
 
     log::info!("📨 {} {}", req.method(), path);
 
-    let response = match (req.method(), path) {
+    if origin
+        .as_deref()
+        .is_some_and(|value| !allowed_origin(value))
+    {
+        return Ok(plain_response(
+            StatusCode::FORBIDDEN,
+            "text/plain",
+            b"Origin not allowed".to_vec(),
+        ));
+    }
+
+    if req.method() == Method::OPTIONS && path.starts_with("/api/") {
+        return Ok(cors_response(
+            plain_response(StatusCode::NO_CONTENT, "text/plain", Vec::new()),
+            origin.as_deref(),
+        ));
+    }
+
+    let response = match (req.method(), path.as_str()) {
+        (&Method::GET, "/api/v1/info") => json_response(
+            StatusCode::OK,
+            &serde_json::json!({
+                "protocol_version": 1,
+                "product": "agentsight",
+                "pairing_required": pairing_auth.is_some(),
+            }),
+        ),
+        (&Method::POST, "/api/v1/bind") => serve_pairing(req, pairing_auth.as_ref()).await,
         (&Method::GET, "/api/v1/snapshot") => {
-            serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
+            if pairing_auth
+                .as_ref()
+                .is_some_and(|auth| !auth.authorizes(req.headers().get(AUTHORIZATION)))
+            {
+                json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
+            } else {
+                serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
+            }
         }
-        (&Method::GET, _) => serve_asset(assets, path).await?,
+        (&Method::GET, _) => serve_asset(assets, &path).await?,
         _ => {
             log::info!("❌ 404 Not Found: {} {}", req.method(), path);
             plain_response(StatusCode::NOT_FOUND, "text/plain", b"Not Found".to_vec())
         }
     };
 
-    Ok(response)
+    Ok(cors_response(response, origin.as_deref()))
+}
+
+async fn serve_pairing(
+    req: Request<hyper::body::Incoming>,
+    pairing_auth: Option<&PairingAuth>,
+) -> Response<Full<Bytes>> {
+    let Some(pairing_auth) = pairing_auth else {
+        return json_error(StatusCode::NOT_FOUND, "binding is not active");
+    };
+    if req
+        .headers()
+        .get(CONTENT_LENGTH)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<usize>().ok())
+        .is_some_and(|length| length > MAX_BIND_BODY_BYTES)
+    {
+        return json_error(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "binding request is too large",
+        );
+    }
+    let body = match req.into_body().collect().await {
+        Ok(body) => body.to_bytes(),
+        Err(_) => return json_error(StatusCode::BAD_REQUEST, "invalid binding request"),
+    };
+    if body.len() > MAX_BIND_BODY_BYTES {
+        return json_error(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "binding request is too large",
+        );
+    }
+    let request: PairRequest = match serde_json::from_slice(&body) {
+        Ok(request) => request,
+        Err(_) => return json_error(StatusCode::BAD_REQUEST, "invalid binding request"),
+    };
+    match pairing_auth.exchange(&request.code) {
+        Some(token) => json_response(
+            StatusCode::OK,
+            &serde_json::json!({ "access_token": token, "token_type": "Bearer" }),
+        ),
+        None => json_error(
+            StatusCode::UNAUTHORIZED,
+            "pairing code is invalid or already used",
+        ),
+    }
 }
 
 async fn serve_asset(
@@ -226,9 +378,43 @@ fn plain_response(status: StatusCode, content_type: &str, body: Vec<u8>) -> Resp
     Response::builder()
         .status(status)
         .header("Content-Type", content_type)
-        .header("Access-Control-Allow-Origin", "*")
         .body(Full::new(Bytes::from(body)))
         .unwrap_or_else(|_| Response::new(Full::new(Bytes::new())))
+}
+
+fn allowed_origin(origin: &str) -> bool {
+    origin == HOSTED_APP_ORIGIN
+        || option_env!("AGENTSIGHT_DEV_APP_ORIGIN").is_some_and(|allowed| origin == allowed)
+}
+
+fn cors_response(
+    mut response: Response<Full<Bytes>>,
+    origin: Option<&str>,
+) -> Response<Full<Bytes>> {
+    let Some(origin) = origin.filter(|origin| allowed_origin(origin)) else {
+        return response;
+    };
+    if let Ok(value) = HeaderValue::from_str(origin) {
+        response
+            .headers_mut()
+            .insert("Access-Control-Allow-Origin", value);
+    }
+    response.headers_mut().insert(
+        "Access-Control-Allow-Methods",
+        HeaderValue::from_static("GET, POST, OPTIONS"),
+    );
+    response.headers_mut().insert(
+        "Access-Control-Allow-Headers",
+        HeaderValue::from_static("Authorization, Content-Type"),
+    );
+    response.headers_mut().insert(
+        "Access-Control-Allow-Private-Network",
+        HeaderValue::from_static("true"),
+    );
+    response
+        .headers_mut()
+        .insert("Vary", HeaderValue::from_static("Origin"));
+    response
 }
 
 fn json_response<T: Serialize>(status: StatusCode, value: &T) -> Response<Full<Bytes>> {
@@ -266,6 +452,23 @@ mod tests {
 
         assert_eq!(query_param_usize(query, "audit_limit"), Some(9));
         assert_eq!(query_param_usize(query, "missing"), None);
+    }
+
+    #[test]
+    fn pairing_code_is_single_use_and_token_authorizes() {
+        let auth = PairingAuth::new("short-lived".to_string());
+        assert!(auth.exchange("wrong").is_none());
+        let token = auth.exchange("short-lived").unwrap();
+        assert!(auth.exchange("short-lived").is_none());
+        let header = HeaderValue::from_str(&format!("Bearer {token}")).unwrap();
+        assert!(auth.authorizes(Some(&header)));
+        assert!(!auth.authorizes(None));
+    }
+
+    #[test]
+    fn cors_allows_only_hosted_app() {
+        assert!(allowed_origin("https://app.agentsight.us"));
+        assert!(!allowed_origin("https://evil.example"));
     }
 
     fn llm_call(id: &str, pid: u32, comm: &str, timestamp_ms: u64, text: &str) -> LlmCallRow {
