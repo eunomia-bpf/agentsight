@@ -4,6 +4,8 @@
 interface Env {
   DB: D1Database;
   APP_ORIGIN: string;
+  OAUTH_IP_LIMITER: RateLimit;
+  OAUTH_GLOBAL_LIMITER: RateLimit;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
@@ -31,6 +33,9 @@ const encoder = new TextEncoder();
 const STATE_TTL_SECONDS = 10 * 60;
 const AUTH_CODE_TTL_SECONDS = 2 * 60;
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
+const PKCE_CHALLENGE_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const PKCE_VERIFIER_PATTERN = /^[A-Za-z0-9_-]{43,128}$/;
+const NODE_ID_PATTERN = /^node_[A-Za-z0-9_]{1,123}$/;
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -82,13 +87,29 @@ function providerFromPath(pathname: string): Provider {
 async function startOAuth(request: Request, env: Env, provider: Provider): Promise<Response> {
   const url = new URL(request.url);
   const returnTo = allowedReturnTo(url.searchParams.get('return_to'), env.APP_ORIGIN);
+  const codeChallenge = url.searchParams.get('code_challenge') || '';
+  if (!PKCE_CHALLENGE_PATTERN.test(codeChallenge)) {
+    return authErrorRedirect(returnTo, 'pkce_required');
+  }
+  const clientKey = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const [clientLimit, globalLimit] = await Promise.all([
+    env.OAUTH_IP_LIMITER.limit({ key: clientKey }),
+    env.OAUTH_GLOBAL_LIMITER.limit({ key: 'oauth-start' }),
+  ]);
+  if (!clientLimit.success || !globalLimit.success) {
+    return authErrorRedirect(returnTo, 'rate_limited');
+  }
   const config = oauthConfig(provider, env, url.origin);
   if (!config) return authErrorRedirect(returnTo, `${provider}_login_not_configured`);
 
+  await deleteExpiredRows(env.DB);
   const state = randomToken();
   await env.DB.prepare(
-    'INSERT INTO oauth_states (state_hash, provider, return_to, expires_at) VALUES (?1, ?2, ?3, ?4)',
-  ).bind(await sha256(state), provider, returnTo, nowSeconds() + STATE_TTL_SECONDS).run();
+    `INSERT INTO oauth_states (state_hash, provider, return_to, code_challenge, expires_at)
+     VALUES (?1, ?2, ?3, ?4, ?5)`,
+  ).bind(
+    await sha256(state), provider, returnTo, codeChallenge, nowSeconds() + STATE_TTL_SECONDS,
+  ).run();
 
   const authorize = new URL(config.authorizeUrl);
   authorize.searchParams.set('client_id', config.clientId);
@@ -108,10 +129,13 @@ async function finishOAuth(request: Request, env: Env, provider: Provider): Prom
   const state = url.searchParams.get('state') || '';
   const code = url.searchParams.get('code') || '';
   const stateRow = await env.DB.prepare(
-    'DELETE FROM oauth_states WHERE state_hash = ?1 AND provider = ?2 AND expires_at >= ?3 RETURNING return_to',
-  ).bind(await sha256(state), provider, nowSeconds()).first<{ return_to: string }>();
+    `DELETE FROM oauth_states WHERE state_hash = ?1 AND provider = ?2 AND expires_at >= ?3
+     RETURNING return_to, code_challenge`,
+  ).bind(await sha256(state), provider, nowSeconds())
+    .first<{ return_to: string; code_challenge: string | null }>();
   if (!stateRow) return authErrorRedirect(env.APP_ORIGIN, 'oauth_state_invalid');
   if (!code) return authErrorRedirect(stateRow.return_to, 'oauth_denied');
+  if (!stateRow.code_challenge) return authErrorRedirect(stateRow.return_to, 'pkce_required');
 
   const config = oauthConfig(provider, env, url.origin);
   if (!config) return authErrorRedirect(stateRow.return_to, `${provider}_login_not_configured`);
@@ -120,8 +144,12 @@ async function finishOAuth(request: Request, env: Env, provider: Provider): Prom
     const user = await upsertUser(env.DB, profile);
     const appCode = randomToken();
     await env.DB.prepare(
-      'INSERT INTO auth_codes (code_hash, user_id, provider, expires_at) VALUES (?1, ?2, ?3, ?4)',
-    ).bind(await sha256(appCode), user.id, provider, nowSeconds() + AUTH_CODE_TTL_SECONDS).run();
+      `INSERT INTO auth_codes (code_hash, user_id, provider, code_challenge, expires_at)
+       VALUES (?1, ?2, ?3, ?4, ?5)`,
+    ).bind(
+      await sha256(appCode), user.id, provider, stateRow.code_challenge,
+      nowSeconds() + AUTH_CODE_TTL_SECONDS,
+    ).run();
     return Response.redirect(`${stateRow.return_to}#action=auth&code=${encodeURIComponent(appCode)}`, 302);
   } catch (error) {
     const reason = error instanceof HttpError ? error.code : 'oauth_failed';
@@ -130,13 +158,18 @@ async function finishOAuth(request: Request, env: Env, provider: Provider): Prom
 }
 
 async function exchangeAuthCode(request: Request, env: Env): Promise<Response> {
-  const body = await readJson<{ code?: string }>(request);
-  if (!body.code) return json({ error: 'code_required' }, 400);
+  const body = await readJson<{ code?: string; code_verifier?: string }>(request);
+  if (!body.code || !body.code_verifier) return json({ error: 'code_and_verifier_required' }, 400);
+  if (!PKCE_VERIFIER_PATTERN.test(body.code_verifier)) {
+    return json({ error: 'code_verifier_invalid' }, 400);
+  }
+  const codeChallenge = await sha256Base64Url(body.code_verifier);
   const row = await env.DB.prepare(
     `UPDATE auth_codes SET consumed_at = ?1
-     WHERE code_hash = ?2 AND consumed_at IS NULL AND expires_at >= ?1
+     WHERE code_hash = ?2 AND code_challenge = ?3
+       AND consumed_at IS NULL AND expires_at >= ?1
      RETURNING user_id`,
-  ).bind(nowSeconds(), await sha256(body.code)).first<{ user_id: string }>();
+  ).bind(nowSeconds(), await sha256(body.code), codeChallenge).first<{ user_id: string }>();
   if (!row) return json({ error: 'code_invalid_or_expired' }, 401);
 
   const token = randomToken();
@@ -176,22 +209,20 @@ async function registerNode(request: Request, env: Env): Promise<Response> {
     id?: string;
     name?: string;
     version?: string;
-    public_key?: string;
-    connection_mode?: string;
   }>(request);
-  if (!body.id || !body.name || body.id.length > 128 || body.name.length > 128) {
+  if (!body.id || !validNodeId(body.id)
+      || !body.name?.trim() || body.name.length > 128) {
     return json({ error: 'invalid_node' }, 400);
   }
-  const mode = body.connection_mode === 'managed' ? 'managed' : 'direct';
   const now = nowSeconds();
   const result = await env.DB.prepare(
     `INSERT INTO nodes (id, owner_user_id, name, version, public_key, connection_mode, last_seen_at, created_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)
+     VALUES (?1, ?2, ?3, ?4, NULL, 'direct', ?5, ?5)
      ON CONFLICT(id) DO UPDATE SET
-       name = excluded.name, version = excluded.version, public_key = excluded.public_key,
-       connection_mode = excluded.connection_mode, last_seen_at = excluded.last_seen_at
+       name = excluded.name, version = excluded.version,
+       connection_mode = 'direct', last_seen_at = excluded.last_seen_at
      WHERE nodes.owner_user_id = excluded.owner_user_id`,
-  ).bind(body.id, user.id, body.name, body.version || null, body.public_key || null, mode, now).run();
+  ).bind(body.id, user.id, body.name.trim(), body.version || null, now).run();
   if (!result.meta.changes) return json({ error: 'node_owned_by_another_user' }, 409);
   return json({ id: body.id, status: 'registered' }, 201);
 }
@@ -328,7 +359,7 @@ function oauthConfig(provider: Provider, env: Env, origin: string) {
   return null;
 }
 
-function allowedReturnTo(value: string | null, appOrigin: string): string {
+export function allowedReturnTo(value: string | null, appOrigin: string): string {
   if (!value) return `${appOrigin.replace(/\/$/, '')}/`;
   try {
     const candidate = new URL(value);
@@ -372,6 +403,25 @@ async function sha256(value: string): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+export async function sha256Base64Url(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(value));
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+export function validNodeId(value: string): boolean {
+  return NODE_ID_PATTERN.test(value);
+}
+
+async function deleteExpiredRows(db: D1Database): Promise<void> {
+  const now = nowSeconds();
+  await db.batch([
+    db.prepare('DELETE FROM oauth_states WHERE expires_at < ?1').bind(now),
+    db.prepare('DELETE FROM auth_codes WHERE expires_at < ?1 OR consumed_at IS NOT NULL').bind(now),
+    db.prepare('DELETE FROM sessions WHERE expires_at < ?1').bind(now),
+  ]);
+}
+
 function nowSeconds(): number {
   return Math.floor(Date.now() / 1000);
 }
@@ -385,15 +435,21 @@ function json(body: unknown, status = 200): Response {
 
 function cors(response: Response, env: Env): Response {
   const headers = new Headers(response.headers);
-  headers.set('Access-Control-Allow-Origin', env.APP_ORIGIN);
+  headers.set('Access-Control-Allow-Origin', new URL(env.APP_ORIGIN).origin);
   headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Vary', 'Origin');
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
 class HttpError extends Error {
-  constructor(readonly status: number, readonly code: string) {
+  readonly status: number;
+  readonly code: string;
+
+  constructor(status: number, code: string) {
     super(code);
+    this.status = status;
+    this.code = code;
   }
 }

@@ -1,21 +1,31 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-import { type CloudIdentity, loginUrl } from '@/lib/connection';
+import { type CloudIdentity, startLogin } from '@/lib/connection';
 
 interface ConnectionDialogProps {
   error: string;
   busy: boolean;
   identity: CloudIdentity | null;
+  canClose: boolean;
+  onClose: () => void;
   onDemo: () => void;
   onSignOut: () => void;
 }
 
-export function ConnectionDialog({ error, busy, identity, onDemo, onSignOut }: ConnectionDialogProps) {
+export function ConnectionDialog({
+  error, busy, identity, canClose, onClose, onDemo, onSignOut,
+}: ConnectionDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-8">
       <div role="dialog" aria-modal="true" aria-labelledby="connect-title"
-        className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        className="relative w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+        {canClose && (
+          <button type="button" onClick={onClose} aria-label="Close connection dialog"
+            className="absolute right-5 top-4 text-2xl text-slate-400 hover:text-slate-700">
+            ×
+          </button>
+        )}
         <div className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">AgentSight</p>
           <h1 id="connect-title" className="mt-1 text-2xl font-bold text-slate-950">Choose how to continue</h1>
@@ -53,12 +63,14 @@ export function ConnectionDialog({ error, busy, identity, onDemo, onSignOut }: C
               <>
                 <p className="mt-2 text-sm text-slate-600">Keep a list of Nodes linked to your AgentSight account.</p>
                 <div className="mt-4 space-y-2">
-                  <a href={loginUrl('github')} className="block rounded-lg bg-slate-950 px-3 py-2 text-center text-sm font-medium text-white hover:bg-slate-800">
+                  <button type="button" onClick={() => { void startLogin('github'); }}
+                    className="block w-full rounded-lg bg-slate-950 px-3 py-2 text-center text-sm font-medium text-white hover:bg-slate-800">
                     Continue with GitHub
-                  </a>
-                  <a href={loginUrl('google')} className="block rounded-lg border border-slate-300 px-3 py-2 text-center text-sm font-medium text-slate-800 hover:bg-slate-50">
+                  </button>
+                  <button type="button" onClick={() => { void startLogin('google'); }}
+                    className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-center text-sm font-medium text-slate-800 hover:bg-slate-50">
                     Continue with Google
-                  </a>
+                  </button>
                 </div>
               </>
             )}

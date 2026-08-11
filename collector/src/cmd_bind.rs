@@ -19,6 +19,7 @@ pub(crate) async fn run_bind(
     port: u16,
     no_open: bool,
     qr: bool,
+    db_path: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let ip: IpAddr = listen
         .parse()
@@ -35,7 +36,8 @@ pub(crate) async fn run_bind(
     let bind_url = build_bind_url(&endpoint, &pairing_code);
     let node = local_node_metadata()?;
     let view = MaterializedView::shared_bounded();
-    let server = WebServer::new_with_db_path(view, None)?.with_pairing_code(pairing_code, node);
+    let server =
+        WebServer::new_with_db_path(view, db_path.clone())?.with_pairing_code(pairing_code, node);
 
     let handle = tokio::spawn(async move { server.start(addr).await });
     tokio::time::sleep(Duration::from_millis(100)).await;
@@ -51,6 +53,11 @@ pub(crate) async fn run_bind(
     println!(
         "The pairing code expires in two minutes or when this command exits, and can be used only once."
     );
+    if let Some(db_path) = db_path {
+        println!("Serving saved AgentSight data from {db_path}.");
+    } else {
+        println!("Serving the local agent session index; pass --db for a saved capture.");
+    }
     if qr {
         print_qr(&bind_url)?;
     }

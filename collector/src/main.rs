@@ -225,6 +225,9 @@ enum Commands {
         /// Local API port used while this device is bound.
         #[arg(long, default_value = "7395")]
         server_port: u16,
+        /// SQLite capture to serve (defaults to the latest agentsight-*.db).
+        #[arg(long)]
+        db: Option<String>,
     },
     /// Show live agent sessions.
     Top {
@@ -615,7 +618,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             qr,
             no_open,
             server_port,
-        } => run_bind(&cli.listen, *server_port, *no_open, *qr).await?,
+            db,
+        } => {
+            let db_path = configured_db_path(db).or_else(latest_session_db);
+            run_bind(&cli.listen, *server_port, *no_open, *qr, db_path).await?
+        }
         Commands::Report { db, local, sub } => match sub {
             None | Some(ReportCommands::Summary { .. }) => {
                 let (db_ref, local_ref) = match sub {
@@ -1000,15 +1007,23 @@ mod tests {
             "--no-open",
             "--server-port",
             "7444",
+            "--db",
+            "capture.db",
         ])
         .unwrap();
-        assert!(matches!(
-            cli.command,
+        match cli.command {
             Commands::Bind {
-                qr: true,
-                no_open: true,
-                server_port: 7444
+                qr,
+                no_open,
+                server_port,
+                db,
+            } => {
+                assert!(qr);
+                assert!(no_open);
+                assert_eq!(server_port, 7444);
+                assert_eq!(db.as_deref(), Some("capture.db"));
             }
-        ));
+            _ => panic!("expected bind command"),
+        }
     }
 }

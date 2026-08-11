@@ -529,11 +529,12 @@ agent evidence，而不是采集最多 telemetry。
 | Container targeting | 已支持 Docker/Kubernetes binary resolution |
 | Static app | `app.agentsight.us` 托管本仓库 SPA；无连接时明确选择 Bind、OAuth 登录或 recorded demo |
 | Local bind | `agentsight bind` 打开短期 fragment 链接，只监听 loopback；Node ID 持久化，访问 token 随进程失效 |
-| Direct API | `/api/v1/info`、一次性 `/api/v1/bind` 和 bearer-protected `/api/v1/snapshot`；production CORS 只允许托管 app |
-| Cloud control | Cloudflare Worker + D1 已实现 GitHub/Google OAuth、session 和 owner-scoped Node metadata registry；不接收 snapshot |
+| Direct API | `/api/v1/info`、一次性 `/api/v1/bind` 和 bearer-protected `/api/v1/snapshot`；production CORS 只允许托管 app；bind 默认读取最新 SQLite 或本地 session index |
+| Cloud control | Cloudflare Worker + D1 已实现带浏览器 PKCE 的 GitHub/Google OAuth、session 和 owner-scoped Direct Node metadata registry；不接收 snapshot |
 | Managed relay/Gateway | 尚未实现；当前跨机仍需 BYO connectivity，登录不会让不可达 Node 自动上线 |
 
-本轮是可 dogfood 的 Local/Direct 切片，不是完整 enterprise claim：仍保留 embedded assets
+本轮是可 dogfood 的 Local/Direct saved-session/index 切片，不是跨进程 eBPF live relay 或完整
+enterprise claim：仍保留 embedded assets
 以兼容旧入口；Snapshot 仍是迁移接口；local access 仍是 process-lifetime bearer，而不是
 浏览器 key + proof-of-possession；organization、RBAC/capability、revocation、managed relay、
 Site Gateway 和 bounded typed query 仍未完成。Node API 不能直接暴露到公网、LAN 或 tailnet；

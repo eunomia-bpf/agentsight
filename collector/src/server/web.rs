@@ -6,8 +6,8 @@ use crate::server::assets::FrontendAssets;
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
 use crate::sources::sqlite as sqlite_source;
 use crate::view::SharedMaterializedView;
-use http_body_util::{BodyExt, Full};
-use hyper::header::{AUTHORIZATION, CONTENT_LENGTH, HeaderValue, ORIGIN};
+use http_body_util::{BodyExt, Full, LengthLimitError, Limited};
+use hyper::header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_LENGTH, HeaderValue, ORIGIN};
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode, body::Bytes};
@@ -231,10 +231,11 @@ async fn handle_request(
         ),
         (&Method::POST, "/api/v1/bind") => serve_pairing(req, pairing_auth.as_ref()).await,
         (&Method::GET, "/api/v1/snapshot") => {
-            if pairing_auth
-                .as_ref()
-                .is_some_and(|auth| !auth.authorizes(req.headers().get(AUTHORIZATION)))
-            {
+            if !snapshot_access_allowed(
+                pairing_auth.as_ref(),
+                req.headers().get(AUTHORIZATION),
+                origin.as_deref(),
+            ) {
                 json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
             } else {
                 serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
@@ -269,16 +270,19 @@ async fn serve_pairing(
             "binding request is too large",
         );
     }
-    let body = match req.into_body().collect().await {
+    let body = match Limited::new(req.into_body(), MAX_BIND_BODY_BYTES)
+        .collect()
+        .await
+    {
         Ok(body) => body.to_bytes(),
+        Err(error) if error.downcast_ref::<LengthLimitError>().is_some() => {
+            return json_error(
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "binding request is too large",
+            );
+        }
         Err(_) => return json_error(StatusCode::BAD_REQUEST, "invalid binding request"),
     };
-    if body.len() > MAX_BIND_BODY_BYTES {
-        return json_error(
-            StatusCode::PAYLOAD_TOO_LARGE,
-            "binding request is too large",
-        );
-    }
     let request: PairRequest = match serde_json::from_slice(&body) {
         Ok(request) => request,
         Err(_) => return json_error(StatusCode::BAD_REQUEST, "invalid binding request"),
@@ -407,6 +411,7 @@ fn plain_response(status: StatusCode, content_type: &str, body: Vec<u8>) -> Resp
     Response::builder()
         .status(status)
         .header("Content-Type", content_type)
+        .header("X-Content-Type-Options", "nosniff")
         .body(Full::new(Bytes::from(body)))
         .unwrap_or_else(|_| Response::new(Full::new(Bytes::new())))
 }
@@ -414,6 +419,17 @@ fn plain_response(status: StatusCode, content_type: &str, body: Vec<u8>) -> Resp
 fn allowed_origin(origin: &str) -> bool {
     origin == HOSTED_APP_ORIGIN
         || option_env!("AGENTSIGHT_DEV_APP_ORIGIN").is_some_and(|allowed| origin == allowed)
+}
+
+fn snapshot_access_allowed(
+    pairing_auth: Option<&PairingAuth>,
+    authorization: Option<&HeaderValue>,
+    origin: Option<&str>,
+) -> bool {
+    match pairing_auth {
+        Some(auth) => auth.authorizes(authorization),
+        None => origin.is_none(),
+    }
 }
 
 fn cors_response(
@@ -448,7 +464,11 @@ fn cors_response(
 
 fn json_response<T: Serialize>(status: StatusCode, value: &T) -> Response<Full<Bytes>> {
     let body = serde_json::to_vec(value).unwrap_or_else(|_| b"{}".to_vec());
-    plain_response(status, "application/json", body)
+    let mut response = plain_response(status, "application/json", body);
+    response
+        .headers_mut()
+        .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    response
 }
 
 fn json_error(status: StatusCode, message: &str) -> Response<Full<Bytes>> {
@@ -519,6 +539,16 @@ mod tests {
     fn cors_allows_only_hosted_app() {
         assert!(allowed_origin("https://app.agentsight.us"));
         assert!(!allowed_origin("https://evil.example"));
+    }
+
+    #[test]
+    fn hosted_origin_cannot_reuse_token_against_an_unpaired_server() {
+        assert!(snapshot_access_allowed(None, None, None));
+        assert!(!snapshot_access_allowed(
+            None,
+            None,
+            Some(HOSTED_APP_ORIGIN)
+        ));
     }
 
     fn llm_call(id: &str, pid: u32, comm: &str, timestamp_ms: u64, text: &str) -> LlmCallRow {

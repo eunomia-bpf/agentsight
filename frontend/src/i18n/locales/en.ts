@@ -4,7 +4,7 @@
 export const en = {
   // App (page.tsx)
   'app.title': 'AgentSight Analyzer',
-  'app.subtitle': 'Inspect the live materialized view of agent activity',
+  'app.subtitle': 'Inspect the local materialized view of agent activity',
   'app.eventsLoaded': '{count} events loaded',
   'app.syncing': 'Syncing...',
   'app.overview': 'Overview',

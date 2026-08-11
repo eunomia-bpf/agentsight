@@ -16,7 +16,9 @@ GitHub and Google use OAuth authorization-code callbacks. The callback creates
 a single-use, two-minute application code and returns it in the
 `app.agentsight.us` URL fragment. The SPA exchanges that code for a session;
 provider access tokens and long-lived AgentSight sessions never appear in the
-URL.
+URL. A per-tab PKCE verifier binds the application code to the browser that
+started sign-in. Workers Rate Limiting bindings protect anonymous OAuth starts,
+and expired OAuth/session rows are cleaned before new state is written.
 
 Configure these Worker secrets outside the repository:
 
@@ -44,8 +46,10 @@ npx wrangler d1 execute agentsight-control --remote --file schema.sql
 npx wrangler deploy
 ```
 
-The schema is additive and safe to reapply. `wrangler.jsonc` contains the
-public D1 database identifier; OAuth secrets remain in Cloudflare.
+For a database created from an earlier schema, apply each unapplied file in
+`migrations/` once before deployment; `0002_oauth_pkce.sql` adds the PKCE
+columns. `wrangler.jsonc` contains the public D1 database identifier and rate
+limiting configuration; OAuth secrets remain in Cloudflare.
 
 Workers and D1 both have free tiers suitable for an initial private beta. See
 the current [Cloudflare Workers and D1 pricing](https://developers.cloudflare.com/workers/platform/pricing/)

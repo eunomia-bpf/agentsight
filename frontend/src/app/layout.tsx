@@ -7,7 +7,7 @@ import { I18nProvider } from '@/i18n'
 
 export const metadata: Metadata = {
   title: 'AgentSight App',
-  description: 'Local-first AgentSight viewer for live, fleet, and recorded AI agent sessions.',
+  description: 'Local-first AgentSight viewer for local and recorded AI agent sessions.',
   robots: {
     index: false,
     follow: true,

@@ -88,7 +88,10 @@ agentsight bind
 ```
 
 The command starts a loopback-only API, opens a binding link, and remains in
-the foreground while the hosted app reads the local snapshot. The one-time
+the foreground while the hosted app reads local AgentSight data. It uses the
+latest `agentsight-*.db` in the current directory when present, otherwise it
+reads the local agent session index. Pass `--db <capture.db>` to select a saved
+capture explicitly. The one-time
 pairing code is carried in the URL fragment, expires after two minutes, and is
 invalidated after its first use. The resulting access token lasts only for
 that command process. Chrome may ask you to allow Local network access for the

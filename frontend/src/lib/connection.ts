@@ -5,6 +5,11 @@ import type { AgentSightSnapshot } from '@/types/event';
 
 const LOCAL_CONNECTION_KEY = 'agentsight.local-connection.v1';
 const CLOUD_SESSION_KEY = 'agentsight.cloud-session.v1';
+const OAUTH_VERIFIER_KEY = 'agentsight.oauth-verifier.v1';
+const CLOUD_TIMEOUT_MS = 8_000;
+let cachedLaunchFragment: URLSearchParams | null | undefined;
+let localPairingExchange: Promise<LocalConnection> | null = null;
+let cloudCodeExchange: Promise<string> | null = null;
 
 export const controlPlaneUrl = (
   process.env.NEXT_PUBLIC_CONTROL_PLANE_URL
@@ -35,9 +40,19 @@ function localFetch(input: string, init: RequestInit = {}) {
   return fetch(input, options);
 }
 
+function cloudFetch(input: string, init: RequestInit = {}) {
+  return fetch(input, { ...init, signal: init.signal || AbortSignal.timeout(CLOUD_TIMEOUT_MS) });
+}
+
+function base64Url(bytes: Uint8Array): string {
+  let binary = '';
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
 function normalizeLoopbackEndpoint(raw: string): string {
   const endpoint = new URL(raw);
-  const loopback = endpoint.hostname === '127.0.0.1'
+  const loopback = /^127(?:\.\d{1,3}){3}$/.test(endpoint.hostname)
     || endpoint.hostname === 'localhost'
     || endpoint.hostname === '[::1]';
   if (endpoint.protocol !== 'http:' || !loopback || endpoint.username || endpoint.password) {
@@ -49,15 +64,37 @@ function normalizeLoopbackEndpoint(raw: string): string {
   return endpoint.toString().replace(/\/$/, '');
 }
 
+export function embeddedLoopbackConnection(): LocalConnection | null {
+  const endpoint = new URL(window.location.href);
+  const loopback = /^127(?:\.\d{1,3}){3}$/.test(endpoint.hostname)
+    || endpoint.hostname === 'localhost'
+    || endpoint.hostname === '[::1]';
+  if (endpoint.protocol !== 'http:' || !loopback) return null;
+  return {
+    endpoint: endpoint.origin,
+    accessToken: '',
+    nodeId: 'local-embedded',
+    nodeName: 'Local AgentSight',
+    version: 'embedded',
+  };
+}
+
 export function consumeLaunchFragment(): URLSearchParams | null {
+  if (cachedLaunchFragment !== undefined) return cachedLaunchFragment;
   if (!window.location.hash) return null;
   const params = new URLSearchParams(window.location.hash.slice(1));
   if (!params.get('action')) return null;
   window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
-  return params;
+  cachedLaunchFragment = params;
+  return cachedLaunchFragment;
 }
 
-export async function exchangeLocalPairing(params: URLSearchParams): Promise<LocalConnection> {
+export function exchangeLocalPairing(params: URLSearchParams): Promise<LocalConnection> {
+  if (!localPairingExchange) localPairingExchange = exchangeLocalPairingOnce(params);
+  return localPairingExchange;
+}
+
+async function exchangeLocalPairingOnce(params: URLSearchParams): Promise<LocalConnection> {
   if (params.get('action') !== 'bind' || params.get('v') !== '1') {
     throw new Error('Unsupported AgentSight binding link.');
   }
@@ -99,8 +136,10 @@ export async function exchangeLocalPairing(params: URLSearchParams): Promise<Loc
 }
 
 export async function fetchLocalSnapshot(connection: LocalConnection): Promise<AgentSightSnapshot> {
+  const headers: HeadersInit = {};
+  if (connection.accessToken) headers.Authorization = `Bearer ${connection.accessToken}`;
   const response = await localFetch(`${connection.endpoint}/api/v1/snapshot?audit_limit=50000`, {
-    headers: { Authorization: `Bearer ${connection.accessToken}` },
+    headers,
   });
   if (!response.ok) {
     if (response.status === 401) clearLocalConnection();
@@ -136,17 +175,32 @@ export function clearLocalConnection() {
   window.localStorage.removeItem(LOCAL_CONNECTION_KEY);
 }
 
-export function loginUrl(provider: 'github' | 'google'): string {
+export async function startLogin(provider: 'github' | 'google'): Promise<void> {
+  const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  const challenge = base64Url(new Uint8Array(digest));
+  window.sessionStorage.setItem(OAUTH_VERIFIER_KEY, verifier);
   const returnTo = `${window.location.origin}/`;
-  return `${controlPlaneUrl}/v1/auth/start/${provider}?return_to=${encodeURIComponent(returnTo)}`;
+  const url = new URL(`${controlPlaneUrl}/v1/auth/start/${provider}`);
+  url.searchParams.set('return_to', returnTo);
+  url.searchParams.set('code_challenge', challenge);
+  window.location.assign(url.toString());
 }
 
-export async function exchangeCloudCode(code: string): Promise<string> {
-  const response = await fetch(`${controlPlaneUrl}/v1/auth/exchange`, {
+export function exchangeCloudCode(code: string): Promise<string> {
+  if (!cloudCodeExchange) cloudCodeExchange = exchangeCloudCodeOnce(code);
+  return cloudCodeExchange;
+}
+
+async function exchangeCloudCodeOnce(code: string): Promise<string> {
+  const verifier = window.sessionStorage.getItem(OAUTH_VERIFIER_KEY);
+  if (!verifier) throw new Error('This sign-in was not started in this browser tab.');
+  const response = await cloudFetch(`${controlPlaneUrl}/v1/auth/exchange`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, code_verifier: verifier }),
   });
+  window.sessionStorage.removeItem(OAUTH_VERIFIER_KEY);
   if (!response.ok) throw new Error(`Sign-in exchange failed (${response.status}).`);
   const body = await response.json() as { access_token?: string };
   if (!body.access_token) throw new Error('The control plane returned an invalid sign-in response.');
@@ -161,14 +215,14 @@ export function loadCloudSession(): string | null {
 export async function signOutCloud(token: string | null): Promise<void> {
   window.localStorage.removeItem(CLOUD_SESSION_KEY);
   if (!token) return;
-  await fetch(`${controlPlaneUrl}/v1/auth/logout`, {
+  await cloudFetch(`${controlPlaneUrl}/v1/auth/logout`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   }).catch(() => undefined);
 }
 
 export async function fetchCloudIdentity(token: string): Promise<CloudIdentity> {
-  const response = await fetch(`${controlPlaneUrl}/v1/me`, {
+  const response = await cloudFetch(`${controlPlaneUrl}/v1/me`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
@@ -180,7 +234,7 @@ export async function fetchCloudIdentity(token: string): Promise<CloudIdentity> 
 }
 
 export async function registerCloudNode(token: string, connection: LocalConnection): Promise<void> {
-  const response = await fetch(`${controlPlaneUrl}/v1/nodes`, {
+  const response = await cloudFetch(`${controlPlaneUrl}/v1/nodes`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -190,7 +244,6 @@ export async function registerCloudNode(token: string, connection: LocalConnecti
       id: connection.nodeId,
       name: connection.nodeName,
       version: connection.version,
-      connection_mode: 'direct',
     }),
   });
   if (!response.ok) throw new Error(`Could not register this Node (${response.status}).`);

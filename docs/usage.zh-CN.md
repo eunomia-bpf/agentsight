@@ -125,7 +125,9 @@ agentsight bind
 ```
 
 该命令只在 loopback 地址启动本地 API，打开一次性绑定链接，并在前台持续运行；
-退出命令后网页即无法继续读取。本地配对码只放在 URL fragment 中，两分钟后过期，
+退出命令后网页即无法继续读取。当前目录存在 `agentsight-*.db` 时默认读取最新一个，
+否则读取本机 agent session index；也可以用 `--db <capture.db>` 明确指定一次保存的捕获。
+本地配对码只放在 URL fragment 中，两分钟后过期，
 且成功使用一次后立即失效；换得的访问 token 也只在本次命令进程内有效。Chrome
 可能会请求允许该网页访问本地网络。
 

@@ -16,6 +16,7 @@ import {
   type CloudIdentity,
   type LocalConnection,
   consumeLaunchFragment,
+  embeddedLoopbackConnection,
   exchangeCloudCode,
   exchangeLocalPairing,
   fetchCloudIdentity,
@@ -59,6 +60,7 @@ export default function Home() {
   const [mode, setMode] = useState<AppMode>('loading');
   const [connection, setConnection] = useState<LocalConnection | null>(null);
   const [identity, setIdentity] = useState<CloudIdentity | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const displayEvents = useMemo(() => displayEventsFromSnapshot(snapshot), [snapshot]);
   const eventCount = displayEvents.length;
@@ -110,6 +112,12 @@ export default function Home() {
     const initialize = async () => {
       setSyncing(true);
       try {
+        const embedded = embeddedLoopbackConnection();
+        if (embedded) {
+          setConnection(embedded);
+          await loadNodeData(embedded);
+          return;
+        }
         const launch = consumeLaunchFragment();
         if (launch?.get('action') === 'auth-error') {
           const reason = launch.get('error') || 'sign_in_failed';
@@ -125,12 +133,14 @@ export default function Home() {
           const cloudToken = loadCloudSession();
           await loadNodeData(bound);
           if (cloudToken) {
-            try {
-              setIdentity(await fetchCloudIdentity(cloudToken));
-              await registerCloudNode(cloudToken, bound);
-            } catch (cause) {
-              setError(cause instanceof Error ? cause.message : 'Could not register this Node.');
-            }
+            void (async () => {
+              try {
+                setIdentity(await fetchCloudIdentity(cloudToken));
+                await registerCloudNode(cloudToken, bound);
+              } catch (cause) {
+                setError(cause instanceof Error ? cause.message : 'Could not register this Node.');
+              }
+            })();
           }
           return;
         }
@@ -139,32 +149,32 @@ export default function Home() {
         if (launch?.get('action') === 'auth' && launch.get('code')) {
           cloudToken = await exchangeCloudCode(launch.get('code')!);
         }
-        if (cloudToken) {
-          try {
-            const me = await fetchCloudIdentity(cloudToken);
-            if (!cancelled) setIdentity(me);
-          } catch (cause) {
-            cloudToken = null;
-            if (!cancelled) setError(cause instanceof Error ? cause.message : 'Sign-in failed.');
-          }
-        }
-
         const saved = loadLocalConnection();
         if (saved) {
           if (cancelled) return;
           setConnection(saved);
           await loadNodeData(saved);
-          if (cloudToken) {
+        } else if (!cloudToken && !cancelled) {
+          setMode('disconnected');
+        }
+
+        if (cloudToken) {
+          const syncCloud = async () => {
             try {
-              await registerCloudNode(cloudToken, saved);
+              const me = await fetchCloudIdentity(cloudToken);
+              if (!cancelled) setIdentity(me);
+              if (saved) await registerCloudNode(cloudToken, saved);
             } catch (cause) {
               if (!cancelled) {
-                setError(cause instanceof Error ? cause.message : 'Could not register this Node.');
+                setError(cause instanceof Error ? cause.message : 'Sign-in failed.');
               }
             }
+          };
+          if (saved) void syncCloud();
+          else {
+            await syncCloud();
+            if (!cancelled) setMode('disconnected');
           }
-        } else if (!cancelled) {
-          setMode('disconnected');
         }
       } catch (cause) {
         if (!cancelled) {
@@ -191,9 +201,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {mode === 'disconnected' && (
+      {(mode === 'disconnected' || dialogOpen) && (
         <ConnectionDialog error={error} busy={syncing} identity={identity}
-          onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
+          canClose={mode !== 'disconnected'} onClose={() => { setDialogOpen(false); }}
+          onDemo={() => { setDialogOpen(false); void enterDemo(); }} onSignOut={signOut} />
       )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -227,6 +238,18 @@ export default function Home() {
                   Sign out
                 </button>
               </>
+            )}
+            {!identity && mode !== 'loading' && (
+              <button type="button" onClick={() => { setDialogOpen(true); }}
+                className="text-sm font-medium text-blue-700 hover:text-blue-900">
+                Sign in
+              </button>
+            )}
+            {identity && mode !== 'loading' && (
+              <button type="button" onClick={() => { setDialogOpen(true); }}
+                className="text-sm font-medium text-blue-700 hover:text-blue-900">
+                Connections
+              </button>
             )}
             <LanguageSwitcher />
           </div>

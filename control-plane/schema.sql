@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS oauth_states (
     state_hash TEXT PRIMARY KEY,
     provider TEXT NOT NULL,
     return_to TEXT NOT NULL,
+    code_challenge TEXT NOT NULL,
     expires_at INTEGER NOT NULL
 );
 
@@ -25,6 +26,7 @@ CREATE TABLE IF NOT EXISTS auth_codes (
     code_hash TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     provider TEXT NOT NULL,
+    code_challenge TEXT NOT NULL,
     expires_at INTEGER NOT NULL,
     consumed_at INTEGER
 );
