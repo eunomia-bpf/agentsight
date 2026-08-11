@@ -170,7 +170,7 @@ fn start_claude(session: &AgentSession) -> Result<Runtime, SubmitError> {
 
 async fn start_codex(session: &AgentSession) -> Result<Runtime, SubmitError> {
     let mut command = Command::new("codex");
-    command.args(["app-server", "--stdio"]);
+    command.args(["app-server", "--listen", "stdio://"]);
     configure(&mut command, session, true);
     let mut child = command
         .spawn()
@@ -181,18 +181,17 @@ async fn start_codex(session: &AgentSession) -> Result<Runtime, SubmitError> {
 
     send_json(
         &mut stdin,
-        json!({"method":"initialize","id":1,"params":{"clientInfo":{
-            "name":"agentsight","title":"AgentSight","version":env!("CARGO_PKG_VERSION")
-        }}}),
+        json!({"method":"initialize","id":1,"params":{
+            "clientInfo":{"name":"agentsight","title":"AgentSight","version":env!("CARGO_PKG_VERSION")},
+            "capabilities":{"experimentalApi":true}
+        }}),
     )
     .await?;
     wait_response(&mut reader, 1).await?;
     send_json(&mut stdin, json!({"method":"initialized","params":{}})).await?;
     send_json(
         &mut stdin,
-        json!({"method":"thread/resume","id":2,"params":{
-            "threadId":session.session_id,"approvalPolicy":"never"
-        }}),
+        json!({"method":"thread/resume","id":2,"params":{"threadId":session.session_id}}),
     )
     .await?;
     wait_response(&mut reader, 2).await?;
