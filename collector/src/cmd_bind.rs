@@ -33,7 +33,7 @@ pub(crate) async fn run_bind(
         None => endpoint_url(ip, port),
     }?;
     let (app_url, allowed_origin) = normalize_app_url(app_url)?;
-    let access_token = random_token();
+    let access_token = local_access_token()?;
     let bind_url = build_bind_url(&app_url, &endpoint, &access_token)?;
     let node = local_node_metadata()?;
     let view = MaterializedView::shared_bounded();
@@ -55,7 +55,7 @@ pub(crate) async fn run_bind(
 
     println!("Bind this device at:\n{bind_url}");
     println!(
-        "The access key lasts only while this command is running and is removed from the browser URL after opening."
+        "The access key is stored locally, survives Node restarts, and is removed from the browser URL after opening."
     );
     if let Some(db_path) = db_path {
         println!("Serving saved AgentSight data from {db_path}.");
@@ -94,13 +94,44 @@ fn random_token() -> String {
     )
 }
 
-fn local_node_metadata()
--> Result<crate::server::NodeMetadata, Box<dyn std::error::Error + Send + Sync>> {
-    let config_dir = dirs::config_dir()
+fn config_dir() -> Result<std::path::PathBuf, Box<dyn std::error::Error + Send + Sync>> {
+    let dir = dirs::config_dir()
         .ok_or("could not find the user configuration directory")?
         .join("agentsight");
-    std::fs::create_dir_all(&config_dir)?;
-    let id_path = config_dir.join("node-id");
+    std::fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
+fn local_access_token() -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let path = config_dir()?.join("access-token");
+    match std::fs::read_to_string(&path) {
+        Ok(value) if valid_access_token(value.trim()) => Ok(value.trim().to_string()),
+        Ok(_) => Err(format!("invalid AgentSight access token at {}", path.display()).into()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            let token = random_token();
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .open(path)?;
+            use std::io::Write;
+            writeln!(file, "{token}")?;
+            Ok(token)
+        }
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn valid_access_token(value: &str) -> bool {
+    (32..=256).contains(&value.len())
+        && value
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-'))
+}
+
+fn local_node_metadata()
+-> Result<crate::server::NodeMetadata, Box<dyn std::error::Error + Send + Sync>> {
+    let id_path = config_dir()?.join("node-id");
     let id = match std::fs::read_to_string(&id_path) {
         Ok(value) if valid_node_id(value.trim()) => value.trim().to_string(),
         Ok(_) => {
@@ -254,5 +285,12 @@ mod tests {
         assert!(valid_node_id("node_0123abcdef"));
         assert!(!valid_node_id("../../node_secret"));
         assert!(!valid_node_id("machine"));
+    }
+
+    #[test]
+    fn access_tokens_are_narrowly_validated() {
+        assert!(valid_access_token(&"a".repeat(64)));
+        assert!(!valid_access_token("short"));
+        assert!(!valid_access_token(&format!("{}!", "a".repeat(63))));
     }
 }
