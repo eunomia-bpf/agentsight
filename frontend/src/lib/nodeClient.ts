@@ -42,6 +42,12 @@ function expectedNodeAddressSpace(endpoint: URL): NodeAddressSpace {
   return 'local';
 }
 
+function mergedHeaders(base?: HeadersInit, extra?: HeadersInit): Headers {
+  const headers = new Headers(base);
+  new Headers(extra).forEach((value, key) => headers.set(key, value));
+  return headers;
+}
+
 async function directFetch(input: string, init: RequestInit = {}): Promise<Response> {
   const endpoint = new URL(input);
   const options: RequestInit = {
@@ -71,14 +77,14 @@ async function jsonResponse<T>(response: Response, fallback: string): Promise<T>
 }
 
 export function directNodeClient(connection: LocalConnection): NodeClient {
-  const headers = connection.accessToken
+  const authorization = connection.accessToken
     ? { Authorization: `Bearer ${connection.accessToken}` }
-    : {};
+    : undefined;
   const request = (path: string, init: RequestInit = {}) => directFetch(
     `${connection.endpoint}${path}`,
     {
       ...init,
-      headers: { ...headers, ...(init.headers || {}) },
+      headers: mergedHeaders(authorization, init.headers),
     },
   );
   return {
@@ -111,14 +117,13 @@ export function directNodeClient(connection: LocalConnection): NodeClient {
 }
 
 function relayFetch(token: string, nodeId: string, suffix: string, init: RequestInit = {}) {
+  const headers = mergedHeaders(init.headers);
+  headers.set('Authorization', `Bearer ${token}`);
   return fetch(`${controlPlaneUrl}/v1/nodes/${encodeURIComponent(nodeId)}/relay${suffix}`, {
     ...init,
     cache: 'no-store',
     signal: init.signal || AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(init.headers || {}),
-    },
+    headers,
   });
 }
 
