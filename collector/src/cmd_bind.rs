@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use crate::server::WebServer;
+use crate::server::{WebServer, relay_client};
 use crate::shutdown_notify;
 use crate::view::MaterializedView;
 use qrcode::QrCode;
 use qrcode::render::unicode;
-use std::net::{IpAddr, SocketAddr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::os::unix::fs::OpenOptionsExt;
 use std::process::Command;
 use std::time::Duration;
 use url::{Url, form_urlencoded};
 
 const DEFAULT_APP_URL: &str = "https://app.agentsight.us/";
+const DEFAULT_CONTROLLER_URL: &str = "https://agentsight-control.yusen356.workers.dev";
+const CONTROLLER_URL_ENV: &str = "AGENTSIGHT_CONTROLLER_URL";
 
 pub(crate) async fn run_bind(
     listen: &str,
@@ -33,13 +35,14 @@ pub(crate) async fn run_bind(
         None => endpoint_url(ip, port),
     }?;
     let (app_url, allowed_origin) = normalize_app_url(app_url)?;
+    let controller_url = controller_url_for_app(&app_url)?;
     let access_token = local_access_token()?;
     let bind_url = build_bind_url(&app_url, &endpoint, &access_token)?;
     let node = local_node_metadata()?;
     let view = MaterializedView::shared_bounded();
     let server = WebServer::new_with_db_path(view, db_path.clone())?.with_direct_access(
-        access_token,
-        node,
+        access_token.clone(),
+        node.clone(),
         allowed_origin,
     );
 
@@ -53,10 +56,22 @@ pub(crate) async fn run_bind(
         };
     }
 
+    let relay_handle = controller_url.map(|controller_url| {
+        tokio::spawn(relay_client::run(
+            controller_url,
+            node.id.clone(),
+            access_token.clone(),
+            relay_local_endpoint(ip, port),
+        ))
+    });
+
     println!("Bind this device at:\n{bind_url}");
     println!(
         "The access key is stored locally, survives Node restarts, and is removed from the browser URL after opening."
     );
+    if relay_handle.is_some() {
+        println!("Controller relay is enabled for signed-in remote browsers; Direct access remains preferred.");
+    }
     if let Some(db_path) = db_path {
         println!("Serving saved AgentSight data from {db_path}.");
     } else {
@@ -70,6 +85,9 @@ pub(crate) async fn run_bind(
     }
 
     shutdown_notify().notified().await;
+    if let Some(relay_handle) = relay_handle {
+        relay_handle.abort();
+    }
     handle.abort();
     Ok(())
 }
@@ -84,6 +102,19 @@ fn endpoint_url(ip: IpAddr, port: u16) -> Result<String, Box<dyn std::error::Err
         IpAddr::V4(ip) => format!("http://{ip}:{port}"),
         IpAddr::V6(ip) => format!("http://[{ip}]:{port}"),
     })
+}
+
+fn relay_local_endpoint(ip: IpAddr, port: u16) -> String {
+    match ip {
+        IpAddr::V4(ip) if ip.is_unspecified() => {
+            format!("http://{}:{port}", Ipv4Addr::LOCALHOST)
+        }
+        IpAddr::V6(ip) if ip.is_unspecified() => {
+            format!("http://[{}]:{port}", Ipv6Addr::LOCALHOST)
+        }
+        IpAddr::V4(ip) => format!("http://{ip}:{port}"),
+        IpAddr::V6(ip) => format!("http://[{ip}]:{port}"),
+    }
 }
 
 fn random_token() -> String {
@@ -187,6 +218,37 @@ fn normalize_endpoint(value: &str) -> Result<String, Box<dyn std::error::Error +
     Ok(endpoint.to_string().trim_end_matches('/').to_string())
 }
 
+fn normalize_controller_url(
+    value: &str,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let mut controller = Url::parse(value)?;
+    if !matches!(controller.scheme(), "http" | "https")
+        || controller.host().is_none()
+        || !controller.username().is_empty()
+        || controller.password().is_some()
+    {
+        return Err("AgentSight Controller URL must be an http(s) URL without credentials".into());
+    }
+    controller.set_path("");
+    controller.set_query(None);
+    controller.set_fragment(None);
+    Ok(controller.to_string().trim_end_matches('/').to_string())
+}
+
+fn controller_url_for_app(
+    app_url: &Url,
+) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
+    if let Ok(value) = std::env::var(CONTROLLER_URL_ENV) {
+        if !value.trim().is_empty() {
+            return Ok(Some(normalize_controller_url(value.trim())?));
+        }
+    }
+    if app_url.origin().ascii_serialization() == "https://app.agentsight.us" {
+        return Ok(Some(DEFAULT_CONTROLLER_URL.to_string()));
+    }
+    Ok(None)
+}
+
 fn normalize_app_url(
     value: &str,
 ) -> Result<(Url, String), Box<dyn std::error::Error + Send + Sync>> {
@@ -266,6 +328,14 @@ mod tests {
     fn endpoint_formats_ipv6_for_urls() {
         let ip: IpAddr = "::1".parse().unwrap();
         assert_eq!(endpoint_url(ip, 7395).unwrap(), "http://[::1]:7395");
+    }
+
+    #[test]
+    fn relay_uses_loopback_for_unspecified_bind_addresses() {
+        assert_eq!(
+            relay_local_endpoint("0.0.0.0".parse().unwrap(), 7395),
+            "http://127.0.0.1:7395"
+        );
     }
 
     #[test]
