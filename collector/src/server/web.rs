@@ -16,7 +16,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::Infallible;
 use std::net::SocketAddr;
-use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::net::TcpListener;
@@ -231,7 +230,10 @@ async fn handle_request(
             ) {
                 json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
             } else if db_path.is_some() {
-                json_error(StatusCode::CONFLICT, "saved captures do not expose native session messages")
+                json_error(
+                    StatusCode::CONFLICT,
+                    "saved captures do not expose native session messages",
+                )
             } else {
                 serve_session_api(
                     agent_native_sessions,
@@ -363,7 +365,10 @@ async fn serve_session_api(
         let mut cache = sessions
             .lock()
             .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))?;
-        Ok::<_, Box<dyn std::error::Error + Send + Sync>>(find_native_session(&mut cache, &session_id))
+        Ok::<_, Box<dyn std::error::Error + Send + Sync>>(find_native_session(
+            &mut cache,
+            &session_id,
+        ))
     })
     .await;
 
@@ -444,74 +449,42 @@ async fn serve_session_message_api(
         }
     };
 
-    match launch_session_message(&session, message) {
-        Ok(()) => Ok(json_response(
+    match launch_session_message(&session, message).await {
+        Ok(result) => Ok(json_response(
             StatusCode::ACCEPTED,
             &serde_json::json!({
                 "session_id": session.session_id,
                 "agent_type": session.agent_type,
                 "status": "submitted",
+                "transport": result.transport,
             }),
         )),
-        Err(error) => Ok(json_error(StatusCode::BAD_GATEWAY, &error)),
+        Err(crate::server::session_runtime::SubmitError::Conflict(error)) => {
+            Ok(json_error(StatusCode::CONFLICT, &error))
+        }
+        Err(crate::server::session_runtime::SubmitError::Failed(error)) => {
+            Ok(json_error(StatusCode::BAD_GATEWAY, &error))
+        }
     }
 }
 
-fn find_native_session(cache: &mut SessionCache, session_id: &str) -> Option<agent_session::AgentSession> {
+fn find_native_session(
+    cache: &mut SessionCache,
+    session_id: &str,
+) -> Option<agent_session::AgentSession> {
     agent_native_sessions::discover_sessions(cache, None, None, 25, Duration::ZERO)
         .into_iter()
         .find(|session| session.session_id == session_id)
 }
 
-fn launch_session_message(session: &agent_session::AgentSession, message: &str) -> Result<(), String> {
-    let mut command = match session.agent_type.as_str() {
-        agent_session::AGENT_CLAUDE => {
-            let mut command = tokio::process::Command::new("claude");
-            command.args(["-p", "--resume", &session.session_id, message]);
-            command
-        }
-        agent_session::AGENT_CODEX => {
-            let mut command = tokio::process::Command::new("codex");
-            command.args(["exec", "resume", &session.session_id, message]);
-            command
-        }
-        agent_session::AGENT_GEMINI => {
-            let mut command = tokio::process::Command::new("gemini");
-            command.args(["--resume", &session.session_id, "--prompt", message]);
-            command
-        }
-        other => return Err(format!("sending messages to {other} sessions is not supported yet")),
-    };
-    if let Some(cwd) = session.cwd.as_deref().filter(|cwd| !cwd.is_empty()) {
-        command.current_dir(cwd);
-    }
-    command
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null());
-    let mut child = command
-        .spawn()
-        .map_err(|error| format!("failed to resume {} session: {error}", session.agent_type))?;
-    let agent = session.agent_type.clone();
-    let session_id = session.session_id.clone();
-    tokio::spawn(async move {
-        match child.wait().await {
-            Ok(status) if status.success() => {}
-            Ok(status) => log::warn!(
-                "{} session {} message process exited with {}",
-                agent,
-                session_id,
-                status
-            ),
-            Err(error) => log::warn!(
-                "{} session {} message process wait failed: {}",
-                agent,
-                session_id,
-                error
-            ),
-        }
-    });
-    Ok(())
+async fn launch_session_message(
+    session: &agent_session::AgentSession,
+    message: &str,
+) -> Result<
+    crate::server::session_runtime::SubmitResult,
+    crate::server::session_runtime::SubmitError,
+> {
+    crate::server::session_runtime::submit_message(session, message).await
 }
 
 fn snapshot_from_sources(
@@ -675,7 +648,10 @@ mod tests {
             session_message_id("/api/v1/sessions/session-1/messages"),
             Some("session-1")
         );
-        assert_eq!(session_detail_id("/api/v1/sessions/session-1/messages"), None);
+        assert_eq!(
+            session_detail_id("/api/v1/sessions/session-1/messages"),
+            None
+        );
     }
 
     #[test]
