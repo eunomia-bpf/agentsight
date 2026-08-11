@@ -84,7 +84,7 @@ impl ProcSnapshot {
         let procs = system
             .processes()
             .values()
-            .filter(|process| process.thread_kind().is_none())
+            .filter(|process| process.thread_kind() != Some(sysinfo::ThreadKind::Userland))
             .map(|process| proc_info_from_sysinfo(process, boot_time_s))
             .map(|info| (info.pid, info))
             .collect();
@@ -453,7 +453,7 @@ mod tests {
         #[cfg(target_os = "linux")]
         assert!(!snapshot.procs.contains_key(&tid));
         assert!(current.starttime_ticks > 0);
-        assert!(current.threads > 0);
+        assert!(current.threads > if cfg!(target_os = "linux") { 1 } else { 0 });
         assert!(!current.comm.is_empty() || !current.command.is_empty());
     }
 
