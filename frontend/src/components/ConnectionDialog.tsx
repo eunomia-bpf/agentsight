@@ -9,7 +9,7 @@ interface ConnectionDialogProps {
   busy: boolean;
   allowSignIn: boolean;
   canClose: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   onDemo: () => void;
 }
 
@@ -21,7 +21,7 @@ export function ConnectionDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-8">
       <div role="dialog" aria-modal="true" aria-labelledby="connect-title"
         className="relative w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
-        {canClose && (
+        {canClose && onClose && (
           <button type="button" onClick={onClose} aria-label={t('connect.close')}
             className="absolute right-5 top-4 text-2xl text-slate-400 hover:text-slate-700">
             ×
@@ -30,9 +30,7 @@ export function ConnectionDialog({
         <div className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">AgentSight</p>
           <h1 id="connect-title" className="mt-1 text-2xl font-bold text-slate-950">{t('connect.title')}</h1>
-          <p className="mt-2 text-sm text-slate-600">
-            {t('connect.privacy')}
-          </p>
+          <p className="mt-2 text-sm text-slate-600">{t('connect.privacy')}</p>
         </div>
 
         {error && (
