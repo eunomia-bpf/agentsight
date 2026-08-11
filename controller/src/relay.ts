@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-import { DurableObject } from 'cloudflare:workers';
-
 const NODE_ID_PATTERN = /^node_[A-Za-z0-9_]{1,123}$/;
 const RELAY_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,256}$/;
 const RELAY_TIMEOUT_MS = 12_000;
@@ -10,7 +8,7 @@ const MAX_BROWSER_BODY_BYTES = 96 * 1024;
 
 export interface RelayEnv {
   DB: D1Database;
-  NODE_RELAY: DurableObjectNamespace<NodeRelay>;
+  NODE_RELAY: DurableObjectNamespace;
 }
 
 export interface BrowserRelayRoute {
@@ -124,6 +122,10 @@ export async function saveRelayCredential(
   return Boolean(result.meta.changes);
 }
 
+function relayStub(env: RelayEnv, nodeId: string): DurableObjectStub {
+  return env.NODE_RELAY.get(env.NODE_RELAY.idFromName(nodeId));
+}
+
 export async function connectNodeRelay(
   request: Request,
   env: RelayEnv,
@@ -146,7 +148,7 @@ export async function connectNodeRelay(
     `UPDATE nodes SET last_seen_at = ?1, connection_mode = 'relay' WHERE id = ?2`,
   ).bind(Math.floor(Date.now() / 1000), nodeId).run();
 
-  return env.NODE_RELAY.getByName(nodeId).fetch(request);
+  return relayStub(env, nodeId).fetch(request);
 }
 
 export async function proxyBrowserRelay(
@@ -160,7 +162,7 @@ export async function proxyBrowserRelay(
   ).bind(route.nodeId, ownerUserId).first<{ id: string }>();
   if (!owned) return json({ error: 'node_not_found' }, 404);
 
-  const stub = env.NODE_RELAY.getByName(route.nodeId);
+  const stub = relayStub(env, route.nodeId);
   if (route.statusOnly) {
     return stub.fetch(new Request('https://relay.internal/status'));
   }
@@ -179,11 +181,12 @@ export async function proxyBrowserRelay(
   return stub.fetch(relayRequest);
 }
 
-export class NodeRelay extends DurableObject<RelayEnv> {
+export class NodeRelay {
+  private readonly ctx: DurableObjectState;
   private pending = new Map<string, PendingRequest>();
 
-  constructor(ctx: DurableObjectState, env: RelayEnv) {
-    super(ctx, env);
+  constructor(ctx: DurableObjectState, _env: RelayEnv) {
+    this.ctx = ctx;
     this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
   }
 
@@ -227,8 +230,8 @@ export class NodeRelay extends DurableObject<RelayEnv> {
     }));
   }
 
-  async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
-    ws.close(code, reason);
+  async webSocketClose(_ws: WebSocket, _code: number, _reason: string): Promise<void> {
+    // Cloudflare has already closed the socket when this callback runs.
   }
 
   async webSocketError(_ws: WebSocket, error: unknown): Promise<void> {
