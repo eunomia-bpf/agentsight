@@ -25,6 +25,7 @@ use hyper::body::Bytes;
 use hyper_util::client::legacy::Client;
 use hyper_util::rt::TokioExecutor;
 use serde_json::{Value, json};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 /// Default OTLP/HTTP receiver endpoint (OpenTelemetry Collector).
@@ -52,6 +53,10 @@ pub struct OtelExporter {
     service_name: String,
     /// Whether to attach prompt/completion content (`gen_ai.{input,output}.messages`).
     capture_content: bool,
+    /// Trace IDs assigned to conversation/session identifiers in this recording.
+    trace_ids: HashMap<String, String>,
+    /// Recording-scoped trace used when a call has no correlation identifier.
+    fallback_trace_id: String,
     client: Arc<Client<hyper_util::client::legacy::connect::HttpConnector, Full<Bytes>>>,
 }
 
@@ -77,8 +82,28 @@ impl OtelExporter {
             traces_url,
             service_name,
             capture_content,
+            trace_ids: HashMap::new(),
+            fallback_trace_id: new_trace_id(),
             client: Arc::new(Client::builder(TokioExecutor::new()).build_http()),
         }
+    }
+
+    fn trace_id_for(&mut self, conversation_id: Option<&str>, session_id: Option<&str>) -> String {
+        let key = conversation_id
+            .filter(|id| !id.is_empty())
+            .map(|id| format!("conversation:{id}"))
+            .or_else(|| {
+                session_id
+                    .filter(|id| !id.is_empty())
+                    .map(|id| format!("session:{id}"))
+            });
+        let Some(key) = key else {
+            return self.fallback_trace_id.clone();
+        };
+        self.trace_ids
+            .entry(key)
+            .or_insert_with(new_trace_id)
+            .clone()
     }
 }
 
@@ -236,11 +261,12 @@ fn build_otlp_payload(
     })
 }
 
-/// Generate a 32-hex-char trace id and 16-hex-char span id.
-fn new_ids() -> (String, String) {
-    let trace = uuid::Uuid::new_v4().simple().to_string(); // 32 hex chars
-    let span = uuid::Uuid::new_v4().simple().to_string()[..16].to_string();
-    (trace, span)
+fn new_trace_id() -> String {
+    uuid::Uuid::new_v4().simple().to_string()
+}
+
+fn new_span_id() -> String {
+    uuid::Uuid::new_v4().simple().to_string()[..16].to_string()
 }
 
 impl SpanInput {
@@ -254,7 +280,11 @@ impl SpanInput {
                 .clone()
                 .unwrap_or_else(|| provider_from_host(host)),
             server_address: host.to_string(),
-            conversation_id: conversation_id_from_request(request),
+            // The materialized row may carry a generic per-response ID here.
+            // Only fields explicitly identified as a conversation or thread
+            // are safe to use for grouping.
+            conversation_id: explicit_conversation_id(request)
+                .or_else(|| explicit_conversation_id(&call.response)),
             model: call.model.clone().or_else(|| {
                 request
                     .get("model")
@@ -285,7 +315,11 @@ impl ViewSink for OtelExporter {
             return Ok(());
         };
         let span_input = SpanInput::from_call(call, self.capture_content);
-        let (trace_id, span_id) = new_ids();
+        let trace_id = self.trace_id_for(
+            span_input.conversation_id.as_deref(),
+            call.session_id.as_deref(),
+        );
+        let span_id = new_span_id();
         let payload = build_otlp_payload(
             &self.service_name,
             &trace_id,
@@ -307,14 +341,29 @@ impl ViewSink for OtelExporter {
     }
 }
 
-fn conversation_id_from_request(request: &Value) -> Option<String> {
-    ["conversation_id", "conversationId", "thread_id", "threadId"]
-        .iter()
-        .filter_map(|key| request.get(*key).and_then(Value::as_str))
-        .find(|value| !value.is_empty())
-        .or_else(|| request.pointer("/conversation/id").and_then(Value::as_str))
-        .filter(|value| !value.is_empty())
-        .map(str::to_string)
+fn explicit_conversation_id(body: &Value) -> Option<String> {
+    [
+        "/conversation_id",
+        "/conversationId",
+        "/thread_id",
+        "/threadId",
+        "/metadata/conversation_id",
+        "/metadata/conversationId",
+        "/metadata/thread_id",
+        "/metadata/threadId",
+        "/conversation/id",
+        "/thread/id",
+        "/response/conversation_id",
+        "/response/conversationId",
+        "/response/thread_id",
+        "/response/threadId",
+        "/response/conversation/id",
+        "/response/thread/id",
+    ]
+    .iter()
+    .filter_map(|path| body.pointer(path).and_then(Value::as_str))
+    .find(|value| !value.is_empty())
+    .map(str::to_string)
 }
 
 /// POST an OTLP/HTTP JSON trace payload to the collector.
@@ -343,6 +392,37 @@ async fn post_otlp(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn completed_call(
+        id: &str,
+        session_id: Option<&str>,
+        conversation_id: Option<&str>,
+        request: Value,
+    ) -> LlmCallRow {
+        LlmCallRow {
+            id: id.to_string(),
+            session_id: session_id.map(str::to_string),
+            conversation_id: conversation_id.map(str::to_string),
+            start_timestamp_ms: 1,
+            end_timestamp_ms: Some(2),
+            pid: Some(1),
+            comm: Some("agent".to_string()),
+            provider: Some("openai".to_string()),
+            model: Some("model".to_string()),
+            call_kind: Some("chat".to_string()),
+            status: "complete".to_string(),
+            error_type: None,
+            finish_reason: None,
+            host: Some("api.openai.com".to_string()),
+            path: Some("/v1/chat/completions".to_string()),
+            status_code: Some(200),
+            input_tokens: 0,
+            output_tokens: 0,
+            total_tokens: 0,
+            request,
+            response: Value::Null,
+        }
+    }
 
     #[test]
     fn maps_providers() {
@@ -443,12 +523,11 @@ mod tests {
             "conv_123"
         );
         assert_eq!(
-            conversation_id_from_request(&json!({ "conversation": { "id": "conv_123" } }))
-                .as_deref(),
+            explicit_conversation_id(&json!({ "conversation": { "id": "conv_123" } })).as_deref(),
             Some("conv_123")
         );
         assert_eq!(
-            conversation_id_from_request(&json!({ "session_id": "sid_123" })),
+            explicit_conversation_id(&json!({ "session_id": "sid_123" })),
             None
         );
         assert_eq!(
@@ -484,5 +563,86 @@ mod tests {
         let payload = build_otlp_payload("agentsight", "t", "s", &req, 2, Some(429), None, false);
         let span = &payload["resourceSpans"][0]["scopeSpans"][0]["spans"][0];
         assert_eq!(span["status"]["code"], 2);
+    }
+
+    #[test]
+    fn correlates_trace_ids_by_explicit_conversation_then_session() {
+        let mut exporter = OtelExporter::new(Some("http://localhost:4318".to_string()), false);
+
+        let conversation_a = exporter.trace_id_for(Some("conversation-a"), Some("session-a"));
+        assert_eq!(
+            conversation_a,
+            exporter.trace_id_for(Some("conversation-a"), Some("session-b"))
+        );
+        assert_ne!(
+            conversation_a,
+            exporter.trace_id_for(Some("conversation-b"), Some("session-a"))
+        );
+
+        let session_a = exporter.trace_id_for(None, Some("session-a"));
+        assert_eq!(session_a, exporter.trace_id_for(None, Some("session-a")));
+        assert_ne!(session_a, exporter.trace_id_for(None, Some("session-b")));
+    }
+
+    #[test]
+    fn per_response_conversation_ids_do_not_split_one_session() {
+        let mut exporter = OtelExporter::new(Some("http://localhost:4318".to_string()), false);
+        let first = completed_call("first", Some("session-a"), Some("chatcmpl-a"), json!({}));
+        let second = completed_call("second", Some("session-a"), Some("chatcmpl-b"), json!({}));
+
+        let first_input = SpanInput::from_call(&first, false);
+        let second_input = SpanInput::from_call(&second, false);
+        assert!(first_input.conversation_id.is_none());
+        assert_eq!(
+            exporter.trace_id_for(
+                first_input.conversation_id.as_deref(),
+                first.session_id.as_deref()
+            ),
+            exporter.trace_id_for(
+                second_input.conversation_id.as_deref(),
+                second.session_id.as_deref()
+            )
+        );
+    }
+
+    #[test]
+    fn explicit_conversation_overrides_different_sessions() {
+        let mut exporter = OtelExporter::new(Some("http://localhost:4318".to_string()), false);
+        let first = completed_call(
+            "first",
+            Some("session-a"),
+            None,
+            json!({ "metadata": { "conversation_id": "conversation-a" } }),
+        );
+        let mut second = completed_call("second", Some("session-b"), None, json!({}));
+        second.response = json!({ "thread": { "id": "conversation-a" } });
+
+        let first_input = SpanInput::from_call(&first, false);
+        let second_input = SpanInput::from_call(&second, false);
+        assert_eq!(
+            first_input.conversation_id.as_deref(),
+            Some("conversation-a")
+        );
+        assert_eq!(first_input.conversation_id, second_input.conversation_id);
+        assert_eq!(
+            exporter.trace_id_for(
+                first_input.conversation_id.as_deref(),
+                first.session_id.as_deref()
+            ),
+            exporter.trace_id_for(
+                second_input.conversation_id.as_deref(),
+                second.session_id.as_deref()
+            )
+        );
+    }
+
+    #[test]
+    fn uses_one_recording_trace_without_correlation_ids() {
+        let mut exporter = OtelExporter::new(Some("http://localhost:4318".to_string()), false);
+        assert_eq!(
+            exporter.trace_id_for(None, None),
+            exporter.trace_id_for(None, None)
+        );
+        assert_ne!(new_span_id(), new_span_id());
     }
 }
