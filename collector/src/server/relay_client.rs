@@ -10,6 +10,8 @@ use hyper_util::client::legacy::connect::HttpConnector;
 use hyper_util::rt::TokioExecutor;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
+use std::time::Duration;
+use tokio::time::MissedTickBehavior;
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
@@ -18,6 +20,7 @@ use url::Url;
 
 const MAX_RELAY_RESPONSE_BYTES: usize = 16 * 1024 * 1024;
 const RECONNECT_DELAY_SECS: u64 = 2;
+const HEARTBEAT_INTERVAL_SECS: u64 = 20;
 
 #[derive(Debug, Deserialize)]
 struct RelayRequestEnvelope {
@@ -54,7 +57,7 @@ pub(crate) async fn run(
         if let Err(error) = connect_once(&relay_url, &access_token, &local_endpoint).await {
             log::debug!("AgentSight Controller relay disconnected: {error}");
         }
-        tokio::time::sleep(std::time::Duration::from_secs(RECONNECT_DELAY_SECS)).await;
+        tokio::time::sleep(Duration::from_secs(RECONNECT_DELAY_SECS)).await;
     }
 }
 
@@ -76,17 +79,32 @@ async fn connect_once(
     let (mut socket, _) = connect_async(request).await?;
     log::debug!("AgentSight Node relay connected");
 
-    while let Some(message) = socket.next().await {
-        match message? {
-            Message::Text(text) => {
-                let response = handle_request(text.as_str(), local_endpoint, access_token).await;
-                socket.send(Message::Text(serde_json::to_string(&response)?.into())).await?;
+    let mut heartbeat = tokio::time::interval(Duration::from_secs(HEARTBEAT_INTERVAL_SECS));
+    heartbeat.set_missed_tick_behavior(MissedTickBehavior::Delay);
+    heartbeat.tick().await;
+
+    loop {
+        tokio::select! {
+            _ = heartbeat.tick() => {
+                // The Durable Object handles this with WebSocket auto-response,
+                // so the heartbeat does not wake a hibernating relay instance.
+                socket.send(Message::Text("ping".into())).await?;
             }
-            Message::Ping(payload) => {
-                socket.send(Message::Pong(payload)).await?;
+            message = socket.next() => {
+                let Some(message) = message else { break };
+                match message? {
+                    Message::Text(text) if text.as_str() == "pong" => {}
+                    Message::Text(text) => {
+                        let response = handle_request(text.as_str(), local_endpoint, access_token).await;
+                        socket.send(Message::Text(serde_json::to_string(&response)?.into())).await?;
+                    }
+                    Message::Ping(payload) => {
+                        socket.send(Message::Pong(payload)).await?;
+                    }
+                    Message::Close(_) => break,
+                    _ => {}
+                }
             }
-            Message::Close(_) => break,
-            _ => {}
         }
     }
     Ok(())
