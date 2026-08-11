@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-import { controlPlaneUrl, type CloudNode, type LocalConnection } from '@/lib/connection';
+import { controllerUrl, type CloudNode, type LocalConnection } from '@/lib/connection';
 import type { AgentSightSnapshot } from '@/types/event';
 
 const DIRECT_CONNECTIONS_KEY = 'agentsight.direct-connections.v1';
@@ -31,6 +31,16 @@ export interface NodeClient {
   snapshot(): Promise<AgentSightSnapshot>;
   session(sessionId: string): Promise<SessionDetail>;
   submitMessage(sessionId: string, message: string): Promise<void>;
+}
+
+export class NodeRequestError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'NodeRequestError';
+    this.status = status;
+  }
 }
 
 function expectedNodeAddressSpace(endpoint: URL): NodeAddressSpace {
@@ -71,7 +81,10 @@ async function directFetch(input: string, init: RequestInit = {}): Promise<Respo
 async function jsonResponse<T>(response: Response, fallback: string): Promise<T> {
   if (!response.ok) {
     const body = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-    throw new Error(body.detail || body.error || `${fallback} (${response.status}).`);
+    throw new NodeRequestError(
+      response.status,
+      body.detail || body.error || `${fallback} (${response.status}).`,
+    );
   }
   return response.json() as Promise<T>;
 }
@@ -119,7 +132,7 @@ export function directNodeClient(connection: LocalConnection): NodeClient {
 function relayFetch(token: string, nodeId: string, suffix: string, init: RequestInit = {}) {
   const headers = mergedHeaders(init.headers);
   headers.set('Authorization', `Bearer ${token}`);
-  return fetch(`${controlPlaneUrl}/v1/nodes/${encodeURIComponent(nodeId)}/relay${suffix}`, {
+  return fetch(`${controllerUrl}/v1/nodes/${encodeURIComponent(nodeId)}/relay${suffix}`, {
     ...init,
     cache: 'no-store',
     signal: init.signal || AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -170,7 +183,7 @@ export async function registerControllerNode(
   token: string,
   connection: LocalConnection,
 ): Promise<void> {
-  const response = await fetch(`${controlPlaneUrl}/v1/nodes`, {
+  const response = await fetch(`${controllerUrl}/v1/nodes`, {
     method: 'POST',
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: {
@@ -186,7 +199,10 @@ export async function registerControllerNode(
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({})) as { error?: string };
-    throw new Error(body.error || `Could not register this Node (${response.status}).`);
+    throw new NodeRequestError(
+      response.status,
+      body.error || `Could not register this Node (${response.status}).`,
+    );
   }
 }
 
