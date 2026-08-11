@@ -89,18 +89,29 @@ server.on("listening", () => {
         console.error(`unexpected /api/v1/info response: ${infoResponse.statusCode} ${body}`);
         process.exit(1);
       }
-      const request = http.request(
-        { host: "127.0.0.1", port, path: "/", headers: { Host: "[" } },
-        (response) => {
-          if (response.statusCode !== 400) {
-            console.error(`expected 400 for malformed Host, got ${response.statusCode}`);
+      http.get({ host: "127.0.0.1", port, path: "/api/v1/snapshot" }, (snapshotResponse) => {
+        let snapshotBody = "";
+        snapshotResponse.setEncoding("utf8");
+        snapshotResponse.on("data", (chunk) => { snapshotBody += chunk; });
+        snapshotResponse.on("end", () => {
+          if (snapshotResponse.statusCode !== 200 || snapshotBody !== "{}\n") {
+            console.error(`unexpected /api/v1/snapshot response: ${snapshotResponse.statusCode} ${snapshotBody}`);
             process.exit(1);
           }
-          response.resume();
-          response.on("end", () => server.close(() => console.log("AgentSight npm smoke test passed.")));
-        },
-      );
-      request.end();
+          const request = http.request(
+            { host: "127.0.0.1", port, path: "/", headers: { Host: "[" } },
+            (response) => {
+              if (response.statusCode !== 400) {
+                console.error(`expected 400 for malformed Host, got ${response.statusCode}`);
+                process.exit(1);
+              }
+              response.resume();
+              response.on("end", () => server.close(() => console.log("AgentSight npm smoke test passed.")));
+            },
+          );
+          request.end();
+        });
+      });
     });
   });
 });

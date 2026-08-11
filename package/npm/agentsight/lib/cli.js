@@ -178,7 +178,7 @@ function serveWeb(options) {
       response.end("Bad request\n");
       return;
     }
-    if (url.pathname === "/api/v1/info") {
+    if (snapshot && request.method === "GET" && url.pathname === "/api/v1/info") {
       response.writeHead(200, {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "no-store",
