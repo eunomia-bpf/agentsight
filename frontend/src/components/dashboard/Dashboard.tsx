@@ -7,7 +7,6 @@ import { useMemo } from 'react';
 import { useTranslation } from '@/i18n';
 import { AgentSightSnapshot } from '@/types/event';
 import { deriveSummary } from '@/utils/dashboard';
-import { SessionConsole } from '@/components/SessionConsole';
 import { SummaryBand } from './SummaryBand';
 import { ActivityChart } from './ActivityChart';
 import { TokensPanel } from './TokensPanel';
@@ -15,9 +14,9 @@ import { EffectProfile } from './EffectProfile';
 import { ResourceShape } from './ResourceShape';
 import { FrictionSignals } from './FrictionSignals';
 
-// Re-exported so panel drill-down callbacks stay typed against the app shell's
-// view switcher in page.tsx.
-export type ViewMode = 'overview' | 'log' | 'timeline' | 'process-tree' | 'metrics';
+// Sessions is the default operational workspace. The remaining views inspect
+// evidence around the selected Node.
+export type ViewMode = 'sessions' | 'overview' | 'log' | 'timeline' | 'process-tree' | 'metrics';
 
 interface DashboardProps {
   snapshot: AgentSightSnapshot | null;
@@ -39,7 +38,6 @@ export function Dashboard({ snapshot, onNavigate }: DashboardProps) {
   return (
     <div className="space-y-4">
       <SummaryBand summary={summary} onNavigate={onNavigate} />
-      <SessionConsole snapshot={snapshot} />
       <ActivityChart snapshot={snapshot} onNavigate={onNavigate} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
