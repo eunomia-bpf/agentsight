@@ -308,8 +308,11 @@ async fn send_json(stdin: &mut ChildStdin, value: Value) -> Result<(), SubmitErr
     stdin
         .write_all(&data)
         .await
-        .and_then(|_| async { stdin.flush().await }.await)
-        .map_err(|error| failed(format!("provider transport write failed: {error}")))
+        .map_err(|error| failed(format!("provider transport write failed: {error}")))?;
+    stdin
+        .flush()
+        .await
+        .map_err(|error| failed(format!("provider transport flush failed: {error}")))
 }
 
 async fn drain<R: tokio::io::AsyncRead + Unpin>(stdout: R) {
