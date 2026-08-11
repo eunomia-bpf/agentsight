@@ -17,18 +17,19 @@ import { ScatterChart } from 'echarts/charts';
 import { GraphicComponent, GridComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { useTranslation } from '@/i18n';
+import { fetchLocalNebula, type LocalConnection } from '@/lib/connection';
 import type { NebulaDocument, NebulaFrame, NebulaStar } from '@/types/nebula';
 
 // echarts tree-shaken registry (not a React hook)
 registerEcharts([ScatterChart, GraphicComponent, GridComponent, TooltipComponent, CanvasRenderer]);
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 const PLAYBACK_FRAME_MS = 140;
 const SPEEDS = [0.5, 1, 2, 4] as const;
 
 export type NebulaNavigateTarget = 'log' | 'timeline' | 'process-tree';
 
 interface NebulaViewProps {
+  connection: LocalConnection | null;
   onNavigate?: (view: NebulaNavigateTarget, opts?: { path?: string }) => void;
 }
 
@@ -282,7 +283,7 @@ function areaLegend(
   };
 }
 
-export function NebulaView({ onNavigate }: NebulaViewProps) {
+export function NebulaView({ connection, onNavigate }: NebulaViewProps) {
   const { t } = useTranslation();
   const chartRef = useRef<HTMLDivElement | null>(null);
   const chart = useRef<EChartsType | null>(null);
@@ -299,9 +300,8 @@ export function NebulaView({ onNavigate }: NebulaViewProps) {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`${basePath}/api/v1/nebula`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const payload = (await response.json()) as NebulaDocument;
+      if (!connection) throw new Error('No AgentSight Node is connected.');
+      const payload = await fetchLocalNebula(connection);
       setDoc(payload);
       // Land on the final frame so the full star field is visible; Play rewinds.
       setFrameIndex(Math.max(0, (payload.frames?.length ?? 1) - 1));
@@ -312,7 +312,7 @@ export function NebulaView({ onNavigate }: NebulaViewProps) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [connection]);
 
   useEffect(() => {
     void load();

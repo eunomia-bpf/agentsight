@@ -83,7 +83,7 @@ eBPF Programs (kernel) → JSON stdout → Rust Runners → Analyzer Chain → O
 - **`collector/src/`** — Rust streaming pipeline (flat module layout):
   - `runners/` — Execute eBPF binaries and parse their JSON output into event streams (BinaryRunner, ProcessRunner, SystemRunner, AgentRunner, FakeRunner for tests)
   - `analyzers/` — Pluggable stream processors: SSEProcessor, HTTPParser, SSLFilter, HTTPFilter, AuthHeaderRemover, TimestampNormalizer, MaterializingAnalyzer (feeds the materialized view)
-  - `sources/` — Non-eBPF inputs: agent-native session files (`~/.claude`, `~/.codex`), `/proc` snapshots, saved SQLite databases
+  - `sources/` — Non-eBPF inputs: agent-native session files (`~/.claude`, `~/.codex`, `~/.cursor`), `/proc` snapshots, saved SQLite databases
   - `view/` — MaterializedView: projects events into rows (llm_calls, audit_events, process_nodes, ...) and serves snapshots
   - `sinks/` — ViewSink implementations: SQLite row store, OTel exporter (maps LLM call rows to OpenTelemetry `gen_ai.*` spans via OTLP/HTTP JSON; enabled by `debug trace --otel`, see `docs/otel.md`)
   - `output/` — CLI/TUI rendering of snapshots

@@ -100,6 +100,9 @@ For local use, install with `cargo install agentsight` or download the latest
 release binary, then start with `agentsight top`. Use the examples below when
 you want to record a specific command or inspect saved sessions.
 
+GitHub releases provide `agentsight-x86_64` and `agentsight-aarch64` for Linux.
+The unsuffixed `agentsight` asset remains an x86_64 compatibility alias.
+
 #### Docker
 
 Docker is useful for container, CI, or isolated Linux environments, but it still needs privileged host access for eBPF. See [docs/docker.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/docker.md).
@@ -225,6 +228,7 @@ For a saved SQLite session, run `agentsight report serve --db run.db` and open t
 | Grok Build | `sudo ./agentsight record -- grok` |
 | Python (aider, open-interpreter, …) | `sudo ./agentsight record -c python` |
 | Docker containers (OpenClaw, …) | `sudo ./agentsight record -c node --binary-path docker://openclaw` |
+| Cursor (IDE) | `agentsight top` reads its local sessions, no sudo needed |
 | Any command | `sudo ./agentsight record -- <command>` |
 
 See [docs/agents.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/agents.md) for agent-specific setup, SSL quirks, browser capture, MCP stdio, and advanced flags.
@@ -255,6 +259,9 @@ A: `record` stores sessions as `agentsight-*.db` files in the current directory 
 
 **Q: Why doesn't AgentSight capture traffic from Claude Code, Node.js, or Gemini CLI?**
 A: These applications statically link their SSL library (BoringSSL for Claude/Bun, OpenSSL for **all** Node.js — both NVM and system installs) into their own binary instead of using system `libssl.so`, so there's nothing for sslsniff to hook by default. AgentSight handles this for you: `record -- <command>` always discovers the binary, and `record -c node` now auto-discovers the Node binary too. For Claude attach mode, pass `--binary-path`. See the "Zero-Config: record" and "Monitoring Node.js AI Tools" sections.
+
+**Q: Can AgentSight trace IDE agents like Cursor?**
+A: Not through eBPF. They are Electron apps that mostly run on macOS or Windows, their TLS sits inside a stripped framework binary and a helper process, and Cursor's API traffic is protobuf rather than JSON, so even a successful capture produces no LLM events. Support for these agents goes through the agent-native session path instead. See [IDE-Based Agents](https://github.com/eunomia-bpf/agentsight/blob/master/docs/agents.md#ide-based-agents-cursor-antigravity-windsurf) for the details.
 
 **Q: What should I check if tracing fails?**
 A: Verify you are on Linux with eBPF support, have `sudo` or `CAP_BPF`/`CAP_SYS_ADMIN`, and are using `record -- <command>` or the correct `--binary-path` for statically linked agents.

@@ -7,6 +7,7 @@ use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
 use crate::sources::sqlite as sqlite_source;
 use crate::view::SharedMaterializedView;
 use http_body_util::Full;
+use hyper::header::{AUTHORIZATION, CACHE_CONTROL, HeaderValue, ORIGIN};
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode, body::Bytes};
@@ -19,11 +20,50 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::net::TcpListener;
 
+#[derive(Clone)]
+struct DirectAuth {
+    access_token: String,
+    node: NodeMetadata,
+    allowed_origin: String,
+}
+
+#[derive(Clone, Serialize)]
+pub struct NodeMetadata {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+}
+
+impl DirectAuth {
+    fn new(access_token: String, node: NodeMetadata, allowed_origin: String) -> Self {
+        Self {
+            access_token,
+            node,
+            allowed_origin,
+        }
+    }
+
+    fn authorizes(&self, value: Option<&HeaderValue>) -> bool {
+        let Some(token) = value
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.strip_prefix("Bearer "))
+        else {
+            return false;
+        };
+        token == self.access_token
+    }
+
+    fn allows_origin(&self, origin: &str) -> bool {
+        origin == self.allowed_origin
+    }
+}
+
 pub struct WebServer {
     assets: Arc<FrontendAssets>,
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
     db_path: Option<String>,
+    direct_auth: Option<DirectAuth>,
 }
 
 impl WebServer {
@@ -37,7 +77,18 @@ impl WebServer {
             view,
             agent_native_sessions: Arc::new(Mutex::new(SessionCache::new())),
             db_path,
+            direct_auth: None,
         })
+    }
+
+    pub fn with_direct_access(
+        mut self,
+        access_token: String,
+        node: NodeMetadata,
+        allowed_origin: String,
+    ) -> Self {
+        self.direct_auth = Some(DirectAuth::new(access_token, node, allowed_origin));
+        self
     }
 
     pub async fn start(
@@ -71,6 +122,7 @@ impl WebServer {
             let view = Arc::clone(&self.view);
             let agent_native_sessions = Arc::clone(&self.agent_native_sessions);
             let db_path = self.db_path.clone();
+            let direct_auth = self.direct_auth.clone();
 
             tokio::spawn(async move {
                 let io = TokioIo::new(stream);
@@ -81,6 +133,7 @@ impl WebServer {
                         view.clone(),
                         agent_native_sessions.clone(),
                         db_path.clone(),
+                        direct_auth.clone(),
                     )
                 });
 
@@ -98,27 +151,89 @@ async fn handle_request(
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
     db_path: Option<String>,
+    direct_auth: Option<DirectAuth>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
-    let path = req.uri().path();
+    let path = req.uri().path().to_string();
     let query = req.uri().query().map(str::to_string);
+    let origin = req
+        .headers()
+        .get(ORIGIN)
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_string);
 
     log::info!("📨 {} {}", req.method(), path);
 
-    let response = match (req.method(), path) {
+    if origin
+        .as_deref()
+        .is_some_and(|value| !allowed_origin(value, direct_auth.as_ref()))
+    {
+        return Ok(plain_response(
+            StatusCode::FORBIDDEN,
+            "text/plain",
+            b"Origin not allowed".to_vec(),
+        ));
+    }
+
+    if req.method() == Method::OPTIONS && path.starts_with("/api/") {
+        return Ok(cors_response(
+            plain_response(StatusCode::NO_CONTENT, "text/plain", Vec::new()),
+            origin.as_deref(),
+            direct_auth.as_ref(),
+        ));
+    }
+
+    let response = match (req.method(), path.as_str()) {
+        (&Method::GET, "/api/v1/info") => {
+            let authorization = req.headers().get(AUTHORIZATION);
+            if !info_access_allowed(direct_auth.as_ref(), authorization) {
+                json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
+            } else {
+                let node = info_node(direct_auth.as_ref(), authorization);
+                json_response(
+                    StatusCode::OK,
+                    &serde_json::json!({
+                        "protocol_version": 1,
+                        "product": "agentsight",
+                        "authorization_required": direct_auth.is_some(),
+                        "node": node,
+                    }),
+                )
+            }
+        }
         (&Method::GET, "/api/v1/snapshot") => {
-            serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
+            if !snapshot_access_allowed(
+                direct_auth.as_ref(),
+                req.headers().get(AUTHORIZATION),
+                origin.as_deref(),
+            ) {
+                json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
+            } else {
+                serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
+            }
         }
         (&Method::GET, "/api/v1/nebula") => {
-            serve_nebula_api(view, agent_native_sessions, db_path, query.as_deref()).await?
+            if !snapshot_access_allowed(
+                direct_auth.as_ref(),
+                req.headers().get(AUTHORIZATION),
+                origin.as_deref(),
+            ) {
+                json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
+            } else {
+                serve_nebula_api(view, agent_native_sessions, db_path, query.as_deref()).await?
+            }
         }
-        (&Method::GET, _) => serve_asset(assets, path).await?,
+        (&Method::GET, _) => serve_asset(assets, &path).await?,
         _ => {
             log::info!("❌ 404 Not Found: {} {}", req.method(), path);
             plain_response(StatusCode::NOT_FOUND, "text/plain", b"Not Found".to_vec())
         }
     };
 
-    Ok(response)
+    Ok(cors_response(
+        response,
+        origin.as_deref(),
+        direct_auth.as_ref(),
+    ))
 }
 
 async fn serve_asset(
@@ -341,14 +456,82 @@ fn plain_response(status: StatusCode, content_type: &str, body: Vec<u8>) -> Resp
     Response::builder()
         .status(status)
         .header("Content-Type", content_type)
-        .header("Access-Control-Allow-Origin", "*")
+        .header("X-Content-Type-Options", "nosniff")
         .body(Full::new(Bytes::from(body)))
         .unwrap_or_else(|_| Response::new(Full::new(Bytes::new())))
 }
 
+fn allowed_origin(origin: &str, direct_auth: Option<&DirectAuth>) -> bool {
+    direct_auth.is_some_and(|auth| auth.allows_origin(origin))
+        || option_env!("AGENTSIGHT_DEV_APP_ORIGIN").is_some_and(|allowed| origin == allowed)
+}
+
+fn snapshot_access_allowed(
+    direct_auth: Option<&DirectAuth>,
+    authorization: Option<&HeaderValue>,
+    origin: Option<&str>,
+) -> bool {
+    match direct_auth {
+        Some(auth) => auth.authorizes(authorization),
+        None => origin.is_none(),
+    }
+}
+
+fn info_access_allowed(
+    direct_auth: Option<&DirectAuth>,
+    authorization: Option<&HeaderValue>,
+) -> bool {
+    match (direct_auth, authorization) {
+        (Some(auth), Some(value)) => auth.authorizes(Some(value)),
+        _ => true,
+    }
+}
+
+fn info_node(
+    direct_auth: Option<&DirectAuth>,
+    authorization: Option<&HeaderValue>,
+) -> Option<NodeMetadata> {
+    direct_auth.and_then(|auth| auth.authorizes(authorization).then(|| auth.node.clone()))
+}
+
+fn cors_response(
+    mut response: Response<Full<Bytes>>,
+    origin: Option<&str>,
+    direct_auth: Option<&DirectAuth>,
+) -> Response<Full<Bytes>> {
+    let Some(origin) = origin.filter(|origin| allowed_origin(origin, direct_auth)) else {
+        return response;
+    };
+    if let Ok(value) = HeaderValue::from_str(origin) {
+        response
+            .headers_mut()
+            .insert("Access-Control-Allow-Origin", value);
+    }
+    response.headers_mut().insert(
+        "Access-Control-Allow-Methods",
+        HeaderValue::from_static("GET, OPTIONS"),
+    );
+    response.headers_mut().insert(
+        "Access-Control-Allow-Headers",
+        HeaderValue::from_static("Authorization, Content-Type"),
+    );
+    response.headers_mut().insert(
+        "Access-Control-Allow-Private-Network",
+        HeaderValue::from_static("true"),
+    );
+    response
+        .headers_mut()
+        .insert("Vary", HeaderValue::from_static("Origin"));
+    response
+}
+
 fn json_response<T: Serialize>(status: StatusCode, value: &T) -> Response<Full<Bytes>> {
     let body = serde_json::to_vec(value).unwrap_or_else(|_| b"{}".to_vec());
-    plain_response(status, "application/json", body)
+    let mut response = plain_response(status, "application/json", body);
+    response
+        .headers_mut()
+        .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    response
 }
 
 fn json_error(status: StatusCode, message: &str) -> Response<Full<Bytes>> {
@@ -476,6 +659,60 @@ mod tests {
         let doc = nebula_from_snapshot(&snapshot, 10, 10);
         assert!(doc.meta.empty);
         assert!(doc.stars.is_empty());
+    }
+
+    #[test]
+    fn direct_access_key_authorizes() {
+        let auth = DirectAuth::new(
+            "process-lifetime-key".to_string(),
+            NodeMetadata {
+                id: "node_test".to_string(),
+                name: "test".to_string(),
+                version: "1".to_string(),
+            },
+            "https://console.example".to_string(),
+        );
+        let header = HeaderValue::from_static("Bearer process-lifetime-key");
+        assert!(auth.authorizes(Some(&header)));
+        assert!(!auth.authorizes(Some(&HeaderValue::from_static("Bearer wrong"))));
+        assert!(!auth.authorizes(None));
+        assert!(info_access_allowed(Some(&auth), None));
+        assert!(info_access_allowed(Some(&auth), Some(&header)));
+        assert!(!info_access_allowed(
+            Some(&auth),
+            Some(&HeaderValue::from_static("Bearer wrong"))
+        ));
+        assert!(info_node(Some(&auth), None).is_none());
+        assert_eq!(
+            info_node(Some(&auth), Some(&header)).unwrap().id,
+            "node_test"
+        );
+    }
+
+    #[test]
+    fn cors_uses_the_configured_app_origin() {
+        let auth = DirectAuth::new(
+            "key".to_string(),
+            NodeMetadata {
+                id: "node_test".to_string(),
+                name: "test".to_string(),
+                version: "1".to_string(),
+            },
+            "https://console.example".to_string(),
+        );
+        assert!(allowed_origin("https://console.example", Some(&auth)));
+        assert!(!allowed_origin("https://app.agentsight.us", Some(&auth)));
+        assert!(!allowed_origin("https://evil.example", Some(&auth)));
+    }
+
+    #[test]
+    fn hosted_origin_cannot_reuse_token_against_an_unpaired_server() {
+        assert!(snapshot_access_allowed(None, None, None));
+        assert!(!snapshot_access_allowed(
+            None,
+            None,
+            Some("https://console.example")
+        ));
     }
 
     fn llm_call(id: &str, pid: u32, comm: &str, timestamp_ms: u64, text: &str) -> LlmCallRow {

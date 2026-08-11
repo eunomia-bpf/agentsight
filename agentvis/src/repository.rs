@@ -4,7 +4,7 @@
 //! Repository-scoped file actions from native coding-agent sessions.
 
 use agent_session::{
-    AGENT_CLAUDE, AGENT_CODEX, AGENT_GEMINI, AgentSession, SessionCandidate,
+    AGENT_CLAUDE, AGENT_CODEX, AGENT_CURSOR, AGENT_GEMINI, AgentSession, SessionCandidate,
     discover_session_files, parse_session_content, session_candidate_from_path,
 };
 use serde::{Deserialize, Serialize};
@@ -156,7 +156,8 @@ fn parse_candidates(candidates: &[SessionCandidate]) -> Vec<(AgentSession, usize
 }
 
 fn repository_session(candidate: &SessionCandidate) -> Option<(AgentSession, usize)> {
-    if candidate.agent == AGENT_GEMINI {
+    // Read whole: the filter below keys on a top-level "type" neither writes.
+    if candidate.agent == AGENT_GEMINI || candidate.agent == AGENT_CURSOR {
         let content = std::fs::read_to_string(&candidate.path).ok()?;
         let session = parse_session_content(
             candidate.agent,
@@ -274,7 +275,8 @@ fn append_session(
         }
         used = true;
         batch.0.push(RepositoryEvent {
-            id: format!("{session_id}:{ordinal}"),
+            // Zero padded: ids compare as strings, so ties would sort 1, 10, 11, 2.
+            id: format!("{session_id}:{ordinal:06}"),
             session_id: session_id.clone(),
             vendor: session.agent_type.clone(),
             ts_ms,
@@ -356,8 +358,32 @@ fn candidate_may_match_repo(
         }),
         AGENT_GEMINI => gemini_project_hash(&candidate.path)
             .is_some_and(|project| roots.iter().any(|root| repository_hash(root) == project)),
+        AGENT_CURSOR => cursor_project_name(&candidate.path).is_some_and(|project| {
+            roots
+                .iter()
+                .any(|root| encoded_cursor_root(root) == project)
+        }),
         _ => false,
     }
+}
+
+fn encoded_cursor_root(root: &Path) -> String {
+    root.to_string_lossy()
+        .replace('/', "-")
+        .trim_start_matches('-')
+        .to_string()
+}
+
+fn cursor_project_name(path: &Path) -> Option<String> {
+    let mut components = path.components().peekable();
+    while let Some(component) = components.next() {
+        if component.as_os_str() == "projects"
+            && let Some(project) = components.peek()
+        {
+            return Some(project.as_os_str().to_string_lossy().into_owned());
+        }
+    }
+    None
 }
 
 fn encoded_claude_root(root: &Path) -> String {
@@ -711,6 +737,67 @@ mod tests {
             claude_project_name(sibling),
             Some(encoded_claude_root(root))
         );
+    }
+
+    #[test]
+    fn cursor_project_directories_match_roots_by_encoding_not_inversion() {
+        let root = Path::new("/home/user/my-repo");
+        let transcript = Path::new(
+            "/home/user/.cursor/projects/home-user-my-repo/agent-transcripts/abc/abc.jsonl",
+        );
+        assert_eq!(
+            cursor_project_name(transcript).as_deref(),
+            Some("home-user-my-repo")
+        );
+        assert_eq!(encoded_cursor_root(root), "home-user-my-repo");
+
+        // The encoding cannot be inverted, so encode the root and compare instead.
+        let sibling = Path::new(
+            "/home/user/.cursor/projects/home-user-my-repo-x/agent-transcripts/abc/abc.jsonl",
+        );
+        assert_ne!(
+            cursor_project_name(sibling),
+            Some(encoded_cursor_root(root))
+        );
+        assert_eq!(
+            cursor_project_name(Path::new("/home/user/.claude/projects/x/session.jsonl"))
+                .as_deref(),
+            Some("x"),
+            "helper reads the segment after `projects`, callers gate on agent"
+        );
+    }
+
+    #[test]
+    fn cursor_candidates_reach_the_repository_matcher() {
+        let root = PathBuf::from("/home/user/my-repo");
+        let roots = vec![root.clone()];
+        let candidate = |path: &str| SessionCandidate {
+            agent: AGENT_CURSOR,
+            path: PathBuf::from(path),
+            updated: SystemTime::UNIX_EPOCH,
+        };
+
+        // Before this, Cursor fell through to the catch-all arm and every
+        // candidate was discarded before it was ever parsed.
+        assert!(candidate_may_match_repo(
+            &candidate("/home/user/.cursor/projects/home-user-my-repo/agent-transcripts/a/a.jsonl"),
+            &roots,
+            None
+        ));
+        assert!(!candidate_may_match_repo(
+            &candidate("/home/user/.cursor/projects/home-user-other/agent-transcripts/a/a.jsonl"),
+            &roots,
+            None
+        ));
+    }
+
+    #[test]
+    fn tied_timestamps_keep_event_order() {
+        // Minute-resolution clocks tie often, and ids compare as strings.
+        let mut ids: Vec<String> = (0..12).map(|ordinal| format!("s:{ordinal:06}")).collect();
+        let expected = ids.clone();
+        ids.sort();
+        assert_eq!(ids, expected);
     }
 
     #[test]

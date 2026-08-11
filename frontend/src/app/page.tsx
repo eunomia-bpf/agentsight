@@ -9,14 +9,30 @@ import { Timeline as TimelineView } from '@/components/timeline/Timeline';
 import { ProcessTreeView } from '@/components/ProcessTreeView';
 import { ResourceMetricsView } from '@/components/ResourceMetricsView';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
+import { ConnectionDialog } from '@/components/ConnectionDialog';
 import { Dashboard, type ViewMode } from '@/components/dashboard/Dashboard';
 import { NebulaView } from '@/components/nebula/NebulaView';
 import { useTranslation } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
+import {
+  type CloudIdentity,
+  type LocalConnection,
+  consumeLaunchFragment,
+  detectEmbeddedServer,
+  exchangeCloudCode,
+  exchangeLocalPairing,
+  fetchCloudIdentity,
+  fetchLocalSnapshot,
+  loadCloudSession,
+  loadLocalConnection,
+  registerCloudNode,
+  saveLocalConnection,
+  signOutCloud,
+} from '@/lib/connection';
 import { AgentSightSnapshot } from '@/types/event';
 import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
 
-type AppMode = 'loading' | 'live' | 'demo';
+type AppMode = 'loading' | 'disconnected' | 'live' | 'demo';
 type ViewNavigationOptions = { path?: string };
 
 function viewModeFromPath(pathname: string): ViewMode {
@@ -66,34 +82,153 @@ export default function Home() {
   const [error, setError] = useState<string>('');
   const [mode, setMode] = useState<AppMode>('loading');
   const [viewSearchTerm, setViewSearchTerm] = useState('');
+  const [connection, setConnection] = useState<LocalConnection | null>(null);
+  const [identity, setIdentity] = useState<CloudIdentity | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [embeddedMode, setEmbeddedMode] = useState(false);
 
   const displayEvents = useMemo(() => displayEventsFromSnapshot(snapshot), [snapshot]);
   const eventCount = displayEvents.length;
 
-  const syncData = useCallback(async () => {
+  const loadNodeData = useCallback(async (target: LocalConnection) => {
     setSyncing(true);
     setError('');
 
     try {
-      const response = await fetch(`${basePath}/api/v1/snapshot?audit_limit=50000`);
-      if (!response.ok) throw new Error(`${response.status}`);
-      setSnapshot(await response.json() as AgentSightSnapshot);
+      setSnapshot(await fetchLocalSnapshot(target));
       setMode('live');
-    } catch {
-      // No backend, load static demo snapshot.
-      try {
-        const demo = await fetch(`${basePath}/sample-snapshot.json`);
-        if (demo.ok) {
-          setSnapshot(await demo.json() as AgentSightSnapshot);
-        }
-      } catch { /* no demo data either */ }
-      setMode('demo');
+      return true;
+    } catch (cause) {
+      setConnection(null);
+      setMode('disconnected');
+      setError(cause instanceof Error ? cause.message : 'Could not reach the AgentSight Node.');
+      return false;
     } finally {
       setSyncing(false);
     }
   }, []);
 
-  useEffect(() => { void syncData(); }, [syncData]);
+  const syncData = useCallback(async () => {
+    if (connection) await loadNodeData(connection);
+  }, [connection, loadNodeData]);
+
+  const enterDemo = useCallback(async () => {
+    setSyncing(true);
+    setError('');
+    try {
+      const response = await fetch(`${basePath}/sample-snapshot.json`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`${response.status}`);
+      setSnapshot(await response.json() as AgentSightSnapshot);
+      setMode('demo');
+    } catch {
+      setError('The recorded demo could not be loaded.');
+      setMode('disconnected');
+    } finally {
+      setSyncing(false);
+    }
+  }, []);
+
+  const signOut = useCallback(() => {
+    const token = loadCloudSession();
+    setIdentity(null);
+    void signOutCloud(token);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const initialize = async () => {
+      setSyncing(true);
+      try {
+        const launch = consumeLaunchFragment();
+        if (launch?.get('action') === 'bind') {
+          const bound = await exchangeLocalPairing(launch);
+          if (cancelled) return;
+          setEmbeddedMode(bound.endpoint === window.location.origin);
+          saveLocalConnection(bound);
+          setConnection(bound);
+          const cloudToken = loadCloudSession();
+          const localLoaded = await loadNodeData(bound);
+          if (cloudToken && localLoaded) {
+            void (async () => {
+              try {
+                setIdentity(await fetchCloudIdentity(cloudToken));
+                await registerCloudNode(cloudToken, bound);
+              } catch (cause) {
+                setError(cause instanceof Error ? cause.message : 'Could not register this Node.');
+              }
+            })();
+          }
+          return;
+        }
+        const embedded = await detectEmbeddedServer();
+        if (cancelled) return;
+        if (embedded) {
+          setEmbeddedMode(true);
+          if (embedded.authorizationRequired) {
+            setMode('disconnected');
+            return;
+          }
+          setConnection(embedded.connection);
+          await loadNodeData(embedded.connection);
+          return;
+        }
+        if (launch?.get('action') === 'auth-error') {
+          const reason = launch.get('error') || 'sign_in_failed';
+          setError(reason.endsWith('_login_not_configured')
+            ? 'This sign-in provider is not configured yet.'
+            : 'AgentSight sign-in failed. Please try again.');
+        }
+
+        let cloudToken = loadCloudSession();
+        if (launch?.get('action') === 'auth' && launch.get('code')) {
+          try {
+            cloudToken = await exchangeCloudCode(launch.get('code')!);
+          } catch (cause) {
+            cloudToken = null;
+            setError(cause instanceof Error ? cause.message : 'Sign-in failed.');
+          }
+        }
+        const saved = loadLocalConnection();
+        let localLoaded = false;
+        if (saved) {
+          if (cancelled) return;
+          setConnection(saved);
+          localLoaded = await loadNodeData(saved);
+        } else if (!cloudToken && !cancelled) {
+          setMode('disconnected');
+        }
+
+        if (cloudToken) {
+          const syncCloud = async () => {
+            try {
+              const me = await fetchCloudIdentity(cloudToken);
+              if (!cancelled) setIdentity(me);
+              if (saved && localLoaded) await registerCloudNode(cloudToken, saved);
+            } catch (cause) {
+              if (!cancelled) {
+                setError(cause instanceof Error ? cause.message : 'Sign-in failed.');
+              }
+            }
+          };
+          if (saved) void syncCloud();
+          else {
+            await syncCloud();
+            if (!cancelled) setMode('disconnected');
+          }
+        }
+      } catch (cause) {
+        if (!cancelled) {
+          setError(cause instanceof Error ? cause.message : 'AgentSight could not initialize.');
+          setMode('disconnected');
+        }
+      } finally {
+        if (!cancelled) setSyncing(false);
+      }
+    };
+    void initialize();
+    return () => { cancelled = true; };
+  }, [loadNodeData]);
+
   useEffect(() => {
     setViewMode(viewModeFromPath(window.location.pathname));
     setViewSearchTerm(new URLSearchParams(window.location.search).get('path') ?? '');
@@ -108,15 +243,22 @@ export default function Home() {
   };
 
   const isDemo = mode === 'demo';
+  const isLive = mode === 'live';
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {(mode === 'disconnected' || dialogOpen) && (
+        <ConnectionDialog error={error} busy={syncing} identity={identity}
+          allowSignIn={!embeddedMode}
+          canClose={mode !== 'disconnected'} onClose={() => { setDialogOpen(false); }}
+          onDemo={() => { setDialogOpen(false); void enterDemo(); }} onSignOut={signOut} />
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium uppercase tracking-wide text-gray-500">
-                {isDemo ? 'Recorded demo' : 'Live view'}
+                {isDemo ? 'Recorded demo' : isLive ? 'Node · Direct' : 'No Node connected'}
               </span>
               {isDemo && (
                 <a
@@ -132,7 +274,30 @@ export default function Home() {
             <h1 className="text-3xl font-bold text-gray-900">{t('app.title')}</h1>
             <p className="mt-1 text-gray-600">{isDemo ? 'Explore a recorded Claude Code session.' : t('app.subtitle')}</p>
           </div>
-          <div className="flex justify-start lg:justify-end">
+          <div className="flex items-center justify-start gap-3 lg:justify-end">
+            {identity && (
+              <>
+                <span className="text-sm text-slate-600" title={identity.email}>
+                  Signed in as {identity.name || identity.email}
+                </span>
+                <button type="button" onClick={signOut}
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900">
+                  Sign out
+                </button>
+              </>
+            )}
+            {!embeddedMode && !identity && mode !== 'loading' && (
+              <button type="button" onClick={() => { setDialogOpen(true); }}
+                className="text-sm font-medium text-blue-700 hover:text-blue-900">
+                Sign in
+              </button>
+            )}
+            {!embeddedMode && identity && mode !== 'loading' && (
+              <button type="button" onClick={() => { setDialogOpen(true); }}
+                className="text-sm font-medium text-blue-700 hover:text-blue-900">
+                Connections
+              </button>
+            )}
             <LanguageSwitcher />
           </div>
         </div>
@@ -164,7 +329,7 @@ export default function Home() {
                   ))}
                 </div>
 
-                {!isDemo && (
+                {isLive && (
                   <>
                     <button onClick={syncData} disabled={syncing}
                       className="px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors border border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -179,7 +344,7 @@ export default function Home() {
               </div>
             </div>
 
-            {error && !isDemo && (
+            {error && mode !== 'disconnected' && !isDemo && (
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
                 {error}
               </div>
@@ -187,7 +352,7 @@ export default function Home() {
           </div>
 
           {viewMode === 'nebula' ? (
-            <NebulaView onNavigate={selectViewMode} />
+            <NebulaView connection={connection} onNavigate={selectViewMode} />
           ) : eventCount > 0 ? (
             viewMode === 'overview' ? (
               <Dashboard snapshot={snapshot} onNavigate={selectViewMode} />
@@ -211,10 +376,21 @@ export default function Home() {
                 ) : (
                   <>
                     <p className="text-lg mb-4">{t('app.noEventsLoaded')}</p>
-                    <button onClick={syncData}
-                      className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
-                      {t('app.syncFromServer')}
-                    </button>
+                    {connection ? (
+                      <button onClick={syncData}
+                        className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                        {t('app.syncFromServer')}
+                      </button>
+                    ) : identity ? (
+                      <div>
+                        <p className="mb-3 text-sm">No device is bound to this browser yet.</p>
+                        <code className="rounded bg-slate-950 px-3 py-2 text-sm text-white">agentsight bind</code>
+                        <button onClick={() => { void enterDemo(); }}
+                          className="ml-3 rounded border border-blue-300 px-3 py-2 text-sm text-blue-700 hover:bg-blue-50">
+                          Explore demo
+                        </button>
+                      </div>
+                    ) : null}
                   </>
                 )}
               </div>

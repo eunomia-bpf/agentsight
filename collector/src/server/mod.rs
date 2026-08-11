@@ -4,4 +4,4 @@
 pub mod assets;
 pub mod web;
 
-pub use web::WebServer;
+pub use web::{NodeMetadata, WebServer};
