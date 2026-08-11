@@ -233,7 +233,15 @@ sudo ./bpf/browsertrace --binary-path /snap/firefox/current/usr/lib/firefox/fire
 ## Local MCP over stdio
 
 For local MCP servers that communicate over `stdio` instead of HTTP/TLS, use
-the standalone `stdiocap` BPF tool:
+the structured trace path (which reassembles newline-delimited JSON-RPC
+messages and materializes `tools/call` rows):
+
+```bash
+sudo ./agentsight debug trace --pid <mcp_server_pid> --stdio --ssl=false --process=false --system=false
+```
+
+For raw payload inspection, the standalone `stdiocap` BPF tool remains
+available:
 
 ```bash
 # Capture stdin/stdout/stderr payloads for a local MCP server process
