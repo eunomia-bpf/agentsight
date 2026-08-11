@@ -33,6 +33,12 @@ interface OAuthStartLimiter {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
+interface NodeDeleteDatabase {
+  prepare(query: string): {
+    bind(...values: unknown[]): { run(): Promise<unknown> };
+  };
+}
+
 const encoder = new TextEncoder();
 const STATE_TTL_SECONDS = 10 * 60;
 const AUTH_CODE_TTL_SECONDS = 2 * 60;
@@ -68,6 +74,10 @@ export default {
         response = await listNodes(request, env);
       } else if (url.pathname === '/v1/nodes' && request.method === 'POST') {
         response = await registerNode(request, env);
+      } else if (request.method === 'DELETE' && url.pathname.startsWith('/v1/nodes/')) {
+        const nodeId = nodeIdFromPath(url.pathname);
+        if (!nodeId) throw new HttpError(404, 'not_found');
+        response = await deleteNode(request, env, nodeId);
       } else {
         response = json({ error: 'not_found' }, 404);
       }
@@ -154,6 +164,7 @@ async function finishOAuth(request: Request, env: Env, provider: Provider): Prom
     return Response.redirect(`${stateRow.return_to}#action=auth&code=${encodeURIComponent(appCode)}`, 302);
   } catch (error) {
     const reason = error instanceof HttpError ? error.code : 'oauth_failed';
+    console.error(JSON.stringify({ event: 'oauth_callback_failed', provider, reason }));
     return authErrorRedirect(stateRow.return_to, reason);
   }
 }
@@ -228,6 +239,21 @@ async function registerNode(request: Request, env: Env): Promise<Response> {
   return json({ id: body.id, status: 'registered' }, 201);
 }
 
+async function deleteNode(request: Request, env: Env, nodeId: string): Promise<Response> {
+  const user = await requireUser(request, env.DB);
+  await deleteOwnedNode(env.DB, nodeId, user.id);
+  return new Response(null, { status: 204 });
+}
+
+export async function deleteOwnedNode(
+  db: NodeDeleteDatabase,
+  nodeId: string,
+  ownerUserId: string,
+): Promise<void> {
+  await db.prepare('DELETE FROM nodes WHERE id = ?1 AND owner_user_id = ?2')
+    .bind(nodeId, ownerUserId).run();
+}
+
 async function requireUser(request: Request, db: D1Database): Promise<UserRow> {
   const token = request.headers.get('Authorization')?.match(/^Bearer (.+)$/)?.[1];
   if (!token) throw new HttpError(401, 'authentication_required');
@@ -248,7 +274,11 @@ async function fetchOAuthProfile(
 ): Promise<OAuthProfile> {
   const tokenResponse = await fetch(config.tokenUrl, {
     method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+      ...(provider === 'github' ? { 'User-Agent': 'AgentSight-Control' } : {}),
+    },
     body: new URLSearchParams({
       client_id: config.clientId,
       client_secret: config.clientSecret,
@@ -265,7 +295,7 @@ async function fetchOAuthProfile(
 }
 
 async function githubProfile(accessToken: string): Promise<OAuthProfile> {
-  const headers = { Authorization: `Bearer ${accessToken}`, Accept: 'application/vnd.github+json' };
+  const headers = githubApiHeaders(accessToken);
   const [userResponse, emailResponse] = await Promise.all([
     fetch('https://api.github.com/user', { headers }),
     fetch('https://api.github.com/user/emails', { headers }),
@@ -414,6 +444,26 @@ export function validNodeId(value: string): boolean {
   return NODE_ID_PATTERN.test(value);
 }
 
+export function nodeIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/v1\/nodes\/([^/]+)$/);
+  if (!match) return null;
+  try {
+    const nodeId = decodeURIComponent(match[1]);
+    return validNodeId(nodeId) ? nodeId : null;
+  } catch {
+    return null;
+  }
+}
+
+export function githubApiHeaders(accessToken: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+    'User-Agent': 'AgentSight-Control',
+  };
+}
+
 export async function oauthStartAllowed(
   clientLimiter: OAuthStartLimiter,
   locationLimiter: OAuthStartLimiter,
@@ -448,7 +498,7 @@ function cors(response: Response, env: Env): Response {
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', new URL(env.APP_ORIGIN).origin);
   headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-  headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Vary', 'Origin');
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });

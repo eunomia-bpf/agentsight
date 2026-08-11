@@ -41,6 +41,16 @@ https://agentsight-control.yusen356.workers.dev/v1/auth/callback/github
 https://agentsight-control.yusen356.workers.dev/v1/auth/callback/google
 ```
 
+## Node registry
+
+Authenticated users can list, register, and remove their own Node metadata at
+`GET /v1/nodes`, `POST /v1/nodes`, and `DELETE /v1/nodes/:id`. The registry
+contains only Node ID, display name, version, Direct connection mode, and
+registration timestamps. A timestamp is not an online heartbeat, and the
+registry deliberately contains no endpoint, bearer token, snapshot, prompt,
+or process data. The browser can open a Node only while it holds that Node's
+process-lifetime Direct key.
+
 ## Deploy
 
 ```bash

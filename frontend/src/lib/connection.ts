@@ -32,6 +32,22 @@ export interface CloudIdentity {
   provider?: 'github' | 'google';
 }
 
+export class CloudSessionExpiredError extends Error {
+  constructor() {
+    super('Your AgentSight sign-in has expired.');
+    this.name = 'CloudSessionExpiredError';
+  }
+}
+
+export interface CloudNode {
+  id: string;
+  name: string;
+  version: string | null;
+  connectionMode: 'direct';
+  lastRegisteredAt: number;
+  createdAt: number;
+}
+
 type LocalFetchInit = RequestInit & { targetAddressSpace?: 'local' };
 
 function localFetch(input: string, init: RequestInit = {}) {
@@ -246,6 +262,14 @@ export function loadCloudSession(): string | null {
   return window.localStorage.getItem(CLOUD_SESSION_KEY);
 }
 
+function throwCloudResponseError(response: Response, message: string): never {
+  if (response.status === 401) {
+    window.localStorage.removeItem(CLOUD_SESSION_KEY);
+    throw new CloudSessionExpiredError();
+  }
+  throw new Error(`${message} (${response.status}).`);
+}
+
 export async function signOutCloud(token: string | null): Promise<void> {
   window.localStorage.removeItem(CLOUD_SESSION_KEY);
   if (!token) return;
@@ -261,8 +285,7 @@ export async function fetchCloudIdentity(token: string): Promise<CloudIdentity> 
     cache: 'no-store',
   });
   if (!response.ok) {
-    window.localStorage.removeItem(CLOUD_SESSION_KEY);
-    throw new Error('Your AgentSight sign-in has expired.');
+    throwCloudResponseError(response, 'The AgentSight control plane request failed');
   }
   return response.json() as Promise<CloudIdentity>;
 }
@@ -280,5 +303,42 @@ export async function registerCloudNode(token: string, connection: LocalConnecti
       version: connection.version,
     }),
   });
-  if (!response.ok) throw new Error(`Could not register this Node (${response.status}).`);
+  if (!response.ok) throwCloudResponseError(response, 'Could not register this Node');
+}
+
+export async function fetchCloudNodes(token: string): Promise<CloudNode[]> {
+  const response = await cloudFetch(`${controlPlaneUrl}/v1/nodes`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) throwCloudResponseError(response, 'Could not load your Nodes');
+  const body = await response.json() as {
+    nodes?: Array<{
+      id?: string;
+      name?: string;
+      version?: string | null;
+      connection_mode?: string;
+      last_seen_at?: number;
+      created_at?: number;
+    }>;
+  };
+  if (!Array.isArray(body.nodes)) throw new Error('The control plane returned an invalid Node list.');
+  return body.nodes
+    .filter((node) => typeof node.id === 'string' && typeof node.name === 'string')
+    .map((node) => ({
+      id: node.id!,
+      name: node.name!,
+      version: typeof node.version === 'string' ? node.version : null,
+      connectionMode: 'direct',
+      lastRegisteredAt: typeof node.last_seen_at === 'number' ? node.last_seen_at : 0,
+      createdAt: typeof node.created_at === 'number' ? node.created_at : 0,
+    }));
+}
+
+export async function forgetCloudNode(token: string, nodeId: string): Promise<void> {
+  const response = await cloudFetch(`${controlPlaneUrl}/v1/nodes/${encodeURIComponent(nodeId)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throwCloudResponseError(response, 'Could not remove this Node');
 }
