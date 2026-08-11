@@ -248,8 +248,8 @@ export function NodeManager({
                   {copyState === 'copied' ? t('nodes.copied') : copyState === 'failed' ? t('nodes.copyFailed') : ''}
                 </span>
                 {connection && (
-                  <button type="button" onClick={onForgetBrowser}
-                    className="mt-3 text-xs font-medium text-slate-500 hover:text-red-700">
+                  <button type="button" onClick={onForgetBrowser} disabled={loading}
+                    className="mt-3 text-xs font-medium text-slate-500 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50">
                     {t('nodes.forgetBrowser')}
                   </button>
                 )}
@@ -289,8 +289,8 @@ export function NodeManager({
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5">
-          <button type="button" onClick={onDemo}
-            className="text-sm font-semibold text-blue-700 hover:text-blue-900">
+          <button type="button" onClick={onDemo} disabled={loading}
+            className="text-sm font-semibold text-blue-700 hover:text-blue-900 disabled:cursor-not-allowed disabled:opacity-50">
             {t('nodes.exploreDemo')}
           </button>
           <button type="button" onClick={onSignOut}

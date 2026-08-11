@@ -315,7 +315,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       {(mode === 'disconnected' || dialogOpen) && (
-        !identity && <ConnectionDialog error={error} busy={syncing}
+        !identity && <ConnectionDialog error={nodeError || error} busy={syncing}
           allowSignIn={!embeddedMode}
           canClose={mode !== 'disconnected'} onClose={() => { setDialogOpen(false); }}
           onDemo={() => { setDialogOpen(false); void enterDemo(); }} />
