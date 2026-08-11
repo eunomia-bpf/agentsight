@@ -6,16 +6,17 @@ use crate::server::assets::FrontendAssets;
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
 use crate::sources::sqlite as sqlite_source;
 use crate::view::SharedMaterializedView;
-use http_body_util::Full;
+use http_body_util::{BodyExt, Full};
 use hyper::header::{AUTHORIZATION, CACHE_CONTROL, HeaderValue, ORIGIN};
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode, body::Bytes};
 use hyper_util::rt::TokioIo;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::Infallible;
 use std::net::SocketAddr;
+use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::net::TcpListener;
@@ -32,6 +33,11 @@ pub struct NodeMetadata {
     pub id: String,
     pub name: String,
     pub version: String,
+}
+
+#[derive(Deserialize)]
+struct SessionMessageRequest {
+    message: String,
 }
 
 impl DirectAuth {
@@ -100,7 +106,6 @@ impl WebServer {
             .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?;
         log::info!("🚀 Frontend server running on http://{}", addr);
 
-        // List embedded assets for debugging
         let all_assets = self.assets.list_all_assets();
         log::info!(
             "📦 Embedded {} assets from frontend/dist:",
@@ -153,6 +158,7 @@ async fn handle_request(
     db_path: Option<String>,
     direct_auth: Option<DirectAuth>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
+    let method = req.method().clone();
     let path = req.uri().path().to_string();
     let query = req.uri().query().map(str::to_string);
     let origin = req
@@ -160,8 +166,9 @@ async fn handle_request(
         .get(ORIGIN)
         .and_then(|value| value.to_str().ok())
         .map(str::to_string);
+    let authorization = req.headers().get(AUTHORIZATION).cloned();
 
-    log::info!("📨 {} {}", req.method(), path);
+    log::info!("📨 {} {}", method, path);
 
     if origin
         .as_deref()
@@ -174,7 +181,7 @@ async fn handle_request(
         ));
     }
 
-    if req.method() == Method::OPTIONS && path.starts_with("/api/") {
+    if method == Method::OPTIONS && path.starts_with("/api/") {
         return Ok(cors_response(
             plain_response(StatusCode::NO_CONTENT, "text/plain", Vec::new()),
             origin.as_deref(),
@@ -182,28 +189,33 @@ async fn handle_request(
         ));
     }
 
-    let response = match (req.method(), path.as_str()) {
-        (&Method::GET, "/api/v1/info") => {
-            let authorization = req.headers().get(AUTHORIZATION);
-            if !info_access_allowed(direct_auth.as_ref(), authorization) {
+    let session_message_id = session_message_id(&path).map(str::to_string);
+    let session_detail_id = session_detail_id(&path).map(str::to_string);
+    let response = match (method, path.as_str()) {
+        (Method::GET, "/api/v1/info") => {
+            if !info_access_allowed(direct_auth.as_ref(), authorization.as_ref()) {
                 json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
             } else {
-                let node = info_node(direct_auth.as_ref(), authorization);
+                let node = info_node(direct_auth.as_ref(), authorization.as_ref());
                 json_response(
                     StatusCode::OK,
                     &serde_json::json!({
                         "protocol_version": 1,
                         "product": "agentsight",
                         "authorization_required": direct_auth.is_some(),
+                        "capabilities": {
+                            "session_detail": true,
+                            "session_messages": direct_auth.is_some() && db_path.is_none(),
+                        },
                         "node": node,
                     }),
                 )
             }
         }
-        (&Method::GET, "/api/v1/snapshot") => {
+        (Method::GET, "/api/v1/snapshot") => {
             if !snapshot_access_allowed(
                 direct_auth.as_ref(),
-                req.headers().get(AUTHORIZATION),
+                authorization.as_ref(),
                 origin.as_deref(),
             ) {
                 json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
@@ -211,7 +223,38 @@ async fn handle_request(
                 serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
             }
         }
-        (&Method::GET, _) => serve_asset(assets, &path).await?,
+        (Method::GET, _) if session_detail_id.is_some() => {
+            if !snapshot_access_allowed(
+                direct_auth.as_ref(),
+                authorization.as_ref(),
+                origin.as_deref(),
+            ) {
+                json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
+            } else if db_path.is_some() {
+                json_error(StatusCode::CONFLICT, "saved captures do not expose native session messages")
+            } else {
+                serve_session_api(
+                    agent_native_sessions,
+                    session_detail_id.as_deref().unwrap_or_default(),
+                )
+                .await?
+            }
+        }
+        (Method::POST, _) if session_message_id.is_some() => {
+            if !session_control_access_allowed(direct_auth.as_ref(), authorization.as_ref()) {
+                json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
+            } else if db_path.is_some() {
+                json_error(StatusCode::CONFLICT, "saved captures are read-only")
+            } else {
+                serve_session_message_api(
+                    req,
+                    agent_native_sessions,
+                    session_message_id.as_deref().unwrap_or_default(),
+                )
+                .await?
+            }
+        }
+        (Method::GET, _) => serve_asset(assets, &path).await?,
         _ => {
             log::info!("❌ 404 Not Found: {} {}", req.method(), path);
             plain_response(StatusCode::NOT_FOUND, "text/plain", b"Not Found".to_vec())
@@ -223,6 +266,18 @@ async fn handle_request(
         origin.as_deref(),
         direct_auth.as_ref(),
     ))
+}
+
+fn session_detail_id(path: &str) -> Option<&str> {
+    let id = path.strip_prefix("/api/v1/sessions/")?;
+    (!id.is_empty() && !id.contains('/')).then_some(id)
+}
+
+fn session_message_id(path: &str) -> Option<&str> {
+    let id = path
+        .strip_prefix("/api/v1/sessions/")?
+        .strip_suffix("/messages")?;
+    (!id.is_empty() && !id.contains('/')).then_some(id)
 }
 
 async fn serve_asset(
@@ -299,6 +354,166 @@ async fn serve_snapshot_api(
     }
 }
 
+async fn serve_session_api(
+    sessions: Arc<Mutex<SessionCache>>,
+    session_id: &str,
+) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
+    let session_id = session_id.to_string();
+    let result = tokio::task::spawn_blocking(move || {
+        let mut cache = sessions
+            .lock()
+            .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))?;
+        Ok::<_, Box<dyn std::error::Error + Send + Sync>>(find_native_session(&mut cache, &session_id))
+    })
+    .await;
+
+    match result {
+        Ok(Ok(Some(session))) => Ok(json_response(StatusCode::OK, &session)),
+        Ok(Ok(None)) => Ok(json_error(StatusCode::NOT_FOUND, "session not found")),
+        Ok(Err(error)) => Ok(json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("failed to load session: {error}"),
+        )),
+        Err(error) => Ok(json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("session query task failed: {error}"),
+        )),
+    }
+}
+
+async fn serve_session_message_api(
+    req: Request<hyper::body::Incoming>,
+    sessions: Arc<Mutex<SessionCache>>,
+    session_id: &str,
+) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
+    let body = match req.into_body().collect().await {
+        Ok(body) => body.to_bytes(),
+        Err(error) => {
+            return Ok(json_error(
+                StatusCode::BAD_REQUEST,
+                &format!("failed to read request body: {error}"),
+            ));
+        }
+    };
+    let request: SessionMessageRequest = match serde_json::from_slice(&body) {
+        Ok(request) => request,
+        Err(error) => {
+            return Ok(json_error(
+                StatusCode::BAD_REQUEST,
+                &format!("invalid JSON body: {error}"),
+            ));
+        }
+    };
+    let message = request.message.trim();
+    if message.is_empty() || message.len() > 65_536 {
+        return Ok(json_error(
+            StatusCode::BAD_REQUEST,
+            "message must contain 1-65536 bytes",
+        ));
+    }
+
+    let session_id = session_id.to_string();
+    let session = {
+        let sessions = Arc::clone(&sessions);
+        let session_id = session_id.clone();
+        match tokio::task::spawn_blocking(move || {
+            let mut cache = sessions
+                .lock()
+                .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))?;
+            Ok::<_, Box<dyn std::error::Error + Send + Sync>>(find_native_session(
+                &mut cache,
+                &session_id,
+            ))
+        })
+        .await
+        {
+            Ok(Ok(Some(session))) => session,
+            Ok(Ok(None)) => return Ok(json_error(StatusCode::NOT_FOUND, "session not found")),
+            Ok(Err(error)) => {
+                return Ok(json_error(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("failed to load session: {error}"),
+                ));
+            }
+            Err(error) => {
+                return Ok(json_error(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("session query task failed: {error}"),
+                ));
+            }
+        }
+    };
+
+    match launch_session_message(&session, message) {
+        Ok(()) => Ok(json_response(
+            StatusCode::ACCEPTED,
+            &serde_json::json!({
+                "session_id": session.session_id,
+                "agent_type": session.agent_type,
+                "status": "submitted",
+            }),
+        )),
+        Err(error) => Ok(json_error(StatusCode::BAD_GATEWAY, &error)),
+    }
+}
+
+fn find_native_session(cache: &mut SessionCache, session_id: &str) -> Option<agent_session::AgentSession> {
+    agent_native_sessions::discover_sessions(cache, None, None, 25, Duration::ZERO)
+        .into_iter()
+        .find(|session| session.session_id == session_id)
+}
+
+fn launch_session_message(session: &agent_session::AgentSession, message: &str) -> Result<(), String> {
+    let mut command = match session.agent_type.as_str() {
+        agent_session::AGENT_CLAUDE => {
+            let mut command = tokio::process::Command::new("claude");
+            command.args(["-p", "--resume", &session.session_id, message]);
+            command
+        }
+        agent_session::AGENT_CODEX => {
+            let mut command = tokio::process::Command::new("codex");
+            command.args(["exec", "resume", &session.session_id, message]);
+            command
+        }
+        agent_session::AGENT_GEMINI => {
+            let mut command = tokio::process::Command::new("gemini");
+            command.args(["--resume", &session.session_id, "--prompt", message]);
+            command
+        }
+        other => return Err(format!("sending messages to {other} sessions is not supported yet")),
+    };
+    if let Some(cwd) = session.cwd.as_deref().filter(|cwd| !cwd.is_empty()) {
+        command.current_dir(cwd);
+    }
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    let mut child = command
+        .spawn()
+        .map_err(|error| format!("failed to resume {} session: {error}", session.agent_type))?;
+    let agent = session.agent_type.clone();
+    let session_id = session.session_id.clone();
+    tokio::spawn(async move {
+        match child.wait().await {
+            Ok(status) if status.success() => {}
+            Ok(status) => log::warn!(
+                "{} session {} message process exited with {}",
+                agent,
+                session_id,
+                status
+            ),
+            Err(error) => log::warn!(
+                "{} session {} message process wait failed: {}",
+                agent,
+                session_id,
+                error
+            ),
+        }
+    });
+    Ok(())
+}
+
 fn snapshot_from_sources(
     view: &SharedMaterializedView,
     agent_native_sessions: &Arc<Mutex<SessionCache>>,
@@ -354,6 +569,13 @@ fn snapshot_access_allowed(
     }
 }
 
+fn session_control_access_allowed(
+    direct_auth: Option<&DirectAuth>,
+    authorization: Option<&HeaderValue>,
+) -> bool {
+    direct_auth.is_some_and(|auth| auth.authorizes(authorization))
+}
+
 fn info_access_allowed(
     direct_auth: Option<&DirectAuth>,
     authorization: Option<&HeaderValue>,
@@ -386,7 +608,7 @@ fn cors_response(
     }
     response.headers_mut().insert(
         "Access-Control-Allow-Methods",
-        HeaderValue::from_static("GET, OPTIONS"),
+        HeaderValue::from_static("GET, POST, OPTIONS"),
     );
     response.headers_mut().insert(
         "Access-Control-Allow-Headers",
@@ -441,6 +663,19 @@ mod tests {
 
         assert_eq!(query_param_usize(query, "audit_limit"), Some(9));
         assert_eq!(query_param_usize(query, "missing"), None);
+    }
+
+    #[test]
+    fn parses_session_routes() {
+        assert_eq!(
+            session_detail_id("/api/v1/sessions/session-1"),
+            Some("session-1")
+        );
+        assert_eq!(
+            session_message_id("/api/v1/sessions/session-1/messages"),
+            Some("session-1")
+        );
+        assert_eq!(session_detail_id("/api/v1/sessions/session-1/messages"), None);
     }
 
     #[test]
