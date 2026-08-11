@@ -32,14 +32,23 @@ struct PairingAuth {
 struct PairingState {
     code: Option<String>,
     tokens: HashSet<String>,
+    node: NodeMetadata,
+}
+
+#[derive(Clone, Serialize)]
+pub struct NodeMetadata {
+    pub id: String,
+    pub name: String,
+    pub version: String,
 }
 
 impl PairingAuth {
-    fn new(code: String) -> Self {
+    fn new(code: String, node: NodeMetadata) -> Self {
         Self {
             state: Arc::new(Mutex::new(PairingState {
                 code: Some(code),
                 tokens: HashSet::new(),
+                node,
             })),
         }
     }
@@ -69,6 +78,10 @@ impl PairingAuth {
         self.state
             .lock()
             .is_ok_and(|state| state.tokens.contains(token))
+    }
+
+    fn node(&self) -> Option<NodeMetadata> {
+        self.state.lock().ok().map(|state| state.node.clone())
     }
 }
 
@@ -100,8 +113,8 @@ impl WebServer {
         })
     }
 
-    pub fn with_pairing_code(mut self, code: String) -> Self {
-        self.pairing_auth = Some(PairingAuth::new(code));
+    pub fn with_pairing_code(mut self, code: String, node: NodeMetadata) -> Self {
+        self.pairing_auth = Some(PairingAuth::new(code, node));
         self
     }
 
@@ -202,6 +215,7 @@ async fn handle_request(
                 "protocol_version": 1,
                 "product": "agentsight",
                 "pairing_required": pairing_auth.is_some(),
+                "node": pairing_auth.as_ref().and_then(PairingAuth::node),
             }),
         ),
         (&Method::POST, "/api/v1/bind") => serve_pairing(req, pairing_auth.as_ref()).await,
@@ -261,7 +275,11 @@ async fn serve_pairing(
     match pairing_auth.exchange(&request.code) {
         Some(token) => json_response(
             StatusCode::OK,
-            &serde_json::json!({ "access_token": token, "token_type": "Bearer" }),
+            &serde_json::json!({
+                "access_token": token,
+                "token_type": "Bearer",
+                "node": pairing_auth.node(),
+            }),
         ),
         None => json_error(
             StatusCode::UNAUTHORIZED,
@@ -456,7 +474,14 @@ mod tests {
 
     #[test]
     fn pairing_code_is_single_use_and_token_authorizes() {
-        let auth = PairingAuth::new("short-lived".to_string());
+        let auth = PairingAuth::new(
+            "short-lived".to_string(),
+            NodeMetadata {
+                id: "node_test".to_string(),
+                name: "test".to_string(),
+                version: "1".to_string(),
+            },
+        );
         assert!(auth.exchange("wrong").is_none());
         let token = auth.exchange("short-lived").unwrap();
         assert!(auth.exchange("short-lived").is_none());

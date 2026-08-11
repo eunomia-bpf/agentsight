@@ -6,11 +6,17 @@ import type { AgentSightSnapshot } from '@/types/event';
 const LOCAL_CONNECTION_KEY = 'agentsight.local-connection.v1';
 const CLOUD_SESSION_KEY = 'agentsight.cloud-session.v1';
 
-export const controlPlaneUrl = (process.env.NEXT_PUBLIC_CONTROL_PLANE_URL || '').replace(/\/$/, '');
+export const controlPlaneUrl = (
+  process.env.NEXT_PUBLIC_CONTROL_PLANE_URL
+  || 'https://agentsight-control.yusen356.workers.dev'
+).replace(/\/$/, '');
 
 export interface LocalConnection {
   endpoint: string;
   accessToken: string;
+  nodeId: string;
+  nodeName: string;
+  version: string;
 }
 
 export interface CloudIdentity {
@@ -18,7 +24,7 @@ export interface CloudIdentity {
   email: string;
   name: string;
   avatarUrl?: string;
-  provider: 'github' | 'google';
+  provider?: 'github' | 'google';
 }
 
 type LocalFetchInit = RequestInit & { targetAddressSpace?: 'local' };
@@ -69,9 +75,20 @@ export async function exchangeLocalPairing(params: URLSearchParams): Promise<Loc
       ? 'This binding link has expired or was already used. Run agentsight bind again.'
       : `AgentSight binding failed (${response.status}).`);
   }
-  const body = await response.json() as { access_token?: string };
-  if (!body.access_token) throw new Error('AgentSight returned an invalid binding response.');
-  return { endpoint, accessToken: body.access_token };
+  const body = await response.json() as {
+    access_token?: string;
+    node?: { id?: string; name?: string; version?: string };
+  };
+  if (!body.access_token || !body.node?.id || !body.node.name) {
+    throw new Error('AgentSight returned an invalid binding response.');
+  }
+  return {
+    endpoint,
+    accessToken: body.access_token,
+    nodeId: body.node.id,
+    nodeName: body.node.name,
+    version: body.node.version || 'unknown',
+  };
 }
 
 export async function fetchLocalSnapshot(connection: LocalConnection): Promise<AgentSightSnapshot> {
@@ -135,4 +152,21 @@ export async function fetchCloudIdentity(token: string): Promise<CloudIdentity> 
     throw new Error('Your AgentSight sign-in has expired.');
   }
   return response.json() as Promise<CloudIdentity>;
+}
+
+export async function registerCloudNode(token: string, connection: LocalConnection): Promise<void> {
+  const response = await fetch(`${controlPlaneUrl}/v1/nodes`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      id: connection.nodeId,
+      name: connection.nodeName,
+      version: connection.version,
+      connection_mode: 'direct',
+    }),
+  });
+  if (!response.ok) throw new Error(`Could not register this Node (${response.status}).`);
 }

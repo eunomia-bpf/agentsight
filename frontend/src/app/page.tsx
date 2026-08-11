@@ -22,6 +22,7 @@ import {
   fetchLocalSnapshot,
   loadCloudSession,
   loadLocalConnection,
+  registerCloudNode,
   saveLocalConnection,
 } from '@/lib/connection';
 import { AgentSightSnapshot } from '@/types/event';
@@ -103,11 +104,19 @@ export default function Home() {
       setSyncing(true);
       try {
         const launch = consumeLaunchFragment();
+        if (launch?.get('action') === 'auth-error') {
+          const reason = launch.get('error') || 'sign_in_failed';
+          setError(reason.endsWith('_login_not_configured')
+            ? 'This sign-in provider is not configured yet.'
+            : 'AgentSight sign-in failed. Please try again.');
+        }
         if (launch?.get('action') === 'bind') {
           const bound = await exchangeLocalPairing(launch);
           if (cancelled) return;
           saveLocalConnection(bound);
           setConnection(bound);
+          const cloudToken = loadCloudSession();
+          if (cloudToken) await registerCloudNode(cloudToken, bound);
           await loadNodeData(bound);
           return;
         }
@@ -129,6 +138,7 @@ export default function Home() {
         if (saved) {
           if (cancelled) return;
           setConnection(saved);
+          if (cloudToken) await registerCloudNode(cloudToken, saved);
           await loadNodeData(saved);
         } else if (!cancelled) {
           setMode('disconnected');
