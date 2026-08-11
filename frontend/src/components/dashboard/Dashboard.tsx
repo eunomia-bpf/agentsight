@@ -6,15 +6,14 @@
 import { useMemo } from 'react';
 import { useTranslation } from '@/i18n';
 import { AgentSightSnapshot } from '@/types/event';
-import { deriveSessions, deriveSummary, formatDurationMs } from '@/utils/dashboard';
-import { DashboardPanel, RankedRow } from './DashboardPanel';
+import { deriveSummary } from '@/utils/dashboard';
+import { SessionConsole } from '@/components/SessionConsole';
 import { SummaryBand } from './SummaryBand';
 import { ActivityChart } from './ActivityChart';
 import { TokensPanel } from './TokensPanel';
 import { EffectProfile } from './EffectProfile';
 import { ResourceShape } from './ResourceShape';
 import { FrictionSignals } from './FrictionSignals';
-import { categoricalColor } from './colors';
 
 // Re-exported so panel drill-down callbacks stay typed against the app shell's
 // view switcher in page.tsx.
@@ -28,7 +27,6 @@ interface DashboardProps {
 export function Dashboard({ snapshot, onNavigate }: DashboardProps) {
   const { t } = useTranslation();
   const summary = useMemo(() => deriveSummary(snapshot ?? {}), [snapshot]);
-  const sessions = useMemo(() => deriveSessions(snapshot ?? {}), [snapshot]);
 
   if (!snapshot) {
     return (
@@ -41,29 +39,7 @@ export function Dashboard({ snapshot, onNavigate }: DashboardProps) {
   return (
     <div className="space-y-4">
       <SummaryBand summary={summary} onNavigate={onNavigate} />
-
-      {sessions.length > 1 && (
-        <DashboardPanel
-          title={t('dash.sessions.title')}
-          subtitle={t('dash.sessions.subtitle')}
-          bodyClassName="pt-2"
-        >
-          <ul className="divide-y divide-gray-50">
-            {sessions.map((s) => (
-              <RankedRow
-                key={s.id}
-                swatch={categoricalColor(s.id)}
-                label={`${s.agentType} · ${s.model ?? '—'}`}
-                sublabel={`${formatDurationMs(s.durationMs)} · ${s.status}`}
-                count={s.totalTokens}
-                countLabel={s.totalTokens > 0 ? t('dash.sessions.tokens') : undefined}
-              />
-            ))}
-          </ul>
-          <p className="mt-2 text-[11px] text-gray-400">{t('dash.sessions.note')}</p>
-        </DashboardPanel>
-      )}
-
+      <SessionConsole snapshot={snapshot} />
       <ActivityChart snapshot={snapshot} onNavigate={onNavigate} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
