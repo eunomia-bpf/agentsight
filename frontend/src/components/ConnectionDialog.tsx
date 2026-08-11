@@ -22,7 +22,7 @@ export function ConnectionDialog({
       <div role="dialog" aria-modal="true" aria-labelledby="connect-title"
         className="relative w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
         {canClose && (
-          <button type="button" onClick={onClose} aria-label="Close connection dialog"
+          <button type="button" onClick={onClose} aria-label={t('connect.close')}
             className="absolute right-5 top-4 text-2xl text-slate-400 hover:text-slate-700">
             ×
           </button>

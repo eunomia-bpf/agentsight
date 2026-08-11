@@ -29,6 +29,7 @@ interface NodeManagerProps {
   error: string;
   modal?: boolean;
   onClose?: () => void;
+  onOpenNode: () => void;
   onRetry: () => void;
   onRefresh: () => void;
   onForgetNode: (nodeId: string) => void;
@@ -61,6 +62,7 @@ export function NodeManager({
   error,
   modal = false,
   onClose,
+  onOpenNode,
   onRetry,
   onRefresh,
   onForgetNode,
@@ -69,7 +71,7 @@ export function NodeManager({
   onSignOut,
 }: NodeManagerProps) {
   const { t, locale } = useTranslation();
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const currentCloudNode = connection
     ? nodes.find((node) => node.id === connection.nodeId)
     : null;
@@ -85,9 +87,13 @@ export function NodeManager({
     : nodes;
 
   const copyBindCommand = async () => {
-    await navigator.clipboard.writeText('agentsight bind');
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
+    try {
+      await navigator.clipboard.writeText('agentsight bind');
+      setCopyState('copied');
+    } catch {
+      setCopyState('failed');
+    }
+    window.setTimeout(() => setCopyState('idle'), 1800);
   };
 
   const content = (
@@ -110,7 +116,7 @@ export function NodeManager({
             </p>
           </div>
           {modal && onClose && (
-            <button type="button" onClick={onClose} aria-label="Close Node manager"
+            <button type="button" onClick={onClose} aria-label={t('nodes.close')}
               className="rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white">
               <XMarkIcon className="h-6 w-6" />
             </button>
@@ -191,19 +197,21 @@ export function NodeManager({
                             {t('nodes.retry')}
                           </button>
                         )}
-                        {isCurrent && isConnected && modal && onClose && (
-                          <button type="button" onClick={onClose}
+                        {isCurrent && isConnected && modal && (
+                          <button type="button" onClick={onOpenNode}
                             className="text-xs font-semibold text-blue-700 hover:text-blue-900">
                             {t('nodes.openDashboard')}
                           </button>
                         )}
-                        <button type="button"
-                          onClick={() => { if (window.confirm(t('nodes.removeConfirm', { name: node.name }))) onForgetNode(node.id); }}
-                          disabled={loading}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-red-700 disabled:opacity-50">
-                          <TrashIcon className="h-3.5 w-3.5" />
-                          {t('nodes.remove')}
-                        </button>
+                        {!isCurrent && (
+                          <button type="button"
+                            onClick={() => { if (window.confirm(t('nodes.removeConfirm', { name: node.name }))) onForgetNode(node.id); }}
+                            disabled={loading}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-red-700 disabled:opacity-50">
+                            <TrashIcon className="h-3.5 w-3.5" />
+                            {t('nodes.remove')}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </article>
@@ -232,10 +240,13 @@ export function NodeManager({
                   <code className="min-w-0 flex-1 overflow-x-auto rounded-lg bg-slate-950 px-3 py-2.5 text-sm text-white">agentsight bind</code>
                   <button type="button" onClick={() => { void copyBindCommand(); }}
                     className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50">
-                    {copied ? <CheckIcon className="h-4 w-4" /> : <CommandLineIcon className="h-4 w-4" />}
-                    {copied ? t('nodes.copied') : t('nodes.copy')}
+                    {copyState === 'copied' ? <CheckIcon className="h-4 w-4" /> : <CommandLineIcon className="h-4 w-4" />}
+                    {copyState === 'copied' ? t('nodes.copied') : copyState === 'failed' ? t('nodes.copyFailed') : t('nodes.copy')}
                   </button>
                 </div>
+                <span className="sr-only" aria-live="polite">
+                  {copyState === 'copied' ? t('nodes.copied') : copyState === 'failed' ? t('nodes.copyFailed') : ''}
+                </span>
                 {connection && (
                   <button type="button" onClick={onForgetBrowser}
                     className="mt-3 text-xs font-medium text-slate-500 hover:text-red-700">
@@ -294,7 +305,7 @@ export function NodeManager({
   if (!modal) return content;
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 px-4 py-8">
-      <div role="dialog" aria-modal="true" aria-label="Your AgentSight Nodes" className="mx-auto max-w-5xl">
+      <div role="dialog" aria-modal="true" aria-label={t('nodes.title')} className="mx-auto max-w-5xl">
         {content}
       </div>
     </div>

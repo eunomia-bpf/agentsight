@@ -64,6 +64,7 @@ export default function Home() {
   const [error, setError] = useState<string>('');
   const [mode, setMode] = useState<AppMode>('loading');
   const [connection, setConnection] = useState<LocalConnection | null>(null);
+  const [nodeReachable, setNodeReachable] = useState(false);
   const [identity, setIdentity] = useState<CloudIdentity | null>(null);
   const [cloudNodes, setCloudNodes] = useState<CloudNode[]>([]);
   const [nodesLoading, setNodesLoading] = useState(false);
@@ -80,9 +81,11 @@ export default function Home() {
 
     try {
       setSnapshot(await fetchLocalSnapshot(target));
+      setNodeReachable(true);
       setMode('live');
       return true;
     } catch (cause) {
+      setNodeReachable(false);
       setMode('disconnected');
       setError(cause instanceof Error ? cause.message : 'Could not reach the AgentSight Node.');
       return false;
@@ -139,23 +142,17 @@ export default function Home() {
     try {
       await forgetCloudNode(token, nodeId);
       setCloudNodes((current) => current.filter((node) => node.id !== nodeId));
-      if (connection?.nodeId === nodeId) {
-        clearLocalConnection();
-        setConnection(null);
-        setSnapshot(null);
-        setMode('disconnected');
-        setDialogOpen(false);
-      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not remove this Node.');
     } finally {
       setNodesLoading(false);
     }
-  }, [connection]);
+  }, []);
 
   const forgetBrowserConnection = useCallback(() => {
     clearLocalConnection();
     setConnection(null);
+    setNodeReachable(false);
     setSnapshot(null);
     setError('');
     setMode('disconnected');
@@ -176,16 +173,14 @@ export default function Home() {
           setConnection(bound);
           const cloudToken = loadCloudSession();
           const localLoaded = await loadNodeData(bound);
-          if (cloudToken && localLoaded) {
-            void (async () => {
-              try {
-                setIdentity(await fetchCloudIdentity(cloudToken));
-                await registerCloudNode(cloudToken, bound);
-                setCloudNodes(await fetchCloudNodes(cloudToken));
-              } catch (cause) {
-                setError(cause instanceof Error ? cause.message : 'Could not register this Node.');
-              }
-            })();
+          if (cloudToken) {
+            try {
+              setIdentity(await fetchCloudIdentity(cloudToken));
+              if (localLoaded) await registerCloudNode(cloudToken, bound);
+              setCloudNodes(await fetchCloudNodes(cloudToken));
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : 'Could not register this Node.');
+            }
           }
           return;
         }
@@ -241,7 +236,7 @@ export default function Home() {
               }
             }
           };
-          if (saved) void syncCloud();
+          if (saved && localLoaded) void syncCloud();
           else {
             await syncCloud();
             if (!cancelled) setMode('disconnected');
@@ -251,6 +246,20 @@ export default function Home() {
         if (!cancelled) {
           setError(cause instanceof Error ? cause.message : 'AgentSight could not initialize.');
           setMode('disconnected');
+        }
+        const cloudToken = loadCloudSession();
+        if (cloudToken) {
+          try {
+            const me = await fetchCloudIdentity(cloudToken);
+            const nodes = await fetchCloudNodes(cloudToken);
+            if (!cancelled) {
+              setIdentity(me);
+              setCloudNodes(nodes);
+            }
+          } catch {
+            // Preserve the original initialization error. An expired cloud
+            // session is already removed by fetchCloudIdentity().
+          }
         }
       } finally {
         if (!cancelled) setSyncing(false);
@@ -262,6 +271,19 @@ export default function Home() {
 
   useEffect(() => { setViewMode(viewModeFromPath(window.location.pathname)); }, []);
 
+  useEffect(() => {
+    const handleLaunchFragment = () => {
+      const action = new URLSearchParams(window.location.hash.slice(1)).get('action');
+      if (action === 'bind' || action === 'auth' || action === 'auth-error') {
+        // A CLI bind link can be pasted into an already-open app tab. Reload so
+        // the one-shot initialization path validates and consumes the fragment.
+        window.location.reload();
+      }
+    };
+    window.addEventListener('hashchange', handleLaunchFragment);
+    return () => { window.removeEventListener('hashchange', handleLaunchFragment); };
+  }, []);
+
   const selectViewMode = (mode: ViewMode) => {
     setViewMode(mode);
     window.history.replaceState(null, '', `${basePath}${pathForViewMode(mode)}`);
@@ -269,6 +291,10 @@ export default function Home() {
 
   const isDemo = mode === 'demo';
   const isLive = mode === 'live';
+  const openNodeDashboard = useCallback(() => {
+    setDialogOpen(false);
+    if (mode !== 'live') void syncData();
+  }, [mode, syncData]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -280,8 +306,9 @@ export default function Home() {
       )}
       {identity && dialogOpen && (
         <NodeManager identity={identity} nodes={cloudNodes} connection={connection}
-          connected={isLive} loading={syncing || nodesLoading} error={error} modal
+          connected={nodeReachable} loading={syncing || nodesLoading} error={error} modal
           onClose={() => { setDialogOpen(false); }}
+          onOpenNode={openNodeDashboard}
           onRetry={() => { void syncData(); }} onRefresh={() => { void refreshCloudNodes(); }}
           onForgetNode={(nodeId) => { void forgetNode(nodeId); }}
           onForgetBrowser={forgetBrowserConnection}
@@ -313,7 +340,7 @@ export default function Home() {
                 : t('app.subtitle')}
             </p>
           </div>
-          <div className="flex items-center justify-start gap-3 lg:justify-end">
+          <div className="flex flex-wrap items-center justify-start gap-3 lg:justify-end">
             {identity && (
               <>
                 <span className="text-sm text-slate-600" title={identity.email}>
@@ -337,6 +364,12 @@ export default function Home() {
                 {t('app.nodes')}
               </button>
             )}
+            {connection && nodeReachable && isDemo && !identity && (
+              <button type="button" onClick={openNodeDashboard}
+                className="text-sm font-medium text-blue-700 hover:text-blue-900">
+                {t('app.openNode', { name: connection.nodeName })}
+              </button>
+            )}
             <LanguageSwitcher />
           </div>
         </div>
@@ -349,6 +382,7 @@ export default function Home() {
         ) : identity && mode === 'disconnected' ? (
           <NodeManager identity={identity} nodes={cloudNodes} connection={connection}
             connected={false} loading={syncing || nodesLoading} error={error}
+            onOpenNode={openNodeDashboard}
             onRetry={() => { void syncData(); }} onRefresh={() => { void refreshCloudNodes(); }}
             onForgetNode={(nodeId) => { void forgetNode(nodeId); }}
             onForgetBrowser={forgetBrowserConnection}

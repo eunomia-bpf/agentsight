@@ -33,6 +33,12 @@ interface OAuthStartLimiter {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
+interface NodeDeleteDatabase {
+  prepare(query: string): {
+    bind(...values: unknown[]): { run(): Promise<unknown> };
+  };
+}
+
 const encoder = new TextEncoder();
 const STATE_TTL_SECONDS = 10 * 60;
 const AUTH_CODE_TTL_SECONDS = 2 * 60;
@@ -235,9 +241,17 @@ async function registerNode(request: Request, env: Env): Promise<Response> {
 
 async function deleteNode(request: Request, env: Env, nodeId: string): Promise<Response> {
   const user = await requireUser(request, env.DB);
-  await env.DB.prepare('DELETE FROM nodes WHERE id = ?1 AND owner_user_id = ?2')
-    .bind(nodeId, user.id).run();
+  await deleteOwnedNode(env.DB, nodeId, user.id);
   return new Response(null, { status: 204 });
+}
+
+export async function deleteOwnedNode(
+  db: NodeDeleteDatabase,
+  nodeId: string,
+  ownerUserId: string,
+): Promise<void> {
+  await db.prepare('DELETE FROM nodes WHERE id = ?1 AND owner_user_id = ?2')
+    .bind(nodeId, ownerUserId).run();
 }
 
 async function requireUser(request: Request, db: D1Database): Promise<UserRow> {

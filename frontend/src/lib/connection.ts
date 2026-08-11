@@ -270,8 +270,11 @@ export async function fetchCloudIdentity(token: string): Promise<CloudIdentity> 
     cache: 'no-store',
   });
   if (!response.ok) {
-    window.localStorage.removeItem(CLOUD_SESSION_KEY);
-    throw new Error('Your AgentSight sign-in has expired.');
+    if (response.status === 401) {
+      window.localStorage.removeItem(CLOUD_SESSION_KEY);
+      throw new Error('Your AgentSight sign-in has expired.');
+    }
+    throw new Error(`The AgentSight control plane returned ${response.status}.`);
   }
   return response.json() as Promise<CloudIdentity>;
 }

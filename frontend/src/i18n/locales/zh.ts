@@ -32,6 +32,7 @@ export const zh: Record<TranslationKey, string> = {
   'app.signOut': '退出登录',
   'app.signIn': '登录',
   'app.nodes': '机器',
+  'app.openNode': '打开 {name}',
   'app.opening': '正在打开 AgentSight…',
 
   // 托管连接与 Node 管理
@@ -47,6 +48,7 @@ export const zh: Record<TranslationKey, string> = {
   'connect.demoTitle': '查看演示',
   'connect.demoBody': '无需登录或绑定设备，直接打开保留的录制会话。',
   'connect.demoAction': '进入演示',
+  'connect.close': '关闭连接窗口',
   'nodes.account': 'AgentSight 账号',
   'nodes.title': '你的机器',
   'nodes.signedIn': '已登录：{name}。',
@@ -71,6 +73,8 @@ export const zh: Record<TranslationKey, string> = {
   'nodes.connectBody': '启动本地 Node 并在这里打开。访问密钥只放在 URL fragment 中，并在进程退出时失效。',
   'nodes.copy': '复制命令',
   'nodes.copied': '已复制',
+  'nodes.copyFailed': '复制失败',
+  'nodes.close': '关闭机器管理',
   'nodes.forgetBrowser': '清除当前浏览器保存的 Node 密钥',
   'nodes.privateTitle': '架构上保持隐私',
   'nodes.privateBody': 'AgentSight Cloud 只保存账号和 Node 元数据。提示词、回复、进程活动、文件与网络证据均由浏览器直接从你的 Node 查询。',

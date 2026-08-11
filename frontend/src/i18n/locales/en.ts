@@ -28,6 +28,7 @@ export const en = {
   'app.signOut': 'Sign out',
   'app.signIn': 'Sign in',
   'app.nodes': 'Nodes',
+  'app.openNode': 'Open {name}',
   'app.opening': 'Opening AgentSight…',
 
   // Hosted connection and Node management
@@ -43,6 +44,7 @@ export const en = {
   'connect.demoTitle': 'Explore the demo',
   'connect.demoBody': 'Open the retained recorded session without signing in or binding a device.',
   'connect.demoAction': 'Enter demo',
+  'connect.close': 'Close connection dialog',
   'nodes.account': 'AgentSight account',
   'nodes.title': 'Your Nodes',
   'nodes.signedIn': 'Signed in as {name}.',
@@ -67,6 +69,8 @@ export const en = {
   'nodes.connectBody': 'Start a local Node and open it here. The access key is carried in the URL fragment and expires when that process exits.',
   'nodes.copy': 'Copy command',
   'nodes.copied': 'Copied',
+  'nodes.copyFailed': 'Copy failed',
+  'nodes.close': 'Close Node manager',
   'nodes.forgetBrowser': 'Forget this browser’s saved Node key',
   'nodes.privateTitle': 'Private by architecture',
   'nodes.privateBody': 'AgentSight Cloud stores account and Node metadata. Prompts, responses, process activity, files, and network evidence are queried directly from your Node.',
