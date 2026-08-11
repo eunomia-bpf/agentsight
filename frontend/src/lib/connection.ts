@@ -157,9 +157,10 @@ async function exchangeLocalPairingOnce(params: URLSearchParams): Promise<LocalC
 export async function fetchLocalSnapshot(connection: LocalConnection): Promise<AgentSightSnapshot> {
   const headers: HeadersInit = {};
   if (connection.accessToken) headers.Authorization = `Bearer ${connection.accessToken}`;
-  const response = await localFetch(`${connection.endpoint}/api/v1/snapshot?audit_limit=50000`, {
-    headers,
-  });
+  const input = `${connection.endpoint}/api/v1/snapshot?audit_limit=50000`;
+  const response = connection.accessToken
+    ? await localFetch(input, { headers })
+    : await fetch(input, { headers, cache: 'no-store' });
   if (!response.ok) {
     if (response.status === 401) clearLocalConnection();
     throw new Error(`AgentSight Node returned ${response.status}.`);
