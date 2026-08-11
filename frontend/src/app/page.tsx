@@ -13,7 +13,6 @@ import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ConnectionDialog } from '@/components/ConnectionDialog';
 import { NodeManager } from '@/components/NodeManager';
 import { Dashboard, type ViewMode } from '@/components/dashboard/Dashboard';
-import { useTranslation } from '@/i18n';
 import {
   CloudSessionExpiredError,
   type CloudIdentity,
@@ -70,7 +69,6 @@ function pathForViewMode(mode: ViewMode): string {
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
 export default function Home() {
-  const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<AgentSightSnapshot | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('sessions');
   const [syncing, setSyncing] = useState(false);
@@ -98,16 +96,12 @@ export default function Home() {
       setCloudNodes([]);
       setRelayStatus({});
       setNodeError('');
-      if (activeClient?.transport === 'relay') {
-        setActiveClient(null);
-        setSnapshot(null);
-        setMode('disconnected');
-      }
+      setMode((current) => current === 'live' ? current : 'disconnected');
       setError(message);
       return;
     }
     setNodeError(message);
-  }, [activeClient]);
+  }, []);
 
   const activateClient = useCallback(async (client: NodeClient) => {
     setSyncing(true);
@@ -361,7 +355,7 @@ export default function Home() {
               localLoaded = true;
             }
           } catch {
-            // A saved Direct path is an optimization. Login can still recover
+            // A saved Direct path is only an optimization. Login can recover
             // the same Node through Controller relay from a fresh network.
           }
         }
