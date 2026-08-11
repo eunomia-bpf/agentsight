@@ -6,8 +6,8 @@ import './globals.css'
 import { I18nProvider } from '@/i18n'
 
 export const metadata: Metadata = {
-  title: 'AgentSight App: Live Demo',
-  description: 'Interactive AgentSight viewer for live and recorded AI agent traces.',
+  title: 'AgentSight App',
+  description: 'Local-first AgentSight viewer for local and recorded AI agent sessions.',
   robots: {
     index: false,
     follow: true,

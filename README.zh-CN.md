@@ -91,6 +91,9 @@ Rust 应用可以依赖
 随后 `agentsight report` 和 `agentsight report list` 也默认查看当前目录里的记录。
 如果要查看 Claude/Codex/Gemini 的原生日志总览，显式运行 `agentsight report --local`。
 
+GitHub Release 为 Linux 提供 `agentsight-x86_64` 和 `agentsight-aarch64`；
+无后缀的 `agentsight` 继续作为 x86_64 兼容文件保留。
+
 #### Docker
 
 AgentSight 通过 Docker 运行，使用 `--privileged` 以支持 eBPF，`--pid=host` 以访问宿主机进程，`-v /sys:/sys:ro` 用于进程监控，`-v /usr:/usr:ro -v /lib:/lib:ro` 用于访问 SSL 库（在共享库如 `libssl.so` 上附加 uprobe 所需）。示例：

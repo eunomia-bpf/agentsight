@@ -17,6 +17,7 @@ mod types;
 pub const AGENT_CLAUDE: &str = "claude";
 pub const AGENT_CODEX: &str = "codex";
 pub const AGENT_GEMINI: &str = "gemini";
+pub const AGENT_CURSOR: &str = "cursor";
 
 pub const TRACE_EBPF_FILE: &str = "ebpf_file";
 pub const TRACE_PROC_FD: &str = "proc_fd";
@@ -33,12 +34,12 @@ pub use types::{
 // Re-export parser functions
 pub use parser::{
     agent_source_for_path, codex_exec_prompt, codex_total_token_usage, collapse_project_path,
-    command_process_chain, contains_private_marker, count_session_dirs, discover_session_files,
-    discover_session_files_in_dir, discover_session_files_in_home, fixture_session_path,
-    is_codex_cli_entrypoint, normalize_session_log_path, parse_session_content, parse_session_file,
-    parse_session_path, path_component_strings, path_group, semantic_task_label,
-    session_candidate_from_path, session_log_path_from_str, short_hash, tool_category,
-    truncate_clean,
+    command_process_chain, contains_private_marker, count_session_dirs, count_session_dirs_in_home,
+    discover_session_files, discover_session_files_in_dir, discover_session_files_in_home,
+    fixture_session_path, is_codex_cli_entrypoint, normalize_session_log_path,
+    parse_session_content, parse_session_file, parse_session_path, path_component_strings,
+    path_group, semantic_task_label, session_candidate_from_path, session_log_path_from_str,
+    short_hash, tool_category, truncate_clean,
 };
 
 // Re-export process matching types and functions
