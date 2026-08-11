@@ -87,7 +87,7 @@ export function NodeManager({
         });
       }
     });
-    return [...byId.values()];
+    return Array.from(byId.values());
   }, [connections, nodes]);
 
   const copyBindCommand = async () => {
