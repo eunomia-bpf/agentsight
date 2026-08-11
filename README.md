@@ -100,6 +100,9 @@ For local use, install with `cargo install agentsight` or download the latest
 release binary, then start with `agentsight top`. Use the examples below when
 you want to record a specific command or inspect saved sessions.
 
+GitHub releases provide `agentsight-x86_64` and `agentsight-aarch64` for Linux.
+The unsuffixed `agentsight` asset remains an x86_64 compatibility alias.
+
 #### Docker
 
 Docker is useful for container, CI, or isolated Linux environments, but it still needs privileged host access for eBPF. See [docs/docker.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/docker.md).

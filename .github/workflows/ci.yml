@@ -132,46 +132,27 @@ jobs:
   docker:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
-    needs: test
-    # Only run on push to master, not on PRs
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/master' &&
-      !contains(github.event.head_commit.message, '[skip ci]') &&
-      !contains(github.event.head_commit.message, '[ci skip]')
+    needs: [release_binaries, publish_crates]
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+
+    - name: Download architecture-specific binaries
+      uses: actions/download-artifact@v4
       with:
-        submodules: 'recursive'
+        pattern: docker-linux-*
+        path: docker-bin
 
-    - name: Setup Rust
-      uses: actions-rust-lang/setup-rust-toolchain@v1
-      with:
-        toolchain: stable
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          libelf1 libelf-dev zlib1g-dev libclang-dev \
-          make git clang llvm pkg-config build-essential
-
-    - name: Build package
-      run: make build
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
 
     - name: Set up Docker Buildx
       id: buildx
-      uses: docker/setup-buildx-action@v2
+      uses: docker/setup-buildx-action@v3
 
     - name: Login to Github Packages
-      uses: docker/login-action@v2
+      uses: docker/login-action@v3
       with:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
@@ -179,11 +160,11 @@ jobs:
 
     - name: Build image and push to GitHub Container Registry
       id: docker_build
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v6
       with:
         context: ./
-        file: dockerfile
-        platforms: linux/amd64
+        file: script/Dockerfile.release
+        platforms: linux/amd64,linux/arm64
         tags: |
           ghcr.io/${{ github.repository }}:latest
           ghcr.io/${{ github.repository }}:${{ github.sha }}
@@ -192,20 +173,24 @@ jobs:
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
 
-  publish:
-    name: Create GitHub Release and Cargo Package
+  release_prepare:
+    name: Prepare Release Snapshot
     runs-on: ubuntu-latest
     needs: test
+    outputs:
+      version: ${{ steps.set_version.outputs.version }}
+      tag: ${{ steps.set_version.outputs.tag }}
+      publish_sha: ${{ steps.commit_release.outputs.publish_sha }}
+      agent_session_version: ${{ steps.set_version.outputs.agent_session_version }}
+      agentsight_capture_version: ${{ steps.set_version.outputs.agentsight_capture_version }}
+      agentvis_version: ${{ steps.set_version.outputs.agentvis_version }}
+      agentpprof_version: ${{ steps.set_version.outputs.agentpprof_version }}
     # Only run on push to master, not on PRs
     if: |
       github.event_name == 'push' &&
       github.ref == 'refs/heads/master' &&
       !contains(github.event.head_commit.message, '[skip ci]') &&
       !contains(github.event.head_commit.message, '[ci skip]')
-
-    strategy:
-      matrix:
-        target: [ x86_64-unknown-linux-gnu ]
 
     steps:
     - name: Checkout code
@@ -402,6 +387,35 @@ jobs:
           fi
         done
 
+  publish_crates:
+    name: Publish Cargo Packages
+    needs: [release_prepare, release_binaries]
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Checkout validated release snapshot
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.release_prepare.outputs.publish_sha }}
+        submodules: 'recursive'
+
+    - name: Setup Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          libelf1 libelf-dev zlib1g-dev libclang-dev \
+          make git clang llvm pkg-config build-essential
+
     - name: Verify agent-session Cargo package
       run: |
         CARGO_TARGET_DIR=/tmp/agentsight-agent-session-package \
@@ -433,7 +447,7 @@ jobs:
           exit 1
         fi
 
-        VERSION="${{ steps.set_version.outputs.agent_session_version }}"
+        VERSION="${{ needs.release_prepare.outputs.agent_session_version }}"
         if crates_io_version_exists "agent-session" "$VERSION"; then
           echo "agent-session ${VERSION} already exists on crates.io; skipping publish."
         else
@@ -465,7 +479,7 @@ jobs:
           exit 1
         fi
 
-        VERSION="${{ steps.set_version.outputs.agentvis_version }}"
+        VERSION="${{ needs.release_prepare.outputs.agentvis_version }}"
         cargo publish --manifest-path agentvis/Cargo.toml
         for attempt in 1 2 3 4 5 6; do
           if curl --retry 3 --retry-delay 2 -A "$CRATES_IO_USER_AGENT" -fsS \
@@ -493,7 +507,7 @@ jobs:
           exit 1
         fi
 
-        VERSION="${{ steps.set_version.outputs.agentsight_capture_version }}"
+        VERSION="${{ needs.release_prepare.outputs.agentsight_capture_version }}"
         cargo publish --manifest-path agentsight-capture/Cargo.toml
         for attempt in 1 2 3 4 5 6; do
           if curl --retry 3 --retry-delay 2 -A "$CRATES_IO_USER_AGENT" -fsS \
@@ -515,66 +529,6 @@ jobs:
         CARGO_TARGET_DIR=/tmp/agentsight-agentpprof-package \
           cargo package --manifest-path agentpprof/Cargo.toml
 
-    - name: Publish Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: |
-          collector/target/release/agentsight
-          agentpprof/target/release/agentpprof
-        prerelease: false
-        tag_name: ${{ steps.set_version.outputs.tag }}
-        target_commitish: ${{ steps.commit_release.outputs.publish_sha }}
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Smoke test published release artifact
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        RELEASE_TAG: ${{ steps.set_version.outputs.tag }}
-      run: |
-        set -euo pipefail
-
-        smoke_dir="$(mktemp -d)"
-        gh release download "$RELEASE_TAG" \
-          --repo "$GITHUB_REPOSITORY" \
-          --pattern agentsight \
-          --dir "$smoke_dir" \
-          --clobber
-        gh release download "$RELEASE_TAG" \
-          --repo "$GITHUB_REPOSITORY" \
-          --pattern agentpprof \
-          --dir "$smoke_dir" \
-          --clobber
-
-        chmod +x "$smoke_dir/agentsight"
-        "$smoke_dir/agentsight" --version
-        "$smoke_dir/agentsight" --help | tee "$smoke_dir/help.txt"
-
-        for cmd in top monitor record report debug; do
-          if ! grep -Eq "^[[:space:]]+$cmd[[:space:]]" "$smoke_dir/help.txt"; then
-            echo "::error::release artifact is missing '$cmd' in agentsight --help"
-            exit 1
-          fi
-        done
-
-        chmod +x "$smoke_dir/agentpprof"
-        "$smoke_dir/agentpprof" --version
-        "$smoke_dir/agentpprof" --help | tee "$smoke_dir/agentpprof-help.txt"
-
-        for flag in "--output" "--view" "--tagger" "--session-file"; do
-          if ! grep -Fq -- "$flag" "$smoke_dir/agentpprof-help.txt"; then
-            echo "::error::release artifact is missing '$flag' in agentpprof --help"
-            exit 1
-          fi
-        done
-
-    - name: Dispatch npm package publish
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        RELEASE_TAG: ${{ steps.set_version.outputs.tag }}
-      run: gh workflow run npm-publish.yml --ref "$RELEASE_TAG"
-
     - name: Publish agentsight crate to crates.io
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -590,7 +544,7 @@ jobs:
 
     - name: Smoke test cargo install from crates.io
       env:
-        VERSION: ${{ steps.set_version.outputs.version }}
+        VERSION: ${{ needs.release_prepare.outputs.version }}
       run: |
         set -euo pipefail
 
@@ -635,7 +589,7 @@ jobs:
 
     - name: Smoke test agentpprof cargo install from crates.io
       env:
-        VERSION: ${{ steps.set_version.outputs.agentpprof_version }}
+        VERSION: ${{ needs.release_prepare.outputs.agentpprof_version }}
       run: |
         set -euo pipefail
 
@@ -665,3 +619,149 @@ jobs:
             exit 1
           fi
         done
+
+  release_binaries:
+    name: Build Release Binaries (${{ matrix.arch }})
+    needs: release_prepare
+    runs-on: ${{ matrix.runner }}
+    if: |
+      !cancelled() &&
+      (
+        github.event_name == 'pull_request' ||
+        (
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/master' &&
+          needs.release_prepare.result == 'success'
+        )
+      )
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(github.event_name == 'pull_request' && '{"include":[{"arch":"aarch64","docker_arch":"arm64","runner":"ubuntu-24.04-arm","legacy_assets":false}]}' || '{"include":[{"arch":"x86_64","docker_arch":"amd64","runner":"ubuntu-24.04","legacy_assets":true},{"arch":"aarch64","docker_arch":"arm64","runner":"ubuntu-24.04-arm","legacy_assets":false}]}') }}
+
+    steps:
+    - name: Checkout release snapshot
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.release_prepare.outputs.publish_sha || github.sha }}
+        submodules: 'recursive'
+
+    - name: Setup Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          libelf1 libelf-dev zlib1g-dev libclang-dev \
+          make git clang llvm pkg-config build-essential
+
+    - name: Build release binaries
+      run: |
+        make build
+        cargo build --release --manifest-path agentpprof/Cargo.toml
+
+    - name: Smoke test release binaries
+      run: |
+        set -euo pipefail
+        collector/target/release/agentsight --version
+        collector/target/release/agentsight --help | grep -Eq '^[[:space:]]+record[[:space:]]'
+        agentpprof/target/release/agentpprof --version
+        agentpprof/target/release/agentpprof --help | grep -F -- '--session-file'
+
+    - name: Prepare architecture-qualified assets
+      run: |
+        set -euo pipefail
+        mkdir -p release-assets docker-assets
+        install -m 0755 collector/target/release/agentsight \
+          "release-assets/agentsight-${{ matrix.arch }}"
+        install -m 0755 agentpprof/target/release/agentpprof \
+          "release-assets/agentpprof-${{ matrix.arch }}"
+        install -m 0755 collector/target/release/agentsight docker-assets/agentsight
+
+        if [ "${{ matrix.legacy_assets }}" = "true" ]; then
+          cp release-assets/agentsight-x86_64 release-assets/agentsight
+          cp release-assets/agentpprof-x86_64 release-assets/agentpprof
+        fi
+
+    - name: Upload release assets
+      if: github.event_name == 'push'
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-linux-${{ matrix.arch }}
+        path: release-assets/
+        if-no-files-found: error
+        retention-days: 1
+
+    - name: Upload Docker binary
+      if: github.event_name == 'push'
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-linux-${{ matrix.docker_arch }}
+        path: docker-assets/agentsight
+        if-no-files-found: error
+        retention-days: 1
+
+  release:
+    name: Assemble GitHub Release
+    needs: [release_prepare, release_binaries, publish_crates]
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Download release assets
+      uses: actions/download-artifact@v4
+      with:
+        pattern: release-linux-*
+        path: release-assets
+        merge-multiple: true
+
+    - name: Verify release asset architectures
+      run: |
+        set -euo pipefail
+        file release-assets/agentsight-x86_64 | grep -F "x86-64"
+        file release-assets/agentsight-aarch64 | grep -F "ARM aarch64"
+        cmp release-assets/agentsight release-assets/agentsight-x86_64
+        cmp release-assets/agentpprof release-assets/agentpprof-x86_64
+
+    - name: Publish GitHub release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: release-assets/*
+        prerelease: false
+        tag_name: ${{ needs.release_prepare.outputs.tag }}
+        target_commitish: ${{ needs.release_prepare.outputs.publish_sha }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Smoke test published x86_64 artifacts
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ needs.release_prepare.outputs.tag }}
+      run: |
+        set -euo pipefail
+        smoke_dir="$(mktemp -d)"
+        gh release download "$RELEASE_TAG" \
+          --repo "$GITHUB_REPOSITORY" \
+          --pattern agentsight \
+          --pattern agentpprof \
+          --dir "$smoke_dir"
+
+        chmod +x "$smoke_dir/agentsight" "$smoke_dir/agentpprof"
+        "$smoke_dir/agentsight" --version
+        "$smoke_dir/agentsight" --help | tee "$smoke_dir/help.txt"
+        grep -Eq '^[[:space:]]+record[[:space:]]' "$smoke_dir/help.txt"
+        "$smoke_dir/agentpprof" --version
+        "$smoke_dir/agentpprof" --help | grep -F -- '--session-file'
+
+    - name: Dispatch npm package publish
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ needs.release_prepare.outputs.tag }}
+      run: gh workflow run npm-publish.yml --ref "$RELEASE_TAG"
