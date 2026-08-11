@@ -64,23 +64,31 @@ export default {
     // Node registration remains the same identity/ownership API. A locally
     // bound browser may additionally enroll the same persistent bearer for
     // relay. Only its SHA-256 hash is retained by Controller.
-    let relayToken: string | undefined;
+    let relayEnrollment: { nodeId: string; token: string } | null = null;
     if (request.method === 'POST' && url.pathname === '/v1/nodes') {
-      const body = await request.clone().json().catch(() => ({})) as { relay_token?: unknown };
+      const body = await request.clone().json().catch(() => ({})) as {
+        id?: unknown;
+        relay_token?: unknown;
+      };
       if (body.relay_token !== undefined) {
-        if (typeof body.relay_token !== 'string' || !validRelayToken(body.relay_token)) {
+        if (typeof body.id !== 'string'
+            || typeof body.relay_token !== 'string'
+            || !validRelayToken(body.relay_token)) {
           return cors(json({ error: 'invalid_relay_token' }, 400), env);
         }
-        relayToken = body.relay_token;
+        relayEnrollment = { nodeId: body.id, token: body.relay_token };
       }
     }
 
     const response = await core.fetch(request, env);
-    if (relayToken && response.ok && request.method === 'POST' && url.pathname === '/v1/nodes') {
+    if (relayEnrollment && response.ok) {
       const ownerId = await authenticatedUserId(request, env);
-      const body = await request.clone().json().catch(() => ({})) as { id?: unknown };
-      if (!ownerId || typeof body.id !== 'string'
-          || !await saveRelayCredential(env.DB, body.id, ownerId, relayToken)) {
+      if (!ownerId || !await saveRelayCredential(
+        env.DB,
+        relayEnrollment.nodeId,
+        ownerId,
+        relayEnrollment.token,
+      )) {
         return cors(json({ error: 'relay_enrollment_failed' }, 400), env);
       }
     }
