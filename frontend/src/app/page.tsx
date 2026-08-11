@@ -231,15 +231,17 @@ export default function Home() {
 
   useEffect(() => {
     setViewMode(viewModeFromPath(window.location.pathname));
-    setViewSearchTerm(new URLSearchParams(window.location.search).get('path') ?? '');
+    setViewSearchTerm(new URLSearchParams(window.location.hash.slice(1)).get('path') ?? '');
   }, []);
 
   const selectViewMode = (mode: ViewMode, options?: ViewNavigationOptions) => {
     const path = options?.path?.trim() ?? '';
     setViewMode(mode);
     setViewSearchTerm(path);
-    const query = path ? `?path=${encodeURIComponent(path)}` : '';
-    window.history.replaceState(null, '', `${basePath}${pathForViewMode(mode)}${query}`);
+    // Captured paths can disclose local workspace names. Keep drill-down state
+    // in the fragment so reloads do not send it to a hosted origin or edge log.
+    const fragment = path ? `#path=${encodeURIComponent(path)}` : '';
+    window.history.replaceState(null, '', `${basePath}${pathForViewMode(mode)}${fragment}`);
   };
 
   const isDemo = mode === 'demo';

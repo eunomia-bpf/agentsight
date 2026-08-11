@@ -120,8 +120,10 @@ pub fn build_nebula_document(
     actions: &[NebulaFileAction],
     options: &NebulaLayoutOptions,
 ) -> NebulaDocument {
-    let max_stars = options.max_stars.max(1);
-    let max_frames = options.max_frames.max(1);
+    // Star and frame IDs are serialized as u16, so keep the public library
+    // safe even when callers bypass the collector's tighter HTTP limits.
+    let max_stars = options.max_stars.clamp(1, u16::MAX as usize);
+    let max_frames = options.max_frames.clamp(1, u16::MAX as usize);
     let policy = format!(
         "stars: keep top {max_stars} by visit count then recency; \
          frames: uniform sample of at most {max_frames} action moments across session time"
@@ -182,6 +184,32 @@ pub fn build_nebula_document(
         ranked.truncate(max_stars);
     }
     let kept: HashSet<String> = ranked.iter().map(|(p, _)| p.clone()).collect();
+
+    // Sample only moments that can be rendered. Sampling the original action
+    // stream after star truncation can produce empty frames and summaries for
+    // paths that are absent from the document.
+    moments = moments
+        .into_iter()
+        .filter_map(|moment| {
+            let hits: Vec<Hit> = moment
+                .hits
+                .into_iter()
+                .filter(|hit| kept.contains(&hit.path))
+                .collect();
+            if hits.is_empty() {
+                return None;
+            }
+            let summary_parts = hits
+                .iter()
+                .map(|hit| format!("{} · {}", hit.access, hit.path))
+                .collect();
+            Some(Moment {
+                t_ms: moment.t_ms,
+                hits,
+                summary_parts,
+            })
+        })
+        .collect();
 
     // Area palette + stable positions.
     let mut area_names: Vec<String> = ranked
@@ -249,23 +277,17 @@ pub fn build_nebula_document(
     let mut stars_out: Vec<NebulaStar> = Vec::with_capacity(ranked.len());
     let mut path_to_id: HashMap<String, u16> = HashMap::new();
 
-    // First pass: discover birth frame for each kept path.
-    for (frame_i, &moment_i) in frame_indices.iter().enumerate() {
-        let moment = &moments[moment_i];
+    // Assign every retained action to the first sampled frame at or after it.
+    // This preserves approximate birth timing for paths whose first action
+    // falls between two sampled moments instead of making them all appear in
+    // the final frame.
+    for (moment_i, moment) in moments.iter().enumerate() {
+        let frame_i = frame_indices
+            .partition_point(|&sampled_i| sampled_i < moment_i)
+            .min(frame_indices.len().saturating_sub(1)) as u16;
         for hit in &moment.hits {
-            if !kept.contains(&hit.path) {
-                continue;
-            }
-            birth_frame
-                .entry(hit.path.clone())
-                .or_insert(frame_i as u16);
+            birth_frame.entry(hit.path.clone()).or_insert(frame_i);
         }
-    }
-    // Paths whose only hits fell between downsampled frames still surface on
-    // the final frame (endpoints of the sample always include the last moment).
-    let last_frame = frame_indices.len().saturating_sub(1) as u16;
-    for (path, _) in &ranked {
-        birth_frame.entry(path.clone()).or_insert(last_frame);
     }
 
     for (idx, (path, stats)) in ranked.iter().enumerate() {
@@ -604,6 +626,56 @@ mod tests {
         assert_eq!(doc.frames.len(), 10);
         assert_eq!(doc.meta.shown_stars, 20);
         assert_eq!(doc.meta.shown_frames, 10);
+        assert!(doc.frames.iter().all(|frame| !frame.active.is_empty()));
+
+        let kept = doc
+            .stars
+            .iter()
+            .map(|star| star.path.as_str())
+            .collect::<HashSet<_>>();
+        assert!(
+            doc.frames
+                .iter()
+                .all(|frame| kept.iter().any(|path| frame.summary.ends_with(*path)))
+        );
+        assert!(
+            !doc.frames
+                .iter()
+                .any(|frame| frame.summary.ends_with("area0/file0.rs"))
+        );
+
+        let birth_frames = doc
+            .stars
+            .iter()
+            .map(|star| star.birth_frame)
+            .collect::<HashSet<_>>();
+        assert!(birth_frames.len() > 1);
+        assert!(
+            doc.stars
+                .iter()
+                .any(|star| star.birth_frame < doc.frames.len() as u16 - 1)
+        );
+    }
+
+    #[test]
+    fn public_options_are_clamped_to_the_serialized_id_space() {
+        let actions = vec![
+            action(1, "src/a.rs", "write"),
+            action(2, "src/b.rs", "write"),
+        ];
+        let doc = build_nebula_document(
+            &actions,
+            &NebulaLayoutOptions {
+                max_stars: usize::MAX,
+                max_frames: usize::MAX,
+                repository: "bounded-ids".into(),
+            },
+        );
+
+        assert_eq!(doc.meta.max_stars, u16::MAX as usize);
+        assert_eq!(doc.meta.max_frames, u16::MAX as usize);
+        assert_eq!(doc.stars.len(), 2);
+        assert_eq!(doc.frames.len(), 2);
     }
 
     #[test]
