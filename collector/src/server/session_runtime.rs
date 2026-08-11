@@ -42,8 +42,8 @@ enum Runtime {
     },
 }
 
-#[derive(Default)]
 struct CodexState {
+    thread_id: String,
     active_turn: Option<String>,
     starting: bool,
 }
@@ -55,14 +55,17 @@ impl Runtime {
                 if child.try_wait().map_err(io_error)?.is_some() {
                     return Err(SubmitError::Failed("Claude live transport exited".to_string()));
                 }
-                let value = json!({
-                    "type": "user",
-                    "message": {
-                        "role": "user",
-                        "content": [{"type": "text", "text": message}]
-                    }
-                });
-                write_json_line(stdin, &value).await?;
+                write_json_line(
+                    stdin,
+                    &json!({
+                        "type": "user",
+                        "message": {
+                            "role": "user",
+                            "content": [{"type": "text", "text": message}]
+                        }
+                    }),
+                )
+                .await?;
                 Ok("claude-stream-json")
             }
             Self::Codex {
@@ -74,9 +77,15 @@ impl Runtime {
                 if child.try_wait().map_err(io_error)?.is_some() {
                     return Err(SubmitError::Failed("Codex app-server exited".to_string()));
                 }
-                let (active_turn, starting) = state
+                let (thread_id, active_turn, starting) = state
                     .lock()
-                    .map(|state| (state.active_turn.clone(), state.starting))
+                    .map(|state| {
+                        (
+                            state.thread_id.clone(),
+                            state.active_turn.clone(),
+                            state.starting,
+                        )
+                    })
                     .map_err(|_| SubmitError::Failed("Codex state lock poisoned".to_string()))?;
                 if starting {
                     return Err(SubmitError::Conflict(
@@ -90,7 +99,7 @@ impl Runtime {
                         "method": "turn/steer",
                         "id": id,
                         "params": {
-                            "threadId": runtime_thread_id(state)?,
+                            "threadId": thread_id,
                             "expectedTurnId": turn_id,
                             "input": [{"type": "text", "text": message}]
                         }
@@ -104,7 +113,7 @@ impl Runtime {
                         "method": "turn/start",
                         "id": id,
                         "params": {
-                            "threadId": runtime_thread_id(state)?,
+                            "threadId": thread_id,
                             "input": [{"type": "text", "text": message}]
                         }
                     })
@@ -119,19 +128,6 @@ impl Runtime {
             }
         }
     }
-}
-
-// The thread id is stored in active_turn's companion sentinel before the reader starts.
-// Keeping it in one field avoids a second allocation in Runtime.
-fn runtime_thread_id(state: &Arc<StdMutex<CodexState>>) -> Result<String, SubmitError> {
-    state
-        .lock()
-        .map_err(|_| SubmitError::Failed("Codex state lock poisoned".to_string()))?
-        .active_turn
-        .as_deref()
-        .and_then(|value| value.strip_prefix("thread:"))
-        .map(ToString::to_string)
-        .ok_or_else(|| SubmitError::Failed("Codex thread is not initialized".to_string()))
 }
 
 pub async fn submit_message(
@@ -193,7 +189,10 @@ async fn start_claude(session: &AgentSession) -> Result<Runtime, SubmitError> {
         "--verbose",
     ]);
     apply_cwd(&mut command, session);
-    command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
+    command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
     let mut child = command
         .spawn()
         .map_err(|error| SubmitError::Failed(format!("failed to start Claude live session: {error}")))?;
@@ -213,7 +212,10 @@ async fn start_codex(session: &AgentSession) -> Result<Runtime, SubmitError> {
     let mut command = Command::new("codex");
     command.args(["app-server", "--stdio"]);
     apply_cwd(&mut command, session);
-    command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
+    command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
     let mut child = command
         .spawn()
         .map_err(|error| SubmitError::Failed(format!("failed to start Codex app-server: {error}")))?;
@@ -259,7 +261,8 @@ async fn start_codex(session: &AgentSession) -> Result<Runtime, SubmitError> {
     wait_for_response(&mut reader, 2).await?;
 
     let state = Arc::new(StdMutex::new(CodexState {
-        active_turn: Some(format!("thread:{}", session.session_id)),
+        thread_id: session.session_id.clone(),
+        active_turn: None,
         starting: false,
     }));
     let reader_state = Arc::clone(&state);
@@ -296,32 +299,17 @@ where
             .or_else(|| value.pointer("/result/turn/id"))
             .and_then(Value::as_str)
             .map(str::to_string);
-        if method == Some("turn/started") || turn_id.is_some() {
-            if let Some(turn_id) = turn_id
-                && let Ok(mut state) = state.lock()
-            {
-                let thread = state
-                    .active_turn
-                    .as_deref()
-                    .and_then(|value| value.strip_prefix("thread:"))
-                    .map(str::to_string);
-                state.active_turn = Some(turn_id);
-                state.starting = false;
-                if let Some(thread) = thread {
-                    // Preserve the thread id in a form runtime_thread_id can recover after completion.
-                    state.active_turn = Some(format!("{turn_id}\nthread:{thread}"));
-                }
-            }
+        if (method == Some("turn/started") || turn_id.is_some())
+            && let Some(turn_id) = turn_id
+            && let Ok(mut state) = state.lock()
+        {
+            state.active_turn = Some(turn_id);
+            state.starting = false;
         }
         if method == Some("turn/completed")
             && let Ok(mut state) = state.lock()
         {
-            let thread = state
-                .active_turn
-                .as_deref()
-                .and_then(|value| value.split("\nthread:").nth(1))
-                .map(str::to_string);
-            state.active_turn = thread.map(|thread| format!("thread:{thread}"));
+            state.active_turn = None;
             state.starting = false;
         }
     }
@@ -377,7 +365,10 @@ fn resume_gemini(session: &AgentSession, message: &str) -> Result<(), SubmitErro
     let mut command = Command::new("gemini");
     command.args(["--resume", &session.session_id, message]);
     apply_cwd(&mut command, session);
-    command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
     let mut child = command
         .spawn()
         .map_err(|error| SubmitError::Failed(format!("failed to resume Gemini session: {error}")))?;
