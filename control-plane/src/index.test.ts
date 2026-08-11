@@ -4,7 +4,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  allowedReturnTo, oauthStartAllowed, sha256Base64Url, validNodeId,
+  allowedReturnTo, githubApiHeaders, nodeIdFromPath, oauthStartAllowed,
+  sha256Base64Url, validNodeId,
 } from './index.ts';
 
 test('PKCE challenge matches RFC 7636 example', async () => {
@@ -26,6 +27,20 @@ test('control plane accepts only stable AgentSight Node IDs', () => {
   assert.equal(validNodeId('node_0123abcdef'), true);
   assert.equal(validNodeId('../../node_secret'), false);
   assert.equal(validNodeId('machine'), false);
+});
+
+test('Node deletion paths accept one validated Node ID only', () => {
+  assert.equal(nodeIdFromPath('/v1/nodes/node_0123abcdef'), 'node_0123abcdef');
+  assert.equal(nodeIdFromPath('/v1/nodes/../../secret'), null);
+  assert.equal(nodeIdFromPath('/v1/nodes/not-a-node'), null);
+  assert.equal(nodeIdFromPath('/v1/nodes/node_ok/extra'), null);
+});
+
+test('GitHub API requests identify the control plane client', () => {
+  const headers = githubApiHeaders('test-token');
+  assert.equal(headers.Authorization, 'Bearer test-token');
+  assert.equal(headers['User-Agent'], 'AgentSight-Control');
+  assert.equal(headers['X-GitHub-Api-Version'], '2022-11-28');
 });
 
 test('rejected client requests do not consume the location OAuth bucket', async () => {

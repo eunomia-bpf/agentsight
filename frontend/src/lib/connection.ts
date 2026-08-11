@@ -32,6 +32,15 @@ export interface CloudIdentity {
   provider?: 'github' | 'google';
 }
 
+export interface CloudNode {
+  id: string;
+  name: string;
+  version: string | null;
+  connectionMode: 'direct';
+  lastRegisteredAt: number;
+  createdAt: number;
+}
+
 type LocalFetchInit = RequestInit & { targetAddressSpace?: 'local' };
 
 function localFetch(input: string, init: RequestInit = {}) {
@@ -281,4 +290,41 @@ export async function registerCloudNode(token: string, connection: LocalConnecti
     }),
   });
   if (!response.ok) throw new Error(`Could not register this Node (${response.status}).`);
+}
+
+export async function fetchCloudNodes(token: string): Promise<CloudNode[]> {
+  const response = await cloudFetch(`${controlPlaneUrl}/v1/nodes`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) throw new Error(`Could not load your Nodes (${response.status}).`);
+  const body = await response.json() as {
+    nodes?: Array<{
+      id?: string;
+      name?: string;
+      version?: string | null;
+      connection_mode?: string;
+      last_seen_at?: number;
+      created_at?: number;
+    }>;
+  };
+  if (!Array.isArray(body.nodes)) throw new Error('The control plane returned an invalid Node list.');
+  return body.nodes
+    .filter((node) => typeof node.id === 'string' && typeof node.name === 'string')
+    .map((node) => ({
+      id: node.id!,
+      name: node.name!,
+      version: typeof node.version === 'string' ? node.version : null,
+      connectionMode: 'direct',
+      lastRegisteredAt: typeof node.last_seen_at === 'number' ? node.last_seen_at : 0,
+      createdAt: typeof node.created_at === 'number' ? node.created_at : 0,
+    }));
+}
+
+export async function forgetCloudNode(token: string, nodeId: string): Promise<void> {
+  const response = await cloudFetch(`${controlPlaneUrl}/v1/nodes/${encodeURIComponent(nodeId)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error(`Could not remove this Node (${response.status}).`);
 }
