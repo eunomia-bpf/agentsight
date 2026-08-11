@@ -30,12 +30,8 @@ pub struct SubmitResult {
 }
 
 enum Runtime {
-    Claude {
-        child: Child,
-        stdin: ChildStdin,
-    },
+    Claude(ChildStdin),
     Codex {
-        child: Child,
         stdin: ChildStdin,
         state: Arc<StdMutex<CodexState>>,
         next_id: u64,
@@ -51,74 +47,47 @@ struct CodexState {
 impl Runtime {
     async fn send(&mut self, message: &str) -> Result<&'static str, SubmitError> {
         match self {
-            Self::Claude { child, stdin } => {
-                if child.try_wait().map_err(io_error)?.is_some() {
-                    return Err(SubmitError::Failed("Claude live transport exited".to_string()));
-                }
-                write_json_line(
+            Self::Claude(stdin) => {
+                send_json(
                     stdin,
-                    &json!({
-                        "type": "user",
-                        "message": {
-                            "role": "user",
-                            "content": [{"type": "text", "text": message}]
-                        }
+                    json!({
+                        "type":"user",
+                        "message":{"role":"user","content":[{"type":"text","text":message}]}
                     }),
                 )
                 .await?;
                 Ok("claude-stream-json")
             }
             Self::Codex {
-                child,
                 stdin,
                 state,
                 next_id,
             } => {
-                if child.try_wait().map_err(io_error)?.is_some() {
-                    return Err(SubmitError::Failed("Codex app-server exited".to_string()));
-                }
                 let (thread_id, active_turn, starting) = state
                     .lock()
-                    .map(|state| {
-                        (
-                            state.thread_id.clone(),
-                            state.active_turn.clone(),
-                            state.starting,
-                        )
-                    })
-                    .map_err(|_| SubmitError::Failed("Codex state lock poisoned".to_string()))?;
+                    .map(|s| (s.thread_id.clone(), s.active_turn.clone(), s.starting))
+                    .map_err(|_| failed("Codex state lock poisoned"))?;
                 if starting {
                     return Err(SubmitError::Conflict(
-                        "Codex is accepting the previous message; retry after the turn starts".to_string(),
+                        "Codex is accepting the previous message; retry after the turn starts".into(),
                     ));
                 }
                 *next_id += 1;
-                let id = *next_id;
                 let request = if let Some(turn_id) = active_turn {
                     json!({
-                        "method": "turn/steer",
-                        "id": id,
-                        "params": {
-                            "threadId": thread_id,
-                            "expectedTurnId": turn_id,
-                            "input": [{"type": "text", "text": message}]
-                        }
+                        "method":"turn/steer","id":*next_id,
+                        "params":{"threadId":thread_id,"expectedTurnId":turn_id,
+                            "input":[{"type":"text","text":message}]}
                     })
                 } else {
-                    state
-                        .lock()
-                        .map_err(|_| SubmitError::Failed("Codex state lock poisoned".to_string()))?
-                        .starting = true;
+                    state.lock().map_err(|_| failed("Codex state lock poisoned"))?.starting = true;
                     json!({
-                        "method": "turn/start",
-                        "id": id,
-                        "params": {
-                            "threadId": thread_id,
-                            "input": [{"type": "text", "text": message}]
-                        }
+                        "method":"turn/start","id":*next_id,
+                        "params":{"threadId":thread_id,
+                            "input":[{"type":"text","text":message}]}
                     })
                 };
-                if let Err(error) = write_json_line(stdin, &request).await {
+                if let Err(error) = send_json(stdin, request).await {
                     if let Ok(mut state) = state.lock() {
                         state.starting = false;
                     }
@@ -138,47 +107,47 @@ pub async fn submit_message(
     if let Some(runtime) = map.get_mut(&session.session_id) {
         match runtime.send(message).await {
             Ok(transport) => return Ok(SubmitResult { transport }),
+            Err(SubmitError::Conflict(error)) => return Err(SubmitError::Conflict(error)),
             Err(SubmitError::Failed(_)) => {
                 map.remove(&session.session_id);
             }
-            Err(error) => return Err(error),
         }
     }
 
     if session_is_running(session) {
         return Err(SubmitError::Conflict(
-            "this session is already running outside AgentSight; live attachment is not available for that runtime"
-                .to_string(),
+            "session is already running outside AgentSight; this runtime cannot be attached safely"
+                .into(),
         ));
     }
 
-    match session.agent_type.as_str() {
+    let (runtime, transport) = match session.agent_type.as_str() {
         agent_session::AGENT_CLAUDE => {
-            let mut runtime = start_claude(session).await?;
+            let mut runtime = start_claude(session)?;
             let transport = runtime.send(message).await?;
-            map.insert(session.session_id.clone(), runtime);
-            Ok(SubmitResult { transport })
+            (Some(runtime), transport)
         }
         agent_session::AGENT_CODEX => {
             let mut runtime = start_codex(session).await?;
             let transport = runtime.send(message).await?;
-            map.insert(session.session_id.clone(), runtime);
-            Ok(SubmitResult { transport })
+            (Some(runtime), transport)
         }
         agent_session::AGENT_GEMINI => {
             drop(map);
             resume_gemini(session, message)?;
-            Ok(SubmitResult {
+            return Ok(SubmitResult {
                 transport: "gemini-resume",
-            })
+            });
         }
-        other => Err(SubmitError::Failed(format!(
-            "sending messages to {other} sessions is not supported yet"
-        ))),
+        other => return Err(failed(format!("messaging {other} sessions is not supported"))),
+    };
+    if let Some(runtime) = runtime {
+        map.insert(session.session_id.clone(), runtime);
     }
+    Ok(SubmitResult { transport })
 }
 
-async fn start_claude(session: &AgentSession) -> Result<Runtime, SubmitError> {
+fn start_claude(session: &AgentSession) -> Result<Runtime, SubmitError> {
     let mut command = Command::new("claude");
     command.args([
         "-p",
@@ -188,165 +157,121 @@ async fn start_claude(session: &AgentSession) -> Result<Runtime, SubmitError> {
         "--output-format=stream-json",
         "--verbose",
     ]);
-    apply_cwd(&mut command, session);
-    command
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null());
+    configure(&mut command, session, true);
     let mut child = command
         .spawn()
-        .map_err(|error| SubmitError::Failed(format!("failed to start Claude live session: {error}")))?;
-    let stdin = child
-        .stdin
-        .take()
-        .ok_or_else(|| SubmitError::Failed("Claude stdin was not available".to_string()))?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| SubmitError::Failed("Claude stdout was not available".to_string()))?;
-    tokio::spawn(drain_lines(stdout, "claude"));
-    Ok(Runtime::Claude { child, stdin })
+        .map_err(|error| failed(format!("failed to start Claude live session: {error}")))?;
+    let stdin = child.stdin.take().ok_or_else(|| failed("Claude stdin unavailable"))?;
+    let stdout = child.stdout.take().ok_or_else(|| failed("Claude stdout unavailable"))?;
+    tokio::spawn(drain(stdout));
+    reap(child, "claude", session.session_id.clone());
+    Ok(Runtime::Claude(stdin))
 }
 
 async fn start_codex(session: &AgentSession) -> Result<Runtime, SubmitError> {
     let mut command = Command::new("codex");
     command.args(["app-server", "--stdio"]);
-    apply_cwd(&mut command, session);
-    command
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null());
+    configure(&mut command, session, true);
     let mut child = command
         .spawn()
-        .map_err(|error| SubmitError::Failed(format!("failed to start Codex app-server: {error}")))?;
-    let mut stdin = child
-        .stdin
-        .take()
-        .ok_or_else(|| SubmitError::Failed("Codex stdin was not available".to_string()))?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| SubmitError::Failed("Codex stdout was not available".to_string()))?;
+        .map_err(|error| failed(format!("failed to start Codex app-server: {error}")))?;
+    let mut stdin = child.stdin.take().ok_or_else(|| failed("Codex stdin unavailable"))?;
+    let stdout = child.stdout.take().ok_or_else(|| failed("Codex stdout unavailable"))?;
     let mut reader = BufReader::new(stdout);
 
-    write_json_line(
+    send_json(
         &mut stdin,
-        &json!({
-            "method": "initialize",
-            "id": 1,
-            "params": {
-                "clientInfo": {
-                    "name": "agentsight",
-                    "title": "AgentSight",
-                    "version": env!("CARGO_PKG_VERSION")
-                }
-            }
-        }),
+        json!({"method":"initialize","id":1,"params":{"clientInfo":{
+            "name":"agentsight","title":"AgentSight","version":env!("CARGO_PKG_VERSION")
+        }}}),
     )
     .await?;
-    wait_for_response(&mut reader, 1).await?;
-    write_json_line(&mut stdin, &json!({"method": "initialized", "params": {}})).await?;
-    write_json_line(
+    wait_response(&mut reader, 1).await?;
+    send_json(&mut stdin, json!({"method":"initialized","params":{}})).await?;
+    send_json(
         &mut stdin,
-        &json!({
-            "method": "thread/resume",
-            "id": 2,
-            "params": {
-                "threadId": session.session_id,
-                "approvalPolicy": "never"
-            }
-        }),
+        json!({"method":"thread/resume","id":2,"params":{
+            "threadId":session.session_id,"approvalPolicy":"never"
+        }}),
     )
     .await?;
-    wait_for_response(&mut reader, 2).await?;
+    wait_response(&mut reader, 2).await?;
 
     let state = Arc::new(StdMutex::new(CodexState {
         thread_id: session.session_id.clone(),
         active_turn: None,
         starting: false,
     }));
-    let reader_state = Arc::clone(&state);
-    tokio::spawn(async move {
-        read_codex_events(reader, reader_state).await;
-    });
+    tokio::spawn(read_codex(reader, Arc::clone(&state)));
+    reap(child, "codex", session.session_id.clone());
     Ok(Runtime::Codex {
-        child,
         stdin,
         state,
         next_id: 2,
     })
 }
 
-async fn read_codex_events<R>(mut reader: BufReader<R>, state: Arc<StdMutex<CodexState>>)
+async fn read_codex<R>(mut reader: BufReader<R>, state: Arc<StdMutex<CodexState>>)
 where
     R: tokio::io::AsyncRead + Unpin,
 {
     let mut line = String::new();
     loop {
         line.clear();
-        let Ok(bytes) = reader.read_line(&mut line).await else {
-            break;
-        };
-        if bytes == 0 {
+        if reader.read_line(&mut line).await.ok().filter(|n| *n > 0).is_none() {
             break;
         }
         let Ok(value) = serde_json::from_str::<Value>(line.trim()) else {
             continue;
         };
         let method = value.get("method").and_then(Value::as_str);
-        let turn_id = value
+        let turn = value
             .pointer("/params/turn/id")
             .or_else(|| value.pointer("/result/turn/id"))
-            .and_then(Value::as_str)
-            .map(str::to_string);
-        if (method == Some("turn/started") || turn_id.is_some())
-            && let Some(turn_id) = turn_id
-            && let Ok(mut state) = state.lock()
-        {
-            state.active_turn = Some(turn_id);
-            state.starting = false;
-        }
-        if method == Some("turn/completed")
-            && let Ok(mut state) = state.lock()
-        {
-            state.active_turn = None;
-            state.starting = false;
+            .and_then(Value::as_str);
+        if let Ok(mut state) = state.lock() {
+            if method == Some("turn/completed") {
+                state.active_turn = None;
+                state.starting = false;
+            } else if let Some(turn) = turn {
+                state.active_turn = Some(turn.to_string());
+                state.starting = false;
+            } else if value.get("error").is_some() && value.get("id").is_some() {
+                state.starting = false;
+            }
         }
     }
 }
 
-async fn wait_for_response<R>(reader: &mut BufReader<R>, expected_id: u64) -> Result<(), SubmitError>
+async fn wait_response<R>(reader: &mut BufReader<R>, id: u64) -> Result<(), SubmitError>
 where
     R: tokio::io::AsyncRead + Unpin,
 {
     let mut line = String::new();
     loop {
         line.clear();
-        let bytes = reader
+        if reader
             .read_line(&mut line)
             .await
-            .map_err(|error| SubmitError::Failed(format!("failed to read provider response: {error}")))?;
-        if bytes == 0 {
-            return Err(SubmitError::Failed(
-                "provider transport closed during initialization".to_string(),
-            ));
+            .map_err(|error| failed(error.to_string()))?
+            == 0
+        {
+            return Err(failed("provider transport closed during initialization"));
         }
         let Ok(value) = serde_json::from_str::<Value>(line.trim()) else {
             continue;
         };
-        if value.get("id").and_then(Value::as_u64) != Some(expected_id) {
-            continue;
+        if value.get("id").and_then(Value::as_u64) == Some(id) {
+            return value
+                .get("error")
+                .map(|error| Err(failed(format!("provider rejected request: {error}"))))
+                .unwrap_or(Ok(()));
         }
-        if let Some(error) = value.get("error") {
-            return Err(SubmitError::Failed(format!("provider rejected request: {error}")));
-        }
-        return Ok(());
     }
 }
 
 fn session_is_running(session: &AgentSession) -> bool {
-    let mut live = LiveView::default();
-    let Ok(sample) = live.refresh_monitor_sample(50) else {
+    let Ok(sample) = LiveView::default().refresh_monitor_sample(50) else {
         return false;
     };
     let target = canonical(&session.path);
@@ -357,23 +282,42 @@ fn session_is_running(session: &AgentSession) -> bool {
         .any(|path| canonical(path) == target)
 }
 
-fn canonical(path: &Path) -> std::path::PathBuf {
-    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
-}
-
 fn resume_gemini(session: &AgentSession, message: &str) -> Result<(), SubmitError> {
     let mut command = Command::new("gemini");
     command.args(["--resume", &session.session_id, message]);
-    apply_cwd(&mut command, session);
-    command
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null());
-    let mut child = command
+    configure(&mut command, session, false);
+    let child = command
         .spawn()
-        .map_err(|error| SubmitError::Failed(format!("failed to resume Gemini session: {error}")))?;
-    let agent = session.agent_type.clone();
-    let session_id = session.session_id.clone();
+        .map_err(|error| failed(format!("failed to resume Gemini session: {error}")))?;
+    reap(child, "gemini", session.session_id.clone());
+    Ok(())
+}
+
+fn configure(command: &mut Command, session: &AgentSession, piped: bool) {
+    if let Some(cwd) = session.cwd.as_deref().filter(|cwd| !cwd.is_empty()) {
+        command.current_dir(cwd);
+    }
+    command.stdin(if piped { Stdio::piped() } else { Stdio::null() });
+    command.stdout(if piped { Stdio::piped() } else { Stdio::null() });
+    command.stderr(Stdio::null());
+}
+
+async fn send_json(stdin: &mut ChildStdin, value: Value) -> Result<(), SubmitError> {
+    let mut data = serde_json::to_vec(&value).map_err(|error| failed(error.to_string()))?;
+    data.push(b'\n');
+    stdin
+        .write_all(&data)
+        .await
+        .and_then(|_| async { stdin.flush().await }.await)
+        .map_err(|error| failed(format!("provider transport write failed: {error}")))
+}
+
+async fn drain<R: tokio::io::AsyncRead + Unpin>(stdout: R) {
+    let mut lines = BufReader::new(stdout).lines();
+    while let Ok(Some(_)) = lines.next_line().await {}
+}
+
+fn reap(mut child: Child, agent: &'static str, session_id: String) {
     tokio::spawn(async move {
         match child.wait().await {
             Ok(status) if status.success() => {}
@@ -381,39 +325,12 @@ fn resume_gemini(session: &AgentSession, message: &str) -> Result<(), SubmitErro
             Err(error) => log::warn!("{agent} session {session_id} wait failed: {error}"),
         }
     });
-    Ok(())
 }
 
-fn apply_cwd(command: &mut Command, session: &AgentSession) {
-    if let Some(cwd) = session.cwd.as_deref().filter(|cwd| !cwd.is_empty()) {
-        command.current_dir(cwd);
-    }
+fn canonical(path: &Path) -> std::path::PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
-async fn write_json_line(stdin: &mut ChildStdin, value: &Value) -> Result<(), SubmitError> {
-    let mut bytes = serde_json::to_vec(value)
-        .map_err(|error| SubmitError::Failed(format!("failed to encode provider request: {error}")))?;
-    bytes.push(b'\n');
-    stdin
-        .write_all(&bytes)
-        .await
-        .map_err(|error| SubmitError::Failed(format!("failed to write provider request: {error}")))?;
-    stdin
-        .flush()
-        .await
-        .map_err(|error| SubmitError::Failed(format!("failed to flush provider request: {error}")))
-}
-
-async fn drain_lines<R>(stdout: R, agent: &'static str)
-where
-    R: tokio::io::AsyncRead + Unpin,
-{
-    let mut lines = BufReader::new(stdout).lines();
-    while let Ok(Some(line)) = lines.next_line().await {
-        log::trace!("{agent} live session: {line}");
-    }
-}
-
-fn io_error(error: std::io::Error) -> SubmitError {
-    SubmitError::Failed(error.to_string())
+fn failed(message: impl Into<String>) -> SubmitError {
+    SubmitError::Failed(message.into())
 }
