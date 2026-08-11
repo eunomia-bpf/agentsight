@@ -3,15 +3,16 @@
 
 use agent_session::AgentSession;
 use serde_json::{Value, json};
-use std::collections::HashMap;
-use std::path::Path;
+use std::collections::{HashMap, HashSet};
 use std::process::Stdio;
 use std::sync::{Arc, Mutex as StdMutex, OnceLock};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, Command};
 use tokio::sync::Mutex;
 
-use crate::view::live_top::LiveView;
+use crate::sources::proc as procfs;
+use crate::view::process_select;
 
 static RUNTIMES: OnceLock<Mutex<HashMap<String, Runtime>>> = OnceLock::new();
 
@@ -270,15 +271,62 @@ where
 }
 
 fn session_is_running(session: &AgentSession) -> bool {
-    let Ok(sample) = LiveView::default().refresh_monitor_sample(50) else {
+    let Ok(sample) = procfs::ProcSnapshot::collect() else {
         return false;
     };
-    let target = canonical(&session.path);
-    sample
-        .sessions
-        .iter()
-        .filter_map(|live| live.session_path.as_deref())
-        .any(|path| canonical(path) == target)
+    let children = sample.children_by_ppid();
+    let roots = process_select::live_root_pids(&sample, None, None);
+    let root_set = roots.iter().copied().collect::<HashSet<_>>();
+    let candidates = roots
+        .into_iter()
+        .filter_map(|root_pid| {
+            let root = sample.procs.get(&root_pid)?;
+            (process_select::known_agent_label(&root.comm, &root.command)
+                == Some(session.agent_type.as_str()))
+            .then(|| {
+                let family = procfs::process_family_excluding(
+                    root_pid,
+                    &children,
+                    &sample.procs,
+                    &root_set,
+                );
+                let members = family
+                    .into_iter()
+                    .filter_map(|pid| sample.procs.get(&pid).map(procfs::ProcInfo::process_key))
+                    .collect();
+                agent_session::LiveProcessCandidate {
+                    tree: agent_session::ProcessTree {
+                        root: root.process_key(),
+                        members,
+                    },
+                    agent: session.agent_type.clone(),
+                    age_s: Some(procfs::process_age_s(root, &sample)),
+                    cwd: root
+                        .cwd
+                        .as_ref()
+                        .map(|path| path.to_string_lossy().to_string()),
+                }
+            })
+        })
+        .collect::<Vec<_>>();
+    let trees = candidates.iter().map(|candidate| candidate.tree.clone()).collect::<Vec<_>>();
+    let fd_paths = procfs::collect_fd_paths(&trees);
+    let input = agent_session::SessionProcessInput {
+        id: session.session_id.clone(),
+        agent: session.agent_type.clone(),
+        path: session.path.clone(),
+        start_timestamp_ms: session.start_timestamp_ms,
+        end_timestamp_ms: session.end_timestamp_ms,
+        cwd: session.cwd.clone(),
+    };
+    let matches = agent_session::SessionProcessMatcher::default().match_sessions(
+        &[input],
+        &candidates,
+        &fd_paths,
+        &HashMap::new(),
+        now_ms(),
+    );
+    matches.by_session_id.contains_key(&session.session_id)
 }
 
 fn resume_gemini(session: &AgentSession, message: &str) -> Result<(), SubmitError> {
@@ -329,8 +377,11 @@ fn reap(mut child: Child, agent: &'static str, session_id: String) {
     });
 }
 
-fn canonical(path: &Path) -> std::path::PathBuf {
-    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }
 
 fn failed(message: impl Into<String>) -> SubmitError {
