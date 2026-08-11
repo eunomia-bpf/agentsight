@@ -6,35 +6,25 @@ use crate::server::assets::FrontendAssets;
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
 use crate::sources::sqlite as sqlite_source;
 use crate::view::SharedMaterializedView;
-use http_body_util::{BodyExt, Full, LengthLimitError, Limited};
-use hyper::header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_LENGTH, HeaderValue, ORIGIN};
+use http_body_util::Full;
+use hyper::header::{AUTHORIZATION, CACHE_CONTROL, HeaderValue, ORIGIN};
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode, body::Bytes};
 use hyper_util::rt::TokioIo;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Value;
-use std::collections::HashSet;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::net::TcpListener;
 
-const HOSTED_APP_ORIGIN: &str = "https://app.agentsight.us";
-const MAX_BIND_BODY_BYTES: usize = 4096;
-const PAIRING_CODE_TTL: Duration = Duration::from_secs(2 * 60);
-
 #[derive(Clone)]
-struct PairingAuth {
-    state: Arc<Mutex<PairingState>>,
-}
-
-struct PairingState {
-    code: Option<String>,
-    code_expires_at: Instant,
-    tokens: HashSet<String>,
+struct DirectAuth {
+    access_token: String,
     node: NodeMetadata,
+    allowed_origin: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -44,39 +34,13 @@ pub struct NodeMetadata {
     pub version: String,
 }
 
-impl PairingAuth {
-    fn new(code: String, node: NodeMetadata) -> Self {
-        Self::new_with_expiration(code, node, Instant::now() + PAIRING_CODE_TTL)
-    }
-
-    fn new_with_expiration(code: String, node: NodeMetadata, code_expires_at: Instant) -> Self {
+impl DirectAuth {
+    fn new(access_token: String, node: NodeMetadata, allowed_origin: String) -> Self {
         Self {
-            state: Arc::new(Mutex::new(PairingState {
-                code: Some(code),
-                code_expires_at,
-                tokens: HashSet::new(),
-                node,
-            })),
+            access_token,
+            node,
+            allowed_origin,
         }
-    }
-
-    fn exchange(&self, code: &str) -> Option<String> {
-        let mut state = self.state.lock().ok()?;
-        if Instant::now() > state.code_expires_at {
-            state.code = None;
-            return None;
-        }
-        if state.code.as_deref() != Some(code) {
-            return None;
-        }
-        state.code = None;
-        let token = format!(
-            "{}{}",
-            uuid::Uuid::new_v4().simple(),
-            uuid::Uuid::new_v4().simple()
-        );
-        state.tokens.insert(token.clone());
-        Some(token)
     }
 
     fn authorizes(&self, value: Option<&HeaderValue>) -> bool {
@@ -86,19 +50,12 @@ impl PairingAuth {
         else {
             return false;
         };
-        self.state
-            .lock()
-            .is_ok_and(|state| state.tokens.contains(token))
+        token == self.access_token
     }
 
-    fn node(&self) -> Option<NodeMetadata> {
-        self.state.lock().ok().map(|state| state.node.clone())
+    fn allows_origin(&self, origin: &str) -> bool {
+        origin == self.allowed_origin
     }
-}
-
-#[derive(Deserialize)]
-struct PairRequest {
-    code: String,
 }
 
 pub struct WebServer {
@@ -106,7 +63,7 @@ pub struct WebServer {
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
     db_path: Option<String>,
-    pairing_auth: Option<PairingAuth>,
+    direct_auth: Option<DirectAuth>,
 }
 
 impl WebServer {
@@ -120,12 +77,17 @@ impl WebServer {
             view,
             agent_native_sessions: Arc::new(Mutex::new(SessionCache::new())),
             db_path,
-            pairing_auth: None,
+            direct_auth: None,
         })
     }
 
-    pub fn with_pairing_code(mut self, code: String, node: NodeMetadata) -> Self {
-        self.pairing_auth = Some(PairingAuth::new(code, node));
+    pub fn with_direct_access(
+        mut self,
+        access_token: String,
+        node: NodeMetadata,
+        allowed_origin: String,
+    ) -> Self {
+        self.direct_auth = Some(DirectAuth::new(access_token, node, allowed_origin));
         self
     }
 
@@ -160,7 +122,7 @@ impl WebServer {
             let view = Arc::clone(&self.view);
             let agent_native_sessions = Arc::clone(&self.agent_native_sessions);
             let db_path = self.db_path.clone();
-            let pairing_auth = self.pairing_auth.clone();
+            let direct_auth = self.direct_auth.clone();
 
             tokio::spawn(async move {
                 let io = TokioIo::new(stream);
@@ -171,7 +133,7 @@ impl WebServer {
                         view.clone(),
                         agent_native_sessions.clone(),
                         db_path.clone(),
-                        pairing_auth.clone(),
+                        direct_auth.clone(),
                     )
                 });
 
@@ -189,7 +151,7 @@ async fn handle_request(
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
     db_path: Option<String>,
-    pairing_auth: Option<PairingAuth>,
+    direct_auth: Option<DirectAuth>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
     let path = req.uri().path().to_string();
     let query = req.uri().query().map(str::to_string);
@@ -203,7 +165,7 @@ async fn handle_request(
 
     if origin
         .as_deref()
-        .is_some_and(|value| !allowed_origin(value))
+        .is_some_and(|value| !allowed_origin(value, direct_auth.as_ref()))
     {
         return Ok(plain_response(
             StatusCode::FORBIDDEN,
@@ -216,6 +178,7 @@ async fn handle_request(
         return Ok(cors_response(
             plain_response(StatusCode::NO_CONTENT, "text/plain", Vec::new()),
             origin.as_deref(),
+            direct_auth.as_ref(),
         ));
     }
 
@@ -225,14 +188,13 @@ async fn handle_request(
             &serde_json::json!({
                 "protocol_version": 1,
                 "product": "agentsight",
-                "pairing_required": pairing_auth.is_some(),
-                "node": pairing_auth.as_ref().and_then(PairingAuth::node),
+                "authorization_required": direct_auth.is_some(),
+                "node": direct_auth.as_ref().map(|auth| auth.node.clone()),
             }),
         ),
-        (&Method::POST, "/api/v1/bind") => serve_pairing(req, pairing_auth.as_ref()).await,
         (&Method::GET, "/api/v1/snapshot") => {
             if !snapshot_access_allowed(
-                pairing_auth.as_ref(),
+                direct_auth.as_ref(),
                 req.headers().get(AUTHORIZATION),
                 origin.as_deref(),
             ) {
@@ -248,59 +210,11 @@ async fn handle_request(
         }
     };
 
-    Ok(cors_response(response, origin.as_deref()))
-}
-
-async fn serve_pairing(
-    req: Request<hyper::body::Incoming>,
-    pairing_auth: Option<&PairingAuth>,
-) -> Response<Full<Bytes>> {
-    let Some(pairing_auth) = pairing_auth else {
-        return json_error(StatusCode::NOT_FOUND, "binding is not active");
-    };
-    if req
-        .headers()
-        .get(CONTENT_LENGTH)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.parse::<usize>().ok())
-        .is_some_and(|length| length > MAX_BIND_BODY_BYTES)
-    {
-        return json_error(
-            StatusCode::PAYLOAD_TOO_LARGE,
-            "binding request is too large",
-        );
-    }
-    let body = match Limited::new(req.into_body(), MAX_BIND_BODY_BYTES)
-        .collect()
-        .await
-    {
-        Ok(body) => body.to_bytes(),
-        Err(error) if error.downcast_ref::<LengthLimitError>().is_some() => {
-            return json_error(
-                StatusCode::PAYLOAD_TOO_LARGE,
-                "binding request is too large",
-            );
-        }
-        Err(_) => return json_error(StatusCode::BAD_REQUEST, "invalid binding request"),
-    };
-    let request: PairRequest = match serde_json::from_slice(&body) {
-        Ok(request) => request,
-        Err(_) => return json_error(StatusCode::BAD_REQUEST, "invalid binding request"),
-    };
-    match pairing_auth.exchange(&request.code) {
-        Some(token) => json_response(
-            StatusCode::OK,
-            &serde_json::json!({
-                "access_token": token,
-                "token_type": "Bearer",
-                "node": pairing_auth.node(),
-            }),
-        ),
-        None => json_error(
-            StatusCode::UNAUTHORIZED,
-            "pairing code is invalid or already used",
-        ),
-    }
+    Ok(cors_response(
+        response,
+        origin.as_deref(),
+        direct_auth.as_ref(),
+    ))
 }
 
 async fn serve_asset(
@@ -416,17 +330,17 @@ fn plain_response(status: StatusCode, content_type: &str, body: Vec<u8>) -> Resp
         .unwrap_or_else(|_| Response::new(Full::new(Bytes::new())))
 }
 
-fn allowed_origin(origin: &str) -> bool {
-    origin == HOSTED_APP_ORIGIN
+fn allowed_origin(origin: &str, direct_auth: Option<&DirectAuth>) -> bool {
+    direct_auth.is_some_and(|auth| auth.allows_origin(origin))
         || option_env!("AGENTSIGHT_DEV_APP_ORIGIN").is_some_and(|allowed| origin == allowed)
 }
 
 fn snapshot_access_allowed(
-    pairing_auth: Option<&PairingAuth>,
+    direct_auth: Option<&DirectAuth>,
     authorization: Option<&HeaderValue>,
     origin: Option<&str>,
 ) -> bool {
-    match pairing_auth {
+    match direct_auth {
         Some(auth) => auth.authorizes(authorization),
         None => origin.is_none(),
     }
@@ -435,8 +349,9 @@ fn snapshot_access_allowed(
 fn cors_response(
     mut response: Response<Full<Bytes>>,
     origin: Option<&str>,
+    direct_auth: Option<&DirectAuth>,
 ) -> Response<Full<Bytes>> {
-    let Some(origin) = origin.filter(|origin| allowed_origin(origin)) else {
+    let Some(origin) = origin.filter(|origin| allowed_origin(origin, direct_auth)) else {
         return response;
     };
     if let Ok(value) = HeaderValue::from_str(origin) {
@@ -446,7 +361,7 @@ fn cors_response(
     }
     response.headers_mut().insert(
         "Access-Control-Allow-Methods",
-        HeaderValue::from_static("GET, POST, OPTIONS"),
+        HeaderValue::from_static("GET, OPTIONS"),
     );
     response.headers_mut().insert(
         "Access-Control-Allow-Headers",
@@ -504,41 +419,36 @@ mod tests {
     }
 
     #[test]
-    fn pairing_code_is_single_use_and_token_authorizes() {
-        let auth = PairingAuth::new(
-            "short-lived".to_string(),
+    fn direct_access_key_authorizes() {
+        let auth = DirectAuth::new(
+            "process-lifetime-key".to_string(),
             NodeMetadata {
                 id: "node_test".to_string(),
                 name: "test".to_string(),
                 version: "1".to_string(),
             },
+            "https://console.example".to_string(),
         );
-        assert!(auth.exchange("wrong").is_none());
-        let token = auth.exchange("short-lived").unwrap();
-        assert!(auth.exchange("short-lived").is_none());
-        let header = HeaderValue::from_str(&format!("Bearer {token}")).unwrap();
+        let header = HeaderValue::from_static("Bearer process-lifetime-key");
         assert!(auth.authorizes(Some(&header)));
+        assert!(!auth.authorizes(Some(&HeaderValue::from_static("Bearer wrong"))));
         assert!(!auth.authorizes(None));
     }
 
     #[test]
-    fn expired_pairing_code_is_rejected() {
-        let auth = PairingAuth::new_with_expiration(
-            "expired".to_string(),
+    fn cors_uses_the_configured_app_origin() {
+        let auth = DirectAuth::new(
+            "key".to_string(),
             NodeMetadata {
                 id: "node_test".to_string(),
                 name: "test".to_string(),
                 version: "1".to_string(),
             },
-            Instant::now() - Duration::from_secs(1),
+            "https://console.example".to_string(),
         );
-        assert!(auth.exchange("expired").is_none());
-    }
-
-    #[test]
-    fn cors_allows_only_hosted_app() {
-        assert!(allowed_origin("https://app.agentsight.us"));
-        assert!(!allowed_origin("https://evil.example"));
+        assert!(allowed_origin("https://console.example", Some(&auth)));
+        assert!(!allowed_origin("https://app.agentsight.us", Some(&auth)));
+        assert!(!allowed_origin("https://evil.example", Some(&auth)));
     }
 
     #[test]
@@ -547,7 +457,7 @@ mod tests {
         assert!(!snapshot_access_allowed(
             None,
             None,
-            Some(HOSTED_APP_ORIGIN)
+            Some("https://console.example")
         ));
     }
 

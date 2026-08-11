@@ -9,6 +9,10 @@ The SPA itself is published by this repository's GitHub Pages workflow at
 `https://app.agentsight.us`; it is not served by this Worker.
 
 The deployed API is `https://agentsight-control.yusen356.workers.dev`.
+Both sides remain configurable for self-hosting: build the SPA with
+`NEXT_PUBLIC_CONTROL_PLANE_URL` pointing at your Worker, and set that Worker's
+`APP_ORIGIN` variable to the SPA origin. `agentsight bind --app-url` selects the
+same presentation origin for a Node connection.
 
 ## Authentication
 

@@ -228,6 +228,12 @@ enum Commands {
         /// SQLite capture to serve (defaults to the latest agentsight-*.db).
         #[arg(long)]
         db: Option<String>,
+        /// Static AgentSight app to open (official hosted app by default).
+        #[arg(long, default_value = "https://app.agentsight.us/")]
+        app_url: String,
+        /// Browser-reachable Node base URL (defaults to http://LISTEN:PORT).
+        #[arg(long)]
+        endpoint: Option<String>,
     },
     /// Show live agent sessions.
     Top {
@@ -619,9 +625,20 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             no_open,
             server_port,
             db,
+            app_url,
+            endpoint,
         } => {
             let db_path = configured_db_path(db).or_else(latest_session_db);
-            run_bind(&cli.listen, *server_port, *no_open, *qr, db_path).await?
+            run_bind(
+                &cli.listen,
+                *server_port,
+                *no_open,
+                *qr,
+                db_path,
+                app_url,
+                endpoint.as_deref(),
+            )
+            .await?
         }
         Commands::Report { db, local, sub } => match sub {
             None | Some(ReportCommands::Summary { .. }) => {
@@ -1007,21 +1024,32 @@ mod tests {
             "--no-open",
             "--server-port",
             "7444",
+            "--listen",
+            "0.0.0.0",
             "--db",
             "capture.db",
+            "--app-url",
+            "https://console.example/ui/",
+            "--endpoint",
+            "https://node.example:7444",
         ])
         .unwrap();
+        assert_eq!(cli.listen, "0.0.0.0");
         match cli.command {
             Commands::Bind {
                 qr,
                 no_open,
                 server_port,
                 db,
+                app_url,
+                endpoint,
             } => {
                 assert!(qr);
                 assert!(no_open);
                 assert_eq!(server_port, 7444);
                 assert_eq!(db.as_deref(), Some("capture.db"));
+                assert_eq!(app_url, "https://console.example/ui/");
+                assert_eq!(endpoint.as_deref(), Some("https://node.example:7444"));
             }
             _ => panic!("expected bind command"),
         }

@@ -180,8 +180,9 @@ sudo agentsight record -- claude
 agentsight report serve --db run.db
 ```
 
-目标体验是打开 `app.agentsight.us`，选择 Local，浏览器获准后直连 loopback Node API；
-数据仍写入本地 SQLite，用户不需要 Cloud account。当前 release 仍内嵌并 serve UI，这是
+目标体验是打开 presentation SPA 后先自动发现 same-origin AgentSight Node；没有发现时再让
+用户连接 Direct Node、登录或进入 demo。`agentsight bind` 默认生成 loopback endpoint，但
+Local 不是另一套特殊协议或页面模式。数据仍写入本地 SQLite，用户不需要 Cloud account。当前 release 仍内嵌并 serve UI，这是
 待移除的兼容实现，不是最终 presentation architecture。完全离线时使用 CLI/TUI、已缓存
 PWA，或在可信网络里部署同一份静态 bundle。
 
@@ -206,8 +207,9 @@ ssh -N -L 27395:127.0.0.1:7395 server
 
 统一 fleet 入口仍是 `app.agentsight.us`；目标 `DirectFleetProvider` 通过 authenticated
 Node Protocol 查询配置的节点并在浏览器合并，不要求用户学习另一组采集命令。本轮实现的
-`agentsight bind` 只开放 loopback，并用两分钟、一次性的配对码换取仅在命令进程内有效的
-bearer token；现有 `record` server 的兼容接口没有因此变成可公开的远程 API。Direct Mode
+`agentsight bind` 默认开放 loopback，也允许显式指定 listen IP、port、browser endpoint
+和 self-hosted app URL；它把随机 process-lifetime bearer 直接放在 URL fragment 中，SPA
+读取后立即清除 fragment，不再增加短码交换协议。现有 `record` server 的兼容接口没有因此变成可公开的远程 API。Direct Mode
 不需要 AgentSight backend；SSH 只是现有可用的 tunnel，不是独立 provider。
 
 ### Mode 2：Managed Coordination
@@ -528,14 +530,14 @@ agent evidence，而不是采集最多 telemetry。
 | Local persistence | 已有 SQLite，但产品化 lifecycle 仍不完整 |
 | Container targeting | 已支持 Docker/Kubernetes binary resolution |
 | Static app | `app.agentsight.us` 托管本仓库 SPA；无连接时明确选择 Bind、OAuth 登录或 recorded demo |
-| Local bind | `agentsight bind` 打开短期 fragment 链接，只监听 loopback；Node ID 持久化，访问 token 随进程失效 |
-| Direct API | `/api/v1/info`、一次性 `/api/v1/bind` 和 bearer-protected `/api/v1/snapshot`；production CORS 只允许托管 app；bind 默认读取最新 SQLite 或本地 session index |
+| Node bind | `agentsight bind` 用 URL fragment 交付随机 process-lifetime bearer；默认自动发现 loopback，但可指定 listen IP、port、browser endpoint 和自托管 app URL；Node ID 持久化，token 随进程失效 |
+| Direct API | `/api/v1/info` 和 bearer-protected `/api/v1/snapshot`；CORS origin 来自本次选择的 hosted/self-hosted app；bind 默认读取最新 SQLite 或本地 session index |
 | Cloud control | Cloudflare Worker + D1 已实现带浏览器 PKCE 的 GitHub/Google OAuth flow、session 和 owner-scoped Direct Node metadata registry；不接收 snapshot；provider 上线仍需配置四个 OAuth secrets |
 | Managed relay/Gateway | 尚未实现；当前跨机仍需 BYO connectivity，登录不会让不可达 Node 自动上线 |
 
 本轮是可 dogfood 的 Local/Direct saved-session/index 切片，不是跨进程 eBPF live relay 或完整
 enterprise claim：仍保留 embedded assets
-以兼容旧入口；Snapshot 仍是迁移接口；local access 仍是 process-lifetime bearer，而不是
+以兼容旧入口；Snapshot 仍是迁移接口；direct access 仍是 process-lifetime bearer，而不是
 浏览器 key + proof-of-possession；organization、RBAC/capability、revocation、managed relay、
 Site Gateway 和 bounded typed query 仍未完成。Node API 不能直接暴露到公网、LAN 或 tailnet；
 公开协议还必须补齐 HTTPS、pagination、deadline、response limit 和 disclosure policy。
@@ -585,7 +587,7 @@ remote-access adapter：
 
 1. 首启生成并持久化 Node key；
 2. 在现有 materialized view 之上增加少量 authenticated、bounded API；
-3. 增加一次性 local pairing/managed enrollment；
+3. 在现有 direct bearer 之外增加可撤销的 managed enrollment；
 4. 后台服务可选建立 outbound WSS，并复用同一个授权校验和 query handler；
 5. 移除 Node release 对前端 assets 的依赖，但保持现有 CLI 命令和本地离线能力。
 
@@ -621,7 +623,7 @@ Direct Fleet 本地查询的前置条件。
 
 1. 保持现有 `top`/`record`/`report`/`monitor` 入口和 capture/storage 路径不变；
 2. 将静态 SPA 与 Node binary 解耦，在现有 view 上加最小 bounded Node API；
-3. 加入 Node/client key、local pairing、managed enrollment 和 capability validation；
+3. 加入 Node/client key、managed enrollment 和 capability validation；
 4. 交付 Local/Direct provider，并让后台服务可选建立 outbound WSS；
 5. 上线 metadata-only coordination，先用明确披露信任边界的 relay 自己 dogfood；
 6. 再补 E2E、direct-path upgrade、provenance/detection/storage lifecycle；

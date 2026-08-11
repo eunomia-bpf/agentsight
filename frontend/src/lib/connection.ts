@@ -50,13 +50,11 @@ function base64Url(bytes: Uint8Array): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function normalizeLoopbackEndpoint(raw: string): string {
+function normalizeNodeEndpoint(raw: string): string {
   const endpoint = new URL(raw);
-  const loopback = /^127(?:\.\d{1,3}){3}$/.test(endpoint.hostname)
-    || endpoint.hostname === 'localhost'
-    || endpoint.hostname === '[::1]';
-  if (endpoint.protocol !== 'http:' || !loopback || endpoint.username || endpoint.password) {
-    throw new Error('The binding URL does not contain a valid loopback AgentSight endpoint.');
+  if (!['http:', 'https:'].includes(endpoint.protocol)
+    || !endpoint.hostname || endpoint.username || endpoint.password) {
+    throw new Error('The binding URL does not contain a valid AgentSight Node endpoint.');
   }
   endpoint.pathname = '';
   endpoint.search = '';
@@ -65,7 +63,7 @@ function normalizeLoopbackEndpoint(raw: string): string {
 }
 
 export interface EmbeddedServer {
-  pairingRequired: boolean;
+  authorizationRequired: boolean;
   connection: LocalConnection;
 }
 
@@ -80,11 +78,12 @@ export async function detectEmbeddedServer(): Promise<EmbeddedServer | null> {
     const body = await response.json() as {
       protocol_version?: number;
       product?: string;
+      authorization_required?: boolean;
       pairing_required?: boolean;
     };
     if (body.product !== 'agentsight' || body.protocol_version !== 1) return null;
     return {
-      pairingRequired: body.pairing_required === true,
+      authorizationRequired: body.authorization_required === true || body.pairing_required === true,
       connection: {
         endpoint,
         accessToken: '',
@@ -117,37 +116,34 @@ async function exchangeLocalPairingOnce(params: URLSearchParams): Promise<LocalC
   if (params.get('action') !== 'bind' || params.get('v') !== '1') {
     throw new Error('Unsupported AgentSight binding link.');
   }
-  const code = params.get('code');
-  const endpoint = normalizeLoopbackEndpoint(params.get('endpoint') || '');
-  if (!code) throw new Error('The binding link is missing its one-time code.');
+  const accessToken = params.get('token');
+  const endpoint = normalizeNodeEndpoint(params.get('endpoint') || '');
+  if (!accessToken || !/^[A-Za-z0-9_-]{32,256}$/.test(accessToken)) {
+    throw new Error('The binding link is missing a valid access key.');
+  }
 
   let response: Response;
   try {
-    response = await localFetch(`${endpoint}/api/v1/bind`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
+    response = await localFetch(`${endpoint}/api/v1/info`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
   } catch {
     throw new Error(
-      'Could not reach the local AgentSight Node. Allow Local network access in the browser, then run agentsight bind again.',
+      'Could not reach the AgentSight Node. Check its endpoint and browser network permission, then run agentsight bind again.',
     );
   }
   if (!response.ok) {
-    throw new Error(response.status === 401
-      ? 'This binding link has expired or was already used. Run agentsight bind again.'
-      : `AgentSight binding failed (${response.status}).`);
+    throw new Error(`AgentSight binding failed (${response.status}).`);
   }
   const body = await response.json() as {
-    access_token?: string;
     node?: { id?: string; name?: string; version?: string };
   };
-  if (!body.access_token || !body.node?.id || !body.node.name) {
+  if (!body.node?.id || !body.node.name) {
     throw new Error('AgentSight returned an invalid binding response.');
   }
   return {
     endpoint,
-    accessToken: body.access_token,
+    accessToken,
     nodeId: body.node.id,
     nodeName: body.node.name,
     version: body.node.version || 'unknown',
@@ -181,10 +177,11 @@ export function loadLocalConnection(): LocalConnection | null {
       || typeof parsed.accessToken !== 'string'
       || typeof parsed.nodeId !== 'string'
       || typeof parsed.nodeName !== 'string'
-      || typeof parsed.version !== 'string') {
+      || typeof parsed.version !== 'string'
+      || !/^[A-Za-z0-9_-]{32,256}$/.test(parsed.accessToken)) {
       throw new Error('invalid saved local connection');
     }
-    return { ...parsed, endpoint: normalizeLoopbackEndpoint(parsed.endpoint) } as LocalConnection;
+    return { ...parsed, endpoint: normalizeNodeEndpoint(parsed.endpoint) } as LocalConnection;
   } catch {
     clearLocalConnection();
     return null;

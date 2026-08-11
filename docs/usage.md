@@ -80,27 +80,41 @@ the normal record/report workflow.
 
 ## Open this machine in the hosted app
 
-Run the unprivileged binding command to open this machine in the frontend at
-`https://app.agentsight.us`:
+Run the unprivileged binding command to open this Node in the default hosted
+frontend at `https://app.agentsight.us`:
 
 ```sh
 agentsight bind
 ```
 
-The command starts a loopback-only API, opens a binding link, and remains in
-the foreground while the hosted app reads local AgentSight data. It uses the
+The command starts an API on `127.0.0.1:7395` by default, opens a binding link,
+and remains in the foreground while the app reads AgentSight data. It uses the
 latest `agentsight-*.db` in the current directory when present, otherwise it
 reads the local agent session index. Pass `--db <capture.db>` to select a saved
-capture explicitly. The one-time
-pairing code is carried in the URL fragment, expires after two minutes, and is
-invalidated after its first use. The resulting access token lasts only for
-that command process. Chrome may ask you to allow Local network access for the
-hosted app.
+capture explicitly. A random access key is carried only in the URL fragment,
+removed from the visible URL by the SPA, and lasts only for that command
+process. Chrome may ask you to allow Local network access for a loopback or LAN
+Node.
 
 Use `agentsight bind --no-open` to copy the link manually or `agentsight bind
---qr` to print the same link as a QR code. Direct mode does not upload session
-contents to AgentSight's control plane; optional sign-in stores only identity,
-session, and Node metadata there.
+--qr` to print the same link as a QR code. The endpoint and presentation plane
+are not hard-coded: use `--listen <IP>` and `--server-port <PORT>` to choose the
+socket, `--endpoint <URL>` when the browser reaches it through a different
+hostname, tunnel, or HTTPS reverse proxy, and `--app-url <URL>` to open a
+self-hosted static app. For example:
+
+```sh
+agentsight bind --listen 0.0.0.0 --server-port 7395 \
+  --endpoint https://node.example.net \
+  --app-url https://agentsight.example.net/
+```
+
+An unspecified listen address requires an explicit browser-reachable
+`--endpoint`. A non-loopback Node should use trusted HTTPS or a private network;
+the access key authorizes anyone who possesses the fragment while the process
+is running. Direct mode does not upload session contents to AgentSight's
+control plane; optional sign-in stores only identity, session, and Node metadata
+there.
 
 ## Share Agent Nebula
 

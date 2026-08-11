@@ -41,10 +41,10 @@ export function ConnectionDialog({
 
         <div className={`grid gap-4 ${allowSignIn ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
           <section className="rounded-xl border border-slate-200 p-4">
-            <h2 className="font-semibold text-slate-950">Bind this device</h2>
-            <p className="mt-2 text-sm text-slate-600">Run this once. It opens a short-lived, single-use binding link.</p>
+            <h2 className="font-semibold text-slate-950">Connect a Node</h2>
+            <p className="mt-2 text-sm text-slate-600">Open this Node with a process-lifetime access key. The app can also be self-hosted.</p>
             <pre className="mt-4 overflow-x-auto rounded-lg bg-slate-950 px-3 py-2 text-xs text-white">agentsight bind</pre>
-            <p className="mt-3 text-xs text-slate-500">The browser may ask for Local network access.</p>
+            <p className="mt-3 text-xs text-slate-500">Use --listen, --server-port, --endpoint, and --app-url for remote or self-hosted setups.</p>
           </section>
 
           {allowSignIn && <section className="rounded-xl border border-slate-200 p-4">

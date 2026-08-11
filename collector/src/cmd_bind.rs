@@ -10,9 +10,9 @@ use std::net::{IpAddr, SocketAddr};
 use std::os::unix::fs::OpenOptionsExt;
 use std::process::Command;
 use std::time::Duration;
-use url::form_urlencoded;
+use url::{Url, form_urlencoded};
 
-const HOSTED_APP_BIND_URL: &str = "https://app.agentsight.us/";
+const DEFAULT_APP_URL: &str = "https://app.agentsight.us/";
 
 pub(crate) async fn run_bind(
     listen: &str,
@@ -20,24 +20,28 @@ pub(crate) async fn run_bind(
     no_open: bool,
     qr: bool,
     db_path: Option<String>,
+    app_url: &str,
+    public_endpoint: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let ip: IpAddr = listen
         .parse()
-        .map_err(|_| format!("agentsight bind requires a loopback IP address, got {listen:?}"))?;
-    if !ip.is_loopback() {
-        return Err(
-            "agentsight bind only listens on loopback; use managed relay for remote access".into(),
-        );
-    }
+        .map_err(|_| format!("agentsight bind requires an IP listen address, got {listen:?}"))?;
 
     let addr = SocketAddr::new(ip, port);
-    let endpoint = endpoint_url(ip, port);
-    let pairing_code = random_token();
-    let bind_url = build_bind_url(&endpoint, &pairing_code);
+    let endpoint = match public_endpoint {
+        Some(endpoint) => normalize_endpoint(endpoint),
+        None => endpoint_url(ip, port),
+    }?;
+    let (app_url, allowed_origin) = normalize_app_url(app_url)?;
+    let access_token = random_token();
+    let bind_url = build_bind_url(&app_url, &endpoint, &access_token)?;
     let node = local_node_metadata()?;
     let view = MaterializedView::shared_bounded();
-    let server =
-        WebServer::new_with_db_path(view, db_path.clone())?.with_pairing_code(pairing_code, node);
+    let server = WebServer::new_with_db_path(view, db_path.clone())?.with_direct_access(
+        access_token,
+        node,
+        allowed_origin,
+    );
 
     let handle = tokio::spawn(async move { server.start(addr).await });
     tokio::time::sleep(Duration::from_millis(100)).await;
@@ -51,7 +55,7 @@ pub(crate) async fn run_bind(
 
     println!("Bind this device at:\n{bind_url}");
     println!(
-        "The pairing code expires in two minutes or when this command exits, and can be used only once."
+        "The access key lasts only while this command is running and is removed from the browser URL after opening."
     );
     if let Some(db_path) = db_path {
         println!("Serving saved AgentSight data from {db_path}.");
@@ -70,11 +74,16 @@ pub(crate) async fn run_bind(
     Ok(())
 }
 
-fn endpoint_url(ip: IpAddr, port: u16) -> String {
-    match ip {
+fn endpoint_url(ip: IpAddr, port: u16) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    if ip.is_unspecified() {
+        return Err(
+            "--listen 0.0.0.0/:: requires --endpoint with the browser-reachable Node URL".into(),
+        );
+    }
+    Ok(match ip {
         IpAddr::V4(ip) => format!("http://{ip}:{port}"),
         IpAddr::V6(ip) => format!("http://[{ip}]:{port}"),
-    }
+    })
 }
 
 fn random_token() -> String {
@@ -132,14 +141,56 @@ fn valid_node_id(value: &str) -> bool {
             .all(|character| character.is_ascii_alphanumeric() || character == '_')
 }
 
-fn build_bind_url(endpoint: &str, pairing_code: &str) -> String {
+fn normalize_endpoint(value: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let mut endpoint = Url::parse(value)?;
+    if !matches!(endpoint.scheme(), "http" | "https")
+        || endpoint.host().is_none()
+        || !endpoint.username().is_empty()
+        || endpoint.password().is_some()
+    {
+        return Err("--endpoint must be an http(s) URL without credentials".into());
+    }
+    endpoint.set_path("");
+    endpoint.set_query(None);
+    endpoint.set_fragment(None);
+    Ok(endpoint.to_string().trim_end_matches('/').to_string())
+}
+
+fn normalize_app_url(
+    value: &str,
+) -> Result<(Url, String), Box<dyn std::error::Error + Send + Sync>> {
+    let mut app_url = Url::parse(if value.is_empty() {
+        DEFAULT_APP_URL
+    } else {
+        value
+    })?;
+    if !matches!(app_url.scheme(), "http" | "https")
+        || app_url.host().is_none()
+        || !app_url.username().is_empty()
+        || app_url.password().is_some()
+    {
+        return Err("--app-url must be an http(s) URL without credentials".into());
+    }
+    app_url.set_query(None);
+    app_url.set_fragment(None);
+    let allowed_origin = app_url.origin().ascii_serialization();
+    Ok((app_url, allowed_origin))
+}
+
+fn build_bind_url(
+    app_url: &Url,
+    endpoint: &str,
+    access_token: &str,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let fragment = form_urlencoded::Serializer::new(String::new())
         .append_pair("action", "bind")
         .append_pair("v", "1")
         .append_pair("endpoint", endpoint)
-        .append_pair("code", pairing_code)
+        .append_pair("token", access_token)
         .finish();
-    format!("{HOSTED_APP_BIND_URL}#{fragment}")
+    let mut url = app_url.clone();
+    url.set_fragment(Some(&fragment));
+    Ok(url.into())
 }
 
 fn print_qr(value: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -170,11 +221,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bind_url_keeps_secret_in_fragment() {
-        let url = build_bind_url("http://127.0.0.1:7395", "one-time-code");
+    fn bind_url_keeps_access_key_in_fragment() {
+        let app = Url::parse("https://self-hosted.example/ui/").unwrap();
+        let url = build_bind_url(&app, "http://127.0.0.1:7395", "access-key").unwrap();
         assert_eq!(
             url,
-            "https://app.agentsight.us/#action=bind&v=1&endpoint=http%3A%2F%2F127.0.0.1%3A7395&code=one-time-code"
+            "https://self-hosted.example/ui/#action=bind&v=1&endpoint=http%3A%2F%2F127.0.0.1%3A7395&token=access-key"
         );
         assert!(!url.contains('?'));
     }
@@ -182,7 +234,19 @@ mod tests {
     #[test]
     fn endpoint_formats_ipv6_for_urls() {
         let ip: IpAddr = "::1".parse().unwrap();
-        assert_eq!(endpoint_url(ip, 7395), "http://[::1]:7395");
+        assert_eq!(endpoint_url(ip, 7395).unwrap(), "http://[::1]:7395");
+    }
+
+    #[test]
+    fn unspecified_listen_requires_a_public_endpoint() {
+        assert!(endpoint_url("0.0.0.0".parse().unwrap(), 7395).is_err());
+    }
+
+    #[test]
+    fn app_url_controls_the_cors_origin() {
+        let (url, origin) = normalize_app_url("https://console.example/path").unwrap();
+        assert_eq!(url.as_str(), "https://console.example/path");
+        assert_eq!(origin, "https://console.example");
     }
 
     #[test]

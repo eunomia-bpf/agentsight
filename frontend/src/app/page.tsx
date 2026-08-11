@@ -119,7 +119,7 @@ export default function Home() {
         if (cancelled) return;
         if (embedded) {
           setEmbeddedMode(true);
-          if (embedded.pairingRequired) {
+          if (embedded.authorizationRequired) {
             setMode('disconnected');
             return;
           }
@@ -227,7 +227,7 @@ export default function Home() {
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium uppercase tracking-wide text-gray-500">
-                {isDemo ? 'Recorded demo' : isLive ? 'Local Node · Direct' : 'No device bound'}
+                {isDemo ? 'Recorded demo' : isLive ? 'Node · Direct' : 'No Node connected'}
               </span>
               {isDemo && (
                 <a
