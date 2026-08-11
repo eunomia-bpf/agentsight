@@ -12,10 +12,14 @@ let cachedLaunchFragment: URLSearchParams | null | undefined;
 let localPairingExchange: Promise<LocalConnection> | null = null;
 let cloudCodeExchange: Promise<string> | null = null;
 
-export const controlPlaneUrl = (
-  process.env.NEXT_PUBLIC_CONTROL_PLANE_URL
+export const controllerUrl = (
+  process.env.NEXT_PUBLIC_CONTROLLER_URL
+  || process.env.NEXT_PUBLIC_CONTROL_PLANE_URL
   || 'https://agentsight-control.yusen356.workers.dev'
 ).replace(/\/$/, '');
+
+/** @deprecated Use controllerUrl. Kept for existing downstream imports. */
+export const controlPlaneUrl = controllerUrl;
 
 export interface LocalConnection {
   endpoint: string;
@@ -44,7 +48,7 @@ export interface CloudNode {
   id: string;
   name: string;
   version: string | null;
-  connectionMode: 'direct';
+  connectionMode: 'direct' | 'relay';
   lastRegisteredAt: number;
   createdAt: number;
 }
@@ -261,7 +265,7 @@ export async function startLogin(provider: 'github' | 'google'): Promise<void> {
   const challenge = base64Url(new Uint8Array(digest));
   window.sessionStorage.setItem(OAUTH_VERIFIER_KEY, verifier);
   const returnTo = `${window.location.origin}/`;
-  const url = new URL(`${controlPlaneUrl}/v1/auth/start/${provider}`);
+  const url = new URL(`${controllerUrl}/v1/auth/start/${provider}`);
   url.searchParams.set('return_to', returnTo);
   url.searchParams.set('code_challenge', challenge);
   window.location.assign(url.toString());
@@ -275,7 +279,7 @@ export function exchangeCloudCode(code: string): Promise<string> {
 async function exchangeCloudCodeOnce(code: string): Promise<string> {
   const verifier = window.sessionStorage.getItem(OAUTH_VERIFIER_KEY);
   if (!verifier) throw new Error('This sign-in was not started in this browser tab.');
-  const response = await cloudFetch(`${controlPlaneUrl}/v1/auth/exchange`, {
+  const response = await cloudFetch(`${controllerUrl}/v1/auth/exchange`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code, code_verifier: verifier }),
@@ -283,7 +287,7 @@ async function exchangeCloudCodeOnce(code: string): Promise<string> {
   window.sessionStorage.removeItem(OAUTH_VERIFIER_KEY);
   if (!response.ok) throw new Error(`Sign-in exchange failed (${response.status}).`);
   const body = await response.json() as { access_token?: string };
-  if (!body.access_token) throw new Error('The control plane returned an invalid sign-in response.');
+  if (!body.access_token) throw new Error('The Controller returned an invalid sign-in response.');
   window.localStorage.setItem(CLOUD_SESSION_KEY, body.access_token);
   return body.access_token;
 }
@@ -303,25 +307,25 @@ function throwCloudResponseError(response: Response, message: string): never {
 export async function signOutCloud(token: string | null): Promise<void> {
   window.localStorage.removeItem(CLOUD_SESSION_KEY);
   if (!token) return;
-  await cloudFetch(`${controlPlaneUrl}/v1/auth/logout`, {
+  await cloudFetch(`${controllerUrl}/v1/auth/logout`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   }).catch(() => undefined);
 }
 
 export async function fetchCloudIdentity(token: string): Promise<CloudIdentity> {
-  const response = await cloudFetch(`${controlPlaneUrl}/v1/me`, {
+  const response = await cloudFetch(`${controllerUrl}/v1/me`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
   if (!response.ok) {
-    throwCloudResponseError(response, 'The AgentSight control plane request failed');
+    throwCloudResponseError(response, 'The AgentSight Controller request failed');
   }
   return response.json() as Promise<CloudIdentity>;
 }
 
 export async function registerCloudNode(token: string, connection: LocalConnection): Promise<void> {
-  const response = await cloudFetch(`${controlPlaneUrl}/v1/nodes`, {
+  const response = await cloudFetch(`${controllerUrl}/v1/nodes`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -337,7 +341,7 @@ export async function registerCloudNode(token: string, connection: LocalConnecti
 }
 
 export async function fetchCloudNodes(token: string): Promise<CloudNode[]> {
-  const response = await cloudFetch(`${controlPlaneUrl}/v1/nodes`, {
+  const response = await cloudFetch(`${controllerUrl}/v1/nodes`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
@@ -352,21 +356,21 @@ export async function fetchCloudNodes(token: string): Promise<CloudNode[]> {
       created_at?: number;
     }>;
   };
-  if (!Array.isArray(body.nodes)) throw new Error('The control plane returned an invalid Node list.');
+  if (!Array.isArray(body.nodes)) throw new Error('The Controller returned an invalid Node list.');
   return body.nodes
     .filter((node) => typeof node.id === 'string' && typeof node.name === 'string')
     .map((node) => ({
       id: node.id!,
       name: node.name!,
       version: typeof node.version === 'string' ? node.version : null,
-      connectionMode: 'direct',
+      connectionMode: node.connection_mode === 'relay' ? 'relay' : 'direct',
       lastRegisteredAt: typeof node.last_seen_at === 'number' ? node.last_seen_at : 0,
       createdAt: typeof node.created_at === 'number' ? node.created_at : 0,
     }));
 }
 
 export async function forgetCloudNode(token: string, nodeId: string): Promise<void> {
-  const response = await cloudFetch(`${controlPlaneUrl}/v1/nodes/${encodeURIComponent(nodeId)}`, {
+  const response = await cloudFetch(`${controllerUrl}/v1/nodes/${encodeURIComponent(nodeId)}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
