@@ -7,6 +7,7 @@ const LOCAL_CONNECTION_KEY = 'agentsight.local-connection.v1';
 const CLOUD_SESSION_KEY = 'agentsight.cloud-session.v1';
 const OAUTH_VERIFIER_KEY = 'agentsight.oauth-verifier.v1';
 const CLOUD_TIMEOUT_MS = 8_000;
+const LOCAL_TIMEOUT_MS = 8_000;
 let cachedLaunchFragment: URLSearchParams | null | undefined;
 let localPairingExchange: Promise<LocalConnection> | null = null;
 let cloudCodeExchange: Promise<string> | null = null;
@@ -48,25 +49,54 @@ export interface CloudNode {
   createdAt: number;
 }
 
-type LocalFetchInit = RequestInit & { targetAddressSpace?: 'local' };
+type NodeAddressSpace = 'local' | 'loopback';
+type LocalFetchInit = RequestInit & { targetAddressSpace?: NodeAddressSpace };
 
-function localFetch(input: string, init: RequestInit = {}) {
-  const options: LocalFetchInit = { ...init, mode: 'cors', cache: 'no-store' };
-  options.targetAddressSpace = 'local';
+function expectedNodeAddressSpace(endpoint: URL): NodeAddressSpace {
+  const hostname = endpoint.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (hostname === 'localhost' || hostname.endsWith('.localhost')
+    || hostname === '::1' || /^127(?:\.|$)/.test(hostname)) {
+    return 'loopback';
+  }
+  return 'local';
+}
+
+function localFetch(input: string, init: RequestInit = {}, targetAddressSpace: NodeAddressSpace = 'local') {
+  const options: LocalFetchInit = {
+    ...init,
+    mode: 'cors',
+    cache: 'no-store',
+    signal: init.signal || AbortSignal.timeout(LOCAL_TIMEOUT_MS),
+  };
+  options.targetAddressSpace = targetAddressSpace;
   return fetch(input, options);
 }
 
 async function nodeFetch(input: string, init: RequestInit = {}) {
-  const options: RequestInit = { ...init, mode: 'cors', cache: 'no-store' };
+  const endpoint = new URL(input);
+  if (endpoint.protocol === 'http:') {
+    // A hosted HTTPS app needs Local Network Access permission before it can
+    // reach an HTTP Node. Declaring the target up front makes Chromium show
+    // the permission prompt instead of leaving the ordinary fetch pending.
+    return localFetch(input, init, expectedNodeAddressSpace(endpoint));
+  }
+
+  const options: RequestInit = {
+    ...init,
+    mode: 'cors',
+    cache: 'no-store',
+    signal: init.signal || AbortSignal.timeout(LOCAL_TIMEOUT_MS),
+  };
   try {
     // Public HTTPS Direct Nodes must not be declared as local address-space
     // targets. Modern browsers can perform ordinary CORS fetches to them.
     return await fetch(input, options);
   } catch (error) {
+    if (init.signal?.aborted) throw error;
     // Loopback/private targets may require an explicit Local Network Access
     // request and browser permission. Retry only after the ordinary path fails.
     try {
-      return await localFetch(input, init);
+      return await localFetch(input, init, expectedNodeAddressSpace(endpoint));
     } catch {
       throw error;
     }
