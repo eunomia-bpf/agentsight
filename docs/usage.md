@@ -110,11 +110,14 @@ agentsight bind --listen 0.0.0.0 --server-port 7395 \
 ```
 
 An unspecified listen address requires an explicit browser-reachable
-`--endpoint`. A non-loopback Node should use trusted HTTPS or a private network;
-the access key authorizes anyone who possesses the fragment while the process
+`--endpoint`. A non-loopback Node should use browser-trusted HTTPS; private
+transport alone does not override browser mixed-content rules. The access key
+authorizes anyone who possesses the fragment while the process
 is running. Direct mode does not upload session contents to AgentSight's
 control plane; optional sign-in stores only identity, session, and Node metadata
-there.
+there. Self-hosted sign-in also requires building the SPA with
+`NEXT_PUBLIC_CONTROL_PLANE_URL` pointed at the matching Worker and setting that
+Worker's `APP_ORIGIN` to the SPA origin.
 
 ## Share Agent Nebula
 

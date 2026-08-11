@@ -184,16 +184,18 @@ async fn handle_request(
 
     let response = match (req.method(), path.as_str()) {
         (&Method::GET, "/api/v1/info") => {
-            if !info_access_allowed(direct_auth.as_ref(), req.headers().get(AUTHORIZATION)) {
+            let authorization = req.headers().get(AUTHORIZATION);
+            if !info_access_allowed(direct_auth.as_ref(), authorization) {
                 json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
             } else {
+                let node = info_node(direct_auth.as_ref(), authorization);
                 json_response(
                     StatusCode::OK,
                     &serde_json::json!({
                         "protocol_version": 1,
                         "product": "agentsight",
                         "authorization_required": direct_auth.is_some(),
-                        "node": direct_auth.as_ref().map(|auth| auth.node.clone()),
+                        "node": node,
                     }),
                 )
             }
@@ -362,6 +364,13 @@ fn info_access_allowed(
     }
 }
 
+fn info_node(
+    direct_auth: Option<&DirectAuth>,
+    authorization: Option<&HeaderValue>,
+) -> Option<NodeMetadata> {
+    direct_auth.and_then(|auth| auth.authorizes(authorization).then(|| auth.node.clone()))
+}
+
 fn cors_response(
     mut response: Response<Full<Bytes>>,
     origin: Option<&str>,
@@ -455,6 +464,11 @@ mod tests {
             Some(&auth),
             Some(&HeaderValue::from_static("Bearer wrong"))
         ));
+        assert!(info_node(Some(&auth), None).is_none());
+        assert_eq!(
+            info_node(Some(&auth), Some(&header)).unwrap().id,
+            "node_test"
+        );
     }
 
     #[test]

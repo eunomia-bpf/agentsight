@@ -60,21 +60,47 @@ if (noCollector.status !== 127 || !noCollector.stderr.includes("AgentSight colle
   process.exit(noCollector.status || 1);
 }
 
-const server = serveWeb({ host: "127.0.0.1", port: 0, open: false, snapshot: null });
+const smokeSnapshot = path.join(temp, "snapshot.json");
+fs.writeFileSync(smokeSnapshot, "{}\n");
+const server = serveWeb({ host: "127.0.0.1", port: 0, open: false, snapshot: smokeSnapshot });
 setTimeout(() => {
   server.close();
-  console.error("Timed out waiting for npm web malformed-host smoke.");
+  console.error("Timed out waiting for npm web protocol smoke.");
   process.exit(1);
 }, 5000).unref();
 server.on("listening", () => {
   const { port } = server.address();
-  const request = http.request({ host: "127.0.0.1", port, path: "/", headers: { Host: "[" } }, (response) => {
-    if (response.statusCode !== 400) {
-      console.error(`expected 400 for malformed Host, got ${response.statusCode}`);
-      process.exit(1);
-    }
-    response.resume();
-    response.on("end", () => server.close(() => console.log("AgentSight npm smoke test passed.")));
+  http.get({ host: "127.0.0.1", port, path: "/api/v1/info" }, (infoResponse) => {
+    let body = "";
+    infoResponse.setEncoding("utf8");
+    infoResponse.on("data", (chunk) => { body += chunk; });
+    infoResponse.on("end", () => {
+      let info;
+      try {
+        info = JSON.parse(body);
+      } catch {
+        console.error(`expected JSON from /api/v1/info, got ${body}`);
+        process.exit(1);
+      }
+      if (infoResponse.statusCode !== 200
+        || info.product !== "agentsight"
+        || info.protocol_version !== 1
+        || info.authorization_required !== false) {
+        console.error(`unexpected /api/v1/info response: ${infoResponse.statusCode} ${body}`);
+        process.exit(1);
+      }
+      const request = http.request(
+        { host: "127.0.0.1", port, path: "/", headers: { Host: "[" } },
+        (response) => {
+          if (response.statusCode !== 400) {
+            console.error(`expected 400 for malformed Host, got ${response.statusCode}`);
+            process.exit(1);
+          }
+          response.resume();
+          response.on("end", () => server.close(() => console.log("AgentSight npm smoke test passed.")));
+        },
+      );
+      request.end();
+    });
   });
-  request.end();
 });

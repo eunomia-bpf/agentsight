@@ -143,8 +143,9 @@ agentsight bind --listen 0.0.0.0 --server-port 7395 \
   --app-url https://agentsight.example.net/
 ```
 
-监听 `0.0.0.0` 或 `::` 时必须显式提供 `--endpoint`。非 loopback Node 应使用可信 HTTPS
-或私有网络；任何持有 fragment 的人都能在 Node 进程运行期间使用该 bearer。Direct
+监听 `0.0.0.0` 或 `::` 时必须显式提供 `--endpoint`。非 loopback Node 应使用浏览器信任的
+HTTPS；私有网络本身不会绕过浏览器 mixed-content 规则。任何持有 fragment 的人都能在
+Node 进程运行期间使用该 bearer。Direct
 模式不会把 session 内容上传到 AgentSight 控制面；可选登录只在控制面保存身份、会话和
 Node 元数据。自托管登录还需要把 SPA 的 `NEXT_PUBLIC_CONTROL_PLANE_URL` 指向配套
 Worker，并把 Worker 的 `APP_ORIGIN` 设为该 SPA origin。

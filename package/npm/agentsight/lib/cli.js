@@ -178,6 +178,19 @@ function serveWeb(options) {
       response.end("Bad request\n");
       return;
     }
+    if (url.pathname === "/api/v1/info") {
+      response.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+      });
+      response.end(JSON.stringify({
+        protocol_version: 1,
+        product: "agentsight",
+        authorization_required: false,
+      }));
+      return;
+    }
     if (url.pathname === "/api/v1/snapshot" || (snapshot && url.pathname === "/sample-snapshot.json")) {
       if (!snapshot) {
         response.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
