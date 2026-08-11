@@ -530,7 +530,7 @@ agent evidence，而不是采集最多 telemetry。
 | Static app | `app.agentsight.us` 托管本仓库 SPA；无连接时明确选择 Bind、OAuth 登录或 recorded demo |
 | Local bind | `agentsight bind` 打开短期 fragment 链接，只监听 loopback；Node ID 持久化，访问 token 随进程失效 |
 | Direct API | `/api/v1/info`、一次性 `/api/v1/bind` 和 bearer-protected `/api/v1/snapshot`；production CORS 只允许托管 app；bind 默认读取最新 SQLite 或本地 session index |
-| Cloud control | Cloudflare Worker + D1 已实现带浏览器 PKCE 的 GitHub/Google OAuth、session 和 owner-scoped Direct Node metadata registry；不接收 snapshot |
+| Cloud control | Cloudflare Worker + D1 已实现带浏览器 PKCE 的 GitHub/Google OAuth flow、session 和 owner-scoped Direct Node metadata registry；不接收 snapshot；provider 上线仍需配置四个 OAuth secrets |
 | Managed relay/Gateway | 尚未实现；当前跨机仍需 BYO connectivity，登录不会让不可达 Node 自动上线 |
 
 本轮是可 dogfood 的 Local/Direct saved-session/index 切片，不是跨进程 eBPF live relay 或完整
@@ -603,7 +603,7 @@ proof-of-possession、revocation、精确 CORS/LNA，以及 relay 的资源边�
 
 截至 2026-08-11：
 
-- 最新 release 是 [v1.0.4](https://github.com/eunomia-bpf/agentsight/releases/tag/v1.0.4)；
+- 最新 release 是 [v1.0.5](https://github.com/eunomia-bpf/agentsight/releases/tag/v1.0.5)；
 - [Issue #22](https://github.com/eunomia-bpf/agentsight/issues/22) 的 Linux ARM64 release
   已由 master 上的 CI/release 改动关闭；
 - [PR #144](https://github.com/eunomia-bpf/agentsight/pull/144) 的 session-level OTel trace

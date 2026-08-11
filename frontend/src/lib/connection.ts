@@ -64,19 +64,38 @@ function normalizeLoopbackEndpoint(raw: string): string {
   return endpoint.toString().replace(/\/$/, '');
 }
 
-export function embeddedLoopbackConnection(): LocalConnection | null {
-  const endpoint = new URL(window.location.href);
-  const loopback = /^127(?:\.\d{1,3}){3}$/.test(endpoint.hostname)
-    || endpoint.hostname === 'localhost'
-    || endpoint.hostname === '[::1]';
-  if (endpoint.protocol !== 'http:' || !loopback) return null;
-  return {
-    endpoint: endpoint.origin,
-    accessToken: '',
-    nodeId: 'local-embedded',
-    nodeName: 'Local AgentSight',
-    version: 'embedded',
-  };
+export interface EmbeddedServer {
+  pairingRequired: boolean;
+  connection: LocalConnection;
+}
+
+export async function detectEmbeddedServer(): Promise<EmbeddedServer | null> {
+  try {
+    const endpoint = window.location.origin;
+    const response = await fetch(`${endpoint}/api/v1/info`, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(2_000),
+    });
+    if (!response.ok) return null;
+    const body = await response.json() as {
+      protocol_version?: number;
+      product?: string;
+      pairing_required?: boolean;
+    };
+    if (body.product !== 'agentsight' || body.protocol_version !== 1) return null;
+    return {
+      pairingRequired: body.pairing_required === true,
+      connection: {
+        endpoint,
+        accessToken: '',
+        nodeId: 'local-embedded',
+        nodeName: 'Local AgentSight',
+        version: 'embedded',
+      },
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function consumeLaunchFragment(): URLSearchParams | null {

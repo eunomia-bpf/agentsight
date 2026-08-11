@@ -7,6 +7,7 @@ interface ConnectionDialogProps {
   error: string;
   busy: boolean;
   identity: CloudIdentity | null;
+  allowSignIn: boolean;
   canClose: boolean;
   onClose: () => void;
   onDemo: () => void;
@@ -14,7 +15,7 @@ interface ConnectionDialogProps {
 }
 
 export function ConnectionDialog({
-  error, busy, identity, canClose, onClose, onDemo, onSignOut,
+  error, busy, identity, allowSignIn, canClose, onClose, onDemo, onSignOut,
 }: ConnectionDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-8">
@@ -38,7 +39,7 @@ export function ConnectionDialog({
           <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
         )}
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className={`grid gap-4 ${allowSignIn ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
           <section className="rounded-xl border border-slate-200 p-4">
             <h2 className="font-semibold text-slate-950">Bind this device</h2>
             <p className="mt-2 text-sm text-slate-600">Run this once. It opens a short-lived, single-use binding link.</p>
@@ -46,7 +47,7 @@ export function ConnectionDialog({
             <p className="mt-3 text-xs text-slate-500">The browser may ask for Local network access.</p>
           </section>
 
-          <section className="rounded-xl border border-slate-200 p-4">
+          {allowSignIn && <section className="rounded-xl border border-slate-200 p-4">
             <h2 className="font-semibold text-slate-950">Sign in</h2>
             {identity ? (
               <>
@@ -74,7 +75,7 @@ export function ConnectionDialog({
                 </div>
               </>
             )}
-          </section>
+          </section>}
 
           <section className="rounded-xl border border-slate-200 p-4">
             <h2 className="font-semibold text-slate-950">Explore the demo</h2>

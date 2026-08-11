@@ -5,7 +5,7 @@ interface Env {
   DB: D1Database;
   APP_ORIGIN: string;
   OAUTH_IP_LIMITER: RateLimit;
-  OAUTH_GLOBAL_LIMITER: RateLimit;
+  OAUTH_LOCATION_LIMITER: RateLimit;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
@@ -27,6 +27,10 @@ interface UserRow {
   email: string;
   name: string;
   avatar_url: string | null;
+}
+
+interface OAuthStartLimiter {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
 const encoder = new TextEncoder();
@@ -91,16 +95,13 @@ async function startOAuth(request: Request, env: Env, provider: Provider): Promi
   if (!PKCE_CHALLENGE_PATTERN.test(codeChallenge)) {
     return authErrorRedirect(returnTo, 'pkce_required');
   }
-  const clientKey = request.headers.get('CF-Connecting-IP') || 'unknown';
-  const [clientLimit, globalLimit] = await Promise.all([
-    env.OAUTH_IP_LIMITER.limit({ key: clientKey }),
-    env.OAUTH_GLOBAL_LIMITER.limit({ key: 'oauth-start' }),
-  ]);
-  if (!clientLimit.success || !globalLimit.success) {
-    return authErrorRedirect(returnTo, 'rate_limited');
-  }
   const config = oauthConfig(provider, env, url.origin);
   if (!config) return authErrorRedirect(returnTo, `${provider}_login_not_configured`);
+
+  const clientKey = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (!await oauthStartAllowed(env.OAUTH_IP_LIMITER, env.OAUTH_LOCATION_LIMITER, clientKey)) {
+    return authErrorRedirect(returnTo, 'rate_limited');
+  }
 
   await deleteExpiredRows(env.DB);
   const state = randomToken();
@@ -411,6 +412,16 @@ export async function sha256Base64Url(value: string): Promise<string> {
 
 export function validNodeId(value: string): boolean {
   return NODE_ID_PATTERN.test(value);
+}
+
+export async function oauthStartAllowed(
+  clientLimiter: OAuthStartLimiter,
+  locationLimiter: OAuthStartLimiter,
+  clientKey: string,
+): Promise<boolean> {
+  const clientLimit = await clientLimiter.limit({ key: clientKey });
+  if (!clientLimit.success) return false;
+  return (await locationLimiter.limit({ key: 'oauth-start' })).success;
 }
 
 async function deleteExpiredRows(db: D1Database): Promise<void> {

@@ -16,7 +16,7 @@ import {
   type CloudIdentity,
   type LocalConnection,
   consumeLaunchFragment,
-  embeddedLoopbackConnection,
+  detectEmbeddedServer,
   exchangeCloudCode,
   exchangeLocalPairing,
   fetchCloudIdentity,
@@ -61,6 +61,7 @@ export default function Home() {
   const [connection, setConnection] = useState<LocalConnection | null>(null);
   const [identity, setIdentity] = useState<CloudIdentity | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [embeddedMode, setEmbeddedMode] = useState(false);
 
   const displayEvents = useMemo(() => displayEventsFromSnapshot(snapshot), [snapshot]);
   const eventCount = displayEvents.length;
@@ -72,10 +73,12 @@ export default function Home() {
     try {
       setSnapshot(await fetchLocalSnapshot(target));
       setMode('live');
+      return true;
     } catch (cause) {
       setConnection(null);
       setMode('disconnected');
       setError(cause instanceof Error ? cause.message : 'Could not reach the AgentSight Node.');
+      return false;
     } finally {
       setSyncing(false);
     }
@@ -112,10 +115,16 @@ export default function Home() {
     const initialize = async () => {
       setSyncing(true);
       try {
-        const embedded = embeddedLoopbackConnection();
+        const embedded = await detectEmbeddedServer();
+        if (cancelled) return;
         if (embedded) {
-          setConnection(embedded);
-          await loadNodeData(embedded);
+          setEmbeddedMode(true);
+          if (embedded.pairingRequired) {
+            setMode('disconnected');
+            return;
+          }
+          setConnection(embedded.connection);
+          await loadNodeData(embedded.connection);
           return;
         }
         const launch = consumeLaunchFragment();
@@ -131,8 +140,8 @@ export default function Home() {
           saveLocalConnection(bound);
           setConnection(bound);
           const cloudToken = loadCloudSession();
-          await loadNodeData(bound);
-          if (cloudToken) {
+          const localLoaded = await loadNodeData(bound);
+          if (cloudToken && localLoaded) {
             void (async () => {
               try {
                 setIdentity(await fetchCloudIdentity(cloudToken));
@@ -147,13 +156,19 @@ export default function Home() {
 
         let cloudToken = loadCloudSession();
         if (launch?.get('action') === 'auth' && launch.get('code')) {
-          cloudToken = await exchangeCloudCode(launch.get('code')!);
+          try {
+            cloudToken = await exchangeCloudCode(launch.get('code')!);
+          } catch (cause) {
+            cloudToken = null;
+            setError(cause instanceof Error ? cause.message : 'Sign-in failed.');
+          }
         }
         const saved = loadLocalConnection();
+        let localLoaded = false;
         if (saved) {
           if (cancelled) return;
           setConnection(saved);
-          await loadNodeData(saved);
+          localLoaded = await loadNodeData(saved);
         } else if (!cloudToken && !cancelled) {
           setMode('disconnected');
         }
@@ -163,7 +178,7 @@ export default function Home() {
             try {
               const me = await fetchCloudIdentity(cloudToken);
               if (!cancelled) setIdentity(me);
-              if (saved) await registerCloudNode(cloudToken, saved);
+              if (saved && localLoaded) await registerCloudNode(cloudToken, saved);
             } catch (cause) {
               if (!cancelled) {
                 setError(cause instanceof Error ? cause.message : 'Sign-in failed.');
@@ -203,6 +218,7 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       {(mode === 'disconnected' || dialogOpen) && (
         <ConnectionDialog error={error} busy={syncing} identity={identity}
+          allowSignIn={!embeddedMode}
           canClose={mode !== 'disconnected'} onClose={() => { setDialogOpen(false); }}
           onDemo={() => { setDialogOpen(false); void enterDemo(); }} onSignOut={signOut} />
       )}
@@ -239,13 +255,13 @@ export default function Home() {
                 </button>
               </>
             )}
-            {!identity && mode !== 'loading' && (
+            {!embeddedMode && !identity && mode !== 'loading' && (
               <button type="button" onClick={() => { setDialogOpen(true); }}
                 className="text-sm font-medium text-blue-700 hover:text-blue-900">
                 Sign in
               </button>
             )}
-            {identity && mode !== 'loading' && (
+            {!embeddedMode && identity && mode !== 'loading' && (
               <button type="button" onClick={() => { setDialogOpen(true); }}
                 className="text-sm font-medium text-blue-700 hover:text-blue-900">
                 Connections

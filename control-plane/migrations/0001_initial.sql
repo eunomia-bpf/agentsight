@@ -18,7 +18,6 @@ CREATE TABLE IF NOT EXISTS oauth_states (
     state_hash TEXT PRIMARY KEY,
     provider TEXT NOT NULL,
     return_to TEXT NOT NULL,
-    code_challenge TEXT NOT NULL,
     expires_at INTEGER NOT NULL
 );
 
@@ -26,7 +25,6 @@ CREATE TABLE IF NOT EXISTS auth_codes (
     code_hash TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     provider TEXT NOT NULL,
-    code_challenge TEXT NOT NULL,
     expires_at INTEGER NOT NULL,
     consumed_at INTEGER
 );
@@ -52,7 +50,3 @@ CREATE TABLE IF NOT EXISTS nodes (
 
 CREATE INDEX IF NOT EXISTS idx_nodes_owner ON nodes(owner_user_id, last_seen_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, expires_at);
-CREATE INDEX IF NOT EXISTS idx_oauth_states_expiry ON oauth_states(expires_at);
-CREATE INDEX IF NOT EXISTS idx_auth_codes_expiry ON auth_codes(expires_at);
-CREATE INDEX IF NOT EXISTS idx_auth_codes_consumed ON auth_codes(consumed_at);
-CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
