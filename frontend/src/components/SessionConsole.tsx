@@ -3,82 +3,15 @@
 
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { loadLocalConnection, type LocalConnection } from '@/lib/connection';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { NodeClient, SessionDetail } from '@/lib/nodeClient';
 import type { AgentSightSnapshot, SnapshotSession } from '@/types/event';
 
-type SessionDetail = {
-  session_id: string;
-  agent_type: string;
-  model?: string | null;
-  cwd?: string | null;
-  events?: {
-    prompts?: Array<{ ts_ms?: number | null; preview?: string }>;
-    llm_responses?: Array<{ ts_ms?: number | null; preview?: string; response_phase?: string }>;
-    tools?: Array<{ ts_ms?: number | null; tool_name?: string; effect?: string; status?: string }>;
-  };
-};
-
 type Message = { ts: number; kind: 'user' | 'assistant' | 'tool'; text: string };
-type NodeAddressSpace = 'local' | 'loopback';
-type LocalFetchInit = RequestInit & { targetAddressSpace?: NodeAddressSpace };
-
-const LOCAL_TIMEOUT_MS = 8_000;
 
 function sessionId(session: SnapshotSession): string | null {
   const attrs = session.attributes as { session_id?: unknown } | undefined;
   return typeof attrs?.session_id === 'string' ? attrs.session_id : null;
-}
-
-function expectedNodeAddressSpace(endpoint: URL): NodeAddressSpace {
-  const hostname = endpoint.hostname.toLowerCase().replace(/^\[|\]$/g, '');
-  if (hostname === 'localhost' || hostname.endsWith('.localhost')
-    || hostname === '::1' || /^127(?:\.|$)/.test(hostname)) {
-    return 'loopback';
-  }
-  return 'local';
-}
-
-function localFetch(input: string, init: RequestInit = {}, targetAddressSpace: NodeAddressSpace = 'local') {
-  const options: LocalFetchInit = {
-    ...init,
-    mode: 'cors',
-    cache: 'no-store',
-    signal: init.signal || AbortSignal.timeout(LOCAL_TIMEOUT_MS),
-  };
-  options.targetAddressSpace = targetAddressSpace;
-  return fetch(input, options);
-}
-
-async function nodeFetch(input: string, init: RequestInit = {}) {
-  const endpoint = new URL(input);
-  if (endpoint.protocol === 'http:') {
-    return localFetch(input, init, expectedNodeAddressSpace(endpoint));
-  }
-  const options: RequestInit = {
-    ...init,
-    mode: 'cors',
-    cache: 'no-store',
-    signal: init.signal || AbortSignal.timeout(LOCAL_TIMEOUT_MS),
-  };
-  try {
-    return await fetch(input, options);
-  } catch (error) {
-    if (init.signal?.aborted) throw error;
-    try {
-      return await localFetch(input, init, expectedNodeAddressSpace(endpoint));
-    } catch {
-      throw error;
-    }
-  }
-}
-
-function authHeaders(connection: LocalConnection): HeadersInit {
-  return connection.accessToken ? { Authorization: `Bearer ${connection.accessToken}` } : {};
-}
-
-function snapshotSessionIds(snapshot: AgentSightSnapshot): Set<string> {
-  return new Set((snapshot.sessions ?? []).map(sessionId).filter((id): id is string => !!id));
 }
 
 function messages(detail: SessionDetail | null): Message[] {
@@ -102,19 +35,30 @@ function messages(detail: SessionDetail | null): Message[] {
   ].filter((item) => item.text).sort((a, b) => a.ts - b.ts);
 }
 
-export function SessionConsole({ snapshot }: { snapshot: AgentSightSnapshot }) {
-  const sessions = useMemo(
-    () => (snapshot.sessions ?? []).filter((session) => sessionId(session)),
-    [snapshot],
-  );
-  const visibleSessionIds = useMemo(() => snapshotSessionIds(snapshot), [snapshot]);
-  const [connection] = useState<LocalConnection | null>(() => loadLocalConnection());
-  const [connectionReady, setConnectionReady] = useState(false);
+function isActiveSession(session: SnapshotSession): boolean {
+  return session.status === 'running' || session.status === 'active' || !session.end_timestamp_ms;
+}
+
+export function SessionConsole({
+  snapshot,
+  client,
+}: {
+  snapshot: AgentSightSnapshot;
+  client: NodeClient | null;
+}) {
+  const sessions = useMemo(() => (
+    [...(snapshot.sessions ?? [])]
+      .filter((session) => sessionId(session))
+      .sort((a, b) => Number(isActiveSession(b)) - Number(isActiveSession(a))
+        || b.start_timestamp_ms - a.start_timestamp_ms)
+  ), [snapshot]);
   const [selected, setSelected] = useState<string>('');
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [error, setError] = useState('');
+  const conversationRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!sessions.some((session) => sessionId(session) === selected)) {
@@ -122,88 +66,46 @@ export function SessionConsole({ snapshot }: { snapshot: AgentSightSnapshot }) {
     }
   }, [sessions, selected]);
 
-  useEffect(() => {
-    let cancelled = false;
-    setConnectionReady(false);
-    if (!connection || visibleSessionIds.size === 0) return () => { cancelled = true; };
-
-    const verify = async () => {
-      const response = await nodeFetch(
-        `${connection.endpoint}/api/v1/snapshot?audit_limit=1`,
-        { headers: authHeaders(connection) },
-      );
-      if (!response.ok) throw new Error(`AgentSight Node returned ${response.status}.`);
-      const liveSnapshot = await response.json() as AgentSightSnapshot;
-      const liveIds = snapshotSessionIds(liveSnapshot);
-      const matches = Array.from(visibleSessionIds).some((id) => liveIds.has(id));
-      if (!matches) {
-        throw new Error('This page is not showing the Node currently bound to this browser.');
-      }
-      if (!cancelled) {
-        setConnectionReady(true);
-        setError('');
-      }
-    };
-
-    void verify().catch((cause) => {
-      if (!cancelled) {
-        setError(cause instanceof Error ? cause.message : 'Could not verify the bound Node.');
-      }
-    });
-    return () => { cancelled = true; };
-  }, [connection, visibleSessionIds]);
-
-  const loadDetail = useCallback(async () => {
-    if (!selected || !connection || !connectionReady) return;
-    const response = await nodeFetch(
-      `${connection.endpoint}/api/v1/sessions/${encodeURIComponent(selected)}`,
-      { headers: authHeaders(connection) },
-    );
-    if (!response.ok) throw new Error(`Session returned ${response.status}.`);
-    setDetail(await response.json() as SessionDetail);
-  }, [connection, connectionReady, selected]);
+  const loadDetail = useCallback(async (quiet = false) => {
+    if (!selected || !client) return;
+    if (!quiet) setLoadingDetail(true);
+    try {
+      setDetail(await client.session(selected));
+      setError('');
+    } finally {
+      if (!quiet) setLoadingDetail(false);
+    }
+  }, [client, selected]);
 
   useEffect(() => {
-    if (!selected || !connectionReady) return;
+    if (!selected || !client) return;
     setDetail(null);
     setError('');
     void loadDetail().catch((cause) => {
       setError(cause instanceof Error ? cause.message : 'Could not load session.');
     });
     const timer = window.setInterval(() => {
-      void loadDetail().catch(() => undefined);
+      void loadDetail(true).catch(() => undefined);
     }, 2_000);
     return () => window.clearInterval(timer);
-  }, [selected, connectionReady, loadDetail]);
+  }, [selected, client, loadDetail]);
+
+  const conversation = messages(detail);
+  useEffect(() => {
+    const element = conversationRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [conversation.length, detail]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const text = message.trim();
-    if (!selected || !text || busy || !connectionReady) return;
-    if (!connection?.accessToken) {
-      setError('Reconnect this Node with agentsight bind before sending messages.');
-      return;
-    }
+    if (!selected || !text || busy || !client) return;
     setBusy(true);
     setError('');
     try {
-      const response = await nodeFetch(
-        `${connection.endpoint}/api/v1/sessions/${encodeURIComponent(selected)}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${connection.accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ message: text }),
-        },
-      );
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({})) as { error?: string };
-        throw new Error(body.error || `Message submit failed (${response.status}).`);
-      }
+      await client.submitMessage(selected, text);
       setMessage('');
-      window.setTimeout(() => { void loadDetail().catch(() => undefined); }, 500);
+      window.setTimeout(() => { void loadDetail(true).catch(() => undefined); }, 350);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not send message.');
     } finally {
@@ -211,65 +113,101 @@ export function SessionConsole({ snapshot }: { snapshot: AgentSightSnapshot }) {
     }
   };
 
-  if (sessions.length === 0) return null;
+  if (sessions.length === 0) {
+    return (
+      <section className="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+        <p className="font-medium text-slate-800">No native agent sessions on this Node yet.</p>
+        <p className="mt-1 text-sm text-slate-500">Claude, Codex and Gemini sessions will appear here automatically.</p>
+      </section>
+    );
+  }
+
   const selectedSession = sessions.find((session) => sessionId(session) === selected);
-  const canSend = connectionReady && !!connection?.accessToken && !!selectedSession
+  const canSend = !!client && !!selectedSession
     && ['claude', 'codex', 'gemini'].includes(selectedSession.agent_type);
-  const conversation = messages(detail);
+  const selectedActive = !!selectedSession && isActiveSession(selectedSession);
 
   return (
-    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md">
-      <div className="border-b border-gray-100 px-5 py-4">
-        <h2 className="text-sm font-semibold text-gray-900">Agent sessions</h2>
-        <p className="mt-1 text-xs text-gray-500">Native conversation history with direct follow-up messaging.</p>
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+        <div>
+          <h2 className="font-semibold text-slate-950">Sessions</h2>
+          <p className="mt-0.5 text-xs text-slate-500">Conversation state from the Node, refreshed every 2 seconds.</p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          {selectedActive && <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />}
+          <span>{selectedActive ? 'Live' : 'Recorded'}</span>
+          {client && <span className="rounded-full bg-slate-100 px-2 py-1 font-medium uppercase">{client.transport}</span>}
+        </div>
       </div>
-      <div className="grid min-h-[360px] md:grid-cols-[240px_1fr]">
-        <div className="border-b border-gray-100 bg-gray-50 p-2 md:border-b-0 md:border-r">
+
+      <div className="grid min-h-[520px] lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="border-b border-slate-200 bg-slate-50/70 p-2 lg:border-b-0 lg:border-r">
           {sessions.map((session) => {
             const id = sessionId(session)!;
+            const active = isActiveSession(session);
             return (
               <button key={session.id} type="button" onClick={() => setSelected(id)}
-                className={`mb-1 w-full rounded-md px-3 py-2 text-left ${selected === id ? 'bg-white shadow-sm' : 'hover:bg-white'}`}>
-                <div className="text-sm font-medium text-gray-900">{session.agent_type}</div>
-                <div className="truncate text-xs text-gray-500">{session.model || id}</div>
+                className={`mb-1 w-full rounded-lg px-3 py-3 text-left transition ${
+                  selected === id ? 'bg-white shadow-sm ring-1 ring-slate-200' : 'hover:bg-white'
+                }`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold capitalize text-slate-900">{session.agent_type}</span>
+                  {active && <span className="h-2 w-2 rounded-full bg-emerald-500" />}
+                </div>
+                <div className="mt-1 truncate text-xs text-slate-500">{session.model || id}</div>
+                {session.total_tokens ? (
+                  <div className="mt-1 text-[11px] text-slate-400">{session.total_tokens.toLocaleString()} tokens</div>
+                ) : null}
               </button>
             );
           })}
-        </div>
-        <div className="flex min-w-0 flex-col">
-          <div className="max-h-[460px] flex-1 space-y-3 overflow-y-auto p-4">
-            {!connection && (
-              <p className="py-10 text-center text-sm text-gray-400">
-                Bind this browser to the Node to load the full conversation.
-              </p>
+        </aside>
+
+        <div className="flex min-w-0 flex-col bg-white">
+          <div ref={conversationRef} className="max-h-[620px] min-h-[420px] flex-1 space-y-3 overflow-y-auto p-5">
+            {!client && (
+              <p className="py-16 text-center text-sm text-slate-400">Open an online Node to inspect this conversation.</p>
             )}
-            {connection && connectionReady && conversation.length === 0 && !error && (
-              <p className="py-10 text-center text-sm text-gray-400">Loading conversation…</p>
+            {client && loadingDetail && conversation.length === 0 && !error && (
+              <p className="py-16 text-center text-sm text-slate-400">Loading conversation…</p>
             )}
             {conversation.map((item, index) => item.kind === 'tool' ? (
-              <div key={`${item.ts}-${index}`} className="text-center text-xs text-gray-400">{item.text}</div>
+              <div key={`${item.ts}-${index}`} className="mx-auto max-w-[90%] rounded-md bg-slate-50 px-3 py-1.5 text-center text-xs text-slate-500">
+                {item.text}
+              </div>
             ) : (
               <div key={`${item.ts}-${index}`} className={`flex ${item.kind === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm ${
-                  item.kind === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'
+                <div className={`max-w-[88%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-6 ${
+                  item.kind === 'user'
+                    ? 'rounded-br-md bg-slate-950 text-white'
+                    : 'rounded-bl-md bg-slate-100 text-slate-800'
                 }`}>
                   {item.text}
                 </div>
               </div>
             ))}
           </div>
-          <form onSubmit={submit} className="border-t border-gray-100 p-3">
+
+          <form onSubmit={submit} className="border-t border-slate-200 bg-white p-4">
             {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
             <div className="flex gap-2">
               <textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={2}
-                placeholder={canSend ? 'Send a follow-up to this session…' : 'Connect to this live Node to send messages.'}
+                placeholder={canSend ? 'Send a follow-up to this session…' : 'This session is read-only.'}
                 disabled={!canSend || busy}
-                className="min-h-12 flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 disabled:bg-gray-50" />
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey && canSend && !busy) {
+                    event.preventDefault();
+                    event.currentTarget.form?.requestSubmit();
+                  }
+                }}
+                className="min-h-14 flex-1 resize-none rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500 disabled:bg-slate-50" />
               <button type="submit" disabled={!canSend || !message.trim() || busy}
-                className="self-end rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                className="self-end rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40">
                 {busy ? 'Sending…' : 'Send'}
               </button>
             </div>
+            <p className="mt-2 text-[11px] text-slate-400">Enter to send · Shift+Enter for a new line</p>
           </form>
         </div>
       </div>
