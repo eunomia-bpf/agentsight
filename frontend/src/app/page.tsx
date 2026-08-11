@@ -14,6 +14,7 @@ import { NodeManager } from '@/components/NodeManager';
 import { Dashboard, type ViewMode } from '@/components/dashboard/Dashboard';
 import { useTranslation } from '@/i18n';
 import {
+  CloudSessionExpiredError,
   type CloudIdentity,
   type CloudNode,
   type LocalConnection,
@@ -67,12 +68,25 @@ export default function Home() {
   const [nodeReachable, setNodeReachable] = useState(false);
   const [identity, setIdentity] = useState<CloudIdentity | null>(null);
   const [cloudNodes, setCloudNodes] = useState<CloudNode[]>([]);
+  const [nodeError, setNodeError] = useState('');
   const [nodesLoading, setNodesLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [embeddedMode, setEmbeddedMode] = useState(false);
 
   const displayEvents = useMemo(() => displayEventsFromSnapshot(snapshot), [snapshot]);
   const eventCount = displayEvents.length;
+
+  const handleCloudError = useCallback((cause: unknown, fallback: string) => {
+    const message = cause instanceof Error ? cause.message : fallback;
+    if (cause instanceof CloudSessionExpiredError) {
+      setIdentity(null);
+      setCloudNodes([]);
+      setNodeError('');
+      setError(message);
+      return;
+    }
+    setNodeError(message);
+  }, []);
 
   const loadNodeData = useCallback(async (target: LocalConnection) => {
     setSyncing(true);
@@ -103,12 +117,13 @@ export default function Home() {
     setNodesLoading(true);
     try {
       setCloudNodes(await fetchCloudNodes(token));
+      setNodeError('');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load your Nodes.');
+      handleCloudError(cause, 'Could not load your Nodes.');
     } finally {
       setNodesLoading(false);
     }
-  }, []);
+  }, [handleCloudError]);
 
   const enterDemo = useCallback(async () => {
     setSyncing(true);
@@ -130,6 +145,7 @@ export default function Home() {
     const token = loadCloudSession();
     setIdentity(null);
     setCloudNodes([]);
+    setNodeError('');
     setDialogOpen(false);
     void signOutCloud(token);
   }, []);
@@ -138,16 +154,16 @@ export default function Home() {
     const token = loadCloudSession();
     if (!token) return;
     setNodesLoading(true);
-    setError('');
+    setNodeError('');
     try {
       await forgetCloudNode(token, nodeId);
       setCloudNodes((current) => current.filter((node) => node.id !== nodeId));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not remove this Node.');
+      handleCloudError(cause, 'Could not remove this Node.');
     } finally {
       setNodesLoading(false);
     }
-  }, []);
+  }, [handleCloudError]);
 
   const forgetBrowserConnection = useCallback(() => {
     clearLocalConnection();
@@ -179,7 +195,7 @@ export default function Home() {
               if (localLoaded) await registerCloudNode(cloudToken, bound);
               setCloudNodes(await fetchCloudNodes(cloudToken));
             } catch (cause) {
-              setError(cause instanceof Error ? cause.message : 'Could not register this Node.');
+              handleCloudError(cause, 'Could not register this Node.');
             }
           }
           return;
@@ -232,7 +248,7 @@ export default function Home() {
               if (!cancelled) setCloudNodes(nodes);
             } catch (cause) {
               if (!cancelled) {
-                setError(cause instanceof Error ? cause.message : 'Sign-in failed.');
+                handleCloudError(cause, 'Sign-in failed.');
               }
             }
           };
@@ -267,7 +283,7 @@ export default function Home() {
     };
     void initialize();
     return () => { cancelled = true; };
-  }, [loadNodeData]);
+  }, [handleCloudError, loadNodeData]);
 
   useEffect(() => { setViewMode(viewModeFromPath(window.location.pathname)); }, []);
 
@@ -306,7 +322,7 @@ export default function Home() {
       )}
       {identity && dialogOpen && (
         <NodeManager identity={identity} nodes={cloudNodes} connection={connection}
-          connected={nodeReachable} loading={syncing || nodesLoading} error={error} modal
+          connected={nodeReachable} loading={syncing || nodesLoading} error={nodeError || error} modal
           onClose={() => { setDialogOpen(false); }}
           onOpenNode={openNodeDashboard}
           onRetry={() => { void syncData(); }} onRefresh={() => { void refreshCloudNodes(); }}
@@ -381,7 +397,7 @@ export default function Home() {
           </div>
         ) : identity && mode === 'disconnected' ? (
           <NodeManager identity={identity} nodes={cloudNodes} connection={connection}
-            connected={false} loading={syncing || nodesLoading} error={error}
+            connected={false} loading={syncing || nodesLoading} error={nodeError || error}
             onOpenNode={openNodeDashboard}
             onRetry={() => { void syncData(); }} onRefresh={() => { void refreshCloudNodes(); }}
             onForgetNode={(nodeId) => { void forgetNode(nodeId); }}

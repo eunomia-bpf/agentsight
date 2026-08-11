@@ -32,6 +32,13 @@ export interface CloudIdentity {
   provider?: 'github' | 'google';
 }
 
+export class CloudSessionExpiredError extends Error {
+  constructor() {
+    super('Your AgentSight sign-in has expired.');
+    this.name = 'CloudSessionExpiredError';
+  }
+}
+
 export interface CloudNode {
   id: string;
   name: string;
@@ -255,6 +262,14 @@ export function loadCloudSession(): string | null {
   return window.localStorage.getItem(CLOUD_SESSION_KEY);
 }
 
+function throwCloudResponseError(response: Response, message: string): never {
+  if (response.status === 401) {
+    window.localStorage.removeItem(CLOUD_SESSION_KEY);
+    throw new CloudSessionExpiredError();
+  }
+  throw new Error(`${message} (${response.status}).`);
+}
+
 export async function signOutCloud(token: string | null): Promise<void> {
   window.localStorage.removeItem(CLOUD_SESSION_KEY);
   if (!token) return;
@@ -270,11 +285,7 @@ export async function fetchCloudIdentity(token: string): Promise<CloudIdentity> 
     cache: 'no-store',
   });
   if (!response.ok) {
-    if (response.status === 401) {
-      window.localStorage.removeItem(CLOUD_SESSION_KEY);
-      throw new Error('Your AgentSight sign-in has expired.');
-    }
-    throw new Error(`The AgentSight control plane returned ${response.status}.`);
+    throwCloudResponseError(response, 'The AgentSight control plane request failed');
   }
   return response.json() as Promise<CloudIdentity>;
 }
@@ -292,7 +303,7 @@ export async function registerCloudNode(token: string, connection: LocalConnecti
       version: connection.version,
     }),
   });
-  if (!response.ok) throw new Error(`Could not register this Node (${response.status}).`);
+  if (!response.ok) throwCloudResponseError(response, 'Could not register this Node');
 }
 
 export async function fetchCloudNodes(token: string): Promise<CloudNode[]> {
@@ -300,7 +311,7 @@ export async function fetchCloudNodes(token: string): Promise<CloudNode[]> {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
-  if (!response.ok) throw new Error(`Could not load your Nodes (${response.status}).`);
+  if (!response.ok) throwCloudResponseError(response, 'Could not load your Nodes');
   const body = await response.json() as {
     nodes?: Array<{
       id?: string;
@@ -329,5 +340,5 @@ export async function forgetCloudNode(token: string, nodeId: string): Promise<vo
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!response.ok) throw new Error(`Could not remove this Node (${response.status}).`);
+  if (!response.ok) throwCloudResponseError(response, 'Could not remove this Node');
 }
