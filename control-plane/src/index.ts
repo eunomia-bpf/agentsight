@@ -35,6 +35,10 @@ const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const requestOrigin = request.headers.get('Origin');
+    if (requestOrigin && requestOrigin !== new URL(env.APP_ORIGIN).origin) {
+      return json({ error: 'origin_not_allowed' }, 403);
+    }
     if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }), env);
 
     try {
@@ -47,6 +51,8 @@ export default {
         response = await finishOAuth(request, env, providerFromPath(url.pathname));
       } else if (request.method === 'POST' && url.pathname === '/v1/auth/exchange') {
         response = await exchangeAuthCode(request, env);
+      } else if (request.method === 'POST' && url.pathname === '/v1/auth/logout') {
+        response = await logout(request, env);
       } else if (request.method === 'GET' && url.pathname === '/v1/me') {
         response = await currentUser(request, env);
       } else if (url.pathname === '/v1/nodes' && request.method === 'GET') {
@@ -104,17 +110,23 @@ async function finishOAuth(request: Request, env: Env, provider: Provider): Prom
   const stateRow = await env.DB.prepare(
     'DELETE FROM oauth_states WHERE state_hash = ?1 AND provider = ?2 AND expires_at >= ?3 RETURNING return_to',
   ).bind(await sha256(state), provider, nowSeconds()).first<{ return_to: string }>();
-  if (!stateRow || !code) return authErrorRedirect(env.APP_ORIGIN, 'oauth_state_invalid');
+  if (!stateRow) return authErrorRedirect(env.APP_ORIGIN, 'oauth_state_invalid');
+  if (!code) return authErrorRedirect(stateRow.return_to, 'oauth_denied');
 
   const config = oauthConfig(provider, env, url.origin);
   if (!config) return authErrorRedirect(stateRow.return_to, `${provider}_login_not_configured`);
-  const profile = await fetchOAuthProfile(provider, code, config);
-  const user = await upsertUser(env.DB, profile);
-  const appCode = randomToken();
-  await env.DB.prepare(
-    'INSERT INTO auth_codes (code_hash, user_id, provider, expires_at) VALUES (?1, ?2, ?3, ?4)',
-  ).bind(await sha256(appCode), user.id, provider, nowSeconds() + AUTH_CODE_TTL_SECONDS).run();
-  return Response.redirect(`${stateRow.return_to}#action=auth&code=${encodeURIComponent(appCode)}`, 302);
+  try {
+    const profile = await fetchOAuthProfile(provider, code, config);
+    const user = await upsertUser(env.DB, profile);
+    const appCode = randomToken();
+    await env.DB.prepare(
+      'INSERT INTO auth_codes (code_hash, user_id, provider, expires_at) VALUES (?1, ?2, ?3, ?4)',
+    ).bind(await sha256(appCode), user.id, provider, nowSeconds() + AUTH_CODE_TTL_SECONDS).run();
+    return Response.redirect(`${stateRow.return_to}#action=auth&code=${encodeURIComponent(appCode)}`, 302);
+  } catch (error) {
+    const reason = error instanceof HttpError ? error.code : 'oauth_failed';
+    return authErrorRedirect(stateRow.return_to, reason);
+  }
 }
 
 async function exchangeAuthCode(request: Request, env: Env): Promise<Response> {
@@ -138,6 +150,15 @@ async function exchangeAuthCode(request: Request, env: Env): Promise<Response> {
 async function currentUser(request: Request, env: Env): Promise<Response> {
   const user = await requireUser(request, env.DB);
   return json(publicUser(user));
+}
+
+async function logout(request: Request, env: Env): Promise<Response> {
+  const token = request.headers.get('Authorization')?.match(/^Bearer (.+)$/)?.[1];
+  if (token) {
+    await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?1')
+      .bind(await sha256(token)).run();
+  }
+  return new Response(null, { status: 204 });
 }
 
 async function listNodes(request: Request, env: Env): Promise<Response> {
@@ -218,10 +239,14 @@ async function githubProfile(accessToken: string): Promise<OAuthProfile> {
     fetch('https://api.github.com/user/emails', { headers }),
   ]);
   const user = await userResponse.json() as { id?: number; login?: string; name?: string; avatar_url?: string };
-  const emails = await emailResponse.json() as Array<{ email: string; primary: boolean; verified: boolean }>;
-  const email = emails.find((item) => item.primary && item.verified)?.email
-    || emails.find((item) => item.verified)?.email;
-  if (!userResponse.ok || !email || !user.id) throw new HttpError(401, 'github_profile_unavailable');
+  const emails = await emailResponse.json() as unknown;
+  if (!userResponse.ok || !emailResponse.ok || !Array.isArray(emails) || !user.id) {
+    throw new HttpError(401, 'github_profile_unavailable');
+  }
+  const verifiedEmails = emails as Array<{ email: string; primary: boolean; verified: boolean }>;
+  const email = verifiedEmails.find((item) => item.primary && item.verified)?.email
+    || verifiedEmails.find((item) => item.verified)?.email;
+  if (!email) throw new HttpError(401, 'github_profile_unavailable');
   return {
     provider: 'github',
     providerUserId: String(user.id),
@@ -328,7 +353,13 @@ function publicUser(user: UserRow) {
 async function readJson<T>(request: Request): Promise<T> {
   const length = Number(request.headers.get('Content-Length') || '0');
   if (length > 16_384) throw new HttpError(413, 'request_too_large');
-  return request.json() as Promise<T>;
+  const text = await request.text();
+  if (encoder.encode(text).byteLength > 16_384) throw new HttpError(413, 'request_too_large');
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new HttpError(400, 'invalid_json');
+  }
 }
 
 function randomToken(): string {

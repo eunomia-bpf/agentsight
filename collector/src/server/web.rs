@@ -18,11 +18,12 @@ use std::collections::HashSet;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::net::TcpListener;
 
 const HOSTED_APP_ORIGIN: &str = "https://app.agentsight.us";
 const MAX_BIND_BODY_BYTES: usize = 4096;
+const PAIRING_CODE_TTL: Duration = Duration::from_secs(2 * 60);
 
 #[derive(Clone)]
 struct PairingAuth {
@@ -31,6 +32,7 @@ struct PairingAuth {
 
 struct PairingState {
     code: Option<String>,
+    code_expires_at: Instant,
     tokens: HashSet<String>,
     node: NodeMetadata,
 }
@@ -44,9 +46,14 @@ pub struct NodeMetadata {
 
 impl PairingAuth {
     fn new(code: String, node: NodeMetadata) -> Self {
+        Self::new_with_expiration(code, node, Instant::now() + PAIRING_CODE_TTL)
+    }
+
+    fn new_with_expiration(code: String, node: NodeMetadata, code_expires_at: Instant) -> Self {
         Self {
             state: Arc::new(Mutex::new(PairingState {
                 code: Some(code),
+                code_expires_at,
                 tokens: HashSet::new(),
                 node,
             })),
@@ -55,6 +62,10 @@ impl PairingAuth {
 
     fn exchange(&self, code: &str) -> Option<String> {
         let mut state = self.state.lock().ok()?;
+        if Instant::now() > state.code_expires_at {
+            state.code = None;
+            return None;
+        }
         if state.code.as_deref() != Some(code) {
             return None;
         }
@@ -488,6 +499,20 @@ mod tests {
         let header = HeaderValue::from_str(&format!("Bearer {token}")).unwrap();
         assert!(auth.authorizes(Some(&header)));
         assert!(!auth.authorizes(None));
+    }
+
+    #[test]
+    fn expired_pairing_code_is_rejected() {
+        let auth = PairingAuth::new_with_expiration(
+            "expired".to_string(),
+            NodeMetadata {
+                id: "node_test".to_string(),
+                name: "test".to_string(),
+                version: "1".to_string(),
+            },
+            Instant::now() - Duration::from_secs(1),
+        );
+        assert!(auth.exchange("expired").is_none());
     }
 
     #[test]

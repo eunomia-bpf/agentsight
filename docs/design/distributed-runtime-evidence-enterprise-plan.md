@@ -139,9 +139,10 @@ AgentSight Cloud。
 - collaboration、share link 和 billing metadata。
 
 它没有 raw telemetry ingest API，不保存完整 session body，也不参与 Node 的本地 capture
-正确性。讨论中的第一版参考部署是静态 SPA + Cloudflare Worker + D1；Durable Objects
-只用于 presence/WSS routing，connection relay 与 control API 逻辑分离。也可以替换为
-Lambda 或一个小型 Rust service，而无需改变 data plane。
+正确性。讨论中的第一版参考部署是静态 SPA + Cloudflare Worker + D1；当前 SPA 由本仓库的
+GitHub Pages workflow 发布并经 Cloudflare 自定义域名提供，迁移到 Cloudflare Pages 不改变
+协议。Durable Objects 只用于 presence/WSS routing，connection relay 与 control API 逻辑
+分离。也可以替换为 Lambda 或一个小型 Rust service，而无需改变 data plane。
 
 ### Presentation Plane
 
@@ -204,9 +205,10 @@ ssh -N -L 27395:127.0.0.1:7395 server
 ```
 
 统一 fleet 入口仍是 `app.agentsight.us`；目标 `DirectFleetProvider` 通过 authenticated
-Node Protocol 查询配置的节点并在浏览器合并，不要求用户学习另一组采集命令。当前接口
-尚无鉴权，因此现在只能通过 loopback + SSH tunnel 使用，不能裸露 7395。Direct Mode 不
-需要 AgentSight backend；SSH 只是现有可用的 tunnel，不是独立 provider。
+Node Protocol 查询配置的节点并在浏览器合并，不要求用户学习另一组采集命令。本轮实现的
+`agentsight bind` 只开放 loopback，并用两分钟、一次性的配对码换取仅在命令进程内有效的
+bearer token；现有 `record` server 的兼容接口没有因此变成可公开的远程 API。Direct Mode
+不需要 AgentSight backend；SSH 只是现有可用的 tunnel，不是独立 provider。
 
 ### Mode 2：Managed Coordination
 
@@ -514,7 +516,7 @@ agent evidence，而不是采集最多 telemetry。
 关键原则是企业能力通过 provider 和 policy 加入，而不是给个人 binary 增加必须配置的云
 依赖。
 
-## 当前仓库已经具备什么
+## 本轮实现后的当前状态
 
 | 能力 | 当前状态 |
 | --- | --- |
@@ -525,13 +527,17 @@ agent evidence，而不是采集最多 telemetry。
 | Capture pipeline | 已有 SSL/process/stdio/system、analyzer、MaterializedView 和 sinks |
 | Local persistence | 已有 SQLite，但产品化 lifecycle 仍不完整 |
 | Container targeting | 已支持 Docker/Kubernetes binary resolution |
-| Static app | `app.agentsight.us` 当前是本仓库 recorded demo，不是 fleet control plane |
-| Remote API | 只有无鉴权 `/api/v1/snapshot`，且 CORS `*`；只能 local-only |
-| Fleet/Gateway/Cloud | 尚未实现 |
+| Static app | `app.agentsight.us` 托管本仓库 SPA；无连接时明确选择 Bind、OAuth 登录或 recorded demo |
+| Local bind | `agentsight bind` 打开短期 fragment 链接，只监听 loopback；Node ID 持久化，访问 token 随进程失效 |
+| Direct API | `/api/v1/info`、一次性 `/api/v1/bind` 和 bearer-protected `/api/v1/snapshot`；production CORS 只允许托管 app |
+| Cloud control | Cloudflare Worker + D1 已实现 GitHub/Google OAuth、session 和 owner-scoped Node metadata registry；不接收 snapshot |
+| Managed relay/Gateway | 尚未实现；当前跨机仍需 BYO connectivity，登录不会让不可达 Node 自动上线 |
 
-当前 embedded server 不能直接暴露到公网、LAN 或 tailnet。安全远程访问在 Direct mode 下
-应先通过 SSH tunnel；公开 Node Protocol 必须完成鉴权、Origin、pagination、deadline、
-response limit 和 disclosure policy。
+本轮是可 dogfood 的 Local/Direct 切片，不是完整 enterprise claim：仍保留 embedded assets
+以兼容旧入口；Snapshot 仍是迁移接口；local access 仍是 process-lifetime bearer，而不是
+浏览器 key + proof-of-possession；organization、RBAC/capability、revocation、managed relay、
+Site Gateway 和 bounded typed query 仍未完成。Node API 不能直接暴露到公网、LAN 或 tailnet；
+公开协议还必须补齐 HTTPS、pagination、deadline、response limit 和 disclosure policy。
 
 ## 还差哪些部分
 
@@ -582,8 +588,9 @@ remote-access adapter：
 4. 后台服务可选建立 outbound WSS，并复用同一个授权校验和 query handler；
 5. 移除 Node release 对前端 assets 的依赖，但保持现有 CLI 命令和本地离线能力。
 
-最小 hosted stack 只有：Cloudflare Pages 静态 SPA，OIDC/organization/Node registry/
-capability signing API，D1 中的 identity/public key/policy/allowlisted metadata/admin audit，
+最小 hosted stack 只有：静态 SPA（当前 GitHub Pages，也可换 Cloudflare Pages），OIDC/
+organization/Node registry/capability signing API，D1 中的 identity/public key/policy/
+allowlisted metadata/admin audit，
 以及 Node 主动连接的 WSS routing/relay。不需要 Kafka、ClickHouse、对象存储或 raw ingest。
 
 上线的真正安全阻塞是 Node/client identity、一次性配对、短期 capability +
@@ -597,7 +604,7 @@ proof-of-possession、revocation、精确 CORS/LNA，以及 relay 的资源边�
 
 - 最新 release 是 [v1.0.4](https://github.com/eunomia-bpf/agentsight/releases/tag/v1.0.4)；
 - [Issue #22](https://github.com/eunomia-bpf/agentsight/issues/22) 的 Linux ARM64 release
-  仍未完成；
+  已由 master 上的 CI/release 改动关闭；
 - [PR #144](https://github.com/eunomia-bpf/agentsight/pull/144) 的 session-level OTel trace
   correlation 尚未合入 master；
 - [PR #148](https://github.com/eunomia-bpf/agentsight/pull/148) 的 audit source/confidence

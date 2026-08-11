@@ -78,6 +78,27 @@ Use `debug trace` only when you need low-level control over capture sources or
 explicit filters. It is the advanced replacement for a raw trace command, not
 the normal record/report workflow.
 
+## Open this machine in the hosted app
+
+Run the unprivileged binding command to open this machine in the frontend at
+`https://app.agentsight.us`:
+
+```sh
+agentsight bind
+```
+
+The command starts a loopback-only API, opens a binding link, and remains in
+the foreground while the hosted app reads the local snapshot. The one-time
+pairing code is carried in the URL fragment, expires after two minutes, and is
+invalidated after its first use. The resulting access token lasts only for
+that command process. Chrome may ask you to allow Local network access for the
+hosted app.
+
+Use `agentsight bind --no-open` to copy the link manually or `agentsight bind
+--qr` to print the same link as a QR code. Direct mode does not upload session
+contents to AgentSight's control plane; optional sign-in stores only identity,
+session, and Node metadata there.
+
 ## Share Agent Nebula
 
 `vis` reads local Claude, Codex, and Gemini sessions without sudo and produces

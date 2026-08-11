@@ -24,6 +24,7 @@ import {
   loadLocalConnection,
   registerCloudNode,
   saveLocalConnection,
+  signOutCloud,
 } from '@/lib/connection';
 import { AgentSightSnapshot } from '@/types/event';
 import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
@@ -98,6 +99,12 @@ export default function Home() {
     }
   }, []);
 
+  const signOut = useCallback(() => {
+    const token = loadCloudSession();
+    setIdentity(null);
+    void signOutCloud(token);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     const initialize = async () => {
@@ -116,8 +123,15 @@ export default function Home() {
           saveLocalConnection(bound);
           setConnection(bound);
           const cloudToken = loadCloudSession();
-          if (cloudToken) await registerCloudNode(cloudToken, bound);
           await loadNodeData(bound);
+          if (cloudToken) {
+            try {
+              setIdentity(await fetchCloudIdentity(cloudToken));
+              await registerCloudNode(cloudToken, bound);
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : 'Could not register this Node.');
+            }
+          }
           return;
         }
 
@@ -130,6 +144,7 @@ export default function Home() {
             const me = await fetchCloudIdentity(cloudToken);
             if (!cancelled) setIdentity(me);
           } catch (cause) {
+            cloudToken = null;
             if (!cancelled) setError(cause instanceof Error ? cause.message : 'Sign-in failed.');
           }
         }
@@ -138,8 +153,16 @@ export default function Home() {
         if (saved) {
           if (cancelled) return;
           setConnection(saved);
-          if (cloudToken) await registerCloudNode(cloudToken, saved);
           await loadNodeData(saved);
+          if (cloudToken) {
+            try {
+              await registerCloudNode(cloudToken, saved);
+            } catch (cause) {
+              if (!cancelled) {
+                setError(cause instanceof Error ? cause.message : 'Could not register this Node.');
+              }
+            }
+          }
         } else if (!cancelled) {
           setMode('disconnected');
         }
@@ -168,8 +191,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {mode === 'disconnected' && !identity && (
-        <ConnectionDialog error={error} busy={syncing} onDemo={() => { void enterDemo(); }} />
+      {mode === 'disconnected' && (
+        <ConnectionDialog error={error} busy={syncing} identity={identity}
+          onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
       )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -194,9 +218,15 @@ export default function Home() {
           </div>
           <div className="flex items-center justify-start gap-3 lg:justify-end">
             {identity && (
-              <span className="text-sm text-slate-600" title={identity.email}>
-                Signed in as {identity.name || identity.email}
-              </span>
+              <>
+                <span className="text-sm text-slate-600" title={identity.email}>
+                  Signed in as {identity.name || identity.email}
+                </span>
+                <button type="button" onClick={signOut}
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900">
+                  Sign out
+                </button>
+              </>
             )}
             <LanguageSwitcher />
           </div>

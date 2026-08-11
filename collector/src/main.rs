@@ -216,7 +216,7 @@ enum Commands {
     },
     /// Bind this machine to the hosted AgentSight app.
     Bind {
-        /// Print a QR code for binding from another device.
+        /// Print a QR code containing the binding URL.
         #[arg(long)]
         qr: bool,
         /// Print the binding URL without opening a browser.

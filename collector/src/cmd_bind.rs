@@ -37,15 +37,6 @@ pub(crate) async fn run_bind(
     let view = MaterializedView::shared_bounded();
     let server = WebServer::new_with_db_path(view, None)?.with_pairing_code(pairing_code, node);
 
-    println!("Bind this device at:\n{bind_url}");
-    println!("The pairing code expires when this command exits and can be used only once.");
-    if qr {
-        print_qr(&bind_url)?;
-    }
-    if !no_open && !open_browser(&bind_url) {
-        eprintln!("Could not open a browser automatically; open the URL above.");
-    }
-
     let handle = tokio::spawn(async move { server.start(addr).await });
     tokio::time::sleep(Duration::from_millis(100)).await;
     if handle.is_finished() {
@@ -54,6 +45,17 @@ pub(crate) async fn run_bind(
             Ok(Err(err)) => Err(err),
             Err(err) => Err(err.into()),
         };
+    }
+
+    println!("Bind this device at:\n{bind_url}");
+    println!(
+        "The pairing code expires in two minutes or when this command exits, and can be used only once."
+    );
+    if qr {
+        print_qr(&bind_url)?;
+    }
+    if !no_open && !open_browser(&bind_url) {
+        eprintln!("Could not open a browser automatically; open the URL above.");
     }
 
     shutdown_notify().notified().await;
@@ -86,7 +88,9 @@ fn local_node_metadata()
     let id = match std::fs::read_to_string(&id_path) {
         Ok(value) if valid_node_id(value.trim()) => value.trim().to_string(),
         Ok(_) => {
-            return Err(format!("invalid AgentSight node identity at {}", id_path.display()).into());
+            return Err(
+                format!("invalid AgentSight node identity at {}", id_path.display()).into(),
+            );
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             let id = format!("node_{}", uuid::Uuid::new_v4().simple());

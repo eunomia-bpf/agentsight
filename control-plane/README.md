@@ -5,6 +5,9 @@ AgentSight app. It stores users, OAuth identities, short-lived authorization
 codes, sessions, and allowlisted Node metadata in D1. It does not ingest or
 store AgentSight snapshots, prompts, process details, or other Node data.
 
+The SPA itself is published by this repository's GitHub Pages workflow at
+`https://app.agentsight.us`; it is not served by this Worker.
+
 The deployed API is `https://agentsight-control.yusen356.workers.dev`.
 
 ## Authentication

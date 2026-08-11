@@ -65,11 +65,18 @@ export async function exchangeLocalPairing(params: URLSearchParams): Promise<Loc
   const endpoint = normalizeLoopbackEndpoint(params.get('endpoint') || '');
   if (!code) throw new Error('The binding link is missing its one-time code.');
 
-  const response = await localFetch(`${endpoint}/api/v1/bind`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code }),
-  });
+  let response: Response;
+  try {
+    response = await localFetch(`${endpoint}/api/v1/bind`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+  } catch {
+    throw new Error(
+      'Could not reach the local AgentSight Node. Allow Local network access in the browser, then run agentsight bind again.',
+    );
+  }
   if (!response.ok) {
     throw new Error(response.status === 401
       ? 'This binding link has expired or was already used. Run agentsight bind again.'
@@ -109,7 +116,16 @@ export function saveLocalConnection(connection: LocalConnection) {
 export function loadLocalConnection(): LocalConnection | null {
   try {
     const value = window.localStorage.getItem(LOCAL_CONNECTION_KEY);
-    return value ? JSON.parse(value) as LocalConnection : null;
+    if (!value) return null;
+    const parsed = JSON.parse(value) as Partial<LocalConnection>;
+    if (typeof parsed.endpoint !== 'string'
+      || typeof parsed.accessToken !== 'string'
+      || typeof parsed.nodeId !== 'string'
+      || typeof parsed.nodeName !== 'string'
+      || typeof parsed.version !== 'string') {
+      throw new Error('invalid saved local connection');
+    }
+    return { ...parsed, endpoint: normalizeLoopbackEndpoint(parsed.endpoint) } as LocalConnection;
   } catch {
     clearLocalConnection();
     return null;
@@ -140,6 +156,15 @@ export async function exchangeCloudCode(code: string): Promise<string> {
 
 export function loadCloudSession(): string | null {
   return window.localStorage.getItem(CLOUD_SESSION_KEY);
+}
+
+export async function signOutCloud(token: string | null): Promise<void> {
+  window.localStorage.removeItem(CLOUD_SESSION_KEY);
+  if (!token) return;
+  await fetch(`${controlPlaneUrl}/v1/auth/logout`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  }).catch(() => undefined);
 }
 
 export async function fetchCloudIdentity(token: string): Promise<CloudIdentity> {
