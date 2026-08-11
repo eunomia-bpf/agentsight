@@ -1,5 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
+  // Keep the deployed Worker slug for URL/OAuth compatibility. The product
+  // and repository concept is Controller; the hostname can be migrated later.
   "name": "agentsight-control",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-11",
@@ -13,6 +15,14 @@
       "database_name": "agentsight-control",
       "database_id": "19e9a84d-25a7-4bb7-8de8-f1ba01b89862"
     }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "NODE_RELAY", "class_name": "NodeRelay" }
+    ]
+  },
+  "migrations": [
+    { "tag": "relay-v1", "new_sqlite_classes": ["NodeRelay"] }
   ],
   "ratelimits": [
     {

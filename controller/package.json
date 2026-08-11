@@ -1,12 +1,12 @@
 {
-  "name": "agentsight-control-plane",
+  "name": "agentsight-controller",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "tsx --test src/index.test.ts",
-    "deploy": "wrangler deploy",
+    "test": "tsx --test src/*.test.ts",
+    "deploy": "wrangler d1 migrations apply DB --remote && wrangler deploy",
     "dev": "wrangler dev"
   },
   "devDependencies": {

@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS nodes (
     name TEXT NOT NULL,
     version TEXT,
     public_key TEXT,
+    relay_token_hash TEXT,
     connection_mode TEXT NOT NULL DEFAULT 'direct',
     last_seen_at INTEGER NOT NULL,
     created_at INTEGER NOT NULL
