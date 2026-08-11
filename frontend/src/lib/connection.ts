@@ -40,6 +40,23 @@ function localFetch(input: string, init: RequestInit = {}) {
   return fetch(input, options);
 }
 
+async function nodeFetch(input: string, init: RequestInit = {}) {
+  const options: RequestInit = { ...init, mode: 'cors', cache: 'no-store' };
+  try {
+    // Public HTTPS Direct Nodes must not be declared as local address-space
+    // targets. Modern browsers can perform ordinary CORS fetches to them.
+    return await fetch(input, options);
+  } catch (error) {
+    // Loopback/private targets may require an explicit Local Network Access
+    // request and browser permission. Retry only after the ordinary path fails.
+    try {
+      return await localFetch(input, init);
+    } catch {
+      throw error;
+    }
+  }
+}
+
 function cloudFetch(input: string, init: RequestInit = {}) {
   return fetch(input, { ...init, signal: init.signal || AbortSignal.timeout(CLOUD_TIMEOUT_MS) });
 }
@@ -124,7 +141,7 @@ async function exchangeLocalPairingOnce(params: URLSearchParams): Promise<LocalC
 
   let response: Response;
   try {
-    response = await localFetch(`${endpoint}/api/v1/info`, {
+    response = await nodeFetch(`${endpoint}/api/v1/info`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
   } catch {
@@ -155,7 +172,7 @@ export async function fetchLocalSnapshot(connection: LocalConnection): Promise<A
   if (connection.accessToken) headers.Authorization = `Bearer ${connection.accessToken}`;
   const input = `${connection.endpoint}/api/v1/snapshot?audit_limit=50000`;
   const response = connection.accessToken
-    ? await localFetch(input, { headers })
+    ? await nodeFetch(input, { headers })
     : await fetch(input, { headers, cache: 'no-store' });
   if (!response.ok) {
     if (response.status === 401) clearLocalConnection();

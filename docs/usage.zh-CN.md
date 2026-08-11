@@ -116,24 +116,38 @@ sudo ./agentsight record -- claude
 sudo ./agentsight debug trace --ssl true --process false --server --http-filter "request.method=POST"
 ```
 
-## 在托管前端打开本机
+## 在前端连接 AgentSight Node
 
-运行下面这个无需 sudo 的命令，在 `https://app.agentsight.us` 打开本机数据：
+运行下面这个无需 sudo 的命令，在默认托管前端
+`https://app.agentsight.us` 打开 Node 数据：
 
 ```sh
 agentsight bind
 ```
 
-该命令只在 loopback 地址启动本地 API，打开一次性绑定链接，并在前台持续运行；
-退出命令后网页即无法继续读取。当前目录存在 `agentsight-*.db` 时默认读取最新一个，
+该命令默认在 `127.0.0.1:7395` 启动 API，打开带认证信息的连接链接，并在前台持续运行；
+退出命令后访问密钥失效，网页即无法继续读取。当前目录存在 `agentsight-*.db` 时默认读取最新一个，
 否则读取本机 agent session index；也可以用 `--db <capture.db>` 明确指定一次保存的捕获。
-本地配对码只放在 URL fragment 中，两分钟后过期，
-且成功使用一次后立即失效；换得的访问 token 也只在本次命令进程内有效。Chrome
-可能会请求允许该网页访问本地网络。
+随机 bearer 只放在 URL fragment 中，SPA 读取后立即从地址栏清除，并且只在本次命令
+进程内有效。Chrome 可能会请求允许该网页访问本地或私有网络。
 
 使用 `agentsight bind --no-open` 可手动复制链接，使用 `agentsight bind --qr` 可打印
-同一个链接的二维码。Direct 模式不会把 session 内容上传到 AgentSight 控制面；
-可选登录只在控制面保存身份、会话和 Node 元数据。
+同一个链接的二维码。Local 只是自动发现的默认路径，并不是另一套协议：可以用
+`--listen <IP>` 和 `--server-port <PORT>` 选择监听 socket；经过 hostname、tunnel 或
+HTTPS reverse proxy 时用 `--endpoint <URL>` 指定浏览器实际访问的 Node URL；用
+`--app-url <URL>` 选择自托管静态前端。例如：
+
+```sh
+agentsight bind --listen 0.0.0.0 --server-port 7395 \
+  --endpoint https://node.example.net \
+  --app-url https://agentsight.example.net/
+```
+
+监听 `0.0.0.0` 或 `::` 时必须显式提供 `--endpoint`。非 loopback Node 应使用可信 HTTPS
+或私有网络；任何持有 fragment 的人都能在 Node 进程运行期间使用该 bearer。Direct
+模式不会把 session 内容上传到 AgentSight 控制面；可选登录只在控制面保存身份、会话和
+Node 元数据。自托管登录还需要把 SPA 的 `NEXT_PUBLIC_CONTROL_PLANE_URL` 指向配套
+Worker，并把 Worker 的 `APP_ORIGIN` 设为该 SPA origin。
 
 ### 对比总结
 

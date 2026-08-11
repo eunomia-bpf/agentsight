@@ -115,28 +115,11 @@ export default function Home() {
     const initialize = async () => {
       setSyncing(true);
       try {
-        const embedded = await detectEmbeddedServer();
-        if (cancelled) return;
-        if (embedded) {
-          setEmbeddedMode(true);
-          if (embedded.authorizationRequired) {
-            setMode('disconnected');
-            return;
-          }
-          setConnection(embedded.connection);
-          await loadNodeData(embedded.connection);
-          return;
-        }
         const launch = consumeLaunchFragment();
-        if (launch?.get('action') === 'auth-error') {
-          const reason = launch.get('error') || 'sign_in_failed';
-          setError(reason.endsWith('_login_not_configured')
-            ? 'This sign-in provider is not configured yet.'
-            : 'AgentSight sign-in failed. Please try again.');
-        }
         if (launch?.get('action') === 'bind') {
           const bound = await exchangeLocalPairing(launch);
           if (cancelled) return;
+          setEmbeddedMode(bound.endpoint === window.location.origin);
           saveLocalConnection(bound);
           setConnection(bound);
           const cloudToken = loadCloudSession();
@@ -152,6 +135,24 @@ export default function Home() {
             })();
           }
           return;
+        }
+        const embedded = await detectEmbeddedServer();
+        if (cancelled) return;
+        if (embedded) {
+          setEmbeddedMode(true);
+          if (embedded.authorizationRequired) {
+            setMode('disconnected');
+            return;
+          }
+          setConnection(embedded.connection);
+          await loadNodeData(embedded.connection);
+          return;
+        }
+        if (launch?.get('action') === 'auth-error') {
+          const reason = launch.get('error') || 'sign_in_failed';
+          setError(reason.endsWith('_login_not_configured')
+            ? 'This sign-in provider is not configured yet.'
+            : 'AgentSight sign-in failed. Please try again.');
         }
 
         let cloudToken = loadCloudSession();

@@ -183,15 +183,21 @@ async fn handle_request(
     }
 
     let response = match (req.method(), path.as_str()) {
-        (&Method::GET, "/api/v1/info") => json_response(
-            StatusCode::OK,
-            &serde_json::json!({
-                "protocol_version": 1,
-                "product": "agentsight",
-                "authorization_required": direct_auth.is_some(),
-                "node": direct_auth.as_ref().map(|auth| auth.node.clone()),
-            }),
-        ),
+        (&Method::GET, "/api/v1/info") => {
+            if !info_access_allowed(direct_auth.as_ref(), req.headers().get(AUTHORIZATION)) {
+                json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
+            } else {
+                json_response(
+                    StatusCode::OK,
+                    &serde_json::json!({
+                        "protocol_version": 1,
+                        "product": "agentsight",
+                        "authorization_required": direct_auth.is_some(),
+                        "node": direct_auth.as_ref().map(|auth| auth.node.clone()),
+                    }),
+                )
+            }
+        }
         (&Method::GET, "/api/v1/snapshot") => {
             if !snapshot_access_allowed(
                 direct_auth.as_ref(),
@@ -346,6 +352,16 @@ fn snapshot_access_allowed(
     }
 }
 
+fn info_access_allowed(
+    direct_auth: Option<&DirectAuth>,
+    authorization: Option<&HeaderValue>,
+) -> bool {
+    match (direct_auth, authorization) {
+        (Some(auth), Some(value)) => auth.authorizes(Some(value)),
+        _ => true,
+    }
+}
+
 fn cors_response(
     mut response: Response<Full<Bytes>>,
     origin: Option<&str>,
@@ -433,6 +449,12 @@ mod tests {
         assert!(auth.authorizes(Some(&header)));
         assert!(!auth.authorizes(Some(&HeaderValue::from_static("Bearer wrong"))));
         assert!(!auth.authorizes(None));
+        assert!(info_access_allowed(Some(&auth), None));
+        assert!(info_access_allowed(Some(&auth), Some(&header)));
+        assert!(!info_access_allowed(
+            Some(&auth),
+            Some(&HeaderValue::from_static("Bearer wrong"))
+        ));
     }
 
     #[test]
