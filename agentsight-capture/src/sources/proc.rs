@@ -84,10 +84,9 @@ impl ProcSnapshot {
         let procs = system
             .processes()
             .values()
-            .map(|process| {
-                let info = proc_info_from_sysinfo(process, boot_time_s);
-                (info.pid, info)
-            })
+            .filter(|process| process.thread_kind() != Some(sysinfo::ThreadKind::Userland))
+            .map(|process| proc_info_from_sysinfo(process, boot_time_s))
+            .map(|info| (info.pid, info))
             .collect();
 
         Ok(Self {
@@ -441,6 +440,7 @@ fn ticks_per_second() -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::process::Command;
 
     #[test]
     fn snapshot_collects_current_process() {
@@ -448,23 +448,21 @@ mod tests {
         let current = snapshot.procs.get(&std::process::id()).unwrap();
 
         assert_eq!(current.pid, std::process::id());
+        #[cfg(target_os = "linux")]
+        let tid = unsafe { libc::gettid() } as u32;
+        #[cfg(target_os = "linux")]
+        assert!(!snapshot.procs.contains_key(&tid));
         assert!(current.starttime_ticks > 0);
-        assert!(current.threads > 0);
+        assert!(current.threads > if cfg!(target_os = "linux") { 1 } else { 0 });
         assert!(!current.comm.is_empty() || !current.command.is_empty());
     }
 
     #[cfg(unix)]
     #[test]
     fn snapshot_counts_single_thread_process() {
-        let mut child = std::process::Command::new("sleep")
-            .arg("5")
-            .spawn()
-            .unwrap();
+        let mut child = Command::new("sleep").arg("5").spawn().unwrap();
         let snapshot = ProcSnapshot::collect().unwrap();
-        let threads = snapshot
-            .procs
-            .get(&child.id())
-            .map(|proc_info| proc_info.threads);
+        let threads = snapshot.procs.get(&child.id()).map(|p| p.threads);
         let _ = child.kill();
         let _ = child.wait();
 
