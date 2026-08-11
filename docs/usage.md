@@ -78,6 +78,47 @@ Use `debug trace` only when you need low-level control over capture sources or
 explicit filters. It is the advanced replacement for a raw trace command, not
 the normal record/report workflow.
 
+## Open this machine in the hosted app
+
+Run the unprivileged binding command to open this Node in the default hosted
+frontend at `https://app.agentsight.us`:
+
+```sh
+agentsight bind
+```
+
+The command starts an API on `127.0.0.1:7395` by default, opens a binding link,
+and remains in the foreground while the app reads AgentSight data. It uses the
+latest `agentsight-*.db` in the current directory when present, otherwise it
+reads the local agent session index. Pass `--db <capture.db>` to select a saved
+capture explicitly. A random access key is carried only in the URL fragment,
+removed from the visible URL by the SPA, and lasts only for that command
+process. Chrome may ask you to allow Local network access for a loopback or LAN
+Node.
+
+Use `agentsight bind --no-open` to copy the link manually or `agentsight bind
+--qr` to print the same link as a QR code. The endpoint and presentation plane
+are not hard-coded: use `--listen <IP>` and `--server-port <PORT>` to choose the
+socket, `--endpoint <URL>` when the browser reaches it through a different
+hostname, tunnel, or HTTPS reverse proxy, and `--app-url <URL>` to open a
+self-hosted static app. For example:
+
+```sh
+agentsight bind --listen 0.0.0.0 --server-port 7395 \
+  --endpoint https://node.example.net \
+  --app-url https://agentsight.example.net/
+```
+
+An unspecified listen address requires an explicit browser-reachable
+`--endpoint`. A non-loopback Node should use browser-trusted HTTPS; private
+transport alone does not override browser mixed-content rules. The access key
+authorizes anyone who possesses the fragment while the process
+is running. Direct mode does not upload session contents to AgentSight's
+control plane; optional sign-in stores only identity, session, and Node metadata
+there. Self-hosted sign-in also requires building the SPA with
+`NEXT_PUBLIC_CONTROL_PLANE_URL` pointed at the matching Worker and setting that
+Worker's `APP_ORIGIN` to the SPA origin.
+
 ## Share Agent Nebula
 
 `vis` reads local Claude, Codex, and Gemini sessions without sudo and produces

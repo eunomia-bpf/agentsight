@@ -62,6 +62,24 @@ jobs:
         node scripts/prepare-sample.mjs
         npm run build
 
+    - name: Setup control-plane Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22'
+
+    - name: Test control plane
+      run: |
+        cd control-plane
+        npm ci
+        npm test
+        npm run check
+        npx wrangler deploy --dry-run
+
+    - name: Restore repository Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
     - name: Build agentvis runtime
       run: |
         cd agentvis/web

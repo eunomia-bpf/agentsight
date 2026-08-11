@@ -26,4 +26,5 @@ Current architecture notes:
 Product and workflow proposals:
 
 - [Agent Behavior Analysis Skills](agent-behavior-analysis-skills.md)
+- [Distributed Product Architecture: Local-first to Enterprise](distributed-runtime-evidence-enterprise-plan.md)
 - [Skill-Generated Example Dashboards](../skills-examples/)
