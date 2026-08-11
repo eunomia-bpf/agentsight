@@ -21,6 +21,10 @@ include = [
     "vendor/frontend/dist/**",
 ]
 
+[profile.release]
+codegen-units = 1
+strip = "symbols"
+
 [dependencies]
 agentsight-capture = { version = "1.0.8", path = "../agentsight-capture" }
 agent-session = { version = "0.4.35", path = "../agent-session" }
