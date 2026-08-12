@@ -50,9 +50,78 @@ jobs:
           }
 
           & $agentsight top --plain --once
-          & $agentsight vis . --output "$env:RUNNER_TEMP/agent-nebula.html"
-          if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$env:RUNNER_TEMP/agent-nebula.html")) {
-            throw "agentsight vis HTML smoke failed"
+          $visHtml = Join-Path $env:RUNNER_TEMP "agent-nebula.html"
+          $visPng = Join-Path $env:RUNNER_TEMP "agent-nebula.png"
+          & $agentsight vis . --output $visHtml --output $visPng
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $visHtml) -or -not (Test-Path $visPng)) {
+            throw "agentsight vis browser smoke failed"
+          }
+
+          $listener = [System.Net.Sockets.TcpListener]::new(
+            [System.Net.IPAddress]::Loopback,
+            0
+          )
+          $listener.Start()
+          $bindPort = $listener.LocalEndpoint.Port
+          $listener.Stop()
+          $bindOut = Join-Path $env:RUNNER_TEMP "agentsight-bind.out"
+          $bindErr = Join-Path $env:RUNNER_TEMP "agentsight-bind.err"
+          $bindProcess = Start-Process `
+            -FilePath $agentsight `
+            -ArgumentList @(
+              "--listen", "127.0.0.1", "bind", "--no-open",
+              "--server-port", "$bindPort", "--app-url", "http://127.0.0.1:17400/"
+            ) `
+            -RedirectStandardOutput $bindOut `
+            -RedirectStandardError $bindErr `
+            -PassThru
+          try {
+            $bindBase = "http://127.0.0.1:$bindPort"
+            $tokenPath = Join-Path $env:APPDATA "agentsight/access-token"
+            $ready = $false
+            for ($attempt = 0; $attempt -lt 80; $attempt++) {
+              if ($bindProcess.HasExited) {
+                throw "agentsight bind exited during startup"
+              }
+              if (Test-Path $tokenPath) {
+                try {
+                  $probe = Invoke-WebRequest `
+                    -Uri "$bindBase/api/v1/info" `
+                    -SkipHttpErrorCheck
+                  if ([int]$probe.StatusCode -eq 401) {
+                    $ready = $true
+                    break
+                  }
+                } catch {
+                  # The listener may not have started yet.
+                }
+              }
+              Start-Sleep -Milliseconds 250
+            }
+            if (-not $ready) {
+              throw "agentsight bind did not expose its authenticated API"
+            }
+
+            $token = (Get-Content -Raw $tokenPath).Trim()
+            $headers = @{ Authorization = "Bearer $token" }
+            $info = Invoke-RestMethod -Uri "$bindBase/api/v1/info" -Headers $headers
+            if (-not $info.authorization_required -or -not $info.capabilities.session_messages) {
+              throw "agentsight bind returned incomplete Node capabilities"
+            }
+            $messageProbe = Invoke-WebRequest `
+              -Uri "$bindBase/api/v1/sessions/missing-session/messages" `
+              -Method Post `
+              -Headers $headers `
+              -ContentType "application/json" `
+              -Body '{"message":"windows bind smoke"}' `
+              -SkipHttpErrorCheck
+            if ([int]$messageProbe.StatusCode -ne 404) {
+              throw "agentsight bind message route was not reachable"
+            }
+          } finally {
+            if (-not $bindProcess.HasExited) {
+              Stop-Process -Id $bindProcess.Id -Force
+            }
           }
 
       - uses: actions/upload-artifact@v4
