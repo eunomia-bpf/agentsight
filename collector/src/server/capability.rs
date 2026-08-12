@@ -10,7 +10,7 @@ pub const EVIDENCE_READ: &str = "evidence.read";
 pub const SESSION_READ: &str = "session.read";
 pub const SESSION_MESSAGE: &str = "session.message";
 
-const MAX_TTL_SECONDS: u64 = 600;
+const MAX_TTL_SECONDS: u64 = 12 * 60 * 60;
 
 #[derive(Debug, Clone)]
 struct Grant {
@@ -38,7 +38,7 @@ impl CapabilityMintRequest {
             return Err("capability contains an unknown action");
         }
         if !(30..=MAX_TTL_SECONDS).contains(&self.ttl_seconds) {
-            return Err("capability ttl must be between 30 and 600 seconds");
+            return Err("capability ttl must be between 30 seconds and 12 hours");
         }
         if self.session_id.as_deref().is_some_and(|value| !valid_session_id(value)) {
             return Err("invalid capability session scope");
@@ -216,7 +216,7 @@ mod tests {
         let mut invalid = request(&["root"], None);
         assert!(store.mint("node_test", &invalid).is_err());
         invalid.actions = vec![NODE_INFO.to_string()];
-        invalid.ttl_seconds = 601;
+        invalid.ttl_seconds = MAX_TTL_SECONDS + 1;
         assert!(store.mint("node_test", &invalid).is_err());
     }
 }
