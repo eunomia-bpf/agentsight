@@ -37,6 +37,7 @@ import {
   directNodeClient,
   forgetDirectConnection,
   loadDirectConnections,
+  probeDirectConnection,
   registerControllerNode,
   relayNodeClient,
   relayOnline,
@@ -183,7 +184,8 @@ export default function Home() {
 
     const token = loadCloudSession();
     const cloudNode = cloudNodes.find((node) => node.id === nodeId);
-    if (token && cloudNode) {
+    const relay = relayStatus[nodeId];
+    if (token && cloudNode && relay === true) {
       try {
         const client = relayNodeClient(cloudNode, token);
         const nextSnapshot = await client.snapshot();
@@ -203,12 +205,48 @@ export default function Home() {
         setNodeError(`${relayMessage}${directMessage}`);
       }
     } else if (directFailure instanceof Error) {
-      setNodeError(directFailure.message);
+      setNodeError(`Direct failed: ${directFailure.message} Relay is unavailable; edit the Direct URL or access key.`);
+    } else if (cloudNode) {
+      setNodeError(relay === null
+        ? 'No Direct path is saved for this browser. Relay is still being checked; configure Direct to connect by IP or URL without relay.'
+        : 'No reachable transport. Configure a Direct URL and access key, or bring Controller relay online.');
     } else {
-      setNodeError('This Node is not reachable from this browser. Run agentsight bind on the Node to reconnect it.');
+      setNodeError('This Node is not reachable from this browser. Configure a Direct URL and access key.');
     }
     setLoadingNodeId(null);
-  }, [cloudNodes, directConnections]);
+  }, [cloudNodes, directConnections, relayStatus]);
+
+  const connectDirect = useCallback(async (
+    nodeId: string,
+    endpoint: string,
+    accessToken: string,
+  ): Promise<boolean> => {
+    setLoadingNodeId(nodeId);
+    setNodeError('');
+    try {
+      const connection = await probeDirectConnection(endpoint, accessToken);
+      if (connection.nodeId !== nodeId) {
+        setNodeError(
+          `That Direct URL belongs to ${connection.nodeName} (${connection.nodeId}), not the selected Node (${nodeId}).`,
+        );
+        return false;
+      }
+      const opened = await activateClient(directNodeClient(connection));
+      if (!opened) return false;
+      saveDirectConnection(connection);
+      setDirectConnections(loadDirectConnections());
+      const cloudToken = loadCloudSession();
+      if (cloudToken) {
+        void registerControllerNode(cloudToken, connection).catch(() => undefined);
+      }
+      return true;
+    } catch (cause) {
+      setNodeError(cause instanceof Error ? cause.message : 'Could not connect to that Direct Node URL.');
+      return false;
+    } finally {
+      setLoadingNodeId(null);
+    }
+  }, [activateClient]);
 
   const enterDemo = useCallback(async () => {
     setSyncing(true);
@@ -414,7 +452,7 @@ export default function Home() {
     <NodeManager identity={identity} nodes={cloudNodes} connections={directConnections}
       relayStatus={relayStatus} activeNodeId={activeClient?.nodeId} activeTransport={activeTransport}
       loadingNodeId={loadingNodeId} loading={syncing || nodesLoading} error={nodeError}
-      onOpenNode={(nodeId) => { void openNode(nodeId); }}
+      onOpenNode={(nodeId) => { void openNode(nodeId); }} onConnectDirect={connectDirect}
       onRefresh={() => { void refreshCloudNodes(); }}
       onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
       onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
@@ -433,7 +471,7 @@ export default function Home() {
           relayStatus={relayStatus} activeNodeId={activeClient?.nodeId} activeTransport={activeTransport}
           loadingNodeId={loadingNodeId} loading={syncing || nodesLoading} error={nodeError} modal
           onClose={() => setDialogOpen(false)}
-          onOpenNode={(nodeId) => { void openNode(nodeId); }}
+          onOpenNode={(nodeId) => { void openNode(nodeId); }} onConnectDirect={connectDirect}
           onRefresh={() => { void refreshCloudNodes(); }}
           onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
           onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
