@@ -39,12 +39,14 @@ jobs:
           Copy-Item `
             "agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl" `
             (Join-Path $fixtureDir "public-agentpprof-fixture.jsonl")
-          $report = (& $agentsight report --local 2>&1 | Out-String)
+          $snapshotPath = Join-Path $env:RUNNER_TEMP "agentsight-snapshot.json"
+          & $agentsight report --local export --output $snapshotPath
           if ($LASTEXITCODE -ne 0) {
-            throw "agentsight report --local failed"
+            throw "agentsight report --local export failed"
           }
-          if ($report -notmatch "codex") {
-            throw "agentsight report --local did not discover the Windows Codex fixture"
+          $snapshot = Get-Content -Raw $snapshotPath | ConvertFrom-Json
+          if (-not ($snapshot.sessions | Where-Object agent_type -eq "codex")) {
+            throw "agentsight report export did not discover the Windows Codex fixture"
           }
 
           & $agentsight top --plain --once
