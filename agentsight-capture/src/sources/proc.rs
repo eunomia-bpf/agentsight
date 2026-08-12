@@ -431,10 +431,18 @@ pub fn process_cpu_ms_delta(proc_info: &ProcInfo, previous: Option<&ProcSnapshot
 
 fn ticks_per_second() -> f64 {
     static TICKS_PER_SECOND: OnceLock<f64> = OnceLock::new();
-    *TICKS_PER_SECOND.get_or_init(|| {
-        let value = unsafe { libc::sysconf(libc::_SC_CLK_TCK) };
-        if value > 0 { value as f64 } else { 100.0 }
-    })
+    *TICKS_PER_SECOND.get_or_init(platform_ticks_per_second)
+}
+
+#[cfg(unix)]
+fn platform_ticks_per_second() -> f64 {
+    let value = unsafe { libc::sysconf(libc::_SC_CLK_TCK) };
+    if value > 0 { value as f64 } else { 100.0 }
+}
+
+#[cfg(not(unix))]
+fn platform_ticks_per_second() -> f64 {
+    100.0
 }
 
 #[cfg(test)]
