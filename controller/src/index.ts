@@ -15,6 +15,7 @@ import {
 
 interface Env extends RelayEnv {
   APP_ORIGIN: string;
+  APP_PREVIEW_ORIGIN?: string;
   OAUTH_IP_LIMITER: RateLimit;
   OAUTH_LOCATION_LIMITER: RateLimit;
   GITHUB_CLIENT_ID?: string;
@@ -51,19 +52,21 @@ export default {
     }
 
     const requestOrigin = request.headers.get('Origin');
-    if (requestOrigin && requestOrigin !== new URL(env.APP_ORIGIN).origin) {
+    if (requestOrigin && !allowedAppOrigin(requestOrigin, env)) {
       return json({ error: 'origin_not_allowed' }, 403);
     }
 
     if (request.method === 'GET' && url.pathname === '/v1/health') {
-      return cors(json({ status: 'ok', service: 'agentsight-controller' }), env);
+      return cors(json({ status: 'ok', service: 'agentsight-controller' }), env, requestOrigin);
     }
 
     const relayRoute = browserRelayRoute(request);
     if (relayRoute) {
       const ownerId = await authenticatedUserId(request, env);
-      if (!ownerId) return cors(json({ error: 'authentication_required' }, 401), env);
-      return cors(await proxyBrowserRelay(request, env, relayRoute, ownerId), env);
+      if (!ownerId) return cors(
+        json({ error: 'authentication_required' }, 401), env, requestOrigin,
+      );
+      return cors(await proxyBrowserRelay(request, env, relayRoute, ownerId), env, requestOrigin);
     }
 
     // Node registration remains the same identity/ownership API. A locally
@@ -79,7 +82,7 @@ export default {
         if (typeof body.id !== 'string'
             || typeof body.relay_token !== 'string'
             || !validRelayToken(body.relay_token)) {
-          return cors(json({ error: 'invalid_relay_token' }, 400), env);
+          return cors(json({ error: 'invalid_relay_token' }, 400), env, requestOrigin);
         }
         relayEnrollment = { nodeId: body.id, token: body.relay_token };
       }
@@ -94,7 +97,7 @@ export default {
         ownerId,
         relayEnrollment.token,
       )) {
-        return cors(json({ error: 'relay_enrollment_failed' }, 400), env);
+        return cors(json({ error: 'relay_enrollment_failed' }, 400), env, requestOrigin);
       }
     }
     return response;
@@ -123,9 +126,18 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function cors(response: Response, env: Env): Response {
+function allowedAppOrigin(origin: string, env: Env): boolean {
+  return [env.APP_ORIGIN, env.APP_PREVIEW_ORIGIN]
+    .filter((candidate): candidate is string => Boolean(candidate))
+    .some((candidate) => new URL(candidate).origin === origin);
+}
+
+function cors(response: Response, env: Env, requestOrigin: string | null): Response {
   const headers = new Headers(response.headers);
-  headers.set('Access-Control-Allow-Origin', new URL(env.APP_ORIGIN).origin);
+  const responseOrigin = requestOrigin && allowedAppOrigin(requestOrigin, env)
+    ? requestOrigin
+    : new URL(env.APP_ORIGIN).origin;
+  headers.set('Access-Control-Allow-Origin', responseOrigin);
   headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   headers.set('X-Content-Type-Options', 'nosniff');
