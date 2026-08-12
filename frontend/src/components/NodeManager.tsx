@@ -29,6 +29,7 @@ interface NodeManagerProps {
   modal?: boolean;
   onClose?: () => void;
   onOpenNode: (nodeId: string) => void;
+  onConnectDirect: (nodeId: string, endpoint: string, accessToken: string) => Promise<boolean>;
   onRefresh: () => void;
   onForgetNode: (nodeId: string) => void;
   onForgetDirect: (nodeId: string) => void;
@@ -65,6 +66,7 @@ export function NodeManager({
   modal = false,
   onClose,
   onOpenNode,
+  onConnectDirect,
   onRefresh,
   onForgetNode,
   onForgetDirect,
@@ -72,6 +74,10 @@ export function NodeManager({
   onSignOut,
 }: NodeManagerProps) {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [directEditorNodeId, setDirectEditorNodeId] = useState<string | null>(null);
+  const [directEndpoint, setDirectEndpoint] = useState('');
+  const [directAccessKey, setDirectAccessKey] = useState('');
+  const [directConnecting, setDirectConnecting] = useState(false);
 
   const visibleNodes = useMemo(() => {
     const byId = new Map(nodes.map((node) => [node.id, node]));
@@ -100,6 +106,32 @@ export function NodeManager({
     window.setTimeout(() => setCopyState('idle'), 1800);
   };
 
+  const editDirect = (nodeId: string) => {
+    const direct = connections[nodeId];
+    setDirectEditorNodeId(nodeId);
+    setDirectEndpoint(direct?.endpoint || '');
+    setDirectAccessKey(direct?.accessToken || '');
+  };
+
+  const closeDirectEditor = () => {
+    setDirectEditorNodeId(null);
+    setDirectEndpoint('');
+    setDirectAccessKey('');
+  };
+
+  const submitDirect = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!directEditorNodeId || directConnecting) return;
+    setDirectConnecting(true);
+    try {
+      if (await onConnectDirect(directEditorNodeId, directEndpoint, directAccessKey)) {
+        closeDirectEditor();
+      }
+    } finally {
+      setDirectConnecting(false);
+    }
+  };
+
   const content = (
     <section className={`overflow-hidden border border-slate-200 bg-white shadow-sm ${modal ? 'rounded-2xl' : 'rounded-xl'}`}>
       <header className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:px-6">
@@ -107,7 +139,7 @@ export function NodeManager({
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Machines</p>
           <h2 className="mt-1 text-xl font-semibold text-slate-950">AgentSight Nodes</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Signed in as {identity.name || identity.email}. Direct is preferred; Controller relay is the remote fallback.
+            Signed in as {identity.name || identity.email}. Direct URLs work independently; Controller relay is only a fallback.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -140,11 +172,13 @@ export function NodeManager({
               const active = activeNodeId === node.id;
               const opening = loadingNodeId === node.id;
               const online = relay === true || active;
+              const cloudManaged = nodes.some((item) => item.id === node.id);
+              const editingDirect = directEditorNodeId === node.id;
               return (
                 <article key={node.id} className={`group relative rounded-xl border transition ${
                   active ? 'border-slate-950 bg-slate-50' : 'border-slate-200 bg-white hover:border-slate-400'
                 }`}>
-                  <button type="button" onClick={() => onOpenNode(node.id)} disabled={opening}
+                  <button type="button" onClick={() => onOpenNode(node.id)} disabled={opening || directConnecting}
                     className="block w-full p-4 text-left disabled:cursor-wait">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex min-w-0 items-start gap-3">
@@ -176,7 +210,7 @@ export function NodeManager({
                             : relay === true ? 'Online'
                               : direct ? 'Direct saved'
                                 : relay === null ? 'Checking…'
-                                  : 'Offline'}
+                                  : 'No transport'}
                       </span>
                     </div>
 
@@ -187,23 +221,58 @@ export function NodeManager({
                     </div>
                   </button>
 
-                  <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-4 py-2.5">
+                  <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 px-4 py-2.5">
+                    <button type="button" onClick={() => editingDirect ? closeDirectEditor() : editDirect(node.id)}
+                      disabled={loading || directConnecting}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:text-blue-900 disabled:opacity-50">
+                      <CommandLineIcon className="h-3.5 w-3.5" />
+                      {editingDirect ? 'Cancel Direct' : direct ? 'Edit Direct' : 'Connect Direct'}
+                    </button>
                     {direct && (
-                      <button type="button" onClick={() => onForgetDirect(node.id)} disabled={loading}
+                      <button type="button" onClick={() => onForgetDirect(node.id)} disabled={loading || directConnecting}
                         className="text-xs font-medium text-slate-500 hover:text-slate-900 disabled:opacity-50">
                         Forget direct path
                       </button>
                     )}
-                    {nodes.some((item) => item.id === node.id) && (
+                    {cloudManaged && (
                       <button type="button" onClick={() => {
                         if (window.confirm(`Remove ${node.name} from this account?`)) onForgetNode(node.id);
-                      }} disabled={loading}
+                      }} disabled={loading || directConnecting}
                         className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-red-700 disabled:opacity-50">
                         <TrashIcon className="h-3.5 w-3.5" />
                         Remove
                       </button>
                     )}
                   </div>
+
+                  {editingDirect && (
+                    <form onSubmit={(event) => { void submitDirect(event); }}
+                      className="space-y-3 border-t border-slate-100 bg-slate-50 px-4 py-4">
+                      <div>
+                        <label className="text-xs font-medium text-slate-700" htmlFor={`direct-endpoint-${node.id}`}>Direct URL or IP</label>
+                        <input id={`direct-endpoint-${node.id}`} type="url" required value={directEndpoint}
+                          onChange={(event) => setDirectEndpoint(event.target.value)}
+                          placeholder="http://192.168.1.20:7395"
+                          spellCheck={false} autoCapitalize="none" autoCorrect="off"
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-700" htmlFor={`direct-key-${node.id}`}>Node access key</label>
+                        <input id={`direct-key-${node.id}`} type="password" required value={directAccessKey}
+                          onChange={(event) => setDirectAccessKey(event.target.value)}
+                          placeholder="Persistent access key from agentsight bind"
+                          spellCheck={false} autoCapitalize="none" autoCorrect="off"
+                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500" />
+                      </div>
+                      <p className="text-xs leading-5 text-slate-500">
+                        This browser probes <code>/api/v1/info</code> directly and verifies that the URL belongs to this Node. Relay is not required.
+                      </p>
+                      <button type="submit" disabled={directConnecting || loading}
+                        className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                        {directConnecting ? 'Testing Direct…' : 'Test and connect'}
+                      </button>
+                    </form>
+                  )}
                 </article>
               );
             })}
@@ -221,7 +290,9 @@ export function NodeManager({
             <span className="rounded-lg bg-white p-2 text-slate-700 shadow-sm"><CommandLineIcon className="h-5 w-5" /></span>
             <div>
               <p className="text-sm font-semibold text-slate-900">Add or reconnect a Node</p>
-              <p className="mt-0.5 text-xs text-slate-500">Run once on that machine. The Node identity and access bearer survive restarts.</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Keep <code>agentsight bind</code> running to serve the Node. Use <code>--endpoint</code> for a browser-reachable LAN, VPN, or HTTPS URL.
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -237,7 +308,7 @@ export function NodeManager({
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <SignalIcon className="h-4 w-4" />
-            Controller stores identity and Node metadata; runtime evidence stays on the Node.
+            Controller stores identity and Node metadata; Direct and relay are independent Node transports.
           </div>
           <div className="flex items-center gap-4">
             <button type="button" onClick={onDemo} className="text-sm font-medium text-slate-600 hover:text-slate-950">
