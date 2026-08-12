@@ -226,7 +226,7 @@ pub fn session_log_path_from_str(raw: &str) -> Option<PathBuf> {
         return None;
     }
     let path = Path::new(trimmed);
-    if !path.is_absolute() || !is_agent_session_file(path) {
+    if !is_absolute_path_text(trimmed) || !is_agent_session_file(path) {
         return None;
     }
     agent_source_for_path(path).map(|_| normalize_session_log_path(path))
@@ -239,7 +239,7 @@ pub fn normalize_session_log_path(path: &Path) -> PathBuf {
 
 /// Detect which agent a session file belongs to based on its path.
 pub fn agent_source_for_path(path: &Path) -> Option<&'static str> {
-    let value = path.to_string_lossy();
+    let value = normalize_path_text(&path.to_string_lossy());
     if value.contains("/.claude/") && path.extension().and_then(|ext| ext.to_str()) == Some("jsonl")
     {
         Some(AGENT_CLAUDE)
@@ -260,7 +260,7 @@ pub fn agent_source_for_path(path: &Path) -> Option<&'static str> {
 
 fn is_cursor_transcript(path: &Path) -> bool {
     path.extension().and_then(|ext| ext.to_str()) == Some("jsonl")
-        && path.to_string_lossy().contains("/agent-transcripts/")
+        && normalize_path_text(&path.to_string_lossy()).contains("/agent-transcripts/")
 }
 
 fn is_cursor_parent_transcript(path: &Path) -> bool {
@@ -273,7 +273,7 @@ fn is_cursor_parent_transcript(path: &Path) -> bool {
 }
 
 fn loose_agent_source_for_path(path: &Path) -> Option<&'static str> {
-    let value = path.to_string_lossy();
+    let value = normalize_path_text(&path.to_string_lossy());
     if value.contains("/codex/") && value.contains("sessions") {
         Some(AGENT_CODEX)
     } else if value.contains("/claude/") && value.contains("projects") {
@@ -1445,7 +1445,7 @@ fn cursor_absorb_transcript(
 }
 
 fn cursor_session_cwd(content: &str, children: &[(PathBuf, String)]) -> Option<String> {
-    let mut absolute: Vec<PathBuf> = Vec::new();
+    let mut absolute = Vec::new();
     for transcript in std::iter::once(content).chain(children.iter().map(|(_, body)| body.as_str()))
     {
         for line in transcript.lines() {
@@ -1457,15 +1457,15 @@ fn cursor_session_cwd(content: &str, children: &[(PathBuf, String)]) -> Option<S
                     continue;
                 };
                 if let Some(dir) = input.get("working_directory").and_then(Value::as_str)
-                    && Path::new(dir).is_absolute()
+                    && is_absolute_path_text(dir)
                 {
-                    return Some(dir.to_string());
+                    return Some(normalize_path_text(dir));
                 }
                 for key in ["path", "paths"] {
                     match input.get(key) {
-                        Some(Value::String(value)) => absolute.push(PathBuf::from(value)),
+                        Some(Value::String(value)) => absolute.push(value.clone()),
                         Some(Value::Array(values)) => absolute
-                            .extend(values.iter().filter_map(Value::as_str).map(PathBuf::from)),
+                            .extend(values.iter().filter_map(Value::as_str).map(str::to_string)),
                         _ => {}
                     }
                 }
@@ -1475,18 +1475,23 @@ fn cursor_session_cwd(content: &str, children: &[(PathBuf, String)]) -> Option<S
     common_parent_dir(&absolute)
 }
 
-fn common_parent_dir(paths: &[PathBuf]) -> Option<String> {
+fn common_parent_dir(paths: &[String]) -> Option<String> {
     let mut dirs = paths
         .iter()
-        .filter(|path| path.is_absolute())
-        .filter_map(|path| path.parent())
-        .map(|dir| {
-            dir.components()
-                .map(|part| part.as_os_str().to_string_lossy().into_owned())
-                .collect::<Vec<_>>()
+        .filter(|path| is_absolute_path_text(path))
+        .map(|path| normalize_path_text(path))
+        .map(|path| {
+            let rooted = path.starts_with('/');
+            let mut parts = path
+                .split('/')
+                .filter(|part| !part.is_empty())
+                .map(str::to_string)
+                .collect::<Vec<_>>();
+            parts.pop();
+            (rooted, parts)
         });
-    let mut shared = dirs.next()?;
-    for candidate in dirs {
+    let (rooted, mut shared) = dirs.next()?;
+    for (_, candidate) in dirs {
         let keep = shared
             .iter()
             .zip(candidate.iter())
@@ -1494,13 +1499,9 @@ fn common_parent_dir(paths: &[PathBuf]) -> Option<String> {
             .count();
         shared.truncate(keep);
     }
-    // A single leading "/" component means the paths share nothing useful.
-    (shared.len() > 1).then(|| {
-        let mut out = PathBuf::new();
-        for part in shared {
-            out.push(part);
-        }
-        out.to_string_lossy().into_owned()
+    (!shared.is_empty()).then(|| {
+        let joined = shared.join("/");
+        if rooted { format!("/{joined}") } else { joined }
     })
 }
 
@@ -2087,7 +2088,7 @@ fn shell_file_actions(
     let mut cwd = ["workdir", "cwd", "working_directory"]
         .iter()
         .find_map(|key| input.get(*key).and_then(Value::as_str))
-        .map(PathBuf::from);
+        .map(normalize_path_text);
     let mut rows = Vec::new();
     for parts in shell_segments(command) {
         let Some(command_index) = shell_command_index(&parts) else {
@@ -2097,11 +2098,10 @@ fn shell_file_actions(
         let operands = &parts[command_index + 1..];
         if name == "cd" {
             if let Some(path) = operands.iter().find(|value| !value.starts_with('-')) {
-                let path = PathBuf::from(path);
-                cwd = Some(if path.is_absolute() {
-                    path
+                cwd = Some(if is_absolute_path_text(path) {
+                    normalize_path_text(path)
                 } else {
-                    cwd.take().unwrap_or_default().join(path)
+                    join_path_text(cwd.as_deref().unwrap_or_default(), path)
                 });
             }
             continue;
@@ -2109,18 +2109,18 @@ fn shell_file_actions(
         let mut actions = shell_segment_actions(&name, operands, input, depth);
         for (path, _, previous_path) in &mut actions {
             if !path.starts_with(['~', '$'])
-                && !Path::new(path).is_absolute()
+                && !is_absolute_path_text(path)
                 && let Some(base) = &cwd
             {
-                *path = base.join(&*path).to_string_lossy().into_owned();
+                *path = join_path_text(base, path);
             }
             *path = clean_path_token(path);
             if let Some(previous) = previous_path {
                 if !previous.starts_with(['~', '$'])
-                    && !Path::new(previous).is_absolute()
+                    && !is_absolute_path_text(previous)
                     && let Some(base) = &cwd
                 {
-                    *previous = base.join(&*previous).to_string_lossy().into_owned();
+                    *previous = join_path_text(base, previous);
                 }
                 *previous = clean_path_token(previous);
             }
@@ -2265,14 +2265,39 @@ fn shell_segment_actions(
 }
 
 fn destination_path(target: &str, source: &str, multiple: bool) -> String {
-    if multiple || target.ends_with('/') {
-        Path::new(target)
-            .join(Path::new(source).file_name().unwrap_or_default())
-            .to_string_lossy()
-            .into_owned()
+    if multiple || target.ends_with(['/', '\\']) {
+        join_path_text(target, path_basename(source))
     } else {
-        target.to_string()
+        normalize_path_text(target)
     }
+}
+
+fn normalize_path_text(path: &str) -> String {
+    path.replace('\\', "/")
+}
+
+fn is_absolute_path_text(path: &str) -> bool {
+    let path = normalize_path_text(path);
+    path.starts_with('/')
+        || path.as_bytes().get(1) == Some(&b':') && path.as_bytes().get(2) == Some(&b'/')
+}
+
+fn join_path_text(base: &str, child: &str) -> String {
+    let base = normalize_path_text(base);
+    let child = normalize_path_text(child);
+    if base.is_empty() || is_absolute_path_text(&child) {
+        child
+    } else {
+        format!(
+            "{}/{}",
+            base.trim_end_matches('/'),
+            child.trim_start_matches('/')
+        )
+    }
+}
+
+fn path_basename(path: &str) -> &str {
+    path.rsplit(['/', '\\']).next().unwrap_or(path)
 }
 
 fn collect_path_fields(
@@ -4030,6 +4055,28 @@ mod tests {
 
         let fixture = fixture_session_path(AGENT_CURSOR, &home).expect("fixture");
         assert!(is_agent_file_for(AGENT_CURSOR, &fixture));
+    }
+
+    #[test]
+    fn native_windows_session_paths_classify() {
+        assert_eq!(
+            agent_source_for_path(Path::new(
+                r"C:\Users\dev\.codex\sessions\2026\08\12\session.jsonl"
+            )),
+            Some(AGENT_CODEX)
+        );
+        assert_eq!(
+            agent_source_for_path(Path::new(
+                r"C:\Users\dev\.claude\projects\repo\session.jsonl"
+            )),
+            Some(AGENT_CLAUDE)
+        );
+        assert_eq!(
+            agent_source_for_path(Path::new(
+                r"C:\Users\dev\.cursor\projects\repo\agent-transcripts\id\id.jsonl"
+            )),
+            Some(AGENT_CURSOR)
+        );
     }
 
     #[test]
