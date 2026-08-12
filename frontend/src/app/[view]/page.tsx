@@ -13,4 +13,6 @@ export function generateStaticParams() {
 
 export const dynamicParams = false;
 
-export default Home;
+export default function ViewPage() {
+  return <Home />;
+}
