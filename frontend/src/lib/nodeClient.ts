@@ -2,6 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 import { controllerUrl, type CloudNode } from '@/lib/controllerClient';
+export { registerControllerNode, relayOnline } from '@/lib/controllerClient';
 import initProtocol, {
   session_message_body as sessionMessageBody,
   session_messages_path as sessionMessagesPath,
