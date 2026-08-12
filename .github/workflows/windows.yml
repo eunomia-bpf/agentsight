@@ -33,6 +33,7 @@ jobs:
           $agentsight = "collector/target/debug/agentsight.exe"
           & $agentsight --version
 
+          $env:HOME = Join-Path $env:RUNNER_TEMP "agentsight-home"
           $fixtureDir = Join-Path $HOME ".codex/sessions/2026/06/18"
           New-Item -ItemType Directory -Force -Path $fixtureDir | Out-Null
           Copy-Item `

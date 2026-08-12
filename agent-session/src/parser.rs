@@ -1821,8 +1821,13 @@ pub(crate) fn user_home_dir() -> Option<PathBuf> {
                     .lines()
                     .find(|line| line.starts_with(&format!("{user}:")))
                     .and_then(|line| line.split(':').nth(5))
-                    .map(PathBuf::from)
+                .map(PathBuf::from)
             })
+        })
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .filter(|home| !home.is_empty())
+                .map(PathBuf::from)
         })
         .or_else(dirs::home_dir)
 }
