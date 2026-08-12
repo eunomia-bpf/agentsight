@@ -8,9 +8,12 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use tempfile::TempDir;
+#[cfg(target_os = "linux")]
 use tokio::time::{Duration, sleep};
 
+#[cfg(target_os = "linux")]
 const PROCESS_BINARY: &[u8] = include_bytes!("../vendor/bpf/process");
+#[cfg(target_os = "linux")]
 const SSLSNIFF_BINARY: &[u8] = include_bytes!("../vendor/bpf/sslsniff");
 const STDIOCAP_BINARY: &[u8] = include_bytes!("../vendor/bpf/stdiocap");
 
@@ -56,6 +59,7 @@ impl BinaryExtractor {
             .into())
     }
 
+    #[cfg(target_os = "linux")]
     async fn extract_binary(
         path: &Path,
         binary_data: &[u8],
