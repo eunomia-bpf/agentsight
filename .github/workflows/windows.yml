@@ -32,7 +32,20 @@ jobs:
           cargo build --manifest-path collector/Cargo.toml
           $agentsight = "collector/target/debug/agentsight.exe"
           & $agentsight --version
-          & $agentsight report --local
+
+          $fixtureDir = Join-Path $HOME ".codex/sessions/2026/06/18"
+          New-Item -ItemType Directory -Force -Path $fixtureDir | Out-Null
+          Copy-Item `
+            "agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl" `
+            (Join-Path $fixtureDir "public-agentpprof-fixture.jsonl")
+          $report = (& $agentsight report --local 2>&1 | Out-String)
+          if ($LASTEXITCODE -ne 0) {
+            throw "agentsight report --local failed"
+          }
+          if ($report -notmatch "codex") {
+            throw "agentsight report --local did not discover the Windows Codex fixture"
+          }
+
           & $agentsight top --plain --once
 
       - uses: actions/upload-artifact@v4
