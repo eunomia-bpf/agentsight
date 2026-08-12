@@ -814,10 +814,12 @@ mod tests {
     fn snapshot_uses_agent_native_indexed_codex_sessions() {
         let _guard = ENV_LOCK.lock().unwrap();
         let old_home = std::env::var_os("HOME");
+        let old_userprofile = std::env::var_os("USERPROFILE");
         let old_sudo_user = std::env::var_os("SUDO_USER");
         let temp = tempfile::tempdir().unwrap();
         unsafe {
             std::env::set_var("HOME", temp.path());
+            std::env::set_var("USERPROFILE", temp.path());
             std::env::remove_var("SUDO_USER");
         }
 
@@ -839,6 +841,10 @@ mod tests {
             match old_home {
                 Some(value) => std::env::set_var("HOME", value),
                 None => std::env::remove_var("HOME"),
+            }
+            match old_userprofile {
+                Some(value) => std::env::set_var("USERPROFILE", value),
+                None => std::env::remove_var("USERPROFILE"),
             }
             match old_sudo_user {
                 Some(value) => std::env::set_var("SUDO_USER", value),
