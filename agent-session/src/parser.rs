@@ -1805,7 +1805,7 @@ fn is_agent_file_for(agent: &str, path: &Path) -> bool {
                     .file_name()
                     .and_then(|name| name.to_str())
                     .is_some_and(|name| name.starts_with("session-"))
-                && path.to_string_lossy().contains("/chats/")
+                && normalize_path_text(&path.to_string_lossy()).contains("/chats/")
         }
         AGENT_CURSOR => is_cursor_parent_transcript(path),
         _ => false,
@@ -1821,13 +1821,13 @@ pub(crate) fn user_home_dir() -> Option<PathBuf> {
                     .lines()
                     .find(|line| line.starts_with(&format!("{user}:")))
                     .and_then(|line| line.split(':').nth(5))
-                .map(PathBuf::from)
+                    .map(PathBuf::from)
             })
         })
         .or_else(|| {
             std::env::var_os("HOME")
-                .filter(|home| !home.is_empty())
                 .map(PathBuf::from)
+                .filter(|home| home.is_absolute())
         })
         .or_else(dirs::home_dir)
 }
@@ -4082,6 +4082,10 @@ mod tests {
             )),
             Some(AGENT_CURSOR)
         );
+        let gemini =
+            Path::new(r"C:\Users\dev\.gemini\tmp\repo\chats\session-2026-08-12T00-00-id.json");
+        assert_eq!(agent_source_for_path(gemini), Some(AGENT_GEMINI));
+        assert!(is_agent_file_for(AGENT_GEMINI, gemini));
     }
 
     #[test]

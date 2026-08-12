@@ -15,7 +15,10 @@ use tokio::time::{Duration, sleep};
 const PROCESS_BINARY: &[u8] = include_bytes!("../vendor/bpf/process");
 #[cfg(target_os = "linux")]
 const SSLSNIFF_BINARY: &[u8] = include_bytes!("../vendor/bpf/sslsniff");
+#[cfg(target_os = "linux")]
 const STDIOCAP_BINARY: &[u8] = include_bytes!("../vendor/bpf/stdiocap");
+#[cfg(not(target_os = "linux"))]
+const STDIOCAP_BINARY: &[u8] = &[];
 
 pub struct BinaryExtractor {
     _temp_dir: TempDir, // Keep alive to prevent cleanup
