@@ -4,8 +4,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  allowedReturnTo, deleteOwnedNode, githubApiHeaders, nodeIdFromPath, oauthStartAllowed,
-  sha256Base64Url, validNodeId,
+  allowedReturnTo, decryptDirectConfig, deleteOwnedNode, directConfigNodeIdFromPath,
+  encryptDirectConfig, githubApiHeaders, nodeIdFromPath, normalizeDirectEndpoint,
+  oauthStartAllowed, sha256Base64Url, validNodeId,
 } from './index.ts';
 
 test('PKCE challenge matches RFC 7636 example', async () => {
@@ -34,6 +35,35 @@ test('Node deletion paths accept one validated Node ID only', () => {
   assert.equal(nodeIdFromPath('/v1/nodes/../../secret'), null);
   assert.equal(nodeIdFromPath('/v1/nodes/not-a-node'), null);
   assert.equal(nodeIdFromPath('/v1/nodes/node_ok/extra'), null);
+});
+
+test('Direct config paths and endpoints are narrowly normalized', () => {
+  assert.equal(
+    directConfigNodeIdFromPath('/v1/nodes/node_0123abcdef/direct'),
+    'node_0123abcdef',
+  );
+  assert.equal(directConfigNodeIdFromPath('/v1/nodes/../../secret/direct'), null);
+  assert.equal(normalizeDirectEndpoint('https://lab.example:7395/path?q=1#fragment'), 'https://lab.example:7395');
+  assert.equal(normalizeDirectEndpoint('https://user:pass@lab.example'), null);
+  assert.equal(normalizeDirectEndpoint('file:///tmp/socket'), null);
+});
+
+test('Direct config is encrypted and bound to its owner and Node', async () => {
+  const master = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+  const config = {
+    v: 1 as const,
+    endpoint: 'https://lab.example',
+    accessKey: 'a'.repeat(64),
+  };
+  const encrypted = await encryptDirectConfig(master, 'user_owner', 'node_lab', config);
+  assert.equal(encrypted.ciphertext.includes(config.accessKey), false);
+  assert.deepEqual(
+    await decryptDirectConfig(master, 'user_owner', 'node_lab', encrypted),
+    config,
+  );
+  await assert.rejects(
+    decryptDirectConfig(master, 'user_other', 'node_lab', encrypted),
+  );
 });
 
 test('Node deletion is scoped to both Node ID and owner', async () => {

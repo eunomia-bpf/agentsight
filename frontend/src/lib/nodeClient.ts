@@ -11,6 +11,7 @@ import initProtocol, {
 import type { AgentSightSnapshot } from '@/types/event';
 
 const DIRECT_CONNECTIONS_KEY = 'agentsight.direct-connections.v1';
+const DIRECT_SYNC_ENABLED_KEY = 'agentsight.direct-sync-enabled.v1';
 const REQUEST_TIMEOUT_MS = 12_000;
 let protocolReady: Promise<unknown> | null = null;
 
@@ -240,6 +241,7 @@ export async function relayOnline(token: string, nodeId: string): Promise<boolea
 export async function registerControllerNode(
   token: string,
   connection: LocalConnection,
+  saveDirect = directCloudSyncEnabled(connection.nodeId),
 ): Promise<void> {
   const response = await fetch(`${controllerUrl}/v1/nodes`, {
     method: 'POST',
@@ -253,6 +255,12 @@ export async function registerControllerNode(
       name: connection.nodeName,
       version: connection.version,
       ...(connection.accessToken ? { relay_token: connection.accessToken } : {}),
+      ...(saveDirect && connection.accessToken ? {
+        direct_config: {
+          endpoint: connection.endpoint,
+          access_key: connection.accessToken,
+        },
+      } : {}),
     }),
   });
   if (!response.ok) {
@@ -262,6 +270,79 @@ export async function registerControllerNode(
       body.error || `Could not register this Node (${response.status}).`,
     );
   }
+}
+
+export async function fetchControllerDirectConfig(
+  token: string,
+  node: CloudNode,
+): Promise<LocalConnection> {
+  const response = await fetch(
+    `${controllerUrl}/v1/nodes/${encodeURIComponent(node.id)}/direct`,
+    {
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    },
+  );
+  const body = await response.json().catch(() => ({})) as {
+    endpoint?: unknown;
+    access_key?: unknown;
+    error?: string;
+  };
+  if (!response.ok || typeof body.endpoint !== 'string'
+      || typeof body.access_key !== 'string') {
+    throw new NodeRequestError(
+      response.status,
+      body.error || `Could not load saved Direct config (${response.status}).`,
+    );
+  }
+  return {
+    endpoint: normalizeDirectEndpoint(body.endpoint),
+    accessToken: body.access_key,
+    nodeId: node.id,
+    nodeName: node.name,
+    version: node.version || '',
+  };
+}
+
+export async function forgetControllerDirectConfig(token: string, nodeId: string): Promise<void> {
+  const response = await fetch(
+    `${controllerUrl}/v1/nodes/${encodeURIComponent(nodeId)}/direct`,
+    {
+      method: 'DELETE',
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({})) as { error?: string };
+    throw new NodeRequestError(
+      response.status,
+      body.error || `Could not remove saved Direct config (${response.status}).`,
+    );
+  }
+  setDirectCloudSync(nodeId, false);
+}
+
+export function directCloudSyncEnabled(nodeId: string): boolean {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(DIRECT_SYNC_ENABLED_KEY) || '[]') as unknown;
+    return Array.isArray(parsed) && parsed.includes(nodeId);
+  } catch {
+    return false;
+  }
+}
+
+export function setDirectCloudSync(nodeId: string, enabled: boolean): void {
+  let enabledNodeIds: string[] = [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(DIRECT_SYNC_ENABLED_KEY) || '[]') as unknown;
+    if (Array.isArray(parsed)) enabledNodeIds = parsed.filter((value): value is string => typeof value === 'string');
+  } catch { /* replace invalid preference state */ }
+  const next = enabled
+    ? Array.from(new Set([...enabledNodeIds, nodeId]))
+    : enabledNodeIds.filter((value) => value !== nodeId);
+  window.localStorage.setItem(DIRECT_SYNC_ENABLED_KEY, JSON.stringify(next));
 }
 
 export function loadDirectConnections(): Record<string, LocalConnection> {

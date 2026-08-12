@@ -46,6 +46,9 @@ CREATE TABLE IF NOT EXISTS nodes (
     version TEXT,
     public_key TEXT,
     relay_token_hash TEXT,
+    direct_config_ciphertext TEXT,
+    direct_config_iv TEXT,
+    direct_config_version INTEGER,
     connection_mode TEXT NOT NULL DEFAULT 'direct',
     last_seen_at INTEGER NOT NULL,
     created_at INTEGER NOT NULL

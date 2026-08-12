@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+import { validRelayToken } from './relay.ts';
+
 interface Env {
   DB: D1Database;
   APP_ORIGIN: string;
@@ -10,6 +12,7 @@ interface Env {
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  DIRECT_CONFIG_KEY?: string;
 }
 
 type Provider = 'github' | 'google';
@@ -46,6 +49,19 @@ const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 const PKCE_CHALLENGE_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const PKCE_VERIFIER_PATTERN = /^[A-Za-z0-9_-]{43,128}$/;
 const NODE_ID_PATTERN = /^node_[A-Za-z0-9_]{1,123}$/;
+const DIRECT_CONFIG_VERSION = 1;
+
+interface DirectConfig {
+  v: 1;
+  endpoint: string;
+  accessKey: string;
+}
+
+export interface EncryptedDirectConfig {
+  ciphertext: string;
+  iv: string;
+  version: 1;
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -57,6 +73,7 @@ export default {
     if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }), env);
 
     try {
+      const directConfigNodeId = directConfigNodeIdFromPath(url.pathname);
       let response: Response;
       if (request.method === 'GET' && url.pathname === '/v1/health') {
         response = json({ status: 'ok', service: 'agentsight-control' });
@@ -74,6 +91,10 @@ export default {
         response = await listNodes(request, env);
       } else if (url.pathname === '/v1/nodes' && request.method === 'POST') {
         response = await registerNode(request, env);
+      } else if (request.method === 'GET' && directConfigNodeId) {
+        response = await getDirectConfig(request, env, directConfigNodeId);
+      } else if (request.method === 'DELETE' && directConfigNodeId) {
+        response = await deleteDirectConfig(request, env, directConfigNodeId);
       } else if (request.method === 'DELETE' && url.pathname.startsWith('/v1/nodes/')) {
         const nodeId = nodeIdFromPath(url.pathname);
         if (!nodeId) throw new HttpError(404, 'not_found');
@@ -209,7 +230,8 @@ async function logout(request: Request, env: Env): Promise<Response> {
 async function listNodes(request: Request, env: Env): Promise<Response> {
   const user = await requireUser(request, env.DB);
   const result = await env.DB.prepare(
-    `SELECT id, name, version, connection_mode, last_seen_at, created_at
+    `SELECT id, name, version, connection_mode, last_seen_at, created_at,
+            direct_config_ciphertext IS NOT NULL AS has_direct_config
      FROM nodes WHERE owner_user_id = ?1 ORDER BY last_seen_at DESC LIMIT 200`,
   ).bind(user.id).all();
   return json({ nodes: result.results });
@@ -221,22 +243,88 @@ async function registerNode(request: Request, env: Env): Promise<Response> {
     id?: string;
     name?: string;
     version?: string;
+    direct_config?: { endpoint?: string; access_key?: string };
   }>(request);
   if (!body.id || !validNodeId(body.id)
       || !body.name?.trim() || body.name.length > 128) {
     return json({ error: 'invalid_node' }, 400);
   }
+  let directConfig: EncryptedDirectConfig | null = null;
+  if (body.direct_config !== undefined) {
+    const endpoint = normalizeDirectEndpoint(body.direct_config.endpoint || '');
+    const accessKey = body.direct_config.access_key || '';
+    if (!endpoint || !validRelayToken(accessKey)) {
+      return json({ error: 'invalid_direct_config' }, 400);
+    }
+    directConfig = await encryptDirectConfig(
+      requiredDirectConfigKey(env),
+      user.id,
+      body.id,
+      { v: 1, endpoint, accessKey },
+    );
+  }
   const now = nowSeconds();
   const result = await env.DB.prepare(
-    `INSERT INTO nodes (id, owner_user_id, name, version, public_key, connection_mode, last_seen_at, created_at)
-     VALUES (?1, ?2, ?3, ?4, NULL, 'direct', ?5, ?5)
+    `INSERT INTO nodes (id, owner_user_id, name, version, public_key, connection_mode,
+                        last_seen_at, created_at, direct_config_ciphertext,
+                        direct_config_iv, direct_config_version)
+     VALUES (?1, ?2, ?3, ?4, NULL, 'direct', ?5, ?5, ?6, ?7, ?8)
      ON CONFLICT(id) DO UPDATE SET
        name = excluded.name, version = excluded.version,
-       connection_mode = 'direct', last_seen_at = excluded.last_seen_at
+       connection_mode = 'direct', last_seen_at = excluded.last_seen_at,
+       direct_config_ciphertext = COALESCE(excluded.direct_config_ciphertext, nodes.direct_config_ciphertext),
+       direct_config_iv = COALESCE(excluded.direct_config_iv, nodes.direct_config_iv),
+       direct_config_version = COALESCE(excluded.direct_config_version, nodes.direct_config_version)
      WHERE nodes.owner_user_id = excluded.owner_user_id`,
-  ).bind(body.id, user.id, body.name.trim(), body.version || null, now).run();
+  ).bind(
+    body.id,
+    user.id,
+    body.name.trim(),
+    body.version || null,
+    now,
+    directConfig?.ciphertext || null,
+    directConfig?.iv || null,
+    directConfig?.version || null,
+  ).run();
   if (!result.meta.changes) return json({ error: 'node_owned_by_another_user' }, 409);
   return json({ id: body.id, status: 'registered' }, 201);
+}
+
+async function getDirectConfig(request: Request, env: Env, nodeId: string): Promise<Response> {
+  const user = await requireUser(request, env.DB);
+  const row = await env.DB.prepare(
+    `SELECT direct_config_ciphertext, direct_config_iv, direct_config_version
+     FROM nodes WHERE id = ?1 AND owner_user_id = ?2`,
+  ).bind(nodeId, user.id).first<{
+    direct_config_ciphertext: string | null;
+    direct_config_iv: string | null;
+    direct_config_version: number | null;
+  }>();
+  if (!row?.direct_config_ciphertext || !row.direct_config_iv
+      || row.direct_config_version !== DIRECT_CONFIG_VERSION) {
+    throw new HttpError(404, 'direct_config_not_saved');
+  }
+  const config = await decryptDirectConfig(
+    requiredDirectConfigKey(env),
+    user.id,
+    nodeId,
+    {
+      ciphertext: row.direct_config_ciphertext,
+      iv: row.direct_config_iv,
+      version: DIRECT_CONFIG_VERSION,
+    },
+  );
+  return json({ endpoint: config.endpoint, access_key: config.accessKey });
+}
+
+async function deleteDirectConfig(request: Request, env: Env, nodeId: string): Promise<Response> {
+  const user = await requireUser(request, env.DB);
+  await env.DB.prepare(
+    `UPDATE nodes SET direct_config_ciphertext = NULL, direct_config_iv = NULL,
+                      direct_config_version = NULL
+     WHERE id = ?1 AND owner_user_id = ?2`,
+  ).bind(nodeId, user.id).run();
+  return new Response(null, { status: 204 });
 }
 
 async function deleteNode(request: Request, env: Env, nodeId: string): Promise<Response> {
@@ -453,6 +541,136 @@ export function nodeIdFromPath(pathname: string): string | null {
   } catch {
     return null;
   }
+}
+
+export function directConfigNodeIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/v1\/nodes\/([^/]+)\/direct$/);
+  if (!match) return null;
+  try {
+    const nodeId = decodeURIComponent(match[1]);
+    return validNodeId(nodeId) ? nodeId : null;
+  } catch {
+    return null;
+  }
+}
+
+export function normalizeDirectEndpoint(value: string): string | null {
+  try {
+    const endpoint = new URL(value.trim());
+    if (!['http:', 'https:'].includes(endpoint.protocol)
+        || !endpoint.hostname || endpoint.username || endpoint.password) return null;
+    endpoint.pathname = '';
+    endpoint.search = '';
+    endpoint.hash = '';
+    return endpoint.toString().replace(/\/$/, '');
+  } catch {
+    return null;
+  }
+}
+
+export async function encryptDirectConfig(
+  masterSecret: string,
+  userId: string,
+  nodeId: string,
+  config: DirectConfig,
+): Promise<EncryptedDirectConfig> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveDirectConfigKey(masterSecret, userId, nodeId, ['encrypt']);
+  const ciphertext = await crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv: bufferSource(iv),
+      additionalData: directConfigAad(userId, nodeId),
+    },
+    key,
+    encoder.encode(JSON.stringify(config)),
+  );
+  return {
+    ciphertext: base64UrlEncode(new Uint8Array(ciphertext)),
+    iv: base64UrlEncode(iv),
+    version: DIRECT_CONFIG_VERSION,
+  };
+}
+
+export async function decryptDirectConfig(
+  masterSecret: string,
+  userId: string,
+  nodeId: string,
+  encrypted: EncryptedDirectConfig,
+): Promise<DirectConfig> {
+  if (encrypted.version !== DIRECT_CONFIG_VERSION) throw new Error('unsupported direct config');
+  const key = await deriveDirectConfigKey(masterSecret, userId, nodeId, ['decrypt']);
+  const plaintext = await crypto.subtle.decrypt(
+    {
+      name: 'AES-GCM',
+      iv: bufferSource(base64UrlDecode(encrypted.iv)),
+      additionalData: directConfigAad(userId, nodeId),
+    },
+    key,
+    bufferSource(base64UrlDecode(encrypted.ciphertext)),
+  );
+  const config = JSON.parse(new TextDecoder().decode(plaintext)) as DirectConfig;
+  if (config.v !== DIRECT_CONFIG_VERSION
+      || !normalizeDirectEndpoint(config.endpoint)
+      || !validRelayToken(config.accessKey)) {
+    throw new Error('invalid direct config');
+  }
+  return { ...config, endpoint: normalizeDirectEndpoint(config.endpoint)! };
+}
+
+async function deriveDirectConfigKey(
+  masterSecret: string,
+  userId: string,
+  nodeId: string,
+  usages: KeyUsage[],
+): Promise<CryptoKey> {
+  const master = base64UrlDecode(masterSecret);
+  if (master.byteLength !== 32) throw new Error('DIRECT_CONFIG_KEY must contain 32 bytes');
+  const material = await crypto.subtle.importKey(
+    'raw',
+    bufferSource(master),
+    'HKDF',
+    false,
+    ['deriveKey'],
+  );
+  return crypto.subtle.deriveKey(
+    {
+      name: 'HKDF',
+      hash: 'SHA-256',
+      salt: encoder.encode('agentsight-direct-config-v1'),
+      info: encoder.encode(`${userId}\0${nodeId}`),
+    },
+    material,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    usages,
+  );
+}
+
+function directConfigAad(userId: string, nodeId: string): ArrayBuffer {
+  return bufferSource(encoder.encode(`agentsight-direct-config-v1\0${userId}\0${nodeId}`));
+}
+
+function bufferSource(value: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(value.byteLength);
+  copy.set(value);
+  return copy.buffer;
+}
+
+function base64UrlEncode(value: Uint8Array): string {
+  return btoa(String.fromCharCode(...value))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlDecode(value: string): Uint8Array {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+  return Uint8Array.from(atob(padded), (character) => character.charCodeAt(0));
+}
+
+function requiredDirectConfigKey(env: Env): string {
+  if (!env.DIRECT_CONFIG_KEY) throw new HttpError(503, 'direct_config_unavailable');
+  return env.DIRECT_CONFIG_KEY;
 }
 
 export function githubApiHeaders(accessToken: string): Record<string, string> {

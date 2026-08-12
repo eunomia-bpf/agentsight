@@ -14,7 +14,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import type { CloudIdentity, CloudNode, LocalConnection } from '@/lib/connection';
-import type { NodeTransport } from '@/lib/nodeClient';
+import { directCloudSyncEnabled, type NodeTransport } from '@/lib/nodeClient';
 
 interface NodeManagerProps {
   identity: CloudIdentity;
@@ -29,10 +29,16 @@ interface NodeManagerProps {
   modal?: boolean;
   onClose?: () => void;
   onOpenNode: (nodeId: string) => void;
-  onConnectDirect: (nodeId: string, endpoint: string, accessToken: string) => Promise<boolean>;
+  onConnectDirect: (
+    nodeId: string,
+    endpoint: string,
+    accessToken: string,
+    saveToAccount: boolean,
+  ) => Promise<boolean>;
   onRefresh: () => void;
   onForgetNode: (nodeId: string) => void;
   onForgetDirect: (nodeId: string) => void;
+  onForgetCloudDirect: (nodeId: string) => void;
   onDemo: () => void;
   onSignOut: () => void;
 }
@@ -70,6 +76,7 @@ export function NodeManager({
   onRefresh,
   onForgetNode,
   onForgetDirect,
+  onForgetCloudDirect,
   onDemo,
   onSignOut,
 }: NodeManagerProps) {
@@ -78,6 +85,7 @@ export function NodeManager({
   const [directEndpoint, setDirectEndpoint] = useState('');
   const [directAccessKey, setDirectAccessKey] = useState('');
   const [directConnecting, setDirectConnecting] = useState(false);
+  const [saveToAccount, setSaveToAccount] = useState(false);
 
   const visibleNodes = useMemo(() => {
     const byId = new Map(nodes.map((node) => [node.id, node]));
@@ -88,6 +96,7 @@ export function NodeManager({
           name: connection.nodeName,
           version: connection.version,
           connectionMode: 'direct',
+          hasDirectConfig: false,
           lastRegisteredAt: 0,
           createdAt: 0,
         });
@@ -108,9 +117,11 @@ export function NodeManager({
 
   const editDirect = (nodeId: string) => {
     const direct = connections[nodeId];
+    const node = visibleNodes.find((item) => item.id === nodeId);
     setDirectEditorNodeId(nodeId);
     setDirectEndpoint(direct?.endpoint || '');
     setDirectAccessKey(direct?.accessToken || '');
+    setSaveToAccount(Boolean(node?.hasDirectConfig) || directCloudSyncEnabled(nodeId));
   };
 
   const closeDirectEditor = () => {
@@ -124,7 +135,12 @@ export function NodeManager({
     if (!directEditorNodeId || directConnecting) return;
     setDirectConnecting(true);
     try {
-      if (await onConnectDirect(directEditorNodeId, directEndpoint, directAccessKey)) {
+      if (await onConnectDirect(
+        directEditorNodeId,
+        directEndpoint,
+        directAccessKey,
+        saveToAccount,
+      )) {
         closeDirectEditor();
       }
     } finally {
@@ -216,6 +232,9 @@ export function NodeManager({
 
                     <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                       {direct && <span className="rounded bg-blue-50 px-2 py-1 text-blue-700">Direct</span>}
+                      {node.hasDirectConfig && (
+                        <span className="rounded bg-violet-50 px-2 py-1 text-violet-700">Account-saved Direct</span>
+                      )}
                       {relay === true && <span className="rounded bg-emerald-50 px-2 py-1 text-emerald-700">Relay</span>}
                       <span>{node.lastRegisteredAt ? `Seen ${formatSeen(node.lastRegisteredAt)}` : 'Local browser binding'}</span>
                     </div>
@@ -232,6 +251,13 @@ export function NodeManager({
                       <button type="button" onClick={() => onForgetDirect(node.id)} disabled={loading || directConnecting}
                         className="text-xs font-medium text-slate-500 hover:text-slate-900 disabled:opacity-50">
                         Forget direct path
+                      </button>
+                    )}
+                    {node.hasDirectConfig && (
+                      <button type="button" onClick={() => onForgetCloudDirect(node.id)}
+                        disabled={loading || directConnecting}
+                        className="text-xs font-medium text-slate-500 hover:text-red-700 disabled:opacity-50">
+                        Remove account-saved Direct
                       </button>
                     )}
                     {cloudManaged && (
@@ -267,6 +293,14 @@ export function NodeManager({
                       <p className="text-xs leading-5 text-slate-500">
                         This browser probes <code>/api/v1/info</code> directly and verifies that the URL belongs to this Node. Relay is not required.
                       </p>
+                      <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-600">
+                        <input type="checkbox" checked={saveToAccount}
+                          onChange={(event) => setSaveToAccount(event.target.checked)}
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300" />
+                        <span>
+                          Save this Direct connection to my account. The Controller stores the URL and access key as an encrypted configuration so another signed-in browser can reconnect.
+                        </span>
+                      </label>
                       <button type="submit" disabled={directConnecting || loading}
                         className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
                         {directConnecting ? 'Testing Direct…' : 'Test and connect'}
@@ -308,7 +342,7 @@ export function NodeManager({
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <SignalIcon className="h-4 w-4" />
-            Controller stores identity and Node metadata; Direct and relay are independent Node transports.
+            Controller stores identity and Node metadata. Account-saved Direct configs are encrypted; Direct and relay remain independent transports.
           </div>
           <div className="flex items-center gap-4">
             <button type="button" onClick={onDemo} className="text-sm font-medium text-slate-600 hover:text-slate-950">

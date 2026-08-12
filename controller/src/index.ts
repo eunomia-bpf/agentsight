@@ -21,14 +21,19 @@ interface Env extends RelayEnv {
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  DIRECT_CONFIG_KEY?: string;
 }
 
 export { NodeRelay };
 export {
   allowedReturnTo,
+  decryptDirectConfig,
   deleteOwnedNode,
+  directConfigNodeIdFromPath,
+  encryptDirectConfig,
   githubApiHeaders,
   nodeIdFromPath,
+  normalizeDirectEndpoint,
   oauthStartAllowed,
   sha256Base64Url,
   validNodeId,

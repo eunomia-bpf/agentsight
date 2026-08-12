@@ -44,6 +44,7 @@ export interface CloudNode {
   name: string;
   version: string | null;
   connectionMode: 'direct' | 'relay';
+  hasDirectConfig: boolean;
   lastRegisteredAt: number;
   createdAt: number;
 }
@@ -307,6 +308,7 @@ export async function fetchCloudNodes(token: string): Promise<CloudNode[]> {
       name?: string;
       version?: string | null;
       connection_mode?: string;
+      has_direct_config?: boolean | number;
       last_seen_at?: number;
       created_at?: number;
     }>;
@@ -319,6 +321,7 @@ export async function fetchCloudNodes(token: string): Promise<CloudNode[]> {
       name: node.name!,
       version: typeof node.version === 'string' ? node.version : null,
       connectionMode: node.connection_mode === 'relay' ? 'relay' : 'direct',
+      hasDirectConfig: node.has_direct_config === true || node.has_direct_config === 1,
       lastRegisteredAt: typeof node.last_seen_at === 'number' ? node.last_seen_at : 0,
       createdAt: typeof node.created_at === 'number' ? node.created_at : 0,
     }));

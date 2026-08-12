@@ -35,6 +35,8 @@ import {
   type NodeClient,
   type NodeTransport,
   directNodeClient,
+  fetchControllerDirectConfig,
+  forgetControllerDirectConfig,
   forgetDirectConnection,
   loadDirectConnections,
   probeDirectConnection,
@@ -42,6 +44,7 @@ import {
   relayNodeClient,
   relayOnline,
   saveDirectConnection,
+  setDirectCloudSync,
 } from '@/lib/nodeClient';
 import { AgentSightSnapshot } from '@/types/event';
 import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
@@ -184,6 +187,27 @@ export default function Home() {
 
     const token = loadCloudSession();
     const cloudNode = cloudNodes.find((node) => node.id === nodeId);
+    if (token && cloudNode?.hasDirectConfig && (!direct || directFailure)) {
+      try {
+        const saved = await fetchControllerDirectConfig(token, cloudNode);
+        const verified = await probeDirectConnection(saved.endpoint, saved.accessToken);
+        if (verified.nodeId !== nodeId) throw new Error('Saved Direct config belongs to another Node.');
+        saveDirectConnection(verified);
+        setDirectConnections(loadDirectConnections());
+        const client = directNodeClient(verified);
+        const nextSnapshot = await client.snapshot();
+        setActiveClient(client);
+        setSnapshot(nextSnapshot);
+        setMode('live');
+        setViewMode('sessions');
+        setDialogOpen(false);
+        setError('');
+        setLoadingNodeId(null);
+        return;
+      } catch (cause) {
+        directFailure = cause;
+      }
+    }
     const relay = relayStatus[nodeId];
     if (token && cloudNode && relay === true) {
       try {
@@ -220,6 +244,7 @@ export default function Home() {
     nodeId: string,
     endpoint: string,
     accessToken: string,
+    saveToAccount: boolean,
   ): Promise<boolean> => {
     setLoadingNodeId(nodeId);
     setNodeError('');
@@ -235,9 +260,22 @@ export default function Home() {
       if (!opened) return false;
       saveDirectConnection(connection);
       setDirectConnections(loadDirectConnections());
+      setDirectCloudSync(connection.nodeId, saveToAccount);
       const cloudToken = loadCloudSession();
       if (cloudToken) {
-        void registerControllerNode(cloudToken, connection).catch(() => undefined);
+        try {
+          await registerControllerNode(cloudToken, connection, saveToAccount);
+          if (!saveToAccount) await forgetControllerDirectConfig(cloudToken, connection.nodeId);
+          setCloudNodes((current) => current.map((node) => (
+            node.id === connection.nodeId ? { ...node, hasDirectConfig: saveToAccount } : node
+          )));
+        } catch (cause) {
+          setNodeError(
+            `Direct connected, but the account configuration was not updated: ${
+              cause instanceof Error ? cause.message : 'Controller request failed.'
+            }`,
+          );
+        }
       }
       return true;
     } catch (cause) {
@@ -247,6 +285,23 @@ export default function Home() {
       setLoadingNodeId(null);
     }
   }, [activateClient]);
+
+  const forgetCloudDirect = useCallback(async (nodeId: string) => {
+    const token = loadCloudSession();
+    if (!token) return;
+    setNodesLoading(true);
+    setNodeError('');
+    try {
+      await forgetControllerDirectConfig(token, nodeId);
+      setCloudNodes((current) => current.map((node) => (
+        node.id === nodeId ? { ...node, hasDirectConfig: false } : node
+      )));
+    } catch (cause) {
+      handleCloudError(cause, 'Could not remove the account-saved Direct config.');
+    } finally {
+      setNodesLoading(false);
+    }
+  }, [handleCloudError]);
 
   const enterDemo = useCallback(async () => {
     setSyncing(true);
@@ -455,6 +510,7 @@ export default function Home() {
       onOpenNode={(nodeId) => { void openNode(nodeId); }} onConnectDirect={connectDirect}
       onRefresh={() => { void refreshCloudNodes(); }}
       onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
+      onForgetCloudDirect={(nodeId) => { void forgetCloudDirect(nodeId); }}
       onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
   ) : null;
 
@@ -474,6 +530,7 @@ export default function Home() {
           onOpenNode={(nodeId) => { void openNode(nodeId); }} onConnectDirect={connectDirect}
           onRefresh={() => { void refreshCloudNodes(); }}
           onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
+          onForgetCloudDirect={(nodeId) => { void forgetCloudDirect(nodeId); }}
           onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
       )}
 
