@@ -443,13 +443,12 @@ mod tests {
         std::fs::write(&shim, "@echo off\r\n").unwrap();
         let path = std::env::join_paths([temp.path()]).unwrap();
 
-        assert_eq!(
-            resolve_windows_program(
-                Path::new("codex"),
-                Some(&path),
-                Some(OsStr::new(".EXE;.CMD")),
-            ),
-            Some(shim)
-        );
+        let resolved = resolve_windows_program(
+            Path::new("codex"),
+            Some(&path),
+            Some(OsStr::new(".EXE;.CMD")),
+        )
+        .unwrap();
+        assert_eq!(resolved.canonicalize().unwrap(), shim.canonicalize().unwrap());
     }
 }
