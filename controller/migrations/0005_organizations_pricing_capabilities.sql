@@ -1,44 +1,3 @@
-CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    email TEXT NOT NULL UNIQUE,
-    name TEXT NOT NULL,
-    avatar_url TEXT,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS oauth_accounts (
-    provider TEXT NOT NULL,
-    provider_user_id TEXT NOT NULL,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    PRIMARY KEY (provider, provider_user_id)
-);
-
-CREATE TABLE IF NOT EXISTS oauth_states (
-    state_hash TEXT PRIMARY KEY,
-    provider TEXT NOT NULL,
-    return_to TEXT NOT NULL,
-    code_challenge TEXT NOT NULL,
-    expires_at INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS auth_codes (
-    code_hash TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    provider TEXT NOT NULL,
-    code_challenge TEXT NOT NULL,
-    expires_at INTEGER NOT NULL,
-    consumed_at INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS sessions (
-    token_hash TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    expires_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL,
-    last_seen_at INTEGER NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS organizations (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -61,18 +20,6 @@ CREATE TABLE IF NOT EXISTS memberships (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     PRIMARY KEY (organization_id, user_id)
-);
-
-CREATE TABLE IF NOT EXISTS nodes (
-    id TEXT PRIMARY KEY,
-    organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    version TEXT,
-    public_key TEXT,
-    relay_token_hash TEXT,
-    connection_mode TEXT NOT NULL DEFAULT 'direct',
-    last_seen_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS organization_configs (
@@ -107,14 +54,63 @@ CREATE TABLE IF NOT EXISTS organization_invites (
     created_at INTEGER NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_nodes_org ON nodes(organization_id, last_seen_at DESC);
-CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, expires_at);
-CREATE INDEX IF NOT EXISTS idx_oauth_states_expiry ON oauth_states(expires_at);
-CREATE INDEX IF NOT EXISTS idx_auth_codes_expiry ON auth_codes(expires_at);
-CREATE INDEX IF NOT EXISTS idx_auth_codes_consumed ON auth_codes(consumed_at);
-CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
+INSERT OR IGNORE INTO organizations (
+    id, name, kind, plan, billing_status, created_by_user_id, created_at, updated_at
+)
+SELECT
+    'org_personal_' || replace(id, '-', ''),
+    'Personal',
+    'personal',
+    'free',
+    'inactive',
+    id,
+    created_at,
+    updated_at
+FROM users;
+
+INSERT OR IGNORE INTO memberships (organization_id, user_id, role, created_at, updated_at)
+SELECT
+    'org_personal_' || replace(id, '-', ''),
+    id,
+    'owner',
+    created_at,
+    updated_at
+FROM users;
+
+CREATE TABLE nodes_v2 (
+    id TEXT PRIMARY KEY,
+    organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    version TEXT,
+    public_key TEXT,
+    relay_token_hash TEXT,
+    connection_mode TEXT NOT NULL DEFAULT 'direct',
+    last_seen_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
+INSERT INTO nodes_v2 (
+    id, organization_id, name, version, public_key, relay_token_hash,
+    connection_mode, last_seen_at, created_at
+)
+SELECT
+    id,
+    'org_personal_' || replace(owner_user_id, '-', ''),
+    name,
+    version,
+    public_key,
+    relay_token_hash,
+    connection_mode,
+    last_seen_at,
+    created_at
+FROM nodes;
+
+DROP TABLE nodes;
+ALTER TABLE nodes_v2 RENAME TO nodes;
+
 CREATE INDEX IF NOT EXISTS idx_memberships_user ON memberships(user_id, organization_id);
 CREATE INDEX IF NOT EXISTS idx_memberships_org ON memberships(organization_id, role);
+CREATE INDEX IF NOT EXISTS idx_nodes_org ON nodes(organization_id, last_seen_at DESC);
 CREATE INDEX IF NOT EXISTS idx_entitlements_user ON entitlements(user_id, kind, revoked_at, expires_at);
 CREATE INDEX IF NOT EXISTS idx_entitlements_org ON entitlements(organization_id, kind, revoked_at, expires_at);
 CREATE INDEX IF NOT EXISTS idx_invites_org ON organization_invites(organization_id, expires_at);

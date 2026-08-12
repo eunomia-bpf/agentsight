@@ -1,12 +1,43 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-import core from './core.ts';
+import core, { authenticateUser, HttpError } from './core.ts';
+import {
+  AccessError,
+  type Action,
+  type BillingStatus,
+  type Plan,
+  type Role,
+  acceptInvite,
+  createInvite,
+  createOrganization,
+  deleteNode,
+  ensurePersonalOrganization,
+  getConfig,
+  getNodeAccess,
+  getOrganizationAccess,
+  grantLifetimePro,
+  listMembers,
+  listNodes,
+  listOrganizations,
+  nodeIdFromPath,
+  publicPricing,
+  putConfig,
+  registerNode,
+  relayAction,
+  removeMember,
+  requireManagedPlan,
+  requireOrganizationAction,
+  setBilling,
+  updateMemberRole,
+  validNodeId,
+} from './access.ts';
 import {
   NodeRelay,
   browserRelayRoute,
   connectNodeRelay,
   proxyBrowserRelay,
+  proxyNodeRequest,
   relayNodeSocketId,
   saveRelayCredential,
   validRelayToken,
@@ -21,25 +52,33 @@ interface Env extends RelayEnv {
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  ADMIN_API_TOKEN?: string;
 }
+
+const NODE_CAPABILITY_ACTIONS = new Set<Action>([
+  'node.info',
+  'evidence.read',
+  'session.read',
+  'session.message',
+]);
+const BILLING_STATUSES = new Set<BillingStatus>(['inactive', 'trialing', 'active', 'past_due', 'canceled']);
+const PLANS = new Set<Plan>(['free', 'pro', 'team', 'enterprise']);
 
 export { NodeRelay };
 export {
   allowedReturnTo,
-  deleteOwnedNode,
   githubApiHeaders,
-  nodeIdFromPath,
   oauthStartAllowed,
   sha256Base64Url,
-  validNodeId,
 } from './core.ts';
+export { nodeIdFromPath, publicPricing, roleAllows, validNodeId } from './access.ts';
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    // Nodes authenticate with their persistent local bearer and keep one
-    // outbound WebSocket. This route is intentionally outside browser CORS.
+    // Node identity is deliberately separate from human identity. A Node
+    // authenticates its outbound relay with its local bootstrap credential.
     const relayNodeId = relayNodeSocketId(url.pathname);
     if (relayNodeId && request.method === 'GET') {
       return connectNodeRelay(request, env, relayNodeId);
@@ -49,66 +88,348 @@ export default {
     if (requestOrigin && requestOrigin !== new URL(env.APP_ORIGIN).origin) {
       return json({ error: 'origin_not_allowed' }, 403);
     }
+    if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }), env);
 
-    if (request.method === 'GET' && url.pathname === '/v1/health') {
-      return cors(json({ status: 'ok', service: 'agentsight-controller' }), env);
-    }
+    try {
+      if (request.method === 'GET' && url.pathname === '/v1/pricing') {
+        return cors(json(publicPricing()), env);
+      }
 
-    const relayRoute = browserRelayRoute(request);
-    if (relayRoute) {
-      const ownerId = await authenticatedUserId(request, env);
-      if (!ownerId) return cors(json({ error: 'authentication_required' }, 401), env);
-      return cors(await proxyBrowserRelay(request, env, relayRoute, ownerId), env);
-    }
+      if (isCoreIdentityRoute(url.pathname)) {
+        return core.fetch(request, env);
+      }
 
-    // Node registration remains the same identity/ownership API. A locally
-    // bound browser may additionally enroll the same persistent bearer for
-    // relay. Only its SHA-256 hash is retained by Controller.
-    let relayEnrollment: { nodeId: string; token: string } | null = null;
-    if (request.method === 'POST' && url.pathname === '/v1/nodes') {
-      const body = await request.clone().json().catch(() => ({})) as {
-        id?: unknown;
-        relay_token?: unknown;
-      };
-      if (body.relay_token !== undefined) {
-        if (typeof body.id !== 'string'
-            || typeof body.relay_token !== 'string'
-            || !validRelayToken(body.relay_token)) {
-          return cors(json({ error: 'invalid_relay_token' }, 400), env);
+      if (url.pathname.startsWith('/v1/admin/')) {
+        return cors(await handleAdmin(request, env), env);
+      }
+
+      const user = await authenticateUser(request, env.DB);
+      await ensurePersonalOrganization(env.DB, user);
+
+      if (request.method === 'GET' && url.pathname === '/v1/organizations') {
+        return cors(json({ organizations: await listOrganizations(env.DB, user) }), env);
+      }
+
+      if (request.method === 'POST' && url.pathname === '/v1/organizations') {
+        const body = await readJson<{ name?: unknown }>(request);
+        if (typeof body.name !== 'string') throw new AccessError(400, 'invalid_organization_name');
+        const id = await createOrganization(env.DB, user.id, body.name);
+        const organization = await getOrganizationAccess(env.DB, user.id, id);
+        return cors(json({ organization }, 201), env);
+      }
+
+      if (request.method === 'POST' && url.pathname === '/v1/invitations/accept') {
+        const body = await readJson<{ token?: unknown }>(request);
+        if (typeof body.token !== 'string') throw new AccessError(400, 'invalid_invite');
+        const organizationId = await acceptInvite(env.DB, user, body.token);
+        return cors(json({ organization_id: organizationId, status: 'joined' }), env);
+      }
+
+      const organizationPath = organizationIdFromPath(url.pathname);
+      if (organizationPath && !url.pathname.includes('/members')
+          && !url.pathname.includes('/config/') && !url.pathname.endsWith('/billing')) {
+        if (request.method === 'PATCH') {
+          const access = await requireOrganizationAction(
+            env.DB, user.id, organizationPath, 'organization.manage',
+          );
+          const body = await readJson<{ name?: unknown }>(request);
+          const name = typeof body.name === 'string' ? body.name.trim() : '';
+          if (!name || name.length > 128) throw new AccessError(400, 'invalid_organization_name');
+          await env.DB.prepare('UPDATE organizations SET name = ?1, updated_at = ?2 WHERE id = ?3')
+            .bind(name, nowSeconds(), access.id).run();
+          return cors(json({ status: 'updated' }), env);
         }
-        relayEnrollment = { nodeId: body.id, token: body.relay_token };
+        if (request.method === 'DELETE') {
+          const access = await requireOrganizationAction(
+            env.DB, user.id, organizationPath, 'organization.manage',
+          );
+          if (access.kind === 'personal') throw new AccessError(409, 'personal_organization_cannot_be_deleted');
+          await env.DB.prepare('DELETE FROM organizations WHERE id = ?1').bind(access.id).run();
+          return cors(new Response(null, { status: 204 }), env);
+        }
       }
-    }
 
-    const response = await core.fetch(request, env);
-    if (relayEnrollment && response.ok) {
-      const ownerId = await authenticatedUserId(request, env);
-      if (!ownerId || !await saveRelayCredential(
-        env.DB,
-        relayEnrollment.nodeId,
-        ownerId,
-        relayEnrollment.token,
-      )) {
-        return cors(json({ error: 'relay_enrollment_failed' }, 400), env);
+      const membersPath = organizationMembersPath(url.pathname);
+      if (membersPath) {
+        if (!membersPath.memberId && request.method === 'GET') {
+          return cors(json({ members: await listMembers(env.DB, user.id, membersPath.organizationId) }), env);
+        }
+        if (!membersPath.memberId && request.method === 'POST') {
+          const body = await readJson<{ email?: unknown; role?: unknown }>(request);
+          if (typeof body.email !== 'string' || !isInviteRole(body.role)) {
+            throw new AccessError(400, 'invalid_invite');
+          }
+          const token = await createInvite(
+            env.DB, user.id, membersPath.organizationId, body.email, body.role,
+          );
+          return cors(json({
+            status: 'invited',
+            invite_url: `${new URL(env.APP_ORIGIN).origin}/#action=invite&token=${encodeURIComponent(token)}`,
+            expires_in: 7 * 24 * 60 * 60,
+          }, 201), env);
+        }
+        if (membersPath.memberId && request.method === 'PATCH') {
+          const body = await readJson<{ role?: unknown }>(request);
+          if (!isInviteRole(body.role)) throw new AccessError(400, 'invalid_role');
+          await updateMemberRole(
+            env.DB, user.id, membersPath.organizationId, membersPath.memberId, body.role,
+          );
+          return cors(json({ status: 'updated' }), env);
+        }
+        if (membersPath.memberId && request.method === 'DELETE') {
+          await removeMember(env.DB, user.id, membersPath.organizationId, membersPath.memberId);
+          return cors(new Response(null, { status: 204 }), env);
+        }
       }
+
+      const configPath = organizationConfigPath(url.pathname);
+      if (configPath) {
+        if (request.method === 'GET') {
+          return cors(json(await getConfig(
+            env.DB, user.id, configPath.organizationId, configPath.key,
+          )), env);
+        }
+        if (request.method === 'PUT') {
+          const body = await readJson<{ value?: unknown }>(request);
+          await putConfig(env.DB, user.id, configPath.organizationId, configPath.key, body.value);
+          return cors(json({ status: 'stored' }), env);
+        }
+      }
+
+      const billingOrganizationId = organizationBillingPath(url.pathname);
+      if (billingOrganizationId && request.method === 'GET') {
+        const access = await requireOrganizationAction(
+          env.DB, user.id, billingOrganizationId, 'billing.read',
+        );
+        return cors(json({
+          organization_id: access.id,
+          plan: access.plan,
+          effective_plan: access.effectivePlan,
+          billing_interval: access.billingInterval,
+          billing_status: access.billingStatus,
+          current_period_end: access.currentPeriodEnd,
+          contributor_pro: access.contributorPro,
+          price: publicPricing(),
+        }), env);
+      }
+
+      if (url.pathname === '/v1/nodes' && request.method === 'GET') {
+        const organizationId = url.searchParams.get('organization_id')
+          || await ensurePersonalOrganization(env.DB, user);
+        return cors(json({ nodes: await listNodes(env.DB, user.id, organizationId) }), env);
+      }
+
+      if (url.pathname === '/v1/nodes' && request.method === 'POST') {
+        const body = await readJson<{
+          id?: unknown;
+          organization_id?: unknown;
+          name?: unknown;
+          version?: unknown;
+          relay_token?: unknown;
+        }>(request);
+        if (typeof body.id !== 'string' || !validNodeId(body.id)
+            || typeof body.name !== 'string' || !body.name.trim() || body.name.length > 128) {
+          throw new AccessError(400, 'invalid_node');
+        }
+        const organizationId = typeof body.organization_id === 'string' && body.organization_id
+          ? body.organization_id
+          : await ensurePersonalOrganization(env.DB, user);
+        await registerNode(env.DB, user.id, organizationId, {
+          id: body.id,
+          name: body.name.trim(),
+          version: typeof body.version === 'string' ? body.version : null,
+        });
+        if (body.relay_token !== undefined) {
+          if (typeof body.relay_token !== 'string' || !validRelayToken(body.relay_token)) {
+            throw new AccessError(400, 'invalid_relay_token');
+          }
+          if (!await saveRelayCredential(env.DB, body.id, body.relay_token)) {
+            throw new AccessError(400, 'relay_enrollment_failed');
+          }
+        }
+        return cors(json({ id: body.id, organization_id: organizationId, status: 'registered' }, 201), env);
+      }
+
+      const capabilityNodeId = nodeCapabilityPath(url.pathname);
+      if (capabilityNodeId && request.method === 'POST') {
+        const body = await readJson<{
+          actions?: unknown;
+          session_id?: unknown;
+          ttl_seconds?: unknown;
+        }>(request);
+        const requested = Array.isArray(body.actions)
+          ? body.actions.filter((value): value is Action => typeof value === 'string')
+          : [];
+        if (!requested.length || requested.some((action) => !NODE_CAPABILITY_ACTIONS.has(action))) {
+          throw new AccessError(400, 'invalid_capability_actions');
+        }
+        let managedAccess = null;
+        for (const action of requested) {
+          const access = await getNodeAccess(env.DB, user.id, capabilityNodeId, action);
+          managedAccess ||= access.organization;
+        }
+        if (!managedAccess) throw new AccessError(403, 'permission_denied');
+        requireManagedPlan(managedAccess);
+        const ttlSeconds = typeof body.ttl_seconds === 'number' && Number.isFinite(body.ttl_seconds)
+          ? Math.max(30, Math.min(600, Math.floor(body.ttl_seconds)))
+          : 300;
+        const nodeResponse = await proxyNodeRequest(
+          env,
+          capabilityNodeId,
+          'POST',
+          '/api/v1/capabilities',
+          JSON.stringify({
+            actions: requested,
+            session_id: typeof body.session_id === 'string' ? body.session_id : null,
+            ttl_seconds: ttlSeconds,
+          }),
+        );
+        return cors(nodeResponse, env);
+      }
+
+      const deleteNodeId = nodeIdFromPath(url.pathname);
+      if (deleteNodeId && request.method === 'DELETE') {
+        await deleteNode(env.DB, user.id, deleteNodeId);
+        return cors(new Response(null, { status: 204 }), env);
+      }
+
+      const relayRoute = browserRelayRoute(request);
+      if (relayRoute) {
+        const action = relayAction(relayRoute.method, relayRoute.nodePath, relayRoute.statusOnly);
+        const access = await getNodeAccess(env.DB, user.id, relayRoute.nodeId, action);
+        requireManagedPlan(access.organization);
+        return cors(await proxyBrowserRelay(request, env, relayRoute), env);
+      }
+
+      return cors(json({ error: 'not_found' }, 404), env);
+    } catch (error) {
+      if (error instanceof AccessError || error instanceof HttpError) {
+        return cors(json({ error: error.code }, error.status), env);
+      }
+      console.error(error);
+      return cors(json({ error: 'internal_error' }, 500), env);
     }
-    return response;
   },
 } satisfies ExportedHandler<Env>;
 
-async function authenticatedUserId(request: Request, env: Env): Promise<string | null> {
-  const authorization = request.headers.get('Authorization');
-  if (!authorization) return null;
+async function handleAdmin(request: Request, env: Env): Promise<Response> {
+  const configured = env.ADMIN_API_TOKEN;
+  const supplied = request.headers.get('Authorization')?.match(/^Bearer (.+)$/)?.[1];
+  if (!configured || !supplied || supplied !== configured) return json({ error: 'admin_auth_required' }, 401);
   const url = new URL(request.url);
-  url.pathname = '/v1/me';
-  url.search = '';
-  const response = await core.fetch(new Request(url.toString(), {
-    method: 'GET',
-    headers: { Authorization: authorization },
-  }), env);
-  if (!response.ok) return null;
-  const body = await response.json().catch(() => ({})) as { id?: unknown };
-  return typeof body.id === 'string' ? body.id : null;
+
+  const billing = url.pathname.match(/^\/v1\/admin\/organizations\/([^/]+)\/billing$/);
+  if (billing && request.method === 'POST') {
+    const organizationId = decodeURIComponent(billing[1]);
+    const body = await readJson<{
+      plan?: unknown;
+      interval?: unknown;
+      status?: unknown;
+      external_customer_id?: unknown;
+      external_subscription_id?: unknown;
+      current_period_end?: unknown;
+    }>(request);
+    if (typeof body.plan !== 'string' || !PLANS.has(body.plan as Plan)
+        || typeof body.status !== 'string' || !BILLING_STATUSES.has(body.status as BillingStatus)
+        || (body.interval !== undefined && body.interval !== null
+          && body.interval !== 'monthly' && body.interval !== 'annual')) {
+      throw new AccessError(400, 'invalid_billing_state');
+    }
+    await setBilling(env.DB, organizationId, {
+      plan: body.plan as Plan,
+      interval: body.interval as 'monthly' | 'annual' | null | undefined,
+      status: body.status as BillingStatus,
+      externalCustomerId: typeof body.external_customer_id === 'string' ? body.external_customer_id : null,
+      externalSubscriptionId: typeof body.external_subscription_id === 'string' ? body.external_subscription_id : null,
+      currentPeriodEnd: typeof body.current_period_end === 'number' ? body.current_period_end : null,
+    });
+    return json({ status: 'updated' });
+  }
+
+  if (url.pathname === '/v1/admin/entitlements/pro-lifetime' && request.method === 'POST') {
+    const body = await readJson<{ email?: unknown; source?: unknown; source_ref?: unknown }>(request);
+    if (typeof body.email !== 'string') throw new AccessError(400, 'invalid_email');
+    const id = await grantLifetimePro(
+      env.DB,
+      body.email,
+      typeof body.source === 'string' ? body.source : 'contributor',
+      typeof body.source_ref === 'string' ? body.source_ref : null,
+    );
+    return json({ id, entitlement: 'pro_lifetime', status: 'active' }, 201);
+  }
+
+  return json({ error: 'not_found' }, 404);
+}
+
+function isCoreIdentityRoute(pathname: string): boolean {
+  return pathname === '/v1/health'
+    || pathname === '/v1/me'
+    || pathname === '/v1/auth/exchange'
+    || pathname === '/v1/auth/logout'
+    || pathname.startsWith('/v1/auth/start/')
+    || pathname.startsWith('/v1/auth/callback/');
+}
+
+function organizationIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/v1\/organizations\/([^/]+)$/);
+  if (!match) return null;
+  try { return decodeURIComponent(match[1]); } catch { return null; }
+}
+
+function organizationMembersPath(pathname: string): { organizationId: string; memberId: string | null } | null {
+  const match = pathname.match(/^\/v1\/organizations\/([^/]+)\/members(?:\/([^/]+))?$/);
+  if (!match) return null;
+  try {
+    return {
+      organizationId: decodeURIComponent(match[1]),
+      memberId: match[2] ? decodeURIComponent(match[2]) : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function organizationConfigPath(pathname: string): { organizationId: string; key: string } | null {
+  const match = pathname.match(/^\/v1\/organizations\/([^/]+)\/config\/([^/]+)$/);
+  if (!match) return null;
+  try {
+    return { organizationId: decodeURIComponent(match[1]), key: decodeURIComponent(match[2]) };
+  } catch {
+    return null;
+  }
+}
+
+function organizationBillingPath(pathname: string): string | null {
+  const match = pathname.match(/^\/v1\/organizations\/([^/]+)\/billing$/);
+  if (!match) return null;
+  try { return decodeURIComponent(match[1]); } catch { return null; }
+}
+
+function nodeCapabilityPath(pathname: string): string | null {
+  const match = pathname.match(/^\/v1\/nodes\/([^/]+)\/capabilities$/);
+  if (!match) return null;
+  try {
+    const id = decodeURIComponent(match[1]);
+    return validNodeId(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+function isInviteRole(value: unknown): value is Exclude<Role, 'owner'> {
+  return value === 'viewer' || value === 'operator' || value === 'admin';
+}
+
+async function readJson<T>(request: Request): Promise<T> {
+  const declared = Number(request.headers.get('Content-Length') || '0');
+  if (declared > 96 * 1024) throw new AccessError(413, 'request_too_large');
+  const text = await request.text();
+  if (new TextEncoder().encode(text).byteLength > 96 * 1024) throw new AccessError(413, 'request_too_large');
+  try { return JSON.parse(text) as T; } catch { throw new AccessError(400, 'invalid_json'); }
+}
+
+function nowSeconds(): number {
+  return Math.floor(Date.now() / 1000);
 }
 
 function json(body: unknown, status = 200): Response {
@@ -122,7 +443,7 @@ function cors(response: Response, env: Env): Response {
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', new URL(env.APP_ORIGIN).origin);
   headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-  headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Vary', 'Origin');
   return new Response(response.body, {

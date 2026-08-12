@@ -111,14 +111,12 @@ export function validRelayToken(value: string): boolean {
 export async function saveRelayCredential(
   db: D1Database,
   nodeId: string,
-  ownerUserId: string,
   token: string,
 ): Promise<boolean> {
   if (!validRelayToken(token)) return false;
   const result = await db.prepare(
-    `UPDATE nodes SET relay_token_hash = ?1, connection_mode = 'relay'
-     WHERE id = ?2 AND owner_user_id = ?3`,
-  ).bind(await sha256(token), nodeId, ownerUserId).run();
+    `UPDATE nodes SET relay_token_hash = ?1, connection_mode = 'relay' WHERE id = ?2`,
+  ).bind(await sha256(token), nodeId).run();
   return Boolean(result.meta.changes);
 }
 
@@ -155,30 +153,30 @@ export async function proxyBrowserRelay(
   request: Request,
   env: RelayEnv,
   route: BrowserRelayRoute,
-  ownerUserId: string,
 ): Promise<Response> {
-  const owned = await env.DB.prepare(
-    'SELECT id FROM nodes WHERE id = ?1 AND owner_user_id = ?2',
-  ).bind(route.nodeId, ownerUserId).first<{ id: string }>();
-  if (!owned) return json({ error: 'node_not_found' }, 404);
-
-  const stub = relayStub(env, route.nodeId);
-  if (route.statusOnly) {
-    return stub.fetch(new Request('https://relay.internal/status'));
-  }
-
+  if (route.statusOnly) return relayStatus(env, route.nodeId);
   const body = route.method === 'POST' ? await boundedBody(request) : undefined;
   if (body instanceof Response) return body;
+  return proxyNodeRequest(env, route.nodeId, route.method, route.nodePath || '/', body);
+}
+
+export async function relayStatus(env: RelayEnv, nodeId: string): Promise<Response> {
+  return relayStub(env, nodeId).fetch(new Request('https://relay.internal/status'));
+}
+
+export async function proxyNodeRequest(
+  env: RelayEnv,
+  nodeId: string,
+  method: 'GET' | 'POST',
+  path: string,
+  body?: string,
+): Promise<Response> {
   const relayRequest = new Request('https://relay.internal/request', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      method: route.method,
-      path: route.nodePath,
-      body,
-    }),
+    body: JSON.stringify({ method, path, body }),
   });
-  return stub.fetch(relayRequest);
+  return relayStub(env, nodeId).fetch(relayRequest);
 }
 
 export class NodeRelay {

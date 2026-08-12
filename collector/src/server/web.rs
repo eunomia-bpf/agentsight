@@ -3,6 +3,10 @@
 
 use crate::model::{Snapshot, SnapshotOptions};
 use crate::server::assets::FrontendAssets;
+use crate::server::capability::{
+    CapabilityMintRequest, CapabilityStore, EVIDENCE_READ, NODE_INFO, SESSION_MESSAGE,
+    SESSION_READ,
+};
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
 use crate::sources::sqlite as sqlite_source;
 use crate::view::SharedMaterializedView;
@@ -25,7 +29,7 @@ use tokio::net::TcpListener;
 
 #[derive(Clone)]
 struct DirectAuth {
-    access_token: String,
+    bootstrap_token: String,
     node: NodeMetadata,
     allowed_origin: String,
 }
@@ -38,22 +42,41 @@ pub struct NodeMetadata {
 }
 
 impl DirectAuth {
-    fn new(access_token: String, node: NodeMetadata, allowed_origin: String) -> Self {
+    fn new(bootstrap_token: String, node: NodeMetadata, allowed_origin: String) -> Self {
         Self {
-            access_token,
+            bootstrap_token,
             node,
             allowed_origin,
         }
     }
 
-    fn authorizes(&self, value: Option<&HeaderValue>) -> bool {
-        let Some(token) = value
+    fn bearer<'a>(&self, value: Option<&'a HeaderValue>) -> Option<&'a str> {
+        value
             .and_then(|value| value.to_str().ok())
             .and_then(|value| value.strip_prefix("Bearer "))
-        else {
+    }
+
+    fn is_root(&self, value: Option<&HeaderValue>) -> bool {
+        self.bearer(value) == Some(self.bootstrap_token.as_str())
+    }
+
+    fn authorizes(
+        &self,
+        capabilities: &Arc<Mutex<CapabilityStore>>,
+        value: Option<&HeaderValue>,
+        action: &str,
+        session_id: Option<&str>,
+    ) -> bool {
+        if self.is_root(value) {
+            return true;
+        }
+        let Some(token) = self.bearer(value) else {
             return false;
         };
-        token == self.access_token
+        capabilities
+            .lock()
+            .ok()
+            .is_some_and(|mut store| store.authorizes(&self.node.id, token, action, session_id))
     }
 
     fn allows_origin(&self, origin: &str) -> bool {
@@ -65,6 +88,7 @@ pub struct WebServer {
     assets: Arc<FrontendAssets>,
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
+    capabilities: Arc<Mutex<CapabilityStore>>,
     db_path: Option<String>,
     direct_auth: Option<DirectAuth>,
 }
@@ -79,6 +103,7 @@ impl WebServer {
             assets: Arc::new(assets),
             view,
             agent_native_sessions: Arc::new(Mutex::new(SessionCache::new())),
+            capabilities: Arc::new(Mutex::new(CapabilityStore::default())),
             db_path,
             direct_auth: None,
         })
@@ -123,6 +148,7 @@ impl WebServer {
             let assets = Arc::clone(&self.assets);
             let view = Arc::clone(&self.view);
             let agent_native_sessions = Arc::clone(&self.agent_native_sessions);
+            let capabilities = Arc::clone(&self.capabilities);
             let db_path = self.db_path.clone();
             let direct_auth = self.direct_auth.clone();
 
@@ -134,6 +160,7 @@ impl WebServer {
                         assets.clone(),
                         view.clone(),
                         agent_native_sessions.clone(),
+                        capabilities.clone(),
                         db_path.clone(),
                         direct_auth.clone(),
                     )
@@ -152,6 +179,7 @@ async fn handle_request(
     assets: Arc<FrontendAssets>,
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
+    capabilities: Arc<Mutex<CapabilityStore>>,
     db_path: Option<String>,
     direct_auth: Option<DirectAuth>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
@@ -190,10 +218,18 @@ async fn handle_request(
     let session_detail_id = session_detail_id(&path).map(str::to_string);
     let response = match (method, path.as_str()) {
         (Method::GET, "/api/v1/info") => {
-            if !info_access_allowed(direct_auth.as_ref(), authorization.as_ref()) {
-                json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
+            if !info_access_allowed(
+                direct_auth.as_ref(),
+                &capabilities,
+                authorization.as_ref(),
+            ) {
+                json_error(StatusCode::UNAUTHORIZED, "valid Node capability required")
             } else {
-                let node = info_node(direct_auth.as_ref(), authorization.as_ref());
+                let node = info_node(
+                    direct_auth.as_ref(),
+                    &capabilities,
+                    authorization.as_ref(),
+                );
                 json_response(
                     StatusCode::OK,
                     &serde_json::json!({
@@ -201,6 +237,7 @@ async fn handle_request(
                         "product": PRODUCT,
                         "authorization_required": direct_auth.is_some(),
                         "capabilities": {
+                            "scoped_authorization": direct_auth.is_some(),
                             "session_detail": true,
                             "session_messages": direct_auth.is_some() && db_path.is_none(),
                         },
@@ -209,49 +246,64 @@ async fn handle_request(
                 )
             }
         }
-        (Method::GET, "/api/v1/snapshot") => {
-            if !snapshot_access_allowed(
+        (Method::POST, "/api/v1/capabilities") => {
+            serve_capability_mint_api(
+                req,
                 direct_auth.as_ref(),
+                &capabilities,
                 authorization.as_ref(),
+            )
+            .await?
+        }
+        (Method::GET, "/api/v1/snapshot") => {
+            if !protocol_access_allowed(
+                direct_auth.as_ref(),
+                &capabilities,
+                authorization.as_ref(),
+                EVIDENCE_READ,
+                None,
                 origin.as_deref(),
             ) {
-                json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
+                json_error(StatusCode::UNAUTHORIZED, "evidence.read capability required")
             } else {
                 serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
             }
         }
         (Method::GET, _) if session_detail_id.is_some() => {
-            if !snapshot_access_allowed(
+            let session_id = session_detail_id.as_deref().unwrap_or_default();
+            if !protocol_access_allowed(
                 direct_auth.as_ref(),
+                &capabilities,
                 authorization.as_ref(),
+                SESSION_READ,
+                Some(session_id),
                 origin.as_deref(),
             ) {
-                json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
+                json_error(StatusCode::UNAUTHORIZED, "session.read capability required")
             } else if db_path.is_some() {
                 json_error(
                     StatusCode::CONFLICT,
                     "saved captures do not expose native session messages",
                 )
             } else {
-                serve_session_api(
-                    agent_native_sessions,
-                    session_detail_id.as_deref().unwrap_or_default(),
-                )
-                .await?
+                serve_session_api(agent_native_sessions, session_id).await?
             }
         }
         (Method::POST, _) if session_message_id.is_some() => {
-            if !session_control_access_allowed(direct_auth.as_ref(), authorization.as_ref()) {
-                json_error(StatusCode::UNAUTHORIZED, "valid binding token required")
+            let session_id = session_message_id.as_deref().unwrap_or_default();
+            if !protocol_access_allowed(
+                direct_auth.as_ref(),
+                &capabilities,
+                authorization.as_ref(),
+                SESSION_MESSAGE,
+                Some(session_id),
+                origin.as_deref(),
+            ) {
+                json_error(StatusCode::UNAUTHORIZED, "session.message capability required")
             } else if db_path.is_some() {
                 json_error(StatusCode::CONFLICT, "saved captures are read-only")
             } else {
-                serve_session_message_api(
-                    req,
-                    agent_native_sessions,
-                    session_message_id.as_deref().unwrap_or_default(),
-                )
-                .await?
+                serve_session_message_api(req, agent_native_sessions, session_id).await?
             }
         }
         (Method::GET, _) => serve_asset(assets, &path).await?,
@@ -265,6 +317,68 @@ async fn handle_request(
         response,
         origin.as_deref(),
         direct_auth.as_ref(),
+    ))
+}
+
+async fn serve_capability_mint_api(
+    req: Request<hyper::body::Incoming>,
+    direct_auth: Option<&DirectAuth>,
+    capabilities: &Arc<Mutex<CapabilityStore>>,
+    authorization: Option<&HeaderValue>,
+) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
+    let Some(auth) = direct_auth else {
+        return Ok(json_error(StatusCode::NOT_FOUND, "capability issuer unavailable"));
+    };
+    if !auth.is_root(authorization) {
+        return Ok(json_error(
+            StatusCode::UNAUTHORIZED,
+            "Node bootstrap credential required",
+        ));
+    }
+    let body = match req.into_body().collect().await {
+        Ok(body) => body.to_bytes(),
+        Err(error) => {
+            return Ok(json_error(
+                StatusCode::BAD_REQUEST,
+                &format!("failed to read request body: {error}"),
+            ));
+        }
+    };
+    if body.len() > 16 * 1024 {
+        return Ok(json_error(StatusCode::PAYLOAD_TOO_LARGE, "request too large"));
+    }
+    let request: CapabilityMintRequest = match serde_json::from_slice(&body) {
+        Ok(request) => request,
+        Err(error) => {
+            return Ok(json_error(
+                StatusCode::BAD_REQUEST,
+                &format!("invalid capability request: {error}"),
+            ));
+        }
+    };
+    if let Err(error) = request.validate() {
+        return Ok(json_error(StatusCode::BAD_REQUEST, error));
+    }
+    let minted = capabilities
+        .lock()
+        .map_err(|_| ())
+        .and_then(|mut store| store.mint(&auth.node.id, &request).map_err(|_| ()));
+    let Ok((access_token, expires_at)) = minted else {
+        return Ok(json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "could not mint capability",
+        ));
+    };
+    Ok(json_response(
+        StatusCode::CREATED,
+        &serde_json::json!({
+            "access_token": access_token,
+            "token_type": "Bearer",
+            "expires_at": expires_at,
+            "expires_in": request.ttl_seconds,
+            "actions": request.actions,
+            "session_id": request.session_id,
+        }),
     ))
 }
 
@@ -514,39 +628,40 @@ fn allowed_origin(origin: &str, direct_auth: Option<&DirectAuth>) -> bool {
         || option_env!("AGENTSIGHT_DEV_APP_ORIGIN").is_some_and(|allowed| origin == allowed)
 }
 
-fn snapshot_access_allowed(
+fn protocol_access_allowed(
     direct_auth: Option<&DirectAuth>,
+    capabilities: &Arc<Mutex<CapabilityStore>>,
     authorization: Option<&HeaderValue>,
+    action: &str,
+    session_id: Option<&str>,
     origin: Option<&str>,
 ) -> bool {
     match direct_auth {
-        Some(auth) => auth.authorizes(authorization),
+        Some(auth) => auth.authorizes(capabilities, authorization, action, session_id),
         None => origin.is_none(),
     }
 }
 
-fn session_control_access_allowed(
-    direct_auth: Option<&DirectAuth>,
-    authorization: Option<&HeaderValue>,
-) -> bool {
-    direct_auth.is_some_and(|auth| auth.authorizes(authorization))
-}
-
 fn info_access_allowed(
     direct_auth: Option<&DirectAuth>,
+    capabilities: &Arc<Mutex<CapabilityStore>>,
     authorization: Option<&HeaderValue>,
 ) -> bool {
     match (direct_auth, authorization) {
-        (Some(auth), Some(value)) => auth.authorizes(Some(value)),
+        (Some(auth), Some(value)) => auth.authorizes(capabilities, Some(value), NODE_INFO, None),
         _ => true,
     }
 }
 
 fn info_node(
     direct_auth: Option<&DirectAuth>,
+    capabilities: &Arc<Mutex<CapabilityStore>>,
     authorization: Option<&HeaderValue>,
 ) -> Option<NodeMetadata> {
-    direct_auth.and_then(|auth| auth.authorizes(authorization).then(|| auth.node.clone()))
+    direct_auth.and_then(|auth| {
+        auth.authorizes(capabilities, authorization, NODE_INFO, None)
+            .then(|| auth.node.clone())
+    })
 }
 
 fn cors_response(
@@ -637,9 +752,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn direct_access_key_authorizes() {
-        let auth = DirectAuth::new(
+    fn test_auth() -> DirectAuth {
+        DirectAuth::new(
             "process-lifetime-key".to_string(),
             NodeMetadata {
                 id: "node_test".to_string(),
@@ -647,35 +761,40 @@ mod tests {
                 version: "1".to_string(),
             },
             "https://console.example".to_string(),
-        );
-        let header = HeaderValue::from_static("Bearer process-lifetime-key");
-        assert!(auth.authorizes(Some(&header)));
-        assert!(!auth.authorizes(Some(&HeaderValue::from_static("Bearer wrong"))));
-        assert!(!auth.authorizes(None));
-        assert!(info_access_allowed(Some(&auth), None));
-        assert!(info_access_allowed(Some(&auth), Some(&header)));
-        assert!(!info_access_allowed(
-            Some(&auth),
-            Some(&HeaderValue::from_static("Bearer wrong"))
-        ));
-        assert!(info_node(Some(&auth), None).is_none());
+        )
+    }
+
+    #[test]
+    fn bootstrap_key_is_root_and_scoped_capability_is_narrow() {
+        let auth = test_auth();
+        let root = HeaderValue::from_static("Bearer process-lifetime-key");
+        let store = Arc::new(Mutex::new(CapabilityStore::default()));
+        assert!(auth.is_root(Some(&root)));
+        assert!(!auth.is_root(Some(&HeaderValue::from_static("Bearer wrong"))));
+        assert!(auth.authorizes(&store, Some(&root), SESSION_MESSAGE, Some("session-1")));
+
+        let request = CapabilityMintRequest {
+            actions: vec![SESSION_READ.to_string()],
+            session_id: Some("session-1".to_string()),
+            ttl_seconds: 60,
+        };
+        let (token, _) = store.lock().unwrap().mint("node_test", &request).unwrap();
+        let scoped = HeaderValue::from_str(&format!("Bearer {token}")).unwrap();
+        assert!(auth.authorizes(&store, Some(&scoped), SESSION_READ, Some("session-1")));
+        assert!(!auth.authorizes(&store, Some(&scoped), SESSION_MESSAGE, Some("session-1")));
+        assert!(!auth.authorizes(&store, Some(&scoped), SESSION_READ, Some("session-2")));
+        assert!(info_access_allowed(Some(&auth), &store, None));
+        assert!(info_access_allowed(Some(&auth), &store, Some(&root)));
+        assert!(info_node(Some(&auth), &store, None).is_none());
         assert_eq!(
-            info_node(Some(&auth), Some(&header)).unwrap().id,
+            info_node(Some(&auth), &store, Some(&root)).unwrap().id,
             "node_test"
         );
     }
 
     #[test]
     fn cors_uses_the_configured_app_origin() {
-        let auth = DirectAuth::new(
-            "key".to_string(),
-            NodeMetadata {
-                id: "node_test".to_string(),
-                name: "test".to_string(),
-                version: "1".to_string(),
-            },
-            "https://console.example".to_string(),
-        );
+        let auth = test_auth();
         assert!(allowed_origin("https://console.example", Some(&auth)));
         assert!(!allowed_origin("https://app.agentsight.us", Some(&auth)));
         assert!(!allowed_origin("https://evil.example", Some(&auth)));
@@ -683,12 +802,35 @@ mod tests {
 
     #[test]
     fn hosted_origin_cannot_reuse_token_against_an_unpaired_server() {
-        assert!(snapshot_access_allowed(None, None, None));
-        assert!(!snapshot_access_allowed(
+        let store = Arc::new(Mutex::new(CapabilityStore::default()));
+        assert!(protocol_access_allowed(
             None,
+            &store,
+            None,
+            EVIDENCE_READ,
+            None,
+            None
+        ));
+        assert!(!protocol_access_allowed(
+            None,
+            &store,
+            None,
+            EVIDENCE_READ,
             None,
             Some("https://console.example")
         ));
+    }
+
+    #[test]
+    fn semantic_protocol_mapping_matches_web_routes() {
+        assert_eq!(
+            crate::server::capability::action_for_request("GET", "/api/v1/snapshot?audit_limit=42"),
+            Some((EVIDENCE_READ, None))
+        );
+        assert_eq!(
+            crate::server::capability::action_for_request("POST", "/api/v1/sessions/s-1/messages"),
+            Some((SESSION_MESSAGE, Some("s-1".to_string())))
+        );
     }
 
     fn llm_call(id: &str, pid: u32, comm: &str, timestamp_ms: u64, text: &str) -> LlmCallRow {

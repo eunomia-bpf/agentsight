@@ -6,8 +6,10 @@ const CLOUD_SESSION_KEY = 'agentsight.cloud-session.v1';
 const OAUTH_VERIFIER_KEY = 'agentsight.oauth-verifier.v1';
 const CLOUD_TIMEOUT_MS = 8_000;
 const LOCAL_TIMEOUT_MS = 8_000;
+const DIRECT_CAPABILITY_TTL_SECONDS = 12 * 60 * 60;
+const DIRECT_ACTIONS = ['node.info', 'evidence.read', 'session.read', 'session.message'] as const;
 let cachedLaunchFragment: URLSearchParams | null | undefined;
-let localPairingExchange: Promise<LocalConnection> | null = null;
+let localPairingExchange: Promise<LocalPairing> | null = null;
 let cloudCodeExchange: Promise<string> | null = null;
 
 export const controllerUrl = (
@@ -24,12 +26,34 @@ export interface LocalConnection {
   version: string;
 }
 
+export interface LocalPairing {
+  connection: LocalConnection;
+  bootstrapToken: string;
+}
+
 export interface CloudIdentity {
   id: string;
   email: string;
   name: string;
   avatarUrl?: string;
   provider?: 'github' | 'google';
+}
+
+export type OrganizationRole = 'viewer' | 'operator' | 'admin' | 'owner';
+export type OrganizationPlan = 'free' | 'pro' | 'team' | 'enterprise';
+
+export interface CloudOrganization {
+  id: string;
+  name: string;
+  kind: 'personal' | 'team';
+  role: OrganizationRole;
+  plan: OrganizationPlan;
+  effectivePlan: OrganizationPlan;
+  billingInterval: 'monthly' | 'annual' | null;
+  billingStatus: 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled';
+  currentPeriodEnd: number | null;
+  contributorPro: boolean;
+  createdAt: number;
 }
 
 export class CloudSessionExpiredError extends Error {
@@ -41,6 +65,7 @@ export class CloudSessionExpiredError extends Error {
 
 export interface CloudNode {
   id: string;
+  organizationId: string;
   name: string;
   version: string | null;
   connectionMode: 'direct' | 'relay';
@@ -116,6 +141,10 @@ function normalizeNodeEndpoint(raw: string): string {
   return endpoint.toString().replace(/\/$/, '');
 }
 
+function validCredential(value: string): boolean {
+  return /^[A-Za-z0-9_-]{32,256}$/.test(value);
+}
+
 export interface EmbeddedServer {
   authorizationRequired: boolean;
   connection: LocalConnection;
@@ -161,25 +190,25 @@ export function consumeLaunchFragment(): URLSearchParams | null {
   return cachedLaunchFragment;
 }
 
-export function exchangeLocalPairing(params: URLSearchParams): Promise<LocalConnection> {
+export function exchangeLocalPairing(params: URLSearchParams): Promise<LocalPairing> {
   if (!localPairingExchange) localPairingExchange = exchangeLocalPairingOnce(params);
   return localPairingExchange;
 }
 
-async function exchangeLocalPairingOnce(params: URLSearchParams): Promise<LocalConnection> {
+async function exchangeLocalPairingOnce(params: URLSearchParams): Promise<LocalPairing> {
   if (params.get('action') !== 'bind' || params.get('v') !== '1') {
     throw new Error('Unsupported AgentSight binding link.');
   }
-  const accessToken = params.get('token');
+  const bootstrapToken = params.get('token') || '';
   const endpoint = normalizeNodeEndpoint(params.get('endpoint') || '');
-  if (!accessToken || !/^[A-Za-z0-9_-]{32,256}$/.test(accessToken)) {
-    throw new Error('The binding link is missing a valid access key.');
+  if (!validCredential(bootstrapToken)) {
+    throw new Error('The binding link is missing a valid bootstrap key.');
   }
 
   let response: Response;
   try {
     response = await nodeFetch(`${endpoint}/api/v1/info`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${bootstrapToken}` },
     });
   } catch {
     throw new Error(
@@ -193,12 +222,51 @@ async function exchangeLocalPairingOnce(params: URLSearchParams): Promise<LocalC
   if (!body.node?.id || !body.node.name) {
     throw new Error('AgentSight returned an invalid binding response.');
   }
-  return {
+  const scoped = await mintNodeCapability(
     endpoint,
-    accessToken,
-    nodeId: body.node.id,
-    nodeName: body.node.name,
-    version: body.node.version || 'unknown',
+    bootstrapToken,
+    [...DIRECT_ACTIONS],
+    DIRECT_CAPABILITY_TTL_SECONDS,
+  );
+  return {
+    bootstrapToken,
+    connection: {
+      endpoint,
+      accessToken: scoped.accessToken,
+      nodeId: body.node.id,
+      nodeName: body.node.name,
+      version: body.node.version || 'unknown',
+    },
+  };
+}
+
+export async function mintNodeCapability(
+  endpoint: string,
+  bootstrapToken: string,
+  actions: string[],
+  ttlSeconds: number,
+  sessionId?: string | null,
+): Promise<{ accessToken: string; expiresAt: number }> {
+  const response = await nodeFetch(`${normalizeNodeEndpoint(endpoint)}/api/v1/capabilities`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${bootstrapToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      actions,
+      session_id: sessionId || null,
+      ttl_seconds: ttlSeconds,
+    }),
+  });
+  if (!response.ok) throw new Error(`AgentSight capability exchange failed (${response.status}).`);
+  const body = await response.json() as { access_token?: unknown; expires_at?: unknown };
+  if (typeof body.access_token !== 'string' || !validCredential(body.access_token)) {
+    throw new Error('AgentSight returned an invalid capability.');
+  }
+  return {
+    accessToken: body.access_token,
+    expiresAt: typeof body.expires_at === 'number' ? body.expires_at : 0,
   };
 }
 
@@ -216,7 +284,7 @@ export function loadLocalConnection(): LocalConnection | null {
       || typeof parsed.nodeId !== 'string'
       || typeof parsed.nodeName !== 'string'
       || typeof parsed.version !== 'string'
-      || !/^[A-Za-z0-9_-]{32,256}$/.test(parsed.accessToken)) {
+      || !validCredential(parsed.accessToken)) {
       throw new Error('invalid saved local connection');
     }
     return { ...parsed, endpoint: normalizeNodeEndpoint(parsed.endpoint) } as LocalConnection;
@@ -267,12 +335,13 @@ export function loadCloudSession(): string | null {
   return window.localStorage.getItem(CLOUD_SESSION_KEY);
 }
 
-function throwCloudResponseError(response: Response, message: string): never {
+async function cloudResponseError(response: Response, message: string): Promise<never> {
   if (response.status === 401) {
     window.localStorage.removeItem(CLOUD_SESSION_KEY);
     throw new CloudSessionExpiredError();
   }
-  throw new Error(`${message} (${response.status}).`);
+  const body = await response.json().catch(() => ({})) as { error?: string };
+  throw new Error(body.error || `${message} (${response.status}).`);
 }
 
 export async function signOutCloud(token: string | null): Promise<void> {
@@ -289,21 +358,57 @@ export async function fetchCloudIdentity(token: string): Promise<CloudIdentity> 
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
-  if (!response.ok) {
-    throwCloudResponseError(response, 'The AgentSight Controller request failed');
-  }
+  if (!response.ok) await cloudResponseError(response, 'The AgentSight Controller request failed');
   return response.json() as Promise<CloudIdentity>;
 }
 
-export async function fetchCloudNodes(token: string): Promise<CloudNode[]> {
-  const response = await cloudFetch(`${controllerUrl}/v1/nodes`, {
+export async function fetchOrganizations(token: string): Promise<CloudOrganization[]> {
+  const response = await cloudFetch(`${controllerUrl}/v1/organizations`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });
-  if (!response.ok) throwCloudResponseError(response, 'Could not load your Nodes');
+  if (!response.ok) await cloudResponseError(response, 'Could not load organizations');
+  const body = await response.json() as { organizations?: CloudOrganization[] };
+  if (!Array.isArray(body.organizations)) throw new Error('The Controller returned an invalid organization list.');
+  return body.organizations;
+}
+
+export async function createOrganization(token: string, name: string): Promise<CloudOrganization> {
+  const response = await cloudFetch(`${controllerUrl}/v1/organizations`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) await cloudResponseError(response, 'Could not create organization');
+  const body = await response.json() as { organization?: CloudOrganization };
+  if (!body.organization) throw new Error('The Controller returned an invalid organization.');
+  return body.organization;
+}
+
+export async function acceptOrganizationInvite(token: string, inviteToken: string): Promise<string> {
+  const response = await cloudFetch(`${controllerUrl}/v1/invitations/accept`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: inviteToken }),
+  });
+  if (!response.ok) await cloudResponseError(response, 'Could not accept invitation');
+  const body = await response.json() as { organization_id?: unknown };
+  if (typeof body.organization_id !== 'string') throw new Error('The Controller returned an invalid invitation response.');
+  return body.organization_id;
+}
+
+export async function fetchCloudNodes(token: string, organizationId: string): Promise<CloudNode[]> {
+  const url = new URL(`${controllerUrl}/v1/nodes`);
+  url.searchParams.set('organization_id', organizationId);
+  const response = await cloudFetch(url.toString(), {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) await cloudResponseError(response, 'Could not load Nodes');
   const body = await response.json() as {
     nodes?: Array<{
       id?: string;
+      organization_id?: string;
       name?: string;
       version?: string | null;
       connection_mode?: string;
@@ -316,6 +421,7 @@ export async function fetchCloudNodes(token: string): Promise<CloudNode[]> {
     .filter((node) => typeof node.id === 'string' && typeof node.name === 'string')
     .map((node) => ({
       id: node.id!,
+      organizationId: typeof node.organization_id === 'string' ? node.organization_id : organizationId,
       name: node.name!,
       version: typeof node.version === 'string' ? node.version : null,
       connectionMode: node.connection_mode === 'relay' ? 'relay' : 'direct',
@@ -329,5 +435,5 @@ export async function forgetCloudNode(token: string, nodeId: string): Promise<vo
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!response.ok) throwCloudResponseError(response, 'Could not remove this Node');
+  if (!response.ok) await cloudResponseError(response, 'Could not remove this Node');
 }

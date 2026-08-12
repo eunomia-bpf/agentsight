@@ -17,14 +17,18 @@ import {
   CloudSessionExpiredError,
   type CloudIdentity,
   type CloudNode,
+  type CloudOrganization,
   type LocalConnection,
+  acceptOrganizationInvite,
   clearLocalConnection,
   consumeLaunchFragment,
+  createOrganization,
   detectEmbeddedServer,
   exchangeCloudCode,
   exchangeLocalPairing,
   fetchCloudIdentity,
   fetchCloudNodes,
+  fetchOrganizations,
   forgetCloudNode,
   loadCloudSession,
   loadLocalConnection,
@@ -48,6 +52,9 @@ import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
 
 type AppMode = 'loading' | 'disconnected' | 'directory' | 'live' | 'demo';
 
+const ACTIVE_ORGANIZATION_KEY = 'agentsight.active-organization.v1';
+const PENDING_INVITE_KEY = 'agentsight.pending-invite.v1';
+
 function viewModeFromPath(pathname: string): ViewMode {
   const path = pathname.replace(/\/$/, '');
   if (path === '/overview') return 'overview';
@@ -69,6 +76,14 @@ function pathForViewMode(mode: ViewMode): string {
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
+function preferredOrganization(organizations: CloudOrganization[]): CloudOrganization | null {
+  if (!organizations.length) return null;
+  const saved = window.localStorage.getItem(ACTIVE_ORGANIZATION_KEY);
+  return organizations.find((organization) => organization.id === saved)
+    || organizations.find((organization) => organization.kind === 'personal')
+    || organizations[0];
+}
+
 export default function Home() {
   const [snapshot, setSnapshot] = useState<AgentSightSnapshot | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('sessions');
@@ -77,6 +92,8 @@ export default function Home() {
   const [mode, setMode] = useState<AppMode>('loading');
   const [activeClient, setActiveClient] = useState<NodeClient | null>(null);
   const [identity, setIdentity] = useState<CloudIdentity | null>(null);
+  const [organizations, setOrganizations] = useState<CloudOrganization[]>([]);
+  const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
   const [cloudNodes, setCloudNodes] = useState<CloudNode[]>([]);
   const [directConnections, setDirectConnections] = useState<Record<string, LocalConnection>>({});
   const [relayStatus, setRelayStatus] = useState<Record<string, boolean | null>>({});
@@ -89,11 +106,17 @@ export default function Home() {
   const displayEvents = useMemo(() => displayEventsFromSnapshot(snapshot), [snapshot]);
   const eventCount = displayEvents.length;
   const activeTransport: NodeTransport | null = activeClient?.transport ?? null;
+  const activeOrganization = useMemo(
+    () => organizations.find((organization) => organization.id === activeOrganizationId) || null,
+    [activeOrganizationId, organizations],
+  );
 
   const handleCloudError = useCallback((cause: unknown, fallback: string) => {
     const message = cause instanceof Error ? cause.message : fallback;
     if (cause instanceof CloudSessionExpiredError) {
       setIdentity(null);
+      setOrganizations([]);
+      setActiveOrganizationId(null);
       setCloudNodes([]);
       setRelayStatus({});
       setNodeError('');
@@ -144,20 +167,32 @@ export default function Home() {
     }));
   }, []);
 
-  const refreshCloudNodes = useCallback(async (token = loadCloudSession()) => {
-    if (!token) return;
+  const refreshCloudNodes = useCallback(async (
+    token = loadCloudSession(),
+    organizationId = activeOrganizationId,
+  ) => {
+    if (!token || !organizationId) return;
     setNodesLoading(true);
     try {
-      const nodes = await fetchCloudNodes(token);
+      const nodes = await fetchCloudNodes(token, organizationId);
       setCloudNodes(nodes);
       setNodeError('');
       void refreshRelayStatuses(nodes, token);
     } catch (cause) {
-      handleCloudError(cause, 'Could not load your Nodes.');
+      handleCloudError(cause, 'Could not load this organization’s Nodes.');
     } finally {
       setNodesLoading(false);
     }
-  }, [handleCloudError, refreshRelayStatuses]);
+  }, [activeOrganizationId, handleCloudError, refreshRelayStatuses]);
+
+  const loadOrganizations = useCallback(async (token: string): Promise<CloudOrganization | null> => {
+    const nextOrganizations = await fetchOrganizations(token);
+    const selected = preferredOrganization(nextOrganizations);
+    setOrganizations(nextOrganizations);
+    setActiveOrganizationId(selected?.id || null);
+    if (selected) window.localStorage.setItem(ACTIVE_ORGANIZATION_KEY, selected.id);
+    return selected;
+  }, []);
 
   const openNode = useCallback(async (nodeId: string) => {
     setLoadingNodeId(nodeId);
@@ -205,13 +240,13 @@ export default function Home() {
         setNodeError(`${relayMessage}${directMessage}`);
       }
     } else if (directFailure instanceof Error) {
-      setNodeError(`Direct failed: ${directFailure.message} Relay is unavailable; edit the Direct URL or access key.`);
+      setNodeError(`Direct failed: ${directFailure.message} Relay is unavailable; re-pair this Node to refresh its capability.`);
     } else if (cloudNode) {
       setNodeError(relay === null
-        ? 'No Direct path is saved for this browser. Relay is still being checked; configure Direct to connect by IP or URL without relay.'
-        : 'No reachable transport. Configure a Direct URL and access key, or bring Controller relay online.');
+        ? 'No Direct path is saved for this browser. Relay is still being checked.'
+        : 'No reachable transport. Re-pair Direct or bring Controller relay online.');
     } else {
-      setNodeError('This Node is not reachable from this browser. Configure a Direct URL and access key.');
+      setNodeError('This Node is not reachable from this browser. Pair it with agentsight bind.');
     }
     setLoadingNodeId(null);
   }, [cloudNodes, directConnections, relayStatus]);
@@ -219,12 +254,13 @@ export default function Home() {
   const connectDirect = useCallback(async (
     nodeId: string,
     endpoint: string,
-    accessToken: string,
+    bootstrapToken: string,
   ): Promise<boolean> => {
     setLoadingNodeId(nodeId);
     setNodeError('');
     try {
-      const connection = await probeDirectConnection(endpoint, accessToken);
+      const pairing = await probeDirectConnection(endpoint, bootstrapToken);
+      const connection = pairing.connection;
       if (connection.nodeId !== nodeId) {
         setNodeError(
           `That Direct URL belongs to ${connection.nodeName} (${connection.nodeId}), not the selected Node (${nodeId}).`,
@@ -236,8 +272,14 @@ export default function Home() {
       saveDirectConnection(connection);
       setDirectConnections(loadDirectConnections());
       const cloudToken = loadCloudSession();
-      if (cloudToken) {
-        void registerControllerNode(cloudToken, connection).catch(() => undefined);
+      if (cloudToken && activeOrganizationId) {
+        void registerControllerNode(
+          cloudToken,
+          activeOrganizationId,
+          connection,
+          pairing.bootstrapToken,
+        ).then(() => refreshCloudNodes(cloudToken, activeOrganizationId))
+          .catch((cause) => setNodeError(cause instanceof Error ? cause.message : 'Could not register this Node.'));
       }
       return true;
     } catch (cause) {
@@ -246,7 +288,7 @@ export default function Home() {
     } finally {
       setLoadingNodeId(null);
     }
-  }, [activateClient]);
+  }, [activateClient, activeOrganizationId, refreshCloudNodes]);
 
   const enterDemo = useCallback(async () => {
     setSyncing(true);
@@ -271,6 +313,8 @@ export default function Home() {
     const token = loadCloudSession();
     const wasRelay = activeClient?.transport === 'relay';
     setIdentity(null);
+    setOrganizations([]);
+    setActiveOrganizationId(null);
     setCloudNodes([]);
     setRelayStatus({});
     setNodeError('');
@@ -315,14 +359,51 @@ export default function Home() {
     setDirectConnections(loadDirectConnections());
   }, []);
 
+  const switchOrganization = useCallback((organizationId: string) => {
+    setActiveOrganizationId(organizationId);
+    window.localStorage.setItem(ACTIVE_ORGANIZATION_KEY, organizationId);
+    setCloudNodes([]);
+    setRelayStatus({});
+    setNodeError('');
+    if (activeClient?.transport === 'relay') {
+      setActiveClient(null);
+      setSnapshot(null);
+      setMode('directory');
+    }
+    void refreshCloudNodes(loadCloudSession(), organizationId);
+  }, [activeClient, refreshCloudNodes]);
+
+  const createTeam = useCallback(async () => {
+    const token = loadCloudSession();
+    if (!token) return;
+    const name = window.prompt('Organization name');
+    if (!name?.trim()) return;
+    setNodesLoading(true);
+    try {
+      const organization = await createOrganization(token, name.trim());
+      const next = [...organizations, organization];
+      setOrganizations(next);
+      switchOrganization(organization.id);
+    } catch (cause) {
+      handleCloudError(cause, 'Could not create organization.');
+    } finally {
+      setNodesLoading(false);
+    }
+  }, [handleCloudError, organizations, switchOrganization]);
+
   useEffect(() => {
     let cancelled = false;
     const initialize = async () => {
       setSyncing(true);
       try {
         const launch = consumeLaunchFragment();
+        if (launch?.get('action') === 'invite' && launch.get('token')) {
+          window.localStorage.setItem(PENDING_INVITE_KEY, launch.get('token')!);
+        }
+
         if (launch?.get('action') === 'bind') {
-          const bound = await exchangeLocalPairing(launch);
+          const pairing = await exchangeLocalPairing(launch);
+          const bound = pairing.connection;
           if (cancelled) return;
           setEmbeddedMode(bound.endpoint === window.location.origin);
           saveLocalConnection(bound);
@@ -333,14 +414,34 @@ export default function Home() {
           if (cloudToken) {
             try {
               setIdentity(await fetchCloudIdentity(cloudToken));
-              await registerControllerNode(cloudToken, bound);
-              const nodes = await fetchCloudNodes(cloudToken);
-              if (!cancelled) {
-                setCloudNodes(nodes);
-                void refreshRelayStatuses(nodes, cloudToken);
+              let selected = await loadOrganizations(cloudToken);
+              const pendingInvite = window.localStorage.getItem(PENDING_INVITE_KEY);
+              if (pendingInvite) {
+                const joined = await acceptOrganizationInvite(cloudToken, pendingInvite);
+                window.localStorage.removeItem(PENDING_INVITE_KEY);
+                const nextOrganizations = await fetchOrganizations(cloudToken);
+                setOrganizations(nextOrganizations);
+                selected = nextOrganizations.find((organization) => organization.id === joined) || selected;
+                if (selected) {
+                  setActiveOrganizationId(selected.id);
+                  window.localStorage.setItem(ACTIVE_ORGANIZATION_KEY, selected.id);
+                }
+              }
+              if (selected) {
+                await registerControllerNode(
+                  cloudToken,
+                  selected.id,
+                  bound,
+                  pairing.bootstrapToken,
+                );
+                const nodes = await fetchCloudNodes(cloudToken, selected.id);
+                if (!cancelled) {
+                  setCloudNodes(nodes);
+                  void refreshRelayStatuses(nodes, cloudToken);
+                }
               }
             } catch (cause) {
-              handleCloudError(cause, 'Could not register this Node.');
+              handleCloudError(cause, 'Direct mode is active, but this Node could not be registered in the selected organization.');
             }
           }
           return;
@@ -393,8 +494,8 @@ export default function Home() {
               localLoaded = true;
             }
           } catch {
-            // A saved Direct path is only an optimization. Login can recover
-            // the same Node through Controller relay from a fresh network.
+            // Scoped Direct capabilities expire; Controller relay or a new bind
+            // can recover without persisting the Node bootstrap key in browser storage.
           }
         }
 
@@ -402,17 +503,36 @@ export default function Home() {
           try {
             const me = await fetchCloudIdentity(cloudToken);
             if (!cancelled) setIdentity(me);
-            if (legacy && localLoaded) await registerControllerNode(cloudToken, legacy);
-            const nodes = await fetchCloudNodes(cloudToken);
-            if (!cancelled) {
-              setCloudNodes(nodes);
-              void refreshRelayStatuses(nodes, cloudToken);
-              if (!localLoaded) setMode('directory');
+            let selected = await loadOrganizations(cloudToken);
+            const pendingInvite = window.localStorage.getItem(PENDING_INVITE_KEY);
+            if (pendingInvite) {
+              const joined = await acceptOrganizationInvite(cloudToken, pendingInvite);
+              window.localStorage.removeItem(PENDING_INVITE_KEY);
+              const nextOrganizations = await fetchOrganizations(cloudToken);
+              setOrganizations(nextOrganizations);
+              selected = nextOrganizations.find((organization) => organization.id === joined) || selected;
+              if (selected) {
+                setActiveOrganizationId(selected.id);
+                window.localStorage.setItem(ACTIVE_ORGANIZATION_KEY, selected.id);
+              }
+            }
+            if (selected) {
+              const nodes = await fetchCloudNodes(cloudToken, selected.id);
+              if (!cancelled) {
+                setCloudNodes(nodes);
+                void refreshRelayStatuses(nodes, cloudToken);
+                if (!localLoaded) setMode('directory');
+              }
+            } else if (!localLoaded && !cancelled) {
+              setMode('directory');
             }
           } catch (cause) {
             if (!cancelled) handleCloudError(cause, 'Sign-in failed.');
           }
         } else if (!localLoaded && !cancelled) {
+          if (window.localStorage.getItem(PENDING_INVITE_KEY)) {
+            setError('Sign in first to accept your AgentSight organization invitation.');
+          }
           setMode('disconnected');
         }
       } catch (cause) {
@@ -426,14 +546,16 @@ export default function Home() {
     };
     void initialize();
     return () => { cancelled = true; };
-  }, [activateClient, handleCloudError, refreshRelayStatuses]);
+  }, [activateClient, handleCloudError, loadOrganizations, refreshRelayStatuses]);
 
   useEffect(() => { setViewMode(viewModeFromPath(window.location.pathname)); }, []);
 
   useEffect(() => {
     const handleLaunchFragment = () => {
       const action = new URLSearchParams(window.location.hash.slice(1)).get('action');
-      if (action === 'bind' || action === 'auth' || action === 'auth-error') window.location.reload();
+      if (action === 'bind' || action === 'auth' || action === 'auth-error' || action === 'invite') {
+        window.location.reload();
+      }
     };
     window.addEventListener('hashchange', handleLaunchFragment);
     return () => { window.removeEventListener('hashchange', handleLaunchFragment); };
@@ -481,6 +603,22 @@ export default function Home() {
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <a href="/" className="text-lg font-semibold tracking-tight">AgentSight</a>
+            {identity && activeOrganization && (
+              <div className="flex items-center gap-2">
+                <select value={activeOrganization.id} onChange={(event) => switchOrganization(event.target.value)}
+                  className="max-w-48 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700">
+                  {organizations.map((organization) => (
+                    <option key={organization.id} value={organization.id}>
+                      {organization.name} · {organization.effectivePlan}
+                    </option>
+                  ))}
+                </select>
+                <button type="button" onClick={() => { void createTeam(); }}
+                  className="hidden text-xs font-medium text-slate-500 hover:text-slate-900 sm:inline">
+                  + Organization
+                </button>
+              </div>
+            )}
             {activeClient && isLive && (
               <span className="flex min-w-0 items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-700">
                 <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />

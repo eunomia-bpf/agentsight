@@ -29,7 +29,7 @@ interface NodeManagerProps {
   modal?: boolean;
   onClose?: () => void;
   onOpenNode: (nodeId: string) => void;
-  onConnectDirect: (nodeId: string, endpoint: string, accessToken: string) => Promise<boolean>;
+  onConnectDirect: (nodeId: string, endpoint: string, bootstrapToken: string) => Promise<boolean>;
   onRefresh: () => void;
   onForgetNode: (nodeId: string) => void;
   onForgetDirect: (nodeId: string) => void;
@@ -76,7 +76,7 @@ export function NodeManager({
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [directEditorNodeId, setDirectEditorNodeId] = useState<string | null>(null);
   const [directEndpoint, setDirectEndpoint] = useState('');
-  const [directAccessKey, setDirectAccessKey] = useState('');
+  const [directBootstrapKey, setDirectBootstrapKey] = useState('');
   const [directConnecting, setDirectConnecting] = useState(false);
 
   const visibleNodes = useMemo(() => {
@@ -85,6 +85,7 @@ export function NodeManager({
       if (!byId.has(connection.nodeId)) {
         byId.set(connection.nodeId, {
           id: connection.nodeId,
+          organizationId: '',
           name: connection.nodeName,
           version: connection.version,
           connectionMode: 'direct',
@@ -110,13 +111,15 @@ export function NodeManager({
     const direct = connections[nodeId];
     setDirectEditorNodeId(nodeId);
     setDirectEndpoint(direct?.endpoint || '');
-    setDirectAccessKey(direct?.accessToken || '');
+    // Saved Direct credentials are scoped capabilities. Re-pairing deliberately
+    // asks for the bootstrap key again rather than persisting root authority.
+    setDirectBootstrapKey('');
   };
 
   const closeDirectEditor = () => {
     setDirectEditorNodeId(null);
     setDirectEndpoint('');
-    setDirectAccessKey('');
+    setDirectBootstrapKey('');
   };
 
   const submitDirect = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -124,7 +127,7 @@ export function NodeManager({
     if (!directEditorNodeId || directConnecting) return;
     setDirectConnecting(true);
     try {
-      if (await onConnectDirect(directEditorNodeId, directEndpoint, directAccessKey)) {
+      if (await onConnectDirect(directEditorNodeId, directEndpoint, directBootstrapKey)) {
         closeDirectEditor();
       }
     } finally {
@@ -230,7 +233,7 @@ export function NodeManager({
                       disabled={loading || directConnecting}
                       className="inline-flex w-full items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 hover:text-blue-900 disabled:opacity-50 sm:w-auto sm:py-1">
                       <CommandLineIcon className="h-3.5 w-3.5 shrink-0" />
-                      <span className="whitespace-nowrap">{editingDirect ? 'Cancel Direct' : direct ? 'Edit Direct' : 'Connect Direct'}</span>
+                      <span className="whitespace-nowrap">{editingDirect ? 'Cancel Direct' : direct ? 'Re-pair Direct' : 'Connect Direct'}</span>
                     </button>
                     {direct && (
                       <button type="button" onClick={() => onForgetDirect(node.id)} disabled={loading || directConnecting}
@@ -240,7 +243,7 @@ export function NodeManager({
                     )}
                     {cloudManaged && (
                       <button type="button" onClick={() => {
-                        if (window.confirm(`Remove ${node.name} from this account?`)) onForgetNode(node.id);
+                        if (window.confirm(`Remove ${node.name} from this organization?`)) onForgetNode(node.id);
                       }} disabled={loading || directConnecting}
                         className="inline-flex w-full items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 sm:w-auto sm:py-1">
                         <TrashIcon className="h-3.5 w-3.5 shrink-0" />
@@ -261,19 +264,19 @@ export function NodeManager({
                           className="mt-1 min-w-0 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" />
                       </div>
                       <div className="min-w-0">
-                        <label className="text-xs font-medium text-slate-700" htmlFor={`direct-key-${node.id}`}>Node access key</label>
-                        <input id={`direct-key-${node.id}`} type="password" required value={directAccessKey}
-                          onChange={(event) => setDirectAccessKey(event.target.value)}
-                          placeholder="Persistent access key from agentsight bind"
+                        <label className="text-xs font-medium text-slate-700" htmlFor={`direct-key-${node.id}`}>Node bootstrap key</label>
+                        <input id={`direct-key-${node.id}`} type="password" required value={directBootstrapKey}
+                          onChange={(event) => setDirectBootstrapKey(event.target.value)}
+                          placeholder="Bootstrap key from agentsight bind"
                           spellCheck={false} autoCapitalize="none" autoCorrect="off"
                           className="mt-1 min-w-0 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500" />
                       </div>
                       <p className="break-words text-xs leading-5 text-slate-500">
-                        This browser probes <code>/api/v1/info</code> directly and verifies that the URL belongs to this Node. Relay is not required.
+                        The bootstrap key is used once to verify the Node and mint a scoped browser capability. AgentSight stores the scoped capability, not the bootstrap key.
                       </p>
                       <button type="submit" disabled={directConnecting || loading}
                         className="w-full rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto">
-                        {directConnecting ? 'Testing Direct…' : 'Test and connect'}
+                        {directConnecting ? 'Pairing Direct…' : 'Pair and connect'}
                       </button>
                     </form>
                   )}
@@ -312,7 +315,7 @@ export function NodeManager({
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
           <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
             <SignalIcon className="h-4 w-4 shrink-0" />
-            <span>Controller stores identity and Node metadata; Direct and relay are independent Node transports.</span>
+            <span>Controller stores identity, organization access, plan, and Node metadata. Detailed runtime evidence remains on Nodes.</span>
           </div>
           <div className="flex items-center gap-4">
             <button type="button" onClick={onDemo} className="text-sm font-medium text-slate-600 hover:text-slate-950">
