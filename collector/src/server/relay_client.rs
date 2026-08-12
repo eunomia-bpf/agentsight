@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+use crate::server::capability;
 use futures::{SinkExt, StreamExt};
 use http_body_util::{BodyExt, Full};
 use hyper::body::Bytes;
@@ -21,6 +22,7 @@ use url::Url;
 const MAX_RELAY_RESPONSE_BYTES: usize = 16 * 1024 * 1024;
 const RECONNECT_DELAY_SECS: u64 = 2;
 const HEARTBEAT_INTERVAL_SECS: u64 = 20;
+const RELAY_CAPABILITY_TTL_SECONDS: u64 = 60;
 
 #[derive(Debug, Deserialize)]
 struct RelayRequestEnvelope {
@@ -37,6 +39,11 @@ struct RelayResponseEnvelope {
     id: String,
     status: u16,
     body: String,
+}
+
+#[derive(Deserialize)]
+struct MintResponse {
+    access_token: String,
 }
 
 pub(crate) async fn run(
@@ -63,13 +70,13 @@ pub(crate) async fn run(
 
 async fn connect_once(
     relay_url: &str,
-    access_token: &str,
+    bootstrap_token: &str,
     local_endpoint: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let mut request = relay_url.into_client_request()?;
     request.headers_mut().insert(
         "Authorization",
-        HeaderValue::from_str(&format!("Bearer {access_token}"))?,
+        HeaderValue::from_str(&format!("Bearer {bootstrap_token}"))?,
     );
     request.headers_mut().insert(
         "User-Agent",
@@ -95,7 +102,7 @@ async fn connect_once(
                 match message? {
                     Message::Text(text) if text.as_str() == "pong" => {}
                     Message::Text(text) => {
-                        let response = handle_request(text.as_str(), local_endpoint, access_token).await;
+                        let response = handle_request(text.as_str(), local_endpoint, bootstrap_token).await;
                         socket.send(Message::Text(serde_json::to_string(&response)?.into())).await?;
                     }
                     Message::Ping(payload) => {
@@ -113,7 +120,7 @@ async fn connect_once(
 async fn handle_request(
     raw: &str,
     local_endpoint: &str,
-    access_token: &str,
+    bootstrap_token: &str,
 ) -> RelayResponseEnvelope {
     let request = match serde_json::from_str::<RelayRequestEnvelope>(raw) {
         Ok(request) if request.r#type == "request" && !request.id.is_empty() => request,
@@ -136,9 +143,48 @@ async fn handle_request(
         };
     }
 
+    // Capability minting is the only relay operation that uses the Node's
+    // persistent bootstrap credential directly. All normal data/control
+    // operations are translated into a short-lived local capability first.
+    let credential = if request.method == "POST" && request.path == "/api/v1/capabilities" {
+        bootstrap_token.to_string()
+    } else {
+        let Some((action, session_id)) = capability::action_for_request(&request.method, &request.path)
+        else {
+            return RelayResponseEnvelope {
+                r#type: "response",
+                id: request.id,
+                status: 403,
+                body: json_error("relay_path_not_allowed"),
+            };
+        };
+        match mint_local_capability(
+            local_endpoint,
+            bootstrap_token,
+            action,
+            session_id.as_deref(),
+        )
+        .await
+        {
+            Ok(token) => token,
+            Err(error) => {
+                return RelayResponseEnvelope {
+                    r#type: "response",
+                    id: request.id,
+                    status: 502,
+                    body: serde_json::json!({
+                        "error": "node_capability_failed",
+                        "detail": error.to_string()
+                    })
+                    .to_string(),
+                };
+            }
+        }
+    };
+
     match forward_local(
         local_endpoint,
-        access_token,
+        &credential,
         &request.method,
         &request.path,
         request.body.as_deref(),
@@ -161,9 +207,39 @@ async fn handle_request(
     }
 }
 
+async fn mint_local_capability(
+    endpoint: &str,
+    bootstrap_token: &str,
+    action: &str,
+    session_id: Option<&str>,
+) -> Result<String, Box<dyn Error + Send + Sync>> {
+    let body = serde_json::json!({
+        "actions": [action],
+        "session_id": session_id,
+        "ttl_seconds": RELAY_CAPABILITY_TTL_SECONDS,
+    })
+    .to_string();
+    let (status, body) = forward_local(
+        endpoint,
+        bootstrap_token,
+        "POST",
+        "/api/v1/capabilities",
+        Some(&body),
+    )
+    .await?;
+    if status != 201 {
+        return Err(format!("Node capability mint failed with HTTP {status}").into());
+    }
+    let response: MintResponse = serde_json::from_str(&body)?;
+    if !response.access_token.starts_with("cap_") {
+        return Err("Node returned an invalid capability".into());
+    }
+    Ok(response.access_token)
+}
+
 async fn forward_local(
     endpoint: &str,
-    access_token: &str,
+    credential: &str,
     method: &str,
     path: &str,
     body: Option<&str>,
@@ -178,7 +254,7 @@ async fn forward_local(
     let mut builder = Request::builder()
         .method(method)
         .uri(format!("{endpoint}{path}"))
-        .header("Authorization", format!("Bearer {access_token}"));
+        .header("Authorization", format!("Bearer {credential}"));
     if body.is_some() {
         builder = builder.header("Content-Type", "application/json");
     }
@@ -211,6 +287,9 @@ fn allowed_relay_path(method: &str, value: &str) -> bool {
     let (path, query) = value.split_once('?').map_or((value, None), |(path, query)| {
         (path, Some(query))
     });
+    if method == "POST" && path == "/api/v1/capabilities" && query.is_none() {
+        return true;
+    }
     if method == "GET" && path == "/api/v1/snapshot" {
         return query.is_none_or(|query| {
             query.strip_prefix("audit_limit=")
@@ -254,7 +333,8 @@ mod tests {
     }
 
     #[test]
-    fn relay_only_accepts_the_node_protocol_surface() {
+    fn relay_only_accepts_the_node_protocol_and_internal_mint_surface() {
+        assert!(allowed_relay_path("POST", "/api/v1/capabilities"));
         assert!(allowed_relay_path("GET", "/api/v1/snapshot?audit_limit=50000"));
         assert!(allowed_relay_path("GET", "/api/v1/sessions/session-123"));
         assert!(allowed_relay_path("POST", "/api/v1/sessions/session-123/messages"));
