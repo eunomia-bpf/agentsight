@@ -23,4 +23,8 @@ npm run deploy
 
 The deploy script first applies pending D1 migrations to the remote `DB` binding and then deploys the Worker. `wrangler.jsonc` provisions the SQLite-backed `NodeRelay` Durable Object used by each Node's outbound WebSocket.
 
+The hosted deployment uses `https://control.agentsight.us`. Keep that custom
+domain on the `agentsight-control` Worker so the browser and CLI do not depend
+on an account-specific `workers.dev` hostname.
+
 The old `control-plane` path is retained only as a compatibility symlink for existing scripts; new code and documentation should use `controller`.

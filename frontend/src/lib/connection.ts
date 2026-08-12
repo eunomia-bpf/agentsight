@@ -13,7 +13,7 @@ let cloudCodeExchange: Promise<string> | null = null;
 export const controllerUrl = (
   process.env.NEXT_PUBLIC_CONTROLLER_URL
   || process.env.NEXT_PUBLIC_CONTROL_PLANE_URL
-  || 'https://agentsight-control.yusen356.workers.dev'
+  || 'https://control.agentsight.us'
 ).replace(/\/$/, '');
 
 export interface LocalConnection {

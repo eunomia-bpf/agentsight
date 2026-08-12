@@ -13,7 +13,7 @@ use std::time::Duration;
 use url::{Url, form_urlencoded};
 
 const DEFAULT_APP_URL: &str = "https://app.agentsight.us/";
-const DEFAULT_CONTROLLER_URL: &str = "https://agentsight-control.yusen356.workers.dev";
+const DEFAULT_CONTROLLER_URL: &str = "https://control.agentsight.us";
 const CONTROLLER_URL_ENV: &str = "AGENTSIGHT_CONTROLLER_URL";
 
 pub(crate) async fn run_bind(
@@ -70,7 +70,9 @@ pub(crate) async fn run_bind(
         "The access key is stored locally, survives Node restarts, and is removed from the browser URL after opening."
     );
     if relay_handle.is_some() {
-        println!("Controller relay is enabled for signed-in remote browsers; Direct access remains preferred.");
+        println!(
+            "Controller relay is enabled for signed-in remote browsers; Direct access remains preferred."
+        );
     }
     if let Some(db_path) = db_path {
         println!("Serving saved AgentSight data from {db_path}.");
@@ -364,6 +366,15 @@ mod tests {
         let (url, origin) = normalize_app_url("https://console.example/path").unwrap();
         assert_eq!(url.as_str(), "https://console.example/path");
         assert_eq!(origin, "https://console.example");
+    }
+
+    #[test]
+    fn hosted_app_uses_the_agentsight_controller_domain() {
+        let app = Url::parse(DEFAULT_APP_URL).unwrap();
+        assert_eq!(
+            controller_url_for_app(&app).unwrap().as_deref(),
+            Some("https://control.agentsight.us")
+        );
     }
 
     #[test]
