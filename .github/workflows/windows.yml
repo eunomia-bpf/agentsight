@@ -85,10 +85,8 @@ jobs:
               }
               if (Test-Path $tokenPath) {
                 try {
-                  $probe = Invoke-WebRequest `
-                    -Uri "$bindBase/api/v1/info" `
-                    -SkipHttpErrorCheck
-                  if ([int]$probe.StatusCode -eq 401) {
+                  $publicInfo = Invoke-RestMethod -Uri "$bindBase/api/v1/info"
+                  if ($publicInfo.authorization_required -and -not $publicInfo.node) {
                     $ready = $true
                     break
                   }
@@ -102,10 +100,16 @@ jobs:
               throw "agentsight bind did not expose its authenticated API"
             }
 
+            $snapshotProbe = Invoke-WebRequest `
+              -Uri "$bindBase/api/v1/snapshot" `
+              -SkipHttpErrorCheck
+            if ([int]$snapshotProbe.StatusCode -ne 401) {
+              throw "agentsight bind exposed session data without a token"
+            }
             $token = (Get-Content -Raw $tokenPath).Trim()
             $headers = @{ Authorization = "Bearer $token" }
             $info = Invoke-RestMethod -Uri "$bindBase/api/v1/info" -Headers $headers
-            if (-not $info.authorization_required -or -not $info.capabilities.session_messages) {
+            if (-not $info.node -or -not $info.capabilities.session_messages) {
               throw "agentsight bind returned incomplete Node capabilities"
             }
             $messageProbe = Invoke-WebRequest `
