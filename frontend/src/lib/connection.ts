@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-import type { AgentSightSnapshot } from '@/types/event';
-
 const LOCAL_CONNECTION_KEY = 'agentsight.local-connection.v1';
 const CLOUD_SESSION_KEY = 'agentsight.cloud-session.v1';
 const OAUTH_VERIFIER_KEY = 'agentsight.oauth-verifier.v1';
@@ -17,9 +15,6 @@ export const controllerUrl = (
   || process.env.NEXT_PUBLIC_CONTROL_PLANE_URL
   || 'https://agentsight-control.yusen356.workers.dev'
 ).replace(/\/$/, '');
-
-/** @deprecated Use controllerUrl. Kept for existing downstream imports. */
-export const controlPlaneUrl = controllerUrl;
 
 export interface LocalConnection {
   endpoint: string;
@@ -79,12 +74,8 @@ function localFetch(input: string, init: RequestInit = {}, targetAddressSpace: N
 async function nodeFetch(input: string, init: RequestInit = {}) {
   const endpoint = new URL(input);
   if (endpoint.protocol === 'http:') {
-    // A hosted HTTPS app needs Local Network Access permission before it can
-    // reach an HTTP Node. Declaring the target up front makes Chromium show
-    // the permission prompt instead of leaving the ordinary fetch pending.
     return localFetch(input, init, expectedNodeAddressSpace(endpoint));
   }
-
   const options: RequestInit = {
     ...init,
     mode: 'cors',
@@ -92,13 +83,9 @@ async function nodeFetch(input: string, init: RequestInit = {}) {
     signal: init.signal || AbortSignal.timeout(LOCAL_TIMEOUT_MS),
   };
   try {
-    // Public HTTPS Direct Nodes must not be declared as local address-space
-    // targets. Modern browsers can perform ordinary CORS fetches to them.
     return await fetch(input, options);
   } catch (error) {
     if (init.signal?.aborted) throw error;
-    // Loopback/private targets may require an explicit Local Network Access
-    // request and browser permission. Retry only after the ordinary path fails.
     try {
       return await localFetch(input, init, expectedNodeAddressSpace(endpoint));
     } catch {
@@ -199,9 +186,7 @@ async function exchangeLocalPairingOnce(params: URLSearchParams): Promise<LocalC
       'Could not reach the AgentSight Node. Check its endpoint and browser network permission, then run agentsight bind again.',
     );
   }
-  if (!response.ok) {
-    throw new Error(`AgentSight binding failed (${response.status}).`);
-  }
+  if (!response.ok) throw new Error(`AgentSight binding failed (${response.status}).`);
   const body = await response.json() as {
     node?: { id?: string; name?: string; version?: string };
   };
@@ -215,20 +200,6 @@ async function exchangeLocalPairingOnce(params: URLSearchParams): Promise<LocalC
     nodeName: body.node.name,
     version: body.node.version || 'unknown',
   };
-}
-
-export async function fetchLocalSnapshot(connection: LocalConnection): Promise<AgentSightSnapshot> {
-  const headers: HeadersInit = {};
-  if (connection.accessToken) headers.Authorization = `Bearer ${connection.accessToken}`;
-  const input = `${connection.endpoint}/api/v1/snapshot?audit_limit=50000`;
-  const response = connection.accessToken
-    ? await nodeFetch(input, { headers })
-    : await fetch(input, { headers, cache: 'no-store' });
-  if (!response.ok) {
-    if (response.status === 401) clearLocalConnection();
-    throw new Error(`AgentSight Node returned ${response.status}.`);
-  }
-  return response.json() as Promise<AgentSightSnapshot>;
 }
 
 export function saveLocalConnection(connection: LocalConnection) {
@@ -322,22 +293,6 @@ export async function fetchCloudIdentity(token: string): Promise<CloudIdentity> 
     throwCloudResponseError(response, 'The AgentSight Controller request failed');
   }
   return response.json() as Promise<CloudIdentity>;
-}
-
-export async function registerCloudNode(token: string, connection: LocalConnection): Promise<void> {
-  const response = await cloudFetch(`${controllerUrl}/v1/nodes`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      id: connection.nodeId,
-      name: connection.nodeName,
-      version: connection.version,
-    }),
-  });
-  if (!response.ok) throwCloudResponseError(response, 'Could not register this Node');
 }
 
 export async function fetchCloudNodes(token: string): Promise<CloudNode[]> {

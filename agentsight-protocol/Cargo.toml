@@ -1,0 +1,19 @@
+[package]
+name = "agentsight-protocol"
+version = "1.0.11"
+edition = "2024"
+rust-version = "1.87"
+description = "Shared AgentSight Node protocol for native, CLI, and browser WASM clients."
+license = "MIT"
+repository = "https://github.com/eunomia-bpf/agentsight"
+homepage = "https://github.com/eunomia-bpf/agentsight/tree/master/agentsight-protocol"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"

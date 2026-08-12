@@ -6,13 +6,16 @@ use crate::server::assets::FrontendAssets;
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
 use crate::sources::sqlite as sqlite_source;
 use crate::view::SharedMaterializedView;
+use agentsight_protocol::{
+    PRODUCT, PROTOCOL_VERSION, SessionMessageRequest, session_detail_id, session_message_id,
+};
 use http_body_util::{BodyExt, Full};
 use hyper::header::{AUTHORIZATION, CACHE_CONTROL, HeaderValue, ORIGIN};
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode, body::Bytes};
 use hyper_util::rt::TokioIo;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Value;
 use std::convert::Infallible;
 use std::net::SocketAddr;
@@ -32,11 +35,6 @@ pub struct NodeMetadata {
     pub id: String,
     pub name: String,
     pub version: String,
-}
-
-#[derive(Deserialize)]
-struct SessionMessageRequest {
-    message: String,
 }
 
 impl DirectAuth {
@@ -199,8 +197,8 @@ async fn handle_request(
                 json_response(
                     StatusCode::OK,
                     &serde_json::json!({
-                        "protocol_version": 1,
-                        "product": "agentsight",
+                        "protocol_version": PROTOCOL_VERSION,
+                        "product": PRODUCT,
                         "authorization_required": direct_auth.is_some(),
                         "capabilities": {
                             "session_detail": true,
@@ -268,18 +266,6 @@ async fn handle_request(
         origin.as_deref(),
         direct_auth.as_ref(),
     ))
-}
-
-fn session_detail_id(path: &str) -> Option<&str> {
-    let id = path.strip_prefix("/api/v1/sessions/")?;
-    (!id.is_empty() && !id.contains('/')).then_some(id)
-}
-
-fn session_message_id(path: &str) -> Option<&str> {
-    let id = path
-        .strip_prefix("/api/v1/sessions/")?
-        .strip_suffix("/messages")?;
-    (!id.is_empty() && !id.contains('/')).then_some(id)
 }
 
 async fn serve_asset(
@@ -409,13 +395,10 @@ async fn serve_session_message_api(
             ));
         }
     };
-    let message = request.message.trim();
-    if message.is_empty() || message.len() > 65_536 {
-        return Ok(json_error(
-            StatusCode::BAD_REQUEST,
-            "message must contain 1-65536 bytes",
-        ));
-    }
+    let message = match request.validate() {
+        Ok(message) => message,
+        Err(error) => return Ok(json_error(StatusCode::BAD_REQUEST, error)),
+    };
 
     let session_id = session_id.to_string();
     let session = {

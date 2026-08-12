@@ -2,13 +2,21 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 import { controllerUrl, type CloudNode, type LocalConnection } from '@/lib/connection';
+import initProtocol, {
+  session_message_body as sessionMessageBody,
+  session_messages_path as sessionMessagesPath,
+  session_path as sessionPath,
+  snapshot_path as snapshotPath,
+} from '@/generated/agentsight-protocol/agentsight_protocol';
 import type { AgentSightSnapshot } from '@/types/event';
 
 const DIRECT_CONNECTIONS_KEY = 'agentsight.direct-connections.v1';
 const REQUEST_TIMEOUT_MS = 12_000;
+let protocolReady: Promise<unknown> | null = null;
 
 type NodeAddressSpace = 'local' | 'loopback';
 type LocalFetchInit = RequestInit & { targetAddressSpace?: NodeAddressSpace };
+type NodeRequest = (path: string, init?: RequestInit) => Promise<Response>;
 
 export type NodeTransport = 'direct' | 'relay' | 'embedded';
 
@@ -41,6 +49,12 @@ export class NodeRequestError extends Error {
     this.name = 'NodeRequestError';
     this.status = status;
   }
+}
+
+async function protocol<T>(read: () => T): Promise<T> {
+  if (!protocolReady) protocolReady = initProtocol();
+  await protocolReady;
+  return read();
 }
 
 function expectedNodeAddressSpace(endpoint: URL): NodeAddressSpace {
@@ -89,44 +103,54 @@ async function jsonResponse<T>(response: Response, fallback: string): Promise<T>
   return response.json() as Promise<T>;
 }
 
-export function directNodeClient(connection: LocalConnection): NodeClient {
-  const authorization = connection.accessToken
-    ? { Authorization: `Bearer ${connection.accessToken}` }
-    : undefined;
-  const request = (path: string, init: RequestInit = {}) => directFetch(
-    `${connection.endpoint}${path}`,
-    {
-      ...init,
-      headers: mergedHeaders(authorization, init.headers),
-    },
-  );
+function nodeClient(
+  nodeId: string,
+  nodeName: string,
+  transport: NodeTransport,
+  request: NodeRequest,
+): NodeClient {
   return {
-    nodeId: connection.nodeId,
-    nodeName: connection.nodeName,
-    transport: connection.accessToken ? 'direct' : 'embedded',
+    nodeId,
+    nodeName,
+    transport,
     async snapshot() {
       return jsonResponse<AgentSightSnapshot>(
-        await request('/api/v1/snapshot?audit_limit=50000'),
+        await request(await protocol(() => snapshotPath(50_000))),
         'AgentSight Node snapshot failed',
       );
     },
     async session(sessionId) {
       return jsonResponse<SessionDetail>(
-        await request(`/api/v1/sessions/${encodeURIComponent(sessionId)}`),
+        await request(await protocol(() => sessionPath(encodeURIComponent(sessionId)))),
         'Session request failed',
       );
     },
     async submitMessage(sessionId, message) {
       await jsonResponse<unknown>(await request(
-        `/api/v1/sessions/${encodeURIComponent(sessionId)}/messages`,
+        await protocol(() => sessionMessagesPath(encodeURIComponent(sessionId))),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message }),
+          body: await protocol(() => sessionMessageBody(message)),
         },
       ), 'Message submit failed');
     },
   };
+}
+
+export function directNodeClient(connection: LocalConnection): NodeClient {
+  const authorization = connection.accessToken
+    ? { Authorization: `Bearer ${connection.accessToken}` }
+    : undefined;
+  return nodeClient(
+    connection.nodeId,
+    connection.nodeName,
+    connection.accessToken ? 'direct' : 'embedded',
+    (path, init = {}) => directFetch(`${connection.endpoint}${path}`, {
+      ...init,
+      headers: mergedHeaders(authorization, init.headers),
+    }),
+  );
 }
 
 function relayFetch(token: string, nodeId: string, suffix: string, init: RequestInit = {}) {
@@ -141,35 +165,12 @@ function relayFetch(token: string, nodeId: string, suffix: string, init: Request
 }
 
 export function relayNodeClient(node: CloudNode, token: string): NodeClient {
-  return {
-    nodeId: node.id,
-    nodeName: node.name,
-    transport: 'relay',
-    async snapshot() {
-      return jsonResponse<AgentSightSnapshot>(
-        await relayFetch(token, node.id, '/snapshot?audit_limit=50000'),
-        'Controller relay snapshot failed',
-      );
-    },
-    async session(sessionId) {
-      return jsonResponse<SessionDetail>(
-        await relayFetch(token, node.id, `/sessions/${encodeURIComponent(sessionId)}`),
-        'Controller relay session failed',
-      );
-    },
-    async submitMessage(sessionId, message) {
-      await jsonResponse<unknown>(await relayFetch(
-        token,
-        node.id,
-        `/sessions/${encodeURIComponent(sessionId)}/messages`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message }),
-        },
-      ), 'Controller relay message submit failed');
-    },
-  };
+  return nodeClient(
+    node.id,
+    node.name,
+    'relay',
+    (path, init = {}) => relayFetch(token, node.id, path.replace(/^\/api\/v1/, ''), init),
+  );
 }
 
 export async function relayOnline(token: string, nodeId: string): Promise<boolean> {
