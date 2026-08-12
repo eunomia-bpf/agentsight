@@ -412,6 +412,11 @@ fn user_home_dir() -> Option<PathBuf> {
                         .map(PathBuf::from)
                 })
         })
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .filter(|home| !home.is_empty())
+                .map(PathBuf::from)
+        })
         .or_else(dirs::home_dir)
 }
 
