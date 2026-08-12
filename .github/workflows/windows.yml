@@ -1,0 +1,25 @@
+name: Windows native
+
+on:
+  pull_request:
+    branches: ["master", "main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Test portable session parser
+        run: cargo test --manifest-path agent-session/Cargo.toml
+
+      - name: Check native AgentSight CLI
+        run: cargo check --manifest-path collector/Cargo.toml
