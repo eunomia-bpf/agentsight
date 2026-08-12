@@ -36,9 +36,16 @@ jobs:
           $env:HOME = Join-Path $env:RUNNER_TEMP "agentsight-home"
           $fixtureDir = Join-Path $env:HOME ".codex/sessions/2026/06/18"
           New-Item -ItemType Directory -Force -Path $fixtureDir | Out-Null
-          Copy-Item `
-            "agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl" `
-            (Join-Path $fixtureDir "public-agentpprof-fixture.jsonl")
+          $fixturePath = Join-Path $fixtureDir "public-agentpprof-fixture.jsonl"
+          Get-Content "agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl" |
+            ForEach-Object {
+              $record = $_ | ConvertFrom-Json
+              if ($record.payload.cwd) {
+                $record.payload.cwd = $PWD.Path
+              }
+              $record | ConvertTo-Json -Compress -Depth 100
+            } |
+            Set-Content -Encoding utf8NoBOM $fixturePath
           $snapshotPath = Join-Path $env:RUNNER_TEMP "agentsight-snapshot.json"
           & $agentsight report --local export --output $snapshotPath
           if ($LASTEXITCODE -ne 0) {
@@ -50,12 +57,39 @@ jobs:
           }
 
           & $agentsight top --plain --once
+          if ($LASTEXITCODE -ne 0) {
+            throw "agentsight top failed"
+          }
           $visHtml = Join-Path $env:RUNNER_TEMP "agent-nebula.html"
           $visPng = Join-Path $env:RUNNER_TEMP "agent-nebula.png"
           & $agentsight vis . --output $visHtml --output $visPng
           if ($LASTEXITCODE -ne 0 -or -not (Test-Path $visHtml) -or -not (Test-Path $visPng)) {
             throw "agentsight vis browser smoke failed"
           }
+          if (-not (Select-String -Quiet -SimpleMatch "agentpprof/src/main.rs" $visHtml)) {
+            throw "agentsight vis did not render the Windows session fixture"
+          }
+
+          $fakeBin = Join-Path $env:RUNNER_TEMP "agentsight-fake-provider"
+          New-Item -ItemType Directory -Force -Path $fakeBin | Out-Null
+          @'
+          @echo off
+          node "%~dp0\codex.js" %*
+          '@ | Set-Content -Encoding ascii (Join-Path $fakeBin "codex.cmd")
+          @'
+          const readline = require("readline");
+          const lines = readline.createInterface({ input: process.stdin });
+          lines.on("line", (line) => {
+            const request = JSON.parse(line);
+            if (request.id === 1 || request.id === 2) {
+              console.log(JSON.stringify({ id: request.id, result: {} }));
+            } else if (request.method === "turn/start") {
+              console.log(JSON.stringify({ id: request.id, result: { turn: { id: "fake-turn" } } }));
+              setTimeout(() => process.exit(0), 100);
+            }
+          });
+          '@ | Set-Content -Encoding utf8NoBOM (Join-Path $fakeBin "codex.js")
+          $env:PATH = "$fakeBin;$env:PATH"
 
           $listener = [System.Net.Sockets.TcpListener]::new(
             [System.Net.IPAddress]::Loopback,
@@ -113,14 +147,14 @@ jobs:
               throw "agentsight bind returned incomplete Node capabilities"
             }
             $messageProbe = Invoke-WebRequest `
-              -Uri "$bindBase/api/v1/sessions/missing-session/messages" `
+              -Uri "$bindBase/api/v1/sessions/agentpprof-public-fixture-session/messages" `
               -Method Post `
               -Headers $headers `
               -ContentType "application/json" `
               -Body '{"message":"windows bind smoke"}' `
               -SkipHttpErrorCheck
-            if ([int]$messageProbe.StatusCode -ne 404) {
-              throw "agentsight bind message route was not reachable"
+            if ([int]$messageProbe.StatusCode -ne 202) {
+              throw "agentsight bind did not submit through the Windows codex.cmd shim"
             }
           } finally {
             if (-not $bindProcess.HasExited) {
