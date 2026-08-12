@@ -72,6 +72,27 @@ function mergedHeaders(base?: HeadersInit, extra?: HeadersInit): Headers {
   return headers;
 }
 
+function normalizeDirectEndpoint(raw: string): string {
+  let endpoint: URL;
+  try {
+    endpoint = new URL(raw.trim());
+  } catch {
+    throw new NodeRequestError(400, 'Direct URL must be a valid http(s) URL.');
+  }
+  if (!['http:', 'https:'].includes(endpoint.protocol)
+      || !endpoint.hostname || endpoint.username || endpoint.password) {
+    throw new NodeRequestError(400, 'Direct URL must be a valid http(s) URL without credentials.');
+  }
+  endpoint.pathname = '';
+  endpoint.search = '';
+  endpoint.hash = '';
+  return endpoint.toString().replace(/\/$/, '');
+}
+
+function validAccessToken(value: string): boolean {
+  return /^[A-Za-z0-9_-]{32,256}$/.test(value);
+}
+
 async function directFetch(input: string, init: RequestInit = {}): Promise<Response> {
   const endpoint = new URL(input);
   const options: RequestInit = {
@@ -101,6 +122,42 @@ async function jsonResponse<T>(response: Response, fallback: string): Promise<T>
     );
   }
   return response.json() as Promise<T>;
+}
+
+export async function probeDirectConnection(
+  rawEndpoint: string,
+  accessToken: string,
+): Promise<LocalConnection> {
+  const endpoint = normalizeDirectEndpoint(rawEndpoint);
+  const token = accessToken.trim();
+  if (!validAccessToken(token)) {
+    throw new NodeRequestError(400, 'Access key must be the persistent AgentSight Node access key.');
+  }
+
+  let response: Response;
+  try {
+    response = await directFetch(`${endpoint}/api/v1/info`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new NodeRequestError(
+      0,
+      'Could not reach that Direct URL. Check the IP/hostname, Node listen address, and browser local-network permission.',
+    );
+  }
+  const body = await jsonResponse<{
+    node?: { id?: string; name?: string; version?: string };
+  }>(response, 'Direct Node probe failed');
+  if (!body.node?.id || !body.node.name) {
+    throw new NodeRequestError(502, 'The Direct URL did not return valid AgentSight Node metadata.');
+  }
+  return {
+    endpoint,
+    accessToken: token,
+    nodeId: body.node.id,
+    nodeName: body.node.name,
+    version: body.node.version || 'unknown',
+  };
 }
 
 function nodeClient(
