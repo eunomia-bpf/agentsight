@@ -119,3 +119,18 @@ CREATE INDEX IF NOT EXISTS idx_entitlements_user ON entitlements(user_id, kind, 
 CREATE INDEX IF NOT EXISTS idx_entitlements_org ON entitlements(organization_id, kind, revoked_at, expires_at);
 CREATE INDEX IF NOT EXISTS idx_invites_org ON organization_invites(organization_id, expires_at);
 CREATE INDEX IF NOT EXISTS idx_invites_email ON organization_invites(email, expires_at);
+
+-- Hosted preview access. Public pricing remains Free/Pro/Team/Enterprise, but
+-- newly registered personal/team organizations receive the highest currently
+-- relevant hosted capability automatically until billing enforcement launches.
+CREATE TRIGGER IF NOT EXISTS organizations_unlimited_preview_after_insert
+AFTER INSERT ON organizations
+BEGIN
+    UPDATE organizations
+    SET plan = CASE NEW.kind WHEN 'personal' THEN 'pro' ELSE 'team' END,
+        billing_status = 'active',
+        updated_at = NEW.updated_at
+    WHERE id = NEW.id
+      AND NEW.plan = 'free'
+      AND NEW.billing_status = 'inactive';
+END;
