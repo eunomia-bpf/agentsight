@@ -29,13 +29,23 @@ use crate::view::MaterializedView;
 /// from the command name, starts SSL + process + system monitoring in the
 /// background (quiet, so the child owns the terminal), then spawns the child.
 /// Monitoring stops automatically when the child exits.
-pub(crate) fn target_user_ids() -> Option<(libc::uid_t, libc::gid_t)> {
-    if unsafe { libc::geteuid() } != 0 {
+pub(crate) fn target_user_ids() -> Option<(u32, u32)> {
+    if !running_as_root() {
         return None;
     }
     let uid = std::env::var("SUDO_UID").ok()?.parse().ok()?;
     let gid = std::env::var("SUDO_GID").ok()?.parse().ok()?;
     Some((uid, gid))
+}
+
+#[cfg(unix)]
+fn running_as_root() -> bool {
+    unsafe { libc::geteuid() == 0 }
+}
+
+#[cfg(not(unix))]
+fn running_as_root() -> bool {
+    false
 }
 
 pub(crate) fn sudo_cached() -> bool {
@@ -130,7 +140,7 @@ pub(crate) async fn run_exec(
     // When not running as root, warm the sudo credential cache so the
     // user is prompted once (with a visible terminal) before eBPF binaries
     // are spawned with piped stdio.  Skip if passwordless sudo already works.
-    if unsafe { libc::geteuid() } != 0 && !sudo_cached() {
+    if !running_as_root() && !sudo_cached() {
         print_record_sudo_prompt();
         let ok = std::process::Command::new("sudo")
             .arg("true")
@@ -156,13 +166,14 @@ pub(crate) async fn run_exec(
     if let Some((uid, gid)) = target_ids {
         print_record_drop_user(uid, gid);
     }
+    #[cfg(unix)]
     unsafe {
         command_builder.pre_exec(move || {
             if let Some((uid, gid)) = target_ids {
-                if libc::setgid(gid) != 0 {
+                if libc::setgid(gid as libc::gid_t) != 0 {
                     return Err(std::io::Error::last_os_error());
                 }
-                if libc::setuid(uid) != 0 {
+                if libc::setuid(uid as libc::uid_t) != 0 {
                     return Err(std::io::Error::last_os_error());
                 }
             }
@@ -271,6 +282,7 @@ pub(crate) async fn run_exec(
     Ok(db_path_for_summary)
 }
 
+#[cfg(unix)]
 fn continue_child(pid: u32) -> Result<(), RunnerError> {
     let result = unsafe { libc::kill(pid as libc::pid_t, libc::SIGCONT) };
     if result == 0 {
@@ -282,6 +294,11 @@ fn continue_child(pid: u32) -> Result<(), RunnerError> {
             std::io::Error::last_os_error()
         )))
     }
+}
+
+#[cfg(not(unix))]
+fn continue_child(_pid: u32) -> Result<(), RunnerError> {
+    Err(RunnerError::from("record is available on Linux only"))
 }
 
 pub(crate) async fn stop_child(child: &mut tokio::process::Child) {

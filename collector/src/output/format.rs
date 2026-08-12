@@ -394,7 +394,7 @@ pub(crate) fn print_record_sudo_prompt() {
     println!("🔑 eBPF probes require root. Requesting sudo access...");
 }
 
-pub(crate) fn print_record_drop_user(uid: libc::uid_t, gid: libc::gid_t) {
+pub(crate) fn print_record_drop_user(uid: u32, gid: u32) {
     println!("✓ Dropping child to uid={uid} gid={gid}");
 }
 
