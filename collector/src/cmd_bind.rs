@@ -331,6 +331,22 @@ mod tests {
     }
 
     #[test]
+    fn direct_endpoint_accepts_private_ip_url() {
+        assert_eq!(
+            normalize_endpoint("http://192.168.50.12:7395").unwrap(),
+            "http://192.168.50.12:7395"
+        );
+    }
+
+    #[test]
+    fn direct_endpoint_accepts_https_hostname_and_strips_path() {
+        assert_eq!(
+            normalize_endpoint("https://lab.example.net/agentsight?ignored=1#fragment").unwrap(),
+            "https://lab.example.net"
+        );
+    }
+
+    #[test]
     fn relay_uses_loopback_for_unspecified_bind_addresses() {
         assert_eq!(
             relay_local_endpoint("0.0.0.0".parse().unwrap(), 7395),
