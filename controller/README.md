@@ -39,20 +39,18 @@ Built-in roles intentionally remain small:
 
 ## Plans
 
-The Controller exposes the canonical catalog at `GET /v1/pricing`:
+The Controller exposes the canonical future billing catalog at `GET /v1/pricing`:
 
 - Free: $0; local/direct open-source use;
 - Pro: $5/month or $49/year; managed connectivity for a personal organization;
 - Team: $10/user/month; shared organization/fleet and team roles;
 - Enterprise: custom.
 
-A `pro_lifetime` entitlement gives a contributor's personal organization effective Pro access without changing Team or Enterprise billing. The admin adapter can record provider-neutral billing state and contributor entitlements; payment-provider checkout/webhook code is intentionally kept outside the authorization model.
+During the current hosted preview, registered users are not billing-gated: personal organizations receive Pro-level hosted access and team organizations receive Team-level hosted access automatically. `0006_unlimited_preview.sql` upgrades existing free preview organizations and keeps new preview organizations unrestricted. The price catalog and provider-neutral billing fields remain in place for later enforcement.
 
-Plan enforcement happens at the Controller boundary: Free remains usable locally/directly, Pro enables managed registration/relay for a personal organization, and Team/Enterprise enable multi-member organization operations.
+A `pro_lifetime` entitlement remains the durable contributor benefit after preview billing is enabled; it applies to personal Pro and does not waive Team or Enterprise billing.
 
 ## Organization API
-
-The main coordination surfaces are:
 
 ```text
 GET/POST          /v1/organizations
@@ -78,14 +76,16 @@ npm run check
 npx wrangler deploy --dry-run
 ```
 
-## Deploy
+## Deployment
 
-After configuring the existing D1/OAuth bindings and Cloudflare credentials:
+Hosted deployment is automatic. A push to `master` that changes `controller/**` or `frontend/**` triggers `.github/workflows/deploy-demo.yml` (workflow name: **Deploy Hosted App**):
 
-```bash
-npm run deploy
-```
+1. install and verify the Controller;
+2. apply pending D1 migrations and deploy the Cloudflare Worker;
+3. only after Controller deployment succeeds, build and publish `app.agentsight.us` to `gh-pages`.
 
-The deploy script first applies pending D1 migrations to the remote `DB` binding and then deploys the Worker. `wrangler.jsonc` provisions the SQLite-backed `NodeRelay` Durable Object used by each Node's outbound WebSocket.
+This ordering prevents a new frontend from being published against an older Controller API. CI needs `CLOUDFLARE_API_TOKEN` plus `CLOUDFLARE_ACCOUNT_ID` (repository variable or secret).
+
+`npm run deploy` remains available for recovery/debugging, but it is not the normal production path.
 
 The old `control-plane` path is retained only as a compatibility symlink for existing scripts; new code and documentation should use `controller`.
