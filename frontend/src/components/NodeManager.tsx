@@ -151,7 +151,7 @@ export function NodeManager({
   const content = (
     <section className={`overflow-hidden border border-slate-200 bg-white shadow-sm ${modal ? 'rounded-2xl' : 'rounded-xl'}`}>
       <header className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:px-6">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Machines</p>
           <h2 className="mt-1 text-xl font-semibold text-slate-950">AgentSight Nodes</h2>
           <p className="mt-1 text-sm text-slate-500">
@@ -173,7 +173,7 @@ export function NodeManager({
         </div>
       </header>
 
-      <div className="space-y-5 p-5 sm:p-6">
+      <div className="min-w-0 space-y-5 p-5 sm:p-6">
         {error && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             {error}
@@ -181,7 +181,7 @@ export function NodeManager({
         )}
 
         {visibleNodes.length ? (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid min-w-0 gap-3 md:grid-cols-2">
             {visibleNodes.map((node) => {
               const direct = connections[node.id];
               const relay = relayStatus[node.id];
@@ -190,21 +190,25 @@ export function NodeManager({
               const online = relay === true || active;
               const cloudManaged = nodes.some((item) => item.id === node.id);
               const editingDirect = directEditorNodeId === node.id;
+              const openOrConfigure = () => {
+                if (!direct && relay !== true) editDirect(node.id);
+                else onOpenNode(node.id);
+              };
               return (
-                <article key={node.id} className={`group relative rounded-xl border transition ${
+                <article key={node.id} className={`group relative min-w-0 overflow-hidden rounded-xl border transition ${
                   active ? 'border-slate-950 bg-slate-50' : 'border-slate-200 bg-white hover:border-slate-400'
                 }`}>
-                  <button type="button" onClick={() => onOpenNode(node.id)} disabled={opening || directConnecting}
-                    className="block w-full p-4 text-left disabled:cursor-wait">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex min-w-0 items-start gap-3">
+                  <button type="button" onClick={openOrConfigure} disabled={opening || directConnecting}
+                    className="block min-w-0 w-full p-4 text-left disabled:cursor-wait">
+                    <div className="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
                         <span className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
                           online ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
                         }`}>
                           <ComputerDesktopIcon className="h-5 w-5" />
                         </span>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 items-center gap-2">
                             <h3 className="truncate font-semibold text-slate-950">{node.name}</h3>
                             {online && <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />}
                           </div>
@@ -214,7 +218,7 @@ export function NodeManager({
                           </p>
                         </div>
                       </div>
-                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                      <span className={`max-w-[42%] shrink truncate rounded-full px-2 py-1 text-[11px] font-medium sm:max-w-none sm:shrink-0 sm:px-2.5 sm:text-xs ${
                         active ? 'bg-slate-950 text-white'
                           : relay === true ? 'bg-emerald-100 text-emerald-800'
                             : direct ? 'bg-blue-50 text-blue-700'
@@ -230,26 +234,26 @@ export function NodeManager({
                       </span>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-500">
                       {direct && <span className="rounded bg-blue-50 px-2 py-1 text-blue-700">Direct</span>}
                       {node.hasDirectConfig && (
                         <span className="rounded bg-violet-50 px-2 py-1 text-violet-700">Account-saved Direct</span>
                       )}
                       {relay === true && <span className="rounded bg-emerald-50 px-2 py-1 text-emerald-700">Relay</span>}
-                      <span>{node.lastRegisteredAt ? `Seen ${formatSeen(node.lastRegisteredAt)}` : 'Local browser binding'}</span>
+                      <span className="min-w-0">{node.lastRegisteredAt ? `Seen ${formatSeen(node.lastRegisteredAt)}` : 'Local browser binding'}</span>
                     </div>
                   </button>
 
-                  <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 px-4 py-2.5">
+                  <div className="grid grid-cols-1 gap-2 border-t border-slate-100 px-4 py-3 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:py-2.5">
                     <button type="button" onClick={() => editingDirect ? closeDirectEditor() : editDirect(node.id)}
                       disabled={loading || directConnecting}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:text-blue-900 disabled:opacity-50">
-                      <CommandLineIcon className="h-3.5 w-3.5" />
-                      {editingDirect ? 'Cancel Direct' : direct ? 'Edit Direct' : 'Connect Direct'}
+                      className="inline-flex w-full items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50 hover:text-blue-900 disabled:opacity-50 sm:w-auto sm:py-1">
+                      <CommandLineIcon className="h-3.5 w-3.5 shrink-0" />
+                      <span className="whitespace-nowrap">{editingDirect ? 'Cancel Direct' : direct ? 'Edit Direct' : 'Connect Direct'}</span>
                     </button>
                     {direct && (
                       <button type="button" onClick={() => onForgetDirect(node.id)} disabled={loading || directConnecting}
-                        className="text-xs font-medium text-slate-500 hover:text-slate-900 disabled:opacity-50">
+                        className="w-full rounded-md px-2 py-1.5 text-center text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 sm:w-auto sm:py-1">
                         Forget direct path
                       </button>
                     )}
@@ -264,8 +268,8 @@ export function NodeManager({
                       <button type="button" onClick={() => {
                         if (window.confirm(`Remove ${node.name} from this account?`)) onForgetNode(node.id);
                       }} disabled={loading || directConnecting}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-red-700 disabled:opacity-50">
-                        <TrashIcon className="h-3.5 w-3.5" />
+                        className="inline-flex w-full items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-slate-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 sm:w-auto sm:py-1">
+                        <TrashIcon className="h-3.5 w-3.5 shrink-0" />
                         Remove
                       </button>
                     )}
@@ -273,24 +277,24 @@ export function NodeManager({
 
                   {editingDirect && (
                     <form onSubmit={(event) => { void submitDirect(event); }}
-                      className="space-y-3 border-t border-slate-100 bg-slate-50 px-4 py-4">
-                      <div>
+                      className="min-w-0 space-y-3 border-t border-slate-100 bg-slate-50 px-4 py-4">
+                      <div className="min-w-0">
                         <label className="text-xs font-medium text-slate-700" htmlFor={`direct-endpoint-${node.id}`}>Direct URL or IP</label>
                         <input id={`direct-endpoint-${node.id}`} type="url" required value={directEndpoint}
                           onChange={(event) => setDirectEndpoint(event.target.value)}
                           placeholder="http://192.168.1.20:7395"
                           spellCheck={false} autoCapitalize="none" autoCorrect="off"
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" />
+                          className="mt-1 min-w-0 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <label className="text-xs font-medium text-slate-700" htmlFor={`direct-key-${node.id}`}>Node access key</label>
                         <input id={`direct-key-${node.id}`} type="password" required value={directAccessKey}
                           onChange={(event) => setDirectAccessKey(event.target.value)}
                           placeholder="Persistent access key from agentsight bind"
                           spellCheck={false} autoCapitalize="none" autoCorrect="off"
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500" />
+                          className="mt-1 min-w-0 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500" />
                       </div>
-                      <p className="text-xs leading-5 text-slate-500">
+                      <p className="break-words text-xs leading-5 text-slate-500">
                         This browser probes <code>/api/v1/info</code> directly and verifies that the URL belongs to this Node. Relay is not required.
                       </p>
                       <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-600">
@@ -302,7 +306,7 @@ export function NodeManager({
                         </span>
                       </label>
                       <button type="submit" disabled={directConnecting || loading}
-                        className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                        className="w-full rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto">
                         {directConnecting ? 'Testing Direct…' : 'Test and connect'}
                       </button>
                     </form>
@@ -319,30 +323,30 @@ export function NodeManager({
           </div>
         )}
 
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <span className="rounded-lg bg-white p-2 text-slate-700 shadow-sm"><CommandLineIcon className="h-5 w-5" /></span>
-            <div>
+            <span className="shrink-0 rounded-lg bg-white p-2 text-slate-700 shadow-sm"><CommandLineIcon className="h-5 w-5" /></span>
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-slate-900">Add or reconnect a Node</p>
               <p className="mt-0.5 text-xs text-slate-500">
                 Keep <code>agentsight bind</code> running to serve the Node. Use <code>--endpoint</code> for a browser-reachable LAN, VPN, or HTTPS URL.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <code className="rounded-lg bg-slate-950 px-3 py-2 text-sm text-white">agentsight bind</code>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <code className="max-w-full overflow-x-auto rounded-lg bg-slate-950 px-3 py-2 text-sm text-white">agentsight bind</code>
             <button type="button" onClick={() => { void copyBindCommand(); }}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
               {copyState === 'copied' ? <CheckIcon className="h-4 w-4" /> : <CommandLineIcon className="h-4 w-4" />}
               {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy'}
             </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <SignalIcon className="h-4 w-4" />
-            Controller stores identity and Node metadata. Account-saved Direct configs are encrypted; Direct and relay remain independent transports.
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+          <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
+            <SignalIcon className="h-4 w-4 shrink-0" />
+            <span>Controller stores identity and Node metadata. Account-saved Direct configs are encrypted; Direct and relay remain independent transports.</span>
           </div>
           <div className="flex items-center gap-4">
             <button type="button" onClick={onDemo} className="text-sm font-medium text-slate-600 hover:text-slate-950">
@@ -360,7 +364,7 @@ export function NodeManager({
   if (!modal) return content;
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 px-4 py-8">
-      <div role="dialog" aria-modal="true" aria-label="AgentSight Nodes" className="mx-auto max-w-5xl">
+      <div role="dialog" aria-modal="true" aria-label="AgentSight Nodes" className="mx-auto min-w-0 max-w-5xl">
         {content}
       </div>
     </div>
