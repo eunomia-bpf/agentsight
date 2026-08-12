@@ -448,6 +448,7 @@ fn platform_ticks_per_second() -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
     use std::process::Command;
 
     #[test]
