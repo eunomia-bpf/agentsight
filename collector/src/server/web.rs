@@ -4,7 +4,7 @@
 use crate::model::{Snapshot, SnapshotOptions};
 use crate::server::assets::FrontendAssets;
 use crate::server::capability::{
-    self, CapabilityMintRequest, CapabilityStore, EVIDENCE_READ, NODE_INFO, SESSION_MESSAGE,
+    CapabilityMintRequest, CapabilityStore, EVIDENCE_READ, NODE_INFO, SESSION_MESSAGE,
     SESSION_READ,
 };
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
@@ -824,11 +824,11 @@ mod tests {
     #[test]
     fn semantic_protocol_mapping_matches_web_routes() {
         assert_eq!(
-            capability::action_for_request("GET", "/api/v1/snapshot?audit_limit=42"),
+            crate::server::capability::action_for_request("GET", "/api/v1/snapshot?audit_limit=42"),
             Some((EVIDENCE_READ, None))
         );
         assert_eq!(
-            capability::action_for_request("POST", "/api/v1/sessions/s-1/messages"),
+            crate::server::capability::action_for_request("POST", "/api/v1/sessions/s-1/messages"),
             Some((SESSION_MESSAGE, Some("s-1".to_string())))
         );
     }
