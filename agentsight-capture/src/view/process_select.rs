@@ -3,7 +3,6 @@
 
 use crate::sources::proc::{PidSeed, ProcInfo, ProcSnapshot};
 use std::collections::HashSet;
-use std::path::Path;
 
 pub fn live_root_pids(snapshot: &ProcSnapshot, pid: Option<u32>, comm: Option<&str>) -> Vec<u32> {
     if let Some(pid) = pid {
@@ -178,7 +177,7 @@ fn executable_tokens(command: &str) -> impl Iterator<Item = &str> {
 
 fn looks_like_exec_path(token: &str) -> bool {
     let token = token.trim_matches(|ch| matches!(ch, '"' | '\''));
-    token.contains('/')
+    token.contains(['/', '\\'])
 }
 
 fn executable_token_matches(token: &str, wanted: &str) -> bool {
@@ -191,10 +190,7 @@ fn executable_token_matches(token: &str, wanted: &str) -> bool {
     if label_from_exec_token(&lower).is_some_and(|label| label.contains(wanted)) {
         return true;
     }
-    let basename = Path::new(&lower)
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or(lower.as_str());
+    let basename = exec_basename(&lower);
     !basename.contains('.') && basename.contains(wanted)
 }
 
@@ -205,12 +201,18 @@ fn label_from_exec_token(token: &str) -> Option<&'static str> {
     }
 
     let lower = token.to_ascii_lowercase();
-    let basename = Path::new(&lower)
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or(lower.as_str());
+    let basename = exec_basename(&lower);
+    let executable = basename
+        .strip_suffix(".exe")
+        .or_else(|| basename.strip_suffix(".cmd"))
+        .or_else(|| basename.strip_suffix(".bat"))
+        .unwrap_or(basename);
 
-    label_from_exec_name(basename).or_else(|| label_from_known_package_path(&lower))
+    label_from_exec_name(executable).or_else(|| label_from_known_package_path(&lower))
+}
+
+fn exec_basename(token: &str) -> &str {
+    token.rsplit(['/', '\\']).next().unwrap_or(token)
 }
 
 fn label_from_exec_name(name: &str) -> Option<&'static str> {
@@ -228,6 +230,7 @@ fn label_from_exec_name(name: &str) -> Option<&'static str> {
 }
 
 fn label_from_known_package_path(path: &str) -> Option<&'static str> {
+    let path = path.replace('\\', "/");
     if path.contains("@anthropic-ai/claude-code") || path.contains("/claude-code/") {
         Some("claude")
     } else if path.contains("@openai/codex") || path.contains("/codex-linux-") {
@@ -261,11 +264,10 @@ fn is_codex_executable_token(token: &str) -> bool {
         return false;
     }
     let lower = token.to_ascii_lowercase();
-    let basename = Path::new(&lower)
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or(lower.as_str());
-    matches!(basename, "codex" | "codex-cli")
+    matches!(
+        exec_basename(&lower),
+        "codex" | "codex.exe" | "codex-cli" | "codex-cli.exe"
+    )
 }
 
 #[cfg(test)]
@@ -304,7 +306,35 @@ mod tests {
             Some("claude")
         );
         assert_eq!(known_agent_label("claude", "claude"), Some("claude"));
+        assert_eq!(
+            known_agent_label("claude.exe", r#"C:\Users\dev\bin\claude.exe"#),
+            Some("claude")
+        );
+        assert_eq!(
+            known_agent_label(
+                "codex.exe",
+                r#"C:\Program Files\WindowsApps\OpenAI.Codex\codex.exe app-server"#
+            ),
+            Some("codex")
+        );
+        assert_eq!(
+            known_agent_label(
+                "node.exe",
+                r#"node.exe C:\Users\dev\npm\node_modules\@openai\codex\bin\codex.js"#
+            ),
+            Some("codex")
+        );
         assert_eq!(known_agent_label("openclaw-gatewa", ""), Some("openclaw"));
+    }
+
+    #[test]
+    fn codex_exec_detection_accepts_windows_executable_names() {
+        let proc_info = ProcInfo {
+            comm: "codex.exe".to_string(),
+            command: r#"C:\Users\dev\bin\codex.exe exec --skip-git-repo-check"#.to_string(),
+            ..Default::default()
+        };
+        assert!(is_codex_exec_invocation(&proc_info));
     }
 
     #[test]

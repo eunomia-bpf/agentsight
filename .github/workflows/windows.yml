@@ -34,7 +34,7 @@ jobs:
           & $agentsight --version
 
           $env:HOME = Join-Path $env:RUNNER_TEMP "agentsight-home"
-          $fixtureDir = Join-Path $HOME ".codex/sessions/2026/06/18"
+          $fixtureDir = Join-Path $env:HOME ".codex/sessions/2026/06/18"
           New-Item -ItemType Directory -Force -Path $fixtureDir | Out-Null
           Copy-Item `
             "agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl" `
