@@ -74,6 +74,9 @@ jobs:
       with:
         node-version: '22'
 
+    - name: Test frontend connection decisions
+      run: node --test --experimental-strip-types frontend/src/lib/nodeOpening.test.ts
+
     - name: Test control plane
       run: |
         cd control-plane

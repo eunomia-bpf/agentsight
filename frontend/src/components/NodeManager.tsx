@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import type { CloudIdentity, CloudNode, LocalConnection } from '@/lib/connection';
 import { directCloudSyncEnabled, type NodeTransport } from '@/lib/nodeClient';
+import { shouldConfigureDirect } from '@/lib/nodeOpening';
 
 interface NodeManagerProps {
   identity: CloudIdentity;
@@ -191,8 +192,11 @@ export function NodeManager({
               const cloudManaged = nodes.some((item) => item.id === node.id);
               const editingDirect = directEditorNodeId === node.id;
               const openOrConfigure = () => {
-                if (!direct && relay !== true) editDirect(node.id);
-                else onOpenNode(node.id);
+                if (shouldConfigureDirect(Boolean(direct), node.hasDirectConfig, relay === true)) {
+                  editDirect(node.id);
+                } else {
+                  onOpenNode(node.id);
+                }
               };
               return (
                 <article key={node.id} className={`group relative min-w-0 overflow-hidden rounded-xl border transition ${
