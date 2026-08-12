@@ -21,5 +21,21 @@ jobs:
       - name: Test portable session parser
         run: cargo test --manifest-path agent-session/Cargo.toml
 
-      - name: Check native AgentSight CLI
-        run: cargo check --manifest-path collector/Cargo.toml
+      - name: Test portable capture and native CLI
+        run: |
+          cargo test --manifest-path agentsight-capture/Cargo.toml
+          cargo test --manifest-path collector/Cargo.toml
+
+      - name: Build and smoke test agentsight.exe
+        shell: pwsh
+        run: |
+          cargo build --manifest-path collector/Cargo.toml
+          $agentsight = "collector/target/debug/agentsight.exe"
+          & $agentsight --version
+          & $agentsight report --local
+          & $agentsight top --plain --once
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agentsight-windows-x86_64
+          path: collector/target/debug/agentsight.exe
