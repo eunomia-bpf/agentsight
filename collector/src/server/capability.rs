@@ -56,48 +56,32 @@ impl CapabilityMintRequest {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct CapabilityStore {
     node_id: Option<String>,
     persist_path: Option<PathBuf>,
     grants: HashMap<String, Grant>,
 }
 
-impl CapabilityStore {
-    pub fn for_node(node_id: &str) -> Self {
-        let persist_path = capability_path();
-        let now = now_seconds();
-        let grants = persist_path
-            .as_ref()
-            .and_then(|path| std::fs::read(path).ok())
-            .and_then(|bytes| serde_json::from_slice::<PersistedCapabilities>(&bytes).ok())
-            .filter(|saved| saved.node_id == node_id)
-            .map(|saved| {
-                saved
-                    .grants
-                    .into_iter()
-                    .filter(|(_, grant)| grant.persistent && grant.expires_at >= now)
-                    .collect()
-            })
-            .unwrap_or_default();
+impl Default for CapabilityStore {
+    fn default() -> Self {
         Self {
-            node_id: Some(node_id.to_string()),
-            persist_path,
-            grants,
+            node_id: None,
+            persist_path: capability_path(),
+            grants: HashMap::new(),
         }
     }
+}
 
+impl CapabilityStore {
     pub fn mint(
         &mut self,
         node_id: &str,
         request: &CapabilityMintRequest,
     ) -> Result<(String, u64), &'static str> {
         request.validate()?;
-        if self.node_id.as_deref().is_some_and(|configured| configured != node_id) {
+        if !self.ensure_node(node_id) {
             return Err("capability store belongs to another Node");
-        }
-        if self.node_id.is_none() {
-            self.node_id = Some(node_id.to_string());
         }
         let now = now_seconds();
         self.remove_expired(now);
@@ -131,6 +115,9 @@ impl CapabilityStore {
         action: &str,
         session_id: Option<&str>,
     ) -> bool {
+        if !self.ensure_node(node_id) {
+            return false;
+        }
         let now = now_seconds();
         self.remove_expired(now);
         let Some(grant) = self.grants.get(token) else {
@@ -143,6 +130,31 @@ impl CapabilityStore {
             Some(expected) => session_id == Some(expected),
             None => true,
         }
+    }
+
+    fn ensure_node(&mut self, node_id: &str) -> bool {
+        match self.node_id.as_deref() {
+            Some(configured) => return configured == node_id,
+            None => self.node_id = Some(node_id.to_string()),
+        }
+        let now = now_seconds();
+        let Some(path) = self.persist_path.as_ref() else {
+            return true;
+        };
+        let Some(saved) = std::fs::read(path)
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<PersistedCapabilities>(&bytes).ok())
+            .filter(|saved| saved.node_id == node_id)
+        else {
+            return true;
+        };
+        self.grants.extend(
+            saved
+                .grants
+                .into_iter()
+                .filter(|(_, grant)| grant.persistent && grant.expires_at >= now),
+        );
+        true
     }
 
     fn remove_expired(&mut self, now: u64) {
@@ -251,7 +263,10 @@ mod tests {
 
     #[test]
     fn scoped_capability_authorizes_only_requested_action_and_session() {
-        let mut store = CapabilityStore::default();
+        let mut store = CapabilityStore {
+            persist_path: None,
+            ..CapabilityStore::default()
+        };
         let (token, _) = store
             .mint("node_test", &request(&[SESSION_READ], Some("session-1")))
             .unwrap();
@@ -286,7 +301,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let path = temp.path().join("capabilities.json");
         let mut store = CapabilityStore {
-            node_id: Some("node_test".to_string()),
+            node_id: None,
             persist_path: Some(path.clone()),
             grants: HashMap::new(),
         };
@@ -296,11 +311,11 @@ mod tests {
             ttl_seconds: 3600,
         };
         let (token, _) = store.mint("node_test", &request).unwrap();
-        let saved: PersistedCapabilities = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+
         let mut restarted = CapabilityStore {
-            node_id: Some(saved.node_id),
-            persist_path: None,
-            grants: saved.grants,
+            node_id: None,
+            persist_path: Some(path),
+            grants: HashMap::new(),
         };
         assert!(restarted.authorizes("node_test", &token, EVIDENCE_READ, None));
         assert!(!restarted.authorizes("node_test", &token, SESSION_MESSAGE, None));
@@ -311,7 +326,7 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let path = temp.path().join("capabilities.json");
         let mut store = CapabilityStore {
-            node_id: Some("node_test".to_string()),
+            node_id: None,
             persist_path: Some(path.clone()),
             grants: HashMap::new(),
         };
@@ -335,7 +350,10 @@ mod tests {
 
     #[test]
     fn mint_rejects_unknown_actions_and_excessive_ttl() {
-        let mut store = CapabilityStore::default();
+        let mut store = CapabilityStore {
+            persist_path: None,
+            ..CapabilityStore::default()
+        };
         let mut invalid = request(&["root"], None);
         assert!(store.mint("node_test", &invalid).is_err());
         invalid.actions = vec![NODE_INFO.to_string()];
