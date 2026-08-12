@@ -822,3 +822,11 @@ jobs:
         grep -Eq '^[[:space:]]+record[[:space:]]' "$smoke_dir/help.txt"
         "$smoke_dir/agentpprof" --version
         "$smoke_dir/agentpprof" --help | grep -F -- '--session-file'
+
+    - name: Dispatch and monitor npm package publish
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ needs.release_prepare.outputs.tag }}
+      run: |
+        npm_run_url="$(gh workflow run npm-publish.yml --repo "$GITHUB_REPOSITORY" --ref "$RELEASE_TAG")"
+        gh run watch "${npm_run_url##*/}" --repo "$GITHUB_REPOSITORY" --exit-status --compact
