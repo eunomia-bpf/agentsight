@@ -1481,17 +1481,20 @@ fn common_parent_dir(paths: &[String]) -> Option<String> {
         .filter(|path| is_absolute_path_text(path))
         .map(|path| normalize_path_text(path))
         .map(|path| {
-            let rooted = path.starts_with('/');
-            let mut parts = path
+            let (root, remainder) = path_root(&path);
+            let mut parts = remainder
                 .split('/')
                 .filter(|part| !part.is_empty())
                 .map(str::to_string)
                 .collect::<Vec<_>>();
             parts.pop();
-            (rooted, parts)
+            (root.to_string(), parts)
         });
-    let (rooted, mut shared) = dirs.next()?;
-    for (_, candidate) in dirs {
+    let (root, mut shared) = dirs.next()?;
+    for (candidate_root, candidate) in dirs {
+        if candidate_root != root {
+            return None;
+        }
         let keep = shared
             .iter()
             .zip(candidate.iter())
@@ -1499,10 +1502,25 @@ fn common_parent_dir(paths: &[String]) -> Option<String> {
             .count();
         shared.truncate(keep);
     }
-    (!shared.is_empty()).then(|| {
-        let joined = shared.join("/");
-        if rooted { format!("/{joined}") } else { joined }
-    })
+    if root == "//" && shared.len() < 2 {
+        return None;
+    }
+    if shared.is_empty() {
+        return (root != "/").then_some(root);
+    }
+    Some(format!("{root}{}", shared.join("/")))
+}
+
+fn path_root(path: &str) -> (&str, &str) {
+    if let Some(remainder) = path.strip_prefix("//") {
+        ("//", remainder)
+    } else if path.as_bytes().get(1) == Some(&b':') && path.as_bytes().get(2) == Some(&b'/') {
+        (&path[..3], &path[3..])
+    } else if let Some(remainder) = path.strip_prefix('/') {
+        ("/", remainder)
+    } else {
+        ("", path)
+    }
 }
 
 fn cursor_delegating_prompt_index(
@@ -3854,6 +3872,33 @@ mod tests {
         )
         .expect("session");
         assert_eq!(session.cwd, None);
+    }
+
+    #[test]
+    fn cursor_cwd_preserves_windows_drive_and_unc_roots() {
+        assert_eq!(
+            common_parent_dir(&[r"C:\file.rs".to_string()]).as_deref(),
+            Some("C:/")
+        );
+        assert_eq!(
+            common_parent_dir(&[r"\\server\share\file.rs".to_string()]).as_deref(),
+            Some("//server/share")
+        );
+        assert_eq!(
+            common_parent_dir(&[
+                r"C:\repo\src\main.rs".to_string(),
+                r"C:\repo\README.md".to_string(),
+            ])
+            .as_deref(),
+            Some("C:/repo")
+        );
+        assert_eq!(
+            common_parent_dir(&[
+                r"\\server\share-a\file.rs".to_string(),
+                r"\\server\share-b\file.rs".to_string(),
+            ]),
+            None
+        );
     }
 
     #[test]
