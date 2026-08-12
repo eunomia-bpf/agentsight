@@ -303,8 +303,26 @@ fn print_qr(value: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 }
 
 fn open_browser(url: &str) -> bool {
-    Command::new("xdg-open")
-        .arg(url)
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut command = Command::new("explorer.exe");
+        command.arg(url);
+        command
+    };
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut command = Command::new("open");
+        command.arg(url);
+        command
+    };
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut command = {
+        let mut command = Command::new("xdg-open");
+        command.arg(url);
+        command
+    };
+
+    command
         .spawn()
         .map(|mut child| {
             std::thread::spawn(move || {

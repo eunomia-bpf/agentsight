@@ -48,6 +48,10 @@ jobs:
           }
 
           & $agentsight top --plain --once
+          & $agentsight vis . --output "$env:RUNNER_TEMP/agent-nebula.html"
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$env:RUNNER_TEMP/agent-nebula.html")) {
+            throw "agentsight vis HTML smoke failed"
+          }
 
       - uses: actions/upload-artifact@v4
         with:

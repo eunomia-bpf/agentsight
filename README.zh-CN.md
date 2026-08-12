@@ -69,10 +69,14 @@ AgentSight 能捕获应用级工具遗漏的关键交互：
 
 ### 前置要求
 
-- **Linux 内核**：4.1+ 且支持 eBPF（推荐 5.0+）
-- **sudo 权限**：`top` 可选；当 sudo 已可用时会自动启用 eBPF probes
+- **Windows、macOS 或 Linux**：`top`、`bind`、`vis` 和 `report` 可以直接读取
+  Agent 原生会话文件，不依赖 eBPF
+- **Linux 内核**：`record` 和基于 eBPF 的调试命令需要 4.1+ 且支持 eBPF
+  （推荐 5.0+）
+- **Linux sudo 权限**：`top` 可选；当 sudo 已可用时会自动启用 eBPF probes
 
-从源码构建时还需要 Rust 1.88.0+、Node.js 18+、clang、llvm 和 libelf-dev。
+从源码构建请参阅 `docs/build.md`；Linux 的完整 eBPF 构建还需要 Node.js 18+、
+clang、llvm 和 libelf-dev。
 
 ### Rust 库
 
@@ -93,6 +97,8 @@ Rust 应用可以依赖
 
 GitHub Release 为 Linux 提供 `agentsight-x86_64` 和 `agentsight-aarch64`；
 无后缀的 `agentsight` 继续作为 x86_64 兼容文件保留。
+Windows 原生构建由 Windows CI 验证；正式发布 Windows Release 资产前，可以下载
+该工作流的 `agentsight-windows-x86_64` artifact，或从源码构建 collector crate。
 
 #### Docker
 
