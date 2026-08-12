@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-import { controllerUrl, type CloudNode, type LocalConnection } from '@/lib/connection';
+import {
+  controllerUrl,
+  mintNodeCapability,
+  type CloudNode,
+  type LocalConnection,
+} from '@/lib/connection';
 import initProtocol, {
   session_message_body as sessionMessageBody,
   session_messages_path as sessionMessagesPath,
@@ -12,6 +17,8 @@ import type { AgentSightSnapshot } from '@/types/event';
 
 const DIRECT_CONNECTIONS_KEY = 'agentsight.direct-connections.v1';
 const REQUEST_TIMEOUT_MS = 12_000;
+const DIRECT_CAPABILITY_TTL_SECONDS = 12 * 60 * 60;
+const DIRECT_ACTIONS = ['node.info', 'evidence.read', 'session.read', 'session.message'];
 let protocolReady: Promise<unknown> | null = null;
 
 type NodeAddressSpace = 'local' | 'loopback';
@@ -39,6 +46,11 @@ export interface NodeClient {
   snapshot(): Promise<AgentSightSnapshot>;
   session(sessionId: string): Promise<SessionDetail>;
   submitMessage(sessionId: string, message: string): Promise<void>;
+}
+
+export interface DirectProbeResult {
+  connection: LocalConnection;
+  bootstrapToken: string;
 }
 
 export class NodeRequestError extends Error {
@@ -89,7 +101,7 @@ function normalizeDirectEndpoint(raw: string): string {
   return endpoint.toString().replace(/\/$/, '');
 }
 
-function validAccessToken(value: string): boolean {
+function validCredential(value: string): boolean {
   return /^[A-Za-z0-9_-]{32,256}$/.test(value);
 }
 
@@ -126,12 +138,12 @@ async function jsonResponse<T>(response: Response, fallback: string): Promise<T>
 
 export async function probeDirectConnection(
   rawEndpoint: string,
-  accessToken: string,
-): Promise<LocalConnection> {
+  bootstrapToken: string,
+): Promise<DirectProbeResult> {
   const endpoint = normalizeDirectEndpoint(rawEndpoint);
-  const token = accessToken.trim();
-  if (!validAccessToken(token)) {
-    throw new NodeRequestError(400, 'Access key must be the persistent AgentSight Node access key.');
+  const token = bootstrapToken.trim();
+  if (!validCredential(token)) {
+    throw new NodeRequestError(400, 'Bootstrap key must be a valid AgentSight Node credential.');
   }
 
   let response: Response;
@@ -151,12 +163,29 @@ export async function probeDirectConnection(
   if (!body.node?.id || !body.node.name) {
     throw new NodeRequestError(502, 'The Direct URL did not return valid AgentSight Node metadata.');
   }
+  let scoped: { accessToken: string };
+  try {
+    scoped = await mintNodeCapability(
+      endpoint,
+      token,
+      DIRECT_ACTIONS,
+      DIRECT_CAPABILITY_TTL_SECONDS,
+    );
+  } catch (cause) {
+    throw new NodeRequestError(
+      cause instanceof NodeRequestError ? cause.status : 401,
+      'That credential can inspect this Node but cannot mint Direct capabilities. Use the Node bootstrap key.',
+    );
+  }
   return {
-    endpoint,
-    accessToken: token,
-    nodeId: body.node.id,
-    nodeName: body.node.name,
-    version: body.node.version || 'unknown',
+    bootstrapToken: token,
+    connection: {
+      endpoint,
+      accessToken: scoped.accessToken,
+      nodeId: body.node.id,
+      nodeName: body.node.name,
+      version: body.node.version || 'unknown',
+    },
   };
 }
 
@@ -237,9 +266,35 @@ export async function relayOnline(token: string, nodeId: string): Promise<boolea
   return body.online === true;
 }
 
+export async function requestControllerNodeCapability(
+  token: string,
+  nodeId: string,
+  actions: string[],
+  sessionId?: string | null,
+): Promise<{ accessToken: string; expiresAt: number }> {
+  const response = await fetch(`${controllerUrl}/v1/nodes/${encodeURIComponent(nodeId)}/capabilities`, {
+    method: 'POST',
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ actions, session_id: sessionId || null, ttl_seconds: 300 }),
+  });
+  return jsonResponse<{
+    access_token: string;
+    expires_at: number;
+  }>(response, 'Could not obtain Node capability').then((body) => ({
+    accessToken: body.access_token,
+    expiresAt: body.expires_at,
+  }));
+}
+
 export async function registerControllerNode(
   token: string,
+  organizationId: string,
   connection: LocalConnection,
+  bootstrapToken: string,
 ): Promise<void> {
   const response = await fetch(`${controllerUrl}/v1/nodes`, {
     method: 'POST',
@@ -250,9 +305,10 @@ export async function registerControllerNode(
     },
     body: JSON.stringify({
       id: connection.nodeId,
+      organization_id: organizationId,
       name: connection.nodeName,
       version: connection.version,
-      ...(connection.accessToken ? { relay_token: connection.accessToken } : {}),
+      relay_token: bootstrapToken,
     }),
   });
   if (!response.ok) {
@@ -275,7 +331,8 @@ export function loadDirectConnections(): Record<string, LocalConnection> {
           && typeof connection.endpoint === 'string'
           && typeof connection.accessToken === 'string'
           && typeof connection.nodeName === 'string'
-          && typeof connection.version === 'string') {
+          && typeof connection.version === 'string'
+          && validCredential(connection.accessToken)) {
         result[nodeId] = connection;
       }
     }
