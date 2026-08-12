@@ -263,7 +263,7 @@ const ORGANIZATION_SELECT = `
            WHERE e.user_id = m.user_id
              AND e.kind = 'pro_lifetime'
              AND e.revoked_at IS NULL
-             AND (e.expires_at IS NULL OR e.expires_at >= ?3)
+             AND (e.expires_at IS NULL OR e.expires_at >= ?2)
          ) AS contributor_pro
   FROM organizations o
   JOIN memberships m ON m.organization_id = o.id
@@ -272,7 +272,7 @@ const ORGANIZATION_SELECT = `
 export async function listOrganizations(db: D1Database, user: UserIdentity): Promise<OrganizationAccess[]> {
   await ensurePersonalOrganization(db, user);
   const result = await db.prepare(`${ORGANIZATION_SELECT} ORDER BY o.kind ASC, o.created_at ASC`)
-    .bind(user.id, user.id, nowSeconds()).all<OrganizationRow>();
+    .bind(user.id, nowSeconds()).all<OrganizationRow>();
   return result.results.map(organizationFromRow);
 }
 
@@ -281,8 +281,8 @@ export async function getOrganizationAccess(
   userId: string,
   organizationId: string,
 ): Promise<OrganizationAccess | null> {
-  const row = await db.prepare(`${ORGANIZATION_SELECT} AND o.id = ?2 LIMIT 1`)
-    .bind(userId, organizationId, nowSeconds()).first<OrganizationRow>();
+  const row = await db.prepare(`${ORGANIZATION_SELECT} AND o.id = ?3 LIMIT 1`)
+    .bind(userId, nowSeconds(), organizationId).first<OrganizationRow>();
   return row ? organizationFromRow(row) : null;
 }
 
@@ -374,7 +374,7 @@ export async function registerNode(
     throw new AccessError(409, 'node_registered_to_another_organization');
   }
   const now = nowSeconds();
-  await db.prepare(
+  const result = await db.prepare(
     `INSERT INTO nodes
      (id, organization_id, name, version, public_key, relay_token_hash, connection_mode, last_seen_at, created_at)
      VALUES (?1, ?2, ?3, ?4, NULL, NULL, 'direct', ?5, ?5)
@@ -384,6 +384,7 @@ export async function registerNode(
        last_seen_at = excluded.last_seen_at
      WHERE nodes.organization_id = excluded.organization_id`,
   ).bind(node.id, organizationId, node.name, node.version || null, now).run();
+  if (!result.meta.changes) throw new AccessError(409, 'node_registered_to_another_organization');
   return access;
 }
 
@@ -445,26 +446,37 @@ export async function acceptInvite(
 ): Promise<string> {
   if (!token || token.length > 512) throw new AccessError(400, 'invalid_invite');
   const now = nowSeconds();
-  const row = await db.prepare(
-    `UPDATE organization_invites SET consumed_at = ?1
-     WHERE token_hash = ?2 AND lower(email) = lower(?3)
-       AND consumed_at IS NULL AND expires_at >= ?1
-     RETURNING organization_id, role`,
-  ).bind(now, await sha256(token), user.email).first<{ organization_id: string; role: Role }>();
-  if (!row) throw new AccessError(400, 'invite_invalid_or_expired');
+  const tokenHash = await sha256(token);
+  const candidate = await db.prepare(
+    `SELECT organization_id, role FROM organization_invites
+     WHERE token_hash = ?1 AND lower(email) = lower(?2)
+       AND consumed_at IS NULL AND expires_at >= ?3`,
+  ).bind(tokenHash, user.email, now).first<{ organization_id: string; role: Role }>();
+  if (!candidate) throw new AccessError(400, 'invite_invalid_or_expired');
+
   const organization = await db.prepare(
     `SELECT id, kind, plan, billing_status FROM organizations WHERE id = ?1`,
-  ).bind(row.organization_id).first<{ id: string; kind: OrganizationKind; plan: Plan; billing_status: BillingStatus }>();
+  ).bind(candidate.organization_id)
+    .first<{ id: string; kind: OrganizationKind; plan: Plan; billing_status: BillingStatus }>();
   if (!organization || organization.kind !== 'team') throw new AccessError(400, 'invite_invalid');
   const paidPlan = organization.plan !== 'free' && ACTIVE_BILLING.has(organization.billing_status)
     ? organization.plan : 'free';
   if (!planAllowsMultipleMembers(paidPlan)) throw new AccessError(402, 'team_plan_required');
+
+  const consumed = await db.prepare(
+    `UPDATE organization_invites SET consumed_at = ?1
+     WHERE token_hash = ?2 AND lower(email) = lower(?3)
+       AND consumed_at IS NULL AND expires_at >= ?1
+     RETURNING organization_id, role`,
+  ).bind(now, tokenHash, user.email).first<{ organization_id: string; role: Role }>();
+  if (!consumed) throw new AccessError(400, 'invite_invalid_or_expired');
+
   await db.prepare(
     `INSERT INTO memberships (organization_id, user_id, role, created_at, updated_at)
      VALUES (?1, ?2, ?3, ?4, ?4)
      ON CONFLICT(organization_id, user_id) DO UPDATE SET role = excluded.role, updated_at = excluded.updated_at`,
-  ).bind(row.organization_id, user.id, row.role, now).run();
-  return row.organization_id;
+  ).bind(consumed.organization_id, user.id, consumed.role, now).run();
+  return consumed.organization_id;
 }
 
 export async function updateMemberRole(
@@ -529,6 +541,7 @@ export async function putConfig(
   await requireOrganizationAction(db, userId, organizationId, 'config.write');
   validateConfigKey(key);
   const encoded = JSON.stringify(value);
+  if (encoded === undefined) throw new AccessError(400, 'invalid_config_value');
   if (new TextEncoder().encode(encoded).byteLength > 64 * 1024) throw new AccessError(413, 'config_too_large');
   const now = nowSeconds();
   await db.prepare(
@@ -552,7 +565,7 @@ export async function setBilling(
   },
 ): Promise<void> {
   if (!Object.hasOwn(PLAN_CATALOG, input.plan)) throw new AccessError(400, 'invalid_plan');
-  await db.prepare(
+  const result = await db.prepare(
     `UPDATE organizations SET
        plan = ?1, billing_interval = ?2, billing_status = ?3,
        external_customer_id = ?4, external_subscription_id = ?5,
@@ -568,6 +581,7 @@ export async function setBilling(
     nowSeconds(),
     organizationId,
   ).run();
+  if (!result.meta.changes) throw new AccessError(404, 'organization_not_found');
 }
 
 export async function grantLifetimePro(
