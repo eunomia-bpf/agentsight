@@ -104,6 +104,13 @@ directory and reused across restarts. A binding link carries it to the browser
 only in the URL fragment, which the SPA immediately removes from the visible
 URL. Chrome may ask you to allow Local network access for a loopback or LAN Node.
 
+After sign-in, **All machines** is the organization landing view. The browser
+queries each reachable Node's bounded overview over Direct or Relay and
+aggregates machine state, active Agents, reported Tokens, CPU/RSS, Agent Plans,
+and source-reported subscription windows in memory. Use the machine selector to
+switch between the fleet and one Node. AgentSight Cloud keeps the machine
+directory and access policy; the aggregated evidence is not copied into D1.
+
 Use `agentsight bind --no-open` to copy the link manually or `agentsight bind
 --qr` to print the same link as a QR code. The endpoint and presentation plane
 are not hard-coded: use `--listen <IP>` and `--server-port <PORT>` to choose the

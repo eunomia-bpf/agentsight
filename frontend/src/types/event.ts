@@ -149,6 +149,7 @@ export interface LiveSession {
   last_message_at?: string | null;
   process_details: LiveProcess[];
   plan: CodingPlanStep[];
+  subscription?: SourceSubscription | null;
 }
 
 export interface LiveOverview {
