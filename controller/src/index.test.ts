@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  allowedReturnTo, githubApiHeaders, nodeIdFromPath, oauthStartAllowed,
+  allowedBrowserOrigin, allowedReturnTo, githubApiHeaders, nodeIdFromPath, oauthStartAllowed,
   publicPricing, roleAllows, sha256Base64Url, validNodeId,
 } from './index.ts';
 import {
@@ -23,9 +23,18 @@ test('PKCE challenge matches RFC 7636 example', async () => {
 
 test('OAuth return URL stays on the hosted app origin', () => {
   const app = 'https://app.agentsight.us';
+  const previews = '-agentsight.yunwei356.workers.dev';
   assert.equal(allowedReturnTo('https://app.agentsight.us/tree', app), `${app}/`);
-  assert.equal(allowedReturnTo('https://evil.example/', app), `${app}/`);
+  assert.equal(
+    allowedReturnTo('https://feature-agentsight.yunwei356.workers.dev/tree', app, previews),
+    'https://feature-agentsight.yunwei356.workers.dev/',
+  );
+  assert.equal(allowedReturnTo('https://evil.example/', app, previews), `${app}/`);
   assert.equal(allowedReturnTo('not a URL', app), `${app}/`);
+  assert.equal(allowedBrowserOrigin(app, app, previews), true);
+  assert.equal(allowedBrowserOrigin('https://feature-agentsight.yunwei356.workers.dev', app, previews), true);
+  assert.equal(allowedBrowserOrigin('http://feature-agentsight.yunwei356.workers.dev', app, previews), false);
+  assert.equal(allowedBrowserOrigin('https://agentsight.yunwei356.workers.dev.evil.example', app, previews), false);
 });
 
 test('Controller accepts only stable AgentSight Node IDs', () => {

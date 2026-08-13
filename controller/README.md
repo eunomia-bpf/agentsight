@@ -73,19 +73,29 @@ Privileged deployment automation may use `ADMIN_API_TOKEN` for provider-neutral 
 npm ci
 npm test
 npm run check
-npx wrangler deploy --dry-run
+cd ..
+./controller/node_modules/.bin/wrangler deploy --dry-run --config wrangler.jsonc
 ```
 
 ## Deployment
 
-Hosted deployment is automatic. A push to `master` that changes `controller/**` or `frontend/**` triggers `.github/workflows/deploy-demo.yml` (workflow name: **Deploy Hosted App**):
+Hosted deployment is automatic through Cloudflare Workers Builds. The repository is connected directly to the `agentsight` Worker; no Cloudflare API token is stored in GitHub.
 
-1. install and verify the Controller;
-2. apply pending D1 migrations and deploy the Cloudflare Worker;
-3. only after Controller deployment succeeds, build and publish `app.agentsight.us` to `gh-pages`.
+One Worker deployment contains both surfaces from the same repository revision:
 
-This ordering prevents a new frontend from being published against an older Controller API. CI needs `CLOUDFLARE_API_TOKEN` plus `CLOUDFLARE_ACCOUNT_ID` (repository variable or secret).
+- `app.agentsight.us` serves the frontend and static assets;
+- `control.agentsight.us` serves the Controller API and relay;
+- one D1 database stores Controller metadata;
+- one Durable Object namespace carries live relay traffic.
 
-`npm run deploy` remains available for recovery/debugging, but it is not the normal production path.
+Cloudflare Builds uses the repository root `wrangler.jsonc`. Its build command prepares the demo data and static frontend. Configure these commands in the Cloudflare dashboard, with `/` as the root directory:
+
+```bash
+npm --prefix controller ci
+./controller/node_modules/.bin/wrangler d1 migrations apply DB --remote --config wrangler.jsonc
+./controller/node_modules/.bin/wrangler deploy --config wrangler.jsonc
+```
+
+The production branch is `master`; non-production branches receive preview deployments. D1 migrations run before every deploy and are idempotent, so the frontend and API cannot drift between revisions. `npm run deploy` remains available for recovery/debugging, but it is not the normal production path.
 
 The old `control-plane` path is retained only as a compatibility symlink for existing scripts; new code and documentation should use `controller`.

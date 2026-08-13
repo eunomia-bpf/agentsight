@@ -4,6 +4,7 @@
 interface Env {
   DB: D1Database;
   APP_ORIGIN: string;
+  APP_PREVIEW_ORIGIN_SUFFIX?: string;
   OAUTH_IP_LIMITER: RateLimit;
   OAUTH_LOCATION_LIMITER: RateLimit;
   GITHUB_CLIENT_ID?: string;
@@ -44,10 +45,12 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const requestOrigin = request.headers.get('Origin');
-    if (requestOrigin && requestOrigin !== new URL(env.APP_ORIGIN).origin) {
+    if (!allowedBrowserOrigin(requestOrigin, env.APP_ORIGIN, env.APP_PREVIEW_ORIGIN_SUFFIX)) {
       return json({ error: 'origin_not_allowed' }, 403);
     }
-    if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }), env);
+    if (request.method === 'OPTIONS') {
+      return cors(new Response(null, { status: 204 }), env, requestOrigin);
+    }
 
     try {
       let response: Response;
@@ -66,13 +69,13 @@ export default {
       } else {
         response = json({ error: 'not_found' }, 404);
       }
-      return cors(response, env);
+      return cors(response, env, requestOrigin);
     } catch (error) {
       if (error instanceof HttpError) {
-        return cors(json({ error: error.code }, error.status), env);
+        return cors(json({ error: error.code }, error.status), env, requestOrigin);
       }
       console.error(error);
-      return cors(json({ error: 'internal_error' }, 500), env);
+      return cors(json({ error: 'internal_error' }, 500), env, requestOrigin);
     }
   },
 } satisfies ExportedHandler<Env>;
@@ -85,7 +88,9 @@ function providerFromPath(pathname: string): Provider {
 
 async function startOAuth(request: Request, env: Env, provider: Provider): Promise<Response> {
   const url = new URL(request.url);
-  const returnTo = allowedReturnTo(url.searchParams.get('return_to'), env.APP_ORIGIN);
+  const returnTo = allowedReturnTo(
+    url.searchParams.get('return_to'), env.APP_ORIGIN, env.APP_PREVIEW_ORIGIN_SUFFIX,
+  );
   const codeChallenge = url.searchParams.get('code_challenge') || '';
   if (!PKCE_CHALLENGE_PATTERN.test(codeChallenge)) {
     return authErrorRedirect(returnTo, 'pkce_required');
@@ -329,11 +334,38 @@ function oauthConfig(provider: Provider, env: Env, origin: string) {
   return null;
 }
 
-export function allowedReturnTo(value: string | null, appOrigin: string): string {
+export function allowedBrowserOrigin(
+  value: string | null,
+  appOrigin: string,
+  previewOriginSuffix?: string,
+): boolean {
+  if (!value) return true;
+  try {
+    const candidate = new URL(value);
+    if (candidate.origin === new URL(appOrigin).origin) return true;
+    return Boolean(
+      previewOriginSuffix
+      && candidate.protocol === 'https:'
+      && !candidate.port
+      && candidate.hostname.length > previewOriginSuffix.length
+      && candidate.hostname.endsWith(previewOriginSuffix),
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function allowedReturnTo(
+  value: string | null,
+  appOrigin: string,
+  previewOriginSuffix?: string,
+): string {
   if (!value) return `${appOrigin.replace(/\/$/, '')}/`;
   try {
     const candidate = new URL(value);
-    if (candidate.origin === new URL(appOrigin).origin) return `${candidate.origin}/`;
+    if (allowedBrowserOrigin(candidate.origin, appOrigin, previewOriginSuffix)) {
+      return `${candidate.origin}/`;
+    }
   } catch { /* fall through */ }
   return `${appOrigin.replace(/\/$/, '')}/`;
 }
@@ -419,9 +451,12 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function cors(response: Response, env: Env): Response {
+function cors(response: Response, env: Env, requestOrigin: string | null): Response {
   const headers = new Headers(response.headers);
-  headers.set('Access-Control-Allow-Origin', new URL(env.APP_ORIGIN).origin);
+  const responseOrigin = allowedBrowserOrigin(
+    requestOrigin, env.APP_ORIGIN, env.APP_PREVIEW_ORIGIN_SUFFIX,
+  ) && requestOrigin ? new URL(requestOrigin).origin : new URL(env.APP_ORIGIN).origin;
+  headers.set('Access-Control-Allow-Origin', responseOrigin);
   headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   headers.set('X-Content-Type-Options', 'nosniff');

@@ -24,6 +24,15 @@ const RECONNECT_DELAY_SECS: u64 = 2;
 const HEARTBEAT_INTERVAL_SECS: u64 = 20;
 const RELAY_CAPABILITY_TTL_SECONDS: u64 = 60;
 
+fn install_tls_provider() -> Result<(), Box<dyn Error + Send + Sync>> {
+    if rustls::crypto::CryptoProvider::get_default().is_some() {
+        return Ok(());
+    }
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .map_err(|_| "could not install the AgentSight relay TLS provider".into())
+}
+
 #[derive(Debug, Deserialize)]
 struct RelayRequestEnvelope {
     r#type: String,
@@ -52,6 +61,10 @@ pub(crate) async fn run(
     access_token: String,
     local_endpoint: String,
 ) {
+    if let Err(error) = install_tls_provider() {
+        log::warn!("AgentSight Controller relay disabled: {error}");
+        return;
+    }
     let relay_url = match relay_url(&controller_url, &node_id) {
         Ok(url) => url,
         Err(error) => {
@@ -341,5 +354,11 @@ mod tests {
         assert!(!allowed_relay_path("POST", "/api/v1/snapshot"));
         assert!(!allowed_relay_path("GET", "/etc/passwd"));
         assert!(!allowed_relay_path("GET", "/api/v1/sessions/../secret"));
+    }
+
+    #[test]
+    fn relay_installs_a_tls_provider() {
+        install_tls_provider().unwrap();
+        assert!(rustls::crypto::CryptoProvider::get_default().is_some());
     }
 }
