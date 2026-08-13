@@ -849,7 +849,7 @@ export default function Home() {
 
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
             <a href="/" className="text-lg font-semibold tracking-tight">AgentSight</a>
             {identity && activeOrganization && (
               <div className="flex items-center gap-2">
