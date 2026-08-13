@@ -48,5 +48,5 @@ if (!available('npm') && available('pnpm')) {
   run('pnpm', ['exec', 'next', 'build'], { shell: process.platform === 'win32' });
 } else {
   run('npm', ['run', 'build:wasm'], { shell: process.platform === 'win32' });
-  run('npm', ['exec', '--', 'next', 'build'], { shell: process.platform === 'win32' });
+  run('npm', ['exec', '-c', 'next build'], { shell: process.platform === 'win32' });
 }

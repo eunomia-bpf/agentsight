@@ -108,18 +108,6 @@ export function validRelayToken(value: string): boolean {
   return RELAY_TOKEN_PATTERN.test(value);
 }
 
-export async function saveRelayCredential(
-  db: D1Database,
-  nodeId: string,
-  token: string,
-): Promise<boolean> {
-  if (!validRelayToken(token)) return false;
-  const result = await db.prepare(
-    `UPDATE nodes SET relay_token_hash = ?1, connection_mode = 'relay' WHERE id = ?2`,
-  ).bind(await sha256(token), nodeId).run();
-  return Boolean(result.meta.changes);
-}
-
 function relayStub(env: RelayEnv, nodeId: string): DurableObjectStub {
   return env.NODE_RELAY.get(env.NODE_RELAY.idFromName(nodeId));
 }
@@ -138,7 +126,7 @@ export async function connectNodeRelay(
   const row = await env.DB.prepare(
     'SELECT relay_token_hash FROM nodes WHERE id = ?1',
   ).bind(nodeId).first<{ relay_token_hash: string | null }>();
-  if (!row?.relay_token_hash || row.relay_token_hash !== await sha256(token)) {
+  if (!row?.relay_token_hash || row.relay_token_hash !== await relayTokenHash(token)) {
     return json({ error: 'node_auth_invalid' }, 401);
   }
 
@@ -325,7 +313,7 @@ async function boundedBody(request: Request): Promise<string | Response> {
   return body;
 }
 
-async function sha256(value: string): Promise<string> {
+export async function relayTokenHash(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }

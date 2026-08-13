@@ -38,7 +38,6 @@ export function ConnectionDialog({
         <div className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">AgentSight</p>
           <h1 id="connect-title" className="mt-1 text-2xl font-bold text-slate-950">{t('connect.title')}</h1>
-          <p className="mt-2 text-sm text-slate-600">{t('connect.privacy')}</p>
         </div>
 
         {error && (
@@ -48,14 +47,12 @@ export function ConnectionDialog({
         <div className={`grid gap-4 ${signInVisible ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
           <section className="rounded-xl border border-slate-200 p-4">
             <h2 className="font-semibold text-slate-950">{t('connect.nodeTitle')}</h2>
-            <p className="mt-2 text-sm text-slate-600">{t('connect.nodeBody')}</p>
             <pre className="mt-4 overflow-x-auto rounded-lg bg-slate-950 px-3 py-2 text-xs text-white">agentsight bind</pre>
             <p className="mt-3 text-xs text-slate-500">{t('connect.nodeArgs')}</p>
           </section>
 
           {signInVisible && <section className="rounded-xl border border-slate-200 p-4">
             <h2 className="font-semibold text-slate-950">{t('connect.signInTitle')}</h2>
-            <p className="mt-2 text-sm text-slate-600">{t('connect.signInBody')}</p>
             <div className="mt-4 space-y-2">
               {providers.includes('github') && <button type="button" onClick={() => { void startLogin('github'); }}
                 className="block w-full rounded-lg bg-slate-950 px-3 py-2 text-center text-sm font-medium text-white hover:bg-slate-800">

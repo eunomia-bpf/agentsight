@@ -9,17 +9,15 @@ import {
   CheckIcon,
   CommandLineIcon,
   ComputerDesktopIcon,
-  SignalIcon,
   TrashIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
-import type { CloudIdentity, CloudNode, LocalConnection } from '@/lib/connection';
+import type { CloudNode, LocalConnection } from '@/lib/connection';
 import { directCloudSyncEnabled, type NodeTransport } from '@/lib/nodeClient';
 import { shouldConfigureDirect } from '@/lib/nodeOpening.mjs';
 import { useTranslation } from '@/i18n';
 
 interface NodeManagerProps {
-  identity: CloudIdentity;
   nodes: CloudNode[];
   connections: Record<string, LocalConnection>;
   relayStatus: Record<string, boolean | null>;
@@ -62,7 +60,6 @@ function endpointLabel(endpoint: string): string {
 }
 
 export function NodeManager({
-  identity,
   nodes,
   connections,
   relayStatus,
@@ -155,9 +152,6 @@ export function NodeManager({
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('app.nodes')}</p>
           <h2 className="mt-1 text-xl font-semibold text-slate-950">{t('nodes.title')}</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            {t('nodes.managerSubtitle', { name: identity.name || identity.email })}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={onRefresh} disabled={loading}
@@ -297,9 +291,6 @@ export function NodeManager({
                           spellCheck={false} autoCapitalize="none" autoCorrect="off"
                           className="mt-1 min-w-0 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500" />
                       </div>
-                      <p className="break-words text-xs leading-5 text-slate-500">
-                        {t('nodes.capabilityBoundary')}
-                      </p>
                       <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-600">
                         <input type="checkbox" checked={saveToAccount}
                           onChange={(event) => setSaveToAccount(event.target.checked)}
@@ -344,11 +335,7 @@ export function NodeManager({
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
-          <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
-            <SignalIcon className="h-4 w-4 shrink-0" />
-            <span>{t('nodes.controllerBoundary')}</span>
-          </div>
+        <div className="flex justify-end gap-4 border-t border-slate-200 pt-4">
           <div className="flex items-center gap-4">
             <button type="button" onClick={onDemo} className="text-sm font-medium text-slate-600 hover:text-slate-950">
               {t('nodes.demo')}

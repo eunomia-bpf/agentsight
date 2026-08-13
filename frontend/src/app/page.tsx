@@ -577,7 +577,7 @@ export default function Home() {
   const workspaceVisible = isLive || isDemo;
 
   const nodeManager = identity ? (
-    <NodeManager identity={identity} nodes={cloudNodes} connections={directConnections}
+    <NodeManager nodes={cloudNodes} connections={directConnections}
       relayStatus={relayStatus} activeNodeId={activeClient?.nodeId} activeTransport={activeTransport}
       loadingNodeId={loadingNodeId} loading={syncing || nodesLoading} error={nodeError}
       onOpenNode={(nodeId) => { void openNode(nodeId); }} onConnectDirect={connectDirect}
@@ -596,7 +596,7 @@ export default function Home() {
       )}
 
       {identity && dialogOpen && (
-        <NodeManager identity={identity} nodes={cloudNodes} connections={directConnections}
+        <NodeManager nodes={cloudNodes} connections={directConnections}
           relayStatus={relayStatus} activeNodeId={activeClient?.nodeId} activeTransport={activeTransport}
           loadingNodeId={loadingNodeId} loading={syncing || nodesLoading} error={nodeError} modal
           onClose={() => setDialogOpen(false)}

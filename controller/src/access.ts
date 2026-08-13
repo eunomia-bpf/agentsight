@@ -368,7 +368,13 @@ export async function registerNode(
   db: D1Database,
   userId: string,
   organizationId: string,
-  node: { id: string; name: string; version?: string | null },
+  node: {
+    id: string;
+    name: string;
+    version?: string | null;
+    relayTokenHash?: string | null;
+    directConfig?: DirectConfigRow;
+  },
 ): Promise<OrganizationAccess> {
   const access = await requireOrganizationAction(db, userId, organizationId, 'node.manage');
   requireManagedPlan(access);
@@ -378,16 +384,34 @@ export async function registerNode(
     throw new AccessError(409, 'node_registered_to_another_organization');
   }
   const now = nowSeconds();
-  const result = await db.prepare(
+  const statements = [db.prepare(
     `INSERT INTO nodes
      (id, organization_id, name, version, public_key, relay_token_hash, connection_mode, last_seen_at, created_at)
-     VALUES (?1, ?2, ?3, ?4, NULL, NULL, 'direct', ?5, ?5)
+     VALUES (?1, ?2, ?3, ?4, NULL, ?5, CASE WHEN ?5 IS NULL THEN 'direct' ELSE 'relay' END, ?6, ?6)
      ON CONFLICT(id) DO UPDATE SET
        name = excluded.name,
        version = excluded.version,
+       relay_token_hash = COALESCE(excluded.relay_token_hash, nodes.relay_token_hash),
+       connection_mode = CASE WHEN excluded.relay_token_hash IS NULL
+         THEN nodes.connection_mode ELSE 'relay' END,
        last_seen_at = excluded.last_seen_at
      WHERE nodes.organization_id = excluded.organization_id`,
-  ).bind(node.id, organizationId, node.name, node.version || null, now).run();
+  ).bind(node.id, organizationId, node.name, node.version || null, node.relayTokenHash || null, now)];
+  if (node.directConfig) {
+    statements.push(db.prepare(
+      `INSERT INTO node_direct_configs
+       (node_id, owner_user_id, ciphertext, iv, version, created_at, updated_at)
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?6
+       WHERE EXISTS (SELECT 1 FROM nodes WHERE id = ?1 AND organization_id = ?7)
+       ON CONFLICT(node_id, owner_user_id) DO UPDATE SET
+         ciphertext = excluded.ciphertext, iv = excluded.iv,
+         version = excluded.version, updated_at = excluded.updated_at`,
+    ).bind(
+      node.id, userId, node.directConfig.ciphertext, node.directConfig.iv,
+      node.directConfig.version, now, organizationId,
+    ));
+  }
+  const [result] = await db.batch(statements);
   if (!result.meta.changes) throw new AccessError(409, 'node_registered_to_another_organization');
   return access;
 }
@@ -411,23 +435,6 @@ export async function getDirectConfig(
     `SELECT ciphertext, iv, version FROM node_direct_configs
      WHERE node_id = ?1 AND owner_user_id = ?2`,
   ).bind(nodeId, userId).first<DirectConfigRow>();
-}
-
-export async function saveDirectConfig(
-  db: D1Database,
-  userId: string,
-  nodeId: string,
-  config: DirectConfigRow,
-): Promise<void> {
-  const now = nowSeconds();
-  await db.prepare(
-    `INSERT INTO node_direct_configs
-     (node_id, owner_user_id, ciphertext, iv, version, created_at, updated_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)
-     ON CONFLICT(node_id, owner_user_id) DO UPDATE SET
-       ciphertext = excluded.ciphertext, iv = excluded.iv,
-       version = excluded.version, updated_at = excluded.updated_at`,
-  ).bind(nodeId, userId, config.ciphertext, config.iv, config.version, now).run();
 }
 
 export async function deleteDirectConfig(db: D1Database, userId: string, nodeId: string): Promise<void> {
