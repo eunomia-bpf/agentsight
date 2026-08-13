@@ -146,7 +146,11 @@ export async function mockEmbeddedProbe(page: Page) {
   await page.route('http://127.0.0.1:4173/api/v1/info', (route) => route.fulfill({ status: 404 }));
 }
 
-export async function mockController(page: Page, options: { signedIn?: boolean; blockMessages?: boolean } = {}) {
+export async function mockController(page: Page, options: {
+  signedIn?: boolean;
+  blockMessages?: boolean;
+  nodeListDelayMs?: number;
+} = {}) {
   const state: MockState = {
     messages: [], nodeListRequests: 0, deletedNodes: [], signOuts: 0,
     blockMessages: options.blockMessages ?? false,
@@ -193,6 +197,9 @@ export async function mockController(page: Page, options: { signedIn?: boolean; 
     }] });
     if (path === '/v1/nodes' && request.method() === 'GET') {
       state.nodeListRequests += 1;
+      if (options.nodeListDelayMs) {
+        await new Promise((resolve) => setTimeout(resolve, options.nodeListDelayMs));
+      }
       return json(route, { nodes: url.searchParams.get('organization_id') === 'org-team' ? [] : nodes });
     }
     const status = path.match(/^\/v1\/nodes\/([^/]+)\/relay\/status$/);

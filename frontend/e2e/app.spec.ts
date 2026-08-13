@@ -98,6 +98,16 @@ test('unsafe message resume is blocked and disables further sends', async ({ pag
   await expect(page.getByPlaceholder('This session is read-only.')).toBeDisabled();
 });
 
+test('sign-out during initial Node loading returns to the anonymous entry', async ({ page }) => {
+  const state = await mockController(page, { signedIn: true, nodeListDelayMs: 500 });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Nodes' }).click();
+  await page.getByRole('dialog', { name: 'Your Nodes' }).getByRole('button', { name: 'Sign out' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Open your AgentSight data' })).toBeVisible();
+  await expect.poll(() => state.signOuts).toBe(1);
+});
+
 test('Node management refresh, Direct setup, organization creation, sign-out, and mobile layout remain usable', async ({ page }) => {
   const state = await mockController(page, { signedIn: true });
   await page.setViewportSize({ width: 390, height: 844 });
