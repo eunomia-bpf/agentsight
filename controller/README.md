@@ -46,7 +46,7 @@ The Controller exposes the canonical future billing catalog at `GET /v1/pricing`
 - Team: $10/user/month; shared organization/fleet and team roles;
 - Enterprise: custom.
 
-During the current hosted preview, registered users are not billing-gated: personal organizations receive Pro-level hosted access and team organizations receive Team-level hosted access automatically. `0006_unlimited_preview.sql` upgrades existing free preview organizations and keeps new preview organizations unrestricted. The price catalog and provider-neutral billing fields remain in place for later enforcement.
+During the current hosted preview, every registered user receives `effectivePlan: "unlimited"`. The switch is `HOSTED_PREVIEW_UNLIMITED` in `src/access.ts`; it bypasses managed-connectivity and multi-member plan gates without rewriting the organization's persisted billing plan or billing status. This keeps future Free/Pro/Team/Enterprise billing data independent from today's preview access.
 
 A `pro_lifetime` entitlement remains the durable contributor benefit after preview billing is enabled; it applies to personal Pro and does not waive Team or Enterprise billing.
 
