@@ -16,6 +16,7 @@ import { useTranslation } from '@/i18n';
 
 interface TimelineProps {
   events: DisplayEvent[];
+  initialSearchTerm?: string;
 }
 
 interface TimelineGroupData {
@@ -24,24 +25,28 @@ interface TimelineGroupData {
   color: string;
 }
 
-export function Timeline({ events }: TimelineProps) {
+export function Timeline({ events, initialSearchTerm = '' }: TimelineProps) {
   const [selectedEvent, setSelectedEvent] = useState<DisplayEvent | null>(null);
   const [timeRange, setTimeRange] = useState<{ start: number; end: number } | null>(null);
   const [selectedSource, setSelectedSource] = useState<string>('');
   const [selectedComm, setSelectedComm] = useState<string>('');
   const [selectedPid, setSelectedPid] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [scrollOffset, setScrollOffset] = useState<number>(0);
   const { t } = useTranslation();
+
+  useEffect(() => { setSearchTerm(initialSearchTerm); }, [initialSearchTerm]);
 
   // Filter events based on selected filters
   const filteredEvents = useMemo(() => {
     return filterDisplayEvents(events, {
       source: selectedSource,
       comm: selectedComm,
-      pid: selectedPid
+      pid: selectedPid,
+      searchTerm
     });
-  }, [events, selectedSource, selectedComm, selectedPid]);
+  }, [events, searchTerm, selectedSource, selectedComm, selectedPid]);
 
   // Group filtered events by source
   const timelineGroups: TimelineGroupData[] = useMemo(() => {
@@ -238,9 +243,12 @@ export function Timeline({ events }: TimelineProps) {
           selectedSource={selectedSource}
           selectedComm={selectedComm}
           selectedPid={selectedPid}
+          searchTerm={searchTerm}
           onSourceChange={setSelectedSource}
           onCommChange={setSelectedComm}
           onPidChange={setSelectedPid}
+          onSearchChange={setSearchTerm}
+          showSearch={true}
         />
       </div>
 

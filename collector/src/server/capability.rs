@@ -203,7 +203,9 @@ pub fn action_for_request(method: &str, path: &str) -> Option<(&'static str, Opt
     if method == "GET" && path == "/api/v1/info" {
         return Some((NODE_INFO, None));
     }
-    if method == "GET" && matches!(path, "/api/v1/snapshot" | "/api/v1/overview") {
+    if method == "GET"
+        && matches!(path, "/api/v1/snapshot" | "/api/v1/overview" | "/api/v1/nebula")
+    {
         return Some((EVIDENCE_READ, None));
     }
     let session = path.strip_prefix("/api/v1/sessions/")?;
@@ -337,6 +339,10 @@ mod tests {
     #[test]
     fn protocol_paths_map_to_semantic_actions() {
         assert_eq!(action_for_request("GET", "/api/v1/info"), Some((NODE_INFO, None)));
+        assert_eq!(
+            action_for_request("GET", "/api/v1/nebula"),
+            Some((EVIDENCE_READ, None))
+        );
         assert_eq!(
             action_for_request("GET", "/api/v1/sessions/s-1"),
             Some((SESSION_READ, Some("s-1".to_string())))

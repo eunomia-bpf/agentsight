@@ -11,6 +11,7 @@ import initProtocol, {
   snapshot_path as snapshotPath,
 } from '@/generated/agentsight-protocol/agentsight_protocol';
 import type { AgentSightSnapshot, CodingPlanStep, LiveOverview } from '@/types/event';
+import type { NebulaDocument } from '@/types/nebula';
 
 const DIRECT_CONNECTIONS_KEY = 'agentsight.direct-connections.v1';
 const DIRECT_SYNC_ENABLED_KEY = 'agentsight.direct-sync-enabled.v1';
@@ -59,6 +60,7 @@ export interface NodeClient {
   nodeName: string;
   transport: NodeTransport;
   snapshot(): Promise<AgentSightSnapshot>;
+  nebula(): Promise<NebulaDocument>;
   overview(): Promise<LiveOverview | null>;
   session(sessionId: string): Promise<SessionDetail>;
   submitMessage(sessionId: string, message: string): Promise<void>;
@@ -256,6 +258,11 @@ function nodeClient(nodeId: string, nodeName: string, transport: NodeTransport, 
     async snapshot() {
       return jsonResponse<AgentSightSnapshot>(
         await request(await protocol(() => snapshotPath(50_000))), 'AgentSight Node snapshot failed',
+      );
+    },
+    async nebula() {
+      return jsonResponse<NebulaDocument>(
+        await request('/api/v1/nebula'), 'AgentSight Node nebula failed',
       );
     },
     async overview() {

@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DisplayEvent, filterDisplayEvents } from '@/utils/eventProcessing';
 import { EventFilters } from '@/components/common/EventFilters';
 import { EventModal } from '@/components/common/EventModal';
@@ -12,15 +12,18 @@ import { useTranslation } from '@/i18n';
 
 interface LogViewProps {
   events: DisplayEvent[];
+  initialSearchTerm?: string;
 }
 
-export function LogView({ events }: LogViewProps) {
+export function LogView({ events, initialSearchTerm = '' }: LogViewProps) {
   const { t } = useTranslation();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const [selectedSource, setSelectedSource] = useState<string>('');
   const [selectedComm, setSelectedComm] = useState<string>('');
   const [selectedPid, setSelectedPid] = useState<string>('');
   const [selectedEvent, setSelectedEvent] = useState<DisplayEvent | null>(null);
+
+  useEffect(() => { setSearchTerm(initialSearchTerm); }, [initialSearchTerm]);
 
   // Filter events based on search, source, comm, and pid
   const filteredEvents = useMemo(() => {

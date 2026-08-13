@@ -309,7 +309,7 @@ fn allowed_relay_path(method: &str, value: &str) -> bool {
                 .is_some_and(|value| !value.is_empty() && value.len() <= 6 && value.bytes().all(|b| b.is_ascii_digit()))
         });
     }
-    if method == "GET" && path == "/api/v1/overview" {
+    if method == "GET" && matches!(path, "/api/v1/overview" | "/api/v1/nebula") {
         return query.is_none();
     }
     if query.is_some() {
@@ -353,6 +353,7 @@ mod tests {
         assert!(allowed_relay_path("POST", "/api/v1/capabilities"));
         assert!(allowed_relay_path("GET", "/api/v1/snapshot?audit_limit=50000"));
         assert!(allowed_relay_path("GET", "/api/v1/overview"));
+        assert!(allowed_relay_path("GET", "/api/v1/nebula"));
         assert!(allowed_relay_path("GET", "/api/v1/sessions/session-123"));
         assert!(allowed_relay_path("POST", "/api/v1/sessions/session-123/messages"));
         assert!(!allowed_relay_path("POST", "/api/v1/snapshot"));

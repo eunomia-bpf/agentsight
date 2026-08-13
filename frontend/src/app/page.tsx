@@ -8,6 +8,7 @@ import { NodeOverview } from '@/components/NodeOverview';
 import { SessionWorkspace } from '@/components/SessionWorkspace';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ConnectionDialog } from '@/components/ConnectionDialog';
+import { NebulaView } from '@/components/nebula/NebulaView';
 import { NodeManager } from '@/components/NodeManager';
 import { tryNodeTransports } from '@/lib/nodeOpening.mjs';
 import {
@@ -48,6 +49,7 @@ import { useTranslation } from '@/i18n';
 import { snapshotSessions } from '@/utils/sessionData';
 
 type AppMode = 'loading' | 'disconnected' | 'directory' | 'live' | 'demo';
+type NodeView = 'overview' | 'nebula';
 
 const ACTIVE_ORGANIZATION_KEY = 'agentsight.active-organization.v1';
 const PENDING_INVITE_KEY = 'agentsight.pending-invite.v1';
@@ -81,6 +83,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [mode, setMode] = useState<AppMode>('loading');
   const [activeClient, setActiveClient] = useState<NodeClient | null>(null);
+  const [nodeView, setNodeView] = useState<NodeView>('overview');
   const [identity, setIdentity] = useState<CloudIdentity | null>(null);
   const [organizations, setOrganizations] = useState<CloudOrganization[]>([]);
   const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
@@ -620,11 +623,13 @@ export default function Home() {
   }, []);
 
   const openSession = (sessionId: string) => {
+    setNodeView('overview');
     setSelectedSessionId(sessionId);
     window.history.replaceState(null, '', `${basePath}/?session=${encodeURIComponent(sessionId)}`);
   };
 
   const closeSession = () => {
+    setNodeView('overview');
     setSelectedSessionId(null);
     window.history.replaceState(null, '', `${basePath}/`);
   };
@@ -762,10 +767,26 @@ export default function Home() {
               </div>
 
               {isLive && (
-                <button type="button" onClick={() => { void syncData(); }} disabled={syncing}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-                  {t('nodes.refresh')}
-                </button>
+                <div className="flex flex-wrap items-center gap-2 lg:gap-4">
+                  <div className="flex flex-wrap rounded-lg border border-gray-200 p-1">
+                    {(['overview', 'nebula'] as const).map((view) => (
+                      <button key={view} type="button" onClick={() => {
+                        setSelectedSessionId(null);
+                        setNodeView(view);
+                        window.history.replaceState(null, '', `${basePath}/`);
+                      }}
+                        className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                          nodeView === view ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                        }`}>
+                        {view === 'overview' ? t('sessionDetail.back') : t('nebula.title')}
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" onClick={() => { void syncData(); }} disabled={syncing}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                    {t('nodes.refresh')}
+                  </button>
+                </div>
               )}
             </section>
 
@@ -777,6 +798,8 @@ export default function Home() {
               selectedSession ? (
                 <SessionWorkspace snapshot={snapshot} overview={overview} session={selectedSession}
                   client={activeClient} onBack={closeSession} />
+              ) : isLive && nodeView === 'nebula' ? (
+                <NebulaView client={activeClient} />
               ) : (
                 <NodeOverview snapshot={snapshot} overview={overview} onOpenSession={openSession} />
               )

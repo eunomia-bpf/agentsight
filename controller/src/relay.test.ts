@@ -32,6 +32,16 @@ test('browser relay surface is narrow and maps to Node protocol paths', () => {
     statusOnly: false,
   });
 
+  const nebula = browserRelayRoute(new Request(
+    'https://controller.example/v1/nodes/node_test/relay/nebula',
+  ));
+  assert.deepEqual(nebula, {
+    nodeId: 'node_test',
+    method: 'GET',
+    nodePath: '/api/v1/nebula',
+    statusOnly: false,
+  });
+
   const session = browserRelayRoute(new Request(
     'https://controller.example/v1/nodes/node_test/relay/sessions/session-1',
   ));

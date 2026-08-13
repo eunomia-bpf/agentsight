@@ -150,6 +150,7 @@ test('plan gates preserve future billing semantics while preview is unlimited', 
 test('relay protocol routes map to the same semantic permissions as direct', () => {
   assert.equal(relayAction('GET', '/api/v1/snapshot?audit_limit=100', false), 'evidence.read');
   assert.equal(relayAction('GET', '/api/v1/overview', false), 'evidence.read');
+  assert.equal(relayAction('GET', '/api/v1/nebula', false), 'evidence.read');
   assert.equal(relayAction('GET', '/api/v1/sessions/s-1', false), 'session.read');
   assert.equal(relayAction('POST', '/api/v1/sessions/s-1/messages', false), 'session.message');
   assert.equal(relayAction('GET', null, true), 'node.read');

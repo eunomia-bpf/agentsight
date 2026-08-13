@@ -289,6 +289,23 @@ async fn handle_request(
                 serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
             }
         }
+        (Method::GET, "/api/v1/nebula") => {
+            if !protocol_access_allowed(
+                direct_auth.as_ref(),
+                &capabilities,
+                authorization.as_ref(),
+                EVIDENCE_READ,
+                None,
+                origin.as_deref(),
+            ) {
+                json_error(
+                    StatusCode::UNAUTHORIZED,
+                    "evidence.read capability required",
+                )
+            } else {
+                serve_nebula_api(view, agent_native_sessions, db_path, query.as_deref()).await?
+            }
+        }
         (Method::GET, "/api/v1/overview") => {
             if !protocol_access_allowed(
                 direct_auth.as_ref(),
@@ -706,6 +723,118 @@ fn snapshot_from_sources(
     Ok(merged.export_snapshot(SnapshotOptions { audit_limit }))
 }
 
+async fn serve_nebula_api(
+    view: SharedMaterializedView,
+    agent_native_sessions: Arc<Mutex<SessionCache>>,
+    db_path: Option<String>,
+    query: Option<&str>,
+) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
+    // Pull a generous audit window; layout then bounds stars/frames itself.
+    // Query overrides cannot defeat the hard caps (star/frame ids are u16).
+    const ABSOLUTE_MAX_STARS: usize = 8_000;
+    const ABSOLUTE_MAX_FRAMES: usize = 2_000;
+    const ABSOLUTE_MAX_AUDIT: usize = 200_000;
+    let audit_limit = query_param_usize(query, "audit_limit")
+        .unwrap_or(100_000)
+        .clamp(1, ABSOLUTE_MAX_AUDIT);
+    let max_stars = query_param_usize(query, "max_stars")
+        .unwrap_or(agentvis::DEFAULT_MAX_STARS)
+        .clamp(1, ABSOLUTE_MAX_STARS.min(u16::MAX as usize));
+    let max_frames = query_param_usize(query, "max_frames")
+        .unwrap_or(agentvis::DEFAULT_MAX_FRAMES)
+        .clamp(1, ABSOLUTE_MAX_FRAMES.min(u16::MAX as usize));
+
+    let result = tokio::task::spawn_blocking(
+        move || -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+            let snapshot = snapshot_from_sources(
+                &view,
+                &agent_native_sessions,
+                db_path.as_deref(),
+                audit_limit,
+            )?;
+            let document = nebula_from_snapshot(&snapshot, max_stars, max_frames);
+            Ok(serde_json::to_value(document)?)
+        },
+    )
+    .await;
+
+    match result {
+        Ok(Ok(value)) => Ok(json_response(StatusCode::OK, &value)),
+        Ok(Err(e)) => Ok(json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("failed to build nebula: {}", e),
+        )),
+        Err(e) => Ok(json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("nebula task failed: {}", e),
+        )),
+    }
+}
+
+/// Project materialized-view file audit rows into a prepared Nebula document.
+///
+/// Ground truth: `Snapshot.audit_events` with `audit_type == "file"`. The
+/// collector currently labels file opens/writes as `action: "write"`; path is
+/// `target`. Layout (positions, colors, frame downsample) runs once here.
+fn nebula_from_snapshot(
+    snapshot: &Snapshot,
+    max_stars: usize,
+    max_frames: usize,
+) -> agentvis::NebulaDocument {
+    let mut actions: Vec<agentvis::NebulaFileAction> = snapshot
+        .audit_events
+        .iter()
+        .filter(|row| row.audit_type == "file")
+        .filter_map(|row| {
+            let path = row.target.as_deref()?.trim();
+            if path.is_empty() {
+                return None;
+            }
+            Some(agentvis::NebulaFileAction {
+                ts_ms: row.timestamp_ms,
+                path: path.to_string(),
+                access: row.action.as_deref().unwrap_or("write").to_string(),
+                previous_path: None,
+                event_id: row.id.clone(),
+                pid: row.pid,
+                comm: row.comm.clone(),
+            })
+        })
+        .collect();
+    actions.sort_by(|a, b| {
+        a.ts_ms
+            .cmp(&b.ts_ms)
+            .then_with(|| a.event_id.cmp(&b.event_id))
+    });
+
+    let repository = snapshot
+        .sessions
+        .iter()
+        .find_map(|session| {
+            session
+                .attributes
+                .get("cwd")
+                .and_then(Value::as_str)
+                .map(|cwd| {
+                    std::path::Path::new(cwd)
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or(cwd)
+                        .to_string()
+                })
+        })
+        .unwrap_or_else(|| "session".into());
+
+    agentvis::build_nebula_document(
+        &actions,
+        &agentvis::NebulaLayoutOptions {
+            max_stars,
+            max_frames,
+            repository,
+        },
+    )
+}
+
 fn plain_response(status: StatusCode, content_type: &str, body: Vec<u8>) -> Response<Full<Bytes>> {
     Response::builder()
         .status(status)
@@ -829,6 +958,101 @@ mod tests {
     }
 
     #[test]
+    fn nebula_query_overrides_are_clamped() {
+        // Document the hard caps used by serve_nebula_api so they cannot
+        // silently drift from the u16 id space.
+        assert!(8_000 <= u16::MAX as usize);
+        assert!(2_000 <= u16::MAX as usize);
+        let huge = 10_000_000usize;
+        assert_eq!(huge.clamp(1, 8_000), 8_000);
+        assert_eq!(huge.clamp(1, 2_000), 2_000);
+        assert_eq!(huge.clamp(1, 200_000), 200_000);
+    }
+
+    #[test]
+    fn nebula_reads_file_audit_rows_only() {
+        use crate::model::{AuditEventRow, SnapshotSummary};
+
+        let snapshot = Snapshot {
+            schema_version: 1,
+            generated_at: "test".into(),
+            summary: SnapshotSummary::empty("test"),
+            token_summary: vec![],
+            network_targets: vec![],
+            process_nodes: vec![],
+            audit_events: vec![
+                AuditEventRow {
+                    id: "f1".into(),
+                    timestamp_ms: 1_000,
+                    audit_type: "file".into(),
+                    pid: Some(1),
+                    comm: Some("agent".into()),
+                    subject: None,
+                    action: Some("write".into()),
+                    target: Some("src/a.rs".into()),
+                    status: Some("observed".into()),
+                    summary: None,
+                    details: serde_json::json!({}),
+                },
+                AuditEventRow {
+                    id: "p1".into(),
+                    timestamp_ms: 1_100,
+                    audit_type: "process".into(),
+                    pid: Some(1),
+                    comm: Some("agent".into()),
+                    subject: None,
+                    action: Some("exec".into()),
+                    target: Some("/bin/true".into()),
+                    status: Some("observed".into()),
+                    summary: None,
+                    details: serde_json::json!({}),
+                },
+                AuditEventRow {
+                    id: "f2".into(),
+                    timestamp_ms: 1_200,
+                    audit_type: "file".into(),
+                    pid: Some(1),
+                    comm: Some("agent".into()),
+                    subject: None,
+                    action: Some("write".into()),
+                    target: Some("src/b.rs".into()),
+                    status: Some("observed".into()),
+                    summary: None,
+                    details: serde_json::json!({}),
+                },
+            ],
+            resource_samples: vec![],
+            sessions: vec![],
+            tool_calls: vec![],
+        };
+        let doc = nebula_from_snapshot(&snapshot, 100, 100);
+        assert!(!doc.meta.empty);
+        assert_eq!(doc.meta.total_file_events, 2);
+        assert_eq!(doc.stars.len(), 2);
+        assert_eq!(doc.meta.source, "audit_events.file");
+    }
+
+    #[test]
+    fn nebula_empty_without_file_events() {
+        use crate::model::SnapshotSummary;
+        let snapshot = Snapshot {
+            schema_version: 1,
+            generated_at: "test".into(),
+            summary: SnapshotSummary::empty("test"),
+            token_summary: vec![],
+            network_targets: vec![],
+            process_nodes: vec![],
+            audit_events: vec![],
+            resource_samples: vec![],
+            sessions: vec![],
+            tool_calls: vec![],
+        };
+        let doc = nebula_from_snapshot(&snapshot, 10, 10);
+        assert!(doc.meta.empty);
+        assert!(doc.stars.is_empty());
+    }
+
+    #[test]
     fn parses_session_routes() {
         assert_eq!(
             session_detail_id("/api/v1/sessions/session-1"),
@@ -921,6 +1145,10 @@ mod tests {
         );
         assert_eq!(
             crate::server::capability::action_for_request("GET", "/api/v1/overview"),
+            Some((EVIDENCE_READ, None))
+        );
+        assert_eq!(
+            crate::server::capability::action_for_request("GET", "/api/v1/nebula"),
             Some((EVIDENCE_READ, None))
         );
         assert_eq!(

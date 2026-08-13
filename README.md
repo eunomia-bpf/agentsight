@@ -133,6 +133,14 @@ GIF export requires local Chromium and FFmpeg. Use
 `agentsight vis -o output/agent-nebula.html` for a self-contained HTML artifact
 that needs neither dependency to generate.
 
+`agentsight vis` is the **offline CLI artifact** path: it scans local Claude,
+Codex, and Gemini session files for a Git worktree and writes GIF/HTML/MP4.
+The **web UI Nebula view** (below) is a different entry point for the same
+branded visualization: it projects file events from a live Node materialized
+view (`audit_events` with `audit_type=file`), prepares layout on the collector,
+and plays back in the browser. Open [http://127.0.0.1:7395](http://127.0.0.1:7395)
+and select **Agent Nebula** beside the machine overview.
+
 ### Querying Past Sessions
 
 Every `record` session is automatically saved to an `agentsight-*.db` SQLite
@@ -190,6 +198,7 @@ During a session, visit [http://127.0.0.1:7395](http://127.0.0.1:7395) for live 
 - **Process Tree**: http://127.0.0.1:7395/tree
 - **Event Log**: http://127.0.0.1:7395/logs
 - **Metrics View**: http://127.0.0.1:7395/metrics
+- **Agent Nebula**: open the Node at http://127.0.0.1:7395/ and select **Agent Nebula** — repository file evolution (stars + areas) from Node file audits; layout is prepared by the collector at `GET /api/v1/nebula`, while the browser only renders and plays back. Distinct from `agentsight vis`, which builds offline GIF/HTML artifacts from native agent session logs.
 
 For a saved SQLite session, run `agentsight report serve --db run.db` and open the same routes.
 

@@ -84,6 +84,17 @@ export function browserRelayRoute(request: Request): BrowserRelayRoute | null {
     } : null;
   }
 
+  const nebula = url.pathname.match(/^\/v1\/nodes\/([^/]+)\/relay\/nebula$/);
+  if (nebula && request.method === 'GET') {
+    const nodeId = decodeNodeId(nebula[1]);
+    return nodeId ? {
+      nodeId,
+      method: 'GET',
+      nodePath: '/api/v1/nebula',
+      statusOnly: false,
+    } : null;
+  }
+
   const message = url.pathname.match(
     /^\/v1\/nodes\/([^/]+)\/relay\/sessions\/([^/]+)\/messages$/,
   );
