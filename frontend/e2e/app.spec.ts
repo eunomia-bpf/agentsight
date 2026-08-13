@@ -5,9 +5,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { mockController } from './fixtures';
 
 async function openLab(page: Page) {
-  await expect(page.getByText('Lab workstation').first()).toBeVisible();
-  await expect(page.getByText('Online').first()).toBeVisible();
-  await page.getByText('Lab workstation').first().click();
+  await expect(page.getByRole('heading', { name: 'Machine fleet' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Online Lab workstation/ })).toBeVisible();
+  await page.getByLabel('Machine view').selectOption('node-lab');
   await expect(page.getByRole('heading', { name: 'Agents on this machine' })).toBeVisible();
 }
 
@@ -34,6 +34,12 @@ test('anonymous entry offers both sign-in providers, language switching, and the
 test('signed-in user opens a relay Node and sees machine value before session detail', async ({ page }) => {
   await mockController(page, { signedIn: true });
   await page.goto('/');
+
+  await expect(page.getByLabel('Machine view')).toHaveValue('all');
+  await page.getByRole('button', { name: 'Unreachable 1' }).click();
+  await expect(page.getByRole('button', { name: /Unreachable Offline laptop/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Online Lab workstation/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'All 2' }).click();
   await openLab(page);
 
   await page.getByRole('button', { name: '中文' }).click();
@@ -96,25 +102,30 @@ test('Node management refresh, Direct setup, organization creation, sign-out, an
   const state = await mockController(page, { signedIn: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Nodes' }).click();
+  const manager = page.getByRole('dialog', { name: 'Your Nodes' });
+  await expect(manager).toBeVisible();
 
-  const offline = page.getByRole('article').filter({ hasText: 'Offline laptop' });
+  const offline = manager.getByRole('article').filter({ hasText: 'Offline laptop' });
   await offline.getByRole('button', { name: 'Connect Direct' }).click();
   await expect(page.getByLabel('Direct URL or IP')).toBeVisible();
   await expect(page.getByLabel('Node bootstrap key')).toBeVisible();
-  await page.getByRole('button', { name: 'Cancel Direct' }).click();
+  await manager.getByRole('button', { name: 'Cancel Direct' }).click();
 
   const beforeRefresh = state.nodeListRequests;
-  await page.getByRole('button', { name: 'Refresh' }).click();
+  await manager.getByRole('button', { name: 'Refresh' }).click();
   await expect.poll(() => state.nodeListRequests).toBeGreaterThan(beforeRefresh);
 
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.setViewportSize({ width: 1280, height: 900 });
+  await manager.getByRole('button', { name: 'Close Node manager' }).click();
   await page.getByRole('button', { name: '+ Organization' }).click();
   await page.getByLabel('Organization name').fill('Browser Test Team');
   await page.getByRole('button', { name: 'Create', exact: true }).click();
-  await expect(page.getByText('No Nodes yet')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Machine fleet' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Sign out' }).click();
+  await page.getByRole('button', { name: 'Nodes' }).click();
+  await page.getByRole('dialog', { name: 'Your Nodes' }).getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Open your AgentSight data' })).toBeVisible();
   await expect.poll(() => state.signOuts).toBe(1);
 });
