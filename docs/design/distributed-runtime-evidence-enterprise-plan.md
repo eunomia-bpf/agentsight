@@ -185,8 +185,8 @@ agentsight report serve --db run.db
 显示匿名三选一弹窗。目录中的 `Registered` 只表示最近一次成功注册，不是在线 heartbeat；
 Direct 访问详细数据需要当前浏览器持有 Node capability；已登录的账号成员也可通过授权 relay
 访问，不会因此获得 Direct bearer。`agentsight bind` 默认生成 loopback endpoint，但 Local
-不是另一套特殊协议或页面模式。`record` 或显式 `--db` 的数据写入本地 SQLite；不带 `--db`
-的 bind 只读取 live processes 和本地 agent session，不创建 SQLite。用户不需要 Cloud account。当前 release 仍内嵌并 serve UI，这是
+不是另一套特殊协议或页面模式。`record` 可写入本地 SQLite；bind 显式 `--db` 时只读已有
+saved SQLite，不带 `--db` 时只读取 live processes 和本地 agent session。用户不需要 Cloud account。当前 release 仍内嵌并 serve UI，这是
 待移除的兼容实现，不是最终 presentation architecture。完全离线时使用 CLI/TUI、已缓存
 PWA，或在可信网络里部署同一份静态 bundle。
 

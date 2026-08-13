@@ -1865,12 +1865,13 @@ fn is_agent_file_for(agent: &str, path: &Path) -> bool {
             path.extension().and_then(|ext| ext.to_str()) == Some("jsonl")
         }
         AGENT_GEMINI => {
-            path.extension().and_then(|ext| ext.to_str()) == Some("json")
-                && path
-                    .file_name()
-                    .and_then(|name| name.to_str())
+            let normalized = normalize_path_text(&path.to_string_lossy());
+            normalized.ends_with(".json")
+                && normalized
+                    .rsplit('/')
+                    .next()
                     .is_some_and(|name| name.starts_with("session-"))
-                && normalize_path_text(&path.to_string_lossy()).contains("/chats/")
+                && normalized.contains("/chats/")
         }
         AGENT_CURSOR => is_cursor_parent_transcript(path),
         _ => false,

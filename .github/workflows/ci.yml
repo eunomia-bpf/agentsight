@@ -70,6 +70,12 @@ jobs:
         rm -f agentsight-protocol/Cargo.lock
         cargo package --manifest-path agentsight-protocol/Cargo.toml
 
+    - name: Check standalone agent-session
+      run: |
+        cargo clippy --manifest-path agent-session/Cargo.toml --all-targets -- -D warnings
+        cargo test --manifest-path agent-session/Cargo.toml --verbose
+        cargo package --manifest-path agent-session/Cargo.toml
+
     - name: Test control plane
       run: |
         npm --prefix controller ci
