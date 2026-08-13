@@ -88,7 +88,9 @@ One Worker deployment contains both surfaces from the same repository revision:
 - one D1 database stores Controller metadata;
 - one Durable Object namespace carries live relay traffic.
 
-Cloudflare Builds uses the repository root `wrangler.jsonc`. Its build command prepares the demo data and static frontend. Configure `/` as the root directory and `master` as the production branch.
+Cloudflare Builds uses two Worker connections to the same repository. This is required because a Git-connected build always deploys the Worker it is connected to, even when a Wrangler environment specifies another name. Both connections use `/` as the root directory and `master` as the production branch.
+
+The production `agentsight` connection disables builds for non-production branches and uses `wrangler.jsonc`:
 
 Production deploy command:
 
@@ -96,13 +98,13 @@ Production deploy command:
 npm --prefix controller ci && ./controller/node_modules/.bin/wrangler d1 migrations apply DB --remote --config wrangler.jsonc && ./controller/node_modules/.bin/wrangler deploy --config wrangler.jsonc
 ```
 
-Preview deploy command:
+The isolated `agentsight-preview` connection enables builds for non-production branches. Both its deploy and version commands use `wrangler.preview.jsonc`:
 
 ```bash
-npm --prefix controller ci && ./controller/node_modules/.bin/wrangler d1 migrations apply DB --remote --env preview --config wrangler.jsonc && ./controller/node_modules/.bin/wrangler deploy --env preview --config wrangler.jsonc
+npm --prefix controller ci && ./controller/node_modules/.bin/wrangler d1 migrations apply DB --remote --config wrangler.preview.jsonc && ./controller/node_modules/.bin/wrangler deploy --config wrangler.preview.jsonc
 ```
 
-Cloudflare does not generate native version preview URLs for Workers that implement Durable Objects. Non-production builds therefore perform a full deploy to the stable, isolated `agentsight-preview` environment. That staging environment has its own workers.dev URL, D1 database, Durable Object namespace, and rate-limit namespaces; it never receives production secrets or production data. Each new non-production build replaces the previous staging revision.
+Cloudflare does not generate native version preview URLs for Workers that implement Durable Objects. Non-production builds therefore perform a full deploy to the stable, isolated `agentsight-preview` Worker. That staging Worker has its own workers.dev URL, D1 database, Durable Object namespace, rate-limit namespaces, and Build connection; it never receives production secrets or production data. Each new non-production build replaces the previous staging revision.
 
 D1 migrations run before both production and staging deploys and are idempotent, so each frontend and API deployment comes from the same revision. `npm run deploy` remains available for production recovery/debugging, but it is not the normal production path.
 

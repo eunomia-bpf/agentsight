@@ -81,6 +81,7 @@ jobs:
         npm --prefix controller test
         npm --prefix controller run check
         ./controller/node_modules/.bin/wrangler deploy --dry-run --config wrangler.jsonc
+        ./controller/node_modules/.bin/wrangler deploy --dry-run --config wrangler.preview.jsonc
 
     - name: Restore repository Node.js
       uses: actions/setup-node@v3

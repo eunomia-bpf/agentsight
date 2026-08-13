@@ -1,10 +1,10 @@
 {
   "$schema": "controller/node_modules/wrangler/config-schema.json",
-  "name": "agentsight",
+  "name": "agentsight-preview",
   "main": "controller/src/index.ts",
   "account_id": "d9c543e4c98332379705cad72b658b78",
   "compatibility_date": "2026-08-11",
-  "workers_dev": false,
+  "workers_dev": true,
   "preview_urls": false,
   "observability": {
     "enabled": true
@@ -22,18 +22,14 @@
       "/v1/*"
     ]
   },
-  "routes": [
-    { "pattern": "app.agentsight.us", "custom_domain": true },
-    { "pattern": "control.agentsight.us", "custom_domain": true }
-  ],
   "vars": {
-    "APP_ORIGIN": "https://app.agentsight.us"
+    "APP_ORIGIN": "https://agentsight-preview.yunwei356.workers.dev"
   },
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "agentsight",
-      "database_id": "0af07d38-8325-4814-9d8d-c21c91b74a55",
+      "database_name": "agentsight-preview",
+      "database_id": "88bebaa8-1d66-47d9-8593-285855a99eb7",
       "migrations_dir": "./controller/migrations"
     }
   ],
@@ -48,12 +44,12 @@
   "ratelimits": [
     {
       "name": "OAUTH_IP_LIMITER",
-      "namespace_id": "41001",
+      "namespace_id": "41003",
       "simple": { "limit": 10, "period": 60 }
     },
     {
       "name": "OAUTH_LOCATION_LIMITER",
-      "namespace_id": "41002",
+      "namespace_id": "41004",
       "simple": { "limit": 100, "period": 60 }
     }
   ]
