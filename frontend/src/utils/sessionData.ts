@@ -2,6 +2,8 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 import type { SessionDetail } from '@/lib/nodeClient';
+import { isRunningSession } from '../lib/sessionState.mjs';
+export { isRunningSession } from '../lib/sessionState.mjs';
 import type {
   AgentSightSnapshot,
   CodingPlanStep,
@@ -200,10 +202,6 @@ export function liveRowForSession(
   return overview?.rows.find((row) => (
     row.session_id === rawId || row.session === displayId || row.session === session.id
   )) ?? null;
-}
-
-export function isRunningSession(row: LiveSession | null): boolean {
-  return typeof row?.pid === 'number' && row.pid > 0;
 }
 
 export type SessionActivityState = 'running' | 'recent' | 'stopped';

@@ -8,7 +8,7 @@ import { ArrowPathIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from '@/i18n';
 import type { CloudOrganization } from '@/lib/controllerClient';
 import {
-  filterFleetNodes, fleetSubscriptions, fleetTotals, liveRowRunning,
+  filterFleetNodes, fleetSubscriptions, fleetTotals, isRunningSession,
   type FleetNodeSample,
 } from '@/lib/fleetData';
 import { Subscription } from '@/components/NodeOverview';
@@ -48,9 +48,9 @@ export function FleetOverview({
   const visible = useMemo(() => filterFleetNodes(samples, filter), [filter, samples]);
   const filters: Array<[Filter, string, number]> = [
     ['all', t('fleet.all'), totals.machines],
-    ['running', t('fleet.running'), samples.filter((item) => item.overview?.rows.some(liveRowRunning)).length],
+    ['running', t('fleet.running'), samples.filter((item) => item.overview?.rows.some(isRunningSession)).length],
     ['idle', t('fleet.idle'), samples.filter((item) => item.state === 'online'
-      && !item.overview?.rows.some(liveRowRunning)).length],
+      && !item.overview?.rows.some(isRunningSession)).length],
     ['unreachable', t('fleet.unreachable'), totals.unreachable],
   ];
 
@@ -139,8 +139,8 @@ function Machine({ sample, onOpenNode }: {
 }) {
   const { t } = useTranslation();
   const rows = sample.overview?.rows ?? [];
-  const running = rows.filter(liveRowRunning);
-  const stopped = rows.filter((row) => !liveRowRunning(row) && !!row.session_id).length;
+  const running = rows.filter(isRunningSession);
+  const stopped = rows.filter((row) => !isRunningSession(row) && !!row.session_id).length;
   const cpu = running.reduce((total, row) => total + row.cpu_percent, 0);
   const rss = running.reduce((total, row) => total + row.rss_mb, 0);
   const plans = rows.flatMap((row) => (row.plan ?? []).filter((step) => step.status !== 'completed'));

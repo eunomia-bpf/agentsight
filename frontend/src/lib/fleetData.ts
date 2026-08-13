@@ -4,6 +4,9 @@
 import type { CloudNode } from '@/lib/controllerClient';
 import type { NodeTransport } from '@/lib/nodeClient';
 import type { LiveOverview, SourceSubscription } from '@/types/event';
+import { isRunningSession } from './sessionState.mjs';
+
+export { isRunningSession } from './sessionState.mjs';
 
 export type FleetNodeState = 'online' | 'checking' | 'unreachable';
 
@@ -28,10 +31,6 @@ export interface FleetTotals {
   processes: number;
 }
 
-export function liveRowRunning(row: LiveOverview['rows'][number]): boolean {
-  return row.pid != null && row.processes > 0;
-}
-
 export function fleetTotals(samples: FleetNodeSample[]): FleetTotals {
   return samples.reduce<FleetTotals>((total, sample) => {
     total.machines += 1;
@@ -39,7 +38,7 @@ export function fleetTotals(samples: FleetNodeSample[]): FleetTotals {
       total.online += 1;
       total.tokens += sample.overview.total_tokens ?? 0;
       sample.overview.rows.forEach((row) => {
-        if (liveRowRunning(row)) {
+        if (isRunningSession(row)) {
           total.running += 1;
           total.cpu += row.cpu_percent;
           total.rss += row.rss_mb;
@@ -83,7 +82,7 @@ export function filterFleetNodes(
     if (filter === 'all') return true;
     if (filter === 'unreachable') return sample.state === 'unreachable';
     if (sample.state !== 'online' || !sample.overview) return false;
-    const running = sample.overview.rows.some(liveRowRunning);
+    const running = sample.overview.rows.some(isRunningSession);
     return filter === 'running' ? running : !running;
   });
 }
