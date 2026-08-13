@@ -100,6 +100,9 @@ GitHub Release 为 Linux 提供 `agentsight-x86_64` 和 `agentsight-aarch64`；
 Windows 原生构建由 Windows CI 验证；正式发布 Windows Release 资产前，可以下载
 该工作流的 `agentsight-windows-x86_64` artifact，或从源码构建 collector crate。
 
+Linux 与 Windows 的安装、后台监控、Node 绑定、自动启动、升级和卸载步骤，参见
+[安装与开机启动](docs/installation.zh-CN.md)。
+
 #### Docker
 
 AgentSight 通过 Docker 运行，使用 `--privileged` 以支持 eBPF，`--pid=host` 以访问宿主机进程，`-v /sys:/sys:ro` 用于进程监控，`-v /usr:/usr:ro -v /lib:/lib:ro` 用于访问 SSL 库（在共享库如 `libssl.so` 上附加 uprobe 所需）。示例：

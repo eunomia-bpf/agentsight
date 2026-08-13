@@ -110,6 +110,10 @@ Native Windows builds are exercised by the Windows CI workflow; until a Windows
 release asset is published, download its `agentsight-windows-x86_64` artifact or
 build the collector crate from source.
 
+For Linux and Windows installation, background monitoring, Node binding,
+automatic startup, upgrades, and removal, see
+[Installation and Automatic Startup](docs/installation.md).
+
 #### Docker
 
 Docker is useful for container, CI, or isolated Linux environments, but it still needs privileged host access for eBPF. See [docs/docker.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/docker.md).
