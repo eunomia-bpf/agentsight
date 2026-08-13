@@ -101,6 +101,8 @@ export default function Home() {
   const [fleetError, setFleetError] = useState('');
   const activationGeneration = useRef(0);
   const fleetGeneration = useRef(0);
+  const directoryGeneration = useRef(0);
+  const fleetInFlightOrganization = useRef<string | null>(null);
 
   const eventCount = snapshot?.summary?.view_events ?? snapshot?.audit_events?.length ?? 0;
   const activeTransport: NodeTransport | null = activeClient?.transport ?? null;
@@ -109,12 +111,16 @@ export default function Home() {
     [activeOrganizationId, organizations],
   );
   const clearCloudState = useCallback(() => {
+    ++fleetGeneration.current;
+    ++directoryGeneration.current;
+    fleetInFlightOrganization.current = null;
     setIdentity(null);
     setOrganizations([]);
     setActiveOrganizationId(null);
     setCloudNodes([]);
     setRelayStatus({});
     setFleetSamples([]);
+    setFleetLoading(false);
     setFleetError('');
   }, []);
 
@@ -184,13 +190,25 @@ export default function Home() {
     }
   }, [activeClient]);
 
-  const refreshRelayStatuses = useCallback(async (nodes: CloudNode[], token: string) => {
+  const refreshRelayStatuses = useCallback(async (nodes: CloudNode[], token: string, generation: number) => {
+    if (directoryGeneration.current !== generation) return;
     setRelayStatus(Object.fromEntries(nodes.map((node) => [node.id, null])));
     await Promise.all(nodes.map(async (node) => {
-      const online = await relayOnline(token, node.id).catch(() => false);
-      setRelayStatus((current) => ({ ...current, [node.id]: online }));
+      let online = false;
+      try {
+        online = await relayOnline(token, node.id);
+      } catch (cause) {
+        if (cause instanceof CloudSessionExpiredError
+            && directoryGeneration.current === generation) {
+          handleCloudError(cause, 'Could not check Node relay status.');
+          return;
+        }
+      }
+      if (directoryGeneration.current === generation) {
+        setRelayStatus((current) => ({ ...current, [node.id]: online }));
+      }
     }));
-  }, []);
+  }, [handleCloudError]);
 
   const loadCloudDirectory = useCallback(async (token: string): Promise<CloudOrganization | null> => {
     const me = await fetchCloudIdentity(token);
@@ -214,21 +232,30 @@ export default function Home() {
     token = loadCloudSession(),
     organizationId = activeOrganizationId,
   ) => {
-    if (!token || !organizationId) return;
+    if (!token || !organizationId) return false;
+    const generation = ++directoryGeneration.current;
     setNodesLoading(true);
     try {
       const nodes = await fetchCloudNodes(token, organizationId);
+      if (directoryGeneration.current !== generation) return false;
       setCloudNodes(nodes);
       setNodeError('');
-      void refreshRelayStatuses(nodes, token);
+      void refreshRelayStatuses(nodes, token, generation);
+      return true;
     } catch (cause) {
-      handleCloudError(cause, 'Could not load this organization’s Nodes.');
+      if (directoryGeneration.current === generation) {
+        handleCloudError(cause, 'Could not load this organization’s Nodes.');
+      }
+      return false;
     } finally {
-      setNodesLoading(false);
+      if (directoryGeneration.current === generation) setNodesLoading(false);
     }
   }, [activeOrganizationId, handleCloudError, refreshRelayStatuses]);
 
   const refreshFleet = useCallback(async () => {
+    const organizationId = activeOrganizationId;
+    if (!organizationId || fleetInFlightOrganization.current === organizationId) return;
+    fleetInFlightOrganization.current = organizationId;
     const generation = ++fleetGeneration.current;
     const token = loadCloudSession();
     setFleetLoading(true);
@@ -241,64 +268,79 @@ export default function Home() {
       }
     )));
 
-    const next = await Promise.all(cloudNodes.map(async (node): Promise<FleetNodeSample> => {
-      const loaded: { value: Pick<FleetNodeSample, 'overview' | 'transport' | 'updatedAt'> | null } = {
-        value: null,
-      };
-      const attempts = [];
-      const direct = directConnections[node.id];
-      if (direct) {
-        attempts.push({
-          transport: 'direct',
-          open: async () => {
-            const client = directNodeClient(direct);
-            const overview = await client.overview();
-            if (!overview) throw new Error('This Node does not expose a live overview.');
-            loaded.value = { overview, transport: client.transport, updatedAt: Date.now() };
-          },
-        });
-      }
-      const relayAvailable = token ? await relayOnline(token, node.id).catch(() => false) : false;
-      if (fleetGeneration.current === generation) {
-        setRelayStatus((current) => current[node.id] === relayAvailable
-          ? current : { ...current, [node.id]: relayAvailable });
-      }
-      if (token && relayAvailable) {
-        attempts.push({
-          transport: 'relay',
-          open: async () => {
-            const client = relayNodeClient(node, token);
-            const overview = await client.overview();
-            if (!overview) throw new Error('This Node does not expose a live overview.');
-            loaded.value = { overview, transport: client.transport, updatedAt: Date.now() };
-          },
-        });
-      }
-      if (attempts.length === 0) {
+    try {
+      const next = await Promise.all(cloudNodes.map(async (node): Promise<FleetNodeSample> => {
+        const loaded: { value: Pick<FleetNodeSample, 'overview' | 'transport' | 'updatedAt'> | null } = {
+          value: null,
+        };
+        const attempts = [];
+        const direct = directConnections[node.id];
+        if (direct) {
+          attempts.push({
+            transport: 'direct',
+            open: async () => {
+              const client = directNodeClient(direct);
+              const overview = await client.overview();
+              if (!overview) throw new Error('This Node does not expose a live overview.');
+              loaded.value = { overview, transport: client.transport, updatedAt: Date.now() };
+            },
+          });
+        }
+        let relayAvailable = false;
+        try {
+          relayAvailable = token ? await relayOnline(token, node.id) : false;
+        } catch (cause) {
+          if (cause instanceof CloudSessionExpiredError) throw cause;
+        }
+        if (fleetGeneration.current === generation) {
+          setRelayStatus((current) => current[node.id] === relayAvailable
+            ? current : { ...current, [node.id]: relayAvailable });
+        }
+        if (token && relayAvailable) {
+          attempts.push({
+            transport: 'relay',
+            open: async () => {
+              const client = relayNodeClient(node, token);
+              const overview = await client.overview();
+              if (!overview) throw new Error('This Node does not expose a live overview.');
+              loaded.value = { overview, transport: client.transport, updatedAt: Date.now() };
+            },
+          });
+        }
+        if (attempts.length === 0) {
+          return {
+            node,
+            state: 'unreachable',
+            overview: null,
+          };
+        }
+        const result = await tryNodeTransports(attempts);
+        if (loaded.value && result.transport) return { node, state: 'online', ...loaded.value };
+        const cause = result.failures.at(-1)?.cause;
         return {
           node,
           state: 'unreachable',
           overview: null,
+          error: cause instanceof Error ? cause.message : 'No reachable transport.',
         };
-      }
-      const result = await tryNodeTransports(attempts);
-      if (loaded.value && result.transport) return { node, state: 'online', ...loaded.value };
-      const cause = result.failures.at(-1)?.cause;
-      return {
-        node,
-        state: 'unreachable',
-        overview: null,
-        error: cause instanceof Error ? cause.message : 'No reachable transport.',
-      };
-    }));
+      }));
 
-    if (fleetGeneration.current === generation) {
-      setFleetSamples(next);
-      const failed = next.filter((sample) => sample.state === 'unreachable').length;
-      if (failed && failed === next.length) setFleetError('No machine overview is currently reachable.');
-      setFleetLoading(false);
+      if (fleetGeneration.current === generation) {
+        setFleetSamples(next);
+        const failed = next.filter((sample) => sample.state === 'unreachable').length;
+        if (failed && failed === next.length) setFleetError('No machine overview is currently reachable.');
+      }
+    } catch (cause) {
+      if (fleetGeneration.current === generation) {
+        handleCloudError(cause, 'Could not refresh the machine fleet.');
+      }
+    } finally {
+      if (fleetInFlightOrganization.current === organizationId) {
+        fleetInFlightOrganization.current = null;
+      }
+      if (fleetGeneration.current === generation) setFleetLoading(false);
     }
-  }, [cloudNodes, directConnections]);
+  }, [activeOrganizationId, cloudNodes, directConnections, handleCloudError]);
 
   const openNode = useCallback(async (nodeId: string) => {
     const generation = ++activationGeneration.current;
@@ -461,7 +503,6 @@ export default function Home() {
 
   const signOut = useCallback(() => {
     ++activationGeneration.current;
-    ++fleetGeneration.current;
     const token = loadCloudSession();
     const wasRelay = activeClient?.transport === 'relay';
     clearCloudState();
@@ -510,6 +551,7 @@ export default function Home() {
   const switchOrganization = useCallback((organizationId: string) => {
     ++activationGeneration.current;
     ++fleetGeneration.current;
+    ++directoryGeneration.current;
     setActiveOrganizationId(organizationId);
     window.localStorage.setItem(ACTIVE_ORGANIZATION_KEY, organizationId);
     setCloudNodes([]);
@@ -567,11 +609,7 @@ export default function Home() {
               const selected = await loadCloudDirectory(cloudToken);
               if (selected) {
                 await registerControllerNode(cloudToken, selected.id, bound, pairing.bootstrapToken);
-                const nodes = await fetchCloudNodes(cloudToken, selected.id);
-                if (!cancelled) {
-                  setCloudNodes(nodes);
-                  void refreshRelayStatuses(nodes, cloudToken);
-                }
+                await refreshCloudNodes(cloudToken, selected.id);
               }
             } catch (cause) {
               if (!cancelled) handleCloudError(cause, 'Direct mode is active, but cloud coordination is unavailable.');
@@ -609,7 +647,7 @@ export default function Home() {
         const directs = loadDirectConnections();
         setDirectConnections(directs);
         const preferredDirect = Object.values(directs)[0];
-        if (preferredDirect) {
+        if (!cloudToken && preferredDirect) {
           try {
             localLoaded = await activateClient(directNodeClient(preferredDirect));
           } catch {
@@ -620,17 +658,18 @@ export default function Home() {
         if (cloudToken) {
           try {
             const selected = await loadCloudDirectory(cloudToken);
+            let nodesLoaded = true;
             if (selected) {
-              const nodes = await fetchCloudNodes(cloudToken, selected.id);
-              if (!cancelled) {
-                setCloudNodes(nodes);
-                void refreshRelayStatuses(nodes, cloudToken);
-              }
+              nodesLoaded = await refreshCloudNodes(cloudToken, selected.id);
+            }
+            if (!nodesLoaded && preferredDirect) {
+              localLoaded = await activateClient(directNodeClient(preferredDirect));
             }
             if (!localLoaded && !cancelled) setMode('directory');
           } catch (cause) {
             if (!cancelled) {
               handleCloudError(cause, 'Cloud coordination is unavailable.');
+              if (preferredDirect) localLoaded = await activateClient(directNodeClient(preferredDirect));
               if (!localLoaded) setMode(cause instanceof CloudSessionExpiredError ? 'disconnected' : 'directory');
             }
           }
@@ -651,7 +690,7 @@ export default function Home() {
     };
     void initialize();
     return () => { cancelled = true; };
-  }, [activateClient, handleCloudError, loadCloudDirectory, refreshRelayStatuses]);
+  }, [activateClient, handleCloudError, loadCloudDirectory, refreshCloudNodes]);
 
   useEffect(() => {
     if (mode !== 'live' || !activeClient) return;
@@ -693,13 +732,16 @@ export default function Home() {
 
   useEffect(() => {
     if (mode !== 'directory' || !identity) return;
-    const refresh = () => {
-      void refreshFleet();
+    let cancelled = false;
+    let timer: number | undefined;
+    const refresh = async () => {
+      if (document.visibilityState !== 'hidden') await refreshFleet();
+      if (!cancelled) timer = window.setTimeout(() => { void refresh(); }, 15_000);
     };
-    refresh();
-    const timer = window.setInterval(refresh, 15_000);
+    void refresh();
     return () => {
-      window.clearInterval(timer);
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
     };
   }, [identity, mode, refreshFleet]);
 
