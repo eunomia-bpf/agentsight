@@ -50,6 +50,7 @@ import { useTranslation } from '@/i18n';
 import { snapshotSessions } from '@/utils/sessionData';
 
 type AppMode = 'loading' | 'disconnected' | 'directory' | 'live' | 'demo';
+type CloudNodeRefreshResult = 'loaded' | 'failed' | 'stale' | 'session-expired';
 
 const ACTIVE_ORGANIZATION_KEY = 'agentsight.active-organization.v1';
 const PENDING_INVITE_KEY = 'agentsight.pending-invite.v1';
@@ -229,28 +230,29 @@ export default function Home() {
   }, []);
 
   const refreshCloudNodes = useCallback(async (
-    token = loadCloudSession(),
-    organizationId = activeOrganizationId,
-  ) => {
-    if (!token || !organizationId) return false;
+    token: string | null,
+    organizationId: string | null,
+  ): Promise<CloudNodeRefreshResult> => {
+    if (!token || !organizationId) return 'failed';
     const generation = ++directoryGeneration.current;
     setNodesLoading(true);
     try {
       const nodes = await fetchCloudNodes(token, organizationId);
-      if (directoryGeneration.current !== generation) return false;
+      if (directoryGeneration.current !== generation) return 'stale';
       setCloudNodes(nodes);
       setNodeError('');
       void refreshRelayStatuses(nodes, token, generation);
-      return true;
+      return 'loaded';
     } catch (cause) {
       if (directoryGeneration.current === generation) {
         handleCloudError(cause, 'Could not load this organization’s Nodes.');
       }
-      return false;
+      if (directoryGeneration.current !== generation) return 'stale';
+      return cause instanceof CloudSessionExpiredError ? 'session-expired' : 'failed';
     } finally {
       if (directoryGeneration.current === generation) setNodesLoading(false);
     }
-  }, [activeOrganizationId, handleCloudError, refreshRelayStatuses]);
+  }, [handleCloudError, refreshRelayStatuses]);
 
   const refreshFleet = useCallback(async () => {
     const organizationId = activeOrganizationId;
@@ -658,11 +660,12 @@ export default function Home() {
         if (cloudToken) {
           try {
             const selected = await loadCloudDirectory(cloudToken);
-            let nodesLoaded = true;
+            let nodesResult: CloudNodeRefreshResult = 'loaded';
             if (selected) {
-              nodesLoaded = await refreshCloudNodes(cloudToken, selected.id);
+              nodesResult = await refreshCloudNodes(cloudToken, selected.id);
             }
-            if (!nodesLoaded && preferredDirect) {
+            if (cancelled || nodesResult === 'stale' || nodesResult === 'session-expired') return;
+            if (nodesResult === 'failed' && preferredDirect) {
               localLoaded = await activateClient(directNodeClient(preferredDirect));
             }
             if (!localLoaded && !cancelled) setMode('directory');
@@ -791,7 +794,7 @@ export default function Home() {
       relayStatus={relayStatus} activeNodeId={activeClient?.nodeId} activeTransport={activeTransport}
       loadingNodeId={loadingNodeId} loading={syncing || nodesLoading} error={nodeError}
       onOpenNode={(nodeId) => { void openNode(nodeId); }} onConnectDirect={connectDirect}
-      onRefresh={() => { void refreshCloudNodes(); }}
+      onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
       onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
       onForgetCloudDirect={(nodeId) => { void forgetCloudDirect(nodeId); }}
       onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
@@ -811,7 +814,7 @@ export default function Home() {
           loadingNodeId={loadingNodeId} loading={syncing || nodesLoading} error={nodeError} modal
           onClose={() => setDialogOpen(false)}
           onOpenNode={(nodeId) => { void openNode(nodeId); }} onConnectDirect={connectDirect}
-          onRefresh={() => { void refreshCloudNodes(); }}
+          onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
           onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
           onForgetCloudDirect={(nodeId) => { void forgetCloudDirect(nodeId); }}
           onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
@@ -910,7 +913,7 @@ export default function Home() {
         ) : identity && mode === 'directory' ? (
           <FleetOverview samples={fleetSamples} loading={fleetLoading} error={fleetError || nodeError}
             organization={activeOrganization}
-            onRefresh={() => { void refreshCloudNodes(); }}
+            onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
             onOpenNode={(nodeId) => { void openNode(nodeId); }} />
         ) : workspaceVisible ? (
           <div className="space-y-4">
