@@ -95,6 +95,7 @@ export interface CodingPlanStep {
 export interface LiveProcess {
   pid: number;
   ppid: number;
+  start_timestamp_ms?: number | null;
   comm: string;
   command: string;
   cwd?: string | null;

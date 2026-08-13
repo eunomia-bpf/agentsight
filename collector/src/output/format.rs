@@ -46,6 +46,7 @@ pub(crate) struct TopOptions {
 pub(crate) struct AgentProcessRow {
     pub(crate) pid: u32,
     pub(crate) ppid: u32,
+    pub(crate) start_timestamp_ms: Option<u64>,
     pub(crate) comm: String,
     pub(crate) command: String,
     pub(crate) cwd: Option<String>,

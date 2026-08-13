@@ -265,14 +265,6 @@ export function sessionSnapshot(
     timestamp >= Math.max(sessionStart, process.start_timestamp_ms ?? sessionStart)
       && timestamp <= Math.min(sessionEnd, process.end_timestamp_ms ?? sessionEnd)
   );
-  const processOverlaps = (
-    process: SnapshotProcessNode,
-    start: number,
-    end: number,
-  ) => (
-    Math.min(sessionEnd, process.end_timestamp_ms ?? sessionEnd) >= start
-      && Math.max(sessionStart, process.start_timestamp_ms ?? sessionStart) <= end
-  );
   const captureRows = snapshot.process_nodes ?? [];
   const liveProcesses: SnapshotProcessNode[] = (live?.process_details ?? []).map((process) => {
     const captured = captureRows
@@ -286,7 +278,9 @@ export function sessionSnapshot(
       pid: process.pid,
       ppid: process.ppid || null,
       root_pid: live?.pid ?? process.pid,
-      start_timestamp_ms: captured?.start_timestamp_ms ?? session.start_timestamp_ms,
+      start_timestamp_ms: process.start_timestamp_ms
+        ?? captured?.start_timestamp_ms
+        ?? sessionEnd,
       end_timestamp_ms: null,
       comm: process.comm,
       command: process.command,
@@ -301,11 +295,13 @@ export function sessionSnapshot(
   const captureByPid = new Map<number, SnapshotProcessNode[]>();
   const captureChildren = new Map<number, SnapshotProcessNode[]>();
   for (const process of captureRows) {
-    captureByPid.set(process.pid, [...(captureByPid.get(process.pid) ?? []), process]);
+    const samePid = captureByPid.get(process.pid);
+    if (samePid) samePid.push(process);
+    else captureByPid.set(process.pid, [process]);
     if (process.ppid != null) {
-      captureChildren.set(process.ppid, [
-        ...(captureChildren.get(process.ppid) ?? []), process,
-      ]);
+      const siblings = captureChildren.get(process.ppid);
+      if (siblings) siblings.push(process);
+      else captureChildren.set(process.ppid, [process]);
     }
   }
   const captureFamilies = new Map<string, {
@@ -344,11 +340,7 @@ export function sessionSnapshot(
       const parent = pending.pop()!;
       for (const candidate of captureChildren.get(parent.pid) ?? []) {
         if (members.has(candidate.id)) continue;
-        if (processOverlaps(
-          parent,
-            candidate.start_timestamp_ms ?? sessionStart,
-            candidate.end_timestamp_ms ?? sessionEnd,
-        )) {
+        if (processContains(parent, candidate.start_timestamp_ms ?? sessionStart)) {
           members.add(candidate.id);
           pending.push(candidate);
         }
@@ -370,7 +362,8 @@ export function sessionSnapshot(
     ...capturedProcesses.filter((captured) => !liveProcesses.some((current) => (
       captured.pid === current.pid
         && captured.end_timestamp_ms == null
-        && captured.start_timestamp_ms === current.start_timestamp_ms
+        && (captured.start_timestamp_ms ?? sessionStart)
+          >= (current.start_timestamp_ms ?? sessionEnd)
     ))),
   ] : capturedProcesses;
   const keepPidAt = (pid: number | null | undefined, timestamp: number) => (

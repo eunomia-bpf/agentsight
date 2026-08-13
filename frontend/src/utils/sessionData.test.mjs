@@ -98,7 +98,10 @@ test('live session evidence uses the current captured PID incarnation', () => {
     { id: 'current-event', timestamp_ms: 250, audit_type: 'file', pid: 10 },
   ];
   const live = {
-    pid: 10, process_details: [{ pid: 10, ppid: 0, comm: 'codex', command: 'codex' }],
+    pid: 10,
+    process_details: [{
+      pid: 10, ppid: 0, start_timestamp_ms: 200, comm: 'codex', command: 'codex',
+    }],
   };
 
   const scoped = sessionSnapshot(snapshot, liveSession, live, null);
@@ -122,7 +125,10 @@ test('live session evidence retains completed captured subprocesses', () => {
     { timestamp_ms: 145, pid: 11, cpu_percent: 3 },
   ];
   const live = {
-    pid: 10, process_details: [{ pid: 10, ppid: 0, comm: 'codex', command: 'codex' }],
+    pid: 10,
+    process_details: [{
+      pid: 10, ppid: 0, start_timestamp_ms: 100, comm: 'codex', command: 'codex',
+    }],
   };
 
   const scoped = sessionSnapshot(snapshot, liveSession, live, null);
@@ -143,14 +149,65 @@ test('live and captured views do not duplicate the same running subprocess', () 
   const live = {
     pid: 10,
     process_details: [
-      { pid: 10, ppid: 0, comm: 'codex', command: 'codex' },
-      { pid: 11, ppid: 10, comm: 'tool', command: 'tool' },
+      { pid: 10, ppid: 0, start_timestamp_ms: 100, comm: 'codex', command: 'codex' },
+      { pid: 11, ppid: 10, start_timestamp_ms: 120, comm: 'tool', command: 'tool' },
     ],
   };
 
   const scoped = sessionSnapshot(snapshot, liveSession, live, null);
 
   assert.deepEqual(scoped.process_nodes.map((row) => row.id), ['live-10', 'live-11']);
+});
+
+test('live process start time rejects an old captured root when no open row exists', () => {
+  const liveSession = { ...selected, end_timestamp_ms: null };
+  const snapshot = fixture([liveSession]);
+  snapshot.process_nodes = [
+    { id: 'old-root', pid: 10, ppid: null, root_pid: null, start_timestamp_ms: 100, end_timestamp_ms: 180 },
+    { id: 'old-child', pid: 11, ppid: 10, root_pid: null, start_timestamp_ms: 120, end_timestamp_ms: 160 },
+  ];
+  snapshot.tool_calls[0].related_pid = 11;
+  snapshot.tool_calls[0].timestamp_ms = 140;
+  snapshot.audit_events = [
+    { id: 'old-file', timestamp_ms: 145, audit_type: 'file', pid: 11 },
+  ];
+  const live = {
+    pid: 10,
+    process_details: [{
+      pid: 10, ppid: 0, start_timestamp_ms: 200, comm: 'codex', command: 'codex',
+    }],
+  };
+
+  const scoped = sessionSnapshot(snapshot, liveSession, live, null);
+
+  assert.deepEqual(scoped.process_nodes.map((row) => row.id), ['live-10']);
+  assert.deepEqual(scoped.audit_events, []);
+});
+
+test('a child that predates the current parent incarnation is not attached by overlap', () => {
+  const liveSession = { ...selected, end_timestamp_ms: null };
+  const snapshot = fixture([liveSession]);
+  snapshot.process_nodes = [
+    { id: 'old-root', pid: 10, ppid: null, root_pid: null, start_timestamp_ms: 100, end_timestamp_ms: 180 },
+    { id: 'new-root', pid: 10, ppid: null, root_pid: null, start_timestamp_ms: 200, end_timestamp_ms: null },
+    { id: 'overlap-child', pid: 11, ppid: 10, root_pid: null, start_timestamp_ms: 150, end_timestamp_ms: 250 },
+  ];
+  snapshot.tool_calls[0].related_pid = 10;
+  snapshot.tool_calls[0].timestamp_ms = 220;
+  snapshot.audit_events = [
+    { id: 'old-child-file', timestamp_ms: 160, audit_type: 'file', pid: 11 },
+  ];
+  const live = {
+    pid: 10,
+    process_details: [{
+      pid: 10, ppid: 0, start_timestamp_ms: 200, comm: 'codex', command: 'codex',
+    }],
+  };
+
+  const scoped = sessionSnapshot(snapshot, liveSession, live, null);
+
+  assert.deepEqual(scoped.process_nodes.map((row) => row.id), ['live-10']);
+  assert.deepEqual(scoped.audit_events, []);
 });
 
 test('the recorded demo retains a full-capture session for legacy evidence views', () => {

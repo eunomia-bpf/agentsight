@@ -683,6 +683,9 @@ fn live_process_rows(
                 .map(|proc_info| AgentProcessRow {
                     pid: proc_info.pid,
                     ppid: proc_info.ppid,
+                    start_timestamp_ms: procfs::process_start_timestamp_ms(
+                        proc_info.starttime_ticks,
+                    ),
                     comm: proc_info.comm.clone(),
                     command: proc_info.command.clone(),
                     cwd: proc_info
