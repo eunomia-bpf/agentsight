@@ -218,6 +218,47 @@ test('a child that predates the current parent incarnation is not attached by ov
   assert.deepEqual(scoped.audit_events, []);
 });
 
+test('a nested live agent root is a session traversal boundary', () => {
+  const liveSession = { ...selected, end_timestamp_ms: null };
+  const nestedSession = {
+    ...selected, id: 'session-two', end_timestamp_ms: null,
+    attributes: { session_id: 'raw-two' },
+  };
+  const snapshot = fixture([liveSession, nestedSession]);
+  snapshot.process_nodes = [
+    { id: 'root-a', pid: 10, ppid: null, root_pid: null, start_timestamp_ms: 100, end_timestamp_ms: null },
+    { id: 'root-b', pid: 20, ppid: 10, root_pid: null, start_timestamp_ms: 120, end_timestamp_ms: null },
+    { id: 'b-tool', pid: 21, ppid: 20, root_pid: null, start_timestamp_ms: 130, end_timestamp_ms: null },
+  ];
+  snapshot.tool_calls = [
+    { id: 'native-b-tool', session_id: 'raw-two', timestamp_ms: 140, related_pid: null },
+    { id: 'capture-b-tool', session_id: null, timestamp_ms: 140, related_pid: 21 },
+  ];
+  snapshot.audit_events = [
+    { id: 'b-secret', timestamp_ms: 140, audit_type: 'file', pid: 21 },
+  ];
+  const overview = {
+    rows: [
+      {
+        session_id: 'raw-one', session: 'session-one', pid: 10,
+        process_details: [{ pid: 10, ppid: 0, start_timestamp_ms: 100 }],
+      },
+      {
+        session_id: 'raw-two', session: 'session-two', pid: 20,
+        process_details: [
+          { pid: 20, ppid: 10, start_timestamp_ms: 120 },
+          { pid: 21, ppid: 20, start_timestamp_ms: 130 },
+        ],
+      },
+    ],
+  };
+
+  const scoped = sessionSnapshot(snapshot, liveSession, overview.rows[0], null, overview);
+
+  assert.deepEqual(scoped.process_nodes.map((row) => row.id), ['live-10']);
+  assert.deepEqual(scoped.audit_events, []);
+});
+
 test('the recorded demo retains a full-capture session for legacy evidence views', () => {
   const sample = JSON.parse(readFileSync(
     new URL('../../../docs/sample-snapshot.json', import.meta.url), 'utf8',

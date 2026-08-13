@@ -126,8 +126,8 @@ export function SessionWorkspace({
   }, [client, liveVersion, loadDetail, running]);
 
   const scopedSnapshot = useMemo(
-    () => sessionSnapshot(snapshot, session, live, detail),
-    [detail, live, session, snapshot],
+    () => sessionSnapshot(snapshot, session, live, detail, overview),
+    [detail, live, overview, session, snapshot],
   );
   const events = useMemo(() => displayEventsFromSnapshot(scopedSnapshot), [scopedSnapshot]);
   const plan = sessionPlan(session, detail, live);

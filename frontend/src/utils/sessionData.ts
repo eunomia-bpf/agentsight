@@ -248,6 +248,7 @@ export function sessionSnapshot(
   session: SnapshotSession,
   live: LiveSession | null,
   detail: SessionDetail | null,
+  overview: LiveOverview | null = null,
 ): AgentSightSnapshot {
   if (isRecordedCaptureSession(session)) {
     return { ...snapshot, sessions: [session] };
@@ -303,18 +304,30 @@ export function sessionSnapshot(
       else captureChildren.set(process.ppid, [process]);
     }
   }
+  const otherLiveRoots = new Map<number, number | null>();
+  for (const row of overview?.rows ?? []) {
+    if (row === live || !isRunningSession(row)) continue;
+    const root = row.process_details.find((process) => process.pid === row.pid);
+    otherLiveRoots.set(row.pid!, root?.start_timestamp_ms ?? null);
+  }
+  const isOtherLiveRoot = (process: SnapshotProcessNode) => {
+    if (!otherLiveRoots.has(process.pid)) return false;
+    const liveStart = otherLiveRoots.get(process.pid);
+    if (liveStart == null) return process.end_timestamp_ms == null;
+    return processContains(process, liveStart);
+  };
   const captureFamilies = new Map<string, {
     root: SnapshotProcessNode;
     members: Set<string>;
   }>();
   const registerFamily = (root: SnapshotProcessNode) => {
-    if (captureFamilies.has(root.id)) return;
+    if (captureFamilies.has(root.id) || isOtherLiveRoot(root)) return;
     const members = new Set([root.id]);
     const pending = [root];
     while (pending.length) {
       const parent = pending.pop()!;
       for (const candidate of captureChildren.get(parent.pid) ?? []) {
-        if (members.has(candidate.id)) continue;
+        if (members.has(candidate.id) || isOtherLiveRoot(candidate)) continue;
         if (processContains(parent, candidate.start_timestamp_ms ?? sessionStart)) {
           members.add(candidate.id);
           pending.push(candidate);
