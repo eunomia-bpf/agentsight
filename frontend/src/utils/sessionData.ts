@@ -179,7 +179,7 @@ export function orderedSessions(
   snapshot: AgentSightSnapshot,
   overview: LiveOverview | null,
 ): SnapshotSession[] {
-  return [...snapshotSessions(snapshot, overview === null)].sort((left, right) => {
+  return [...snapshotSessions(snapshot, true)].sort((left, right) => {
     const live = Number(isRunningSession(liveRowForSession(overview, right)))
       - Number(isRunningSession(liveRowForSession(overview, left)));
     if (live) return live;
@@ -308,6 +308,24 @@ export function sessionSnapshot(
     root: SnapshotProcessNode;
     members: Set<string>;
   }>();
+  const registerFamily = (root: SnapshotProcessNode) => {
+    if (captureFamilies.has(root.id)) return;
+    const members = new Set([root.id]);
+    const pending = [root];
+    while (pending.length) {
+      const parent = pending.pop()!;
+      for (const candidate of captureChildren.get(parent.pid) ?? []) {
+        if (members.has(candidate.id)) continue;
+        if (processContains(parent, candidate.start_timestamp_ms ?? sessionStart)) {
+          members.add(candidate.id);
+          pending.push(candidate);
+        }
+      }
+    }
+    captureFamilies.set(root.id, { root, members });
+  };
+  const liveRoot = liveProcesses.find((process) => process.pid === live?.pid);
+  if (liveRoot) registerFamily(liveRoot);
   for (const tool of tools) {
     if (tool.related_pid == null || !atSessionTime(tool.timestamp_ms)) continue;
     const related = (captureByPid.get(tool.related_pid) ?? [])
@@ -332,21 +350,7 @@ export function sessionSnapshot(
       root = parent;
       ancestors.add(root.id);
     }
-    if (captureFamilies.has(root.id)) continue;
-
-    const members = new Set([root.id]);
-    const pending = [root];
-    while (pending.length) {
-      const parent = pending.pop()!;
-      for (const candidate of captureChildren.get(parent.pid) ?? []) {
-        if (members.has(candidate.id)) continue;
-        if (processContains(parent, candidate.start_timestamp_ms ?? sessionStart)) {
-          members.add(candidate.id);
-          pending.push(candidate);
-        }
-      }
-    }
-    captureFamilies.set(root.id, { root, members });
+    registerFamily(root);
   }
   const capturedIds = new Set<string>();
   for (const family of captureFamilies.values()) {

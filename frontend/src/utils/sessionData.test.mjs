@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { recordedSessionDetail, sessionSnapshot, snapshotSessions } from './sessionData.ts';
+import {
+  orderedSessions, recordedSessionDetail, sessionSnapshot, snapshotSessions,
+} from './sessionData.ts';
 
 const selected = {
   id: 'session-one', agent_type: 'codex', start_timestamp_ms: 100,
@@ -117,7 +119,10 @@ test('live session evidence retains completed captured subprocesses', () => {
     { id: 'root', pid: 10, ppid: null, root_pid: null, start_timestamp_ms: 100, end_timestamp_ms: null },
     { id: 'completed-tool', pid: 11, ppid: 10, root_pid: null, start_timestamp_ms: 120, end_timestamp_ms: 160 },
   ];
-  snapshot.tool_calls[0].related_pid = 11;
+  snapshot.tool_calls = [
+    { id: 'native-tool', session_id: 'raw-one', timestamp_ms: 140, related_pid: null },
+    { id: 'capture-tool', session_id: null, timestamp_ms: 140, related_pid: 11 },
+  ];
   snapshot.audit_events = [
     { id: 'tool-file', timestamp_ms: 140, audit_type: 'file', pid: 11 },
   ];
@@ -145,7 +150,10 @@ test('live and captured views do not duplicate the same running subprocess', () 
     { id: 'root', pid: 10, ppid: null, root_pid: null, start_timestamp_ms: 100, end_timestamp_ms: null },
     { id: 'running-tool', pid: 11, ppid: 10, root_pid: null, start_timestamp_ms: 120, end_timestamp_ms: null },
   ];
-  snapshot.tool_calls[0].related_pid = 11;
+  snapshot.tool_calls = [
+    { id: 'native-tool', session_id: 'raw-one', timestamp_ms: 140, related_pid: null },
+    { id: 'capture-tool', session_id: null, timestamp_ms: 140, related_pid: 11 },
+  ];
   const live = {
     pid: 10,
     process_details: [
@@ -224,4 +232,11 @@ test('the recorded demo retains a full-capture session for legacy evidence views
   assert.equal(scoped.resource_samples.length, sample.resource_samples.length);
   assert.equal(scoped.network_targets.length, sample.network_targets.length);
   assert.equal(scoped.tool_calls.length, sample.tool_calls.length);
+});
+
+test('live overview keeps a recorded-capture fallback for unassigned evidence', () => {
+  const snapshot = fixture();
+  const sessions = orderedSessions(snapshot, { rows: [], total_tokens: 0 });
+
+  assert.ok(sessions.some((session) => session.id === 'capture:recorded'));
 });

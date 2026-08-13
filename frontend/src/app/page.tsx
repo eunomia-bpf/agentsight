@@ -140,7 +140,7 @@ export default function Home() {
       setOverview(nextOverview);
       setMode('live');
       const requested = new URLSearchParams(window.location.search).get('session');
-      setSelectedSessionId(requested && snapshotSessions(nextSnapshot, nextOverview === null)
+      setSelectedSessionId(requested && snapshotSessions(nextSnapshot, true)
         .some((session) => session.id === requested)
         ? requested : null);
       setDialogOpen(false);
@@ -633,8 +633,8 @@ export default function Home() {
   const isLive = mode === 'live';
   const workspaceVisible = isLive || isDemo;
   const availableSessions = useMemo(
-    () => snapshotSessions(snapshot ?? {}, overview === null),
-    [overview, snapshot],
+    () => snapshotSessions(snapshot ?? {}, true),
+    [snapshot],
   );
   const selectedSession = availableSessions
     .find((session) => session.id === selectedSessionId) ?? null;
