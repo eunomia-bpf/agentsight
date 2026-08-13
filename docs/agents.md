@@ -132,8 +132,8 @@ get in the way, and only the first one is obvious:
 For these agents, use the agent-native session path instead: AgentSight reads
 the session files the IDE itself writes on disk, the same way it reads local
 Claude Code, Codex, and Gemini CLI sessions. That route needs no eBPF, no
-`sudo`, and works on macOS and Windows. Cursor is supported this way today;
-the next section covers it.
+`sudo`, and works on macOS and Windows. Cursor and Antigravity are supported
+this way today; the next sections cover them.
 
 ## Cursor
 
@@ -167,6 +167,29 @@ Two things not to expect:
   usage locally around March 2026. Sessions old enough to carry usage events
   show token totals; newer ones show none, and that is expected rather than a
   capture failure.
+
+## Antigravity
+
+Antigravity sessions are read from its plaintext trajectory logs, so this path
+works on macOS, Linux, and Windows without eBPF or `sudo`:
+
+```bash
+agentsight top
+agentsight report --local
+```
+
+AgentSight scans the CLI and IDE roots under `~/.gemini/`, including
+`antigravity-cli`, `antigravity`, `antigravity-ide`, `Antigravity`, and
+`Antigravity IDE`. For each `brain/<conversation-id>` directory it prefers
+`.system_generated/logs/transcript_full.jsonl`, falling back to
+`transcript.jsonl` when the full log is absent. `USER_INPUT` steps become
+prompts; `PLANNER_RESPONSE` prose and `tool_calls` become assistant and tool
+events, including common workspace and file arguments.
+
+The encrypted/opaque `.pb` and SQLite conversation stores are not opened by
+the session parser. They may contain additional model or token metadata, but
+their schemas vary between Antigravity releases; the readable JSONL path is
+used as the stable, read-only source.
 
 ## Containers and Kubernetes Pods
 

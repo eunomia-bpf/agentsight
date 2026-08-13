@@ -14,7 +14,9 @@ use crate::types::{
     AgentSession, LlmResponse, SessionCandidate, SessionDirStat, SessionEvents, TokenUsage,
     ToolEvent, ToolPath, UserPrompt,
 };
-use crate::{AGENT_CLAUDE, AGENT_CODEX, AGENT_CURSOR, AGENT_GEMINI};
+use crate::{
+    AGENT_ANTIGRAVITY, AGENT_CLAUDE, AGENT_CODEX, AGENT_CURSOR, AGENT_GEMINI,
+};
 
 /// Discover all session files in the user's home directory.
 pub fn discover_session_files() -> Vec<SessionCandidate> {
@@ -43,6 +45,16 @@ pub fn discover_session_files_in_home(home: &Path) -> Vec<SessionCandidate> {
         });
     }
     dedupe_cursor_candidates(&mut out);
+    for root in antigravity_roots(home) {
+        walk_agent_files(AGENT_ANTIGRAVITY, &root, &mut |path, meta| {
+            out.push(SessionCandidate {
+                agent: AGENT_ANTIGRAVITY,
+                path: path.to_path_buf(),
+                updated: candidate_updated(AGENT_ANTIGRAVITY, path, meta),
+            });
+        });
+    }
+    dedupe_antigravity_candidates(&mut out);
     out
 }
 
@@ -56,6 +68,7 @@ pub fn discover_session_files_in_dir(agent: &'static str, dir: &Path) -> Vec<Ses
         });
     });
     dedupe_cursor_candidates(&mut out);
+    dedupe_antigravity_candidates(&mut out);
     out
 }
 
@@ -119,6 +132,40 @@ fn dedupe_cursor_candidates(out: &mut Vec<SessionCandidate>) {
     out.retain(|_| !drop.next().unwrap_or_default());
 }
 
+fn dedupe_antigravity_candidates(out: &mut Vec<SessionCandidate>) {
+    let mut best: BTreeMap<String, (bool, SystemTime, usize)> = BTreeMap::new();
+    let mut drop = vec![false; out.len()];
+    for (idx, candidate) in out.iter().enumerate() {
+        if candidate.agent != AGENT_ANTIGRAVITY {
+            continue;
+        }
+        let Some(session_id) = antigravity_session_id(&candidate.path) else {
+            continue;
+        };
+        let is_full = candidate
+            .path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.eq_ignore_ascii_case("transcript_full.jsonl"));
+        let rank = (is_full, candidate.updated, idx);
+        match best.get_mut(&session_id) {
+            None => {
+                best.insert(session_id, rank);
+            }
+            Some(entry) => {
+                if (rank.0, rank.1) > (entry.0, entry.1) {
+                    drop[entry.2] = true;
+                    *entry = rank;
+                } else {
+                    drop[idx] = true;
+                }
+            }
+        }
+    }
+    let mut drop = drop.into_iter();
+    out.retain(|_| !drop.next().unwrap_or_default());
+}
+
 fn cursor_is_empty_window(path: &Path) -> bool {
     let mut previous = None;
     for component in path.components() {
@@ -141,13 +188,18 @@ pub fn count_session_dirs() -> Vec<SessionDirStat> {
 
 /// Count sessions and bytes per agent directory under a specific home directory.
 pub fn count_session_dirs_in_home(home: &Path) -> Vec<SessionDirStat> {
-    [
+    let mut roots = vec![
         (AGENT_CLAUDE, home.join(".claude/projects")),
         (AGENT_CODEX, home.join(".codex/sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
         (AGENT_CURSOR, home.join(".cursor/projects")),
-    ]
-    .into_iter()
+    ];
+    roots.extend(
+        antigravity_roots(home)
+            .into_iter()
+            .map(|root| (AGENT_ANTIGRAVITY, root)),
+    );
+    roots.into_iter()
     .filter_map(|(agent, dir)| {
         let (mut sessions, mut bytes) = (0usize, 0u64);
         walk_agent_files(agent, &dir, &mut |_, meta| {
@@ -214,6 +266,8 @@ fn parse_session_impl(
         // Read siblings here so the parser stays a pure function of its inputs.
         let children = read_cursor_subagents(path);
         parse_cursor_jsonl(path, updated, content, &children)
+    } else if agent == AGENT_ANTIGRAVITY {
+        parse_antigravity_jsonl(path, updated, content)
     } else {
         parse_jsonl(agent, path, updated, content)
     }
@@ -253,6 +307,8 @@ pub fn agent_source_for_path(path: &Path) -> Option<&'static str> {
         Some(AGENT_GEMINI)
     } else if value.contains("/.cursor/") && is_cursor_transcript(path) {
         Some(AGENT_CURSOR)
+    } else if is_antigravity_transcript(path) {
+        Some(AGENT_ANTIGRAVITY)
     } else {
         None
     }
@@ -280,6 +336,8 @@ fn loose_agent_source_for_path(path: &Path) -> Option<&'static str> {
         Some(AGENT_CLAUDE)
     } else if value.contains("/cursor/") && value.contains("agent-transcripts") {
         Some(AGENT_CURSOR)
+    } else if is_antigravity_transcript(path) {
+        Some(AGENT_ANTIGRAVITY)
     } else {
         None
     }
@@ -294,6 +352,9 @@ pub fn fixture_session_path(agent: &str, home: &Path) -> Option<PathBuf> {
         AGENT_CURSOR => {
             Some(home.join(".cursor/projects/test/agent-transcripts/session/session.jsonl"))
         }
+        AGENT_ANTIGRAVITY => Some(home.join(
+            ".gemini/antigravity-cli/brain/test-session/.system_generated/logs/transcript.jsonl",
+        )),
         _ => None,
     }
 }
@@ -1274,6 +1335,146 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
     acc.finish_with_events(events)
 }
 
+fn parse_antigravity_jsonl(
+    path: &Path,
+    updated: SystemTime,
+    content: &str,
+) -> Option<AgentSession> {
+    let mut acc = SessionAccumulator::new(AGENT_ANTIGRAVITY, path, updated);
+    if let Some(id) = antigravity_session_id(path) {
+        acc.session_id = id.clone();
+        acc.conversation_id = Some(id);
+    }
+    let mut events = SessionEvents::default();
+    let mut current_prompt_index = 0usize;
+
+    for line in content.lines() {
+        let Ok(record) = serde_json::from_str::<Value>(line.trim()) else {
+            // Antigravity appends these files while a session is live. A torn
+            // final line should not hide the rest of the conversation.
+            continue;
+        };
+        let timestamp = record
+            .get("created_at")
+            .or_else(|| record.get("timestamp"))
+            .and_then(Value::as_str)
+            .and_then(parse_ts_ms);
+        if let Some(ts_ms) = timestamp {
+            let ts_ms = u64::try_from(ts_ms).ok();
+            acc.start_timestamp_ms = acc.start_timestamp_ms.or(ts_ms);
+            acc.end_timestamp_ms = ts_ms.or(acc.end_timestamp_ms);
+            acc.duration_ms = acc
+                .start_timestamp_ms
+                .zip(acc.end_timestamp_ms)
+                .map(|(start, end)| end.saturating_sub(start))
+                .unwrap_or_default();
+        }
+        if let Some(created_at) = record.get("created_at").and_then(Value::as_str) {
+            acc.last_message_at = Some(created_at.to_string());
+        }
+        if acc.cwd.is_none() {
+            acc.cwd = antigravity_string_field(
+                &record,
+                &["cwd", "Cwd", "working_directory", "workdir"],
+            );
+        }
+        if acc.model.is_none() {
+            acc.model = antigravity_string_field(&record, &["model", "model_name"]);
+        }
+
+        match record.get("type").and_then(Value::as_str) {
+            Some("USER_INPUT") => {
+                let Some(text) = record
+                    .get("content")
+                    .and_then(Value::as_str)
+                    .and_then(antigravity_user_text)
+                else {
+                    continue;
+                };
+                if acc.prompt_preview.is_none() {
+                    acc.prompt_preview = Some(truncate_clean(&text, 180));
+                }
+                current_prompt_index = events.upsert_prompt(timestamp, &text, Vec::new());
+            }
+            Some("PLANNER_RESPONSE") => {
+                if let Some(text) = record
+                    .get("content")
+                    .and_then(Value::as_str)
+                    .and_then(clean_prompt_text)
+                {
+                    events.llm_responses.push(LlmResponse {
+                        ts_ms: timestamp,
+                        prompt_index: current_prompt_index,
+                        model: acc
+                            .model
+                            .clone()
+                            .unwrap_or_else(|| AGENT_ANTIGRAVITY.to_string()),
+                        source_id: record
+                            .get("step_index")
+                            .map(Value::to_string)
+                            .unwrap_or_default(),
+                        text_hash: short_hash(&text, 12),
+                        preview: truncate_clean(&text, 180),
+                        input_tokens: 0,
+                        output_tokens: 0,
+                        cache_tokens: 0,
+                        total_tokens: 0,
+                        tag: String::new(),
+                        response_phase: "assistant_message".to_string(),
+                        skill: String::new(),
+                        task_path: Vec::new(),
+                    });
+                }
+
+                for call in record
+                    .get("tool_calls")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                {
+                    let Some(name) = call.get("name").and_then(Value::as_str) else {
+                        continue;
+                    };
+                    let input = antigravity_tool_input(
+                        call.get("args")
+                            .or_else(|| call.get("arguments"))
+                            .or_else(|| call.get("input"))
+                            .unwrap_or(&Value::Null),
+                    );
+                    if acc.cwd.is_none() {
+                        acc.cwd = antigravity_string_field(
+                            &input,
+                            &["cwd", "Cwd", "working_directory", "workdir"],
+                        );
+                    }
+                    acc.add_tool(name);
+                    let call_id = call
+                        .get("id")
+                        .or_else(|| call.get("call_id"))
+                        .and_then(Value::as_str)
+                        .map(str::to_string);
+                    let tool = tool_event_from_input(
+                        acc.cwd.as_deref(),
+                        timestamp,
+                        current_prompt_index,
+                        name,
+                        &input,
+                        call_id,
+                        Vec::new(),
+                    );
+                    for path in &tool.paths {
+                        acc.add_file(&path.path);
+                    }
+                    events.tools.push(tool);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    acc.finish_with_events(events)
+}
+
 fn read_cursor_subagents(path: &Path) -> Vec<(PathBuf, String)> {
     let Some(dir) = path.parent().map(|parent| parent.join("subagents")) else {
         return Vec::new();
@@ -1789,6 +1990,62 @@ fn walk_agent_files(agent: &'static str, dir: &Path, f: &mut dyn FnMut(&Path, &f
     }
 }
 
+fn antigravity_roots(home: &Path) -> Vec<PathBuf> {
+    [
+        "antigravity-cli",
+        "antigravity",
+        "antigravity-ide",
+        "Antigravity",
+        "Antigravity IDE",
+    ]
+    .into_iter()
+    .map(|name| home.join(".gemini").join(name).join("brain"))
+    .collect()
+}
+
+fn path_component_names(path: &Path) -> Vec<String> {
+    path.components()
+        .map(|component| component.as_os_str().to_string_lossy().to_ascii_lowercase())
+        .collect()
+}
+
+fn is_antigravity_transcript(path: &Path) -> bool {
+    let is_jsonl = path.extension().and_then(|ext| ext.to_str()) == Some("jsonl");
+    let is_transcript = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| {
+            name.eq_ignore_ascii_case("transcript.jsonl")
+                || name.eq_ignore_ascii_case("transcript_full.jsonl")
+        });
+    if !is_jsonl || !is_transcript {
+        return false;
+    }
+    let components = path_component_names(path);
+    let Some(gemini) = components.iter().position(|name| name == ".gemini") else {
+        return false;
+    };
+    components
+        .iter()
+        .skip(gemini + 1)
+        .any(|name| name.starts_with("antigravity"))
+        && components.iter().any(|name| name == "brain")
+        && components.iter().any(|name| name == ".system_generated")
+        && components.iter().any(|name| name == "logs")
+}
+
+fn antigravity_session_id(path: &Path) -> Option<String> {
+    let components = path.components().collect::<Vec<_>>();
+    let brain = components.iter().position(|component| {
+        component
+            .as_os_str()
+            .to_string_lossy()
+            .eq_ignore_ascii_case("brain")
+    })?;
+    let id = components.get(brain + 1)?.as_os_str().to_string_lossy();
+    (!id.is_empty()).then(|| id.into_owned())
+}
+
 fn is_agent_session_file(path: &Path) -> bool {
     agent_source_for_path(path).is_some()
 }
@@ -1807,6 +2064,7 @@ fn is_agent_file_for(agent: &str, path: &Path) -> bool {
                 && path.to_string_lossy().contains("/chats/")
         }
         AGENT_CURSOR => is_cursor_parent_transcript(path),
+        AGENT_ANTIGRAVITY => is_antigravity_transcript(path),
         _ => false,
     }
 }
@@ -2688,6 +2946,53 @@ fn command_from_tool_input(input: &Value) -> String {
     } else {
         truncate_clean(&input.to_string(), 300)
     }
+}
+
+fn antigravity_string_field(value: &Value, keys: &[&str]) -> Option<String> {
+    let object = value.as_object()?;
+    keys.iter().find_map(|key| {
+        object
+            .get(*key)
+            .and_then(Value::as_str)
+            .filter(|value| !value.trim().is_empty())
+            .map(str::to_string)
+    })
+}
+
+fn antigravity_user_text(content: &str) -> Option<String> {
+    let request = content
+        .find("<USER_REQUEST>")
+        .and_then(|start| {
+            let start = start + "<USER_REQUEST>".len();
+            let end = content[start..]
+                .find("</USER_REQUEST>")
+                .map(|offset| start + offset)?;
+            Some(&content[start..end])
+        })
+        .unwrap_or(content);
+    clean_prompt_text(request)
+}
+
+fn antigravity_tool_input(value: &Value) -> Value {
+    let mut input = parse_tool_args(value);
+    let Some(object) = input.as_object_mut() else {
+        return input;
+    };
+
+    for (target, aliases) in [
+        ("command", &["Command", "command"][..]),
+        ("cwd", &["Cwd", "cwd"][..]),
+        ("file_path", &["TargetFile", "target_file", "file_path"][..]),
+        ("text", &["CodeContent", "code_content", "text"][..]),
+    ] {
+        if object.contains_key(target) {
+            continue;
+        }
+        if let Some(value) = aliases.iter().find_map(|key| object.get(*key).cloned()) {
+            object.insert(target.to_string(), value);
+        }
+    }
+    input
 }
 
 fn parse_tool_args(value: &Value) -> Value {
@@ -4030,6 +4335,48 @@ mod tests {
 
         let fixture = fixture_session_path(AGENT_CURSOR, &home).expect("fixture");
         assert!(is_agent_file_for(AGENT_CURSOR, &fixture));
+    }
+
+    #[test]
+    fn antigravity_transcript_extracts_native_steps() {
+        let path = PathBuf::from(
+            "/home/dev/.gemini/antigravity-cli/brain/conv-123/.system_generated/logs/transcript.jsonl",
+        );
+        let content = concat!(
+            r#"{"step_index":0,"type":"USER_INPUT","created_at":"2026-06-28T10:04:18Z","content":"<USER_REQUEST>build the fixture</USER_REQUEST><ADDITIONAL_METADATA>ignored</ADDITIONAL_METADATA>"}"#,
+            "\n",
+            r#"{"step_index":1,"type":"PLANNER_RESPONSE","created_at":"2026-06-28T10:04:20Z","tool_calls":[{"name":"write_to_file","args":{"TargetFile":"/repo/hello.txt","CodeContent":"hello","Cwd":"/repo"}}]}"#,
+            "\nnot json\n",
+            r#"{"step_index":2,"type":"PLANNER_RESPONSE","created_at":"2026-06-28T10:04:25Z","content":"done","model":"gemini-3.1-pro"}"#,
+        );
+
+        let session = parse_session_content(AGENT_ANTIGRAVITY, &path, UNIX_EPOCH, content)
+            .expect("Antigravity session");
+        assert_eq!(session.session_id, "conv-123");
+        assert_eq!(session.conversation_id.as_deref(), Some("conv-123"));
+        assert_eq!(session.cwd.as_deref(), Some("/repo"));
+        assert_eq!(session.prompt_preview.as_deref(), Some("build the fixture"));
+        assert_eq!(session.model.as_deref(), Some("gemini-3.1-pro"));
+        assert_eq!(session.tools.get("write_to_file"), Some(&1));
+        assert_eq!(session.files.get("/repo/hello.txt"), Some(&1));
+        assert_eq!(session.events.prompts.len(), 1);
+        assert_eq!(session.events.llm_responses.len(), 1);
+    }
+
+    #[test]
+    fn antigravity_discovery_accepts_cli_and_ide_layouts() {
+        let cli = PathBuf::from(
+            "/home/dev/.gemini/antigravity-cli/brain/one/.system_generated/logs/transcript.jsonl",
+        );
+        let ide = PathBuf::from(
+            "/home/dev/.gemini/Antigravity IDE/brain/two/.system_generated/logs/transcript_full.jsonl",
+        );
+        let gemini = PathBuf::from("/home/dev/.gemini/tmp/chats/session.json");
+
+        assert_eq!(agent_source_for_path(&cli), Some(AGENT_ANTIGRAVITY));
+        assert_eq!(agent_source_for_path(&ide), Some(AGENT_ANTIGRAVITY));
+        assert_eq!(agent_source_for_path(&gemini), Some(AGENT_GEMINI));
+        assert_eq!(antigravity_session_id(&ide), Some("two".to_string()));
     }
 
     #[test]
