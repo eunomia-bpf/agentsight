@@ -114,6 +114,7 @@ export const en = {
   'overview.resetsIn': 'Resets in {time}',
   'overview.unlimitedRemaining': 'Unlimited remaining',
   'overview.capacityNotReported': 'Capacity not reported',
+  'overview.capacityExpired': 'Last reported window has reset; current capacity is unavailable.',
   'overview.agentSightCapacity': 'AgentSight capacity; model-provider usage is tracked separately.',
   'overview.subscriptionUnavailable': 'No model subscription capacity was reported by this Node.',
   'overview.resources': 'Machine resources',
@@ -133,9 +134,9 @@ export const en = {
 
   // Session analysis
   'analysis.duration': 'Duration',
-  'analysis.llmTurns': 'LLM turns',
+  'analysis.llmTurns': 'Loaded LLM turns',
   'analysis.toolCalls': 'Tool calls',
-  'analysis.failures': 'Failures',
+  'analysis.failures': 'Visible failures',
   'analysis.tokenUsage': 'Token usage',
   'analysis.tokenUsageHint': 'Reported usage by token type and model.',
   'analysis.input': 'Input',

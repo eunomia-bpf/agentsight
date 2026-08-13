@@ -11,6 +11,7 @@ import type {
   SnapshotProcessNode,
   SnapshotSession,
   SourceSubscription,
+  SubscriptionWindow,
   TokenUsage,
 } from '@/types/event';
 
@@ -80,6 +81,23 @@ export function sessionSubscription(session: SnapshotSession): SourceSubscriptio
     ? subscription as SourceSubscription : null;
 }
 
+export function latestSubscriptions(sessions: SnapshotSession[]): SourceSubscription[] {
+  const latest = new Map<string, { subscription: SourceSubscription; observedAt: number }>();
+  for (const session of sessions) {
+    const subscription = sessionSubscription(session);
+    if (!subscription) continue;
+    const observedAt = Date.parse(subscription.observed_at || sessionLastMessage(session) || '')
+      || session.end_timestamp_ms || session.start_timestamp_ms;
+    const current = latest.get(subscription.provider);
+    if (!current || observedAt > current.observedAt) latest.set(subscription.provider, { subscription, observedAt });
+  }
+  return [...latest.values()].map(({ subscription }) => subscription);
+}
+
+export function isCurrentSubscriptionWindow(window: SubscriptionWindow, nowSeconds = Date.now() / 1000): boolean {
+  return window.used_percent != null && (!window.resets_at || window.resets_at > nowSeconds);
+}
+
 export function sessionUsage(session: SnapshotSession): TokenUsage {
   const value = attributes(session).usage;
   if (!value || typeof value !== 'object') return {
@@ -88,6 +106,11 @@ export function sessionUsage(session: SnapshotSession): TokenUsage {
     total_tokens: session.total_tokens,
   };
   return value as TokenUsage;
+}
+
+export function sessionToolCallCount(detail: SessionDetail | null, fallbackCount: number): number {
+  const aggregate = Object.values(detail?.tools ?? {}).reduce((total, count) => total + count, 0);
+  return aggregate || detail?.events?.tools?.length || fallbackCount;
 }
 
 export function isRecordedCaptureSession(session: SnapshotSession): boolean {

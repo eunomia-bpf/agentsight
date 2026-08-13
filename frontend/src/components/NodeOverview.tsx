@@ -12,14 +12,15 @@ import type {
 import {
   displaySessionId,
   isRunningSession,
+  isCurrentSubscriptionWindow,
   isRecordedCaptureSession,
   liveRowForSession,
+  latestSubscriptions,
   orderedSessions,
   sessionActivityState,
   sessionLastMessage,
   sessionPlan,
   sessionPrompt,
-  sessionSubscription,
   sessionWorkspace,
 } from '@/utils/sessionData';
 
@@ -98,16 +99,7 @@ export function NodeOverview({
       .filter((step) => step.status !== 'completed')
       .map((step) => ({ session, step, live: liveRowForSession(overview, session) }))
   ));
-  const subscriptions = useMemo(() => {
-    const byProvider = new Map<string, SourceSubscription>();
-    for (const session of sessions) {
-      const subscription = sessionSubscription(session);
-      if (subscription && !byProvider.has(subscription.provider)) {
-        byProvider.set(subscription.provider, subscription);
-      }
-    }
-    return [...byProvider.values()];
-  }, [sessions]);
+  const subscriptions = useMemo(() => latestSubscriptions(sessions), [sessions]);
   const matchedRawIds = new Set(sessions.map((session) => liveRowForSession(overview, session)?.session_id));
   const unmatched = (overview?.rows ?? []).filter((row) => (
     isRunningSession(row) && (!row.session_id || !matchedRawIds.has(row.session_id))
@@ -360,7 +352,9 @@ function Metric({ label, value }: { label: string; value: string }) {
 function Subscription({ subscription }: { subscription: SourceSubscription }) {
   const { t } = useTranslation();
   const windows = [subscription.primary, subscription.secondary]
-    .filter((window): window is SubscriptionWindow => !!window && window.used_percent != null);
+    .filter((window): window is SubscriptionWindow => !!window && isCurrentSubscriptionWindow(window));
+  const expired = [subscription.primary, subscription.secondary]
+    .some((window) => !!window && window.used_percent != null && !isCurrentSubscriptionWindow(window));
   return (
     <div className="rounded-lg border border-slate-100 p-3">
       <div className="flex items-center justify-between gap-2">
@@ -393,6 +387,12 @@ function Subscription({ subscription }: { subscription: SourceSubscription }) {
         })}
         {windows.length === 0 && subscription.credits?.unlimited && (
           <div className="text-sm font-semibold text-emerald-700">{t('overview.unlimitedRemaining')}</div>
+        )}
+        {windows.length === 0 && expired && !subscription.credits?.unlimited && (
+          <div className="text-sm text-slate-500">{t('overview.capacityExpired')}</div>
+        )}
+        {windows.length === 0 && !expired && !subscription.credits?.unlimited && (
+          <div className="text-sm text-slate-500">{t('overview.capacityNotReported')}</div>
         )}
       </div>
     </div>

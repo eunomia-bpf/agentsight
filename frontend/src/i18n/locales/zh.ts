@@ -118,6 +118,7 @@ export const zh: Record<TranslationKey, string> = {
   'overview.resetsIn': '{time} 后重置',
   'overview.unlimitedRemaining': '剩余容量不限',
   'overview.capacityNotReported': '未报告容量上限',
+  'overview.capacityExpired': '上次报告的窗口已重置，当前容量暂不可用。',
   'overview.agentSightCapacity': 'AgentSight 容量；模型供应商用量单独计算。',
   'overview.subscriptionUnavailable': '当前 Node 没有报告模型订阅容量。',
   'overview.resources': '机器资源',
@@ -137,9 +138,9 @@ export const zh: Record<TranslationKey, string> = {
 
   // 会话分析
   'analysis.duration': '持续时间',
-  'analysis.llmTurns': 'LLM 轮次',
+  'analysis.llmTurns': '已加载 LLM 轮次',
   'analysis.toolCalls': '工具调用',
-  'analysis.failures': '失败',
+  'analysis.failures': '当前可见失败',
   'analysis.tokenUsage': 'Token 用量',
   'analysis.tokenUsageHint': '按 Token 类型与模型拆分的报告用量。',
   'analysis.input': '输入',

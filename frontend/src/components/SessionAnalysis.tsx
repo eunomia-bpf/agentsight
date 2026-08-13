@@ -8,7 +8,7 @@ import type { SessionDetail } from '@/lib/nodeClient';
 import { useTranslation } from '@/i18n';
 import type { AgentSightSnapshot, SnapshotSession } from '@/types/event';
 import { type DisplayEvent, formatDuration } from '@/utils/eventProcessing';
-import { sessionUsage } from '@/utils/sessionData';
+import { sessionToolCallCount, sessionUsage } from '@/utils/sessionData';
 
 function compact(value: number | null | undefined): string {
   const number = value ?? 0;
@@ -60,8 +60,7 @@ export function SessionAnalysis({ snapshot, session, detail, events }: {
   const failures = toolFailures + processFailures + networkErrors;
   const llmTurns = detail?.events?.llm_responses?.length
     || (snapshot.audit_events ?? []).filter((event) => event.audit_type === 'llm' && event.action === 'response').length;
-  const toolCallCount = toolEvents.length || snapshotTools.length
-    || toolCounts.reduce((total, [, count]) => total + count, 0);
+  const toolCallCount = sessionToolCallCount(detail, snapshotTools.length);
   const fileCount = Object.keys(detail?.files ?? {}).length
     || new Set((snapshot.audit_events ?? [])
       .filter((event) => event.audit_type === 'file')

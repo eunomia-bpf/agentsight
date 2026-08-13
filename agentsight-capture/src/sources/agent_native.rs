@@ -376,13 +376,13 @@ fn codex_latest_subscription(content: &str) -> Option<Value> {
         let credits = limits.get("credits");
         Some(serde_json::json!({
             "provider": "codex",
+            "observed_at": event.get("timestamp").and_then(Value::as_str),
             "plan_type": limits.get("plan_type").and_then(Value::as_str),
             "limit_name": limits.get("limit_name").and_then(Value::as_str),
             "primary": window("primary"),
             "secondary": window("secondary"),
             "credits": {
                 "unlimited": credits.and_then(|value| value.get("unlimited")).and_then(Value::as_bool),
-                "balance": credits.and_then(|value| value.get("balance")).and_then(Value::as_str),
             },
         }))
     })
@@ -1364,7 +1364,7 @@ mod tests {
         fs::write(
             &rollout,
             concat!(
-                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":3,"output_tokens":4,"total_tokens":7}},"rate_limits":{"plan_type":"pro","primary":{"used_percent":75.0,"window_minutes":300,"resets_at":1234},"secondary":null,"credits":{"unlimited":false,"balance":"10"},"private_field":"drop"}}}"#,
+                r#"{"timestamp":"2026-08-13T10:00:00Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":3,"output_tokens":4,"total_tokens":7}},"rate_limits":{"plan_type":"pro","primary":{"used_percent":75.0,"window_minutes":300,"resets_at":1234},"secondary":null,"credits":{"unlimited":false,"balance":"10"},"private_field":"drop"}}}"#,
                 "\n",
                 r#"{"type":"response_item","payload":{"type":"function_call","name":"update_plan","arguments":"{\"plan\":[{\"step\":\"cached plan\",\"status\":\"in_progress\"}]}"}}"#,
                 "\n",
@@ -1378,8 +1378,16 @@ mod tests {
         assert_eq!(first.0.unwrap().total_tokens, 7);
         assert_eq!(first.1[0].step, "cached plan");
         assert_eq!(first.2.as_ref().unwrap()["provider"], "codex");
+        assert_eq!(
+            first.2.as_ref().unwrap()["observed_at"],
+            "2026-08-13T10:00:00Z"
+        );
         assert_eq!(first.2.as_ref().unwrap()["primary"]["used_percent"], 75.0);
-        assert_eq!(first.2.as_ref().unwrap()["credits"]["balance"], "10");
+        assert!(
+            first.2.as_ref().unwrap()["credits"]
+                .get("balance")
+                .is_none()
+        );
         assert!(first.2.as_ref().unwrap().get("private_field").is_none());
         let session = codex_state_session(
             "session-id".to_string(),

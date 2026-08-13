@@ -100,11 +100,12 @@ export interface SubscriptionWindow {
 
 export interface SourceSubscription {
   provider: string;
+  observed_at?: string | null;
   plan_type?: string | null;
   limit_name?: string | null;
   primary?: SubscriptionWindow | null;
   secondary?: SubscriptionWindow | null;
-  credits?: { unlimited?: boolean | null; balance?: string | null } | null;
+  credits?: { unlimited?: boolean | null } | null;
 }
 
 export interface TokenUsage {

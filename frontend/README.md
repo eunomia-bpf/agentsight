@@ -128,7 +128,7 @@ open http://localhost:7395/timeline
 - **Details**: Hover for quick info, click for full details
 
 #### Controls
-- **View Toggle**: Switch between Timeline, Process Tree, and Log views
+- **View Toggle**: Switch between Conversation, Process Tree, and Analysis views
 - **Sync Data**: Manual refresh from collector
 - **Clear Data**: Reset all loaded events
 - **Export**: Download filtered data
@@ -171,7 +171,6 @@ agentsight/frontend/
 │   │   ├── UploadPanel.tsx   # File upload interface
 │   │   ├── common/           # Shared components
 │   │   ├── dashboard/        # Overview dashboard panels + SVG charts
-│   │   ├── log/              # Log view components
 │   │   ├── process-tree/     # Process tree components
 │   │   └── timeline/         # Timeline components
 │   ├── lib/           # Utility libraries
