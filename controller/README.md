@@ -88,14 +88,22 @@ One Worker deployment contains both surfaces from the same repository revision:
 - one D1 database stores Controller metadata;
 - one Durable Object namespace carries live relay traffic.
 
-Cloudflare Builds uses the repository root `wrangler.jsonc`. Its build command prepares the demo data and static frontend. Configure these commands in the Cloudflare dashboard, with `/` as the root directory:
+Cloudflare Builds uses the repository root `wrangler.jsonc`. Its build command prepares the demo data and static frontend. Configure `/` as the root directory and `master` as the production branch.
+
+Production deploy command:
 
 ```bash
-npm --prefix controller ci
-./controller/node_modules/.bin/wrangler d1 migrations apply DB --remote --config wrangler.jsonc
-./controller/node_modules/.bin/wrangler deploy --config wrangler.jsonc
+npm --prefix controller ci && ./controller/node_modules/.bin/wrangler d1 migrations apply DB --remote --config wrangler.jsonc && ./controller/node_modules/.bin/wrangler deploy --config wrangler.jsonc
 ```
 
-The production branch is `master`; non-production branches receive preview deployments. D1 migrations run before every deploy and are idempotent, so the frontend and API cannot drift between revisions. `npm run deploy` remains available for recovery/debugging, but it is not the normal production path.
+Preview deploy command:
+
+```bash
+npm --prefix controller ci && ./controller/node_modules/.bin/wrangler d1 migrations apply DB --remote --env preview --config wrangler.jsonc && ./controller/node_modules/.bin/wrangler deploy --env preview --config wrangler.jsonc
+```
+
+Cloudflare does not generate native version preview URLs for Workers that implement Durable Objects. Non-production builds therefore perform a full deploy to the stable, isolated `agentsight-preview` environment. That staging environment has its own workers.dev URL, D1 database, Durable Object namespace, and rate-limit namespaces; it never receives production secrets or production data. Each new non-production build replaces the previous staging revision.
+
+D1 migrations run before both production and staging deploys and are idempotent, so each frontend and API deployment comes from the same revision. `npm run deploy` remains available for production recovery/debugging, but it is not the normal production path.
 
 The old `control-plane` path is retained only as a compatibility symlink for existing scripts; new code and documentation should use `controller`.

@@ -46,7 +46,6 @@ import {
 
 interface Env extends RelayEnv {
   APP_ORIGIN: string;
-  APP_PREVIEW_ORIGIN_SUFFIX?: string;
   OAUTH_IP_LIMITER: RateLimit;
   OAUTH_LOCATION_LIMITER: RateLimit;
   GITHUB_CLIENT_ID?: string;
@@ -87,7 +86,7 @@ export default {
     }
 
     const requestOrigin = request.headers.get('Origin');
-    if (!allowedBrowserOrigin(requestOrigin, env.APP_ORIGIN, env.APP_PREVIEW_ORIGIN_SUFFIX)) {
+    if (!allowedBrowserOrigin(requestOrigin, env.APP_ORIGIN)) {
       return json({ error: 'origin_not_allowed' }, 403);
     }
     const respond = (response: Response) => cors(response, env, requestOrigin);
@@ -444,9 +443,9 @@ function json(body: unknown, status = 200): Response {
 
 function cors(response: Response, env: Env, requestOrigin: string | null): Response {
   const headers = new Headers(response.headers);
-  const responseOrigin = allowedBrowserOrigin(
-    requestOrigin, env.APP_ORIGIN, env.APP_PREVIEW_ORIGIN_SUFFIX,
-  ) && requestOrigin ? new URL(requestOrigin).origin : new URL(env.APP_ORIGIN).origin;
+  const responseOrigin = allowedBrowserOrigin(requestOrigin, env.APP_ORIGIN) && requestOrigin
+    ? new URL(requestOrigin).origin
+    : new URL(env.APP_ORIGIN).origin;
   headers.set('Access-Control-Allow-Origin', responseOrigin);
   headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');

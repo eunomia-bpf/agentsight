@@ -23,18 +23,15 @@ test('PKCE challenge matches RFC 7636 example', async () => {
 
 test('OAuth return URL stays on the hosted app origin', () => {
   const app = 'https://app.agentsight.us';
-  const previews = '-agentsight.yunwei356.workers.dev';
+  const preview = 'https://agentsight-preview.yunwei356.workers.dev';
   assert.equal(allowedReturnTo('https://app.agentsight.us/tree', app), `${app}/`);
-  assert.equal(
-    allowedReturnTo('https://feature-agentsight.yunwei356.workers.dev/tree', app, previews),
-    'https://feature-agentsight.yunwei356.workers.dev/',
-  );
-  assert.equal(allowedReturnTo('https://evil.example/', app, previews), `${app}/`);
+  assert.equal(allowedReturnTo(`${preview}/tree`, preview), `${preview}/`);
+  assert.equal(allowedReturnTo('https://evil.example/', app), `${app}/`);
   assert.equal(allowedReturnTo('not a URL', app), `${app}/`);
-  assert.equal(allowedBrowserOrigin(app, app, previews), true);
-  assert.equal(allowedBrowserOrigin('https://feature-agentsight.yunwei356.workers.dev', app, previews), true);
-  assert.equal(allowedBrowserOrigin('http://feature-agentsight.yunwei356.workers.dev', app, previews), false);
-  assert.equal(allowedBrowserOrigin('https://agentsight.yunwei356.workers.dev.evil.example', app, previews), false);
+  assert.equal(allowedBrowserOrigin(app, app), true);
+  assert.equal(allowedBrowserOrigin(preview, preview), true);
+  assert.equal(allowedBrowserOrigin('http://agentsight-preview.yunwei356.workers.dev', preview), false);
+  assert.equal(allowedBrowserOrigin('https://agentsight-preview.yunwei356.workers.dev.evil.example', preview), false);
 });
 
 test('Controller accepts only stable AgentSight Node IDs', () => {

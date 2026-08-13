@@ -4,7 +4,6 @@
 interface Env {
   DB: D1Database;
   APP_ORIGIN: string;
-  APP_PREVIEW_ORIGIN_SUFFIX?: string;
   OAUTH_IP_LIMITER: RateLimit;
   OAUTH_LOCATION_LIMITER: RateLimit;
   GITHUB_CLIENT_ID?: string;
@@ -45,7 +44,7 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const requestOrigin = request.headers.get('Origin');
-    if (!allowedBrowserOrigin(requestOrigin, env.APP_ORIGIN, env.APP_PREVIEW_ORIGIN_SUFFIX)) {
+    if (!allowedBrowserOrigin(requestOrigin, env.APP_ORIGIN)) {
       return json({ error: 'origin_not_allowed' }, 403);
     }
     if (request.method === 'OPTIONS') {
@@ -88,9 +87,7 @@ function providerFromPath(pathname: string): Provider {
 
 async function startOAuth(request: Request, env: Env, provider: Provider): Promise<Response> {
   const url = new URL(request.url);
-  const returnTo = allowedReturnTo(
-    url.searchParams.get('return_to'), env.APP_ORIGIN, env.APP_PREVIEW_ORIGIN_SUFFIX,
-  );
+  const returnTo = allowedReturnTo(url.searchParams.get('return_to'), env.APP_ORIGIN);
   const codeChallenge = url.searchParams.get('code_challenge') || '';
   if (!PKCE_CHALLENGE_PATTERN.test(codeChallenge)) {
     return authErrorRedirect(returnTo, 'pkce_required');
@@ -337,19 +334,10 @@ function oauthConfig(provider: Provider, env: Env, origin: string) {
 export function allowedBrowserOrigin(
   value: string | null,
   appOrigin: string,
-  previewOriginSuffix?: string,
 ): boolean {
   if (!value) return true;
   try {
-    const candidate = new URL(value);
-    if (candidate.origin === new URL(appOrigin).origin) return true;
-    return Boolean(
-      previewOriginSuffix
-      && candidate.protocol === 'https:'
-      && !candidate.port
-      && candidate.hostname.length > previewOriginSuffix.length
-      && candidate.hostname.endsWith(previewOriginSuffix),
-    );
+    return new URL(value).origin === new URL(appOrigin).origin;
   } catch {
     return false;
   }
@@ -358,12 +346,11 @@ export function allowedBrowserOrigin(
 export function allowedReturnTo(
   value: string | null,
   appOrigin: string,
-  previewOriginSuffix?: string,
 ): string {
   if (!value) return `${appOrigin.replace(/\/$/, '')}/`;
   try {
     const candidate = new URL(value);
-    if (allowedBrowserOrigin(candidate.origin, appOrigin, previewOriginSuffix)) {
+    if (allowedBrowserOrigin(candidate.origin, appOrigin)) {
       return `${candidate.origin}/`;
     }
   } catch { /* fall through */ }
@@ -453,9 +440,9 @@ function json(body: unknown, status = 200): Response {
 
 function cors(response: Response, env: Env, requestOrigin: string | null): Response {
   const headers = new Headers(response.headers);
-  const responseOrigin = allowedBrowserOrigin(
-    requestOrigin, env.APP_ORIGIN, env.APP_PREVIEW_ORIGIN_SUFFIX,
-  ) && requestOrigin ? new URL(requestOrigin).origin : new URL(env.APP_ORIGIN).origin;
+  const responseOrigin = allowedBrowserOrigin(requestOrigin, env.APP_ORIGIN) && requestOrigin
+    ? new URL(requestOrigin).origin
+    : new URL(env.APP_ORIGIN).origin;
   headers.set('Access-Control-Allow-Origin', responseOrigin);
   headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');

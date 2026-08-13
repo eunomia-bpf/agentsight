@@ -2,17 +2,18 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 import type { LocalConnection } from '@/lib/nodeClient';
+import { resolveControllerUrl } from '@/lib/controllerOrigin.mjs';
 
 const CLOUD_SESSION_KEY = 'agentsight.cloud-session.v1';
 const OAUTH_VERIFIER_KEY = 'agentsight.oauth-verifier.v1';
 const REQUEST_TIMEOUT_MS = 8_000;
 let cloudCodeExchange: Promise<string> | null = null;
 
-export const controllerUrl = (
-  process.env.NEXT_PUBLIC_CONTROLLER_URL
-  || process.env.NEXT_PUBLIC_CONTROL_PLANE_URL
-  || 'https://control.agentsight.us'
-).replace(/\/$/, '');
+export const controllerUrl = resolveControllerUrl(
+  process.env.NEXT_PUBLIC_CONTROLLER_URL,
+  process.env.NEXT_PUBLIC_CONTROL_PLANE_URL,
+  typeof window === 'undefined' ? undefined : window.location,
+);
 
 export interface CloudIdentity {
   id: string;
