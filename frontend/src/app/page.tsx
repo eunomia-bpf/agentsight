@@ -266,7 +266,10 @@ export default function Home() {
     }
 
     const result = await tryNodeTransports(attempts);
-    if (result.transport) return;
+    if (result.transport) {
+      setLoadingNodeId(null);
+      return;
+    }
     const relayFailure = result.failures.find(({ transport }) => transport === 'relay')?.cause;
     const directFailure = [...result.failures].reverse()
       .find(({ transport }) => transport !== 'relay')?.cause;
