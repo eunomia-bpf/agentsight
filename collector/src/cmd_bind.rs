@@ -79,7 +79,7 @@ pub(crate) async fn run_bind(
     if let Some(db_path) = db_path {
         println!("Serving saved AgentSight data from {db_path}.");
     } else {
-        println!("Serving the local agent session index; pass --db for a saved capture.");
+        println!("Serving the live agent overview and local session history; pass --db for a saved capture.");
     }
     if qr {
         print_qr(&bind_url)?;

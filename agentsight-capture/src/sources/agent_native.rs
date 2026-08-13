@@ -144,7 +144,8 @@ fn codex_state_session(
         .or(updated_ms);
     let updated = updated_ms.map(system_time_from_ms).unwrap_or(UNIX_EPOCH);
     let path = PathBuf::from(rollout_path);
-    let usage = codex_rollout_usage(&path).unwrap_or(TokenUsage {
+    let (rollout_usage, plan) = codex_rollout_summary(&path);
+    let usage = rollout_usage.unwrap_or(TokenUsage {
         total_tokens: tokens_used.max(0),
         ..Default::default()
     });
@@ -179,18 +180,65 @@ fn codex_state_session(
             .unwrap_or_default(),
         cwd,
         last_message_at,
-        events: Default::default(),
+        events: agent_session::SessionEvents {
+            plan,
+            ..Default::default()
+        },
     }
 }
 
-fn codex_rollout_usage(path: &Path) -> Option<TokenUsage> {
-    let mut file = File::open(path).ok()?;
-    let len = file.metadata().ok()?.len();
+/// Expand a lightweight indexed session only when a caller needs transcript events.
+/// Discovery remains bounded and cheap; the shared cache avoids reparsing unchanged files.
+pub fn hydrate_session(cache: &mut SessionCache, indexed: LocalSession) -> LocalSession {
+    if !indexed.events.prompts.is_empty()
+        || !indexed.events.tools.is_empty()
+        || !indexed.events.llm_responses.is_empty()
+    {
+        return indexed;
+    }
+    let Some(mut parsed) = cache.parse_path_cached(&indexed.path) else {
+        return indexed;
+    };
+    parsed.session_id = indexed.session_id;
+    parsed.conversation_id = indexed.conversation_id;
+    parsed.display_id = indexed.display_id;
+    parsed.updated = indexed.updated;
+    parsed.start_timestamp_ms = indexed.start_timestamp_ms.or(parsed.start_timestamp_ms);
+    parsed.end_timestamp_ms = indexed.end_timestamp_ms.or(parsed.end_timestamp_ms);
+    parsed.last_message_at = indexed.last_message_at.or(parsed.last_message_at);
+    parsed.model = indexed.model.or(parsed.model);
+    parsed.cwd = indexed.cwd.or(parsed.cwd);
+    parsed.prompt_preview = indexed.prompt_preview.or(parsed.prompt_preview);
+    if indexed.usage.total_tokens > 0 {
+        parsed.usage = indexed.usage;
+        parsed.model_usage = indexed.model_usage;
+    }
+    if let (Some(start), Some(end)) = (parsed.start_timestamp_ms, parsed.end_timestamp_ms) {
+        parsed.duration_ms = end.saturating_sub(start);
+    }
+    parsed
+}
+
+fn codex_rollout_summary(path: &Path) -> (Option<TokenUsage>, Vec<agent_session::PlanStep>) {
+    let Ok(mut file) = File::open(path) else {
+        return (None, Vec::new());
+    };
+    let Ok(metadata) = file.metadata() else {
+        return (None, Vec::new());
+    };
+    let len = metadata.len();
     let window = len.min(CODEX_ROLLOUT_TAIL_BYTES);
-    file.seek(SeekFrom::Start(len - window)).ok()?;
+    if file.seek(SeekFrom::Start(len - window)).is_err() {
+        return (None, Vec::new());
+    }
     let mut data = Vec::with_capacity(window as usize);
-    file.read_to_end(&mut data).ok()?;
-    agent_session::codex_total_token_usage(&String::from_utf8_lossy(&data))
+    if file.read_to_end(&mut data).is_err() {
+        return (None, Vec::new());
+    }
+    let content = String::from_utf8_lossy(&data);
+    let usage = agent_session::codex_total_token_usage(&content);
+    let plan = agent_session::codex_latest_plan(&content).unwrap_or_default();
+    (usage, plan)
 }
 
 const CURSOR_STATE_DB_CANDIDATES: [&str; 3] = [
@@ -930,6 +978,7 @@ fn session_row(session: &LocalSession) -> SessionRow {
             "cwd": session.cwd.clone(),
             "last_message_at": session.last_message_at.clone(),
             "files": session.files,
+            "plan": session.events.plan,
         }),
     }
 }
@@ -1154,6 +1203,47 @@ mod tests {
             sessions[0].last_message_at.as_deref(),
             Some("1970-01-01T00:31:40.000Z")
         );
+    }
+
+    #[test]
+    fn indexed_codex_session_is_hydrated_on_detail_access() {
+        let temp = tempfile::tempdir().unwrap();
+        let rollout = agent_session::fixture_session_path(agent_session::AGENT_CODEX, temp.path())
+            .unwrap();
+        fs::create_dir_all(rollout.parent().unwrap()).unwrap();
+        fs::write(
+            &rollout,
+            concat!(
+                r#"{"type":"session_meta","payload":{"id":"state-id","cwd":"/parsed"}}"#,
+                "\n",
+                r#"{"timestamp":"2026-08-13T00:00:00Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"show the full conversation"}]}}"#,
+                "\n",
+                r#"{"type":"response_item","payload":{"type":"function_call","name":"update_plan","call_id":"p1","arguments":"{\"plan\":[{\"step\":\"render session detail\",\"status\":\"in_progress\"}]}"}}"#,
+                "\n",
+                r#"{"timestamp":"2026-08-13T00:00:01Z","type":"response_item","payload":{"type":"message","role":"assistant","phase":"final_answer","content":[{"type":"output_text","text":"conversation rendered"}]}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let indexed = codex_state_session(
+            "state-id".to_string(),
+            rollout.to_string_lossy().to_string(),
+            Some("gpt-indexed".to_string()),
+            42,
+            Some("indexed preview".to_string()),
+            Some("/indexed".to_string()),
+            Some(1_000),
+            Some(2_000),
+        );
+        assert_eq!(indexed.events.plan[0].step, "render session detail");
+
+        let hydrated = hydrate_session(&mut SessionCache::new(), indexed);
+
+        assert_eq!(hydrated.events.prompts[0].text, "show the full conversation");
+        assert_eq!(hydrated.events.llm_responses[0].text, "conversation rendered");
+        assert_eq!(hydrated.events.plan[0].step, "render session detail");
+        assert_eq!(hydrated.model.as_deref(), Some("gpt-indexed"));
+        assert_eq!(hydrated.cwd.as_deref(), Some("/indexed"));
     }
 
     #[test]

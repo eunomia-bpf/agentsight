@@ -533,7 +533,7 @@ agent evidence，而不是采集最多 telemetry。
 | Container targeting | 已支持 Docker/Kubernetes binary resolution |
 | Static app | `app.agentsight.us` 托管本仓库 SPA；匿名且无连接时选择 Bind、OAuth 登录或 recorded demo；登录后显示 metadata-only Node 目录，当前直连 Node 进入数据概览 |
 | Node bind | `agentsight bind` 用 URL fragment 向浏览器交付持久化 Node bearer；默认自动发现 loopback，也可指定 listen IP、port、browser endpoint 和自托管 app URL；Node ID 和 token 均跨进程复用 |
-| Direct API | `/api/v1/info` 和 bearer-protected `/api/v1/snapshot`；CORS origin 来自本次选择的 hosted/self-hosted app；bind 默认读取最新 SQLite 或本地 session index |
+| Direct API | `/api/v1/info`、机器级 `/api/v1/overview`、`/api/v1/snapshot` 和按需 session detail/message；CORS origin 来自本次选择的 hosted/self-hosted app；bind 默认读取最新 SQLite 或本地 session index |
 | Cloud control | 同一 Cloudflare Worker 原子部署 SPA 与 Controller；D1 已实现 PKCE OAuth、organization、membership/RBAC、Node registry、配置与计费元数据；Direct 配置加密保存 |
 | Managed relay | 已实现 Node outbound WSS、Durable Object routing、浏览器 relay fallback 和基础 capability gate；relay payload 仅在请求期间转发，不写入 D1 |
 | Enterprise Gateway | 尚未实现；大规模 site federation 仍是后续能力 |

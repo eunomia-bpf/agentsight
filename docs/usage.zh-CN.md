@@ -127,7 +127,10 @@ agentsight bind
 
 该命令默认在 `127.0.0.1:7395` 启动 API，打开带认证信息的连接链接，并在前台持续运行。
 当前目录存在 `agentsight-*.db` 时默认读取最新一个，否则读取本机 agent session index；也可以用
-`--db <capture.db>` 明确指定一次保存的捕获。Node 访问密钥保存在操作系统的 AgentSight
+`--db <capture.db>` 明确指定一次保存的捕获。首屏是机器级实时 `top`：统一显示运行中/已停止
+的智能体、token、coding plan、CPU 和 RSS。点击 session 后才展开对话、进程树与 AI 提示、
+时间线和详细事件；该 session 的 CPU/RSS 放在详情页头部，不再单独提供性能面板。
+Node 访问密钥保存在操作系统的 AgentSight
 配置目录并跨重启复用；连接链接只通过 URL fragment 把密钥交给浏览器，SPA 读取后立即从
 地址栏清除。Chrome 可能会请求允许该网页访问本地或私有网络。
 

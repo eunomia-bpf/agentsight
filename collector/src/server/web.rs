@@ -2,6 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use crate::model::{Snapshot, SnapshotOptions};
+use crate::output::TopOptions;
 use crate::server::assets::FrontendAssets;
 use crate::server::capability::{
     CapabilityMintRequest, CapabilityStore, EVIDENCE_READ, NODE_INFO, SESSION_MESSAGE,
@@ -10,6 +11,7 @@ use crate::server::capability::{
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
 use crate::sources::sqlite as sqlite_source;
 use crate::view::SharedMaterializedView;
+use crate::view::live_top::{LiveCaptureSnapshot, LiveView};
 use agentsight_protocol::{
     PRODUCT, PROTOCOL_VERSION, SessionMessageRequest, session_detail_id, session_message_id,
 };
@@ -88,6 +90,7 @@ pub struct WebServer {
     assets: Arc<FrontendAssets>,
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
+    live_view: Arc<Mutex<LiveView>>,
     capabilities: Arc<Mutex<CapabilityStore>>,
     db_path: Option<String>,
     direct_auth: Option<DirectAuth>,
@@ -103,6 +106,7 @@ impl WebServer {
             assets: Arc::new(assets),
             view,
             agent_native_sessions: Arc::new(Mutex::new(SessionCache::new())),
+            live_view: Arc::new(Mutex::new(LiveView::default())),
             capabilities: Arc::new(Mutex::new(CapabilityStore::default())),
             db_path,
             direct_auth: None,
@@ -148,6 +152,7 @@ impl WebServer {
             let assets = Arc::clone(&self.assets);
             let view = Arc::clone(&self.view);
             let agent_native_sessions = Arc::clone(&self.agent_native_sessions);
+            let live_view = Arc::clone(&self.live_view);
             let capabilities = Arc::clone(&self.capabilities);
             let db_path = self.db_path.clone();
             let direct_auth = self.direct_auth.clone();
@@ -160,6 +165,7 @@ impl WebServer {
                         assets.clone(),
                         view.clone(),
                         agent_native_sessions.clone(),
+                        live_view.clone(),
                         capabilities.clone(),
                         db_path.clone(),
                         direct_auth.clone(),
@@ -179,6 +185,7 @@ async fn handle_request(
     assets: Arc<FrontendAssets>,
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
+    live_view: Arc<Mutex<LiveView>>,
     capabilities: Arc<Mutex<CapabilityStore>>,
     db_path: Option<String>,
     direct_auth: Option<DirectAuth>,
@@ -267,6 +274,28 @@ async fn handle_request(
                 json_error(StatusCode::UNAUTHORIZED, "evidence.read capability required")
             } else {
                 serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
+            }
+        }
+        (Method::GET, "/api/v1/overview") => {
+            if !protocol_access_allowed(
+                direct_auth.as_ref(),
+                &capabilities,
+                authorization.as_ref(),
+                EVIDENCE_READ,
+                None,
+                origin.as_deref(),
+            ) {
+                json_error(
+                    StatusCode::UNAUTHORIZED,
+                    "evidence.read capability required",
+                )
+            } else if db_path.is_some() {
+                json_error(
+                    StatusCode::CONFLICT,
+                    "saved captures do not expose live processes",
+                )
+            } else {
+                serve_overview_api(view, live_view).await?
             }
         }
         (Method::GET, _) if session_detail_id.is_some() => {
@@ -456,6 +485,47 @@ async fn serve_snapshot_api(
     }
 }
 
+async fn serve_overview_api(
+    view: SharedMaterializedView,
+    live_view: Arc<Mutex<LiveView>>,
+) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
+    let result = tokio::task::spawn_blocking(
+        move || -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+            let capture = view
+                .lock()
+                .map_err(|_| std::io::Error::other("materialized view lock poisoned"))?
+                .export_snapshot(SnapshotOptions {
+                    audit_limit: 10_000,
+                });
+            let capture = LiveCaptureSnapshot::new(capture, 0);
+            let options = TopOptions {
+                pid: None,
+                comm: None,
+                sort: "cpu".to_string(),
+                view: "all".to_string(),
+            };
+            let overview = live_view
+                .lock()
+                .map_err(|_| std::io::Error::other("live view lock poisoned"))?
+                .refresh(Some(&capture), 25, &options)?;
+            Ok(serde_json::to_value(overview)?)
+        },
+    )
+    .await;
+
+    match result {
+        Ok(Ok(value)) => Ok(json_response(StatusCode::OK, &value)),
+        Ok(Err(error)) => Ok(json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("failed to collect live overview: {error}"),
+        )),
+        Err(error) => Ok(json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("live overview task failed: {error}"),
+        )),
+    }
+}
+
 async fn serve_session_api(
     sessions: Arc<Mutex<SessionCache>>,
     session_id: &str,
@@ -569,9 +639,10 @@ fn find_native_session(
     cache: &mut SessionCache,
     session_id: &str,
 ) -> Option<agent_session::AgentSession> {
-    agent_native_sessions::discover_sessions(cache, None, None, 25, Duration::ZERO)
+    let indexed = agent_native_sessions::discover_sessions(cache, None, None, 25, Duration::ZERO)
         .into_iter()
-        .find(|session| session.session_id == session_id)
+        .find(|session| session.session_id == session_id)?;
+    Some(agent_native_sessions::hydrate_session(cache, indexed))
 }
 
 async fn launch_session_message(
@@ -825,6 +896,10 @@ mod tests {
     fn semantic_protocol_mapping_matches_web_routes() {
         assert_eq!(
             crate::server::capability::action_for_request("GET", "/api/v1/snapshot?audit_limit=42"),
+            Some((EVIDENCE_READ, None))
+        );
+        assert_eq!(
+            crate::server::capability::action_for_request("GET", "/api/v1/overview"),
             Some((EVIDENCE_READ, None))
         );
         assert_eq!(

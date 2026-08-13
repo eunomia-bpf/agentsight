@@ -2,7 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use crate::model::{AuditCounters, SessionRow, Snapshot};
-use crate::output::{AgentTopOutput, AgentTopRow, TopOptions};
+use crate::output::{AgentProcessRow, AgentTopOutput, AgentTopRow, TopOptions};
 use crate::sources::agent_native as agent_native_sessions;
 use crate::sources::proc::{self as procfs, ProcSnapshot as LiveSample};
 use crate::view::process_select;
@@ -225,6 +225,12 @@ impl LiveView {
             if options.pid.is_some() && live.is_none() {
                 continue;
             }
+            let plan = session
+                .attributes
+                .get("plan")
+                .cloned()
+                .and_then(|value| serde_json::from_value(value).ok())
+                .unwrap_or_default();
             let command = session_attr(session, "prompt_preview")
                 .map(ToString::to_string)
                 .or_else(|| live.as_ref().map(|(row, _)| row.command.clone()))
@@ -277,6 +283,7 @@ impl LiveView {
                 })
                 .unwrap_or_default();
             rows.push(AgentTopRow {
+                session_id: session_attr(session, "session_id").map(ToString::to_string),
                 session: session_attr(session, "display_id")
                     .unwrap_or(session.id.as_str())
                     .to_string(),
@@ -311,6 +318,11 @@ impl LiveView {
                 last_message_at: session_attr(session, "last_message_at").map(ToString::to_string),
                 tool_breakdown,
                 file_breakdown,
+                process_details: live
+                    .as_ref()
+                    .map(|(row, _)| row.process_details.clone())
+                    .unwrap_or_default(),
+                plan,
             });
         }
 
@@ -635,6 +647,7 @@ fn live_process_rows(
             .unwrap_or_else(|| "agent".to_string());
 
         rows.push(AgentTopRow {
+            session_id: None,
             session: format!("proc:{root_pid}"),
             agent,
             pid: Some(root_pid),
@@ -660,6 +673,23 @@ fn live_process_rows(
             last_message_at: None,
             tool_breakdown: Vec::new(),
             file_breakdown: Vec::new(),
+            process_details: family
+                .iter()
+                .filter_map(|pid| sample.procs.get(pid))
+                .map(|proc_info| AgentProcessRow {
+                    pid: proc_info.pid,
+                    ppid: proc_info.ppid,
+                    comm: proc_info.comm.clone(),
+                    command: proc_info.command.clone(),
+                    cwd: proc_info
+                        .cwd
+                        .as_ref()
+                        .map(|path| path.to_string_lossy().to_string()),
+                    cpu_percent: procfs::process_cpu_percent(proc_info, previous, sample),
+                    rss_mb: proc_info.rss_mb,
+                })
+                .collect(),
+            plan: Vec::new(),
         });
     }
 

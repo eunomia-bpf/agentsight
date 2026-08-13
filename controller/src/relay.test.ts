@@ -22,6 +22,16 @@ test('browser relay surface is narrow and maps to Node protocol paths', () => {
     statusOnly: false,
   });
 
+  const overview = browserRelayRoute(new Request(
+    'https://controller.example/v1/nodes/node_test/relay/overview',
+  ));
+  assert.deepEqual(overview, {
+    nodeId: 'node_test',
+    method: 'GET',
+    nodePath: '/api/v1/overview',
+    statusOnly: false,
+  });
+
   const session = browserRelayRoute(new Request(
     'https://controller.example/v1/nodes/node_test/relay/sessions/session-1',
   ));

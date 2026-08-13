@@ -657,7 +657,10 @@ export async function grantLifetimePro(
 
 export function relayAction(method: 'GET' | 'POST', nodePath: string | null, statusOnly: boolean): Action {
   if (statusOnly) return 'node.read';
-  if (method === 'GET' && nodePath?.startsWith('/api/v1/snapshot')) return 'evidence.read';
+  if (method === 'GET'
+    && (nodePath?.startsWith('/api/v1/snapshot') || nodePath === '/api/v1/overview')) {
+    return 'evidence.read';
+  }
   if (method === 'GET' && nodePath?.startsWith('/api/v1/sessions/')) return 'session.read';
   if (method === 'POST' && nodePath?.endsWith('/messages')) return 'session.message';
   throw new AccessError(403, 'permission_denied');
