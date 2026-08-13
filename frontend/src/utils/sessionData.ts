@@ -298,20 +298,34 @@ export function sessionSnapshot(
   const tools = (snapshot.tool_calls ?? []).filter((tool) => (
     tool.session_id === session.id || tool.session_id === rawId
   ));
-  const captureFamilies = tools.flatMap((tool) => {
-    if (tool.related_pid == null || !atSessionTime(tool.timestamp_ms)) return [];
-    const related = captureRows
+  const captureByPid = new Map<number, SnapshotProcessNode[]>();
+  const captureChildren = new Map<number, SnapshotProcessNode[]>();
+  for (const process of captureRows) {
+    captureByPid.set(process.pid, [...(captureByPid.get(process.pid) ?? []), process]);
+    if (process.ppid != null) {
+      captureChildren.set(process.ppid, [
+        ...(captureChildren.get(process.ppid) ?? []), process,
+      ]);
+    }
+  }
+  const captureFamilies = new Map<string, {
+    root: SnapshotProcessNode;
+    members: Set<string>;
+  }>();
+  for (const tool of tools) {
+    if (tool.related_pid == null || !atSessionTime(tool.timestamp_ms)) continue;
+    const related = (captureByPid.get(tool.related_pid) ?? [])
       .filter((process) => process.pid === tool.related_pid
         && processContains(process, tool.timestamp_ms))
       .sort((left, right) => (
         (right.start_timestamp_ms ?? 0) - (left.start_timestamp_ms ?? 0)
       ))[0];
-    if (!related) return [];
+    if (!related) continue;
 
     let root = related;
     const ancestors = new Set([root.id]);
     while (root.ppid != null) {
-      const parent = captureRows
+      const parent = (captureByPid.get(root.ppid) ?? [])
         .filter((candidate) => candidate.pid === root.ppid
           && processContains(candidate, tool.timestamp_ms)
           && !ancestors.has(candidate.id))
@@ -322,34 +336,35 @@ export function sessionSnapshot(
       root = parent;
       ancestors.add(root.id);
     }
+    if (captureFamilies.has(root.id)) continue;
 
     const members = new Set([root.id]);
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (const candidate of captureRows) {
-        if (members.has(candidate.id) || candidate.ppid == null) continue;
-        const parent = captureRows.find((process) => members.has(process.id)
-          && process.pid === candidate.ppid
-          && processOverlaps(
-            process,
+    const pending = [root];
+    while (pending.length) {
+      const parent = pending.pop()!;
+      for (const candidate of captureChildren.get(parent.pid) ?? []) {
+        if (members.has(candidate.id)) continue;
+        if (processOverlaps(
+          parent,
             candidate.start_timestamp_ms ?? sessionStart,
             candidate.end_timestamp_ms ?? sessionEnd,
-          ));
-        if (parent) {
+        )) {
           members.add(candidate.id);
-          changed = true;
+          pending.push(candidate);
         }
       }
     }
-    return [{ root, members }];
-  });
-  const capturedProcesses = captureRows.filter((process) => captureFamilies.some((family) => {
-    if (!family.members.has(process.id)) return false;
+    captureFamilies.set(root.id, { root, members });
+  }
+  const capturedIds = new Set<string>();
+  for (const family of captureFamilies.values()) {
     const currentRoot = liveProcesses.find((liveProcess) => liveProcess.pid === family.root.pid);
-    return !currentRoot || (family.root.start_timestamp_ms ?? sessionStart)
-      >= (currentRoot.start_timestamp_ms ?? sessionStart);
-  }));
+    if (!currentRoot || (family.root.start_timestamp_ms ?? sessionStart)
+      >= (currentRoot.start_timestamp_ms ?? sessionStart)) {
+      for (const id of family.members) capturedIds.add(id);
+    }
+  }
+  const capturedProcesses = captureRows.filter((process) => capturedIds.has(process.id));
   const processNodes = liveProcesses.length ? [
     ...liveProcesses,
     ...capturedProcesses.filter((captured) => !liveProcesses.some((current) => (
