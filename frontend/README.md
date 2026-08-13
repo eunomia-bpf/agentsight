@@ -15,11 +15,10 @@ The AgentSight Frontend provides intuitive visualization of:
 
 ## Features
 
-### Overview Dashboard (landing view)
-- One-screen answer to *what happened and where to look next*
-- Token and model-call breakdown, process/file/network effect profile, CPU + RSS shape over time, and friction signals (repeated commands, failing exits, think-time gaps)
-- Every panel is derived from the materialized-view snapshot the collector serves, and drills into the existing Timeline / Process Tree / Log / Metrics views for inspection
-- Hand-authored SVG charts (no chart dependency): faint grid, area fill, emphasized endpoint, and hover tooltip
+### Machine Overview (landing view)
+- Live and stopped Agent sessions with root process, current work, CPU, RSS, and observed Token share
+- Source-reported subscription capacity, active Agent Plans, and machine resource totals
+- Session drill-down into Conversation, Process Tree & AI Prompts, and Analysis
 
 ### Timeline View
 - Interactive event timeline with zoom and pan controls
@@ -35,12 +34,9 @@ The AgentSight Frontend provides intuitive visualization of:
 - Parent-child relationship mapping
 - Interactive node expansion and filtering
 
-### Log View
-- Raw event inspection with JSON formatting
-- Syntax highlighting and pretty printing
-- Advanced filtering and search
-- Error detection and validation
-- Export capabilities (JSON, CSV)
+### Session Analysis
+- Token/model usage, tool/file/network effects, failures, and session-scoped resources
+- Interactive timeline with filters and per-event detail inspection
 
 ## Technology Stack
 
