@@ -298,40 +298,65 @@ export function sessionSnapshot(
   const tools = (snapshot.tool_calls ?? []).filter((tool) => (
     tool.session_id === session.id || tool.session_id === rawId
   ));
-  const captureRoots = tools.flatMap((tool) => {
+  const captureFamilies = tools.flatMap((tool) => {
     if (tool.related_pid == null || !atSessionTime(tool.timestamp_ms)) return [];
-    const related = captureRows.filter((process) => (
-      (process.pid === tool.related_pid || process.root_pid === tool.related_pid)
-        && processContains(process, tool.timestamp_ms)
-    ));
-    return related.map((process) => {
-      const rootPid = process.root_pid ?? process.pid;
-      const root = captureRows.find((candidate) => (
-        candidate.pid === rootPid && processContains(candidate, tool.timestamp_ms)
-      )) ?? process;
-      return {
-        pid: rootPid,
-        start: Math.max(sessionStart, root.start_timestamp_ms ?? sessionStart),
-        end: Math.min(sessionEnd, root.end_timestamp_ms ?? sessionEnd),
-      };
-    });
+    const related = captureRows
+      .filter((process) => process.pid === tool.related_pid
+        && processContains(process, tool.timestamp_ms))
+      .sort((left, right) => (
+        (right.start_timestamp_ms ?? 0) - (left.start_timestamp_ms ?? 0)
+      ))[0];
+    if (!related) return [];
+
+    let root = related;
+    const ancestors = new Set([root.id]);
+    while (root.ppid != null) {
+      const parent = captureRows
+        .filter((candidate) => candidate.pid === root.ppid
+          && processContains(candidate, tool.timestamp_ms)
+          && !ancestors.has(candidate.id))
+        .sort((left, right) => (
+          (right.start_timestamp_ms ?? 0) - (left.start_timestamp_ms ?? 0)
+        ))[0];
+      if (!parent) break;
+      root = parent;
+      ancestors.add(root.id);
+    }
+
+    const members = new Set([root.id]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const candidate of captureRows) {
+        if (members.has(candidate.id) || candidate.ppid == null) continue;
+        const parent = captureRows.find((process) => members.has(process.id)
+          && process.pid === candidate.ppid
+          && processOverlaps(
+            process,
+            candidate.start_timestamp_ms ?? sessionStart,
+            candidate.end_timestamp_ms ?? sessionEnd,
+          ));
+        if (parent) {
+          members.add(candidate.id);
+          changed = true;
+        }
+      }
+    }
+    return [{ root, members }];
   });
-  const capturedProcesses = captureRows.filter((process) => captureRoots.some((root) => (
-    (process.pid === root.pid || process.root_pid === root.pid)
-      && processOverlaps(process, root.start, root.end)
-  )));
+  const capturedProcesses = captureRows.filter((process) => captureFamilies.some((family) => {
+    if (!family.members.has(process.id)) return false;
+    const currentRoot = liveProcesses.find((liveProcess) => liveProcess.pid === family.root.pid);
+    return !currentRoot || (family.root.start_timestamp_ms ?? sessionStart)
+      >= (currentRoot.start_timestamp_ms ?? sessionStart);
+  }));
   const processNodes = liveProcesses.length ? [
     ...liveProcesses,
-    ...capturedProcesses.filter((captured) => {
-      const currentRoot = liveProcesses.find((liveProcess) => (
-        (captured.root_pid ?? captured.pid) === liveProcess.pid
-      ));
-      if (!currentRoot || (captured.start_timestamp_ms ?? sessionStart)
-        < (currentRoot.start_timestamp_ms ?? sessionStart)) return false;
-      return !(captured.pid === currentRoot.pid
+    ...capturedProcesses.filter((captured) => !liveProcesses.some((current) => (
+      captured.pid === current.pid
         && captured.end_timestamp_ms == null
-        && captured.start_timestamp_ms === currentRoot.start_timestamp_ms);
-    }),
+        && captured.start_timestamp_ms === current.start_timestamp_ms
+    ))),
   ] : capturedProcesses;
   const keepPidAt = (pid: number | null | undefined, timestamp: number) => (
     pid != null && processNodes.some((process) => (

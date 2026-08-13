@@ -111,9 +111,10 @@ test('live session evidence retains completed captured subprocesses', () => {
   const liveSession = { ...selected, end_timestamp_ms: null };
   const snapshot = fixture([liveSession]);
   snapshot.process_nodes = [
-    { id: 'root', pid: 10, root_pid: 10, start_timestamp_ms: 100, end_timestamp_ms: null },
-    { id: 'completed-tool', pid: 11, root_pid: 10, start_timestamp_ms: 120, end_timestamp_ms: 160 },
+    { id: 'root', pid: 10, ppid: null, root_pid: null, start_timestamp_ms: 100, end_timestamp_ms: null },
+    { id: 'completed-tool', pid: 11, ppid: 10, root_pid: null, start_timestamp_ms: 120, end_timestamp_ms: 160 },
   ];
+  snapshot.tool_calls[0].related_pid = 11;
   snapshot.audit_events = [
     { id: 'tool-file', timestamp_ms: 140, audit_type: 'file', pid: 11 },
   ];
@@ -129,6 +130,27 @@ test('live session evidence retains completed captured subprocesses', () => {
   assert.deepEqual(scoped.process_nodes.map((row) => row.id), ['live-10', 'completed-tool']);
   assert.deepEqual(scoped.audit_events.map((row) => row.id), ['tool-file']);
   assert.deepEqual(scoped.resource_samples.map((row) => row.cpu_percent), [3]);
+});
+
+test('live and captured views do not duplicate the same running subprocess', () => {
+  const liveSession = { ...selected, end_timestamp_ms: null };
+  const snapshot = fixture([liveSession]);
+  snapshot.process_nodes = [
+    { id: 'root', pid: 10, ppid: null, root_pid: null, start_timestamp_ms: 100, end_timestamp_ms: null },
+    { id: 'running-tool', pid: 11, ppid: 10, root_pid: null, start_timestamp_ms: 120, end_timestamp_ms: null },
+  ];
+  snapshot.tool_calls[0].related_pid = 11;
+  const live = {
+    pid: 10,
+    process_details: [
+      { pid: 10, ppid: 0, comm: 'codex', command: 'codex' },
+      { pid: 11, ppid: 10, comm: 'tool', command: 'tool' },
+    ],
+  };
+
+  const scoped = sessionSnapshot(snapshot, liveSession, live, null);
+
+  assert.deepEqual(scoped.process_nodes.map((row) => row.id), ['live-10', 'live-11']);
 });
 
 test('the recorded demo retains a full-capture session for legacy evidence views', () => {
