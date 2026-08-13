@@ -349,7 +349,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Subscription({ subscription }: { subscription: SourceSubscription }) {
+export function Subscription({ subscription }: { subscription: SourceSubscription }) {
   const { t } = useTranslation();
   const windows = [subscription.primary, subscription.secondary]
     .filter((window): window is SubscriptionWindow => !!window && isCurrentSubscriptionWindow(window));

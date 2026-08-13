@@ -80,6 +80,8 @@ pub(crate) struct AgentTopRow {
     pub(crate) file_breakdown: Vec<(String, i64)>,
     pub(crate) process_details: Vec<AgentProcessRow>,
     pub(crate) plan: Vec<agent_session::PlanStep>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) subscription: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
