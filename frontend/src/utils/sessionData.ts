@@ -73,12 +73,11 @@ export function isRecordedCaptureSession(session: SnapshotSession): boolean {
 }
 
 function recordedCaptureSession(snapshot: AgentSightSnapshot): SnapshotSession | null {
-  const hasEvidence = (snapshot.summary?.view_events ?? 0) > 0
-    || (snapshot.process_nodes?.length ?? 0) > 0
+  const hasEvidence = (snapshot.process_nodes?.length ?? 0) > 0
     || (snapshot.audit_events?.length ?? 0) > 0
     || (snapshot.resource_samples?.length ?? 0) > 0
     || (snapshot.network_targets?.length ?? 0) > 0
-    || (snapshot.tool_calls?.length ?? 0) > 0;
+    || (snapshot.tool_calls ?? []).some((tool) => !tool.session_id);
   if (!hasEvidence) return null;
   const points = [
     snapshot.summary?.start_timestamp_ms,

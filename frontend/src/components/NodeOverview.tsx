@@ -58,7 +58,8 @@ export function NodeOverview({
   const liveRows = overview?.rows.filter(isRunningSession) ?? [];
   const running = liveRows.length;
   const stopped = sessions.filter((session) => (
-    sessionActivityState(session, liveRowForSession(overview, session)) === 'stopped'
+    !isRecordedCaptureSession(session)
+      && sessionActivityState(session, liveRowForSession(overview, session)) === 'stopped'
   )).length;
   const cpu = liveRows.reduce((total, row) => total + row.cpu_percent, 0);
   const rss = liveRows.reduce((total, row) => total + row.rss_mb, 0);
@@ -66,7 +67,7 @@ export function NodeOverview({
   const tokenTotal = overview?.total_tokens ?? snapshot.summary?.total_tokens
     ?? sessions.reduce((total, session) => total + (session.total_tokens ?? 0), 0);
   const pendingPlans = sessions.flatMap((session) => (
-    sessionPlan(session, null, liveRowForSession(overview, session))
+    isRecordedCaptureSession(session) ? [] : sessionPlan(session, null, liveRowForSession(overview, session))
       .filter((step) => step.status !== 'completed')
       .map((step) => ({ session, step, live: liveRowForSession(overview, session) }))
   ));
@@ -131,7 +132,9 @@ export function NodeOverview({
                   return (
                     <tr key={session.id} className="group hover:bg-blue-50/40">
                       <td className="px-5 py-3">
-                        <State state={state} />
+                        {isRecordedCaptureSession(session)
+                          ? <span className="text-xs font-medium text-slate-500">{t('sessionDetail.recordedCapture')}</span>
+                          : <State state={state} />}
                       </td>
                       <td className="px-3 py-3">
                         <button type="button" onClick={() => onOpenSession(session.id)}
@@ -152,7 +155,9 @@ export function NodeOverview({
                           {sessionWorkspace(session) || live?.workspace || displaySessionId(session)}
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-right tabular-nums text-slate-600">{count(session.total_tokens)}</td>
+                      <td className="px-3 py-3 text-right tabular-nums text-slate-600">
+                        {isRecordedCaptureSession(session) ? '—' : count(session.total_tokens)}
+                      </td>
                       <td className="px-3 py-3 text-right tabular-nums text-slate-600">
                         {runningSession ? `${live!.cpu_percent.toFixed(1)}%` : '—'}
                       </td>

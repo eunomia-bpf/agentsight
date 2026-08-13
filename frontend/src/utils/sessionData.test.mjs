@@ -240,3 +240,16 @@ test('live overview keeps a recorded-capture fallback for unassigned evidence', 
 
   assert.ok(sessions.some((session) => session.id === 'capture:recorded'));
 });
+
+test('pure agent-native evidence does not create a duplicate recorded capture', () => {
+  const snapshot = {
+    summary: { view_events: 5, total_tokens: 10 },
+    sessions: [selected],
+    tool_calls: [{
+      id: 'native-tool', session_id: 'raw-one', timestamp_ms: 150, related_pid: null,
+    }],
+    process_nodes: [], audit_events: [], resource_samples: [], network_targets: [],
+  };
+
+  assert.deepEqual(snapshotSessions(snapshot, true).map((session) => session.id), ['session-one']);
+});
