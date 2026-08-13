@@ -120,14 +120,19 @@ curl -fsS http://127.0.0.1:7395/api/v1/info
 
 ```powershell
 $repo = 'eunomia-bpf/agentsight'
-$runId = gh run list --repo $repo --workflow windows.yml --limit 30 `
-  --json databaseId,conclusion `
-  --jq 'map(select(.conclusion == "success"))[0].databaseId'
-if (-not $runId) { throw 'No successful Windows native workflow was found.' }
+$runs = gh run list --repo $repo --workflow windows.yml --limit 50 `
+  --json databaseId,conclusion,headSha,url | ConvertFrom-Json
+$run = $runs | Where-Object conclusion -eq 'success' | Where-Object {
+  $prs = gh api -H 'Accept: application/vnd.github+json' `
+    "repos/$repo/commits/$($_.headSha)/pulls" | ConvertFrom-Json
+  $prs | Where-Object { $_.merged_at -and $_.base.ref -eq 'master' }
+} | Select-Object -First 1
+if (-not $run) { throw 'No successful merged Windows workflow was found.' }
+$run | Select-Object databaseId,headSha,url
 
 $download = Join-Path $env:TEMP 'agentsight-windows'
 New-Item -ItemType Directory -Force -Path $download | Out-Null
-gh run download $runId --repo $repo `
+gh run download $run.databaseId --repo $repo `
   --name agentsight-windows-x86_64 --dir $download
 
 $installDir = Join-Path $env:LOCALAPPDATA 'Programs\AgentSight'
@@ -137,7 +142,8 @@ Copy-Item (Join-Path $download 'agentsight.exe') $installDir -Force
 ```
 
 Actions artifact 只保留有限时间。如果当前没有可下载的 artifact，请按照
-[从源码构建](build.md)生成 `collector/target/release/agentsight.exe`。
+[从源码构建](build.md)生成 `collector/target/release/agentsight.exe`。上面的 PR 合并状态检查会排除
+尚未合并的 pull request head 所生成的成功 artifact，并兼容 squash merge。
 
 可以把安装目录加入当前用户的 `PATH`：
 

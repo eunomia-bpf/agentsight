@@ -133,14 +133,19 @@ Download the latest successful artifact with an authenticated GitHub CLI:
 
 ```powershell
 $repo = 'eunomia-bpf/agentsight'
-$runId = gh run list --repo $repo --workflow windows.yml --limit 30 `
-  --json databaseId,conclusion `
-  --jq 'map(select(.conclusion == "success"))[0].databaseId'
-if (-not $runId) { throw 'No successful Windows native workflow was found.' }
+$runs = gh run list --repo $repo --workflow windows.yml --limit 50 `
+  --json databaseId,conclusion,headSha,url | ConvertFrom-Json
+$run = $runs | Where-Object conclusion -eq 'success' | Where-Object {
+  $prs = gh api -H 'Accept: application/vnd.github+json' `
+    "repos/$repo/commits/$($_.headSha)/pulls" | ConvertFrom-Json
+  $prs | Where-Object { $_.merged_at -and $_.base.ref -eq 'master' }
+} | Select-Object -First 1
+if (-not $run) { throw 'No successful merged Windows workflow was found.' }
+$run | Select-Object databaseId,headSha,url
 
 $download = Join-Path $env:TEMP 'agentsight-windows'
 New-Item -ItemType Directory -Force -Path $download | Out-Null
-gh run download $runId --repo $repo `
+gh run download $run.databaseId --repo $repo `
   --name agentsight-windows-x86_64 --dir $download
 
 $installDir = Join-Path $env:LOCALAPPDATA 'Programs\AgentSight'
@@ -151,7 +156,9 @@ Copy-Item (Join-Path $download 'agentsight.exe') $installDir -Force
 
 Actions artifacts are retained for a limited time. If none is available, build
 `collector/target/release/agentsight.exe` as described in
-[Build From Source](build.md).
+[Build From Source](build.md). The merged-PR check above excludes successful
+artifacts from unmerged pull-request heads, including in repositories that use
+squash merges.
 
 Optionally add the install directory to the user `PATH`:
 
