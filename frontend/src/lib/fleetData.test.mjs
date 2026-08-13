@@ -44,8 +44,10 @@ test('fleet subscription capacity uses the newest source observation across Node
 
 test('fleet filters separate running, idle, and unreachable machines', () => {
   const samples = [
-    sample('running', 'online', { total_tokens: 0, rows: [{ pid: 10, processes: 1 }] }),
-    sample('idle', 'online', { total_tokens: 0, rows: [{ pid: null, processes: 0, session_id: 'history' }] }),
+    sample('running', 'online', { total_tokens: 0, rows: [{ pid: 10, processes: 0 }] }),
+    sample('idle', 'online', { total_tokens: 0, rows: [
+      { pid: 0, processes: 1 }, { pid: null, processes: 0, session_id: 'history' },
+    ] }),
     sample('offline', 'unreachable', null),
   ];
 
