@@ -92,6 +92,29 @@ export interface CodingPlanStep {
   status: string;
 }
 
+export interface SubscriptionWindow {
+  used_percent?: number | null;
+  window_minutes?: number | null;
+  resets_at?: number | null;
+}
+
+export interface SourceSubscription {
+  provider: string;
+  plan_type?: string | null;
+  limit_name?: string | null;
+  primary?: SubscriptionWindow | null;
+  secondary?: SubscriptionWindow | null;
+  credits?: { unlimited?: boolean | null; balance?: string | null } | null;
+}
+
+export interface TokenUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_creation_tokens?: number;
+  cache_read_tokens?: number;
+  total_tokens?: number;
+}
+
 export interface LiveProcess {
   pid: number;
   ppid: number;

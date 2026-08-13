@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
-  orderedSessions, recordedSessionDetail, sessionSnapshot, snapshotSessions,
+  orderedSessions, recordedSessionDetail, sessionSnapshot, sessionSubscription, sessionUsage, snapshotSessions,
 } from './sessionData.ts';
 
 const selected = {
@@ -36,6 +36,30 @@ function fixture(sessions = [selected, { ...selected, id: 'session-two' }]) {
     ],
   };
 }
+
+test('session subscription exposes only source-native account capacity metadata', () => {
+  assert.deepEqual(sessionSubscription({
+    ...selected,
+    attributes: {
+      ...selected.attributes,
+      subscription: {
+        provider: 'codex', plan_type: 'pro',
+        primary: { used_percent: 77, window_minutes: 10080, resets_at: 1787196841 },
+      },
+    },
+  }), {
+    provider: 'codex', plan_type: 'pro',
+    primary: { used_percent: 77, window_minutes: 10080, resets_at: 1787196841 },
+  });
+  assert.equal(sessionSubscription({ ...selected, attributes: { subscription: { used_percent: 1 } } }), null);
+});
+
+test('session usage keeps cache tokens for analysis without a hydrated transcript', () => {
+  assert.deepEqual(sessionUsage({
+    ...selected,
+    attributes: { usage: { input_tokens: 3, output_tokens: 4, cache_read_tokens: 20, total_tokens: 27 } },
+  }), { input_tokens: 3, output_tokens: 4, cache_read_tokens: 20, total_tokens: 27 });
+});
 
 test('session snapshot keeps only explicitly linked rows inside the session time window', () => {
   const scoped = sessionSnapshot(fixture(), selected, null, null);

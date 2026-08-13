@@ -166,8 +166,7 @@ agentsight/frontend/
 │   │   ├── page.tsx   # Main application page
 │   │   └── layout.tsx # Application layout
 │   ├── components/    # React components
-│   │   ├── LogView.tsx       # Log inspection view
-│   │   ├── TimelineView.tsx  # Interactive timeline
+│   │   ├── SessionAnalysis.tsx # Session metrics + interactive timeline
 │   │   ├── ProcessTreeView.tsx # Process hierarchy
 │   │   ├── UploadPanel.tsx   # File upload interface
 │   │   ├── common/           # Shared components

@@ -10,12 +10,13 @@ import initProtocol, {
   session_path as sessionPath,
   snapshot_path as snapshotPath,
 } from '@/generated/agentsight-protocol/agentsight_protocol';
-import type { AgentSightSnapshot, CodingPlanStep, LiveOverview } from '@/types/event';
+import type { AgentSightSnapshot, CodingPlanStep, LiveOverview, TokenUsage } from '@/types/event';
 
 const DIRECT_CONNECTIONS_KEY = 'agentsight.direct-connections.v1';
 const DIRECT_SYNC_ENABLED_KEY = 'agentsight.direct-sync-enabled.v1';
 const LEGACY_CONNECTION_KEY = 'agentsight.local-connection.v1';
 const REQUEST_TIMEOUT_MS = 12_000;
+const SESSION_REQUEST_TIMEOUT_MS = 30_000;
 const DIRECT_CAPABILITY_TTL_SECONDS = 12 * 60 * 60;
 const DIRECT_ACTIONS = ['node.info', 'evidence.read', 'session.read', 'session.message'];
 let protocolReady: Promise<unknown> | null = null;
@@ -40,11 +41,17 @@ export interface SessionDetail {
   agent_type: string;
   model?: string | null;
   cwd?: string | null;
+  duration_ms?: number;
+  usage?: TokenUsage;
+  model_usage?: Record<string, TokenUsage>;
+  tools?: Record<string, number>;
+  files?: Record<string, number>;
   events?: {
     prompts?: Array<{ ts_ms?: number | null; text?: string; preview?: string; task_path?: string[] }>;
     llm_responses?: Array<{
       ts_ms?: number | null; text?: string; preview?: string; response_phase?: string;
-      model?: string; total_tokens?: number; task_path?: string[];
+      model?: string; input_tokens?: number; output_tokens?: number; cache_tokens?: number;
+      total_tokens?: number; task_path?: string[];
     }>;
     tools?: Array<{
       ts_ms?: number | null; tool_name?: string; category?: string; command?: string;
@@ -265,7 +272,9 @@ function nodeClient(nodeId: string, nodeName: string, transport: NodeTransport, 
     },
     async session(sessionId) {
       return jsonResponse<SessionDetail>(
-        await request(await protocol(() => sessionPath(encodeURIComponent(sessionId)))), 'Session request failed',
+        await request(await protocol(() => sessionPath(encodeURIComponent(sessionId))), {
+          signal: AbortSignal.timeout(SESSION_REQUEST_TIMEOUT_MS),
+        }), 'Session request failed',
       );
     },
     async submitMessage(sessionId, message) {

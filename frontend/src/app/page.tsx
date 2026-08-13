@@ -778,7 +778,8 @@ export default function Home() {
                 <SessionWorkspace snapshot={snapshot} overview={overview} session={selectedSession}
                   client={activeClient} onBack={closeSession} />
               ) : (
-                <NodeOverview snapshot={snapshot} overview={overview} onOpenSession={openSession} />
+                <NodeOverview snapshot={snapshot} overview={overview} organization={activeOrganization}
+                  onOpenSession={openSession} />
               )
             ) : (
               <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">

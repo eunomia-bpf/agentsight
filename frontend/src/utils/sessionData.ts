@@ -10,6 +10,8 @@ import type {
   SnapshotAuditEvent,
   SnapshotProcessNode,
   SnapshotSession,
+  SourceSubscription,
+  TokenUsage,
 } from '@/types/event';
 
 type SessionAttributes = {
@@ -19,6 +21,8 @@ type SessionAttributes = {
   cwd?: unknown;
   last_message_at?: unknown;
   plan?: unknown;
+  usage?: unknown;
+  subscription?: unknown;
   capture_fallback?: unknown;
 };
 
@@ -66,6 +70,24 @@ export function sessionPlan(
       && typeof (item as CodingPlanStep).step === 'string'
       && typeof (item as CodingPlanStep).status === 'string'
   ));
+}
+
+export function sessionSubscription(session: SnapshotSession): SourceSubscription | null {
+  const value = attributes(session).subscription;
+  if (!value || typeof value !== 'object') return null;
+  const subscription = value as Partial<SourceSubscription>;
+  return typeof subscription.provider === 'string' && subscription.provider
+    ? subscription as SourceSubscription : null;
+}
+
+export function sessionUsage(session: SnapshotSession): TokenUsage {
+  const value = attributes(session).usage;
+  if (!value || typeof value !== 'object') return {
+    input_tokens: session.input_tokens,
+    output_tokens: session.output_tokens,
+    total_tokens: session.total_tokens,
+  };
+  return value as TokenUsage;
 }
 
 export function isRecordedCaptureSession(session: SnapshotSession): boolean {
