@@ -205,6 +205,7 @@ jobs:
       version: ${{ steps.set_version.outputs.version }}
       tag: ${{ steps.set_version.outputs.tag }}
       publish_sha: ${{ steps.commit_release.outputs.publish_sha }}
+      should_publish: ${{ steps.commit_release.outputs.should_publish }}
       agent_session_version: ${{ steps.set_version.outputs.agent_session_version }}
       agentsight_protocol_version: ${{ steps.set_version.outputs.agentsight_protocol_version }}
       agentsight_capture_version: ${{ steps.set_version.outputs.agentsight_capture_version }}
@@ -355,6 +356,34 @@ jobs:
         set -euo pipefail
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
+        BRANCH="${GITHUB_REF#refs/heads/}"
+
+        read_remote_sha() {
+          local remote_line remote_sha
+          if ! remote_line="$(git ls-remote origin "refs/heads/${BRANCH}")"; then
+            echo "::error::Could not read refs/heads/${BRANCH} from origin." >&2
+            return 1
+          fi
+          read -r remote_sha _ <<< "$remote_line"
+          if [ -z "$remote_sha" ]; then
+            echo "::error::Origin did not return refs/heads/${BRANCH}." >&2
+            return 1
+          fi
+          echo "$remote_sha"
+        }
+        mark_superseded() {
+          echo "::notice::Release source ${GITHUB_SHA} was superseded; skipping publish jobs."
+          echo "publish_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "should_publish=false" >> "$GITHUB_OUTPUT"
+        }
+
+        if ! REMOTE_SHA="$(read_remote_sha)"; then
+          exit 1
+        fi
+        if [ "$REMOTE_SHA" != "$GITHUB_SHA" ]; then
+          mark_superseded
+          exit 0
+        fi
 
         # build.rs vendors generated BPF assets into agentsight-capture/vendor
         # and frontend assets into collector/vendor.
@@ -363,9 +392,32 @@ jobs:
         git add agent-session/Cargo.toml agent-session/Cargo.lock agentsight-protocol/Cargo.toml agentsight-protocol/Cargo.lock agentsight-capture/Cargo.toml agentsight-capture/Cargo.lock agentsight-capture/vendor agentvis/Cargo.toml agentvis/Cargo.lock agentvis/vendor collector/Cargo.toml collector/Cargo.lock collector/vendor agentpprof/Cargo.toml agentpprof/Cargo.lock
         if git diff --cached --quiet; then
           echo "Release snapshot already matches ${VERSION}; no commit needed."
+          if ! REMOTE_SHA="$(read_remote_sha)"; then
+            exit 1
+          fi
+          if [ "$REMOTE_SHA" != "$GITHUB_SHA" ]; then
+            mark_superseded
+            exit 0
+          fi
         else
           git commit -m "chore: release agentsight ${VERSION} [skip ci]"
-          git push origin "HEAD:${GITHUB_REF#refs/heads/}"
+          RELEASE_SHA="$(git rev-parse HEAD)"
+          if ! PUSH_OUTPUT="$(git push \
+            --force-with-lease="refs/heads/${BRANCH}:${GITHUB_SHA}" \
+            origin "HEAD:${BRANCH}" 2>&1)"; then
+            echo "$PUSH_OUTPUT"
+            if ! REMOTE_SHA="$(read_remote_sha)"; then
+              exit 1
+            fi
+            if [ "$REMOTE_SHA" = "$RELEASE_SHA" ]; then
+              echo "::notice::Release snapshot push was accepted before the client lost confirmation."
+            elif [ "$REMOTE_SHA" != "$GITHUB_SHA" ]; then
+              mark_superseded
+              exit 0
+            else
+              exit 1
+            fi
+          fi
         fi
 
         if [ -n "$(git status --porcelain --untracked-files=all -- agent-session agentsight-protocol agentsight-capture agentvis collector agentpprof)" ]; then
@@ -376,9 +428,11 @@ jobs:
 
         PUBLISH_SHA="$(git rev-parse HEAD)"
         echo "publish_sha=${PUBLISH_SHA}" >> "$GITHUB_OUTPUT"
+        echo "should_publish=true" >> "$GITHUB_OUTPUT"
         echo "Release source commit: ${PUBLISH_SHA}"
 
     - name: Verify Cargo package version
+      if: steps.commit_release.outputs.should_publish == 'true'
       run: |
         VERSION="${{ steps.set_version.outputs.version }}"
         VERSION_NO_V="${VERSION#v}"
@@ -399,6 +453,7 @@ jobs:
         grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" agentpprof/Cargo.toml
 
     - name: Smoke test local release binary
+      if: steps.commit_release.outputs.should_publish == 'true'
       run: |
         set -euo pipefail
         collector/target/release/agentsight --version
@@ -428,6 +483,7 @@ jobs:
     name: Publish Cargo Packages
     needs: [release_prepare, release_binaries]
     runs-on: ubuntu-24.04
+    if: needs.release_prepare.outputs.should_publish == 'true'
 
     steps:
     - name: Checkout validated release snapshot
@@ -696,7 +752,8 @@ jobs:
         (
           github.event_name == 'push' &&
           github.ref == 'refs/heads/master' &&
-          needs.release_prepare.result == 'success'
+          needs.release_prepare.result == 'success' &&
+          needs.release_prepare.outputs.should_publish == 'true'
         )
       )
     strategy:
