@@ -97,6 +97,21 @@ export const overview = {
   }],
 };
 
+export const studioOverview = {
+  mode: 'live', total_tokens: 600, failures: [], notes: [],
+  rows: [{
+    session_id: 'claude-studio-1', session: 'claude:studio-1', agent: 'claude', pid: 201,
+    model: 'claude-sonnet', age_s: 4, cpu_percent: 4, rss_mb: 60, processes: 1,
+    tokens: 600, tools: 0, execs: 0, failures: 0, files: 0, network: 1,
+    trace: 'agent-native+proc', command: 'Review fleet aggregation', workspace: '/workspace/studio',
+    last_message_at: '2026-08-13T18:05:00Z', process_details: [], plan: [],
+    subscription: {
+      provider: 'codex', observed_at: '2026-08-13T18:05:00Z', plan_type: 'pro',
+      primary: { used_percent: 20, window_minutes: 300, resets_at: 4_102_444_800 },
+    },
+  }],
+};
+
 export const sessionDetail = {
   session_id: sessionId, agent_type: 'codex', model: 'gpt-5', cwd: '/workspace/agentsight',
   duration_ms: 60_000,
@@ -123,6 +138,10 @@ export const nodes = [
     id: 'node-offline', organization_id: 'org-personal', name: 'Offline laptop', version: '1.0.17',
     connection_mode: 'direct', has_direct_config: false, last_seen_at: 1_779_000_000, created_at: 1_778_000_000,
   },
+  {
+    id: 'node-studio', organization_id: 'org-personal', name: 'Studio workstation', version: '1.0.18',
+    connection_mode: 'relay', has_direct_config: false, last_seen_at: 1_780_000_100, created_at: 1_779_000_100,
+  },
 ];
 
 export interface MockState {
@@ -131,6 +150,9 @@ export interface MockState {
   deletedNodes: string[];
   signOuts: number;
   blockMessages: boolean;
+  organizations: unknown[];
+  registrations: unknown[];
+  directRequests: string[];
 }
 
 function json(route: Route, body: unknown, status = 200) {
@@ -153,7 +175,7 @@ export async function mockController(page: Page, options: {
 } = {}) {
   const state: MockState = {
     messages: [], nodeListRequests: 0, deletedNodes: [], signOuts: 0,
-    blockMessages: options.blockMessages ?? false,
+    blockMessages: options.blockMessages ?? false, organizations: [], registrations: [], directRequests: [],
   };
   await mockEmbeddedProbe(page);
   if (options.signedIn) {
@@ -162,6 +184,21 @@ export async function mockController(page: Page, options: {
       window.localStorage.setItem('agentsight-locale', 'en');
     });
   }
+  await page.route('http://node-direct.test:7395/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    state.directRequests.push(`${request.method()} ${path}`);
+    const expected = path === '/api/v1/info' || path === '/api/v1/capabilities'
+      ? `Bearer ${'a'.repeat(40)}` : `Bearer ${'b'.repeat(40)}`;
+    if (request.headers().authorization !== expected) return json(route, { error: 'unauthorized' }, 401);
+    if (path === '/api/v1/info') {
+      return json(route, { node: { id: 'node-offline', name: 'Offline laptop', version: '1.0.18' } });
+    }
+    if (path === '/api/v1/capabilities') return json(route, { access_token: 'b'.repeat(40) });
+    if (path === '/api/v1/snapshot') return json(route, snapshot);
+    if (path === '/api/v1/overview') return json(route, overview);
+    return json(route, { error: `Unhandled Direct route: ${request.method()} ${path}` }, 500);
+  });
   await page.route('https://control.agentsight.us/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -178,12 +215,16 @@ export async function mockController(page: Page, options: {
       return;
     }
     if (path === '/v1/auth/providers') return json(route, { providers: ['github', 'google'] });
+    if (request.headers().authorization !== 'Bearer browser-test-session') {
+      return json(route, { error: 'missing_browser_test_authorization' }, 401);
+    }
     if (path === '/v1/me') return json(route, { id: 'user-1', email: 'owner@example.com', name: 'Test Owner', provider: 'github' });
     if (path === '/v1/auth/logout') {
       state.signOuts += 1;
       return json(route, { ok: true });
     }
     if (path === '/v1/organizations' && request.method() === 'POST') {
+      state.organizations.push(request.postDataJSON());
       return json(route, { organization: {
         id: 'org-team', name: 'Browser Test Team', kind: 'team', role: 'owner', plan: 'team',
         effectivePlan: 'team', billingInterval: null, billingStatus: 'inactive',
@@ -200,16 +241,21 @@ export async function mockController(page: Page, options: {
       if (options.nodeListDelayMs) {
         await new Promise((resolve) => setTimeout(resolve, options.nodeListDelayMs));
       }
-      return json(route, { nodes: url.searchParams.get('organization_id') === 'org-team' ? [] : nodes });
+      return json(route, { nodes: url.searchParams.get('organization_id') === 'org-team'
+        ? [] : nodes.filter((node) => !state.deletedNodes.includes(node.id)) });
+    }
+    if (path === '/v1/nodes' && request.method() === 'POST') {
+      state.registrations.push(request.postDataJSON());
+      return json(route, { ok: true });
     }
     const status = path.match(/^\/v1\/nodes\/([^/]+)\/relay\/status$/);
-    if (status) return json(route, { online: decodeURIComponent(status[1]) === 'node-lab' });
+    if (status) return json(route, { online: decodeURIComponent(status[1]) !== 'node-offline' });
     const relay = path.match(/^\/v1\/nodes\/([^/]+)\/relay(\/.*)$/);
     if (relay) {
       const nodeId = decodeURIComponent(relay[1]);
       const suffix = relay[2];
-      if (nodeId !== 'node-lab') return json(route, { error: 'relay_offline' }, 503);
-      if (suffix === '/overview') return json(route, overview);
+      if (nodeId === 'node-offline') return json(route, { error: 'relay_offline' }, 503);
+      if (suffix === '/overview') return json(route, nodeId === 'node-studio' ? studioOverview : overview);
       if (suffix === '/snapshot') return json(route, snapshot);
       if (/^\/sessions\/[^/]+\/messages$/.test(suffix) && request.method() === 'POST') {
         state.messages.push(request.postDataJSON());
@@ -222,6 +268,9 @@ export async function mockController(page: Page, options: {
     const deletion = path.match(/^\/v1\/nodes\/([^/]+)$/);
     if (deletion && request.method() === 'DELETE') {
       state.deletedNodes.push(decodeURIComponent(deletion[1]));
+      return json(route, { ok: true });
+    }
+    if (/^\/v1\/nodes\/[^/]+\/direct$/.test(path) && request.method() === 'DELETE') {
       return json(route, { ok: true });
     }
     return json(route, { error: `Unhandled browser-test route: ${request.method()} ${path}` }, 500);
