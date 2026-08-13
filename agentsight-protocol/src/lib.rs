@@ -23,6 +23,8 @@ pub fn info_path() -> String { "/api/v1/info".into() }
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub fn snapshot_path(limit: usize) -> String { format!("/api/v1/snapshot?audit_limit={limit}") }
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
+pub fn overview_path() -> String { "/api/v1/overview".into() }
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub fn session_path(id: &str) -> String { format!("{SESSION_PREFIX}{id}") }
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub fn session_messages_path(id: &str) -> String { format!("{SESSION_PREFIX}{id}/messages") }

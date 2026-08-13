@@ -3,17 +3,13 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { LogView } from '@/components/log/LogView';
-import { Timeline as TimelineView } from '@/components/timeline/Timeline';
-import { ProcessTreeView } from '@/components/ProcessTreeView';
-import { ResourceMetricsView } from '@/components/ResourceMetricsView';
-import { SessionConsole } from '@/components/SessionConsole';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { NodeOverview } from '@/components/NodeOverview';
+import { SessionWorkspace } from '@/components/SessionWorkspace';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ConnectionDialog } from '@/components/ConnectionDialog';
 import { NodeManager } from '@/components/NodeManager';
 import { tryNodeTransports } from '@/lib/nodeOpening.mjs';
-import { Dashboard, type ViewMode } from '@/components/dashboard/Dashboard';
 import {
   CloudSessionExpiredError,
   type CloudIdentity,
@@ -47,9 +43,9 @@ import {
   saveDirectConnection,
   setDirectCloudSync,
 } from '@/lib/nodeClient';
-import { AgentSightSnapshot } from '@/types/event';
-import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
+import { AgentSightSnapshot, LiveOverview } from '@/types/event';
 import { useTranslation } from '@/i18n';
+import { snapshotSessions } from '@/utils/sessionData';
 
 type AppMode = 'loading' | 'disconnected' | 'directory' | 'live' | 'demo';
 
@@ -57,25 +53,6 @@ const ACTIVE_ORGANIZATION_KEY = 'agentsight.active-organization.v1';
 const PENDING_INVITE_KEY = 'agentsight.pending-invite.v1';
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 let cachedLaunchFragment: URLSearchParams | null | undefined;
-
-function viewModeFromPath(pathname: string): ViewMode {
-  const path = pathname.replace(/\/$/, '');
-  if (path === '/overview') return 'overview';
-  if (path === '/logs') return 'log';
-  if (path === '/tree') return 'process-tree';
-  if (path === '/metrics') return 'metrics';
-  if (path === '/timeline') return 'timeline';
-  return 'sessions';
-}
-
-function pathForViewMode(mode: ViewMode): string {
-  if (mode === 'sessions') return '/sessions';
-  if (mode === 'log') return '/logs';
-  if (mode === 'process-tree') return '/tree';
-  if (mode === 'metrics') return '/metrics';
-  if (mode === 'timeline') return '/timeline';
-  return '/overview';
-}
 
 function consumeLaunchFragment(): URLSearchParams | null {
   if (cachedLaunchFragment !== undefined) return cachedLaunchFragment;
@@ -98,7 +75,8 @@ function preferredOrganization(organizations: CloudOrganization[], preferredId?:
 export default function Home() {
   const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<AgentSightSnapshot | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('sessions');
+  const [overview, setOverview] = useState<LiveOverview | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState<AppMode>('loading');
@@ -116,9 +94,9 @@ export default function Home() {
   const [embeddedMode, setEmbeddedMode] = useState(false);
   const [organizationDialogOpen, setOrganizationDialogOpen] = useState(false);
   const [organizationName, setOrganizationName] = useState('');
+  const activationGeneration = useRef(0);
 
-  const displayEvents = useMemo(() => displayEventsFromSnapshot(snapshot), [snapshot]);
-  const eventCount = displayEvents.length;
+  const eventCount = snapshot?.summary?.view_events ?? snapshot?.audit_events?.length ?? 0;
   const activeTransport: NodeTransport | null = activeClient?.transport ?? null;
   const activeOrganization = useMemo(
     () => organizations.find((organization) => organization.id === activeOrganizationId) || null,
@@ -145,35 +123,57 @@ export default function Home() {
     setNodeError(message);
   }, [clearCloudState]);
 
-  const activateClient = useCallback(async (client: NodeClient) => {
+  const activateClient = useCallback(async (
+    client: NodeClient,
+    generation = ++activationGeneration.current,
+  ) => {
     setSyncing(true);
     setError('');
     try {
-      const nextSnapshot = await client.snapshot();
+      const [nextSnapshot, nextOverview] = await Promise.all([
+        client.snapshot(),
+        client.overview().catch(() => null),
+      ]);
+      if (activationGeneration.current !== generation) return false;
       setActiveClient(client);
       setSnapshot(nextSnapshot);
+      setOverview(nextOverview);
       setMode('live');
-      setViewMode('sessions');
+      const requested = new URLSearchParams(window.location.search).get('session');
+      setSelectedSessionId(requested && snapshotSessions(nextSnapshot, true)
+        .some((session) => session.id === requested)
+        ? requested : null);
       setDialogOpen(false);
       return true;
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not reach the AgentSight Node.');
+      if (activationGeneration.current === generation) {
+        setError(cause instanceof Error ? cause.message : 'Could not reach the AgentSight Node.');
+      }
       return false;
     } finally {
-      setSyncing(false);
+      if (activationGeneration.current === generation) setSyncing(false);
     }
   }, []);
 
   const syncData = useCallback(async () => {
     if (!activeClient) return;
+    const generation = activationGeneration.current;
     setSyncing(true);
     setError('');
     try {
-      setSnapshot(await activeClient.snapshot());
+      const [nextSnapshot, nextOverview] = await Promise.all([
+        activeClient.snapshot(),
+        activeClient.overview().catch(() => undefined),
+      ]);
+      if (activationGeneration.current !== generation) return;
+      setSnapshot(nextSnapshot);
+      if (nextOverview !== undefined) setOverview(nextOverview);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not refresh this Node.');
+      if (activationGeneration.current === generation) {
+        setError(cause instanceof Error ? cause.message : 'Could not refresh this Node.');
+      }
     } finally {
-      setSyncing(false);
+      if (activationGeneration.current === generation) setSyncing(false);
     }
   }, [activeClient]);
 
@@ -222,6 +222,7 @@ export default function Home() {
   }, [activeOrganizationId, handleCloudError, refreshRelayStatuses]);
 
   const openNode = useCallback(async (nodeId: string) => {
+    const generation = ++activationGeneration.current;
     setLoadingNodeId(nodeId);
     setNodeError('');
     const direct = directConnections[nodeId];
@@ -233,7 +234,7 @@ export default function Home() {
       attempts.push({
         transport: 'local-direct',
         open: async () => {
-          if (!await activateClient(directNodeClient(direct))) throw new Error('Local Direct path is unavailable.');
+          if (!await activateClient(directNodeClient(direct), generation)) throw new Error('Local Direct path is unavailable.');
         },
       });
     }
@@ -247,7 +248,7 @@ export default function Home() {
           if (verified.nodeId !== nodeId) throw new Error('Saved Direct config belongs to another Node.');
           saveDirectConnection(verified);
           setDirectConnections(loadDirectConnections());
-          if (!await activateClient(directNodeClient(verified))) {
+          if (!await activateClient(directNodeClient(verified), generation)) {
             throw new Error('Account-saved Direct path is unavailable.');
           }
         },
@@ -257,7 +258,7 @@ export default function Home() {
       attempts.push({
         transport: 'relay',
         open: async () => {
-          if (!await activateClient(relayNodeClient(cloudNode, token))) {
+          if (!await activateClient(relayNodeClient(cloudNode, token), generation)) {
             throw new Error('Controller relay is unavailable.');
           }
           setRelayStatus((current) => ({ ...current, [nodeId]: true }));
@@ -266,6 +267,7 @@ export default function Home() {
     }
 
     const result = await tryNodeTransports(attempts);
+    if (activationGeneration.current !== generation) return;
     if (result.transport) {
       setLoadingNodeId(null);
       return;
@@ -295,16 +297,18 @@ export default function Home() {
     bootstrapToken: string,
     saveToAccount: boolean,
   ): Promise<boolean> => {
+    const generation = ++activationGeneration.current;
     setLoadingNodeId(nodeId);
     setNodeError('');
     try {
       const pairing = await pairDirectNode(endpoint, bootstrapToken);
+      if (activationGeneration.current !== generation) return false;
       const connection = pairing.connection;
       if (connection.nodeId !== nodeId) {
         setNodeError(`That Direct URL belongs to ${connection.nodeName} (${connection.nodeId}), not ${nodeId}.`);
         return false;
       }
-      if (!await activateClient(directNodeClient(connection))) return false;
+      if (!await activateClient(directNodeClient(connection), generation)) return false;
       saveDirectConnection(connection);
       setDirectConnections(loadDirectConnections());
       setDirectCloudSync(connection.nodeId, saveToAccount);
@@ -324,10 +328,12 @@ export default function Home() {
       }
       return true;
     } catch (cause) {
-      setNodeError(cause instanceof Error ? cause.message : 'Could not connect to that Direct Node URL.');
+      if (activationGeneration.current === generation) {
+        setNodeError(cause instanceof Error ? cause.message : 'Could not connect to that Direct Node URL.');
+      }
       return false;
     } finally {
-      setLoadingNodeId(null);
+      if (activationGeneration.current === generation) setLoadingNodeId(null);
     }
   }, [activateClient, activeOrganizationId, refreshCloudNodes]);
 
@@ -350,25 +356,32 @@ export default function Home() {
   }, [handleCloudError]);
 
   const enterDemo = useCallback(async () => {
+    const generation = ++activationGeneration.current;
     setSyncing(true);
     setError('');
     try {
       const response = await fetch(`${basePath}/sample-snapshot.json`, { cache: 'no-store' });
       if (!response.ok) throw new Error(`${response.status}`);
-      setSnapshot(await response.json() as AgentSightSnapshot);
+      const nextSnapshot = await response.json() as AgentSightSnapshot;
+      if (activationGeneration.current !== generation) return;
+      setSnapshot(nextSnapshot);
+      setOverview(null);
       setActiveClient(null);
-      setViewMode('overview');
+      setSelectedSessionId(null);
       setMode('demo');
       setDialogOpen(false);
     } catch {
-      setError('The recorded demo could not be loaded.');
-      setMode(identity ? 'directory' : 'disconnected');
+      if (activationGeneration.current === generation) {
+        setError('The recorded demo could not be loaded.');
+        setMode(identity ? 'directory' : 'disconnected');
+      }
     } finally {
-      setSyncing(false);
+      if (activationGeneration.current === generation) setSyncing(false);
     }
   }, [identity]);
 
   const signOut = useCallback(() => {
+    ++activationGeneration.current;
     const token = loadCloudSession();
     const wasRelay = activeClient?.transport === 'relay';
     clearCloudState();
@@ -377,6 +390,7 @@ export default function Home() {
     if (wasRelay) {
       setActiveClient(null);
       setSnapshot(null);
+      setOverview(null);
       setMode('disconnected');
     }
     void signOutCloud(token);
@@ -398,6 +412,7 @@ export default function Home() {
       if (activeClient?.nodeId === nodeId && activeClient.transport === 'relay') {
         setActiveClient(null);
         setSnapshot(null);
+        setOverview(null);
         setMode('directory');
       }
     } catch (cause) {
@@ -421,6 +436,7 @@ export default function Home() {
     if (activeClient?.transport === 'relay') {
       setActiveClient(null);
       setSnapshot(null);
+      setOverview(null);
       setMode('directory');
     }
     void refreshCloudNodes(loadCloudSession(), organizationId);
@@ -554,7 +570,43 @@ export default function Home() {
     return () => { cancelled = true; };
   }, [activateClient, handleCloudError, loadCloudDirectory, refreshRelayStatuses]);
 
-  useEffect(() => { setViewMode(viewModeFromPath(window.location.pathname)); }, []);
+  useEffect(() => {
+    if (mode !== 'live' || !activeClient) return;
+    let cancelled = false;
+    let overviewRefreshing = false;
+    let snapshotRefreshing = false;
+    const refreshOverview = async () => {
+      if (overviewRefreshing || document.visibilityState === 'hidden') return;
+      overviewRefreshing = true;
+      try {
+        const next = await activeClient.overview();
+        if (!cancelled) setOverview(next);
+      } catch {
+        // Retain the last good top sample; manual refresh reports Node errors.
+      } finally {
+        overviewRefreshing = false;
+      }
+    };
+    const refreshSnapshot = async () => {
+      if (snapshotRefreshing || document.visibilityState === 'hidden') return;
+      snapshotRefreshing = true;
+      try {
+        const next = await activeClient.snapshot();
+        if (!cancelled) setSnapshot(next);
+      } catch {
+        // Keep the current session index until the next bounded refresh.
+      } finally {
+        snapshotRefreshing = false;
+      }
+    };
+    const overviewTimer = window.setInterval(() => { void refreshOverview(); }, 3_000);
+    const snapshotTimer = window.setInterval(() => { void refreshSnapshot(); }, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(overviewTimer);
+      window.clearInterval(snapshotTimer);
+    };
+  }, [activeClient, mode]);
 
   useEffect(() => {
     const handleLaunchFragment = () => {
@@ -567,14 +619,25 @@ export default function Home() {
     return () => { window.removeEventListener('hashchange', handleLaunchFragment); };
   }, []);
 
-  const selectViewMode = (nextMode: ViewMode) => {
-    setViewMode(nextMode);
-    window.history.replaceState(null, '', `${basePath}${pathForViewMode(nextMode)}`);
+  const openSession = (sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    window.history.replaceState(null, '', `${basePath}/?session=${encodeURIComponent(sessionId)}`);
+  };
+
+  const closeSession = () => {
+    setSelectedSessionId(null);
+    window.history.replaceState(null, '', `${basePath}/`);
   };
 
   const isDemo = mode === 'demo';
   const isLive = mode === 'live';
   const workspaceVisible = isLive || isDemo;
+  const availableSessions = useMemo(
+    () => snapshotSessions(snapshot ?? {}, true),
+    [snapshot],
+  );
+  const selectedSession = availableSessions
+    .find((session) => session.id === selectedSessionId) ?? null;
 
   const nodeManager = identity ? (
     <NodeManager nodes={cloudNodes} connections={directConnections}
@@ -698,29 +761,12 @@ export default function Home() {
                 {syncing && <span className="text-blue-600">{t('app.refreshing')}</span>}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <nav className="flex flex-wrap rounded-lg bg-slate-100 p-1">
-                  {(['sessions', 'overview', 'timeline', 'process-tree', 'log', 'metrics'] as ViewMode[]).map((item) => (
-                    <button key={item} type="button" onClick={() => selectViewMode(item)}
-                      disabled={item === 'sessions' && !isLive}
-                      className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition ${
-                        viewMode === item ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-900'
-                      } disabled:cursor-not-allowed disabled:opacity-40`}>
-                      {t(item === 'sessions' ? 'app.viewSessions'
-                        : item === 'overview' ? 'app.overview'
-                          : item === 'timeline' ? 'app.viewTimeline'
-                            : item === 'process-tree' ? 'app.viewProcesses'
-                              : item === 'log' ? 'app.viewEvents' : 'app.metrics')}
-                    </button>
-                  ))}
-                </nav>
-                {isLive && (
-                  <button type="button" onClick={() => { void syncData(); }} disabled={syncing}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-                    {t('nodes.refresh')}
-                  </button>
-                )}
-              </div>
+              {isLive && (
+                <button type="button" onClick={() => { void syncData(); }} disabled={syncing}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                  {t('nodes.refresh')}
+                </button>
+              )}
             </section>
 
             {error && (
@@ -728,18 +774,11 @@ export default function Home() {
             )}
 
             {snapshot ? (
-              viewMode === 'sessions' && isLive ? (
-                <SessionConsole snapshot={snapshot} client={activeClient} />
-              ) : viewMode === 'overview' ? (
-                <Dashboard snapshot={snapshot} onNavigate={selectViewMode} />
-              ) : viewMode === 'log' ? (
-                <LogView events={displayEvents} />
-              ) : viewMode === 'timeline' ? (
-                <TimelineView events={displayEvents} />
-              ) : viewMode === 'process-tree' ? (
-                <ProcessTreeView snapshot={snapshot} />
+              selectedSession ? (
+                <SessionWorkspace snapshot={snapshot} overview={overview} session={selectedSession}
+                  client={activeClient} onBack={closeSession} />
               ) : (
-                <ResourceMetricsView samples={snapshot.resource_samples ?? []} />
+                <NodeOverview snapshot={snapshot} overview={overview} onOpenSession={openSession} />
               )
             ) : (
               <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">

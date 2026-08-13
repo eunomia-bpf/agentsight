@@ -87,6 +87,54 @@ export interface SnapshotSession {
   attributes?: unknown;
 }
 
+export interface CodingPlanStep {
+  step: string;
+  status: string;
+}
+
+export interface LiveProcess {
+  pid: number;
+  ppid: number;
+  start_timestamp_ms?: number | null;
+  comm: string;
+  command: string;
+  cwd?: string | null;
+  cpu_percent: number;
+  rss_mb: number;
+}
+
+export interface LiveSession {
+  session_id?: string | null;
+  session: string;
+  agent: string;
+  pid?: number | null;
+  model?: string | null;
+  age_s?: number | null;
+  cpu_percent: number;
+  rss_mb: number;
+  processes: number;
+  tokens?: number | null;
+  tools: number;
+  execs: number;
+  failures: number;
+  files: number;
+  network: number;
+  trace: string;
+  command: string;
+  workspace?: string | null;
+  last_message_at?: string | null;
+  process_details: LiveProcess[];
+  plan: CodingPlanStep[];
+}
+
+export interface LiveOverview {
+  mode: string;
+  total_tokens: number;
+  rows: LiveSession[];
+  failures: string[];
+  notes: string[];
+}
+
 export interface SnapshotToolCall {
   id: string;
   session_id?: string | null;

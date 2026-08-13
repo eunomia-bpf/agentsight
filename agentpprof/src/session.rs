@@ -42,6 +42,7 @@ impl SessionRecord {
             self.user_requests.push(UserRequest {
                 index: 0,
                 ts_ms: self.start_ts_ms,
+                text: "session bootstrap".to_string(),
                 text_hash: "bootstrap".to_string(),
                 preview: "session bootstrap".to_string(),
                 tag: String::new(),
@@ -187,6 +188,7 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
         record.user_requests.push(UserRequest {
             index: 0,
             ts_ms: record.start_ts_ms,
+            text: prompt.to_string(),
             text_hash: short_hash(prompt, 12),
             preview: truncate_clean(prompt, 180),
             tag: String::new(),
@@ -231,6 +233,7 @@ fn apply_agent_session_fallbacks(record: &mut SessionRecord, session: &AgentSess
                 prompt_index: 0,
                 model: model.clone(),
                 source_id: String::new(),
+                text: String::new(),
                 text_hash: short_hash(&format!("{}:{:?}", session.session_id, usage), 12),
                 preview: "session token summary".to_string(),
                 input_tokens: nonnegative_u64(usage.input_tokens),

@@ -73,6 +73,17 @@ export function browserRelayRoute(request: Request): BrowserRelayRoute | null {
     };
   }
 
+  const overview = url.pathname.match(/^\/v1\/nodes\/([^/]+)\/relay\/overview$/);
+  if (overview && request.method === 'GET') {
+    const nodeId = decodeNodeId(overview[1]);
+    return nodeId ? {
+      nodeId,
+      method: 'GET',
+      nodePath: '/api/v1/overview',
+      statusOnly: false,
+    } : null;
+  }
+
   const message = url.pathname.match(
     /^\/v1\/nodes\/([^/]+)\/relay\/sessions\/([^/]+)\/messages$/,
   );

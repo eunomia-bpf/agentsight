@@ -88,10 +88,15 @@ agentsight bind
 ```
 
 The command starts an API on `127.0.0.1:7395` by default, opens a binding link,
-and remains in the foreground while the app reads AgentSight data. It uses the
-latest `agentsight-*.db` in the current directory when present, otherwise it
-reads the local agent session index. Pass `--db <capture.db>` to select a saved
-capture explicitly. The Node access key is stored in the OS AgentSight config
+and remains in the foreground while the app reads AgentSight data. Without
+`--db`, it reads live processes and the local agent session index; pass
+`--db <capture.db>` to select a saved capture explicitly. The first screen is a
+live, machine-level `top` view of
+running and stopped agents, token use, coding plans, CPU, and RSS. Select a
+session to open its conversation, process tree and AI prompts, timeline, and
+detailed events; session CPU/RSS stays in that session header rather than a
+separate metrics page. Session detail keeps the newest 1,000 prompts, 2,000
+responses, and 2,000 tool events under bounded text budgets. The Node access key is stored in the OS AgentSight config
 directory and reused across restarts. A binding link carries it to the browser
 only in the URL fragment, which the SPA immediately removes from the visible
 URL. Chrome may ask you to allow Local network access for a loopback or LAN Node.

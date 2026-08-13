@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime};
 
 use crate::{discover_session_files, parse_session_file};
@@ -46,6 +46,9 @@ pub struct UserPrompt {
     pub index: usize,
     pub ts_ms: Option<i64>,
     pub text_hash: String,
+    /// Full source-visible prompt text for the authorized session detail API.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub text: String,
     pub preview: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub tag: String,
@@ -109,6 +112,9 @@ pub struct LlmResponse {
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub source_id: String,
     pub text_hash: String,
+    /// Full source-visible response text for the authorized session detail API.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub text: String,
     pub preview: String,
     pub input_tokens: u64,
     pub output_tokens: u64,
@@ -126,6 +132,13 @@ pub struct LlmResponse {
     /// Source-visible semantic responsibility path active at this response.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub task_path: Vec<String>,
+}
+
+/// Latest source-recorded coding plan entry.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PlanStep {
+    pub step: String,
+    pub status: String,
 }
 
 impl LlmResponse {
@@ -158,6 +171,8 @@ pub struct SessionEvents {
     pub prompts: Vec<UserPrompt>,
     pub tools: Vec<ToolEvent>,
     pub llm_responses: Vec<LlmResponse>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub plan: Vec<PlanStep>,
 }
 
 /// A parsed agent session with metadata, token usage, and tool invocations.
@@ -215,11 +230,58 @@ pub struct SessionCache {
 struct CacheEntry {
     mtime: SystemTime,
     session: Option<AgentSession>,
+    pinned: bool,
 }
 
 impl SessionCache {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Parse one known transcript without widening the bounded discovery scan.
+    /// The parsed session is reused until the file's modification time changes.
+    pub fn parse_path_cached(&mut self, path: &Path) -> Option<AgentSession> {
+        let Some(candidate) = crate::session_candidate_from_path(path) else {
+            self.entries.remove(path);
+            return None;
+        };
+        if let Some(entry) = self.entries.get_mut(path)
+            && entry.mtime == candidate.updated
+        {
+            entry.pinned = true;
+            let session = entry.session.clone();
+            self.trim_pinned_details();
+            return session;
+        }
+        let parsed = parse_session_file(&candidate);
+        self.entries.insert(
+            path.to_path_buf(),
+            CacheEntry {
+                mtime: candidate.updated,
+                session: parsed.clone(),
+                pinned: true,
+            },
+        );
+        self.trim_pinned_details();
+        parsed
+    }
+
+    fn trim_pinned_details(&mut self) {
+        const MAX_PINNED_DETAILS: usize = 8;
+        let mut pinned = self
+            .entries
+            .iter()
+            .filter(|(_, entry)| entry.pinned)
+            .map(|(path, entry)| (path.clone(), entry.mtime))
+            .collect::<Vec<_>>();
+        if pinned.len() <= MAX_PINNED_DETAILS {
+            return;
+        }
+        let overflow = pinned.len() - MAX_PINNED_DETAILS;
+        pinned.sort_by_key(|(_, mtime)| *mtime);
+        for (path, _) in pinned.into_iter().take(overflow) {
+            self.entries.remove(&path);
+        }
     }
 
     pub fn discover_cached(&mut self, limit: usize, max_age: Duration) -> Vec<AgentSession> {
@@ -273,6 +335,7 @@ impl SessionCache {
                         CacheEntry {
                             mtime: candidate.updated,
                             session: parsed.clone(),
+                            pinned: false,
                         },
                     );
                     parsed
@@ -287,7 +350,8 @@ impl SessionCache {
                 }
             }
         }
-        self.entries.retain(|path, _| live_paths.contains(path));
+        self.entries
+            .retain(|path, entry| live_paths.contains(path) || (entry.pinned && path.is_file()));
         self.cached_sessions = sessions;
         self.last_refresh = Some(Instant::now());
         self.last_limit = target;

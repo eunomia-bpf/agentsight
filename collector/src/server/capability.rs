@@ -203,7 +203,7 @@ pub fn action_for_request(method: &str, path: &str) -> Option<(&'static str, Opt
     if method == "GET" && path == "/api/v1/info" {
         return Some((NODE_INFO, None));
     }
-    if method == "GET" && path == "/api/v1/snapshot" {
+    if method == "GET" && matches!(path, "/api/v1/snapshot" | "/api/v1/overview") {
         return Some((EVIDENCE_READ, None));
     }
     let session = path.strip_prefix("/api/v1/sessions/")?;

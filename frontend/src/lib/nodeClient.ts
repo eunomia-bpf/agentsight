@@ -4,12 +4,13 @@
 import { controllerUrl, type CloudNode } from '@/lib/controllerClient';
 export { registerControllerNode, relayOnline } from '@/lib/controllerClient';
 import initProtocol, {
+  overview_path as overviewPath,
   session_message_body as sessionMessageBody,
   session_messages_path as sessionMessagesPath,
   session_path as sessionPath,
   snapshot_path as snapshotPath,
 } from '@/generated/agentsight-protocol/agentsight_protocol';
-import type { AgentSightSnapshot } from '@/types/event';
+import type { AgentSightSnapshot, CodingPlanStep, LiveOverview } from '@/types/event';
 
 const DIRECT_CONNECTIONS_KEY = 'agentsight.direct-connections.v1';
 const DIRECT_SYNC_ENABLED_KEY = 'agentsight.direct-sync-enabled.v1';
@@ -40,9 +41,16 @@ export interface SessionDetail {
   model?: string | null;
   cwd?: string | null;
   events?: {
-    prompts?: Array<{ ts_ms?: number | null; preview?: string }>;
-    llm_responses?: Array<{ ts_ms?: number | null; preview?: string; response_phase?: string }>;
-    tools?: Array<{ ts_ms?: number | null; tool_name?: string; effect?: string; status?: string }>;
+    prompts?: Array<{ ts_ms?: number | null; text?: string; preview?: string; task_path?: string[] }>;
+    llm_responses?: Array<{
+      ts_ms?: number | null; text?: string; preview?: string; response_phase?: string;
+      model?: string; total_tokens?: number; task_path?: string[];
+    }>;
+    tools?: Array<{
+      ts_ms?: number | null; tool_name?: string; category?: string; command?: string;
+      effect?: string; status?: string; task_path?: string[];
+    }>;
+    plan?: CodingPlanStep[];
   };
 }
 
@@ -51,6 +59,7 @@ export interface NodeClient {
   nodeName: string;
   transport: NodeTransport;
   snapshot(): Promise<AgentSightSnapshot>;
+  overview(): Promise<LiveOverview | null>;
   session(sessionId: string): Promise<SessionDetail>;
   submitMessage(sessionId: string, message: string): Promise<void>;
 }
@@ -248,6 +257,11 @@ function nodeClient(nodeId: string, nodeName: string, transport: NodeTransport, 
       return jsonResponse<AgentSightSnapshot>(
         await request(await protocol(() => snapshotPath(50_000))), 'AgentSight Node snapshot failed',
       );
+    },
+    async overview() {
+      const response = await request(await protocol(() => overviewPath()));
+      if (response.status === 404 || response.status === 409) return null;
+      return jsonResponse<LiveOverview>(response, 'AgentSight Node overview failed');
     },
     async session(sessionId) {
       return jsonResponse<SessionDetail>(

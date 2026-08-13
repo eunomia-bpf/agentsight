@@ -234,7 +234,7 @@ enum Commands {
         /// Local API port used while this device is bound.
         #[arg(long, default_value = "7395")]
         server_port: u16,
-        /// SQLite capture to serve (defaults to the latest agentsight-*.db).
+        /// SQLite capture to serve instead of live agent sessions.
         #[arg(long)]
         db: Option<String>,
         /// Static AgentSight app to open (official hosted app by default).
@@ -637,7 +637,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             app_url,
             endpoint,
         } => {
-            let db_path = configured_db_path(db).or_else(latest_session_db);
+            let db_path = configured_db_path(db);
             run_bind(
                 &cli.listen,
                 *server_port,

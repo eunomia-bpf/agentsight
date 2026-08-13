@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::types::{
-    AgentSession, LlmResponse, SessionCandidate, SessionDirStat, SessionEvents, TokenUsage,
-    ToolEvent, ToolPath, UserPrompt,
+    AgentSession, LlmResponse, PlanStep, SessionCandidate, SessionDirStat, SessionEvents,
+    TokenUsage, ToolEvent, ToolPath, UserPrompt,
 };
 use crate::{AGENT_CLAUDE, AGENT_CODEX, AGENT_CURSOR, AGENT_GEMINI};
 
@@ -386,6 +386,7 @@ fn shell_words(input: &str) -> Option<Vec<String>> {
 struct SemanticTaskStack {
     root: Option<String>,
     active_plan: Option<String>,
+    plan: Vec<PlanStep>,
 }
 
 impl SemanticTaskStack {
@@ -396,20 +397,38 @@ impl SemanticTaskStack {
         }
         self.root = Some(label);
         self.active_plan = None;
+        self.plan.clear();
     }
 
     fn observe_plan(&mut self, input: &Value) {
-        let active = input
+        let Some(items) = input
             .get("plan")
+            .or_else(|| input.get("todos"))
             .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
+        else {
+            return;
+        };
+        self.plan = items
+            .iter()
             .filter_map(|item| {
-                (item.get("status").and_then(Value::as_str) == Some("in_progress"))
-                    .then(|| item.get("step").and_then(Value::as_str))
-                    .flatten()
-                    .map(semantic_task_label)
+                let step = item
+                    .get("step")
+                    .or_else(|| item.get("content"))
+                    .and_then(Value::as_str)
+                    .map(semantic_task_label)?;
+                let status = item
+                    .get("status")
+                    .and_then(Value::as_str)
+                    .unwrap_or("pending")
+                    .to_string();
+                Some(PlanStep { step, status })
             })
+            .collect::<Vec<_>>();
+        let active = self
+            .plan
+            .iter()
+            .filter(|item| item.status == "in_progress")
+            .map(|item| item.step.clone())
             .collect::<Vec<_>>();
         self.active_plan = match active.as_slice() {
             [] => None,
@@ -443,6 +462,13 @@ impl SemanticTaskStack {
         }
         path
     }
+}
+
+fn is_plan_tool(name: &str) -> bool {
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "update_plan" | "todowrite" | "todo_write"
+    )
 }
 
 pub fn semantic_task_label(text: &str) -> String {
@@ -670,6 +696,9 @@ fn parse_jsonl(
                         let mut event = event;
                         event.invoked_skill = invoked_skill.unwrap_or_default();
                         event.skill = active_skill.clone().unwrap_or_default();
+                        if is_plan_tool(name) {
+                            task_stack.observe_plan(input);
+                        }
                         if let Some(id) = call_id {
                             call_index.insert(id, events.tools.len());
                         }
@@ -707,6 +736,7 @@ fn parse_jsonl(
                         model,
                         source_id: claude_source_completion_id(&obj),
                         text_hash: short_hash(&(text.clone() + &usage.to_string()), 12),
+                        text: bounded_detail_text(&text),
                         preview: truncate_clean(
                             if preview_text.is_empty() {
                                 "token report"
@@ -741,7 +771,7 @@ fn parse_jsonl(
                     && let Some(text) = obj.get("content").and_then(Value::as_str)
                     && let Some(text) = clean_prompt_text(text)
                 {
-                    acc.prompt_preview = Some(text.clone());
+                    acc.prompt_preview = Some(truncate_clean(&text, 180));
                     task_stack.observe_user(&text);
                     current_prompt_index =
                         events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
@@ -751,7 +781,7 @@ fn parse_jsonl(
                 if let Some(text) = obj.get("lastPrompt").and_then(Value::as_str)
                     && let Some(text) = clean_prompt_text(text)
                 {
-                    acc.prompt_preview = Some(text.clone());
+                    acc.prompt_preview = Some(truncate_clean(&text, 180));
                     task_stack.observe_user(&text);
                     current_prompt_index =
                         events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
@@ -782,7 +812,7 @@ fn parse_jsonl(
                     && claude_user_starts_prompt(&obj, content, &text, claude_prompt_id.as_deref())
                 {
                     if acc.prompt_preview.is_none() {
-                        acc.prompt_preview = Some(text.clone());
+                        acc.prompt_preview = Some(truncate_clean(&text, 180));
                     }
                     task_stack.observe_user(&text);
                     active_skill = None;
@@ -854,7 +884,7 @@ fn parse_jsonl(
                         .and_then(Value::as_str)
                         .unwrap_or("");
                     if let Some(text) = clean_prompt_text(text) {
-                        acc.prompt_preview = Some(text.clone());
+                        acc.prompt_preview = Some(truncate_clean(&text, 180));
                         task_stack.observe_user(&text);
                         current_prompt_index =
                             events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
@@ -877,6 +907,7 @@ fn parse_jsonl(
                             },
                             source_id: String::new(),
                             text_hash: short_hash(&text, 12),
+                            text: bounded_detail_text(&text),
                             preview: truncate_clean(&text, 180),
                             input_tokens: 0,
                             output_tokens: 0,
@@ -919,7 +950,7 @@ fn parse_jsonl(
                     call_id.clone(),
                     task_stack.path_for_tool(&name, &args),
                 );
-                if name == "update_plan" {
+                if is_plan_tool(&name) {
                     task_stack.observe_plan(&args);
                 }
                 if let Some(id) = call_id {
@@ -964,7 +995,7 @@ fn parse_jsonl(
                     call_id.clone(),
                     task_stack.path_for_tool(name, &args),
                 );
-                if name == "update_plan" {
+                if is_plan_tool(name) {
                     task_stack.observe_plan(&args);
                 }
                 if let Some(id) = call_id {
@@ -1000,7 +1031,7 @@ fn parse_jsonl(
                     });
                 if let Some(text) = clean_prompt_text(&text) {
                     if payload.get("role").and_then(Value::as_str) == Some("user") {
-                        acc.prompt_preview = Some(text.clone());
+                        acc.prompt_preview = Some(truncate_clean(&text, 180));
                         task_stack.observe_user(&text);
                         current_prompt_index =
                             events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
@@ -1029,6 +1060,7 @@ fn parse_jsonl(
                         },
                         source_id: String::new(),
                         text_hash: short_hash(&text, 12),
+                        text: bounded_detail_text(&text),
                         preview: truncate_clean(&text, 180),
                         input_tokens: 0,
                         output_tokens: 0,
@@ -1047,7 +1079,7 @@ fn parse_jsonl(
             }
             (AGENT_CODEX, "message" | "input" | "user") => {
                 if let Some(text) = local_message_preview(&obj) {
-                    acc.prompt_preview = Some(text.clone());
+                    acc.prompt_preview = Some(truncate_clean(&text, 180));
                     task_stack.observe_user(&text);
                     current_prompt_index =
                         events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
@@ -1055,7 +1087,7 @@ fn parse_jsonl(
             }
             _ if acc.prompt_preview.is_none() && typ.contains("user") => {
                 if let Some(text) = local_message_preview(&obj) {
-                    acc.prompt_preview = Some(text.clone());
+                    acc.prompt_preview = Some(truncate_clean(&text, 180));
                     task_stack.observe_user(&text);
                     current_prompt_index =
                         events.upsert_prompt(ts_ms_from_event(&obj), &text, task_stack.path());
@@ -1068,6 +1100,7 @@ fn parse_jsonl(
     if acc.model_usage.is_empty() {
         acc.model_usage = claude_message_models;
     }
+    events.plan = task_stack.plan;
     deduplicate_llm_responses(&mut events);
     acc.finish_with_events(events)
 }
@@ -1120,6 +1153,9 @@ fn merge_llm_response(previous: &mut LlmResponse, response: LlmResponse) {
     if previous.preview.starts_with("tool: ") && !response.preview.starts_with("tool: ") {
         previous.preview = response.preview;
         previous.text_hash = response.text_hash;
+        previous.text = response.text;
+    } else if previous.text.is_empty() && !response.text.is_empty() {
+        previous.text = response.text;
     }
 }
 
@@ -1171,7 +1207,7 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
         match msg.get("type").and_then(Value::as_str) {
             Some("user") if acc.prompt_preview.is_none() => {
                 if let Some(text) = local_message_preview(msg.get("content").unwrap_or(msg)) {
-                    acc.prompt_preview = Some(text.clone());
+                    acc.prompt_preview = Some(truncate_clean(&text, 180));
                     task_stack.observe_user(&text);
                     current_prompt_index = events.upsert_prompt(ts_ms, &text, task_stack.path());
                 }
@@ -1215,6 +1251,14 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                             call.get("id").and_then(Value::as_str).map(str::to_string),
                             task_stack.path_for_tool(name, call),
                         );
+                        if is_plan_tool(name) {
+                            let plan_input = call
+                                .get("args")
+                                .or_else(|| call.get("arguments"))
+                                .map(parse_tool_args)
+                                .unwrap_or_else(|| call.clone());
+                            task_stack.observe_plan(&plan_input);
+                        }
                         if let Some(status) = call.get("status").and_then(Value::as_str) {
                             let lowered = status.to_ascii_lowercase();
                             event.status = if matches!(
@@ -1241,6 +1285,7 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
                         model: llm_model,
                         source_id: String::new(),
                         text_hash: short_hash(&(text.clone() + &tokens.to_string()), 12),
+                        text: bounded_detail_text(&text),
                         preview: truncate_clean(
                             if text.trim().is_empty() {
                                 "gemini response"
@@ -1271,6 +1316,7 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
             _ => {}
         }
     }
+    events.plan = task_stack.plan;
     acc.finish_with_events(events)
 }
 
@@ -1427,6 +1473,7 @@ fn cursor_absorb_transcript(
                         model: String::new(),
                         source_id: String::new(),
                         text_hash: short_hash(&text, 12),
+                        text: bounded_detail_text(&text),
                         preview: truncate_clean(&text, 140),
                         input_tokens: 0,
                         output_tokens: 0,
@@ -1818,12 +1865,13 @@ fn is_agent_file_for(agent: &str, path: &Path) -> bool {
             path.extension().and_then(|ext| ext.to_str()) == Some("jsonl")
         }
         AGENT_GEMINI => {
-            path.extension().and_then(|ext| ext.to_str()) == Some("json")
-                && path
-                    .file_name()
-                    .and_then(|name| name.to_str())
+            let normalized = normalize_path_text(&path.to_string_lossy());
+            normalized.ends_with(".json")
+                && normalized
+                    .rsplit('/')
+                    .next()
                     .is_some_and(|name| name.starts_with("session-"))
-                && normalize_path_text(&path.to_string_lossy()).contains("/chats/")
+                && normalized.contains("/chats/")
         }
         AGENT_CURSOR => is_cursor_parent_transcript(path),
         _ => false,
@@ -1889,6 +1937,7 @@ impl SessionEvents {
             index,
             ts_ms,
             text_hash: hash,
+            text: bounded_detail_text(text),
             preview: truncate_clean(text, 180),
             tag: String::new(),
             task_path,
@@ -2564,6 +2613,43 @@ pub fn codex_total_token_usage(content: &str) -> Option<TokenUsage> {
         payload
             .pointer("/info/total_token_usage")
             .map(codex_token_usage)
+    })
+}
+
+/// Read the newest plan update from a bounded Codex rollout tail.
+pub fn codex_latest_plan(content: &str) -> Option<Vec<PlanStep>> {
+    content.lines().rev().find_map(|line| {
+        let obj: Value = serde_json::from_str(line).ok()?;
+        let payload = obj.get("payload")?;
+        let payload_type = payload.get("type").and_then(Value::as_str)?;
+        let (name, input) = match payload_type {
+            "function_call" => {
+                let name = payload.get("name").and_then(Value::as_str)?.to_string();
+                let input = payload
+                    .get("arguments")
+                    .and_then(Value::as_str)
+                    .and_then(|raw| serde_json::from_str(raw).ok())
+                    .unwrap_or(Value::Null);
+                (name, input)
+            }
+            "custom_tool_call" => codex_custom_tool_input(
+                payload
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .unwrap_or("custom"),
+                payload
+                    .get("input")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default(),
+            ),
+            _ => return None,
+        };
+        if !is_plan_tool(&name) {
+            return None;
+        }
+        let mut stack = SemanticTaskStack::default();
+        stack.observe_plan(&input);
+        Some(stack.plan)
     })
 }
 
@@ -3379,7 +3465,7 @@ fn claude_user_starts_prompt(
 fn local_message_preview(value: &Value) -> Option<String> {
     let mut parts = Vec::new();
     collect_local_text(value, &mut parts);
-    clean_prompt_text(&parts.join(" "))
+    clean_prompt_text(&parts.join("\n"))
 }
 
 fn collect_local_text(value: &Value, out: &mut Vec<String>) {
@@ -3450,12 +3536,30 @@ fn is_noise_path(path: &str) -> bool {
 }
 
 fn clean_prompt_text(text: &str) -> Option<String> {
-    let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
-    let text = text
+    let mut text = text.trim();
+    text = text
         .strip_prefix("<session>")
         .and_then(|text| text.strip_suffix("</session>"))
-        .unwrap_or(&text)
+        .unwrap_or(text)
         .trim();
+    if text.starts_with("<in-app-browser-context") {
+        text = text.rsplit_once("## My request:")?.1.trim();
+    }
+    const HOST_CONTEXT_PREFIXES: &[&str] = &[
+        "<environment_context",
+        "<recommended_plugins",
+        "<app-context",
+        "<skills_instructions",
+        "<permissions instructions",
+        "<collaboration_mode",
+        "<subagent_notification",
+    ];
+    if HOST_CONTEXT_PREFIXES
+        .iter()
+        .any(|prefix| text.starts_with(prefix))
+    {
+        return None;
+    }
     (!text.is_empty()).then(|| text.to_string())
 }
 
@@ -3473,6 +3577,21 @@ pub fn truncate_clean(text: &str, limit: usize) -> String {
         .take(limit.saturating_sub(1))
         .collect::<String>()
         + "."
+}
+
+const MAX_DETAIL_TEXT_BYTES: usize = 64 * 1024;
+
+/// Preserve source-visible transcript text while bounding one serialized
+/// message. Session-detail APIs apply a second aggregate budget.
+fn bounded_detail_text(text: &str) -> String {
+    if text.len() <= MAX_DETAIL_TEXT_BYTES {
+        return text.to_string();
+    }
+    let mut end = MAX_DETAIL_TEXT_BYTES;
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}\n[… message truncated by AgentSight …]", &text[..end])
 }
 
 pub fn one_word(text: &str, default: &str) -> String {
@@ -4286,6 +4405,13 @@ mod tests {
             vec!["write a paper", "write abstract"]
         );
         assert_eq!(
+            session.events.plan,
+            vec![PlanStep {
+                step: "write abstract".to_string(),
+                status: "in_progress".to_string(),
+            }]
+        );
+        assert_eq!(
             session.events.tools[2].task_path,
             session.events.tools[1].task_path
         );
@@ -4396,6 +4522,20 @@ mod tests {
             session.events.tools[1].task_path,
             vec!["write a paper", "write abstract"]
         );
+        assert_eq!(
+            session.events.plan,
+            vec![
+                PlanStep {
+                    step: "write abstract".to_string(),
+                    status: "in_progress".to_string(),
+                },
+                PlanStep {
+                    step: "write evaluation".to_string(),
+                    status: "pending".to_string(),
+                },
+            ]
+        );
+        assert_eq!(codex_latest_plan(&codex), Some(session.events.plan.clone()));
     }
 
     #[test]
@@ -4446,6 +4586,8 @@ mod tests {
             codex,
         )
         .expect("session");
+        assert_eq!(session.events.prompts[0].text, "review");
+        assert_eq!(session.events.llm_responses[0].text, "review complete");
         assert_eq!(session.events.llm_responses.len(), 1);
         assert_eq!(session.events.llm_responses[0].preview, "review complete");
     }
@@ -4914,6 +5056,49 @@ mod tests {
                 .map(|response| response.skill.as_str())
                 .collect::<Vec<_>>(),
             ["", "check-paper-citations", "check-paper-citations", ""]
+        );
+    }
+
+    #[test]
+    fn invalid_plan_payload_does_not_erase_the_latest_plan() {
+        let mut stack = SemanticTaskStack::default();
+        stack.observe_plan(&json!({
+            "plan": [{"step": "ship the overview", "status": "in_progress"}]
+        }));
+        stack.observe_plan(&Value::Null);
+
+        assert_eq!(stack.plan.len(), 1);
+        assert_eq!(stack.plan[0].step, "ship the overview");
+    }
+
+    #[test]
+    fn detail_text_is_utf8_safe_and_bounded() {
+        let text = "数".repeat(MAX_DETAIL_TEXT_BYTES);
+        let bounded = bounded_detail_text(&text);
+
+        assert!(bounded.is_char_boundary(bounded.len()));
+        assert!(bounded.len() < text.len());
+        assert!(bounded.contains("message truncated"));
+    }
+
+    #[test]
+    fn hosted_context_is_hidden_but_ambient_request_is_preserved() {
+        assert!(clean_prompt_text("<environment_context>secret</environment_context>").is_none());
+        assert!(clean_prompt_text("<recommended_plugins>internal</recommended_plugins>").is_none());
+        assert_eq!(
+            clean_prompt_text(
+                "<in-app-browser-context>internal browser state</in-app-browser-context>\n\n## My request:\n修复界面"
+            )
+            .as_deref(),
+            Some("修复界面")
+        );
+    }
+
+    #[test]
+    fn prompt_detail_preserves_source_line_breaks() {
+        assert_eq!(
+            clean_prompt_text("first line\nsecond line").as_deref(),
+            Some("first line\nsecond line")
         );
     }
 }
