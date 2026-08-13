@@ -84,7 +84,7 @@ cd ..
 
 Hosted deployment is automatic through Cloudflare Workers Builds. The repository is connected directly to the `agentsight` Worker; no Cloudflare API token is stored in GitHub.
 
-The OAuth runtime variables such as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are only used when a person chooses **Sign in with GitHub**. They are Worker secrets configured in Cloudflare and are not Git repository credentials, Cloudflare deployment credentials, or GitHub Actions secrets.
+The OAuth runtime bindings such as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are only used when a person chooses **Sign in with GitHub**. Configure the client ID as a Worker variable or secret and the client secret as a Worker secret. They are not Git repository credentials, Cloudflare deployment credentials, or GitHub Actions secrets. Both Wrangler configs set `keep_vars` so an automatic code deployment preserves these Dashboard-managed bindings.
 
 One Worker deployment contains both surfaces from the same repository revision:
 

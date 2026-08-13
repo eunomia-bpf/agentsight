@@ -12,6 +12,7 @@ import { SessionConsole } from '@/components/SessionConsole';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ConnectionDialog } from '@/components/ConnectionDialog';
 import { NodeManager } from '@/components/NodeManager';
+import { tryNodeTransports } from '@/lib/nodeOpening.mjs';
 import { Dashboard, type ViewMode } from '@/components/dashboard/Dashboard';
 import {
   CloudSessionExpiredError,
@@ -224,43 +225,55 @@ export default function Home() {
     setLoadingNodeId(nodeId);
     setNodeError('');
     const direct = directConnections[nodeId];
-    let directFailure: unknown = null;
-
-    if (direct) {
-      try {
-        if (await activateClient(directNodeClient(direct))) return;
-      } catch (cause) {
-        directFailure = cause;
-      }
-    }
-
     const token = loadCloudSession();
     const cloudNode = cloudNodes.find((node) => node.id === nodeId);
-    if (token && cloudNode?.hasDirectConfig && (!direct || directFailure)) {
-      try {
-        const saved = await fetchControllerDirectConfig(token, cloudNode);
-        const pairing = await pairDirectNode(saved.endpoint, saved.bootstrapToken);
-        const verified = pairing.connection;
-        if (verified.nodeId !== nodeId) throw new Error('Saved Direct config belongs to another Node.');
-        saveDirectConnection(verified);
-        setDirectConnections(loadDirectConnections());
-        if (await activateClient(directNodeClient(verified))) return;
-      } catch (cause) {
-        directFailure = cause;
-      }
-    }
     const relay = relayStatus[nodeId];
+    const attempts = [];
+    if (direct) {
+      attempts.push({
+        transport: 'local-direct',
+        open: async () => {
+          if (!await activateClient(directNodeClient(direct))) throw new Error('Local Direct path is unavailable.');
+        },
+      });
+    }
+    if (token && cloudNode?.hasDirectConfig) {
+      attempts.push({
+        transport: 'account-direct',
+        open: async () => {
+          const saved = await fetchControllerDirectConfig(token, cloudNode);
+          const pairing = await pairDirectNode(saved.endpoint, saved.bootstrapToken);
+          const verified = pairing.connection;
+          if (verified.nodeId !== nodeId) throw new Error('Saved Direct config belongs to another Node.');
+          saveDirectConnection(verified);
+          setDirectConnections(loadDirectConnections());
+          if (!await activateClient(directNodeClient(verified))) {
+            throw new Error('Account-saved Direct path is unavailable.');
+          }
+        },
+      });
+    }
     if (token && cloudNode && relay === true) {
-      try {
-        if (await activateClient(relayNodeClient(cloudNode, token))) {
+      attempts.push({
+        transport: 'relay',
+        open: async () => {
+          if (!await activateClient(relayNodeClient(cloudNode, token))) {
+            throw new Error('Controller relay is unavailable.');
+          }
           setRelayStatus((current) => ({ ...current, [nodeId]: true }));
-          return;
-        }
-      } catch (cause) {
-        setRelayStatus((current) => ({ ...current, [nodeId]: false }));
-        const directMessage = directFailure instanceof Error ? ` Direct failed: ${directFailure.message}` : '';
-        setNodeError(`${cause instanceof Error ? cause.message : 'Controller relay is unavailable.'}${directMessage}`);
-      }
+        },
+      });
+    }
+
+    const result = await tryNodeTransports(attempts);
+    if (result.transport) return;
+    const relayFailure = result.failures.find(({ transport }) => transport === 'relay')?.cause;
+    const directFailure = [...result.failures].reverse()
+      .find(({ transport }) => transport !== 'relay')?.cause;
+    if (relayFailure) {
+      setRelayStatus((current) => ({ ...current, [nodeId]: false }));
+      const directMessage = directFailure instanceof Error ? ` Direct failed: ${directFailure.message}` : '';
+      setNodeError(`${relayFailure instanceof Error ? relayFailure.message : 'Controller relay is unavailable.'}${directMessage}`);
     } else if (directFailure instanceof Error) {
       setNodeError(`Direct failed: ${directFailure.message} Relay is unavailable; re-pair this Node to refresh its capability.`);
     } else if (cloudNode) {
