@@ -4,6 +4,10 @@
 use agent_session::AgentSession;
 use serde_json::{Value, json};
 use std::collections::{HashMap, HashSet};
+#[cfg(target_os = "windows")]
+use std::ffi::OsStr;
+#[cfg(target_os = "windows")]
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::{Arc, Mutex as StdMutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -149,7 +153,7 @@ pub async fn submit_message(
 }
 
 fn start_claude(session: &AgentSession) -> Result<Runtime, SubmitError> {
-    let mut command = Command::new("claude");
+    let mut command = provider_command("claude");
     command.args([
         "-p",
         "--resume",
@@ -170,7 +174,7 @@ fn start_claude(session: &AgentSession) -> Result<Runtime, SubmitError> {
 }
 
 async fn start_codex(session: &AgentSession) -> Result<Runtime, SubmitError> {
-    let mut command = Command::new("codex");
+    let mut command = provider_command("codex");
     command.args(["app-server", "--listen", "stdio://"]);
     configure(&mut command, session, true);
     let mut child = command
@@ -330,7 +334,7 @@ fn session_is_running(session: &AgentSession) -> bool {
 }
 
 fn resume_gemini(session: &AgentSession, message: &str) -> Result<(), SubmitError> {
-    let mut command = Command::new("gemini");
+    let mut command = provider_command("gemini");
     command.args(["--resume", &session.session_id, message]);
     configure(&mut command, session, false);
     let child = command
@@ -338,6 +342,46 @@ fn resume_gemini(session: &AgentSession, message: &str) -> Result<(), SubmitErro
         .map_err(|error| failed(format!("failed to resume Gemini session: {error}")))?;
     reap(child, "gemini", session.session_id.clone());
     Ok(())
+}
+
+fn provider_command(name: &str) -> Command {
+    #[cfg(target_os = "windows")]
+    let program = resolve_windows_program(
+        Path::new(name),
+        std::env::var_os("PATH").as_deref(),
+        std::env::var_os("PATHEXT").as_deref(),
+    )
+    .unwrap_or_else(|| PathBuf::from(name));
+    #[cfg(not(target_os = "windows"))]
+    let program = name;
+    Command::new(program)
+}
+
+#[cfg(target_os = "windows")]
+fn resolve_windows_program(
+    program: &Path,
+    search_path: Option<&OsStr>,
+    path_ext: Option<&OsStr>,
+) -> Option<PathBuf> {
+    if program.components().count() > 1 || program.extension().is_some() {
+        return program.is_file().then(|| program.to_path_buf());
+    }
+    let extensions = path_ext
+        .and_then(OsStr::to_str)
+        .unwrap_or(".COM;.EXE;.BAT;.CMD")
+        .split(';')
+        .filter(|extension| !extension.is_empty());
+    for directory in search_path.into_iter().flat_map(std::env::split_paths) {
+        for extension in extensions.clone() {
+            let mut candidate = directory.join(program).into_os_string();
+            candidate.push(extension);
+            let candidate = PathBuf::from(candidate);
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+    None
 }
 
 fn configure(command: &mut Command, session: &AgentSession, piped: bool) {
@@ -386,4 +430,25 @@ fn now_ms() -> u64 {
 
 fn failed(message: impl Into<String>) -> SubmitError {
     SubmitError::Failed(message.into())
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn provider_resolution_accepts_cmd_shims() {
+        let temp = tempfile::tempdir().unwrap();
+        let shim = temp.path().join("codex.cmd");
+        std::fs::write(&shim, "@echo off\r\n").unwrap();
+        let path = std::env::join_paths([temp.path()]).unwrap();
+
+        let resolved = resolve_windows_program(
+            Path::new("codex"),
+            Some(&path),
+            Some(OsStr::new(".EXE;.CMD")),
+        )
+        .unwrap();
+        assert_eq!(resolved.canonicalize().unwrap(), shim.canonicalize().unwrap());
+    }
 }

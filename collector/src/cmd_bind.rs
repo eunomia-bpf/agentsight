@@ -7,7 +7,9 @@ use crate::view::MaterializedView;
 use qrcode::QrCode;
 use qrcode::render::unicode;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+#[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
+use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 use url::{Url, form_urlencoded};
@@ -70,7 +72,9 @@ pub(crate) async fn run_bind(
         "The access key is stored locally, survives Node restarts, and is removed from the browser URL after opening."
     );
     if relay_handle.is_some() {
-        println!("Controller relay is enabled for signed-in remote browsers; Direct access remains preferred.");
+        println!(
+            "Controller relay is enabled for signed-in remote browsers; Direct access remains preferred."
+        );
     }
     if let Some(db_path) = db_path {
         println!("Serving saved AgentSight data from {db_path}.");
@@ -140,11 +144,7 @@ fn local_access_token() -> Result<String, Box<dyn std::error::Error + Send + Syn
         Ok(_) => Err(format!("invalid AgentSight access token at {}", path.display()).into()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             let token = random_token();
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .mode(0o600)
-                .open(path)?;
+            let mut file = create_private_file(&path)?;
             use std::io::Write;
             writeln!(file, "{token}")?;
             Ok(token)
@@ -172,11 +172,7 @@ fn local_node_metadata()
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             let id = format!("node_{}", uuid::Uuid::new_v4().simple());
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .mode(0o600)
-                .open(&id_path)?;
+            let mut file = create_private_file(&id_path)?;
             use std::io::Write;
             writeln!(file, "{id}")?;
             id
@@ -187,12 +183,21 @@ fn local_node_metadata()
         .ok()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
+        .or_else(|| std::env::var("COMPUTERNAME").ok())
         .unwrap_or_else(|| "AgentSight Node".to_string());
     Ok(crate::server::NodeMetadata {
         id,
         name,
         version: env!("CARGO_PKG_VERSION").to_string(),
     })
+}
+
+fn create_private_file(path: &Path) -> std::io::Result<std::fs::File> {
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    options.mode(0o600);
+    options.open(path)
 }
 
 fn valid_node_id(value: &str) -> bool {
@@ -298,8 +303,26 @@ fn print_qr(value: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 }
 
 fn open_browser(url: &str) -> bool {
-    Command::new("xdg-open")
-        .arg(url)
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut command = Command::new("explorer.exe");
+        command.arg(url);
+        command
+    };
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut command = Command::new("open");
+        command.arg(url);
+        command
+    };
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut command = {
+        let mut command = Command::new("xdg-open");
+        command.arg(url);
+        command
+    };
+
+    command
         .spawn()
         .map(|mut child| {
             std::thread::spawn(move || {

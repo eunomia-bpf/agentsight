@@ -3,15 +3,22 @@
 
 use std::fs;
 use std::io::Write;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use tempfile::TempDir;
+#[cfg(target_os = "linux")]
 use tokio::time::{Duration, sleep};
 
+#[cfg(target_os = "linux")]
 const PROCESS_BINARY: &[u8] = include_bytes!("../vendor/bpf/process");
+#[cfg(target_os = "linux")]
 const SSLSNIFF_BINARY: &[u8] = include_bytes!("../vendor/bpf/sslsniff");
+#[cfg(target_os = "linux")]
 const STDIOCAP_BINARY: &[u8] = include_bytes!("../vendor/bpf/stdiocap");
+#[cfg(not(target_os = "linux"))]
+const STDIOCAP_BINARY: &[u8] = &[];
 
 pub struct BinaryExtractor {
     _temp_dir: TempDir, // Keep alive to prevent cleanup
@@ -22,6 +29,7 @@ pub struct BinaryExtractor {
 }
 
 impl BinaryExtractor {
+    #[cfg(target_os = "linux")]
     pub async fn new() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let temp_dir = TempDir::new()?;
         let temp_path = temp_dir.path();
@@ -48,6 +56,13 @@ impl BinaryExtractor {
         })
     }
 
+    #[cfg(not(target_os = "linux"))]
+    pub async fn new() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        Err("eBPF capture is available on Linux only; use top, bind, vis, or report on this platform"
+            .into())
+    }
+
+    #[cfg(target_os = "linux")]
     async fn extract_binary(
         path: &Path,
         binary_data: &[u8],
@@ -60,9 +75,7 @@ impl BinaryExtractor {
         } // File is closed here
 
         // Make the binary executable
-        let mut perms = fs::metadata(path)?.permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(path, perms)?;
+        set_executable(path)?;
 
         log::debug!("Extracted {} binary to: {}", name, path.display());
 
@@ -98,9 +111,7 @@ impl BinaryExtractor {
             file.flush()?;
         }
 
-        let mut perms = fs::metadata(&stdiocap_path)?.permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(&stdiocap_path, perms)?;
+        set_executable(&stdiocap_path)?;
         log::debug!("Extracted stdiocap binary to: {}", stdiocap_path.display());
 
         self.stdiocap_path
@@ -113,4 +124,16 @@ impl BinaryExtractor {
             .expect("stdiocap path should be initialized")
             .as_path())
     }
+}
+
+#[cfg(unix)]
+fn set_executable(path: &Path) -> std::io::Result<()> {
+    let mut perms = fs::metadata(path)?.permissions();
+    perms.set_mode(0o755);
+    fs::set_permissions(path, perms)
+}
+
+#[cfg(not(unix))]
+fn set_executable(_path: &Path) -> std::io::Result<()> {
+    Ok(())
 }
