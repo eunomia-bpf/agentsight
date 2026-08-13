@@ -79,13 +79,20 @@ For a headless remote host, forward its loopback port to the workstation that
 runs the browser:
 
 ```bash
-ssh -L 7395:127.0.0.1:7395 user@remote-host
+ssh -L 17400:127.0.0.1:7395 user@remote-host
 ```
 
-Run the preceding `agentsight bind --no-open` command in that SSH session, then
-open its URL on the workstation. If a persistent Bind service already occupies
-port 7395, stop it before this one-time pairing and start it again afterward.
-The SSH tunnel is not needed once Controller relay is registered.
+In that SSH session, run:
+
+```bash
+"$HOME/.local/bin/agentsight" bind --no-open \
+  --endpoint http://127.0.0.1:17400
+```
+
+Then open its URL on the workstation. If a persistent Bind service already
+occupies the remote port 7395, stop it before this one-time pairing and start it
+again afterward. The SSH tunnel is not needed once Controller relay is
+registered. Choose another unused workstation port if 17400 is also occupied.
 
 Create `~/.config/systemd/user/agentsight-bind.service`:
 

@@ -68,12 +68,19 @@ loginctl show-user "$USER" -p Linger --value
 对于无图形界面的远程主机，把它的 loopback 端口转发到运行浏览器的工作站：
 
 ```bash
-ssh -L 7395:127.0.0.1:7395 user@remote-host
+ssh -L 17400:127.0.0.1:7395 user@remote-host
 ```
 
-在这个 SSH session 中执行前面的 `agentsight bind --no-open`，再在工作站打开它输出的 URL。
-如果常驻 Bind service 已占用 7395，先停止它，完成一次性配对后再启动。Controller relay 注册完成后
-不再需要保留 SSH tunnel。
+在这个 SSH session 中运行：
+
+```bash
+"$HOME/.local/bin/agentsight" bind --no-open \
+  --endpoint http://127.0.0.1:17400
+```
+
+再在工作站打开它输出的 URL。如果常驻 Bind service 已占用远端 7395，先停止它，完成一次性配对后
+再启动。Controller relay 注册完成后不再需要保留 SSH tunnel。如果工作站的 17400 也已占用，
+请选择另一个未使用的本地端口，并同步修改 `--endpoint`。
 
 创建 `~/.config/systemd/user/agentsight-bind.service`：
 
