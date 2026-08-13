@@ -9,6 +9,7 @@
     "prebuild": "npm run build:wasm",
     "build": "next build",
     "test:workers": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/build-workers.test.mjs src/lib/controllerOrigin.test.mjs src/lib/nodeOpening.test.mjs src/utils/sessionData.test.mjs",
+    "test:e2e": "playwright test",
     "start": "next start",
     "lint": "next lint"
   },
@@ -20,6 +21,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
