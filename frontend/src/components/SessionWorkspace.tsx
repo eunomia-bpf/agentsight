@@ -65,10 +65,14 @@ export function SessionWorkspace({
   const liveVersion = live?.last_message_at ?? null;
   const activityState = sessionActivityState(session, live);
   const recordedCapture = isRecordedCaptureSession(session);
+  const recordedDetail = useMemo(
+    () => recordedCapture ? recordedSessionDetail(snapshot, session) : null,
+    [recordedCapture, session, snapshot],
+  );
 
   const loadDetail = useCallback(async (quiet = false) => {
     if (!client || recordedCapture) {
-      setDetail(recordedCapture ? recordedSessionDetail(snapshot, session) : {
+      setDetail(recordedDetail ?? {
         session_id: sessionId,
         agent_type: session.agent_type,
         model: session.model,
@@ -103,14 +107,17 @@ export function SessionWorkspace({
         if (!quiet) setLoading(false);
       }
     }
-  }, [client, recordedCapture, recordedPlanKey, recordedPrompt, recordedWorkspace, session,
-    sessionId, snapshot, t]);
+  }, [client, recordedCapture, recordedDetail, recordedPlanKey, recordedPrompt, recordedWorkspace,
+    session.agent_type, session.model, session.start_timestamp_ms, sessionId, t]);
 
   useEffect(() => {
     activeRequest.current = 0;
     setDetail(null);
     setDetailError('');
     setTab('conversation');
+  }, [sessionId]);
+
+  useEffect(() => {
     void loadDetail();
   }, [client, loadDetail, sessionId]);
 

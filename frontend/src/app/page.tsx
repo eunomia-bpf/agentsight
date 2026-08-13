@@ -356,23 +356,27 @@ export default function Home() {
   }, [handleCloudError]);
 
   const enterDemo = useCallback(async () => {
-    ++activationGeneration.current;
+    const generation = ++activationGeneration.current;
     setSyncing(true);
     setError('');
     try {
       const response = await fetch(`${basePath}/sample-snapshot.json`, { cache: 'no-store' });
       if (!response.ok) throw new Error(`${response.status}`);
-      setSnapshot(await response.json() as AgentSightSnapshot);
+      const nextSnapshot = await response.json() as AgentSightSnapshot;
+      if (activationGeneration.current !== generation) return;
+      setSnapshot(nextSnapshot);
       setOverview(null);
       setActiveClient(null);
       setSelectedSessionId(null);
       setMode('demo');
       setDialogOpen(false);
     } catch {
-      setError('The recorded demo could not be loaded.');
-      setMode(identity ? 'directory' : 'disconnected');
+      if (activationGeneration.current === generation) {
+        setError('The recorded demo could not be loaded.');
+        setMode(identity ? 'directory' : 'disconnected');
+      }
     } finally {
-      setSyncing(false);
+      if (activationGeneration.current === generation) setSyncing(false);
     }
   }, [identity]);
 
