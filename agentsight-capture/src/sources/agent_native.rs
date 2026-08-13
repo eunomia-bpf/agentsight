@@ -189,11 +189,12 @@ fn codex_state_session(
 
 /// Expand a lightweight indexed session only when a caller needs transcript events.
 /// Discovery remains bounded and cheap; the shared cache avoids reparsing unchanged files.
-pub fn hydrate_session(cache: &mut SessionCache, indexed: LocalSession) -> LocalSession {
+pub fn hydrate_session(cache: &mut SessionCache, mut indexed: LocalSession) -> LocalSession {
     if !indexed.events.prompts.is_empty()
         || !indexed.events.tools.is_empty()
         || !indexed.events.llm_responses.is_empty()
     {
+        bound_session_detail(&mut indexed);
         return indexed;
     }
     let Some(mut parsed) = cache.parse_path_cached(&indexed.path) else {
@@ -216,7 +217,79 @@ pub fn hydrate_session(cache: &mut SessionCache, indexed: LocalSession) -> Local
     if let (Some(start), Some(end)) = (parsed.start_timestamp_ms, parsed.end_timestamp_ms) {
         parsed.duration_ms = end.saturating_sub(start);
     }
+    bound_session_detail(&mut parsed);
     parsed
+}
+
+const MAX_DETAIL_PROMPTS: usize = 1_000;
+const MAX_DETAIL_RESPONSES: usize = 2_000;
+const MAX_DETAIL_TOOLS: usize = 2_000;
+const MAX_DETAIL_TEXT_BYTES_PER_KIND: usize = 2 * 1024 * 1024;
+const MAX_DETAIL_TOOL_COMMAND_BYTES: usize = 1024 * 1024;
+
+fn retain_latest<T>(rows: &mut Vec<T>, limit: usize) {
+    if rows.len() > limit {
+        rows.drain(..rows.len() - limit);
+    }
+}
+
+fn fit_text_budget<'a>(texts: impl DoubleEndedIterator<Item = &'a mut String>, budget: usize) {
+    let mut remaining = budget;
+    for text in texts.rev() {
+        if text.len() <= remaining {
+            remaining -= text.len();
+            continue;
+        }
+        if remaining == 0 {
+            text.clear();
+            continue;
+        }
+        let mut end = remaining.min(text.len());
+        while !text.is_char_boundary(end) {
+            end -= 1;
+        }
+        text.truncate(end);
+        remaining = 0;
+    }
+}
+
+/// Bound the authorized detail payload without losing the newest interaction.
+/// Previews remain available when older full text falls outside the budget.
+fn bound_session_detail(session: &mut LocalSession) {
+    retain_latest(&mut session.events.prompts, MAX_DETAIL_PROMPTS);
+    retain_latest(&mut session.events.llm_responses, MAX_DETAIL_RESPONSES);
+    retain_latest(&mut session.events.tools, MAX_DETAIL_TOOLS);
+    fit_text_budget(
+        session
+            .events
+            .prompts
+            .iter_mut()
+            .map(|event| &mut event.text),
+        MAX_DETAIL_TEXT_BYTES_PER_KIND,
+    );
+    fit_text_budget(
+        session
+            .events
+            .llm_responses
+            .iter_mut()
+            .map(|event| &mut event.text),
+        MAX_DETAIL_TEXT_BYTES_PER_KIND,
+    );
+    fit_text_budget(
+        session
+            .events
+            .tools
+            .iter_mut()
+            .map(|event| &mut event.command),
+        MAX_DETAIL_TOOL_COMMAND_BYTES,
+    );
+    for event in &mut session.events.tools {
+        event.process_chain.truncate(16);
+        event.path_groups.truncate(32);
+        event.paths.truncate(32);
+        event.domains.truncate(32);
+        event.task_path.truncate(16);
+    }
 }
 
 fn codex_rollout_summary(path: &Path) -> (Option<TokenUsage>, Vec<agent_session::PlanStep>) {
@@ -1208,8 +1281,8 @@ mod tests {
     #[test]
     fn indexed_codex_session_is_hydrated_on_detail_access() {
         let temp = tempfile::tempdir().unwrap();
-        let rollout = agent_session::fixture_session_path(agent_session::AGENT_CODEX, temp.path())
-            .unwrap();
+        let rollout =
+            agent_session::fixture_session_path(agent_session::AGENT_CODEX, temp.path()).unwrap();
         fs::create_dir_all(rollout.parent().unwrap()).unwrap();
         fs::write(
             &rollout,
@@ -1239,8 +1312,14 @@ mod tests {
 
         let hydrated = hydrate_session(&mut SessionCache::new(), indexed);
 
-        assert_eq!(hydrated.events.prompts[0].text, "show the full conversation");
-        assert_eq!(hydrated.events.llm_responses[0].text, "conversation rendered");
+        assert_eq!(
+            hydrated.events.prompts[0].text,
+            "show the full conversation"
+        );
+        assert_eq!(
+            hydrated.events.llm_responses[0].text,
+            "conversation rendered"
+        );
         assert_eq!(hydrated.events.plan[0].step, "render session detail");
         assert_eq!(hydrated.model.as_deref(), Some("gpt-indexed"));
         assert_eq!(hydrated.cwd.as_deref(), Some("/indexed"));

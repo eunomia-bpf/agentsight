@@ -102,7 +102,8 @@ jobs:
       run: |
         cargo clippy --manifest-path agentsight-capture/Cargo.toml --all-targets -- -D warnings
         cargo test --manifest-path agentsight-capture/Cargo.toml --verbose
-        cargo package --manifest-path agentsight-capture/Cargo.toml
+        cargo package --manifest-path agentsight-capture/Cargo.toml \
+          --config "patch.crates-io.agent-session.path='${GITHUB_WORKSPACE}/agent-session'"
 
     - name: Check standalone agentvis
       run: |

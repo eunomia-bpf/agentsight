@@ -394,6 +394,7 @@ pub(crate) async fn start_web_server_if_enabled(
         .parse()
         .map_err(|e| format!("Invalid server address: {}", e))?;
     let web_server = WebServer::new_with_db_path(view, db_path)
+        .map(|server| server.with_live_host())
         .map_err(|e| format!("Failed to create web server: {}", e))?;
 
     let host = if listen == "0.0.0.0" || listen == "::" {
@@ -444,6 +445,7 @@ async fn start_web_server_silent_if_enabled(
         .parse()
         .map_err(|e| format!("Invalid server address: {}", e))?;
     let web_server = WebServer::new_with_db_path(view, db_path)
+        .map(|server| server.with_live_host())
         .map_err(|e| format!("Failed to create web server: {}", e))?;
 
     let host = if listen == "0.0.0.0" || listen == "::" {

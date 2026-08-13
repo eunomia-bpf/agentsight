@@ -3,9 +3,6 @@
 
 export const en = {
   // App (page.tsx)
-  'app.overview': 'Overview',
-  'app.metrics': 'Metrics',
-  'app.noEventsLoaded': 'No events loaded',
   'app.recordedDemo': 'Recorded demo',
   'app.signOut': 'Sign out',
   'app.signIn': 'Sign in',
@@ -14,10 +11,6 @@ export const en = {
   'app.eventCount': '{count} events',
   'app.sessionCount': '{count} sessions',
   'app.refreshing': 'Refreshing…',
-  'app.viewSessions': 'Sessions',
-  'app.viewTimeline': 'Timeline',
-  'app.viewProcesses': 'Processes',
-  'app.viewEvents': 'Events',
   'app.noNodeData': 'No Node data loaded.',
   'app.addOrganization': '+ Organization',
   'app.createOrganization': 'Create organization',
@@ -73,27 +66,22 @@ export const en = {
   'nodes.saveAccountDirect': 'Save this Direct connection to my account.',
 
   // Hosted sessions
-  'sessions.title': 'Sessions',
-  'sessions.subtitle': 'Conversation state from the Node, refreshed every 2 seconds.',
-  'sessions.live': 'Live',
-  'sessions.recorded': 'Recorded',
-  'sessions.tokens': '{count} tokens',
-  'sessions.openNode': 'Open an online Node to inspect this conversation.',
   'sessions.loading': 'Loading conversation…',
   'sessions.followUp': 'Send a follow-up to this session…',
   'sessions.readOnly': 'This session is read-only.',
   'sessions.sending': 'Sending…',
   'sessions.send': 'Send',
   'sessions.sendHint': 'Enter to send · Shift+Enter for a new line',
-  'sessions.empty': 'No native agent sessions on this Node yet.',
-  'sessions.emptyHint': 'Claude, Codex and Gemini sessions will appear here automatically.',
   'sessions.noConversation': 'No conversation events were parsed for this session.',
   'sessions.recordedDetailUnavailable': 'This recorded snapshot does not include native conversation text.',
   'sessions.loadFailed': 'Could not load this session.',
+  'sessions.writeBlocked': 'This session is already running in another agent process. AgentSight will not attach to it unsafely; stop that process or use a session resumed by AgentSight.',
 
   // Node overview and session drill-down
   'overview.running': 'Running',
   'overview.runningHint': 'live agents and processes',
+  'overview.liveUnavailable': 'live process data unavailable',
+  'overview.liveUnavailableDetail': 'This view contains recorded session history. Start or connect a live AgentSight Node to see current processes, CPU, and memory.',
   'overview.stopped': 'Stopped',
   'overview.recent': 'Recent',
   'overview.stoppedHint': 'inactive recorded sessions',
@@ -127,6 +115,7 @@ export const en = {
   'sessionDetail.process': 'Process tree & AI prompts',
   'sessionDetail.timeline': 'Timeline',
   'sessionDetail.events': 'Detailed events',
+  'sessionDetail.views': 'Session views',
 
   // Modal (EventModal.tsx)
   'modal.eventDetails': 'Event Details',
@@ -190,7 +179,6 @@ export const en = {
   // Tags (BlockAdapters.tsx -> rendered in UnifiedBlock.tsx)
   'tag.aiPrompt': 'AI PROMPT',
   'tag.aiResponse': 'AI RESPONSE',
-  'tag.changed': 'CHANGED',
   'tag.ssl': 'SSL',
   'tag.stdio': 'STDIO',
 

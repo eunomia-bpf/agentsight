@@ -466,6 +466,7 @@ mod tests {
                 UserRequest {
                     index: 0,
                     ts_ms: Some(1),
+                    text: "review prompt".to_string(),
                     text_hash: "h0".to_string(),
                     preview: "review prompt".to_string(),
                     tag: "review".to_string(),
@@ -474,6 +475,7 @@ mod tests {
                 UserRequest {
                     index: 0,
                     ts_ms: Some(2),
+                    text: "test prompt".to_string(),
                     text_hash: "h1".to_string(),
                     preview: "test prompt".to_string(),
                     tag: "test".to_string(),
@@ -524,6 +526,7 @@ mod tests {
                     prompt_index: 0,
                     model: "claude".to_string(),
                     source_id: String::new(),
+                    text: "review answer".to_string(),
                     text_hash: "l0".to_string(),
                     preview: "review answer".to_string(),
                     input_tokens: 1,
@@ -540,6 +543,7 @@ mod tests {
                     prompt_index: 1,
                     model: "claude".to_string(),
                     source_id: String::new(),
+                    text: "test answer".to_string(),
                     text_hash: "l1".to_string(),
                     preview: "test answer".to_string(),
                     input_tokens: 2,

@@ -3,14 +3,14 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LogView } from '@/components/log/LogView';
 import { ProcessTreeView } from '@/components/ProcessTreeView';
 import { SessionConsole } from '@/components/SessionConsole';
 import { Timeline } from '@/components/timeline/Timeline';
 import { type NodeClient, type SessionDetail } from '@/lib/nodeClient';
 import { useTranslation } from '@/i18n';
-import type { AgentSightSnapshot, LiveOverview, SnapshotSession } from '@/types/event';
+import type { AgentSightSnapshot, CodingPlanStep, LiveOverview, SnapshotSession } from '@/types/event';
 import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
 import {
   displaySessionId,
@@ -52,38 +52,68 @@ export function SessionWorkspace({
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
+  const nextRequest = useRef(0);
+  const activeRequest = useRef(0);
   const sessionId = rawSessionId(session);
+  const recordedPrompt = sessionPrompt(session);
+  const recordedWorkspace = sessionWorkspace(session);
+  const recordedPlanKey = JSON.stringify(sessionPlan(session));
   const live = liveRowForSession(overview, session);
   const running = isRunningSession(live);
+  const liveVersion = live?.last_message_at ?? null;
   const activityState = sessionActivityState(session, live);
 
   const loadDetail = useCallback(async (quiet = false) => {
     if (!client) {
-      setDetailError(t('sessions.recordedDetailUnavailable'));
+      setDetail({
+        session_id: sessionId,
+        agent_type: session.agent_type,
+        model: session.model,
+        cwd: recordedWorkspace,
+        events: {
+          prompts: recordedPrompt
+            ? [{ ts_ms: session.start_timestamp_ms, text: recordedPrompt, preview: recordedPrompt }]
+            : [],
+          plan: JSON.parse(recordedPlanKey) as CodingPlanStep[],
+        },
+      });
+      setDetailError('');
       return;
     }
+    if (activeRequest.current !== 0) return;
+    const request = ++nextRequest.current;
+    activeRequest.current = request;
     if (!quiet) setLoading(true);
     try {
-      setDetail(await client.session(sessionId));
-      setDetailError('');
+      const next = await client.session(sessionId);
+      if (activeRequest.current === request) {
+        setDetail(next);
+        setDetailError('');
+      }
     } catch (cause) {
-      if (!quiet) setDetailError(cause instanceof Error ? cause.message : t('sessions.loadFailed'));
+      if (!quiet && activeRequest.current === request) {
+        setDetailError(cause instanceof Error ? cause.message : t('sessions.loadFailed'));
+      }
     } finally {
-      if (!quiet) setLoading(false);
+      if (activeRequest.current === request) {
+        activeRequest.current = 0;
+        if (!quiet) setLoading(false);
+      }
     }
-  }, [client, sessionId, t]);
+  }, [client, recordedPlanKey, recordedPrompt, recordedWorkspace, session.agent_type,
+    session.model, session.start_timestamp_ms, sessionId, t]);
 
   useEffect(() => {
+    activeRequest.current = 0;
     setDetail(null);
     setDetailError('');
     setTab('conversation');
     void loadDetail();
-    if (!client || !running) return;
-    const timer = window.setInterval(() => {
-      if (document.visibilityState !== 'hidden') void loadDetail(true);
-    }, 10_000);
-    return () => window.clearInterval(timer);
-  }, [client, loadDetail, running, sessionId]);
+  }, [client, loadDetail, sessionId]);
+
+  useEffect(() => {
+    if (client && running && document.visibilityState !== 'hidden') void loadDetail(true);
+  }, [client, liveVersion, loadDetail, running]);
 
   const scopedSnapshot = useMemo(
     () => sessionSnapshot(snapshot, session, live, detail),
@@ -165,9 +195,11 @@ export function SessionWorkspace({
         )}
       </section>
 
-      <nav className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
+      <nav role="tablist" aria-label={t('sessionDetail.views')}
+        className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
         {(['conversation', 'process', 'timeline', 'events'] as SessionTab[]).map((item) => (
-          <button key={item} type="button" onClick={() => setTab(item)}
+          <button key={item} type="button" role="tab" aria-selected={tab === item}
+            aria-controls={`session-panel-${item}`} onClick={() => setTab(item)}
             className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
               tab === item ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950'
             }`}>
@@ -176,16 +208,18 @@ export function SessionWorkspace({
         ))}
       </nav>
 
-      {tab === 'conversation' ? (
-        <SessionConsole session={session} detail={detail} client={client} loading={loading}
-          detailError={detailError} onReload={() => { void loadDetail(true); }} />
-      ) : tab === 'process' ? (
-        <ProcessTreeView snapshot={scopedSnapshot} />
-      ) : tab === 'timeline' ? (
-        <Timeline events={events} />
-      ) : (
-        <LogView events={events} />
-      )}
+      <div id={`session-panel-${tab}`} role="tabpanel">
+        {tab === 'conversation' ? (
+          <SessionConsole session={session} detail={detail} client={client} loading={loading}
+            detailError={detailError} onReload={() => { void loadDetail(); }} />
+        ) : tab === 'process' ? (
+          <ProcessTreeView snapshot={scopedSnapshot} />
+        ) : tab === 'timeline' ? (
+          <Timeline events={events} />
+        ) : (
+          <LogView events={events} />
+        )}
+      </div>
     </div>
   );
 }

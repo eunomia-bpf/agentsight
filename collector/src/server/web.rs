@@ -5,8 +5,7 @@ use crate::model::{Snapshot, SnapshotOptions};
 use crate::output::TopOptions;
 use crate::server::assets::FrontendAssets;
 use crate::server::capability::{
-    CapabilityMintRequest, CapabilityStore, EVIDENCE_READ, NODE_INFO, SESSION_MESSAGE,
-    SESSION_READ,
+    CapabilityMintRequest, CapabilityStore, EVIDENCE_READ, NODE_INFO, SESSION_MESSAGE, SESSION_READ,
 };
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
 use crate::sources::sqlite as sqlite_source;
@@ -93,6 +92,7 @@ pub struct WebServer {
     live_view: Arc<Mutex<LiveView>>,
     capabilities: Arc<Mutex<CapabilityStore>>,
     db_path: Option<String>,
+    live_host: bool,
     direct_auth: Option<DirectAuth>,
 }
 
@@ -109,8 +109,17 @@ impl WebServer {
             live_view: Arc::new(Mutex::new(LiveView::default())),
             capabilities: Arc::new(Mutex::new(CapabilityStore::default())),
             db_path,
+            live_host: false,
             direct_auth: None,
         })
+    }
+
+    /// Mark this server as attached to an in-process live capture. A live
+    /// capture can also have a SQLite sink; the database path alone does not
+    /// distinguish it from a saved-capture reader.
+    pub fn with_live_host(mut self) -> Self {
+        self.live_host = true;
+        self
     }
 
     pub fn with_direct_access(
@@ -155,6 +164,7 @@ impl WebServer {
             let live_view = Arc::clone(&self.live_view);
             let capabilities = Arc::clone(&self.capabilities);
             let db_path = self.db_path.clone();
+            let live_host = self.live_host;
             let direct_auth = self.direct_auth.clone();
 
             tokio::spawn(async move {
@@ -168,6 +178,7 @@ impl WebServer {
                         live_view.clone(),
                         capabilities.clone(),
                         db_path.clone(),
+                        live_host,
                         direct_auth.clone(),
                     )
                 });
@@ -188,6 +199,7 @@ async fn handle_request(
     live_view: Arc<Mutex<LiveView>>,
     capabilities: Arc<Mutex<CapabilityStore>>,
     db_path: Option<String>,
+    live_host: bool,
     direct_auth: Option<DirectAuth>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
     let method = req.method().clone();
@@ -225,18 +237,10 @@ async fn handle_request(
     let session_detail_id = session_detail_id(&path).map(str::to_string);
     let response = match (method, path.as_str()) {
         (Method::GET, "/api/v1/info") => {
-            if !info_access_allowed(
-                direct_auth.as_ref(),
-                &capabilities,
-                authorization.as_ref(),
-            ) {
+            if !info_access_allowed(direct_auth.as_ref(), &capabilities, authorization.as_ref()) {
                 json_error(StatusCode::UNAUTHORIZED, "valid Node capability required")
             } else {
-                let node = info_node(
-                    direct_auth.as_ref(),
-                    &capabilities,
-                    authorization.as_ref(),
-                );
+                let node = info_node(direct_auth.as_ref(), &capabilities, authorization.as_ref());
                 json_response(
                     StatusCode::OK,
                     &serde_json::json!({
@@ -245,8 +249,9 @@ async fn handle_request(
                         "authorization_required": direct_auth.is_some(),
                         "capabilities": {
                             "scoped_authorization": direct_auth.is_some(),
-                            "session_detail": true,
-                            "session_messages": direct_auth.is_some() && db_path.is_none(),
+                            "overview": live_host,
+                            "session_detail": live_host,
+                            "session_messages": direct_auth.is_some() && live_host,
                         },
                         "node": node,
                     }),
@@ -271,7 +276,10 @@ async fn handle_request(
                 None,
                 origin.as_deref(),
             ) {
-                json_error(StatusCode::UNAUTHORIZED, "evidence.read capability required")
+                json_error(
+                    StatusCode::UNAUTHORIZED,
+                    "evidence.read capability required",
+                )
             } else {
                 serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
             }
@@ -289,7 +297,7 @@ async fn handle_request(
                     StatusCode::UNAUTHORIZED,
                     "evidence.read capability required",
                 )
-            } else if db_path.is_some() {
+            } else if !live_host {
                 json_error(
                     StatusCode::CONFLICT,
                     "saved captures do not expose live processes",
@@ -309,7 +317,7 @@ async fn handle_request(
                 origin.as_deref(),
             ) {
                 json_error(StatusCode::UNAUTHORIZED, "session.read capability required")
-            } else if db_path.is_some() {
+            } else if !live_host {
                 json_error(
                     StatusCode::CONFLICT,
                     "saved captures do not expose native session messages",
@@ -328,8 +336,11 @@ async fn handle_request(
                 Some(session_id),
                 origin.as_deref(),
             ) {
-                json_error(StatusCode::UNAUTHORIZED, "session.message capability required")
-            } else if db_path.is_some() {
+                json_error(
+                    StatusCode::UNAUTHORIZED,
+                    "session.message capability required",
+                )
+            } else if !live_host {
                 json_error(StatusCode::CONFLICT, "saved captures are read-only")
             } else {
                 serve_session_message_api(req, agent_native_sessions, session_id).await?
@@ -356,7 +367,10 @@ async fn serve_capability_mint_api(
     authorization: Option<&HeaderValue>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
     let Some(auth) = direct_auth else {
-        return Ok(json_error(StatusCode::NOT_FOUND, "capability issuer unavailable"));
+        return Ok(json_error(
+            StatusCode::NOT_FOUND,
+            "capability issuer unavailable",
+        ));
     };
     if !auth.is_root(authorization) {
         return Ok(json_error(
@@ -374,7 +388,10 @@ async fn serve_capability_mint_api(
         }
     };
     if body.len() > 16 * 1024 {
-        return Ok(json_error(StatusCode::PAYLOAD_TOO_LARGE, "request too large"));
+        return Ok(json_error(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            "request too large",
+        ));
     }
     let request: CapabilityMintRequest = match serde_json::from_slice(&body) {
         Ok(request) => request,
@@ -648,10 +665,8 @@ fn find_native_session(
 async fn launch_session_message(
     session: &agent_session::AgentSession,
     message: &str,
-) -> Result<
-    crate::server::session_runtime::SubmitResult,
-    crate::server::session_runtime::SubmitError,
-> {
+) -> Result<crate::server::session_runtime::SubmitResult, crate::server::session_runtime::SubmitError>
+{
     crate::server::session_runtime::submit_message(session, message).await
 }
 
@@ -678,11 +693,12 @@ fn snapshot_from_sources(
             Duration::from_secs(2),
         )
     };
-    let mut view = view
+    let mut merged = view
         .lock()
-        .map_err(|_| std::io::Error::other("live view lock poisoned"))?;
-    agent_native_sessions::import_into_view(&mut view, &agent_native_rows);
-    Ok(view.export_snapshot(SnapshotOptions { audit_limit }))
+        .map_err(|_| std::io::Error::other("live view lock poisoned"))?
+        .detached_copy();
+    agent_native_sessions::import_into_view(&mut merged, &agent_native_rows);
+    Ok(merged.export_snapshot(SnapshotOptions { audit_limit }))
 }
 
 fn plain_response(status: StatusCode, content_type: &str, body: Vec<u8>) -> Response<Full<Bytes>> {
@@ -1050,6 +1066,12 @@ mod tests {
             let session = &snapshot.sessions[0];
             assert_eq!(session.agent_type, "codex");
             assert_eq!(session.model.as_deref(), Some("gpt-web-ci"));
+            let capture_only = live_view
+                .lock()
+                .unwrap()
+                .export_snapshot(SnapshotOptions { audit_limit: 100 });
+            assert_eq!(capture_only.summary.total_tokens, 0);
+            assert!(capture_only.sessions.is_empty());
         });
 
         unsafe {

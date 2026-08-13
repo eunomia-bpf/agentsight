@@ -170,6 +170,17 @@ export function sessionSnapshot(
   live: LiveSession | null,
   detail: SessionDetail | null,
 ): AgentSightSnapshot {
+  const sessionStart = session.start_timestamp_ms;
+  const parsedLast = sessionLastMessage(session) ? Date.parse(sessionLastMessage(session)!) : NaN;
+  const sessionEnd = isRunningSession(live)
+    ? Date.now()
+    : (session.end_timestamp_ms ?? (Number.isFinite(parsedLast) ? parsedLast : sessionStart));
+  const atSessionTime = (timestamp?: number | null) => (
+    timestamp != null && timestamp >= sessionStart && timestamp <= sessionEnd
+  );
+  const overlapsSession = (start?: number | null, end?: number | null) => (
+    (end ?? sessionEnd) >= sessionStart && (start ?? sessionStart) <= sessionEnd
+  );
   const liveProcesses: SnapshotProcessNode[] = (live?.process_details ?? []).map((process) => ({
     id: `live-${process.pid}`,
     pid: process.pid,
@@ -183,13 +194,22 @@ export function sessionSnapshot(
     status: 'running',
   }));
   const pids = new Set(liveProcesses.map((process) => process.pid));
+  const rawId = rawSessionId(session);
+  const tools = (snapshot.tool_calls ?? []).filter((tool) => (
+    tool.session_id === session.id || tool.session_id === rawId
+  ));
+  for (const tool of tools) {
+    if (tool.related_pid != null) pids.add(tool.related_pid);
+  }
   const capturedProcesses = (snapshot.process_nodes ?? []).filter((process) => (
-    pids.has(process.pid) || (process.root_pid != null && pids.has(process.root_pid))
+    (pids.has(process.pid) || (process.root_pid != null && pids.has(process.root_pid)))
+      && overlapsSession(process.start_timestamp_ms, process.end_timestamp_ms)
   ));
   const processNodes = liveProcesses.length ? liveProcesses : capturedProcesses;
-  const attributedPids = new Set(processNodes.map((process) => process.pid));
-  const onlySession = (snapshot.sessions ?? []).length === 1;
-  const keepPid = (pid?: number | null) => onlySession || (pid != null && attributedPids.has(pid));
+  const attributedPids = new Set(processNodes.flatMap((process) => (
+    process.root_pid == null ? [process.pid] : [process.pid, process.root_pid]
+  )));
+  const keepPid = (pid?: number | null) => pid != null && attributedPids.has(pid);
   const virtualPid = live?.pid ?? processNodes[0]?.pid ?? 0;
   const processTree = processNodes.length ? processNodes : [{
     id: `session-${session.id}`,
@@ -202,11 +222,6 @@ export function sessionSnapshot(
     command: displaySessionId(session),
     status: isRunningSession(live) ? 'running' : 'recorded',
   }];
-  const rawId = rawSessionId(session);
-  const tools = (snapshot.tool_calls ?? []).filter((tool) => (
-    tool.session_id === session.id || tool.session_id === rawId
-  ));
-
   return {
     ...snapshot,
     summary: {
@@ -222,11 +237,18 @@ export function sessionSnapshot(
     sessions: [session],
     process_nodes: processTree,
     audit_events: [
-      ...(snapshot.audit_events ?? []).filter((event) => keepPid(event.pid)),
+      ...(snapshot.audit_events ?? []).filter((event) => (
+        keepPid(event.pid) && atSessionTime(event.timestamp_ms)
+      )),
       ...nativeEvents(session, detail, virtualPid),
     ],
-    resource_samples: (snapshot.resource_samples ?? []).filter((sample) => keepPid(sample.pid)),
-    network_targets: (snapshot.network_targets ?? []).filter((target) => keepPid(target.pid)),
+    resource_samples: (snapshot.resource_samples ?? []).filter((sample) => (
+      keepPid(sample.pid) && atSessionTime(sample.timestamp_ms)
+    )),
+    network_targets: (snapshot.network_targets ?? []).filter((target) => (
+      keepPid(target.pid)
+        && overlapsSession(target.first_timestamp_ms, target.last_timestamp_ms)
+    )),
     tool_calls: detail ? [] : tools,
   };
 }

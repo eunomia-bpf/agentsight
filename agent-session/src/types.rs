@@ -230,6 +230,7 @@ pub struct SessionCache {
 struct CacheEntry {
     mtime: SystemTime,
     session: Option<AgentSession>,
+    pinned: bool,
 }
 
 impl SessionCache {
@@ -240,11 +241,17 @@ impl SessionCache {
     /// Parse one known transcript without widening the bounded discovery scan.
     /// The parsed session is reused until the file's modification time changes.
     pub fn parse_path_cached(&mut self, path: &Path) -> Option<AgentSession> {
-        let candidate = crate::session_candidate_from_path(path)?;
-        if let Some(entry) = self.entries.get(path)
+        let Some(candidate) = crate::session_candidate_from_path(path) else {
+            self.entries.remove(path);
+            return None;
+        };
+        if let Some(entry) = self.entries.get_mut(path)
             && entry.mtime == candidate.updated
         {
-            return entry.session.clone();
+            entry.pinned = true;
+            let session = entry.session.clone();
+            self.trim_pinned_details();
+            return session;
         }
         let parsed = parse_session_file(&candidate);
         self.entries.insert(
@@ -252,9 +259,29 @@ impl SessionCache {
             CacheEntry {
                 mtime: candidate.updated,
                 session: parsed.clone(),
+                pinned: true,
             },
         );
+        self.trim_pinned_details();
         parsed
+    }
+
+    fn trim_pinned_details(&mut self) {
+        const MAX_PINNED_DETAILS: usize = 8;
+        let mut pinned = self
+            .entries
+            .iter()
+            .filter(|(_, entry)| entry.pinned)
+            .map(|(path, entry)| (path.clone(), entry.mtime))
+            .collect::<Vec<_>>();
+        if pinned.len() <= MAX_PINNED_DETAILS {
+            return;
+        }
+        let overflow = pinned.len() - MAX_PINNED_DETAILS;
+        pinned.sort_by_key(|(_, mtime)| *mtime);
+        for (path, _) in pinned.into_iter().take(overflow) {
+            self.entries.remove(&path);
+        }
     }
 
     pub fn discover_cached(&mut self, limit: usize, max_age: Duration) -> Vec<AgentSession> {
@@ -308,6 +335,7 @@ impl SessionCache {
                         CacheEntry {
                             mtime: candidate.updated,
                             session: parsed.clone(),
+                            pinned: false,
                         },
                     );
                     parsed
@@ -322,7 +350,8 @@ impl SessionCache {
                 }
             }
         }
-        self.entries.retain(|path, _| live_paths.contains(path));
+        self.entries
+            .retain(|path, entry| live_paths.contains(path) || (entry.pinned && path.is_file()));
         self.cached_sessions = sessions;
         self.last_refresh = Some(Instant::now());
         self.last_limit = target;

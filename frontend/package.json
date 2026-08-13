@@ -8,7 +8,7 @@
     "dev": "next dev",
     "prebuild": "npm run build:wasm",
     "build": "next build",
-    "test:workers": "node --test scripts/build-workers.test.mjs src/lib/controllerOrigin.test.mjs src/lib/nodeOpening.test.mjs",
+    "test:workers": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/build-workers.test.mjs src/lib/controllerOrigin.test.mjs src/lib/nodeOpening.test.mjs src/utils/sessionData.test.mjs",
     "start": "next start",
     "lint": "next lint"
   },

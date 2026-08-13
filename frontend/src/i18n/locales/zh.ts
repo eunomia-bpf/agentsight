@@ -7,9 +7,6 @@ type TranslationKey = keyof typeof en;
 
 export const zh: Record<TranslationKey, string> = {
   // App
-  'app.overview': '概览',
-  'app.metrics': '性能指标',
-  'app.noEventsLoaded': '暂无事件数据',
   'app.recordedDemo': '录制演示',
   'app.signOut': '退出登录',
   'app.signIn': '登录',
@@ -18,10 +15,6 @@ export const zh: Record<TranslationKey, string> = {
   'app.eventCount': '{count} 个事件',
   'app.sessionCount': '{count} 个会话',
   'app.refreshing': '刷新中…',
-  'app.viewSessions': '会话',
-  'app.viewTimeline': '时间线',
-  'app.viewProcesses': '进程',
-  'app.viewEvents': '事件',
   'app.noNodeData': '尚未加载 Node 数据。',
   'app.addOrganization': '+ 组织',
   'app.createOrganization': '创建组织',
@@ -77,27 +70,22 @@ export const zh: Record<TranslationKey, string> = {
   'nodes.saveAccountDirect': '将此 Direct 连接保存到我的账号。',
 
   // 托管会话
-  'sessions.title': '会话',
-  'sessions.subtitle': 'Node 上的会话状态，每 2 秒刷新一次。',
-  'sessions.live': '实时',
-  'sessions.recorded': '已记录',
-  'sessions.tokens': '{count} 个 Token',
-  'sessions.openNode': '请打开在线 Node 以查看会话。',
   'sessions.loading': '正在加载会话…',
   'sessions.followUp': '向该会话发送后续消息…',
   'sessions.readOnly': '该会话为只读。',
   'sessions.sending': '发送中…',
   'sessions.send': '发送',
   'sessions.sendHint': 'Enter 发送 · Shift+Enter 换行',
-  'sessions.empty': '该 Node 上还没有 Agent 原生会话。',
-  'sessions.emptyHint': 'Claude、Codex 和 Gemini 会话会自动出现在这里。',
   'sessions.noConversation': '该会话暂未解析出对话事件。',
   'sessions.recordedDetailUnavailable': '这个录制快照不包含 Agent 原生对话正文。',
   'sessions.loadFailed': '无法加载该会话。',
+  'sessions.writeBlocked': '这个会话已在另一个 Agent 进程中运行。AgentSight 不会进行不安全的附加；请先停止该进程，或使用由 AgentSight 恢复的会话。',
 
   // 机器概览与会话下钻
   'overview.running': '运行中',
   'overview.runningHint': '实时 Agent 与进程',
+  'overview.liveUnavailable': '实时进程数据不可用',
+  'overview.liveUnavailableDetail': '当前显示的是已记录的会话历史。启动或连接实时 AgentSight Node 后可查看当前进程、CPU 与内存。',
   'overview.stopped': '已停止',
   'overview.recent': '最近活动',
   'overview.stoppedHint': '已无近期活动的会话',
@@ -131,6 +119,7 @@ export const zh: Record<TranslationKey, string> = {
   'sessionDetail.process': '进程树 & AI 提示',
   'sessionDetail.timeline': '时间线',
   'sessionDetail.events': '详细事件',
+  'sessionDetail.views': '会话视图',
 
   // Modal
   'modal.eventDetails': '事件详情',
@@ -194,7 +183,6 @@ export const zh: Record<TranslationKey, string> = {
   // Tags
   'tag.aiPrompt': 'AI 提示',
   'tag.aiResponse': 'AI 响应',
-  'tag.changed': '已变更',
   'tag.ssl': 'SSL',
   'tag.stdio': '标准 I/O',
 

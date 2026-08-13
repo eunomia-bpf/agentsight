@@ -548,22 +548,38 @@ export default function Home() {
   useEffect(() => {
     if (mode !== 'live' || !activeClient) return;
     let cancelled = false;
-    let refreshing = false;
-    const refresh = async () => {
-      if (refreshing || document.visibilityState === 'hidden') return;
-      refreshing = true;
-      const [nextSnapshot, nextOverview] = await Promise.allSettled([
-        activeClient.snapshot(),
-        activeClient.overview(),
-      ]);
-      if (!cancelled && nextSnapshot.status === 'fulfilled') setSnapshot(nextSnapshot.value);
-      if (!cancelled && nextOverview.status === 'fulfilled') setOverview(nextOverview.value);
-      refreshing = false;
+    let overviewRefreshing = false;
+    let snapshotRefreshing = false;
+    const refreshOverview = async () => {
+      if (overviewRefreshing || document.visibilityState === 'hidden') return;
+      overviewRefreshing = true;
+      try {
+        const next = await activeClient.overview();
+        if (!cancelled) setOverview(next);
+      } catch {
+        // Retain the last good top sample; manual refresh reports Node errors.
+      } finally {
+        overviewRefreshing = false;
+      }
     };
-    const timer = window.setInterval(() => { void refresh(); }, 3_000);
+    const refreshSnapshot = async () => {
+      if (snapshotRefreshing || document.visibilityState === 'hidden') return;
+      snapshotRefreshing = true;
+      try {
+        const next = await activeClient.snapshot();
+        if (!cancelled) setSnapshot(next);
+      } catch {
+        // Keep the current session index until the next bounded refresh.
+      } finally {
+        snapshotRefreshing = false;
+      }
+    };
+    const overviewTimer = window.setInterval(() => { void refreshOverview(); }, 3_000);
+    const snapshotTimer = window.setInterval(() => { void refreshSnapshot(); }, 30_000);
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      window.clearInterval(overviewTimer);
+      window.clearInterval(snapshotTimer);
     };
   }, [activeClient, mode]);
 

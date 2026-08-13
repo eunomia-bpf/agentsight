@@ -52,6 +52,7 @@ export function NodeOverview({
   onOpenSession: (sessionId: string) => void;
 }) {
   const { t } = useTranslation();
+  const liveAvailable = overview !== null;
   const sessions = useMemo(() => orderedSessions(snapshot, overview), [overview, snapshot]);
   const liveRows = overview?.rows.filter(isRunningSession) ?? [];
   const running = liveRows.length;
@@ -61,7 +62,7 @@ export function NodeOverview({
   const cpu = liveRows.reduce((total, row) => total + row.cpu_percent, 0);
   const rss = liveRows.reduce((total, row) => total + row.rss_mb, 0);
   const processes = liveRows.reduce((total, row) => total + row.processes, 0);
-  const tokenTotal = snapshot.summary?.total_tokens
+  const tokenTotal = overview?.total_tokens ?? snapshot.summary?.total_tokens
     ?? sessions.reduce((total, session) => total + (session.total_tokens ?? 0), 0);
   const pendingPlans = sessions.flatMap((session) => (
     sessionPlan(session, null, liveRowForSession(overview, session))
@@ -76,16 +77,26 @@ export function NodeOverview({
   return (
     <div className="space-y-4">
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Stat label={t('overview.running')} value={String(running)} tone="emerald" hint={t('overview.runningHint')} />
+        <Stat label={t('overview.running')} value={liveAvailable ? String(running) : '—'}
+          tone={liveAvailable ? 'emerald' : 'slate'}
+          hint={liveAvailable ? t('overview.runningHint') : t('overview.liveUnavailable')} />
         <Stat label={t('overview.stopped')} value={String(stopped)} hint={t('overview.stoppedHint')} />
         <Stat label={t('overview.tokens')} value={count(tokenTotal)} hint={t('overview.tokensHint')} />
-        <Stat label={t('overview.cpu')} value={`${cpu.toFixed(1)}%`} hint={t('overview.processHint', { count: processes })} />
-        <Stat label={t('overview.memory')} value={`${count(rss)} MB`} hint={t('overview.currentRss')} />
+        <Stat label={t('overview.cpu')} value={liveAvailable ? `${cpu.toFixed(1)}%` : '—'}
+          hint={liveAvailable ? t('overview.processHint', { count: processes }) : t('overview.liveUnavailable')} />
+        <Stat label={t('overview.memory')} value={liveAvailable ? `${count(rss)} MB` : '—'}
+          hint={liveAvailable ? t('overview.currentRss') : t('overview.liveUnavailable')} />
       </section>
 
       {(overview?.failures.length ?? 0) > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {overview?.failures.join(' · ')}
+        </div>
+      )}
+
+      {!liveAvailable && (
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          {t('overview.liveUnavailableDetail')}
         </div>
       )}
 
@@ -102,13 +113,13 @@ export function NodeOverview({
             <table className="w-full min-w-[820px] text-left text-sm">
               <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-5 py-2.5 font-medium">{t('overview.state')}</th>
-                  <th className="px-3 py-2.5 font-medium">{t('overview.agent')}</th>
-                  <th className="px-3 py-2.5 font-medium">{t('overview.currentWork')}</th>
-                  <th className="px-3 py-2.5 text-right font-medium">{t('overview.tokens')}</th>
-                  <th className="px-3 py-2.5 text-right font-medium">CPU</th>
-                  <th className="px-3 py-2.5 text-right font-medium">RSS</th>
-                  <th className="px-5 py-2.5 text-right font-medium">{t('overview.lastSeen')}</th>
+                  <th scope="col" className="px-5 py-2.5 font-medium">{t('overview.state')}</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">{t('overview.agent')}</th>
+                  <th scope="col" className="px-3 py-2.5 font-medium">{t('overview.currentWork')}</th>
+                  <th scope="col" className="px-3 py-2.5 text-right font-medium">{t('overview.tokens')}</th>
+                  <th scope="col" className="px-3 py-2.5 text-right font-medium">CPU</th>
+                  <th scope="col" className="px-3 py-2.5 text-right font-medium">RSS</th>
+                  <th scope="col" className="px-5 py-2.5 text-right font-medium">{t('overview.lastSeen')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -206,10 +217,11 @@ export function NodeOverview({
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="font-semibold text-slate-950">{t('overview.resources')}</h2>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <Metric label="CPU" value={`${cpu.toFixed(1)}%`} />
-              <Metric label="RSS" value={`${count(rss)} MB`} />
-              <Metric label={t('overview.processes')} value={String(processes)} />
-              <Metric label={t('overview.agents')} value={String(new Set(liveRows.map((row) => row.agent)).size)} />
+              <Metric label="CPU" value={liveAvailable ? `${cpu.toFixed(1)}%` : '—'} />
+              <Metric label="RSS" value={liveAvailable ? `${count(rss)} MB` : '—'} />
+              <Metric label={t('overview.processes')} value={liveAvailable ? String(processes) : '—'} />
+              <Metric label={t('overview.agents')}
+                value={liveAvailable ? String(new Set(liveRows.map((row) => row.agent)).size) : '—'} />
             </div>
           </section>
         </div>
@@ -224,7 +236,7 @@ function Stat({ label, value, hint, tone = 'slate' }: {
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
       <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-        {tone === 'emerald' && <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />}
+        {tone === 'emerald' && <span aria-hidden="true" className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />}
         {label}
       </div>
       <div className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-slate-950">{value}</div>

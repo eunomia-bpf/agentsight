@@ -80,7 +80,7 @@ export function SessionConsole({
           && cause.status === 409
           && reason.includes('running outside AgentSight')) {
         setWriteBlocked(
-          'This session is already running in another agent process. AgentSight will not attach to it unsafely; stop that process or use a session resumed by AgentSight.',
+          t('sessions.writeBlocked'),
         );
       }
       setError(reason);
