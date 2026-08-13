@@ -393,8 +393,7 @@ pub(crate) async fn start_web_server_if_enabled(
     let addr = format!("{}:{}", listen, port)
         .parse()
         .map_err(|e| format!("Invalid server address: {}", e))?;
-    let web_server = WebServer::new_with_db_path(view, db_path)
-        .map(|server| server.with_live_host())
+    let web_server = web_server_for_capture(view, db_path)
         .map_err(|e| format!("Failed to create web server: {}", e))?;
 
     let host = if listen == "0.0.0.0" || listen == "::" {
@@ -423,6 +422,19 @@ pub(crate) async fn start_web_server_if_enabled(
         url,
         _handle: server_handle,
     }))
+}
+
+fn web_server_for_capture(
+    view: SharedMaterializedView,
+    db_path: Option<String>,
+) -> Result<WebServer, Box<dyn std::error::Error + Send + Sync>> {
+    let saved_capture = db_path.is_some();
+    let server = WebServer::new_with_db_path(view, db_path)?;
+    Ok(if saved_capture {
+        server
+    } else {
+        server.with_live_host()
+    })
 }
 
 async fn start_web_server_silent_if_enabled(
@@ -651,4 +663,22 @@ pub(crate) async fn run_debug_runner<R: Runner>(
     let mut stream = runner.run().await?;
     drive_stream_until_shutdown(&mut stream, !quiet).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn saved_capture_server_does_not_enable_live_host_apis() {
+        let saved = web_server_for_capture(
+            MaterializedView::shared_bounded(),
+            Some("saved.db".to_string()),
+        )
+        .unwrap();
+        let live = web_server_for_capture(MaterializedView::shared_bounded(), None).unwrap();
+
+        assert!(!saved.is_live_host());
+        assert!(live.is_live_host());
+    }
 }

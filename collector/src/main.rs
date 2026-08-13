@@ -234,7 +234,7 @@ enum Commands {
         /// Local API port used while this device is bound.
         #[arg(long, default_value = "7395")]
         server_port: u16,
-        /// SQLite capture to serve (defaults to the latest agentsight-*.db).
+        /// SQLite capture to serve instead of live agent sessions.
         #[arg(long)]
         db: Option<String>,
         /// Static AgentSight app to open (official hosted app by default).

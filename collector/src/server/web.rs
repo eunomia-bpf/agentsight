@@ -122,6 +122,11 @@ impl WebServer {
         self
     }
 
+    #[cfg(test)]
+    pub(crate) fn is_live_host(&self) -> bool {
+        self.live_host
+    }
+
     pub fn with_direct_access(
         mut self,
         access_token: String,

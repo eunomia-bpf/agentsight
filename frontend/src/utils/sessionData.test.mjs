@@ -107,6 +107,30 @@ test('live session evidence uses the current captured PID incarnation', () => {
   assert.deepEqual(scoped.audit_events.map((row) => row.id), ['current-event']);
 });
 
+test('live session evidence retains completed captured subprocesses', () => {
+  const liveSession = { ...selected, end_timestamp_ms: null };
+  const snapshot = fixture([liveSession]);
+  snapshot.process_nodes = [
+    { id: 'root', pid: 10, root_pid: 10, start_timestamp_ms: 100, end_timestamp_ms: null },
+    { id: 'completed-tool', pid: 11, root_pid: 10, start_timestamp_ms: 120, end_timestamp_ms: 160 },
+  ];
+  snapshot.audit_events = [
+    { id: 'tool-file', timestamp_ms: 140, audit_type: 'file', pid: 11 },
+  ];
+  snapshot.resource_samples = [
+    { timestamp_ms: 145, pid: 11, cpu_percent: 3 },
+  ];
+  const live = {
+    pid: 10, process_details: [{ pid: 10, ppid: 0, comm: 'codex', command: 'codex' }],
+  };
+
+  const scoped = sessionSnapshot(snapshot, liveSession, live, null);
+
+  assert.deepEqual(scoped.process_nodes.map((row) => row.id), ['live-10', 'completed-tool']);
+  assert.deepEqual(scoped.audit_events.map((row) => row.id), ['tool-file']);
+  assert.deepEqual(scoped.resource_samples.map((row) => row.cpu_percent), [3]);
+});
+
 test('the recorded demo retains a full-capture session for legacy evidence views', () => {
   const sample = JSON.parse(readFileSync(
     new URL('../../../docs/sample-snapshot.json', import.meta.url), 'utf8',

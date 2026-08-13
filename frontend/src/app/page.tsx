@@ -163,11 +163,11 @@ export default function Home() {
     try {
       const [nextSnapshot, nextOverview] = await Promise.all([
         activeClient.snapshot(),
-        activeClient.overview().catch(() => null),
+        activeClient.overview().catch(() => undefined),
       ]);
       if (activationGeneration.current !== generation) return;
       setSnapshot(nextSnapshot);
-      setOverview(nextOverview);
+      if (nextOverview !== undefined) setOverview(nextOverview);
     } catch (cause) {
       if (activationGeneration.current === generation) {
         setError(cause instanceof Error ? cause.message : 'Could not refresh this Node.');

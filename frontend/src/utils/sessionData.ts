@@ -320,7 +320,19 @@ export function sessionSnapshot(
     (process.pid === root.pid || process.root_pid === root.pid)
       && processOverlaps(process, root.start, root.end)
   )));
-  const processNodes = liveProcesses.length ? liveProcesses : capturedProcesses;
+  const processNodes = liveProcesses.length ? [
+    ...liveProcesses,
+    ...capturedProcesses.filter((captured) => {
+      const currentRoot = liveProcesses.find((liveProcess) => (
+        (captured.root_pid ?? captured.pid) === liveProcess.pid
+      ));
+      if (!currentRoot || (captured.start_timestamp_ms ?? sessionStart)
+        < (currentRoot.start_timestamp_ms ?? sessionStart)) return false;
+      return !(captured.pid === currentRoot.pid
+        && captured.end_timestamp_ms == null
+        && captured.start_timestamp_ms === currentRoot.start_timestamp_ms);
+    }),
+  ] : capturedProcesses;
   const keepPidAt = (pid: number | null | undefined, timestamp: number) => (
     pid != null && processNodes.some((process) => (
       process.pid === pid && processContains(process, timestamp)
