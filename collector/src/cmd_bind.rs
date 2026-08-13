@@ -15,7 +15,7 @@ use std::time::Duration;
 use url::{Url, form_urlencoded};
 
 const DEFAULT_APP_URL: &str = "https://app.agentsight.us/";
-const DEFAULT_CONTROLLER_URL: &str = "https://agentsight-control.yusen356.workers.dev";
+const DEFAULT_CONTROLLER_URL: &str = "https://control.agentsight.us";
 const CONTROLLER_URL_ENV: &str = "AGENTSIGHT_CONTROLLER_URL";
 
 pub(crate) async fn run_bind(

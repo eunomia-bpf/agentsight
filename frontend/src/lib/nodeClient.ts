@@ -12,6 +12,7 @@ import initProtocol, {
 import type { AgentSightSnapshot } from '@/types/event';
 
 const DIRECT_CONNECTIONS_KEY = 'agentsight.direct-connections.v1';
+const DIRECT_SYNC_ENABLED_KEY = 'agentsight.direct-sync-enabled.v1';
 const LEGACY_CONNECTION_KEY = 'agentsight.local-connection.v1';
 const REQUEST_TIMEOUT_MS = 12_000;
 const DIRECT_CAPABILITY_TTL_SECONDS = 12 * 60 * 60;
@@ -295,6 +296,27 @@ export function relayNodeClient(node: CloudNode, token: string): NodeClient {
     'relay',
     (path, init = {}) => relayFetch(token, node.id, path.replace(/^\/api\/v1/, ''), init),
   );
+}
+
+export function directCloudSyncEnabled(nodeId: string): boolean {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(DIRECT_SYNC_ENABLED_KEY) || '[]') as unknown;
+    return Array.isArray(parsed) && parsed.includes(nodeId);
+  } catch {
+    return false;
+  }
+}
+
+export function setDirectCloudSync(nodeId: string, enabled: boolean): void {
+  let enabledNodeIds: string[] = [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(DIRECT_SYNC_ENABLED_KEY) || '[]') as unknown;
+    if (Array.isArray(parsed)) enabledNodeIds = parsed.filter((value): value is string => typeof value === 'string');
+  } catch { /* replace invalid preference state */ }
+  const next = enabled
+    ? Array.from(new Set([...enabledNodeIds, nodeId]))
+    : enabledNodeIds.filter((value) => value !== nodeId);
+  window.localStorage.setItem(DIRECT_SYNC_ENABLED_KEY, JSON.stringify(next));
 }
 
 function parseConnection(value: unknown): LocalConnection | null {

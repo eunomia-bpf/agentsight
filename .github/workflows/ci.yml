@@ -59,6 +59,7 @@ jobs:
       run: |
         cd frontend
         npm install
+        npm run test:workers
         node scripts/prepare-sample.mjs
         npm run build
 
@@ -76,11 +77,11 @@ jobs:
 
     - name: Test control plane
       run: |
-        cd control-plane
-        npm ci
-        npm test
-        npm run check
-        npx wrangler deploy --dry-run
+        npm --prefix controller ci
+        npm --prefix controller test
+        npm --prefix controller run check
+        ./controller/node_modules/.bin/wrangler deploy --dry-run --config wrangler.jsonc
+        ./controller/node_modules/.bin/wrangler deploy --dry-run --config wrangler.preview.jsonc
 
     - name: Restore repository Node.js
       uses: actions/setup-node@v3

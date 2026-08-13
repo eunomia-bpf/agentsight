@@ -12,6 +12,7 @@ import { SessionConsole } from '@/components/SessionConsole';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ConnectionDialog } from '@/components/ConnectionDialog';
 import { NodeManager } from '@/components/NodeManager';
+import { tryNodeTransports } from '@/lib/nodeOpening.mjs';
 import { Dashboard, type ViewMode } from '@/components/dashboard/Dashboard';
 import {
   CloudSessionExpiredError,
@@ -23,8 +24,10 @@ import {
   exchangeCloudCode,
   fetchCloudIdentity,
   fetchCloudNodes,
+  fetchControllerDirectConfig,
   fetchOrganizations,
   forgetCloudNode,
+  forgetControllerDirectConfig,
   loadCloudSession,
   registerControllerNode,
   relayOnline,
@@ -42,9 +45,11 @@ import {
   pairDirectNodeFromFragment,
   relayNodeClient,
   saveDirectConnection,
+  setDirectCloudSync,
 } from '@/lib/nodeClient';
 import { AgentSightSnapshot } from '@/types/event';
 import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
+import { useTranslation } from '@/i18n';
 
 type AppMode = 'loading' | 'disconnected' | 'directory' | 'live' | 'demo';
 
@@ -91,6 +96,7 @@ function preferredOrganization(organizations: CloudOrganization[], preferredId?:
 }
 
 export default function Home() {
+  const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState<AgentSightSnapshot | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('sessions');
   const [syncing, setSyncing] = useState(false);
@@ -108,6 +114,8 @@ export default function Home() {
   const [loadingNodeId, setLoadingNodeId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [embeddedMode, setEmbeddedMode] = useState(false);
+  const [organizationDialogOpen, setOrganizationDialogOpen] = useState(false);
+  const [organizationName, setOrganizationName] = useState('');
 
   const displayEvents = useMemo(() => displayEventsFromSnapshot(snapshot), [snapshot]);
   const eventCount = displayEvents.length;
@@ -217,30 +225,58 @@ export default function Home() {
     setLoadingNodeId(nodeId);
     setNodeError('');
     const direct = directConnections[nodeId];
-    let directFailure: unknown = null;
-
-    if (direct) {
-      try {
-        if (await activateClient(directNodeClient(direct))) return;
-      } catch (cause) {
-        directFailure = cause;
-      }
-    }
-
     const token = loadCloudSession();
     const cloudNode = cloudNodes.find((node) => node.id === nodeId);
     const relay = relayStatus[nodeId];
+    const attempts = [];
+    if (direct) {
+      attempts.push({
+        transport: 'local-direct',
+        open: async () => {
+          if (!await activateClient(directNodeClient(direct))) throw new Error('Local Direct path is unavailable.');
+        },
+      });
+    }
+    if (token && cloudNode?.hasDirectConfig) {
+      attempts.push({
+        transport: 'account-direct',
+        open: async () => {
+          const saved = await fetchControllerDirectConfig(token, cloudNode);
+          const pairing = await pairDirectNode(saved.endpoint, saved.bootstrapToken);
+          const verified = pairing.connection;
+          if (verified.nodeId !== nodeId) throw new Error('Saved Direct config belongs to another Node.');
+          saveDirectConnection(verified);
+          setDirectConnections(loadDirectConnections());
+          if (!await activateClient(directNodeClient(verified))) {
+            throw new Error('Account-saved Direct path is unavailable.');
+          }
+        },
+      });
+    }
     if (token && cloudNode && relay === true) {
-      try {
-        if (await activateClient(relayNodeClient(cloudNode, token))) {
+      attempts.push({
+        transport: 'relay',
+        open: async () => {
+          if (!await activateClient(relayNodeClient(cloudNode, token))) {
+            throw new Error('Controller relay is unavailable.');
+          }
           setRelayStatus((current) => ({ ...current, [nodeId]: true }));
-          return;
-        }
-      } catch (cause) {
-        setRelayStatus((current) => ({ ...current, [nodeId]: false }));
-        const directMessage = directFailure instanceof Error ? ` Direct failed: ${directFailure.message}` : '';
-        setNodeError(`${cause instanceof Error ? cause.message : 'Controller relay is unavailable.'}${directMessage}`);
-      }
+        },
+      });
+    }
+
+    const result = await tryNodeTransports(attempts);
+    if (result.transport) {
+      setLoadingNodeId(null);
+      return;
+    }
+    const relayFailure = result.failures.find(({ transport }) => transport === 'relay')?.cause;
+    const directFailure = [...result.failures].reverse()
+      .find(({ transport }) => transport !== 'relay')?.cause;
+    if (relayFailure) {
+      setRelayStatus((current) => ({ ...current, [nodeId]: false }));
+      const directMessage = directFailure instanceof Error ? ` Direct failed: ${directFailure.message}` : '';
+      setNodeError(`${relayFailure instanceof Error ? relayFailure.message : 'Controller relay is unavailable.'}${directMessage}`);
     } else if (directFailure instanceof Error) {
       setNodeError(`Direct failed: ${directFailure.message} Relay is unavailable; re-pair this Node to refresh its capability.`);
     } else if (cloudNode) {
@@ -257,6 +293,7 @@ export default function Home() {
     nodeId: string,
     endpoint: string,
     bootstrapToken: string,
+    saveToAccount: boolean,
   ): Promise<boolean> => {
     setLoadingNodeId(nodeId);
     setNodeError('');
@@ -270,11 +307,20 @@ export default function Home() {
       if (!await activateClient(directNodeClient(connection))) return false;
       saveDirectConnection(connection);
       setDirectConnections(loadDirectConnections());
+      setDirectCloudSync(connection.nodeId, saveToAccount);
       const cloudToken = loadCloudSession();
       if (cloudToken && activeOrganizationId) {
-        void registerControllerNode(cloudToken, activeOrganizationId, connection, pairing.bootstrapToken)
-          .then(() => refreshCloudNodes(cloudToken, activeOrganizationId))
-          .catch((cause) => setNodeError(cause instanceof Error ? cause.message : 'Could not register this Node.'));
+        try {
+          await registerControllerNode(
+            cloudToken, activeOrganizationId, connection, pairing.bootstrapToken, saveToAccount,
+          );
+          if (!saveToAccount) await forgetControllerDirectConfig(cloudToken, connection.nodeId);
+          await refreshCloudNodes(cloudToken, activeOrganizationId);
+        } catch (cause) {
+          setNodeError(`Direct connected, but account sync failed: ${
+            cause instanceof Error ? cause.message : 'Controller request failed.'
+          }`);
+        }
       }
       return true;
     } catch (cause) {
@@ -284,6 +330,24 @@ export default function Home() {
       setLoadingNodeId(null);
     }
   }, [activateClient, activeOrganizationId, refreshCloudNodes]);
+
+  const forgetCloudDirect = useCallback(async (nodeId: string) => {
+    const token = loadCloudSession();
+    if (!token) return;
+    setNodesLoading(true);
+    setNodeError('');
+    try {
+      await forgetControllerDirectConfig(token, nodeId);
+      setDirectCloudSync(nodeId, false);
+      setCloudNodes((current) => current.map((node) => (
+        node.id === nodeId ? { ...node, hasDirectConfig: false } : node
+      )));
+    } catch (cause) {
+      handleCloudError(cause, 'Could not remove the account-saved Direct config.');
+    } finally {
+      setNodesLoading(false);
+    }
+  }, [handleCloudError]);
 
   const enterDemo = useCallback(async () => {
     setSyncing(true);
@@ -362,15 +426,16 @@ export default function Home() {
     void refreshCloudNodes(loadCloudSession(), organizationId);
   }, [activeClient, refreshCloudNodes]);
 
-  const createTeam = useCallback(async () => {
+  const createTeam = useCallback(async (name: string) => {
     const token = loadCloudSession();
-    const name = window.prompt('Organization name');
-    if (!token || !name?.trim()) return;
+    if (!token || !name.trim()) return;
     setNodesLoading(true);
     try {
       const organization = await createOrganization(token, name.trim());
       setOrganizations((current) => [...current, organization]);
       switchOrganization(organization.id);
+      setOrganizationDialogOpen(false);
+      setOrganizationName('');
     } catch (cause) {
       handleCloudError(cause, 'Could not create organization.');
     } finally {
@@ -518,6 +583,7 @@ export default function Home() {
       onOpenNode={(nodeId) => { void openNode(nodeId); }} onConnectDirect={connectDirect}
       onRefresh={() => { void refreshCloudNodes(); }}
       onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
+      onForgetCloudDirect={(nodeId) => { void forgetCloudDirect(nodeId); }}
       onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
   ) : null;
 
@@ -537,7 +603,35 @@ export default function Home() {
           onOpenNode={(nodeId) => { void openNode(nodeId); }} onConnectDirect={connectDirect}
           onRefresh={() => { void refreshCloudNodes(); }}
           onForgetNode={(nodeId) => { void forgetNode(nodeId); }} onForgetDirect={forgetDirect}
+          onForgetCloudDirect={(nodeId) => { void forgetCloudDirect(nodeId); }}
           onDemo={() => { void enterDemo(); }} onSignOut={signOut} />
+      )}
+
+      {identity && organizationDialogOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 px-4">
+          <form onSubmit={(event) => {
+            event.preventDefault();
+            void createTeam(organizationName);
+          }} className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold text-slate-950">{t('app.createOrganization')}</h2>
+            <label htmlFor="organization-name" className="mt-4 block text-sm font-medium text-slate-700">
+              {t('app.organizationName')}
+            </label>
+            <input id="organization-name" autoFocus required maxLength={80} value={organizationName}
+              onChange={(event) => setOrganizationName(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500" />
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => { setOrganizationDialogOpen(false); setOrganizationName(''); }}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100">
+                {t('app.cancel')}
+              </button>
+              <button type="submit" disabled={nodesLoading || !organizationName.trim()}
+                className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+                {nodesLoading ? t('app.creating') : t('app.create')}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       <header className="border-b border-slate-200 bg-white">
@@ -554,9 +648,9 @@ export default function Home() {
                     </option>
                   ))}
                 </select>
-                <button type="button" onClick={() => { void createTeam(); }}
+                <button type="button" onClick={() => setOrganizationDialogOpen(true)}
                   className="hidden text-xs font-medium text-slate-500 hover:text-slate-900 sm:inline">
-                  + Organization
+                  {t('app.addOrganization')}
                 </button>
               </div>
             )}
@@ -567,18 +661,18 @@ export default function Home() {
                 <span className="uppercase text-slate-400">{activeClient.transport}</span>
               </span>
             )}
-            {isDemo && <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">Recorded demo</span>}
+            {isDemo && <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">{t('app.recordedDemo')}</span>}
           </div>
           <div className="flex items-center gap-3">
             {identity && (
               <button type="button" onClick={() => setDialogOpen(true)}
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-                Machines
+                {t('app.nodes')}
               </button>
             )}
             {!embeddedMode && !identity && mode !== 'loading' && workspaceVisible && (
               <button type="button" onClick={() => setMode('disconnected')}
-                className="text-sm font-medium text-slate-600 hover:text-slate-950">Sign in</button>
+                className="text-sm font-medium text-slate-600 hover:text-slate-950">{t('app.signIn')}</button>
             )}
             {identity && <span className="hidden text-xs text-slate-400 sm:inline">{identity.name || identity.email}</span>}
             <LanguageSwitcher />
@@ -590,18 +684,18 @@ export default function Home() {
         {mode === 'loading' ? (
           <div className="rounded-xl border border-slate-200 bg-white p-16 text-center shadow-sm">
             <div className="mx-auto h-9 w-9 animate-spin rounded-full border-b-2 border-slate-900" />
-            <p className="mt-4 text-sm text-slate-500">Opening AgentSight…</p>
+            <p className="mt-4 text-sm text-slate-500">{t('app.opening')}</p>
           </div>
         ) : identity && mode === 'directory' ? nodeManager : workspaceVisible ? (
           <div className="space-y-4">
             <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <span className="font-semibold text-slate-900">
-                  {isLive ? activeClient?.nodeName : 'Recorded demo'}
+                  {isLive ? activeClient?.nodeName : t('app.recordedDemo')}
                 </span>
-                <span className="text-slate-400">{eventCount.toLocaleString()} events</span>
-                {snapshot?.sessions?.length ? <span className="text-slate-400">{snapshot.sessions.length} sessions</span> : null}
-                {syncing && <span className="text-blue-600">Refreshing…</span>}
+                <span className="text-slate-400">{t('app.eventCount', { count: eventCount.toLocaleString() })}</span>
+                {snapshot?.sessions?.length ? <span className="text-slate-400">{t('app.sessionCount', { count: snapshot.sessions.length })}</span> : null}
+                {syncing && <span className="text-blue-600">{t('app.refreshing')}</span>}
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -612,14 +706,18 @@ export default function Home() {
                       className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize transition ${
                         viewMode === item ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-900'
                       } disabled:cursor-not-allowed disabled:opacity-40`}>
-                      {item === 'process-tree' ? 'Processes' : item === 'log' ? 'Events' : item}
+                      {t(item === 'sessions' ? 'app.viewSessions'
+                        : item === 'overview' ? 'app.overview'
+                          : item === 'timeline' ? 'app.viewTimeline'
+                            : item === 'process-tree' ? 'app.viewProcesses'
+                              : item === 'log' ? 'app.viewEvents' : 'app.metrics')}
                     </button>
                   ))}
                 </nav>
                 {isLive && (
                   <button type="button" onClick={() => { void syncData(); }} disabled={syncing}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-                    Refresh
+                    {t('nodes.refresh')}
                   </button>
                 )}
               </div>
@@ -645,7 +743,7 @@ export default function Home() {
               )
             ) : (
               <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-                <p className="text-slate-500">No Node data loaded.</p>
+                <p className="text-slate-500">{t('app.noNodeData')}</p>
               </div>
             )}
           </div>

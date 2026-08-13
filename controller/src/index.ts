@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-import core, { authenticateUser, HttpError } from './core.ts';
+import core, {
+  allowedBrowserOrigin,
+  authenticateUser,
+  decryptDirectConfig,
+  directConfigNodeIdFromPath,
+  encryptDirectConfig,
+  HttpError,
+  normalizeDirectEndpoint,
+} from './core.ts';
 import {
   AccessError,
   type Action,
@@ -11,9 +19,11 @@ import {
   acceptInvite,
   createInvite,
   createOrganization,
+  deleteDirectConfig,
   deleteNode,
   ensurePersonalOrganization,
   getConfig,
+  getDirectConfig,
   getNodeAccess,
   getOrganizationAccess,
   grantLifetimePro,
@@ -29,6 +39,7 @@ import {
   requireManagedPlan,
   requireOrganizationAction,
   setBilling,
+  saveDirectConfig,
   updateMemberRole,
   validNodeId,
 } from './access.ts';
@@ -53,6 +64,7 @@ interface Env extends RelayEnv {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   ADMIN_API_TOKEN?: string;
+  DIRECT_CONFIG_KEY?: string;
 }
 
 const NODE_CAPABILITY_ACTIONS = new Set<Action>([
@@ -66,9 +78,15 @@ const PLANS = new Set<Plan>(['free', 'pro', 'team', 'enterprise']);
 
 export { NodeRelay };
 export {
+  allowedBrowserOrigin,
   allowedReturnTo,
+  configuredOAuthProviders,
+  decryptDirectConfig,
+  directConfigNodeIdFromPath,
+  encryptDirectConfig,
   githubApiHeaders,
   oauthStartAllowed,
+  normalizeDirectEndpoint,
   sha256Base64Url,
 } from './core.ts';
 export { nodeIdFromPath, publicPricing, roleAllows, validNodeId } from './access.ts';
@@ -85,29 +103,30 @@ export default {
     }
 
     const requestOrigin = request.headers.get('Origin');
-    if (requestOrigin && requestOrigin !== new URL(env.APP_ORIGIN).origin) {
+    if (!allowedBrowserOrigin(requestOrigin, env.APP_ORIGIN)) {
       return json({ error: 'origin_not_allowed' }, 403);
     }
-    if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }), env);
+    const respond = (response: Response) => cors(response, env, requestOrigin);
+    if (request.method === 'OPTIONS') return respond(new Response(null, { status: 204 }));
 
     try {
       if (request.method === 'GET' && url.pathname === '/v1/pricing') {
-        return cors(json(publicPricing()), env);
+        return respond(json(publicPricing()));
       }
 
       if (isCoreIdentityRoute(url.pathname)) {
-        return core.fetch(request, env);
+        return respond(await core.fetch(request, env));
       }
 
       if (url.pathname.startsWith('/v1/admin/')) {
-        return cors(await handleAdmin(request, env), env);
+        return respond(await handleAdmin(request, env));
       }
 
       const user = await authenticateUser(request, env.DB);
       await ensurePersonalOrganization(env.DB, user);
 
       if (request.method === 'GET' && url.pathname === '/v1/organizations') {
-        return cors(json({ organizations: await listOrganizations(env.DB, user) }), env);
+        return respond(json({ organizations: await listOrganizations(env.DB, user) }));
       }
 
       if (request.method === 'POST' && url.pathname === '/v1/organizations') {
@@ -115,14 +134,14 @@ export default {
         if (typeof body.name !== 'string') throw new AccessError(400, 'invalid_organization_name');
         const id = await createOrganization(env.DB, user.id, body.name);
         const organization = await getOrganizationAccess(env.DB, user.id, id);
-        return cors(json({ organization }, 201), env);
+        return respond(json({ organization }, 201));
       }
 
       if (request.method === 'POST' && url.pathname === '/v1/invitations/accept') {
         const body = await readJson<{ token?: unknown }>(request);
         if (typeof body.token !== 'string') throw new AccessError(400, 'invalid_invite');
         const organizationId = await acceptInvite(env.DB, user, body.token);
-        return cors(json({ organization_id: organizationId, status: 'joined' }), env);
+        return respond(json({ organization_id: organizationId, status: 'joined' }));
       }
 
       const organizationPath = organizationIdFromPath(url.pathname);
@@ -137,7 +156,7 @@ export default {
           if (!name || name.length > 128) throw new AccessError(400, 'invalid_organization_name');
           await env.DB.prepare('UPDATE organizations SET name = ?1, updated_at = ?2 WHERE id = ?3')
             .bind(name, nowSeconds(), access.id).run();
-          return cors(json({ status: 'updated' }), env);
+          return respond(json({ status: 'updated' }));
         }
         if (request.method === 'DELETE') {
           const access = await requireOrganizationAction(
@@ -145,14 +164,14 @@ export default {
           );
           if (access.kind === 'personal') throw new AccessError(409, 'personal_organization_cannot_be_deleted');
           await env.DB.prepare('DELETE FROM organizations WHERE id = ?1').bind(access.id).run();
-          return cors(new Response(null, { status: 204 }), env);
+          return respond(new Response(null, { status: 204 }));
         }
       }
 
       const membersPath = organizationMembersPath(url.pathname);
       if (membersPath) {
         if (!membersPath.memberId && request.method === 'GET') {
-          return cors(json({ members: await listMembers(env.DB, user.id, membersPath.organizationId) }), env);
+          return respond(json({ members: await listMembers(env.DB, user.id, membersPath.organizationId) }));
         }
         if (!membersPath.memberId && request.method === 'POST') {
           const body = await readJson<{ email?: unknown; role?: unknown }>(request);
@@ -162,11 +181,11 @@ export default {
           const token = await createInvite(
             env.DB, user.id, membersPath.organizationId, body.email, body.role,
           );
-          return cors(json({
+          return respond(json({
             status: 'invited',
             invite_url: `${new URL(env.APP_ORIGIN).origin}/#action=invite&token=${encodeURIComponent(token)}`,
             expires_in: 7 * 24 * 60 * 60,
-          }, 201), env);
+          }, 201));
         }
         if (membersPath.memberId && request.method === 'PATCH') {
           const body = await readJson<{ role?: unknown }>(request);
@@ -174,25 +193,25 @@ export default {
           await updateMemberRole(
             env.DB, user.id, membersPath.organizationId, membersPath.memberId, body.role,
           );
-          return cors(json({ status: 'updated' }), env);
+          return respond(json({ status: 'updated' }));
         }
         if (membersPath.memberId && request.method === 'DELETE') {
           await removeMember(env.DB, user.id, membersPath.organizationId, membersPath.memberId);
-          return cors(new Response(null, { status: 204 }), env);
+          return respond(new Response(null, { status: 204 }));
         }
       }
 
       const configPath = organizationConfigPath(url.pathname);
       if (configPath) {
         if (request.method === 'GET') {
-          return cors(json(await getConfig(
+          return respond(json(await getConfig(
             env.DB, user.id, configPath.organizationId, configPath.key,
-          )), env);
+          )));
         }
         if (request.method === 'PUT') {
           const body = await readJson<{ value?: unknown }>(request);
           await putConfig(env.DB, user.id, configPath.organizationId, configPath.key, body.value);
-          return cors(json({ status: 'stored' }), env);
+          return respond(json({ status: 'stored' }));
         }
       }
 
@@ -201,7 +220,7 @@ export default {
         const access = await requireOrganizationAction(
           env.DB, user.id, billingOrganizationId, 'billing.read',
         );
-        return cors(json({
+        return respond(json({
           organization_id: access.id,
           plan: access.plan,
           effective_plan: access.effectivePlan,
@@ -210,13 +229,13 @@ export default {
           current_period_end: access.currentPeriodEnd,
           contributor_pro: access.contributorPro,
           price: publicPricing(),
-        }), env);
+        }));
       }
 
       if (url.pathname === '/v1/nodes' && request.method === 'GET') {
         const organizationId = url.searchParams.get('organization_id')
           || await ensurePersonalOrganization(env.DB, user);
-        return cors(json({ nodes: await listNodes(env.DB, user.id, organizationId) }), env);
+        return respond(json({ nodes: await listNodes(env.DB, user.id, organizationId) }));
       }
 
       if (url.pathname === '/v1/nodes' && request.method === 'POST') {
@@ -226,6 +245,7 @@ export default {
           name?: unknown;
           version?: unknown;
           relay_token?: unknown;
+          direct_config?: { endpoint?: unknown; access_key?: unknown };
         }>(request);
         if (typeof body.id !== 'string' || !validNodeId(body.id)
             || typeof body.name !== 'string' || !body.name.trim() || body.name.length > 128) {
@@ -247,7 +267,42 @@ export default {
             throw new AccessError(400, 'relay_enrollment_failed');
           }
         }
-        return cors(json({ id: body.id, organization_id: organizationId, status: 'registered' }, 201), env);
+        if (body.direct_config !== undefined) {
+          const endpoint = typeof body.direct_config.endpoint === 'string'
+            ? normalizeDirectEndpoint(body.direct_config.endpoint) : null;
+          const accessKey = typeof body.direct_config.access_key === 'string'
+            ? body.direct_config.access_key : '';
+          if (!endpoint || !validRelayToken(accessKey)) {
+            throw new AccessError(400, 'invalid_direct_config');
+          }
+          await saveDirectConfig(
+            env.DB,
+            user.id,
+            body.id,
+            await encryptDirectConfig(requiredDirectConfigKey(env), user.id, body.id, {
+              v: 1, endpoint, accessKey,
+            }),
+          );
+        }
+        return respond(json({ id: body.id, organization_id: organizationId, status: 'registered' }, 201));
+      }
+
+      const directConfigNodeId = directConfigNodeIdFromPath(url.pathname);
+      if (directConfigNodeId) {
+        const access = await getNodeAccess(env.DB, user.id, directConfigNodeId, 'node.manage');
+        requireManagedPlan(access.organization);
+        if (request.method === 'GET') {
+          const encrypted = await getDirectConfig(env.DB, user.id, directConfigNodeId);
+          if (!encrypted) throw new AccessError(404, 'direct_config_not_saved');
+          const direct = await decryptDirectConfig(
+            requiredDirectConfigKey(env), user.id, directConfigNodeId, encrypted,
+          );
+          return respond(json({ endpoint: direct.endpoint, access_key: direct.accessKey }));
+        }
+        if (request.method === 'DELETE') {
+          await deleteDirectConfig(env.DB, user.id, directConfigNodeId);
+          return respond(new Response(null, { status: 204 }));
+        }
       }
 
       const capabilityNodeId = nodeCapabilityPath(url.pathname);
@@ -284,13 +339,13 @@ export default {
             ttl_seconds: ttlSeconds,
           }),
         );
-        return cors(nodeResponse, env);
+        return respond(nodeResponse);
       }
 
       const deleteNodeId = nodeIdFromPath(url.pathname);
       if (deleteNodeId && request.method === 'DELETE') {
         await deleteNode(env.DB, user.id, deleteNodeId);
-        return cors(new Response(null, { status: 204 }), env);
+        return respond(new Response(null, { status: 204 }));
       }
 
       const relayRoute = browserRelayRoute(request);
@@ -298,16 +353,16 @@ export default {
         const action = relayAction(relayRoute.method, relayRoute.nodePath, relayRoute.statusOnly);
         const access = await getNodeAccess(env.DB, user.id, relayRoute.nodeId, action);
         requireManagedPlan(access.organization);
-        return cors(await proxyBrowserRelay(request, env, relayRoute), env);
+        return respond(await proxyBrowserRelay(request, env, relayRoute));
       }
 
-      return cors(json({ error: 'not_found' }, 404), env);
+      return respond(json({ error: 'not_found' }, 404));
     } catch (error) {
       if (error instanceof AccessError || error instanceof HttpError) {
-        return cors(json({ error: error.code }, error.status), env);
+        return respond(json({ error: error.code }, error.status));
       }
       console.error(error);
-      return cors(json({ error: 'internal_error' }, 500), env);
+      return respond(json({ error: 'internal_error' }, 500));
     }
   },
 } satisfies ExportedHandler<Env>;
@@ -363,6 +418,7 @@ async function handleAdmin(request: Request, env: Env): Promise<Response> {
 
 function isCoreIdentityRoute(pathname: string): boolean {
   return pathname === '/v1/health'
+    || pathname === '/v1/auth/providers'
     || pathname === '/v1/me'
     || pathname === '/v1/auth/exchange'
     || pathname === '/v1/auth/logout'
@@ -416,6 +472,11 @@ function nodeCapabilityPath(pathname: string): string | null {
   }
 }
 
+function requiredDirectConfigKey(env: Env): string {
+  if (!env.DIRECT_CONFIG_KEY) throw new AccessError(503, 'direct_config_unavailable');
+  return env.DIRECT_CONFIG_KEY;
+}
+
 function isInviteRole(value: unknown): value is Exclude<Role, 'owner'> {
   return value === 'viewer' || value === 'operator' || value === 'admin';
 }
@@ -439,9 +500,12 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function cors(response: Response, env: Env): Response {
+function cors(response: Response, env: Env, requestOrigin: string | null): Response {
   const headers = new Headers(response.headers);
-  headers.set('Access-Control-Allow-Origin', new URL(env.APP_ORIGIN).origin);
+  const responseOrigin = allowedBrowserOrigin(requestOrigin, env.APP_ORIGIN) && requestOrigin
+    ? new URL(requestOrigin).origin
+    : new URL(env.APP_ORIGIN).origin;
+  headers.set('Access-Control-Allow-Origin', responseOrigin);
   headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   headers.set('X-Content-Type-Options', 'nosniff');

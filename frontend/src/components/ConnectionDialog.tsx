@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-import { startLogin } from '@/lib/connection';
+import { useEffect, useState } from 'react';
+import { fetchLoginProviders, startLogin, type LoginProvider } from '@/lib/controllerClient';
 import { useTranslation } from '@/i18n';
 
 interface ConnectionDialogProps {
@@ -17,6 +18,13 @@ export function ConnectionDialog({
   error, busy, allowSignIn, canClose, onClose, onDemo,
 }: ConnectionDialogProps) {
   const { t } = useTranslation();
+  const [providers, setProviders] = useState<LoginProvider[]>([]);
+
+  useEffect(() => {
+    if (!allowSignIn) return;
+    void fetchLoginProviders().then(setProviders).catch(() => setProviders([]));
+  }, [allowSignIn]);
+  const signInVisible = allowSignIn && providers.length > 0;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-8">
       <div role="dialog" aria-modal="true" aria-labelledby="connect-title"
@@ -37,7 +45,7 @@ export function ConnectionDialog({
           <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
         )}
 
-        <div className={`grid gap-4 ${allowSignIn ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+        <div className={`grid gap-4 ${signInVisible ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
           <section className="rounded-xl border border-slate-200 p-4">
             <h2 className="font-semibold text-slate-950">{t('connect.nodeTitle')}</h2>
             <p className="mt-2 text-sm text-slate-600">{t('connect.nodeBody')}</p>
@@ -45,18 +53,18 @@ export function ConnectionDialog({
             <p className="mt-3 text-xs text-slate-500">{t('connect.nodeArgs')}</p>
           </section>
 
-          {allowSignIn && <section className="rounded-xl border border-slate-200 p-4">
+          {signInVisible && <section className="rounded-xl border border-slate-200 p-4">
             <h2 className="font-semibold text-slate-950">{t('connect.signInTitle')}</h2>
             <p className="mt-2 text-sm text-slate-600">{t('connect.signInBody')}</p>
             <div className="mt-4 space-y-2">
-              <button type="button" onClick={() => { void startLogin('github'); }}
+              {providers.includes('github') && <button type="button" onClick={() => { void startLogin('github'); }}
                 className="block w-full rounded-lg bg-slate-950 px-3 py-2 text-center text-sm font-medium text-white hover:bg-slate-800">
                 {t('connect.github')}
-              </button>
-              <button type="button" onClick={() => { void startLogin('google'); }}
+              </button>}
+              {providers.includes('google') && <button type="button" onClick={() => { void startLogin('google'); }}
                 className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-center text-sm font-medium text-slate-800 hover:bg-slate-50">
                 {t('connect.google')}
-              </button>
+              </button>}
             </div>
           </section>}
 

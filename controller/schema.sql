@@ -75,6 +75,17 @@ CREATE TABLE IF NOT EXISTS nodes (
     created_at INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS node_direct_configs (
+    node_id TEXT NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+    owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    ciphertext TEXT NOT NULL,
+    iv TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (node_id, owner_user_id)
+);
+
 CREATE TABLE IF NOT EXISTS organization_configs (
     organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     key TEXT NOT NULL,
@@ -108,6 +119,7 @@ CREATE TABLE IF NOT EXISTS organization_invites (
 );
 
 CREATE INDEX IF NOT EXISTS idx_nodes_org ON nodes(organization_id, last_seen_at DESC);
+CREATE INDEX IF NOT EXISTS idx_node_direct_configs_owner ON node_direct_configs(owner_user_id, node_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, expires_at);
 CREATE INDEX IF NOT EXISTS idx_oauth_states_expiry ON oauth_states(expires_at);
 CREATE INDEX IF NOT EXISTS idx_auth_codes_expiry ON auth_codes(expires_at);
