@@ -510,7 +510,7 @@ export default function Home() {
     clearCloudState();
     setNodeError('');
     setDialogOpen(false);
-    if (wasRelay || mode === 'directory') {
+    if (wasRelay || mode === 'directory' || (mode === 'loading' && !activeClient)) {
       setActiveClient(null);
       setSnapshot(null);
       setOverview(null);
