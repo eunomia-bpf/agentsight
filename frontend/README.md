@@ -16,6 +16,7 @@ The AgentSight Frontend provides intuitive visualization of:
 ## Features
 
 ### Machine Overview (landing view)
+- Signed-in organization landing view aggregates all reachable machines in the browser, with filters and a machine selector
 - Live and stopped Agent sessions with root process, current work, CPU, RSS, and observed Token share
 - Source-reported subscription capacity, active Agent Plans, and machine resource totals
 - Session drill-down into Conversation, Process Tree & AI Prompts, and Analysis

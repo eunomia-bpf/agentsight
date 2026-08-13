@@ -5,11 +5,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NodeOverview } from '@/components/NodeOverview';
+import { FleetOverview } from '@/components/FleetOverview';
 import { SessionWorkspace } from '@/components/SessionWorkspace';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ConnectionDialog } from '@/components/ConnectionDialog';
 import { NodeManager } from '@/components/NodeManager';
 import { tryNodeTransports } from '@/lib/nodeOpening.mjs';
+import type { FleetNodeSample } from '@/lib/fleetData';
 import {
   CloudSessionExpiredError,
   type CloudIdentity,
@@ -94,7 +96,11 @@ export default function Home() {
   const [embeddedMode, setEmbeddedMode] = useState(false);
   const [organizationDialogOpen, setOrganizationDialogOpen] = useState(false);
   const [organizationName, setOrganizationName] = useState('');
+  const [fleetSamples, setFleetSamples] = useState<FleetNodeSample[]>([]);
+  const [fleetLoading, setFleetLoading] = useState(false);
+  const [fleetError, setFleetError] = useState('');
   const activationGeneration = useRef(0);
+  const fleetGeneration = useRef(0);
 
   const eventCount = snapshot?.summary?.view_events ?? snapshot?.audit_events?.length ?? 0;
   const activeTransport: NodeTransport | null = activeClient?.transport ?? null;
@@ -102,13 +108,14 @@ export default function Home() {
     () => organizations.find((organization) => organization.id === activeOrganizationId) || null,
     [activeOrganizationId, organizations],
   );
-
   const clearCloudState = useCallback(() => {
     setIdentity(null);
     setOrganizations([]);
     setActiveOrganizationId(null);
     setCloudNodes([]);
     setRelayStatus({});
+    setFleetSamples([]);
+    setFleetError('');
   }, []);
 
   const handleCloudError = useCallback((cause: unknown, fallback: string) => {
@@ -220,6 +227,78 @@ export default function Home() {
       setNodesLoading(false);
     }
   }, [activeOrganizationId, handleCloudError, refreshRelayStatuses]);
+
+  const refreshFleet = useCallback(async () => {
+    const generation = ++fleetGeneration.current;
+    const token = loadCloudSession();
+    setFleetLoading(true);
+    setFleetError('');
+    setFleetSamples((current) => cloudNodes.map((node) => (
+      current.find((sample) => sample.node.id === node.id) || {
+        node,
+        state: directConnections[node.id] || token ? 'checking' : 'unreachable',
+        overview: null,
+      }
+    )));
+
+    const next = await Promise.all(cloudNodes.map(async (node): Promise<FleetNodeSample> => {
+      const loaded: { value: Pick<FleetNodeSample, 'overview' | 'transport' | 'updatedAt'> | null } = {
+        value: null,
+      };
+      const attempts = [];
+      const direct = directConnections[node.id];
+      if (direct) {
+        attempts.push({
+          transport: 'direct',
+          open: async () => {
+            const client = directNodeClient(direct);
+            const overview = await client.overview();
+            if (!overview) throw new Error('This Node does not expose a live overview.');
+            loaded.value = { overview, transport: client.transport, updatedAt: Date.now() };
+          },
+        });
+      }
+      const relayAvailable = token ? await relayOnline(token, node.id).catch(() => false) : false;
+      if (fleetGeneration.current === generation) {
+        setRelayStatus((current) => current[node.id] === relayAvailable
+          ? current : { ...current, [node.id]: relayAvailable });
+      }
+      if (token && relayAvailable) {
+        attempts.push({
+          transport: 'relay',
+          open: async () => {
+            const client = relayNodeClient(node, token);
+            const overview = await client.overview();
+            if (!overview) throw new Error('This Node does not expose a live overview.');
+            loaded.value = { overview, transport: client.transport, updatedAt: Date.now() };
+          },
+        });
+      }
+      if (attempts.length === 0) {
+        return {
+          node,
+          state: 'unreachable',
+          overview: null,
+        };
+      }
+      const result = await tryNodeTransports(attempts);
+      if (loaded.value && result.transport) return { node, state: 'online', ...loaded.value };
+      const cause = result.failures.at(-1)?.cause;
+      return {
+        node,
+        state: 'unreachable',
+        overview: null,
+        error: cause instanceof Error ? cause.message : 'No reachable transport.',
+      };
+    }));
+
+    if (fleetGeneration.current === generation) {
+      setFleetSamples(next);
+      const failed = next.filter((sample) => sample.state === 'unreachable').length;
+      if (failed && failed === next.length) setFleetError('No machine overview is currently reachable.');
+      setFleetLoading(false);
+    }
+  }, [cloudNodes, directConnections]);
 
   const openNode = useCallback(async (nodeId: string) => {
     const generation = ++activationGeneration.current;
@@ -382,19 +461,20 @@ export default function Home() {
 
   const signOut = useCallback(() => {
     ++activationGeneration.current;
+    ++fleetGeneration.current;
     const token = loadCloudSession();
     const wasRelay = activeClient?.transport === 'relay';
     clearCloudState();
     setNodeError('');
     setDialogOpen(false);
-    if (wasRelay) {
+    if (wasRelay || mode === 'directory') {
       setActiveClient(null);
       setSnapshot(null);
       setOverview(null);
       setMode('disconnected');
     }
     void signOutCloud(token);
-  }, [activeClient, clearCloudState]);
+  }, [activeClient, clearCloudState, mode]);
 
   const forgetNode = useCallback(async (nodeId: string) => {
     const token = loadCloudSession();
@@ -428,19 +508,22 @@ export default function Home() {
   }, []);
 
   const switchOrganization = useCallback((organizationId: string) => {
+    ++activationGeneration.current;
+    ++fleetGeneration.current;
     setActiveOrganizationId(organizationId);
     window.localStorage.setItem(ACTIVE_ORGANIZATION_KEY, organizationId);
     setCloudNodes([]);
     setRelayStatus({});
+    setFleetSamples([]);
+    setFleetError('');
     setNodeError('');
-    if (activeClient?.transport === 'relay') {
-      setActiveClient(null);
-      setSnapshot(null);
-      setOverview(null);
-      setMode('directory');
-    }
+    setActiveClient(null);
+    setSnapshot(null);
+    setOverview(null);
+    setSelectedSessionId(null);
+    setMode('directory');
     void refreshCloudNodes(loadCloudSession(), organizationId);
-  }, [activeClient, refreshCloudNodes]);
+  }, [refreshCloudNodes]);
 
   const createTeam = useCallback(async (name: string) => {
     const token = loadCloudSession();
@@ -609,6 +692,18 @@ export default function Home() {
   }, [activeClient, mode]);
 
   useEffect(() => {
+    if (mode !== 'directory' || !identity) return;
+    const refresh = () => {
+      void refreshFleet();
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 15_000);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [identity, mode, refreshFleet]);
+
+  useEffect(() => {
     const handleLaunchFragment = () => {
       const action = new URLSearchParams(window.location.hash.slice(1)).get('action');
       if (action === 'bind' || action === 'auth' || action === 'auth-error' || action === 'invite') {
@@ -626,6 +721,16 @@ export default function Home() {
 
   const closeSession = () => {
     setSelectedSessionId(null);
+    window.history.replaceState(null, '', `${basePath}/`);
+  };
+
+  const showFleet = () => {
+    ++activationGeneration.current;
+    setLoadingNodeId(null);
+    setError('');
+    setSelectedSessionId(null);
+    setMode('directory');
+    setDialogOpen(false);
     window.history.replaceState(null, '', `${basePath}/`);
   };
 
@@ -717,6 +822,17 @@ export default function Home() {
                 </button>
               </div>
             )}
+            {identity && !isDemo && (
+              <select aria-label={t('fleet.view')} value={isLive ? activeClient?.nodeId || '' : 'all'}
+                onChange={(event) => {
+                  if (event.target.value === 'all') showFleet();
+                  else void openNode(event.target.value);
+                }}
+                className="max-w-48 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700">
+                <option value="all">{t('fleet.allMachines')}</option>
+                {cloudNodes.map((node) => <option key={node.id} value={node.id}>{node.name}</option>)}
+              </select>
+            )}
             {activeClient && isLive && (
               <span className="flex min-w-0 items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-700">
                 <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
@@ -749,7 +865,12 @@ export default function Home() {
             <div className="mx-auto h-9 w-9 animate-spin rounded-full border-b-2 border-slate-900" />
             <p className="mt-4 text-sm text-slate-500">{t('app.opening')}</p>
           </div>
-        ) : identity && mode === 'directory' ? nodeManager : workspaceVisible ? (
+        ) : identity && mode === 'directory' ? (
+          <FleetOverview samples={fleetSamples} loading={fleetLoading} error={fleetError || nodeError}
+            organization={activeOrganization}
+            onRefresh={() => { void refreshCloudNodes(); }}
+            onOpenNode={(nodeId) => { void openNode(nodeId); }} />
+        ) : workspaceVisible ? (
           <div className="space-y-4">
             <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-wrap items-center gap-3 text-sm">

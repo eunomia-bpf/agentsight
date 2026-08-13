@@ -231,6 +231,7 @@ impl LiveView {
                 .cloned()
                 .and_then(|value| serde_json::from_value(value).ok())
                 .unwrap_or_default();
+            let subscription = session.attributes.get("subscription").cloned();
             let command = session_attr(session, "prompt_preview")
                 .map(ToString::to_string)
                 .or_else(|| live.as_ref().map(|(row, _)| row.command.clone()))
@@ -323,6 +324,7 @@ impl LiveView {
                     .map(|(row, _)| row.process_details.clone())
                     .unwrap_or_default(),
                 plan,
+                subscription,
             });
         }
 
@@ -697,6 +699,7 @@ fn live_process_rows(
                 })
                 .collect(),
             plan: Vec::new(),
+            subscription: None,
         });
     }
 
@@ -764,6 +767,11 @@ mod tests {
                 "display_id": "claude:cwd",
                 "cwd": "/work",
                 "last_message_at": "2026-07-12T10:00:00Z",
+                "subscription": {
+                    "provider": "claude",
+                    "observed_at": "2026-07-12T10:00:00Z",
+                    "primary": { "used_percent": 25 }
+                },
             }),
             ..Default::default()
         };
@@ -799,6 +807,14 @@ mod tests {
         assert_eq!(top.rows[0].pid, Some(42));
         assert_eq!(top.rows[0].trace, "agent-native+proc+cwd_recent");
         assert_eq!(top.rows[0].tokens, Some(42));
+        assert_eq!(
+            top.rows[0]
+                .subscription
+                .as_ref()
+                .and_then(|value| value.pointer("/primary/used_percent"))
+                .and_then(serde_json::Value::as_i64),
+            Some(25)
+        );
         assert_eq!(
             top.rows[0].last_message_at.as_deref(),
             Some("2026-07-12T10:00:00Z")

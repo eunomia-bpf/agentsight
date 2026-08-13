@@ -136,6 +136,11 @@ Node 访问密钥保存在操作系统的 AgentSight
 配置目录并跨重启复用；连接链接只通过 URL fragment 把密钥交给浏览器，SPA 读取后立即从
 地址栏清除。Chrome 可能会请求允许该网页访问本地或私有网络。
 
+登录后，组织首页默认为“全部机器”。浏览器通过 Direct 或 Relay 向每个可达 Node 查询有界概览，
+只在浏览器内存中聚合机器状态、活动 Agent、已报告 Token、CPU/RSS、Agent Plan 和数据源报告的
+订阅窗口；可用机器选择器在多机总览和单个 Node 之间切换。AgentSight Cloud 只保存机器目录和
+访问策略，不会把聚合后的 evidence 复制进 D1。
+
 使用 `agentsight bind --no-open` 可手动复制链接，使用 `agentsight bind --qr` 可打印
 同一个链接的二维码。Local 只是自动发现的默认路径，并不是另一套协议：可以用
 `--listen <IP>` 和 `--server-port <PORT>` 选择监听 socket；经过 hostname、tunnel 或
