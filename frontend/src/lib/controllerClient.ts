@@ -47,8 +47,21 @@ export interface CloudNode {
   name: string;
   version: string | null;
   connectionMode: 'direct' | 'relay';
+  hasDirectConfig: boolean;
   lastRegisteredAt: number;
   createdAt: number;
+}
+
+export type LoginProvider = 'github' | 'google';
+
+export async function fetchLoginProviders(): Promise<LoginProvider[]> {
+  const response = await request(`${controllerUrl}/v1/auth/providers`, { cache: 'no-store' });
+  if (!response.ok) return [];
+  const body = await response.json().catch(() => ({})) as { providers?: unknown };
+  if (!Array.isArray(body.providers)) return [];
+  return body.providers.filter((provider): provider is LoginProvider => (
+    provider === 'github' || provider === 'google'
+  ));
 }
 
 export class CloudSessionExpiredError extends Error {
@@ -173,7 +186,8 @@ export async function fetchCloudNodes(token: string, organizationId: string): Pr
   const body = await response.json() as {
     nodes?: Array<{
       id?: string; organization_id?: string; name?: string; version?: string | null;
-      connection_mode?: string; last_seen_at?: number; created_at?: number;
+      connection_mode?: string; has_direct_config?: boolean | number;
+      last_seen_at?: number; created_at?: number;
     }>;
   };
   if (!Array.isArray(body.nodes)) throw new Error('The Controller returned an invalid Node list.');
@@ -185,6 +199,7 @@ export async function fetchCloudNodes(token: string, organizationId: string): Pr
       name: node.name!,
       version: typeof node.version === 'string' ? node.version : null,
       connectionMode: node.connection_mode === 'relay' ? 'relay' : 'direct',
+      hasDirectConfig: node.has_direct_config === true || node.has_direct_config === 1,
       lastRegisteredAt: typeof node.last_seen_at === 'number' ? node.last_seen_at : 0,
       createdAt: typeof node.created_at === 'number' ? node.created_at : 0,
     }));
@@ -202,6 +217,7 @@ export async function registerControllerNode(
   organizationId: string,
   connection: LocalConnection,
   bootstrapToken: string,
+  saveDirect = false,
 ): Promise<void> {
   const response = await request(`${controllerUrl}/v1/nodes`, {
     method: 'POST',
@@ -212,9 +228,34 @@ export async function registerControllerNode(
       name: connection.nodeName,
       version: connection.version,
       relay_token: bootstrapToken,
+      ...(saveDirect ? {
+        direct_config: { endpoint: connection.endpoint, access_key: bootstrapToken },
+      } : {}),
     }),
   });
   if (!response.ok) await responseError(response, 'Could not register this Node');
+}
+
+export async function fetchControllerDirectConfig(
+  token: string,
+  node: CloudNode,
+): Promise<{ endpoint: string; bootstrapToken: string }> {
+  const response = await request(`${controllerUrl}/v1/nodes/${encodeURIComponent(node.id)}/direct`, {
+    headers: authHeaders(token), cache: 'no-store',
+  });
+  if (!response.ok) await responseError(response, 'Could not load saved Direct config');
+  const body = await response.json() as { endpoint?: unknown; access_key?: unknown };
+  if (typeof body.endpoint !== 'string' || typeof body.access_key !== 'string') {
+    throw new Error('The Controller returned an invalid Direct config.');
+  }
+  return { endpoint: body.endpoint, bootstrapToken: body.access_key };
+}
+
+export async function forgetControllerDirectConfig(token: string, nodeId: string): Promise<void> {
+  const response = await request(`${controllerUrl}/v1/nodes/${encodeURIComponent(nodeId)}/direct`, {
+    method: 'DELETE', headers: authHeaders(token),
+  });
+  if (!response.ok) await responseError(response, 'Could not remove saved Direct config');
 }
 
 export async function relayOnline(token: string, nodeId: string): Promise<boolean> {

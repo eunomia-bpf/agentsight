@@ -153,6 +153,13 @@ export interface NodeRow {
   connection_mode: string;
   last_seen_at: number;
   created_at: number;
+  has_direct_config: number;
+}
+
+export interface DirectConfigRow {
+  ciphertext: string;
+  iv: string;
+  version: 1;
 }
 
 const ACTIVE_BILLING = new Set<BillingStatus>(['active', 'trialing']);
@@ -345,9 +352,15 @@ export async function listNodes(
 ): Promise<NodeRow[]> {
   await requireOrganizationAction(db, userId, organizationId, 'node.read');
   const result = await db.prepare(
-    `SELECT id, organization_id, name, version, connection_mode, last_seen_at, created_at
-     FROM nodes WHERE organization_id = ?1 ORDER BY last_seen_at DESC LIMIT 500`,
-  ).bind(organizationId).all<NodeRow>();
+    `SELECT n.id, n.organization_id, n.name, n.version, n.connection_mode,
+            n.last_seen_at, n.created_at,
+            EXISTS(
+              SELECT 1 FROM node_direct_configs d
+              WHERE d.node_id = n.id AND d.owner_user_id = ?2
+            ) AS has_direct_config
+     FROM nodes n WHERE n.organization_id = ?1
+     ORDER BY n.last_seen_at DESC LIMIT 500`,
+  ).bind(organizationId, userId).all<NodeRow>();
   return result.results;
 }
 
@@ -387,6 +400,39 @@ export async function deleteNode(
   const access = await getNodeAccess(db, userId, nodeId, 'node.manage');
   await db.prepare('DELETE FROM nodes WHERE id = ?1 AND organization_id = ?2')
     .bind(nodeId, access.organization.id).run();
+}
+
+export async function getDirectConfig(
+  db: D1Database,
+  userId: string,
+  nodeId: string,
+): Promise<DirectConfigRow | null> {
+  return db.prepare(
+    `SELECT ciphertext, iv, version FROM node_direct_configs
+     WHERE node_id = ?1 AND owner_user_id = ?2`,
+  ).bind(nodeId, userId).first<DirectConfigRow>();
+}
+
+export async function saveDirectConfig(
+  db: D1Database,
+  userId: string,
+  nodeId: string,
+  config: DirectConfigRow,
+): Promise<void> {
+  const now = nowSeconds();
+  await db.prepare(
+    `INSERT INTO node_direct_configs
+     (node_id, owner_user_id, ciphertext, iv, version, created_at, updated_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)
+     ON CONFLICT(node_id, owner_user_id) DO UPDATE SET
+       ciphertext = excluded.ciphertext, iv = excluded.iv,
+       version = excluded.version, updated_at = excluded.updated_at`,
+  ).bind(nodeId, userId, config.ciphertext, config.iv, config.version, now).run();
+}
+
+export async function deleteDirectConfig(db: D1Database, userId: string, nodeId: string): Promise<void> {
+  await db.prepare('DELETE FROM node_direct_configs WHERE node_id = ?1 AND owner_user_id = ?2')
+    .bind(nodeId, userId).run();
 }
 
 export async function listMembers(

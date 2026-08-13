@@ -12,4 +12,5 @@ test('Workers build installs the protocol crate minimum Rust toolchain when carg
   assert.match(source, /rust-version/);
   assert.match(source, /--profile minimal/);
   assert.match(source, /wasm32-unknown-unknown/);
+  assert.match(source, /run\('npm',[\s\S]*shell: process\.platform === 'win32'/);
 });

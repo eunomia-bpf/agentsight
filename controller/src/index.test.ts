@@ -4,8 +4,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  allowedBrowserOrigin, allowedReturnTo, githubApiHeaders, nodeIdFromPath, oauthStartAllowed,
-  publicPricing, roleAllows, sha256Base64Url, validNodeId,
+  allowedBrowserOrigin, allowedReturnTo, configuredOAuthProviders, decryptDirectConfig,
+  directConfigNodeIdFromPath, encryptDirectConfig, githubApiHeaders, nodeIdFromPath,
+  normalizeDirectEndpoint, oauthStartAllowed, publicPricing, roleAllows, sha256Base64Url, validNodeId,
 } from './index.ts';
 import {
   planAllowsManagedConnectivity,
@@ -32,6 +33,42 @@ test('OAuth return URL stays on the hosted app origin', () => {
   assert.equal(allowedBrowserOrigin(preview, preview), true);
   assert.equal(allowedBrowserOrigin('http://agentsight-preview.yunwei356.workers.dev', preview), false);
   assert.equal(allowedBrowserOrigin('https://agentsight-preview.yunwei356.workers.dev.evil.example', preview), false);
+});
+
+test('only fully configured OAuth providers are advertised', () => {
+  assert.deepEqual(configuredOAuthProviders({
+    GITHUB_CLIENT_ID: 'github-client',
+    GITHUB_CLIENT_SECRET: 'github-secret',
+    GOOGLE_CLIENT_ID: 'google-client',
+  }), ['github']);
+  assert.deepEqual(configuredOAuthProviders({
+    GITHUB_CLIENT_ID: 'github-client',
+    GITHUB_CLIENT_SECRET: 'github-secret',
+    GOOGLE_CLIENT_ID: 'google-client',
+    GOOGLE_CLIENT_SECRET: 'google-secret',
+  }), ['github', 'google']);
+});
+
+test('Direct config paths and endpoints are narrowly normalized', () => {
+  assert.equal(directConfigNodeIdFromPath('/v1/nodes/node_0123abcdef/direct'), 'node_0123abcdef');
+  assert.equal(directConfigNodeIdFromPath('/v1/nodes/not-a-node/direct'), null);
+  assert.equal(directConfigNodeIdFromPath('/v1/nodes/node_0123abcdef/direct/extra'), null);
+  assert.equal(normalizeDirectEndpoint('https://lab.example:7395/path?q=1#fragment'), 'https://lab.example:7395');
+  assert.equal(normalizeDirectEndpoint('https://user:pass@lab.example'), null);
+  assert.equal(normalizeDirectEndpoint('file:///tmp/socket'), null);
+});
+
+test('Direct config is encrypted and bound to its owner and Node', async () => {
+  const master = Buffer.alloc(32, 7).toString('base64url');
+  const config = { v: 1 as const, endpoint: 'https://lab.example', accessKey: 'a'.repeat(43) };
+  const encrypted = await encryptDirectConfig(master, 'user_owner', 'node_lab0000', config);
+  assert.equal(JSON.stringify(encrypted).includes(config.accessKey), false);
+  assert.deepEqual(
+    await decryptDirectConfig(master, 'user_owner', 'node_lab0000', encrypted),
+    config,
+  );
+  await assert.rejects(decryptDirectConfig(master, 'other_user', 'node_lab0000', encrypted));
+  await assert.rejects(decryptDirectConfig(master, 'user_owner', 'node_other000', encrypted));
 });
 
 test('Controller accepts only stable AgentSight Node IDs', () => {

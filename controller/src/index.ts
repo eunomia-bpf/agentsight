@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-import core, { allowedBrowserOrigin, authenticateUser, HttpError } from './core.ts';
+import core, {
+  allowedBrowserOrigin,
+  authenticateUser,
+  decryptDirectConfig,
+  directConfigNodeIdFromPath,
+  encryptDirectConfig,
+  HttpError,
+  normalizeDirectEndpoint,
+} from './core.ts';
 import {
   AccessError,
   type Action,
@@ -11,9 +19,11 @@ import {
   acceptInvite,
   createInvite,
   createOrganization,
+  deleteDirectConfig,
   deleteNode,
   ensurePersonalOrganization,
   getConfig,
+  getDirectConfig,
   getNodeAccess,
   getOrganizationAccess,
   grantLifetimePro,
@@ -29,6 +39,7 @@ import {
   requireManagedPlan,
   requireOrganizationAction,
   setBilling,
+  saveDirectConfig,
   updateMemberRole,
   validNodeId,
 } from './access.ts';
@@ -53,6 +64,7 @@ interface Env extends RelayEnv {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   ADMIN_API_TOKEN?: string;
+  DIRECT_CONFIG_KEY?: string;
 }
 
 const NODE_CAPABILITY_ACTIONS = new Set<Action>([
@@ -68,8 +80,13 @@ export { NodeRelay };
 export {
   allowedBrowserOrigin,
   allowedReturnTo,
+  configuredOAuthProviders,
+  decryptDirectConfig,
+  directConfigNodeIdFromPath,
+  encryptDirectConfig,
   githubApiHeaders,
   oauthStartAllowed,
+  normalizeDirectEndpoint,
   sha256Base64Url,
 } from './core.ts';
 export { nodeIdFromPath, publicPricing, roleAllows, validNodeId } from './access.ts';
@@ -228,6 +245,7 @@ export default {
           name?: unknown;
           version?: unknown;
           relay_token?: unknown;
+          direct_config?: { endpoint?: unknown; access_key?: unknown };
         }>(request);
         if (typeof body.id !== 'string' || !validNodeId(body.id)
             || typeof body.name !== 'string' || !body.name.trim() || body.name.length > 128) {
@@ -249,7 +267,42 @@ export default {
             throw new AccessError(400, 'relay_enrollment_failed');
           }
         }
+        if (body.direct_config !== undefined) {
+          const endpoint = typeof body.direct_config.endpoint === 'string'
+            ? normalizeDirectEndpoint(body.direct_config.endpoint) : null;
+          const accessKey = typeof body.direct_config.access_key === 'string'
+            ? body.direct_config.access_key : '';
+          if (!endpoint || !validRelayToken(accessKey)) {
+            throw new AccessError(400, 'invalid_direct_config');
+          }
+          await saveDirectConfig(
+            env.DB,
+            user.id,
+            body.id,
+            await encryptDirectConfig(requiredDirectConfigKey(env), user.id, body.id, {
+              v: 1, endpoint, accessKey,
+            }),
+          );
+        }
         return respond(json({ id: body.id, organization_id: organizationId, status: 'registered' }, 201));
+      }
+
+      const directConfigNodeId = directConfigNodeIdFromPath(url.pathname);
+      if (directConfigNodeId) {
+        const access = await getNodeAccess(env.DB, user.id, directConfigNodeId, 'node.manage');
+        requireManagedPlan(access.organization);
+        if (request.method === 'GET') {
+          const encrypted = await getDirectConfig(env.DB, user.id, directConfigNodeId);
+          if (!encrypted) throw new AccessError(404, 'direct_config_not_saved');
+          const direct = await decryptDirectConfig(
+            requiredDirectConfigKey(env), user.id, directConfigNodeId, encrypted,
+          );
+          return respond(json({ endpoint: direct.endpoint, access_key: direct.accessKey }));
+        }
+        if (request.method === 'DELETE') {
+          await deleteDirectConfig(env.DB, user.id, directConfigNodeId);
+          return respond(new Response(null, { status: 204 }));
+        }
       }
 
       const capabilityNodeId = nodeCapabilityPath(url.pathname);
@@ -365,6 +418,7 @@ async function handleAdmin(request: Request, env: Env): Promise<Response> {
 
 function isCoreIdentityRoute(pathname: string): boolean {
   return pathname === '/v1/health'
+    || pathname === '/v1/auth/providers'
     || pathname === '/v1/me'
     || pathname === '/v1/auth/exchange'
     || pathname === '/v1/auth/logout'
@@ -416,6 +470,11 @@ function nodeCapabilityPath(pathname: string): string | null {
   } catch {
     return null;
   }
+}
+
+function requiredDirectConfigKey(env: Env): string {
+  if (!env.DIRECT_CONFIG_KEY) throw new AccessError(503, 'direct_config_unavailable');
+  return env.DIRECT_CONFIG_KEY;
 }
 
 function isInviteRole(value: unknown): value is Exclude<Role, 'owner'> {

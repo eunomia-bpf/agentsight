@@ -8,10 +8,12 @@ Controller stores and coordinates:
 - organizations and user memberships;
 - built-in roles and organization configuration;
 - plan, billing-provider metadata, and entitlements;
-- Node registration, relay credentials, and presence;
+- Node registration, relay credentials, presence, and optional encrypted Direct connection configs;
 - the authorization decision used before Controller relays a Node operation.
 
 Detailed runtime evidence remains authoritative on the Node. Controller does not persist snapshots, session transcripts, prompts, process data, or relay response bodies. Relay traffic passes through Controller runtime memory only while a request is active.
+
+By default, Direct configuration stays only in the current browser. A signed-in user may explicitly opt in to save a compact Direct endpoint and bootstrap key for another browser. Controller encrypts that value with AES-256-GCM using a per-user/per-Node key derived from `DIRECT_CONFIG_KEY`; D1 never stores the plaintext. The account copy can be removed independently of the local browser capability.
 
 ## Authorization model
 
@@ -62,6 +64,7 @@ GET               /v1/organizations/{organization_id}/billing
 POST              /v1/invitations/accept
 GET/POST          /v1/nodes?organization_id=...
 DELETE            /v1/nodes/{node_id}
+GET/DELETE        /v1/nodes/{node_id}/direct
 POST              /v1/nodes/{node_id}/capabilities
 ```
 

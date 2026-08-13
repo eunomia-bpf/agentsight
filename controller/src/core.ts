@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+import { validNodeId } from './access.ts';
+
 interface Env {
   DB: D1Database;
   APP_ORIGIN: string;
@@ -10,9 +12,10 @@ interface Env {
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  DIRECT_CONFIG_KEY?: string;
 }
 
-type Provider = 'github' | 'google';
+export type Provider = 'github' | 'google';
 
 interface OAuthProfile {
   provider: Provider;
@@ -39,6 +42,19 @@ const AUTH_CODE_TTL_SECONDS = 2 * 60;
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 const PKCE_CHALLENGE_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const PKCE_VERIFIER_PATTERN = /^[A-Za-z0-9_-]{43,128}$/;
+const DIRECT_CONFIG_VERSION = 1;
+
+interface DirectConfig {
+  v: 1;
+  endpoint: string;
+  accessKey: string;
+}
+
+export interface EncryptedDirectConfig {
+  ciphertext: string;
+  iv: string;
+  version: 1;
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -55,6 +71,8 @@ export default {
       let response: Response;
       if (request.method === 'GET' && url.pathname === '/v1/health') {
         response = json({ status: 'ok', service: 'agentsight-controller' });
+      } else if (request.method === 'GET' && url.pathname === '/v1/auth/providers') {
+        response = json({ providers: configuredOAuthProviders(env) });
       } else if (request.method === 'GET' && url.pathname.startsWith('/v1/auth/start/')) {
         response = await startOAuth(request, env, providerFromPath(url.pathname));
       } else if (request.method === 'GET' && url.pathname.startsWith('/v1/auth/callback/')) {
@@ -341,6 +359,110 @@ export function allowedBrowserOrigin(
   } catch {
     return false;
   }
+}
+
+export function configuredOAuthProviders(
+  env: Pick<Env, 'GITHUB_CLIENT_ID' | 'GITHUB_CLIENT_SECRET' | 'GOOGLE_CLIENT_ID' | 'GOOGLE_CLIENT_SECRET'>,
+): Provider[] {
+  const providers: Provider[] = [];
+  if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) providers.push('github');
+  if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) providers.push('google');
+  return providers;
+}
+
+export function directConfigNodeIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/v1\/nodes\/([^/]+)\/direct$/);
+  if (!match) return null;
+  try {
+    const nodeId = decodeURIComponent(match[1]);
+    return validNodeId(nodeId) ? nodeId : null;
+  } catch {
+    return null;
+  }
+}
+
+export function normalizeDirectEndpoint(value: string): string | null {
+  try {
+    const endpoint = new URL(value.trim());
+    if (!['http:', 'https:'].includes(endpoint.protocol)
+        || !endpoint.hostname || endpoint.username || endpoint.password) return null;
+    endpoint.pathname = '';
+    endpoint.search = '';
+    endpoint.hash = '';
+    return endpoint.toString().replace(/\/$/, '');
+  } catch {
+    return null;
+  }
+}
+
+export async function encryptDirectConfig(
+  masterSecret: string,
+  userId: string,
+  nodeId: string,
+  config: DirectConfig,
+): Promise<EncryptedDirectConfig> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveDirectConfigKey(masterSecret, userId, nodeId, ['encrypt']);
+  const ciphertext = await crypto.subtle.encrypt({
+    name: 'AES-GCM', iv: bufferSource(iv), additionalData: directConfigAad(userId, nodeId),
+  }, key, encoder.encode(JSON.stringify(config)));
+  return { ciphertext: base64UrlEncode(new Uint8Array(ciphertext)), iv: base64UrlEncode(iv), version: 1 };
+}
+
+export async function decryptDirectConfig(
+  masterSecret: string,
+  userId: string,
+  nodeId: string,
+  encrypted: EncryptedDirectConfig,
+): Promise<DirectConfig> {
+  if (encrypted.version !== DIRECT_CONFIG_VERSION) throw new Error('unsupported direct config');
+  const key = await deriveDirectConfigKey(masterSecret, userId, nodeId, ['decrypt']);
+  const plaintext = await crypto.subtle.decrypt({
+    name: 'AES-GCM',
+    iv: bufferSource(base64UrlDecode(encrypted.iv)),
+    additionalData: directConfigAad(userId, nodeId),
+  }, key, bufferSource(base64UrlDecode(encrypted.ciphertext)));
+  const config = JSON.parse(new TextDecoder().decode(plaintext)) as DirectConfig;
+  const endpoint = normalizeDirectEndpoint(config.endpoint);
+  if (config.v !== DIRECT_CONFIG_VERSION || !endpoint || !/^[A-Za-z0-9_-]{32,256}$/.test(config.accessKey)) {
+    throw new Error('invalid direct config');
+  }
+  return { ...config, endpoint };
+}
+
+async function deriveDirectConfigKey(
+  masterSecret: string,
+  userId: string,
+  nodeId: string,
+  usages: KeyUsage[],
+): Promise<CryptoKey> {
+  const master = base64UrlDecode(masterSecret);
+  if (master.byteLength !== 32) throw new Error('DIRECT_CONFIG_KEY must contain 32 bytes');
+  const material = await crypto.subtle.importKey('raw', bufferSource(master), 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({
+    name: 'HKDF', hash: 'SHA-256', salt: encoder.encode('agentsight-direct-config-v1'),
+    info: encoder.encode(`${userId}\0${nodeId}`),
+  }, material, { name: 'AES-GCM', length: 256 }, false, usages);
+}
+
+function directConfigAad(userId: string, nodeId: string): ArrayBuffer {
+  return bufferSource(encoder.encode(`agentsight-direct-config-v1\0${userId}\0${nodeId}`));
+}
+
+function bufferSource(value: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(value.byteLength);
+  copy.set(value);
+  return copy.buffer;
+}
+
+function base64UrlEncode(value: Uint8Array): string {
+  return btoa(String.fromCharCode(...value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64UrlDecode(value: string): Uint8Array {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+  return Uint8Array.from(atob(padded), (character) => character.charCodeAt(0));
 }
 
 export function allowedReturnTo(
