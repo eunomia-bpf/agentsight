@@ -120,6 +120,7 @@ export const zh: Record<TranslationKey, string> = {
   'sessionDetail.timeline': '时间线',
   'sessionDetail.events': '详细事件',
   'sessionDetail.views': '会话视图',
+  'sessionDetail.recordedCapture': '已录制数据',
 
   // Modal
   'modal.eventDetails': '事件详情',

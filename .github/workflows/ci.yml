@@ -294,6 +294,7 @@ jobs:
         sed -i "s/^version = \".*\"/version = \"$VERSION\"/" agentvis/Cargo.toml
         sed -i "s/agent-session = { version = \"[^\"]*\", path = \"..\\/agent-session\" }/agent-session = { version = \"$AGENT_SESSION_VERSION\", path = \"..\\/agent-session\" }/" agentvis/Cargo.toml
         sed -i "s/agent-session = { version = \"[^\"]*\", path = \"..\\/agent-session\" }/agent-session = { version = \"$AGENT_SESSION_VERSION\", path = \"..\\/agent-session\" }/" agentsight-capture/Cargo.toml
+        sed -i "s/agent-session = { version = \"[^\"]*\", path = \"..\\/agent-session\" }/agent-session = { version = \"$AGENT_SESSION_VERSION\", path = \"..\\/agent-session\" }/" collector/Cargo.toml
         sed -i "s/agentsight-protocol = { version = \"[^\"]*\", path = \"..\\/agentsight-protocol\" }/agentsight-protocol = { version = \"$VERSION\", path = \"..\\/agentsight-protocol\" }/" collector/Cargo.toml
         sed -i "s/agentsight-capture = { version = \"[^\"]*\", path = \"..\\/agentsight-capture\"/agentsight-capture = { version = \"$VERSION\", path = \"..\\/agentsight-capture\"/" collector/Cargo.toml
         sed -i "s/agentvis = { version = \"[^\"]*\", path = \"..\\/agentvis\" }/agentvis = { version = \"$VERSION\", path = \"..\\/agentvis\" }/" collector/Cargo.toml
@@ -383,6 +384,7 @@ jobs:
         grep -q "^version = \"$VERSION_NO_V\"" agentvis/Cargo.toml
         grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" agentvis/Cargo.toml
         grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" agentsight-capture/Cargo.toml
+        grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" collector/Cargo.toml
         grep -q "agentsight-protocol = { version = \"$VERSION_NO_V\", path = \"../agentsight-protocol\" }" collector/Cargo.toml
         grep -q "agentsight-capture = { version = \"$VERSION_NO_V\", path = \"../agentsight-capture\" }" collector/Cargo.toml
         grep -q "agentvis = { version = \"$VERSION_NO_V\", path = \"../agentvis\" }" collector/Cargo.toml

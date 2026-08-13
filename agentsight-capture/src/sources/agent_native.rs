@@ -4,10 +4,11 @@
 use agent_session::{AgentSession, TokenUsage};
 use serde_json::Value;
 use std::cmp::Reverse;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use std::fs;
@@ -292,14 +293,36 @@ fn bound_session_detail(session: &mut LocalSession) {
     }
 }
 
-fn codex_rollout_summary(path: &Path) -> (Option<TokenUsage>, Vec<agent_session::PlanStep>) {
-    let Ok(mut file) = File::open(path) else {
-        return (None, Vec::new());
-    };
-    let Ok(metadata) = file.metadata() else {
+type CodexRolloutSummary = (Option<TokenUsage>, Vec<agent_session::PlanStep>);
+
+#[derive(Clone)]
+struct CachedCodexRolloutSummary {
+    len: u64,
+    modified: SystemTime,
+    summary: CodexRolloutSummary,
+}
+
+fn codex_summary_cache() -> &'static Mutex<HashMap<PathBuf, CachedCodexRolloutSummary>> {
+    static CACHE: OnceLock<Mutex<HashMap<PathBuf, CachedCodexRolloutSummary>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn codex_rollout_summary(path: &Path) -> CodexRolloutSummary {
+    let Ok(metadata) = fs::metadata(path) else {
         return (None, Vec::new());
     };
     let len = metadata.len();
+    let modified = metadata.modified().unwrap_or(UNIX_EPOCH);
+    if let Ok(cache) = codex_summary_cache().lock()
+        && let Some(cached) = cache.get(path)
+        && cached.len == len
+        && cached.modified == modified
+    {
+        return cached.summary.clone();
+    }
+    let Ok(mut file) = File::open(path) else {
+        return (None, Vec::new());
+    };
     let window = len.min(CODEX_ROLLOUT_TAIL_BYTES);
     if file.seek(SeekFrom::Start(len - window)).is_err() {
         return (None, Vec::new());
@@ -311,7 +334,22 @@ fn codex_rollout_summary(path: &Path) -> (Option<TokenUsage>, Vec<agent_session:
     let content = String::from_utf8_lossy(&data);
     let usage = agent_session::codex_total_token_usage(&content);
     let plan = agent_session::codex_latest_plan(&content).unwrap_or_default();
-    (usage, plan)
+    let summary = (usage, plan);
+    if let Ok(mut cache) = codex_summary_cache().lock() {
+        const MAX_CODEX_SUMMARY_CACHE: usize = 64;
+        if cache.len() >= MAX_CODEX_SUMMARY_CACHE && !cache.contains_key(path) {
+            cache.clear();
+        }
+        cache.insert(
+            path.to_path_buf(),
+            CachedCodexRolloutSummary {
+                len,
+                modified,
+                summary: summary.clone(),
+            },
+        );
+    }
+    summary
 }
 
 const CURSOR_STATE_DB_CANDIDATES: [&str; 3] = [
@@ -1276,6 +1314,34 @@ mod tests {
             sessions[0].last_message_at.as_deref(),
             Some("1970-01-01T00:31:40.000Z")
         );
+    }
+
+    #[test]
+    fn codex_rollout_summary_cache_tracks_file_metadata() {
+        let temp = tempfile::tempdir().unwrap();
+        let rollout = temp.path().join("rollout.jsonl");
+        fs::write(
+            &rollout,
+            concat!(
+                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":3,"output_tokens":4,"total_tokens":7}}}}"#,
+                "\n",
+                r#"{"type":"response_item","payload":{"type":"function_call","name":"update_plan","arguments":"{\"plan\":[{\"step\":\"cached plan\",\"status\":\"in_progress\"}]}"}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+
+        let first = codex_rollout_summary(&rollout);
+        let second = codex_rollout_summary(&rollout);
+        assert_eq!(first, second);
+        assert_eq!(first.0.unwrap().total_tokens, 7);
+        assert_eq!(first.1[0].step, "cached plan");
+        assert!(codex_summary_cache().lock().unwrap().contains_key(&rollout));
+
+        fs::write(&rollout, "{}\n").unwrap();
+        let changed = codex_rollout_summary(&rollout);
+        assert!(changed.0.is_none());
+        assert!(changed.1.is_empty());
     }
 
     #[test]

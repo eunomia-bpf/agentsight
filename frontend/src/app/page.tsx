@@ -3,7 +3,7 @@
 
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NodeOverview } from '@/components/NodeOverview';
 import { SessionWorkspace } from '@/components/SessionWorkspace';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
@@ -45,6 +45,7 @@ import {
 } from '@/lib/nodeClient';
 import { AgentSightSnapshot, LiveOverview } from '@/types/event';
 import { useTranslation } from '@/i18n';
+import { snapshotSessions } from '@/utils/sessionData';
 
 type AppMode = 'loading' | 'disconnected' | 'directory' | 'live' | 'demo';
 
@@ -93,6 +94,7 @@ export default function Home() {
   const [embeddedMode, setEmbeddedMode] = useState(false);
   const [organizationDialogOpen, setOrganizationDialogOpen] = useState(false);
   const [organizationName, setOrganizationName] = useState('');
+  const activationGeneration = useRef(0);
 
   const eventCount = snapshot?.summary?.view_events ?? snapshot?.audit_events?.length ?? 0;
   const activeTransport: NodeTransport | null = activeClient?.transport ?? null;
@@ -121,7 +123,10 @@ export default function Home() {
     setNodeError(message);
   }, [clearCloudState]);
 
-  const activateClient = useCallback(async (client: NodeClient) => {
+  const activateClient = useCallback(async (
+    client: NodeClient,
+    generation = ++activationGeneration.current,
+  ) => {
     setSyncing(true);
     setError('');
     try {
@@ -129,25 +134,30 @@ export default function Home() {
         client.snapshot(),
         client.overview().catch(() => null),
       ]);
+      if (activationGeneration.current !== generation) return false;
       setActiveClient(client);
       setSnapshot(nextSnapshot);
       setOverview(nextOverview);
       setMode('live');
       const requested = new URLSearchParams(window.location.search).get('session');
-      setSelectedSessionId(requested && nextSnapshot.sessions?.some((session) => session.id === requested)
+      setSelectedSessionId(requested && snapshotSessions(nextSnapshot, nextOverview === null)
+        .some((session) => session.id === requested)
         ? requested : null);
       setDialogOpen(false);
       return true;
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not reach the AgentSight Node.');
+      if (activationGeneration.current === generation) {
+        setError(cause instanceof Error ? cause.message : 'Could not reach the AgentSight Node.');
+      }
       return false;
     } finally {
-      setSyncing(false);
+      if (activationGeneration.current === generation) setSyncing(false);
     }
   }, []);
 
   const syncData = useCallback(async () => {
     if (!activeClient) return;
+    const generation = activationGeneration.current;
     setSyncing(true);
     setError('');
     try {
@@ -155,12 +165,15 @@ export default function Home() {
         activeClient.snapshot(),
         activeClient.overview().catch(() => null),
       ]);
+      if (activationGeneration.current !== generation) return;
       setSnapshot(nextSnapshot);
       setOverview(nextOverview);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not refresh this Node.');
+      if (activationGeneration.current === generation) {
+        setError(cause instanceof Error ? cause.message : 'Could not refresh this Node.');
+      }
     } finally {
-      setSyncing(false);
+      if (activationGeneration.current === generation) setSyncing(false);
     }
   }, [activeClient]);
 
@@ -209,6 +222,7 @@ export default function Home() {
   }, [activeOrganizationId, handleCloudError, refreshRelayStatuses]);
 
   const openNode = useCallback(async (nodeId: string) => {
+    const generation = ++activationGeneration.current;
     setLoadingNodeId(nodeId);
     setNodeError('');
     const direct = directConnections[nodeId];
@@ -220,7 +234,7 @@ export default function Home() {
       attempts.push({
         transport: 'local-direct',
         open: async () => {
-          if (!await activateClient(directNodeClient(direct))) throw new Error('Local Direct path is unavailable.');
+          if (!await activateClient(directNodeClient(direct), generation)) throw new Error('Local Direct path is unavailable.');
         },
       });
     }
@@ -234,7 +248,7 @@ export default function Home() {
           if (verified.nodeId !== nodeId) throw new Error('Saved Direct config belongs to another Node.');
           saveDirectConnection(verified);
           setDirectConnections(loadDirectConnections());
-          if (!await activateClient(directNodeClient(verified))) {
+          if (!await activateClient(directNodeClient(verified), generation)) {
             throw new Error('Account-saved Direct path is unavailable.');
           }
         },
@@ -244,7 +258,7 @@ export default function Home() {
       attempts.push({
         transport: 'relay',
         open: async () => {
-          if (!await activateClient(relayNodeClient(cloudNode, token))) {
+          if (!await activateClient(relayNodeClient(cloudNode, token), generation)) {
             throw new Error('Controller relay is unavailable.');
           }
           setRelayStatus((current) => ({ ...current, [nodeId]: true }));
@@ -253,6 +267,7 @@ export default function Home() {
     }
 
     const result = await tryNodeTransports(attempts);
+    if (activationGeneration.current !== generation) return;
     if (result.transport) {
       setLoadingNodeId(null);
       return;
@@ -282,16 +297,18 @@ export default function Home() {
     bootstrapToken: string,
     saveToAccount: boolean,
   ): Promise<boolean> => {
+    const generation = ++activationGeneration.current;
     setLoadingNodeId(nodeId);
     setNodeError('');
     try {
       const pairing = await pairDirectNode(endpoint, bootstrapToken);
+      if (activationGeneration.current !== generation) return false;
       const connection = pairing.connection;
       if (connection.nodeId !== nodeId) {
         setNodeError(`That Direct URL belongs to ${connection.nodeName} (${connection.nodeId}), not ${nodeId}.`);
         return false;
       }
-      if (!await activateClient(directNodeClient(connection))) return false;
+      if (!await activateClient(directNodeClient(connection), generation)) return false;
       saveDirectConnection(connection);
       setDirectConnections(loadDirectConnections());
       setDirectCloudSync(connection.nodeId, saveToAccount);
@@ -311,10 +328,12 @@ export default function Home() {
       }
       return true;
     } catch (cause) {
-      setNodeError(cause instanceof Error ? cause.message : 'Could not connect to that Direct Node URL.');
+      if (activationGeneration.current === generation) {
+        setNodeError(cause instanceof Error ? cause.message : 'Could not connect to that Direct Node URL.');
+      }
       return false;
     } finally {
-      setLoadingNodeId(null);
+      if (activationGeneration.current === generation) setLoadingNodeId(null);
     }
   }, [activateClient, activeOrganizationId, refreshCloudNodes]);
 
@@ -337,6 +356,7 @@ export default function Home() {
   }, [handleCloudError]);
 
   const enterDemo = useCallback(async () => {
+    ++activationGeneration.current;
     setSyncing(true);
     setError('');
     try {
@@ -357,6 +377,7 @@ export default function Home() {
   }, [identity]);
 
   const signOut = useCallback(() => {
+    ++activationGeneration.current;
     const token = loadCloudSession();
     const wasRelay = activeClient?.transport === 'relay';
     clearCloudState();
@@ -607,7 +628,12 @@ export default function Home() {
   const isDemo = mode === 'demo';
   const isLive = mode === 'live';
   const workspaceVisible = isLive || isDemo;
-  const selectedSession = snapshot?.sessions?.find((session) => session.id === selectedSessionId) ?? null;
+  const availableSessions = useMemo(
+    () => snapshotSessions(snapshot ?? {}, overview === null),
+    [overview, snapshot],
+  );
+  const selectedSession = availableSessions
+    .find((session) => session.id === selectedSessionId) ?? null;
 
   const nodeManager = identity ? (
     <NodeManager nodes={cloudNodes} connections={directConnections}

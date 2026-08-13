@@ -676,6 +676,7 @@ mod tests {
                 prompts: Vec::new(),
                 tools,
                 llm_responses: Vec::new(),
+                plan: Vec::new(),
             },
         }
     }

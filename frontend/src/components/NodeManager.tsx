@@ -193,7 +193,7 @@ export function NodeManager({
                 <article key={node.id} className={`group relative min-w-0 overflow-hidden rounded-xl border transition ${
                   active ? 'border-slate-950 bg-slate-50' : 'border-slate-200 bg-white hover:border-slate-400'
                 }`}>
-                  <button type="button" onClick={openOrConfigure} disabled={opening || directConnecting}
+                  <button type="button" onClick={openOrConfigure} disabled={loading || directConnecting}
                     className="block min-w-0 w-full p-4 text-left disabled:cursor-wait">
                     <div className="flex min-w-0 items-start justify-between gap-3 sm:gap-4">
                       <div className="flex min-w-0 flex-1 items-start gap-3">

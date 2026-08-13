@@ -116,6 +116,7 @@ export const en = {
   'sessionDetail.timeline': 'Timeline',
   'sessionDetail.events': 'Detailed events',
   'sessionDetail.views': 'Session views',
+  'sessionDetail.recordedCapture': 'Recorded capture',
 
   // Modal (EventModal.tsx)
   'modal.eventDetails': 'Event Details',

@@ -9,6 +9,7 @@ import type { AgentSightSnapshot, LiveOverview, LiveSession, SnapshotSession } f
 import {
   displaySessionId,
   isRunningSession,
+  isRecordedCaptureSession,
   liveRowForSession,
   orderedSessions,
   sessionActivityState,
@@ -135,7 +136,8 @@ export function NodeOverview({
                       <td className="px-3 py-3">
                         <button type="button" onClick={() => onOpenSession(session.id)}
                           className="font-semibold capitalize text-slate-900 hover:text-blue-700">
-                          {session.agent_type}
+                          {isRecordedCaptureSession(session)
+                            ? t('sessionDetail.recordedCapture') : session.agent_type}
                         </button>
                         <div className="max-w-44 truncate text-[11px] text-slate-400">
                           {session.model || displaySessionId(session)}

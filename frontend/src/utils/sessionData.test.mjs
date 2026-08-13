@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { sessionSnapshot } from './sessionData.ts';
+import { recordedSessionDetail, sessionSnapshot, snapshotSessions } from './sessionData.ts';
 
 const selected = {
   id: 'session-one', agent_type: 'codex', start_timestamp_ms: 100,
@@ -53,4 +54,71 @@ test('a one-session snapshot does not claim unrelated process evidence', () => {
   assert.equal(scoped.audit_events.length, 0);
   assert.equal(scoped.resource_samples.length, 0);
   assert.equal(scoped.network_targets.length, 0);
+});
+
+test('session evidence is constrained to the selected PID incarnation', () => {
+  const pidReuseSession = { ...selected, end_timestamp_ms: 300 };
+  const snapshot = fixture([pidReuseSession]);
+  snapshot.tool_calls[0].timestamp_ms = 250;
+  snapshot.process_nodes = [
+    { id: 'old-pid', pid: 10, root_pid: 10, start_timestamp_ms: 100, end_timestamp_ms: 180 },
+    { id: 'selected-pid', pid: 10, root_pid: 10, start_timestamp_ms: 200, end_timestamp_ms: 300 },
+  ];
+  snapshot.audit_events = [
+    { id: 'before-process', timestamp_ms: 150, audit_type: 'file', pid: 10 },
+    { id: 'during-process', timestamp_ms: 250, audit_type: 'file', pid: 10 },
+  ];
+  snapshot.resource_samples = [
+    { timestamp_ms: 150, pid: 10, cpu_percent: 1 },
+    { timestamp_ms: 250, pid: 10, cpu_percent: 2 },
+  ];
+  snapshot.network_targets = [
+    { pid: 10, host: 'before.example', first_timestamp_ms: 120, last_timestamp_ms: 160 },
+    { pid: 10, host: 'during.example', first_timestamp_ms: 220, last_timestamp_ms: 260 },
+    { pid: 10, host: 'crosses-incarnations.example', first_timestamp_ms: 170, last_timestamp_ms: 220 },
+  ];
+
+  const scoped = sessionSnapshot(snapshot, pidReuseSession, null, null);
+
+  assert.deepEqual(scoped.process_nodes.map((row) => row.id), ['selected-pid']);
+  assert.deepEqual(scoped.audit_events.map((row) => row.id), ['during-process']);
+  assert.deepEqual(scoped.resource_samples.map((row) => row.cpu_percent), [2]);
+  assert.deepEqual(scoped.network_targets.map((row) => row.host), ['during.example']);
+});
+
+test('live session evidence uses the current captured PID incarnation', () => {
+  const liveSession = { ...selected, end_timestamp_ms: null };
+  const snapshot = fixture([liveSession]);
+  snapshot.process_nodes = [
+    { id: 'old-pid', pid: 10, root_pid: 10, start_timestamp_ms: 100, end_timestamp_ms: 180 },
+    { id: 'current-pid', pid: 10, root_pid: 10, start_timestamp_ms: 200, end_timestamp_ms: null },
+  ];
+  snapshot.audit_events = [
+    { id: 'old-event', timestamp_ms: 150, audit_type: 'file', pid: 10 },
+    { id: 'current-event', timestamp_ms: 250, audit_type: 'file', pid: 10 },
+  ];
+  const live = {
+    pid: 10, process_details: [{ pid: 10, ppid: 0, comm: 'codex', command: 'codex' }],
+  };
+
+  const scoped = sessionSnapshot(snapshot, liveSession, live, null);
+
+  assert.equal(scoped.process_nodes[0].start_timestamp_ms, 200);
+  assert.deepEqual(scoped.audit_events.map((row) => row.id), ['current-event']);
+});
+
+test('the recorded demo retains a full-capture session for legacy evidence views', () => {
+  const sample = JSON.parse(readFileSync(
+    new URL('../../../docs/sample-snapshot.json', import.meta.url), 'utf8',
+  ));
+  const capture = snapshotSessions(sample, true).find((session) => session.id === 'capture:recorded');
+  assert.ok(capture);
+
+  const scoped = sessionSnapshot(sample, capture, null, recordedSessionDetail(sample, capture));
+
+  assert.equal(scoped.process_nodes.length, sample.process_nodes.length);
+  assert.equal(scoped.audit_events.length, sample.audit_events.length);
+  assert.equal(scoped.resource_samples.length, sample.resource_samples.length);
+  assert.equal(scoped.network_targets.length, sample.network_targets.length);
+  assert.equal(scoped.tool_calls.length, sample.tool_calls.length);
 });

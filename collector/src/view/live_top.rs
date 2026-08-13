@@ -341,11 +341,10 @@ impl LiveView {
         }
 
         let local_summary = &session_snapshot.summary;
-        let local_total_tokens = local_summary.total_tokens;
         let capture_summary = capture.map(|capture| &capture.snapshot.summary);
-        let capture_total_tokens = capture
-            .map(|capture| capture.snapshot.summary.total_tokens)
-            .unwrap_or_default();
+        let primary_counter = |local: i64, capture: i64| {
+            if local > 0 { local } else { capture }
+        };
         let has_agent_native = rows.iter().any(|row| row.evidence().agent_native);
         let has_proc = rows.iter().any(|row| row.evidence().proc);
         let has_ebpf = rows.iter().any(|row| row.evidence().ebpf);
@@ -355,6 +354,12 @@ impl LiveView {
         let mut notes = Vec::new();
         if has_agent_native {
             notes.push("agent-native sessions are the primary token/tool source".to_string());
+            if capture_summary.is_some() {
+                notes.push(
+                    "overview totals prefer agent-native counters and use live capture only as a fallback to avoid duplicate accounting"
+                        .to_string(),
+                );
+            }
         }
         if has_proc {
             notes.push(
@@ -431,15 +436,24 @@ impl LiveView {
         AgentTopOutput {
             mode: "live sessions",
             duration_s: 0.0,
-            view_events: local_summary.view_events
-                + capture_summary
+            view_events: primary_counter(
+                local_summary.view_events,
+                capture_summary
                     .map(|summary| summary.view_events)
                     .unwrap_or_default(),
-            llm_calls: local_summary.llm_calls
-                + capture_summary
+            ),
+            llm_calls: primary_counter(
+                local_summary.llm_calls,
+                capture_summary
                     .map(|summary| summary.llm_calls)
                     .unwrap_or_default(),
-            total_tokens: local_total_tokens + capture_total_tokens,
+            ),
+            total_tokens: primary_counter(
+                local_summary.total_tokens,
+                capture_summary
+                    .map(|summary| summary.total_tokens)
+                    .unwrap_or_default(),
+            ),
             rows,
             sections,
             failures,
@@ -946,6 +960,61 @@ mod tests {
             .find(|(title, _, _)| *title == "Network")
             .unwrap();
         assert_eq!(network.2, vec![("api.example.test:443".to_string(), 1)]);
+    }
+
+    #[test]
+    fn live_overview_does_not_add_capture_totals_to_agent_native_totals() {
+        let options = TopOptions {
+            pid: None,
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "all".to_string(),
+        };
+        let sample = LiveSample::default();
+        let mut local = Snapshot::empty("agent-native");
+        local.summary.view_events = 12;
+        local.summary.llm_calls = 4;
+        local.summary.total_tokens = 100;
+        let mut captured = Snapshot::empty("capture");
+        captured.summary.view_events = 5;
+        captured.summary.llm_calls = 2;
+        captured.summary.total_tokens = 40;
+        let capture = LiveCaptureSnapshot::new(captured, 0);
+
+        let mut live_view = LiveView::default();
+        let top = live_view.build_top(&sample, Some(&capture), &local, &options);
+
+        assert_eq!(top.view_events, 12);
+        assert_eq!(top.llm_calls, 4);
+        assert_eq!(top.total_tokens, 100);
+    }
+
+    #[test]
+    fn live_overview_uses_capture_totals_when_native_counters_are_empty() {
+        let options = TopOptions {
+            pid: None,
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "all".to_string(),
+        };
+        let sample = LiveSample::default();
+        let mut captured = Snapshot::empty("capture");
+        captured.summary.view_events = 5;
+        captured.summary.llm_calls = 2;
+        captured.summary.total_tokens = 40;
+        let capture = LiveCaptureSnapshot::new(captured, 0);
+
+        let mut live_view = LiveView::default();
+        let top = live_view.build_top(
+            &sample,
+            Some(&capture),
+            &Snapshot::empty("agent-native"),
+            &options,
+        );
+
+        assert_eq!(top.view_events, 5);
+        assert_eq!(top.llm_calls, 2);
+        assert_eq!(top.total_tokens, 40);
     }
 
     #[test]

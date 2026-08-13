@@ -15,8 +15,10 @@ import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
 import {
   displaySessionId,
   isRunningSession,
+  isRecordedCaptureSession,
   liveRowForSession,
   rawSessionId,
+  recordedSessionDetail,
   sessionActivityState,
   sessionPlan,
   sessionPrompt,
@@ -62,10 +64,11 @@ export function SessionWorkspace({
   const running = isRunningSession(live);
   const liveVersion = live?.last_message_at ?? null;
   const activityState = sessionActivityState(session, live);
+  const recordedCapture = isRecordedCaptureSession(session);
 
   const loadDetail = useCallback(async (quiet = false) => {
-    if (!client) {
-      setDetail({
+    if (!client || recordedCapture) {
+      setDetail(recordedCapture ? recordedSessionDetail(snapshot, session) : {
         session_id: sessionId,
         agent_type: session.agent_type,
         model: session.model,
@@ -100,8 +103,8 @@ export function SessionWorkspace({
         if (!quiet) setLoading(false);
       }
     }
-  }, [client, recordedPlanKey, recordedPrompt, recordedWorkspace, session.agent_type,
-    session.model, session.start_timestamp_ms, sessionId, t]);
+  }, [client, recordedCapture, recordedPlanKey, recordedPrompt, recordedWorkspace, session,
+    sessionId, snapshot, t]);
 
   useEffect(() => {
     activeRequest.current = 0;
@@ -210,7 +213,7 @@ export function SessionWorkspace({
 
       <div id={`session-panel-${tab}`} role="tabpanel">
         {tab === 'conversation' ? (
-          <SessionConsole session={session} detail={detail} client={client} loading={loading}
+          <SessionConsole session={session} detail={detail} client={recordedCapture ? null : client} loading={loading}
             detailError={detailError} onReload={() => { void loadDetail(); }} />
         ) : tab === 'process' ? (
           <ProcessTreeView snapshot={scopedSnapshot} />
