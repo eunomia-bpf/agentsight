@@ -218,8 +218,8 @@ test('a child that predates the current parent incarnation is not attached by ov
   assert.deepEqual(scoped.audit_events, []);
 });
 
-test('a nested live agent root is a session traversal boundary', () => {
-  const liveSession = { ...selected, end_timestamp_ms: null };
+test('a nested live root remains a boundary when capture start is missing', () => {
+  const liveSession = { ...selected, start_timestamp_ms: 150, end_timestamp_ms: null };
   const nestedSession = {
     ...selected, id: 'session-two', end_timestamp_ms: null,
     attributes: { session_id: 'raw-two' },
@@ -227,15 +227,15 @@ test('a nested live agent root is a session traversal boundary', () => {
   const snapshot = fixture([liveSession, nestedSession]);
   snapshot.process_nodes = [
     { id: 'root-a', pid: 10, ppid: null, root_pid: null, start_timestamp_ms: 100, end_timestamp_ms: null },
-    { id: 'root-b', pid: 20, ppid: 10, root_pid: null, start_timestamp_ms: 120, end_timestamp_ms: null },
-    { id: 'b-tool', pid: 21, ppid: 20, root_pid: null, start_timestamp_ms: 130, end_timestamp_ms: null },
+    { id: 'root-b', pid: 20, ppid: 10, root_pid: null, start_timestamp_ms: null, end_timestamp_ms: null },
+    { id: 'b-tool', pid: 21, ppid: 20, root_pid: null, start_timestamp_ms: 200, end_timestamp_ms: null },
   ];
   snapshot.tool_calls = [
-    { id: 'native-b-tool', session_id: 'raw-two', timestamp_ms: 140, related_pid: null },
-    { id: 'capture-b-tool', session_id: null, timestamp_ms: 140, related_pid: 21 },
+    { id: 'native-b-tool', session_id: 'raw-two', timestamp_ms: 210, related_pid: null },
+    { id: 'capture-b-tool', session_id: null, timestamp_ms: 210, related_pid: 21 },
   ];
   snapshot.audit_events = [
-    { id: 'b-secret', timestamp_ms: 140, audit_type: 'file', pid: 21 },
+    { id: 'b-secret', timestamp_ms: 210, audit_type: 'file', pid: 21 },
   ];
   const overview = {
     rows: [

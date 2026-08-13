@@ -314,7 +314,8 @@ export function sessionSnapshot(
     if (!otherLiveRoots.has(process.pid)) return false;
     const liveStart = otherLiveRoots.get(process.pid);
     if (liveStart == null) return process.end_timestamp_ms == null;
-    return processContains(process, liveStart);
+    return (process.start_timestamp_ms ?? liveStart) <= liveStart
+      && (process.end_timestamp_ms ?? liveStart) >= liveStart;
   };
   const captureFamilies = new Map<string, {
     root: SnapshotProcessNode;
