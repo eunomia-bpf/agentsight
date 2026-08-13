@@ -23,7 +23,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v6
       with:
         submodules: 'recursive'
 
@@ -34,9 +34,9 @@ jobs:
         components: clippy
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v6
       with:
-        node-version: '18'
+        node-version: '24'
 
     - name: Install dependencies
       run: |
@@ -70,11 +70,6 @@ jobs:
         rm -f agentsight-protocol/Cargo.lock
         cargo package --manifest-path agentsight-protocol/Cargo.toml
 
-    - name: Setup control-plane Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '22'
-
     - name: Test control plane
       run: |
         npm --prefix controller ci
@@ -82,11 +77,6 @@ jobs:
         npm --prefix controller run check
         ./controller/node_modules/.bin/wrangler deploy --dry-run --config wrangler.jsonc
         ./controller/node_modules/.bin/wrangler deploy --dry-run --config wrangler.preview.jsonc
-
-    - name: Restore repository Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
 
     - name: Build agentvis runtime
       run: |
@@ -162,7 +152,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Download architecture-specific binaries
       uses: actions/download-artifact@v4
@@ -221,7 +211,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v6
       with:
         submodules: 'recursive'
         fetch-depth: 0
@@ -331,9 +321,9 @@ jobs:
         echo "Using agentpprof version ${VERSION}"
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v6
       with:
-        node-version: '18'
+        node-version: '24'
 
     - name: Install dependencies
       run: |
@@ -430,7 +420,7 @@ jobs:
 
     steps:
     - name: Checkout validated release snapshot
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         ref: ${{ needs.release_prepare.outputs.publish_sha }}
         submodules: 'recursive'
@@ -441,9 +431,9 @@ jobs:
         toolchain: stable
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
-        node-version: '18'
+        node-version: '24'
 
     - name: Install dependencies
       run: |
@@ -704,7 +694,7 @@ jobs:
 
     steps:
     - name: Checkout release snapshot
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         ref: ${{ needs.release_prepare.outputs.publish_sha || github.sha }}
         submodules: 'recursive'
@@ -715,9 +705,9 @@ jobs:
         toolchain: stable
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
-        node-version: '18'
+        node-version: '24'
 
     - name: Install dependencies
       run: |

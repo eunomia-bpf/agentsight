@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build:wasm": "npx --yes wasm-pack@0.15.0 build ../agentsight-protocol --target web --out-dir ../frontend/src/generated/agentsight-protocol --no-pack",
+    "build:wasm": "npm exec --package=wasm-pack@0.15.0 -c \"wasm-pack build ../agentsight-protocol --target web --out-dir ../frontend/src/generated/agentsight-protocol --no-pack\"",
     "predev": "npm run build:wasm",
     "dev": "next dev",
     "prebuild": "npm run build:wasm",
