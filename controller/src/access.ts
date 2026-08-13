@@ -3,8 +3,14 @@
 
 export type Role = 'viewer' | 'operator' | 'admin' | 'owner';
 export type Plan = 'free' | 'pro' | 'team' | 'enterprise';
+export type EffectivePlan = Plan | 'unlimited';
 export type OrganizationKind = 'personal' | 'team';
 export type BillingStatus = 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled';
+
+// Billing is modeled now, but is intentionally not enforced during the hosted
+// preview. Keep persisted billing plans truthful while granting all registered
+// users the complete currently implemented feature set.
+export const HOSTED_PREVIEW_UNLIMITED = true;
 
 export type Action =
   | 'organization.read'
@@ -76,58 +82,28 @@ export const PLAN_CATALOG: Record<Plan, PlanDefinition> = {
   },
 };
 
+const VIEWER_ACTIONS: Action[] = [
+  'organization.read',
+  'member.read',
+  'node.read',
+  'node.info',
+  'evidence.read',
+  'session.read',
+  'config.read',
+  'billing.read',
+];
+const OPERATOR_ACTIONS: Action[] = [...VIEWER_ACTIONS, 'session.message'];
+const ADMIN_ACTIONS: Action[] = [
+  ...OPERATOR_ACTIONS,
+  'member.manage',
+  'node.manage',
+  'config.write',
+];
 const ROLE_ACTIONS: Record<Role, ReadonlySet<Action>> = {
-  viewer: new Set<Action>([
-    'organization.read',
-    'member.read',
-    'node.read',
-    'node.info',
-    'evidence.read',
-    'session.read',
-    'config.read',
-    'billing.read',
-  ]),
-  operator: new Set<Action>([
-    'organization.read',
-    'member.read',
-    'node.read',
-    'node.info',
-    'evidence.read',
-    'session.read',
-    'session.message',
-    'config.read',
-    'billing.read',
-  ]),
-  admin: new Set<Action>([
-    'organization.read',
-    'member.read',
-    'member.manage',
-    'node.read',
-    'node.manage',
-    'node.info',
-    'evidence.read',
-    'session.read',
-    'session.message',
-    'config.read',
-    'config.write',
-    'billing.read',
-  ]),
-  owner: new Set<Action>([
-    'organization.read',
-    'organization.manage',
-    'member.read',
-    'member.manage',
-    'node.read',
-    'node.manage',
-    'node.info',
-    'evidence.read',
-    'session.read',
-    'session.message',
-    'config.read',
-    'config.write',
-    'billing.read',
-    'billing.manage',
-  ]),
+  viewer: new Set(VIEWER_ACTIONS),
+  operator: new Set(OPERATOR_ACTIONS),
+  admin: new Set(ADMIN_ACTIONS),
+  owner: new Set([...ADMIN_ACTIONS, 'organization.manage', 'billing.manage']),
 };
 
 export interface UserIdentity {
@@ -156,7 +132,7 @@ export interface OrganizationAccess {
   kind: OrganizationKind;
   role: Role;
   plan: Plan;
-  effectivePlan: Plan;
+  effectivePlan: EffectivePlan;
   billingInterval: 'monthly' | 'annual' | null;
   billingStatus: BillingStatus;
   currentPeriodEnd: number | null;
@@ -180,19 +156,19 @@ export interface NodeRow {
 }
 
 const ACTIVE_BILLING = new Set<BillingStatus>(['active', 'trialing']);
-const MANAGED_PLANS = new Set<Plan>(['pro', 'team', 'enterprise']);
-const TEAM_PLANS = new Set<Plan>(['team', 'enterprise']);
+const MANAGED_PLANS = new Set<EffectivePlan>(['pro', 'team', 'enterprise', 'unlimited']);
+const TEAM_PLANS = new Set<EffectivePlan>(['team', 'enterprise', 'unlimited']);
 const VALID_CONFIG_KEY = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$/;
 
 export function roleAllows(role: Role, action: Action): boolean {
   return ROLE_ACTIONS[role]?.has(action) === true;
 }
 
-export function planAllowsManagedConnectivity(plan: Plan): boolean {
+export function planAllowsManagedConnectivity(plan: EffectivePlan): boolean {
   return MANAGED_PLANS.has(plan);
 }
 
-export function planAllowsMultipleMembers(plan: Plan): boolean {
+export function planAllowsMultipleMembers(plan: EffectivePlan): boolean {
   return TEAM_PLANS.has(plan);
 }
 
@@ -200,6 +176,10 @@ export function publicPricing() {
   return {
     currency: 'USD',
     plans: [PLAN_CATALOG.free, PLAN_CATALOG.pro, PLAN_CATALOG.team, PLAN_CATALOG.enterprise],
+    preview: {
+      unlimited: HOSTED_PREVIEW_UNLIMITED,
+      description: 'All registered users currently receive unlimited hosted preview access.',
+    },
     contributor_benefit: {
       entitlement: 'pro_lifetime',
       description: 'Meaningful AgentSight contributors receive personal Pro for life.',
@@ -208,10 +188,16 @@ export function publicPricing() {
   };
 }
 
-function effectivePlan(row: Pick<OrganizationRow, 'kind' | 'plan' | 'billing_status' | 'contributor_pro'>): Plan {
-  if (row.kind === 'personal' && Boolean(row.contributor_pro)) return 'pro';
-  if (row.plan === 'free') return 'free';
-  return ACTIVE_BILLING.has(row.billing_status) ? row.plan : 'free';
+function resolveEffectivePlan(
+  kind: OrganizationKind,
+  plan: Plan,
+  billingStatus: BillingStatus,
+  contributorPro = false,
+): EffectivePlan {
+  if (HOSTED_PREVIEW_UNLIMITED) return 'unlimited';
+  if (kind === 'personal' && contributorPro) return 'pro';
+  if (plan === 'free') return 'free';
+  return ACTIVE_BILLING.has(billingStatus) ? plan : 'free';
 }
 
 function organizationFromRow(row: OrganizationRow): OrganizationAccess {
@@ -221,7 +207,12 @@ function organizationFromRow(row: OrganizationRow): OrganizationAccess {
     kind: row.kind,
     role: row.role,
     plan: row.plan,
-    effectivePlan: effectivePlan(row),
+    effectivePlan: resolveEffectivePlan(
+      row.kind,
+      row.plan,
+      row.billing_status,
+      Boolean(row.contributor_pro),
+    ),
     billingInterval: row.billing_interval,
     billingStatus: row.billing_status,
     currentPeriodEnd: row.current_period_end,
@@ -459,9 +450,13 @@ export async function acceptInvite(
   ).bind(candidate.organization_id)
     .first<{ id: string; kind: OrganizationKind; plan: Plan; billing_status: BillingStatus }>();
   if (!organization || organization.kind !== 'team') throw new AccessError(400, 'invite_invalid');
-  const paidPlan = organization.plan !== 'free' && ACTIVE_BILLING.has(organization.billing_status)
-    ? organization.plan : 'free';
-  if (!planAllowsMultipleMembers(paidPlan)) throw new AccessError(402, 'team_plan_required');
+  if (!planAllowsMultipleMembers(resolveEffectivePlan(
+    organization.kind,
+    organization.plan,
+    organization.billing_status,
+  ))) {
+    throw new AccessError(402, 'team_plan_required');
+  }
 
   const consumed = await db.prepare(
     `UPDATE organization_invites SET consumed_at = ?1

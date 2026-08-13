@@ -1,13 +1,14 @@
-name: Deploy App Demo
+name: Deploy Hosted App
 
-# Builds the Next.js frontend as a static site and publishes it to the
-# `gh-pages` branch for app.agentsight.us. Visitors explicitly choose a Direct
-# Node, sign-in, or the retained sample snapshot.
+# Keep the hosted frontend and Controller on the same repository revision.
+# Controller migrations/Worker deploy first; app.agentsight.us is published only
+# after that succeeds, so a new frontend cannot outrun its API.
 
 on:
   push:
     branches: [ "master" ]
     paths:
+      - "controller/**"
       - "frontend/**"
       - "docs/example_record_ claude_init.log"
       - "docs/demo-*.png"
@@ -19,12 +20,44 @@ permissions:
   contents: write
 
 concurrency:
-  group: deploy-demo
+  group: deploy-hosted-app
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    name: Build and Publish App Demo
+  controller:
+    name: Deploy Controller
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: controller/package-lock.json
+
+      - name: Install Controller dependencies
+        working-directory: controller
+        run: npm ci
+
+      - name: Verify Controller
+        working-directory: controller
+        run: |
+          npm test
+          npm run check
+
+      - name: Apply migrations and deploy Controller
+        working-directory: controller
+        run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  app:
+    name: Build and Publish App
+    needs: controller
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -34,6 +67,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Prepare sample snapshot and images
         run: node frontend/scripts/prepare-sample.mjs
@@ -46,7 +81,7 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Publish demo to gh-pages
+      - name: Publish app to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
