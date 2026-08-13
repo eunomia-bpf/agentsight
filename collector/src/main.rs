@@ -9,7 +9,7 @@
 
 use clap::{Parser, Subcommand};
 use std::collections::VecDeque;
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 use std::path::PathBuf;
 use std::sync::{
     Arc, Mutex, OnceLock,
@@ -120,7 +120,7 @@ pub(crate) fn shutdown_requested() -> bool {
 }
 
 fn interactive_terminal_available() -> bool {
-    unsafe { libc::isatty(libc::STDIN_FILENO) == 1 && libc::isatty(libc::STDOUT_FILENO) == 1 }
+    std::io::stdin().is_terminal() && std::io::stdout().is_terminal()
 }
 
 fn top_uses_tui(plain: bool, interactive: bool) -> bool {
@@ -150,6 +150,7 @@ fn init_logging(suppress_terminal_output: bool) {
     let _ = builder.try_init();
 }
 
+#[cfg(unix)]
 async fn setup_signal_handler(suppress_terminal_output: bool) {
     let mut sigint = signal::unix::signal(signal::unix::SignalKind::interrupt())
         .expect("Failed to install SIGINT handler");
@@ -161,19 +162,27 @@ async fn setup_signal_handler(suppress_terminal_output: bool) {
             _ = sigint.recv() => {}
             _ = sigterm.recv() => {}
         }
-        if !suppress_terminal_output {
-            println!("\n\nReceived shutdown signal, shutting down...");
-
-            // Print HTTP filter metrics using the global function
-            print_global_http_filter_metrics();
-
-            // Print SSL filter metrics using the global function
-            print_global_ssl_filter_metrics();
-        }
-
-        SHUTDOWN_REQUESTED.store(true, Ordering::Relaxed);
-        shutdown_notify().notify_waiters();
+        notify_shutdown(suppress_terminal_output);
     });
+}
+
+#[cfg(not(unix))]
+async fn setup_signal_handler(suppress_terminal_output: bool) {
+    tokio::spawn(async move {
+        if signal::ctrl_c().await.is_ok() {
+            notify_shutdown(suppress_terminal_output);
+        }
+    });
+}
+
+fn notify_shutdown(suppress_terminal_output: bool) {
+    if !suppress_terminal_output {
+        println!("\n\nReceived shutdown signal, shutting down...");
+        print_global_http_filter_metrics();
+        print_global_ssl_filter_metrics();
+    }
+    SHUTDOWN_REQUESTED.store(true, Ordering::Relaxed);
+    shutdown_notify().notify_waiters();
 }
 
 #[derive(Parser)]
@@ -225,7 +234,7 @@ enum Commands {
         /// Local API port used while this device is bound.
         #[arg(long, default_value = "7395")]
         server_port: u16,
-        /// SQLite capture to serve (defaults to the latest agentsight-*.db).
+        /// SQLite capture to serve instead of live agent sessions.
         #[arg(long)]
         db: Option<String>,
         /// Static AgentSight app to open (official hosted app by default).
@@ -628,7 +637,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             app_url,
             endpoint,
         } => {
-            let db_path = configured_db_path(db).or_else(latest_session_db);
+            let db_path = configured_db_path(db);
             run_bind(
                 &cli.listen,
                 *server_port,

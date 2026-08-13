@@ -15,11 +15,9 @@ The AgentSight Frontend provides intuitive visualization of:
 
 ## Features
 
-### Overview Dashboard (landing view)
-- One-screen answer to *what happened and where to look next*
-- Token and model-call breakdown, process/file/network effect profile, CPU + RSS shape over time, and friction signals (repeated commands, failing exits, think-time gaps)
-- Every panel is derived from the materialized-view snapshot the collector serves, and drills into the existing Timeline / Process Tree / Log / Metrics / Nebula views for inspection
-- Hand-authored SVG charts (no chart dependency): faint grid, area fill, emphasized endpoint, and hover tooltip
+### Node overview (landing view)
+- Shows live and recently recorded agent sessions, current machine resources, and active coding plans
+- Opens session-scoped conversation, process, timeline, and event views without attributing unrelated Node-wide evidence to a session
 
 ### Agent Nebula
 - Repository file evolution: files as stars, path areas as stable colors, agent file actions as a timeline
@@ -27,7 +25,8 @@ The AgentSight Frontend provides intuitive visualization of:
 - Source of truth is the materialized view: `audit_events` with `audit_type=file` (path in `target`, action usually `write`)
 - Payload is bounded (default max 1500 stars, 400 frames) with `meta.shown_*` / `meta.total_*` so the UI can say “showing N of M”
 - Empty sessions show an honest empty state, not a blank or fabricated canvas
-- Transport: play/pause, scrub, speed; hover a star for path detail; open the path in Logs / Timeline
+- Transport: play/pause, scrub, speed; hover or select a star for path detail
+- Available as a Node-level view over embedded, Direct, and Controller relay transports; recorded demo data remains unchanged
 - Uses a tree-shaken ECharts scatter import (same chart surface as the CLI Agent Nebula renderer)
 
 ### Timeline View
@@ -58,7 +57,7 @@ The AgentSight Frontend provides intuitive visualization of:
 - **Styling**: Tailwind CSS with responsive design
 - **State Management**: React hooks and context
 - **Data Processing**: Real-time log parsing and event correlation
-- **Charts**: ECharts (scatter only, tree-shaken) for Agent Nebula; dashboard SVG remains dependency-free
+- **Charts**: ECharts (scatter only, tree-shaken) for Agent Nebula
 
 ## Quick Start
 
@@ -138,7 +137,7 @@ open http://localhost:7395/timeline
 - **Details**: Hover for quick info, click for full details
 
 #### Controls
-- **View Toggle**: Switch between Timeline, Process Tree, and Log views
+- **Node View Toggle**: Switch between the machine overview and Agent Nebula
 - **Sync Data**: Manual refresh from collector
 - **Clear Data**: Reset all loaded events
 - **Export**: Download filtered data

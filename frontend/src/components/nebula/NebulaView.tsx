@@ -17,7 +17,7 @@ import { ScatterChart } from 'echarts/charts';
 import { GraphicComponent, GridComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { useTranslation } from '@/i18n';
-import { fetchLocalNebula, type LocalConnection } from '@/lib/connection';
+import type { NodeClient } from '@/lib/nodeClient';
 import type { NebulaDocument, NebulaFrame, NebulaStar } from '@/types/nebula';
 
 // echarts tree-shaken registry (not a React hook)
@@ -29,7 +29,7 @@ const SPEEDS = [0.5, 1, 2, 4] as const;
 export type NebulaNavigateTarget = 'log' | 'timeline' | 'process-tree';
 
 interface NebulaViewProps {
-  connection: LocalConnection | null;
+  client: NodeClient | null;
   onNavigate?: (view: NebulaNavigateTarget, opts?: { path?: string }) => void;
 }
 
@@ -283,7 +283,7 @@ function areaLegend(
   };
 }
 
-export function NebulaView({ connection, onNavigate }: NebulaViewProps) {
+export function NebulaView({ client, onNavigate }: NebulaViewProps) {
   const { t } = useTranslation();
   const chartRef = useRef<HTMLDivElement | null>(null);
   const chart = useRef<EChartsType | null>(null);
@@ -300,8 +300,8 @@ export function NebulaView({ connection, onNavigate }: NebulaViewProps) {
     setLoading(true);
     setError('');
     try {
-      if (!connection) throw new Error('No AgentSight Node is connected.');
-      const payload = await fetchLocalNebula(connection);
+      if (!client) throw new Error('No AgentSight Node is connected.');
+      const payload = await client.nebula();
       setDoc(payload);
       // Land on the final frame so the full star field is visible; Play rewinds.
       setFrameIndex(Math.max(0, (payload.frames?.length ?? 1) - 1));
@@ -312,7 +312,7 @@ export function NebulaView({ connection, onNavigate }: NebulaViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [connection]);
+  }, [client]);
 
   useEffect(() => {
     void load();
@@ -533,20 +533,24 @@ export function NebulaView({ connection, onNavigate }: NebulaViewProps) {
             <code className="break-all font-mono text-gray-900">{selectedPath}</code>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => onNavigate?.('log', { path: selectedPath })}
-              className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-            >
-              {t('nebula.openLogs')}
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate?.('timeline', { path: selectedPath })}
-              className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-            >
-              {t('nebula.openTimeline')}
-            </button>
+            {onNavigate && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('log', { path: selectedPath })}
+                  className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  {t('nebula.openLogs')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('timeline', { path: selectedPath })}
+                  className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  {t('nebula.openTimeline')}
+                </button>
+              </>
+            )}
             <button
               type="button"
               onClick={() => setSelectedPath(null)}

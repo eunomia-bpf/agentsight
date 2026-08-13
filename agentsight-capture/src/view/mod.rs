@@ -50,7 +50,7 @@ pub struct MaterializedView {
     next_seq: u64,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct ViewCounts {
     llm_calls: i64,
     token_usage: i64,
@@ -79,6 +79,33 @@ struct PendingRequest {
 impl MaterializedView {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Copy the materialized rows without copying output sinks. Callers can
+    /// merge read-only supplemental sources for one response without mutating
+    /// the live capture view or publishing duplicate rows.
+    pub fn detached_copy(&self) -> Self {
+        Self {
+            source: self.source.clone(),
+            llm_calls: self.llm_calls.clone(),
+            token_usage: self.token_usage.clone(),
+            audit_events: self.audit_events.clone(),
+            process_nodes: self.process_nodes.clone(),
+            tool_calls: self.tool_calls.clone(),
+            sessions: self.sessions.clone(),
+            network_targets: self.network_targets.clone(),
+            resource_samples: self.resource_samples.clone(),
+            audit_order: self.audit_order.clone(),
+            sinks: Vec::new(),
+            pending: self.pending.clone(),
+            active_processes: self.active_processes.clone(),
+            counts: self.counts.clone(),
+            start_timestamp_ms: self.start_timestamp_ms,
+            end_timestamp_ms: self.end_timestamp_ms,
+            max_audit_events: self.max_audit_events,
+            max_resource_samples: self.max_resource_samples,
+            next_seq: self.next_seq,
+        }
     }
 
     pub fn bounded() -> Self {

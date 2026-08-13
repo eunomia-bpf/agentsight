@@ -88,13 +88,18 @@ agentsight bind
 ```
 
 The command starts an API on `127.0.0.1:7395` by default, opens a binding link,
-and remains in the foreground while the app reads AgentSight data. It uses the
-latest `agentsight-*.db` in the current directory when present, otherwise it
-reads the local agent session index. Pass `--db <capture.db>` to select a saved
-capture explicitly. A random access key is carried only in the URL fragment,
-removed from the visible URL by the SPA, and lasts only for that command
-process. Chrome may ask you to allow Local network access for a loopback or LAN
-Node.
+and remains in the foreground while the app reads AgentSight data. Without
+`--db`, it reads live processes and the local agent session index; pass
+`--db <capture.db>` to select a saved capture explicitly. The first screen is a
+live, machine-level `top` view of
+running and stopped agents, token use, coding plans, CPU, and RSS. Select a
+session to open its conversation, process tree and AI prompts, timeline, and
+detailed events; session CPU/RSS stays in that session header rather than a
+separate metrics page. Session detail keeps the newest 1,000 prompts, 2,000
+responses, and 2,000 tool events under bounded text budgets. The Node access key is stored in the OS AgentSight config
+directory and reused across restarts. A binding link carries it to the browser
+only in the URL fragment, which the SPA immediately removes from the visible
+URL. Chrome may ask you to allow Local network access for a loopback or LAN Node.
 
 Use `agentsight bind --no-open` to copy the link manually or `agentsight bind
 --qr` to print the same link as a QR code. The endpoint and presentation plane
@@ -111,11 +116,12 @@ agentsight bind --listen 0.0.0.0 --server-port 7395 \
 
 An unspecified listen address requires an explicit browser-reachable
 `--endpoint`. A non-loopback Node should use browser-trusted HTTPS; private
-transport alone does not override browser mixed-content rules. The access key
-authorizes anyone who possesses the fragment while the process
-is running. Direct mode does not upload session contents to AgentSight's
-control plane; optional sign-in stores only identity, session, and Node metadata
-there. Self-hosted sign-in also requires building the SPA with
+transport alone does not override browser mixed-content rules. Treat the access
+key as a long-lived secret: anyone who has it can use the Node API whenever that
+Node is reachable. Direct requests do not pass through AgentSight Cloud. When
+Controller Relay is enabled, selected requests and responses transit the Cloud
+runtime but are not persisted in D1; sign-in stores account, organization and
+Node coordination data. Self-hosted sign-in also requires building the SPA with
 `NEXT_PUBLIC_CONTROL_PLANE_URL` pointed at the matching Worker and setting that
 Worker's `APP_ORIGIN` to the SPA origin.
 

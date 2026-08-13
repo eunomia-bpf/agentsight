@@ -1,18 +1,22 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use crate::server::WebServer;
+use crate::server::{WebServer, relay_client};
 use crate::shutdown_notify;
 use crate::view::MaterializedView;
 use qrcode::QrCode;
 use qrcode::render::unicode;
-use std::net::{IpAddr, SocketAddr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+#[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
+use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 use url::{Url, form_urlencoded};
 
 const DEFAULT_APP_URL: &str = "https://app.agentsight.us/";
+const DEFAULT_CONTROLLER_URL: &str = "https://control.agentsight.us";
+const CONTROLLER_URL_ENV: &str = "AGENTSIGHT_CONTROLLER_URL";
 
 pub(crate) async fn run_bind(
     listen: &str,
@@ -33,15 +37,18 @@ pub(crate) async fn run_bind(
         None => endpoint_url(ip, port),
     }?;
     let (app_url, allowed_origin) = normalize_app_url(app_url)?;
-    let access_token = random_token();
+    let controller_url = controller_url_for_app(&app_url)?;
+    let access_token = local_access_token()?;
     let bind_url = build_bind_url(&app_url, &endpoint, &access_token)?;
     let node = local_node_metadata()?;
     let view = MaterializedView::shared_bounded();
-    let server = WebServer::new_with_db_path(view, db_path.clone())?.with_direct_access(
-        access_token,
-        node,
-        allowed_origin,
-    );
+    let server = WebServer::new_with_db_path(view, db_path.clone())?;
+    let server = if db_path.is_none() {
+        server.with_live_host()
+    } else {
+        server
+    };
+    let server = server.with_direct_access(access_token.clone(), node.clone(), allowed_origin);
 
     let handle = tokio::spawn(async move { server.start(addr).await });
     tokio::time::sleep(Duration::from_millis(100)).await;
@@ -53,14 +60,30 @@ pub(crate) async fn run_bind(
         };
     }
 
+    let relay_handle = controller_url.map(|controller_url| {
+        tokio::spawn(relay_client::run(
+            controller_url,
+            node.id.clone(),
+            access_token.clone(),
+            relay_local_endpoint(ip, port),
+        ))
+    });
+
     println!("Bind this device at:\n{bind_url}");
     println!(
-        "The access key lasts only while this command is running and is removed from the browser URL after opening."
+        "The access key is stored locally, survives Node restarts, and is removed from the browser URL after opening."
     );
+    if relay_handle.is_some() {
+        println!(
+            "Controller relay is enabled for signed-in remote browsers; Direct access remains preferred."
+        );
+    }
     if let Some(db_path) = db_path {
         println!("Serving saved AgentSight data from {db_path}.");
     } else {
-        println!("Serving the local agent session index; pass --db for a saved capture.");
+        println!(
+            "Serving the live agent overview and local session history; pass --db for a saved capture."
+        );
     }
     if qr {
         print_qr(&bind_url)?;
@@ -70,6 +93,9 @@ pub(crate) async fn run_bind(
     }
 
     shutdown_notify().notified().await;
+    if let Some(relay_handle) = relay_handle {
+        relay_handle.abort();
+    }
     handle.abort();
     Ok(())
 }
@@ -86,6 +112,19 @@ fn endpoint_url(ip: IpAddr, port: u16) -> Result<String, Box<dyn std::error::Err
     })
 }
 
+fn relay_local_endpoint(ip: IpAddr, port: u16) -> String {
+    match ip {
+        IpAddr::V4(ip) if ip.is_unspecified() => {
+            format!("http://{}:{port}", Ipv4Addr::LOCALHOST)
+        }
+        IpAddr::V6(ip) if ip.is_unspecified() => {
+            format!("http://[{}]:{port}", Ipv6Addr::LOCALHOST)
+        }
+        IpAddr::V4(ip) => format!("http://{ip}:{port}"),
+        IpAddr::V6(ip) => format!("http://[{ip}]:{port}"),
+    }
+}
+
 fn random_token() -> String {
     format!(
         "{}{}",
@@ -94,13 +133,40 @@ fn random_token() -> String {
     )
 }
 
-fn local_node_metadata()
--> Result<crate::server::NodeMetadata, Box<dyn std::error::Error + Send + Sync>> {
-    let config_dir = dirs::config_dir()
+fn config_dir() -> Result<std::path::PathBuf, Box<dyn std::error::Error + Send + Sync>> {
+    let dir = dirs::config_dir()
         .ok_or("could not find the user configuration directory")?
         .join("agentsight");
-    std::fs::create_dir_all(&config_dir)?;
-    let id_path = config_dir.join("node-id");
+    std::fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
+fn local_access_token() -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let path = config_dir()?.join("access-token");
+    match std::fs::read_to_string(&path) {
+        Ok(value) if valid_access_token(value.trim()) => Ok(value.trim().to_string()),
+        Ok(_) => Err(format!("invalid AgentSight access token at {}", path.display()).into()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            let token = random_token();
+            let mut file = create_private_file(&path)?;
+            use std::io::Write;
+            writeln!(file, "{token}")?;
+            Ok(token)
+        }
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn valid_access_token(value: &str) -> bool {
+    (32..=256).contains(&value.len())
+        && value
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-'))
+}
+
+fn local_node_metadata()
+-> Result<crate::server::NodeMetadata, Box<dyn std::error::Error + Send + Sync>> {
+    let id_path = config_dir()?.join("node-id");
     let id = match std::fs::read_to_string(&id_path) {
         Ok(value) if valid_node_id(value.trim()) => value.trim().to_string(),
         Ok(_) => {
@@ -110,11 +176,7 @@ fn local_node_metadata()
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             let id = format!("node_{}", uuid::Uuid::new_v4().simple());
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .mode(0o600)
-                .open(&id_path)?;
+            let mut file = create_private_file(&id_path)?;
             use std::io::Write;
             writeln!(file, "{id}")?;
             id
@@ -125,12 +187,21 @@ fn local_node_metadata()
         .ok()
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
+        .or_else(|| std::env::var("COMPUTERNAME").ok())
         .unwrap_or_else(|| "AgentSight Node".to_string());
     Ok(crate::server::NodeMetadata {
         id,
         name,
         version: env!("CARGO_PKG_VERSION").to_string(),
     })
+}
+
+fn create_private_file(path: &Path) -> std::io::Result<std::fs::File> {
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    options.mode(0o600);
+    options.open(path)
 }
 
 fn valid_node_id(value: &str) -> bool {
@@ -154,6 +225,37 @@ fn normalize_endpoint(value: &str) -> Result<String, Box<dyn std::error::Error +
     endpoint.set_query(None);
     endpoint.set_fragment(None);
     Ok(endpoint.to_string().trim_end_matches('/').to_string())
+}
+
+fn normalize_controller_url(
+    value: &str,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let mut controller = Url::parse(value)?;
+    if !matches!(controller.scheme(), "http" | "https")
+        || controller.host().is_none()
+        || !controller.username().is_empty()
+        || controller.password().is_some()
+    {
+        return Err("AgentSight Controller URL must be an http(s) URL without credentials".into());
+    }
+    controller.set_path("");
+    controller.set_query(None);
+    controller.set_fragment(None);
+    Ok(controller.to_string().trim_end_matches('/').to_string())
+}
+
+fn controller_url_for_app(
+    app_url: &Url,
+) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
+    if let Ok(value) = std::env::var(CONTROLLER_URL_ENV) {
+        if !value.trim().is_empty() {
+            return Ok(Some(normalize_controller_url(value.trim())?));
+        }
+    }
+    if app_url.origin().ascii_serialization() == "https://app.agentsight.us" {
+        return Ok(Some(DEFAULT_CONTROLLER_URL.to_string()));
+    }
+    Ok(None)
 }
 
 fn normalize_app_url(
@@ -205,8 +307,26 @@ fn print_qr(value: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 }
 
 fn open_browser(url: &str) -> bool {
-    Command::new("xdg-open")
-        .arg(url)
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut command = Command::new("explorer.exe");
+        command.arg(url);
+        command
+    };
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut command = Command::new("open");
+        command.arg(url);
+        command
+    };
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut command = {
+        let mut command = Command::new("xdg-open");
+        command.arg(url);
+        command
+    };
+
+    command
         .spawn()
         .map(|mut child| {
             std::thread::spawn(move || {
@@ -238,6 +358,30 @@ mod tests {
     }
 
     #[test]
+    fn direct_endpoint_accepts_private_ip_url() {
+        assert_eq!(
+            normalize_endpoint("http://192.168.50.12:7395").unwrap(),
+            "http://192.168.50.12:7395"
+        );
+    }
+
+    #[test]
+    fn direct_endpoint_accepts_https_hostname_and_strips_path() {
+        assert_eq!(
+            normalize_endpoint("https://lab.example.net/agentsight?ignored=1#fragment").unwrap(),
+            "https://lab.example.net"
+        );
+    }
+
+    #[test]
+    fn relay_uses_loopback_for_unspecified_bind_addresses() {
+        assert_eq!(
+            relay_local_endpoint("0.0.0.0".parse().unwrap(), 7395),
+            "http://127.0.0.1:7395"
+        );
+    }
+
+    #[test]
     fn unspecified_listen_requires_a_public_endpoint() {
         assert!(endpoint_url("0.0.0.0".parse().unwrap(), 7395).is_err());
     }
@@ -254,5 +398,12 @@ mod tests {
         assert!(valid_node_id("node_0123abcdef"));
         assert!(!valid_node_id("../../node_secret"));
         assert!(!valid_node_id("machine"));
+    }
+
+    #[test]
+    fn access_tokens_are_narrowly_validated() {
+        assert!(valid_access_token(&"a".repeat(64)));
+        assert!(!valid_access_token("short"));
+        assert!(!valid_access_token(&format!("{}!", "a".repeat(63))));
     }
 }

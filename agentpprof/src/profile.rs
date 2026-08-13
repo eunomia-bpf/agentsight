@@ -1815,6 +1815,7 @@ mod tests {
         UserRequest {
             index,
             ts_ms: Some(ts_ms),
+            text: preview.to_string(),
             text_hash: hash.to_string(),
             preview: preview.to_string(),
             tag: tag.to_string(),
@@ -1870,6 +1871,7 @@ mod tests {
             prompt_index,
             model: model.to_string(),
             source_id: String::new(),
+            text: "answer".to_string(),
             text_hash: "l0".to_string(),
             preview: "answer".to_string(),
             input_tokens: 1,

@@ -79,14 +79,14 @@ pub fn runner_error_from_event(event: &Event) -> Option<RunnerError> {
 }
 
 struct ProbeProcessGuard {
-    pgid: Option<libc::pid_t>,
+    pgid: Option<u32>,
     needs_sudo: bool,
 }
 
 impl ProbeProcessGuard {
     fn new(pid: Option<u32>, needs_sudo: bool) -> Self {
         Self {
-            pgid: pid.map(|pid| pid as libc::pid_t),
+            pgid: pid,
             needs_sudo,
         }
     }
@@ -104,11 +104,29 @@ impl ProbeProcessGuard {
                 .args(["-n", "kill", "-TERM", "--", &format!("-{pgid}")])
                 .status();
         } else {
-            unsafe {
-                libc::killpg(pgid, libc::SIGTERM);
-            }
+            terminate_process_group(pgid);
         }
     }
+}
+
+#[cfg(unix)]
+fn terminate_process_group(pgid: u32) {
+    unsafe {
+        libc::killpg(pgid as libc::pid_t, libc::SIGTERM);
+    }
+}
+
+#[cfg(not(unix))]
+fn terminate_process_group(_pgid: u32) {}
+
+#[cfg(unix)]
+fn needs_sudo() -> bool {
+    unsafe { libc::geteuid() != 0 }
+}
+
+#[cfg(not(unix))]
+fn needs_sudo() -> bool {
+    false
 }
 
 impl Drop for ProbeProcessGuard {
@@ -217,7 +235,7 @@ impl BinaryExecutor {
     /// eBPF programs get the privileges they need while the parent process
     /// (and the user's agent) stay unprivileged.
     pub async fn get_json_stream(&self) -> Result<JsonStream, RunnerError> {
-        let needs_sudo = unsafe { libc::geteuid() } != 0;
+        let needs_sudo = needs_sudo();
 
         if needs_sudo {
             log::info!(
@@ -244,6 +262,7 @@ impl BinaryExecutor {
         };
         cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
         cmd.kill_on_drop(true);
+        #[cfg(unix)]
         cmd.process_group(0);
 
         // Add additional arguments if any
