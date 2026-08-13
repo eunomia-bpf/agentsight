@@ -89,7 +89,7 @@ test('built-in roles grant semantic actions instead of HTTP routes', () => {
   assert.equal(roleAllows('owner', 'billing.manage'), true);
 });
 
-test('pricing catalog matches launch prices and contributor boundary', () => {
+test('pricing catalog matches launch prices, preview access, and contributor boundary', () => {
   const pricing = publicPricing();
   const plans = Object.fromEntries(pricing.plans.map((plan) => [plan.id, plan]));
   assert.equal(plans.free.monthly_cents, 0);
@@ -98,16 +98,19 @@ test('pricing catalog matches launch prices and contributor boundary', () => {
   assert.equal(plans.team.monthly_cents, 1000);
   assert.equal(plans.team.per_seat, true);
   assert.equal(plans.enterprise.custom, true);
+  assert.equal(pricing.preview.unlimited, true);
   assert.equal(pricing.contributor_benefit.entitlement, 'pro_lifetime');
   assert.equal(pricing.contributor_benefit.includes_team, false);
 });
 
-test('plan gates separate local, managed personal, and multi-member use', () => {
+test('plan gates preserve future billing semantics while preview is unlimited', () => {
   assert.equal(planAllowsManagedConnectivity('free'), false);
   assert.equal(planAllowsManagedConnectivity('pro'), true);
   assert.equal(planAllowsMultipleMembers('pro'), false);
   assert.equal(planAllowsMultipleMembers('team'), true);
   assert.equal(planAllowsMultipleMembers('enterprise'), true);
+  assert.equal(planAllowsManagedConnectivity('unlimited'), true);
+  assert.equal(planAllowsMultipleMembers('unlimited'), true);
 });
 
 test('relay protocol routes map to the same semantic permissions as direct', () => {

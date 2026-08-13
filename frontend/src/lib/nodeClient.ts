@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-import {
-  controllerUrl,
-  mintNodeCapability,
-  type CloudNode,
-  type LocalConnection,
-} from '@/lib/connection';
+import { controllerUrl, type CloudNode } from '@/lib/controllerClient';
+export { registerControllerNode, relayOnline } from '@/lib/controllerClient';
 import initProtocol, {
   session_message_body as sessionMessageBody,
   session_messages_path as sessionMessagesPath,
@@ -17,14 +13,24 @@ import type { AgentSightSnapshot } from '@/types/event';
 
 const DIRECT_CONNECTIONS_KEY = 'agentsight.direct-connections.v1';
 const DIRECT_SYNC_ENABLED_KEY = 'agentsight.direct-sync-enabled.v1';
+const LEGACY_CONNECTION_KEY = 'agentsight.local-connection.v1';
 const REQUEST_TIMEOUT_MS = 12_000;
 const DIRECT_CAPABILITY_TTL_SECONDS = 12 * 60 * 60;
 const DIRECT_ACTIONS = ['node.info', 'evidence.read', 'session.read', 'session.message'];
 let protocolReady: Promise<unknown> | null = null;
+let launchPairing: Promise<DirectProbeResult> | null = null;
 
 type NodeAddressSpace = 'local' | 'loopback';
 type LocalFetchInit = RequestInit & { targetAddressSpace?: NodeAddressSpace };
 type NodeRequest = (path: string, init?: RequestInit) => Promise<Response>;
+
+export interface LocalConnection {
+  endpoint: string;
+  accessToken: string;
+  nodeId: string;
+  nodeName: string;
+  version: string;
+}
 
 export type NodeTransport = 'direct' | 'relay' | 'embedded';
 
@@ -54,6 +60,11 @@ export interface DirectProbeResult {
   bootstrapToken: string;
 }
 
+export interface EmbeddedServer {
+  authorizationRequired: boolean;
+  connection: LocalConnection;
+}
+
 export class NodeRequestError extends Error {
   readonly status: number;
 
@@ -72,11 +83,8 @@ async function protocol<T>(read: () => T): Promise<T> {
 
 function expectedNodeAddressSpace(endpoint: URL): NodeAddressSpace {
   const hostname = endpoint.hostname.toLowerCase().replace(/^\[|\]$/g, '');
-  if (hostname === 'localhost' || hostname.endsWith('.localhost')
-      || hostname === '::1' || /^127(?:\.|$)/.test(hostname)) {
-    return 'loopback';
-  }
-  return 'local';
+  return hostname === 'localhost' || hostname.endsWith('.localhost')
+      || hostname === '::1' || /^127(?:\.|$)/.test(hostname) ? 'loopback' : 'local';
 }
 
 function mergedHeaders(base?: HeadersInit, extra?: HeadersInit): Headers {
@@ -121,26 +129,34 @@ async function directFetch(input: string, init: RequestInit = {}): Promise<Respo
       if (init.signal?.aborted) throw error;
     }
   }
-  const localOptions: LocalFetchInit = { ...options };
-  localOptions.targetAddressSpace = expectedNodeAddressSpace(endpoint);
+  const localOptions: LocalFetchInit = { ...options, targetAddressSpace: expectedNodeAddressSpace(endpoint) };
   return fetch(input, localOptions);
 }
 
 async function jsonResponse<T>(response: Response, fallback: string): Promise<T> {
   if (!response.ok) {
     const body = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-    throw new NodeRequestError(
-      response.status,
-      body.detail || body.error || `${fallback} (${response.status}).`,
-    );
+    throw new NodeRequestError(response.status, body.detail || body.error || `${fallback} (${response.status}).`);
   }
   return response.json() as Promise<T>;
 }
 
-export async function probeDirectConnection(
-  rawEndpoint: string,
-  bootstrapToken: string,
-): Promise<DirectProbeResult> {
+async function mintNodeCapability(endpoint: string, bootstrapToken: string): Promise<string> {
+  const body = await jsonResponse<{ access_token?: unknown }>(
+    await directFetch(`${endpoint}/api/v1/capabilities`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${bootstrapToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actions: DIRECT_ACTIONS, session_id: null, ttl_seconds: DIRECT_CAPABILITY_TTL_SECONDS }),
+    }),
+    'AgentSight capability exchange failed',
+  );
+  if (typeof body.access_token !== 'string' || !validCredential(body.access_token)) {
+    throw new NodeRequestError(502, 'AgentSight returned an invalid capability.');
+  }
+  return body.access_token;
+}
+
+export async function pairDirectNode(rawEndpoint: string, bootstrapToken: string): Promise<DirectProbeResult> {
   const endpoint = normalizeDirectEndpoint(rawEndpoint);
   const token = bootstrapToken.trim();
   if (!validCredential(token)) {
@@ -158,31 +174,28 @@ export async function probeDirectConnection(
       'Could not reach that Direct URL. Check the IP/hostname, Node listen address, and browser local-network permission.',
     );
   }
-  const body = await jsonResponse<{
-    node?: { id?: string; name?: string; version?: string };
-  }>(response, 'Direct Node probe failed');
+  const body = await jsonResponse<{ node?: { id?: string; name?: string; version?: string } }>(
+    response,
+    'Direct Node probe failed',
+  );
   if (!body.node?.id || !body.node.name) {
     throw new NodeRequestError(502, 'The Direct URL did not return valid AgentSight Node metadata.');
   }
-  let scoped: { accessToken: string };
+
+  let accessToken: string;
   try {
-    scoped = await mintNodeCapability(
-      endpoint,
-      token,
-      DIRECT_ACTIONS,
-      DIRECT_CAPABILITY_TTL_SECONDS,
-    );
+    accessToken = await mintNodeCapability(endpoint, token);
   } catch (cause) {
     throw new NodeRequestError(
       cause instanceof NodeRequestError ? cause.status : 401,
-      'That credential can inspect this Node but cannot mint Direct capabilities. Use the Node bootstrap key.',
+      'That credential cannot mint Direct capabilities. Use the Node bootstrap key from agentsight bind.',
     );
   }
   return {
     bootstrapToken: token,
     connection: {
       endpoint,
-      accessToken: scoped.accessToken,
+      accessToken,
       nodeId: body.node.id,
       nodeName: body.node.name,
       version: body.node.version || 'unknown',
@@ -190,26 +203,55 @@ export async function probeDirectConnection(
   };
 }
 
-function nodeClient(
-  nodeId: string,
-  nodeName: string,
-  transport: NodeTransport,
-  request: NodeRequest,
-): NodeClient {
+export function pairDirectNodeFromFragment(params: URLSearchParams): Promise<DirectProbeResult> {
+  if (params.get('action') !== 'bind' || params.get('v') !== '1') {
+    return Promise.reject(new NodeRequestError(400, 'Unsupported AgentSight binding link.'));
+  }
+  if (!launchPairing) {
+    launchPairing = pairDirectNode(params.get('endpoint') || '', params.get('token') || '');
+  }
+  return launchPairing;
+}
+
+export async function detectEmbeddedServer(): Promise<EmbeddedServer | null> {
+  try {
+    const endpoint = window.location.origin;
+    const response = await fetch(`${endpoint}/api/v1/info`, {
+      cache: 'no-store', signal: AbortSignal.timeout(2_000),
+    });
+    if (!response.ok) return null;
+    const body = await response.json() as {
+      protocol_version?: number; product?: string; authorization_required?: boolean; pairing_required?: boolean;
+    };
+    if (body.product !== 'agentsight' || body.protocol_version !== 1) return null;
+    return {
+      authorizationRequired: body.authorization_required === true || body.pairing_required === true,
+      connection: {
+        endpoint,
+        accessToken: '',
+        nodeId: 'local-embedded',
+        nodeName: 'Local AgentSight',
+        version: 'embedded',
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+function nodeClient(nodeId: string, nodeName: string, transport: NodeTransport, request: NodeRequest): NodeClient {
   return {
     nodeId,
     nodeName,
     transport,
     async snapshot() {
       return jsonResponse<AgentSightSnapshot>(
-        await request(await protocol(() => snapshotPath(50_000))),
-        'AgentSight Node snapshot failed',
+        await request(await protocol(() => snapshotPath(50_000))), 'AgentSight Node snapshot failed',
       );
     },
     async session(sessionId) {
       return jsonResponse<SessionDetail>(
-        await request(await protocol(() => sessionPath(encodeURIComponent(sessionId)))),
-        'Session request failed',
+        await request(await protocol(() => sessionPath(encodeURIComponent(sessionId)))), 'Session request failed',
       );
     },
     async submitMessage(sessionId, message) {
@@ -226,23 +268,19 @@ function nodeClient(
 }
 
 export function directNodeClient(connection: LocalConnection): NodeClient {
-  const authorization = connection.accessToken
-    ? { Authorization: `Bearer ${connection.accessToken}` }
-    : undefined;
+  const authorization = connection.accessToken ? { Authorization: `Bearer ${connection.accessToken}` } : undefined;
   return nodeClient(
     connection.nodeId,
     connection.nodeName,
     connection.accessToken ? 'direct' : 'embedded',
     (path, init = {}) => directFetch(`${connection.endpoint}${path}`, {
-      ...init,
-      headers: mergedHeaders(authorization, init.headers),
+      ...init, headers: mergedHeaders(authorization, init.headers),
     }),
   );
 }
 
 function relayFetch(token: string, nodeId: string, suffix: string, init: RequestInit = {}) {
-  const headers = mergedHeaders(init.headers);
-  headers.set('Authorization', `Bearer ${token}`);
+  const headers = mergedHeaders(init.headers, { Authorization: `Bearer ${token}` });
   return fetch(`${controllerUrl}/v1/nodes/${encodeURIComponent(nodeId)}/relay${suffix}`, {
     ...init,
     cache: 'no-store',
@@ -258,123 +296,6 @@ export function relayNodeClient(node: CloudNode, token: string): NodeClient {
     'relay',
     (path, init = {}) => relayFetch(token, node.id, path.replace(/^\/api\/v1/, ''), init),
   );
-}
-
-export async function relayOnline(token: string, nodeId: string): Promise<boolean> {
-  const response = await relayFetch(token, nodeId, '/status');
-  if (!response.ok) return false;
-  const body = await response.json().catch(() => ({})) as { online?: unknown };
-  return body.online === true;
-}
-
-export async function requestControllerNodeCapability(
-  token: string,
-  nodeId: string,
-  actions: string[],
-  sessionId?: string | null,
-): Promise<{ accessToken: string; expiresAt: number }> {
-  const response = await fetch(`${controllerUrl}/v1/nodes/${encodeURIComponent(nodeId)}/capabilities`, {
-    method: 'POST',
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ actions, session_id: sessionId || null, ttl_seconds: 300 }),
-  });
-  return jsonResponse<{
-    access_token: string;
-    expires_at: number;
-  }>(response, 'Could not obtain Node capability').then((body) => ({
-    accessToken: body.access_token,
-    expiresAt: body.expires_at,
-  }));
-}
-
-export async function registerControllerNode(
-  token: string,
-  organizationId: string,
-  connection: LocalConnection,
-  bootstrapToken: string,
-  saveDirect = directCloudSyncEnabled(connection.nodeId),
-): Promise<void> {
-  const response = await fetch(`${controllerUrl}/v1/nodes`, {
-    method: 'POST',
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      id: connection.nodeId,
-      organization_id: organizationId,
-      name: connection.nodeName,
-      version: connection.version,
-      relay_token: bootstrapToken,
-      ...(saveDirect ? {
-        direct_config: {
-          endpoint: connection.endpoint,
-          access_key: bootstrapToken,
-        },
-      } : {}),
-    }),
-  });
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({})) as { error?: string };
-    throw new NodeRequestError(
-      response.status,
-      body.error || `Could not register this Node (${response.status}).`,
-    );
-  }
-}
-
-export async function fetchControllerDirectConfig(
-  token: string,
-  node: CloudNode,
-): Promise<{ endpoint: string; bootstrapToken: string }> {
-  const response = await fetch(
-    `${controllerUrl}/v1/nodes/${encodeURIComponent(node.id)}/direct`,
-    {
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    },
-  );
-  const body = await response.json().catch(() => ({})) as {
-    endpoint?: unknown;
-    access_key?: unknown;
-    error?: string;
-  };
-  if (!response.ok || typeof body.endpoint !== 'string'
-      || typeof body.access_key !== 'string') {
-    throw new NodeRequestError(
-      response.status,
-      body.error || `Could not load saved Direct config (${response.status}).`,
-    );
-  }
-  return {
-    endpoint: normalizeDirectEndpoint(body.endpoint),
-    bootstrapToken: body.access_key,
-  };
-}
-
-export async function forgetControllerDirectConfig(token: string, nodeId: string): Promise<void> {
-  const response = await fetch(
-    `${controllerUrl}/v1/nodes/${encodeURIComponent(nodeId)}/direct`,
-    {
-      method: 'DELETE',
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      headers: { Authorization: `Bearer ${token}` },
-    },
-  );
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({})) as { error?: string };
-    throw new NodeRequestError(
-      response.status,
-      body.error || `Could not remove saved Direct config (${response.status}).`,
-    );
-  }
-  setDirectCloudSync(nodeId, false);
 }
 
 export function directCloudSyncEnabled(nodeId: string): boolean {
@@ -398,36 +319,57 @@ export function setDirectCloudSync(nodeId: string, enabled: boolean): void {
   window.localStorage.setItem(DIRECT_SYNC_ENABLED_KEY, JSON.stringify(next));
 }
 
-export function loadDirectConnections(): Record<string, LocalConnection> {
+function parseConnection(value: unknown): LocalConnection | null {
+  if (!value || typeof value !== 'object') return null;
+  const connection = value as Partial<LocalConnection>;
+  if (typeof connection.endpoint !== 'string'
+      || typeof connection.accessToken !== 'string' || !validCredential(connection.accessToken)
+      || typeof connection.nodeId !== 'string' || typeof connection.nodeName !== 'string'
+      || typeof connection.version !== 'string') return null;
   try {
-    const raw = window.localStorage.getItem(DIRECT_CONNECTIONS_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, LocalConnection>;
-    const result: Record<string, LocalConnection> = {};
-    for (const [nodeId, connection] of Object.entries(parsed)) {
-      if (connection && connection.nodeId === nodeId
-          && typeof connection.endpoint === 'string'
-          && typeof connection.accessToken === 'string'
-          && typeof connection.nodeName === 'string'
-          && typeof connection.version === 'string'
-          && validCredential(connection.accessToken)) {
-        result[nodeId] = connection;
-      }
-    }
-    return result;
+    return { ...connection, endpoint: normalizeDirectEndpoint(connection.endpoint) } as LocalConnection;
   } catch {
-    return {};
+    return null;
   }
 }
 
-export function saveDirectConnection(connection: LocalConnection): void {
-  const connections = loadDirectConnections();
-  connections[connection.nodeId] = connection;
+function persistDirectConnections(connections: Record<string, LocalConnection>): void {
   window.localStorage.setItem(DIRECT_CONNECTIONS_KEY, JSON.stringify(connections));
+}
+
+export function loadDirectConnections(): Record<string, LocalConnection> {
+  const result: Record<string, LocalConnection> = {};
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(DIRECT_CONNECTIONS_KEY) || '{}') as Record<string, unknown>;
+    for (const [nodeId, value] of Object.entries(parsed)) {
+      const connection = parseConnection(value);
+      if (connection?.nodeId === nodeId) result[nodeId] = connection;
+    }
+  } catch {
+    // Ignore malformed browser state and rebuild it from valid entries.
+  }
+
+  // One-way compatibility migration from the pre-fleet single-Node key.
+  try {
+    const legacyRaw = window.localStorage.getItem(LEGACY_CONNECTION_KEY);
+    const legacy = legacyRaw ? parseConnection(JSON.parse(legacyRaw)) : null;
+    if (legacy && !result[legacy.nodeId]) result[legacy.nodeId] = legacy;
+  } catch {
+    // Invalid legacy state is simply discarded.
+  }
+  if (window.localStorage.getItem(LEGACY_CONNECTION_KEY) !== null) {
+    window.localStorage.removeItem(LEGACY_CONNECTION_KEY);
+    persistDirectConnections(result);
+  }
+  return result;
+}
+
+export function saveDirectConnection(connection: LocalConnection): void {
+  persistDirectConnections({ ...loadDirectConnections(), [connection.nodeId]: connection });
 }
 
 export function forgetDirectConnection(nodeId: string): void {
   const connections = loadDirectConnections();
   delete connections[nodeId];
-  window.localStorage.setItem(DIRECT_CONNECTIONS_KEY, JSON.stringify(connections));
+  persistDirectConnections(connections);
 }
