@@ -11,6 +11,7 @@ import {
 import {
   planAllowsManagedConnectivity,
   planAllowsMultipleMembers,
+  registerNode,
   relayAction,
 } from './access.ts';
 
@@ -75,6 +76,34 @@ test('Controller accepts only stable AgentSight Node IDs', () => {
   assert.equal(validNodeId('node_0123abcdef'), true);
   assert.equal(validNodeId('../../node_secret'), false);
   assert.equal(validNodeId('machine'), false);
+});
+
+test('Node registration commits metadata and credentials in one D1 batch', async () => {
+  let batchSize = 0;
+  const queries: string[] = [];
+  const organization = {
+    id: 'org_test', name: 'Test', kind: 'team', plan: 'free', billing_interval: null,
+    billing_status: 'inactive', current_period_end: null, created_at: 1,
+    role: 'owner', contributor_pro: 0,
+  };
+  const db = {
+    prepare: (query: string) => {
+      queries.push(query);
+      return { bind: (..._values: unknown[]) => ({
+        first: async () => query.includes('FROM organizations') ? organization : null,
+      }) };
+    },
+    batch: async (statements: D1PreparedStatement[]) => {
+      batchSize = statements.length;
+      return [{ success: true, meta: { changes: 1 } }];
+    },
+  } as D1Database;
+  await registerNode(db, 'user_test', 'org_test', {
+    id: 'node_0123abcdef', name: 'Test Node', relayTokenHash: 'hash',
+    directConfig: { ciphertext: 'ciphertext', iv: 'iv', version: 1 },
+  });
+  assert.equal(batchSize, 2);
+  assert.match(queries.at(-1) || '', /nodes WHERE id = \?1 AND organization_id = \?7/);
 });
 
 test('Node deletion paths accept one validated Node ID only', () => {

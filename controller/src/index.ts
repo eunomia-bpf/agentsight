@@ -39,7 +39,6 @@ import {
   requireManagedPlan,
   requireOrganizationAction,
   setBilling,
-  saveDirectConfig,
   updateMemberRole,
   validNodeId,
 } from './access.ts';
@@ -50,7 +49,7 @@ import {
   proxyBrowserRelay,
   proxyNodeRequest,
   relayNodeSocketId,
-  saveRelayCredential,
+  relayTokenHash,
   validRelayToken,
   type RelayEnv,
 } from './relay.ts';
@@ -254,19 +253,14 @@ export default {
         const organizationId = typeof body.organization_id === 'string' && body.organization_id
           ? body.organization_id
           : await ensurePersonalOrganization(env.DB, user);
-        await registerNode(env.DB, user.id, organizationId, {
-          id: body.id,
-          name: body.name.trim(),
-          version: typeof body.version === 'string' ? body.version : null,
-        });
+        let relayHash: string | null = null;
         if (body.relay_token !== undefined) {
           if (typeof body.relay_token !== 'string' || !validRelayToken(body.relay_token)) {
             throw new AccessError(400, 'invalid_relay_token');
           }
-          if (!await saveRelayCredential(env.DB, body.id, body.relay_token)) {
-            throw new AccessError(400, 'relay_enrollment_failed');
-          }
+          relayHash = await relayTokenHash(body.relay_token);
         }
+        let directConfig;
         if (body.direct_config !== undefined) {
           const endpoint = typeof body.direct_config.endpoint === 'string'
             ? normalizeDirectEndpoint(body.direct_config.endpoint) : null;
@@ -275,15 +269,17 @@ export default {
           if (!endpoint || !validRelayToken(accessKey)) {
             throw new AccessError(400, 'invalid_direct_config');
           }
-          await saveDirectConfig(
-            env.DB,
-            user.id,
-            body.id,
-            await encryptDirectConfig(requiredDirectConfigKey(env), user.id, body.id, {
-              v: 1, endpoint, accessKey,
-            }),
-          );
+          directConfig = await encryptDirectConfig(requiredDirectConfigKey(env), user.id, body.id, {
+            v: 1, endpoint, accessKey,
+          });
         }
+        await registerNode(env.DB, user.id, organizationId, {
+          id: body.id,
+          name: body.name.trim(),
+          version: typeof body.version === 'string' ? body.version : null,
+          relayTokenHash: relayHash,
+          directConfig,
+        });
         return respond(json({ id: body.id, organization_id: organizationId, status: 'registered' }, 201));
       }
 
