@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+#![cfg(target_os = "linux")]
+
 // Standalone test for system runner functionality
 // This can be run independently to verify the system monitoring logic
 

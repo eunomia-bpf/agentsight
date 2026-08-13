@@ -2,6 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 import { validRelayToken } from './relay.ts';
+import { validNodeId } from './access.ts';
 
 interface Env {
   DB: D1Database;
@@ -13,7 +14,6 @@ interface Env {
   GITHUB_CLIENT_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
-  DIRECT_CONFIG_KEY?: string;
 }
 
 type Provider = 'github' | 'google';
@@ -26,7 +26,7 @@ interface OAuthProfile {
   avatarUrl?: string;
 }
 
-interface UserRow {
+export interface UserRow {
   id: string;
   email: string;
   name: string;
@@ -37,19 +37,12 @@ interface OAuthStartLimiter {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
-interface NodeDeleteDatabase {
-  prepare(query: string): {
-    bind(...values: unknown[]): { run(): Promise<unknown> };
-  };
-}
-
 const encoder = new TextEncoder();
 const STATE_TTL_SECONDS = 10 * 60;
 const AUTH_CODE_TTL_SECONDS = 2 * 60;
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 const PKCE_CHALLENGE_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const PKCE_VERIFIER_PATTERN = /^[A-Za-z0-9_-]{43,128}$/;
-const NODE_ID_PATTERN = /^node_[A-Za-z0-9_]{1,123}$/;
 const DIRECT_CONFIG_VERSION = 1;
 
 interface DirectConfig {
@@ -76,10 +69,9 @@ export default {
     }
 
     try {
-      const directConfigNodeId = directConfigNodeIdFromPath(url.pathname);
       let response: Response;
       if (request.method === 'GET' && url.pathname === '/v1/health') {
-        response = json({ status: 'ok', service: 'agentsight-control' });
+        response = json({ status: 'ok', service: 'agentsight-controller' });
       } else if (request.method === 'GET' && url.pathname.startsWith('/v1/auth/start/')) {
         response = await startOAuth(request, env, providerFromPath(url.pathname));
       } else if (request.method === 'GET' && url.pathname.startsWith('/v1/auth/callback/')) {
@@ -90,18 +82,6 @@ export default {
         response = await logout(request, env);
       } else if (request.method === 'GET' && url.pathname === '/v1/me') {
         response = await currentUser(request, env);
-      } else if (url.pathname === '/v1/nodes' && request.method === 'GET') {
-        response = await listNodes(request, env);
-      } else if (url.pathname === '/v1/nodes' && request.method === 'POST') {
-        response = await registerNode(request, env);
-      } else if (request.method === 'GET' && directConfigNodeId) {
-        response = await getDirectConfig(request, env, directConfigNodeId);
-      } else if (request.method === 'DELETE' && directConfigNodeId) {
-        response = await deleteDirectConfig(request, env, directConfigNodeId);
-      } else if (request.method === 'DELETE' && url.pathname.startsWith('/v1/nodes/')) {
-        const nodeId = nodeIdFromPath(url.pathname);
-        if (!nodeId) throw new HttpError(404, 'not_found');
-        response = await deleteNode(request, env, nodeId);
       } else {
         response = json({ error: 'not_found' }, 404);
       }
@@ -221,7 +201,7 @@ async function exchangeAuthCode(request: Request, env: Env): Promise<Response> {
 }
 
 async function currentUser(request: Request, env: Env): Promise<Response> {
-  const user = await requireUser(request, env.DB);
+  const user = await authenticateUser(request, env.DB);
   return json(publicUser(user));
 }
 
@@ -234,122 +214,7 @@ async function logout(request: Request, env: Env): Promise<Response> {
   return new Response(null, { status: 204 });
 }
 
-async function listNodes(request: Request, env: Env): Promise<Response> {
-  const user = await requireUser(request, env.DB);
-  const result = await env.DB.prepare(
-    `SELECT id, name, version, connection_mode, last_seen_at, created_at,
-            direct_config_ciphertext IS NOT NULL AS has_direct_config
-     FROM nodes WHERE owner_user_id = ?1 ORDER BY last_seen_at DESC LIMIT 200`,
-  ).bind(user.id).all();
-  return json({ nodes: result.results });
-}
-
-async function registerNode(request: Request, env: Env): Promise<Response> {
-  const user = await requireUser(request, env.DB);
-  const body = await readJson<{
-    id?: string;
-    name?: string;
-    version?: string;
-    direct_config?: { endpoint?: string; access_key?: string };
-  }>(request);
-  if (!body.id || !validNodeId(body.id)
-      || !body.name?.trim() || body.name.length > 128) {
-    return json({ error: 'invalid_node' }, 400);
-  }
-  let directConfig: EncryptedDirectConfig | null = null;
-  if (body.direct_config !== undefined) {
-    const endpoint = normalizeDirectEndpoint(body.direct_config.endpoint || '');
-    const accessKey = body.direct_config.access_key || '';
-    if (!endpoint || !validRelayToken(accessKey)) {
-      return json({ error: 'invalid_direct_config' }, 400);
-    }
-    directConfig = await encryptDirectConfig(
-      requiredDirectConfigKey(env),
-      user.id,
-      body.id,
-      { v: 1, endpoint, accessKey },
-    );
-  }
-  const now = nowSeconds();
-  const result = await env.DB.prepare(
-    `INSERT INTO nodes (id, owner_user_id, name, version, public_key, connection_mode,
-                        last_seen_at, created_at, direct_config_ciphertext,
-                        direct_config_iv, direct_config_version)
-     VALUES (?1, ?2, ?3, ?4, NULL, 'direct', ?5, ?5, ?6, ?7, ?8)
-     ON CONFLICT(id) DO UPDATE SET
-       name = excluded.name, version = excluded.version,
-       connection_mode = 'direct', last_seen_at = excluded.last_seen_at,
-       direct_config_ciphertext = COALESCE(excluded.direct_config_ciphertext, nodes.direct_config_ciphertext),
-       direct_config_iv = COALESCE(excluded.direct_config_iv, nodes.direct_config_iv),
-       direct_config_version = COALESCE(excluded.direct_config_version, nodes.direct_config_version)
-     WHERE nodes.owner_user_id = excluded.owner_user_id`,
-  ).bind(
-    body.id,
-    user.id,
-    body.name.trim(),
-    body.version || null,
-    now,
-    directConfig?.ciphertext || null,
-    directConfig?.iv || null,
-    directConfig?.version || null,
-  ).run();
-  if (!result.meta.changes) return json({ error: 'node_owned_by_another_user' }, 409);
-  return json({ id: body.id, status: 'registered' }, 201);
-}
-
-async function getDirectConfig(request: Request, env: Env, nodeId: string): Promise<Response> {
-  const user = await requireUser(request, env.DB);
-  const row = await env.DB.prepare(
-    `SELECT direct_config_ciphertext, direct_config_iv, direct_config_version
-     FROM nodes WHERE id = ?1 AND owner_user_id = ?2`,
-  ).bind(nodeId, user.id).first<{
-    direct_config_ciphertext: string | null;
-    direct_config_iv: string | null;
-    direct_config_version: number | null;
-  }>();
-  if (!row?.direct_config_ciphertext || !row.direct_config_iv
-      || row.direct_config_version !== DIRECT_CONFIG_VERSION) {
-    throw new HttpError(404, 'direct_config_not_saved');
-  }
-  const config = await decryptDirectConfig(
-    requiredDirectConfigKey(env),
-    user.id,
-    nodeId,
-    {
-      ciphertext: row.direct_config_ciphertext,
-      iv: row.direct_config_iv,
-      version: DIRECT_CONFIG_VERSION,
-    },
-  );
-  return json({ endpoint: config.endpoint, access_key: config.accessKey });
-}
-
-async function deleteDirectConfig(request: Request, env: Env, nodeId: string): Promise<Response> {
-  const user = await requireUser(request, env.DB);
-  await env.DB.prepare(
-    `UPDATE nodes SET direct_config_ciphertext = NULL, direct_config_iv = NULL,
-                      direct_config_version = NULL
-     WHERE id = ?1 AND owner_user_id = ?2`,
-  ).bind(nodeId, user.id).run();
-  return new Response(null, { status: 204 });
-}
-
-async function deleteNode(request: Request, env: Env, nodeId: string): Promise<Response> {
-  const user = await requireUser(request, env.DB);
-  await deleteOwnedNode(env.DB, nodeId, user.id);
-  return new Response(null, { status: 204 });
-}
-
-export async function deleteOwnedNode(
-  db: NodeDeleteDatabase,
-  nodeId: string,
-  ownerUserId: string,
-): Promise<void> {
-  await db.prepare('DELETE FROM nodes WHERE id = ?1 AND owner_user_id = ?2')
-    .bind(nodeId, ownerUserId).run();
-}
-
-async function requireUser(request: Request, db: D1Database): Promise<UserRow> {
+export async function authenticateUser(request: Request, db: D1Database): Promise<UserRow> {
   const token = request.headers.get('Authorization')?.match(/^Bearer (.+)$/)?.[1];
   if (!token) throw new HttpError(401, 'authentication_required');
   const now = nowSeconds();
@@ -359,6 +224,8 @@ async function requireUser(request: Request, db: D1Database): Promise<UserRow> {
      WHERE s.token_hash = ?1 AND s.expires_at >= ?2`,
   ).bind(await sha256(token), now).first<UserRow>();
   if (!user) throw new HttpError(401, 'session_invalid_or_expired');
+  await db.prepare('UPDATE sessions SET last_seen_at = ?1 WHERE token_hash = ?2')
+    .bind(now, await sha256(token)).run();
   return user;
 }
 
@@ -542,21 +409,6 @@ export async function sha256Base64Url(value: string): Promise<string> {
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-export function validNodeId(value: string): boolean {
-  return NODE_ID_PATTERN.test(value);
-}
-
-export function nodeIdFromPath(pathname: string): string | null {
-  const match = pathname.match(/^\/v1\/nodes\/([^/]+)$/);
-  if (!match) return null;
-  try {
-    const nodeId = decodeURIComponent(match[1]);
-    return validNodeId(nodeId) ? nodeId : null;
-  } catch {
-    return null;
-  }
-}
-
 export function directConfigNodeIdFromPath(pathname: string): string | null {
   const match = pathname.match(/^\/v1\/nodes\/([^/]+)\/direct$/);
   if (!match) return null;
@@ -682,11 +534,6 @@ function base64UrlDecode(value: string): Uint8Array {
   return Uint8Array.from(atob(padded), (character) => character.charCodeAt(0));
 }
 
-function requiredDirectConfigKey(env: Env): string {
-  if (!env.DIRECT_CONFIG_KEY) throw new HttpError(503, 'direct_config_unavailable');
-  return env.DIRECT_CONFIG_KEY;
-}
-
 export function githubApiHeaders(accessToken: string): Record<string, string> {
   return {
     Authorization: `Bearer ${accessToken}`,
@@ -712,6 +559,7 @@ async function deleteExpiredRows(db: D1Database): Promise<void> {
     db.prepare('DELETE FROM oauth_states WHERE expires_at < ?1').bind(now),
     db.prepare('DELETE FROM auth_codes WHERE expires_at < ?1 OR consumed_at IS NOT NULL').bind(now),
     db.prepare('DELETE FROM sessions WHERE expires_at < ?1').bind(now),
+    db.prepare('DELETE FROM organization_invites WHERE expires_at < ?1 OR consumed_at IS NOT NULL').bind(now),
   ]);
 }
 
@@ -739,13 +587,13 @@ function cors(response: Response, env: Env, requestOrigin: string | null): Respo
     : new URL(env.APP_ORIGIN).origin;
   headers.set('Access-Control-Allow-Origin', responseOrigin);
   headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-  headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Vary', 'Origin');
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
-class HttpError extends Error {
+export class HttpError extends Error {
   readonly status: number;
   readonly code: string;
 

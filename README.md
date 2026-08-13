@@ -79,8 +79,12 @@ AgentSight captures critical interactions that application-level tools miss:
 
 ### Prerequisites
 
-- **Linux kernel**: 4.1+ with eBPF support (5.0+ recommended)
-- **sudo access**: optional for `top`; eBPF is enabled automatically when sudo is already available
+- **Windows, macOS, or Linux**: `top`, `bind`, `vis`, and `report` can use
+  agent-native session files without eBPF
+- **Linux kernel**: 4.1+ with eBPF support (5.0+ recommended) for `record` and
+  the eBPF-backed debug commands
+- **sudo access on Linux**: optional for `top`; eBPF is enabled automatically
+  when sudo is already available
 
 For source builds, see [docs/build.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/build.md).
 
@@ -102,6 +106,9 @@ you want to record a specific command or inspect saved sessions.
 
 GitHub releases provide `agentsight-x86_64` and `agentsight-aarch64` for Linux.
 The unsuffixed `agentsight` asset remains an x86_64 compatibility alias.
+Native Windows builds are exercised by the Windows CI workflow; until a Windows
+release asset is published, download its `agentsight-windows-x86_64` artifact or
+build the collector crate from source.
 
 #### Docker
 

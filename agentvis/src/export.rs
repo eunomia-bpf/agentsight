@@ -393,24 +393,13 @@ fn browser_binary() -> Result<PathBuf, String> {
     }
     if let Some(home) = dirs::home_dir() {
         let cache = home.join(".cache/ms-playwright");
-        let mut versions = fs::read_dir(cache)
-            .into_iter()
-            .flatten()
-            .filter_map(Result::ok)
-            .map(|entry| entry.path())
-            .collect::<Vec<_>>();
-        versions.sort();
-        for version in versions.into_iter().rev() {
-            for suffix in [
-                "chrome-linux64/chrome",
-                "chrome-linux/chrome",
-                "chrome-headless-shell-linux64/headless_shell",
-            ] {
-                let path = version.join(suffix);
-                if path.is_file() {
-                    return Ok(path);
-                }
-            }
+        if let Some(path) = browser_from_playwright_cache(&cache) {
+            return Ok(path);
+        }
+    }
+    for path in system_browser_candidates() {
+        if path.is_file() {
+            return Ok(path);
         }
     }
     for name in [
@@ -427,7 +416,51 @@ fn browser_binary() -> Result<PathBuf, String> {
             return Ok(name.into());
         }
     }
-    Err("PNG/SVG/GIF/MP4 export needs Chromium; HTML has no browser dependency".into())
+    Err(
+        "PNG/SVG/GIF/MP4 export needs Chrome, Edge, or Chromium; HTML has no browser dependency"
+            .into(),
+    )
+}
+
+fn browser_from_playwright_cache(cache: &Path) -> Option<PathBuf> {
+    let mut versions = fs::read_dir(cache)
+        .into_iter()
+        .flatten()
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .collect::<Vec<_>>();
+    versions.sort();
+    for version in versions.into_iter().rev() {
+        for suffix in [
+            "chrome-linux64/chrome",
+            "chrome-linux/chrome",
+            "chrome-headless-shell-linux64/headless_shell",
+            "chrome-win64/chrome.exe",
+            "chrome-win/chrome.exe",
+            "chrome-headless-shell-win64/headless_shell.exe",
+        ] {
+            let path = version.join(suffix);
+            if path.is_file() {
+                return Some(path);
+            }
+        }
+    }
+    None
+}
+
+fn system_browser_candidates() -> Vec<PathBuf> {
+    ["PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA"]
+        .into_iter()
+        .filter_map(env::var_os)
+        .flat_map(|root| {
+            let root = PathBuf::from(root);
+            [
+                root.join("Google/Chrome/Application/chrome.exe"),
+                root.join("Microsoft/Edge/Application/msedge.exe"),
+                root.join("Chromium/Application/chrome.exe"),
+            ]
+        })
+        .collect()
 }
 
 fn html_document(payload: &serde_json::Value) -> Result<String, serde_json::Error> {
@@ -460,6 +493,16 @@ mod tests {
         assert_eq!("2m".parse(), Ok(CompactRate::DurationSeconds(120.0)));
         assert_eq!("full".parse(), Ok(CompactRate::Full));
         assert!("0s".parse::<CompactRate>().is_err());
+    }
+
+    #[test]
+    fn playwright_cache_accepts_windows_chrome_layout() {
+        let temp = tempfile::tempdir().unwrap();
+        let browser = temp.path().join("chromium-1200/chrome-win64/chrome.exe");
+        fs::create_dir_all(browser.parent().unwrap()).unwrap();
+        fs::write(&browser, b"fixture").unwrap();
+
+        assert_eq!(browser_from_playwright_cache(temp.path()), Some(browser));
     }
 
     #[test]
