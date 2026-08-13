@@ -92,11 +92,14 @@ and remains in the foreground while the app reads AgentSight data. Without
 `--db`, it reads live processes and the local agent session index; pass
 `--db <capture.db>` to select a saved capture explicitly. The first screen is a
 live, machine-level `top` view of
-running and stopped agents, token use, coding plans, CPU, and RSS. Select a
-session to open its conversation, process tree and AI prompts, timeline, and
-detailed events; session CPU/RSS stays in that session header rather than a
-separate metrics page. Session detail keeps the newest 1,000 prompts, 2,000
-responses, and 2,000 tool events under bounded text budgets. The Node access key is stored in the OS AgentSight config
+running and stopped agents, observed token use, source-reported subscription
+capacity, Agent Plans, CPU, and RSS. Select a session to open its conversation,
+process tree and AI prompts, or Analysis view. Analysis combines token and model
+usage, tool/file/network effects, failures, session resources, and an
+interactive timeline whose events can still be inspected individually; there
+is no separate raw-event or metrics panel. Session detail keeps the newest
+1,000 prompts, 2,000 responses, and 2,000 tool events under bounded text
+budgets. The Node access key is stored in the OS AgentSight config
 directory and reused across restarts. A binding link carries it to the browser
 only in the URL fragment, which the SPA immediately removes from the visible
 URL. Chrome may ask you to allow Local network access for a loopback or LAN Node.

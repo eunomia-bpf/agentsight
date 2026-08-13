@@ -145,7 +145,7 @@ fn codex_state_session(
         .or(updated_ms);
     let updated = updated_ms.map(system_time_from_ms).unwrap_or(UNIX_EPOCH);
     let path = PathBuf::from(rollout_path);
-    let (rollout_usage, plan) = codex_rollout_summary(&path);
+    let (rollout_usage, plan, _) = codex_rollout_summary(&path);
     let usage = rollout_usage.unwrap_or(TokenUsage {
         total_tokens: tokens_used.max(0),
         ..Default::default()
@@ -293,7 +293,11 @@ fn bound_session_detail(session: &mut LocalSession) {
     }
 }
 
-type CodexRolloutSummary = (Option<TokenUsage>, Vec<agent_session::PlanStep>);
+type CodexRolloutSummary = (
+    Option<TokenUsage>,
+    Vec<agent_session::PlanStep>,
+    Option<Value>,
+);
 
 #[derive(Clone)]
 struct CachedCodexRolloutSummary {
@@ -309,7 +313,7 @@ fn codex_summary_cache() -> &'static Mutex<HashMap<PathBuf, CachedCodexRolloutSu
 
 fn codex_rollout_summary(path: &Path) -> CodexRolloutSummary {
     let Ok(metadata) = fs::metadata(path) else {
-        return (None, Vec::new());
+        return (None, Vec::new(), None);
     };
     let len = metadata.len();
     let modified = metadata.modified().unwrap_or(UNIX_EPOCH);
@@ -321,20 +325,21 @@ fn codex_rollout_summary(path: &Path) -> CodexRolloutSummary {
         return cached.summary.clone();
     }
     let Ok(mut file) = File::open(path) else {
-        return (None, Vec::new());
+        return (None, Vec::new(), None);
     };
     let window = len.min(CODEX_ROLLOUT_TAIL_BYTES);
     if file.seek(SeekFrom::Start(len - window)).is_err() {
-        return (None, Vec::new());
+        return (None, Vec::new(), None);
     }
     let mut data = Vec::with_capacity(window as usize);
     if file.read_to_end(&mut data).is_err() {
-        return (None, Vec::new());
+        return (None, Vec::new(), None);
     }
     let content = String::from_utf8_lossy(&data);
     let usage = agent_session::codex_total_token_usage(&content);
     let plan = agent_session::codex_latest_plan(&content).unwrap_or_default();
-    let summary = (usage, plan);
+    let subscription = codex_latest_subscription(&content);
+    let summary = (usage, plan, subscription);
     if let Ok(mut cache) = codex_summary_cache().lock() {
         const MAX_CODEX_SUMMARY_CACHE: usize = 64;
         if cache.len() >= MAX_CODEX_SUMMARY_CACHE && !cache.contains_key(path) {
@@ -350,6 +355,37 @@ fn codex_rollout_summary(path: &Path) -> CodexRolloutSummary {
         );
     }
     summary
+}
+
+fn codex_latest_subscription(content: &str) -> Option<Value> {
+    content.lines().rev().find_map(|line| {
+        let event: Value = serde_json::from_str(line).ok()?;
+        let payload = event.get("payload")?;
+        if payload.get("type").and_then(Value::as_str) != Some("token_count") {
+            return None;
+        }
+        let limits = payload.get("rate_limits")?.as_object()?;
+        let window = |name: &str| {
+            let value = limits.get(name)?;
+            Some(serde_json::json!({
+                "used_percent": value.get("used_percent").and_then(Value::as_f64),
+                "window_minutes": value.get("window_minutes").and_then(Value::as_u64),
+                "resets_at": value.get("resets_at").and_then(Value::as_u64),
+            }))
+        };
+        let credits = limits.get("credits");
+        Some(serde_json::json!({
+            "provider": "codex",
+            "observed_at": event.get("timestamp").and_then(Value::as_str),
+            "plan_type": limits.get("plan_type").and_then(Value::as_str),
+            "limit_name": limits.get("limit_name").and_then(Value::as_str),
+            "primary": window("primary"),
+            "secondary": window("secondary"),
+            "credits": {
+                "unlimited": credits.and_then(|value| value.get("unlimited")).and_then(Value::as_bool),
+            },
+        }))
+    })
 }
 
 const CURSOR_STATE_DB_CANDIDATES: [&str; 3] = [
@@ -1066,6 +1102,9 @@ fn looks_like_codex_home_file(path: &Path) -> bool {
 
 fn session_row(session: &LocalSession) -> SessionRow {
     let updated_ms = updated_ms(session);
+    let subscription = (session.agent_type == agent_session::AGENT_CODEX)
+        .then(|| codex_rollout_summary(&session.path).2)
+        .flatten();
     SessionRow {
         id: view_id(session),
         agent_type: session.agent_type.clone(),
@@ -1090,6 +1129,8 @@ fn session_row(session: &LocalSession) -> SessionRow {
             "last_message_at": session.last_message_at.clone(),
             "files": session.files,
             "plan": session.events.plan,
+            "usage": session.usage,
+            "subscription": subscription,
         }),
     }
 }
@@ -1323,7 +1364,7 @@ mod tests {
         fs::write(
             &rollout,
             concat!(
-                r#"{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":3,"output_tokens":4,"total_tokens":7}}}}"#,
+                r#"{"timestamp":"2026-08-13T10:00:00Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":3,"output_tokens":4,"total_tokens":7}},"rate_limits":{"plan_type":"pro","primary":{"used_percent":75.0,"window_minutes":300,"resets_at":1234},"secondary":null,"credits":{"unlimited":false,"balance":"10"},"private_field":"drop"}}}"#,
                 "\n",
                 r#"{"type":"response_item","payload":{"type":"function_call","name":"update_plan","arguments":"{\"plan\":[{\"step\":\"cached plan\",\"status\":\"in_progress\"}]}"}}"#,
                 "\n",
@@ -1336,12 +1377,40 @@ mod tests {
         assert_eq!(first, second);
         assert_eq!(first.0.unwrap().total_tokens, 7);
         assert_eq!(first.1[0].step, "cached plan");
+        assert_eq!(first.2.as_ref().unwrap()["provider"], "codex");
+        assert_eq!(
+            first.2.as_ref().unwrap()["observed_at"],
+            "2026-08-13T10:00:00Z"
+        );
+        assert_eq!(first.2.as_ref().unwrap()["primary"]["used_percent"], 75.0);
+        assert!(
+            first.2.as_ref().unwrap()["credits"]
+                .get("balance")
+                .is_none()
+        );
+        assert!(first.2.as_ref().unwrap().get("private_field").is_none());
+        let session = codex_state_session(
+            "session-id".to_string(),
+            rollout.to_string_lossy().to_string(),
+            Some("gpt-test".to_string()),
+            7,
+            None,
+            None,
+            Some(1_000),
+            Some(2_000),
+        );
+        assert_eq!(
+            session_row(&session).attributes["subscription"]["provider"],
+            "codex"
+        );
+        assert_eq!(session_row(&session).attributes["usage"]["total_tokens"], 7);
         assert!(codex_summary_cache().lock().unwrap().contains_key(&rollout));
 
         fs::write(&rollout, "{}\n").unwrap();
         let changed = codex_rollout_summary(&rollout);
         assert!(changed.0.is_none());
         assert!(changed.1.is_empty());
+        assert!(changed.2.is_none());
     }
 
     #[test]

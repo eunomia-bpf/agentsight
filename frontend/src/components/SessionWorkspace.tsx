@@ -4,10 +4,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LogView } from '@/components/log/LogView';
 import { ProcessTreeView } from '@/components/ProcessTreeView';
+import { SessionAnalysis } from '@/components/SessionAnalysis';
 import { SessionConsole } from '@/components/SessionConsole';
-import { Timeline } from '@/components/timeline/Timeline';
 import { type NodeClient, type SessionDetail } from '@/lib/nodeClient';
 import { useTranslation } from '@/i18n';
 import type { AgentSightSnapshot, CodingPlanStep, LiveOverview, SnapshotSession } from '@/types/event';
@@ -26,7 +25,7 @@ import {
   sessionWorkspace,
 } from '@/utils/sessionData';
 
-type SessionTab = 'conversation' | 'process' | 'timeline' | 'events';
+type SessionTab = 'conversation' | 'process' | 'analysis';
 
 function compact(value: number | null | undefined): string {
   const number = value ?? 0;
@@ -207,7 +206,7 @@ export function SessionWorkspace({
 
       <nav role="tablist" aria-label={t('sessionDetail.views')}
         className="flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
-        {(['conversation', 'process', 'timeline', 'events'] as SessionTab[]).map((item) => (
+        {(['conversation', 'process', 'analysis'] as SessionTab[]).map((item) => (
           <button key={item} type="button" role="tab" aria-selected={tab === item}
             aria-controls={`session-panel-${item}`} onClick={() => setTab(item)}
             className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
@@ -224,10 +223,8 @@ export function SessionWorkspace({
             detailError={detailError} onReload={() => { void loadDetail(); }} />
         ) : tab === 'process' ? (
           <ProcessTreeView snapshot={scopedSnapshot} />
-        ) : tab === 'timeline' ? (
-          <Timeline events={events} />
         ) : (
-          <LogView events={events} />
+          <SessionAnalysis snapshot={scopedSnapshot} session={session} detail={detail} events={events} />
         )}
       </div>
     </div>

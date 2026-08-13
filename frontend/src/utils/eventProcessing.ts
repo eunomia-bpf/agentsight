@@ -84,7 +84,9 @@ export function auditEventName(row: SnapshotAuditEvent): string {
 export function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${(ms / 60000).toFixed(1)}m`;
+  if (ms < 3600000) return `${(ms / 60000).toFixed(1)}m`;
+  if (ms < 86400000) return `${(ms / 3600000).toFixed(1)}h`;
+  return `${(ms / 86400000).toFixed(1)}d`;
 }
 
 export function formatDisplayEventSummary(event: DisplayEvent): string {

@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
-  orderedSessions, recordedSessionDetail, sessionSnapshot, snapshotSessions,
+  isCurrentSubscriptionWindow, latestSubscriptions, orderedSessions, recordedSessionDetail,
+  sessionSnapshot, sessionSubscription, sessionToolCallCount, sessionUsage, snapshotSessions,
 } from './sessionData.ts';
 
 const selected = {
@@ -36,6 +37,48 @@ function fixture(sessions = [selected, { ...selected, id: 'session-two' }]) {
     ],
   };
 }
+
+test('session subscription exposes only source-native account capacity metadata', () => {
+  assert.deepEqual(sessionSubscription({
+    ...selected,
+    attributes: {
+      ...selected.attributes,
+      subscription: {
+        provider: 'codex', plan_type: 'pro',
+        primary: { used_percent: 77, window_minutes: 10080, resets_at: 1787196841 },
+      },
+    },
+  }), {
+    provider: 'codex', plan_type: 'pro',
+    primary: { used_percent: 77, window_minutes: 10080, resets_at: 1787196841 },
+  });
+  assert.equal(sessionSubscription({ ...selected, attributes: { subscription: { used_percent: 1 } } }), null);
+});
+
+test('subscription capacity uses the newest source observation and expires after reset', () => {
+  const olderRunning = {
+    ...selected, id: 'old', end_timestamp_ms: null,
+    attributes: { subscription: { provider: 'codex', observed_at: '2026-08-13T09:00:00Z', primary: { used_percent: 10 } } },
+  };
+  const newerStopped = {
+    ...selected, id: 'new',
+    attributes: { subscription: { provider: 'codex', observed_at: '2026-08-13T10:00:00Z', primary: { used_percent: 90 } } },
+  };
+  assert.equal(latestSubscriptions([olderRunning, newerStopped])[0].primary.used_percent, 90);
+  assert.equal(isCurrentSubscriptionWindow({ used_percent: 90, resets_at: 100 }, 101), false);
+  assert.equal(isCurrentSubscriptionWindow({ used_percent: 90, resets_at: 102 }, 101), true);
+});
+
+test('session usage keeps cache tokens for analysis without a hydrated transcript', () => {
+  assert.deepEqual(sessionUsage({
+    ...selected,
+    attributes: { usage: { input_tokens: 3, output_tokens: 4, cache_read_tokens: 20, total_tokens: 27 } },
+  }), { input_tokens: 3, output_tokens: 4, cache_read_tokens: 20, total_tokens: 27 });
+});
+
+test('session tool-call count prefers the complete aggregate over bounded detail events', () => {
+  assert.equal(sessionToolCallCount({ tools: { exec: 1_600, wait: 1_400 }, events: { tools: Array(2_000).fill({}) } }, 9), 3_000);
+});
 
 test('session snapshot keeps only explicitly linked rows inside the session time window', () => {
   const scoped = sessionSnapshot(fixture(), selected, null, null);
