@@ -56,9 +56,13 @@ export type LoginProvider = 'github' | 'google';
 
 export async function fetchLoginProviders(): Promise<LoginProvider[]> {
   const response = await request(`${controllerUrl}/v1/auth/providers`, { cache: 'no-store' });
-  if (!response.ok) return [];
-  const body = await response.json().catch(() => ({})) as { providers?: unknown };
-  if (!Array.isArray(body.providers)) return [];
+  if (!response.ok) {
+    throw new Error(`Controller sign-in status failed (${response.status}).`);
+  }
+  const body = await response.json().catch(() => null) as { providers?: unknown } | null;
+  if (!body || !Array.isArray(body.providers)) {
+    throw new Error('The Controller returned an invalid sign-in provider status.');
+  }
   return body.providers.filter((provider): provider is LoginProvider => (
     provider === 'github' || provider === 'google'
   ));
