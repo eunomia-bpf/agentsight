@@ -62,6 +62,27 @@ impl BinaryExtractor {
             .into())
     }
 
+    /// An extractor for a capture path that asked for no eBPF-backed source.
+    ///
+    /// The system runner reads `sysinfo`, the bridge server is a Unix socket and
+    /// agent-native sessions are files: none of them needs a probe, and on a
+    /// host that has no probes to extract, refusing the whole command reports a
+    /// capability the caller never requested. The paths this reports are
+    /// deliberately absent rather than plausible, so a caller that reaches for
+    /// one anyway fails at the spawn, naming the file, instead of quietly
+    /// running something else.
+    pub async fn without_ebpf() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        let temp_dir = TempDir::new()?;
+        let temp_path = temp_dir.path();
+        Ok(Self {
+            process_path: temp_path.join("process.not-extracted"),
+            sslsniff_path: temp_path.join("sslsniff.not-extracted"),
+            _temp_dir: temp_dir,
+            stdiocap_init_lock: Mutex::new(()),
+            stdiocap_path: OnceLock::new(),
+        })
+    }
+
     #[cfg(target_os = "linux")]
     async fn extract_binary(
         path: &Path,

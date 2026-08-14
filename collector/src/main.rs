@@ -755,12 +755,37 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         }
         // All remaining commands need the binary extractor.
         _ => {
-            let binary_extractor = BinaryExtractor::new().await?;
+            let binary_extractor = if needs_ebpf_binaries(&cli.command) {
+                BinaryExtractor::new().await?
+            } else {
+                BinaryExtractor::without_ebpf().await?
+            };
             run_with_extractor(&cli, &binary_extractor).await?;
         }
     }
 
     Ok(())
+}
+
+/// Whether the chosen command will actually run an eBPF probe.
+///
+/// Only `debug trace` can be told to run none: everything else that reaches the
+/// extractor either sniffs TLS, follows processes or captures stdio, and all
+/// three are probes. Asking first is what lets `--system` capture — sysinfo
+/// samples, agent-native sessions and the evidence bridge, none of which touch
+/// the kernel's tracing machinery — work on a host with no probes at all,
+/// instead of being refused for a capability nobody requested.
+fn needs_ebpf_binaries(command: &Commands) -> bool {
+    match command {
+        Commands::Debug(DebugCommands::Trace {
+            ssl,
+            process,
+            stdio,
+            system,
+            ..
+        }) => *ssl || *process || *stdio || !*system,
+        _ => true,
+    }
 }
 
 async fn run_report_serve(
@@ -1050,7 +1075,7 @@ async fn run_with_extractor(
 
 #[cfg(test)]
 mod tests {
-    use super::{Cli, Commands, top_uses_tui};
+    use super::{Cli, Commands, needs_ebpf_binaries, top_uses_tui};
 
     #[test]
     fn default_interactive_top_uses_tui() {
@@ -1143,6 +1168,47 @@ mod tests {
             ])
             .is_ok()
         );
+    }
+
+    #[test]
+    fn a_system_only_trace_needs_no_ebpf_binary() {
+        // The one combination that runs without a probe: sysinfo samples, the
+        // agent-native session refresh and the evidence bridge. Everything else
+        // that reaches the extractor sniffs, follows or captures, and all three
+        // are eBPF.
+        let system_only = <Cli as clap::Parser>::try_parse_from([
+            "agentsight",
+            "debug",
+            "trace",
+            "--ssl",
+            "false",
+            "--process",
+            "false",
+            "--system",
+            "--bridge-socket",
+            "/run/aro/bridge.sock",
+        ])
+        .unwrap();
+        assert!(!needs_ebpf_binaries(&system_only.command));
+
+        for extra in [
+            vec!["--ssl", "true", "--process", "false", "--system"],
+            vec!["--ssl", "false", "--process", "true", "--system"],
+            // No --system at all: the trace would have no runner to add, and
+            // the existing "at least one monitoring type" error should be what
+            // the caller sees rather than a missing-probe surprise.
+            vec!["--ssl", "false", "--process", "false"],
+        ] {
+            let mut args = vec!["agentsight", "debug", "trace"];
+            args.extend(extra);
+            let cli = <Cli as clap::Parser>::try_parse_from(&args).unwrap();
+            assert!(needs_ebpf_binaries(&cli.command), "{args:?}");
+        }
+
+        let record =
+            <Cli as clap::Parser>::try_parse_from(["agentsight", "record", "-c", "claude"])
+                .unwrap();
+        assert!(needs_ebpf_binaries(&record.command));
     }
 
     #[test]
