@@ -121,6 +121,11 @@ pub struct BridgeProcessNodeRow {
     pub row_id: String,
     pub revision: u64,
     pub pid: u32,
+    /// Kernel process start time in clock ticks (`CLK_TCK` units since boot,
+    /// field 22 of `/proc/<pid>/stat`). Together with `pid` this is the identity
+    /// that survives pid reuse. `None` when the capture channel does not report
+    /// it — never derive it from a timestamp.
+    pub start_ticks: Option<u64>,
     pub ppid: Option<u32>,
     pub root_pid: Option<u32>,
     pub start_ts_ms: Option<u64>,

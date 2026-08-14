@@ -365,6 +365,7 @@ fn mutation_vectors() -> Vec<(&'static str, BridgeMessage)> {
                     row_id: "pid:4310:start:918500".to_string(),
                     revision: 0,
                     pid: 4310,
+                    start_ticks: Some(918_500),
                     ppid: Some(4242),
                     root_pid: Some(4242),
                     start_ts_ms: Some(1_760_000_003_000),
