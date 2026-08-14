@@ -12,6 +12,7 @@ pub(crate) use llm::{
     body_json, extract_model, extract_token_usage, extract_token_usage_from_sse, provider_from_host,
 };
 
+use crate::bridge::annotations::AnnotationStore;
 use crate::bridge::projection as bridge_projection;
 use crate::bridge::{MutationEmitter, MutationEmitterConfig, MutationSink};
 use crate::model::{
@@ -19,7 +20,7 @@ use crate::model::{
     ResourceSampleRow, SessionRow, Snapshot, SnapshotOptions, SnapshotSummary, TokenSummary,
     TokenUsageRow, ToolCallRow, ViewResult, ViewSink,
 };
-use agentsight_protocol::bridge::{DisclosureMode, ViewMutation};
+use agentsight_protocol::bridge::{AroAnnotation, DisclosureMode, ViewMutation};
 use chrono::{SecondsFormat, Utc};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
@@ -46,6 +47,9 @@ pub struct MaterializedView {
     /// Bridge mutation fan-out. Created lazily by `add_mutation_sink`; a view
     /// with no bridge consumer never allocates a sequence.
     mutations: Option<MutationEmitter>,
+    /// What a bridge client told the view about its own scopes. Read-only: it
+    /// is served back out and never consulted by capture.
+    aro_annotations: AnnotationStore,
     pending: HashMap<(u32, u64), VecDeque<PendingRequest>>,
     active_processes: HashMap<u32, String>,
     counts: ViewCounts,
@@ -104,6 +108,7 @@ impl MaterializedView {
             audit_order: self.audit_order.clone(),
             sinks: Vec::new(),
             mutations: None,
+            aro_annotations: self.aro_annotations.clone(),
             pending: self.pending.clone(),
             active_processes: self.active_processes.clone(),
             counts: self.counts.clone(),
@@ -385,6 +390,28 @@ impl MaterializedView {
                 self.resource_samples.drain(0..overflow);
             }
         }
+    }
+
+    /// Record one client annotation. Returns whether it changed the store: a
+    /// duplicate or stale revision is a no-op, so a client replaying its stream
+    /// after a reconnect changes nothing.
+    ///
+    /// Deliberately not an `emit_*`: annotations are inbound. They are never
+    /// published to a view sink and never turned into a bridge mutation, so an
+    /// annotation cannot become evidence the collector claims to have observed.
+    pub fn apply_aro_annotation(&mut self, annotation: &AroAnnotation) -> bool {
+        self.aro_annotations.upsert(annotation)
+    }
+
+    /// Every stored client annotation, grouped by kind then row id.
+    pub fn aro_annotations(&self) -> Vec<AroAnnotation> {
+        self.aro_annotations.rows().cloned().collect()
+    }
+
+    /// Annotations dropped to stay inside the store's bound. Non-zero means
+    /// what [`Self::aro_annotations`] returns is incomplete.
+    pub fn aro_annotations_evicted(&self) -> u64 {
+        self.aro_annotations.evicted()
     }
 
     pub fn upsert_session(&mut self, row: &SessionRow) {
@@ -1180,5 +1207,49 @@ mod tests {
         assert_eq!(row.argv, first.argv);
         assert_eq!(row.end_timestamp_ms, Some(200));
         assert_eq!(row.exit_code, Some(0));
+    }
+
+    fn annotation(revision: u64, decision: &str) -> AroAnnotation {
+        AroAnnotation {
+            scope_handle: "scope-1".to_string(),
+            sequence: revision + 1,
+            row: agentsight_protocol::bridge::AroAnnotationRow::PolicyDecision(
+                agentsight_protocol::bridge::AroPolicyDecisionRow {
+                    row_id: "policy-1".to_string(),
+                    revision,
+                    scope_handle: "scope-1".to_string(),
+                    decision: decision.to_string(),
+                    mode: Some("enforce".to_string()),
+                    outcome: None,
+                    rung: None,
+                },
+            ),
+        }
+    }
+
+    #[test]
+    fn annotations_are_stored_idempotently_and_read_back() {
+        let mut view = MaterializedView::new();
+        assert!(view.apply_aro_annotation(&annotation(0, "allow")));
+        assert!(!view.apply_aro_annotation(&annotation(0, "deny")));
+        assert!(view.apply_aro_annotation(&annotation(1, "deny")));
+
+        let rows = view.aro_annotations();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].row.revision(), 1);
+        assert_eq!(view.aro_annotations_evicted(), 0);
+    }
+
+    #[test]
+    fn annotations_never_become_mutations_or_snapshot_rows() {
+        let mut view = MaterializedView::new();
+        view.apply_aro_annotation(&annotation(0, "allow"));
+        assert!(
+            view.bridge_snapshot_mutations(&DisclosureMode::MetadataOnly)
+                .is_empty()
+        );
+        let snapshot = view.export_snapshot(SnapshotOptions { audit_limit: 0 });
+        assert_eq!(snapshot.summary.audit_events, 0);
+        assert!(snapshot.process_nodes.is_empty());
     }
 }

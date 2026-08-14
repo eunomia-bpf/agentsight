@@ -10,11 +10,16 @@
 //! names and serde attributes below are the compatibility contract. Golden
 //! vectors in `tests/fixtures/bridge-v1/` pin the encoding byte-for-byte.
 
+mod annotation;
 mod codec;
 mod mutation;
 mod rows;
 mod types;
 
+pub use annotation::{
+    AroAnnotation, AroAnnotationRow, AroCorrelationRow, AroEnforcementRow, AroPolicyDecisionRow,
+    AroResourceDomainRow,
+};
 pub use codec::{BridgeCodecError, decode_body, encode_body, encode_frame, read_frame};
 pub use mutation::{MutationOperation, TimestampBasis, ViewMutation, ViewMutationEnvelope};
 pub use rows::{
@@ -31,6 +36,17 @@ use serde::{Deserialize, Serialize};
 
 /// Bridge wire protocol version. Independent of [`crate::PROTOCOL_VERSION`],
 /// which versions the HTTP Node API.
+///
+/// ## When this number moves
+///
+/// A change that an existing peer cannot ignore — a renamed or removed field, a
+/// changed field type, a changed meaning — bumps it. A *new message* does not,
+/// provided it is gated behind a capability advertised in
+/// [`BridgeAgreement::capabilities`]: a peer that does not implement the message
+/// never advertises the capability, and a peer that sees no such capability
+/// never sends it, so the two agree on v1 without either having to know the
+/// message exists. [`BridgeMessage::Annotation`] is the first message added this
+/// way, behind [`capability_names::ARO_ANNOTATIONS`].
 pub const BRIDGE_PROTOCOL_VERSION: u32 = 1;
 
 /// Default maximum frame size (1 MiB). Negotiable downward via hello.
@@ -76,6 +92,11 @@ pub enum BridgeMessage {
     Mutation(ViewMutationEnvelope),
     /// client -> server: mutations up to and including this sequence are durable.
     Ack { through_sequence: u64 },
+    /// client -> server: a read-only annotation about an already-registered
+    /// scope. Sent only when the server advertised
+    /// [`capability_names::ARO_ANNOTATIONS`]; see [`BRIDGE_PROTOCOL_VERSION`]
+    /// for why an added message does not move the version.
+    Annotation(AroAnnotation),
     /// client -> server: resume a previous stream after a reconnect.
     Resume(ResumeRequest),
     /// server -> client: the requested resume point fell out of the replay buffer.
@@ -119,6 +140,30 @@ mod tests {
         let json = serde_json::to_value(&message).unwrap();
         assert_eq!(json["msg"], "hello_rejected");
         assert_eq!(json["data"]["reason"], "version");
+    }
+
+    #[test]
+    fn annotation_round_trips_and_carries_the_client_sequence() {
+        let message = BridgeMessage::Annotation(AroAnnotation {
+            scope_handle: "scope-1".to_string(),
+            sequence: 7,
+            row: AroAnnotationRow::PolicyDecision(AroPolicyDecisionRow {
+                row_id: "policy-1".to_string(),
+                revision: 0,
+                scope_handle: "scope-1".to_string(),
+                decision: "allow".to_string(),
+                mode: Some("enforce".to_string()),
+                outcome: None,
+                rung: None,
+            }),
+        });
+        let bytes = encode_body(&message).unwrap();
+        assert_eq!(decode_body(&bytes).unwrap(), message);
+
+        let json = serde_json::to_value(&message).unwrap();
+        assert_eq!(json["msg"], "annotation");
+        assert_eq!(json["data"]["sequence"], 7);
+        assert_eq!(json["data"]["row"]["kind"], "policy_decision");
     }
 
     #[test]

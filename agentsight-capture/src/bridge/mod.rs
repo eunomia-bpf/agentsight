@@ -7,7 +7,11 @@
 //! The emitter is deliberately independent of any transport. `MaterializedView`
 //! owns one and feeds it from every `emit_*` call; the collector's Unix-socket
 //! server registers a sink on it.
+//!
+//! [`annotations::AnnotationStore`] is the exception that does not emit: it
+//! receives the client's reverse annotations, which travel the other way.
 
+pub mod annotations;
 pub mod metadata;
 pub mod projection;
 

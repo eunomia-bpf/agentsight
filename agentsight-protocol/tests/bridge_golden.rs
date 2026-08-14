@@ -11,12 +11,13 @@
 #![cfg(feature = "bridge")]
 
 use agentsight_protocol::bridge::{
-    BRIDGE_PROTOCOL_VERSION, BridgeAgreement, BridgeAuditEventRow, BridgeCapability, BridgeHealth,
-    BridgeHello, BridgeLlmCallRow, BridgeMessage, BridgeNetworkTargetRow, BridgeProcessNodeRow,
-    BridgeResourceSampleRow, BridgeSessionRow, BridgeTokenUsageRow, BridgeToolCallRow,
-    DisclosureMode, MAX_FRAME_BYTES, MutationOperation, ResumeRequest, ScopeRegistration,
-    TimestampBasis, ToolScopeRegistration, ViewMutation, ViewMutationEnvelope, capability_names,
-    decode_body, encode_body,
+    AroAnnotation, AroAnnotationRow, AroCorrelationRow, AroEnforcementRow, AroPolicyDecisionRow,
+    AroResourceDomainRow, BRIDGE_PROTOCOL_VERSION, BridgeAgreement, BridgeAuditEventRow,
+    BridgeCapability, BridgeHealth, BridgeHello, BridgeLlmCallRow, BridgeMessage,
+    BridgeNetworkTargetRow, BridgeProcessNodeRow, BridgeResourceSampleRow, BridgeSessionRow,
+    BridgeTokenUsageRow, BridgeToolCallRow, DisclosureMode, MAX_FRAME_BYTES, MutationOperation,
+    ResumeRequest, ScopeRegistration, TimestampBasis, ToolScopeRegistration, ViewMutation,
+    ViewMutationEnvelope, capability_names, decode_body, encode_body,
 };
 use serde_json::{Value, json};
 use std::path::PathBuf;
@@ -514,12 +515,121 @@ fn mutation_vectors() -> Vec<(&'static str, BridgeMessage)> {
     ]
 }
 
+/// The reverse-annotation stream: client -> server, behind the
+/// `aro_annotations` capability.
+///
+/// The agreement that advertises the capability is pinned here rather than in
+/// `handshake_vectors`, and `capability_names::ALL` is deliberately not the
+/// source of the list: a collector without the annotation arm must not name the
+/// capability at all, so the advertising agreement is a *variant* of the
+/// handshake rather than the shape of every handshake.
+fn annotation_vectors() -> Vec<(&'static str, BridgeMessage)> {
+    vec![
+        (
+            "agreement_advertising_aro_annotations",
+            BridgeMessage::Agreement(BridgeAgreement {
+                protocol_version: BRIDGE_PROTOCOL_VERSION,
+                product: "agentsight".to_string(),
+                product_version: "1.0.20".to_string(),
+                build_commit: Some("f7d961f86d57073013a58a8f72ea0528e8e63c38".to_string()),
+                binary_digest: None,
+                node_id: "node_goldenvector0001".to_string(),
+                boot_id: Some("2f8a1c6e-0000-4000-8000-00000000b007".to_string()),
+                capabilities: capability_names::ALL
+                    .iter()
+                    .map(|name| BridgeCapability::new(*name, true, None))
+                    .chain(std::iter::once(BridgeCapability::new(
+                        capability_names::ARO_ANNOTATIONS,
+                        true,
+                        None,
+                    )))
+                    .collect(),
+                max_frame_bytes: MAX_FRAME_BYTES,
+            }),
+        ),
+        (
+            "annotation_resource_domain",
+            BridgeMessage::Annotation(AroAnnotation {
+                scope_handle: "scope-0192f000-0000-7000-8000-000000000001".to_string(),
+                sequence: 1,
+                row: AroAnnotationRow::ResourceDomain(AroResourceDomainRow {
+                    row_id: "domain-0192f000-0000-7000-8000-000000000001".to_string(),
+                    revision: 0,
+                    scope_handle: "scope-0192f000-0000-7000-8000-000000000001".to_string(),
+                    cgroup_path_class: Some("sandbox".to_string()),
+                    containment: Some("cgroup_v2".to_string()),
+                    assurance: Some("verified".to_string()),
+                    memory_high_bytes: Some(536_870_912),
+                    memory_max_bytes: Some(1_073_741_824),
+                    cpu_quota_ppm: Some(500_000),
+                    cpu_weight: Some(100),
+                    pids_max: Some(256),
+                    lease: Some("held".to_string()),
+                }),
+            }),
+        ),
+        (
+            "annotation_enforcement",
+            BridgeMessage::Annotation(AroAnnotation {
+                scope_handle: "scope-0192f000-0000-7000-8000-000000000002".to_string(),
+                sequence: 2,
+                row: AroAnnotationRow::Enforcement(AroEnforcementRow {
+                    row_id: "enforcement-0192f000-0000-7000-8000-000000000002".to_string(),
+                    revision: 1,
+                    scope_handle: "scope-0192f000-0000-7000-8000-000000000002".to_string(),
+                    tool_call_class: Some("shell".to_string()),
+                    verified: true,
+                    achieved: Some("within_limits".to_string()),
+                    throttle_ms: Some(120),
+                    frozen_ms: Some(0),
+                    oom_kills: Some(0),
+                    termination: Some("completed".to_string()),
+                    cleanup_verified: Some(true),
+                }),
+            }),
+        ),
+        (
+            "annotation_policy_decision",
+            BridgeMessage::Annotation(AroAnnotation {
+                scope_handle: "scope-0192f000-0000-7000-8000-000000000001".to_string(),
+                sequence: 3,
+                row: AroAnnotationRow::PolicyDecision(AroPolicyDecisionRow {
+                    row_id: "policy-0192f000-0000-7000-8000-000000000003".to_string(),
+                    revision: 0,
+                    scope_handle: "scope-0192f000-0000-7000-8000-000000000001".to_string(),
+                    decision: "allow".to_string(),
+                    mode: Some("enforce".to_string()),
+                    outcome: Some("applied".to_string()),
+                    rung: Some("rung-2".to_string()),
+                }),
+            }),
+        ),
+        (
+            "annotation_correlation",
+            BridgeMessage::Annotation(AroAnnotation {
+                scope_handle: "scope-0192f000-0000-7000-8000-000000000001".to_string(),
+                sequence: 4,
+                row: AroAnnotationRow::Correlation(AroCorrelationRow {
+                    row_id: "correlation-0192f000-0000-7000-8000-000000000004".to_string(),
+                    revision: 0,
+                    scope_handle: "scope-0192f000-0000-7000-8000-000000000001".to_string(),
+                    external_row_kind: "resource_sample".to_string(),
+                    external_row_id: "sample-0192f000-0000-7000-8000-000000000005".to_string(),
+                    basis: "cgroup_id".to_string(),
+                    confidence: 0.87,
+                }),
+            }),
+        ),
+    ]
+}
+
 fn categories() -> Vec<(&'static str, Vec<(&'static str, BridgeMessage)>)> {
     vec![
         ("handshake", handshake_vectors()),
         ("scope", scope_vectors()),
         ("control", control_vectors()),
         ("mutation", mutation_vectors()),
+        ("annotations", annotation_vectors()),
     ]
 }
 
@@ -616,4 +726,44 @@ fn every_mutation_kind_has_a_golden_vector() {
     ] {
         assert!(kinds.contains(&json!(kind)), "no golden vector for {kind}");
     }
+}
+
+#[test]
+fn every_annotation_row_kind_has_a_golden_vector() {
+    let kinds = annotation_vectors()
+        .iter()
+        .filter_map(|(_, message)| match message {
+            BridgeMessage::Annotation(annotation) => Some(annotation.row.row_kind()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    for kind in [
+        "resource_domain",
+        "enforcement",
+        "policy_decision",
+        "correlation",
+    ] {
+        assert!(kinds.contains(&kind), "no golden vector for {kind}");
+    }
+}
+
+/// The capability the annotation message is gated behind must be pinned on the
+/// wire, not just named in Rust: ARO reads the fixture, not this crate.
+#[test]
+fn the_annotation_capability_is_advertised_by_a_pinned_agreement() {
+    let advertised = annotation_vectors()
+        .iter()
+        .filter_map(|(_, message)| match message {
+            BridgeMessage::Agreement(agreement) => Some(agreement.capabilities.clone()),
+            _ => None,
+        })
+        .flatten()
+        .any(|capability| {
+            capability.name == capability_names::ARO_ANNOTATIONS && capability.available
+        });
+    assert!(advertised, "no pinned agreement advertises aro_annotations");
+    assert!(
+        !capability_names::ALL.contains(&capability_names::ARO_ANNOTATIONS),
+        "aro_annotations must stay out of the always-enumerated capture list"
+    );
 }

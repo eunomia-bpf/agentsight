@@ -63,7 +63,20 @@ pub mod capability_names {
     pub const CGROUP_FILTER: &str = "cgroup_filter";
     pub const SESSION_MUTATIONS: &str = "session_mutations";
 
-    /// Every capability name in v1, in the order the spec lists them.
+    /// Reverse annotations: the server accepts
+    /// [`BridgeMessage::Annotation`](crate::bridge::BridgeMessage::Annotation).
+    ///
+    /// Deliberately **not** in [`ALL`]. Every other name there describes capture
+    /// the collector performs, and a v1 collector enumerates all of them in its
+    /// agreement with an honest `available` flag. This one describes a message
+    /// the collector *accepts*, and it is what makes an added message safe at an
+    /// unchanged protocol version: a build without the annotation arm must not
+    /// name it at all, so that a client seeing no such capability never sends
+    /// one. Listing it alongside the capture names would make "advertised" the
+    /// default, which is the opposite of the rule.
+    pub const ARO_ANNOTATIONS: &str = "aro_annotations";
+
+    /// Every capture capability name in v1, in the order the spec lists them.
     pub const ALL: [&str; 8] = [
         PROCESS_CAPTURE,
         FILE_CAPTURE,
