@@ -14,17 +14,29 @@ interface ConnectionDialogProps {
   onDemo: () => void;
 }
 
+const LOGIN_PROVIDERS: Array<{ id: LoginProvider; label: string }> = [
+  { id: 'github', label: 'GitHub' },
+  { id: 'google', label: 'Google' },
+];
+
 export function ConnectionDialog({
   error, busy, allowSignIn, canClose, onClose, onDemo,
 }: ConnectionDialogProps) {
   const { t } = useTranslation();
-  const [providers, setProviders] = useState<LoginProvider[]>([]);
+  const [providers, setProviders] = useState<LoginProvider[] | null>(null);
+  const [providerError, setProviderError] = useState('');
 
   useEffect(() => {
     if (!allowSignIn) return;
-    void fetchLoginProviders().then(setProviders).catch(() => setProviders([]));
+    setProviders(null);
+    setProviderError('');
+    void fetchLoginProviders()
+      .then(setProviders)
+      .catch((cause) => {
+        setProviderError(cause instanceof Error ? cause.message : 'Could not read Controller sign-in status.');
+      });
   }, [allowSignIn]);
-  const signInVisible = allowSignIn && providers.length > 0;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-8">
       <div role="dialog" aria-modal="true" aria-labelledby="connect-title"
@@ -44,24 +56,38 @@ export function ConnectionDialog({
           <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
         )}
 
-        <div className={`grid gap-4 ${signInVisible ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+        <div className={`grid gap-4 ${allowSignIn ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
           <section className="rounded-xl border border-slate-200 p-4">
             <h2 className="font-semibold text-slate-950">{t('connect.nodeTitle')}</h2>
             <pre className="mt-4 overflow-x-auto rounded-lg bg-slate-950 px-3 py-2 text-xs text-white">agentsight bind</pre>
             <p className="mt-3 text-xs text-slate-500">{t('connect.nodeArgs')}</p>
           </section>
 
-          {signInVisible && <section className="rounded-xl border border-slate-200 p-4">
+          {allowSignIn && <section className="rounded-xl border border-slate-200 p-4">
             <h2 className="font-semibold text-slate-950">{t('connect.signInTitle')}</h2>
-            <div className="mt-4 space-y-2">
-              {providers.includes('github') && <button type="button" onClick={() => { void startLogin('github'); }}
-                className="block w-full rounded-lg bg-slate-950 px-3 py-2 text-center text-sm font-medium text-white hover:bg-slate-800">
-                {t('connect.github')}
-              </button>}
-              {providers.includes('google') && <button type="button" onClick={() => { void startLogin('google'); }}
-                className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-center text-sm font-medium text-slate-800 hover:bg-slate-50">
-                {t('connect.google')}
-              </button>}
+            <div className="mt-4 space-y-3">
+              {LOGIN_PROVIDERS.map(({ id, label }) => {
+                const configured = providers?.includes(id) === true;
+                const checking = providers === null && !providerError;
+                return <div key={id}>
+                  <button type="button" disabled={busy || !configured}
+                    onClick={() => { void startLogin(id); }}
+                    className={`block w-full rounded-lg px-3 py-2 text-center text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
+                      id === 'github'
+                        ? 'bg-slate-950 text-white hover:bg-slate-800'
+                        : 'border border-slate-300 text-slate-800 hover:bg-slate-50'
+                    }`}>
+                    {id === 'github' ? t('connect.github') : t('connect.google')}
+                  </button>
+                  {!configured && <p className={`mt-1 text-xs ${providerError ? 'text-red-600' : 'text-slate-500'}`}>
+                    {providerError
+                      ? `${label} sign-in status unavailable: ${providerError}`
+                      : checking
+                        ? `Checking ${label} sign-in configuration…`
+                        : `${label} sign-in is unavailable because its OAuth credentials are not configured on the Controller.`}
+                  </p>}
+                </div>;
+              })}
             </div>
           </section>}
 
