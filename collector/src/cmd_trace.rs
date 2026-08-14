@@ -3,6 +3,7 @@
 
 use futures::stream::StreamExt;
 use std::path::PathBuf;
+use std::time::Duration;
 use tokio::sync::oneshot;
 
 use crate::analyzers::{
@@ -23,11 +24,17 @@ use crate::runners::{
 use crate::server::WebServer;
 use crate::sinks::OtelExporter;
 use crate::sinks::sqlite::SqliteStore;
+use crate::sources::agent_native::{self, SessionCache};
 use crate::sources::proc::{PidSeed, ProcSnapshot};
 use crate::view::{MaterializedView, SharedMaterializedView, process_select};
 
 pub(crate) const DEFAULT_SERVER_LISTEN: &str = "127.0.0.1";
 pub(crate) const DEFAULT_RECORD_STDIO_MAX_BYTES: u32 = 65_536;
+/// Sessions the bridge refresh imports per tick; the same bound the snapshot
+/// handler uses.
+const AGENT_NATIVE_SESSION_LIMIT: usize = 25;
+/// Floor on the refresh period, so `--system-interval 0` cannot spin.
+const MIN_REFRESH_SECS: u64 = 1;
 
 pub(crate) struct StartedWebServer {
     pub(crate) url: String,
@@ -374,6 +381,9 @@ pub(crate) async fn run_trace(
     prepare_process_seeds(&mut cfg)?;
     let live_view = MaterializedView::shared_bounded();
     let bridge = start_bridge_if_enabled(cfg.bridge_socket.as_deref(), live_view.clone()).await?;
+    let agent_native_refresh = bridge
+        .is_some()
+        .then(|| spawn_agent_native_refresh(live_view.clone(), cfg.system_interval));
     let mut agent = build_trace_agent_with_view(binary_extractor, &cfg, live_view.clone())?;
 
     print_trace_start(agent.runner_count(), agent.analyzer_count());
@@ -388,6 +398,9 @@ pub(crate) async fn run_trace(
 
     // Drive the stream so the analyzer chain (file logging, storage, etc.) runs.
     drive_stream_until_shutdown(&mut stream, !cfg.quiet).await?;
+    if let Some(refresh) = agent_native_refresh.as_ref() {
+        refresh.abort();
+    }
     if let Some(bridge) = bridge.as_ref() {
         bridge.shutdown("collector stopping");
         // Let the graceful-shutdown notice reach connected consumers.
@@ -419,6 +432,49 @@ pub(crate) async fn start_bridge_if_enabled(
     .map_err(|error| RunnerError::from(format!("failed to start bridge server: {error}")))?;
     print_bridge_server_start(socket_path);
     Ok(Some(handle))
+}
+
+/// Keep agent-native sessions in the live view for as long as the bridge is
+/// served.
+///
+/// The trace pipeline materializes what the runners observe, and no runner
+/// reads `~/.claude/projects` and friends: until now the transcripts reached a
+/// view only through the web snapshot handler, which builds its own copy. A
+/// bridge consumer therefore saw process, file and resource rows but never a
+/// session row — on a host where the transcript is the only place a session
+/// exists, that is the whole semantic half of the evidence missing. The import
+/// goes through `emit_session`, so consumers get ordinary revisioned mutations;
+/// the LLM, token and tool rows it carries stay unmutated, as they already did.
+///
+/// Only started when `--bridge-socket` is set, so no other capture path changes
+/// shape.
+fn spawn_agent_native_refresh(
+    view: SharedMaterializedView,
+    interval_secs: u64,
+) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
+        let mut cache = SessionCache::new();
+        let mut ticker =
+            tokio::time::interval(Duration::from_secs(interval_secs.max(MIN_REFRESH_SECS)));
+        loop {
+            // The first tick completes immediately, so a consumer that connects
+            // late still finds the sessions in the replay buffer.
+            ticker.tick().await;
+            let sessions = agent_native::discover_sessions(
+                &mut cache,
+                None,
+                None,
+                AGENT_NATIVE_SESSION_LIMIT,
+                Duration::ZERO,
+            );
+            if sessions.is_empty() {
+                continue;
+            }
+            if let Ok(mut guard) = view.lock() {
+                agent_native::import_into_view(&mut guard, &sessions);
+            }
+        }
+    })
 }
 
 pub(crate) async fn start_web_server_if_enabled(
