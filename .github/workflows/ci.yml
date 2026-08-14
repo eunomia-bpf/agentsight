@@ -109,8 +109,14 @@ jobs:
       run: |
         cargo clippy --manifest-path agentsight-capture/Cargo.toml --all-targets -- -D warnings
         cargo test --manifest-path agentsight-capture/Cargo.toml --verbose
+        # agentsight-protocol is patched to the in-tree path for the same reason
+        # agent-session is: the packaging dry-run otherwise resolves the crates.io
+        # release, and the published 1.0.21 does not carry the `bridge` feature the
+        # capture sink needs. The patch comes out when a protocol release with
+        # `bridge` is published (the upstream PR documents that publish ordering).
         cargo package --manifest-path agentsight-capture/Cargo.toml \
-          --config "patch.crates-io.agent-session.path='${GITHUB_WORKSPACE}/agent-session'"
+          --config "patch.crates-io.agent-session.path='${GITHUB_WORKSPACE}/agent-session'" \
+          --config "patch.crates-io.agentsight-protocol.path='${GITHUB_WORKSPACE}/agentsight-protocol'"
 
     - name: Check standalone agentvis
       run: |
