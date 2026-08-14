@@ -6,7 +6,7 @@ use tokio::sync::oneshot;
 
 use crate::analyzers::{
     AuthHeaderRemover, HTTPDecompressor, HTTPFilter, HTTPParser, MaterializingAnalyzer,
-    SSEProcessor, SSLFilter, TimestampNormalizer,
+    McpStdioAnalyzer, SSEProcessor, SSLFilter, TimestampNormalizer,
 };
 use crate::binary_extractor::BinaryExtractor;
 use crate::binary_resolver::{resolve_binary_path_for_ssl, resolve_container_binary_arg};
@@ -254,6 +254,7 @@ pub(crate) fn build_trace_agent_with_view(
             otel_config.capture_content,
         )));
     }
+    agent = agent.add_global_analyzer(Box::new(McpStdioAnalyzer::new()));
     agent = agent.add_global_analyzer(Box::new(materializer));
 
     Ok(agent)
@@ -653,9 +654,9 @@ pub(crate) async fn run_debug_runner<R: Runner>(
     server_port: u16,
 ) -> Result<(), RunnerError> {
     let live_view = MaterializedView::shared_bounded();
-    let mut runner = runner.add_analyzer(Box::new(MaterializingAnalyzer::with_view(
-        live_view.clone(),
-    )));
+    let mut runner = runner
+        .add_analyzer(Box::new(McpStdioAnalyzer::new()))
+        .add_analyzer(Box::new(MaterializingAnalyzer::with_view(live_view.clone())));
     let _server_handle =
         start_web_server_if_enabled(enable_server, server_listen, server_port, live_view, None)
             .await

@@ -41,6 +41,7 @@ pub struct MaterializedView {
     audit_order: VecDeque<String>,
     sinks: Vec<Box<dyn ViewSink>>,
     pending: HashMap<(u32, u64), VecDeque<PendingRequest>>,
+    pending_stdio_tools: HashMap<(u32, String), ToolCallRow>,
     active_processes: HashMap<u32, String>,
     counts: ViewCounts,
     start_timestamp_ms: Option<u64>,

@@ -361,7 +361,119 @@ impl MaterializedView {
 
     fn ingest_agent_specific_event(&mut self, event: &CanonicalEvent) -> ViewResult<()> {
         self.ingest_claude_telemetry(event)?;
-        self.ingest_gemini_stdio_stats(event)
+        self.ingest_gemini_stdio_stats(event)?;
+        self.ingest_mcp_stdio(event)
+    }
+
+    fn ingest_mcp_stdio(&mut self, event: &CanonicalEvent) -> ViewResult<()> {
+        if event.kind != EventKind::StdioRpc {
+            return Ok(());
+        }
+        let Some(payload) = event.attributes.get("rpc_payload") else {
+            return Ok(());
+        };
+        let rpc_kind = event
+            .attributes
+            .get("rpc_kind")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown");
+        let pid = event.pid.unwrap_or(0);
+        let rpc_id = event
+            .attributes
+            .get("rpc_id")
+            .and_then(Value::as_str)
+            .or(event.request_id.as_deref());
+
+        if rpc_kind == "request"
+            && event.method.as_deref() == Some("tools/call")
+        {
+            let Some(tool_name) = event
+                .attributes
+                .get("rpc_tool_name")
+                .and_then(Value::as_str)
+                .or_else(|| payload.pointer("/params/name").and_then(Value::as_str))
+                .filter(|name| !name.is_empty())
+            else {
+                return Ok(());
+            };
+            let input = payload
+                .pointer("/params/arguments")
+                .cloned()
+                .unwrap_or(Value::Null);
+            let key = rpc_id.map(|id| (pid, id.to_string()));
+            let row = ToolCallRow {
+                id: format!(
+                    "mcp-stdio-{}-{}",
+                    pid,
+                    sanitize_id(rpc_id.unwrap_or(&event.event_id))
+                ),
+                session_id: None,
+                conversation_id: None,
+                timestamp_ms: event.timestamp_ms,
+                tool_name: Some(tool_name.to_string()),
+                tool_call_id: rpc_id.map(str::to_string),
+                start_timestamp_ms: Some(event.timestamp_ms),
+                end_timestamp_ms: None,
+                duration_ms: None,
+                status: Some("observed".to_string()),
+                input,
+                output: Value::Null,
+                related_pid: Some(pid),
+                related_event_id: Some(event.event_id.clone()),
+                view_source: "view".to_string(),
+                confidence: Some(0.9),
+            };
+            if let Some(key) = key {
+                self.pending_stdio_tools.insert(key, row.clone());
+            }
+            return self.emit_tool_call(row);
+        }
+
+        if matches!(rpc_kind, "response" | "error")
+            && let Some(rpc_id) = rpc_id
+            && let Some(mut row) = self.take_pending_stdio_tool(pid, rpc_id)
+        {
+            row.end_timestamp_ms = Some(event.timestamp_ms);
+            row.duration_ms = Some(
+                event
+                    .timestamp_ms
+                    .saturating_sub(row.timestamp_ms),
+            );
+            let failed = rpc_kind == "error"
+                || payload.get("error").is_some()
+                || payload
+                    .pointer("/result/isError")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false);
+            row.status = Some(if failed { "failure" } else { "success" }.to_string());
+            row.output = payload
+                .get("result")
+                .or_else(|| payload.get("error"))
+                .cloned()
+                .unwrap_or(Value::Null);
+            row.related_event_id = Some(event.event_id.clone());
+            return self.emit_tool_call(row);
+        }
+        Ok(())
+    }
+
+    fn take_pending_stdio_tool(&mut self, pid: u32, rpc_id: &str) -> Option<ToolCallRow> {
+        if let Some(row) = self
+            .pending_stdio_tools
+            .remove(&(pid, rpc_id.to_string()))
+        {
+            return Some(row);
+        }
+        // A session-level stdio capture can observe the request in a client
+        // process and the response in the server process. Fall back to the
+        // unique request id when the PIDs differ.
+        let key = self
+            .pending_stdio_tools
+            .keys()
+            .filter(|(_, id)| id == rpc_id)
+            .cloned()
+            .collect::<Vec<_>>();
+        (key.len() == 1).then(|| self.pending_stdio_tools.remove(&key[0]))?
     }
 
     fn ingest_claude_telemetry(&mut self, event: &CanonicalEvent) -> ViewResult<()> {
@@ -1195,5 +1307,60 @@ mod tests {
         let calls = view.llm_call_rows(10);
         assert_eq!(calls[0].status, "error");
         assert_eq!(calls[0].error_type.as_deref(), Some("http_429"));
+    }
+
+    #[test]
+    fn mcp_stdio_tools_call_becomes_a_completed_tool_row() {
+        let mut view = MaterializedView::new();
+        let request = Event::new_with_timestamp(
+            1_000,
+            "stdio".to_string(),
+            42,
+            "mcp-server".to_string(),
+            json!({
+                "direction": "READ",
+                "fd": 0,
+                "data": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\"}",
+                "rpc_kind": "request",
+                "rpc_method": "tools/call",
+                "rpc_id": "7",
+                "rpc_tool_name": "echo",
+                "rpc_payload": {
+                    "jsonrpc": "2.0",
+                    "id": 7,
+                    "method": "tools/call",
+                    "params": {"name": "echo", "arguments": {"text": "hello"}}
+                }
+            }),
+        );
+        let response = Event::new_with_timestamp(
+            1_025,
+            "stdio".to_string(),
+            42,
+            "mcp-server".to_string(),
+            json!({
+                "direction": "WRITE",
+                "fd": 1,
+                "data": "{\"jsonrpc\":\"2.0\",\"id\":7,\"result\":{}}",
+                "rpc_kind": "response",
+                "rpc_id": "7",
+                "rpc_payload": {
+                    "jsonrpc": "2.0",
+                    "id": 7,
+                    "result": {"content": [{"type": "text", "text": "echo:hello"}]}
+                }
+            }),
+        );
+
+        view.ingest_event(&request).expect("ingest MCP request");
+        view.ingest_event(&response).expect("ingest MCP response");
+        let snapshot = view.export_snapshot(crate::model::SnapshotOptions { audit_limit: 100 });
+
+        assert_eq!(snapshot.tool_calls.len(), 1);
+        let row = &snapshot.tool_calls[0];
+        assert_eq!(row.tool_name.as_deref(), Some("echo"));
+        assert_eq!(row.status.as_deref(), Some("success"));
+        assert_eq!(row.duration_ms, Some(25));
+        assert_eq!(row.output["content"][0]["text"], "echo:hello");
     }
 }

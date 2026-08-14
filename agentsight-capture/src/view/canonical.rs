@@ -67,6 +67,7 @@ pub fn normalize_event(event: &Event, raw_event_id: String) -> CanonicalEvent {
 
     let mut method = data
         .get("method")
+        .or_else(|| data.get("rpc_method"))
         .and_then(|v| v.as_str())
         .map(String::from);
     let mut path = data.get("path").and_then(|v| v.as_str()).map(String::from);
@@ -147,7 +148,7 @@ pub fn normalize_event(event: &Event, raw_event_id: String) -> CanonicalEvent {
             _ => EventKind::Unknown,
         };
     } else if source == "stdio" || source == "stdiocap" {
-        kind = if data.get("rpc_method").is_some() {
+        kind = if data.get("rpc_method").is_some() || data.get("rpc_kind").is_some() {
             EventKind::StdioRpc
         } else {
             EventKind::StdioMessage
@@ -205,6 +206,7 @@ fn extract_request_id(data: &Value) -> Option<String> {
         .get("request_id")
         .or_else(|| data.get("requestId"))
         .or_else(|| data.get("requestID"))
+        .or_else(|| data.get("rpc_id"))
         .and_then(|v| v.as_str());
     if let Some(id) = direct {
         return Some(id.to_string());
@@ -270,6 +272,20 @@ fn build_summary(
             .get("stream")
             .and_then(|v| v.as_str())
             .map(|stream| format!("{} output", stream)),
+        EventKind::StdioRpc => {
+            let kind = data
+                .get("rpc_kind")
+                .and_then(|v| v.as_str())
+                .unwrap_or("message");
+            let method = data
+                .get("rpc_method")
+                .and_then(|v| v.as_str())
+                .or_else(|| data.get("rpc_tool_name").and_then(|v| v.as_str()));
+            Some(match method {
+                Some(method) => format!("stdio {} {}", kind, method),
+                None => format!("stdio {}", kind),
+            })
+        }
         _ => None,
     }
 }
