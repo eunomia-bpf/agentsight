@@ -252,12 +252,10 @@ pub fn process_node(
         row_id: row.id.clone(),
         revision,
         pid: row.pid,
-        // The view row has no start-ticks source today: the eBPF `process`
-        // events (`struct event` in bpf/process.h) carry timestamp_ns and
-        // duration_ns only, so ProcessNodeRow never sees CLK_TCK ticks. It stays
-        // None until those events report the task start time — a value derived
-        // from start_timestamp_ms would not be the kernel identity.
-        start_ticks: None,
+        // Carried straight through from the view row, which took it from
+        // /proc/<pid>/stat at event arrival. None off Linux and when the read
+        // lost the race with process exit; never derived from a timestamp.
+        start_ticks: row.start_ticks,
         ppid: row.ppid,
         root_pid: row.root_pid,
         start_ts_ms: row.start_timestamp_ms,
@@ -372,6 +370,7 @@ mod tests {
         ProcessNodeRow {
             id: "pid:42:start:100".to_string(),
             pid: 42,
+            start_ticks: Some(918_500),
             ppid: Some(1),
             root_pid: Some(42),
             start_timestamp_ms: Some(100),
@@ -391,8 +390,8 @@ mod tests {
     fn metadata_only_process_projection_drops_content() {
         let projected = process_node(&process_row(), 0, &DisclosureMode::MetadataOnly);
         assert!(projected.content.is_none());
-        // No capture channel reports CLK_TCK ticks yet; never derived from ms.
-        assert_eq!(projected.start_ticks, None);
+        // The kernel ticks the runner read at arrival, carried through unchanged.
+        assert_eq!(projected.start_ticks, Some(918_500));
         assert_eq!(projected.executable_basename.as_deref(), Some("git"));
         assert_eq!(projected.argv_shape.as_deref(), Some("cmd <flag>"));
         assert_eq!(projected.cwd_class.as_deref(), Some("repo"));

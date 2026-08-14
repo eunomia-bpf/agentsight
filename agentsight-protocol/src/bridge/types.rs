@@ -66,18 +66,18 @@ pub mod capability_names {
     /// Reverse annotations: the server accepts
     /// [`BridgeMessage::Annotation`](crate::bridge::BridgeMessage::Annotation).
     ///
-    /// Deliberately **not** in [`ALL`]. Every other name there describes capture
-    /// the collector performs, and a v1 collector enumerates all of them in its
-    /// agreement with an honest `available` flag. This one describes a message
-    /// the collector *accepts*, and it is what makes an added message safe at an
-    /// unchanged protocol version: a build without the annotation arm must not
-    /// name it at all, so that a client seeing no such capability never sends
-    /// one. Listing it alongside the capture names would make "advertised" the
-    /// default, which is the opposite of the rule.
+    /// Unlike every other name here it describes a message the collector
+    /// *accepts* rather than capture it performs, and it is what makes an added
+    /// message safe at an unchanged protocol version: a build without the
+    /// annotation arm must not name it at all, so that a client seeing no such
+    /// capability never sends one. It is in [`ALL`] because the collector in
+    /// this repository implements the arm and enumerates it honestly; a fork
+    /// that removes the arm must remove the name from its agreement, not report
+    /// it as unavailable-but-listed.
     pub const ARO_ANNOTATIONS: &str = "aro_annotations";
 
-    /// Every capture capability name in v1, in the order the spec lists them.
-    pub const ALL: [&str; 8] = [
+    /// Every capability name in v1, in the order the spec lists them.
+    pub const ALL: [&str; 9] = [
         PROCESS_CAPTURE,
         FILE_CAPTURE,
         NETWORK_CAPTURE,
@@ -86,6 +86,7 @@ pub mod capability_names {
         RESOURCE_SAMPLES,
         CGROUP_FILTER,
         SESSION_MUTATIONS,
+        ARO_ANNOTATIONS,
     ];
 }
 
@@ -98,6 +99,13 @@ pub struct BridgeHealth {
     pub capture_gaps: u64,
     pub dropped_mutations: u64,
     pub active_scopes: u32,
+    /// Client annotations the server dropped to stay inside its store bound.
+    /// Non-zero means the annotations the server can serve back are incomplete;
+    /// it says nothing about capture, so it does not by itself make the state
+    /// degraded. `None` from a peer that predates the field — the `serde`
+    /// default is what keeps an older encoder's health decodable at v1.
+    #[serde(default)]
+    pub aro_annotations_evicted: Option<u64>,
 }
 
 impl BridgeHealth {
@@ -201,6 +209,31 @@ mod tests {
         let json = serde_json::to_value(&scoped).unwrap();
         assert_eq!(json["mode"], "incident_scoped");
         assert_eq!(json["approval_id"], "ap-1");
+    }
+
+    #[test]
+    fn health_from_a_peer_without_the_annotation_counter_still_decodes() {
+        let older = serde_json::json!({
+            "state": "ok",
+            "detail": null,
+            "capture_gaps": 0,
+            "dropped_mutations": 0,
+            "active_scopes": 1,
+        });
+        let health: BridgeHealth = serde_json::from_value(older).expect("older health decodes");
+        assert_eq!(health.aro_annotations_evicted, None);
+    }
+
+    #[test]
+    fn the_annotation_capability_is_enumerated_like_every_other_name() {
+        assert!(capability_names::ALL.contains(&capability_names::ARO_ANNOTATIONS));
+        assert_eq!(
+            capability_names::ALL.len(),
+            capability_names::ALL
+                .iter()
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+        );
     }
 
     #[test]

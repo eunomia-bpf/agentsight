@@ -969,6 +969,7 @@ mod tests {
             .process_node(&ProcessNodeRow {
                 id: "db-process".to_string(),
                 pid: 42,
+                start_ticks: None,
                 ppid: None,
                 root_pid: None,
                 start_timestamp_ms: Some(1_000),
@@ -1002,6 +1003,7 @@ mod tests {
             view.upsert_process_node(&ProcessNodeRow {
                 id: "live-process".to_string(),
                 pid: 7,
+                start_ticks: None,
                 ppid: None,
                 root_pid: None,
                 start_timestamp_ms: Some(2_000),

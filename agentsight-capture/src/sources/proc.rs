@@ -290,6 +290,16 @@ fn process_command(process: &Process, fallback: &str) -> String {
     }
 }
 
+/// Field 22 of `/proc/<pid>/stat`, and nothing else.
+///
+/// Unlike [`process_starttime_ticks`] this never falls back to a value computed
+/// from a process start *timestamp*: callers that use the ticks as kernel
+/// identity need the kernel's own number or none at all. `None` off Linux, and
+/// `None` when the read failed — usually because the task already exited.
+pub fn kernel_starttime_ticks(pid: u32) -> Option<u64> {
+    platform_starttime_ticks(pid)
+}
+
 pub fn process_starttime_ticks(pid: u32) -> Option<u64> {
     platform_starttime_ticks(pid).or_else(|| {
         let sys_pid = Pid::from_u32(pid);

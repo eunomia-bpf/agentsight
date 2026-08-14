@@ -153,6 +153,7 @@ fn process_node_row() -> ProcessNodeRow {
     ProcessNodeRow {
         id: "pid:43:start:1500".to_string(),
         pid: 43,
+        start_ticks: Some(1_500),
         ppid: Some(42),
         root_pid: Some(42),
         start_timestamp_ms: Some(1_500),

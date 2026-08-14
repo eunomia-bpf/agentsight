@@ -14,10 +14,10 @@ use agentsight_capture::bridge::{
     MutationEmitterConfig, MutationResult, MutationSink, SequenceAllocator,
 };
 use agentsight_protocol::bridge::{
-    BRIDGE_PROTOCOL_VERSION, BridgeAgreement, BridgeCapability, BridgeHealth, BridgeMessage,
-    DisclosureMode, MAX_FRAME_BYTES, MutationOperation, ScopeRegistration, TimestampBasis,
-    ToolScopeRegistration, ViewMutation, ViewMutationEnvelope, capability_names, encode_frame,
-    read_frame,
+    AroAnnotation, BRIDGE_PROTOCOL_VERSION, BridgeAgreement, BridgeCapability, BridgeHealth,
+    BridgeMessage, DisclosureMode, MAX_FRAME_BYTES, MutationOperation, ScopeRegistration,
+    TimestampBasis, ToolScopeRegistration, ViewMutation, ViewMutationEnvelope, capability_names,
+    encode_frame, read_frame,
 };
 use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
@@ -89,6 +89,11 @@ fn default_capabilities() -> Vec<BridgeCapability> {
         BridgeCapability::new(capability_names::RESOURCE_SAMPLES, true, None),
         BridgeCapability::new(capability_names::CGROUP_FILTER, ebpf, ebpf_detail),
         BridgeCapability::new(capability_names::SESSION_MUTATIONS, true, None),
+        // Not capture, and not platform-dependent: this build implements the
+        // inbound annotation arm, so it says so. A build that dropped the arm
+        // would have to stop naming it — a client reads the advertisement, not
+        // the protocol version, to decide whether to send one.
+        BridgeCapability::new(capability_names::ARO_ANNOTATIONS, true, None),
     ]
 }
 
@@ -249,6 +254,9 @@ struct HubState {
     replay: VecDeque<ViewMutationEnvelope>,
     capture_gaps: u64,
     dropped_mutations: u64,
+    /// Annotations refused because the scope they named was unknown, expired,
+    /// or not the scope the row itself named.
+    rejected_annotations: u64,
     next_connection_id: u64,
 }
 
@@ -258,6 +266,12 @@ pub(crate) struct BridgeHub {
     config: BridgeServerConfig,
     sequence: SequenceAllocator,
     state: Mutex<HubState>,
+    /// Mirror of the view's annotation-eviction counter, so health can report it
+    /// without the hub ever taking the view lock. The emit path already holds
+    /// the view lock when it calls into the hub, so a hub method that locked the
+    /// view would invert the order; only the annotation arm updates this, and it
+    /// updates it while it holds the view lock anyway.
+    annotations_evicted: AtomicU64,
 }
 
 impl BridgeHub {
@@ -266,6 +280,7 @@ impl BridgeHub {
             config,
             sequence,
             state: Mutex::new(HubState::default()),
+            annotations_evicted: AtomicU64::new(0),
         }
     }
 
@@ -356,6 +371,7 @@ impl BridgeHub {
                 capture_gaps: 0,
                 dropped_mutations: 0,
                 active_scopes: 0,
+                aro_annotations_evicted: None,
             };
         };
         let now_ns = monotonic_ns();
@@ -375,7 +391,57 @@ impl BridgeHub {
             capture_gaps: state.capture_gaps,
             dropped_mutations: state.dropped_mutations,
             active_scopes,
+            // Reported, but deliberately not part of `degraded`: a dropped
+            // annotation is the client's own row falling out of a bounded store,
+            // not capture the collector lost.
+            aro_annotations_evicted: Some(self.annotations_evicted.load(Ordering::Relaxed)),
         }
+    }
+
+    /// Whether one annotation may be applied.
+    ///
+    /// Two questions, both about the scope. The message must name a scope this
+    /// server has registered and that has not expired — the collector holds no
+    /// annotations about scopes it was never told to observe. And the row inside
+    /// must name the same scope as the message carrying it: a row naming another
+    /// scope is mislabeled, not merely late, and applying it would file the
+    /// client's evidence under the wrong subject.
+    fn accepts_annotation(&self, annotation: &AroAnnotation) -> Result<(), String> {
+        let mut state = self
+            .state
+            .lock()
+            .map_err(|_| "bridge state poisoned".to_string())?;
+        let now_ns = monotonic_ns();
+        let outcome = if annotation.row.scope_handle() != annotation.scope_handle {
+            Err(format!(
+                "row names scope {}, message names {}",
+                annotation.row.scope_handle(),
+                annotation.scope_handle
+            ))
+        } else {
+            match state.scopes.get(&annotation.scope_handle) {
+                Some(entry) if entry.is_active(now_ns) => Ok(()),
+                Some(_) => Err("scope registration has expired".to_string()),
+                None => Err("scope is not registered".to_string()),
+            }
+        };
+        if outcome.is_err() {
+            state.rejected_annotations += 1;
+        }
+        outcome
+    }
+
+    /// Take the view's eviction count after an annotation was applied.
+    fn note_annotations_evicted(&self, evicted: u64) {
+        self.annotations_evicted.store(evicted, Ordering::Relaxed);
+    }
+
+    #[cfg(test)]
+    fn rejected_annotations(&self) -> u64 {
+        self.state
+            .lock()
+            .map(|state| state.rejected_annotations)
+            .unwrap_or(0)
     }
 
     fn register_scope(&self, registration: &ScopeRegistration) -> Result<(), String> {
@@ -996,6 +1062,7 @@ fn handle_message(
                 BridgeMessage::ResumeUnavailable { earliest_available },
             ),
         },
+        BridgeMessage::Annotation(annotation) => apply_annotation(hub, view, &annotation),
         BridgeMessage::SnapshotRequest { scope_handle } => {
             serve_snapshot(hub, view, connection_id, scope_handle)
         }
@@ -1007,6 +1074,32 @@ fn handle_message(
         }
     }
     Flow::Continue
+}
+
+/// Store one client annotation, or drop it.
+///
+/// Fire-and-forget by contract: there is no reply to an annotation, accepted or
+/// not, so a refusal is logged and counted rather than answered. The client is
+/// telling the collector something about its own scope; the collector is free to
+/// keep none of it and still be correct.
+fn apply_annotation(
+    hub: &Arc<BridgeHub>,
+    view: &SharedMaterializedView,
+    annotation: &AroAnnotation,
+) {
+    if let Err(reason) = hub.accepts_annotation(annotation) {
+        log::debug!(
+            "bridge: dropped {} annotation for scope {}: {reason}",
+            annotation.row.row_kind(),
+            annotation.scope_handle
+        );
+        return;
+    }
+    let Ok(mut guard) = view.lock() else {
+        return;
+    };
+    guard.apply_aro_annotation(annotation);
+    hub.note_annotations_evicted(guard.aro_annotations_evicted());
 }
 
 /// Answer a snapshot request from current view state. Snapshot mutations are
@@ -1054,7 +1147,9 @@ mod tests {
     use super::*;
     use crate::view::MaterializedView;
     use agentsight_capture::model::AuditEventRow;
-    use agentsight_protocol::bridge::{BridgeHello, ResumeRequest};
+    use agentsight_protocol::bridge::{
+        AroAnnotationRow, AroPolicyDecisionRow, BridgeHello, ResumeRequest,
+    };
 
     const RECV_TIMEOUT: Duration = Duration::from_secs(3);
 
@@ -1212,11 +1307,20 @@ mod tests {
         assert_eq!(agreement.node_id, "node_test");
         assert_eq!(agreement.boot_id.as_deref(), Some("boot-test"));
         assert_eq!(agreement.capabilities.len(), capability_names::ALL.len());
+        // The annotation arm is enumerated like every other name, and the flag
+        // is what a client reads before it sends one.
+        let annotations = agreement
+            .capabilities
+            .iter()
+            .find(|capability| capability.name == capability_names::ARO_ANNOTATIONS)
+            .expect("the annotation capability is advertised");
+        assert!(annotations.available);
 
         match client.recv().await.expect("health") {
             BridgeMessage::Health(health) => {
                 assert_eq!(health.state, BridgeHealth::OK);
                 assert_eq!(health.active_scopes, 0);
+                assert_eq!(health.aro_annotations_evicted, Some(0));
             }
             other => panic!("expected health, got {other:?}"),
         }
@@ -1674,6 +1778,152 @@ mod tests {
             },
         );
         assert_eq!(BridgeHub::active_scope_handle(&state, now), None);
+    }
+
+    fn policy_annotation(message_scope: &str, row_scope: &str, revision: u64) -> AroAnnotation {
+        AroAnnotation {
+            scope_handle: message_scope.to_string(),
+            sequence: revision + 1,
+            row: AroAnnotationRow::PolicyDecision(AroPolicyDecisionRow {
+                row_id: "policy-1".to_string(),
+                revision,
+                scope_handle: row_scope.to_string(),
+                decision: "allow".to_string(),
+                mode: Some("enforce".to_string()),
+                outcome: Some("applied".to_string()),
+                rung: None,
+            }),
+        }
+    }
+
+    /// Send an annotation and wait until the server has certainly handled it.
+    /// There is no reply to an annotation, so the barrier is a later request:
+    /// frames are handled in order, so an answered snapshot means the
+    /// annotation ahead of it has already been decided.
+    async fn annotate_and_settle(client: &mut TestClient, annotation: AroAnnotation) {
+        client.send(&BridgeMessage::Annotation(annotation)).await;
+        client
+            .send(&BridgeMessage::SnapshotRequest { scope_handle: None })
+            .await;
+        client
+            .recv_matching(|message| matches!(message, BridgeMessage::SnapshotEnd { .. }))
+            .await;
+    }
+
+    async fn register(client: &mut TestClient, registration: ScopeRegistration) {
+        client
+            .send(&BridgeMessage::RegisterScope(registration))
+            .await;
+        client
+            .recv_matching(|message| matches!(message, BridgeMessage::ScopeAccepted { .. }))
+            .await;
+    }
+
+    fn stored_annotations(view: &SharedMaterializedView) -> Vec<AroAnnotation> {
+        view.lock().unwrap().aro_annotations()
+    }
+
+    #[tokio::test]
+    async fn an_annotation_about_a_registered_scope_is_stored_once() {
+        let fixture = fixture(|_| {}).await;
+        let mut client = TestClient::connect(&fixture.socket_path).await;
+        client.handshake().await;
+        register(&mut client, scope_registration("scope-1")).await;
+
+        annotate_and_settle(&mut client, policy_annotation("scope-1", "scope-1", 0)).await;
+        // A client replaying its stream after a reconnect changes nothing.
+        annotate_and_settle(&mut client, policy_annotation("scope-1", "scope-1", 0)).await;
+
+        let rows = stored_annotations(&fixture.view);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].row.row_kind(), "policy_decision");
+        assert_eq!(fixture.handle.hub.rejected_annotations(), 0);
+    }
+
+    #[tokio::test]
+    async fn an_annotation_about_an_unregistered_scope_is_dropped() {
+        let fixture = fixture(|_| {}).await;
+        let mut client = TestClient::connect(&fixture.socket_path).await;
+        client.handshake().await;
+
+        annotate_and_settle(&mut client, policy_annotation("scope-1", "scope-1", 0)).await;
+
+        assert!(stored_annotations(&fixture.view).is_empty());
+        assert_eq!(fixture.handle.hub.rejected_annotations(), 1);
+    }
+
+    #[tokio::test]
+    async fn an_annotation_whose_row_names_another_scope_is_dropped() {
+        let fixture = fixture(|_| {}).await;
+        let mut client = TestClient::connect(&fixture.socket_path).await;
+        client.handshake().await;
+        register(&mut client, scope_registration("scope-1")).await;
+        register(&mut client, scope_registration("scope-2")).await;
+
+        annotate_and_settle(&mut client, policy_annotation("scope-1", "scope-2", 0)).await;
+
+        assert!(stored_annotations(&fixture.view).is_empty());
+        assert_eq!(fixture.handle.hub.rejected_annotations(), 1);
+    }
+
+    #[tokio::test]
+    async fn an_annotation_about_an_expired_scope_is_dropped() {
+        let fixture = fixture(|_| {}).await;
+        let mut client = TestClient::connect(&fixture.socket_path).await;
+        client.handshake().await;
+        let mut registration = scope_registration("scope-1");
+        registration.expires_monotonic_ns = Some(monotonic_ns().saturating_sub(1));
+        register(&mut client, registration).await;
+
+        annotate_and_settle(&mut client, policy_annotation("scope-1", "scope-1", 0)).await;
+
+        assert!(stored_annotations(&fixture.view).is_empty());
+        assert_eq!(fixture.handle.hub.rejected_annotations(), 1);
+    }
+
+    #[tokio::test]
+    async fn an_annotation_never_becomes_a_mutation() {
+        let fixture = fixture(|_| {}).await;
+        let mut client = TestClient::connect(&fixture.socket_path).await;
+        client.handshake().await;
+        register(&mut client, scope_registration("scope-1")).await;
+
+        client
+            .send(&BridgeMessage::Annotation(policy_annotation(
+                "scope-1", "scope-1", 0,
+            )))
+            .await;
+        emit_audit(&fixture.view, "audit-1");
+        let message = client
+            .recv_matching(|message| matches!(message, BridgeMessage::Mutation(_)))
+            .await;
+        let BridgeMessage::Mutation(envelope) = message else {
+            unreachable!()
+        };
+        // The first mutation to reach the client is the collector's own
+        // observation, not the annotation that preceded it.
+        assert!(matches!(
+            envelope.mutation,
+            ViewMutation::AuditEventInserted(_)
+        ));
+        assert_eq!(envelope.sequence, 1);
+    }
+
+    #[test]
+    fn health_reports_annotation_evictions_without_calling_them_capture_loss() {
+        let dir = owner_only_tempdir();
+        let hub = BridgeHub::new(
+            BridgeServerConfig::new(dir.path().join("bridge.sock")),
+            SequenceAllocator::new(),
+        );
+        assert_eq!(hub.health().aro_annotations_evicted, Some(0));
+
+        hub.note_annotations_evicted(4);
+        let health = hub.health();
+        assert_eq!(health.aro_annotations_evicted, Some(4));
+        assert_eq!(health.state, BridgeHealth::OK);
+        assert_eq!(health.capture_gaps, 0);
+        assert_eq!(health.dropped_mutations, 0);
     }
 
     #[test]

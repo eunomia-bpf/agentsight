@@ -465,6 +465,11 @@ impl MaterializedView {
         existing.start_timestamp_ms =
             min_optional(existing.start_timestamp_ms, row.start_timestamp_ms);
         existing.end_timestamp_ms = max_optional(existing.end_timestamp_ms, row.end_timestamp_ms);
+        // Read once at exec and never revised: a later read of the same pid can
+        // only be a different task, so the first value is the identity.
+        if existing.start_ticks.is_none() {
+            existing.start_ticks = row.start_ticks;
+        }
         if row.ppid.is_some() {
             existing.ppid = row.ppid;
         }
@@ -504,6 +509,7 @@ impl MaterializedView {
             resource_samples: self.resource_sample_rows(),
             sessions: self.sessions(),
             tool_calls: self.tool_calls.values().cloned().collect(),
+            aro_annotations: self.aro_annotations(),
         }
     }
 
@@ -965,6 +971,7 @@ mod tests {
         ProcessNodeRow {
             id: format!("process-{pid}"),
             pid,
+            start_ticks: None,
             ppid: None,
             root_pid: Some(pid),
             start_timestamp_ms: Some(1_000),
@@ -1175,6 +1182,7 @@ mod tests {
         let first = ProcessNodeRow {
             id: "pid:42:start:100".to_string(),
             pid: 42,
+            start_ticks: Some(918_500),
             ppid: Some(1),
             root_pid: Some(42),
             start_timestamp_ms: Some(100),
@@ -1198,6 +1206,8 @@ mod tests {
         later.argv = vec!["agent-exit".to_string()];
         later.exit_code = Some(0);
         later.status = Some("success".to_string());
+        // The exit event has no task left to read ticks from.
+        later.start_ticks = None;
 
         view.upsert_process_node(&first);
         view.upsert_process_node(&later);
@@ -1207,6 +1217,7 @@ mod tests {
         assert_eq!(row.argv, first.argv);
         assert_eq!(row.end_timestamp_ms, Some(200));
         assert_eq!(row.exit_code, Some(0));
+        assert_eq!(row.start_ticks, Some(918_500));
     }
 
     fn annotation(revision: u64, decision: &str) -> AroAnnotation {
@@ -1241,7 +1252,7 @@ mod tests {
     }
 
     #[test]
-    fn annotations_never_become_mutations_or_snapshot_rows() {
+    fn annotations_never_become_mutations_or_observed_snapshot_rows() {
         let mut view = MaterializedView::new();
         view.apply_aro_annotation(&annotation(0, "allow"));
         assert!(
@@ -1251,5 +1262,36 @@ mod tests {
         let snapshot = view.export_snapshot(SnapshotOptions { audit_limit: 0 });
         assert_eq!(snapshot.summary.audit_events, 0);
         assert!(snapshot.process_nodes.is_empty());
+        // Served beside the observed rows, in their own field, counted in none
+        // of the summary totals.
+        assert_eq!(snapshot.aro_annotations.len(), 1);
+        assert_eq!(snapshot.summary.view_events, 0);
+    }
+
+    /// The web API answers from a detached copy, so anything the copy drops is
+    /// missing from every served snapshot.
+    #[test]
+    fn a_detached_copy_still_serves_the_annotations() {
+        let mut view = MaterializedView::new();
+        view.apply_aro_annotation(&annotation(0, "allow"));
+        let snapshot = view
+            .detached_copy()
+            .export_snapshot(SnapshotOptions { audit_limit: 0 });
+        assert_eq!(snapshot.aro_annotations.len(), 1);
+    }
+
+    #[test]
+    fn a_snapshot_without_annotations_does_not_carry_the_field() {
+        let view = MaterializedView::new();
+        let snapshot = view.export_snapshot(SnapshotOptions { audit_limit: 0 });
+        let json = serde_json::to_value(&snapshot).expect("snapshot serializes");
+        assert!(json.get("aro_annotations").is_none());
+
+        let mut annotated = MaterializedView::new();
+        annotated.apply_aro_annotation(&annotation(0, "allow"));
+        let json =
+            serde_json::to_value(annotated.export_snapshot(SnapshotOptions { audit_limit: 0 }))
+                .expect("snapshot serializes");
+        assert_eq!(json["aro_annotations"][0]["row"]["kind"], "policy_decision");
     }
 }

@@ -460,6 +460,10 @@ impl SqliteStore {
             Ok(ProcessNodeRow {
                 id: row.get(0)?,
                 pid: row.get::<_, i64>(1)? as u32,
+                // The process_nodes table has no ticks column, so a row read
+                // back from a store carries no kernel identity; only the live
+                // path has one.
+                start_ticks: None,
                 ppid: row.get::<_, Option<i64>>(2)?.map(|v| v as u32),
                 root_pid: row.get::<_, Option<i64>>(3)?.map(|v| v as u32),
                 start_timestamp_ms: row.get::<_, Option<i64>>(4)?.map(|v| v as u64),

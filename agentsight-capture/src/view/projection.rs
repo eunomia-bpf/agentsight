@@ -752,6 +752,10 @@ fn process_node_from_event(
     Some(ProcessNodeRow {
         id,
         pid,
+        // Stamped on the exec event by the process runner, which read
+        // /proc/<pid>/stat while the task was still there. Absent on exit
+        // events, and never reconstructed from a timestamp here.
+        start_ticks: event.attributes.get("start_ticks").and_then(Value::as_u64),
         ppid: event.ppid,
         root_pid: None,
         start_timestamp_ms: (action == "exec").then_some(event.timestamp_ms),
@@ -1067,6 +1071,46 @@ mod tests {
         assert_eq!(first_exec, first_exit);
         assert_eq!(second_exec, second_exit);
         assert_ne!(first_exec, second_exec);
+    }
+
+    #[test]
+    fn the_ticks_the_runner_stamped_on_an_exec_reach_the_process_node() {
+        let mut view = MaterializedView::new();
+        let exec = Event::new_with_timestamp(
+            1_000,
+            "process".to_string(),
+            42,
+            "cmd".to_string(),
+            json!({ "event": "EXEC", "filename": "/bin/cmd", "start_ticks": 918_500 }),
+        );
+        view.ingest_event(&exec).expect("ingest exec");
+        let row = view
+            .export_snapshot(crate::model::SnapshotOptions { audit_limit: 100 })
+            .process_nodes
+            .into_iter()
+            .next()
+            .expect("process node");
+        assert_eq!(row.start_ticks, Some(918_500));
+    }
+
+    #[test]
+    fn an_exec_without_stamped_ticks_leaves_the_field_empty() {
+        let mut view = MaterializedView::new();
+        let exec = Event::new_with_timestamp(
+            1_000,
+            "process".to_string(),
+            42,
+            "cmd".to_string(),
+            json!({ "event": "EXEC", "filename": "/bin/cmd" }),
+        );
+        view.ingest_event(&exec).expect("ingest exec");
+        let row = view
+            .export_snapshot(crate::model::SnapshotOptions { audit_limit: 100 })
+            .process_nodes
+            .into_iter()
+            .next()
+            .expect("process node");
+        assert_eq!(row.start_ticks, None);
     }
 
     #[test]

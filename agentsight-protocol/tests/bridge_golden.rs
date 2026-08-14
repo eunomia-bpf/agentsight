@@ -240,6 +240,7 @@ fn control_vectors() -> Vec<(&'static str, BridgeMessage)> {
                 capture_gaps: 0,
                 dropped_mutations: 0,
                 active_scopes: 1,
+                aro_annotations_evicted: Some(0),
             }),
         ),
         (
@@ -250,6 +251,10 @@ fn control_vectors() -> Vec<(&'static str, BridgeMessage)> {
                 capture_gaps: 2,
                 dropped_mutations: 37,
                 active_scopes: 1,
+                // Annotation evictions are reported beside the capture counters
+                // and never fold into them: a dropped annotation is the client's
+                // own row going missing, not capture the collector lost.
+                aro_annotations_evicted: Some(9),
             }),
         ),
     ]
@@ -518,11 +523,13 @@ fn mutation_vectors() -> Vec<(&'static str, BridgeMessage)> {
 /// The reverse-annotation stream: client -> server, behind the
 /// `aro_annotations` capability.
 ///
-/// The agreement that advertises the capability is pinned here rather than in
-/// `handshake_vectors`, and `capability_names::ALL` is deliberately not the
-/// source of the list: a collector without the annotation arm must not name the
-/// capability at all, so the advertising agreement is a *variant* of the
-/// handshake rather than the shape of every handshake.
+/// The agreement that advertises the capability is pinned here as well as in
+/// `handshake_vectors` because this is the file a client reads to decide whether
+/// to send an annotation at all: the gate is the advertised capability, not the
+/// protocol version. The collector implements the arm, so the name is in
+/// `capability_names::ALL` and the two agreements agree — a build that dropped
+/// the arm would have to stop naming it, and this vector would be the thing that
+/// no longer described it.
 fn annotation_vectors() -> Vec<(&'static str, BridgeMessage)> {
     vec![
         (
@@ -538,11 +545,6 @@ fn annotation_vectors() -> Vec<(&'static str, BridgeMessage)> {
                 capabilities: capability_names::ALL
                     .iter()
                     .map(|name| BridgeCapability::new(*name, true, None))
-                    .chain(std::iter::once(BridgeCapability::new(
-                        capability_names::ARO_ANNOTATIONS,
-                        true,
-                        None,
-                    )))
                     .collect(),
                 max_frame_bytes: MAX_FRAME_BYTES,
             }),
@@ -763,7 +765,7 @@ fn the_annotation_capability_is_advertised_by_a_pinned_agreement() {
         });
     assert!(advertised, "no pinned agreement advertises aro_annotations");
     assert!(
-        !capability_names::ALL.contains(&capability_names::ARO_ANNOTATIONS),
-        "aro_annotations must stay out of the always-enumerated capture list"
+        capability_names::ALL.contains(&capability_names::ARO_ANNOTATIONS),
+        "the collector implements the annotation arm, so the name it enumerates must include it"
     );
 }

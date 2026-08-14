@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+use agentsight_protocol::bridge::AroAnnotation;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -82,6 +83,12 @@ pub struct Snapshot {
     pub resource_samples: Vec<ResourceSampleRow>,
     pub sessions: Vec<SessionRow>,
     pub tool_calls: Vec<ToolCallRow>,
+    /// What a bridge client told the collector about its own scopes. These rows
+    /// are not observations: they are served back beside the observed ones and
+    /// are absent from the document entirely when no client sent any, so a
+    /// snapshot from a collector with no bridge consumer is unchanged.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub aro_annotations: Vec<AroAnnotation>,
 }
 
 impl Snapshot {
@@ -97,6 +104,7 @@ impl Snapshot {
             resource_samples: Vec::new(),
             sessions: Vec::new(),
             tool_calls: Vec::new(),
+            aro_annotations: Vec::new(),
         }
     }
 }
@@ -228,6 +236,13 @@ impl AuditCounters {
 pub struct ProcessNodeRow {
     pub id: String,
     pub pid: u32,
+    /// Kernel process start time in `CLK_TCK` ticks since boot (field 22 of
+    /// `/proc/<pid>/stat`), read at event arrival. With `pid` it is the identity
+    /// that survives pid reuse. `None` off Linux and whenever the read failed —
+    /// the process was already gone, most often — and never derived from a
+    /// timestamp, because a derived value would not be the kernel's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_ticks: Option<u64>,
     pub ppid: Option<u32>,
     pub root_pid: Option<u32>,
     pub start_timestamp_ms: Option<u64>,

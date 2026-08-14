@@ -116,6 +116,8 @@ fn import_observed_process_nodes(
         view.upsert_process_node(&ProcessNodeRow {
             id: format!("process-{}-observed", pid),
             pid,
+            // Inferred from an LLM call's pid, never observed at exec.
+            start_ticks: None,
             ppid: None,
             root_pid: Some(pid),
             start_timestamp_ms: Some(row.start_timestamp_ms),
