@@ -173,15 +173,33 @@ pub fn extension(path: &str) -> Option<String> {
     .then_some(extension)
 }
 
-/// Basename of an executable path or command string. Never a path.
+/// Basename of an executable path or command string. Never a path, and never
+/// a shell-style `KEY=value` assignment: leading environment prefixes
+/// (`API_KEY=... cmd`) are skipped, and a candidate that still contains `=`
+/// is refused outright rather than risk echoing a value.
 pub fn executable_basename(command: &str) -> Option<String> {
     let command = command.trim();
     if command.is_empty() {
         return None;
     }
-    let first = command.split_whitespace().next().unwrap_or(command);
+    let first = command
+        .split_whitespace()
+        .find(|token| !is_env_assignment(token))?;
     let basename = first.rsplit('/').next().unwrap_or(first);
-    (!basename.is_empty()).then(|| basename.to_string())
+    (!basename.is_empty() && !basename.contains('=')).then(|| basename.to_string())
+}
+
+fn is_env_assignment(token: &str) -> bool {
+    match token.split_once('=') {
+        None => false,
+        Some((name, _value)) => {
+            !name.is_empty()
+                && name
+                    .chars()
+                    .enumerate()
+                    .all(|(i, c)| c == '_' || c.is_ascii_alphabetic() || (i > 0 && c.is_ascii_digit()))
+        }
+    }
 }
 
 /// Token-class summary of an argument vector: no argument value survives.
@@ -406,6 +424,22 @@ mod tests {
             Some("agent")
         );
         assert_eq!(executable_basename("  "), None);
+    }
+
+    #[test]
+    fn executable_basename_never_returns_an_env_assignment() {
+        assert_eq!(
+            executable_basename("API_KEY=sk-live-abcdef python train.py").as_deref(),
+            Some("python")
+        );
+        assert_eq!(
+            executable_basename("A=1 B=2 /usr/bin/env node run.js").as_deref(),
+            Some("env")
+        );
+        // Nothing but assignments: refuse rather than echo a value.
+        assert_eq!(executable_basename("TOKEN=sk-live-abcdef"), None);
+        // A basename that still carries '=' (not a shell env name) is refused.
+        assert_eq!(executable_basename("./weird=name"), None);
     }
 
     #[test]
