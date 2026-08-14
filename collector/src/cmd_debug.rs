@@ -71,6 +71,8 @@ pub(crate) async fn run_raw_ssl(
 /// Show raw process events as JSON
 pub(crate) async fn run_raw_process(
     binary_extractor: &BinaryExtractor,
+    cgroup_filter: Option<&str>,
+    cgroup_filter_children: bool,
     quiet: bool,
     enable_server: bool,
     server_listen: &str,
@@ -84,6 +86,7 @@ pub(crate) async fn run_raw_process(
     if !args.is_empty() {
         process_runner = process_runner.with_args(args);
     }
+    process_runner = process_runner.with_cgroup_filter(cgroup_filter, cgroup_filter_children);
     process_runner = process_runner.add_analyzer(Box::new(TimestampNormalizer::new()));
 
     println!("Starting process event stream with raw JSON output (press Ctrl+C to stop):");

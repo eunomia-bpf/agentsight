@@ -8,6 +8,7 @@
 pub mod analyzers;
 pub mod binary_extractor;
 pub mod binary_resolver;
+pub mod bridge;
 pub mod event;
 mod json;
 pub mod model;

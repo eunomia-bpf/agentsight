@@ -11,9 +11,15 @@ homepage = "https://github.com/eunomia-bpf/agentsight/tree/master/agentsight-pro
 [lib]
 crate-type = ["rlib", "cdylib"]
 
+[features]
+# Off by default: the bridge module is native-only and must never reach the
+# wasm build consumed by the frontend.
+bridge = ["dep:ciborium"]
+
 [dependencies]
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
+ciborium = { version = "0.2", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"

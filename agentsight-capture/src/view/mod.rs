@@ -12,11 +12,14 @@ pub(crate) use llm::{
     body_json, extract_model, extract_token_usage, extract_token_usage_from_sse, provider_from_host,
 };
 
+use crate::bridge::projection as bridge_projection;
+use crate::bridge::{MutationEmitter, MutationEmitterConfig, MutationSink};
 use crate::model::{
     AGENT_NATIVE_SOURCE, AuditEventRow, LlmCallRow, NetworkTargetRow, ProcessNodeRow,
     ResourceSampleRow, SessionRow, Snapshot, SnapshotOptions, SnapshotSummary, TokenSummary,
     TokenUsageRow, ToolCallRow, ViewResult, ViewSink,
 };
+use agentsight_protocol::bridge::{DisclosureMode, ViewMutation};
 use chrono::{SecondsFormat, Utc};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
@@ -40,6 +43,9 @@ pub struct MaterializedView {
     resource_samples: Vec<ResourceSampleRow>,
     audit_order: VecDeque<String>,
     sinks: Vec<Box<dyn ViewSink>>,
+    /// Bridge mutation fan-out. Created lazily by `add_mutation_sink`; a view
+    /// with no bridge consumer never allocates a sequence.
+    mutations: Option<MutationEmitter>,
     pending: HashMap<(u32, u64), VecDeque<PendingRequest>>,
     active_processes: HashMap<u32, String>,
     counts: ViewCounts,
@@ -97,6 +103,7 @@ impl MaterializedView {
             resource_samples: self.resource_samples.clone(),
             audit_order: self.audit_order.clone(),
             sinks: Vec::new(),
+            mutations: None,
             pending: self.pending.clone(),
             active_processes: self.active_processes.clone(),
             counts: self.counts.clone(),
@@ -123,43 +130,186 @@ impl MaterializedView {
         self.sinks.push(sink);
     }
 
+    /// Register a bridge mutation consumer. Creating the first sink also
+    /// creates the mutation emitter with its default identity; call
+    /// [`Self::configure_mutations`] to replace that identity.
+    pub fn add_mutation_sink(&mut self, sink: Box<dyn MutationSink>) {
+        self.mutations
+            .get_or_insert_with(|| MutationEmitter::new(MutationEmitterConfig::default()))
+            .add_sink(sink);
+    }
+
+    /// Set the node identity, disclosure mode, and sequence source used for
+    /// every envelope this view emits.
+    pub fn configure_mutations(&mut self, config: MutationEmitterConfig) {
+        match self.mutations.as_mut() {
+            Some(emitter) => emitter.set_config(config),
+            None => self.mutations = Some(MutationEmitter::new(config)),
+        }
+    }
+
+    pub fn mutation_disclosure(&self) -> DisclosureMode {
+        self.mutations
+            .as_ref()
+            .map(|emitter| emitter.disclosure().clone())
+            .unwrap_or_default()
+    }
+
     pub fn set_source(&mut self, source: impl Into<String>) {
         self.source = source.into();
     }
 
     pub fn emit_llm_call(&mut self, row: LlmCallRow) -> ViewResult<()> {
         self.apply_llm_call(&row);
-        self.publish(|sink| sink.llm_call(&row))
+        let published = self.publish(|sink| sink.llm_call(&row));
+        self.mutate(|emitter| emitter.llm_call(&row));
+        published
     }
 
     pub fn emit_token_usage(&mut self, row: TokenUsageRow) -> ViewResult<()> {
         self.apply_token_usage(&row);
-        self.publish(|sink| sink.token_usage(&row))
+        let published = self.publish(|sink| sink.token_usage(&row));
+        self.mutate(|emitter| emitter.token_usage(&row));
+        published
     }
 
     pub fn emit_audit_event(&mut self, row: AuditEventRow) -> ViewResult<()> {
         self.apply_audit_event(&row);
-        self.publish(|sink| sink.audit_event(&row))
+        let published = self.publish(|sink| sink.audit_event(&row));
+        self.mutate(|emitter| emitter.audit_event(&row));
+        published
     }
 
     pub fn emit_process_node(&mut self, row: ProcessNodeRow) -> ViewResult<()> {
         self.upsert_process_node(&row);
-        self.publish(|sink| sink.process_node(&row))
+        let published = self.publish(|sink| sink.process_node(&row));
+        // Process nodes merge on upsert, so the mutation must describe the
+        // merged state rather than the incoming fragment.
+        if let Some(merged) = self.process_nodes.get(&row.id).cloned() {
+            self.mutate(|emitter| emitter.process_node(&merged));
+        }
+        published
     }
 
     pub fn emit_tool_call(&mut self, row: ToolCallRow) -> ViewResult<()> {
         self.apply_tool_call(&row);
-        self.publish(|sink| sink.tool_call(&row))
+        let published = self.publish(|sink| sink.tool_call(&row));
+        self.mutate(|emitter| emitter.tool_call(&row));
+        published
     }
 
     pub fn emit_network_target(&mut self, row: NetworkTargetRow) -> ViewResult<()> {
         self.upsert_network_target(&row);
-        self.publish(|sink| sink.network_target(&row))
+        let published = self.publish(|sink| sink.network_target(&row));
+        // Network targets accumulate counts on upsert; emit the accumulated row.
+        if let Some(merged) = self.network_targets.get(&network_target_key(&row)).cloned() {
+            self.mutate(|emitter| emitter.network_target(&merged));
+        }
+        published
     }
 
     pub fn emit_resource_sample(&mut self, row: ResourceSampleRow) -> ViewResult<()> {
         self.apply_resource_sample(&row);
-        self.publish(|sink| sink.resource_sample(&row))
+        let published = self.publish(|sink| sink.resource_sample(&row));
+        self.mutate(|emitter| emitter.resource_sample(&row));
+        published
+    }
+
+    /// Upsert a session and publish it as a bridge mutation. `ViewSink` has no
+    /// session method, so this is the only fan-out sessions have.
+    pub fn emit_session(&mut self, row: SessionRow) -> ViewResult<()> {
+        self.upsert_session(&row);
+        if let Some(merged) = self.sessions.get(&row.id).cloned() {
+            self.mutate(|emitter| emitter.session(&merged));
+        }
+        Ok(())
+    }
+
+    /// Emit a mutation that does not come from a row, such as a capture gap or
+    /// a capability change.
+    pub fn emit_bridge_notice<F>(&mut self, notice: F)
+    where
+        F: FnOnce(&mut MutationEmitter) -> crate::bridge::MutationResult<()>,
+    {
+        self.mutate(notice);
+    }
+
+    /// Project the current view state as snapshot mutations. Used to answer a
+    /// bridge snapshot request; the caller stamps `SnapshotReconstruction`.
+    pub fn bridge_snapshot_mutations(&self, disclosure: &DisclosureMode) -> Vec<ViewMutation> {
+        let revision = |kind: &'static str, row_id: &str| {
+            self.mutations
+                .as_ref()
+                .and_then(|emitter| emitter.revision_of(kind, row_id))
+                .unwrap_or_default()
+        };
+        let mut mutations = Vec::new();
+        for row in self.sessions.values() {
+            mutations.push(ViewMutation::SessionUpsert(bridge_projection::session(
+                row,
+                revision("session", &row.id),
+                disclosure,
+            )));
+        }
+        for row in self.llm_calls.values() {
+            mutations.push(ViewMutation::LlmCallUpsert(bridge_projection::llm_call(
+                row,
+                revision("llm_call", &row.id),
+                disclosure,
+            )));
+        }
+        for row in self.token_usage.values() {
+            mutations.push(ViewMutation::TokenUsageUpsert(
+                bridge_projection::token_usage(row, revision("token_usage", &row.id)),
+            ));
+        }
+        for row in self.tool_calls.values() {
+            mutations.push(ViewMutation::ToolCallUpsert(bridge_projection::tool_call(
+                row,
+                revision("tool_call", &row.id),
+                disclosure,
+            )));
+        }
+        for row in self.process_nodes.values() {
+            mutations.push(ViewMutation::ProcessNodeUpsert(
+                bridge_projection::process_node(row, revision("process_node", &row.id), disclosure),
+            ));
+        }
+        for row in self.network_targets.values() {
+            let row_id = bridge_projection::network_target_row_id(row);
+            mutations.push(ViewMutation::NetworkTargetUpsert(
+                bridge_projection::network_target(
+                    row,
+                    revision("network_target", &row_id),
+                    disclosure,
+                ),
+            ));
+        }
+        for row in self.audit_events.values() {
+            mutations.push(ViewMutation::AuditEventInserted(
+                bridge_projection::audit_event(row, disclosure),
+            ));
+        }
+        for row in &self.resource_samples {
+            mutations.push(ViewMutation::ResourceSampleInserted(
+                bridge_projection::resource_sample(row),
+            ));
+        }
+        mutations
+    }
+
+    /// Run a mutation emission. Bridge consumers are supplemental: a failing
+    /// sink is logged, never propagated into the capture pipeline.
+    fn mutate<F>(&mut self, emit: F)
+    where
+        F: FnOnce(&mut MutationEmitter) -> crate::bridge::MutationResult<()>,
+    {
+        let Some(emitter) = self.mutations.as_mut() else {
+            return;
+        };
+        if let Err(error) = emit(emitter) {
+            log::warn!("MaterializedView: bridge mutation sink failed: {error}");
+        }
     }
 
     fn publish<F>(&mut self, mut publish: F) -> ViewResult<()>

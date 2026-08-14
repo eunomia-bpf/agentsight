@@ -2,6 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 pub mod assets;
+pub(crate) mod bridge;
 pub(crate) mod capability;
 pub(crate) mod relay_client;
 pub(crate) mod session_runtime;

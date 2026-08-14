@@ -2,6 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use futures::stream::StreamExt;
+use std::path::PathBuf;
 use tokio::sync::oneshot;
 
 use crate::analyzers::{
@@ -11,8 +12,8 @@ use crate::analyzers::{
 use crate::binary_extractor::BinaryExtractor;
 use crate::binary_resolver::{resolve_binary_path_for_ssl, resolve_container_binary_arg};
 use crate::output::{
-    print_event_json, print_trace_container_binary_resolved, print_trace_header,
-    print_trace_shutdown, print_trace_ssl_binary_discovered, print_trace_start,
+    print_bridge_server_start, print_event_json, print_trace_container_binary_resolved,
+    print_trace_header, print_trace_shutdown, print_trace_ssl_binary_discovered, print_trace_start,
     print_web_server_error, print_web_server_start,
 };
 use crate::runners::common::runner_error_from_event;
@@ -61,6 +62,10 @@ pub(crate) struct TraceConfig {
     pub(crate) ssl_raw_data: bool,
     pub(crate) process: bool,
     pub(crate) process_seed_pids: Vec<PidSeed>,
+    /// cgroup v2 path the eBPF process probe restricts itself to.
+    pub(crate) cgroup_filter: Option<String>,
+    /// Keep descendants of matched tasks that leave the filtered cgroup.
+    pub(crate) cgroup_filter_children: bool,
     pub(crate) stdio: bool,
     pub(crate) stdio_uid: Option<u32>,
     pub(crate) stdio_comm: Option<String>,
@@ -76,6 +81,8 @@ pub(crate) struct TraceConfig {
     /// SSL binary path; may be a container ref that `run_trace` resolves in place.
     pub(crate) binary_path: Option<String>,
     pub(crate) db_path: Option<String>,
+    /// Unix socket path for the evidence bridge; `None` disables the bridge.
+    pub(crate) bridge_socket: Option<PathBuf>,
     pub(crate) quiet: bool,
     pub(crate) server: bool,
     pub(crate) server_listen: Option<String>,
@@ -305,6 +312,18 @@ fn build_process_args(cfg: &TraceConfig) -> Vec<String> {
     if let Some(mode) = cfg.mode {
         args.extend(["-m".to_string(), mode.to_string()]);
     }
+    // The `process` binary has parsed these since day one; this is the first
+    // path that actually hands them over.
+    if let Some(cgroup) = cfg
+        .cgroup_filter
+        .as_deref()
+        .filter(|path| !path.trim().is_empty())
+    {
+        args.extend(["--cgroup-filter".to_string(), cgroup.to_string()]);
+        if cfg.cgroup_filter_children {
+            args.push("--cgroup-filter-children".to_string());
+        }
+    }
     args
 }
 
@@ -354,6 +373,7 @@ pub(crate) async fn run_trace(
 
     prepare_process_seeds(&mut cfg)?;
     let live_view = MaterializedView::shared_bounded();
+    let bridge = start_bridge_if_enabled(cfg.bridge_socket.as_deref(), live_view.clone()).await?;
     let mut agent = build_trace_agent_with_view(binary_extractor, &cfg, live_view.clone())?;
 
     print_trace_start(agent.runner_count(), agent.analyzer_count());
@@ -368,10 +388,37 @@ pub(crate) async fn run_trace(
 
     // Drive the stream so the analyzer chain (file logging, storage, etc.) runs.
     drive_stream_until_shutdown(&mut stream, !cfg.quiet).await?;
+    if let Some(bridge) = bridge.as_ref() {
+        bridge.shutdown("collector stopping");
+        // Let the graceful-shutdown notice reach connected consumers.
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    }
     drop(stream);
     drop(agent);
 
     Ok(())
+}
+
+/// Start the evidence bridge when `--bridge-socket` was given. The bridge is
+/// metadata-only: a disclosure upgrade is a separate, explicit decision that
+/// v1 does not expose on the CLI.
+pub(crate) async fn start_bridge_if_enabled(
+    socket_path: Option<&std::path::Path>,
+    view: SharedMaterializedView,
+) -> Result<Option<crate::server::bridge::BridgeServerHandle>, RunnerError> {
+    let Some(socket_path) = socket_path else {
+        return Ok(None);
+    };
+    let config = crate::server::bridge::BridgeServerConfig::new(socket_path.to_path_buf());
+    let handle = crate::server::bridge::start_bridge_server(
+        config,
+        view,
+        agentsight_protocol::bridge::DisclosureMode::MetadataOnly,
+    )
+    .await
+    .map_err(|error| RunnerError::from(format!("failed to start bridge server: {error}")))?;
+    print_bridge_server_start(socket_path);
+    Ok(Some(handle))
 }
 
 pub(crate) async fn start_web_server_if_enabled(
@@ -668,6 +715,35 @@ pub(crate) async fn run_debug_runner<R: Runner>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn process_args_forward_the_cgroup_filter() {
+        let cfg = TraceConfig {
+            pid: Some(42),
+            cgroup_filter: Some("/sys/fs/cgroup/aro/cell-1".to_string()),
+            cgroup_filter_children: true,
+            ..TraceConfig::for_record()
+        };
+        assert_eq!(
+            build_process_args(&cfg),
+            [
+                "-p",
+                "42",
+                "--cgroup-filter",
+                "/sys/fs/cgroup/aro/cell-1",
+                "--cgroup-filter-children"
+            ]
+        );
+    }
+
+    #[test]
+    fn process_args_omit_cgroup_flags_when_unset() {
+        let cfg = TraceConfig {
+            pid: Some(42),
+            ..TraceConfig::for_record()
+        };
+        assert_eq!(build_process_args(&cfg), ["-p", "42"]);
+    }
 
     #[test]
     fn saved_capture_server_does_not_enable_live_host_apis() {

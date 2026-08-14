@@ -196,6 +196,16 @@ fn local_node_metadata()
     })
 }
 
+/// Read the persisted node identity without creating one. Callers that need an
+/// identity but must not claim this machine is bound (the bridge server) use
+/// this and fall back to an ephemeral id.
+pub(crate) fn persisted_node_id() -> Option<String> {
+    let path = dirs::config_dir()?.join("agentsight").join("node-id");
+    let value = std::fs::read_to_string(path).ok()?;
+    let value = value.trim().to_string();
+    valid_node_id(&value).then_some(value)
+}
+
 fn create_private_file(path: &Path) -> std::io::Result<std::fs::File> {
     let mut options = std::fs::OpenOptions::new();
     options.write(true).create_new(true);

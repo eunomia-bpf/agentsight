@@ -3,6 +3,9 @@
 //! Transport-independent AgentSight Node API contract.
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "bridge")]
+pub mod bridge;
+
 pub const PROTOCOL_VERSION: u32 = 1;
 pub const PRODUCT: &str = "agentsight";
 const SESSION_PREFIX: &str = "/api/v1/sessions/";

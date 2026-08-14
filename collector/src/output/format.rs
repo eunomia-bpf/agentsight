@@ -392,6 +392,10 @@ pub(crate) fn print_web_server_error(error: impl std::fmt::Display) {
     eprintln!("Web server error: {error}");
 }
 
+pub(crate) fn print_bridge_server_start(socket_path: &std::path::Path) {
+    println!("Evidence bridge listening on {}", socket_path.display());
+}
+
 pub(crate) fn print_record_header() {
     println!("AgentSight record\n{}", separator_line());
 }

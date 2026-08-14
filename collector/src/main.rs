@@ -294,6 +294,15 @@ enum Commands {
         /// SQLite database path for view snapshots
         #[arg(long)]
         db: Option<String>,
+        /// Restrict process capture to a cgroup v2 path
+        #[arg(long)]
+        cgroup_filter: Option<String>,
+        /// Also keep descendants that leave the filtered cgroup
+        #[arg(long, requires = "cgroup_filter")]
+        cgroup_filter_children: bool,
+        /// Serve the evidence bridge on this Unix socket path
+        #[arg(long)]
+        bridge_socket: Option<PathBuf>,
         /// Disable the web server
         #[arg(long)]
         no_server: bool,
@@ -442,6 +451,12 @@ enum DebugCommands {
     },
     /// Print process runner events
     Process {
+        /// Restrict process capture to a cgroup v2 path
+        #[arg(long)]
+        cgroup_filter: Option<String>,
+        /// Also keep descendants that leave the filtered cgroup
+        #[arg(long, requires = "cgroup_filter")]
+        cgroup_filter_children: bool,
         /// Suppress console output
         #[arg(short, long)]
         quiet: bool,
@@ -532,6 +547,15 @@ enum DebugCommands {
         /// Process filtering mode (0=all, 1=proc, 2=filter)
         #[arg(long)]
         mode: Option<u32>,
+        /// Restrict process capture to a cgroup v2 path
+        #[arg(long)]
+        cgroup_filter: Option<String>,
+        /// Also keep descendants that leave the filtered cgroup
+        #[arg(long, requires = "cgroup_filter")]
+        cgroup_filter_children: bool,
+        /// Serve the evidence bridge on this Unix socket path
+        #[arg(long)]
+        bridge_socket: Option<PathBuf>,
         /// Enable system resource monitoring (CPU and memory)
         #[arg(long)]
         system: bool,
@@ -778,6 +802,9 @@ async fn run_with_extractor(
             pid,
             binary_path,
             db,
+            cgroup_filter,
+            cgroup_filter_children,
+            bridge_socket,
             no_server,
             server_port,
             command,
@@ -786,6 +813,12 @@ async fn run_with_extractor(
                 if comm.is_some() || pid.is_some() {
                     return Err(
                         "record accepts either -- <command> or -c/--comm/-p/--pid, not both".into(),
+                    );
+                }
+                if cgroup_filter.is_some() || bridge_socket.is_some() {
+                    return Err(
+                        "--cgroup-filter and --bridge-socket require an attach target (-c/--comm or -p/--pid)"
+                            .into(),
                     );
                 }
                 run_exec(
@@ -825,6 +858,9 @@ async fn run_with_extractor(
                 stdio: pid.is_some(),
                 binary_path: binary_path.clone(),
                 db_path,
+                cgroup_filter: cgroup_filter.clone(),
+                cgroup_filter_children: *cgroup_filter_children,
+                bridge_socket: bridge_socket.clone(),
                 server: !*no_server,
                 server_listen: Some(cli.listen.clone()),
                 server_port: *server_port,
@@ -868,12 +904,16 @@ async fn run_with_extractor(
             .await
             .map_err(convert_runner_error)?,
             DebugCommands::Process {
+                cgroup_filter,
+                cgroup_filter_children,
                 quiet,
                 server,
                 server_port,
                 args,
             } => run_raw_process(
                 binary_extractor,
+                cgroup_filter.as_deref(),
+                *cgroup_filter_children,
                 *quiet,
                 *server,
                 &cli.listen,
@@ -922,6 +962,9 @@ async fn run_with_extractor(
                 stdio_max_bytes,
                 duration,
                 mode,
+                cgroup_filter,
+                cgroup_filter_children,
+                bridge_socket,
                 system,
                 system_interval,
                 http_filter,
@@ -952,6 +995,9 @@ async fn run_with_extractor(
                     stdio_max_bytes: *stdio_max_bytes,
                     duration: *duration,
                     mode: *mode,
+                    cgroup_filter: cgroup_filter.clone(),
+                    cgroup_filter_children: *cgroup_filter_children,
+                    bridge_socket: bridge_socket.clone(),
                     system: *system,
                     system_interval: *system_interval,
                     http_filter: http_filter.clone(),
@@ -1021,6 +1067,81 @@ mod tests {
     fn top_rejects_saved_db_mode() {
         assert!(
             <Cli as clap::Parser>::try_parse_from(["agentsight", "top", "--db", "run.db"]).is_err()
+        );
+    }
+
+    #[test]
+    fn record_accepts_cgroup_filter_and_bridge_socket() {
+        let cli = <Cli as clap::Parser>::try_parse_from([
+            "agentsight",
+            "record",
+            "-c",
+            "claude",
+            "--cgroup-filter",
+            "/sys/fs/cgroup/aro/cell-1",
+            "--cgroup-filter-children",
+            "--bridge-socket",
+            "/run/aro/bridge.sock",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Record {
+                cgroup_filter,
+                cgroup_filter_children,
+                bridge_socket,
+                ..
+            } => {
+                assert_eq!(cgroup_filter.as_deref(), Some("/sys/fs/cgroup/aro/cell-1"));
+                assert!(cgroup_filter_children);
+                assert_eq!(
+                    bridge_socket.as_deref(),
+                    Some(std::path::Path::new("/run/aro/bridge.sock"))
+                );
+            }
+            _ => panic!("expected record command"),
+        }
+    }
+
+    #[test]
+    fn cgroup_filter_children_requires_a_cgroup_filter() {
+        // Mirrors the eBPF binary's own validation, so the failure surfaces at
+        // parse time instead of inside the probe.
+        assert!(
+            <Cli as clap::Parser>::try_parse_from([
+                "agentsight",
+                "record",
+                "-c",
+                "claude",
+                "--cgroup-filter-children",
+            ])
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn debug_process_and_trace_expose_the_cgroup_filter() {
+        assert!(
+            <Cli as clap::Parser>::try_parse_from([
+                "agentsight",
+                "debug",
+                "process",
+                "--cgroup-filter",
+                "/sys/fs/cgroup/aro/cell-1",
+            ])
+            .is_ok()
+        );
+        assert!(
+            <Cli as clap::Parser>::try_parse_from([
+                "agentsight",
+                "debug",
+                "trace",
+                "--cgroup-filter",
+                "/sys/fs/cgroup/aro/cell-1",
+                "--cgroup-filter-children",
+                "--bridge-socket",
+                "/run/aro/bridge.sock",
+            ])
+            .is_ok()
         );
     }
 

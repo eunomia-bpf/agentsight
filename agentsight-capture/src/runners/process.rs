@@ -46,6 +46,28 @@ impl ProcessRunner {
         self
     }
 
+    /// Restrict the eBPF process probe to a cgroup. `children` additionally
+    /// keeps descendants of matched tasks that left the cgroup. Both flags are
+    /// parsed by the `process` binary itself; this is the only Rust-side path
+    /// that reaches them.
+    pub fn with_cgroup_filter(mut self, cgroup_path: Option<&str>, children: bool) -> Self {
+        let Some(cgroup_path) = cgroup_path.filter(|path| !path.trim().is_empty()) else {
+            return self;
+        };
+        self.args.push("--cgroup-filter".to_string());
+        self.args.push(cgroup_path.to_string());
+        if children {
+            self.args.push("--cgroup-filter-children".to_string());
+        }
+        self.executor.set_args(&self.args);
+        self
+    }
+
+    /// Arguments handed to the `process` binary, in order.
+    pub fn args(&self) -> &[String] {
+        &self.args
+    }
+
     fn parse_process_event(json_value: serde_json::Value, errors: &AtomicU64) -> Event {
         if json_value.get("event").and_then(|v| v.as_str()) == Some("CLOCK_SYNC") {
             return Event::new_with_timestamp(
@@ -78,6 +100,49 @@ impl Runner for ProcessRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cgroup_filter_appends_both_flags_after_existing_args() {
+        let runner = ProcessRunner::from_binary_extractor("/tmp/process")
+            .with_args(["-p", "42"])
+            .with_cgroup_filter(Some("/sys/fs/cgroup/aro/cell-1"), true);
+        assert_eq!(
+            runner.args(),
+            [
+                "-p",
+                "42",
+                "--cgroup-filter",
+                "/sys/fs/cgroup/aro/cell-1",
+                "--cgroup-filter-children"
+            ]
+        );
+    }
+
+    #[test]
+    fn cgroup_filter_without_children_omits_the_children_flag() {
+        let runner = ProcessRunner::from_binary_extractor("/tmp/process")
+            .with_cgroup_filter(Some("/sys/fs/cgroup/aro/cell-1"), false);
+        assert_eq!(
+            runner.args(),
+            ["--cgroup-filter", "/sys/fs/cgroup/aro/cell-1"]
+        );
+    }
+
+    #[test]
+    fn missing_or_blank_cgroup_path_adds_nothing() {
+        assert!(
+            ProcessRunner::from_binary_extractor("/tmp/process")
+                .with_cgroup_filter(None, true)
+                .args()
+                .is_empty()
+        );
+        assert!(
+            ProcessRunner::from_binary_extractor("/tmp/process")
+                .with_cgroup_filter(Some("  "), true)
+                .args()
+                .is_empty()
+        );
+    }
 
     #[tokio::test]
     #[ignore = "requires real binary and sudo"]

@@ -673,7 +673,9 @@ pub fn import_recent(view: &mut MaterializedView, limit: usize) {
 
 pub fn import_into_view(view: &mut MaterializedView, sessions: &[LocalSession]) {
     for session in sessions {
-        view.upsert_session(&session_row(session));
+        // Sessions flow to bridge consumers as mutations, so this goes through
+        // `emit_session` rather than a bare upsert.
+        let _ = view.emit_session(session_row(session));
         for row in llm_rows(session) {
             view.apply_llm_call(&row);
         }
