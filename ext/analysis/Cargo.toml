@@ -1,0 +1,41 @@
+[package]
+name = "agentsight-analysis"
+version = "1.0.22"
+edition = "2024"
+rust-version = "1.87"
+description = "Composable analysis, materialization, and storage extensions for AgentSight."
+license = "MIT"
+repository = "https://github.com/eunomia-bpf/agentsight"
+homepage = "https://github.com/eunomia-bpf/agentsight/tree/master/ext/analysis"
+readme = "README.md"
+
+[features]
+test-support = ["agentsight-capture-core/test-support"]
+
+[dependencies]
+agentsight-capture-core = { package = "agentsight-capture", version = "1.0.22", path = "../../agentsight-capture" }
+agent-session = { version = "0.5.5", path = "../session" }
+async-stream = "0.3"
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+futures = "0.3"
+hex = "0.4"
+hpack = "0.3"
+flate2 = "1.0"
+brotli = "7.0"
+zstd = "0.13"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+tempfile = "3.10"
+tokio = { version = "1.0", features = ["full"] }
+uuid = { version = "1.0", features = ["v4"] }
+log = "0.4"
+dirs = "6"
+libc = "0.2"
+sysinfo = { version = "0.36.1", default-features = false, features = ["system"] }
+chunked_transfer = "1.5"
+num_cpus = "1.16"
+rusqlite = { version = "0.32", features = ["bundled"] }
+hyper = { version = "1.0", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
