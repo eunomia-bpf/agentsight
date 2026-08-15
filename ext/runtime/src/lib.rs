@@ -1,8 +1,27 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+use serde::Deserialize;
 use wasmtime::component::{Component, Linker};
 use wasmtime::{Config, Engine, Store, StoreLimits, StoreLimitsBuilder};
+
+pub const PROTOCOL_VERSION: u32 = 1;
+pub const PRODUCT: &str = "agentsight";
+
+#[derive(Debug, Deserialize)]
+pub struct SessionMessageRequest {
+    pub message: String,
+}
+
+pub fn session_detail_id(path: &str) -> Option<&str> {
+    let value = path.strip_prefix("/api/v1/sessions/")?;
+    (!value.is_empty() && !value.ends_with("/messages") && !value.contains('/')).then_some(value)
+}
+
+pub fn session_message_id(path: &str) -> Option<&str> {
+    let value = path.strip_prefix("/api/v1/sessions/")?.strip_suffix("/messages")?;
+    (!value.is_empty() && !value.contains('/')).then_some(value)
+}
 
 const DEFAULT_MEMORY_BYTES: usize = 16 * 1024 * 1024;
 const DEFAULT_FUEL: u64 = 10_000_000;
@@ -56,10 +75,10 @@ impl ExtRuntime {
         let linker = Linker::<ExtStore>::new(&self.engine);
         let mut store = self.store()?;
         let instance = linker.instantiate(&mut store, &component)?;
-        let parse = instance.get_typed_func::<
-            (String, String, u64, String),
-            (Option<String>,),
-        >(&mut store, "parse")?;
+        let parse = instance.get_typed_func::<(String, String, u64, String), (Option<String>,)>(
+            &mut store,
+            "parse",
+        )?;
         Ok(parse.call(
             &mut store,
             (agent.to_owned(), path.to_owned(), updated_ms, content.to_owned()),
