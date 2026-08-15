@@ -3,7 +3,7 @@
 
 use agentsight_capture::{
     Event,
-    analyzers::{Analyzer, TimestampNormalizer},
+    analyzers::{Analyzer, AnalyzerError},
     runners::{AgentRunner, EventStream, Runner, RunnerError},
 };
 use async_trait::async_trait;
@@ -24,8 +24,17 @@ impl Runner for InMemoryRunner {
     }
 }
 
+struct PassthroughAnalyzer;
+
+#[async_trait]
+impl Analyzer for PassthroughAnalyzer {
+    async fn process(&mut self, stream: EventStream) -> Result<EventStream, AnalyzerError> {
+        Ok(stream)
+    }
+}
+
 #[tokio::test]
-async fn downstream_crate_can_build_and_run_a_pipeline() {
+async fn downstream_crate_can_build_and_run_capture_pipeline() {
     let runner = InMemoryRunner {
         events: vec![Event::new_with_timestamp(
             1_000_000,
@@ -37,7 +46,7 @@ async fn downstream_crate_can_build_and_run_a_pipeline() {
     };
     let mut capture = AgentRunner::new()
         .add_runner(Box::new(runner))
-        .add_global_analyzer(Box::new(TimestampNormalizer::new()));
+        .add_global_analyzer(Box::new(PassthroughAnalyzer));
 
     let events: Vec<_> = capture.run().await.unwrap().collect().await;
 
