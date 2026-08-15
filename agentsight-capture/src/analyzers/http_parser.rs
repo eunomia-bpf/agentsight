@@ -11,6 +11,8 @@ use futures::{stream, stream::StreamExt};
 use hpack::Decoder as HpackDecoder;
 use std::collections::HashMap;
 
+const MAX_HTTP1_PENDING_MESSAGES: usize = 64;
+const MAX_HTTP1_HEADER_BYTES: usize = 64 * 1024;
 const MAX_HTTP2_STREAMS: usize = 1024;
 const MAX_HTTP2_PENDING_HEADERS: usize = 1024;
 const MAX_HTTP_BODY_BYTES: usize = 1024 * 1024;
@@ -20,14 +22,26 @@ const MAX_HTTP2_HEADER_BLOCK_BYTES: usize = 64 * 1024;
 pub struct HTTPParser {
     /// Flag to include raw data in parsed events (default: true)
     include_raw_data: bool,
+    http1: HTTP1State,
     http2: HTTP2State,
     websocket: WebSocketState,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum HTTP2Direction {
     Request,
     Response,
+}
+
+#[derive(Default)]
+struct HTTP1State {
+    pending: HashMap<(u32, u64, HTTP2Direction), PendingHTTP1Message>,
+}
+
+struct PendingHTTP1Message {
+    bytes: Vec<u8>,
+    expected_len: usize,
+    original_event: Event,
 }
 
 #[derive(Default)]
@@ -115,6 +129,7 @@ impl HTTPParser {
     pub fn new() -> Self {
         HTTPParser {
             include_raw_data: true,
+            http1: HTTP1State::default(),
             http2: HTTP2State::default(),
             websocket: WebSocketState::default(),
         }
@@ -303,6 +318,7 @@ impl HTTPParser {
 
     /// Handle SSL events (HTTP request/response data)
     fn handle_ssl_event(
+        http1: &mut HTTP1State,
         http2: &mut HTTP2State,
         websocket: &mut WebSocketState,
         event: Event,
@@ -314,13 +330,89 @@ impl HTTPParser {
             Some(s) => s,
             None => return vec![event],
         };
+        let data_bytes = ssl_data
+            .get("data_hex")
+            .and_then(|v| v.as_str())
+            .and_then(|v| hex::decode(v).ok())
+            .unwrap_or_else(|| ssl_json_string_to_bytes(data_str));
+        let tid = ssl_data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
+        let direction = ssl_data
+            .get("function")
+            .and_then(|v| v.as_str())
+            .and_then(direction_from_function);
 
-        // Only process if it's HTTP data AND can be parsed as a complete HTTP message
+        if let Some(direction) = direction {
+            let key = (event.pid, tid, direction);
+            if is_http1_message_start(data_str) {
+                // We do not currently have an SSL connection identifier in the event.
+                // Prefer a new explicit HTTP start over combining two connections that
+                // happen to share a thread and direction.
+                http1.pending.remove(&key);
+            } else if http1.pending.contains_key(&key) {
+                let (complete, has_extra) = {
+                    let pending = http1.pending.get_mut(&key).expect("pending key exists");
+                    let remaining = pending.expected_len.saturating_sub(pending.bytes.len());
+                    let consumed = remaining.min(data_bytes.len());
+                    pending.bytes.extend_from_slice(&data_bytes[..consumed]);
+                    (
+                        pending.bytes.len() == pending.expected_len,
+                        consumed < data_bytes.len(),
+                    )
+                };
+                if complete {
+                    let pending = http1.pending.remove(&key).expect("pending key exists");
+                    let combined = ssl_bytes_to_json_string(&pending.bytes);
+                    if let Some(parsed_message) = Self::parse_http_message(&combined) {
+                        websocket.observe_handshake(&pending.original_event, &parsed_message);
+                        let mut events = vec![Self::create_http_event(
+                            tid,
+                            parsed_message,
+                            &pending.original_event,
+                            include_raw_data,
+                        )];
+                        // We cannot safely attribute bytes beyond this message without a
+                        // connection ID, so retain the raw SSL event rather than dropping
+                        // potentially pipelined data.
+                        if has_extra {
+                            events.push(event);
+                        }
+                        return events;
+                    }
+                }
+                // The first fragment was already retained as raw SSL evidence. Keep each
+                // continuation fragment as well until a complete HTTP message is available.
+                return vec![event];
+            }
+        }
+
+        // Process a complete HTTP/1 message immediately. If Content-Length proves the
+        // current SSL write is only a prefix, retain a bounded pending copy while also
+        // passing the raw fragment through unchanged.
         if Self::is_http_data(data_str)
             && let Some(parsed_message) = Self::parse_http_message(data_str)
         {
+            if !ssl_data
+                .get("truncated")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false)
+                && let Some(expected_len) = http1_expected_len(&parsed_message, &data_bytes)
+                && data_bytes.len() < expected_len
+                && let Some(direction) = direction
+            {
+                let key = (event.pid, tid, direction);
+                http1.pending.insert(
+                    key,
+                    PendingHTTP1Message {
+                        bytes: data_bytes,
+                        expected_len,
+                        original_event: event.clone(),
+                    },
+                );
+                evict_http1_over_capacity(&mut http1.pending);
+                return vec![event];
+            }
+
             websocket.observe_handshake(&event, &parsed_message);
-            let tid = ssl_data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
             return vec![Self::create_http_event(
                 tid,
                 parsed_message,
@@ -329,11 +421,6 @@ impl HTTPParser {
             )];
         }
 
-        let data_bytes = ssl_data
-            .get("data_hex")
-            .and_then(|v| v.as_str())
-            .and_then(|v| hex::decode(v).ok())
-            .unwrap_or_else(|| ssl_json_string_to_bytes(data_str));
         if let Some(events) = websocket.handle_event(&event, &data_bytes, include_raw_data) {
             return events;
         }
@@ -344,6 +431,44 @@ impl HTTPParser {
         // If not parseable as HTTP, pass through original event
         vec![event]
     }
+}
+
+fn is_http1_message_start(data: &str) -> bool {
+    data.starts_with("HTTP/1.")
+        || ["GET ", "POST ", "PUT ", "DELETE ", "HEAD ", "OPTIONS ", "PATCH "]
+            .iter()
+            .any(|method| data.starts_with(method))
+}
+
+fn http1_expected_len(message: &HTTPMessage, bytes: &[u8]) -> Option<usize> {
+    let content_length = message
+        .headers
+        .get("content-length")?
+        .parse::<usize>()
+        .ok()?;
+    if content_length > MAX_HTTP_BODY_BYTES {
+        return None;
+    }
+    let header_end = bytes.windows(4).position(|window| window == b"\r\n\r\n")? + 4;
+    if header_end > MAX_HTTP1_HEADER_BYTES {
+        return None;
+    }
+    header_end.checked_add(content_length)
+}
+
+fn evict_http1_over_capacity(
+    map: &mut HashMap<(u32, u64, HTTP2Direction), PendingHTTP1Message>,
+) {
+    while map.len() > MAX_HTTP1_PENDING_MESSAGES {
+        let Some(key) = map.keys().next().copied() else {
+            break;
+        };
+        map.remove(&key);
+    }
+}
+
+fn ssl_bytes_to_json_string(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| char::from(*byte)).collect()
 }
 
 impl WebSocketState {
@@ -879,12 +1004,19 @@ fn ssl_json_string_to_bytes(data: &str) -> Vec<u8> {
 impl Analyzer for HTTPParser {
     async fn process(&mut self, stream: EventStream) -> Result<EventStream, AnalyzerError> {
         let include_raw_data = self.include_raw_data;
+        let mut http1 = std::mem::take(&mut self.http1);
         let mut http2 = std::mem::take(&mut self.http2);
         let mut websocket = std::mem::take(&mut self.websocket);
 
         let processed_stream = stream.flat_map(move |event| {
             let events = if event.source == "ssl" {
-                Self::handle_ssl_event(&mut http2, &mut websocket, event, include_raw_data)
+                Self::handle_ssl_event(
+                    &mut http1,
+                    &mut http2,
+                    &mut websocket,
+                    event,
+                    include_raw_data,
+                )
             } else {
                 vec![event]
             };
@@ -984,6 +1116,36 @@ mod tests {
                 .map(|(i, byte)| byte ^ mask[i % 4]),
         );
         frame
+    }
+
+    #[tokio::test]
+    async fn reassembles_http1_content_length_across_ssl_writes() {
+        let body = br#"{"model":"gpt-test","input":"split request body"}"#;
+        let mut first = format!(
+            "POST /v1/responses HTTP/1.1\r\nHost: api.openai.com\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",
+            body.len()
+        )
+        .into_bytes();
+        let split = body.len() - 9;
+        first.extend_from_slice(&body[..split]);
+        let second = body[split..].to_vec();
+
+        let input: EventStream = Box::pin(stream::iter(vec![
+            ssl_event(1, "WRITE/SEND", first),
+            ssl_event(2, "WRITE/SEND", second),
+        ]));
+        let mut parser = HTTPParser::new();
+        let output: Vec<Event> = parser.process(input).await.unwrap().collect().await;
+
+        assert_eq!(output.len(), 2);
+        assert_eq!(output[0].source, "ssl");
+        assert_eq!(output[1].source, "http_parser");
+        assert_eq!(output[1].data["path"], "/v1/responses");
+        assert_eq!(output[1].data["content_length"], body.len());
+        assert_eq!(
+            output[1].data["body"].as_str().unwrap(),
+            std::str::from_utf8(body).unwrap()
+        );
     }
 
     #[tokio::test]
