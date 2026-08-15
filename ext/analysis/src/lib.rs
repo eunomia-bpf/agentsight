@@ -8,12 +8,13 @@
 
 #![allow(clippy::too_many_arguments)]
 
-pub use agentsight_capture_core::{binary_extractor, binary_resolver, event, runners, time};
+pub use agentsight_capture_core::{binary_extractor, binary_resolver, event, time};
 pub use agentsight_capture_core::{BinaryExtractor, Event, EventStream, Runner, RunnerError};
 
 mod json;
 pub mod analyzers;
 pub mod model;
+pub mod runners;
 pub mod sinks;
 pub mod sources;
 pub mod text;
