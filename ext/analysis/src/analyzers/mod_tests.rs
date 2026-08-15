@@ -1,6 +1,7 @@
 use super::*;
 use crate::runners::{EventStream, FakeRunner, Runner};
 use crate::view::MaterializedView;
+use async_trait::async_trait;
 use futures::stream::StreamExt;
 use serde_json::json;
 use std::sync::{
