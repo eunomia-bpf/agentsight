@@ -39,6 +39,9 @@ pub fn session_message_id(path: &str) -> Option<&str> {
 
 const DEFAULT_MEMORY_BYTES: usize = 16 * 1024 * 1024;
 const DEFAULT_FUEL: u64 = 10_000_000;
+const MAX_CORE_INSTANCES: usize = 16;
+const MAX_MEMORIES: usize = 4;
+const MAX_TABLES: usize = 8;
 
 struct ExtStore {
     limits: StoreLimits,
@@ -80,9 +83,9 @@ impl ExtRuntime {
             ExtStore {
                 limits: StoreLimitsBuilder::new()
                     .memory_size(DEFAULT_MEMORY_BYTES)
-                    .instances(1)
-                    .memories(2)
-                    .tables(4)
+                    .instances(MAX_CORE_INSTANCES)
+                    .memories(MAX_MEMORIES)
+                    .tables(MAX_TABLES)
                     .build(),
                 table: ResourceTable::new(),
                 wasi: wasi.build(),
