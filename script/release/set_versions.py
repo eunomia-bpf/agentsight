@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Update AgentSight distribution/ext versions without duplicating sed rules in CI."""
+"""Update AgentSight distribution/ext versions without duplicated CI sed rules."""
 
 from __future__ import annotations
 
@@ -43,6 +43,13 @@ def replace_once(text: str, pattern: str, replacement: str, label: str) -> str:
     return updated
 
 
+def replace_all(text: str, pattern: str, replacement: str, label: str) -> str:
+    updated, count = re.subn(pattern, replacement, text, flags=re.MULTILINE)
+    if count < 1:
+        raise SystemExit(f"could not update {label}")
+    return updated
+
+
 def update_manifest(path: Path, release: str, session: str) -> None:
     relative = path.relative_to(ROOT).as_posix()
     text = path.read_text()
@@ -56,7 +63,7 @@ def update_manifest(path: Path, release: str, session: str) -> None:
     for dependency, kind in DEPENDENCIES.get(relative, {}).items():
         dep_version = release if kind == "release" else session
         pattern = rf'^({re.escape(dependency)}\s*=\s*\{{[^\n]*?version\s*=\s*")[^"]+("[^\n]*\}}\s*)$'
-        text = replace_once(
+        text = replace_all(
             text,
             pattern,
             rf'\g<1>{dep_version}\2',
