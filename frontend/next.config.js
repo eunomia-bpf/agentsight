@@ -5,34 +5,20 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-// Set NEXT_PUBLIC_BASE_PATH when serving under a sub-path (e.g. "/agentsight"
-// for the github.io test deploy). Leave empty when serving at a domain root.
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-
 const buildIdInputs = [
-  'src',
-  '../ext/web',
-  'public',
-  'package.json',
-  'package-lock.json',
-  'yarn.lock',
-  'postcss.config.mjs',
-  'tailwind.config.ts',
-  'tsconfig.json',
-  'next.config.js',
+  'src', '../ext/web', 'public', 'package.json', 'package-lock.json',
+  'yarn.lock', 'postcss.config.mjs', 'tailwind.config.ts', 'tsconfig.json', 'next.config.js',
 ];
 
 function addPathToHash(hash, filePath) {
   const stat = fs.statSync(filePath);
   if (stat.isDirectory()) {
-    for (const name of fs.readdirSync(filePath).sort()) {
-      addPathToHash(hash, path.join(filePath, name));
-    }
+    for (const name of fs.readdirSync(filePath).sort()) addPathToHash(hash, path.join(filePath, name));
     return;
   }
   if (!stat.isFile()) return;
-  const relativePath = path.relative(__dirname, filePath).replace(/\\/g, '/');
-  hash.update(relativePath);
+  hash.update(path.relative(__dirname, filePath).replace(/\\/g, '/'));
   hash.update('\0');
   hash.update(fs.readFileSync(filePath));
   hash.update('\0');
@@ -56,6 +42,12 @@ const nextConfig = {
   basePath,
   assetPrefix: basePath || undefined,
   generateBuildId: async () => stableBuildId(),
+  webpack(config) {
+    // Extension sources live outside frontend/, so pin dependency resolution to
+    // the shell's single node_modules tree instead of duplicating packages.
+    config.resolve.modules = [path.join(__dirname, 'node_modules'), ...(config.resolve.modules || [])];
+    return config;
+  },
 }
 
 module.exports = nextConfig
