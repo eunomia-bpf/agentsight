@@ -7,12 +7,12 @@ use crate::binary_extractor::BinaryExtractor;
 use crate::cmd_exec::sudo_cached;
 use crate::event::Event;
 use crate::model::SnapshotOptions;
-use crate::output::{TopOptions, clear_screen, print_agent_top};
+use crate::output::{AgentTopOutput, TopOptions, clear_screen, print_agent_top};
 use crate::runners::{ProcessRunner, Runner};
 use crate::sources::proc as procfs;
 use crate::state::ensure_agentsight_state_dir;
 use crate::view::MaterializedView;
-use crate::view::live_top::{LiveCaptureSnapshot, LiveView};
+use crate::view::live_top::{LiveCaptureSnapshot, SharedLiveView};
 use crate::view::process_select;
 use crate::view::top::sort_agent_rows;
 use futures::StreamExt;
@@ -192,25 +192,89 @@ fn record_live_ebpf_event(state: &Arc<Mutex<LiveCaptureState>>, event: &Event) {
     }
 }
 
+/// One refresh of the shared live registry.
+///
+/// The lock is taken for the scan and dropped before the caller renders, so a
+/// bridge query sharing the registry waits for at most one refresh instead of
+/// for the whole interval.
+pub(crate) fn refresh_shared(
+    live_view: &SharedLiveView,
+    capture: Option<&LiveCaptureSnapshot>,
+    limit: usize,
+    options: &TopOptions,
+) -> Result<AgentTopOutput, Box<dyn std::error::Error + Send + Sync>> {
+    let mut guard = live_view
+        .lock()
+        .map_err(|_| "live session registry lock poisoned")?;
+    Ok(guard.refresh(capture, limit, options)?)
+}
+
+/// The top refresh with no screen attached: what `top --bridge-socket
+/// --headless` runs so the shared registry stays warm while the bridge server
+/// answers from it.
+///
+/// The scan reads the process table and the agent transcripts, so it goes to the
+/// blocking pool — the same rule the bridge's own host-session arm follows —
+/// leaving the runtime free to serve the socket while a refresh is in flight.
+pub(crate) async fn run_headless_top_refresh(
+    capture: Option<&LiveEbpfCapture>,
+    interval_secs: u64,
+    limit: usize,
+    count: Option<u32>,
+    options: &TopOptions,
+    live_view: &SharedLiveView,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let limit = limit.clamp(1, 100);
+    let interval = Duration::from_secs(interval_secs.max(1));
+    let shutdown = crate::shutdown_notify();
+    let mut iterations = 0u32;
+
+    loop {
+        let capture_snapshot = capture.map(LiveEbpfCapture::snapshot);
+        let view = live_view.clone();
+        let options = options.clone();
+        let refreshed = tokio::task::spawn_blocking(move || {
+            refresh_shared(&view, capture_snapshot.as_ref(), limit, &options).map(|_| ())
+        })
+        .await?;
+        // A failed scan is not a reason to stop serving: the registry keeps the
+        // rows it last saw, and the next tick tries again.
+        if let Err(error) = refreshed {
+            log::warn!("live session refresh failed: {error}");
+        }
+
+        iterations += 1;
+        if count.is_some_and(|max| iterations >= max) || crate::shutdown_requested() {
+            break;
+        }
+        tokio::select! {
+            _ = tokio::time::sleep(interval) => {}
+            _ = shutdown.notified() => break,
+        }
+    }
+
+    Ok(())
+}
+
 pub(crate) fn run_live_top_query(
     capture: Option<&LiveEbpfCapture>,
     interval_secs: u64,
     limit: usize,
     count: Option<u32>,
     options: &TopOptions,
+    live_view: &SharedLiveView,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let limit = limit.clamp(1, 100);
     let interval = Duration::from_secs(interval_secs.max(1));
     let mut iterations = 0u32;
     let should_clear_screen = count != Some(1);
-    let mut live_view = LiveView::default();
 
     loop {
         if should_clear_screen {
             clear_screen();
         }
         let capture_snapshot = capture.map(LiveEbpfCapture::snapshot);
-        let mut top = live_view.refresh(capture_snapshot.as_ref(), limit, options)?;
+        let mut top = refresh_shared(live_view, capture_snapshot.as_ref(), limit, options)?;
         if let Some(note) = capture.and_then(LiveEbpfCapture::start_note) {
             top.notes.push(note.to_string());
         }

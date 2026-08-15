@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use crate::cmd_perf_live::LiveEbpfCapture;
+use crate::cmd_perf_live::{LiveEbpfCapture, refresh_shared};
 use crate::cmd_tui_record::{
     TuiRecordStatus, TuiRecordTask, default_record_command_for_row, parse_tui_record_command,
 };
 use crate::output::{
     AgentTopOutput, TopOptions, TopRecordOverlay, draw_live_top_tui, next_view_key,
 };
-use crate::view::live_top::LiveView;
+use crate::view::live_top::SharedLiveView;
 use crate::view::top::{normalize_sort_key, sort_agent_rows};
 use crossterm::{
     cursor::{Hide, Show},
@@ -26,8 +26,8 @@ pub(crate) fn run_live_top_tui(
     limit: usize,
     count: Option<u32>,
     options: &TopOptions,
+    live_view: &SharedLiveView,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut live_view = LiveView::default();
     run_top_tui_loop(
         interval_secs,
         limit,
@@ -35,7 +35,8 @@ pub(crate) fn run_live_top_tui(
         options,
         |display_limit, options| {
             let capture_snapshot = capture.map(LiveEbpfCapture::snapshot);
-            let mut top = live_view.refresh(capture_snapshot.as_ref(), display_limit, options)?;
+            let mut top =
+                refresh_shared(live_view, capture_snapshot.as_ref(), display_limit, options)?;
             if let Some(note) = capture.and_then(LiveEbpfCapture::start_note) {
                 top.notes.push(note.to_string());
             }

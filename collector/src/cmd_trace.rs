@@ -26,6 +26,7 @@ use crate::sinks::OtelExporter;
 use crate::sinks::sqlite::SqliteStore;
 use crate::sources::agent_native::{self, SessionCache};
 use crate::sources::proc::{PidSeed, ProcSnapshot};
+use crate::view::live_top::{SharedLiveView, shared_live_view};
 use crate::view::{MaterializedView, SharedMaterializedView, process_select};
 
 pub(crate) const DEFAULT_SERVER_LISTEN: &str = "127.0.0.1";
@@ -380,7 +381,14 @@ pub(crate) async fn run_trace(
 
     prepare_process_seeds(&mut cfg)?;
     let live_view = MaterializedView::shared_bounded();
-    let bridge = start_bridge_if_enabled(cfg.bridge_socket.as_deref(), live_view.clone()).await?;
+    // The trace path runs no top loop, so the bridge gets a registry of its own
+    // and the host-session query is what refreshes it.
+    let bridge = start_bridge_if_enabled(
+        cfg.bridge_socket.as_deref(),
+        live_view.clone(),
+        shared_live_view(),
+    )
+    .await?;
     let agent_native_refresh = bridge
         .is_some()
         .then(|| spawn_agent_native_refresh(live_view.clone(), cfg.system_interval));
@@ -418,6 +426,7 @@ pub(crate) async fn run_trace(
 pub(crate) async fn start_bridge_if_enabled(
     socket_path: Option<&std::path::Path>,
     view: SharedMaterializedView,
+    live_sessions: SharedLiveView,
 ) -> Result<Option<crate::server::bridge::BridgeServerHandle>, RunnerError> {
     let Some(socket_path) = socket_path else {
         return Ok(None);
@@ -427,6 +436,7 @@ pub(crate) async fn start_bridge_if_enabled(
         config,
         view,
         agentsight_protocol::bridge::DisclosureMode::MetadataOnly,
+        live_sessions,
     )
     .await
     .map_err(|error| RunnerError::from(format!("failed to start bridge server: {error}")))?;

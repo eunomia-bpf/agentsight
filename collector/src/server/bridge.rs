@@ -11,7 +11,7 @@
 
 use crate::model::SnapshotOptions;
 use crate::view::SharedMaterializedView;
-use crate::view::live_top::{LiveCaptureSnapshot, LiveView};
+use crate::view::live_top::{LiveCaptureSnapshot, SharedLiveView};
 use agentsight_capture::bridge::{
     MutationEmitterConfig, MutationResult, MutationSink, SequenceAllocator,
 };
@@ -284,17 +284,26 @@ pub(crate) struct BridgeHub {
     /// The collector's live agent-session registry: the same [`LiveView`] the
     /// top view and the web overview refresh, so a host-session answer describes
     /// exactly the rows an operator would see in `agentsight top`.
-    live_sessions: Mutex<LiveView>,
+    ///
+    /// The caller supplies it. `top --bridge-socket` hands in the registry its
+    /// own refresh loop drives, so serving the bridge adds no second discovery
+    /// pass; a capture path with no top loop hands in a fresh one and the query
+    /// refreshes it itself.
+    live_sessions: SharedLiveView,
 }
 
 impl BridgeHub {
-    fn new(config: BridgeServerConfig, sequence: SequenceAllocator) -> Self {
+    fn new(
+        config: BridgeServerConfig,
+        sequence: SequenceAllocator,
+        live_sessions: SharedLiveView,
+    ) -> Self {
         Self {
             config,
             sequence,
             state: Mutex::new(HubState::default()),
             annotations_evicted: AtomicU64::new(0),
-            live_sessions: Mutex::new(LiveView::default()),
+            live_sessions,
         }
     }
 
@@ -716,10 +725,15 @@ fn peer_is_same_uid(stream: &UnixStream) -> Result<(), String> {
 }
 
 /// Bind the socket, attach the mutation sink to the view, and start accepting.
+///
+/// `live_sessions` is the registry the host-session arm answers from; a caller
+/// that already refreshes one — the top loop — passes it in rather than letting
+/// the server open a second one.
 pub(crate) async fn start_bridge_server(
     config: BridgeServerConfig,
     view: SharedMaterializedView,
     disclosure: DisclosureMode,
+    live_sessions: SharedLiveView,
 ) -> BridgeResult<BridgeServerHandle> {
     use std::os::unix::fs::PermissionsExt;
 
@@ -730,7 +744,11 @@ pub(crate) async fn start_bridge_server(
         .map_err(|error| format!("failed to restrict bridge socket permissions: {error}"))?;
 
     let sequence = SequenceAllocator::new();
-    let hub = Arc::new(BridgeHub::new(config.clone(), sequence.clone()));
+    let hub = Arc::new(BridgeHub::new(
+        config.clone(),
+        sequence.clone(),
+        live_sessions,
+    ));
 
     {
         let mut guard = view
@@ -1325,9 +1343,14 @@ mod tests {
         config.boot_id = Some("boot-test".to_string());
         tweak(&mut config);
         let view = MaterializedView::shared_bounded();
-        let handle = start_bridge_server(config, view.clone(), DisclosureMode::MetadataOnly)
-            .await
-            .expect("bridge server starts");
+        let handle = start_bridge_server(
+            config,
+            view.clone(),
+            DisclosureMode::MetadataOnly,
+            crate::view::live_top::shared_live_view(),
+        )
+        .await
+        .expect("bridge server starts");
         Fixture {
             _dir: dir,
             socket_path,
@@ -1723,6 +1746,26 @@ mod tests {
         }
     }
 
+    /// The server answers from the registry its caller handed it, not from one
+    /// of its own. That is what lets `top --bridge-socket` serve host sessions
+    /// without a second discovery pass: the loop that draws the screen and the
+    /// arm that answers the socket refresh the same rows.
+    #[tokio::test]
+    async fn the_host_session_registry_is_the_caller_s_own() {
+        let dir = owner_only_tempdir();
+        let registry = crate::view::live_top::shared_live_view();
+        let handle = start_bridge_server(
+            BridgeServerConfig::new(dir.path().join("bridge.sock")),
+            MaterializedView::shared_bounded(),
+            DisclosureMode::MetadataOnly,
+            registry.clone(),
+        )
+        .await
+        .expect("bridge server starts");
+
+        assert!(Arc::ptr_eq(&handle.hub.live_sessions, &registry));
+    }
+
     #[tokio::test]
     async fn saturating_the_outbound_queue_reports_a_capture_gap() {
         let fixture = fixture(|config| config.outbound_capacity = 4).await;
@@ -2061,6 +2104,7 @@ mod tests {
         let hub = BridgeHub::new(
             BridgeServerConfig::new(dir.path().join("bridge.sock")),
             SequenceAllocator::new(),
+            crate::view::live_top::shared_live_view(),
         );
         assert_eq!(hub.health().aro_annotations_evicted, Some(0));
 

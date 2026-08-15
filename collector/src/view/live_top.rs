@@ -15,7 +15,21 @@ use agentsight_protocol::bridge::HostSessionRow;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
+
+/// One live registry, shared by whoever refreshes it.
+///
+/// The top loop and the bridge's host-session answer read the same processes and
+/// the same transcripts. Giving each its own [`LiveView`] would run the
+/// discovery twice and split the CPU-delta history between them, so the two
+/// would disagree about the same machine. Sharing the registry means the answer
+/// a consumer gets over the socket is the row an operator sees on screen.
+pub(crate) type SharedLiveView = Arc<Mutex<LiveView>>;
+
+pub(crate) fn shared_live_view() -> SharedLiveView {
+    Arc::new(Mutex::new(LiveView::default()))
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct LiveCaptureSnapshot {

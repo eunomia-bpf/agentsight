@@ -47,14 +47,16 @@ use cmd_bind::run_bind;
 use cmd_debug::{run_raw_process, run_raw_ssl, run_raw_stdio, run_system};
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
 use cmd_monitor::{install_monitor_service, run_monitor};
-use cmd_perf_live::{run_live_top_query, start_live_ebpf_capture};
+use cmd_perf_live::{run_headless_top_refresh, run_live_top_query, start_live_ebpf_capture};
 use cmd_perf_tui::run_live_top_tui;
 use cmd_trace::{
-    OtelConfig, TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled,
+    OtelConfig, TraceConfig, convert_runner_error, run_trace, start_bridge_if_enabled,
+    start_web_server_if_enabled,
 };
 use output::TopOptions;
 use output::{print_record_session_db_error, print_report_local_sessions_warning};
 use sources::session_db::{latest_session_db, run_db_list};
+use view::live_top::shared_live_view;
 
 static SHUTDOWN_REQUESTED: AtomicBool = AtomicBool::new(false);
 static SHUTDOWN_NOTIFY: OnceLock<Arc<Notify>> = OnceLock::new();
@@ -109,7 +111,7 @@ pub(crate) fn recent_tui_diagnostics(limit: usize) -> Vec<String> {
         .collect()
 }
 
-fn shutdown_notify() -> Arc<Notify> {
+pub(crate) fn shutdown_notify() -> Arc<Notify> {
     SHUTDOWN_NOTIFY
         .get_or_init(|| Arc::new(Notify::new()))
         .clone()
@@ -132,8 +134,9 @@ fn command_uses_top_tui(cli: &Cli) -> bool {
         &cli.command,
         Commands::Top {
             plain,
+            headless,
             ..
-        } if top_uses_tui(*plain, interactive_terminal_available())
+        } if !*headless && top_uses_tui(*plain, interactive_terminal_available())
     )
 }
 
@@ -273,6 +276,12 @@ enum Commands {
         /// Use plain table output instead of the interactive TUI
         #[arg(long)]
         plain: bool,
+        /// Serve the evidence bridge on this Unix socket path while top runs
+        #[arg(long)]
+        bridge_socket: Option<PathBuf>,
+        /// Serve the bridge without rendering the top view
+        #[arg(long, requires = "bridge_socket")]
+        headless: bool,
     },
     /// Long-running bounded trace monitor for matched local agent sessions.
     Monitor {
@@ -736,6 +745,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             count,
             once,
             plain,
+            bridge_socket,
+            headless,
         } => {
             let count = if *once { Some(1) } else { *count };
             let options = TopOptions {
@@ -744,13 +755,54 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 sort: sort.clone(),
                 view: view.clone(),
             };
+            // One registry, two readers: the loop below refreshes it and the
+            // bridge answers host-session queries from the same rows. This is
+            // also the only way to serve the bridge on a host with no eBPF —
+            // top is the capture path that never needed a probe.
+            let live_view = shared_live_view();
+            let bridge = start_bridge_if_enabled(
+                bridge_socket.as_deref(),
+                view::MaterializedView::shared_bounded(),
+                live_view.clone(),
+            )
+            .await
+            .map_err(convert_runner_error)?;
             let capture = start_live_ebpf_capture(&options).await;
-            let result = if top_uses_tui(*plain, interactive_terminal_available()) {
-                run_live_top_tui(Some(&capture), *interval, *limit, count, &options)
+            let result = if *headless {
+                run_headless_top_refresh(
+                    Some(&capture),
+                    *interval,
+                    *limit,
+                    count,
+                    &options,
+                    &live_view,
+                )
+                .await
+            } else if top_uses_tui(*plain, interactive_terminal_available()) {
+                run_live_top_tui(
+                    Some(&capture),
+                    *interval,
+                    *limit,
+                    count,
+                    &options,
+                    &live_view,
+                )
             } else {
-                run_live_top_query(Some(&capture), *interval, *limit, count, &options)
+                run_live_top_query(
+                    Some(&capture),
+                    *interval,
+                    *limit,
+                    count,
+                    &options,
+                    &live_view,
+                )
             };
             capture.stop();
+            if let Some(bridge) = bridge.as_ref() {
+                bridge.shutdown("collector stopping");
+                // Let the graceful-shutdown notice reach connected consumers.
+                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            }
             result?;
         }
         // All remaining commands need the binary extractor.
@@ -1093,6 +1145,54 @@ mod tests {
         assert!(
             <Cli as clap::Parser>::try_parse_from(["agentsight", "top", "--db", "run.db"]).is_err()
         );
+    }
+
+    #[test]
+    fn top_serves_the_bridge_and_can_drop_the_screen() {
+        let cli = <Cli as clap::Parser>::try_parse_from([
+            "agentsight",
+            "top",
+            "--bridge-socket",
+            "/run/aro/bridge.sock",
+            "--headless",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Top {
+                bridge_socket,
+                headless,
+                ..
+            } => {
+                assert_eq!(
+                    bridge_socket.as_deref(),
+                    Some(std::path::Path::new("/run/aro/bridge.sock"))
+                );
+                assert!(headless);
+            }
+            _ => panic!("expected top command"),
+        }
+    }
+
+    #[test]
+    fn a_headless_top_without_a_bridge_socket_renders_nothing_and_serves_nothing() {
+        // Refusing at parse time, because the combination has no output at all:
+        // no screen to draw and no socket to answer on.
+        assert!(
+            <Cli as clap::Parser>::try_parse_from(["agentsight", "top", "--headless"]).is_err()
+        );
+    }
+
+    #[test]
+    fn a_headless_top_never_claims_the_terminal() {
+        let cli = <Cli as clap::Parser>::try_parse_from([
+            "agentsight",
+            "top",
+            "--bridge-socket",
+            "/run/aro/bridge.sock",
+            "--headless",
+        ])
+        .unwrap();
+        assert!(!super::command_uses_top_tui(&cli));
     }
 
     #[test]
