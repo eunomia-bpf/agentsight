@@ -3,6 +3,7 @@
 
 pub mod assets;
 pub(crate) mod capability;
+pub mod ext_runtime;
 pub(crate) mod relay_client;
 pub(crate) mod session_runtime;
 pub mod web;
