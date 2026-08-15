@@ -42,12 +42,6 @@ const nextConfig = {
   basePath,
   assetPrefix: basePath || undefined,
   generateBuildId: async () => stableBuildId(),
-  webpack(config) {
-    // Extension sources live outside frontend/, so pin dependency resolution to
-    // the shell's single node_modules tree instead of duplicating packages.
-    config.resolve.modules = [path.join(__dirname, 'node_modules'), ...(config.resolve.modules || [])];
-    return config;
-  },
 }
 
 module.exports = nextConfig
