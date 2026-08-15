@@ -5,24 +5,25 @@ repository-evolution artifacts. It consumes the neutral session model from
 `agent-session`; repository scoping, Git milestones, layout, and media export
 stay in this crate.
 
-The generated visualization is branded **Agent Nebula**: files are stars,
-repository path areas are stable colors, and Agent actions drive the timeline.
+The generated visualization is branded **Agent Session Evolution Graph**: files
+are stars, repository path areas are stable colors, and Agent actions drive the
+timeline.
 
 ```bash
 cd your-repository
 agentvis
 ```
 
-The default artifact is `output/agent-nebula.gif`. Use `-o` to choose another
-path or to request additional formats:
+The default artifact is `output/agent-session-evolution.gif`. Use `-o` to choose
+another path or to request additional formats:
 
 ```bash
 agentvis . --global \
   --compact-rate 30s \
-  -o output/agent-nebula.html \
-  -o output/agent-nebula.png \
-  -o output/agent-nebula.gif \
-  -o output/agent-nebula.mp4
+  -o output/agent-session-evolution.html \
+  -o output/agent-session-evolution.png \
+  -o output/agent-session-evolution.gif \
+  -o output/agent-session-evolution.mp4
 ```
 
 HTML output is a self-contained interactive file. SVG and PNG are still
@@ -48,4 +49,4 @@ compaction: [PNG](https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/
 [GIF](https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.gif), and
 [MP4](https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.mp4).
 
-![Agent Nebula visualizing ACTplane](https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.png)
+![Agent Session Evolution Graph visualizing ACTplane](https://github.com/eunomia-bpf/agentsight/raw/master/agentvis/examples/actplane-agent-nebula.png)

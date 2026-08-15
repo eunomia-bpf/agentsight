@@ -99,7 +99,7 @@ function initialize(payload) {
   moments = nebulaVisualMoments(data);
   frameTimes = moments.length > 2 ? moments.slice(1, -1) : [data.meta.window_end_ms];
   chart = init($("chart"), null, { renderer: "canvas", width: 1200, height: 675 });
-  $("view-title").textContent = "Agent Nebula";
+  $("view-title").textContent = "Agent Session Evolution Graph";
   $("view-note").textContent = "Files are stars. Root entries define color; paths define attraction.";
   $("provenance").textContent = [
     `repository: ${data.meta.repository}`,
@@ -157,7 +157,7 @@ function composeFrame(canvas = document.createElement("canvas")) {
   context.fillStyle = "#61d7bf"; context.font = "11px monospace";
   context.fillText("AGENTVIS · REPOSITORY EVOLUTION", 32, 39);
   context.fillStyle = palette.text; context.font = "28px system-ui";
-  context.fillText("Agent Nebula", 32, 72);
+  context.fillText("Agent Session Evolution Graph", 32, 72);
   context.fillStyle = palette.muted; context.font = "12px system-ui";
   context.fillText("Files are stars. Root entries define color; paths define attraction.", 32, 96);
   context.strokeStyle = "rgba(135,160,190,.22)";

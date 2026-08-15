@@ -12,4 +12,4 @@ pub use repository::{
     FileAction, RepositoryEvent, RepositoryTrace, RepositoryTraceOptions, build_repository_trace,
 };
 
-pub const DEFAULT_OUTPUT: &str = "output/agent-nebula.gif";
+pub const DEFAULT_OUTPUT: &str = "output/agent-session-evolution.gif";

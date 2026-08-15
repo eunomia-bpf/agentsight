@@ -469,7 +469,7 @@ fn html_document(payload: &serde_json::Value) -> Result<String, serde_json::Erro
         .replace('\u{2028}', "\\u2028")
         .replace('\u{2029}', "\\u2029");
     Ok(format!(
-        r#"<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agent Nebula · agentvis</title><style>
+        r#"<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agent Session Evolution Graph · agentvis</title><style>
 :root{{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#070b12;color:#dce8f7}}*{{box-sizing:border-box}}body{{margin:0;background:#070b12}}.artifact{{width:1264px;min-height:865px;padding:24px 32px;background:#070b12;transition:box-shadow .12s}}.artifact.commit-flash{{box-shadow:inset 0 0 0 2px #efd265,0 0 30px rgba(239,210,101,.42)}}.header{{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid rgba(135,160,190,.18);padding-bottom:14px}}.eyebrow,.mode{{font:11px ui-monospace,monospace;color:#61d7bf;letter-spacing:.12em;text-transform:uppercase}}.header h1{{font-size:28px;margin:6px 0}}.header p{{font-size:12px;color:#71839a;margin:0}}.mode{{color:#8c9bb0;border:1px solid rgba(135,160,190,.18);padding:7px 9px;border-radius:99px;align-self:flex-start}}.visual{{width:1200px;height:675px;margin-top:14px}}.timeline{{display:grid;grid-template-columns:42px 1fr 190px;gap:12px;align-items:center;border-top:1px solid rgba(135,160,190,.18);padding:14px 0 8px}}.timeline button{{width:36px;height:36px;border-radius:50%;border:1px solid rgba(97,215,191,.4);background:#10231f;color:#61d7bf}}.timeline input{{width:100%;accent-color:#61d7bf}}.timeline output{{font:10px ui-monospace,monospace;color:#9bacc0;text-align:right}}.legend{{display:flex;gap:18px;font:10px ui-monospace,monospace;color:#71839a}}.legend i{{display:inline-block;width:13px;height:3px;margin-right:5px;vertical-align:middle}}.footer{{margin-top:8px;color:#7c8ba0;font:10px ui-monospace,monospace}}
 </style></head><body><main id="artifact" class="artifact"><header class="header"><div><span class="eyebrow">agentvis · repository evolution</span><h1 id="view-title"></h1><p id="view-note"></p></div><span class="mode">Agent event time</span></header><section class="visual"><div id="chart"></div></section><section class="timeline"><button id="play">▶</button><input id="timeline" type="range"><output id="cursor-label"></output></section><section class="legend"><span><i style="background:#f7ffff"></i>read attention</span><span><i style="background:#ff9678"></i>write ripple</span><span><i style="background:#75f0a9"></i>create</span><span><i style="background:#63dfff"></i>rename</span><span><i style="background:#ff647c"></i>delete</span><span><i style="background:#efd265"></i>commit frame</span></section><footer id="provenance" class="footer"></footer></main><script>{RUNTIME}</script><script>AgentVis.initialize({payload})</script></body></html>"#
     ))
@@ -523,7 +523,7 @@ mod tests {
     #[test]
     fn html_is_self_contained_and_script_safe() {
         let html = html_document(&json!({ "value": "</script>" })).unwrap();
-        assert!(html.contains("<title>Agent Nebula · agentvis</title>"));
+        assert!(html.contains("<title>Agent Session Evolution Graph · agentvis</title>"));
         assert!(html.contains("AgentVis.initialize"));
         assert!(!html.contains("\"</script>\""));
     }
