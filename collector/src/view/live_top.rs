@@ -5,11 +5,13 @@ use crate::model::{AuditCounters, SessionRow, Snapshot};
 use crate::output::{AgentProcessRow, AgentTopOutput, AgentTopRow, TopOptions};
 use crate::sources::agent_native as agent_native_sessions;
 use crate::sources::proc::{self as procfs, ProcSnapshot as LiveSample};
+use crate::view::host_sessions::{self, HOST_SESSION_LIMIT};
 use crate::view::process_select;
 use crate::view::session_process_match::{
     LiveProcessCandidate, SessionProcessMatch, SessionProcessMatcher, session_path_from_raw_path,
 };
 use crate::view::top::{recent_failures, sort_agent_rows, top_sections};
+use agentsight_protocol::bridge::HostSessionRow;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::io;
 use std::path::{Path, PathBuf};
@@ -85,6 +87,19 @@ impl LiveView {
         limit: usize,
         options: &TopOptions,
     ) -> io::Result<AgentTopOutput> {
+        Ok(self.refresh_parts(capture, limit, options)?.0)
+    }
+
+    /// The refresh the top view runs, keeping the session snapshot the rows were
+    /// built from. The sample stays in `self.previous`, which is where the next
+    /// CPU delta comes from and where a caller can read the process identity
+    /// behind a row without collecting a second time.
+    fn refresh_parts(
+        &mut self,
+        capture: Option<&LiveCaptureSnapshot>,
+        limit: usize,
+        options: &TopOptions,
+    ) -> io::Result<(AgentTopOutput, Snapshot)> {
         let sample = LiveSample::collect()?;
         let session_snapshot = agent_native_sessions::snapshot(
             &mut self.session_cache,
@@ -95,7 +110,31 @@ impl LiveView {
         );
         let top = self.build_top(&sample, capture, &session_snapshot, options);
         self.previous = Some(sample);
-        Ok(top)
+        Ok((top, session_snapshot))
+    }
+
+    /// Machine-wide live agent sessions for the bridge.
+    ///
+    /// Same rows, same registry, same refresh as the top view: the projection
+    /// only decides what may leave the process. Nothing here scans anything the
+    /// top view did not already scan.
+    pub(crate) fn host_sessions(
+        &mut self,
+        capture: Option<&LiveCaptureSnapshot>,
+    ) -> io::Result<Vec<HostSessionRow>> {
+        let options = TopOptions {
+            pid: None,
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "all".to_string(),
+        };
+        let (top, sessions) = self.refresh_parts(capture, HOST_SESSION_LIMIT, &options)?;
+        Ok(host_sessions::project_rows(
+            &top.rows,
+            &sessions,
+            self.previous.as_ref(),
+            now_ms(),
+        ))
     }
 
     pub(crate) fn refresh_monitor_sample(&mut self, limit: usize) -> io::Result<LiveMonitorSample> {

@@ -144,6 +144,33 @@ pub fn cwd_class(path: &str) -> Option<String> {
     path_class(path)
 }
 
+/// Workspace projection for host-session rows: the [`path_class`] bucket and the
+/// workspace's own basename, e.g. `repo:agentsight`.
+///
+/// An operator reading a machine-wide session list needs to tell two checkouts
+/// apart, which the bucket alone cannot do; the basename is the least that
+/// answers it. Nothing that led to the workspace survives — not the parent
+/// directories and, deliberately, not the account name: for a path that *is* a
+/// home root (`/Users/alice`) the only basename available is the user, so the
+/// class is returned alone rather than with it.
+pub fn workspace_class(path: &str) -> Option<String> {
+    let class = path_class(path)?;
+    match workspace_basename(path) {
+        Some(basename) => Some(format!("{class}:{basename}")),
+        None => Some(class),
+    }
+}
+
+fn workspace_basename(path: &str) -> Option<String> {
+    let trimmed = path.trim().trim_end_matches('/');
+    let normalized = format!("{trimmed}/");
+    // Under a home prefix only the home-relative part may be named, so the
+    // account component can never become the basename.
+    let nameable = home_relative(&normalized).unwrap_or(trimmed);
+    let basename = nameable.trim_end_matches('/').rsplit('/').next()?.trim();
+    (!basename.is_empty() && !basename.contains('=')).then(|| basename.to_string())
+}
+
 fn home_relative(normalized: &str) -> Option<&str> {
     HOME_PREFIXES.iter().find_map(|prefix| {
         let rest = normalized.strip_prefix(prefix)?;
@@ -386,6 +413,34 @@ mod tests {
         );
         assert_eq!(path_class("relative/path").as_deref(), Some(CLASS_OTHER));
         assert_eq!(path_class("   "), None);
+    }
+
+    #[test]
+    fn workspace_class_names_the_workspace_and_nothing_above_it() {
+        assert_eq!(
+            workspace_class("/Users/dev/secret-project").as_deref(),
+            Some("repo:secret-project")
+        );
+        assert_eq!(
+            workspace_class("/home/dev/work/agentsight/").as_deref(),
+            Some("repo:agentsight")
+        );
+        assert_eq!(
+            workspace_class("/tmp/build-42").as_deref(),
+            Some("tmp:build-42")
+        );
+        // A home root has no basename but the account name, so it gets none.
+        assert_eq!(workspace_class("/Users/dev").as_deref(), Some("home"));
+        assert_eq!(workspace_class("/home/dev/").as_deref(), Some("home"));
+        assert_eq!(workspace_class("   "), None);
+    }
+
+    #[test]
+    fn workspace_class_never_carries_the_path_that_led_to_it() {
+        let projected = workspace_class("/Users/canaryuser/code/secret-project").unwrap();
+        assert!(!projected.contains('/'), "{projected}");
+        assert!(!projected.contains("canaryuser"), "{projected}");
+        assert!(!projected.contains("code"), "{projected}");
     }
 
     #[test]

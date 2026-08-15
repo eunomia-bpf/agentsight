@@ -15,9 +15,9 @@ use agentsight_protocol::bridge::{
     AroResourceDomainRow, BRIDGE_PROTOCOL_VERSION, BridgeAgreement, BridgeAuditEventRow,
     BridgeCapability, BridgeHealth, BridgeHello, BridgeLlmCallRow, BridgeMessage,
     BridgeNetworkTargetRow, BridgeProcessNodeRow, BridgeResourceSampleRow, BridgeSessionRow,
-    BridgeTokenUsageRow, BridgeToolCallRow, DisclosureMode, MAX_FRAME_BYTES, MutationOperation,
-    ResumeRequest, ScopeRegistration, TimestampBasis, ToolScopeRegistration, ViewMutation,
-    ViewMutationEnvelope, capability_names, decode_body, encode_body,
+    BridgeTokenUsageRow, BridgeToolCallRow, DisclosureMode, HostSessionRow, MAX_FRAME_BYTES,
+    MutationOperation, ResumeRequest, ScopeRegistration, TimestampBasis, ToolScopeRegistration,
+    ViewMutation, ViewMutationEnvelope, capability_names, decode_body, encode_body,
 };
 use serde_json::{Value, json};
 use std::path::PathBuf;
@@ -625,6 +625,93 @@ fn annotation_vectors() -> Vec<(&'static str, BridgeMessage)> {
     ]
 }
 
+/// The machine-wide live session answer: client -> server query, server ->
+/// client snapshot, behind the `host_sessions` capability.
+///
+/// Pinned here for the same reason the annotation pair is: the gate is the
+/// advertised capability, so the agreement that advertises it is part of the
+/// contract a client reads before it sends the query. The two snapshots are the
+/// two shapes a consumer must handle — a fully observed row, and a row the
+/// collector could say almost nothing about, where absent stays absent instead
+/// of becoming zero.
+fn host_session_vectors() -> Vec<(&'static str, BridgeMessage)> {
+    vec![
+        (
+            "agreement_advertising_host_sessions",
+            BridgeMessage::Agreement(BridgeAgreement {
+                protocol_version: BRIDGE_PROTOCOL_VERSION,
+                product: "agentsight".to_string(),
+                product_version: "1.0.20".to_string(),
+                build_commit: Some("f7d961f86d57073013a58a8f72ea0528e8e63c38".to_string()),
+                binary_digest: None,
+                node_id: "node_goldenvector0001".to_string(),
+                boot_id: Some("2f8a1c6e-0000-4000-8000-00000000b007".to_string()),
+                capabilities: capability_names::ALL
+                    .iter()
+                    .map(|name| BridgeCapability::new(*name, true, None))
+                    .collect(),
+                max_frame_bytes: MAX_FRAME_BYTES,
+            }),
+        ),
+        ("host_sessions_query", BridgeMessage::HostSessionsQuery {}),
+        (
+            "host_sessions_snapshot",
+            BridgeMessage::HostSessionsSnapshot {
+                generated_ms: 1_760_000_100_000,
+                sessions: vec![
+                    HostSessionRow {
+                        session_key: "b8f0c3d2-0000-4000-8000-000000000001".to_string(),
+                        agent_kind: "claude".to_string(),
+                        state: HostSessionRow::LIVE.to_string(),
+                        started_ms: Some(1_760_000_000_000),
+                        last_message_ms: Some(1_760_000_060_000),
+                        model: Some("claude-sonnet-4".to_string()),
+                        input_tokens: Some(1200),
+                        output_tokens: Some(340),
+                        total_tokens: Some(1540),
+                        activity_events: Some(7),
+                        activity_window_s: Some(100),
+                        cpu_percent: Some(12.5),
+                        memory_bytes: Some(536_870_912),
+                        evidence_source: HostSessionRow::EVIDENCE_TRANSCRIPT.to_string(),
+                        workspace_class: Some("repo:agentsight".to_string()),
+                        context_class: Some("claude".to_string()),
+                        pid: Some(4242),
+                        start_ticks: Some(918_273),
+                    },
+                    HostSessionRow {
+                        session_key: "proc:4310:918500".to_string(),
+                        agent_kind: "codex".to_string(),
+                        state: HostSessionRow::IDLE.to_string(),
+                        started_ms: Some(1_760_000_003_000),
+                        last_message_ms: None,
+                        model: None,
+                        input_tokens: None,
+                        output_tokens: None,
+                        total_tokens: None,
+                        activity_events: None,
+                        activity_window_s: None,
+                        cpu_percent: Some(0.0),
+                        memory_bytes: Some(67_108_864),
+                        evidence_source: HostSessionRow::EVIDENCE_PROC.to_string(),
+                        workspace_class: Some("repo:agentsight".to_string()),
+                        context_class: Some("codex".to_string()),
+                        pid: Some(4310),
+                        start_ticks: Some(918_500),
+                    },
+                ],
+            },
+        ),
+        (
+            "host_sessions_snapshot_empty",
+            BridgeMessage::HostSessionsSnapshot {
+                generated_ms: 1_760_000_100_000,
+                sessions: Vec::new(),
+            },
+        ),
+    ]
+}
+
 fn categories() -> Vec<(&'static str, Vec<(&'static str, BridgeMessage)>)> {
     vec![
         ("handshake", handshake_vectors()),
@@ -632,6 +719,7 @@ fn categories() -> Vec<(&'static str, Vec<(&'static str, BridgeMessage)>)> {
         ("control", control_vectors()),
         ("mutation", mutation_vectors()),
         ("annotations", annotation_vectors()),
+        ("host_sessions", host_session_vectors()),
     ]
 }
 
@@ -746,6 +834,51 @@ fn every_annotation_row_kind_has_a_golden_vector() {
         "correlation",
     ] {
         assert!(kinds.contains(&kind), "no golden vector for {kind}");
+    }
+}
+
+/// Same rule as the annotation pair: the gate is the advertised capability, so
+/// the fixture a client reads must carry it.
+#[test]
+fn the_host_sessions_capability_is_advertised_by_a_pinned_agreement() {
+    let advertised = host_session_vectors()
+        .iter()
+        .filter_map(|(_, message)| match message {
+            BridgeMessage::Agreement(agreement) => Some(agreement.capabilities.clone()),
+            _ => None,
+        })
+        .flatten()
+        .any(|capability| {
+            capability.name == capability_names::HOST_SESSIONS && capability.available
+        });
+    assert!(advertised, "no pinned agreement advertises host_sessions");
+    assert!(
+        capability_names::ALL.contains(&capability_names::HOST_SESSIONS),
+        "the collector answers the query, so the name it enumerates must include it"
+    );
+}
+
+/// The corpus is where a privacy regression would show up first: a host session
+/// row that started carrying a path or an argument vector would have to change
+/// these bytes to do it.
+#[test]
+fn no_pinned_host_session_row_carries_a_path_or_an_argument() {
+    for (name, message) in host_session_vectors() {
+        let BridgeMessage::HostSessionsSnapshot { sessions, .. } = message else {
+            continue;
+        };
+        for row in sessions {
+            for (field, value) in [
+                ("workspace_class", row.workspace_class.clone()),
+                ("context_class", row.context_class.clone()),
+            ] {
+                let Some(value) = value else { continue };
+                assert!(
+                    !value.contains('/') && !value.contains('=') && !value.contains(' '),
+                    "{name}: {field} looks like a path or an argument: {value}"
+                );
+            }
+        }
     }
 }
 

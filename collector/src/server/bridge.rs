@@ -9,7 +9,9 @@
 //! buffer, scope bookkeeping, and per-connection back-pressure; it never
 //! interprets the consumer's identifiers.
 
+use crate::model::SnapshotOptions;
 use crate::view::SharedMaterializedView;
+use crate::view::live_top::{LiveCaptureSnapshot, LiveView};
 use agentsight_capture::bridge::{
     MutationEmitterConfig, MutationResult, MutationSink, SequenceAllocator,
 };
@@ -34,6 +36,9 @@ pub(crate) const DEFAULT_REPLAY_CAPACITY: usize = 8_192;
 pub(crate) const DEFAULT_HEARTBEAT: Duration = Duration::from_secs(15);
 pub(crate) const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(90);
 pub(crate) const DEFAULT_WRITE_TIMEOUT: Duration = Duration::from_secs(10);
+/// Audit rows the host-session answer reads from the capture view, matching the
+/// live overview the web server serves from the same registry.
+const HOST_SESSION_AUDIT_LIMIT: usize = 10_000;
 
 pub(crate) type BridgeResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -94,6 +99,10 @@ fn default_capabilities() -> Vec<BridgeCapability> {
         // would have to stop naming it — a client reads the advertisement, not
         // the protocol version, to decide whether to send one.
         BridgeCapability::new(capability_names::ARO_ANNOTATIONS, true, None),
+        // Same rule, and same reason it is honest everywhere: the live session
+        // registry behind the answer is the process/transcript registry the top
+        // view uses, which needs no eBPF.
+        BridgeCapability::new(capability_names::HOST_SESSIONS, true, None),
     ]
 }
 
@@ -272,6 +281,10 @@ pub(crate) struct BridgeHub {
     /// view would invert the order; only the annotation arm updates this, and it
     /// updates it while it holds the view lock anyway.
     annotations_evicted: AtomicU64,
+    /// The collector's live agent-session registry: the same [`LiveView`] the
+    /// top view and the web overview refresh, so a host-session answer describes
+    /// exactly the rows an operator would see in `agentsight top`.
+    live_sessions: Mutex<LiveView>,
 }
 
 impl BridgeHub {
@@ -281,6 +294,7 @@ impl BridgeHub {
             sequence,
             state: Mutex::new(HubState::default()),
             annotations_evicted: AtomicU64::new(0),
+            live_sessions: Mutex::new(LiveView::default()),
         }
     }
 
@@ -1066,6 +1080,7 @@ fn handle_message(
         BridgeMessage::SnapshotRequest { scope_handle } => {
             serve_snapshot(hub, view, connection_id, scope_handle)
         }
+        BridgeMessage::HostSessionsQuery {} => serve_host_sessions(hub, view, connection_id),
         BridgeMessage::Heartbeat { .. } => {}
         BridgeMessage::Shutdown { .. } => return Flow::Close,
         // Server-originated messages are not valid inbound traffic.
@@ -1100,6 +1115,57 @@ fn apply_annotation(
     };
     guard.apply_aro_annotation(annotation);
     hub.note_annotations_evicted(guard.aro_annotations_evicted());
+}
+
+/// Answer a host-sessions query from the live session registry.
+///
+/// Refreshing the registry reads `/proc` (or its platform equivalent) and the
+/// agent transcripts, so it runs on the blocking pool rather than on the
+/// connection's reader task; the reply goes back through the same outbound queue
+/// every other server message uses.
+///
+/// A registry that cannot refresh answers nothing at all. The v1 message pair
+/// has no failure shape, and an empty snapshot is not one: it would tell the
+/// consumer this machine has no agent sessions, which is a different and false
+/// statement. Silence leaves the consumer's own bounded wait to report the
+/// answer it did not get.
+fn serve_host_sessions(hub: &Arc<BridgeHub>, view: &SharedMaterializedView, connection_id: u64) {
+    let hub = hub.clone();
+    let view = view.clone();
+    tokio::task::spawn_blocking(move || {
+        let capture = view
+            .lock()
+            .ok()
+            .map(|guard| {
+                guard.export_snapshot(SnapshotOptions {
+                    audit_limit: HOST_SESSION_AUDIT_LIMIT,
+                })
+            })
+            .map(|snapshot| LiveCaptureSnapshot::new(snapshot, 0));
+        let Ok(mut registry) = hub.live_sessions.lock() else {
+            log::warn!("bridge: host session registry lock poisoned; query unanswered");
+            return;
+        };
+        match registry.host_sessions(capture.as_ref()) {
+            Ok(sessions) => hub.send_to(
+                connection_id,
+                BridgeMessage::HostSessionsSnapshot {
+                    generated_ms: epoch_ms(),
+                    sessions,
+                },
+            ),
+            Err(error) => {
+                log::warn!("bridge: host session refresh failed: {error}; query unanswered")
+            }
+        }
+    });
+}
+
+fn epoch_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or_default()
 }
 
 /// Answer a snapshot request from current view state. Snapshot mutations are
@@ -1148,7 +1214,7 @@ mod tests {
     use crate::view::MaterializedView;
     use agentsight_capture::model::AuditEventRow;
     use agentsight_protocol::bridge::{
-        AroAnnotationRow, AroPolicyDecisionRow, BridgeHello, ResumeRequest,
+        AroAnnotationRow, AroPolicyDecisionRow, BridgeHello, HostSessionRow, ResumeRequest,
     };
 
     const RECV_TIMEOUT: Duration = Duration::from_secs(3);
@@ -1159,6 +1225,7 @@ mod tests {
     struct TestClient {
         stream: UnixStream,
         buffer: Vec<u8>,
+        recv_timeout: Duration,
     }
 
     impl TestClient {
@@ -1166,7 +1233,15 @@ mod tests {
             Self {
                 stream: UnixStream::connect(path).await.expect("connect"),
                 buffer: Vec::new(),
+                recv_timeout: RECV_TIMEOUT,
             }
+        }
+
+        /// Wait longer than the default for an answer the server has to go
+        /// gather, rather than one it already holds.
+        fn waiting_up_to(mut self, timeout: Duration) -> Self {
+            self.recv_timeout = timeout;
+            self
         }
 
         async fn send(&mut self, message: &BridgeMessage) {
@@ -1183,7 +1258,7 @@ mod tests {
                     return Some(message);
                 }
                 let mut chunk = vec![0u8; 8192];
-                let read = tokio::time::timeout(RECV_TIMEOUT, self.stream.read(&mut chunk))
+                let read = tokio::time::timeout(self.recv_timeout, self.stream.read(&mut chunk))
                     .await
                     .expect("read did not time out")
                     .expect("read");
@@ -1574,6 +1649,77 @@ mod tests {
                 }
                 _ => {}
             }
+        }
+    }
+
+    /// The host-sessions query against the real thing: a real bridge server, the
+    /// real live session registry, and whatever agents this machine is actually
+    /// running. The count is not asserted — a build machine may have no agent at
+    /// all — but everything about the shape is, including the rule that makes
+    /// this message safe to serve: no row may carry a path or an argument.
+    #[tokio::test]
+    async fn a_host_sessions_query_is_answered_from_the_live_registry() {
+        let fixture = fixture(|_| {}).await;
+        let mut client = TestClient::connect(&fixture.socket_path)
+            .await
+            .waiting_up_to(Duration::from_secs(60));
+        let agreement = client.handshake().await;
+        let advertised = agreement.capabilities.iter().any(|capability| {
+            capability.name == capability_names::HOST_SESSIONS && capability.available
+        });
+        assert!(
+            advertised,
+            "the host-sessions capability is advertised before the query is legal"
+        );
+
+        let asked_at = std::time::Instant::now();
+        client.send(&BridgeMessage::HostSessionsQuery {}).await;
+        let (generated_ms, sessions) = match client
+            .recv_matching(|message| matches!(message, BridgeMessage::HostSessionsSnapshot { .. }))
+            .await
+        {
+            BridgeMessage::HostSessionsSnapshot {
+                generated_ms,
+                sessions,
+            } => (generated_ms, sessions),
+            other => panic!("expected a host-sessions snapshot, got {other:?}"),
+        };
+
+        assert!(generated_ms > 1_700_000_000_000, "{generated_ms}");
+        assert!(sessions.len() <= crate::view::host_sessions::HOST_SESSION_LIMIT);
+        println!(
+            "host sessions observed: {} in {:?}",
+            sessions.len(),
+            asked_at.elapsed()
+        );
+        for session in &sessions {
+            assert!(!session.session_key.is_empty());
+            assert!(
+                [
+                    HostSessionRow::LIVE,
+                    HostSessionRow::IDLE,
+                    HostSessionRow::STOPPED
+                ]
+                .contains(&session.state.as_str()),
+                "unknown state {}",
+                session.state
+            );
+            let encoded = serde_json::to_string(session).expect("row serializes");
+            for class in [&session.workspace_class, &session.context_class]
+                .into_iter()
+                .flatten()
+            {
+                assert!(
+                    !class.contains('/') && !class.contains('='),
+                    "a class carried a path or an argument: {class} in {encoded}"
+                );
+            }
+        }
+        if let Some(session) = sessions.first() {
+            println!(
+                "first row: {}",
+                serde_json::to_string(session).expect("row serializes")
+            );
         }
     }
 

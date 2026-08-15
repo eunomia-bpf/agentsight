@@ -76,8 +76,18 @@ pub mod capability_names {
     /// it as unavailable-but-listed.
     pub const ARO_ANNOTATIONS: &str = "aro_annotations";
 
+    /// Machine-wide live agent sessions: the server answers
+    /// [`BridgeMessage::HostSessionsQuery`](crate::bridge::BridgeMessage::HostSessionsQuery)
+    /// with
+    /// [`BridgeMessage::HostSessionsSnapshot`](crate::bridge::BridgeMessage::HostSessionsSnapshot).
+    ///
+    /// Like [`ARO_ANNOTATIONS`] this names a message rather than capture, and it
+    /// is the gate that keeps the added pair safe at an unchanged protocol
+    /// version: a client that sees no such capability never sends the query.
+    pub const HOST_SESSIONS: &str = "host_sessions";
+
     /// Every capability name in v1, in the order the spec lists them.
-    pub const ALL: [&str; 9] = [
+    pub const ALL: [&str; 10] = [
         PROCESS_CAPTURE,
         FILE_CAPTURE,
         NETWORK_CAPTURE,
@@ -87,6 +97,7 @@ pub mod capability_names {
         CGROUP_FILTER,
         SESSION_MUTATIONS,
         ARO_ANNOTATIONS,
+        HOST_SESSIONS,
     ];
 }
 

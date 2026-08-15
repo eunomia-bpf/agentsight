@@ -12,6 +12,7 @@
 
 mod annotation;
 mod codec;
+mod host_sessions;
 mod mutation;
 mod rows;
 mod types;
@@ -21,6 +22,7 @@ pub use annotation::{
     AroResourceDomainRow,
 };
 pub use codec::{BridgeCodecError, decode_body, encode_body, encode_frame, read_frame};
+pub use host_sessions::HostSessionRow;
 pub use mutation::{MutationOperation, TimestampBasis, ViewMutation, ViewMutationEnvelope};
 pub use rows::{
     AuditContent, BridgeAuditEventRow, BridgeLlmCallRow, BridgeNetworkTargetRow,
@@ -97,6 +99,15 @@ pub enum BridgeMessage {
     /// [`capability_names::ARO_ANNOTATIONS`]; see [`BRIDGE_PROTOCOL_VERSION`]
     /// for why an added message does not move the version.
     Annotation(AroAnnotation),
+    /// client -> server: ask for the machine-wide live agent sessions. Sent only
+    /// when the server advertised [`capability_names::HOST_SESSIONS`]; carries no
+    /// parameters, because the answer is the whole host either way.
+    HostSessionsQuery {},
+    /// server -> client: the live session registry as of `generated_ms`.
+    HostSessionsSnapshot {
+        generated_ms: u64,
+        sessions: Vec<HostSessionRow>,
+    },
     /// client -> server: resume a previous stream after a reconnect.
     Resume(ResumeRequest),
     /// server -> client: the requested resume point fell out of the replay buffer.

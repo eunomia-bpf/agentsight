@@ -3,5 +3,6 @@
 
 pub(crate) use agentsight_capture::view::*;
 
+pub(crate) mod host_sessions;
 pub(crate) mod live_top;
 pub(crate) mod top;
