@@ -13,6 +13,19 @@ pub struct SessionMessageRequest {
     pub message: String,
 }
 
+impl SessionMessageRequest {
+    pub fn validate(self) -> Result<String, &'static str> {
+        let message = self.message.trim();
+        if message.is_empty() {
+            return Err("message_required");
+        }
+        if message.len() > 16 * 1024 {
+            return Err("message_too_large");
+        }
+        Ok(message.to_string())
+    }
+}
+
 pub fn session_detail_id(path: &str) -> Option<&str> {
     let value = path.strip_prefix("/api/v1/sessions/")?;
     (!value.is_empty() && !value.ends_with("/messages") && !value.contains('/')).then_some(value)
