@@ -238,7 +238,7 @@ async fn run_raw_stdio(
 ) -> Result<(), RunnerError> {
     println!("Raw Stdio Events\n{}", separator_line());
     let args = build_stdio_args(pid, uid, comm, all_fds, max_bytes);
-    let runner = BinaryRunner::stdio(binary_extractor.get_stdiocap_path()?)?
+    let runner = BinaryRunner::stdio(binary_extractor.get_stdiocap_path()?)
         .with_args(&args)
         .add_analyzer(Box::new(TimestampNormalizer::new()));
     println!("Starting stdio event stream for PID {pid} (press Ctrl+C to stop):");
