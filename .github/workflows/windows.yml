@@ -19,7 +19,7 @@ jobs:
           toolchain: stable
 
       - name: Test portable session parser
-        run: cargo test --manifest-path agent-session/Cargo.toml
+        run: cargo test --manifest-path ext/session/Cargo.toml
 
       - name: Test portable capture and native CLI
         run: |
@@ -37,7 +37,7 @@ jobs:
           $fixtureDir = Join-Path $env:HOME ".codex/sessions/2026/06/18"
           New-Item -ItemType Directory -Force -Path $fixtureDir | Out-Null
           $fixturePath = Join-Path $fixtureDir "public-agentpprof-fixture.jsonl"
-          Get-Content "agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl" |
+          Get-Content "ext/pprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl" |
             ForEach-Object {
               $record = $_ | ConvertFrom-Json
               if ($record.payload.cwd) {
@@ -84,7 +84,7 @@ jobs:
             if (request.id === 1 || request.id === 2) {
               console.log(JSON.stringify({ id: request.id, result: {} }));
             } else if (request.method === "turn/start") {
-              console.log(JSON.stringify({ id: request.id, result: { turn: { id: "fake-turn" } } }));
+              console.log(JSON.stringify({ id: request.id, result: { turn: { id: "fake-turn" } }));
               setTimeout(() => process.exit(0), 100);
             }
           });
