@@ -1,0 +1,57 @@
+# Mirrors the session-capture image from GHCR into the EKS account's ECR.
+#
+# Same shape as the Sandbox Engine's mirror-ecr.yml, scoped to the one image
+# this repo builds. The ECR repository (agent-sandbox/session-capture) is
+# tag-IMMUTABLE: only sha-<short7> tags are mirrored — the floating `main`
+# tag stays a GHCR-only convenience and is never copied.
+#
+# ECR auth is a short-lived (12 h) password in ECR_MIRROR_TOKEN. Refresh it
+# right before dispatching:
+#
+#   gh secret set ECR_MIRROR_TOKEN -R <owner>/agentsight \
+#     --body "$(aws ecr get-login-password --region us-east-2)"
+#   gh workflow run mirror-ecr.yml -f tag=sha-<short7>
+#
+# `docker buildx imagetools create` copies manifests registry-to-registry
+# (no local pull, preserves digests).
+name: mirror-ecr
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to mirror (docker/metadata-action sha format, e.g. sha-1adbcd0)"
+        required: true
+
+concurrency: mirror-ecr
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Plain `docker login`, not docker/login-action: the action auto-detects
+      # *.dkr.ecr.* hostnames and reinterprets username/password as AWS access
+      # keys, which a pre-issued ECR password cannot satisfy.
+      - name: Log in to ECR
+        env:
+          ECR_MIRROR_TOKEN: ${{ secrets.ECR_MIRROR_TOKEN }}
+        run: |
+          echo "$ECR_MIRROR_TOKEN" | docker login 335971291626.dkr.ecr.us-east-2.amazonaws.com -u AWS --password-stdin
+
+      - name: Copy manifest GHCR -> ECR
+        run: |
+          set -euo pipefail
+          echo "==> session-capture:${{ inputs.tag }}"
+          docker buildx imagetools create \
+            --tag 335971291626.dkr.ecr.us-east-2.amazonaws.com/agent-sandbox/session-capture:${{ inputs.tag }} \
+            ghcr.io/${{ github.repository_owner }}/agent-sandbox/session-capture:${{ inputs.tag }}

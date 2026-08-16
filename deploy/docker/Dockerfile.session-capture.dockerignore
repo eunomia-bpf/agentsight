@@ -1,0 +1,11 @@
+# BuildKit reads <dockerfile>.dockerignore in preference to the context root's
+# .dockerignore, so this trims the session-capture build context only and
+# leaves the repository's other images (dockerfile, script/Dockerfile.release,
+# script/Dockerfile.arm) building against the unfiltered context they expect.
+#
+# Nothing here is read by the build: cargo target directories are outputs, the
+# node trees belong to the frontend/agentvis web builds this image skips, and
+# the history is ~850 MB of context transfer for no layer.
+**/target
+**/node_modules
+.git

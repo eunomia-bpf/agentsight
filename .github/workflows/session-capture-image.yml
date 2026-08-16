@@ -1,0 +1,66 @@
+name: session-capture-image
+
+# Publishes the collector's bridge-serve image (deploy/docker/Dockerfile.session-capture)
+# for ARO's aro-hostd to run alongside. Deliberately standalone: it shares no job,
+# cache scope or trigger with ci.yml, so a red collector test suite does not stop an
+# image build and vice versa.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+# Superseding an in-flight main build is intended: consumers pin by sha and the
+# moving `main` tag should point at the newest commit, not at whichever build
+# happened to finish last.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  session-capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        # No `submodules: recursive`: libbpf/ and bpftool/ are only needed to
+        # compile the BPF C programs, and this image consumes the prebuilt
+        # loaders committed under agentsight-capture/vendor/bpf/ instead.
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/agent-sandbox/session-capture
+          # sha-<short7> is the immutable tag deploys pin, and the only one the
+          # ECR mirror copies (those repos are tag-immutable). `main` is the
+          # moving tag laptop compose files track.
+          tags: |
+            type=sha
+            type=raw,value=main,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: deploy/docker/Dockerfile.session-capture
+          # amd64 only, and not an oversight: the eBPF loaders baked into the
+          # binary (agentsight-capture/vendor/bpf/*) are x86-64 ELF objects, so
+          # an arm64 image would ship probes it cannot exec.
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # The collector's release profile is codegen-units = 1, so a cold
+          # build is the expensive part of this workflow by a wide margin.
+          cache-from: type=gha,scope=session-capture
+          cache-to: type=gha,mode=max,scope=session-capture

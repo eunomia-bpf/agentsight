@@ -1,0 +1,113 @@
+# syntax=docker/dockerfile:1
+#
+# session-capture: the AgentSight collector serving the ARO bridge.
+#
+# The image runs one thing by default:
+#
+#     agentsight top --bridge-socket /run/aro/bridge.sock --headless
+#
+# `top` is the capture path that never needed a probe, so this is the only
+# collector mode that serves the bridge on a host with no eBPF privileges: the
+# live session registry is refreshed from the process table plus the agents'
+# own transcripts, and the bridge answers host-session queries from that same
+# registry. eBPF probes are attached additionally when the container is
+# privileged (see the runtime stage and deploy/docker/README.md); without them
+# the collector logs "no eBPF: showing process snapshots and agent-native
+# sessions only" and keeps serving.
+#
+# Build context is the repository root:
+#   docker build -f deploy/docker/Dockerfile.session-capture .
+
+# ---------------------------------------------------------------------------
+# Build stage
+# ---------------------------------------------------------------------------
+# The full (non-slim) Rust image, deliberately: three dependencies compile C
+# sources (ring, zstd-sys, and libsqlite3-sys via rusqlite's `bundled`), and the
+# buildpack-deps base already carries the cc/make toolchain they drive — so this
+# stage needs no apt layer at all. None of the three links a system library:
+# `bundled`/vendored C sources are compiled in, which is why no -dev packages
+# appear here either.
+#
+# What is NOT here, and why the build stays cheap:
+#   * no clang/llvm/libbpf/kernel headers — the three eBPF loaders are prebuilt
+#     ELF objects committed at agentsight-capture/vendor/bpf/{process,sslsniff,
+#     stdiocap} and the Rust build only include_bytes!()s them (Linux only);
+#   * no Node stage — the web UI bundle is committed at
+#     collector/vendor/frontend/dist and embedded with rust-embed.
+# Both vendored trees are what `make build` / AGENTSIGHT_SYNC_VENDOR=1 would
+# regenerate. Leaving that variable unset (the default) is what keeps the BPF C
+# build and `npm run build` out of this image; the build scripts then only
+# assert the vendored copies exist.
+#
+# Tag: the floating `1-bookworm` rather than a pinned patch release. The crates
+# here declare rust-version 1.87 and edition 2024, so any current stable works,
+# and bookworm is what fixes the runtime glibc below.
+FROM rust:1-bookworm AS builder
+
+ENV CARGO_TARGET_DIR=/build/target
+
+WORKDIR /src
+
+# This repository is not a cargo workspace: every crate builds standalone, and
+# the collector reaches the other four through path dependencies. Copying only
+# those five keeps the rest of the tree (bpf/, frontend/, libbpf/, docs/) out of
+# the build. Ordered least- to most-frequently changed for layer reuse.
+COPY agent-session ./agent-session
+COPY agentsight-protocol ./agentsight-protocol
+COPY agentvis ./agentvis
+COPY agentsight-capture ./agentsight-capture
+COPY collector ./collector
+
+# No --features flag: `bridge` is a feature of agentsight-protocol, not of the
+# collector, and agentsight-capture enables it unconditionally. Cargo unifies
+# features across the graph, so the default build of the collector always has
+# the bridge server compiled in — `--bridge-socket` is plain CLI surface.
+#
+# --locked: collector/Cargo.lock is committed, so the image resolves the same
+# dependency versions CI tested.
+RUN cargo build --release --locked --manifest-path collector/Cargo.toml
+
+# ---------------------------------------------------------------------------
+# Runtime stage
+# ---------------------------------------------------------------------------
+# bookworm-slim matches the builder's glibc. The collector itself only needs
+# libc; libelf1 and zlib1g are for the eBPF loaders it extracts to a temp dir
+# and spawns when it runs privileged on a Linux host (same two libraries the
+# repository's other images install). zlib1g is already in the base image —
+# named anyway so the dependency is legible rather than inherited by luck.
+FROM debian:bookworm-slim AS runtime
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libelf1 zlib1g \
+    && rm -rf /var/lib/apt/lists/*
+
+# Already stripped: collector's [profile.release] sets strip = "symbols".
+COPY --from=builder /build/target/release/agentsight /usr/local/bin/agentsight
+
+# The bridge socket's parent directory is the authentication boundary, so the
+# collector refuses to bind inside one that is group- or world-accessible, or
+# that is a symlink. 0700 here is what a Docker *named* volume mounted at
+# /run/aro inherits. A bind mount or a tmpfs keeps its own mode instead, and a
+# default tmpfs (1777) will be rejected at startup — see deploy/docker/README.md.
+RUN install -d -m 0700 /run/aro
+
+# Root, deliberately — three reasons, none of which a USER line can satisfy:
+#   1. The rows this component exists to serve describe processes on the HOST,
+#      so the container is run with the host PID namespace; reading other users'
+#      /proc entries and their agent transcripts (~/.claude, ~/.codex, ... are
+#      0700 and owned by the host user) needs uid 0.
+#   2. eBPF-privileged capture attaches kernel probes, which needs root plus
+#      --privileged (headless bridge-serve degrades gracefully without it).
+#   3. The bridge's v1 peer policy is SO_PEERCRED same-uid: the consumer
+#      (aro-hostd) must connect as the *same* uid the collector runs as. Root
+#      here means a root host daemon can connect; run this image with `--user`
+#      only when the consumer shares that uid.
+# The collector installs its own SIGINT/SIGTERM handlers and shuts the bridge
+# down gracefully, so it is safe as PID 1 with no init shim.
+
+# CMD without ENTRYPOINT: an override replaces the command line whole, binary
+# included (`docker run <image> agentsight report list`, compose
+# `command: ["agentsight", "top", ...]`). An ENTRYPOINT would make the binary
+# name a prefix a caller cannot drop, and a compose file that spelled the full
+# command would run `agentsight agentsight ...`.
+CMD ["agentsight", "top", "--bridge-socket", "/run/aro/bridge.sock", "--headless"]
