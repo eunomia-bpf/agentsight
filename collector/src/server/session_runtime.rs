@@ -9,6 +9,7 @@ use std::ffi::OsStr;
 #[cfg(unix)]
 use std::ffi::{CStr, OsString};
 use std::fs::File;
+use std::future::Future;
 use std::io::{BufRead, BufReader as StdBufReader, Read};
 #[cfg(unix)]
 use std::os::unix::{
@@ -40,8 +41,8 @@ const GEMINI_BIN_ENV: &str = "AGENTSIGHT_GEMINI_BIN";
 type CodexResponse = Result<(), String>;
 type PendingClaudeResponse = Arc<StdMutex<Option<oneshot::Sender<CodexResponse>>>>;
 type PendingCodexResponses = Arc<StdMutex<HashMap<u64, oneshot::Sender<CodexResponse>>>>;
-type SharedCodexStdin = Arc<AsyncMutex<ChildStdin>>;
-type WeakCodexStdin = Weak<AsyncMutex<ChildStdin>>;
+type SharedCodexStdin = Arc<AsyncMutex<Option<ChildStdin>>>;
+type WeakCodexStdin = Weak<AsyncMutex<Option<ChildStdin>>>;
 
 #[derive(Debug, Eq, PartialEq)]
 enum ProviderLine {
@@ -183,7 +184,10 @@ impl Runtime {
                     .insert(request_id, response_tx);
                 let send_result = {
                     let mut stdin = stdin.lock().await;
-                    send_json(&mut stdin, request).await
+                    match stdin.as_mut() {
+                        Some(stdin) => send_json(stdin, request).await,
+                        None => Err(failed("Codex transport is closed")),
+                    }
                 };
                 if let Err(error) = send_result {
                     if let Ok(mut pending) = responses.lock() {
@@ -230,9 +234,14 @@ pub async fn submit_message(
                 .or_insert_with(|| Arc::new(AsyncMutex::new(None))),
         )
     };
-    let mut runtime_slot = slot.lock().await;
+    let mut runtime_slot = slot.try_lock().map_err(|_| {
+        SubmitError::Conflict(
+            "this session is already accepting another message; retry after it is acknowledged"
+                .into(),
+        )
+    })?;
     if let Some(runtime) = runtime_slot.as_mut() {
-        match runtime.send(message).await {
+        match timeout_provider_operation(PROVIDER_REQUEST_TIMEOUT, runtime.send(message)).await {
             Ok(transport) => return Ok(SubmitResult { transport }),
             Err(SubmitError::Conflict(error)) => return Err(SubmitError::Conflict(error)),
             Err(SubmitError::Failed(error)) => {
@@ -245,41 +254,60 @@ pub async fn submit_message(
     }
 
     if session_is_running(session) {
+        drop(runtime_slot);
+        remove_empty_runtime_slot(&session.session_id, &slot).await;
         return Err(SubmitError::Conflict(
             "session is already running outside AgentSight; this runtime cannot be attached safely"
                 .into(),
         ));
     }
 
-    let (runtime, transport) = match session.agent_type.as_str() {
-        agent_session::AGENT_CLAUDE => {
-            let mut runtime = start_claude(session)?;
-            let transport = runtime.send(message).await?;
-            (Some(runtime), transport)
+    let started = timeout_provider_operation(PROVIDER_REQUEST_TIMEOUT, async {
+        match session.agent_type.as_str() {
+            agent_session::AGENT_CLAUDE => {
+                let mut runtime = start_claude(session)?;
+                let transport = runtime.send(message).await?;
+                Ok((Some(runtime), transport))
+            }
+            agent_session::AGENT_CODEX => {
+                let mut runtime = start_codex(session).await?;
+                let transport = runtime.send(message).await?;
+                Ok((Some(runtime), transport))
+            }
+            agent_session::AGENT_GEMINI => {
+                resume_gemini(session, message).await?;
+                Ok((None, "gemini-resume"))
+            }
+            other => Err(failed(format!(
+                "messaging {other} sessions is not supported"
+            ))),
         }
-        agent_session::AGENT_CODEX => {
-            let mut runtime = start_codex(session).await?;
-            let transport = runtime.send(message).await?;
-            (Some(runtime), transport)
-        }
-        agent_session::AGENT_GEMINI => {
-            resume_gemini(session, message).await?;
+    })
+    .await;
+    let (runtime, transport) = match started {
+        Ok(started) => started,
+        Err(error) => {
             drop(runtime_slot);
             remove_empty_runtime_slot(&session.session_id, &slot).await;
-            return Ok(SubmitResult {
-                transport: "gemini-resume",
-            });
-        }
-        other => {
-            return Err(failed(format!(
-                "messaging {other} sessions is not supported"
-            )));
+            return Err(error);
         }
     };
     if let Some(runtime) = runtime {
         *runtime_slot = Some(runtime);
+    } else {
+        drop(runtime_slot);
+        remove_empty_runtime_slot(&session.session_id, &slot).await;
     }
     Ok(SubmitResult { transport })
+}
+
+async fn timeout_provider_operation<T, F>(timeout: Duration, operation: F) -> Result<T, SubmitError>
+where
+    F: Future<Output = Result<T, SubmitError>>,
+{
+    tokio::time::timeout(timeout, operation)
+        .await
+        .map_err(|_| failed("provider did not accept the message within 20 seconds"))?
 }
 
 async fn remove_empty_runtime_slot(session_id: &str, slot: &RuntimeSlot) {
@@ -415,6 +443,7 @@ async fn start_codex(session: &AgentSession) -> Result<Runtime, SubmitError> {
     let mut command = codex_command(session);
     command.args(["app-server", "--listen", "stdio://"]);
     configure(&mut command, session, true)?;
+    command.kill_on_drop(true);
     let mut child = command
         .spawn()
         .map_err(|error| failed(format!("failed to start Codex app-server: {error}")))?;
@@ -459,7 +488,7 @@ async fn start_codex(session: &AgentSession) -> Result<Runtime, SubmitError> {
         starting: false,
     }));
     let responses = Arc::new(StdMutex::new(HashMap::new()));
-    let stdin = Arc::new(AsyncMutex::new(stdin));
+    let stdin = Arc::new(AsyncMutex::new(Some(stdin)));
     tokio::spawn(read_codex(
         reader,
         Arc::clone(&state),
@@ -494,7 +523,10 @@ async fn read_codex<R>(
     loop {
         match read_provider_line(&mut reader, &mut line, MAX_CODEX_MESSAGE_BYTES).await {
             Ok(ProviderLine::Complete) => {}
-            Ok(ProviderLine::Oversized) => continue,
+            Ok(ProviderLine::Oversized) => {
+                fail_oversized_codex_transport(&state, &responses, &stdin).await;
+                break;
+            }
             Ok(ProviderLine::Eof) | Err(_) => break,
         }
         let Ok(value) = serde_json::from_slice::<Value>(&line) else {
@@ -506,7 +538,10 @@ async fn read_codex<R>(
             };
             let result = {
                 let mut stdin = stdin.lock().await;
-                send_json(&mut stdin, rejection).await
+                match stdin.as_mut() {
+                    Some(stdin) => send_json(stdin, rejection).await,
+                    None => break,
+                }
             };
             if let Err(error) = result {
                 fail_codex_responses(&responses, submit_error_message(error));
@@ -536,6 +571,29 @@ async fn read_codex<R>(
         &responses,
         "Codex transport closed before acknowledging the request".into(),
     );
+}
+
+async fn fail_oversized_codex_transport(
+    state: &Arc<StdMutex<CodexState>>,
+    responses: &PendingCodexResponses,
+    stdin: &WeakCodexStdin,
+) {
+    if let Ok(mut state) = state.lock() {
+        state.active_turn = None;
+        state.starting = false;
+    }
+    fail_codex_responses(
+        responses,
+        format!(
+            "Codex message exceeded the {} byte transport limit",
+            MAX_CODEX_MESSAGE_BYTES
+        ),
+    );
+    if let Some(stdin) = stdin.upgrade() {
+        // ChildStdin::shutdown is a no-op on Unix. Removing and dropping the
+        // handle is what actually closes the provider pipe and lets it exit.
+        stdin.lock().await.take();
+    }
 }
 
 fn complete_codex_response(value: &Value, responses: &PendingCodexResponses) {
@@ -622,7 +680,12 @@ where
             .map_err(|error| failed(error.to_string()))?
         {
             ProviderLine::Complete => {}
-            ProviderLine::Oversized => continue,
+            ProviderLine::Oversized => {
+                return Err(failed(format!(
+                    "Codex message exceeded the {} byte transport limit during initialization",
+                    MAX_CODEX_MESSAGE_BYTES
+                )));
+            }
             ProviderLine::Eof => {
                 return Err(failed("provider transport closed during initialization"));
             }
@@ -747,11 +810,24 @@ fn session_is_running(session: &AgentSession) -> bool {
 
 async fn resume_gemini(session: &AgentSession, message: &str) -> Result<(), SubmitError> {
     let mut command = provider_command_with_override("gemini", GEMINI_BIN_ENV);
-    command.args(["--resume", &session.session_id, message]);
+    command.args(gemini_resume_args(&session.session_id));
     configure(&mut command, session, false)?;
+    command.stdin(Stdio::piped()).kill_on_drop(true);
     let mut child = command
         .spawn()
         .map_err(|error| failed(format!("failed to resume Gemini session: {error}")))?;
+    let mut stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| failed("Gemini stdin unavailable"))?;
+    stdin
+        .write_all(message.as_bytes())
+        .await
+        .map_err(|error| failed(format!("failed to send the Gemini message: {error}")))?;
+    stdin
+        .shutdown()
+        .await
+        .map_err(|error| failed(format!("failed to finish the Gemini message: {error}")))?;
     tokio::time::sleep(Duration::from_millis(300)).await;
     if let Some(status) = child
         .try_wait()
@@ -765,6 +841,10 @@ async fn resume_gemini(session: &AgentSession, message: &str) -> Result<(), Subm
     }
     reap(child, "gemini", session.session_id.clone());
     Ok(())
+}
+
+fn gemini_resume_args(session_id: &str) -> [&str; 2] {
+    ["--resume", session_id]
 }
 
 fn provider_command(name: &str) -> Command {
@@ -861,7 +941,7 @@ fn standalone_codex_binary(home: &Path, version: &str) -> Option<PathBuf> {
         let Some(name) = entry.file_name().to_str().map(str::to_string) else {
             continue;
         };
-        if name != version && !name.starts_with(&prefix) {
+        if !standalone_release_matches_platform(&name, version, &prefix) {
             continue;
         }
         let path = entry.path().join("bin").join(&executable);
@@ -874,6 +954,35 @@ fn standalone_codex_binary(home: &Path, version: &str) -> Option<PathBuf> {
         }
     }
     best.map(|(_, path)| path)
+}
+
+fn standalone_release_matches_platform(name: &str, version: &str, prefix: &str) -> bool {
+    if name == version {
+        return true;
+    }
+    name.starts_with(prefix)
+        && name.contains(std::env::consts::ARCH)
+        && name.contains(standalone_target_marker())
+}
+
+#[cfg(target_os = "linux")]
+fn standalone_target_marker() -> &'static str {
+    "unknown-linux"
+}
+
+#[cfg(target_os = "macos")]
+fn standalone_target_marker() -> &'static str {
+    "apple-darwin"
+}
+
+#[cfg(target_os = "windows")]
+fn standalone_target_marker() -> &'static str {
+    "pc-windows"
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+fn standalone_target_marker() -> &'static str {
+    std::env::consts::OS
 }
 
 #[cfg(unix)]
@@ -956,7 +1065,12 @@ fn configure_provider_identity(
     )?;
     let account = provider_account(uid)?;
     let provider_home = provider_session_home(session_path).unwrap_or(account.home);
+    let preserved_environment = std::env::vars_os()
+        .filter(|(key, _)| provider_environment_allowed(key))
+        .collect::<Vec<_>>();
+    command.env_clear();
     command
+        .envs(preserved_environment)
         .env("HOME", provider_home)
         .env("USER", &account.name)
         .env("LOGNAME", &account.name);
@@ -977,12 +1091,98 @@ fn configure_provider_identity(
     Ok(())
 }
 
-#[cfg(not(unix))]
+#[cfg(unix)]
+fn provider_environment_allowed(key: &std::ffi::OsStr) -> bool {
+    let key = key.to_string_lossy();
+    key.starts_with("LC_")
+        || matches!(
+            key.as_ref(),
+            "PATH"
+                | "LANG"
+                | "TZ"
+                | "TERM"
+                | "COLORTERM"
+                | "NO_COLOR"
+                | "SSL_CERT_FILE"
+                | "SSL_CERT_DIR"
+        )
+}
+
+#[cfg(target_os = "windows")]
+fn configure_provider_identity(
+    _command: &mut Command,
+    session_path: &Path,
+) -> Result<(), SubmitError> {
+    let provider_homes = ["HOME", "USERPROFILE"]
+        .into_iter()
+        .filter_map(std::env::var_os)
+        .filter(|home| !home.is_empty())
+        .map(PathBuf::from)
+        .collect::<Vec<_>>();
+    if provider_homes.is_empty() {
+        return Err(failed(
+            "refusing to run a Windows session provider because the current user profile is unknown",
+        ));
+    }
+    validate_windows_provider_context(windows_process_is_elevated(), session_path, &provider_homes)
+}
+
+#[cfg(target_os = "windows")]
+fn validate_windows_provider_context(
+    elevated: bool,
+    session_path: &Path,
+    provider_homes: &[PathBuf],
+) -> Result<(), SubmitError> {
+    if elevated {
+        return Err(failed(
+            "refusing to run a session provider from an elevated Windows process; run AgentSight as the transcript owner",
+        ));
+    }
+    let session_path = session_path.canonicalize().map_err(|error| {
+        failed(format!(
+            "cannot validate the Windows provider session path {}: {error}",
+            session_path.display()
+        ))
+    })?;
+    let provider_homes = provider_homes
+        .iter()
+        .filter_map(|home| home.canonicalize().ok())
+        .collect::<Vec<_>>();
+    if provider_homes.is_empty() {
+        return Err(failed(
+            "refusing to run a Windows session provider because no current user profile path is usable",
+        ));
+    }
+    if !provider_homes
+        .iter()
+        .any(|provider_home| session_path.starts_with(provider_home))
+    {
+        return Err(failed(format!(
+            "refusing to run a provider for a Windows session outside the current user profile: {}",
+            session_path.display()
+        )));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+fn windows_process_is_elevated() -> bool {
+    #[link(name = "shell32")]
+    unsafe extern "system" {
+        fn IsUserAnAdmin() -> i32;
+    }
+
+    unsafe { IsUserAnAdmin() != 0 }
+}
+
+#[cfg(not(any(unix, target_os = "windows")))]
 fn configure_provider_identity(
     _command: &mut Command,
     _session_path: &Path,
 ) -> Result<(), SubmitError> {
-    Ok(())
+    Err(failed(
+        "session provider execution is unsupported on this platform",
+    ))
 }
 
 #[cfg(unix)]
@@ -1098,6 +1298,37 @@ fn failed(message: impl Into<String>) -> SubmitError {
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
+    static PROVIDER_ENV_LOCK: OnceLock<AsyncMutex<()>> = OnceLock::new();
+
+    #[cfg(unix)]
+    fn provider_env_lock() -> &'static AsyncMutex<()> {
+        PROVIDER_ENV_LOCK.get_or_init(|| AsyncMutex::new(()))
+    }
+
+    fn test_session(session_id: &str, agent_type: &str) -> AgentSession {
+        AgentSession {
+            agent_type: agent_type.into(),
+            session_id: session_id.into(),
+            conversation_id: None,
+            display_id: session_id.into(),
+            path: PathBuf::from(format!("{session_id}.jsonl")),
+            updated: SystemTime::now(),
+            start_timestamp_ms: None,
+            end_timestamp_ms: None,
+            model: None,
+            usage: Default::default(),
+            model_usage: Default::default(),
+            tools: Default::default(),
+            files: Default::default(),
+            prompt_preview: None,
+            duration_ms: 0,
+            cwd: None,
+            last_message_at: None,
+            events: Default::default(),
+        }
+    }
+
     #[cfg(target_os = "windows")]
     #[test]
     fn provider_resolution_accepts_cmd_shims() {
@@ -1118,6 +1349,32 @@ mod tests {
         );
     }
 
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn windows_provider_execution_is_limited_to_a_non_elevated_profile() {
+        let profile = tempfile::tempdir().unwrap();
+        let alternate_profile = tempfile::tempdir().unwrap();
+        let session = profile.path().join(".codex/sessions/session.jsonl");
+        std::fs::create_dir_all(session.parent().unwrap()).unwrap();
+        std::fs::write(&session, b"{}\n").unwrap();
+        let profiles = [
+            alternate_profile.path().to_path_buf(),
+            profile.path().to_path_buf(),
+        ];
+
+        assert!(validate_windows_provider_context(false, &session, &profiles).is_ok());
+        assert!(matches!(
+            validate_windows_provider_context(true, &session, &profiles),
+            Err(SubmitError::Failed(message)) if message.contains("elevated Windows")
+        ));
+
+        let outside = tempfile::NamedTempFile::new().unwrap();
+        assert!(matches!(
+            validate_windows_provider_context(false, outside.path(), &profiles),
+            Err(SubmitError::Failed(message)) if message.contains("outside the current user profile")
+        ));
+    }
+
     #[test]
     fn codex_session_version_selects_the_matching_standalone_binary() {
         let temp = tempfile::tempdir().unwrap();
@@ -1133,19 +1390,34 @@ mod tests {
         .unwrap();
         let wrong_arch = temp
             .path()
-            .join(".codex/packages/standalone/releases/0.147.0-aaa-wrong-arch/bin")
+            .join(format!(
+                ".codex/packages/standalone/releases/0.147.0-aaa-{}/bin",
+                standalone_target_marker()
+            ))
+            .join(format!("codex{}", std::env::consts::EXE_SUFFIX));
+        let wrong_os = temp
+            .path()
+            .join(format!(
+                ".codex/packages/standalone/releases/0.147.0-{}-wrong-platform/bin",
+                std::env::consts::ARCH
+            ))
             .join(format!("codex{}", std::env::consts::EXE_SUFFIX));
         let executable = temp
             .path()
             .join(format!(
-                ".codex/packages/standalone/releases/0.147.0-{}-test/bin",
-                std::env::consts::ARCH
+                ".codex/packages/standalone/releases/0.147.0-{}-{}/bin",
+                std::env::consts::ARCH,
+                standalone_target_marker()
             ))
             .join(format!("codex{}", std::env::consts::EXE_SUFFIX));
         std::fs::create_dir_all(wrong_arch.parent().unwrap()).unwrap();
         std::fs::write(&wrong_arch, b"wrong architecture").unwrap();
         #[cfg(unix)]
         std::fs::set_permissions(&wrong_arch, std::fs::Permissions::from_mode(0o755)).unwrap();
+        std::fs::create_dir_all(wrong_os.parent().unwrap()).unwrap();
+        std::fs::write(&wrong_os, b"wrong operating system").unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(&wrong_os, std::fs::Permissions::from_mode(0o755)).unwrap();
         std::fs::create_dir_all(executable.parent().unwrap()).unwrap();
         std::fs::write(&executable, b"probe").unwrap();
         #[cfg(unix)]
@@ -1156,6 +1428,73 @@ mod tests {
             standalone_codex_binary(temp.path(), "0.147.0"),
             Some(executable)
         );
+    }
+
+    #[test]
+    fn codex_session_version_rejects_a_wrong_platform_only_release() {
+        let temp = tempfile::tempdir().unwrap();
+        let executable = temp
+            .path()
+            .join(format!(
+                ".codex/packages/standalone/releases/0.147.0-{}-wrong-platform/bin",
+                std::env::consts::ARCH
+            ))
+            .join(format!("codex{}", std::env::consts::EXE_SUFFIX));
+        std::fs::create_dir_all(executable.parent().unwrap()).unwrap();
+        std::fs::write(&executable, b"wrong operating system").unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        assert_eq!(standalone_codex_binary(temp.path(), "0.147.0"), None);
+    }
+
+    #[test]
+    fn gemini_resume_command_never_places_the_message_in_process_arguments() {
+        assert_eq!(gemini_resume_args("session-1"), ["--resume", "session-1"]);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn gemini_resume_streams_the_full_public_message_over_stdin() {
+        let _environment_guard = provider_env_lock().lock().await;
+        let temp = tempfile::tempdir().unwrap();
+        let program = temp.path().join("gemini-probe");
+        let arguments = temp.path().join("arguments");
+        let input = temp.path().join("input");
+        std::fs::write(
+            &program,
+            format!(
+                "#!/bin/sh\nprintf '%s\\n' \"$@\" > '{}'\ncat > '{}'\n",
+                arguments.display(),
+                input.display()
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let mut session = test_session("gemini-session", agent_session::AGENT_GEMINI);
+        session.path = temp.path().join("session.json");
+        session.cwd = Some(temp.path().to_string_lossy().to_string());
+        std::fs::write(&session.path, b"{}\n").unwrap();
+        let previous_program = std::env::var_os(GEMINI_BIN_ENV);
+        unsafe {
+            std::env::set_var(GEMINI_BIN_ENV, &program);
+        }
+        let message = "x".repeat(65_536);
+
+        let result = resume_gemini(&session, &message).await;
+
+        unsafe {
+            match previous_program {
+                Some(value) => std::env::set_var(GEMINI_BIN_ENV, value),
+                None => std::env::remove_var(GEMINI_BIN_ENV),
+            }
+        }
+        result.unwrap();
+        assert_eq!(
+            std::fs::read_to_string(arguments).unwrap(),
+            "--resume\ngemini-session\n"
+        );
+        assert_eq!(std::fs::read_to_string(input).unwrap(), message);
     }
 
     #[test]
@@ -1177,8 +1516,9 @@ mod tests {
     fn codex_session_version_skips_non_executable_standalone_binary() {
         let temp = tempfile::tempdir().unwrap();
         let executable = temp.path().join(format!(
-            ".codex/packages/standalone/releases/0.147.0-{}-test/bin/codex",
-            std::env::consts::ARCH
+            ".codex/packages/standalone/releases/0.147.0-{}-{}/bin/codex",
+            std::env::consts::ARCH,
+            standalone_target_marker()
         ));
         std::fs::create_dir_all(executable.parent().unwrap()).unwrap();
         std::fs::write(&executable, b"not executable").unwrap();
@@ -1247,9 +1587,17 @@ mod tests {
         if unsafe { libc::geteuid() } != 0 {
             return;
         }
+        let _environment_guard = provider_env_lock().lock().await;
         let Some((expected_uid, expected_gid)) = crate::cmd_exec::target_user_ids() else {
             return;
         };
+        let previous_sentinel = std::env::var_os("AGENTSIGHT_TEST_PARENT_SECRET");
+        unsafe {
+            std::env::set_var(
+                "AGENTSIGHT_TEST_PARENT_SECRET",
+                "must-not-cross-uid-boundary",
+            );
+        }
         let temp = tempfile::tempdir().unwrap();
         let session_path = temp.path().join(".claude/projects/test/session.jsonl");
         std::fs::create_dir_all(session_path.parent().unwrap()).unwrap();
@@ -1259,7 +1607,7 @@ mod tests {
         command
             .args([
                 "-c",
-                "printf '%s\\n' \"$(id -u)\" \"$(id -g)\" \"$(id -G)\" \"$HOME\" \"$USER\" \"$LOGNAME\"",
+                "printf '%s\\n' \"$(id -u)\" \"$(id -g)\" \"$(id -G)\" \"$HOME\" \"$USER\" \"$LOGNAME\" \"${AGENTSIGHT_TEST_PARENT_SECRET+present}\"",
             ])
             .stdout(Stdio::piped());
         configure_provider_identity(&mut command, &session_path).unwrap();
@@ -1274,6 +1622,13 @@ mod tests {
         assert_eq!(Path::new(lines[3]), temp.path());
         assert_eq!(lines[4], account.name.to_string_lossy());
         assert_eq!(lines[5], account.name.to_string_lossy());
+        assert_eq!(lines[6], "");
+        unsafe {
+            match previous_sentinel {
+                Some(value) => std::env::set_var("AGENTSIGHT_TEST_PARENT_SECRET", value),
+                None => std::env::remove_var("AGENTSIGHT_TEST_PARENT_SECRET"),
+            }
+        }
     }
 
     #[cfg(unix)]
@@ -1286,7 +1641,7 @@ mod tests {
             .stderr(Stdio::null())
             .spawn()
             .unwrap();
-        let stdin = Arc::new(AsyncMutex::new(child.stdin.take().unwrap()));
+        let stdin = Arc::new(AsyncMutex::new(Some(child.stdin.take().unwrap())));
         let reader_handle = Arc::downgrade(&stdin);
 
         drop(stdin);
@@ -1302,7 +1657,7 @@ mod tests {
     #[tokio::test]
     async fn runtime_slot_cleanup_does_not_remove_a_slot_held_by_a_waiter() {
         let session_id = format!("cleanup-waiter-{}", now_ms());
-        let slot = Arc::new(AsyncMutex::new(None));
+        let slot: RuntimeSlot = Arc::new(AsyncMutex::new(None));
         runtimes()
             .lock()
             .await
@@ -1314,6 +1669,54 @@ mod tests {
 
         drop(waiter);
         remove_empty_runtime_slot(&session_id, &slot).await;
+        assert!(!runtimes().lock().await.contains_key(&session_id));
+    }
+
+    #[tokio::test]
+    async fn runtime_slot_rejects_a_concurrent_message_without_waiting() {
+        let session_id = format!("concurrent-message-{}", now_ms());
+        let session = test_session(&session_id, "unsupported");
+        let slot: RuntimeSlot = Arc::new(AsyncMutex::new(None));
+        runtimes()
+            .lock()
+            .await
+            .insert(session_id.clone(), Arc::clone(&slot));
+        let active_request = slot.lock().await;
+
+        let result = tokio::time::timeout(
+            Duration::from_millis(100),
+            submit_message(&session, "must not wait"),
+        )
+        .await
+        .expect("a concurrent submit must fail without waiting");
+
+        assert!(matches!(result, Err(SubmitError::Conflict(_))));
+        drop(active_request);
+        runtimes().lock().await.remove(&session_id);
+    }
+
+    #[tokio::test]
+    async fn new_provider_start_and_first_send_share_one_deadline() {
+        let result = timeout_provider_operation(
+            Duration::from_millis(10),
+            std::future::pending::<Result<(Option<Runtime>, &'static str), SubmitError>>(),
+        )
+        .await;
+
+        assert!(
+            matches!(result, Err(SubmitError::Failed(message)) if message.contains("within 20 seconds"))
+        );
+    }
+
+    #[tokio::test]
+    async fn failed_runtime_start_does_not_leave_an_empty_slot() {
+        let session_id = format!("failed-runtime-start-{}", now_ms());
+        let session = test_session(&session_id, "unsupported");
+
+        assert!(matches!(
+            submit_message(&session, "unsupported").await,
+            Err(SubmitError::Failed(_))
+        ));
         assert!(!runtimes().lock().await.contains_key(&session_id));
     }
 
@@ -1373,6 +1776,43 @@ mod tests {
             serde_json::from_slice::<Value>(&line).unwrap()["method"],
             json!("turn/completed")
         );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn oversized_codex_message_closes_transport_and_clears_state() {
+        let mut child = Command::new("sh")
+            .args(["-c", "cat >/dev/null"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let stdin = Arc::new(AsyncMutex::new(Some(child.stdin.take().unwrap())));
+        let state = Arc::new(StdMutex::new(CodexState {
+            thread_id: "thread-1".into(),
+            active_turn: Some("turn-1".into()),
+            starting: true,
+        }));
+        let responses = Arc::new(StdMutex::new(HashMap::new()));
+        let (response_tx, response_rx) = oneshot::channel();
+        responses.lock().unwrap().insert(7, response_tx);
+
+        fail_oversized_codex_transport(&state, &responses, &Arc::downgrade(&stdin)).await;
+
+        let error = response_rx.await.unwrap().unwrap_err();
+        assert!(error.contains("transport limit"));
+        assert!(responses.lock().unwrap().is_empty());
+        {
+            let state = state.lock().unwrap();
+            assert!(!state.starting);
+            assert!(state.active_turn.is_none());
+        }
+        let status = tokio::time::timeout(Duration::from_secs(2), child.wait())
+            .await
+            .expect("closing an oversized transport should stop the provider")
+            .unwrap();
+        assert!(status.success());
     }
 
     #[test]

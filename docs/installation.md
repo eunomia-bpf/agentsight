@@ -224,6 +224,12 @@ Start-ScheduledTask -TaskName 'AgentSight Monitor'
 Start-ScheduledTask -TaskName 'AgentSight Bind'
 ```
 
+Keep the Bind task at `RunLevel Limited`. Session discovery and read-only views
+still work from an elevated process, but AgentSight deliberately refuses to
+resume or message an agent from an elevated Windows process because the selected
+provider executable is owned by the transcript user. Run Bind as that same
+non-administrator user to enable messaging.
+
 If this Windows machine has not been added to the hosted app, run
 `agentsight bind` once in an interactive terminal before relying on the
 background Bind task. Its binding URL also contains a secret bootstrap key.

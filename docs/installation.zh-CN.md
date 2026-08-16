@@ -198,6 +198,10 @@ Start-ScheduledTask -TaskName 'AgentSight Monitor'
 Start-ScheduledTask -TaskName 'AgentSight Bind'
 ```
 
+请保持 Bind 任务使用 `RunLevel Limited`。提升权限的进程仍可进行会话发现和只读查看，
+但 AgentSight 会拒绝从提升权限的 Windows 进程恢复 agent 或发送消息，因为所选 Provider
+可执行文件属于 transcript 用户。要启用消息功能，请使用同一个非管理员用户运行 Bind。
+
 如果这台 Windows 机器还没有加入托管应用，请先在交互终端运行一次 `agentsight bind`，再依赖后台
 Bind 任务。与 Linux 相同，绑定 URL 包含秘密 bootstrap key。
 

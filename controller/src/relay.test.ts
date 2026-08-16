@@ -9,6 +9,7 @@ import {
   RELAY_TIMEOUT_MS,
   browserRelayRoute,
   connectNodeRelay,
+  proxyBrowserRelay,
   relayTokenHash,
   relayNodeSocketId,
   validRelayNodeVersion,
@@ -115,6 +116,67 @@ test('browser relay parses supported Node paths before semantic authorization', 
     'https://controller.example/v1/nodes/node_test/relay/../capabilities',
     { method: 'POST' },
   )), null);
+});
+
+test('browser relay preserves a maximally escaped valid session message', async () => {
+  const message = '\0'.repeat(65_536);
+  const body = JSON.stringify({ message });
+  assert.ok(new TextEncoder().encode(body).byteLength > 96 * 1024);
+  let relayedBody = '';
+  const relay = {
+    idFromName: () => ({}) as DurableObjectId,
+    get: () => ({
+      fetch: async (request: Request) => {
+        const input = await request.json() as { body?: string };
+        relayedBody = input.body || '';
+        return new Response('{}', { status: 200 });
+      },
+    }) as unknown as DurableObjectStub,
+  } as unknown as DurableObjectNamespace;
+  const request = new Request(
+    'https://controller.example/v1/nodes/node_test/relay/sessions/session-1/messages',
+    { method: 'POST', body },
+  );
+  const route = browserRelayRoute(request);
+  assert.ok(route);
+
+  const response = await proxyBrowserRelay(
+    request,
+    { DB: {} as D1Database, NODE_RELAY: relay },
+    route,
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(relayedBody, body);
+  assert.equal(JSON.parse(relayedBody).message, message);
+});
+
+test('browser relay cancels an oversized streaming body without Content-Length', async () => {
+  let cancelled = false;
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new Uint8Array(300 * 1024));
+      controller.enqueue(new Uint8Array(300 * 1024));
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+  const request = new Request(
+    'https://controller.example/v1/nodes/node_test/relay/sessions/session-1/messages',
+    { method: 'POST', body: stream, duplex: 'half' } as RequestInit & { duplex: 'half' },
+  );
+  const route = browserRelayRoute(request);
+  assert.ok(route);
+
+  const response = await proxyBrowserRelay(
+    request,
+    { DB: {} as D1Database, NODE_RELAY: {} as DurableObjectNamespace },
+    route,
+  );
+
+  assert.equal(response.status, 413);
+  assert.equal(cancelled, true);
 });
 
 test('relay tokens use the same Direct bearer shape', () => {
