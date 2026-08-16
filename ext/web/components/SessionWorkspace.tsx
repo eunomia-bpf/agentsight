@@ -69,9 +69,9 @@ export function SessionWorkspace({
     [recordedCapture, session, snapshot],
   );
 
-  const loadDetail = useCallback(async (quiet = false) => {
+  const loadDetail = useCallback(async (quiet = false): Promise<SessionDetail | null> => {
     if (!client || recordedCapture) {
-      setDetail(recordedDetail ?? {
+      const next = recordedDetail ?? {
         session_id: sessionId,
         agent_type: session.agent_type,
         model: session.model,
@@ -82,11 +82,12 @@ export function SessionWorkspace({
             : [],
           plan: JSON.parse(recordedPlanKey) as CodingPlanStep[],
         },
-      });
+      };
+      setDetail(next);
       setDetailError('');
-      return;
+      return next;
     }
-    if (activeRequest.current !== 0) return;
+    if (activeRequest.current !== 0) return null;
     const request = ++nextRequest.current;
     activeRequest.current = request;
     if (!quiet) setLoading(true);
@@ -96,10 +97,12 @@ export function SessionWorkspace({
         setDetail(next);
         setDetailError('');
       }
+      return next;
     } catch (cause) {
       if (!quiet && activeRequest.current === request) {
         setDetailError(cause instanceof Error ? cause.message : t('sessions.loadFailed'));
       }
+      return null;
     } finally {
       if (activeRequest.current === request) {
         activeRequest.current = 0;
@@ -121,8 +124,8 @@ export function SessionWorkspace({
   }, [client, loadDetail, sessionId]);
 
   useEffect(() => {
-    if (client && running && document.visibilityState !== 'hidden') void loadDetail(true);
-  }, [client, liveVersion, loadDetail, running]);
+    if (client && document.visibilityState !== 'hidden') void loadDetail(true);
+  }, [client, liveVersion, loadDetail]);
 
   const scopedSnapshot = useMemo(
     () => sessionSnapshot(snapshot, session, live, detail, overview),
@@ -220,7 +223,7 @@ export function SessionWorkspace({
       <div id={`session-panel-${tab}`} role="tabpanel">
         {tab === 'conversation' ? (
           <SessionConsole session={session} detail={detail} client={recordedCapture ? null : client} loading={loading}
-            detailError={detailError} onReload={() => { void loadDetail(); }} />
+            detailError={detailError} onReload={loadDetail} />
         ) : tab === 'process' ? (
           <ProcessTreeView snapshot={scopedSnapshot} />
         ) : (

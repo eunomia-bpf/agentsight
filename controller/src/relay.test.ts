@@ -4,6 +4,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  MAX_PENDING_RELAY_REQUESTS,
+  NodeRelay,
+  RELAY_TIMEOUT_MS,
   browserRelayRoute,
   connectNodeRelay,
   relayTokenHash,
@@ -11,6 +14,69 @@ import {
   validRelayNodeVersion,
   validRelayToken,
 } from './relay.ts';
+import type { RelayEnv } from './relay.ts';
+
+test('relay waits longer than the Node provider acknowledgement window', () => {
+  assert.ok(RELAY_TIMEOUT_MS > 20_000);
+  assert.ok(RELAY_TIMEOUT_MS < 30_000);
+});
+
+test('relay pending work is capped per Node', () => {
+  assert.equal(MAX_PENDING_RELAY_REQUESTS, 64);
+});
+
+test('relay pending cap holds across concurrently parsed request bodies', async () => {
+  const originalPair = Object.getOwnPropertyDescriptor(globalThis, 'WebSocketRequestResponsePair');
+  Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', {
+    configurable: true,
+    value: class WebSocketRequestResponsePairStub {},
+  });
+  const envelopes: Array<{ id: string }> = [];
+  const socket = {
+    readyState: WebSocket.OPEN,
+    send(message: string) {
+      envelopes.push(JSON.parse(message) as { id: string });
+    },
+  } as unknown as WebSocket;
+  const ctx = {
+    setWebSocketAutoResponse() {},
+    getWebSockets: () => [socket],
+  } as unknown as DurableObjectState;
+  const relay = new NodeRelay(ctx, {} as RelayEnv);
+
+  try {
+    const requests = Array.from({ length: MAX_PENDING_RELAY_REQUESTS + 1 }, () => relay.fetch(
+      new Request('https://relay.internal/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ method: 'GET', path: '/api/v1/overview' }),
+      }),
+    ));
+    for (let attempt = 0; attempt < 20 && envelopes.length < MAX_PENDING_RELAY_REQUESTS; attempt += 1) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    await new Promise((resolve) => setImmediate(resolve));
+
+    for (const envelope of envelopes) {
+      await relay.webSocketMessage(socket, JSON.stringify({
+        type: 'response', id: envelope.id, status: 200, body: '{}',
+      }));
+    }
+    const responses = await Promise.all(requests);
+    assert.equal(envelopes.length, MAX_PENDING_RELAY_REQUESTS);
+    assert.equal(responses.filter((response) => response.status === 200).length, MAX_PENDING_RELAY_REQUESTS);
+    assert.equal(responses.filter((response) => response.status === 429).length, 1);
+    assert.deepEqual(await responses.find((response) => response.status === 429)?.json(), {
+      error: 'relay_busy',
+    });
+  } finally {
+    if (originalPair) {
+      Object.defineProperty(globalThis, 'WebSocketRequestResponsePair', originalPair);
+    } else {
+      Reflect.deleteProperty(globalThis, 'WebSocketRequestResponsePair');
+    }
+  }
+});
 
 test('Node relay socket path accepts only stable Node IDs', () => {
   assert.equal(relayNodeSocketId('/v1/relay/nodes/node_0123abcdef'), 'node_0123abcdef');

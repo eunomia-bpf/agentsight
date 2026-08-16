@@ -40,7 +40,7 @@ export function SessionConsole({
   client: NodeClient | null;
   loading: boolean;
   detailError: string;
-  onReload: () => void;
+  onReload: (quiet?: boolean) => Promise<SessionDetail | null>;
 }) {
   const { t } = useTranslation();
   const [message, setMessage] = useState('');
@@ -49,6 +49,7 @@ export function SessionConsole({
   const [writeBlocked, setWriteBlocked] = useState('');
   const conversationRef = useRef<HTMLDivElement | null>(null);
   const stickToBottom = useRef(true);
+  const refreshGeneration = useRef(0);
   const conversation = messages(detail);
 
   useEffect(() => {
@@ -57,7 +58,9 @@ export function SessionConsole({
   }, [conversation.length, detail]);
 
   useEffect(() => {
+    refreshGeneration.current += 1;
     setMessage('');
+    setBusy(false);
     setError('');
     setWriteBlocked('');
     stickToBottom.current = true;
@@ -67,14 +70,23 @@ export function SessionConsole({
     event.preventDefault();
     const text = message.trim();
     if (!text || busy || !client || writeBlocked) return;
+    const generation = ++refreshGeneration.current;
+    const responseCount = detail?.events?.llm_responses?.length ?? 0;
     setBusy(true);
     setError('');
     try {
       await client.submitMessage(rawSessionId(session), text);
       setMessage('');
+      setBusy(false);
       stickToBottom.current = true;
-      window.setTimeout(onReload, 350);
+      for (const delay of [350, 650, 1_000, 1_500, 2_500, 4_000, 6_000, 8_000, 10_000, 12_000, 15_000]) {
+        await new Promise((resolve) => window.setTimeout(resolve, delay));
+        if (refreshGeneration.current !== generation) return;
+        const next = await onReload(true);
+        if ((next?.events?.llm_responses?.length ?? 0) > responseCount) break;
+      }
     } catch (cause) {
+      if (refreshGeneration.current !== generation) return;
       const reason = cause instanceof Error ? cause.message : 'Could not send message.';
       if (cause instanceof NodeRequestError
           && cause.status === 409
@@ -85,11 +97,11 @@ export function SessionConsole({
       }
       setError(reason);
     } finally {
-      setBusy(false);
+      if (refreshGeneration.current === generation) setBusy(false);
     }
   };
 
-  const canSend = !!client && !writeBlocked
+  const canSend = !!client && !!detail && !writeBlocked
     && ['claude', 'codex', 'gemini'].includes(session.agent_type);
 
   return (
