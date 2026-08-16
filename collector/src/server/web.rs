@@ -614,7 +614,29 @@ async fn serve_session_api(
     .await;
 
     match result {
-        Ok(Ok(Some(session))) => Ok(json_response(StatusCode::OK, &session)),
+        Ok(Ok(Some(session))) => {
+            if let Some(bridges) = container_bridges.as_ref() {
+                match bridges.get_session(&session_id).await {
+                    Ok(Some((container, _))) => {
+                        return Ok(json_error(
+                            StatusCode::CONFLICT,
+                            &format!(
+                                "session {session_id} exists both locally and in Docker container {container}"
+                            ),
+                        ));
+                    }
+                    Ok(None) => {}
+                    Err(ContainerBridgeError::Conflict(error)) => {
+                        return Ok(json_error(StatusCode::CONFLICT, &error));
+                    }
+                    Err(error) => log::warn!(
+                        "could not exclude a local/container session collision for {session_id}: {}",
+                        error.message()
+                    ),
+                }
+            }
+            Ok(json_response(StatusCode::OK, &session))
+        }
         Ok(Ok(None)) => match container_bridges {
             Some(bridges) => match bridges.get_session(&session_id).await {
                 Ok(Some((_, session))) => Ok(json_response(StatusCode::OK, &session)),
@@ -701,6 +723,26 @@ async fn serve_session_message_api(
     };
 
     if let Some(session) = local_session {
+        if let Some(bridges) = container_bridges.as_ref() {
+            match bridges.get_session(&session_id).await {
+                Ok(Some((container, _))) => {
+                    return Ok(json_error(
+                        StatusCode::CONFLICT,
+                        &format!(
+                            "session {session_id} exists both locally and in Docker container {container}"
+                        ),
+                    ));
+                }
+                Ok(None) => {}
+                Err(ContainerBridgeError::Conflict(error)) => {
+                    return Ok(json_error(StatusCode::CONFLICT, &error));
+                }
+                Err(error) => log::warn!(
+                    "could not exclude a local/container session collision for {session_id}: {}",
+                    error.message()
+                ),
+            }
+        }
         return match launch_session_message(&session, &message).await {
             Ok(result) => Ok(session_message_response(
                 &session.session_id,
@@ -786,10 +828,7 @@ fn find_native_session(
     cache: &mut SessionCache,
     session_id: &str,
 ) -> Option<agent_session::AgentSession> {
-    let indexed = agent_native_sessions::discover_sessions(cache, None, None, 25, Duration::ZERO)
-        .into_iter()
-        .find(|session| session.session_id == session_id)?;
-    Some(agent_native_sessions::hydrate_session(cache, indexed))
+    agent_native_sessions::find_session_by_id(cache, session_id)
 }
 
 async fn launch_session_message(

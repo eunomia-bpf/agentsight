@@ -135,12 +135,21 @@ agentsight bind --docker-container ebpfos-dev
 The host Node starts a narrow JSONL bridge with `docker exec -i`; session
 discovery and Codex app-server messaging therefore run as the container's
 configured user with its `CODEX_HOME`, working directory, and runtime-mounted
-credentials. The provider credential is never copied to the host. The host
-needs permission to execute commands in only the named container, and the
+credentials. The provider credential is never copied to the host, and the
 container must already be running. Repeat `--docker-container` to include more
-containers. Container session IDs must be unique across all configured
-containers. This resumes a recorded Codex session through app-server; it does
+containers. Session IDs must be unique across the host and all configured
+containers; AgentSight returns a conflict instead of guessing when it detects a
+collision. This resumes a recorded Codex session through app-server; it does
 not attach to the stdin of an unrelated, already-running TUI process.
+
+Standard Docker socket or `docker` group access is daemon-wide and is normally
+equivalent to host root; the named-container option limits AgentSight behavior,
+not Docker's authorization boundary. For a narrower boundary, use a rootless
+per-user Docker daemon or an allowlisting broker/socket proxy that exposes only
+the required inspect and exec operations. Configure only containers you trust:
+the private stdio pipe has no separate in-band authentication and imports
+session metadata from the container. Keep the host and container AgentSight
+binaries on the same version.
 
 Dev containers should declare `com.agentsight.user`,
 `com.agentsight.workspace`, and `com.agentsight.codex-home` labels. AgentSight

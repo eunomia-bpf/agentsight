@@ -164,9 +164,15 @@ agentsight bind --docker-container ebpfos-dev
 宿主 Node 只通过 `docker exec -i` 启动一个窄 JSONL bridge。会话发现和 Codex
 app-server 消息发送都在容器内以容器配置的用户运行，因此沿用容器自己的
 `CODEX_HOME`、工作目录和运行时挂载的认证；provider 凭据不会复制到宿主。
-宿主只需具备对指定容器执行命令的权限，且容器必须已经运行。可重复传入
-`--docker-container` 以包含多个容器；这些容器中的 session ID 必须保持唯一。
+容器必须已经运行。可重复传入 `--docker-container` 以包含多个容器；宿主和所有容器中的
+session ID 必须保持唯一，检测到冲突时 AgentSight 会拒绝猜测目标并返回 conflict。
 该路径通过 app-server 恢复已有 Codex 会话，不会接管另一个已运行 TUI 的 stdin。
+
+标准 Docker socket 或 `docker` 用户组权限是 daemon 级的，通常等价于宿主 root；
+指定容器名只限制 AgentSight 的行为，不是 Docker 的授权边界。如果需要更窄的边界，请使用
+每用户 rootless Docker daemon，或只放行必需 inspect/exec 操作的 allowlist broker/socket proxy。
+只配置可信容器：该私有 stdio 通道没有额外的带内认证，且会导入容器会话元数据。
+宿主和容器内的 AgentSight 应保持同版本。
 
 开发容器应声明 `com.agentsight.user`、`com.agentsight.workspace` 和
 `com.agentsight.codex-home` labels。AgentSight 用这些 labels 选择准确的用户和工作目录。
