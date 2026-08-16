@@ -1252,7 +1252,7 @@ mod tests {
             b"/usr/local/bin/agentsight\0monitor\0"
         ));
         assert!(!linux_cmdline_is_agentsight_monitor(
-            b"agentsight\0bind\0--server-port\07395\0"
+            b"agentsight\0bind\0--server-port\x007395\0"
         ));
         assert!(!linux_cmdline_is_agentsight_monitor(
             b"unrelated\0monitor\0"
