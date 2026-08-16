@@ -6,6 +6,10 @@ const fs = require('fs');
 const path = require('path');
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+const textExtensions = new Set([
+  '.css', '.html', '.js', '.json', '.jsonc', '.jsx', '.lock', '.md', '.mjs',
+  '.scss', '.svg', '.toml', '.ts', '.tsx', '.txt', '.xml', '.yaml', '.yml',
+]);
 const buildIdInputs = [
   'src', '../ext/web/ext.toml', '../ext/web/page.tsx', '../ext/web/components',
   '../ext/web/lib', '../ext/web/types', '../ext/web/utils',
@@ -22,12 +26,18 @@ function addPathToHash(hash, filePath) {
   if (!stat.isFile()) return;
   hash.update(path.relative(__dirname, filePath).replace(/\\/g, '/'));
   hash.update('\0');
-  hash.update(fs.readFileSync(filePath));
+  const contents = fs.readFileSync(filePath);
+  hash.update(textExtensions.has(path.extname(filePath).toLowerCase())
+    ? Buffer.from(contents.toString('utf8').replace(/\r\n/g, '\n'))
+    : contents);
   hash.update('\0');
 }
 
 function stableBuildId() {
   const hash = crypto.createHash('sha256');
+  hash.update('NEXT_PUBLIC_BASE_PATH\0');
+  hash.update(basePath);
+  hash.update('\0');
   for (const input of buildIdInputs) {
     const filePath = path.join(__dirname, input);
     if (fs.existsSync(filePath)) addPathToHash(hash, filePath);

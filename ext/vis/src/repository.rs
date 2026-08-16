@@ -5,7 +5,7 @@
 
 use agent_session::{
     AGENT_CLAUDE, AGENT_CODEX, AGENT_CURSOR, AGENT_GEMINI, AgentSession, SessionCandidate,
-    discover_session_files, parse_session_content, session_candidate_from_path,
+    discover_session_files, parse_session_content, parse_session_file, session_candidate_from_path,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -156,8 +156,16 @@ fn parse_candidates(candidates: &[SessionCandidate]) -> Vec<(AgentSession, usize
 }
 
 fn repository_session(candidate: &SessionCandidate) -> Option<(AgentSession, usize)> {
+    // Cursor delegates work into sibling `subagents/*.jsonl` transcripts. The
+    // file parser owns that aggregation; parsing only the parent content drops
+    // the delegated file and tool events from repository traces.
+    if candidate.agent == AGENT_CURSOR {
+        let session = parse_session_file(candidate)?;
+        let count = session.events.tools.len() + session.events.llm_responses.len();
+        return Some((session, count));
+    }
     // Read whole: the filter below keys on a top-level "type" neither writes.
-    if candidate.agent == AGENT_GEMINI || candidate.agent == AGENT_CURSOR {
+    if candidate.agent == AGENT_GEMINI {
         let content = std::fs::read_to_string(&candidate.path).ok()?;
         let session = parse_session_content(
             candidate.agent,
@@ -790,6 +798,50 @@ mod tests {
             &roots,
             None
         ));
+    }
+
+    #[test]
+    fn cursor_repository_session_includes_subagent_file_actions() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let parent_dir = temp.path().join("agent-transcripts/session");
+        let child_dir = parent_dir.join("subagents");
+        std::fs::create_dir_all(&child_dir).expect("create Cursor transcript directories");
+        let parent = parent_dir.join("session.jsonl");
+        std::fs::write(
+            &parent,
+            [
+                r#"{"role":"user","message":{"content":[{"type":"text","text":"<timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>\n<user_query>\ncreate child\n</user_query>"}]}}"#,
+                r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Task","input":{"description":"Create child","prompt":"make child","subagent_type":"generalPurpose"}}]}}"#,
+                r#"{"type":"turn_ended","status":"success"}"#,
+            ]
+            .join("\n"),
+        )
+        .expect("write parent transcript");
+        std::fs::write(
+            child_dir.join("child.jsonl"),
+            [
+                r#"{"role":"user","message":{"content":[{"type":"text","text":"<timestamp>Friday, Aug 7, 2026, 10:12 PM (UTC-5)</timestamp>\n<user_query>\nmake child\n</user_query>"}]}}"#,
+                r#"{"role":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"path":"/repo/from-child.rs","contents":"fn child() {}"}}]}}"#,
+                r#"{"type":"turn_ended","status":"success"}"#,
+            ]
+            .join("\n"),
+        )
+        .expect("write child transcript");
+
+        let candidate = SessionCandidate {
+            agent: AGENT_CURSOR,
+            path: parent,
+            updated: SystemTime::UNIX_EPOCH,
+        };
+        let (session, source_count) = repository_session(&candidate).expect("repository session");
+
+        assert_eq!(session.tools.get("Write"), Some(&1));
+        assert!(session.events.tools.iter().any(|tool| {
+            tool.paths
+                .iter()
+                .any(|path| path.path == "/repo/from-child.rs")
+        }));
+        assert!(source_count >= 2, "parent Task and child Write are counted");
     }
 
     #[test]

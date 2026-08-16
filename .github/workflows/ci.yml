@@ -13,7 +13,9 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # A release run pushes its version snapshot back to master. Cancelling master
+  # runs would terminate that same release after the snapshot is persisted.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
@@ -172,16 +174,11 @@ jobs:
           while true; do
             TAG="v${VERSION}"
             taken=false
+            # The tag/release is the durable completion marker. A crate may
+            # already exist after a partial publish, so crate availability must
+            # not force a new family version instead of resuming that release.
             gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && taken=true
             git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1 && taken=true
-            for crate in agentsight agentsight-capture agentsight-capture-core agentsight-protocol agentsight-analysis agentsight-ext-runtime agentvis agentpprof; do
-              if exists "$crate" "$VERSION"; then
-                taken=true
-              else
-                status=$?
-                [[ "$status" == 1 ]] || exit "$status"
-              fi
-            done
             [[ "$taken" == false ]] && break
             PATCH=$((PATCH + 1))
             VERSION="${MAJOR}.${MINOR}.${PATCH}"
@@ -190,16 +187,21 @@ jobs:
           SESSION_BASE="$(sed -n 's/^version = "\([^"]*\)"/\1/p' ext/session/Cargo.toml | head -1)"
           IFS=. read -r SMAJ SMIN SPATCH <<< "$SESSION_BASE"
           SESSION_VERSION="$SESSION_BASE"
-          while true; do
-            if exists agent-session "$SESSION_VERSION"; then
-              SPATCH=$((SPATCH + 1))
-              SESSION_VERSION="${SMAJ}.${SMIN}.${SPATCH}"
-              continue
-            fi
-            status=$?
-            [[ "$status" == 1 ]] || exit "$status"
-            break
-          done
+          # An untagged base is a partial release snapshot: resume the matching
+          # session version as well, and let the idempotent publisher skip any
+          # packages that already reached crates.io.
+          if [[ "$VERSION" != "$BASE" ]]; then
+            while true; do
+              if exists agent-session "$SESSION_VERSION"; then
+                SPATCH=$((SPATCH + 1))
+                SESSION_VERSION="${SMAJ}.${SMIN}.${SPATCH}"
+                continue
+              fi
+              status=$?
+              [[ "$status" == 1 ]] || exit "$status"
+              break
+            done
+          fi
 
           python3 script/release/set_versions.py "$VERSION" "$SESSION_VERSION"
           cargo generate-lockfile --manifest-path ext/vis/Cargo.toml

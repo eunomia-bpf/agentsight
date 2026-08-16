@@ -5,11 +5,14 @@ use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store, StoreLimits, StoreLimitsBuilder};
 use wasmtime_wasi::{WasiCtx, WasiCtxView, WasiView};
 
-const DEFAULT_MEMORY_BYTES: usize = 16 * 1024 * 1024;
+const DEFAULT_MEMORY_BYTES: usize = 64 * 1024 * 1024;
 const DEFAULT_FUEL: u64 = 10_000_000;
 const MAX_CORE_INSTANCES: usize = 16;
 const MAX_MEMORIES: usize = 4;
 const MAX_TABLES: usize = 8;
+const MAX_COMPONENT_BYTES: usize = 16 * 1024 * 1024;
+const MAX_CONTENT_BYTES: usize = 16 * 1024 * 1024;
+const MAX_METADATA_BYTES: usize = 64 * 1024;
 
 struct ExtStore {
     limits: StoreLimits,
@@ -32,6 +35,10 @@ impl WasiView for ExtStore {
 /// no arguments, environment, stdio, directories, or network access. TCP/UDP
 /// are disabled outright. AgentSight-specific authority must be linked by an
 /// explicit capability-bearing host interface.
+///
+/// Component compilation is only exposed for trusted components shipped with
+/// AgentSight. This type is not an upload boundary for arbitrary user-supplied
+/// Wasm. Execution and input sizes are bounded independently.
 pub struct ExtRuntime {
     engine: Engine,
 }
@@ -74,6 +81,7 @@ impl ExtRuntime {
         updated_ms: u64,
         content: &str,
     ) -> Result<Option<String>, wasmtime::Error> {
+        validate_session_input(component_bytes, agent, path, content)?;
         let component = Component::from_binary(&self.engine, component_bytes)?;
         let mut linker = Linker::<ExtStore>::new(&self.engine);
         wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
@@ -93,5 +101,39 @@ impl ExtRuntime {
                 ),
             )?
             .0)
+    }
+}
+
+fn validate_session_input(
+    component_bytes: &[u8],
+    agent: &str,
+    path: &str,
+    content: &str,
+) -> Result<(), wasmtime::Error> {
+    if component_bytes.len() > MAX_COMPONENT_BYTES {
+        return Err(wasmtime::Error::msg("extension component exceeds 16 MiB"));
+    }
+    if content.len() > MAX_CONTENT_BYTES {
+        return Err(wasmtime::Error::msg("session content exceeds 16 MiB"));
+    }
+    if agent.len().saturating_add(path.len()) > MAX_METADATA_BYTES {
+        return Err(wasmtime::Error::msg("session metadata exceeds 64 KiB"));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_oversized_component_content_and_metadata() {
+        assert!(
+            validate_session_input(&vec![0; MAX_COMPONENT_BYTES + 1], "codex", "x", "x").is_err()
+        );
+        assert!(
+            validate_session_input(&[], "codex", "x", &"x".repeat(MAX_CONTENT_BYTES + 1)).is_err()
+        );
+        assert!(validate_session_input(&[], &"a".repeat(MAX_METADATA_BYTES), "x", "x").is_err());
     }
 }
