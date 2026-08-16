@@ -360,9 +360,10 @@ jobs:
       - name: Publish dependency-ordered crates
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: bash script/release/publish_crates.sh \
-          "${{ needs.release_prepare.outputs.version }}" \
-          "${{ needs.release_prepare.outputs.session_version }}"
+        run: |
+          bash script/release/publish_crates.sh \
+            "${{ needs.release_prepare.outputs.version }}" \
+            "${{ needs.release_prepare.outputs.session_version }}"
 
       - name: Smoke cargo installs
         env:
