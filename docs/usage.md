@@ -124,6 +124,30 @@ agentsight bind --listen 0.0.0.0 --server-port 7395 \
   --app-url https://agentsight.example.net/
 ```
 
+To include Codex sessions whose state and credentials stay inside a running
+Docker container, install the same AgentSight binary in the container and name
+the container when starting the host Node:
+
+```sh
+agentsight bind --docker-container ebpfos-dev
+```
+
+The host Node starts a narrow JSONL bridge with `docker exec -i`; session
+discovery and Codex app-server messaging therefore run as the container's
+configured user with its `CODEX_HOME`, working directory, and runtime-mounted
+credentials. The provider credential is never copied to the host. The host
+needs permission to execute commands in only the named container, and the
+container must already be running. Repeat `--docker-container` to include more
+containers. Container session IDs must be unique across all configured
+containers. This resumes a recorded Codex session through app-server; it does
+not attach to the stdin of an unrelated, already-running TUI process.
+
+Dev containers should declare `com.agentsight.user`,
+`com.agentsight.workspace`, and `com.agentsight.codex-home` labels. AgentSight
+uses them to select the exact user and working directory. If the user label is
+absent but `codex-home` is present, it uses that directory's numeric owner; the
+container image's configured user is the final fallback.
+
 An unspecified listen address requires an explicit browser-reachable
 `--endpoint`. A non-loopback Node should use browser-trusted HTTPS; private
 transport alone does not override browser mixed-content rules. Treat the access

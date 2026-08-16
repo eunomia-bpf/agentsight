@@ -26,6 +26,7 @@ pub(crate) async fn run_bind(
     db_path: Option<String>,
     app_url: &str,
     public_endpoint: Option<&str>,
+    docker_containers: &[String],
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let ip: IpAddr = listen
         .parse()
@@ -48,6 +49,7 @@ pub(crate) async fn run_bind(
     } else {
         server
     };
+    let server = server.with_docker_containers(docker_containers)?;
     let server = server.with_direct_access(access_token.clone(), node.clone(), allowed_origin);
 
     let handle = tokio::spawn(async move { server.start(addr).await });
@@ -83,6 +85,12 @@ pub(crate) async fn run_bind(
     } else {
         println!(
             "Serving the live agent overview and local session history; pass --db for a saved capture."
+        );
+    }
+    if !docker_containers.is_empty() {
+        println!(
+            "Including Codex sessions from Docker containers: {}.",
+            docker_containers.join(", ")
         );
     }
     if qr {
