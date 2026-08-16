@@ -444,10 +444,21 @@ run_real_agent_mock_canary() {
         failures+=("claude")
     fi
 
-    if ! record_real_agent opencode \
-        "$OPENCODE_BIN" run --pure --model agentsight-mock/gpt-agentsight-mock \
-        --format json "$PROMPT"; then
-        failures+=("opencode")
+    local opencode_command=(
+        "$OPENCODE_BIN" run --pure --model agentsight-mock/gpt-agentsight-mock
+        --format json "$PROMPT"
+    )
+    if ! record_real_agent opencode "${opencode_command[@]}"; then
+        # OpenCode's mock invocation is a single-request, roughly three-second
+        # process. An occasional scheduler race can let it exit before the
+        # BoringSSL offset probe emits its first event even though the mock
+        # server received the exact request. Retry once so this canary still
+        # fails persistent binary-signature regressions without blocking a
+        # release on one short-process sampling miss.
+        echo "Retrying OpenCode capture after a short-process sampling miss" >&2
+        if ! record_real_agent opencode "${opencode_command[@]}"; then
+            failures+=("opencode")
+        fi
     fi
 
     if ((${#failures[@]} > 0)); then
