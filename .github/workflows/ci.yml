@@ -196,8 +196,9 @@ jobs:
                 SPATCH=$((SPATCH + 1))
                 SESSION_VERSION="${SMAJ}.${SMIN}.${SPATCH}"
                 continue
+              else
+                status=$?
               fi
-              status=$?
               [[ "$status" == 1 ]] || exit "$status"
               break
             done
@@ -211,6 +212,17 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "session_version=$SESSION_VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Validate selected release versions
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SESSION_VERSION: ${{ steps.version.outputs.session_version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$SESSION_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$TAG" == "v$VERSION" ]]
 
       - name: Build release snapshot
         run: |
