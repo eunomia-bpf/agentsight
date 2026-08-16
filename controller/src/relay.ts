@@ -3,6 +3,7 @@
 
 const NODE_ID_PATTERN = /^node_[A-Za-z0-9_]{1,123}$/;
 const RELAY_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,256}$/;
+const NODE_VERSION_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$/;
 const RELAY_TIMEOUT_MS = 12_000;
 const MAX_BROWSER_BODY_BYTES = 96 * 1024;
 const MAX_RELAY_SUFFIX_BYTES = 4 * 1024;
@@ -76,6 +77,10 @@ export function validRelayToken(value: string): boolean {
   return RELAY_TOKEN_PATTERN.test(value);
 }
 
+export function validRelayNodeVersion(value: string): boolean {
+  return NODE_VERSION_PATTERN.test(value);
+}
+
 function relayStub(env: RelayEnv, nodeId: string): DurableObjectStub {
   return env.NODE_RELAY.get(env.NODE_RELAY.idFromName(nodeId));
 }
@@ -90,6 +95,10 @@ export async function connectNodeRelay(
   }
   const token = bearerToken(request);
   if (!token || !validRelayToken(token)) return json({ error: 'node_auth_required' }, 401);
+  const reportedVersion = request.headers.get('X-AgentSight-Node-Version');
+  if (reportedVersion !== null && !validRelayNodeVersion(reportedVersion)) {
+    return json({ error: 'invalid_node_version' }, 400);
+  }
 
   const row = await env.DB.prepare(
     'SELECT relay_token_hash FROM nodes WHERE id = ?1',
@@ -99,8 +108,9 @@ export async function connectNodeRelay(
   }
 
   await env.DB.prepare(
-    `UPDATE nodes SET last_seen_at = ?1, connection_mode = 'relay' WHERE id = ?2`,
-  ).bind(Math.floor(Date.now() / 1000), nodeId).run();
+    `UPDATE nodes SET last_seen_at = ?1, connection_mode = 'relay',
+       version = COALESCE(?3, version) WHERE id = ?2`,
+  ).bind(Math.floor(Date.now() / 1000), nodeId, reportedVersion).run();
 
   return relayStub(env, nodeId).fetch(request);
 }

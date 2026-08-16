@@ -23,6 +23,7 @@ const MAX_RELAY_RESPONSE_BYTES: usize = 16 * 1024 * 1024;
 const RECONNECT_DELAY_SECS: u64 = 2;
 const HEARTBEAT_INTERVAL_SECS: u64 = 20;
 const RELAY_CAPABILITY_TTL_SECONDS: u64 = 60;
+const NODE_VERSION_HEADER: &str = "x-agentsight-node-version";
 
 fn install_tls_provider() -> Result<(), Box<dyn Error + Send + Sync>> {
     if rustls::crypto::CryptoProvider::get_default().is_some() {
@@ -91,9 +92,12 @@ async fn connect_once(
         "Authorization",
         HeaderValue::from_str(&format!("Bearer {bootstrap_token}"))?,
     );
+    request
+        .headers_mut()
+        .insert("User-Agent", HeaderValue::from_static("AgentSight-Node"));
     request.headers_mut().insert(
-        "User-Agent",
-        HeaderValue::from_static("AgentSight-Node"),
+        NODE_VERSION_HEADER,
+        HeaderValue::from_static(env!("CARGO_PKG_VERSION")),
     );
 
     let (mut socket, _) = connect_async(request).await?;

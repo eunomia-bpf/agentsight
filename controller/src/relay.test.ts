@@ -3,7 +3,14 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { browserRelayRoute, relayNodeSocketId, validRelayToken } from './relay.ts';
+import {
+  browserRelayRoute,
+  connectNodeRelay,
+  relayTokenHash,
+  relayNodeSocketId,
+  validRelayNodeVersion,
+  validRelayToken,
+} from './relay.ts';
 
 test('Node relay socket path accepts only stable Node IDs', () => {
   assert.equal(relayNodeSocketId('/v1/relay/nodes/node_0123abcdef'), 'node_0123abcdef');
@@ -48,4 +55,54 @@ test('relay tokens use the same Direct bearer shape', () => {
   assert.equal(validRelayToken('a'.repeat(64)), true);
   assert.equal(validRelayToken('short'), false);
   assert.equal(validRelayToken(`${'a'.repeat(63)}!`), false);
+});
+
+test('relay node versions accept release metadata and reject unsafe values', () => {
+  assert.equal(validRelayNodeVersion('1.0.23'), true);
+  assert.equal(validRelayNodeVersion('1.0.24-rc.1+build'), true);
+  assert.equal(validRelayNodeVersion(`1.${'0'.repeat(62)}`), true);
+  assert.equal(validRelayNodeVersion(''), false);
+  assert.equal(validRelayNodeVersion(' 1.0.23'), false);
+  assert.equal(validRelayNodeVersion('1.0.23\r\nX-Injected: yes'), false);
+  assert.equal(validRelayNodeVersion(`1.${'0'.repeat(63)}`), false);
+});
+
+test('authenticated relay reconnect persists reported version without breaking old Nodes', async () => {
+  const token = 'a'.repeat(64);
+  const expectedHash = await relayTokenHash(token);
+  const updates: unknown[][] = [];
+  const db = {
+    prepare: (query: string) => ({
+      bind: (...values: unknown[]) => ({
+        first: async () => ({ relay_token_hash: expectedHash }),
+        run: async () => {
+          assert.match(query, /version = COALESCE\(\?3, version\)/);
+          updates.push(values);
+          return { success: true };
+        },
+      }),
+    }),
+  } as D1Database;
+  const relay = {
+    idFromName: () => ({}) as DurableObjectId,
+    get: () => ({
+      fetch: async () => new Response(null, { status: 200 }),
+    }) as unknown as DurableObjectStub,
+  } as unknown as DurableObjectNamespace;
+
+  const connect = (version?: string) => connectNodeRelay(new Request(
+    'https://controller.example/v1/relay/nodes/node_test',
+    { headers: {
+      Upgrade: 'websocket', Authorization: `Bearer ${token}`,
+      ...(version ? { 'X-AgentSight-Node-Version': version } : {}),
+    } },
+  ), { DB: db, NODE_RELAY: relay }, 'node_test');
+
+  assert.equal((await connect('1.0.23')).status, 200);
+  assert.equal(updates[0][1], 'node_test');
+  assert.equal(updates[0][2], '1.0.23');
+  assert.equal((await connect()).status, 200);
+  assert.equal(updates[1][2], null);
+  assert.equal((await connect('invalid version')).status, 400);
+  assert.equal(updates.length, 2);
 });
