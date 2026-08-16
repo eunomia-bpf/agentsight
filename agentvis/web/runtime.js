@@ -106,7 +106,7 @@ function initialize(payload) {
     `scope: ${data.meta.session_scope === "global_tool_operations" ? "all local sessions targeting repository" : "repository sessions"}`,
     `revision: ${data.meta.endpoint_revision.slice(0, 12)}`,
     `window: ${dayLabel(data.meta.window_start_ms)} → ${dayLabel(data.meta.window_end_ms)}`,
-    "generator: agentvis",
+    "generator: evolution renderer",
   ].join(" · ");
   Object.assign($("timeline"), {
     min: "0", max: String(frameTimes.length - 1), step: "1",
@@ -155,7 +155,7 @@ function composeFrame(canvas = document.createElement("canvas")) {
   context.strokeStyle = palette.line;
   context.beginPath(); context.moveTo(32, 113); context.lineTo(1232, 113); context.stroke();
   context.fillStyle = "#61d7bf"; context.font = "11px monospace";
-  context.fillText("AGENTVIS · REPOSITORY EVOLUTION", 32, 39);
+  context.fillText("REPOSITORY EVOLUTION", 32, 39);
   context.fillStyle = palette.text; context.font = "28px system-ui";
   context.fillText("Agent Session Evolution Graph", 32, 72);
   context.fillStyle = palette.muted; context.font = "12px system-ui";

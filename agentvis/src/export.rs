@@ -94,9 +94,9 @@ pub fn run_vis(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let started = Instant::now();
     let outputs = requested_outputs(outputs)?;
-    eprintln!("[agentvis 1/5] repository  {}", repo.display());
+    eprintln!("[evolution 1/5] repository  {}", repo.display());
     eprintln!(
-        "[agentvis 2/5] sessions    scanning Claude + Codex + Gemini + Cursor{}",
+        "[evolution 2/5] sessions    scanning Claude + Codex + Gemini + Cursor{}",
         if global { " globally" } else { "" }
     );
     let scan = Instant::now();
@@ -105,7 +105,7 @@ pub fn run_vis(
         global,
     })?;
     eprintln!(
-        "[agentvis 3/5] actions     {} sessions · {} source events · {} tool actions · {} file actions · {:.1}s",
+        "[evolution 3/5] actions     {} sessions · {} source events · {} tool actions · {} file actions · {:.1}s",
         trace.session_count,
         trace.source_event_count,
         trace.events.len(),
@@ -139,18 +139,18 @@ pub fn run_vis(
         .cloned()
         .collect::<Vec<_>>();
     if !media.is_empty() {
-        eprintln!("[agentvis 4/5] render      preparing deterministic layout and media");
+        eprintln!("[evolution 4/5] render      preparing deterministic layout and media");
         render_media(&html, &media, media_plan(action_count, compact_rate))?;
     }
     for output in &outputs {
         eprintln!(
-            "[agentvis 5/5] output      {} · {} KiB",
+            "[evolution 5/5] output      {} · {} KiB",
             output.display(),
             fs::metadata(output)?.len().div_ceil(1024)
         );
     }
     eprintln!(
-        "[agentvis] complete    {:.1}s",
+        "[evolution] complete    {:.1}s",
         started.elapsed().as_secs_f32()
     );
     Ok(())
@@ -201,7 +201,7 @@ fn render_media(
         .any(|path| matches!(extension(path).as_str(), "gif" | "mp4"))
     {
         eprintln!(
-            "[agentvis] compact     {} media frames · {:.2} fps · {:.1}s{}",
+            "[evolution] compact     {} media frames · {:.2} fps · {:.1}s{}",
             plan.indices.len(),
             plan.frame_rate,
             plan.duration_seconds,
@@ -216,7 +216,7 @@ fn render_media(
         fs::write(&mp4_path, &mp4)?;
         write_copies(&mp4, outputs, "mp4")?;
         if outputs.iter().any(|path| extension(path) == "gif") {
-            eprintln!("[agentvis] gif         building bounded-memory palette");
+            eprintln!("[evolution] gif         building bounded-memory palette");
             let palette_path = temporary.path().join("repository-nebula-palette.png");
             let palette = Command::new("ffmpeg")
                 .args(["-y", "-hide_banner", "-loglevel", "error", "-i"])
@@ -233,7 +233,7 @@ fn render_media(
             if !palette.success() {
                 return Err("ffmpeg GIF palette generation failed".into());
             }
-            eprintln!("[agentvis] gif         converting shared MP4");
+            eprintln!("[evolution] gif         converting shared MP4");
             let gif_path = temporary.path().join("repository-nebula.gif");
             let status = Command::new("ffmpeg")
                 .args(["-y", "-hide_banner", "-loglevel", "error", "-i"])
@@ -371,14 +371,14 @@ impl BrowserRenderer {
             .value
             .and_then(|value| value.as_u64())
             .ok_or("MP4 encoder returned no frame count")?;
-        eprintln!("[agentvis] frames      0/{total}");
+        eprintln!("[evolution] frames      0/{total}");
         let mut done = 0;
         while done < total {
             let progress = serde_json::from_str::<Vec<u64>>(
                 &self.string("AgentVis.encodeMp4Chunk(48).then(JSON.stringify)", true)?,
             )?;
             done = progress.first().copied().unwrap_or(done);
-            eprintln!("[agentvis] frames      {done}/{total}");
+            eprintln!("[evolution] frames      {done}/{total}");
         }
         self.bytes("AgentVis.finishMp4()", true)
     }
@@ -469,9 +469,9 @@ fn html_document(payload: &serde_json::Value) -> Result<String, serde_json::Erro
         .replace('\u{2028}', "\\u2028")
         .replace('\u{2029}', "\\u2029");
     Ok(format!(
-        r#"<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agent Session Evolution Graph · agentvis</title><style>
+        r#"<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agent Session Evolution Graph</title><style>
 :root{{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#070b12;color:#dce8f7}}*{{box-sizing:border-box}}body{{margin:0;background:#070b12}}.artifact{{width:1264px;min-height:865px;padding:24px 32px;background:#070b12;transition:box-shadow .12s}}.artifact.commit-flash{{box-shadow:inset 0 0 0 2px #efd265,0 0 30px rgba(239,210,101,.42)}}.header{{display:flex;justify-content:space-between;gap:24px;border-bottom:1px solid rgba(135,160,190,.18);padding-bottom:14px}}.eyebrow,.mode{{font:11px ui-monospace,monospace;color:#61d7bf;letter-spacing:.12em;text-transform:uppercase}}.header h1{{font-size:28px;margin:6px 0}}.header p{{font-size:12px;color:#71839a;margin:0}}.mode{{color:#8c9bb0;border:1px solid rgba(135,160,190,.18);padding:7px 9px;border-radius:99px;align-self:flex-start}}.visual{{width:1200px;height:675px;margin-top:14px}}.timeline{{display:grid;grid-template-columns:42px 1fr 190px;gap:12px;align-items:center;border-top:1px solid rgba(135,160,190,.18);padding:14px 0 8px}}.timeline button{{width:36px;height:36px;border-radius:50%;border:1px solid rgba(97,215,191,.4);background:#10231f;color:#61d7bf}}.timeline input{{width:100%;accent-color:#61d7bf}}.timeline output{{font:10px ui-monospace,monospace;color:#9bacc0;text-align:right}}.legend{{display:flex;gap:18px;font:10px ui-monospace,monospace;color:#71839a}}.legend i{{display:inline-block;width:13px;height:3px;margin-right:5px;vertical-align:middle}}.footer{{margin-top:8px;color:#7c8ba0;font:10px ui-monospace,monospace}}
-</style></head><body><main id="artifact" class="artifact"><header class="header"><div><span class="eyebrow">agentvis · repository evolution</span><h1 id="view-title"></h1><p id="view-note"></p></div><span class="mode">Agent event time</span></header><section class="visual"><div id="chart"></div></section><section class="timeline"><button id="play">▶</button><input id="timeline" type="range"><output id="cursor-label"></output></section><section class="legend"><span><i style="background:#f7ffff"></i>read attention</span><span><i style="background:#ff9678"></i>write ripple</span><span><i style="background:#75f0a9"></i>create</span><span><i style="background:#63dfff"></i>rename</span><span><i style="background:#ff647c"></i>delete</span><span><i style="background:#efd265"></i>commit frame</span></section><footer id="provenance" class="footer"></footer></main><script>{RUNTIME}</script><script>AgentVis.initialize({payload})</script></body></html>"#
+</style></head><body><main id="artifact" class="artifact"><header class="header"><div><span class="eyebrow">repository evolution</span><h1 id="view-title"></h1><p id="view-note"></p></div><span class="mode">Agent event time</span></header><section class="visual"><div id="chart"></div></section><section class="timeline"><button id="play">▶</button><input id="timeline" type="range"><output id="cursor-label"></output></section><section class="legend"><span><i style="background:#f7ffff"></i>read attention</span><span><i style="background:#ff9678"></i>write ripple</span><span><i style="background:#75f0a9"></i>create</span><span><i style="background:#63dfff"></i>rename</span><span><i style="background:#ff647c"></i>delete</span><span><i style="background:#efd265"></i>commit frame</span></section><footer id="provenance" class="footer"></footer></main><script>{RUNTIME}</script><script>AgentVis.initialize({payload})</script></body></html>"#
     ))
 }
 
@@ -523,7 +523,7 @@ mod tests {
     #[test]
     fn html_is_self_contained_and_script_safe() {
         let html = html_document(&json!({ "value": "</script>" })).unwrap();
-        assert!(html.contains("<title>Agent Session Evolution Graph · agentvis</title>"));
+        assert!(html.contains("<title>Agent Session Evolution Graph</title>"));
         assert!(html.contains("AgentVis.initialize"));
         assert!(!html.contains("\"</script>\""));
     }
