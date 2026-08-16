@@ -59,7 +59,7 @@ test('signed-in user opens a relay Node and sees machine value before session de
 });
 
 test('conversation, message send, process tree, timeline filters, and event detail work together', async ({ page }) => {
-  const state = await mockController(page, { signedIn: true });
+  const state = await mockController(page, { signedIn: true, responseDelayMs: 10_500 });
   await page.goto('/');
   await openLab(page);
   await openCodexSession(page);
@@ -70,6 +70,9 @@ test('conversation, message send, process tree, timeline filters, and event deta
   await expect.poll(() => state.messages.length).toBe(1);
   expect(state.messages[0]).toEqual({ message: 'Run the final browser regression suite.' });
   await expect(composer).toHaveValue('');
+  await expect(composer).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Send' })).toBeVisible();
+  await expect(page.getByText('Browser follow-up complete.')).toBeVisible({ timeout: 25_000 });
 
   await page.getByRole('tab', { name: 'Process tree & AI prompts' }).click();
   await expect(page.getByRole('heading', { name: 'Process Tree & AI Prompts' })).toBeVisible();

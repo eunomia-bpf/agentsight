@@ -75,6 +75,14 @@ it into public logs. Stop the foreground command after the browser completes
 binding; the key is stored in the user's platform config directory and is
 reused across Node restarts.
 
+When a browser sends a follow-up to a stopped Codex session, AgentSight reads
+the session's recorded `cli_version` and prefers that exact installed Codex
+standalone release. This avoids resuming a newer transcript with an older
+global `codex` from a background service's `PATH`. If that release is no longer
+installed, AgentSight falls back to `PATH`. Advanced installations can set
+`AGENTSIGHT_CODEX_BIN`, `AGENTSIGHT_CLAUDE_BIN`, or `AGENTSIGHT_GEMINI_BIN` to
+an explicit provider executable; these values are paths, not credentials.
+
 For a headless remote host, forward its loopback port to the workstation that
 runs the browser:
 
@@ -215,6 +223,12 @@ Register-ScheduledTask -TaskName 'AgentSight Bind' -Action $bind `
 Start-ScheduledTask -TaskName 'AgentSight Monitor'
 Start-ScheduledTask -TaskName 'AgentSight Bind'
 ```
+
+Keep the Bind task at `RunLevel Limited`. Session discovery and read-only views
+still work from an elevated process, but AgentSight deliberately refuses to
+resume or message an agent from an elevated Windows process because the selected
+provider executable is owned by the transcript user. Run Bind as that same
+non-administrator user to enable messaging.
 
 If this Windows machine has not been added to the hosted app, run
 `agentsight bind` once in an interactive terminal before relying on the

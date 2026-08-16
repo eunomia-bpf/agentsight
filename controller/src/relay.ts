@@ -4,8 +4,11 @@
 const NODE_ID_PATTERN = /^node_[A-Za-z0-9_]{1,123}$/;
 const RELAY_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,256}$/;
 const NODE_VERSION_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$/;
-const RELAY_TIMEOUT_MS = 12_000;
-const MAX_BROWSER_BODY_BYTES = 96 * 1024;
+export const RELAY_TIMEOUT_MS = 25_000;
+export const MAX_PENDING_RELAY_REQUESTS = 64;
+// SessionMessageRequest permits 65,536 decoded bytes. JSON escaping can expand
+// control bytes to six source bytes, so relay the full public Node contract.
+const MAX_BROWSER_BODY_BYTES = 512 * 1024;
 const MAX_RELAY_SUFFIX_BYTES = 4 * 1024;
 
 export interface RelayEnv {
@@ -231,6 +234,11 @@ export class NodeRelay {
       || (input.body !== undefined && typeof input.body !== 'string')) {
       return json({ error: 'invalid_relay_request' }, 400);
     }
+    // Durable Object requests can interleave at await points. Reserve the slot only
+    // after parsing, with no await between this check and pending.set below.
+    if (this.pending.size >= MAX_PENDING_RELAY_REQUESTS) {
+      return json({ error: 'relay_busy' }, 429);
+    }
 
     const id = crypto.randomUUID();
     const envelope: RelayRequestEnvelope = {
@@ -280,11 +288,27 @@ function bearerToken(request: Request): string | null {
 async function boundedBody(request: Request): Promise<string | Response> {
   const declared = Number(request.headers.get('Content-Length') || '0');
   if (declared > MAX_BROWSER_BODY_BYTES) return json({ error: 'request_too_large' }, 413);
-  const body = await request.text();
-  if (new TextEncoder().encode(body).byteLength > MAX_BROWSER_BODY_BYTES) {
-    return json({ error: 'request_too_large' }, 413);
+  if (!request.body) return '';
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  const chunks: string[] = [];
+  let received = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += value.byteLength;
+      if (received > MAX_BROWSER_BODY_BYTES) {
+        await reader.cancel('request too large');
+        return json({ error: 'request_too_large' }, 413);
+      }
+      chunks.push(decoder.decode(value, { stream: true }));
+    }
+    chunks.push(decoder.decode());
+    return chunks.join('');
+  } catch {
+    return json({ error: 'invalid_request_body' }, 400);
   }
-  return body;
 }
 
 export async function relayTokenHash(value: string): Promise<string> {

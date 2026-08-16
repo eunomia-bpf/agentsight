@@ -146,6 +146,7 @@ export const nodes = [
 
 export interface MockState {
   messages: unknown[];
+  messageAcceptedAt: number | null;
   nodeListRequests: number;
   deletedNodes: string[];
   signOuts: number;
@@ -172,9 +173,11 @@ export async function mockController(page: Page, options: {
   signedIn?: boolean;
   blockMessages?: boolean;
   nodeListDelayMs?: number;
+  responseDelayMs?: number;
 } = {}) {
   const state: MockState = {
     messages: [], nodeListRequests: 0, deletedNodes: [], signOuts: 0,
+    messageAcceptedAt: null,
     blockMessages: options.blockMessages ?? false, organizations: [], registrations: [], directRequests: [],
   };
   await mockEmbeddedProbe(page);
@@ -259,11 +262,32 @@ export async function mockController(page: Page, options: {
       if (suffix === '/snapshot') return json(route, snapshot);
       if (/^\/sessions\/[^/]+\/messages$/.test(suffix) && request.method() === 'POST') {
         state.messages.push(request.postDataJSON());
-        return state.blockMessages
-          ? json(route, { detail: 'This session is running outside AgentSight.' }, 409)
-          : json(route, { accepted: true }, 202);
+        if (state.blockMessages) {
+          return json(route, { detail: 'This session is running outside AgentSight.' }, 409);
+        }
+        state.messageAcceptedAt = Date.now();
+        return json(route, { accepted: true }, 202);
       }
-      if (/^\/sessions\/[^/]+$/.test(suffix)) return json(route, sessionDetail);
+      if (/^\/sessions\/[^/]+$/.test(suffix)) {
+        const completed = state.messageAcceptedAt !== null
+          && Date.now() - state.messageAcceptedAt >= (options.responseDelayMs ?? 700);
+        if (!completed) return json(route, sessionDetail);
+        const submitted = state.messages.at(-1) as { message?: string } | undefined;
+        return json(route, {
+          ...sessionDetail,
+          events: {
+            ...sessionDetail.events,
+            prompts: [
+              ...sessionDetail.events.prompts,
+              { ts_ms: started + 70_000, text: submitted?.message || 'Follow-up' },
+            ],
+            llm_responses: [
+              ...sessionDetail.events.llm_responses,
+              { ts_ms: started + 71_000, text: 'Browser follow-up complete.', model: 'gpt-5' },
+            ],
+          },
+        });
+      }
     }
     const deletion = path.match(/^\/v1\/nodes\/([^/]+)$/);
     if (deletion && request.method() === 'DELETE') {

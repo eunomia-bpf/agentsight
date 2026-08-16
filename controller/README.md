@@ -100,7 +100,7 @@ The production `agentsight` connection disables builds for non-production branch
 Production deploy command:
 
 ```bash
-npm --prefix controller ci && ./controller/node_modules/.bin/wrangler d1 migrations apply DB --remote --config wrangler.jsonc && ./controller/node_modules/.bin/wrangler deploy --config wrangler.jsonc
+npm --prefix controller ci && ./controller/node_modules/.bin/wrangler deploy --config wrangler.jsonc
 ```
 
 The isolated `agentsight-preview` connection enables builds for non-production branches. Both its deploy and version commands use `wrangler.preview.jsonc`:
@@ -111,6 +111,6 @@ npm --prefix controller ci && ./controller/node_modules/.bin/wrangler d1 migrati
 
 Cloudflare does not generate native version preview URLs for Workers that implement Durable Objects. Non-production builds therefore perform a full deploy to the stable, isolated `agentsight-preview` Worker. That staging Worker has its own workers.dev URL, D1 database, Durable Object namespace, rate-limit namespaces, and Build connection; it never receives production secrets or production data. Each new non-production build replaces the previous staging revision.
 
-D1 migrations run before both production and staging deploys and are idempotent, so each frontend and API deployment comes from the same revision. `npm run deploy` remains available for production recovery/debugging, but it is not the normal production path.
+Production code deployment never applies D1 migrations implicitly. An operator must review and run `npm --prefix controller run migrate:remote` as a separate, explicit maintenance action before deploying a revision that genuinely requires a schema change. This keeps ordinary automatic frontend/API deployments database-compatible and prevents a code merge from mutating production data. Staging remains isolated and may apply its own preview-database migrations before deployment. `npm run deploy` remains available for production recovery/debugging, but it deploys code only and is not the normal production path.
 
 The old `control-plane` path is retained only as a compatibility symlink for existing scripts; new code and documentation should use `controller`.

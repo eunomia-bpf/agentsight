@@ -275,6 +275,7 @@ function nodeClient(nodeId: string, nodeName: string, transport: NodeTransport, 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message }),
+          signal: AbortSignal.timeout(SESSION_REQUEST_TIMEOUT_MS),
         },
       ), 'Message submit failed');
     },

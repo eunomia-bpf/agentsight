@@ -14,7 +14,7 @@ use crate::view::live_top::{LiveCaptureSnapshot, LiveView};
 use agentsight_protocol::{
     PRODUCT, PROTOCOL_VERSION, SessionMessageRequest, session_detail_id, session_message_id,
 };
-use http_body_util::{BodyExt, Full};
+use http_body_util::{BodyExt, Full, LengthLimitError, Limited};
 use hyper::header::{AUTHORIZATION, CACHE_CONTROL, HeaderValue, ORIGIN};
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
@@ -27,6 +27,17 @@ use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::net::TcpListener;
+
+const MAX_CAPABILITY_BODY_BYTES: usize = 16 * 1024;
+// SessionMessageRequest permits 65,536 decoded bytes. JSON escaping can expand
+// control bytes to six source bytes, so preserve the public contract while
+// still bounding authenticated request allocation.
+const MAX_SESSION_MESSAGE_BODY_BYTES: usize = 512 * 1024;
+
+enum BodyReadError {
+    TooLarge,
+    Failed(String),
+}
 
 #[derive(Clone)]
 struct DirectAuth {
@@ -383,21 +394,21 @@ async fn serve_capability_mint_api(
             "Node bootstrap credential required",
         ));
     }
-    let body = match req.into_body().collect().await {
-        Ok(body) => body.to_bytes(),
-        Err(error) => {
+    let body = match read_limited_body(req, MAX_CAPABILITY_BODY_BYTES).await {
+        Ok(body) => body,
+        Err(BodyReadError::TooLarge) => {
+            return Ok(json_error(
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "request too large",
+            ));
+        }
+        Err(BodyReadError::Failed(error)) => {
             return Ok(json_error(
                 StatusCode::BAD_REQUEST,
                 &format!("failed to read request body: {error}"),
             ));
         }
     };
-    if body.len() > 16 * 1024 {
-        return Ok(json_error(
-            StatusCode::PAYLOAD_TOO_LARGE,
-            "request too large",
-        ));
-    }
     let request: CapabilityMintRequest = match serde_json::from_slice(&body) {
         Ok(request) => request,
         Err(error) => {
@@ -583,9 +594,15 @@ async fn serve_session_message_api(
     sessions: Arc<Mutex<SessionCache>>,
     session_id: &str,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
-    let body = match req.into_body().collect().await {
-        Ok(body) => body.to_bytes(),
-        Err(error) => {
+    let body = match read_limited_body(req, MAX_SESSION_MESSAGE_BODY_BYTES).await {
+        Ok(body) => body,
+        Err(BodyReadError::TooLarge) => {
+            return Ok(json_error(
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "request too large",
+            ));
+        }
+        Err(BodyReadError::Failed(error)) => {
             return Ok(json_error(
                 StatusCode::BAD_REQUEST,
                 &format!("failed to read request body: {error}"),
@@ -654,6 +671,27 @@ async fn serve_session_message_api(
         Err(crate::server::session_runtime::SubmitError::Failed(error)) => {
             Ok(json_error(StatusCode::BAD_GATEWAY, &error))
         }
+    }
+}
+
+async fn read_limited_body(
+    req: Request<hyper::body::Incoming>,
+    max_bytes: usize,
+) -> Result<Bytes, BodyReadError> {
+    collect_limited_body(req.into_body(), max_bytes).await
+}
+
+async fn collect_limited_body<B>(body: B, max_bytes: usize) -> Result<Bytes, BodyReadError>
+where
+    B: hyper::body::Body<Data = Bytes>,
+    B::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+{
+    match Limited::new(body, max_bytes).collect().await {
+        Ok(body) => Ok(body.to_bytes()),
+        Err(error) if error.downcast_ref::<LengthLimitError>().is_some() => {
+            Err(BodyReadError::TooLarge)
+        }
+        Err(error) => Err(BodyReadError::Failed(error.to_string())),
     }
 }
 
@@ -842,6 +880,17 @@ mod tests {
             session_detail_id("/api/v1/sessions/session-1/messages"),
             None
         );
+    }
+
+    #[tokio::test]
+    async fn authenticated_request_bodies_are_bounded_while_reading() {
+        let accepted = collect_limited_body(Full::new(Bytes::from_static(b"1234")), 4)
+            .await
+            .unwrap_or_else(|_| panic!("body at the limit should be accepted"));
+        assert_eq!(accepted, Bytes::from_static(b"1234"));
+
+        let rejected = collect_limited_body(Full::new(Bytes::from_static(b"12345")), 4).await;
+        assert!(matches!(rejected, Err(BodyReadError::TooLarge)));
     }
 
     fn test_auth() -> DirectAuth {

@@ -180,7 +180,18 @@ jobs:
               -ContentType "application/json" `
               -Body '{"message":"windows bind smoke"}' `
               -SkipHttpErrorCheck
-            if ([int]$messageProbe.StatusCode -ne 202) {
+            $principal = [Security.Principal.WindowsPrincipal]::new(
+              [Security.Principal.WindowsIdentity]::GetCurrent()
+            )
+            $elevated = $principal.IsInRole(
+              [Security.Principal.WindowsBuiltInRole]::Administrator
+            )
+            if ($elevated) {
+              if ([int]$messageProbe.StatusCode -ne 502 -or
+                  $messageProbe.Content -notmatch "elevated Windows") {
+                throw "elevated agentsight bind did not fail closed before starting the provider"
+              }
+            } elseif ([int]$messageProbe.StatusCode -ne 202) {
               throw "agentsight bind did not submit through the Windows codex.cmd shim"
             }
           } finally {
