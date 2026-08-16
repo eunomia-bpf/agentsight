@@ -378,7 +378,7 @@ impl LiveView {
         }
         if has_ebpf {
             notes.push(
-                "ebpf evidence is live process capture; SSL payload details still require record/stat"
+                "ebpf evidence is live process capture; SSL payload details still require record"
                     .to_string(),
             );
         }

@@ -7,23 +7,28 @@ build-frontend:
 	cd frontend && npm install && npm run build
 
 build-vis:
-	cd agentvis/web && npm ci && npm run build
-	cp agentvis/web/dist/repository-nebula.iife.js agentvis/vendor/vis/
+	cd ext/vis/web && npm ci && npm run build
+	cp ext/vis/web/dist/repository-nebula.iife.js ext/vis/vendor/vis/
 
 build-bpf:
 	make -C bpf
 
 build-rust:
-	cd agentvis && cargo build --release
+	cd ext/vis && cargo build --release
 	cd collector && AGENTSIGHT_SYNC_VENDOR=$(SYNC_VENDOR) cargo build --release
 
 clean:
 	make -C bpf clean
 	cd agentsight-capture && cargo clean
-	cd agentvis && cargo clean
+	cd agentsight-protocol && cargo clean
+	cd ext/analysis && cargo clean
+	cd ext/runtime && cargo clean
+	cd ext/session && cargo clean
+	cd ext/vis && cargo clean
+	cd ext/pprof && cargo clean
 	cd collector && cargo clean
 	cd frontend && rm -rf .next node_modules dist
-	cd agentvis/web && rm -rf node_modules dist
+	cd ext/vis/web && rm -rf node_modules dist
 
 install:
 	sudo apt update
@@ -46,12 +51,18 @@ install:
 test: test-vis
 	make -C bpf test
 	cd agentsight-capture && cargo test
-	cd agentvis && cargo test
+	cd agentsight-protocol && cargo test
+	cd compat/agentsight-capture && cargo test
+	cd ext/analysis && cargo test
+	cd ext/runtime && cargo test
+	cd ext/session && cargo test
+	cd ext/vis && cargo test
+	cd ext/pprof && cargo test
 	cd collector && cargo test
-	cd frontend && npm run build
+	cd frontend && npm run test:workers && npm run build
 
 test-vis:
-	cd agentvis/web && npm ci && npm run build
-	cmp agentvis/web/dist/repository-nebula.iife.js agentvis/vendor/vis/repository-nebula.iife.js
+	cd ext/vis/web && npm ci && npm test && npm run build
+	cmp ext/vis/web/dist/repository-nebula.iife.js ext/vis/vendor/vis/repository-nebula.iife.js
 
 .PHONY: build build-frontend build-vis build-bpf build-rust clean install test test-vis

@@ -3,13 +3,6 @@
 
 import { controllerUrl, type CloudNode } from '@/lib/controllerClient';
 export { registerControllerNode, relayOnline } from '@/lib/controllerClient';
-import initProtocol, {
-  overview_path as overviewPath,
-  session_message_body as sessionMessageBody,
-  session_messages_path as sessionMessagesPath,
-  session_path as sessionPath,
-  snapshot_path as snapshotPath,
-} from '@/generated/agentsight-protocol/agentsight_protocol';
 import type { AgentSightSnapshot, CodingPlanStep, LiveOverview, TokenUsage } from '@/types/event';
 
 const DIRECT_CONNECTIONS_KEY = 'agentsight.direct-connections.v1';
@@ -19,12 +12,16 @@ const REQUEST_TIMEOUT_MS = 12_000;
 const SESSION_REQUEST_TIMEOUT_MS = 30_000;
 const DIRECT_CAPABILITY_TTL_SECONDS = 12 * 60 * 60;
 const DIRECT_ACTIONS = ['node.info', 'evidence.read', 'session.read', 'session.message'];
-let protocolReady: Promise<unknown> | null = null;
 let launchPairing: Promise<DirectProbeResult> | null = null;
 
 type NodeAddressSpace = 'local' | 'loopback';
 type LocalFetchInit = RequestInit & { targetAddressSpace?: NodeAddressSpace };
 type NodeRequest = (path: string, init?: RequestInit) => Promise<Response>;
+
+const snapshotPath = (limit: number) => `/api/v1/snapshot?audit_limit=${limit}`;
+const overviewPath = () => '/api/v1/overview';
+const sessionPath = (id: string) => `/api/v1/sessions/${id}`;
+const sessionMessagesPath = (id: string) => `${sessionPath(id)}/messages`;
 
 export interface LocalConnection {
   endpoint: string;
@@ -89,12 +86,6 @@ export class NodeRequestError extends Error {
     this.name = 'NodeRequestError';
     this.status = status;
   }
-}
-
-async function protocol<T>(read: () => T): Promise<T> {
-  if (!protocolReady) protocolReady = initProtocol();
-  await protocolReady;
-  return read();
 }
 
 function expectedNodeAddressSpace(endpoint: URL): NodeAddressSpace {
@@ -262,28 +253,28 @@ function nodeClient(nodeId: string, nodeName: string, transport: NodeTransport, 
     transport,
     async snapshot() {
       return jsonResponse<AgentSightSnapshot>(
-        await request(await protocol(() => snapshotPath(50_000))), 'AgentSight Node snapshot failed',
+        await request(snapshotPath(50_000)), 'AgentSight Node snapshot failed',
       );
     },
     async overview() {
-      const response = await request(await protocol(() => overviewPath()));
+      const response = await request(overviewPath());
       if (response.status === 404 || response.status === 409) return null;
       return jsonResponse<LiveOverview>(response, 'AgentSight Node overview failed');
     },
     async session(sessionId) {
       return jsonResponse<SessionDetail>(
-        await request(await protocol(() => sessionPath(encodeURIComponent(sessionId))), {
+        await request(sessionPath(encodeURIComponent(sessionId)), {
           signal: AbortSignal.timeout(SESSION_REQUEST_TIMEOUT_MS),
         }), 'Session request failed',
       );
     },
     async submitMessage(sessionId, message) {
       await jsonResponse<unknown>(await request(
-        await protocol(() => sessionMessagesPath(encodeURIComponent(sessionId))),
+        sessionMessagesPath(encodeURIComponent(sessionId)),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: await protocol(() => sessionMessageBody(message)),
+          body: JSON.stringify({ message }),
         },
       ), 'Message submit failed');
     },

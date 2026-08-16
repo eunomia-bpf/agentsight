@@ -57,7 +57,7 @@ sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/
 sudo ./bpf/sslsniff --binary-path <path>
 sudo ./bpf/process -c python
 
-# Web UI available at http://127.0.0.1:7395 when using record/stat live capture.
+# Web UI available at http://127.0.0.1:7395 when using record live capture.
 # debug trace needs --server.
 ```
 
@@ -74,24 +74,21 @@ sudo ./bpf/process -c python
 ## Architecture
 
 ```
-eBPF Programs (kernel) → JSON stdout → Rust Runners → Analyzer Chain → Output/Frontend/Files
+eBPF Programs (kernel) → JSON stdout → Capture Core → Analysis Extension → Output/Web Extension/Files
 ```
 
 ### Key Components
 
 - **`bpf/`** — C eBPF programs. `sslsniff` hooks SSL_read/SSL_write via uprobes; `process` tracks process lifecycle via tracepoints; `stdiocap` captures stdio payloads. All emit JSONL to stdout via the shared `bpf/jsonl.h` helpers. `browsertrace` is experimental (`make experimental`) and not embedded in the collector.
-- **`collector/src/`** — Rust streaming pipeline (flat module layout):
-  - `runners/` — Execute eBPF binaries and parse their JSON output into event streams (BinaryRunner, ProcessRunner, SystemRunner, AgentRunner, FakeRunner for tests)
-  - `analyzers/` — Pluggable stream processors: SSEProcessor, HTTPParser, SSLFilter, HTTPFilter, AuthHeaderRemover, TimestampNormalizer, MaterializingAnalyzer (feeds the materialized view)
-  - `sources/` — Non-eBPF inputs: agent-native session files (`~/.claude`, `~/.codex`, `~/.cursor`), `/proc` snapshots, saved SQLite databases
-  - `view/` — MaterializedView: projects events into rows (llm_calls, audit_events, process_nodes, ...) and serves snapshots
-  - `sinks/` — ViewSink implementations: SQLite row store, OTel exporter (maps LLM call rows to OpenTelemetry `gen_ai.*` spans via OTLP/HTTP JSON; enabled by `debug trace --otel`, see `docs/otel.md`)
-  - `output/` — CLI/TUI rendering of snapshots
-  - `event.rs` — Standardized `Event` struct with JSON payloads; `model.rs` — view row types + ViewSink trait
-  - `binary_extractor.rs` — Extracts embedded eBPF binaries to temp files at runtime
+- **`agentsight-capture/src/`** — Native capture core: runners execute eBPF binaries and normalize their JSON output into event streams; sources ingest agent-native session files, `/proc` snapshots, and saved SQLite databases.
+- **`ext/analysis/src/`** — Analysis extension: pluggable analyzers, the materialized view and row model, SQLite/OTel sinks, and CLI/TUI output.
+- **`ext/session/`** — Reusable agent-native session parsers and the session WebAssembly Component.
+- **`agentsight-protocol/`** — Lightweight transport-independent Node API contract shared by the CLI and native clients.
+- **`ext/runtime/`** — Bounded WebAssembly Component host. It is validated independently and is not linked into the CLI until production Component dispatch is implemented.
 - **`collector/src/main.rs`** — CLI entry point. Main subcommands: `top`, `monitor`, `record`, `report` (`summary`, `token`, `audit`, `prompts`, `export`, `list`), and `debug` (`ssl`, `process`, `stdio`, `trace`, `system`).
 - **`collector/src/server/`** — Hyper-based embedded web server serving frontend assets and `/api/events`
-- **`frontend/`** — Next.js/React/TypeScript visualization with timeline, process tree, and log views
+- **`ext/web/`** — Product web extension: Next.js pages, components, connection logic, and visualization views.
+- **`frontend/`** — Trusted Next.js/Cloudflare build shell, shared assets, and deployment configuration for `ext/web`.
 
 ### Data Flow
 
@@ -116,14 +113,14 @@ This logic is in `build_trace_agent()` in `collector/src/cmd_trace.rs`.
 
 ### Adding a New Analyzer
 
-1. Implement `Analyzer` trait in `collector/src/framework/analyzers/`
-2. Core method: `async fn analyze(&self, events: EventStream) -> EventStream`
+1. Implement `Analyzer` in `ext/analysis/src/analyzers/`
+2. Core method: `fn process(&mut self, events: EventStream) -> Result<EventStream, AnalyzerError>`
 3. Export in `analyzers/mod.rs`
 4. Attach via `.add_analyzer(Box::new(MyAnalyzer::new()))` on any runner
 
 ### Adding a New Runner
 
-1. Implement `Runner` trait in `collector/src/framework/runners/`
+1. Implement `Runner` in `agentsight-capture/src/runners/`
 2. Use `BinaryExecutor` for running external binaries and parsing JSON output
 3. Use fluent builder pattern for configuration
 4. Export in `runners/mod.rs`
@@ -139,7 +136,6 @@ This logic is in `build_trace_agent()` in `collector/src/cmd_trace.rs`.
 
 - **`top`** — Primary live view. All render modes use the same live process and agent-native session path, add eBPF evidence when privileges permit, and fall back when eBPF is unavailable.
 - **`record`** — Optimized recording. Use `sudo ./agentsight record -- <command>` to launch and trace a command, or `sudo ./agentsight record -c <comm>` / `-p <pid>` to attach. It enables SSL, process, stdio when applicable, system monitoring, materialized view sinks, and the web UI by default.
-- **`stat`** — Query the latest saved session, or run `sudo ./agentsight stat -- <command>` and print counters when the command exits.
 - **`report [summary|token|audit|prompts|export|list]`** — Query saved local SQLite sessions; these usually do not need sudo. `report` with no subcommand defaults to `summary`.
 - **`debug trace`** — Most flexible live capture. Toggle `--ssl`, `--process`, `--stdio`, `--system`, and `--server` independently. Supports `--ssl-filter`, `--http-filter`, `--binary-path`, and `--otel`.
 - **`debug ssl` / `debug process` / `debug stdio` / `debug system`** — Raw component-level debug entrypoints. Use `sudo` because they load eBPF probes or inspect privileged process state.

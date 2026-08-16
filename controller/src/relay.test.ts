@@ -11,34 +11,14 @@ test('Node relay socket path accepts only stable Node IDs', () => {
   assert.equal(relayNodeSocketId('/v1/relay/nodes/node_ok/extra'), null);
 });
 
-test('browser relay surface is narrow and maps to Node protocol paths', () => {
+test('browser relay parses supported Node paths before semantic authorization', () => {
   const snapshot = browserRelayRoute(new Request(
-    'https://controller.example/v1/nodes/node_test/relay/snapshot?audit_limit=5000&url=http://evil',
+    'https://controller.example/v1/nodes/node_test/relay/snapshot?audit_limit=5000',
   ));
   assert.deepEqual(snapshot, {
     nodeId: 'node_test',
     method: 'GET',
     nodePath: '/api/v1/snapshot?audit_limit=5000',
-    statusOnly: false,
-  });
-
-  const overview = browserRelayRoute(new Request(
-    'https://controller.example/v1/nodes/node_test/relay/overview',
-  ));
-  assert.deepEqual(overview, {
-    nodeId: 'node_test',
-    method: 'GET',
-    nodePath: '/api/v1/overview',
-    statusOnly: false,
-  });
-
-  const session = browserRelayRoute(new Request(
-    'https://controller.example/v1/nodes/node_test/relay/sessions/session-1',
-  ));
-  assert.deepEqual(session, {
-    nodeId: 'node_test',
-    method: 'GET',
-    nodePath: '/api/v1/sessions/session-1',
     statusOnly: false,
   });
 
@@ -53,8 +33,13 @@ test('browser relay surface is narrow and maps to Node protocol paths', () => {
     statusOnly: false,
   });
 
+  assert.deepEqual(browserRelayRoute(new Request(
+    'https://controller.example/v1/nodes/node_test/relay/status',
+  )), {
+    nodeId: 'node_test', method: 'GET', nodePath: null, statusOnly: true,
+  });
   assert.equal(browserRelayRoute(new Request(
-    'https://controller.example/v1/nodes/node_test/relay/http',
+    'https://controller.example/v1/nodes/node_test/relay/../capabilities',
     { method: 'POST' },
   )), null);
 });

@@ -9,6 +9,7 @@ import {
   normalizeDirectEndpoint, oauthStartAllowed, publicPricing, roleAllows, sha256Base64Url, validNodeId,
 } from './index.ts';
 import {
+  AccessError,
   planAllowsManagedConnectivity,
   planAllowsMultipleMembers,
   registerNode,
@@ -153,6 +154,11 @@ test('relay protocol routes map to the same semantic permissions as direct', () 
   assert.equal(relayAction('GET', '/api/v1/sessions/s-1', false), 'session.read');
   assert.equal(relayAction('POST', '/api/v1/sessions/s-1/messages', false), 'session.message');
   assert.equal(relayAction('GET', null, true), 'node.read');
+  assert.throws(
+    () => relayAction('POST', '/api/v1/ext/security/scan', false),
+    (error: unknown) => error instanceof AccessError
+      && error.status === 403 && error.message === 'permission_denied',
+  );
 });
 
 test('GitHub API requests identify the Controller client', () => {

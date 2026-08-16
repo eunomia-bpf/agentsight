@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build:wasm": "npm exec --package=wasm-pack@0.15.0 -c \"wasm-pack build ../agentsight-protocol --target web --out-dir ../frontend/src/generated/agentsight-protocol --no-pack\"",
-    "predev": "npm run build:wasm",
     "dev": "next dev",
-    "prebuild": "npm run build:wasm",
+    "prepare:extensions": "node scripts/prepare-extension-deps.mjs",
+    "prebuild": "npm run prepare:extensions",
     "build": "next build",
-    "test:workers": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/build-workers.test.mjs src/lib/controllerOrigin.test.mjs src/lib/fleetData.test.mjs src/lib/nodeOpening.test.mjs src/utils/sessionData.test.mjs",
+    "pretest:workers": "npm run prepare:extensions",
+    "test:workers": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test scripts/build-id.test.mjs src/lib/controllerOrigin.test.mjs ../ext/web/lib/fleetData.test.mjs src/lib/nodeOpening.test.mjs ../ext/web/utils/sessionData.test.mjs",
     "test:e2e": "playwright test",
     "start": "next start",
     "lint": "next lint"
