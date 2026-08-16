@@ -747,7 +747,7 @@ async fn serve_session_message_api(
             Ok(result) => Ok(session_message_response(
                 &session.session_id,
                 &session.agent_type,
-                &result.transport,
+                result.transport,
             )),
             Err(crate::server::session_runtime::SubmitError::Conflict(error)) => {
                 Ok(json_error(StatusCode::CONFLICT, &error))
