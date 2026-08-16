@@ -74,6 +74,7 @@ jobs:
           set -euo pipefail
           manifests=(
             agentsight-capture/Cargo.toml
+            agentsight-protocol/Cargo.toml
             compat/agentsight-capture/Cargo.toml
             ext/analysis/Cargo.toml
             ext/runtime/Cargo.toml
@@ -173,7 +174,7 @@ jobs:
             taken=false
             gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && taken=true
             git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1 && taken=true
-            for crate in agentsight agentsight-capture agentsight-capture-core agentsight-analysis agentsight-ext-runtime agentvis agentpprof; do
+            for crate in agentsight agentsight-capture agentsight-capture-core agentsight-protocol agentsight-analysis agentsight-ext-runtime agentvis agentpprof; do
               if exists "$crate" "$VERSION"; then
                 taken=true
               else
@@ -232,6 +233,7 @@ jobs:
 
           git add \
             ext/session/Cargo.toml \
+            agentsight-protocol/Cargo.toml \
             agentsight-capture/Cargo.toml agentsight-capture/vendor \
             compat/agentsight-capture/Cargo.toml \
             ext/analysis/Cargo.toml ext/analysis/ext.toml \

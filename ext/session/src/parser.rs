@@ -179,11 +179,17 @@ pub fn session_candidate_from_path(path: &Path) -> Option<SessionCandidate> {
 /// Parse a session file from a candidate.
 pub fn parse_session_file(candidate: &SessionCandidate) -> Option<AgentSession> {
     let content = fs::read_to_string(&candidate.path).ok()?;
-    parse_session_content(
+    let cursor_children = if candidate.agent == AGENT_CURSOR {
+        read_cursor_subagents(&candidate.path)
+    } else {
+        Vec::new()
+    };
+    parse_session_impl(
         candidate.agent,
         &candidate.path,
         candidate.updated,
         &content,
+        &cursor_children,
     )
 }
 
@@ -199,7 +205,7 @@ pub fn parse_session_content(
     updated: SystemTime,
     content: &str,
 ) -> Option<AgentSession> {
-    parse_session_impl(agent, path, updated, content)
+    parse_session_impl(agent, path, updated, content, &[])
 }
 
 fn parse_session_impl(
@@ -207,13 +213,12 @@ fn parse_session_impl(
     path: &Path,
     updated: SystemTime,
     content: &str,
+    cursor_children: &[(PathBuf, String)],
 ) -> Option<AgentSession> {
     if agent == AGENT_GEMINI {
         parse_gemini_json(path, updated, content)
     } else if agent == AGENT_CURSOR {
-        // Read siblings here so the parser stays a pure function of its inputs.
-        let children = read_cursor_subagents(path);
-        parse_cursor_jsonl(path, updated, content, &children)
+        parse_cursor_jsonl(path, updated, content, cursor_children)
     } else {
         parse_jsonl(agent, path, updated, content)
     }
@@ -3695,7 +3700,7 @@ fn system_time_ms(value: SystemTime) -> u64 {
 mod tests {
     use super::*;
     use serde_json::json;
-    use std::time::UNIX_EPOCH;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     // A parent transcript that both delegates and works directly, since Cursor mixes both.
     fn cursor_parent_fixture() -> String {
@@ -3742,6 +3747,40 @@ mod tests {
         assert_eq!(session.events.prompts[1].index, 1);
         assert_eq!(session.events.llm_responses[1].prompt_index, 1);
         assert_eq!(session.prompt_preview.as_deref(), Some("create hello.py"));
+    }
+
+    #[test]
+    fn cursor_file_discovery_aggregates_children_but_content_parsing_stays_pure() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "agentsight-cursor-parser-{}-{unique}",
+            std::process::id()
+        ));
+        let parent_dir = root.join("session");
+        let child_dir = parent_dir.join("subagents");
+        fs::create_dir_all(&child_dir).expect("create fixture directories");
+        let parent = parent_dir.join("session.jsonl");
+        let parent_content = cursor_parent_fixture();
+        fs::write(&parent, &parent_content).expect("write parent transcript");
+        fs::write(child_dir.join("child.jsonl"), cursor_subagent_fixture())
+            .expect("write child transcript");
+
+        let candidate = SessionCandidate {
+            agent: AGENT_CURSOR,
+            path: parent.clone(),
+            updated: UNIX_EPOCH,
+        };
+        let from_file = parse_session_file(&candidate).expect("file session");
+        let from_content =
+            parse_session_content(AGENT_CURSOR, &parent, UNIX_EPOCH, &parent_content)
+                .expect("content session");
+
+        assert_eq!(from_file.tools.get("Write"), Some(&1));
+        assert_eq!(from_content.tools.get("Write"), None);
+        fs::remove_dir_all(root).expect("remove fixture directories");
     }
 
     #[test]

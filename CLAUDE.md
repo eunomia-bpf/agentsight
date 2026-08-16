@@ -83,7 +83,8 @@ eBPF Programs (kernel) → JSON stdout → Capture Core → Analysis Extension �
 - **`agentsight-capture/src/`** — Native capture core: runners execute eBPF binaries and normalize their JSON output into event streams; sources ingest agent-native session files, `/proc` snapshots, and saved SQLite databases.
 - **`ext/analysis/src/`** — Analysis extension: pluggable analyzers, the materialized view and row model, SQLite/OTel sinks, and CLI/TUI output.
 - **`ext/session/`** — Reusable agent-native session parsers and the session WebAssembly Component.
-- **`ext/runtime/`** — Bounded WebAssembly Component host plus the shared HTTP/session protocol helpers.
+- **`agentsight-protocol/`** — Lightweight transport-independent Node API contract shared by the CLI and native clients.
+- **`ext/runtime/`** — Bounded WebAssembly Component host. It is validated independently and is not linked into the CLI until production Component dispatch is implemented.
 - **`collector/src/main.rs`** — CLI entry point. Main subcommands: `top`, `monitor`, `record`, `report` (`summary`, `token`, `audit`, `prompts`, `export`, `list`), and `debug` (`ssl`, `process`, `stdio`, `trace`, `system`).
 - **`collector/src/server/`** — Hyper-based embedded web server serving frontend assets and `/api/events`
 - **`ext/web/`** — Product web extension: Next.js pages, components, connection logic, and visualization views.

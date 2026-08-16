@@ -1,40 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use serde::Deserialize;
 use wasmtime::component::{Component, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store, StoreLimits, StoreLimitsBuilder};
 use wasmtime_wasi::{WasiCtx, WasiCtxView, WasiView};
-
-pub const PROTOCOL_VERSION: u32 = 1;
-pub const PRODUCT: &str = "agentsight";
-
-#[derive(Debug, Deserialize)]
-pub struct SessionMessageRequest {
-    pub message: String,
-}
-
-impl SessionMessageRequest {
-    pub fn validate(self) -> Result<String, &'static str> {
-        let message = self.message.trim();
-        if message.is_empty() || message.len() > 65_536 {
-            return Err("message must contain 1-65536 bytes");
-        }
-        Ok(message.to_string())
-    }
-}
-
-pub fn session_detail_id(path: &str) -> Option<&str> {
-    let value = path.strip_prefix("/api/v1/sessions/")?;
-    (!value.is_empty() && !value.ends_with("/messages") && !value.contains('/')).then_some(value)
-}
-
-pub fn session_message_id(path: &str) -> Option<&str> {
-    let value = path
-        .strip_prefix("/api/v1/sessions/")?
-        .strip_suffix("/messages")?;
-    (!value.is_empty() && !value.contains('/')).then_some(value)
-}
 
 const DEFAULT_MEMORY_BYTES: usize = 16 * 1024 * 1024;
 const DEFAULT_FUEL: u64 = 10_000_000;
@@ -124,42 +93,5 @@ impl ExtRuntime {
                 ),
             )?
             .0)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::SessionMessageRequest;
-
-    #[test]
-    fn session_message_validation_preserves_the_public_contract() {
-        assert_eq!(
-            SessionMessageRequest {
-                message: "  hello  ".into()
-            }
-            .validate(),
-            Ok("hello".into())
-        );
-        assert_eq!(
-            SessionMessageRequest {
-                message: " \n\t ".into()
-            }
-            .validate(),
-            Err("message must contain 1-65536 bytes")
-        );
-        assert!(
-            SessionMessageRequest {
-                message: "x".repeat(65_536)
-            }
-            .validate()
-            .is_ok()
-        );
-        assert_eq!(
-            SessionMessageRequest {
-                message: "x".repeat(65_537)
-            }
-            .validate(),
-            Err("message must contain 1-65536 bytes")
-        );
     }
 }

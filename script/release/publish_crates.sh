@@ -74,6 +74,7 @@ publish_one() {
 
 # Dependency order matters for crates.io resolution of path dependencies.
 publish_one agent-session          ext/session/Cargo.toml          "$SESSION_VERSION"
+publish_one agentsight-protocol    agentsight-protocol/Cargo.toml   "$VERSION"
 publish_one agentsight-capture-core agentsight-capture/Cargo.toml  "$VERSION"
 publish_one agentsight-ext-runtime ext/runtime/Cargo.toml          "$VERSION"
 publish_one agentsight-analysis    ext/analysis/Cargo.toml         "$VERSION"

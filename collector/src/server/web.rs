@@ -638,7 +638,7 @@ async fn serve_session_message_api(
         }
     };
 
-    match launch_session_message(&session, &message).await {
+    match launch_session_message(&session, message).await {
         Ok(result) => Ok(json_response(
             StatusCode::ACCEPTED,
             &serde_json::json!({

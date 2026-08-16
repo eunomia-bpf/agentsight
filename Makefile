@@ -20,6 +20,7 @@ build-rust:
 clean:
 	make -C bpf clean
 	cd agentsight-capture && cargo clean
+	cd agentsight-protocol && cargo clean
 	cd ext/analysis && cargo clean
 	cd ext/runtime && cargo clean
 	cd ext/session && cargo clean
@@ -50,6 +51,7 @@ install:
 test: test-vis
 	make -C bpf test
 	cd agentsight-capture && cargo test
+	cd agentsight-protocol && cargo test
 	cd compat/agentsight-capture && cargo test
 	cd ext/analysis && cargo test
 	cd ext/runtime && cargo test

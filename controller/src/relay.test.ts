@@ -11,7 +11,7 @@ test('Node relay socket path accepts only stable Node IDs', () => {
   assert.equal(relayNodeSocketId('/v1/relay/nodes/node_ok/extra'), null);
 });
 
-test('browser relay transports Node paths without knowing product routes', () => {
+test('browser relay parses supported Node paths before semantic authorization', () => {
   const snapshot = browserRelayRoute(new Request(
     'https://controller.example/v1/nodes/node_test/relay/snapshot?audit_limit=5000',
   ));
@@ -30,17 +30,6 @@ test('browser relay transports Node paths without knowing product routes', () =>
     nodeId: 'node_test',
     method: 'POST',
     nodePath: '/api/v1/sessions/session-1/messages',
-    statusOnly: false,
-  });
-
-  const extension = browserRelayRoute(new Request(
-    'https://controller.example/v1/nodes/node_test/relay/ext/security/scan',
-    { method: 'POST' },
-  ));
-  assert.deepEqual(extension, {
-    nodeId: 'node_test',
-    method: 'POST',
-    nodePath: '/api/v1/ext/security/scan',
     statusOnly: false,
   });
 

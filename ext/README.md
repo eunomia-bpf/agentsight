@@ -13,8 +13,17 @@ abstraction.
 Current extensions:
 
 - `session`: portable agent-session parsing and correlation; exports a
-  `wasm32-wasip2` Component Model entrypoint through WIT.
+  `wasm32-wasip2` Component Model entrypoint for one host-supplied transcript
+  through WIT. Native discovery retains filesystem and Cursor subagent
+  aggregation responsibilities.
 - `pprof`: semantic agent profiling.
 - `vis`: repository-evolution visualization.
 - `web`: built-in product presentation components; the trusted frontend shell
   remains in `frontend/`.
+
+Only `session` currently exports and executes a WebAssembly Component. The
+analysis, pprof, vis, and web directories establish native or build-time product
+boundaries; runtime discovery, extension-defined CLI commands, and opaque
+Controller-to-Node extension routing remain follow-up work. Published crate and
+binary names stay stable, while repository source paths under `ext/` are the
+canonical cross-platform paths (root symlink aliases are intentionally avoided).

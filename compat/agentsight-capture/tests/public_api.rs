@@ -5,7 +5,13 @@ use agentsight_capture::{
     Event, MaterializedView,
     analyzers::{Analyzer, AnalyzerError},
     model::SessionRow,
-    runners::{AgentRunner, EventStream, Runner, RunnerError},
+    runners::{
+        AgentRunner, EventStream, Runner, RunnerError,
+        agent::AgentRunner as NestedAgentRunner,
+        common::BinaryRunner as NestedBinaryRunner,
+        process::ProcessRunner as NestedProcessRunner,
+        system::{SystemConfig as NestedSystemConfig, SystemRunner as NestedSystemRunner},
+    },
     sinks::sqlite::SqliteStore,
     sources::agent_native,
     view::SharedMaterializedView,
@@ -39,6 +45,12 @@ impl Analyzer for PassthroughAnalyzer {
 
 #[tokio::test]
 async fn legacy_capture_and_analysis_imports_still_compile_and_run() {
+    let _: Option<NestedAgentRunner> = None;
+    let _: Option<NestedBinaryRunner> = None;
+    let _: Option<NestedProcessRunner> = None;
+    let _: Option<NestedSystemConfig> = None;
+    let _: Option<NestedSystemRunner> = None;
+
     let runner = InMemoryRunner {
         events: vec![Event::new_with_timestamp(
             1_000_000,

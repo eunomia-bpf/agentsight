@@ -27,9 +27,25 @@ jobs:
 
       - name: Test portable capture and native CLI
         run: |
+          cargo test --manifest-path agentsight-protocol/Cargo.toml
           cargo test --manifest-path agentsight-capture/Cargo.toml
           cargo test --manifest-path compat/agentsight-capture/Cargo.toml
           cargo test --manifest-path collector/Cargo.toml
+
+      - name: Verify canonical cross-platform source layout
+        shell: pwsh
+        run: |
+          $manifests = @(
+            "agentsight-protocol/Cargo.toml",
+            "ext/session/Cargo.toml",
+            "ext/pprof/Cargo.toml",
+            "ext/vis/Cargo.toml"
+          )
+          foreach ($manifest in $manifests) {
+            if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) {
+              throw "missing canonical manifest: $manifest"
+            }
+          }
 
       - name: Test frontend shell and web extensions
         run: |

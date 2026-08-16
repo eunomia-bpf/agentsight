@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_VERSIONS = {
     "collector/Cargo.toml": "release",
     "agentsight-capture/Cargo.toml": "release",
+    "agentsight-protocol/Cargo.toml": "release",
     "compat/agentsight-capture/Cargo.toml": "release",
     "ext/analysis/Cargo.toml": "release",
     "ext/runtime/Cargo.toml": "release",
