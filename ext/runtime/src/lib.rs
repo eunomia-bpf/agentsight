@@ -17,11 +17,8 @@ pub struct SessionMessageRequest {
 impl SessionMessageRequest {
     pub fn validate(self) -> Result<String, &'static str> {
         let message = self.message.trim();
-        if message.is_empty() {
-            return Err("message_required");
-        }
-        if message.len() > 16 * 1024 {
-            return Err("message_too_large");
+        if message.is_empty() || message.len() > 65_536 {
+            return Err("message must contain 1-65536 bytes");
         }
         Ok(message.to_string())
     }
@@ -33,7 +30,9 @@ pub fn session_detail_id(path: &str) -> Option<&str> {
 }
 
 pub fn session_message_id(path: &str) -> Option<&str> {
-    let value = path.strip_prefix("/api/v1/sessions/")?.strip_suffix("/messages")?;
+    let value = path
+        .strip_prefix("/api/v1/sessions/")?
+        .strip_suffix("/messages")?;
     (!value.is_empty() && !value.contains('/')).then_some(value)
 }
 
@@ -72,7 +71,9 @@ impl ExtRuntime {
     pub fn new() -> Result<Self, wasmtime::Error> {
         let mut config = Config::new();
         config.consume_fuel(true);
-        Ok(Self { engine: Engine::new(&config)? })
+        Ok(Self {
+            engine: Engine::new(&config)?,
+        })
     }
 
     fn store(&self) -> Result<Store<ExtStore>, wasmtime::Error> {
@@ -110,12 +111,55 @@ impl ExtRuntime {
         let mut store = self.store()?;
         let instance = linker.instantiate(&mut store, &component)?;
         let parse = instance.get_typed_func::<(String, String, u64, String), (Option<String>,)>(
-            &mut store,
-            "parse",
+            &mut store, "parse",
         )?;
-        Ok(parse.call(
-            &mut store,
-            (agent.to_owned(), path.to_owned(), updated_ms, content.to_owned()),
-        )?.0)
+        Ok(parse
+            .call(
+                &mut store,
+                (
+                    agent.to_owned(),
+                    path.to_owned(),
+                    updated_ms,
+                    content.to_owned(),
+                ),
+            )?
+            .0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SessionMessageRequest;
+
+    #[test]
+    fn session_message_validation_preserves_the_public_contract() {
+        assert_eq!(
+            SessionMessageRequest {
+                message: "  hello  ".into()
+            }
+            .validate(),
+            Ok("hello".into())
+        );
+        assert_eq!(
+            SessionMessageRequest {
+                message: " \n\t ".into()
+            }
+            .validate(),
+            Err("message must contain 1-65536 bytes")
+        );
+        assert!(
+            SessionMessageRequest {
+                message: "x".repeat(65_536)
+            }
+            .validate()
+            .is_ok()
+        );
+        assert_eq!(
+            SessionMessageRequest {
+                message: "x".repeat(65_537)
+            }
+            .validate(),
+            Err("message must contain 1-65536 bytes")
+        );
     }
 }

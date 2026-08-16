@@ -17,7 +17,7 @@ cargo install agentpprof
 From this repository:
 
 ```bash
-cargo run --manifest-path agentpprof/Cargo.toml -- -o agent.pb.gz
+cargo run --manifest-path ext/pprof/Cargo.toml -- -o agent.pb.gz
 ```
 
 ## pprof Output
@@ -141,5 +141,5 @@ one.
 ## Development
 
 ```bash
-cargo test --manifest-path agentpprof/Cargo.toml
+cargo test --manifest-path ext/pprof/Cargo.toml
 ```

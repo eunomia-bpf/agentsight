@@ -168,7 +168,7 @@ LLM 标签默认缓存在 `$XDG_CACHE_HOME/agentpprof/tags.json`。LLM 标签器
 agentpprof --project-root . --format json -o prompts.json
 
 # 聚类并生成标签缓存
-python agentpprof/backend/python/cluster_tagger.py \
+python ext/pprof/backend/python/cluster_tagger.py \
   --input prompts.json --output tags.json --show-info
 
 # 使用标签缓存
@@ -214,8 +214,8 @@ eval(V, O) = { (s, w_s) : w_s = Σ w(o), 对所有 o ∈ O 满足 φ(o) 且 σ(o
 从源码构建：
 
 ```bash
-cargo run --manifest-path agentpprof/Cargo.toml -- --version
-cargo run --manifest-path agentpprof/Cargo.toml -- -o agent.pb.gz
+cargo run --manifest-path ext/pprof/Cargo.toml -- --version
+cargo run --manifest-path ext/pprof/Cargo.toml -- -o agent.pb.gz
 ```
 
 ## 第一个 profile

@@ -239,7 +239,7 @@ clustering, requiring no predefined rules:
 agentpprof --project-root . --format json -o prompts.json
 
 # Cluster and generate tag cache
-python agentpprof/backend/python/cluster_tagger.py \
+python ext/pprof/backend/python/cluster_tagger.py \
   --input prompts.json --output tags.json --show-info
 
 # Use the tag cache
@@ -260,8 +260,8 @@ and smoke-tests both `agentsight` and `agentpprof` from the same release tag.
 From a source checkout:
 
 ```bash
-cargo run --manifest-path agentpprof/Cargo.toml -- --version
-cargo run --manifest-path agentpprof/Cargo.toml -- -o agent.pb.gz
+cargo run --manifest-path ext/pprof/Cargo.toml -- --version
+cargo run --manifest-path ext/pprof/Cargo.toml -- -o agent.pb.gz
 ```
 
 ## First profile

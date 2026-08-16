@@ -7,7 +7,9 @@ const path = require('path');
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 const buildIdInputs = [
-  'src', '../ext/web', 'public', 'package.json', 'package-lock.json',
+  'src', '../ext/web/ext.toml', '../ext/web/page.tsx', '../ext/web/components',
+  '../ext/web/lib', '../ext/web/types', '../ext/web/utils',
+  'public', 'package.json', 'package-lock.json',
   'yarn.lock', 'postcss.config.mjs', 'tailwind.config.ts', 'tsconfig.json', 'next.config.js',
 ];
 

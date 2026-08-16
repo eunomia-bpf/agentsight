@@ -74,6 +74,7 @@ jobs:
           set -euo pipefail
           manifests=(
             agentsight-capture/Cargo.toml
+            compat/agentsight-capture/Cargo.toml
             ext/analysis/Cargo.toml
             ext/runtime/Cargo.toml
             ext/session/Cargo.toml
@@ -99,7 +100,7 @@ jobs:
           node script/npm/sync-version.mjs
           node script/npm/prepare-agentsight.mjs
           npm --prefix package/npm/agentsight test
-          npm --prefix package/npm/agentsight pack --dry-run
+          (cd package/npm/agentsight && npm pack --dry-run)
 
       - name: E2E latest agent CLI canary
         run: script/e2e/latest_agent_cli_canary.sh
@@ -155,8 +156,14 @@ jobs:
         run: |
           set -euo pipefail
           exists() {
-            curl --retry 3 --retry-delay 2 -A "agentsight-release-ci (${GITHUB_REPOSITORY})" \
-              -fsS "https://crates.io/api/v1/crates/$1/$2" >/dev/null 2>&1
+            local status
+            status="$(curl --retry 3 --retry-delay 2 -A "agentsight-release-ci (${GITHUB_REPOSITORY})" \
+              -sS -o /dev/null -w '%{http_code}' "https://crates.io/api/v1/crates/$1/$2")"
+            case "$status" in
+              200) return 0 ;;
+              404) return 1 ;;
+              *) echo "crates.io returned HTTP ${status} for $1 $2" >&2; return 2 ;;
+            esac
           }
           BASE="$(sed -n 's/^version = "\([^"]*\)"/\1/p' collector/Cargo.toml | head -1)"
           IFS=. read -r MAJOR MINOR PATCH <<< "$BASE"
@@ -166,8 +173,13 @@ jobs:
             taken=false
             gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && taken=true
             git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1 && taken=true
-            for crate in agentsight agentsight-capture agentsight-analysis agentsight-ext-runtime agentvis agentpprof; do
-              exists "$crate" "$VERSION" && taken=true
+            for crate in agentsight agentsight-capture agentsight-capture-core agentsight-analysis agentsight-ext-runtime agentvis agentpprof; do
+              if exists "$crate" "$VERSION"; then
+                taken=true
+              else
+                status=$?
+                [[ "$status" == 1 ]] || exit "$status"
+              fi
             done
             [[ "$taken" == false ]] && break
             PATCH=$((PATCH + 1))
@@ -177,9 +189,15 @@ jobs:
           SESSION_BASE="$(sed -n 's/^version = "\([^"]*\)"/\1/p' ext/session/Cargo.toml | head -1)"
           IFS=. read -r SMAJ SMIN SPATCH <<< "$SESSION_BASE"
           SESSION_VERSION="$SESSION_BASE"
-          while exists agent-session "$SESSION_VERSION"; do
-            SPATCH=$((SPATCH + 1))
-            SESSION_VERSION="${SMAJ}.${SMIN}.${SPATCH}"
+          while true; do
+            if exists agent-session "$SESSION_VERSION"; then
+              SPATCH=$((SPATCH + 1))
+              SESSION_VERSION="${SMAJ}.${SMIN}.${SPATCH}"
+              continue
+            fi
+            status=$?
+            [[ "$status" == 1 ]] || exit "$status"
+            break
           done
 
           python3 script/release/set_versions.py "$VERSION" "$SESSION_VERSION"
@@ -215,7 +233,10 @@ jobs:
           git add \
             ext/session/Cargo.toml \
             agentsight-capture/Cargo.toml agentsight-capture/vendor \
-            ext/analysis/Cargo.toml ext/runtime/Cargo.toml \
+            compat/agentsight-capture/Cargo.toml \
+            ext/analysis/Cargo.toml ext/analysis/ext.toml \
+            ext/runtime/Cargo.toml ext/runtime/ext.toml \
+            ext/web/ext.toml \
             ext/vis/Cargo.toml ext/vis/Cargo.lock ext/vis/vendor \
             ext/pprof/Cargo.toml ext/pprof/Cargo.lock \
             collector/Cargo.toml collector/Cargo.lock collector/vendor

@@ -171,7 +171,7 @@ The useful derived entities are:
 
 | Entity | Meaning | Typical source |
 | --- | --- | --- |
-| Run | One recorded agent session | `record`, `stat -- <cmd>`, attach session |
+| Run | One recorded agent session | `record -- <cmd>`, attach session |
 | Intent | User prompt, model call, tool decision, plan step | TLS payload, local transcript, adapter |
 | Effect | Process exec/exit, file operation, network host, resource sample | eBPF/system runner |
 | Attribution edge | Why this effect is linked to this intent | timestamp, PID/tree, cwd, tool payload, adapter |

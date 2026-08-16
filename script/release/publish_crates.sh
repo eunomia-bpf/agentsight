@@ -32,8 +32,36 @@ publish_one() {
     echo "$crate $version already exists; skipping"
     return
   fi
-  CARGO_TARGET_DIR="/tmp/agentsight-package-${crate}" cargo package --manifest-path "$manifest"
-  cargo publish --manifest-path "$manifest"
+  local packaged=false
+  for attempt in 1 2 3 4 5 6; do
+    if CARGO_TARGET_DIR="/tmp/agentsight-package-${crate}" cargo package --manifest-path "$manifest"; then
+      packaged=true
+      break
+    fi
+    echo "$crate package attempt $attempt failed; waiting for registry index propagation" >&2
+    sleep $((attempt * 10))
+  done
+  if [[ "$packaged" != true ]]; then
+    echo "$crate $version could not be packaged" >&2
+    exit 1
+  fi
+
+  local published=false
+  for attempt in 1 2 3; do
+    if cargo publish --manifest-path "$manifest"; then
+      published=true
+      break
+    fi
+    if exists "$crate" "$version"; then
+      return
+    fi
+    echo "$crate publish attempt $attempt failed; retrying" >&2
+    sleep $((attempt * 10))
+  done
+  if [[ "$published" != true ]]; then
+    echo "$crate $version could not be published" >&2
+    exit 1
+  fi
   for attempt in 1 2 3 4 5 6; do
     if exists "$crate" "$version"; then
       return
@@ -46,9 +74,10 @@ publish_one() {
 
 # Dependency order matters for crates.io resolution of path dependencies.
 publish_one agent-session          ext/session/Cargo.toml          "$SESSION_VERSION"
-publish_one agentsight-capture     agentsight-capture/Cargo.toml   "$VERSION"
+publish_one agentsight-capture-core agentsight-capture/Cargo.toml  "$VERSION"
 publish_one agentsight-ext-runtime ext/runtime/Cargo.toml          "$VERSION"
 publish_one agentsight-analysis    ext/analysis/Cargo.toml         "$VERSION"
+publish_one agentsight-capture     compat/agentsight-capture/Cargo.toml "$VERSION"
 publish_one agentvis               ext/vis/Cargo.toml              "$VERSION"
 publish_one agentpprof             ext/pprof/Cargo.toml            "$VERSION"
 publish_one agentsight             collector/Cargo.toml            "$VERSION"

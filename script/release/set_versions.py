@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_VERSIONS = {
     "collector/Cargo.toml": "release",
     "agentsight-capture/Cargo.toml": "release",
+    "compat/agentsight-capture/Cargo.toml": "release",
     "ext/analysis/Cargo.toml": "release",
     "ext/runtime/Cargo.toml": "release",
     "ext/vis/Cargo.toml": "release",
@@ -19,8 +20,15 @@ PACKAGE_VERSIONS = {
     "ext/session/Cargo.toml": "session",
 }
 
+EXTENSION_VERSIONS = {
+    "ext/analysis/ext.toml": "release",
+    "ext/runtime/ext.toml": "release",
+    "ext/web/ext.toml": "release",
+}
+
 DEPENDENCIES = {
     "agentsight-capture/Cargo.toml": {"agent-session": "session"},
+    "compat/agentsight-capture/Cargo.toml": {"agentsight-analysis": "release"},
     "ext/analysis/Cargo.toml": {
         "agentsight-capture-core": "release",
         "agent-session": "session",
@@ -72,6 +80,19 @@ def update_manifest(path: Path, release: str, session: str) -> None:
     path.write_text(text)
 
 
+def update_extension_metadata(path: Path, release: str, session: str) -> None:
+    relative = path.relative_to(ROOT).as_posix()
+    text = path.read_text()
+    version = release if EXTENSION_VERSIONS[relative] == "release" else session
+    text = replace_once(
+        text,
+        r'^(version\s*=\s*")[^"]+("\s*)$',
+        rf'\g<1>{version}\2',
+        f"extension version in {relative}",
+    )
+    path.write_text(text)
+
+
 def main() -> None:
     if len(sys.argv) != 3:
         raise SystemExit("usage: set_versions.py RELEASE_VERSION SESSION_VERSION")
@@ -80,6 +101,8 @@ def main() -> None:
         raise SystemExit("versions must be semver patch versions")
     for relative in PACKAGE_VERSIONS:
         update_manifest(ROOT / relative, release, session)
+    for relative in EXTENSION_VERSIONS:
+        update_extension_metadata(ROOT / relative, release, session)
 
 
 if __name__ == "__main__":

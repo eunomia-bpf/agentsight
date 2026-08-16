@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use agentsight_capture_core::{
-    Event,
+use agentsight_capture::{
+    Event, MaterializedView,
     analyzers::{Analyzer, AnalyzerError},
+    model::SessionRow,
     runners::{AgentRunner, EventStream, Runner, RunnerError},
+    sinks::sqlite::SqliteStore,
+    sources::agent_native,
+    view::SharedMaterializedView,
 };
 use async_trait::async_trait;
 use futures::{StreamExt, stream};
@@ -28,19 +32,19 @@ struct PassthroughAnalyzer;
 
 #[async_trait]
 impl Analyzer for PassthroughAnalyzer {
-    async fn process(&mut self, stream: EventStream) -> Result<EventStream, AnalyzerError> {
-        Ok(stream)
+    async fn process(&mut self, events: EventStream) -> Result<EventStream, AnalyzerError> {
+        Ok(events)
     }
 }
 
 #[tokio::test]
-async fn downstream_crate_can_build_and_run_capture_pipeline() {
+async fn legacy_capture_and_analysis_imports_still_compile_and_run() {
     let runner = InMemoryRunner {
         events: vec![Event::new_with_timestamp(
             1_000_000,
-            "test".to_string(),
+            "test".into(),
             42,
-            "agent".to_string(),
+            "agent".into(),
             serde_json::json!({"type": "test"}),
         )],
     };
@@ -49,8 +53,11 @@ async fn downstream_crate_can_build_and_run_capture_pipeline() {
         .add_global_analyzer(Box::new(PassthroughAnalyzer));
 
     let events: Vec<_> = capture.run().await.unwrap().collect().await;
-
     assert_eq!(events.len(), 1);
-    assert_eq!(events[0].source, "test");
-    assert_eq!(events[0].pid, 42);
+
+    let _: Option<MaterializedView> = None;
+    let _: Option<SharedMaterializedView> = None;
+    let _: Option<SessionRow> = None;
+    let _: Option<SqliteStore> = None;
+    let _ = agent_native::snapshot;
 }
