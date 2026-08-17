@@ -98,6 +98,16 @@ the `agentsight` package and is the library's primary consumer.
 
 ### Installation
 
+#### Homebrew on Linux
+
+```bash
+brew tap eunomia-bpf/tap
+brew install eunomia-bpf/tap/agentsight
+agentsight --version
+```
+
+The current Homebrew formula supports Linux x86-64.
+
 #### Cargo or Release Binary
 
 For local use, install with `cargo install agentsight` or download the latest
