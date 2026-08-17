@@ -579,27 +579,8 @@ async fn inspect_container_execution(
     container: &str,
 ) -> Result<ContainerExecution, ContainerBridgeError> {
     validate_container_name(container).map_err(ContainerBridgeError::Failed)?;
-    let mut command = Command::new("docker");
-    command.kill_on_drop(true).args(["inspect", container]);
-    let output = tokio::time::timeout(DOCKER_COMMAND_TIMEOUT, command.output())
-        .await
-        .map_err(|_| {
-            ContainerBridgeError::Failed(format!(
-                "Docker inspect for {container} timed out after {} seconds",
-                DOCKER_COMMAND_TIMEOUT.as_secs()
-            ))
-        })?
-        .map_err(|error| {
-            ContainerBridgeError::Failed(format!(
-                "failed to inspect Docker container {container}: {error}"
-            ))
-        })?;
-    if !output.status.success() {
-        return Err(ContainerBridgeError::Failed(format!(
-            "Docker container {container} is unavailable: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        )));
-    }
+    let operation = format!("Docker inspect for {container}");
+    let output = run_docker(&["inspect", container], &operation).await?;
     let inspected: Value = serde_json::from_slice(&output.stdout).map_err(|error| {
         ContainerBridgeError::Failed(format!("invalid docker inspect response: {error}"))
     })?;
@@ -661,29 +642,8 @@ fn is_root_container_user(value: &str) -> bool {
 }
 
 async fn inspect_path_owner(container: &str, path: &str) -> Result<String, ContainerBridgeError> {
-    let mut command = Command::new("docker");
-    command
-        .kill_on_drop(true)
-        .args(["exec", container, "stat", "-c", "%u", path]);
-    let output = tokio::time::timeout(DOCKER_COMMAND_TIMEOUT, command.output())
-        .await
-        .map_err(|_| {
-            ContainerBridgeError::Failed(format!(
-                "Docker owner lookup for {path} in {container} timed out after {} seconds",
-                DOCKER_COMMAND_TIMEOUT.as_secs()
-            ))
-        })?
-        .map_err(|error| {
-            ContainerBridgeError::Failed(format!(
-                "failed to inspect {path} owner in Docker container {container}: {error}"
-            ))
-        })?;
-    if !output.status.success() {
-        return Err(ContainerBridgeError::Failed(format!(
-            "could not resolve the agent user from {path} in Docker container {container}: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        )));
-    }
+    let operation = format!("Docker owner lookup for {path} in {container}");
+    let output = run_docker(&["exec", container, "stat", "-c", "%u", path], &operation).await?;
     let uid = String::from_utf8_lossy(&output.stdout).trim().to_string();
     if uid.is_empty() || !uid.bytes().all(|byte| byte.is_ascii_digit()) {
         return Err(ContainerBridgeError::Failed(format!(
@@ -694,16 +654,8 @@ async fn inspect_path_owner(container: &str, path: &str) -> Result<String, Conta
 }
 
 async fn inspect_user_home(container: &str, user: &str) -> Result<String, ContainerBridgeError> {
-    let mut command = Command::new("docker");
-    command
-        .kill_on_drop(true)
-        .args(["exec", container, "getent", "passwd", user]);
-    let output = tokio::time::timeout(DOCKER_COMMAND_TIMEOUT, command.output())
-        .await
-        .map_err(|_| ContainerBridgeError::Failed("Docker user lookup timed out".into()))?
-        .map_err(|error| {
-            ContainerBridgeError::Failed(format!("Docker user lookup failed: {error}"))
-        })?;
+    let operation = format!("Docker user lookup for {user:?} in {container}");
+    let output = run_docker(&["exec", container, "getent", "passwd", user], &operation).await?;
     let passwd = String::from_utf8_lossy(&output.stdout);
     let home = passwd
         .lines()
@@ -716,6 +668,31 @@ async fn inspect_user_home(container: &str, user: &str) -> Result<String, Contai
         })?;
     validate_container_path("resolved user home", home)?;
     Ok(home.into())
+}
+
+async fn run_docker(
+    args: &[&str],
+    operation: &str,
+) -> Result<std::process::Output, ContainerBridgeError> {
+    let mut command = Command::new("docker");
+    command.kill_on_drop(true).args(args);
+    let output = tokio::time::timeout(DOCKER_COMMAND_TIMEOUT, command.output())
+        .await
+        .map_err(|_| {
+            ContainerBridgeError::Failed(format!(
+                "{operation} timed out after {} seconds",
+                DOCKER_COMMAND_TIMEOUT.as_secs()
+            ))
+        })?
+        .map_err(|error| ContainerBridgeError::Failed(format!("{operation} failed: {error}")))?;
+    if output.status.success() {
+        Ok(output)
+    } else {
+        Err(ContainerBridgeError::Failed(format!(
+            "{operation} failed: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        )))
+    }
 }
 
 fn docker_bridge_command(
