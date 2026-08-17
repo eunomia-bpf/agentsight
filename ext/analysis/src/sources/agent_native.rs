@@ -25,6 +25,7 @@ pub type SessionCache = agent_session::SessionCache;
 const CODEX_EXEC_DEDUPE_WINDOW_MS: u64 = 2_000;
 const CODEX_FALLBACK_TIME_SLOP_MS: u64 = 30_000;
 const CODEX_ROLLOUT_TAIL_BYTES: u64 = 1024 * 1024;
+const SESSION_ID_HEADER_BYTES: u64 = 64 * 1024;
 // Local copy of agent_session::AGENT_CURSOR. cargo package verifies this crate
 // against the published agent-session, which lags behind the workspace copy, so
 // production code here cannot reference constants the registry version lacks.
@@ -81,22 +82,75 @@ pub fn discover_sessions(
         .collect()
 }
 
-/// Resolve one session without applying the 25-row list-view cap.
-pub fn find_session(cache: &mut SessionCache, session_id: &str) -> Option<LocalSession> {
-    let mut candidates = agent_session::discover_session_files();
-    candidates.sort_by_key(|candidate| Reverse(candidate.updated));
-    find_session_in_candidates(cache, session_id, candidates)
+fn session_path_index() -> &'static Mutex<HashMap<String, PathBuf>> {
+    static INDEX: OnceLock<Mutex<HashMap<String, PathBuf>>> = OnceLock::new();
+    INDEX.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-fn find_session_in_candidates(
-    cache: &mut SessionCache,
-    session_id: &str,
+/// Resolve one session without applying the 25-row list-view cap or parsing
+/// unrelated transcripts. The bounded ID index is shared by detail and message
+/// requests, while only the matching transcript is hydrated in full.
+pub fn find_session(cache: &mut SessionCache, session_id: &str) -> Option<LocalSession> {
+    let path = {
+        let mut index = session_path_index().lock().ok()?;
+        if !index.contains_key(session_id) {
+            index.extend(index_session_paths(agent_session::discover_session_files()));
+        }
+        index.get(session_id).cloned()
+    }?;
+    let session = cache.parse_path_cached(&path)?;
+    (session.session_id == session_id).then(|| hydrate_session(cache, session))
+}
+
+fn index_session_paths(
     candidates: impl IntoIterator<Item = agent_session::SessionCandidate>,
-) -> Option<LocalSession> {
-    candidates.into_iter().find_map(|candidate| {
-        let session = cache.parse_path_cached(&candidate.path)?;
-        (session.session_id == session_id).then(|| hydrate_session(cache, session))
-    })
+) -> HashMap<String, PathBuf> {
+    candidates
+        .into_iter()
+        .filter_map(|candidate| session_candidate_id(&candidate).map(|id| (id, candidate.path)))
+        .collect()
+}
+
+fn session_candidate_id(candidate: &agent_session::SessionCandidate) -> Option<String> {
+    if matches!(
+        candidate.agent,
+        agent_session::AGENT_CLAUDE | CURSOR_AGENT_TYPE
+    ) {
+        return candidate
+            .path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .map(str::to_string);
+    }
+    let mut header = String::new();
+    File::open(&candidate.path)
+        .ok()?
+        .take(SESSION_ID_HEADER_BYTES)
+        .read_to_string(&mut header)
+        .ok()?;
+    let header = if candidate.agent == agent_session::AGENT_CODEX {
+        header
+            .lines()
+            .find(|line| line.contains("\"session_meta\""))?
+    } else if candidate.agent == agent_session::AGENT_GEMINI {
+        &header
+    } else {
+        return None;
+    };
+    json_string_field(
+        header,
+        if candidate.agent == agent_session::AGENT_GEMINI {
+            "sessionId"
+        } else {
+            "id"
+        },
+    )
+}
+
+fn json_string_field(text: &str, field: &str) -> Option<String> {
+    let value = text.split_once(&format!("\"{field}\""))?.1;
+    let value = value.split_once(':')?.1.trim_start().strip_prefix('"')?;
+    Some(value.split_once('"')?.0.to_string())
 }
 
 fn codex_state_sessions(limit: usize) -> Vec<LocalSession> {
@@ -1736,23 +1790,51 @@ mod tests {
     #[test]
     fn exact_lookup_is_not_limited_to_the_newest_twenty_five_sessions() {
         let temp = tempfile::tempdir().unwrap();
+        let sessions = temp.path().join(".codex/sessions/1970/01/01");
+        fs::create_dir_all(&sessions).unwrap();
         for index in 0..26 {
             let id = format!("session-{index:02}");
             fs::write(
-                temp.path().join(format!("{id}.jsonl")),
+                sessions.join(format!("{id}.jsonl")),
                 format!(
-                    "{{\"timestamp\":\"1970-01-01T00:00:01Z\",\"type\":\"session_meta\",\"payload\":{{\"id\":\"{id}\",\"timestamp\":\"1970-01-01T00:00:01Z\",\"cwd\":\"/repo\"}}}}\n"
+                    concat!(
+                        "{{\"timestamp\":\"1970-01-01T00:00:01Z\",\"type\":\"session_meta\",\"payload\":{{\"id\":\"{}\",\"cwd\":\"/repo\"}}}}\n",
+                        "{{\"timestamp\":\"1970-01-01T00:00:02Z\",\"type\":\"response_item\",\"payload\":{{\"type\":\"message\",\"role\":\"user\",\"content\":[{{\"type\":\"input_text\",\"text\":\"continue {}\"}}]}}}}\n",
+                        "{{\"timestamp\":\"1970-01-01T00:00:03Z\",\"type\":\"response_item\",\"payload\":{{\"type\":\"message\",\"role\":\"assistant\",\"phase\":\"final_answer\",\"content\":[{{\"type\":\"output_text\",\"text\":\"done\"}}]}}}}\n"
+                    ),
+                    id, id
                 ),
             )
             .unwrap();
         }
         let candidates =
-            agent_session::discover_session_files_in_dir(agent_session::AGENT_CODEX, temp.path());
+            agent_session::discover_session_files_in_dir(agent_session::AGENT_CODEX, &sessions);
 
-        let found = find_session_in_candidates(&mut SessionCache::new(), "session-00", candidates)
-            .expect("the oldest session must remain addressable by exact ID");
+        let path = index_session_paths(candidates)
+            .remove("session-00")
+            .expect("the oldest session must remain indexed by exact ID");
+        let found = SessionCache::new()
+            .parse_path_cached(&path)
+            .expect("only the indexed transcript should be parsed");
 
         assert_eq!(found.session_id, "session-00");
+    }
+
+    #[test]
+    fn exact_lookup_reads_gemini_id_from_a_bounded_header() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("session-test.json");
+        fs::write(&path, r#"{"sessionId":"gemini-session","messages":[]}"#).unwrap();
+        let candidate = agent_session::SessionCandidate {
+            agent: agent_session::AGENT_GEMINI,
+            path,
+            updated: UNIX_EPOCH,
+        };
+
+        assert_eq!(
+            session_candidate_id(&candidate).as_deref(),
+            Some("gemini-session")
+        );
     }
 
     #[test]

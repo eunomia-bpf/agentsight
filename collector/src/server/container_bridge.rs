@@ -10,8 +10,8 @@ use crate::server::session_runtime::{
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
 use agent_session::AgentSession;
 use futures::future::join_all;
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use serde_json::{Value, json};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
@@ -19,9 +19,6 @@ use tokio::io::{AsyncWrite, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 use tokio::sync::Mutex;
 
-const LIST_SESSIONS: &str = "sessions/list";
-const GET_SESSION: &str = "session/get";
-const MESSAGE_SESSION: &str = "session/message";
 const MAX_BRIDGE_FRAME_BYTES: usize = 8 * 1024 * 1024;
 const BRIDGE_OPERATION_TIMEOUT: Duration = Duration::from_secs(30);
 const BRIDGE_LOCK_TIMEOUT: Duration = Duration::from_secs(1);
@@ -29,19 +26,19 @@ const DOCKER_COMMAND_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Deserialize, Serialize)]
 struct BridgeRequest {
-    id: u64,
-    method: String,
-    #[serde(default)]
-    params: Value,
+    #[serde(flatten)]
+    operation: BridgeOperation,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct BridgeResponse {
-    id: u64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    result: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<BridgeError>,
+#[serde(tag = "method", content = "params")]
+enum BridgeOperation {
+    #[serde(rename = "sessions/list")]
+    List { limit: usize },
+    #[serde(rename = "session/get")]
+    Get { session_id: String },
+    #[serde(rename = "session/message")]
+    Message { session_id: String, message: String },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -51,15 +48,21 @@ struct BridgeError {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct SessionParams {
-    session_id: String,
+#[serde(untagged)]
+enum BridgeResult {
+    Sessions {
+        sessions: Vec<AgentSession>,
+    },
+    Session {
+        session: Box<AgentSession>,
+    },
+    Submitted {
+        agent_type: String,
+        transport: String,
+    },
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct MessageParams {
-    session_id: String,
-    message: String,
-}
+type BridgeResponse = Result<BridgeResult, BridgeError>;
 
 #[derive(Debug)]
 pub enum ContainerBridgeError {
@@ -87,16 +90,10 @@ pub async fn run_stdio_bridge() -> Result<(), Box<dyn std::error::Error + Send +
             ProviderLine::Oversized => {
                 write_bridge_response(
                     &mut output,
-                    BridgeResponse {
-                        id: 0,
-                        result: None,
-                        error: Some(BridgeError {
-                            code: "request_too_large".into(),
-                            message: format!(
-                                "bridge request exceeds {MAX_BRIDGE_FRAME_BYTES} bytes"
-                            ),
-                        }),
-                    },
+                    Err(bridge_error(
+                        "request_too_large",
+                        format!("bridge request exceeds {MAX_BRIDGE_FRAME_BYTES} bytes"),
+                    )),
                 )
                 .await?;
                 continue;
@@ -105,14 +102,10 @@ pub async fn run_stdio_bridge() -> Result<(), Box<dyn std::error::Error + Send +
         }
         let response = match serde_json::from_slice::<BridgeRequest>(&line) {
             Ok(request) => dispatch_bridge_request(request, &mut cache).await,
-            Err(error) => BridgeResponse {
-                id: 0,
-                result: None,
-                error: Some(BridgeError {
-                    code: "invalid_request".into(),
-                    message: format!("invalid bridge request: {error}"),
-                }),
-            },
+            Err(error) => Err(bridge_error(
+                "invalid_request",
+                format!("invalid bridge request: {error}"),
+            )),
         };
         write_bridge_response(&mut output, response).await?;
     }
@@ -123,17 +116,12 @@ async fn write_bridge_response<W: AsyncWrite + Unpin>(
     output: &mut W,
     response: BridgeResponse,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let response_id = response.id;
     let mut encoded = serde_json::to_vec(&response)?;
     if encoded.len().saturating_add(1) > MAX_BRIDGE_FRAME_BYTES {
-        encoded = serde_json::to_vec(&BridgeResponse {
-            id: response_id,
-            result: None,
-            error: Some(BridgeError {
-                code: "response_too_large".into(),
-                message: format!("bridge response exceeds {MAX_BRIDGE_FRAME_BYTES} bytes"),
-            }),
-        })?;
+        encoded = serde_json::to_vec(&BridgeResponse::Err(bridge_error(
+            "response_too_large",
+            format!("bridge response exceeds {MAX_BRIDGE_FRAME_BYTES} bytes"),
+        )))?;
     }
     encoded.push(b'\n');
     output.write_all(&encoded).await?;
@@ -145,62 +133,49 @@ async fn dispatch_bridge_request(
     request: BridgeRequest,
     cache: &mut SessionCache,
 ) -> BridgeResponse {
-    let result = match request.method.as_str() {
-        LIST_SESSIONS => {
-            let limit = request
-                .params
-                .get("limit")
-                .and_then(Value::as_u64)
-                .unwrap_or(25) as usize;
-            Ok(json!({ "sessions": discover_sessions(cache, limit) }))
-        }
-        GET_SESSION => parse_params::<SessionParams>(&request.params).and_then(|params| {
-            find_native_session(cache, &params.session_id)
-                .map(|session| json!({ "session": session }))
-                .ok_or_else(|| bridge_error("not_found", "session not found"))
+    match request.operation {
+        BridgeOperation::List { limit } => Ok(BridgeResult::Sessions {
+            sessions: agent_native_sessions::discover_sessions(
+                cache,
+                None,
+                None,
+                limit,
+                Duration::ZERO,
+            ),
         }),
-        MESSAGE_SESSION => match parse_params::<MessageParams>(&request.params) {
-            Ok(params) if params.message.trim().is_empty() || params.message.len() > 65_536 => {
+        BridgeOperation::Get { session_id } => {
+            agent_native_sessions::find_session(cache, &session_id)
+                .map(|session| BridgeResult::Session {
+                    session: Box::new(session),
+                })
+                .ok_or_else(|| bridge_error("not_found", "session not found"))
+        }
+        BridgeOperation::Message {
+            session_id,
+            message,
+        } => {
+            if message.trim().is_empty() || message.len() > 65_536 {
                 Err(bridge_error(
                     "invalid_params",
                     "message must contain between 1 and 65536 bytes",
                 ))
+            } else {
+                match agent_native_sessions::find_session(cache, &session_id) {
+                    Some(session) => match submit_message(&session, message.trim()).await {
+                        Ok(result) => Ok(BridgeResult::Submitted {
+                            agent_type: session.agent_type,
+                            transport: result.transport.into(),
+                        }),
+                        Err(SubmitError::Conflict(message)) => {
+                            Err(bridge_error("conflict", message))
+                        }
+                        Err(SubmitError::Failed(message)) => Err(bridge_error("failed", message)),
+                    },
+                    None => Err(bridge_error("not_found", "session not found")),
+                }
             }
-            Ok(params) => match find_native_session(cache, &params.session_id) {
-                Some(session) => match submit_message(&session, params.message.trim()).await {
-                    Ok(result) => Ok(json!({
-                        "agent_type": session.agent_type,
-                        "transport": result.transport,
-                    })),
-                    Err(SubmitError::Conflict(message)) => Err(bridge_error("conflict", message)),
-                    Err(SubmitError::Failed(message)) => Err(bridge_error("failed", message)),
-                },
-                None => Err(bridge_error("not_found", "session not found")),
-            },
-            Err(error) => Err(error),
-        },
-        _ => Err(bridge_error(
-            "method_not_found",
-            format!("unsupported bridge method: {}", request.method),
-        )),
-    };
-    match result {
-        Ok(result) => BridgeResponse {
-            id: request.id,
-            result: Some(result),
-            error: None,
-        },
-        Err(error) => BridgeResponse {
-            id: request.id,
-            result: None,
-            error: Some(error),
-        },
+        }
     }
-}
-
-fn parse_params<T: DeserializeOwned>(value: &Value) -> Result<T, BridgeError> {
-    serde_json::from_value(value.clone())
-        .map_err(|error| bridge_error("invalid_params", error.to_string()))
 }
 
 fn bridge_error(code: &str, message: impl Into<String>) -> BridgeError {
@@ -208,14 +183,6 @@ fn bridge_error(code: &str, message: impl Into<String>) -> BridgeError {
         code: code.into(),
         message: message.into(),
     }
-}
-
-fn discover_sessions(cache: &mut SessionCache, limit: usize) -> Vec<AgentSession> {
-    agent_native_sessions::discover_sessions(cache, None, None, limit, Duration::ZERO)
-}
-
-fn find_native_session(cache: &mut SessionCache, session_id: &str) -> Option<AgentSession> {
-    agent_native_sessions::find_session(cache, session_id)
 }
 
 #[derive(Clone, Default)]
@@ -349,7 +316,6 @@ struct BridgeHandle {
 #[derive(Default)]
 struct DockerBridge {
     process: Option<BridgeProcess>,
-    next_id: u64,
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
@@ -377,16 +343,13 @@ impl DockerBridge {
         container: &str,
         limit: usize,
     ) -> Result<Vec<AgentSession>, ContainerBridgeError> {
-        let result = self
-            .call(container, LIST_SESSIONS, json!({ "limit": limit }))
-            .await?;
-        serde_json::from_value(
-            result
-                .get("sessions")
-                .cloned()
-                .ok_or_else(|| ContainerBridgeError::Failed("bridge omitted sessions".into()))?,
-        )
-        .map_err(|error| ContainerBridgeError::Failed(error.to_string()))
+        match self
+            .call(container, BridgeOperation::List { limit })
+            .await?
+        {
+            BridgeResult::Sessions { sessions } => Ok(sessions),
+            _ => Err(unexpected_bridge_result()),
+        }
     }
 
     async fn get_session(
@@ -395,17 +358,16 @@ impl DockerBridge {
         session_id: &str,
     ) -> Result<Option<AgentSession>, ContainerBridgeError> {
         match self
-            .call(container, GET_SESSION, json!({ "session_id": session_id }))
+            .call(
+                container,
+                BridgeOperation::Get {
+                    session_id: session_id.into(),
+                },
+            )
             .await
         {
-            Ok(result) => serde_json::from_value(
-                result
-                    .get("session")
-                    .cloned()
-                    .ok_or_else(|| ContainerBridgeError::Failed("bridge omitted session".into()))?,
-            )
-            .map(Some)
-            .map_err(|error| ContainerBridgeError::Failed(error.to_string())),
+            Ok(BridgeResult::Session { session }) => Ok(Some(*session)),
+            Ok(_) => Err(unexpected_bridge_result()),
             Err(ContainerBridgeError::NotFound(_)) => Ok(None),
             Err(error) => Err(error),
         }
@@ -417,34 +379,32 @@ impl DockerBridge {
         session_id: &str,
         message: &str,
     ) -> Result<(String, String), ContainerBridgeError> {
-        let result = self
+        match self
             .call(
                 container,
-                MESSAGE_SESSION,
-                json!({ "session_id": session_id, "message": message }),
+                BridgeOperation::Message {
+                    session_id: session_id.into(),
+                    message: message.into(),
+                },
             )
-            .await?;
-        let field = |name| {
-            result
-                .get(name)
-                .and_then(Value::as_str)
-                .ok_or_else(|| ContainerBridgeError::Failed(format!("bridge omitted {name}")))
-        };
-        Ok((
-            field("agent_type")?.into(),
-            format!("docker-exec/{}", field("transport")?),
-        ))
+            .await?
+        {
+            BridgeResult::Submitted {
+                agent_type,
+                transport,
+            } => Ok((agent_type, format!("docker-exec/{transport}"))),
+            _ => Err(unexpected_bridge_result()),
+        }
     }
 
     async fn call(
         &mut self,
         container: &str,
-        method: &str,
-        params: Value,
-    ) -> Result<Value, ContainerBridgeError> {
+        operation: BridgeOperation,
+    ) -> Result<BridgeResult, ContainerBridgeError> {
         match tokio::time::timeout(
             BRIDGE_OPERATION_TIMEOUT,
-            self.call_with_deadline(container, method, params),
+            self.call_with_deadline(container, operation),
         )
         .await
         {
@@ -468,18 +428,11 @@ impl DockerBridge {
     async fn call_with_deadline(
         &mut self,
         container: &str,
-        method: &str,
-        params: Value,
-    ) -> Result<Value, ContainerBridgeError> {
+        operation: BridgeOperation,
+    ) -> Result<BridgeResult, ContainerBridgeError> {
         self.ensure_process(container).await?;
-        self.next_id += 1;
-        let id = self.next_id;
-        let mut encoded = serde_json::to_vec(&BridgeRequest {
-            id,
-            method: method.into(),
-            params,
-        })
-        .map_err(|error| ContainerBridgeError::Failed(error.to_string()))?;
+        let mut encoded = serde_json::to_vec(&BridgeRequest { operation })
+            .map_err(|error| ContainerBridgeError::Failed(error.to_string()))?;
         encoded.push(b'\n');
         let process = self.process.as_mut().expect("bridge process initialized");
         process.stdin.write_all(&encoded).await.map_err(|error| {
@@ -490,42 +443,33 @@ impl DockerBridge {
         })?;
 
         let mut line = Vec::new();
-        loop {
-            match read_provider_line(&mut process.stdout, &mut line, MAX_BRIDGE_FRAME_BYTES).await {
-                Ok(ProviderLine::Complete) => {}
-                Ok(ProviderLine::Eof) => {
-                    return Err(ContainerBridgeError::Failed(
-                        "Docker bridge closed its output".into(),
-                    ));
-                }
-                Ok(ProviderLine::Oversized) => {
-                    return Err(ContainerBridgeError::Failed(format!(
-                        "Docker bridge response exceeds {MAX_BRIDGE_FRAME_BYTES} bytes"
-                    )));
-                }
-                Err(error) => {
-                    return Err(ContainerBridgeError::Failed(format!(
-                        "failed to read Docker bridge response: {error}"
-                    )));
-                }
+        match read_provider_line(&mut process.stdout, &mut line, MAX_BRIDGE_FRAME_BYTES).await {
+            Ok(ProviderLine::Complete) => {}
+            Ok(ProviderLine::Eof) => {
+                return Err(ContainerBridgeError::Failed(
+                    "Docker bridge closed its output".into(),
+                ));
             }
-            let response: BridgeResponse = serde_json::from_slice(&line).map_err(|error| {
-                ContainerBridgeError::Failed(format!("invalid Docker bridge response: {error}"))
-            })?;
-            if response.id != id {
-                continue;
+            Ok(ProviderLine::Oversized) => {
+                return Err(ContainerBridgeError::Failed(format!(
+                    "Docker bridge response exceeds {MAX_BRIDGE_FRAME_BYTES} bytes"
+                )));
             }
-            if let Some(error) = response.error {
-                return Err(match error.code.as_str() {
-                    "not_found" => ContainerBridgeError::NotFound(error.message),
-                    "conflict" => ContainerBridgeError::Conflict(error.message),
-                    _ => ContainerBridgeError::Failed(error.message),
-                });
+            Err(error) => {
+                return Err(ContainerBridgeError::Failed(format!(
+                    "failed to read Docker bridge response: {error}"
+                )));
             }
-            return response
-                .result
-                .ok_or_else(|| ContainerBridgeError::Failed("bridge omitted result".into()));
         }
+        serde_json::from_slice::<BridgeResponse>(&line)
+            .map_err(|error| {
+                ContainerBridgeError::Failed(format!("invalid Docker bridge response: {error}"))
+            })?
+            .map_err(|error| match error.code.as_str() {
+                "not_found" => ContainerBridgeError::NotFound(error.message),
+                "conflict" => ContainerBridgeError::Conflict(error.message),
+                _ => ContainerBridgeError::Failed(error.message),
+            })
     }
 
     async fn ensure_process(&mut self, container: &str) -> Result<(), ContainerBridgeError> {
@@ -575,6 +519,10 @@ impl DockerBridge {
     }
 }
 
+fn unexpected_bridge_result() -> ContainerBridgeError {
+    ContainerBridgeError::Failed("Docker bridge returned an unexpected result".into())
+}
+
 async fn inspect_container_execution(
     container: &str,
 ) -> Result<ContainerExecution, ContainerBridgeError> {
@@ -621,7 +569,17 @@ fn parse_container_execution(value: &Value) -> Result<ContainerExecution, Contai
             .filter(|value| !value.is_empty())
             .map(str::to_string)
     });
-    let home = label("com.agentsight.home");
+    let home = label("com.agentsight.home").or_else(|| {
+        config
+            .get("Env")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .find_map(|entry| entry.strip_prefix("HOME="))
+            .filter(|home| home.starts_with('/'))
+            .map(str::to_string)
+    });
     for (name, path) in [
         ("com.agentsight.workspace", workdir.as_deref()),
         ("com.agentsight.home", home.as_deref()),
@@ -654,8 +612,9 @@ async fn inspect_path_owner(container: &str, path: &str) -> Result<String, Conta
 }
 
 async fn inspect_user_home(container: &str, user: &str) -> Result<String, ContainerBridgeError> {
-    let operation = format!("Docker user lookup for {user:?} in {container}");
-    let output = run_docker(&["exec", container, "getent", "passwd", user], &operation).await?;
+    let lookup = passwd_lookup_user(user);
+    let operation = format!("Docker user lookup for {lookup:?} in {container}");
+    let output = run_docker(&["exec", container, "getent", "passwd", lookup], &operation).await?;
     let passwd = String::from_utf8_lossy(&output.stdout);
     let home = passwd
         .lines()
@@ -668,6 +627,10 @@ async fn inspect_user_home(container: &str, user: &str) -> Result<String, Contai
         })?;
     validate_container_path("resolved user home", home)?;
     Ok(home.into())
+}
+
+fn passwd_lookup_user(user: &str) -> &str {
+    user.split(':').next().unwrap_or(user)
 }
 
 async fn run_docker(
@@ -752,6 +715,7 @@ fn validate_container_name(container: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn container_names_are_data_not_docker_options() {
@@ -766,14 +730,17 @@ mod tests {
     #[test]
     fn bridge_protocol_round_trips_without_provider_credentials() {
         let request = BridgeRequest {
-            id: 7,
-            method: MESSAGE_SESSION.into(),
-            params: json!({"session_id":"s-1","message":"continue"}),
+            operation: BridgeOperation::Message {
+                session_id: "s-1".into(),
+                message: "continue".into(),
+            },
         };
         let encoded = serde_json::to_string(&request).unwrap();
         let decoded: BridgeRequest = serde_json::from_str(&encoded).unwrap();
-        assert_eq!(decoded.id, 7);
-        assert_eq!(decoded.params["message"], "continue");
+        assert!(matches!(
+            decoded.operation,
+            BridgeOperation::Message { message, .. } if message == "continue"
+        ));
         assert!(!encoded.contains("auth"));
     }
 
@@ -839,6 +806,29 @@ mod tests {
     }
 
     #[test]
+    fn execution_uses_absolute_environment_home_with_user_and_group() {
+        let inspected = json!([{
+            "Config": {
+                "User": "1001:1001",
+                "WorkingDir": "/workspace",
+                "Env": ["PATH=/usr/bin", "HOME=/home/agent"],
+                "Labels": {}
+            }
+        }]);
+
+        assert_eq!(
+            parse_container_execution(&inspected).unwrap(),
+            ContainerExecution {
+                user: Some("1001:1001".into()),
+                workdir: Some("/workspace".into()),
+                home: Some("/home/agent".into()),
+            }
+        );
+        assert_eq!(passwd_lookup_user("vscode:vscode"), "vscode");
+        assert_eq!(passwd_lookup_user("1001:1001"), "1001");
+    }
+
+    #[test]
     fn bridge_command_propagates_agent_home() {
         let command = docker_bridge_command(
             "ebpfos-dev",
@@ -868,5 +858,43 @@ mod tests {
                 "bridge",
             ]
         );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[tokio::test]
+    async fn dropping_a_bridge_reaps_its_child() {
+        let mut child = Command::new("sh");
+        child
+            .kill_on_drop(true)
+            .args(["-c", "read _"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped());
+        let mut child = child.spawn().unwrap();
+        let pid = child.id().unwrap();
+        let process = BridgeProcess {
+            stdin: child.stdin.take().unwrap(),
+            stdout: BufReader::new(child.stdout.take().unwrap()),
+            child,
+        };
+
+        drop(process);
+        for _ in 0..50 {
+            if !std::path::Path::new(&format!("/proc/{pid}")).exists() {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        panic!("bridge child {pid} survived handle drop");
+    }
+
+    #[tokio::test]
+    async fn container_fanout_shares_the_one_second_lock_bound() {
+        let bridges = ContainerBridges::new(&["first".into(), "second".into()]).unwrap();
+        let _first = bridges.bridges[0].state.lock().await;
+        let _second = bridges.bridges[1].state.lock().await;
+        let started = tokio::time::Instant::now();
+
+        assert!(bridges.list_sessions(25).await.is_empty());
+        assert!(started.elapsed() < Duration::from_millis(1_800));
     }
 }

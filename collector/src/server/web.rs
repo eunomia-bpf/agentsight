@@ -601,59 +601,10 @@ async fn serve_session_api(
     container_bridges: Option<ContainerBridges>,
     session_id: &str,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
-    let session_id = session_id.to_string();
-    let local_session_id = session_id.clone();
-    let result = tokio::task::spawn_blocking(move || {
-        let mut cache = sessions
-            .lock()
-            .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))?;
-        Ok::<_, Box<dyn std::error::Error + Send + Sync>>(find_native_session(
-            &mut cache,
-            &local_session_id,
-        ))
-    })
-    .await;
-
-    match result {
-        Ok(Ok(Some(session))) => {
-            if let Some(bridges) = container_bridges.as_ref() {
-                match bridges.get_session(&session_id).await {
-                    Ok(Some((container, _))) => {
-                        return Ok(json_error(
-                            StatusCode::CONFLICT,
-                            &format!(
-                                "session {session_id} exists both locally and in Docker container {container}"
-                            ),
-                        ));
-                    }
-                    Ok(None) => {}
-                    Err(ContainerBridgeError::Conflict(error)) => {
-                        return Ok(json_error(StatusCode::CONFLICT, &error));
-                    }
-                    Err(error) => log::warn!(
-                        "could not exclude a local/container session collision for {session_id}: {}",
-                        error.message()
-                    ),
-                }
-            }
-            Ok(json_response(StatusCode::OK, &session))
-        }
-        Ok(Ok(None)) => match container_bridges {
-            Some(bridges) => match bridges.get_session(&session_id).await {
-                Ok(Some((_, session))) => Ok(json_response(StatusCode::OK, &session)),
-                Ok(None) => Ok(json_error(StatusCode::NOT_FOUND, "session not found")),
-                Err(error) => Ok(container_bridge_error_response(error)),
-            },
-            None => Ok(json_error(StatusCode::NOT_FOUND, "session not found")),
-        },
-        Ok(Err(error)) => Ok(json_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("failed to load session: {error}"),
-        )),
-        Err(error) => Ok(json_error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("session query task failed: {error}"),
-        )),
+    match resolve_session(sessions, container_bridges.as_ref(), session_id).await {
+        Ok(Some(resolved)) => Ok(json_response(StatusCode::OK, resolved.session())),
+        Ok(None) => Ok(json_error(StatusCode::NOT_FOUND, "session not found")),
+        Err(response) => Ok(response),
     }
 }
 
@@ -692,91 +643,103 @@ async fn serve_session_message_api(
         Err(error) => return Ok(json_error(StatusCode::BAD_REQUEST, error)),
     };
 
-    let session_id = session_id.to_string();
-    let local_session = {
-        let sessions = Arc::clone(&sessions);
-        let session_id = session_id.clone();
-        match tokio::task::spawn_blocking(move || {
-            let mut cache = sessions
-                .lock()
-                .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))?;
-            Ok::<_, Box<dyn std::error::Error + Send + Sync>>(find_native_session(
-                &mut cache,
-                &session_id,
-            ))
-        })
-        .await
-        {
-            Ok(Ok(session)) => session,
-            Ok(Err(error)) => {
-                return Ok(json_error(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!("failed to load session: {error}"),
-                ));
-            }
-            Err(error) => {
-                return Ok(json_error(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!("session query task failed: {error}"),
-                ));
-            }
-        }
-    };
-
-    if let Some(session) = local_session {
-        if let Some(bridges) = container_bridges.as_ref() {
-            match bridges.get_session(&session_id).await {
-                Ok(Some((container, _))) => {
-                    return Ok(json_error(
-                        StatusCode::CONFLICT,
-                        &format!(
-                            "session {session_id} exists both locally and in Docker container {container}"
-                        ),
-                    ));
-                }
-                Ok(None) => {}
-                Err(ContainerBridgeError::Conflict(error)) => {
-                    return Ok(json_error(StatusCode::CONFLICT, &error));
-                }
-                Err(error) => log::warn!(
-                    "could not exclude a local/container session collision for {session_id}: {}",
-                    error.message()
-                ),
-            }
-        }
-        return match launch_session_message(&session, &message).await {
-            Ok(result) => Ok(session_message_response(
-                &session.session_id,
-                &session.agent_type,
-                result.transport,
-            )),
-            Err(crate::server::session_runtime::SubmitError::Conflict(error)) => {
-                Ok(json_error(StatusCode::CONFLICT, &error))
-            }
-            Err(crate::server::session_runtime::SubmitError::Failed(error)) => {
-                Ok(json_error(StatusCode::BAD_GATEWAY, &error))
-            }
-        };
-    }
-
-    let Some(bridges) = container_bridges else {
-        return Ok(json_error(StatusCode::NOT_FOUND, "session not found"));
-    };
-    let (container, session) = match bridges.get_session(&session_id).await {
-        Ok(Some(found)) => found,
+    let resolved = match resolve_session(sessions, container_bridges.as_ref(), session_id).await {
+        Ok(Some(resolved)) => resolved,
         Ok(None) => return Ok(json_error(StatusCode::NOT_FOUND, "session not found")),
-        Err(error) => return Ok(container_bridge_error_response(error)),
+        Err(response) => return Ok(response),
     };
-    match bridges
-        .send_message(&container, &session_id, &message)
-        .await
-    {
-        Ok((agent_type, transport)) => Ok(session_message_response(
-            &session.session_id,
-            &agent_type,
-            &transport,
+    match resolved {
+        ResolvedSession::Local(session) => {
+            match crate::server::session_runtime::submit_message(&session, &message).await {
+                Ok(result) => Ok(session_message_response(
+                    &session.session_id,
+                    &session.agent_type,
+                    result.transport,
+                )),
+                Err(crate::server::session_runtime::SubmitError::Conflict(error)) => {
+                    Ok(json_error(StatusCode::CONFLICT, &error))
+                }
+                Err(crate::server::session_runtime::SubmitError::Failed(error)) => {
+                    Ok(json_error(StatusCode::BAD_GATEWAY, &error))
+                }
+            }
+        }
+        ResolvedSession::Container { container, session } => match container_bridges
+            .as_ref()
+            .expect("container session requires configured bridges")
+            .send_message(&container, session_id, &message)
+            .await
+        {
+            Ok((agent_type, transport)) => Ok(session_message_response(
+                &session.session_id,
+                &agent_type,
+                &transport,
+            )),
+            Err(error) => Ok(container_bridge_error_response(error)),
+        },
+    }
+}
+
+enum ResolvedSession {
+    Local(agent_session::AgentSession),
+    Container {
+        container: String,
+        session: agent_session::AgentSession,
+    },
+}
+
+impl ResolvedSession {
+    fn session(&self) -> &agent_session::AgentSession {
+        match self {
+            Self::Local(session) | Self::Container { session, .. } => session,
+        }
+    }
+}
+
+async fn resolve_session(
+    sessions: Arc<Mutex<SessionCache>>,
+    container_bridges: Option<&ContainerBridges>,
+    session_id: &str,
+) -> Result<Option<ResolvedSession>, Response<Full<Bytes>>> {
+    let local_id = session_id.to_string();
+    let local = tokio::task::spawn_blocking(move || {
+        sessions
+            .lock()
+            .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))
+            .map(|mut cache| agent_native_sessions::find_session(&mut cache, &local_id))
+    })
+    .await
+    .map_err(|error| {
+        json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("session query task failed: {error}"),
+        )
+    })?
+    .map_err(|error| {
+        json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("failed to load session: {error}"),
+        )
+    })?;
+    let remote = match container_bridges {
+        Some(bridges) => bridges
+            .get_session(session_id)
+            .await
+            .map_err(container_bridge_error_response)?,
+        None => None,
+    };
+    match (local, remote) {
+        (Some(_), Some((container, _))) => Err(json_error(
+            StatusCode::CONFLICT,
+            &format!(
+                "session {session_id} exists both locally and in Docker container {container}"
+            ),
         )),
-        Err(error) => Ok(container_bridge_error_response(error)),
+        (Some(session), None) => Ok(Some(ResolvedSession::Local(session))),
+        (None, Some((container, session))) => {
+            Ok(Some(ResolvedSession::Container { container, session }))
+        }
+        (None, None) => Ok(None),
     }
 }
 
@@ -823,21 +786,6 @@ where
         }
         Err(error) => Err(BodyReadError::Failed(error.to_string())),
     }
-}
-
-fn find_native_session(
-    cache: &mut SessionCache,
-    session_id: &str,
-) -> Option<agent_session::AgentSession> {
-    agent_native_sessions::find_session(cache, session_id)
-}
-
-async fn launch_session_message(
-    session: &agent_session::AgentSession,
-    message: &str,
-) -> Result<crate::server::session_runtime::SubmitResult, crate::server::session_runtime::SubmitError>
-{
-    crate::server::session_runtime::submit_message(session, message).await
 }
 
 #[cfg(test)]
@@ -1246,7 +1194,7 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_uses_agent_native_indexed_codex_sessions() {
+    fn snapshot_deduplicates_local_and_container_session_ids() {
         let _guard = ENV_LOCK.lock().unwrap();
         let old_home = std::env::var_os("HOME");
         let old_sudo_user = std::env::var_os("SUDO_USER");
@@ -1261,7 +1209,26 @@ mod tests {
 
             let live_view = MaterializedView::shared_bounded();
             let sessions = Arc::new(Mutex::new(SessionCache::new()));
-            let snapshot = snapshot_from_sources(&live_view, &sessions, None, 100).unwrap();
+            let container_session = agent_native_sessions::parse_content_for_test(
+                agent_session::AGENT_CODEX,
+                &temp.path().join("container-session.jsonl"),
+                std::time::UNIX_EPOCH,
+                concat!(
+                    r#"{"type":"session_meta","payload":{"id":"019f49ca-54e7-7a91-82e7-a52b53cfd456","cwd":"/container"}}"#,
+                    "\n",
+                    r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"duplicate container session"}]}}"#,
+                    "\n",
+                ),
+            )
+            .unwrap();
+            let snapshot = snapshot_from_sources_with_extra(
+                &live_view,
+                &sessions,
+                None,
+                100,
+                &[container_session],
+            )
+            .unwrap();
 
             assert_eq!(snapshot.summary.total_tokens, 33);
             assert_eq!(snapshot.sessions.len(), 1);

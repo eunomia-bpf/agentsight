@@ -151,8 +151,8 @@ session metadata from the container. Keep the host and container AgentSight
 binaries on the same version.
 
 Dev containers may declare `com.agentsight.user`, `com.agentsight.workspace`,
-and `com.agentsight.home` labels. AgentSight uses them for `docker exec`; if the
-user label is absent, it uses the home directory owner and then the image user.
+and `com.agentsight.home` labels. AgentSight uses them for `docker exec`; absent
+labels fall back to the image's absolute `HOME`, passwd entry, or path owner.
 Keep provider-specific environment such as `CODEX_HOME` in the container
 configuration rather than in host AgentSight settings.
 
