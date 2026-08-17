@@ -3829,8 +3829,9 @@ mod tests {
         .unwrap();
         let candidate = discover_session_files_in_home(&root)
             .into_iter()
-            .find(|candidate| candidate.agent == AGENT_CURSOR)
+            .find(|candidate| candidate.path == parent)
             .unwrap();
+        assert_eq!(candidate.agent, AGENT_CURSOR);
         let mut cache = crate::SessionCache::new();
         let first = cache.parse_candidate_cached(&candidate).unwrap();
         assert!(first.files.contains_key("/repo/child-v1.py"));
