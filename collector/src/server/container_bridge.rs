@@ -16,13 +16,15 @@ use std::process::Stdio;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::io::{AsyncWrite, AsyncWriteExt, BufReader};
-use tokio::process::Command;
+use tokio::process::{Child, ChildStdin, ChildStdout, Command};
+use tokio::sync::Mutex;
 
 const LIST_SESSIONS: &str = "sessions/list";
 const GET_SESSION: &str = "session/get";
 const MESSAGE_SESSION: &str = "session/message";
 const MAX_BRIDGE_FRAME_BYTES: usize = 8 * 1024 * 1024;
 const BRIDGE_OPERATION_TIMEOUT: Duration = Duration::from_secs(30);
+const BRIDGE_LOCK_TIMEOUT: Duration = Duration::from_secs(1);
 const DOCKER_COMMAND_TIMEOUT: Duration = Duration::from_secs(10);
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -218,27 +220,39 @@ fn find_native_session(cache: &mut SessionCache, session_id: &str) -> Option<Age
 
 #[derive(Clone, Default)]
 pub struct ContainerBridges {
-    containers: Arc<Vec<String>>,
+    bridges: Arc<Vec<Arc<BridgeHandle>>>,
 }
 
 impl ContainerBridges {
     pub fn new(containers: &[String]) -> Result<Self, String> {
-        for container in containers {
-            validate_container_name(container)?;
-        }
+        let bridges = containers
+            .iter()
+            .map(|container| {
+                validate_container_name(container)?;
+                Ok(Arc::new(BridgeHandle {
+                    container: container.clone(),
+                    state: Mutex::new(DockerBridge::default()),
+                }))
+            })
+            .collect::<Result<Vec<_>, String>>()?;
         Ok(Self {
-            containers: Arc::new(containers.to_vec()),
+            bridges: Arc::new(bridges),
         })
     }
 
     pub fn is_empty(&self) -> bool {
-        self.containers.is_empty()
+        self.bridges.is_empty()
     }
 
     pub async fn list_sessions(&self, limit: usize) -> Vec<AgentSession> {
         let mut sessions = Vec::new();
-        let calls = self.containers.iter().map(|container| async move {
-            (container, list_container_sessions(container, limit).await)
+        let calls = self.bridges.iter().map(|bridge| async move {
+            let result = match tokio::time::timeout(BRIDGE_LOCK_TIMEOUT, bridge.state.lock()).await
+            {
+                Ok(mut state) => state.list_sessions(&bridge.container, limit).await,
+                Err(_) => Err(bridge_busy(&bridge.container)),
+            };
+            (&bridge.container, result)
         });
         for (container, result) in join_all(calls).await {
             match result {
@@ -261,11 +275,13 @@ impl ContainerBridges {
     ) -> Result<Option<(String, AgentSession)>, ContainerBridgeError> {
         let mut found = None;
         let mut first_error = None;
-        let calls = self.containers.iter().map(|container| async move {
-            (
-                container,
-                get_container_session(container, session_id).await,
-            )
+        let calls = self.bridges.iter().map(|bridge| async move {
+            let result = match tokio::time::timeout(BRIDGE_LOCK_TIMEOUT, bridge.state.lock()).await
+            {
+                Ok(mut state) => state.get_session(&bridge.container, session_id).await,
+                Err(_) => Err(bridge_busy(&bridge.container)),
+            };
+            (&bridge.container, result)
         });
         for (container, result) in join_all(calls).await {
             match result {
@@ -303,17 +319,37 @@ impl ContainerBridges {
         session_id: &str,
         message: &str,
     ) -> Result<(String, String), ContainerBridgeError> {
-        if self
-            .containers
+        let Some(bridge) = self
+            .bridges
             .iter()
-            .any(|configured| configured == container)
-        {
-            return send_container_message(container, session_id, message).await;
-        }
-        Err(ContainerBridgeError::Failed(format!(
-            "Docker container {container} is no longer configured"
-        )))
+            .find(|bridge| bridge.container == container)
+        else {
+            return Err(ContainerBridgeError::Failed(format!(
+                "Docker container {container} is no longer configured"
+            )));
+        };
+        let mut state = tokio::time::timeout(BRIDGE_LOCK_TIMEOUT, bridge.state.lock())
+            .await
+            .map_err(|_| bridge_busy(container))?;
+        state.send_message(container, session_id, message).await
     }
+}
+
+fn bridge_busy(container: &str) -> ContainerBridgeError {
+    ContainerBridgeError::Conflict(format!(
+        "Docker container {container} bridge is busy; retry shortly"
+    ))
+}
+
+struct BridgeHandle {
+    container: String,
+    state: Mutex<DockerBridge>,
+}
+
+#[derive(Default)]
+struct DockerBridge {
+    process: Option<BridgeProcess>,
+    next_id: u64,
 }
 
 #[derive(Debug, Default, Eq, PartialEq)]
@@ -323,179 +359,220 @@ struct ContainerExecution {
     home: Option<String>,
 }
 
-async fn list_container_sessions(
-    container: &str,
-    limit: usize,
-) -> Result<Vec<AgentSession>, ContainerBridgeError> {
-    let result = call_container(container, LIST_SESSIONS, json!({ "limit": limit })).await?;
-    serde_json::from_value(
-        result
-            .get("sessions")
-            .cloned()
-            .ok_or_else(|| ContainerBridgeError::Failed("bridge omitted sessions".into()))?,
-    )
-    .map_err(|error| ContainerBridgeError::Failed(error.to_string()))
+struct BridgeProcess {
+    child: Child,
+    stdin: ChildStdin,
+    stdout: BufReader<ChildStdout>,
 }
 
-async fn get_container_session(
-    container: &str,
-    session_id: &str,
-) -> Result<Option<AgentSession>, ContainerBridgeError> {
-    match call_container(container, GET_SESSION, json!({ "session_id": session_id })).await {
-        Ok(result) => serde_json::from_value(
+impl Drop for BridgeProcess {
+    fn drop(&mut self) {
+        let _ = self.child.start_kill();
+    }
+}
+
+impl DockerBridge {
+    async fn list_sessions(
+        &mut self,
+        container: &str,
+        limit: usize,
+    ) -> Result<Vec<AgentSession>, ContainerBridgeError> {
+        let result = self
+            .call(container, LIST_SESSIONS, json!({ "limit": limit }))
+            .await?;
+        serde_json::from_value(
             result
-                .get("session")
+                .get("sessions")
                 .cloned()
-                .ok_or_else(|| ContainerBridgeError::Failed("bridge omitted session".into()))?,
+                .ok_or_else(|| ContainerBridgeError::Failed("bridge omitted sessions".into()))?,
         )
-        .map(Some)
-        .map_err(|error| ContainerBridgeError::Failed(error.to_string())),
-        Err(ContainerBridgeError::NotFound(_)) => Ok(None),
-        Err(error) => Err(error),
+        .map_err(|error| ContainerBridgeError::Failed(error.to_string()))
     }
-}
 
-async fn send_container_message(
-    container: &str,
-    session_id: &str,
-    message: &str,
-) -> Result<(String, String), ContainerBridgeError> {
-    let result = call_container(
-        container,
-        MESSAGE_SESSION,
-        json!({ "session_id": session_id, "message": message }),
-    )
-    .await?;
-    let field = |name| {
-        result
-            .get(name)
-            .and_then(Value::as_str)
-            .ok_or_else(|| ContainerBridgeError::Failed(format!("bridge omitted {name}")))
-    };
-    Ok((
-        field("agent_type")?.into(),
-        format!("docker-exec/{}", field("transport")?),
-    ))
-}
+    async fn get_session(
+        &mut self,
+        container: &str,
+        session_id: &str,
+    ) -> Result<Option<AgentSession>, ContainerBridgeError> {
+        match self
+            .call(container, GET_SESSION, json!({ "session_id": session_id }))
+            .await
+        {
+            Ok(result) => serde_json::from_value(
+                result
+                    .get("session")
+                    .cloned()
+                    .ok_or_else(|| ContainerBridgeError::Failed("bridge omitted session".into()))?,
+            )
+            .map(Some)
+            .map_err(|error| ContainerBridgeError::Failed(error.to_string())),
+            Err(ContainerBridgeError::NotFound(_)) => Ok(None),
+            Err(error) => Err(error),
+        }
+    }
 
-async fn call_container(
-    container: &str,
-    method: &str,
-    params: Value,
-) -> Result<Value, ContainerBridgeError> {
-    tokio::time::timeout(
-        BRIDGE_OPERATION_TIMEOUT,
-        call_container_with_deadline(container, method, params),
-    )
-    .await
-    .map_err(|_| {
-        ContainerBridgeError::Failed(format!(
-            "Docker bridge operation timed out after {} seconds",
-            BRIDGE_OPERATION_TIMEOUT.as_secs()
+    async fn send_message(
+        &mut self,
+        container: &str,
+        session_id: &str,
+        message: &str,
+    ) -> Result<(String, String), ContainerBridgeError> {
+        let result = self
+            .call(
+                container,
+                MESSAGE_SESSION,
+                json!({ "session_id": session_id, "message": message }),
+            )
+            .await?;
+        let field = |name| {
+            result
+                .get(name)
+                .and_then(Value::as_str)
+                .ok_or_else(|| ContainerBridgeError::Failed(format!("bridge omitted {name}")))
+        };
+        Ok((
+            field("agent_type")?.into(),
+            format!("docker-exec/{}", field("transport")?),
         ))
-    })?
-}
+    }
 
-async fn call_container_with_deadline(
-    container: &str,
-    method: &str,
-    params: Value,
-) -> Result<Value, ContainerBridgeError> {
-    let execution = inspect_container_execution(container).await?;
-    let user = match (&execution.user, &execution.home) {
-        (Some(user), _) => Some(user.clone()),
-        (None, Some(home)) => Some(inspect_path_owner(container, home).await?),
-        (None, None) => None,
-    };
-    let home = match (&execution.home, &user) {
-        (Some(home), _) => Some(home.clone()),
-        (None, Some(user)) => Some(inspect_user_home(container, user).await?),
-        (None, None) => None,
-    };
-    let mut child = docker_bridge_command(
-        container,
-        user.as_deref(),
-        execution.workdir.as_deref(),
-        home.as_deref(),
-    )?
-    .stdin(Stdio::piped())
-    .stdout(Stdio::piped())
-    .stderr(Stdio::null())
-    .spawn()
-    .map_err(|error| {
-        ContainerBridgeError::Failed(format!(
-            "failed to start Docker bridge for {container}: {error}"
-        ))
-    })?;
-    let mut stdin = child
-        .stdin
-        .take()
-        .ok_or_else(|| ContainerBridgeError::Failed("Docker bridge stdin unavailable".into()))?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| ContainerBridgeError::Failed("Docker bridge stdout unavailable".into()))?;
-    let mut encoded = serde_json::to_vec(&BridgeRequest {
-        id: 1,
-        method: method.into(),
-        params,
-    })
-    .map_err(|error| ContainerBridgeError::Failed(error.to_string()))?;
-    encoded.push(b'\n');
-    stdin.write_all(&encoded).await.map_err(|error| {
-        ContainerBridgeError::Failed(format!("failed to write Docker bridge request: {error}"))
-    })?;
-    stdin.shutdown().await.map_err(|error| {
-        ContainerBridgeError::Failed(format!("failed to close Docker bridge request: {error}"))
-    })?;
-    drop(stdin);
+    async fn call(
+        &mut self,
+        container: &str,
+        method: &str,
+        params: Value,
+    ) -> Result<Value, ContainerBridgeError> {
+        match tokio::time::timeout(
+            BRIDGE_OPERATION_TIMEOUT,
+            self.call_with_deadline(container, method, params),
+        )
+        .await
+        {
+            Ok(Ok(result)) => Ok(result),
+            Ok(Err(error)) => {
+                if matches!(error, ContainerBridgeError::Failed(_)) {
+                    self.process = None;
+                }
+                Err(error)
+            }
+            Err(_) => {
+                self.process = None;
+                Err(ContainerBridgeError::Failed(format!(
+                    "Docker bridge operation timed out after {} seconds",
+                    BRIDGE_OPERATION_TIMEOUT.as_secs()
+                )))
+            }
+        }
+    }
 
-    let mut line = Vec::new();
-    let mut stdout = BufReader::new(stdout);
-    match read_provider_line(&mut stdout, &mut line, MAX_BRIDGE_FRAME_BYTES).await {
-        Ok(ProviderLine::Complete) => {}
-        Ok(ProviderLine::Eof) => {
-            return Err(ContainerBridgeError::Failed(
-                "Docker bridge closed its output".into(),
-            ));
-        }
-        Ok(ProviderLine::Oversized) => {
-            return Err(ContainerBridgeError::Failed(format!(
-                "Docker bridge response exceeds {MAX_BRIDGE_FRAME_BYTES} bytes"
-            )));
-        }
-        Err(error) => {
-            return Err(ContainerBridgeError::Failed(format!(
-                "failed to read Docker bridge response: {error}"
-            )));
+    async fn call_with_deadline(
+        &mut self,
+        container: &str,
+        method: &str,
+        params: Value,
+    ) -> Result<Value, ContainerBridgeError> {
+        self.ensure_process(container).await?;
+        self.next_id += 1;
+        let id = self.next_id;
+        let mut encoded = serde_json::to_vec(&BridgeRequest {
+            id,
+            method: method.into(),
+            params,
+        })
+        .map_err(|error| ContainerBridgeError::Failed(error.to_string()))?;
+        encoded.push(b'\n');
+        let process = self.process.as_mut().expect("bridge process initialized");
+        process.stdin.write_all(&encoded).await.map_err(|error| {
+            ContainerBridgeError::Failed(format!("failed to write Docker bridge request: {error}"))
+        })?;
+        process.stdin.flush().await.map_err(|error| {
+            ContainerBridgeError::Failed(format!("failed to flush Docker bridge request: {error}"))
+        })?;
+
+        let mut line = Vec::new();
+        loop {
+            match read_provider_line(&mut process.stdout, &mut line, MAX_BRIDGE_FRAME_BYTES).await {
+                Ok(ProviderLine::Complete) => {}
+                Ok(ProviderLine::Eof) => {
+                    return Err(ContainerBridgeError::Failed(
+                        "Docker bridge closed its output".into(),
+                    ));
+                }
+                Ok(ProviderLine::Oversized) => {
+                    return Err(ContainerBridgeError::Failed(format!(
+                        "Docker bridge response exceeds {MAX_BRIDGE_FRAME_BYTES} bytes"
+                    )));
+                }
+                Err(error) => {
+                    return Err(ContainerBridgeError::Failed(format!(
+                        "failed to read Docker bridge response: {error}"
+                    )));
+                }
+            }
+            let response: BridgeResponse = serde_json::from_slice(&line).map_err(|error| {
+                ContainerBridgeError::Failed(format!("invalid Docker bridge response: {error}"))
+            })?;
+            if response.id != id {
+                continue;
+            }
+            if let Some(error) = response.error {
+                return Err(match error.code.as_str() {
+                    "not_found" => ContainerBridgeError::NotFound(error.message),
+                    "conflict" => ContainerBridgeError::Conflict(error.message),
+                    _ => ContainerBridgeError::Failed(error.message),
+                });
+            }
+            return response
+                .result
+                .ok_or_else(|| ContainerBridgeError::Failed("bridge omitted result".into()));
         }
     }
-    let status = child.wait().await.map_err(|error| {
-        ContainerBridgeError::Failed(format!("failed to wait for Docker bridge: {error}"))
-    })?;
-    if !status.success() {
-        return Err(ContainerBridgeError::Failed(format!(
-            "Docker bridge exited with {status}"
-        )));
-    }
-    let response: BridgeResponse = serde_json::from_slice(&line).map_err(|error| {
-        ContainerBridgeError::Failed(format!("invalid Docker bridge response: {error}"))
-    })?;
-    if response.id != 1 {
-        return Err(ContainerBridgeError::Failed(
-            "Docker bridge returned a mismatched response ID".into(),
-        ));
-    }
-    if let Some(error) = response.error {
-        return Err(match error.code.as_str() {
-            "not_found" => ContainerBridgeError::NotFound(error.message),
-            "conflict" => ContainerBridgeError::Conflict(error.message),
-            _ => ContainerBridgeError::Failed(error.message),
+
+    async fn ensure_process(&mut self, container: &str) -> Result<(), ContainerBridgeError> {
+        if let Some(process) = self.process.as_mut()
+            && process.child.try_wait().ok().flatten().is_none()
+        {
+            return Ok(());
+        }
+        let execution = inspect_container_execution(container).await?;
+        let user = match (&execution.user, &execution.home) {
+            (Some(user), _) => Some(user.clone()),
+            (None, Some(home)) => Some(inspect_path_owner(container, home).await?),
+            (None, None) => None,
+        };
+        let home = match (&execution.home, &user) {
+            (Some(home), _) => Some(home.clone()),
+            (None, Some(user)) => Some(inspect_user_home(container, user).await?),
+            (None, None) => None,
+        };
+        let mut child = docker_bridge_command(
+            container,
+            user.as_deref(),
+            execution.workdir.as_deref(),
+            home.as_deref(),
+        )?
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| {
+            ContainerBridgeError::Failed(format!(
+                "failed to start Docker bridge for {container}: {error}"
+            ))
+        })?;
+        let stdin = child.stdin.take().ok_or_else(|| {
+            ContainerBridgeError::Failed("Docker bridge stdin unavailable".into())
+        })?;
+        let stdout = child.stdout.take().ok_or_else(|| {
+            ContainerBridgeError::Failed("Docker bridge stdout unavailable".into())
+        })?;
+        self.process = Some(BridgeProcess {
+            child,
+            stdin,
+            stdout: BufReader::new(stdout),
         });
+        Ok(())
     }
-    response
-        .result
-        .ok_or_else(|| ContainerBridgeError::Failed("bridge omitted result".into()))
 }
 
 async fn inspect_container_execution(
