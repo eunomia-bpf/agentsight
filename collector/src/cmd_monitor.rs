@@ -580,7 +580,7 @@ fn active_monitor() -> Option<MonitorPidFile> {
     let path = monitor_pid_path();
     let text = std::fs::read_to_string(&path).ok()?;
     let pid_file: MonitorPidFile = serde_json::from_str(&text).ok()?;
-    if monitor_pid_is_active(pid_file.pid) && pid_file.db_path.exists() {
+    if pid_is_alive(pid_file.pid) && pid_file.db_path.exists() {
         Some(pid_file)
     } else {
         let _ = std::fs::remove_file(path);
@@ -604,44 +604,9 @@ fn pid_is_alive(pid: u32) -> bool {
     result == 0 || io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
 }
 
-#[cfg(target_os = "linux")]
-fn monitor_pid_is_active(pid: u32) -> bool {
-    if !pid_is_alive(pid) {
-        return false;
-    }
-    std::fs::read(format!("/proc/{pid}/cmdline"))
-        .ok()
-        .is_some_and(|cmdline| linux_cmdline_is_agentsight_monitor(&cmdline))
-}
-
-#[cfg(target_os = "linux")]
-fn linux_cmdline_is_agentsight_monitor(cmdline: &[u8]) -> bool {
-    let mut args = cmdline
-        .split(|byte| *byte == 0)
-        .filter(|argument| !argument.is_empty());
-    let Some(executable) = args.next() else {
-        return false;
-    };
-    executable
-        .rsplit(|byte| *byte == b'/')
-        .next()
-        .is_some_and(|name| name == b"agentsight")
-        && args.any(|argument| argument == b"monitor")
-}
-
-#[cfg(all(unix, not(target_os = "linux")))]
-fn monitor_pid_is_active(pid: u32) -> bool {
-    pid_is_alive(pid)
-}
-
 #[cfg(not(unix))]
 fn pid_is_alive(pid: u32) -> bool {
     pid != 0 && ProcSnapshot::collect().is_ok_and(|snapshot| snapshot.procs.contains_key(&pid))
-}
-
-#[cfg(not(unix))]
-fn monitor_pid_is_active(pid: u32) -> bool {
-    pid_is_alive(pid)
 }
 
 struct MonitorPidGuard {
@@ -1243,19 +1208,5 @@ mod tests {
     fn current_pid_is_alive_for_monitor_pid_file() {
         assert!(pid_is_alive(std::process::id()));
         assert!(!pid_is_alive(0));
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    fn monitor_pid_rejects_an_agentsight_bind_thread_collision() {
-        assert!(linux_cmdline_is_agentsight_monitor(
-            b"/usr/local/bin/agentsight\0monitor\0"
-        ));
-        assert!(!linux_cmdline_is_agentsight_monitor(
-            b"agentsight\0bind\0--server-port\x007395\0"
-        ));
-        assert!(!linux_cmdline_is_agentsight_monitor(
-            b"unrelated\0monitor\0"
-        ));
     }
 }

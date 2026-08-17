@@ -103,58 +103,30 @@ fn codex_state_sessions_in_home(home: &Path, limit: usize) -> Vec<LocalSession> 
     ) else {
         return Vec::new();
     };
-    let Ok(rows) = stmt.query_map([limit.clamp(1, 25) as i64], codex_state_session_from_row) else {
+    let Ok(rows) = stmt.query_map([limit.clamp(1, 25) as i64], |row| {
+        let id: String = row.get(0)?;
+        let rollout_path: String = row.get(1)?;
+        let model: Option<String> = row.get(2)?;
+        let tokens_used: i64 = row.get(3)?;
+        let preview: Option<String> = row.get(4)?;
+        let cwd: Option<String> = row.get(5)?;
+        let created_at_ms: Option<i64> = row.get(6)?;
+        let updated_at_ms: Option<i64> = row.get(7)?;
+        Ok(codex_state_session(
+            id,
+            rollout_path,
+            model,
+            tokens_used,
+            preview,
+            cwd,
+            created_at_ms,
+            updated_at_ms,
+        ))
+    }) else {
         return Vec::new();
     };
 
     rows.filter_map(Result::ok).collect()
-}
-
-fn codex_state_session_by_id(home: &Path, session_id: &str) -> Option<LocalSession> {
-    let conn = rusqlite::Connection::open_with_flags(
-        home.join(".codex/state_5.sqlite"),
-        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
-    )
-    .ok()?;
-    conn.query_row(
-        "SELECT id, rollout_path, model, tokens_used, preview, cwd, created_at_ms, updated_at_ms
-         FROM threads
-         WHERE id = ?1",
-        [session_id],
-        codex_state_session_from_row,
-    )
-    .ok()
-}
-
-fn codex_state_session_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<LocalSession> {
-    Ok(codex_state_session(
-        row.get(0)?,
-        row.get(1)?,
-        row.get(2)?,
-        row.get(3)?,
-        row.get(4)?,
-        row.get(5)?,
-        row.get(6)?,
-        row.get(7)?,
-    ))
-}
-
-/// Find one session by its stable ID without widening the bounded overview scan.
-/// Codex uses its state index for an exact lookup, so older resumable sessions
-/// remain addressable even when they are outside the newest 25 overview rows.
-pub fn find_session_by_id(cache: &mut SessionCache, session_id: &str) -> Option<LocalSession> {
-    if let Some(indexed) = user_home_dir()
-        .as_deref()
-        .and_then(|home| codex_state_session_by_id(home, session_id))
-    {
-        return Some(hydrate_session(cache, indexed));
-    }
-
-    let indexed = cache
-        .discover_cached(25, Duration::ZERO)
-        .into_iter()
-        .find(|session| session.session_id == session_id)?;
-    Some(hydrate_session(cache, indexed))
 }
 
 fn codex_state_session(
@@ -1828,19 +1800,6 @@ mod tests {
         fs::write(temp.path().join(".codex/state_5.sqlite"), "not sqlite").unwrap();
 
         assert!(codex_state_sessions_in_home(temp.path(), 5).is_empty());
-    }
-
-    #[test]
-    fn codex_state_db_finds_a_session_by_exact_id() {
-        let temp = tempfile::tempdir().unwrap();
-        write_codex_state_db_for_test(temp.path());
-
-        let session =
-            codex_state_session_by_id(temp.path(), "019f49ca-54e7-7a91-82e7-a52b53cfd456").unwrap();
-
-        assert_eq!(session.session_id, "019f49ca-54e7-7a91-82e7-a52b53cfd456");
-        assert_eq!(session.cwd.as_deref(), Some("/work/repo"));
-        assert!(codex_state_session_by_id(temp.path(), "missing").is_none());
     }
 
     #[test]

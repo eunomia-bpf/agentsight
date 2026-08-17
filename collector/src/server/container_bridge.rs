@@ -2,7 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 //! JSONL bridge used by a host AgentSight Node to manage sessions in a Docker
-//! container without copying the container's provider credentials to the host.
+//! container without copying provider credentials to the host.
 
 use crate::server::session_runtime::{SubmitError, submit_message};
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
@@ -254,7 +254,10 @@ fn discover_sessions(cache: &mut SessionCache, limit: usize) -> Vec<AgentSession
 }
 
 fn find_native_session(cache: &mut SessionCache, session_id: &str) -> Option<AgentSession> {
-    agent_native_sessions::find_session_by_id(cache, session_id)
+    let indexed = agent_native_sessions::discover_sessions(cache, None, None, 25, Duration::ZERO)
+        .into_iter()
+        .find(|session| session.session_id == session_id)?;
+    Some(agent_native_sessions::hydrate_session(cache, indexed))
 }
 
 #[derive(Clone, Default)]
@@ -363,7 +366,7 @@ struct DockerBridge {
 struct ContainerExecution {
     user: Option<String>,
     workdir: Option<String>,
-    codex_home: Option<String>,
+    home: Option<String>,
 }
 
 struct BridgeProcess {
@@ -540,18 +543,16 @@ impl DockerBridge {
             return Ok(());
         }
         let execution = inspect_container_execution(&self.container).await?;
-        let user = match (&execution.user, &execution.codex_home) {
+        let user = match (&execution.user, &execution.home) {
             (Some(user), _) => Some(user.clone()),
-            (None, Some(codex_home)) => {
-                Some(inspect_path_owner(&self.container, codex_home).await?)
-            }
+            (None, Some(home)) => Some(inspect_path_owner(&self.container, home).await?),
             (None, None) => None,
         };
         let mut command = docker_bridge_command(
             &self.container,
             user.as_deref(),
             execution.workdir.as_deref(),
-            execution.codex_home.as_deref(),
+            execution.home.as_deref(),
         )?;
         let mut child = command
             .stdin(Stdio::piped())
@@ -644,10 +645,10 @@ fn parse_container_execution(value: &Value) -> Result<ContainerExecution, Contai
             .filter(|value| !value.is_empty())
             .map(str::to_string)
     });
-    let codex_home = label("com.agentsight.codex-home");
+    let home = label("com.agentsight.home");
     for (name, path) in [
         ("com.agentsight.workspace", workdir.as_deref()),
-        ("com.agentsight.codex-home", codex_home.as_deref()),
+        ("com.agentsight.home", home.as_deref()),
     ] {
         if let Some(path) = path {
             validate_container_path(name, path)?;
@@ -656,7 +657,7 @@ fn parse_container_execution(value: &Value) -> Result<ContainerExecution, Contai
     Ok(ContainerExecution {
         user,
         workdir,
-        codex_home,
+        home,
     })
 }
 
@@ -701,7 +702,7 @@ fn docker_bridge_command(
     container: &str,
     user: Option<&str>,
     workdir: Option<&str>,
-    codex_home: Option<&str>,
+    home: Option<&str>,
 ) -> Result<Command, ContainerBridgeError> {
     validate_container_name(container).map_err(ContainerBridgeError::Failed)?;
     let mut command = Command::new("docker");
@@ -714,12 +715,9 @@ fn docker_bridge_command(
         validate_container_path("workdir", workdir)?;
         command.args(["--workdir", workdir]);
     }
-    if let Some(codex_home) = codex_home {
-        validate_container_path("codex-home", codex_home)?;
-        command.args(["--env", &format!("CODEX_HOME={codex_home}")]);
-        if let Some(home) = codex_home.strip_suffix("/.codex") {
-            command.args(["--env", &format!("HOME={home}")]);
-        }
+    if let Some(home) = home {
+        validate_container_path("home", home)?;
+        command.args(["--env", &format!("HOME={home}")]);
     }
     command.args([container, "agentsight", "bridge"]);
     Ok(command)
@@ -791,7 +789,7 @@ mod tests {
                 "Labels": {
                     "com.agentsight.user": "vscode",
                     "com.agentsight.workspace": "/workspaces/ebpfos",
-                    "com.agentsight.codex-home": "/home/vscode/.codex"
+                    "com.agentsight.home": "/home/vscode"
                 }
             }
         }]);
@@ -800,18 +798,18 @@ mod tests {
             ContainerExecution {
                 user: Some("vscode".into()),
                 workdir: Some("/workspaces/ebpfos".into()),
-                codex_home: Some("/home/vscode/.codex".into()),
+                home: Some("/home/vscode".into()),
             }
         );
     }
 
     #[test]
-    fn execution_falls_back_to_codex_home_owner_but_rejects_relative_paths() {
+    fn execution_falls_back_to_home_owner_but_rejects_relative_paths() {
         let inspected = json!([{
             "Config": {
                 "User": "",
                 "WorkingDir": "",
-                "Labels": {"com.agentsight.codex-home": "/home/vscode/.codex"}
+                "Labels": {"com.agentsight.home": "/home/vscode"}
             }
         }]);
         assert_eq!(
@@ -819,20 +817,20 @@ mod tests {
             ContainerExecution {
                 user: None,
                 workdir: None,
-                codex_home: Some("/home/vscode/.codex".into()),
+                home: Some("/home/vscode".into()),
             }
         );
         let root_image = json!([{
             "Config": {
                 "User": "root:root",
                 "WorkingDir": "/",
-                "Labels": {"com.agentsight.codex-home": "/home/vscode/.codex"}
+                "Labels": {"com.agentsight.home": "/home/vscode"}
             }
         }]);
         assert_eq!(
             parse_container_execution(&root_image).unwrap().user,
             None,
-            "a root image user must not override the Codex home owner"
+            "a root image user must not override the agent home owner"
         );
         let invalid = json!([{
             "Config": {
@@ -844,12 +842,12 @@ mod tests {
     }
 
     #[test]
-    fn bridge_command_propagates_codex_and_unix_home() {
+    fn bridge_command_propagates_agent_home() {
         let command = docker_bridge_command(
             "ebpfos-dev",
             Some("1001"),
             Some("/workspaces/ebpfos"),
-            Some("/home/vscode/.codex"),
+            Some("/home/vscode"),
         )
         .unwrap();
         let args = command
@@ -866,8 +864,6 @@ mod tests {
                 "1001",
                 "--workdir",
                 "/workspaces/ebpfos",
-                "--env",
-                "CODEX_HOME=/home/vscode/.codex",
                 "--env",
                 "HOME=/home/vscode",
                 "ebpfos-dev",

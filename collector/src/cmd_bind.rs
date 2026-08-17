@@ -89,7 +89,7 @@ pub(crate) async fn run_bind(
     }
     if !docker_containers.is_empty() {
         println!(
-            "Including Codex sessions from Docker containers: {}.",
+            "Including agent sessions from Docker containers: {}.",
             docker_containers.join(", ")
         );
     }

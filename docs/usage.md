@@ -124,23 +124,22 @@ agentsight bind --listen 0.0.0.0 --server-port 7395 \
   --app-url https://agentsight.example.net/
 ```
 
-To include Codex sessions whose state and credentials stay inside a running
-Docker container, install the same AgentSight binary in the container and name
-the container when starting the host Node:
+To include agent-native sessions whose state and credentials stay inside a
+running Docker container, install the same AgentSight binary in the container
+and name the container when starting the host Node:
 
 ```sh
 agentsight bind --docker-container ebpfos-dev
 ```
 
-The host Node starts a narrow JSONL bridge with `docker exec -i`; session
-discovery and Codex app-server messaging therefore run as the container's
-configured user with its `CODEX_HOME`, working directory, and runtime-mounted
-credentials. The provider credential is never copied to the host, and the
-container must already be running. Repeat `--docker-container` to include more
-containers. Session IDs must be unique across the host and all configured
-containers; AgentSight returns a conflict instead of guessing when it detects a
-collision. This resumes a recorded Codex session through app-server; it does
-not attach to the stdin of an unrelated, already-running TUI process.
+The bridge has no provider-specific dispatch: it reuses AgentSight's existing
+agent-native discovery and message runtime inside the container. Today it
+discovers Claude Code, Codex, Gemini CLI, and Cursor sessions; message resume is
+available for Claude Code, Codex, and Gemini CLI. Other commands remain visible
+through normal `top`/`record` observation but are not resumable until their
+provider runtime supports messaging. Provider credentials stay in the
+container. Repeat `--docker-container` to include more containers; duplicate
+session IDs return a conflict instead of selecting an arbitrary target.
 
 Standard Docker socket or `docker` group access is daemon-wide and is normally
 equivalent to host root; the named-container option limits AgentSight behavior,
@@ -151,11 +150,11 @@ the private stdio pipe has no separate in-band authentication and imports
 session metadata from the container. Keep the host and container AgentSight
 binaries on the same version.
 
-Dev containers should declare `com.agentsight.user`,
-`com.agentsight.workspace`, and `com.agentsight.codex-home` labels. AgentSight
-uses them to select the exact user and working directory. If the user label is
-absent but `codex-home` is present, it uses that directory's numeric owner; the
-container image's configured user is the final fallback.
+Dev containers may declare `com.agentsight.user`, `com.agentsight.workspace`,
+and `com.agentsight.home` labels. AgentSight uses them for `docker exec`; if the
+user label is absent, it uses the home directory owner and then the image user.
+Keep provider-specific environment such as `CODEX_HOME` in the container
+configuration rather than in host AgentSight settings.
 
 An unspecified listen address requires an explicit browser-reachable
 `--endpoint`. A non-loopback Node should use browser-trusted HTTPS; private
