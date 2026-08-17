@@ -627,7 +627,8 @@ async fn inspect_user_home(container: &str, user: &str) -> Result<String, Contai
         .map_err(|error| {
             ContainerBridgeError::Failed(format!("Docker user lookup failed: {error}"))
         })?;
-    let home = String::from_utf8_lossy(&output.stdout)
+    let passwd = String::from_utf8_lossy(&output.stdout);
+    let home = passwd
         .lines()
         .next()
         .and_then(|line| line.split(':').nth(5))
