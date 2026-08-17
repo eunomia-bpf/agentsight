@@ -828,7 +828,10 @@ fn find_native_session(
     cache: &mut SessionCache,
     session_id: &str,
 ) -> Option<agent_session::AgentSession> {
-    agent_native_sessions::find_session_by_id(cache, session_id)
+    let indexed = agent_native_sessions::discover_sessions(cache, None, None, 25, Duration::ZERO)
+        .into_iter()
+        .find(|session| session.session_id == session_id)?;
+    Some(agent_native_sessions::hydrate_session(cache, indexed))
 }
 
 async fn launch_session_message(
