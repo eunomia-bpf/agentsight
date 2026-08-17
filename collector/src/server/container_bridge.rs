@@ -407,11 +407,16 @@ async fn call_container_with_deadline(
         (None, Some(home)) => Some(inspect_path_owner(container, home).await?),
         (None, None) => None,
     };
+    let home = match (&execution.home, &user) {
+        (Some(home), _) => Some(home.clone()),
+        (None, Some(user)) => Some(inspect_user_home(container, user).await?),
+        (None, None) => None,
+    };
     let mut child = docker_bridge_command(
         container,
         user.as_deref(),
         execution.workdir.as_deref(),
-        execution.home.as_deref(),
+        home.as_deref(),
     )?
     .stdin(Stdio::piped())
     .stdout(Stdio::piped())
@@ -609,6 +614,30 @@ async fn inspect_path_owner(container: &str, path: &str) -> Result<String, Conta
         )));
     }
     Ok(uid)
+}
+
+async fn inspect_user_home(container: &str, user: &str) -> Result<String, ContainerBridgeError> {
+    let mut command = Command::new("docker");
+    command
+        .kill_on_drop(true)
+        .args(["exec", container, "getent", "passwd", user]);
+    let output = tokio::time::timeout(DOCKER_COMMAND_TIMEOUT, command.output())
+        .await
+        .map_err(|_| ContainerBridgeError::Failed("Docker user lookup timed out".into()))?
+        .map_err(|error| {
+            ContainerBridgeError::Failed(format!("Docker user lookup failed: {error}"))
+        })?;
+    let home = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .next()
+        .and_then(|line| line.split(':').nth(5))
+        .ok_or_else(|| {
+            ContainerBridgeError::Failed(format!(
+                "could not resolve home directory for user {user:?} in Docker container {container}"
+            ))
+        })?;
+    validate_container_path("resolved user home", home)?;
+    Ok(home.into())
 }
 
 fn docker_bridge_command(
