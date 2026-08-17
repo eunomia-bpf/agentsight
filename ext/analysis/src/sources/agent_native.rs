@@ -103,7 +103,7 @@ pub fn find_session(cache: &mut SessionCache, session_id: &str) -> Option<LocalS
         }
         index.get(session_id).cloned()
     }?;
-    candidate.updated = std::fs::metadata(&candidate.path).ok()?.modified().ok()?;
+    candidate = agent_session::refresh_session_candidate(&candidate)?;
     let session = cache.parse_candidate_cached(&candidate)?;
     (session.session_id == session_id).then(|| hydrate_session(cache, session))
 }

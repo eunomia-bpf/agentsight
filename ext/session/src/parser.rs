@@ -145,6 +145,16 @@ pub fn count_session_dirs() -> Vec<SessionDirStat> {
     count_session_dirs_in_roots(&home, &codex_home)
 }
 
+/// Refresh a discovered candidate without losing provider-specific update rules.
+pub fn refresh_session_candidate(candidate: &SessionCandidate) -> Option<SessionCandidate> {
+    let meta = fs::metadata(&candidate.path).ok()?;
+    Some(SessionCandidate {
+        agent: candidate.agent,
+        path: candidate.path.clone(),
+        updated: candidate_updated(candidate.agent, &candidate.path, &meta),
+    })
+}
+
 /// Count sessions and bytes per agent directory under a specific home directory.
 pub fn count_session_dirs_in_home(home: &Path) -> Vec<SessionDirStat> {
     count_session_dirs_in_roots(home, &home.join(".codex"))
@@ -3794,6 +3804,56 @@ mod tests {
             r#"{"type":"turn_ended","status":"success"}"#,
         ]
         .join("\n")
+    }
+
+    #[test]
+    fn candidate_refresh_invalidates_cache_after_cursor_child_only_update() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "agentsight-cursor-refresh-{}-{unique}",
+            std::process::id()
+        ));
+        let transcripts = root.join(".cursor/projects/repo/agent-transcripts/abc");
+        let child_dir = transcripts.join("subagents");
+        fs::create_dir_all(&child_dir).unwrap();
+        let parent = transcripts.join("abc.jsonl");
+        let child = child_dir.join("def.jsonl");
+        fs::write(&parent, cursor_parent_fixture()).unwrap();
+        fs::write(
+            &child,
+            cursor_subagent_fixture().replace("/repo/hello.py", "/repo/child-v1.py"),
+        )
+        .unwrap();
+        let candidate = discover_session_files_in_home(&root)
+            .into_iter()
+            .find(|candidate| candidate.agent == AGENT_CURSOR)
+            .unwrap();
+        let mut cache = crate::SessionCache::new();
+        let first = cache.parse_candidate_cached(&candidate).unwrap();
+        assert!(first.files.contains_key("/repo/child-v1.py"));
+
+        fs::write(
+            &child,
+            cursor_subagent_fixture().replace("/repo/hello.py", "/repo/child-v2.py"),
+        )
+        .unwrap();
+        let bumped = SystemTime::now() + std::time::Duration::from_secs(120);
+        fs::File::options()
+            .write(true)
+            .open(&child)
+            .unwrap()
+            .set_modified(bumped)
+            .unwrap();
+        let refreshed = refresh_session_candidate(&candidate).unwrap();
+        let second = cache.parse_candidate_cached(&refreshed).unwrap();
+
+        assert!(refreshed.updated > candidate.updated);
+        assert!(second.files.contains_key("/repo/child-v2.py"));
+        assert!(!second.files.contains_key("/repo/child-v1.py"));
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
