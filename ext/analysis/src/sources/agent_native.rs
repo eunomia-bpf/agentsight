@@ -81,6 +81,24 @@ pub fn discover_sessions(
         .collect()
 }
 
+/// Resolve one session without applying the 25-row list-view cap.
+pub fn find_session(cache: &mut SessionCache, session_id: &str) -> Option<LocalSession> {
+    let mut candidates = agent_session::discover_session_files();
+    candidates.sort_by_key(|candidate| Reverse(candidate.updated));
+    find_session_in_candidates(cache, session_id, candidates)
+}
+
+fn find_session_in_candidates(
+    cache: &mut SessionCache,
+    session_id: &str,
+    candidates: impl IntoIterator<Item = agent_session::SessionCandidate>,
+) -> Option<LocalSession> {
+    candidates.into_iter().find_map(|candidate| {
+        let session = cache.parse_path_cached(&candidate.path)?;
+        (session.session_id == session_id).then(|| hydrate_session(cache, session))
+    })
+}
+
 fn codex_state_sessions(limit: usize) -> Vec<LocalSession> {
     user_home_dir()
         .as_deref()
@@ -1713,6 +1731,28 @@ mod tests {
 
         assert_eq!(candidates.len(), 1);
         assert_eq!(candidates[0].path, transcripts.join("abc.jsonl"));
+    }
+
+    #[test]
+    fn exact_lookup_is_not_limited_to_the_newest_twenty_five_sessions() {
+        let temp = tempfile::tempdir().unwrap();
+        for index in 0..26 {
+            let id = format!("session-{index:02}");
+            fs::write(
+                temp.path().join(format!("{id}.jsonl")),
+                format!(
+                    "{{\"timestamp\":\"1970-01-01T00:00:01Z\",\"type\":\"session_meta\",\"payload\":{{\"id\":\"{id}\",\"timestamp\":\"1970-01-01T00:00:01Z\",\"cwd\":\"/repo\"}}}}\n"
+                ),
+            )
+            .unwrap();
+        }
+        let candidates =
+            agent_session::discover_session_files_in_dir(agent_session::AGENT_CODEX, temp.path());
+
+        let found = find_session_in_candidates(&mut SessionCache::new(), "session-00", candidates)
+            .expect("the oldest session must remain addressable by exact ID");
+
+        assert_eq!(found.session_id, "session-00");
     }
 
     #[test]

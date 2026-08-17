@@ -45,7 +45,7 @@ type SharedCodexStdin = Arc<AsyncMutex<Option<ChildStdin>>>;
 type WeakCodexStdin = Weak<AsyncMutex<Option<ChildStdin>>>;
 
 #[derive(Debug, Eq, PartialEq)]
-enum ProviderLine {
+pub(super) enum ProviderLine {
     Complete,
     Oversized,
     Eof,
@@ -705,7 +705,7 @@ where
     }
 }
 
-async fn read_provider_line<R>(
+pub(super) async fn read_provider_line<R>(
     reader: &mut R,
     line: &mut Vec<u8>,
     max_bytes: usize,

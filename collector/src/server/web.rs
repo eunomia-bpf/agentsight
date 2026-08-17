@@ -23,6 +23,7 @@ use hyper::{Method, Request, Response, StatusCode, body::Bytes};
 use hyper_util::rt::TokioIo;
 use serde::Serialize;
 use serde_json::Value;
+use std::collections::HashSet;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
@@ -828,10 +829,7 @@ fn find_native_session(
     cache: &mut SessionCache,
     session_id: &str,
 ) -> Option<agent_session::AgentSession> {
-    let indexed = agent_native_sessions::discover_sessions(cache, None, None, 25, Duration::ZERO)
-        .into_iter()
-        .find(|session| session.session_id == session_id)?;
-    Some(agent_native_sessions::hydrate_session(cache, indexed))
+    agent_native_sessions::find_session(cache, session_id)
 }
 
 async fn launch_session_message(
@@ -876,7 +874,16 @@ fn snapshot_from_sources_with_extra(
             Duration::from_secs(2),
         )
     };
-    agent_native_rows.extend_from_slice(extra_sessions);
+    let mut session_ids = agent_native_rows
+        .iter()
+        .map(|session| session.session_id.clone())
+        .collect::<HashSet<_>>();
+    agent_native_rows.extend(
+        extra_sessions
+            .iter()
+            .filter(|session| session_ids.insert(session.session_id.clone()))
+            .cloned(),
+    );
     let mut merged = view
         .lock()
         .map_err(|_| std::io::Error::other("live view lock poisoned"))?
