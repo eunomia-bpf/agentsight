@@ -273,11 +273,7 @@ impl ContainerBridges {
                 }
             }
         }
-        match (found, first_error) {
-            (Some(found), _) => Ok(Some(found)),
-            (None, Some(error)) => Err(error),
-            (None, None) => Ok(None),
-        }
+        finish_container_lookup(found, first_error)
     }
 
     pub async fn send_message(
@@ -299,6 +295,17 @@ impl ContainerBridges {
             .await
             .map_err(|_| bridge_busy(container))?;
         state.send_message(container, session_id, message).await
+    }
+}
+
+fn finish_container_lookup<T>(
+    found: Option<T>,
+    first_error: Option<ContainerBridgeError>,
+) -> Result<Option<T>, ContainerBridgeError> {
+    match (found, first_error) {
+        (_, Some(error)) => Err(error),
+        (Some(found), None) => Ok(Some(found)),
+        (None, None) => Ok(None),
     }
 }
 
@@ -896,5 +903,16 @@ mod tests {
 
         assert!(bridges.list_sessions(25).await.is_empty());
         assert!(started.elapsed() < Duration::from_millis(1_800));
+    }
+
+    #[test]
+    fn container_lookup_fails_closed_when_a_peer_is_unavailable() {
+        let error = finish_container_lookup(
+            Some("matched-container"),
+            Some(ContainerBridgeError::Failed("peer unavailable".into())),
+        )
+        .unwrap_err();
+
+        assert_eq!(error.message(), "peer unavailable");
     }
 }

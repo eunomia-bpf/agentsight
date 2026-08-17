@@ -153,8 +153,9 @@ binaries on the same version.
 Dev containers may declare `com.agentsight.user`, `com.agentsight.workspace`,
 and `com.agentsight.home` labels. AgentSight uses them for `docker exec`; absent
 labels fall back to the image's absolute `HOME`, passwd entry, or path owner.
-Keep provider-specific environment such as `CODEX_HOME` in the container
-configuration rather than in host AgentSight settings.
+Keep provider-specific environment in the container configuration rather than
+in host AgentSight settings. An absolute `CODEX_HOME` is honored for Codex
+session discovery and state; relative values fall back to `$HOME/.codex`.
 
 An unspecified listen address requires an explicit browser-reachable
 `--endpoint`. A non-loopback Node should use browser-trusted HTTPS; private

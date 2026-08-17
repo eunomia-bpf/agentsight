@@ -245,7 +245,12 @@ impl SessionCache {
             self.entries.remove(path);
             return None;
         };
-        if let Some(entry) = self.entries.get_mut(path)
+        self.parse_candidate_cached(&candidate)
+    }
+
+    /// Parse a discovered transcript while preserving its provider identity.
+    pub fn parse_candidate_cached(&mut self, candidate: &SessionCandidate) -> Option<AgentSession> {
+        if let Some(entry) = self.entries.get_mut(&candidate.path)
             && entry.mtime == candidate.updated
         {
             entry.pinned = true;
@@ -253,9 +258,9 @@ impl SessionCache {
             self.trim_pinned_details();
             return session;
         }
-        let parsed = parse_session_file(&candidate);
+        let parsed = parse_session_file(candidate);
         self.entries.insert(
-            path.to_path_buf(),
+            candidate.path.clone(),
             CacheEntry {
                 mtime: candidate.updated,
                 session: parsed.clone(),

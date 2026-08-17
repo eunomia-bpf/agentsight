@@ -82,8 +82,9 @@ pub fn discover_sessions(
         .collect()
 }
 
-fn session_path_index() -> &'static Mutex<HashMap<String, PathBuf>> {
-    static INDEX: OnceLock<Mutex<HashMap<String, PathBuf>>> = OnceLock::new();
+fn session_path_index() -> &'static Mutex<HashMap<String, agent_session::SessionCandidate>> {
+    static INDEX: OnceLock<Mutex<HashMap<String, agent_session::SessionCandidate>>> =
+        OnceLock::new();
     INDEX.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
@@ -91,23 +92,28 @@ fn session_path_index() -> &'static Mutex<HashMap<String, PathBuf>> {
 /// unrelated transcripts. The bounded ID index is shared by detail and message
 /// requests, while only the matching transcript is hydrated in full.
 pub fn find_session(cache: &mut SessionCache, session_id: &str) -> Option<LocalSession> {
-    let path = {
+    let mut candidate = {
         let mut index = session_path_index().lock().ok()?;
-        if !index.contains_key(session_id) {
+        if index
+            .get(session_id)
+            .is_none_or(|candidate| !candidate.path.is_file())
+        {
+            index.remove(session_id);
             index.extend(index_session_paths(agent_session::discover_session_files()));
         }
         index.get(session_id).cloned()
     }?;
-    let session = cache.parse_path_cached(&path)?;
+    candidate.updated = std::fs::metadata(&candidate.path).ok()?.modified().ok()?;
+    let session = cache.parse_candidate_cached(&candidate)?;
     (session.session_id == session_id).then(|| hydrate_session(cache, session))
 }
 
 fn index_session_paths(
     candidates: impl IntoIterator<Item = agent_session::SessionCandidate>,
-) -> HashMap<String, PathBuf> {
+) -> HashMap<String, agent_session::SessionCandidate> {
     candidates
         .into_iter()
-        .filter_map(|candidate| session_candidate_id(&candidate).map(|id| (id, candidate.path)))
+        .filter_map(|candidate| session_candidate_id(&candidate).map(|id| (id, candidate)))
         .collect()
 }
 
@@ -122,12 +128,13 @@ fn session_candidate_id(candidate: &agent_session::SessionCandidate) -> Option<S
             .and_then(|stem| stem.to_str())
             .map(str::to_string);
     }
-    let mut header = String::new();
+    let mut header = Vec::new();
     File::open(&candidate.path)
         .ok()?
         .take(SESSION_ID_HEADER_BYTES)
-        .read_to_string(&mut header)
+        .read_to_end(&mut header)
         .ok()?;
+    let header = String::from_utf8_lossy(&header);
     let header = if candidate.agent == agent_session::AGENT_CODEX {
         header
             .lines()
@@ -154,14 +161,23 @@ fn json_string_field(text: &str, field: &str) -> Option<String> {
 }
 
 fn codex_state_sessions(limit: usize) -> Vec<LocalSession> {
-    user_home_dir()
-        .as_deref()
-        .map(|home| codex_state_sessions_in_home(home, limit))
-        .unwrap_or_default()
+    let Some(home) = user_home_dir() else {
+        return Vec::new();
+    };
+    let codex_home = std::env::var_os("CODEX_HOME")
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute())
+        .unwrap_or_else(|| home.join(".codex"));
+    codex_state_sessions_in_codex_home(&codex_home, limit)
 }
 
+#[cfg(test)]
 fn codex_state_sessions_in_home(home: &Path, limit: usize) -> Vec<LocalSession> {
-    let db_path = home.join(".codex/state_5.sqlite");
+    codex_state_sessions_in_codex_home(&home.join(".codex"), limit)
+}
+
+fn codex_state_sessions_in_codex_home(codex_home: &Path, limit: usize) -> Vec<LocalSession> {
+    let db_path = codex_home.join("state_5.sqlite");
     let Ok(conn) =
         rusqlite::Connection::open_with_flags(db_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
     else {
@@ -1358,7 +1374,12 @@ pub fn write_cursor_state_db_for_test(home: &Path) {
 #[cfg(any(test, feature = "test-support"))]
 pub fn write_codex_state_db_for_test(home: &Path) {
     let codex_dir = home.join(".codex");
-    fs::create_dir_all(&codex_dir).unwrap();
+    write_codex_state_db_in_for_test(&codex_dir);
+}
+
+#[cfg(any(test, feature = "test-support"))]
+fn write_codex_state_db_in_for_test(codex_dir: &Path) {
+    fs::create_dir_all(codex_dir).unwrap();
     let conn = rusqlite::Connection::open(codex_dir.join("state_5.sqlite")).unwrap();
     conn.execute_batch(
         "CREATE TABLE threads (
@@ -1426,6 +1447,21 @@ mod tests {
         assert_eq!(
             sessions[0].last_message_at.as_deref(),
             Some("1970-01-01T00:31:40.000Z")
+        );
+    }
+
+    #[test]
+    fn codex_state_db_accepts_a_custom_codex_home() {
+        let temp = tempfile::tempdir().unwrap();
+        let codex_home = temp.path().join("agent-state");
+        write_codex_state_db_in_for_test(&codex_home);
+
+        let sessions = codex_state_sessions_in_codex_home(&codex_home, 5);
+
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(
+            sessions[0].session_id,
+            "019f49ca-54e7-7a91-82e7-a52b53cfd456"
         );
     }
 
@@ -1810,11 +1846,11 @@ mod tests {
         let candidates =
             agent_session::discover_session_files_in_dir(agent_session::AGENT_CODEX, &sessions);
 
-        let path = index_session_paths(candidates)
+        let candidate = index_session_paths(candidates)
             .remove("session-00")
             .expect("the oldest session must remain indexed by exact ID");
         let found = SessionCache::new()
-            .parse_path_cached(&path)
+            .parse_candidate_cached(&candidate)
             .expect("only the indexed transcript should be parsed");
 
         assert_eq!(found.session_id, "session-00");
@@ -1834,6 +1870,27 @@ mod tests {
         assert_eq!(
             session_candidate_id(&candidate).as_deref(),
             Some("gemini-session")
+        );
+    }
+
+    #[test]
+    fn exact_lookup_tolerates_utf8_split_at_the_header_boundary() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("rollout.jsonl");
+        let mut content =
+            b"{\"type\":\"session_meta\",\"payload\":{\"id\":\"codex-session\"}}\n".to_vec();
+        content.resize(SESSION_ID_HEADER_BYTES as usize - 1, b'x');
+        content.extend_from_slice("🦀".as_bytes());
+        fs::write(&path, content).unwrap();
+        let candidate = agent_session::SessionCandidate {
+            agent: agent_session::AGENT_CODEX,
+            path,
+            updated: UNIX_EPOCH,
+        };
+
+        assert_eq!(
+            session_candidate_id(&candidate).as_deref(),
+            Some("codex-session")
         );
     }
 

@@ -175,8 +175,9 @@ Code、Codex 和 Gemini CLI 支持恢复并发送消息。其他命令仍可由�
 
 开发容器可声明 `com.agentsight.user`、`com.agentsight.workspace` 和
 `com.agentsight.home` labels。AgentSight 用它们设置 `docker exec` 的用户、工作目录和
-HOME；未设置时依次使用镜像的绝对 `HOME`、passwd entry 或路径 owner。`CODEX_HOME` 等 provider
-专用环境变量应保留在容器配置里，而不是写进宿主 AgentSight 配置。
+HOME；未设置时依次使用镜像的绝对 `HOME`、passwd entry 或路径 owner。provider 专用环境变量
+应保留在容器配置里，而不是写进宿主 AgentSight 配置。AgentSight 会使用绝对 `CODEX_HOME`
+发现 Codex 会话和 state；相对值回退到 `$HOME/.codex`。
 
 监听 `0.0.0.0` 或 `::` 时必须显式提供 `--endpoint`。非 loopback Node 应使用浏览器信任的
 HTTPS；私有网络本身不会绕过浏览器 mixed-content 规则。应把访问密钥视为长期凭据：任何

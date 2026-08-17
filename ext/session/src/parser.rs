@@ -18,17 +18,22 @@ use crate::{AGENT_CLAUDE, AGENT_CODEX, AGENT_CURSOR, AGENT_GEMINI};
 
 /// Discover all session files in the user's home directory.
 pub fn discover_session_files() -> Vec<SessionCandidate> {
-    user_home_dir()
-        .as_deref()
-        .map(discover_session_files_in_home)
-        .unwrap_or_default()
+    let Some(home) = user_home_dir() else {
+        return Vec::new();
+    };
+    let codex_home = configured_codex_home(&home);
+    discover_session_files_in_roots(&home, &codex_home)
 }
 
 /// Discover session files under a specific home directory.
 pub fn discover_session_files_in_home(home: &Path) -> Vec<SessionCandidate> {
+    discover_session_files_in_roots(home, &home.join(".codex"))
+}
+
+fn discover_session_files_in_roots(home: &Path, codex_home: &Path) -> Vec<SessionCandidate> {
     let roots = [
         (AGENT_CLAUDE, home.join(".claude/projects")),
-        (AGENT_CODEX, home.join(".codex/sessions")),
+        (AGENT_CODEX, codex_home.join("sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
         (AGENT_CURSOR, home.join(".cursor/projects")),
     ];
@@ -133,17 +138,22 @@ fn cursor_is_empty_window(path: &Path) -> bool {
 
 /// Count sessions and bytes per agent directory.
 pub fn count_session_dirs() -> Vec<SessionDirStat> {
-    user_home_dir()
-        .as_deref()
-        .map(count_session_dirs_in_home)
-        .unwrap_or_default()
+    let Some(home) = user_home_dir() else {
+        return Vec::new();
+    };
+    let codex_home = configured_codex_home(&home);
+    count_session_dirs_in_roots(&home, &codex_home)
 }
 
 /// Count sessions and bytes per agent directory under a specific home directory.
 pub fn count_session_dirs_in_home(home: &Path) -> Vec<SessionDirStat> {
+    count_session_dirs_in_roots(home, &home.join(".codex"))
+}
+
+fn count_session_dirs_in_roots(home: &Path, codex_home: &Path) -> Vec<SessionDirStat> {
     [
         (AGENT_CLAUDE, home.join(".claude/projects")),
-        (AGENT_CODEX, home.join(".codex/sessions")),
+        (AGENT_CODEX, codex_home.join("sessions")),
         (AGENT_GEMINI, home.join(".gemini/tmp")),
         (AGENT_CURSOR, home.join(".cursor/projects")),
     ]
@@ -1901,6 +1911,16 @@ pub(crate) fn user_home_dir() -> Option<PathBuf> {
                 .filter(|home| home.is_absolute())
         })
         .or_else(dirs::home_dir)
+}
+
+fn configured_codex_home(home: &Path) -> PathBuf {
+    resolve_codex_home(home, std::env::var_os("CODEX_HOME").map(PathBuf::from))
+}
+
+fn resolve_codex_home(home: &Path, configured: Option<PathBuf>) -> PathBuf {
+    configured
+        .filter(|path| path.is_absolute())
+        .unwrap_or_else(|| home.join(".codex"))
 }
 
 fn add_usage(
@@ -3701,6 +3721,55 @@ mod tests {
     use super::*;
     use serde_json::json;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn absolute_codex_home_controls_discovery_and_directory_stats() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "agentsight-codex-home-{}-{unique}",
+            std::process::id()
+        ));
+        let profile_home = root.join("profile");
+        let codex_home = root.join("agent-state");
+        let session = codex_home.join("sessions/2026/08/17/session.jsonl");
+        fs::create_dir_all(session.parent().unwrap()).unwrap();
+        let content = concat!(
+            "{\"timestamp\":\"2026-08-17T00:00:00Z\",\"type\":\"session_meta\",\"payload\":{\"id\":\"custom-home-session\",\"cwd\":\"/repo\"}}\n",
+            "{\"timestamp\":\"2026-08-17T00:00:01Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"continue\"}]}}\n",
+            "{\"timestamp\":\"2026-08-17T00:00:02Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"assistant\",\"phase\":\"final_answer\",\"content\":[{\"type\":\"output_text\",\"text\":\"done\"}]}}\n",
+        );
+        fs::write(&session, content).unwrap();
+
+        let candidates = discover_session_files_in_roots(&profile_home, &codex_home);
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].agent, AGENT_CODEX);
+        assert_eq!(candidates[0].path, session);
+        let parsed = crate::SessionCache::new()
+            .parse_candidate_cached(&candidates[0])
+            .expect("custom CODEX_HOME candidate should retain its provider");
+        assert_eq!(parsed.session_id, "custom-home-session");
+
+        let stats = count_session_dirs_in_roots(&profile_home, &codex_home);
+        assert_eq!(stats.len(), 1);
+        assert_eq!(stats[0].agent, AGENT_CODEX);
+        assert_eq!(stats[0].dir, codex_home.join("sessions"));
+        assert_eq!(stats[0].sessions, 1);
+        assert_eq!(stats[0].bytes, content.len() as u64);
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn relative_codex_home_falls_back_to_the_profile() {
+        let profile_home = Path::new("/home/agent");
+        assert_eq!(
+            resolve_codex_home(profile_home, Some(PathBuf::from("relative/state"))),
+            profile_home.join(".codex")
+        );
+    }
 
     // A parent transcript that both delegates and works directly, since Cursor mixes both.
     fn cursor_parent_fixture() -> String {
