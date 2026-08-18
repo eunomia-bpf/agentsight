@@ -26,6 +26,8 @@ test('anonymous entry offers both sign-in providers, language switching, and the
   await expect(page.getByRole('heading', { name: '打开你的 AgentSight 数据' })).toBeVisible();
   await expect(page.getByRole('button', { name: '使用 GitHub 继续' })).toBeVisible();
   await expect(page.getByRole('button', { name: '使用 Google 继续' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '服务条款' })).toHaveAttribute('href', '/terms/');
+  await expect(page.getByRole('link', { name: '隐私政策' })).toHaveAttribute('href', '/privacy/');
   await page.getByRole('button', { name: '进入演示' }).click();
   await expect(page.getByText('录制演示').first()).toBeVisible();
   await expect(page.getByRole('heading', { name: '当前机器上的 Agent' })).toBeVisible();
@@ -56,6 +58,32 @@ test('signed-in user opens a relay Node and sees machine value before session de
   await expect(page.getByRole('heading', { name: 'Agent Plan' })).toBeVisible();
   await expect(page.getByText('Verify conversation and analysis').first()).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Machine resources' })).toBeVisible();
+});
+
+test('public privacy and terms pages describe the hosted data boundary', async ({ page }) => {
+  await page.goto('/privacy/');
+  await expect(page.getByRole('heading', { name: 'Privacy Policy' })).toBeVisible();
+  await expect(page.getByText('does not persist Node snapshots')).toBeVisible();
+  await page.goto('/terms/');
+  await expect(page.getByRole('heading', { name: 'Terms of Service' })).toBeVisible();
+  await expect(page.getByText('Only connect machines and inspect sessions')).toBeVisible();
+});
+
+test('organization owner can open Pro Checkout and the Stripe billing portal', async ({ page }) => {
+  const state = await mockController(page, { signedIn: true, billingStatus: 'inactive' });
+  await page.goto('/');
+
+  await expect(page.getByRole('button', { name: '$5 monthly' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '$49 yearly' })).toBeVisible();
+  await page.getByRole('button', { name: '$5 monthly' }).click();
+  await expect.poll(() => state.billingCheckouts).toEqual([{ plan: 'pro', interval: 'monthly' }]);
+  await expect(page).toHaveURL('https://checkout.stripe.com/c/pay/browser-test');
+
+  state.billingStatus = 'active';
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Manage billing' }).click();
+  await expect.poll(() => state.billingPortalRequests).toBe(1);
+  await expect(page).toHaveURL('https://billing.stripe.com/p/session/browser-test');
 });
 
 test('conversation, message send, process tree, timeline filters, and event detail work together', async ({ page }) => {
@@ -161,6 +189,7 @@ test('Node management refresh, Direct setup, organization creation, sign-out, an
   await expect(page.getByRole('heading', { name: 'Machine fleet' })).toBeVisible();
   await expect.poll(() => state.organizations).toEqual([{ name: 'Browser Test Team' }]);
   await expect(page.locator('header select').first()).toHaveValue('org-team');
+  await expect(page.getByText('Team is $10 per member monthly.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Nodes' }).click();
   await page.getByRole('dialog', { name: 'Your Nodes' }).getByRole('button', { name: 'Sign out' }).click();

@@ -100,6 +100,14 @@ export function ConnectionDialog({
             </button>
           </section>
         </div>
+        <p className="mt-5 text-center text-xs text-slate-500">
+          {t('connect.legalPrefix')}{' '}
+          <a className="underline hover:text-slate-800"
+            href={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/terms/`}>{t('connect.terms')}</a>{' '}
+          {t('connect.legalAnd')}{' '}
+          <a className="underline hover:text-slate-800"
+            href={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/privacy/`}>{t('connect.privacy')}</a>.
+        </p>
       </div>
     </div>
   );

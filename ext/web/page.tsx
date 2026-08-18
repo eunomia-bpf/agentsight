@@ -14,10 +14,14 @@ import { tryNodeTransports } from '@/lib/nodeOpening.mjs';
 import type { FleetNodeSample } from '@/lib/fleetData';
 import {
   CloudSessionExpiredError,
+  type BillingInterval,
+  type CheckoutPlan,
   type CloudIdentity,
   type CloudNode,
   type CloudOrganization,
   acceptOrganizationInvite,
+  createBillingCheckout,
+  createBillingPortal,
   createOrganization,
   exchangeCloudCode,
   fetchCloudIdentity,
@@ -100,6 +104,8 @@ export default function Home() {
   const [fleetSamples, setFleetSamples] = useState<FleetNodeSample[]>([]);
   const [fleetLoading, setFleetLoading] = useState(false);
   const [fleetError, setFleetError] = useState('');
+  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingError, setBillingError] = useState('');
   const activationGeneration = useRef(0);
   const fleetGeneration = useRef(0);
   const directoryGeneration = useRef(0);
@@ -123,6 +129,8 @@ export default function Home() {
     setFleetSamples([]);
     setFleetLoading(false);
     setFleetError('');
+    setBillingBusy(false);
+    setBillingError('');
   }, []);
 
   const handleCloudError = useCallback((cause: unknown, fallback: string) => {
@@ -262,6 +270,7 @@ export default function Home() {
     const token = loadCloudSession();
     setFleetLoading(true);
     setFleetError('');
+    setBillingError('');
     setFleetSamples((current) => cloudNodes.map((node) => (
       current.find((sample) => sample.node.id === node.id) || {
         node,
@@ -585,6 +594,43 @@ export default function Home() {
       setNodesLoading(false);
     }
   }, [handleCloudError, switchOrganization]);
+
+  const startBillingCheckout = useCallback(async (
+    plan: CheckoutPlan,
+    interval: BillingInterval,
+  ) => {
+    const token = loadCloudSession();
+    if (!token || !activeOrganization) return;
+    setBillingBusy(true);
+    setBillingError('');
+    try {
+      window.location.assign(await createBillingCheckout(
+        token, activeOrganization.id, plan, interval,
+      ));
+    } catch (cause) {
+      if (cause instanceof CloudSessionExpiredError) {
+        handleCloudError(cause, 'Your AgentSight sign-in has expired.');
+      }
+      setBillingError(cause instanceof Error ? cause.message : 'Could not start billing checkout.');
+      setBillingBusy(false);
+    }
+  }, [activeOrganization, handleCloudError]);
+
+  const openBillingPortal = useCallback(async () => {
+    const token = loadCloudSession();
+    if (!token || !activeOrganization) return;
+    setBillingBusy(true);
+    setBillingError('');
+    try {
+      window.location.assign(await createBillingPortal(token, activeOrganization.id));
+    } catch (cause) {
+      if (cause instanceof CloudSessionExpiredError) {
+        handleCloudError(cause, 'Your AgentSight sign-in has expired.');
+      }
+      setBillingError(cause instanceof Error ? cause.message : 'Could not open billing portal.');
+      setBillingBusy(false);
+    }
+  }, [activeOrganization, handleCloudError]);
 
   useEffect(() => {
     let cancelled = false;
@@ -912,9 +958,12 @@ export default function Home() {
           </div>
         ) : identity && mode === 'directory' ? (
           <FleetOverview samples={fleetSamples} loading={fleetLoading} error={fleetError || nodeError}
-            organization={activeOrganization}
-            onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
-            onOpenNode={(nodeId) => { void openNode(nodeId); }} />
+          organization={activeOrganization}
+          billingBusy={billingBusy} billingError={billingError}
+          onRefresh={() => { void refreshCloudNodes(loadCloudSession(), activeOrganizationId); }}
+          onOpenNode={(nodeId) => { void openNode(nodeId); }}
+          onCheckout={(plan, interval) => { void startBillingCheckout(plan, interval); }}
+          onManageBilling={() => { void openBillingPortal(); }} />
         ) : workspaceVisible ? (
           <div className="space-y-4">
             <section className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">

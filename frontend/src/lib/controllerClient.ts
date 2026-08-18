@@ -41,6 +41,9 @@ export interface CloudOrganization {
   createdAt: number;
 }
 
+export type CheckoutPlan = 'pro' | 'team';
+export type BillingInterval = 'monthly' | 'annual';
+
 export interface CloudNode {
   id: string;
   organizationId: string;
@@ -170,6 +173,39 @@ export async function createOrganization(token: string, name: string): Promise<C
   const body = await response.json() as { organization?: CloudOrganization };
   if (!body.organization) throw new Error('The Controller returned an invalid organization.');
   return body.organization;
+}
+
+export async function createBillingCheckout(
+  token: string,
+  organizationId: string,
+  plan: CheckoutPlan,
+  interval: BillingInterval,
+): Promise<string> {
+  const response = await request(
+    `${controllerUrl}/v1/organizations/${encodeURIComponent(organizationId)}/billing/checkout`,
+    {
+      method: 'POST', headers: authHeaders(token, true), body: JSON.stringify({ plan, interval }),
+    },
+  );
+  if (!response.ok) await responseError(response, 'Could not start billing checkout');
+  const body = await response.json() as { url?: unknown };
+  if (typeof body.url !== 'string' || !body.url.startsWith('https://checkout.stripe.com/')) {
+    throw new Error('The Controller returned an invalid checkout URL.');
+  }
+  return body.url;
+}
+
+export async function createBillingPortal(token: string, organizationId: string): Promise<string> {
+  const response = await request(
+    `${controllerUrl}/v1/organizations/${encodeURIComponent(organizationId)}/billing/portal`,
+    { method: 'POST', headers: authHeaders(token) },
+  );
+  if (!response.ok) await responseError(response, 'Could not open billing portal');
+  const body = await response.json() as { url?: unknown };
+  if (typeof body.url !== 'string' || !body.url.startsWith('https://billing.stripe.com/')) {
+    throw new Error('The Controller returned an invalid billing portal URL.');
+  }
+  return body.url;
 }
 
 export async function acceptOrganizationInvite(token: string, inviteToken: string): Promise<string> {
