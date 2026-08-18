@@ -365,7 +365,7 @@ test('billing Checkout reserves one durable generation before calling Stripe', a
     return Response.json({
       id: `cs_test_durable${checkoutPosts}`,
       url: `https://checkout.stripe.com/c/pay/durable${checkoutPosts}`,
-      expires_at: Number(body.get('expires_at')),
+      expires_at: Math.floor(Date.now() / 1_000) + 24 * 60 * 60,
     });
   };
   const ctx = {
@@ -425,6 +425,7 @@ test('billing Checkout reserves one durable generation before calling Stripe', a
       string, { expiresAt: number; session?: unknown; priceId: string },
     ];
     assert.equal(checkoutState.priceId, 'price_pro_monthly');
+    assert.ok(checkoutState.expiresAt - Date.now() > 23 * 60 * 60 * 1_000);
     relayEnv.STRIPE_PRO_MONTHLY_PRICE_ID = 'price_pro_monthly_v2';
     stored.set(checkoutKey, {
       ...checkoutState, session: undefined, expiresAt: Date.now() - 120_000,

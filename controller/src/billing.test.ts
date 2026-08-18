@@ -39,6 +39,7 @@ test('Checkout binds the organization and subscription metadata to a configured 
   let requestBody: URLSearchParams | null = null;
   let idempotencyKey = '';
   const attempt = { generation: 'checkout_generation_1', expiresAtSeconds: 1_900_001_800 };
+  const stripeExpiresAt = 1_900_086_400;
   const session = await createStripeCheckout(stripeEnv, {
     organizationId: 'org_personal_user1',
     organizationKind: 'personal',
@@ -55,11 +56,11 @@ test('Checkout binds the organization and subscription metadata to a configured 
     idempotencyKey = new Headers(init?.headers).get('Idempotency-Key') || '';
     return Response.json({
       id: 'cs_test_checkout1', url: 'https://checkout.stripe.com/c/pay/test',
-      expires_at: Number(requestBody.get('expires_at')),
+      expires_at: stripeExpiresAt,
     });
   }, attempt);
   assert.equal(session.url, 'https://checkout.stripe.com/c/pay/test');
-  assert.equal(session.expiresAt, attempt.expiresAtSeconds * 1_000);
+  assert.equal(session.expiresAt, stripeExpiresAt * 1_000);
   assert.ok(requestBody);
   const body = requestBody as URLSearchParams;
   assert.equal(body.get('line_items[0][price]'), 'price_pro_annual');
@@ -67,7 +68,7 @@ test('Checkout binds the organization and subscription metadata to a configured 
   assert.equal(body.get('subscription_data[metadata][organization_id]'), 'org_personal_user1');
   assert.equal(body.get('subscription_data[metadata][checkout_generation]'), attempt.generation);
   assert.equal(body.get('success_url'), 'https://app.agentsight.us/?billing=success');
-  assert.equal(body.get('expires_at'), String(attempt.expiresAtSeconds));
+  assert.equal(body.get('expires_at'), null);
   assert.match(idempotencyKey, /^agentsight-[a-f0-9]{64}$/);
 
   await assert.rejects(
@@ -80,11 +81,14 @@ test('Checkout binds the organization and subscription metadata to a configured 
   );
 });
 
-test('Retries for one reserved Checkout reuse its Stripe idempotency generation', async () => {
+test('Late retries reuse one request without an invalid absolute Stripe expiry', async () => {
   const keys: string[] = [];
   const requests = new Map<string, string>();
   let sessionsCreated = 0;
-  const attempt = { generation: 'checkout_generation_2', expiresAtSeconds: 1_900_001_800 };
+  const attempt = {
+    generation: 'checkout_generation_2',
+    expiresAtSeconds: Math.floor(Date.now() / 1_000) + 29 * 60,
+  };
   const checkout = () => createStripeCheckout(stripeEnv, {
     organizationId: 'org_personal_user1', organizationKind: 'personal', email: 'owner@example.com',
     plan: 'pro', interval: 'monthly', externalCustomerId: null, externalSubscriptionId: null,
@@ -114,6 +118,7 @@ test('Retries for one reserved Checkout reuse its Stripe idempotency generation'
   assert.equal(keys[0], keys[1]);
   assert.equal(results.filter((result) => result.status === 'fulfilled').length, 2);
   assert.equal(sessionsCreated, 1);
+  assert.ok(Array.from(requests.values()).every((body) => !body.includes('expires_at=')));
 });
 
 test('Team checkout fails closed until seat quantity can be reconciled', async () => {

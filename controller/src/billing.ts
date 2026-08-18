@@ -13,9 +13,10 @@ const STRIPE_API = 'https://api.stripe.com/v1';
 const WEBHOOK_TOLERANCE_SECONDS = 5 * 60;
 const MAX_WEBHOOK_BYTES = 512 * 1024;
 const STRIPE_TIMEOUT_MS = 10_000;
-// Stripe accepts explicit Checkout expiry only when it is at least 30 minutes
-// away. Five minutes cover the subscription search and provider/network skew.
-export const STRIPE_CHECKOUT_LIFETIME_SECONDS = 35 * 60;
+// Stripe's default Checkout expiry is 24 hours. Do not send an absolute
+// `expires_at`: an idempotent retry must remain byte-for-byte valid even after
+// the original request is older than Stripe's 30-minute minimum window.
+export const STRIPE_CHECKOUT_LIFETIME_SECONDS = 24 * 60 * 60;
 const ORGANIZATION_ID_PATTERN = /^org_[A-Za-z0-9_]{1,124}$/;
 const SUBSCRIPTION_ID_PATTERN = /^sub_[A-Za-z0-9_]{1,250}$/;
 const EVENT_ID_PATTERN = /^evt_[A-Za-z0-9_]{1,250}$/;
@@ -204,7 +205,6 @@ export async function createStripeCheckout(
     'subscription_data[metadata][plan]': input.plan,
     'subscription_data[metadata][interval]': input.interval,
     'subscription_data[metadata][checkout_generation]': attempt.generation,
-    expires_at: String(attempt.expiresAtSeconds),
     allow_promotion_codes: 'true',
     billing_address_collection: 'auto',
   });
@@ -215,12 +215,14 @@ export async function createStripeCheckout(
     '/checkout/sessions', secret, body, stripeFetch,
     await checkoutIdempotencyKey(input, attempt.generation), signal,
   );
+  const expiresAtSeconds = session.expires_at;
   if (!session.id || !CHECKOUT_SESSION_ID_PATTERN.test(session.id)
       || !isTrustedStripeUrl(session.url, 'checkout.stripe.com')
-      || session.expires_at !== attempt.expiresAtSeconds) {
+      || typeof expiresAtSeconds !== 'number' || !Number.isSafeInteger(expiresAtSeconds)
+      || expiresAtSeconds <= 0) {
     throw new AccessError(502, 'billing_provider_invalid_response');
   }
-  return { id: session.id, url: session.url, expiresAt: session.expires_at * 1000 };
+  return { id: session.id, url: session.url, expiresAt: expiresAtSeconds * 1_000 };
 }
 
 export async function createStripePortal(

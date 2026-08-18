@@ -544,7 +544,9 @@ export class NodeRelay {
           current = false;
           return;
         }
-        await transaction.put(BILLING_CHECKOUT_KEY, { ...stored, session });
+        await transaction.put(BILLING_CHECKOUT_KEY, {
+          ...stored, expiresAt: session.expiresAt, session,
+        });
       });
       if (!current) return json({ error: 'billing_checkout_in_progress' }, 409);
       return json({ url: session.url });
